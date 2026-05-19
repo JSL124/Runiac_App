@@ -1,0 +1,259 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2600" height="1450" viewBox="0 0 2600 1450"><rect width="2600" height="1450" fill="white"/>
+<text x="60" y="77.6" font-family="Arial, Helvetica, sans-serif" font-size="36" font-weight="bold" text-anchor="start" fill="#111827">Runiac Component Diagram</text>
+<text x="62" y="108.65" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="normal" text-anchor="start" fill="#4b5563">PDD Section 3 - UML component notation aligned with Topic 4</text>
+<rect x="360" y="135" width="900" height="990" fill="#eef9fd" stroke="#222222" stroke-width="2"/>
+<text x="810.0" y="178.75" font-family="Arial, Helvetica, sans-serif" font-size="25" font-weight="bold" text-anchor="middle" fill="#111827">&lt;&lt;subsystem&gt;&gt; Runiac Application</text>
+<rect x="1218" y="151" width="20" height="28" fill="#eef9fd" stroke="#222222" stroke-width="2"/>
+<rect x="1210" y="156" width="12" height="9" fill="#eef9fd" stroke="#222222" stroke-width="2"/>
+<rect x="1210" y="170" width="12" height="9" fill="#eef9fd" stroke="#222222" stroke-width="2"/>
+<rect x="1490" y="135" width="620" height="735" fill="#eef9fd" stroke="#222222" stroke-width="2"/>
+<text x="1800.0" y="178.75" font-family="Arial, Helvetica, sans-serif" font-size="25" font-weight="bold" text-anchor="middle" fill="#111827">&lt;&lt;subsystem&gt;&gt; Firebase Backend / BaaS</text>
+<rect x="2068" y="151" width="20" height="28" fill="#eef9fd" stroke="#222222" stroke-width="2"/>
+<rect x="2060" y="156" width="12" height="9" fill="#eef9fd" stroke="#222222" stroke-width="2"/>
+<rect x="2060" y="170" width="12" height="9" fill="#eef9fd" stroke="#222222" stroke-width="2"/>
+<rect x="2160" y="430" width="390" height="720" fill="#eef9fd" stroke="#222222" stroke-width="2"/>
+<text x="2355.0" y="461.75" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="bold" text-anchor="middle" fill="#111827">&lt;&lt;subsystem&gt;&gt;</text>
+<text x="2355.0" y="488.75" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="bold" text-anchor="middle" fill="#111827">External Services</text>
+<rect x="2518" y="446" width="20" height="28" fill="#eef9fd" stroke="#222222" stroke-width="2"/>
+<rect x="2510" y="451" width="12" height="9" fill="#eef9fd" stroke="#222222" stroke-width="2"/>
+<rect x="2510" y="465" width="12" height="9" fill="#eef9fd" stroke="#222222" stroke-width="2"/>
+<rect x="65" y="205" width="250" height="70" fill="white" stroke="#222222" stroke-width="2"/>
+<text x="190" y="233.25" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" text-anchor="middle" fill="#111827">«Actor»</text>
+<text x="190" y="262.0" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="bold" text-anchor="middle" fill="#111827">Basic User</text>
+<rect x="65" y="305" width="250" height="70" fill="white" stroke="#222222" stroke-width="2"/>
+<text x="190" y="333.25" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" text-anchor="middle" fill="#111827">«Actor»</text>
+<text x="190" y="362.0" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="bold" text-anchor="middle" fill="#111827">Premium User</text>
+<rect x="65" y="430" width="250" height="70" fill="white" stroke="#222222" stroke-width="2"/>
+<text x="190" y="458.25" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" text-anchor="middle" fill="#111827">«Actor»</text>
+<text x="190" y="476.0" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="bold" text-anchor="middle" fill="#111827">Platform</text>
+<text x="190" y="498.0" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="bold" text-anchor="middle" fill="#111827">Administrator</text>
+<rect x="65" y="610" width="250" height="70" fill="white" stroke="#222222" stroke-width="2"/>
+<text x="190" y="638.25" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" text-anchor="middle" fill="#111827">«Device»</text>
+<text x="190" y="667.0" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="bold" text-anchor="middle" fill="#111827">Smartphone GPS</text>
+<rect x="65" y="710" width="250" height="70" fill="white" stroke="#222222" stroke-width="2"/>
+<text x="190" y="738.25" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" text-anchor="middle" fill="#111827">«Device»</text>
+<text x="190" y="767.0" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="bold" text-anchor="middle" fill="#111827">Optional Wearable</text>
+<rect x="430" y="230" width="330" height="92" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="722" y="244" width="20" height="28" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="714" y="249" width="12" height="9" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="714" y="263" width="12" height="9" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<text x="595.0" y="258.25" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" text-anchor="middle" fill="#111827">&lt;&lt;component&gt;&gt;</text>
+<text x="595.0" y="296.23" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="bold" text-anchor="middle" fill="#111827">Account &amp; Profile</text>
+<rect x="835" y="230" width="330" height="92" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="1127" y="244" width="20" height="28" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="1119" y="249" width="12" height="9" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="1119" y="263" width="12" height="9" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<text x="1000.0" y="258.25" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" text-anchor="middle" fill="#111827">&lt;&lt;component&gt;&gt;</text>
+<text x="1000.0" y="296.23" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="bold" text-anchor="middle" fill="#111827">Subscription Entitlement</text>
+<rect x="430" y="380" width="330" height="92" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="722" y="394" width="20" height="28" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="714" y="399" width="12" height="9" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="714" y="413" width="12" height="9" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<text x="595.0" y="408.25" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" text-anchor="middle" fill="#111827">&lt;&lt;component&gt;&gt;</text>
+<text x="595.0" y="446.23" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="bold" text-anchor="middle" fill="#111827">Run Tracking</text>
+<rect x="835" y="380" width="330" height="92" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="1127" y="394" width="20" height="28" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="1119" y="399" width="12" height="9" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="1119" y="413" width="12" height="9" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<text x="1000.0" y="408.25" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" text-anchor="middle" fill="#111827">&lt;&lt;component&gt;&gt;</text>
+<text x="1000.0" y="446.23" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="bold" text-anchor="middle" fill="#111827">Training Plan</text>
+<rect x="430" y="530" width="330" height="92" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="722" y="544" width="20" height="28" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="714" y="549" width="12" height="9" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="714" y="563" width="12" height="9" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<text x="595.0" y="558.25" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" text-anchor="middle" fill="#111827">&lt;&lt;component&gt;&gt;</text>
+<text x="595.0" y="596.23" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="bold" text-anchor="middle" fill="#111827">Activity Analysis</text>
+<rect x="835" y="530" width="330" height="92" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="1127" y="544" width="20" height="28" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="1119" y="549" width="12" height="9" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="1119" y="563" width="12" height="9" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<text x="1000.0" y="558.25" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" text-anchor="middle" fill="#111827">&lt;&lt;component&gt;&gt;</text>
+<text x="1000.0" y="596.23" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="bold" text-anchor="middle" fill="#111827">XP / Streak / Level</text>
+<rect x="430" y="680" width="330" height="92" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="722" y="694" width="20" height="28" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="714" y="699" width="12" height="9" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="714" y="713" width="12" height="9" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<text x="595.0" y="708.25" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" text-anchor="middle" fill="#111827">&lt;&lt;component&gt;&gt;</text>
+<text x="595.0" y="746.23" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="bold" text-anchor="middle" fill="#111827">Route Sharing</text>
+<rect x="835" y="680" width="330" height="92" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="1127" y="694" width="20" height="28" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="1119" y="699" width="12" height="9" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="1119" y="713" width="12" height="9" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<text x="1000.0" y="708.25" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" text-anchor="middle" fill="#111827">&lt;&lt;component&gt;&gt;</text>
+<text x="1000.0" y="746.23" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="bold" text-anchor="middle" fill="#111827">Territorial Leaderboard</text>
+<rect x="430" y="830" width="330" height="92" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="722" y="844" width="20" height="28" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="714" y="849" width="12" height="9" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="714" y="863" width="12" height="9" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<text x="595.0" y="858.25" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" text-anchor="middle" fill="#111827">&lt;&lt;component&gt;&gt;</text>
+<text x="595.0" y="896.23" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="bold" text-anchor="middle" fill="#111827">Reminder &amp; Notification</text>
+<rect x="835" y="830" width="330" height="92" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="1127" y="844" width="20" height="28" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="1119" y="849" width="12" height="9" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="1119" y="863" width="12" height="9" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<text x="1000.0" y="858.25" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" text-anchor="middle" fill="#111827">&lt;&lt;component&gt;&gt;</text>
+<text x="1000.0" y="896.23" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="bold" text-anchor="middle" fill="#111827">Share Card Generator</text>
+<polyline points="760,276 835,276" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="776.5" y="246.0" width="42.0" height="20.0" rx="4" fill="white"/><text x="797.5" y="258.9" font-family="Arial, Helvetica, sans-serif" font-size="14" text-anchor="middle" fill="#111827">uses</text>
+<polyline points="595,472 595,530" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="563.5" y="468.0" width="63.0" height="26.0" rx="4" fill="white"/><text x="595.0" y="483.9" font-family="Arial, Helvetica, sans-serif" font-size="14" text-anchor="middle" fill="#111827">updates</text>
+<polyline points="760,576 835,576" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="766.0" y="543.0" width="63.0" height="26.0" rx="4" fill="white"/><text x="797.5" y="558.9" font-family="Arial, Helvetica, sans-serif" font-size="14" text-anchor="middle" fill="#111827">updates</text>
+<polyline points="760,726 835,726" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="776.5" y="696.0" width="42.0" height="20.0" rx="4" fill="white"/><text x="797.5" y="708.9" font-family="Arial, Helvetica, sans-serif" font-size="14" text-anchor="middle" fill="#111827">uses</text>
+<polyline points="760,876 835,876" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="770.0" y="845.0" width="55.0" height="22.0" rx="4" fill="white"/><text x="797.5" y="858.9" font-family="Arial, Helvetica, sans-serif" font-size="14" text-anchor="middle" fill="#111827">shares</text>
+<polyline points="1000,322 1000,380" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="1000" cy="322" r="15" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<path d="M 983 380 A 17 17 0 0 1 1017 380" fill="none" stroke="#222222" stroke-width="2" stroke-linecap="round"/>
+<rect x="1038.5" y="342.5" width="127.0" height="23.0" rx="4" fill="white"/><text x="1102" y="356.9" font-family="Arial, Helvetica, sans-serif" font-size="14" text-anchor="middle" fill="#111827">IEntitlementCheck</text>
+<polyline points="1025,322 1025,530" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M 1008 530 A 17 17 0 0 1 1042 530" fill="none" stroke="#222222" stroke-width="2" stroke-linecap="round"/>
+<rect x="1580" y="230" width="320" height="88" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="1862" y="244" width="20" height="28" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="1854" y="249" width="12" height="9" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="1854" y="263" width="12" height="9" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<text x="1740.0" y="258.25" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" text-anchor="middle" fill="#111827">&lt;&lt;component&gt;&gt;</text>
+<text x="1740.0" y="282.17" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="bold" text-anchor="middle" fill="#111827">Firebase</text>
+<text x="1740.0" y="305.17" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="bold" text-anchor="middle" fill="#111827">Authentication</text>
+<rect x="1580" y="345" width="320" height="88" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="1862" y="359" width="20" height="28" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="1854" y="364" width="12" height="9" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="1854" y="378" width="12" height="9" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<text x="1740.0" y="373.25" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" text-anchor="middle" fill="#111827">&lt;&lt;component&gt;&gt;</text>
+<text x="1740.0" y="408.67" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="bold" text-anchor="middle" fill="#111827">Cloud Firestore</text>
+<rect x="1580" y="510" width="320" height="110" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="1862" y="524" width="20" height="28" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="1854" y="529" width="12" height="9" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="1854" y="543" width="12" height="9" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<text x="1740.0" y="538.25" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" text-anchor="middle" fill="#111827">&lt;&lt;component&gt;&gt;</text>
+<text x="1740.0" y="576.25" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="bold" text-anchor="middle" fill="#111827">Cloud Functions</text>
+<text x="1740.0" y="599.25" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="bold" text-anchor="middle" fill="#111827">Processing</text>
+<rect x="1580" y="785" width="320" height="88" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="1862" y="799" width="20" height="28" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="1854" y="804" width="12" height="9" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="1854" y="818" width="12" height="9" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<text x="1740.0" y="813.25" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" text-anchor="middle" fill="#111827">&lt;&lt;component&gt;&gt;</text>
+<text x="1740.0" y="837.1700000000001" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="bold" text-anchor="middle" fill="#111827">Firebase Cloud</text>
+<text x="1740.0" y="860.1700000000001" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="bold" text-anchor="middle" fill="#111827">Messaging</text>
+<rect x="2190" y="510" width="310" height="84" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="2462" y="524" width="20" height="28" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="2454" y="529" width="12" height="9" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="2454" y="543" width="12" height="9" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<text x="2345.0" y="538.25" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" text-anchor="middle" fill="#111827">&lt;&lt;component&gt;&gt;</text>
+<text x="2345.0" y="559.61" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="bold" text-anchor="middle" fill="#111827">Geocoding / Region</text>
+<text x="2345.0" y="582.61" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="bold" text-anchor="middle" fill="#111827">Mapping</text>
+<rect x="2190" y="640" width="310" height="84" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="2462" y="654" width="20" height="28" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="2454" y="659" width="12" height="9" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="2454" y="673" width="12" height="9" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<text x="2345.0" y="668.25" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" text-anchor="middle" fill="#111827">&lt;&lt;component&gt;&gt;</text>
+<text x="2345.0" y="701.11" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="bold" text-anchor="middle" fill="#111827">AI / LLM Service</text>
+<rect x="2190" y="900" width="310" height="84" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="2462" y="914" width="20" height="28" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="2454" y="919" width="12" height="9" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="2454" y="933" width="12" height="9" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<text x="2345.0" y="928.25" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" text-anchor="middle" fill="#111827">&lt;&lt;component&gt;&gt;</text>
+<text x="2345.0" y="949.61" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="bold" text-anchor="middle" fill="#111827">Google Maps /</text>
+<text x="2345.0" y="972.61" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="bold" text-anchor="middle" fill="#111827">Mapbox API</text>
+<rect x="2190" y="1030" width="310" height="84" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="2462" y="1044" width="20" height="28" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="2454" y="1049" width="12" height="9" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="2454" y="1063" width="12" height="9" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<text x="2345.0" y="1058.25" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" text-anchor="middle" fill="#111827">&lt;&lt;component&gt;&gt;</text>
+<text x="2345.0" y="1079.61" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="bold" text-anchor="middle" fill="#111827">OS Share Sheet /</text>
+<text x="2345.0" y="1102.61" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="bold" text-anchor="middle" fill="#111827">Social Media</text>
+<polyline points="315,276 391,276" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="406" cy="276" r="15" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<polyline points="421,276 430,276" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="305.5" y="236.5" width="110.0" height="23.0" rx="4" fill="white"/><text x="360.5" y="250.9" font-family="Arial, Helvetica, sans-serif" font-size="14" text-anchor="middle" fill="#111827">Create Account</text>
+<polyline points="315,340 796,340" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="811" cy="340" r="15" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<polyline points="826,340 835,340" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="518.0" y="299.0" width="90.0" height="26.0" rx="4" fill="white"/><text x="563.0" y="314.9" font-family="Arial, Helvetica, sans-serif" font-size="14" text-anchor="middle" fill="#111827">Subscription</text>
+<polyline points="315,465 330,465 330,1215 1740,1215 1740,620" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 5"/>
+<rect x="957.0" y="1183.0" width="166.0" height="26.0" rx="4" fill="white"/><text x="1040" y="1198.9" font-family="Arial, Helvetica, sans-serif" font-size="14" text-anchor="middle" fill="#111827">moderates route reports</text>
+<polyline points="315,645 347,645" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="362" cy="645" r="15" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<path d="M 392 628 A 17 17 0 0 1 392 662" fill="none" stroke="#222222" stroke-width="2" stroke-linecap="round"/>
+<polyline points="409,645 430,645" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="339.5" y="602.5" width="75.0" height="23.0" rx="4" fill="white"/><text x="377.0" y="616.9" font-family="Arial, Helvetica, sans-serif" font-size="14" text-anchor="middle" fill="#111827">GPS Data</text>
+<polyline points="315,745 347,745" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="362" cy="745" r="15" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<path d="M 392 728 A 17 17 0 0 1 392 762" fill="none" stroke="#222222" stroke-width="2" stroke-linecap="round"/>
+<polyline points="409,745 430,745" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="315.5" y="702.5" width="123.0" height="23.0" rx="4" fill="white"/><text x="377.0" y="716.9" font-family="Arial, Helvetica, sans-serif" font-size="14" text-anchor="middle" fill="#111827">Wearable Metrics</text>
+<polyline points="1260,274 1298,274" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M 1298 257 A 17 17 0 0 0 1298 291" fill="none" stroke="#222222" stroke-width="2" stroke-linecap="round"/>
+<polyline points="1298,274 1550,274" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="1565" cy="274" r="15" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="1260.0" y="231.5" width="106.0" height="23.0" rx="4" fill="white"/><text x="1313.0" y="245.9" font-family="Arial, Helvetica, sans-serif" font-size="14" text-anchor="middle" fill="#111827">IAuthentication</text>
+<polyline points="1260,386 1298,386" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M 1298 369 A 17 17 0 0 0 1298 403" fill="none" stroke="#222222" stroke-width="2" stroke-linecap="round"/>
+<polyline points="1298,386 1550,386" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="1565" cy="386" r="15" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="1255.0" y="342.0" width="116.0" height="26.0" rx="4" fill="white"/><text x="1313.0" y="357.9" font-family="Arial, Helvetica, sans-serif" font-size="14" text-anchor="middle" fill="#111827">IAppDataAccess</text>
+<polyline points="1260,540 1298,540" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M 1298 523 A 17 17 0 0 0 1298 557" fill="none" stroke="#222222" stroke-width="2" stroke-linecap="round"/>
+<polyline points="1298,540 1550,540" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="1565" cy="540" r="15" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="1248.0" y="496.0" width="130.0" height="26.0" rx="4" fill="white"/><text x="1313.0" y="511.9" font-family="Arial, Helvetica, sans-serif" font-size="14" text-anchor="middle" fill="#111827">IActivityProcessing</text>
+<polyline points="1260,585 1298,585" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M 1298 568 A 17 17 0 0 0 1298 602" fill="none" stroke="#222222" stroke-width="2" stroke-linecap="round"/>
+<polyline points="1298,585 1550,585" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="1565" cy="585" r="15" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="1234.0" y="541.0" width="158.0" height="26.0" rx="4" fill="white"/><text x="1313.0" y="556.9" font-family="Arial, Helvetica, sans-serif" font-size="14" text-anchor="middle" fill="#111827">IMetricProgressUpdate</text>
+<polyline points="1260,640 1298,640" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M 1298 623 A 17 17 0 0 0 1298 657" fill="none" stroke="#222222" stroke-width="2" stroke-linecap="round"/>
+<polyline points="1298,640 1550,640" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="1565" cy="640" r="15" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="1225.5" y="596.0" width="175.0" height="26.0" rx="4" fill="white"/><text x="1313.0" y="611.9" font-family="Arial, Helvetica, sans-serif" font-size="14" text-anchor="middle" fill="#111827">ILeaderboardAggregation</text>
+<polyline points="1260,700 1298,700" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M 1298 683 A 17 17 0 0 0 1298 717" fill="none" stroke="#222222" stroke-width="2" stroke-linecap="round"/>
+<polyline points="1298,700 1550,700" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="1565" cy="700" r="15" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="1244.0" y="656.0" width="138.0" height="26.0" rx="4" fill="white"/><text x="1313.0" y="671.9" font-family="Arial, Helvetica, sans-serif" font-size="14" text-anchor="middle" fill="#111827">IRouteManagement</text>
+<polyline points="1260,829 1298,829" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M 1298 812 A 17 17 0 0 0 1298 846" fill="none" stroke="#222222" stroke-width="2" stroke-linecap="round"/>
+<polyline points="1298,829 1550,829" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="1565" cy="829" r="15" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="1254.0" y="786.5" width="118.0" height="23.0" rx="4" fill="white"/><text x="1313.0" y="800.9" font-family="Arial, Helvetica, sans-serif" font-size="14" text-anchor="middle" fill="#111827">IPushNotification</text>
+<polyline points="1260,942 1298,942" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M 1298 925 A 17 17 0 0 0 1298 959" fill="none" stroke="#222222" stroke-width="2" stroke-linecap="round"/>
+<polyline points="1298,942 2160,942" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="2175" cy="942" r="15" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="1268.0" y="898.5" width="90.0" height="25.0" rx="4" fill="white"/><text x="1313.0" y="913.9" font-family="Arial, Helvetica, sans-serif" font-size="14" text-anchor="middle" fill="#111827">IMapDisplay</text>
+<polyline points="1260,1072 1298,1072" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M 1298 1055 A 17 17 0 0 0 1298 1089" fill="none" stroke="#222222" stroke-width="2" stroke-linecap="round"/>
+<polyline points="1298,1072 2160,1072" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="2175" cy="1072" r="15" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="1265.0" y="1028.0" width="96.0" height="26.0" rx="4" fill="white"/><text x="1313.0" y="1043.9" font-family="Arial, Helvetica, sans-serif" font-size="14" text-anchor="middle" fill="#111827">IShareTarget</text>
+<polyline points="1900,552 1938,552" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M 1938 535 A 17 17 0 0 0 1938 569" fill="none" stroke="#222222" stroke-width="2" stroke-linecap="round"/>
+<polyline points="1938,552 2160,552" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="2175" cy="552" r="15" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="1895.0" y="508.5" width="116.0" height="25.0" rx="4" fill="white"/><text x="1953.0" y="523.9" font-family="Arial, Helvetica, sans-serif" font-size="14" text-anchor="middle" fill="#111827">IRegionMapping</text>
+<polyline points="1900,682 1938,682" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M 1938 665 A 17 17 0 0 0 1938 699" fill="none" stroke="#222222" stroke-width="2" stroke-linecap="round"/>
+<polyline points="1938,682 2160,682" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="2175" cy="682" r="15" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<rect x="1879.0" y="638.0" width="148.0" height="26.0" rx="4" fill="white"/><text x="1953.0" y="653.9" font-family="Arial, Helvetica, sans-serif" font-size="14" text-anchor="middle" fill="#111827">ISummaryGeneration</text>
+<polyline points="1740,433 1740,510" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="1670.0" y="455.0" width="60.0" height="26.0" rx="4" fill="white"/><text x="1700" y="470.9" font-family="Arial, Helvetica, sans-serif" font-size="14" text-anchor="middle" fill="#111827">triggers</text>
+<polyline points="1900,433 1850,510" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="1909.5" y="456.5" width="51.0" height="23.0" rx="4" fill="white"/><text x="1935" y="470.9" font-family="Arial, Helvetica, sans-serif" font-size="14" text-anchor="middle" fill="#111827">stores</text>
+<rect x="65" y="1290" width="2295" height="120" fill="white" stroke="#222222" stroke-width="1"/>
+<text x="150" y="1342.35" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="bold" text-anchor="middle" fill="#111827">Legend</text>
+<rect x="255" y="1315" width="150" height="50" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<text x="330" y="1347.95" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="normal" text-anchor="middle" fill="#111827">Component</text>
+<polyline points="500,1340 565,1340" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="580" cy="1340" r="15" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<text x="725" y="1350.95" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="normal" text-anchor="middle" fill="#111827">Provided interface</text>
+<polyline points="930,1340 1000,1340" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M 1015 1323 A 17 17 0 0 1 1015 1357" fill="none" stroke="#222222" stroke-width="2" stroke-linecap="round"/>
+<text x="1165" y="1350.95" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="normal" text-anchor="middle" fill="#111827">Required interface</text>
+<polyline points="1360,1340 1460,1340" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="1389.0" y="1308.0" width="42.0" height="20.0" rx="4" fill="white"/><text x="1410" y="1320.9" font-family="Arial, Helvetica, sans-serif" font-size="14" text-anchor="middle" fill="#111827">uses</text>
+<text x="1610" y="1350.95" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="normal" text-anchor="middle" fill="#111827">Labelled dependency</text>
+<text x="2070" y="1350.95" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="normal" text-anchor="middle" fill="#111827">Interface names placed near symbols</text>
+</svg>

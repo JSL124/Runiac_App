@@ -1,0 +1,158 @@
+flowchart TB
+  subgraph Users["User Layer"]
+    direction LR
+    Basic["Basic User"]
+    Premium["Premium User"]
+    Admin["Platform Administrator"]
+  end
+
+  subgraph Flutter["Flutter Mobile Application"]
+    direction TB
+
+    subgraph UI["Presentation / Feature Modules"]
+      direction LR
+      AuthUI["Authentication &<br/>Onboarding"]
+      HomeUI["Home / Dashboard"]
+      RunUI["Run Tracking"]
+      PlanUI["Training Plan"]
+      AnalysisUI["Analysis &<br/>Post-Run Summary"]
+      MotiveUI["XP / Streak /<br/>Level"]
+      RouteUI["Route Sharing"]
+      LeaderUI["Territorial<br/>Leaderboard"]
+      NotifyUI["Reminder &<br/>Notification UI"]
+      SubUI["Subscription /<br/>Entitlement"]
+    end
+
+    subgraph Logic["Application Logic / Managers"]
+      direction LR
+      ProfileMgr["Profile & Goal<br/>Manager"]
+      RunMgr["Run Session<br/>Manager"]
+      PlanMgr["Plan Manager"]
+      MetricMgr["Metrics & Analysis<br/>Manager"]
+      ProgressMgr["XP / Streak /<br/>Level Manager"]
+      RouteMgr["Route Manager"]
+      LeaderMgr["Leaderboard<br/>Manager"]
+      ReminderMgr["Reminder<br/>Manager"]
+      EntitlementMgr["Entitlement<br/>Manager"]
+    end
+
+    subgraph Device["Device Services"]
+      direction LR
+      GPS["Smartphone GPS<br/>Adapter"]
+      Wearable["Optional Wearable<br/>Adapter"]
+      Buffer["Local Run Buffer"]
+      ShareCard["Share Card<br/>Generator"]
+      PushHandler["Push Notification<br/>Handler"]
+    end
+  end
+
+  subgraph Firebase["Firebase Backend / BaaS"]
+    direction TB
+    Auth["Firebase<br/>Authentication"]
+    Firestore[("Cloud Firestore")]
+    FCM["Firebase Cloud<br/>Messaging"]
+
+    subgraph Functions["Cloud Functions Processing"]
+      direction LR
+      ActivityFn["Activity Validation"]
+      MetricFn["Metric Derivation"]
+      PlanFn["Plan Generation /<br/>Adjustment"]
+      ProgressFn["XP / Streak /<br/>Level Calculation"]
+      ReminderFn["Reminder Checks"]
+      RouteFn["Route Privacy /<br/>Geo Indexing"]
+      LeaderFn["Leaderboard<br/>Aggregation"]
+      SummaryFn["AI Summary<br/>Preparation"]
+      ModerationFn["Route Report /<br/>Moderation"]
+    end
+  end
+
+  subgraph External["External Services"]
+    direction LR
+    Maps["Google Maps /<br/>Mapbox API"]
+    Geo["Geocoding /<br/>Region Mapping"]
+    LLM["AI / LLM Service"]
+    ShareSheet["OS Share Sheet /<br/>Social Media"]
+  end
+
+  Basic --> HomeUI
+  Basic --> RunUI
+  Premium --> HomeUI
+  Premium --> SubUI
+  Admin --> ModerationFn
+
+  AuthUI --> ProfileMgr
+  HomeUI --> PlanMgr
+  HomeUI --> ProgressMgr
+  RunUI --> RunMgr
+  PlanUI --> PlanMgr
+  AnalysisUI --> MetricMgr
+  MotiveUI --> ProgressMgr
+  RouteUI --> RouteMgr
+  LeaderUI --> LeaderMgr
+  NotifyUI --> ReminderMgr
+  SubUI --> EntitlementMgr
+
+  RunMgr --> GPS
+  RunMgr --> Wearable
+  RunMgr --> Buffer
+  RouteMgr --> Maps
+  LeaderMgr --> Maps
+  AnalysisUI --> ShareCard
+  LeaderUI --> ShareCard
+  ShareCard --> ShareSheet
+  PushHandler --> NotifyUI
+
+  ProfileMgr --> Auth
+  ProfileMgr --> Firestore
+  EntitlementMgr --> Firestore
+  Buffer -->|"upload completed run"| ActivityFn
+  PlanMgr --> PlanFn
+  MetricMgr --> MetricFn
+  ProgressMgr --> ProgressFn
+  RouteMgr --> RouteFn
+  LeaderMgr --> LeaderFn
+  ReminderMgr --> ReminderFn
+
+  ActivityFn --> MetricFn
+  ActivityFn --> ProgressFn
+  ActivityFn --> SummaryFn
+  ActivityFn --> LeaderFn
+  MetricFn --> PlanFn
+  ProgressFn --> LeaderFn
+  RouteFn --> LeaderFn
+
+  ActivityFn --> Firestore
+  MetricFn --> Firestore
+  PlanFn --> Firestore
+  ProgressFn --> Firestore
+  RouteFn --> Firestore
+  LeaderFn --> Firestore
+  SummaryFn --> Firestore
+  ModerationFn --> Firestore
+
+  ReminderFn --> FCM
+  FCM --> PushHandler
+  RouteFn --> Geo
+  LeaderFn --> Geo
+  SummaryFn --> LLM
+  LLM --> SummaryFn
+
+  Firestore --> HomeUI
+  Firestore --> PlanUI
+  Firestore --> AnalysisUI
+  Firestore --> MotiveUI
+  Firestore --> RouteUI
+  Firestore --> LeaderUI
+
+  classDef actor fill:#ffffff,stroke:#333333,stroke-width:1px,color:#111111;
+  classDef app fill:#eef6ff,stroke:#2f5f8f,stroke-width:1px,color:#111111;
+  classDef logic fill:#f5f8fb,stroke:#52616f,stroke-width:1px,color:#111111;
+  classDef device fill:#f7f7f7,stroke:#6b7280,stroke-width:1px,color:#111111;
+  classDef backend fill:#fff7ed,stroke:#9a5b13,stroke-width:1px,color:#111111;
+  classDef external fill:#f0fdf4,stroke:#2f7d4f,stroke-width:1px,color:#111111;
+  class Basic,Premium,Admin actor;
+  class AuthUI,HomeUI,RunUI,PlanUI,AnalysisUI,MotiveUI,RouteUI,LeaderUI,NotifyUI,SubUI app;
+  class ProfileMgr,RunMgr,PlanMgr,MetricMgr,ProgressMgr,RouteMgr,LeaderMgr,ReminderMgr,EntitlementMgr logic;
+  class GPS,Wearable,Buffer,ShareCard,PushHandler device;
+  class Auth,Firestore,FCM,ActivityFn,MetricFn,PlanFn,ProgressFn,ReminderFn,RouteFn,LeaderFn,SummaryFn,ModerationFn backend;
+  class Maps,Geo,LLM,ShareSheet external;

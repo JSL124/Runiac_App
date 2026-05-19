@@ -1,0 +1,360 @@
+# Runiac Wireframe Reference
+
+> Status: in progress. Basic User and Premium User wireframes have been received and saved. Premium connection overview was received inline in chat; local exported PNG path is still pending.
+> Source assets are stored in `wireframe_assets/`.
+> Figma prototype: [FYP wireframe](https://www.figma.com/proto/oCLn7dUg6bMSZImRj6zQZ0/FYP_wireframe?node-id=0-1&p=f&t=apDZUaAmueQ3sZzW-0&scaling=min-zoom&content-scaling=fixed&starting-point-node-id=25%3A20)
+
+## Basic User Wireframes
+
+Source folder: `/Users/leejinseo/Desktop/FYP/Wireframe_Figma/Basic`
+
+Saved assets: `wireframe_assets/basic/`
+
+Connection overview:
+
+![Whole Wireframe Connection](<wireframe_assets/basic/Whole Wireframe Connection.png>)
+
+### Basic User Navigation Model
+
+The Basic User wireframes use a five-tab mobile navigation model:
+
+| Tab | Purpose |
+| --- | --- |
+| Home | Daily dashboard, current plan, XP, weekly plan, last run, premium promotion |
+| Maps / Explore | Route discovery, shared routes, route detail, selected route, route reporting |
+| Run | Run preparation, guide, active tracking, pause/end run, cool-down, post-run summary |
+| Leaderboard | Territorial leaderboard, regional ranking, league list, rank sharing |
+| You | Personal progress, calendar, recent runs, level progression, training plan |
+
+### Basic User Screen Inventory
+
+| Area | Screen | Asset | Main Purpose |
+| --- | --- | --- | --- |
+| Home | Basic Home Page | ![Basic Home Page](<wireframe_assets/basic/BasicHomePage.png>) | Initial dashboard with today's plan, quick start, XP progress, weekly plan, last run, and premium upgrade card. |
+| Home | View Updated Home Page | ![View Updated Home Page](<wireframe_assets/basic/View Updated Home Page.png>) | Return state after completing today's plan, showing completion confirmation on the home dashboard. |
+| Home / Plan | Today's Plan Page | ![Today's Plan Page](<wireframe_assets/basic/Today's plan page.png>) | Detailed daily plan with run target, focus items, coach note, XP reward, guide entry, and start run action. |
+| Home / Plan | Tuesday's Plan Detail Page | ![Tuesday's Plan Detail Page](<wireframe_assets/basic/Tuesday's Plan detail Page.png>) | Individual planned session detail with schedule, XP reward, edit schedule, and start run action. |
+| Home / Plan | Edit Plan Schedule Page | ![Edit Plan Schedule Page](<wireframe_assets/basic/Edit Plan Schedule Page.png>) | Schedule editing screen opened from a planned session, with day selection, recommended/new time slots, change reason, save, and cancel actions. |
+| Home / Premium | Upgrade To Premium Page | ![Upgrade To Premium Page](<wireframe_assets/basic/Upgrade To Premium Page.png>) | Premium conversion screen showing coach-verified plans, advanced analytics, AI coaching, route sharing, and rank sharing benefits. |
+| Maps | Maps Landing Page | ![Maps Landing Page](<wireframe_assets/basic/Maps Lading Page.png>) | Explore screen with search, map preview, nearby shared routes, and entry points to route detail or full route list. |
+| Maps | View List of Shared Route Page | ![View List of Shared Route Page](<wireframe_assets/basic/View List of Shared Route PAge.png>) | Community route list with search, filters, and route cards. |
+| Maps | Basic Map Detail Page | ![Basic Map Detail Page](<wireframe_assets/basic/Basic Map Detail Page.png>) | Route detail screen showing route map, distance/time/difficulty, runner saves, advice, premium lock card, and select route action. |
+| Maps | Route Selected Page | ![Route Selected Page](<wireframe_assets/basic/Route Selected Page.png>) | Confirmation screen after selecting a route, with go-to-run and back-to-explore actions. |
+| Maps | Basic My Route Page | ![Basic My Route Page](<wireframe_assets/basic/Basic My Route Page.png>) | Selected route management with change/remove route actions and premium-gated favorite route collection. |
+| Maps | View Report Page | ![View Report Page](<wireframe_assets/basic/View Report Page.png>) | Report-route modal with selected route, reason options, explanation text area, and report action. |
+| Run | Run Landing Page | ![Run Landing Page](<wireframe_assets/basic/Run Landing Page.png>) | Run start screen with selected route map, today's plan metrics, setting, start, and switch route actions. |
+| Run | Run Guide Page | ![Run Guide Page](<wireframe_assets/basic/Run Guide Page.png>) | Pre-run and after-run guidance with stretch/warm-up items and confirmation action. |
+| Run | Run Tracking Page | ![Run Tracking Page](<wireframe_assets/basic/Run Tracking Page.png>) | Active run tracking with route progress, elapsed time, pace, distance, and pause action. |
+| Run | Paused Run Tracking Page | ![Paused Run Tracking Page](<wireframe_assets/basic/Pasued Run Tracking Page.png>) | Paused run state with route progress, frozen metrics, resume, and end run controls. |
+| Cool Down | Cool Down Landing Page | ![Cool Down Landing Page](<wireframe_assets/basic/Cool Down Landing Page (after end the running).png>) | Post-run cool-down intro with slow walk, stretching, start cool-down, and skip-to-summary options. |
+| Cool Down | Cool Down Slow Walking Tracking Page | ![Cool Down Slow Walking Tracking Page](<wireframe_assets/basic/Cool Down Slow Walking Tracking PAge.png>) | Timed slow walk cool-down with circular timer, tips, pause button, and next action. |
+| Cool Down | Cool Down Stretching Tracking Page | ![Cool Down Stretching Tracking Page](<wireframe_assets/basic/Cool Down Stretching Tracking Page.png>) | Timed stretching step with instruction, illustration, progress dots, and next action. |
+| Cool Down | Cool Down Completed Page | ![Cool Down Completed Page](<wireframe_assets/basic/Cool Down Completed Page.png>) | Cool-down completion confirmation with XP reward and next button. |
+| Run Summary | Basic Run Summary Page | ![Basic Run Summary Page](<wireframe_assets/basic/Basic Run Summary Page.png>) | Post-run summary with route, distance, pace, duration, heart rate, calories, pace chart, beginner summary, premium AI lock, sharing prompt, and XP update. |
+| Run Summary | Share Page | ![Share Page](<wireframe_assets/basic/Share Page.png>) | Share achievement screen for post-run route and performance metrics. |
+| Run Summary | View Updated XP and Streak Page | ![View Updated XP and Streak Page](<wireframe_assets/basic/View Updated XP&Streak Page.png>) | XP and streak result screen after a completed run. |
+| Leaderboard | Leaderboard Landing Page | ![Leaderboard Landing Page](<wireframe_assets/basic/Leaderboard Landing Page.png>) | Territorial leaderboard map with weekly/monthly XP tabs and ranked-area preview. |
+| Leaderboard | Click Regional Page | ![Click Regional Page](<wireframe_assets/basic/Click Regional Page.png>) | Regional leaderboard detail showing current region, top runners, user rank preview, and sharing actions. |
+| Leaderboard | View More Leaderboard Page | ![View More Leaderboard Page](<wireframe_assets/basic/View More Leaderboard  Page.png>) | Expanded regional leaderboard ranking list with nearby user rank. |
+| Leaderboard | View League Page | ![View League Page](<wireframe_assets/basic/View League Page.png>) | League selection/list view for level-based leaderboard divisions. |
+| Leaderboard | Basic Share Leaderboard Page | ![Basic Share Leaderboard Page](<wireframe_assets/basic/Basic Share Leaderboard Page.png>) | Share rank screen with basic rank card and premium-gated visual sharing area. |
+| You | Basic You Page | ![Basic You Page](<wireframe_assets/basic/BasicYouPage.png>) | Personal progress view with streak, consistency streak, running calendar, recent running history, and runner level. |
+| You | Basic You Plan Page | ![Basic You Plan Page](<wireframe_assets/basic/Basic You Plan Page.png>) | Weekly 10K preparation plan with planned/completed/remaining counters and premium-only goal plan section. |
+| Connectivity | Whole Wireframe Connection | ![Whole Wireframe Connection](<wireframe_assets/basic/Whole Wireframe Connection.png>) | Figma-level connection map showing screen-to-screen navigation. |
+
+### Basic User Connectivity Summary
+
+The Basic User flow is centered around five persistent tabs: Home, Maps, Run, Leaderboard, and You. Most flows branch from these tabs and eventually return to one of the same tab roots.
+
+```mermaid
+flowchart TD
+  Home["Home Dashboard"]
+  Maps["Maps / Explore"]
+  Run["Run Landing"]
+  Leaderboard["Leaderboard"]
+  You["You"]
+
+  Home --> Today["Today's Plan"]
+  Home --> Weekly["Basic You Plan"]
+  Home --> Summary["Run Summary"]
+  Home --> Premium["Upgrade To Premium"]
+
+  Today --> Guide["Run Guide"]
+  Today --> Run
+  Weekly --> Tuesday["Tuesday's Plan Detail"]
+  Weekly --> EditSchedule["Edit Plan Schedule"]
+  Tuesday --> EditSchedule
+  EditSchedule --> Tuesday
+  EditSchedule --> Weekly
+  Tuesday --> Run
+
+  Maps --> RouteList["Community Route List"]
+  Maps --> RouteDetail["Route Detail"]
+  Maps --> MyRoute["My Route"]
+  RouteList --> RouteDetail
+  RouteDetail --> RouteSelected["Route Selected"]
+  RouteDetail --> Report["Report Route"]
+  RouteDetail --> Premium
+  RouteSelected --> Run
+  RouteSelected --> Maps
+  MyRoute --> Maps
+
+  Run --> Tracking["Run Tracking"]
+  Tracking --> Paused["Paused Tracking"]
+  Paused --> Tracking
+  Paused --> CooldownStart["Cool Down Landing"]
+  CooldownStart --> SlowWalk["Slow Walk Timer"]
+  CooldownStart --> Summary
+  SlowWalk --> Stretch["Stretch Timer"]
+  Stretch --> CooldownDone["Cool Down Complete"]
+  CooldownDone --> Summary
+
+  Summary --> ShareRun["Share Run Achievement"]
+  Summary --> XPUpdate["XP & Streak Update"]
+  XPUpdate --> UpdatedHome["Updated Home"]
+  UpdatedHome --> Home
+
+  Leaderboard --> Regional["Regional Leaderboard"]
+  Leaderboard --> League["League List"]
+  Regional --> MoreRank["View More Ranking"]
+  Regional --> ShareRank["Share My Rank"]
+  MoreRank --> ShareRank
+  ShareRank --> Premium
+
+  You --> Weekly
+  You --> Summary
+  You --> League
+```
+
+### Flow Notes
+
+Home and plan flow:
+
+- Home is the main entry screen for daily guidance.
+- Today's Plan gives a full breakdown of the current run, coach note, reward, guide entry, and direct start action.
+- Weekly plan access leads into Basic You Plan and then individual day details such as Tuesday's Plan Detail.
+- Edit Schedule is opened from the weekly/day plan context and lets the user change the run day or time, provide a reason, then save the new schedule or cancel back to the plan detail.
+- Completing a run updates XP/streak, then returns the user to an updated Home state.
+
+Maps and route flow:
+
+- Maps Landing lets the user search, view nearby shared routes, open the full community route list, or access My Route.
+- Route cards open Basic Map Detail Page.
+- Selecting a route leads to Route Selected Page, then Go to Run opens Run Landing.
+- Report Route is a modal-style branch from route detail.
+- Saving/reusing favorite route collections is premium-gated for Basic users.
+
+Run and recovery flow:
+
+- Run Landing starts from today's plan or a selected route.
+- Start begins Run Tracking.
+- Pause opens Paused Run Tracking; Resume returns to Run Tracking.
+- End Run opens the cool-down flow.
+- Cool-down can be completed step-by-step or skipped to Run Summary.
+- Run Summary branches to Share Page and XP & Streak Update.
+
+Leaderboard and sharing flow:
+
+- Leaderboard Landing shows territorial ranking from a map view.
+- Selecting a region opens Click Regional Page.
+- The user can view more rankings, inspect leagues, or share rank.
+- Advanced share presentation is premium-gated.
+
+You flow:
+
+- You displays progress, streak, calendar, recent runs, and runner level.
+- The Plans tab in You opens Basic You Plan.
+- Recent run cards can lead back to Run Summary.
+- Level/league-related entry points connect to the league or leaderboard flow.
+
+### PRD Feature Coverage Visible In Basic Wireframes
+
+| PRD Feature | Wireframe Evidence |
+| --- | --- |
+| F1 Collect running-related activity data | Run Tracking Page, Paused Run Tracking Page, Basic Run Summary Page |
+| F2 Estimate running effects and provide analysis | Basic Run Summary Page, pace chart, key run metrics, View Updated XP and Streak Page |
+| F3 Supply running advice and schedule a running plan | Basic Home Page, Today's Plan Page, Tuesday's Plan Detail Page, Edit Plan Schedule Page, Basic You Plan Page, Run Guide Page |
+| F4 Remind user of running or rest | Home notification icon, weekly plan upcoming state, plan schedule detail |
+| F5 Connect with social media and initiate competitions | Share Page, Basic Share Leaderboard Page, share rank actions |
+| F6 Streak and consistency tracking | Basic You Page, View Updated XP and Streak Page, weekly progress and consistency streak cards |
+| F7 Community-driven route sharing | Maps Landing Page, View List of Shared Route Page, Basic Map Detail Page, Basic My Route Page |
+| F8 Level-based territorial leaderboard | Leaderboard Landing Page, Click Regional Page, View More Leaderboard Page, View League Page |
+| F9 Runner level and XP progression system | Basic Home Page, Basic You Page, Cool Down Completed Page, View Updated XP and Streak Page |
+| F10 AI-assisted post-run summary | Basic Run Summary Page premium AI summary lock, Upgrade To Premium Page |
+
+## Premium User Wireframes
+
+Source folder: `/Users/leejinseo/Desktop/FYP/Wireframe_Figma/Premium`
+
+Saved assets: `wireframe_assets/premium/`
+
+### Premium User Navigation Model
+
+Premium keeps the same five-tab structure as Basic, but unlocks richer plan, route, analysis, and sharing flows:
+
+| Tab | Premium Additions |
+| --- | --- |
+| Home | Goal preparation progress, last-run advice, recommended community route carousel |
+| Maps / Explore | Favorite routes, route upload/sharing, selected-route removal state, full shared route reporting |
+| Run | Same run/cool-down spine, followed by advanced summary and detailed analysis |
+| Leaderboard | Full rank sharing card, league access, regional details, leaderboard tips |
+| You | Premium progress landing, plan journey, expert plan exploration, goal-plan details |
+
+### Premium User Screen Inventory
+
+| Area | Screen | Asset | Main Purpose |
+| --- | --- | --- | --- |
+| Home | Premium Home Page | ![Premium Home Page](<wireframe_assets/premium/Premium Home Page.png>) | Premium dashboard with today's plan, 10K preparation progress, XP, weekly plan, last-run advice, and recommended community routes. |
+| Home | Premium Updated Home Page | ![Premium Updated Home Page](<wireframe_assets/premium/Premium Updated Home Page.png>) | Home state after run completion or progress update. |
+| Plan | Today's Plan Detail Page | ![Today's Plan Detail Page](<wireframe_assets/premium/Today's Plan Detail Page.png>) | Premium daily plan detail with richer workout guidance. |
+| Plan | View Detail of Today's Plan | ![View Detail of Today's Plan](<wireframe_assets/premium/View Detail of Today's Plan(Workout wise).png>) | Workout-wise detail view for today's plan. |
+| Plan | Tuesday's Plan Page | ![Tuesday's Plan Page](<wireframe_assets/premium/Tuesday's Plan Page.png>) | Individual planned run detail for a weekly plan item. |
+| Plan | Edit Plan Schedule Page | ![Edit Plan Schedule Page](<wireframe_assets/premium/Edit Plan Schedule Page.png>) | Premium schedule editing flow with day, time, duration, reason, save, and cancel actions. |
+| Plan | View Goal Plan Journey Page | ![View Goal Plan Journey Page](<wireframe_assets/premium/View Goal Plan Journey Page.png>) | Goal-plan journey/progress overview for milestone preparation. |
+| Plan | Explore Expert Goal Plan Page | ![Explore Expert Goal Plan Page](<wireframe_assets/premium/Explore Expert Goal Plan Page.png>) | Premium expert plan discovery list. |
+| Plan | View Expert Plan Detail Page | ![View Expert Plan Detail Page](<wireframe_assets/premium/View Expert Plan Detail Page.png>) | Detailed view of a selected expert goal plan. |
+| Maps | Maps Landing Page | ![Maps Landing Page](<wireframe_assets/premium/Maps Landing Page.png>) | Premium explore landing with route search, map preview, and nearby shared routes. |
+| Maps | View List of Shared Route Page | ![View List of Shared Route Page](<wireframe_assets/premium/View List of Shared Route Page.png>) | Full shared route list with search and route cards. |
+| Maps | Premium Shared Map Detail Page | ![Premium Shared Map Detail Page](<wireframe_assets/premium/Premium Shared Map Detail Page.png>) | Shared route detail for premium users, including route actions. |
+| Maps | Success Selecting Route Page | ![Success Selecting Route Page](<wireframe_assets/premium/Success Selecting Route Page.png>) | Confirmation after selecting a route. |
+| Maps | Premium My Route Page | ![Premium My Route Page](<wireframe_assets/premium/Premium My Route Page.png>) | Premium route management with selected route and favorite routes. |
+| Maps | Premium My Route Page After Remove Route | ![Premium My Route Page After Remove Route](<wireframe_assets/premium/Premium My Route Page After Remove Route.png>) | My Route empty selected-route state after route removal. |
+| Maps | Premium Route Sharing Page | ![Premium Route Sharing Page](<wireframe_assets/premium/Premium Route Sharing Page.png>) | Route upload/share flow from a completed run. |
+| Maps | Report Shared Route Page | ![Report Shared Route Page](<wireframe_assets/premium/Report Shared Route Page.png>) | Report modal for a shared route. |
+| Run | Run Landing Page | ![Run Landing Page](<wireframe_assets/premium/Run Landing Page.png>) | Premium run start screen using selected plan/route context. |
+| Run | Run Tracking Page | ![Run Tracking Page](<wireframe_assets/premium/Run Tracking Page.png>) | Active run tracking with route progress and live metrics. |
+| Run | Run Paused Page | ![Run Paused Page](<wireframe_assets/premium/Run Paused Page.png>) | Paused run state with resume and end run actions. |
+| Cool Down | Cool Down Intro Page | ![Cool Down Intro Page](<wireframe_assets/premium/Cool Down Intro Page.png>) | Post-run cool-down introduction. |
+| Cool Down | Cool Down Slow Walking Tracking Page | ![Cool Down Slow Walking Tracking Page](<wireframe_assets/premium/Cool Down Slow Walking Tracking Page.png>) | Slow-walk cool-down timer screen. |
+| Cool Down | Cool Down Stretching Tracking Page | ![Cool Down Stretching Tracking Page](<wireframe_assets/premium/Cool Down Stretching Tracking Page.png>) | Stretching cool-down timer screen. |
+| Cool Down | Cool Down Completed Page | ![Cool Down Completed Page](<wireframe_assets/premium/Cool Down Completed Page.png>) | Cool-down completion and XP reward confirmation. |
+| Run Summary | Premium Run Summary Page | ![Premium Run Summary Page](<wireframe_assets/premium/Premium Run Summary Page.png>) | Premium post-run summary with advanced analysis entry and AI coaching summary. |
+| Run Summary | Premium Run Analysis Page | ![Premium Run Analysis Page](<wireframe_assets/premium/Premium Run Analysis (click more detail from summary).png>) | Detailed premium run analysis with performance, pace, heart-rate, stamina, recovery, comparison, and recommendations. |
+| Run Summary | Share Page | ![Share Page](<wireframe_assets/premium/Share Page.png>) | Share achievement screen for run metrics. |
+| Run Summary | View Updated XP and Streak Page | ![View Updated XP and Streak Page](<wireframe_assets/premium/View Updated XP&Streak Page.png>) | XP and streak update after run completion. |
+| Leaderboard | Leaderboard Landing Page | ![Leaderboard Landing Page](<wireframe_assets/premium/Leaderboard Landing Page.png>) | Premium territorial leaderboard landing view. |
+| Leaderboard | Click Region Leaderboard Page | ![Click Region Leaderboard Page](<wireframe_assets/premium/Click Region Leaderboard Page.png>) | Regional ranking detail with top runners and user rank preview. |
+| Leaderboard | View More Ranking Page | ![View More Ranking Page](<wireframe_assets/premium/View More Ranking Page.png>) | Expanded regional ranking list. |
+| Leaderboard | View League Page | ![View League Page](<wireframe_assets/premium/View League Page.png>) | League list for level-based competition divisions. |
+| Leaderboard | View Tips for Leaderboard Page | ![View Tips for Leaderboard Page](<wireframe_assets/premium/View Tips for Leaderboard page.png>) | Tips/explanation screen for leaderboard mechanics. |
+| Leaderboard | Premium Leaderboard Ranking Sharing Page | ![Premium Leaderboard Ranking Sharing Page](<wireframe_assets/premium/Premium Leaderboard Ranking Sharing Page.png>) | Premium rank sharing screen with unlocked visual card and social sharing options. |
+| You | Premium You Landing Page | ![Premium You Landing Page](<wireframe_assets/premium/Premium You Landing Page.png>) | Premium personal progress landing screen. |
+| You | Premium You Plan Page | ![Premium You Plan Page](<wireframe_assets/premium/Premium You Plan Page.png>) | Premium plan view with richer goal-plan and preparation context. |
+
+### Premium User Connectivity Summary
+
+Premium follows the same base spine as Basic, with extra branches for expert plans, advanced analysis, route upload, and fully unlocked sharing. The structure below reflects the Premium connection overview image received in chat.
+
+```mermaid
+flowchart TD
+  PHome["Premium Home"] --> PToday["Today's Plan Detail"]
+  PHome --> PYouPlan["Premium You Plan"]
+  PHome --> PMaps["Maps Landing"]
+  PHome --> PSummary["Premium Run Summary"]
+  PHome --> PRun["Run Landing"]
+
+  PToday --> PWorkout["Workout-wise Plan Detail"]
+  PToday --> PGuide["Run Guide"]
+  PToday --> PRun["Run Landing"]
+  PToday --> PEdit["Edit Plan Schedule"]
+  PYouPlan --> PTuesday["Tuesday's Plan"]
+  PYouPlan --> PGoal["Goal Plan Journey"]
+  PYouPlan --> PExpertList["Explore Expert Goal Plan"]
+  PTuesday --> PEdit
+  PTuesday --> PRun
+  PEdit --> PToday
+  PEdit --> PYouPlan
+
+  PExpertList --> PExpertDetail["Expert Plan Detail"]
+  PExpertDetail --> PGoal
+  PGoal --> PYouPlan
+
+  PMaps --> PRouteList["Shared Route List"]
+  PMaps --> PSharedDetail["Shared Route Detail"]
+  PMaps --> PMyRoute["Premium My Route"]
+  PRouteList --> PSharedDetail
+  PSharedDetail --> PSelect["Success Selecting Route"]
+  PSharedDetail --> PReport["Report Shared Route"]
+  PReport --> PSharedDetail
+  PSelect --> PRun
+  PSelect --> PMaps
+  PMyRoute --> PRemoved["My Route After Remove"]
+  PMyRoute --> PRun
+  PRemoved --> PMaps
+
+  PRun --> PTracking["Run Tracking"]
+  PTracking --> PPaused["Run Paused"]
+  PPaused --> PTracking
+  PPaused --> PCoolIntro["Cool Down Intro"]
+  PCoolIntro --> PWalk["Slow Walk Timer"]
+  PCoolIntro --> PSummary["Premium Run Summary"]
+  PWalk --> PStretch["Stretch Timer"]
+  PStretch --> PCoolDone["Cool Down Completed"]
+  PCoolDone --> PSummary
+
+  PSummary --> PAnalysis["Premium Run Analysis"]
+  PSummary --> PShareRun["Share Run"]
+  PSummary --> PShareRoute["Premium Route Sharing"]
+  PSummary --> PXP["XP & Streak Update"]
+  PAnalysis --> PSummary
+  PShareRun --> PSummary
+  PShareRoute --> PSummary
+  PXP --> PUpdatedHome["Premium Updated Home"]
+  PUpdatedHome --> PHome
+
+  PLeaderboard["Leaderboard Landing"] --> PRegion["Click Region Leaderboard"]
+  PLeaderboard --> PLeague["View League"]
+  PLeaderboard --> PTips["Leaderboard Tips"]
+  PRegion --> PMore["View More Ranking"]
+  PRegion --> PShareRank["Premium Rank Sharing"]
+  PMore --> PRegion
+  PLeague --> PLeaderboard
+  PTips --> PLeaderboard
+  PShareRank --> PRegion
+
+  PYou["Premium You"] --> PYouPlan
+  PYou --> PGoal
+  PYou --> PLeague
+  PYou --> PSummary
+```
+
+### Premium Flow Notes
+
+Home and plan flow:
+
+- Premium Home adds milestone preparation progress, last-run advice, and recommended community routes.
+- Premium users can inspect today's plan in more detail, open workout-wise guidance, edit schedules, and explore expert goal plans.
+- Goal preparation has a deeper journey flow through View Goal Plan Journey, Explore Expert Goal Plan, and View Expert Plan Detail.
+
+Maps and route flow:
+
+- Premium users can save and manage favorite routes without the Basic lock state.
+- Route selection still leads to Run Landing, but Premium also supports route upload/sharing after completion.
+- Removing a selected route has its own empty-state screen.
+- Shared routes can be reported through Report Shared Route.
+
+Run, recovery, and analysis flow:
+
+- The run and cool-down spine remains consistent with Basic: Run Landing, Run Tracking, Pause, Cool Down, Summary.
+- Premium Run Summary unlocks More Details, AI Coaching Summary, and richer share route options.
+- Premium Run Analysis expands post-run insight into performance, pace, heart rate, stamina, recovery, comparison, and recommendations.
+
+Leaderboard and sharing flow:
+
+- Premium keeps the same territorial leaderboard structure but unlocks polished achievement sharing.
+- Region detail can branch to more rankings, league selection, leaderboard tips, or Premium Leaderboard Ranking Sharing.
+
+### PRD Feature Coverage Visible In Premium Wireframes
+
+| PRD Feature | Premium Wireframe Evidence |
+| --- | --- |
+| F1 Collect running-related activity data | Run Tracking Page, Run Paused Page, Premium Run Summary Page |
+| F2 Estimate running effects and provide analysis | Premium Run Summary Page, Premium Run Analysis Page, Premium Home last-run advice |
+| F3 Supply running advice and schedule a running plan | Premium Home Page, Today's Plan Detail Page, View Detail of Today's Plan, Edit Plan Schedule Page, View Goal Plan Journey Page, Explore Expert Goal Plan Page |
+| F4 Remind user of running or rest | Weekly plan status, schedule editing, upcoming run state |
+| F5 Connect with social media and initiate competitions | Premium Leaderboard Ranking Sharing Page, Share Page, Premium Route Sharing Page |
+| F6 Streak and consistency tracking | View Updated XP and Streak Page, Premium You Landing Page |
+| F7 Community-driven route sharing | Maps Landing Page, View List of Shared Route Page, Premium Shared Map Detail Page, Premium Route Sharing Page, Premium My Route Page |
+| F8 Level-based territorial leaderboard | Leaderboard Landing Page, Click Region Leaderboard Page, View More Ranking Page, View League Page, View Tips for Leaderboard Page |
+| F9 Runner level and XP progression system | Premium Home Page, Cool Down Completed Page, View Updated XP and Streak Page |
+| F10 AI-assisted post-run summary | Premium Run Summary Page, Premium Run Analysis Page |

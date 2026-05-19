@@ -1,0 +1,390 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="3200" height="2200" viewBox="0 0 3200 2200">
+<rect width="3200" height="2200" fill="#ffffff"/>
+<text x="55" y="65" font-family="Arial, Helvetica, sans-serif" font-size="36" font-weight="700" fill="#222222" text-anchor="start">Runiac UML Class Diagram</text>
+<text x="55" y="100" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="normal" fill="#4b5563" text-anchor="start">PDD Section 3 - Logical View class model based on Topic 3 UML notation</text>
+<rect x="60" y="160" width="820" height="560" fill="#eef9fd" stroke="#222222" stroke-width="2"/>
+<rect x="60" y="160" width="820" height="42" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<text x="74" y="189" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="700" fill="#222222" text-anchor="start">Account &amp; Entitlement</text>
+<rect x="940" y="160" width="1080" height="560" fill="#eef9fd" stroke="#222222" stroke-width="2"/>
+<rect x="940" y="160" width="1080" height="42" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<text x="954" y="189" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="700" fill="#222222" text-anchor="start">Running Activity</text>
+<rect x="2080" y="160" width="1060" height="560" fill="#eef9fd" stroke="#222222" stroke-width="2"/>
+<rect x="2080" y="160" width="1060" height="42" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<text x="2094" y="189" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="700" fill="#222222" text-anchor="start">External Integration Adapters</text>
+<rect x="60" y="780" width="820" height="560" fill="#eef9fd" stroke="#222222" stroke-width="2"/>
+<rect x="60" y="780" width="820" height="42" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<text x="74" y="809" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="700" fill="#222222" text-anchor="start">Training &amp; Reminder</text>
+<rect x="940" y="780" width="820" height="560" fill="#eef9fd" stroke="#222222" stroke-width="2"/>
+<rect x="940" y="780" width="820" height="42" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<text x="954" y="809" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="700" fill="#222222" text-anchor="start">Motivation &amp; XP</text>
+<rect x="1820" y="780" width="1320" height="560" fill="#eef9fd" stroke="#222222" stroke-width="2"/>
+<rect x="1820" y="780" width="1320" height="42" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<text x="1834" y="809" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="700" fill="#222222" text-anchor="start">Route Sharing</text>
+<rect x="60" y="1400" width="820" height="560" fill="#eef9fd" stroke="#222222" stroke-width="2"/>
+<rect x="60" y="1400" width="820" height="42" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<text x="74" y="1429" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="700" fill="#222222" text-anchor="start">Notification</text>
+<rect x="940" y="1400" width="1040" height="560" fill="#eef9fd" stroke="#222222" stroke-width="2"/>
+<rect x="940" y="1400" width="1040" height="42" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<text x="954" y="1429" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="700" fill="#222222" text-anchor="start">Territorial Leaderboard</text>
+<rect x="2040" y="1400" width="1100" height="560" fill="#eef9fd" stroke="#222222" stroke-width="2"/>
+<rect x="2040" y="1400" width="1100" height="42" fill="#76c9ec" stroke="#222222" stroke-width="2"/>
+<text x="2054" y="1429" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="700" fill="#222222" text-anchor="start">Legend</text>
+<polyline points="440,345 500,335" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<polygon points="440.0,345.0 450.4,352.4 457.8,342.0 447.4,334.6" fill="#222222" stroke="#222222" stroke-width="2"/>
+<polyline points="265,440 265,500" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<polygon points="265.0,440.0 256.0,449.0 265.0,458.0 274.0,449.0" fill="#222222" stroke="#222222" stroke-width="2"/>
+<polyline points="440,585 500,585" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1320,335 1370,330" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<polygon points="1320.0,335.0 1329.9,343.1 1337.9,333.2 1328.1,325.1" fill="#222222" stroke="#222222" stroke-width="2"/>
+<polyline points="1320,365 1340,365 1340,225 1710,225 1710,330" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<polygon points="1320.0,365.0 1329.0,374.0 1338.0,365.0 1329.0,356.0" fill="#222222" stroke="#222222" stroke-width="2"/>
+<polyline points="1145,470 1145,595 1370,595" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<polygon points="1145.0,470.0 1136.0,479.0 1145.0,488.0 1154.0,479.0" fill="#222222" stroke="#222222" stroke-width="2"/>
+<polyline points="1710,595 1680,595" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<polygon points="1680.0,595.0 1704.0,583.0 1704.0,607.0" fill="#ffffff" stroke="#222222" stroke-width="2"/>
+<polyline points="440,960 500,960" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<polygon points="440.0,960.0 449.0,969.0 458.0,960.0 449.0,951.0" fill="#222222" stroke="#222222" stroke-width="2"/>
+<polyline points="675,1045 675,1212 440,1212" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1320,950 1370,950" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1370,995 1320,1205" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<polygon points="1370.0,995.0 1359.2,1001.7 1365.8,1012.5 1376.7,1005.8" fill="#222222" stroke="#222222" stroke-width="2"/>
+<polyline points="2200,945 2260,945" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="2025,1055 2025,1130" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1330,1575 1390,1575" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<polygon points="1330.0,1575.0 1339.0,1584.0 1348.0,1575.0 1339.0,1566.0" fill="#222222" stroke="#222222" stroke-width="2"/>
+<polyline points="1570,1680 1570,1815 1330,1815" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="500,1580 440,1580" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="265,440 265,750 1145,750 1145,470" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="90,345 35,345 35,965 90,965" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="440,670 440,750 2025,750 2025,870" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="90,375 25,375 25,1580 90,1580" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1145,470 1145,870" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1545,1060 1545,1375 1150,1375 1150,1740" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1390,1575 905,1575 905,126 265,126 265,250" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="265,1295 265,1490" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1320,305 1560,130 2325,130 2325,250" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1320,420 1540,735 2325,735 2325,645" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="2000,595 2040,595 2040,735 3150,735 3150,325 3100,325" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="265,1670 265,2045 3170,2045 3170,572 3100,572" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="90" y="250" width="350" height="190" fill="#ffffff" stroke="#222222" stroke-width="2"/>
+<rect x="90" y="250" width="350" height="34" fill="#f8fbfd"/>
+<line x1="90" y1="284" x2="440" y2="284" stroke="#222222" stroke-width="1"/>
+<line x1="90" y1="382" x2="440" y2="382" stroke="#222222" stroke-width="1"/>
+<text x="265.0" y="273" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" fill="#222222" text-anchor="middle">UserAccount</text>
+<text x="102" y="308" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- userID: String</text>
+<text x="102" y="327" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- email: String</text>
+<text x="102" y="346" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- subscriptionTier: String</text>
+<text x="102" y="365" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- createdAt: DateTime</text>
+<text x="102" y="405" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">+ authenticate(): boolean</text>
+<text x="102" y="424" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">+ updateSubscription(): void</text>
+<rect x="500" y="250" width="350" height="170" fill="#ffffff" stroke="#222222" stroke-width="2"/>
+<rect x="500" y="250" width="350" height="34" fill="#f8fbfd"/>
+<line x1="500" y1="284" x2="850" y2="284" stroke="#222222" stroke-width="1"/>
+<line x1="500" y1="382" x2="850" y2="382" stroke="#222222" stroke-width="1"/>
+<text x="675.0" y="273" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" fill="#222222" text-anchor="middle">UserProfile</text>
+<text x="512" y="308" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- displayName: String</text>
+<text x="512" y="327" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- fitnessLevel: String</text>
+<text x="512" y="346" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- goals: List&lt;String&gt;</text>
+<text x="512" y="365" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- healthDeclarations: List&lt;String&gt;</text>
+<text x="512" y="405" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">+ updateProfile(): void</text>
+<rect x="90" y="500" width="350" height="170" fill="#ffffff" stroke="#222222" stroke-width="2"/>
+<rect x="90" y="500" width="350" height="34" fill="#f8fbfd"/>
+<line x1="90" y1="534" x2="440" y2="534" stroke="#222222" stroke-width="1"/>
+<line x1="90" y1="632" x2="440" y2="632" stroke="#222222" stroke-width="1"/>
+<text x="265.0" y="523" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" fill="#222222" text-anchor="middle">Subscription</text>
+<text x="102" y="558" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- subscriptionID: String</text>
+<text x="102" y="577" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- tier: String</text>
+<text x="102" y="596" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- status: String</text>
+<text x="102" y="615" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- renewalDate: DateTime</text>
+<text x="102" y="655" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">+ isPremiumActive(): boolean</text>
+<rect x="500" y="500" width="350" height="170" fill="#ffffff" stroke="#222222" stroke-width="2"/>
+<rect x="500" y="500" width="350" height="34" fill="#f8fbfd"/>
+<line x1="500" y1="534" x2="850" y2="534" stroke="#222222" stroke-width="1"/>
+<line x1="500" y1="594" x2="850" y2="594" stroke="#222222" stroke-width="1"/>
+<text x="675.0" y="523" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" fill="#222222" text-anchor="middle">EntitlementPolicy</text>
+<text x="512" y="558" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- featureKey: String</text>
+<text x="512" y="577" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- requiredTier: String</text>
+<text x="512" y="617" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">+ canAccessFeature(): boolean</text>
+<rect x="970" y="250" width="350" height="220" fill="#ffffff" stroke="#222222" stroke-width="2"/>
+<rect x="970" y="250" width="350" height="34" fill="#f8fbfd"/>
+<line x1="970" y1="284" x2="1320" y2="284" stroke="#222222" stroke-width="1"/>
+<line x1="970" y1="401" x2="1320" y2="401" stroke="#222222" stroke-width="1"/>
+<text x="1145.0" y="273" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" fill="#222222" text-anchor="middle">Activity</text>
+<text x="982" y="308" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- activityID: String</text>
+<text x="982" y="327" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- startTime: DateTime</text>
+<text x="982" y="346" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- distance: double</text>
+<text x="982" y="365" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- duration: int</text>
+<text x="982" y="384" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- status: String</text>
+<text x="982" y="424" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">+ calculateMetrics(): RunMetric</text>
+<text x="982" y="443" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">+ completeRun(): void</text>
+<rect x="1370" y="245" width="310" height="170" fill="#ffffff" stroke="#222222" stroke-width="2"/>
+<rect x="1370" y="245" width="310" height="34" fill="#f8fbfd"/>
+<line x1="1370" y1="279" x2="1680" y2="279" stroke="#222222" stroke-width="1"/>
+<line x1="1370" y1="377" x2="1680" y2="377" stroke="#222222" stroke-width="1"/>
+<text x="1525.0" y="268" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" fill="#222222" text-anchor="middle">RoutePoint</text>
+<text x="1382" y="303" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- latitude: double</text>
+<text x="1382" y="322" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- longitude: double</text>
+<text x="1382" y="341" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- timestamp: DateTime</text>
+<text x="1382" y="360" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- speed: double</text>
+<text x="1382" y="400" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">+ validatePoint(): boolean</text>
+<rect x="1710" y="245" width="290" height="170" fill="#ffffff" stroke="#222222" stroke-width="2"/>
+<rect x="1710" y="245" width="290" height="34" fill="#f8fbfd"/>
+<line x1="1710" y1="279" x2="2000" y2="279" stroke="#222222" stroke-width="1"/>
+<line x1="1710" y1="358" x2="2000" y2="358" stroke="#222222" stroke-width="1"/>
+<text x="1855.0" y="268" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" fill="#222222" text-anchor="middle">RunMetric</text>
+<text x="1722" y="303" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- averagePace: double</text>
+<text x="1722" y="322" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- calories: int</text>
+<text x="1722" y="341" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- heartRateAvg: int</text>
+<text x="1722" y="381" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">+ deriveFromActivity(): void</text>
+<rect x="1370" y="510" width="310" height="170" fill="#ffffff" stroke="#222222" stroke-width="2"/>
+<rect x="1370" y="510" width="310" height="34" fill="#f8fbfd"/>
+<line x1="1370" y1="544" x2="1680" y2="544" stroke="#222222" stroke-width="1"/>
+<line x1="1370" y1="623" x2="1680" y2="623" stroke="#222222" stroke-width="1"/>
+<text x="1525.0" y="533" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" fill="#222222" text-anchor="middle">RunSummary</text>
+<text x="1382" y="568" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- summaryID: String</text>
+<text x="1382" y="587" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- summaryType: String</text>
+<text x="1382" y="606" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- text: String</text>
+<text x="1382" y="646" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">+ generateBasicSummary(): void</text>
+<rect x="1710" y="510" width="290" height="170" fill="#ffffff" stroke="#222222" stroke-width="2"/>
+<rect x="1710" y="510" width="290" height="34" fill="#f8fbfd"/>
+<line x1="1710" y1="544" x2="2000" y2="544" stroke="#222222" stroke-width="1"/>
+<line x1="1710" y1="604" x2="2000" y2="604" stroke="#222222" stroke-width="1"/>
+<text x="1855.0" y="533" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" fill="#222222" text-anchor="middle">PremiumRunSummary</text>
+<text x="1722" y="568" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- recommendation: String</text>
+<text x="1722" y="587" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- aiPromptVersion: String</text>
+<text x="1722" y="627" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">+ generateAISummary(): void</text>
+<rect x="2110" y="250" width="430" height="145" fill="#ffffff" stroke="#222222" stroke-width="2"/>
+<rect x="2110" y="250" width="430" height="34" fill="#f8fbfd"/>
+<line x1="2110" y1="284" x2="2540" y2="284" stroke="#222222" stroke-width="1"/>
+<line x1="2110" y1="325" x2="2540" y2="325" stroke="#222222" stroke-width="1"/>
+<text x="2325.0" y="273" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" fill="#222222" text-anchor="middle">MapServiceAdapter</text>
+<text x="2122" y="308" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- provider: String</text>
+<text x="2122" y="348" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">+ renderRoute(): void</text>
+<text x="2122" y="367" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">+ reverseGeocode(): String</text>
+<rect x="2670" y="250" width="430" height="145" fill="#ffffff" stroke="#222222" stroke-width="2"/>
+<rect x="2670" y="250" width="430" height="34" fill="#f8fbfd"/>
+<line x1="2670" y1="284" x2="3100" y2="284" stroke="#222222" stroke-width="1"/>
+<line x1="2670" y1="325" x2="3100" y2="325" stroke="#222222" stroke-width="1"/>
+<text x="2885.0" y="273" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" fill="#222222" text-anchor="middle">AIServiceAdapter</text>
+<text x="2682" y="308" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- modelName: String</text>
+<text x="2682" y="348" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">+ requestSummary(): String</text>
+<rect x="2110" y="500" width="430" height="145" fill="#ffffff" stroke="#222222" stroke-width="2"/>
+<rect x="2110" y="500" width="430" height="34" fill="#f8fbfd"/>
+<line x1="2110" y1="534" x2="2540" y2="534" stroke="#222222" stroke-width="1"/>
+<line x1="2110" y1="575" x2="2540" y2="575" stroke="#222222" stroke-width="1"/>
+<text x="2325.0" y="523" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" fill="#222222" text-anchor="middle">WearableDataAdapter</text>
+<text x="2122" y="558" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- deviceType: String</text>
+<text x="2122" y="598" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">+ captureMetrics(): void</text>
+<rect x="2670" y="500" width="430" height="145" fill="#ffffff" stroke="#222222" stroke-width="2"/>
+<rect x="2670" y="500" width="430" height="34" fill="#f8fbfd"/>
+<line x1="2670" y1="534" x2="3100" y2="534" stroke="#222222" stroke-width="1"/>
+<line x1="2670" y1="575" x2="3100" y2="575" stroke="#222222" stroke-width="1"/>
+<text x="2885.0" y="523" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" fill="#222222" text-anchor="middle">PushNotificationAdapter</text>
+<text x="2682" y="558" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- provider: String</text>
+<text x="2682" y="598" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">+ sendPush(): void</text>
+<rect x="90" y="870" width="350" height="190" fill="#ffffff" stroke="#222222" stroke-width="2"/>
+<rect x="90" y="870" width="350" height="34" fill="#f8fbfd"/>
+<line x1="90" y1="904" x2="440" y2="904" stroke="#222222" stroke-width="1"/>
+<line x1="90" y1="1002" x2="440" y2="1002" stroke="#222222" stroke-width="1"/>
+<text x="265.0" y="893" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" fill="#222222" text-anchor="middle">TrainingPlan</text>
+<text x="102" y="928" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- planID: String</text>
+<text x="102" y="947" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- goalType: String</text>
+<text x="102" y="966" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- startDate: DateTime</text>
+<text x="102" y="985" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- status: String</text>
+<text x="102" y="1025" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">+ generatePlan(): void</text>
+<text x="102" y="1044" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">+ rescheduleSession(): void</text>
+<rect x="500" y="870" width="350" height="175" fill="#ffffff" stroke="#222222" stroke-width="2"/>
+<rect x="500" y="870" width="350" height="34" fill="#f8fbfd"/>
+<line x1="500" y1="904" x2="850" y2="904" stroke="#222222" stroke-width="1"/>
+<line x1="500" y1="1002" x2="850" y2="1002" stroke="#222222" stroke-width="1"/>
+<text x="675.0" y="893" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" fill="#222222" text-anchor="middle">PlanSession</text>
+<text x="512" y="928" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- sessionID: String</text>
+<text x="512" y="947" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- scheduledDateTime: DateTime</text>
+<text x="512" y="966" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- targetDistance: double</text>
+<text x="512" y="985" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- completionStatus: String</text>
+<text x="512" y="1025" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">+ markCompleted(): void</text>
+<rect x="90" y="1130" width="350" height="165" fill="#ffffff" stroke="#222222" stroke-width="2"/>
+<rect x="90" y="1130" width="350" height="34" fill="#f8fbfd"/>
+<line x1="90" y1="1164" x2="440" y2="1164" stroke="#222222" stroke-width="1"/>
+<line x1="90" y1="1262" x2="440" y2="1262" stroke="#222222" stroke-width="1"/>
+<text x="265.0" y="1153" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" fill="#222222" text-anchor="middle">Reminder</text>
+<text x="102" y="1188" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- reminderID: String</text>
+<text x="102" y="1207" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- reminderType: String</text>
+<text x="102" y="1226" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- scheduledAt: DateTime</text>
+<text x="102" y="1245" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- sentStatus: String</text>
+<text x="102" y="1285" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">+ schedule(): void</text>
+<rect x="970" y="870" width="350" height="165" fill="#ffffff" stroke="#222222" stroke-width="2"/>
+<rect x="970" y="870" width="350" height="34" fill="#f8fbfd"/>
+<line x1="970" y1="904" x2="1320" y2="904" stroke="#222222" stroke-width="1"/>
+<line x1="970" y1="983" x2="1320" y2="983" stroke="#222222" stroke-width="1"/>
+<text x="1145.0" y="893" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" fill="#222222" text-anchor="middle">XPRecord</text>
+<text x="982" y="928" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- xpRecordID: String</text>
+<text x="982" y="947" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- xpAmount: int</text>
+<text x="982" y="966" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- reason: String</text>
+<text x="982" y="1006" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">+ awardXP(): void</text>
+<rect x="1370" y="870" width="350" height="190" fill="#ffffff" stroke="#222222" stroke-width="2"/>
+<rect x="1370" y="870" width="350" height="34" fill="#f8fbfd"/>
+<line x1="1370" y1="904" x2="1720" y2="904" stroke="#222222" stroke-width="1"/>
+<line x1="1370" y1="1002" x2="1720" y2="1002" stroke="#222222" stroke-width="1"/>
+<text x="1545.0" y="893" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" fill="#222222" text-anchor="middle">UserProgression</text>
+<text x="1382" y="928" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- totalXP: int</text>
+<text x="1382" y="947" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- level: int</text>
+<text x="1382" y="966" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- leagueDivision: String</text>
+<text x="1382" y="985" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- streakCount: int</text>
+<text x="1382" y="1025" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">+ updateLevel(): void</text>
+<text x="1382" y="1044" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">+ updateStreak(): void</text>
+<rect x="970" y="1130" width="350" height="155" fill="#ffffff" stroke="#222222" stroke-width="2"/>
+<rect x="970" y="1130" width="350" height="34" fill="#f8fbfd"/>
+<line x1="970" y1="1164" x2="1320" y2="1164" stroke="#222222" stroke-width="1"/>
+<line x1="970" y1="1224" x2="1320" y2="1224" stroke="#222222" stroke-width="1"/>
+<text x="1145.0" y="1153" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" fill="#222222" text-anchor="middle">Streak</text>
+<text x="982" y="1188" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- currentCount: int</text>
+<text x="982" y="1207" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- lastActivityDate: DateTime</text>
+<text x="982" y="1247" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">+ extendStreak(): void</text>
+<rect x="1850" y="870" width="350" height="185" fill="#ffffff" stroke="#222222" stroke-width="2"/>
+<rect x="1850" y="870" width="350" height="34" fill="#f8fbfd"/>
+<line x1="1850" y1="904" x2="2200" y2="904" stroke="#222222" stroke-width="1"/>
+<line x1="1850" y1="1021" x2="2200" y2="1021" stroke="#222222" stroke-width="1"/>
+<text x="2025.0" y="893" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" fill="#222222" text-anchor="middle">SharedRoute</text>
+<text x="1862" y="928" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- routeID: String</text>
+<text x="1862" y="947" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- title: String</text>
+<text x="1862" y="966" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- distance: double</text>
+<text x="1862" y="985" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- difficulty: String</text>
+<text x="1862" y="1004" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- visibilityStatus: String</text>
+<text x="1862" y="1044" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">+ publishRoute(): void</text>
+<text x="1862" y="1063" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">+ reportRoute(): void</text>
+<rect x="2260" y="870" width="350" height="150" fill="#ffffff" stroke="#222222" stroke-width="2"/>
+<rect x="2260" y="870" width="350" height="34" fill="#f8fbfd"/>
+<line x1="2260" y1="904" x2="2610" y2="904" stroke="#222222" stroke-width="1"/>
+<line x1="2260" y1="964" x2="2610" y2="964" stroke="#222222" stroke-width="1"/>
+<text x="2435.0" y="893" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" fill="#222222" text-anchor="middle">RouteFavorite</text>
+<text x="2272" y="928" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- favoriteID: String</text>
+<text x="2272" y="947" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- createdAt: DateTime</text>
+<text x="2272" y="987" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">+ saveRoute(): void</text>
+<text x="2272" y="1006" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">+ removeRoute(): void</text>
+<rect x="1850" y="1130" width="350" height="160" fill="#ffffff" stroke="#222222" stroke-width="2"/>
+<rect x="1850" y="1130" width="350" height="34" fill="#f8fbfd"/>
+<line x1="1850" y1="1164" x2="2200" y2="1164" stroke="#222222" stroke-width="1"/>
+<line x1="1850" y1="1243" x2="2200" y2="1243" stroke="#222222" stroke-width="1"/>
+<text x="2025.0" y="1153" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" fill="#222222" text-anchor="middle">RouteReport</text>
+<text x="1862" y="1188" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- reportID: String</text>
+<text x="1862" y="1207" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- reason: String</text>
+<text x="1862" y="1226" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- status: String</text>
+<text x="1862" y="1266" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">+ submitReport(): void</text>
+<text x="1862" y="1285" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">+ resolveReport(): void</text>
+<rect x="970" y="1490" width="360" height="170" fill="#ffffff" stroke="#222222" stroke-width="2"/>
+<rect x="970" y="1490" width="360" height="34" fill="#f8fbfd"/>
+<line x1="970" y1="1524" x2="1330" y2="1524" stroke="#222222" stroke-width="1"/>
+<line x1="970" y1="1622" x2="1330" y2="1622" stroke="#222222" stroke-width="1"/>
+<text x="1150.0" y="1513" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" fill="#222222" text-anchor="middle">LeaderboardRegion</text>
+<text x="982" y="1548" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- regionID: String</text>
+<text x="982" y="1567" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- name: String</text>
+<text x="982" y="1586" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- type: String</text>
+<text x="982" y="1605" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- boundaryReference: String</text>
+<text x="982" y="1645" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">+ mapCoordinatesToRegion(): void</text>
+<rect x="1390" y="1490" width="360" height="190" fill="#ffffff" stroke="#222222" stroke-width="2"/>
+<rect x="1390" y="1490" width="360" height="34" fill="#f8fbfd"/>
+<line x1="1390" y1="1524" x2="1750" y2="1524" stroke="#222222" stroke-width="1"/>
+<line x1="1390" y1="1622" x2="1750" y2="1622" stroke="#222222" stroke-width="1"/>
+<text x="1570.0" y="1513" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" fill="#222222" text-anchor="middle">LeaderboardEntry</text>
+<text x="1402" y="1548" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- entryID: String</text>
+<text x="1402" y="1567" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- weeklyXP: int</text>
+<text x="1402" y="1586" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- monthlyXP: int</text>
+<text x="1402" y="1605" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- rank: int</text>
+<text x="1402" y="1645" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">+ recalculateRank(): void</text>
+<rect x="970" y="1740" width="360" height="150" fill="#ffffff" stroke="#222222" stroke-width="2"/>
+<rect x="970" y="1740" width="360" height="34" fill="#f8fbfd"/>
+<line x1="970" y1="1774" x2="1330" y2="1774" stroke="#222222" stroke-width="1"/>
+<line x1="970" y1="1853" x2="1330" y2="1853" stroke="#222222" stroke-width="1"/>
+<text x="1150.0" y="1763" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" fill="#222222" text-anchor="middle">LeagueDivision</text>
+<text x="982" y="1798" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- divisionID: String</text>
+<text x="982" y="1817" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- minLevel: int</text>
+<text x="982" y="1836" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- maxLevel: int</text>
+<text x="982" y="1876" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">+ assignDivision(): void</text>
+<rect x="90" y="1490" width="350" height="180" fill="#ffffff" stroke="#222222" stroke-width="2"/>
+<rect x="90" y="1490" width="350" height="34" fill="#f8fbfd"/>
+<line x1="90" y1="1524" x2="440" y2="1524" stroke="#222222" stroke-width="1"/>
+<line x1="90" y1="1622" x2="440" y2="1622" stroke="#222222" stroke-width="1"/>
+<text x="265.0" y="1513" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" fill="#222222" text-anchor="middle">Notification</text>
+<text x="102" y="1548" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- notificationID: String</text>
+<text x="102" y="1567" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- title: String</text>
+<text x="102" y="1586" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- notificationType: String</text>
+<text x="102" y="1605" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- readStatus: boolean</text>
+<text x="102" y="1645" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">+ markRead(): void</text>
+<rect x="500" y="1490" width="350" height="150" fill="#ffffff" stroke="#222222" stroke-width="2"/>
+<rect x="500" y="1490" width="350" height="34" fill="#f8fbfd"/>
+<line x1="500" y1="1524" x2="850" y2="1524" stroke="#222222" stroke-width="1"/>
+<line x1="500" y1="1603" x2="850" y2="1603" stroke="#222222" stroke-width="1"/>
+<text x="675.0" y="1513" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" fill="#222222" text-anchor="middle">NotificationPreference</text>
+<text x="512" y="1548" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- reminderEnabled: boolean</text>
+<text x="512" y="1567" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- streakRiskEnabled: boolean</text>
+<text x="512" y="1586" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">- quietHours: String</text>
+<text x="512" y="1626" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="normal" fill="#222222" text-anchor="start">+ updatePreference(): void</text>
+<rect x="424.4" y="305.0" width="91.2" height="23" rx="4" fill="#ffffff"/>
+<text x="470" y="322" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="normal" fill="#4b5563" text-anchor="middle">has profile</text>
+<rect x="201.4" y="455.0" width="127.2" height="23" rx="4" fill="#ffffff"/>
+<text x="265" y="472" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="normal" fill="#4b5563" text-anchor="middle">has subscription</text>
+<rect x="428.0" y="555.0" width="84.0" height="23" rx="4" fill="#ffffff"/>
+<text x="470" y="572" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="normal" fill="#4b5563" text-anchor="middle">checked by</text>
+<rect x="1310.2" y="297.0" width="69.6" height="23" rx="4" fill="#ffffff"/>
+<text x="1345" y="314" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="normal" fill="#4b5563" text-anchor="middle">contains</text>
+<rect x="1461.4" y="205.0" width="127.2" height="23" rx="4" fill="#ffffff"/>
+<text x="1525" y="222" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="normal" fill="#4b5563" text-anchor="middle">produces metrics</text>
+<rect x="1099.4" y="522.0" width="91.2" height="23" rx="4" fill="#ffffff"/>
+<text x="1145" y="539" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="normal" fill="#4b5563" text-anchor="middle">has summary</text>
+<rect x="1663.8" y="562.0" width="62.4" height="23" rx="4" fill="#ffffff"/>
+<text x="1695" y="579" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="normal" fill="#4b5563" text-anchor="middle">extends</text>
+<rect x="435.2" y="929.0" width="69.6" height="23" rx="4" fill="#ffffff"/>
+<text x="470" y="946" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="normal" fill="#4b5563" text-anchor="middle">contains</text>
+<rect x="636.6" y="1097.0" width="76.8" height="23" rx="4" fill="#ffffff"/>
+<text x="675" y="1114" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="normal" fill="#4b5563" text-anchor="middle">schedules</text>
+<rect x="1313.8" y="919.0" width="62.4" height="23" rx="4" fill="#ffffff"/>
+<text x="1345" y="936" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="normal" fill="#4b5563" text-anchor="middle">updates</text>
+<rect x="1296.0" y="1107.0" width="84.0" height="23" rx="4" fill="#ffffff"/>
+<text x="1338" y="1124" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="normal" fill="#4b5563" text-anchor="middle">has streak</text>
+<rect x="2195.2" y="914.0" width="69.6" height="23" rx="4" fill="#ffffff"/>
+<text x="2230" y="931" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="normal" fill="#4b5563" text-anchor="middle">saved by</text>
+<rect x="1965.0" y="1079.0" width="120.0" height="23" rx="4" fill="#ffffff"/>
+<text x="2025" y="1096" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="normal" fill="#4b5563" text-anchor="middle">receives report</text>
+<rect x="1325.2" y="1543.0" width="69.6" height="23" rx="4" fill="#ffffff"/>
+<text x="1360" y="1560" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="normal" fill="#4b5563" text-anchor="middle">contains</text>
+<rect x="1517.2" y="1732.0" width="105.6" height="23" rx="4" fill="#ffffff"/>
+<text x="1570" y="1749" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="normal" fill="#4b5563" text-anchor="middle">uses division</text>
+<rect x="428.0" y="1549.0" width="84.0" height="23" rx="4" fill="#ffffff"/>
+<text x="470" y="1566" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="normal" fill="#4b5563" text-anchor="middle">configures</text>
+<rect x="668.8" y="725.0" width="62.4" height="23" rx="4" fill="#ffffff"/>
+<text x="700" y="742" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="normal" fill="#4b5563" text-anchor="middle">records</text>
+<rect x="23.6" y="757.0" width="76.8" height="23" rx="4" fill="#ffffff"/>
+<text x="62" y="774" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="normal" fill="#4b5563" text-anchor="middle">owns plan</text>
+<rect x="1186.6" y="725.0" width="76.8" height="23" rx="4" fill="#ffffff"/>
+<text x="1225" y="742" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="normal" fill="#4b5563" text-anchor="middle">publishes</text>
+<rect x="23.2" y="997.0" width="69.6" height="23" rx="4" fill="#ffffff"/>
+<text x="58" y="1014" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="normal" fill="#4b5563" text-anchor="middle">receives</text>
+<rect x="1106.6" y="757.0" width="76.8" height="23" rx="4" fill="#ffffff"/>
+<text x="1145" y="774" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="normal" fill="#4b5563" text-anchor="middle">awards XP</text>
+<rect x="1286.4" y="1349.0" width="127.2" height="23" rx="4" fill="#ffffff"/>
+<text x="1350" y="1366" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="normal" fill="#4b5563" text-anchor="middle">updates division</text>
+<rect x="878.0" y="1542.0" width="84.0" height="23" rx="4" fill="#ffffff"/>
+<text x="920" y="1559" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="normal" fill="#4b5563" text-anchor="middle">ranks user</text>
+<rect x="230.2" y="1377.0" width="69.6" height="23" rx="4" fill="#ffffff"/>
+<text x="265" y="1394" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="normal" fill="#4b5563" text-anchor="middle">triggers</text>
+<rect x="1780.2" y="105.0" width="69.6" height="23" rx="4" fill="#ffffff"/>
+<text x="1815" y="122" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="normal" fill="#4b5563" text-anchor="middle">uses map</text>
+<rect x="1766.4" y="709.0" width="127.2" height="23" rx="4" fill="#ffffff"/>
+<text x="1830" y="726" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="normal" fill="#4b5563" text-anchor="middle">may use wearable</text>
+<rect x="2665.6" y="709.0" width="148.8" height="23" rx="4" fill="#ffffff"/>
+<text x="2740" y="726" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="normal" fill="#4b5563" text-anchor="middle">requests AI summary</text>
+<rect x="1728.0" y="2019.0" width="84.0" height="23" rx="4" fill="#ffffff"/>
+<text x="1770" y="2036" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="normal" fill="#4b5563" text-anchor="middle">sends push</text>
+<polyline points="2080,1500 2195,1500" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<polygon points="2080.0,1500.0 2089.0,1509.0 2098.0,1500.0 2089.0,1491.0" fill="#222222" stroke="#222222" stroke-width="2"/>
+<text x="2225" y="1505" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="normal" fill="#222222" text-anchor="start">Filled diamond = composition / lifecycle ownership</text>
+<polyline points="2080,1562 2195,1562" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<polygon points="2195.0,1562.0 2171.0,1574.0 2171.0,1550.0" fill="#ffffff" stroke="#222222" stroke-width="2"/>
+<text x="2225" y="1567" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="normal" fill="#222222" text-anchor="start">Hollow triangle = inheritance / specialization</text>
+<polyline points="2080,1624 2195,1624" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="2225" y="1629" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="normal" fill="#222222" text-anchor="start">Plain line = association / uses / records / references</text>
+<text x="2080" y="1725" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="normal" fill="#4b5563" text-anchor="start">• Scope: full Runiac F1-F10 logical class model.</text>
+<text x="2080" y="1767" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="normal" fill="#4b5563" text-anchor="start">• Basic/Premium behavior is represented by Subscription and EntitlementPolicy.</text>
+<text x="2080" y="1809" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="normal" fill="#4b5563" text-anchor="start">• Firebase services, Firestore collections, and UI screens are intentionally excluded.</text>
+</svg>
