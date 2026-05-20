@@ -1,0 +1,64 @@
+@startuml
+title Runiac Application Architecture
+
+skinparam componentStyle rectangle
+skinparam shadowing false
+
+actor "Basic User" as Basic
+actor "Premium User" as Premium
+actor "Platform Administrator" as Admin
+actor "Medical Trainer / Expert\n(content provider)" as Expert
+
+rectangle "Flutter Mobile App" as Flutter {
+  component "Presentation Layer\nHome, Run, Plan,\nMaps, Leaderboard, You" as UI
+  component "Client Services\nAuth Handler\nGPS Tracking\nLocal Run Buffer\nNotification Handler" as Client
+  component "Map View Adapter" as MapAdapter
+}
+
+cloud "Firebase Backend / BaaS" as Firebase {
+  component "Firebase Authentication" as Auth
+  database "Cloud Firestore" as Firestore
+  component "Cloud Functions\nActivity Processing Function\nXP and Streak Function\nLeaderboard Aggregation Function\nNotification Service\nEntitlement Service\nSummary Generation Function" as Functions
+  component "Firebase Cloud Messaging" as FCM
+  component "Cloud Storage\n(optional media storage)" as Storage
+}
+
+cloud "External Services" as External {
+  component "Google Maps /\nMapbox APIs" as Maps
+  component "AI / LLM Summary Service\n(future extension only)" as AI
+  component "Future Expert Dashboard\n(Phase 2 draft submission only)" as ExpertDash
+}
+
+Basic --> UI
+Premium --> UI : view/select published\nexpert plans
+Admin --> Functions : review, approve,\npublish, update, archive
+Expert ..> Admin : provides expert plan\ncontent for review
+Expert ..> ExpertDash : future draft\nsubmission only
+ExpertDash ..> Functions : submit draft content\nadmin approval required
+
+UI --> Client
+Client --> Auth : sign in / session
+Client --> Firestore : read app data\nwrite profile, settings,\nand route input
+Client --> Functions : submit completed run\nrequest trusted processing
+MapAdapter --> Maps : map tiles and route display
+
+Functions --> Firestore : write validated activity\nmetrics, XP, streak,\nlevel, approved expert plans,\nentitlement-checked data,\nleaderboard
+Functions --> FCM : send reminders
+FCM --> Client : push notification
+
+Client --> Storage : upload/download media\nif needed
+Functions --> Storage : process media\nif needed
+
+Functions ..> AI : future summary request
+AI ..> Functions : generated summary text
+
+Firestore --> UI : real-time updates
+
+note right of Client
+Flutter must not directly write:
+XP, rank, streak, level,
+weekly XP, monthly XP,
+or leaderboard score.
+end note
+
+@enduml

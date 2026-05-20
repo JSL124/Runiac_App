@@ -1,0 +1,164 @@
+@startuml
+title Runiac Component Diagram
+left to right direction
+skinparam componentStyle uml2
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam linetype ortho
+
+actor "Basic User" as BasicUser
+actor "Premium User" as PremiumUser
+actor "Platform Administrator" as Admin
+actor "Medical Trainer /\nExpert" as Expert
+
+package "External / Device Services" <<external>> {
+  component "Smartphone GPS" as GPS
+  component "Optional Wearable" as Wearable
+  component "Google Maps /\nMapbox APIs" as MapProvider
+  component "Geocoding /\nRegion Mapping" as GeoService
+  component "OS Share Sheet /\nSocial Media" as ShareSheet
+  component "AI / LLM\nSummary Service" as AIService
+  component "Future Expert Dashboard\n(Phase 2 draft submission only)" as ExpertDash
+}
+
+package "Runiac Flutter Mobile Application" <<subsystem>> {
+  component "Auth Component" as FEAuth
+  component "Onboarding Component" as FEOnboarding
+  component "Home Dashboard Component" as FEHome
+  component "Plan Component" as FEPlan
+  component "Run Tracking Component" as FERun
+  component "Activity Analysis\nComponent" as FEAnalysis
+  component "Explore / Route Component" as FERoute
+  component "Leaderboard Component" as FELeaderboard
+  component "Profile Component" as FEProfile
+  component "Premium /\nEntitlement Component" as FEPremium
+}
+
+package "Firebase Backend / BaaS" <<subsystem>> {
+  component "Authentication Service" as BEAuth <<FirebaseAuth>>
+  component "User/Profile Data Service" as BEUserProfile <<Firestore>>
+  component "Plan Data Service" as BEPlan <<Firestore>>
+  component "Activity Data Service" as BEActivity <<Firestore>>
+  component "Activity Processing\nFunction" as BEActivityProcessing <<CloudFunction>>
+  component "XP and Streak Function" as BEXP <<CloudFunction>>
+  component "Leaderboard Aggregation Function" as BELeaderboard <<CloudFunction>>
+  component "Route Data Service" as BERoute <<Firestore>>
+  component "Entitlement Service" as BEEntitlement <<CloudFunction>>
+  component "Admin Expert Plan\nManagement" as BEExpertPlanAdmin <<CloudFunction>>
+  component "Summary Generation\nFunction" as BESummary <<CloudFunction>>
+  component "Notification Service" as BENotification <<CloudFunction_FCM>>
+}
+
+BasicUser --> FEAuth : uses
+PremiumUser --> FEAuth : uses
+BasicUser --> FEHome : opens app
+PremiumUser --> FEHome : opens app
+Admin --> BERoute : restricted moderation\nworkflow or future dashboard
+Admin --> BEExpertPlanAdmin : review, create,\npublish, update,\narchive expert plans
+Expert ..> Admin : provides expert plan\ncontent for review
+Expert ..> ExpertDash : future draft\nsubmission only
+ExpertDash ..> BEExpertPlanAdmin : submit draft content\nadmin approval required
+
+FEAuth --> BEAuth : IAuthentication
+FEAuth --> BEUserProfile : IUserProfileData
+FEOnboarding --> BEUserProfile : save onboarding profile
+FEOnboarding --> BEPlan : create initial plan
+
+FEHome --> BEUserProfile : profile and entitlement summary
+FEHome --> BEPlan : today's plan
+FEHome --> BEActivity : last run and activity summary
+
+FEPlan --> BEPlan : IPlanData\npublished expert plans only
+FEPlan --> BEUserProfile : profile and entitlement context
+FEPlan --> BEEntitlement : expert plan access check
+
+GPS --> FERun : GPS samples
+Wearable --> FERun : optional metrics
+FERun --> MapProvider : IMapDisplay
+FERun --> BEActivity : upload completed activity
+FERun --> BEActivityProcessing : trigger validation
+FERun --> BERoute : selected route context
+
+FEAnalysis --> BEActivity : processed metrics\nand activity history
+FEAnalysis --> BESummary : post-run summary
+FEAnalysis --> BEEntitlement : premium analysis check
+
+FERoute --> BERoute : IRouteData
+FERoute --> BEActivity : share route from completed run
+FERoute --> BEEntitlement : saved collection\nand advanced filters
+FERoute --> MapProvider : route map display
+
+FELeaderboard --> BELeaderboard : read precomputed\nleaderboard output
+FELeaderboard --> MapProvider : region map display
+
+FEProfile --> BEUserProfile : profile and preferences
+FEProfile --> BEActivity : activity history
+
+FEPremium --> BEEntitlement : premium access check
+FEPremium --> BEPlan : premium goal plans
+FEPremium --> BESummary : AI summary access
+FEPremium --> BERoute : premium route tools
+
+FERun --> ShareSheet : run card sharing
+FELeaderboard --> ShareSheet : rank card sharing
+FEProfile --> ShareSheet : achievement sharing
+
+BEActivity --> BEActivityProcessing : submitted activity event
+BEActivityProcessing --> BEActivity : store validated activity\nand derived metrics
+BEActivityProcessing --> BEXP : valid activity event
+BEActivityProcessing --> BESummary : summary context
+BEXP --> BEPlan : read plan adherence
+BEXP --> BEUserProfile : update XP, level, streak
+BEXP --> BELeaderboard : weekly/monthly XP update
+BELeaderboard --> GeoService : map activity to region
+BERoute --> GeoService : route indexing and region lookup
+BERoute --> BEEntitlement : premium route tools check
+BEPlan --> BENotification : planned run / rest reminders
+BEPlan --> BEEntitlement : expert plan check
+BEExpertPlanAdmin --> BEPlan : create, approve,\npublish, update,\narchive expert plans
+BEXP --> BENotification : streak risk / level-up events
+BENotification --> FEHome : push notification / deep link
+BESummary --> BEEntitlement : premium summary check
+BESummary --> AIService : premium post-run\nsummary request
+BESummary --> BEActivity : store summary result
+
+note right of BEXP
+  XP, streak, level, weekly XP,
+  and monthly XP are calculated
+  on the server after activity
+  validation. The client only
+  displays the returned values.
+end note
+
+note right of BEActivityProcessing
+  This function is the trusted
+  activity validation owner.
+  Activity Data Service stores
+  submissions and processed
+  activity records.
+end note
+
+note right of BELeaderboard
+  Leaderboards are pre-aggregated
+  by region and level division.
+  Ranking uses validated weekly
+  or monthly XP, not client-side
+  sorting or user-submitted rank.
+end note
+
+note bottom of FEPremium
+  Premium UI unlocks additional
+  flows, but backend services
+  must enforce entitlement checks.
+  Premium does not grant XP or
+  ranking advantages.
+end note
+
+note right of BEExpertPlanAdmin
+  Medical Trainer/Expert provides
+  content only. Platform Administrator
+  must approve and publish expert plans
+  before Premium Users can select them.
+end note
+
+@enduml

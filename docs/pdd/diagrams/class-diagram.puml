@@ -1,0 +1,342 @@
+@startuml Runiac_Class_Diagram
+title Runiac Design-Level Class Diagram
+
+skinparam classAttributeIconSize 0
+hide circle
+
+package "Entity / Model Classes" {
+  class User <<Entity>> {
+    - userId: String
+    - email: String
+    - userRole: String
+    - subscriptionStatus: String
+    - createdAt: DateTime
+  }
+
+  class UserProfile <<Entity>> {
+    - profileId: String
+    - userId: String
+    - displayName: String
+    - fitnessLevel: String
+    - goals: List<String>
+    - healthDeclaration: String
+  }
+
+  class TrainingPlan <<Entity>> {
+    - planId: String
+    - userId: String
+    - goalType: String
+    - planType: String
+    - startDate: Date
+    - endDate: Date
+    - status: String
+  }
+
+  class PlanDay <<Entity>> {
+    - planDayId: String
+    - scheduledDate: Date
+    - workoutType: String
+    - targetDistance: Double
+    - targetDuration: Int
+    - completionStatus: String
+    - xpReward: Int
+  }
+
+  class Activity <<Entity>> {
+    - activityId: String
+    - userId: String
+    - planDayId: String
+    - routeId: String
+    - startedAt: DateTime
+    - endedAt: DateTime
+    - distance: Double
+    - duration: Int
+    - avgPace: Double
+    - validationStatus: String
+  }
+
+  class ActivityTrackPoint <<Entity>> {
+    - trackPointId: String
+    - activityId: String
+    - latitude: Double
+    - longitude: Double
+    - timestamp: DateTime
+    - accuracy: Double
+    - sequenceNo: Int
+  }
+
+  class Route <<Entity>> {
+    - routeId: String
+    - ownerUserId: String
+    - title: String
+    - distance: Double
+    - estimatedDuration: Int
+    - difficulty: String
+    - region: String
+    - visibilityStatus: String
+  }
+
+  class SavedRoute <<Entity>> {
+    - savedRouteId: String
+    - userId: String
+    - routeId: String
+    - savedAt: DateTime
+    - collectionName: String
+  }
+
+  class RouteReport <<Entity>> {
+    - reportId: String
+    - routeId: String
+    - reporterUserId: String
+    - reason: String
+    - description: String
+    - status: String
+    - createdAt: DateTime
+  }
+
+  class UserStats <<Entity>> {
+    - userId: String
+    - totalXP: Int
+    - level: Int
+    - streakCount: Int
+    - weeklyXP: Int
+    - monthlyXP: Int
+    - leagueDivision: String
+    - updatedAt: DateTime
+  }
+
+  class LeaderboardEntry <<Entity>> {
+    - entryId: String
+    - userId: String
+    - region: String
+    - leagueDivision: String
+    - rankingPeriod: String
+    - scoreXP: Int
+    - rank: Int
+    - updatedAt: DateTime
+  }
+
+  class PostRunSummary <<Entity>> {
+    - summaryId: String
+    - activityId: String
+    - summaryType: String
+    - feedbackText: String
+    - nextRunFocus: String
+    - generatedBy: String
+    - generatedAt: DateTime
+  }
+
+  class MedicalTrainerExpert <<Entity>> {
+    - expertId: String
+    - name: String
+    - specialty: String
+    - credentialSummary: String
+    - providerStatus: String
+  }
+
+  class ExpertPlan <<Entity>> {
+    - expertPlanId: String
+    - expertId: String
+    - title: String
+    - goalType: String
+    - difficulty: String
+    - durationWeeks: Int
+    - createdByAdminId: String
+    - reviewedByAdminId: String
+    - status: String
+    - reviewComment: String
+    - publishedAt: DateTime
+    - version: Int
+  }
+
+  class PlanReview <<Entity>> {
+    - reviewId: String
+    - expertPlanId: String
+    - reviewerAdminId: String
+    - decision: String
+    - comment: String
+    - reviewedAt: DateTime
+  }
+
+  class NotificationPreference <<Entity>> {
+    - preferenceId: String
+    - userId: String
+    - runReminderEnabled: Boolean
+    - restReminderEnabled: Boolean
+    - streakRiskEnabled: Boolean
+    - reminderTime: String
+    - fcmToken: String
+  }
+}
+
+package "Service / Controller Classes" {
+  class AuthService <<Client Service>> {
+    + createAccount(): User
+    + signIn(): User
+    + signOut(): void
+    + getCurrentUser(): User
+  }
+
+  class PlanService <<Client Service>> {
+    + getActivePlan(userId: String): TrainingPlan
+    + createBeginnerPlan(userId: String): TrainingPlan
+    + reschedulePlanDay(planDayId: String): PlanDay
+    + selectExpertPlan(expertPlanId: String): TrainingPlan
+  }
+
+  class RunTrackingService <<Client Controller>> {
+    + startRun(): Activity
+    + pauseRun(): void
+    + resumeRun(): void
+    + endRun(): Activity
+  }
+
+  class ActivityService <<Application Service>> {
+    + submitActivity(activity: Activity): void
+    + getActivityHistory(userId: String): List<Activity>
+    + getPostRunSummary(activityId: String): PostRunSummary
+  }
+
+  class ActivityProcessingFunction <<Cloud Function>> {
+    + validateActivity(activityId: String): Boolean
+    + deriveMetrics(activityId: String): void
+    + checkTraceQuality(activityId: String): Boolean
+    + publishProcessingEvent(activityId: String): void
+  }
+
+  class XPAndStreakFunction <<Cloud Function>> {
+    + calculateXP(activityId: String): Int
+    + updateUserStats(userId: String): UserStats
+    + triggerLeaderboardRefresh(userId: String): void
+  }
+
+  class LeaderboardAggregationFunction <<Backend Service>> {
+    + aggregateRegionRankings(region: String): void
+    + getLeaderboard(region: String): List<LeaderboardEntry>
+    + getUserRank(userId: String): LeaderboardEntry
+  }
+
+  class RouteService <<Application Service>> {
+    + searchRoutes(region: String): List<Route>
+    + saveRoute(userId: String, routeId: String): SavedRoute
+    + removeSavedRoute(savedRouteId: String): void
+    + submitRouteReport(routeId: String): RouteReport
+    + publishRoute(activityId: String): Route
+  }
+
+  class EntitlementService <<Backend Service>> {
+    + canAccessFeature(userId: String, featureKey: String): Boolean
+    + requirePremium(userId: String, featureKey: String): void
+  }
+
+  class AdminExpertPlanManagementService <<Backend Service>> {
+    + createExpertPlan(expertId: String): ExpertPlan
+    + reviewExpertPlan(expertPlanId: String): PlanReview
+    + publishExpertPlan(expertPlanId: String): void
+    + updateExpertPlan(expertPlanId: String): ExpertPlan
+    + archiveExpertPlan(expertPlanId: String): void
+  }
+
+  class SummaryGenerationFunction <<Cloud Function>> {
+    + generateBasicSummary(activityId: String): PostRunSummary
+    + generatePremiumSummary(activityId: String): PostRunSummary
+  }
+
+  class NotificationService <<Backend Service>> {
+    + updatePreferences(userId: String): NotificationPreference
+    + schedulePlanReminder(planDayId: String): void
+    + sendStreakRiskReminder(userId: String): void
+    + sendPushNotification(userId: String): void
+  }
+}
+
+User "1" *-- "1" UserProfile : has
+User "1" *-- "1" UserStats : owns
+User "1" *-- "1" NotificationPreference : configures
+User "1" -- "0..*" TrainingPlan : follows
+TrainingPlan "1" *-- "1..*" PlanDay : contains
+PlanDay "0..1" -- "0..1" Activity : completed by
+User "1" -- "0..*" Activity : records
+Activity "1" *-- "0..*" ActivityTrackPoint : contains
+Activity "0..*" --> "0..1" Route : uses
+Activity "1" *-- "0..1" PostRunSummary : produces
+User "1" -- "0..*" Route : creates
+User "1" -- "0..*" SavedRoute : saves
+SavedRoute "0..*" --> "1" Route : references
+User "1" -- "0..*" RouteReport : submits
+Route "1" -- "0..*" RouteReport : receives
+MedicalTrainerExpert "1" -- "0..*" ExpertPlan : provides content for
+ExpertPlan "1" *-- "0..*" PlanReview : has reviews
+ExpertPlan "0..1" --> "0..*" TrainingPlan : published template for
+User "1" -- "0..*" LeaderboardEntry : ranked as
+UserStats "1" ..> "0..*" LeaderboardEntry : feeds score
+
+AuthService ..> User : authenticates
+AuthService ..> UserProfile : creates profile
+PlanService ..> TrainingPlan : manages
+PlanService ..> PlanDay : reschedules
+PlanService ..> ExpertPlan : selects published template
+PlanService ..> EntitlementService : checks expert plan access
+RunTrackingService ..> Activity : creates draft
+RunTrackingService ..> ActivityTrackPoint : records GPS trace
+RunTrackingService ..> Route : follows selected route
+ActivityService ..> Activity : submits
+ActivityService ..> ActivityProcessingFunction : triggers processing
+ActivityService ..> PostRunSummary : reads
+ActivityProcessingFunction ..> Activity : validates
+ActivityProcessingFunction ..> ActivityTrackPoint : checks trace quality
+ActivityProcessingFunction ..> XPAndStreakFunction : valid activity event
+ActivityProcessingFunction ..> SummaryGenerationFunction : summary context
+XPAndStreakFunction ..> UserStats : updates XP/streak/level
+XPAndStreakFunction ..> LeaderboardAggregationFunction : requests refresh
+LeaderboardAggregationFunction ..> UserStats : reads trusted stats
+LeaderboardAggregationFunction ..> LeaderboardEntry : writes rank
+RouteService ..> Route : manages
+RouteService ..> SavedRoute : manages
+RouteService ..> RouteReport : records report
+RouteService ..> EntitlementService : checks advanced route tools
+EntitlementService ..> User : reads subscriptionStatus
+EntitlementService ..> ExpertPlan : gates published premium plans
+EntitlementService ..> SavedRoute : gates saved collections
+AdminExpertPlanManagementService ..> MedicalTrainerExpert : records content provider
+AdminExpertPlanManagementService ..> ExpertPlan : create/review/publish/update/archive
+AdminExpertPlanManagementService ..> PlanReview : records decision
+SummaryGenerationFunction ..> Activity : reads processed activity
+SummaryGenerationFunction ..> EntitlementService : checks premium summary
+SummaryGenerationFunction ..> PostRunSummary : writes summary
+NotificationService ..> NotificationPreference : reads preferences
+NotificationService ..> PlanDay : checks schedule
+NotificationService ..> UserStats : checks streak risk
+
+note right of User
+subscriptionStatus distinguishes Basic and Premium access.
+userRole distinguishes operational or advisory roles,
+such as Platform Administrator and Medical Trainer/Expert.
+end note
+
+note right of ExpertPlan
+status values include:
+draft, underReview, revisionRequired,
+approved, published, archived.
+Premium Users can select only published plans.
+end note
+
+note right of AdminExpertPlanManagementService
+Medical Trainer/Expert provides content only.
+Platform Administrator controls plan entry,
+approval, publication, updates, and archiving.
+end note
+
+note right of ActivityProcessingFunction
+ActivityProcessingFunction is the trusted
+validation owner. ActivityService only submits
+and reads activity data.
+end note
+
+note right of XPAndStreakFunction
+XP, level, streak, and leaderboard score are
+calculated by backend logic. The Flutter client
+only displays trusted results.
+end note
+
+@enduml

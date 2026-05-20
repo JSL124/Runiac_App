@@ -1,0 +1,78 @@
+@startuml Runiac_Physical_Architecture
+title Runiac Physical Architecture
+
+skinparam componentStyle rectangle
+skinparam shadowing false
+skinparam linetype ortho
+skinparam packageStyle rectangle
+
+actor "Basic User" as BasicUser
+actor "Premium User" as PremiumUser
+actor "Platform Administrator" as Admin
+actor "Medical Trainer /\nExpert" as Expert
+
+node "User Mobile Device\n(iOS / Android)" as Mobile {
+  component "Runiac Flutter App" as App
+  component "GPS / Location Sensor" as GPS
+  component "Optional Wearable\nHealthKit / Health Connect" as Wearable
+  database "Local Cache\nActive Run Buffer" as LocalCache
+}
+
+cloud "Internet / HTTPS" as Internet
+
+node "Optional Admin Side\nWeb Dashboard\n(Future Component)" as AdminDash
+node "Future Expert Dashboard\n(Phase 2 Draft Submission Only)" as ExpertDash
+
+cloud "Firebase Managed Cloud / BaaS" as Firebase {
+  component "Firebase Authentication" as Auth
+  database "Cloud Firestore" as Firestore
+  component "Cloud Functions" as Functions
+  component "Firebase Cloud Messaging" as FCM
+  database "Cloud Storage\nfor Firebase" as Storage
+}
+
+cloud "External Services" as External {
+  component "Google Maps /\nMapbox APIs" as Maps
+  component "Geocoding /\nRegion Mapping API" as Geo
+  component "External AI /\nLLM Service" as LLM
+  component "OS Share Sheet /\nSocial Media Platforms" as Share
+}
+
+BasicUser --> Mobile : uses same app
+PremiumUser --> Mobile : uses same app
+GPS --> App : route points,\npace inputs,\nlocation accuracy
+Wearable --> App : optional heart rate\nand supported metrics
+App --> LocalCache : buffer active run data
+
+App --> Internet : HTTPS requests
+Admin --> AdminDash : admin access
+AdminDash --> Internet : HTTPS requests
+
+Internet --> Auth : login and session
+Internet --> Firestore : authorized data read/write
+Internet --> Functions : activity upload\nand backend actions
+Internet --> Storage : media upload/download
+Internet --> Maps : map tiles and route display
+Internet --> Share : user-confirmed sharing
+
+Functions --> Firestore : validated activities,\nGPS traces, XP, streaks,\nlevels, entitlement state,\nroute reports, leaderboards,\nsummaries
+Functions --> Firestore : approved/published\nexpert plans
+Functions --> Storage : generated media\nor files if needed
+Functions --> FCM : reminder payloads
+FCM --> Internet : push delivery
+Internet --> Mobile : push notifications
+
+Functions --> Geo : resolve route regions
+Geo --> Functions : region result
+
+Functions --> LLM : premium summary request
+LLM --> Functions : generated summary text
+
+Auth ..> Firestore : UID-based access control
+AdminDash ..> Functions : restricted admin operations
+Expert --> Admin : off-system expert plan\ncontent for review
+Expert ..> ExpertDash : future draft\nsubmission only
+ExpertDash ..> Internet : draft submission\nadmin approval required
+AdminDash ..> Functions : expert plan create,\napprove, publish,\nupdate, archive
+
+@enduml
