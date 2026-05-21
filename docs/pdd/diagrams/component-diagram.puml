@@ -138,6 +138,12 @@ note right of BEActivityProcessing
   activity records.
 end note
 
+note right of FEOnboarding
+  Health/safety onboarding inputs
+  are readiness/cautiousness
+  signals for plan initialisation.
+end note
+
 note right of BELeaderboard
   Leaderboards are pre-aggregated
   by region and level division.

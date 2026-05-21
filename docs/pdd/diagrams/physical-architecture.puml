@@ -68,6 +68,13 @@ Geo --> Functions : region result
 Functions --> LLM : premium summary request
 LLM --> Functions : generated summary text
 
+note right of Functions
+  First beginner plan initialisation
+  uses onboarding profile, goals,
+  availability, health/safety readiness,
+  and cautiousness signals only.
+end note
+
 Auth ..> Firestore : UID-based access control
 AdminDash ..> Functions : restricted admin operations
 Expert --> Admin : off-system expert plan\ncontent for review
