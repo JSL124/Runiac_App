@@ -47,7 +47,7 @@ The Premium User wireframes keep the same mobile navigation structure and add de
 
 | Coverage area | Basic User coverage | Premium User coverage | PDD image status |
 | --- | --- | --- | --- |
-| Onboarding / Profile Setup | Shared first-time setup for running goal, current running level, preferred schedule, session cautiousness, and health/safety readiness prompts. These answers initialise the user's first beginner running plan rather than acting as cosmetic profile fields. | Same setup; Premium access is checked later through `subscriptionStatus`. Premium expert-plan access remains separate from the Basic onboarding plan. | Existing V1 images; V2 documentation clarifies plan-generation purpose. |
+| Onboarding / Profile Setup | Shared first-time setup for running goal, current running level, preferred schedule, session cautiousness, and health/safety readiness prompts. These answers initialise the user's first beginner running plan rather than acting as cosmetic profile fields. | Same setup; Premium access is checked later through `subscriptionStatus`. Premium expert-plan access remains separate from the Basic onboarding plan. | Canonical 13-page onboarding image set. |
 | Home and plan entry | Daily plan, quick run action, XP progress, weekly plan preview, last-run summary, Premium upgrade entry. | Goal progress, richer last-run advice, recommended route content, Premium plan entry. | Existing images. |
 | Plan detail and schedule | Standard weekly beginner plan, today's plan detail, edit schedule, start run. | Workout-wise detail, goal plan journey, expert plan discovery/detail, edit schedule. | Existing images. |
 | Run and recovery | Run landing, guide, live tracking, pause/end, cool-down, summary, XP/streak update. | Same run spine with Premium summary and advanced analysis after completion. | Existing images. |
@@ -101,7 +101,7 @@ Accessibility notes are design-level only and are not a WCAG compliance claim. T
 
 ## 2.7 Figure Grouping Guidance
 
-For final PDD insertion, repeated Basic/Premium variants should be grouped into thematic figures instead of shown as isolated screens one by one. Recommended groups are Home Dashboard, Onboarding / Profile Setup, Plan Home and Today's Plan Detail, Edit Schedule, Run Start and Live Run, Cool Down and Run Summary, Explore Map and Route List, Route Detail and My Route, Leaderboard, Profile / You, and Premium Expert Plan Access. Onboarding / Profile Setup is the only mobile group that likely needs a new image later; the other groups can reuse existing exported assets.
+For final PDD insertion, repeated Basic/Premium variants should be grouped into thematic figures instead of shown as isolated screens one by one. Recommended groups are Home Dashboard, Onboarding / Profile Setup, Plan Home and Today's Plan Detail, Edit Schedule, Run Start and Live Run, Cool Down and Run Summary, Explore Map and Route List, Route Detail and My Route, Leaderboard, Profile / You, and Premium Expert Plan Access. Onboarding / Profile Setup uses the canonical 13-page onboarding image sequence under `docs/pdd/wireframe-images/mobile-user/shared/onboarding/`; the other groups can reuse existing exported assets.
 
 ## 3. Home Dashboard
 
@@ -123,15 +123,15 @@ For final PDD insertion, repeated Basic/Premium variants should be grouped into 
 
 **Screen name:** Onboarding and profile setup.
 
-**Purpose:** Onboarding collects the user information required to initialise the user's first beginner running plan, including running goal, current running level, preferred schedule, session cautiousness, and relevant health/safety readiness prompts. In Onboarding Version 2, each question must have a plan-generation purpose that affects schedule, intensity, duration, safety/cautiousness, motivation style, or route context.
+**Purpose:** Onboarding collects the user information required to initialise the user's first beginner running plan, including running goal, current running level, preferred schedule, session cautiousness, and relevant health/safety readiness prompts. Each question has a plan-generation purpose that affects schedule, intensity, duration, safety/cautiousness, motivation style, or route context.
 
-**Main UI elements:** The Onboarding V2 flow keeps the 13-page one-question-per-screen structure: Welcome / Setup Intro, Main Goal, Current Running Level, Weekly Availability, Preferred Running Days, Preferred Running Time, Session Length, Running Place, Motivation Style, Health Condition, Symptoms During Physical Activity, Plan Cautiousness, and Plan Preview / Confirmation. The existing V1 image set can remain as the current visual baseline, while the Welcome and Plan Preview screens should be regenerated later to make the plan-generation purpose clearer.
+**Main UI elements:** The onboarding flow uses a 13-page one-question-per-screen structure: Welcome / Setup Intro, Main Goal, Current Running Level, Weekly Availability, Preferred Running Days, Preferred Running Time, Session Length, Running Place, Motivation Style, Health Condition, Symptoms During Physical Activity, Plan Cautiousness, and Plan Preview / Confirmation. The canonical images are stored under `docs/pdd/wireframe-images/mobile-user/shared/onboarding/`.
 
 **User action flow:** The user creates or accesses an account, answers the onboarding questions, reviews the generated beginner plan preview, confirms the plan, and then proceeds to the generated running plan or Home Dashboard. Location permission should be requested later when starting a run or using route features, not forced during onboarding.
 
 **Health and safety note:** The health/safety questions are design-level readiness prompts inspired by common physical activity readiness screening principles. They help guide plan cautiousness and safety messaging only; they do not diagnose, treat, provide medical advice, clear users for exercise, or claim clinical compliance. Users with pain, symptoms, or health concerns should be advised to speak to a healthcare professional before starting or increasing exercise.
 
-**Onboarding V2 input-to-plan mapping:**
+**Onboarding input-to-plan mapping:**
 
 | Onboarding question | Conceptual planning input | Generated plan effect | Fallback/default | Safety boundary |
 | --- | --- | --- | --- | --- |
@@ -173,7 +173,7 @@ For final PDD insertion, repeated Basic/Premium variants should be grouped into 
 | User selects concerning symptoms. | Show a cautious plan suggestion and recommend speaking to a healthcare professional before starting or increasing exercise. |
 | User selects normal beginner plan but health/safety answers indicate caution. | Safety overrides the normal preference; use Very Gentle Start or a reduced Balanced Beginner Plan. |
 
-**Plan Preview V2 expectation:** The final onboarding page should show the selected goal, current level, weekly schedule, session length, suggested starting plan, first-week preview, and safety/cautiousness setting. Example preview text: `Suggested Starting Plan: 3 runs/week · run/walk intervals · 20 min/session`; `First Week Preview: Run 1: Walk/run intervals; Run 2: Easy run/walk; Run 3: Confidence run`. If safety concerns exist, the preview should state that a very gentle start is recommended and advise the user to speak to a healthcare professional before starting or increasing exercise if they have symptoms or health concerns.
+**Plan Preview expectation:** The final onboarding page should show the selected goal, current level, weekly schedule, session length, suggested starting plan, first-week preview, and safety/cautiousness setting. Example preview text: `Suggested Starting Plan: 3 runs/week · run/walk intervals · 20 min/session`; `First Week Preview: Run 1: Walk/run intervals; Run 2: Easy run/walk; Run 3: Confidence run`. If safety concerns exist, the preview should state that a very gentle start is recommended and advise the user to speak to a healthcare professional before starting or increasing exercise if they have symptoms or health concerns.
 
 **Related user stories:** `UC-F1`, `UC-F3`, `UC-F4`.
 

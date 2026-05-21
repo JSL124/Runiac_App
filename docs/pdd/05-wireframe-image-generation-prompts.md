@@ -262,14 +262,24 @@ Add a small governance note: "Medical Trainer/Expert can revise and resubmit con
 
 The Basic/Premium mobile wireframe image set mostly already exists under `docs/pdd/wireframe-images/mobile-user/`. Do not generate or modify images from this prompt plan until an explicit image-generation task is requested.
 
-## Onboarding Version 2 Plan-Generation Notes
+## Canonical Onboarding Flow Plan-Generation Notes
 
-Onboarding Version 2 treats onboarding answers as inputs for the user's first beginner running plan. The questions are not decorative profile fields. Each page should have a clear plan-generation purpose affecting schedule, intensity, duration, safety/cautiousness, motivation tone, or route context.
+The final onboarding flow treats onboarding answers as inputs for the user's first beginner running plan. The questions are not decorative profile fields. Each page has a clear plan-generation purpose affecting schedule, intensity, duration, safety/cautiousness, motivation tone, or route context.
 
-The existing 13-page onboarding V1 images under `docs/pdd/wireframe-images/mobile-user/shared/onboarding/` can remain the visual baseline for now. Pages 2-12 can keep their V1 images because their questions already map to plan-generation inputs. Regenerate only selected pages later unless a visual review finds a concrete issue:
-- `01-onboarding-welcome-page.png` should be regenerated later so the intro explains that setup generates the user's first running plan.
-- `13-onboarding-plan-preview-page.png` should be regenerated later so the preview shows the selected plan template, session length, first-week preview, and safety/cautiousness setting.
-- `09-onboarding-motivation-style-page.png` is optional later refinement only if the wording implies motivation choices increase plan intensity or difficulty.
+The canonical image set is the 13-page sequence under `docs/pdd/wireframe-images/mobile-user/shared/onboarding/`:
+- `01-onboarding-welcome-page.png`
+- `02-onboarding-main-goal-page.png`
+- `03-onboarding-current-level-page.png`
+- `04-onboarding-weekly-availability-page.png`
+- `05-onboarding-preferred-days-page.png`
+- `06-onboarding-preferred-time-page.png`
+- `07-onboarding-session-length-page.png`
+- `08-onboarding-running-place-page.png`
+- `09-onboarding-motivation-style-page.png`
+- `10-onboarding-health-condition-page.png`
+- `11-onboarding-activity-symptoms-page.png`
+- `12-onboarding-plan-cautiousness-page.png`
+- `13-onboarding-plan-preview-page.png`
 
 Conceptual input-to-plan mapping:
 
@@ -309,7 +319,7 @@ Conflict and fallback rules:
 
 Health/safety inputs are readiness and cautiousness signals only. They must not be framed as medical diagnosis, treatment, medical advice, medical clearance, exercise clearance, or clinical compliance. Location permission is not requested during onboarding; it is requested later when starting a run or using route features.
 
-Plan Preview V2 should show:
+The Plan Preview screen should show:
 - Selected goal.
 - Current level.
 - Weekly schedule.
@@ -325,41 +335,31 @@ Example Plan Preview text:
 - First Week Preview: `Run 1: Walk/run intervals`, `Run 2: Easy run/walk`, `Run 3: Confidence run`.
 - If safety concerns exist: `Very gentle start recommended. Speak to a healthcare professional before starting or increasing exercise if you have symptoms or health concerns.`
 
-## 14. Onboarding / Profile Setup
+## 14. Onboarding Flow
 
-> **Combined draft/support note:** This prompt describes the older single-page Profile Setup summary image. Onboarding Version 2 uses the 13-page flow under `docs/pdd/wireframe-images/mobile-user/shared/onboarding/`. Keep this combined prompt only as support/reference unless an explicit task asks to regenerate the combined draft image.
+**Target folder:** `docs/pdd/wireframe-images/mobile-user/shared/onboarding/`
 
-**Target file path:** `docs/pdd/wireframe-images/mobile-user/shared/onboarding-profile-setup-page.png`
-
-**Screen purpose:** Shows the first-time setup flow that collects beginner running information before the user enters the main app.
+**Screen purpose:** Shows the first-time 13-page setup sequence that collects beginner running information before the user enters the main app. The onboarding answers initialise the user's first beginner running plan.
 
 **Role:** Shared Basic User and Premium User onboarding.
 
-**Layout sections:**
-- Portrait mobile phone frame
-- Header: "Profile Setup"
-- Subtitle: "Help Runiac create a beginner-friendly running plan."
-- Progress step indicator for first-time onboarding
-- Main Goal card with Start Running, Build Habit, and Prepare for Distance options
-- Current Level card with New Runner, Returning After Break, and Run/Walk Beginner options
-- Preferred Schedule card with day chips and a preferred time selector
-- Health & Safety card with compact readiness options
-- Safety note explaining that Runiac is not a medical service
-- Primary action: Continue
-- Secondary text action: Set up later
+**Canonical image sequence:**
+- `01-onboarding-welcome-page.png`
+- `02-onboarding-main-goal-page.png`
+- `03-onboarding-current-level-page.png`
+- `04-onboarding-weekly-availability-page.png`
+- `05-onboarding-preferred-days-page.png`
+- `06-onboarding-preferred-time-page.png`
+- `07-onboarding-session-length-page.png`
+- `08-onboarding-running-place-page.png`
+- `09-onboarding-motivation-style-page.png`
+- `10-onboarding-health-condition-page.png`
+- `11-onboarding-activity-symptoms-page.png`
+- `12-onboarding-plan-cautiousness-page.png`
+- `13-onboarding-plan-preview-page.png`
 
-**Key labels/buttons:** Profile Setup, Help Runiac create a beginner-friendly running plan, Main Goal, Start Running, Build Habit, Prepare for Distance, Current Level, New Runner, Returning After Break, Run/Walk Beginner, Preferred Schedule, Health & Safety, Any health concern that may affect running?, No concern, Injury/Pain, Heart/BP or Breathing, Not sure, Continue, Set up later.
+**Common layout requirements:** Use low-fidelity black-and-white portrait mobile wireframes with a clean Flutter / Material-compatible structure. Each screen should show one main question or confirmation step, a top progress indicator, readable option cards or chips, a bottom primary action, and no bottom navigation because onboarding occurs before the user reaches the main app.
 
-**Negative constraints:** Do not show the bottom navigation because onboarding occurs before the user reaches the main app. Do not show Premium-only upsell content on this first-time setup screen. Do not include high-fidelity colours, gradients, photos, branding, decorative illustrations, real user data, implementation code, Firebase collection names, API names, database fields, XP calculation, leaderboard rank, backend-owned values, subscription purchase controls, medical diagnosis language, treatment claims, medical clearance claims, or clinical compliance claims.
+**Key content requirements:** The Welcome screen explains that setup builds the user's first beginner running plan. The question screens collect goal, current level, weekly availability, preferred days, preferred time, session length, running place, motivation style, health condition readiness, symptoms during physical activity, and plan cautiousness. The Plan Preview screen shows the selected goal, current level, weekly schedule, session length, suggested starting plan, first-week preview, safety/cautiousness setting, Create My Plan, and Edit Answers.
 
-**Final image-generation prompt:**
-
-Create a low-fidelity black-and-white mobile app wireframe for the Runiac PDD titled "Profile Setup". Use a portrait phone frame with a clean Flutter / Material-compatible card-based layout. Keep the design beginner-friendly, readable, and suitable for a university Project Design Document. Use only black, white, and grey wireframe styling. Do not use high-fidelity colours, gradients, photos, branding, decorative illustrations, or real user data.
-
-This is a first-time onboarding screen before the user reaches the main app, so do not include bottom navigation. At the top, show the screen title "Profile Setup" and subtitle "Help Runiac create a beginner-friendly running plan." Add a small onboarding progress indicator.
-
-In the main content, show a "Main Goal" card with selectable options: Start Running, Build Habit, Prepare for Distance. Show a "Current Level" card with selectable options: New Runner, Returning After Break, Run/Walk Beginner. Show a "Preferred Schedule" card with day chips and a preferred time selector. Show a "Health & Safety" card with the question "Any health concern that may affect running?" and compact options: No concern, Injury/Pain, Heart/BP or Breathing, Not sure.
-
-Add a small safety note: "Runiac is not a medical service. If you have pain, symptoms, or health concerns, speak to a healthcare professional before starting or increasing exercise." At the bottom, include a primary "Continue" button and a secondary text action "Set up later".
-
-Important constraints: do not include Firebase names, database fields, APIs, implementation details, XP calculation, leaderboard rank, backend-owned values, subscription purchase controls, medical diagnosis language, treatment claims, medical clearance claims, or clinical compliance claims. The screen should document beginner-friendly profile setup and safety awareness only.
+**Negative constraints:** Do not include high-fidelity colours, gradients, photos, branding, decorative illustrations, real user data, implementation code, Firebase collection names, API names, database fields, XP calculation, leaderboard rank, backend-owned values, subscription purchase controls, medical diagnosis language, treatment claims, medical advice claims, medical clearance claims, exercise clearance claims, or clinical compliance claims. Do not request location permission during onboarding; location permission is requested later when starting a run or using route features.
