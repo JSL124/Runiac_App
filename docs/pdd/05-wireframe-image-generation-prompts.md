@@ -272,25 +272,29 @@ The Basic/Premium mobile wireframe image set mostly already exists under `docs/p
 
 **Layout sections:**
 - Portrait mobile phone frame
-- Header: "Set up your running profile"
+- Header: "Profile Setup"
+- Subtitle: "Help Runiac create a beginner-friendly running plan."
 - Progress step indicator for first-time onboarding
-- Running goal selector
-- Preferred running days selector
-- Preferred running time selector
-- Experience level selector
-- Fitness or injury/health context fields at a high level
-- Location and notification permission explanation
+- Main Goal card with Start Running, Build Habit, and Prepare for Distance options
+- Current Level card with New Runner, Returning After Break, and Run/Walk Beginner options
+- Preferred Schedule card with day chips and a preferred time selector
+- Health & Safety card with compact readiness options
+- Safety note explaining that Runiac is not a medical service
 - Primary action: Continue
-- Secondary action: Back
+- Secondary text action: Set up later
 
-**Key labels/buttons:** Set up your running profile, Running Goal, Preferred Running Days, Preferred Running Time, Experience Level, Fitness Background, Injury or Health Notes, Location Permission, Notification Permission, Back, Continue.
+**Key labels/buttons:** Profile Setup, Help Runiac create a beginner-friendly running plan, Main Goal, Start Running, Build Habit, Prepare for Distance, Current Level, New Runner, Returning After Break, Run/Walk Beginner, Preferred Schedule, Health & Safety, Any health concern that may affect running?, No concern, Injury/Pain, Heart/BP or Breathing, Not sure, Continue, Set up later.
 
-**Negative constraints:** Do not show the bottom navigation because onboarding occurs before the user reaches the main app. Do not show Premium-only upsell content on this first-time setup screen. Do not include gradients, colours, photo-realistic visuals, implementation code, Firebase collection names, API names, database fields, XP calculation, leaderboard rank, or subscription purchase controls.
+**Negative constraints:** Do not show the bottom navigation because onboarding occurs before the user reaches the main app. Do not show Premium-only upsell content on this first-time setup screen. Do not include high-fidelity colours, gradients, photos, branding, decorative illustrations, real user data, implementation code, Firebase collection names, API names, database fields, XP calculation, leaderboard rank, backend-owned values, subscription purchase controls, medical diagnosis language, treatment claims, medical clearance claims, or clinical compliance claims.
 
 **Final image-generation prompt:**
 
-Create a low-fidelity black-and-white mobile app wireframe for the Runiac PDD titled "Onboarding / Profile Setup". Use a portrait phone frame with a Flutter / Material-compatible layout, simple rectangular sections, readable labels, no colours, no gradients, and no decorative illustrations. This is a first-time onboarding screen before main app access, so do not include bottom navigation.
+Create a low-fidelity black-and-white mobile app wireframe for the Runiac PDD titled "Profile Setup". Use a portrait phone frame with a clean Flutter / Material-compatible card-based layout. Keep the design beginner-friendly, readable, and suitable for a university Project Design Document. Use only black, white, and grey wireframe styling. Do not use high-fidelity colours, gradients, photos, branding, decorative illustrations, or real user data.
 
-At the top, show a simple app header and the title "Set up your running profile". Add a small step indicator for onboarding progress. In the main content area, include sections for Running Goal, Preferred Running Days, Preferred Running Time, Experience Level, Fitness Background, and Injury or Health Notes. Use simple input boxes, segmented controls, or checklist placeholders suitable for a wireframe. Add a permission explanation panel with two rows: Location Permission and Notification Permission, each with a short reason for why the permission helps running guidance or reminders. At the bottom, include a secondary Back button and a primary Continue button.
+This is a first-time onboarding screen before the user reaches the main app, so do not include bottom navigation. At the top, show the screen title "Profile Setup" and subtitle "Help Runiac create a beginner-friendly running plan." Add a small onboarding progress indicator.
 
-Important constraints: use only black, white, and grey wireframe styling. Keep the design beginner-focused and easy to scan. Do not show Premium-only upsell content, subscription controls, bottom navigation, implementation details, Firebase names, API names, database fields, XP calculation, leaderboard rank, or medical diagnosis language. The screen should document profile setup for safer beginner plan generation, not production implementation details.
+In the main content, show a "Main Goal" card with selectable options: Start Running, Build Habit, Prepare for Distance. Show a "Current Level" card with selectable options: New Runner, Returning After Break, Run/Walk Beginner. Show a "Preferred Schedule" card with day chips and a preferred time selector. Show a "Health & Safety" card with the question "Any health concern that may affect running?" and compact options: No concern, Injury/Pain, Heart/BP or Breathing, Not sure.
+
+Add a small safety note: "Runiac is not a medical service. If you have pain, symptoms, or health concerns, speak to a healthcare professional before starting or increasing exercise." At the bottom, include a primary "Continue" button and a secondary text action "Set up later".
+
+Important constraints: do not include Firebase names, database fields, APIs, implementation details, XP calculation, leaderboard rank, backend-owned values, subscription purchase controls, medical diagnosis language, treatment claims, medical clearance claims, or clinical compliance claims. The screen should document beginner-friendly profile setup and safety awareness only.

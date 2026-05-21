@@ -47,7 +47,7 @@ The Premium User wireframes keep the same mobile navigation structure and add de
 
 | Coverage area | Basic User coverage | Premium User coverage | PDD image status |
 | --- | --- | --- | --- |
-| Onboarding / Profile Setup | Shared first-time setup for running goal, preferred running days/time, experience, fitness, injury or health context, and permission choices. | Same setup; Premium access is checked later through `subscriptionStatus`. | New image likely needed later. |
+| Onboarding / Profile Setup | Shared first-time setup for running goal, current running level, preferred schedule, session cautiousness, and health/safety readiness prompts. | Same setup; Premium access is checked later through `subscriptionStatus`. | New image likely needed later. |
 | Home and plan entry | Daily plan, quick run action, XP progress, weekly plan preview, last-run summary, Premium upgrade entry. | Goal progress, richer last-run advice, recommended route content, Premium plan entry. | Existing images. |
 | Plan detail and schedule | Standard weekly beginner plan, today's plan detail, edit schedule, start run. | Workout-wise detail, goal plan journey, expert plan discovery/detail, edit schedule. | Existing images. |
 | Run and recovery | Run landing, guide, live tracking, pause/end, cool-down, summary, XP/streak update. | Same run spine with Premium summary and advanced analysis after completion. | Existing images. |
@@ -82,7 +82,7 @@ Most state screens can be documented as notes in the PDD rather than generated a
 | Empty state | Profile history, saved routes, expert plan catalogue, leaderboard rank. | Explain the expected empty message and recovery action. |
 | Loading state | Home, plan detail, route list, leaderboard, post-run summary, expert plans. | Note that loading should preserve navigation and avoid duplicate actions. |
 | Error state | Schedule save, route/report submission, activity sync, summary generation. | Provide recoverable actions such as retry, cancel, or return. |
-| Permission denied | Onboarding, Run Landing, Explore Map, notification setup. | Explain why permission is needed and provide settings/retry path. |
+| Permission denied | Run Landing, Explore Map, notification setup. | Explain why permission is needed and provide settings/retry path. Location permission should be requested when the user starts a run or uses route features rather than forced during onboarding. |
 | GPS unavailable | Run Landing and Live Run. | Keep activity controls safe; avoid awarding trusted progression until validation succeeds. |
 | Location permission denied | Explore, Run, Leaderboard map. | Provide non-map fallback text where possible. |
 | Network unavailable | Activity upload, route list, leaderboard, summary loading. | Support local run recording and later sync where applicable. |
@@ -123,11 +123,13 @@ For final PDD insertion, repeated Basic/Premium variants should be grouped into 
 
 **Screen name:** Onboarding and profile setup.
 
-**Purpose:** Onboarding collects the user information required to generate safe beginner running guidance, including running experience, fitness level, personal goals, injury history, relevant health conditions, and permission choices.
+**Purpose:** Onboarding collects the user information required to generate safe beginner running guidance, including running goal, current running level, preferred schedule, session cautiousness, and relevant health/safety readiness prompts.
 
-**Main UI elements:** No dedicated onboarding wireframe asset was found in the provided `docs/pdd/wireframe-images/` folders. Therefore, this PDD section records onboarding only as a required PRD flow. The PRD states that onboarding must support account/profile setup and collect the health-aware information needed for training plan generation.
+**Main UI elements:** No dedicated onboarding wireframe asset was found in the provided `docs/pdd/wireframe-images/` folders. Therefore, this PDD section records onboarding as a required PRD flow and as a representative multi-step setup summary. The planned image should show a compact Profile Setup screen with main goal, current level, preferred schedule, a Health & Safety card, a safety note, Continue, and Set up later.
 
-**User action flow:** The user creates or accesses an account, completes the profile and running background information, grants required permissions such as location and notifications, and then proceeds to the generated running plan or Home Dashboard.
+**User action flow:** The user creates or accesses an account, completes profile and running background information, answers lightweight readiness prompts, confirms or skips setup, and then proceeds to the generated running plan or Home Dashboard. Location permission should be requested later when starting a run or using route features, not forced during onboarding.
+
+**Health and safety note:** The health/safety questions are design-level readiness prompts inspired by common physical activity readiness screening principles. They help guide plan cautiousness and safety messaging only; they do not diagnose, treat, provide medical advice, clear users for exercise, or claim clinical compliance. Users with pain, symptoms, or health concerns should be advised to speak to a healthcare professional before starting or increasing exercise.
 
 **Related user stories:** `UC-F1`, `UC-F3`, `UC-F4`.
 
