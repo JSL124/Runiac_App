@@ -3,6 +3,9 @@
 ## Scope
 - Applies to automated tests, manual QA notes, regression checks, security-rule verification, build checks, and commit-readiness evidence.
 - Use in IMPLEMENTATION_MODE and for documentation deliverable readiness when requested.
+- This folder currently contains QA/testing guidance only.
+- No production test suite currently exists in this folder unless added later intentionally; instruction-only files here are not production test suites or test evidence.
+- Test files or evidence should be added only when implementation or testing work is explicitly requested.
 
 ## QA Responsibilities
 - Verify changed behaviour against mapped PRD/PDD requirements.

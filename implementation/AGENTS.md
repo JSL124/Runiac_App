@@ -2,6 +2,9 @@
 
 ## IMPLEMENTATION_MODE Scope
 - IMPLEMENTATION_MODE is used only when the user explicitly asks to implement, build, test, or fix code.
+- This folder currently contains future IMPLEMENTATION_MODE instructions only.
+- No production source code currently exists in this folder; instruction-only files here are not production implementation code.
+- Production implementation files should be added only when the user explicitly starts implementation.
 - Do not rewrite PDD-only files unless the implementation task explicitly requires documentation or traceability updates.
 - Do not place production source code inside `docs/`.
 

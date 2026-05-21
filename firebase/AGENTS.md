@@ -3,6 +3,10 @@
 ## Scope
 - Applies to Firebase Authentication, Cloud Firestore, Cloud Functions, Firebase Cloud Messaging, Firebase Cloud Storage, Firestore Security Rules, and trusted backend workflows.
 - Use only in IMPLEMENTATION_MODE unless the user explicitly asks for Firebase design documentation.
+- This folder currently contains Firebase/security guidance only.
+- No production Firebase configuration, Cloud Functions, or Firestore rules currently exist in this folder; instruction-only files here are not production Firebase code.
+- If production Firebase files are added later, they must follow these rules.
+- Do not add Cloud Functions, Firestore rules, or Firebase config unless implementation work is explicitly requested.
 
 ## Access and Enforcement Rules
 - `subscriptionStatus` and `userRole` may be mirrored for display, but enforcement must not rely only on client-side fields.
