@@ -1,5 +1,33 @@
 # Runiac AGENTS.md Changelog
 
+## 2026-05-21 - Add PDD Review Gate
+
+### Files modified
+- `docs/pdd/AGENTS.md`
+- `docs/pdd/AGENT_ROLES.md`
+- `docs/pdd/AGENTS_CHANGELOG.md`
+
+### Reason
+Added an A0_ORCH-owned workflow decision rule so Codex can decide when A6_REVIEW and A8_OUTPUT_CHECKER are mandatory, optional, or unnecessary instead of stopping after only recommending review.
+
+### Summary of changes
+- Added `PDD_REVIEW_GATE` to `docs/pdd/AGENTS.md`.
+- Clarified that A0_ORCH owns the gate and decides whether a task needs no review, A6_REVIEW only, A6_REVIEW plus A8_OUTPUT_CHECKER, or A14_ERROR_TRIAGE through the bounded error-fix loop.
+- Made A6_REVIEW and A8_OUTPUT_CHECKER mandatory before Ready for commit for scoped PDD documentation apply tasks that affect canonical PDD deliverables or support files for figures, ordering, prompts, or references.
+- Made A6_REVIEW and A8_OUTPUT_CHECKER mandatory for diagram or wireframe image path changes, figure numbering/caption/insertion-order changes, PRD traceability changes, role/subscription/governance wording changes, backend-owned progression rule changes or references, explicit continue/review/readiness requests, and any response that intends to say Ready for commit.
+- Clarified that plan-only, inspect-only, search/find-only, review-only with no modifications, no-op, narrow typo-only, and unrelated project-management support tasks do not require full review unless the user asks for readiness or consistency could be affected.
+- Clarified that concrete issues found by A6_REVIEW or A8_OUTPUT_CHECKER route to A14_ERROR_TRIAGE through the bounded error-fix loop, and A14 must return to the same reviewer and cannot declare readiness.
+- Added a concise A0_ORCH role note in `docs/pdd/AGENT_ROLES.md`.
+- Added no new agents and performed no agent renumbering.
+- Confirmed A15_AGENT_AUDITOR remains instruction-system audit only and does not own PDD review decisions.
+
+### Review required
+- A6_REVIEW: verify the gate preserves A0 ownership, keeps A6 as consistency review, keeps A8 as completeness/readiness checking, keeps A14 concrete-error-only, and keeps A15 audit-only.
+- A8_OUTPUT_CHECKER: verify the gate rule, A0 role note, and changelog entry exist; no PDD deliverable content, binary images, implementation code, new agents, or agent renumbering were introduced.
+
+### Final status
+Ready for commit.
+
 ## 2026-05-21 - Clarify Agent Boundaries
 
 ### Files modified

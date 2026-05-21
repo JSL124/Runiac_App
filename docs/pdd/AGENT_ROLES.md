@@ -57,6 +57,8 @@ When an agent hands off work, report:
 ## A0_ORCH - PDD Orchestrator
 A0_ORCH is the workflow owner for PDD_MODE. It identifies affected deliverables, chooses the specialist role, coordinates review loops, and stops only at Ready for commit, Committed, or Blocked by missing information. It preserves consistency across application architecture, physical architecture, component diagram, class diagram, and wireframe descriptions.
 
+A0_ORCH owns PDD_REVIEW_GATE. It decides whether a scoped PDD task requires no review, A6_REVIEW only, A6_REVIEW plus A8_OUTPUT_CHECKER, or A14_ERROR_TRIAGE through the bounded error-fix loop. A0_ORCH must actually run required review/checker passes before reporting Ready for commit; it must not delegate this decision to A15_AGENT_AUDITOR.
+
 ## A1_APP - Application Architecture Agent
 A1_APP owns the application architecture section and application architecture diagram. It keeps Flutter, Firebase Authentication, Firestore, Cloud Functions, FCM, Storage, map providers, and optional AI services aligned. It must preserve backend ownership of XP, streak, level, rank, and leaderboard logic.
 
