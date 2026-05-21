@@ -1,5 +1,7 @@
 # 00. PDD Orchestration Plan
 
+> **Planning reference notice:** This file is a PDD planning and coordination reference, not the active source of agent rules. Active Codex instructions are maintained in the repository `AGENTS.md` files, and detailed PDD agent role profiles are maintained in `docs/pdd/AGENT_ROLES.md`.
+
 ## 1. PDD Goal
 
 The Project Design Document (PDD) should prove that Runiac has a coherent and realistic system design for a university Final Year Project. It should show how the completed PRD and wireframes translate into an implementable mobile application architecture without adding unnecessary enterprise complexity.
@@ -56,7 +58,7 @@ Source input note:
 
 - Requested PRD path: `docs/prd/Runiac_PRD.pdf`.
 - Requested wireframe path: `docs/wireframes/`.
-- Current checkout also contains readable source equivalents at `PRD.md`, `wireframe.md`, `PRD_assets/`, and `docs/pdd/wireframe-images/`. If the requested paths are unavailable, agents should use these local equivalents and flag the source substitution in their output assumptions.
+- Current checkout contains readable source equivalents at `PRD.md`, `wireframe.md`, and `PRD_assets/`, with prepared PDD wireframe image assets under `docs/pdd/wireframe-images/`. The legacy `wireframe_assets/` path may appear in earlier planning notes or Git history, but the canonical PDD wireframe image structure is now `docs/pdd/wireframe-images/`. If the requested paths are unavailable, agents should use these local equivalents and flag the source substitution in their output assumptions.
 
 ## 4. Naming Rules
 
@@ -196,7 +198,7 @@ Naming consistency rules:
 | --- | --- |
 | Agent name | `Wireframe Description Agent` |
 | Purpose | Describe the completed Basic and Premium wireframes, plus the planned Platform Administrator and Medical Trainer/Expert governance wireframes, in PDD-ready language and link each screen group to user goals and system components. |
-| Input files | `AGENTS.md`, `docs/wireframes/`, `wireframe.md`, `docs/pdd/wireframe-images/mobile-user/basic/`, `docs/pdd/wireframe-images/mobile-user/premium/`, `docs/pdd/wireframe-images/mobile-user/shared/`, the Platform Administrator and Medical Trainer/Expert wireframe plan supplied during PDD review, `docs/pdd/00-orchestration-plan.md`, `docs/pdd/01-application-architecture.md`, `docs/pdd/03-component-diagram.md`. |
+| Input files | `AGENTS.md`, `docs/wireframes/`, `wireframe.md`, prepared wireframe image folders under `docs/pdd/wireframe-images/`, the Platform Administrator and Medical Trainer/Expert wireframe plan supplied during PDD review, `docs/pdd/00-orchestration-plan.md`, `docs/pdd/01-application-architecture.md`, `docs/pdd/03-component-diagram.md`. |
 | Output file | `docs/pdd/05-wireframe-description.md` |
 | Allowed modifications | May modify only `docs/pdd/05-wireframe-description.md`. |
 | Completion criteria | Covers Basic, Premium, Platform Administrator, and Medical Trainer/Expert screen groups, explains purpose, main UI elements, user action flow, related PRD feature/component, and Basic/Premium or governance-role differences. Does not redesign screens. |
