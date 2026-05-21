@@ -110,11 +110,11 @@ Most Basic/Premium mobile images already exist under `docs/pdd/wireframe-images/
 
 ## 5.3 Admin/Expert Governance Flow Overview
 
-### Figure 5.12: Admin/Expert Expert Plan Governance Flow
+### Optional Unnumbered Governance Overview
 
 **Suggested source:** Optional future flow diagram. Existing screen-level coverage is sufficient; this diagram is not required unless the final PDD needs a visual lifecycle summary.
 
-**Caption:** Admin/Expert Expert Plan Governance Flow from Medical Trainer/Expert draft submission to Platform Administrator-controlled publication.
+**Suggested caption:** Admin/Expert Expert Plan Governance Flow from Medical Trainer/Expert draft submission to Platform Administrator-controlled publication.
 
 **PDD explanation:** The governance flow begins when the Medical Trainer/Expert creates draft expert plan content and submits it for admin review. The Platform Administrator reviews the plan for safety, completeness, beginner suitability, and Runiac standards. The administrator may request revision, approve, reject, archive, or publish only after approval. Premium Users can view and select only approved and published expert plans.
 
@@ -122,9 +122,9 @@ Most Basic/Premium mobile images already exist under `docs/pdd/wireframe-images/
 
 ## 5.4 Platform Administrator Wireframes
 
-### Figure 5.13: Admin Dashboard
+### Figure 5.12: Admin Dashboard
 
-![Figure 5.13: Admin Dashboard](wireframe-images/platform-admin/admin-dashboard.png)
+![Figure 5.12: Admin Dashboard](wireframe-images/platform-admin/admin-dashboard.png)
 
 **Caption:** Admin Dashboard showing system status, pending expert plans, reported routes, active notifications, quick actions, and recent activity.
 
@@ -132,9 +132,9 @@ Most Basic/Premium mobile images already exist under `docs/pdd/wireframe-images/
 
 **Governance note:** Access is controlled by `userRole = Platform Administrator`, not by `subscriptionStatus`.
 
-### Figure 5.14: User Management
+### Figure 5.13: User Management
 
-![Figure 5.14: User Management](wireframe-images/platform-admin/user-management.png)
+![Figure 5.13: User Management](wireframe-images/platform-admin/user-management.png)
 
 **Caption:** User Management screen showing account search, filters, user table, and View/Edit/Suspend actions.
 
@@ -142,9 +142,9 @@ Most Basic/Premium mobile images already exist under `docs/pdd/wireframe-images/
 
 **Governance note:** Basic User and Premium User are not separate account classes. Suspend is a soft moderation action.
 
-### Figure 5.15: User Detail / Role Control
+### Figure 5.14: User Detail / Role Control
 
-![Figure 5.15: User Detail / Role Control](wireframe-images/platform-admin/user-detail-role-control.png)
+![Figure 5.14: User Detail / Role Control](wireframe-images/platform-admin/user-detail-role-control.png)
 
 **Caption:** User Detail / Role Control screen showing profile, access information, read-only running summary, moderation notes, and admin actions.
 
@@ -152,9 +152,9 @@ Most Basic/Premium mobile images already exist under `docs/pdd/wireframe-images/
 
 **Governance note:** Admin must not directly edit XP, level, streak, rank, or leaderboard score.
 
-### Figure 5.16: Expert Plan Review
+### Figure 5.15: Expert Plan Review
 
-![Figure 5.16: Expert Plan Review](wireframe-images/platform-admin/expert-plan-review.png)
+![Figure 5.15: Expert Plan Review](wireframe-images/platform-admin/expert-plan-review.png)
 
 **Caption:** Expert Plan Review screen showing submitted plan details, provider information, weekly schedule, safety notes, review checklist, admin comments, and decision buttons.
 
@@ -162,9 +162,9 @@ Most Basic/Premium mobile images already exist under `docs/pdd/wireframe-images/
 
 **Governance note:** Medical Trainer/Expert does not publish plans. Platform Administrator publishes only after review and approval.
 
-### Figure 5.17: Plan Management
+### Figure 5.16: Plan Management
 
-![Figure 5.17: Plan Management](wireframe-images/platform-admin/plan-management.png)
+![Figure 5.16: Plan Management](wireframe-images/platform-admin/plan-management.png)
 
 **Caption:** Plan Management screen showing system and expert plan records, lifecycle statuses, search filters, and View/Edit/Archive actions.
 
@@ -172,9 +172,9 @@ Most Basic/Premium mobile images already exist under `docs/pdd/wireframe-images/
 
 **Governance note:** Premium expert plans must not create XP, rank, leaderboard score, or competitive advantages.
 
-### Figure 5.18: Route Management
+### Figure 5.17: Route Management
 
-![Figure 5.18: Route Management](wireframe-images/platform-admin/route-management.png)
+![Figure 5.17: Route Management](wireframe-images/platform-admin/route-management.png)
 
 **Caption:** Route Management screen showing shared route search, route table, map preview, report detail preview, and soft moderation actions.
 
@@ -182,9 +182,9 @@ Most Basic/Premium mobile images already exist under `docs/pdd/wireframe-images/
 
 **Governance note:** Route moderation is for safety and privacy only; it must not grant Premium Users competitive advantages.
 
-### Figure 5.19: Notification / Report Management
+### Figure 5.18: Notification / Report Management
 
-![Figure 5.19: Notification / Report Management](wireframe-images/platform-admin/notification-report-management.png)
+![Figure 5.18: Notification / Report Management](wireframe-images/platform-admin/notification-report-management.png)
 
 **Caption:** Notification / Report Management screen showing notification creation, notification history, report table, and moderation actions.
 
@@ -194,9 +194,9 @@ Most Basic/Premium mobile images already exist under `docs/pdd/wireframe-images/
 
 ## 5.5 Medical Trainer/Expert Wireframes
 
-### Figure 5.20: Expert Plan Submission Form
+### Figure 5.19: Expert Plan Submission Form
 
-![Figure 5.20: Expert Plan Submission Form](wireframe-images/medical-trainer-expert/expert-plan-submission-form.png)
+![Figure 5.19: Expert Plan Submission Form](wireframe-images/medical-trainer-expert/expert-plan-submission-form.png)
 
 **Caption:** Expert Plan Submission Form showing expert credentials, plan details, weekly plan builder, safety guidance, and submission controls.
 
@@ -204,9 +204,9 @@ Most Basic/Premium mobile images already exist under `docs/pdd/wireframe-images/
 
 **Governance note:** The screen includes Save Draft and Submit for Admin Review only. It must not include a Publish Plan button.
 
-### Figure 5.21: Submitted Plan Status Page
+### Figure 5.20: Submitted Plan Status Page
 
-![Figure 5.21: Submitted Plan Status Page](wireframe-images/medical-trainer-expert/submitted-plan-status-page.png)
+![Figure 5.20: Submitted Plan Status Page](wireframe-images/medical-trainer-expert/submitted-plan-status-page.png)
 
 **Caption:** Submitted Plan Status Page showing submitted expert plans, review statuses, admin comments, and revision-response actions.
 
