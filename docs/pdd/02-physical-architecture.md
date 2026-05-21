@@ -32,7 +32,7 @@ The mobile client may calculate display-only values needed for immediate feedbac
 | --- | --- |
 | Firebase Authentication | Handles sign-in, user identity, session tokens, and access control integration with Firestore security rules and Cloud Functions. |
 | Cloud Firestore | Stores persistent application data, including user profiles, onboarding information, subscription or entitlement state, activity records, GPS trace records, route metadata, route reports, training plans, approved/published expert plans, XP records, streak records, leaderboard aggregates, reminder settings, and post-run summaries. |
-| Cloud Functions | Performs trusted server-side logic, including the Activity Processing Function for validation, the XP and Streak Function for progression updates, the Leaderboard Aggregation Function for ranking, the Notification Service for reminders, the Entitlement Service for premium checks, Admin Expert Plan Management, route region mapping orchestration, and Summary Generation Function orchestration for AI-assisted summaries. |
+| Cloud Functions | Performs trusted server-side logic, including the Activity Processing Function for validation, backend-supported onboarding-driven first beginner plan initialisation, the XP and Streak Function for progression updates, the Leaderboard Aggregation Function for ranking, the Notification Service for reminders, the Entitlement Service for premium checks, Admin Expert Plan Management, route region mapping orchestration, and Summary Generation Function orchestration for AI-assisted summaries. |
 | Firebase Cloud Messaging | Sends push notifications for planned runs, rest reminders, missed sessions, streak-risk reminders, and engagement prompts. |
 | Cloud Storage for Firebase | Stores binary assets where needed, such as profile images, generated share cards, route-related media, or exported files. Core structured data remains in Firestore. |
 
@@ -45,7 +45,7 @@ Firebase is treated as a managed cloud platform. This keeps the system realistic
 | Google Maps / Mapbox APIs | Provides map tiles, map rendering support, route display, and map-based interaction for run tracking, community routes, and territorial leaderboard views. |
 | Geocoding / region mapping service | Converts route coordinates into administrative or application-defined regions used by territorial leaderboards. This is called from Cloud Functions rather than trusted directly from the client for ranking updates. |
 | External AI / LLM service | Generates enhanced Premium post-run summaries from structured activity context prepared by Cloud Functions. It does not directly read from or write to Firestore. |
-| OS share sheet / social media platforms | Allows users to share selected content outside Runiac. Sharing is user-initiated and should avoid exposing sensitive route or health information without confirmation. |
+| OS share sheet / social media platforms | Allows users to share selected content outside Runiac. Sharing is user-initiated and should avoid exposing sensitive route or health/safety readiness information without confirmation. |
 | Optional admin web dashboard | Future or admin-side interface for Platform Administrators to moderate routes, review reports, create/review/publish/update/archive expert plans, manage basic configuration, and support users. It should access Firebase through authenticated and authorized paths only. |
 | Future Expert Dashboard | Phase 2-only draft submission interface for verified Medical Trainer/Expert users. It may submit draft plan content for review, but it cannot publish plans directly. |
 
@@ -53,29 +53,30 @@ Firebase is treated as a managed cloud platform. This keeps the system realistic
 
 1. A Basic User or Premium User opens the Runiac Flutter app on an iOS or Android mobile device.
 2. The app authenticates the user through Firebase Authentication over HTTPS. The resulting identity token is used when accessing protected Firebase resources.
-3. During a run, the app collects GPS samples and optional wearable metrics locally. The active run is buffered on the device to reduce data-loss risk during poor connectivity.
-4. After the user completes the run, the app uploads the activity data over HTTPS. The Activity Processing Function validates the activity before it can affect XP, streaks, levels, or leaderboards.
-5. The Cloud Functions layer writes validated activity results, GPS trace records, XP updates, streak updates, level changes, entitlement-checked outputs, route report state, and leaderboard aggregates to Cloud Firestore.
-6. The app reads user-specific data and aggregated public data from Cloud Firestore using Firebase SDK communication over HTTPS.
-7. For map screens, the app requests map tiles and route display support from Google Maps / Mapbox APIs over HTTPS.
-8. For territorial leaderboard processing, Cloud Functions may call geocoding or region mapping APIs to resolve route coordinates into supported regions.
-9. For Premium post-run summaries, Cloud Functions prepares a structured prompt, calls the external AI/LLM service over HTTPS, applies safety constraints, and stores the generated summary in Firestore.
-10. For reminders, scheduled Cloud Functions evaluate plans, inactivity, streak risk, and rest conditions, then send notification payloads through Firebase Cloud Messaging to the user device.
-11. If the user chooses to share a run, rank card, or summary, the app invokes the OS share sheet. The user selects the external platform and confirms the share.
-12. Medical Trainer/Expert plan content is submitted off-system or through a controlled draft-submission process. It is not written directly into Firebase by the expert in the MVP.
-13. Platform Administrator actions are handled through a restricted backend moderation and expert plan management workflow. If an optional admin dashboard is implemented, the Platform Administrator accesses it through a browser over HTTPS and performs restricted admin actions through Firebase Authentication and Cloud Functions.
-14. Premium Users read only approved and published expert plan records from Firestore-backed views.
+3. During onboarding, the Flutter app submits and stores profile, goal, running level, availability, health/safety readiness, and cautiousness inputs. The Plan Data Service and Cloud Functions create or initialise the first beginner running plan in Cloud Firestore for plan screens and reminders.
+4. During a run, the app collects GPS samples and optional wearable metrics locally. The active run is buffered on the device to reduce data-loss risk during poor connectivity.
+5. After the user completes the run, the app uploads the activity data over HTTPS. The Activity Processing Function validates the activity before it can affect XP, streaks, levels, or leaderboards.
+6. The Cloud Functions layer writes validated activity results, GPS trace records, XP updates, streak updates, level changes, entitlement-checked outputs, route report state, and leaderboard aggregates to Cloud Firestore.
+7. The app reads user-specific data and aggregated public data from Cloud Firestore using Firebase SDK communication over HTTPS.
+8. For map screens, the app requests map tiles and route display support from Google Maps / Mapbox APIs over HTTPS.
+9. For territorial leaderboard processing, Cloud Functions may call geocoding or region mapping APIs to resolve route coordinates into supported regions.
+10. For Premium post-run summaries, Cloud Functions prepares a structured prompt, calls the external AI/LLM service over HTTPS, applies safety constraints, and stores the generated summary in Firestore.
+11. For reminders, scheduled Cloud Functions evaluate plans, inactivity, streak risk, and rest conditions, then send notification payloads through Firebase Cloud Messaging to the user device.
+12. If the user chooses to share a run, rank card, or summary, the app invokes the OS share sheet. The user selects the external platform and confirms the share.
+13. Medical Trainer/Expert plan content is submitted off-system or through a controlled draft-submission process. It is not written directly into Firebase by the expert in the MVP.
+14. Platform Administrator actions are handled through a restricted backend moderation and expert plan management workflow. If an optional admin dashboard is implemented, the Platform Administrator accesses it through a browser over HTTPS and performs restricted admin actions through Firebase Authentication and Cloud Functions.
+15. Premium Users read only approved and published expert plan records from Firestore-backed views.
 
 ## 2.6 Security Considerations
 
 - All client-to-cloud communication should use HTTPS through Firebase SDKs or approved external provider SDKs.
 - Firebase Authentication should be the source of user identity. The mobile app should not store raw passwords or implement custom authentication.
-- Firestore security rules should enforce user-specific access for private records such as health profile information, activity history, GPS routes, training plans, and account settings.
+- Firestore security rules should enforce user-specific access for private records such as health/safety readiness and cautiousness profile information, activity history, GPS routes, training plans, and account settings.
 - Cloud Functions should enforce trusted operations for activity validation, XP calculation, streak calculation, level assignment, leaderboard aggregation, route moderation state changes, expert plan review/publication state changes, AI summary orchestration, and Premium entitlement checks.
 - The mobile client must not directly write authoritative XP, level, rank, streak, or leaderboard score fields.
 - Premium features must be checked on the backend where they affect data generation or access, not only hidden in the mobile UI.
 - Location privacy must be protected. Shared routes should support privacy masking for sensitive start and end points, and public sharing should require explicit user confirmation.
-- Health-related onboarding data and injury information should be treated as sensitive data and only used for running guidance, plan generation, and safe progression support.
+- Health/safety readiness and cautiousness onboarding signals should be treated as sensitive data and used only for running guidance, first beginner plan initialisation, and safe progression support.
 - External AI/LLM calls should receive only the minimum structured context needed to generate a post-run summary. The external service should not receive unnecessary personal, health, or precise location data.
 - Admin dashboard or restricted backend workflow access should be separated from normal user access through role checks, restricted Cloud Functions, and audit-friendly operations. There should be no client-side-only admin path and no Medical Trainer/Expert direct publication path in the MVP.
 - Firebase budget alerts, Firestore query design, and pre-aggregated leaderboard records should be used to reduce the risk of uncontrolled operating cost.
@@ -142,7 +143,7 @@ Internet --> Storage : media upload/download
 Internet --> Maps : map tiles and route display
 Internet --> Share : user-confirmed sharing
 
-Functions --> Firestore : validated activities,\nGPS traces, XP, streaks,\nlevels, entitlement state,\nroute reports, leaderboards,\nsummaries
+Functions --> Firestore : first beginner plans,\nvalidated activities,\nGPS traces, XP, streaks,\nlevels, entitlement state,\nroute reports, leaderboards,\nsummaries
 Functions --> Firestore : approved/published\nexpert plans
 Functions --> Storage : generated media\nor files if needed
 Functions --> FCM : reminder payloads

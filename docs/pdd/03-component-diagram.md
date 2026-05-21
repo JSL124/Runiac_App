@@ -32,7 +32,7 @@ User tier and role are separate concerns. `subscriptionStatus` distinguishes Bas
 | Frontend Component | Grouped Feature Area | Main Responsibility | Main Dependencies |
 | --- | --- | --- | --- |
 | Auth Component | Sign up, login, session entry | Handles user authentication entry points and observes authenticated session state. | Authentication Service, User/Profile Data Service |
-| Onboarding Component | Beginner profile setup | Captures running experience, goals, fitness level, injury history, health declarations, and initial preferences. | User/Profile Data Service, Plan Data Service |
+| Onboarding Component | Beginner profile setup | Captures running experience, goals, fitness level, health/safety readiness, cautiousness inputs, and initial preferences. | User/Profile Data Service, Plan Data Service |
 | Home Dashboard Component | Home tab and daily overview | Displays today's plan, last run, XP/streak summary, reminders, quick start actions, and upgrade prompts. | User/Profile Data Service, Plan Data Service, Activity Data Service |
 | Plan Component | Today's plan, weekly plan, schedule editing, premium goal plans | Presents training plans, allows schedule adjustments, and exposes only approved/published premium expert goal plan flows where entitlement allows. | Plan Data Service, User/Profile Data Service, Entitlement Service |
 | Run Tracking Component | Run landing, guide, live tracking, pause/end, cool-down, summary entry | Captures GPS and optional wearable metrics during a run, maintains local run state, and uploads completed activity data. | Activity Data Service, Activity Processing Function, Route Data Service, device GPS, optional wearable, Google Maps / Mapbox APIs |
@@ -47,7 +47,7 @@ User tier and role are separate concerns. `subscriptionStatus` distinguishes Bas
 | Backend Component | Firebase Role | Main Responsibility | Main Consumers |
 | --- | --- | --- | --- |
 | Authentication Service | Firebase Authentication | Manages account identity, login, token/session state, and authenticated access context. | Auth Component, User/Profile Data Service |
-| User/Profile Data Service | Cloud Firestore data access | Stores and retrieves user profiles, onboarding data, preferences, subscription entitlement, health declarations, and user-visible progression snapshots. | Auth, Onboarding, Home Dashboard, Profile, Premium |
+| User/Profile Data Service | Cloud Firestore data access | Stores and retrieves user profiles, onboarding data, preferences, subscription entitlement, health/safety readiness and cautiousness signals, and user-visible progression snapshots. | Auth, Onboarding, Home Dashboard, Profile, Premium |
 | Plan Data Service | Firestore data access with Cloud Function support | Stores weekly plans, daily plan sessions, schedule edits, plan adherence state, and approved/published premium goal preparation plans. Medical Trainer/Expert does not directly write to this service in the MVP. | Home Dashboard, Plan, Run Tracking, Notification Service, Admin Expert Plan Management |
 | Activity Data Service | Cloud Firestore data access | Accepts activity submissions, stores activity history, route traces, derived metrics, and post-run results after trusted processing. It is not the sole authority for validation. | Run Tracking, Home Dashboard, Profile, Explore / Route |
 | Activity Processing Function | Cloud Functions | Owns completed activity validation, anti-abuse checks, GPS trace quality checks, metric derivation, and processing events for XP and summary generation. | Activity Data Service, XP and Streak Function, Summary Generation Function |
@@ -67,7 +67,7 @@ Run completion follows the most important dependency path. The Run Tracking Comp
 
 The Leaderboard Component only reads leaderboard results through `ILeaderboardData`. It does not sort users, calculate rank, or decide level divisions on the client. This prevents users from manipulating ranking logic through the mobile app.
 
-The Plan Component depends on `IPlanData` for the current plan and schedule changes. Plan generation and expert-plan selection are backend-supported because they depend on onboarding, health, fitness, and entitlement state. The Notification Service reads plan, activity, and streak state to send reminders through Firebase Cloud Messaging. Notification delivery is server-driven, while the mobile app only receives the push notification and opens the relevant screen.
+The Plan Component depends on `IPlanData` for the current plan and schedule changes. First beginner plan initialisation is backend-supported using onboarding profile, goal, running level, availability, health/safety readiness, and cautiousness inputs. Expert-plan selection is also backend-supported because it depends on entitlement state and approved/published plan status. The Notification Service reads plan, activity, and streak state to send reminders through Firebase Cloud Messaging. Notification delivery is server-driven, while the mobile app only receives the push notification and opens the relevant screen.
 
 Expert plan governance is handled separately from the Premium plan UI. The Medical Trainer/Expert prepares expert plan content but does not publish it into the app or database in the MVP. The Platform Administrator uses Admin Expert Plan Management to review the content for safety, completeness, beginner suitability, and Runiac standards before creating, approving, publishing, updating, or archiving the plan. Premium Users can only read and select published expert plan records.
 
@@ -144,7 +144,7 @@ ExpertDash ..> BEExpertPlanAdmin : submit draft content\nadmin approval required
 FEAuth --> BEAuth : IAuthentication
 FEAuth --> BEUserProfile : IUserProfileData
 FEOnboarding --> BEUserProfile : save onboarding profile
-FEOnboarding --> BEPlan : create initial plan
+FEOnboarding --> BEPlan : backend-supported\nfirst beginner plan\ninitialisation
 
 FEHome --> BEUserProfile : profile and entitlement summary
 FEHome --> BEPlan : today's plan

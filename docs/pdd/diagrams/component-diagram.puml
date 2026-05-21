@@ -62,7 +62,7 @@ ExpertDash ..> BEExpertPlanAdmin : submit draft content\nadmin approval required
 FEAuth --> BEAuth : IAuthentication
 FEAuth --> BEUserProfile : IUserProfileData
 FEOnboarding --> BEUserProfile : save onboarding profile
-FEOnboarding --> BEPlan : create initial plan
+FEOnboarding --> BEPlan : backend-supported\nfirst beginner plan\ninitialisation
 
 FEHome --> BEUserProfile : profile and entitlement summary
 FEHome --> BEPlan : today's plan

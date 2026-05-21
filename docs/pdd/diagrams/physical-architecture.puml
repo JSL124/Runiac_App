@@ -55,7 +55,7 @@ Internet --> Storage : media upload/download
 Internet --> Maps : map tiles and route display
 Internet --> Share : user-confirmed sharing
 
-Functions --> Firestore : validated activities,\nGPS traces, XP, streaks,\nlevels, entitlement state,\nroute reports, leaderboards,\nsummaries
+Functions --> Firestore : first beginner plans,\nvalidated activities,\nGPS traces, XP, streaks,\nlevels, entitlement state,\nroute reports, leaderboards,\nsummaries
 Functions --> Firestore : approved/published\nexpert plans
 Functions --> Storage : generated media\nor files if needed
 Functions --> FCM : reminder payloads
