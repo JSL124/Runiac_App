@@ -257,3 +257,40 @@ Include a top header labelled "Expert Plan Submission Portal" and a left sidebar
 Below the summary, add an "Admin Comment and Required Changes" panel with text rows labelled Admin Comment, Required Change 1, Required Change 2, Safety Concern, Beginner Suitability Note. Add editable form sections for "Update Plan Details", "Update Weekly Schedule", and "Update Safety Notes". The weekly schedule section should be a table with columns Week, Session, Distance/Duration, Intensity, Rest Day Guidance, Notes. Add an "Expert Response Note" text area labelled "Explain how the requested changes were addressed". At the bottom, include only these action buttons: Save Draft, Resubmit for Admin Review, Back to Submitted Plans.
 
 Add a small governance note: "Medical Trainer/Expert can revise and resubmit content only. Platform Administrator remains responsible for approval and publication." Important constraints: do not include Publish, Approve, Reject, Archive Published Plan, or direct catalogue controls. Do not imply the expert updates published plans. Do not include implementation code, Firebase collection names, API names, or database details. Do not show XP, rank, streak, level, leaderboard score, weekly XP, or monthly XP controls. Keep the image black-and-white, low-fidelity, readable, and suitable for a university PDD.
+
+## Supplemental Mobile User Wireframe Prompt Plan
+
+The Basic/Premium mobile wireframe image set mostly already exists under `docs/pdd/wireframe-images/mobile-user/`. Do not generate or modify images from this prompt plan until an explicit image-generation task is requested.
+
+## 14. Onboarding / Profile Setup
+
+**Target file path:** `docs/pdd/wireframe-images/mobile-user/shared/onboarding-profile-setup-page.png`
+
+**Screen purpose:** Shows the first-time setup flow that collects beginner running information before the user enters the main app.
+
+**Role:** Shared Basic User and Premium User onboarding.
+
+**Layout sections:**
+- Portrait mobile phone frame
+- Header: "Set up your running profile"
+- Progress step indicator for first-time onboarding
+- Running goal selector
+- Preferred running days selector
+- Preferred running time selector
+- Experience level selector
+- Fitness or injury/health context fields at a high level
+- Location and notification permission explanation
+- Primary action: Continue
+- Secondary action: Back
+
+**Key labels/buttons:** Set up your running profile, Running Goal, Preferred Running Days, Preferred Running Time, Experience Level, Fitness Background, Injury or Health Notes, Location Permission, Notification Permission, Back, Continue.
+
+**Negative constraints:** Do not show the bottom navigation because onboarding occurs before the user reaches the main app. Do not show Premium-only upsell content on this first-time setup screen. Do not include gradients, colours, photo-realistic visuals, implementation code, Firebase collection names, API names, database fields, XP calculation, leaderboard rank, or subscription purchase controls.
+
+**Final image-generation prompt:**
+
+Create a low-fidelity black-and-white mobile app wireframe for the Runiac PDD titled "Onboarding / Profile Setup". Use a portrait phone frame with a Flutter / Material-compatible layout, simple rectangular sections, readable labels, no colours, no gradients, and no decorative illustrations. This is a first-time onboarding screen before main app access, so do not include bottom navigation.
+
+At the top, show a simple app header and the title "Set up your running profile". Add a small step indicator for onboarding progress. In the main content area, include sections for Running Goal, Preferred Running Days, Preferred Running Time, Experience Level, Fitness Background, and Injury or Health Notes. Use simple input boxes, segmented controls, or checklist placeholders suitable for a wireframe. Add a permission explanation panel with two rows: Location Permission and Notification Permission, each with a short reason for why the permission helps running guidance or reminders. At the bottom, include a secondary Back button and a primary Continue button.
+
+Important constraints: use only black, white, and grey wireframe styling. Keep the design beginner-focused and easy to scan. Do not show Premium-only upsell content, subscription controls, bottom navigation, implementation details, Firebase names, API names, database fields, XP calculation, leaderboard rank, or medical diagnosis language. The screen should document profile setup for safer beginner plan generation, not production implementation details.

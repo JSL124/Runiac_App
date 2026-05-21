@@ -6,7 +6,7 @@ This section documents the existing Runiac wireframes for the Project Design Doc
 
 The repository stores the wireframe source as `wireframe.md` and `docs/pdd/wireframe-images/` rather than `docs/wireframes/`, and the available PRD source is `PRD.md` rather than `docs/prd/Runiac_PRD.pdf`. The PRD defines use cases rather than separately numbered user stories, so this document treats the PRD use cases `UC-F1` to `UC-F10` as the related user-story references.
 
-No redesign is proposed in this section. The descriptions explain the intent, visible elements, user flow, and system relationship of the existing wireframes. No separate image assets were found for the Platform Administrator or Medical Trainer/Expert screens, so those sections document the supplied wireframe plan at design level.
+No redesign is proposed in this section. The descriptions explain the intent, visible elements, user flow, and system relationship of the existing wireframes. The current repository includes Basic User and Premium User mobile wireframe assets under `docs/pdd/wireframe-images/mobile-user/`. Most main mobile screens already have exported images; the only likely new mobile image still needed later is an Onboarding / Profile Setup wireframe.
 
 Basic and Premium access differences are treated as subscription differences controlled by `subscriptionStatus`. Operational or governance access, such as Platform Administrator moderation and expert plan publication, is treated as `userRole` behaviour rather than as a separate Basic/Premium tier. Medical Trainer/Expert is treated as an expert plan content provider, not as a direct mobile-app publisher in the MVP.
 
@@ -38,6 +38,70 @@ Basic and Premium access differences are treated as subscription differences con
 | `ADM-WF7` | Platform Administrator manages notifications, reports, moderation queues, and dismissal/resolution states. |
 | `EXP-WF1` | Medical Trainer/Expert (expert plan content provider) prepares and submits expert plan content for review. |
 | `EXP-WF2` | Medical Trainer/Expert tracks submitted plan status and responds to requested revisions. |
+
+## 2.2 Basic And Premium Mobile Wireframe Coverage
+
+The Basic User wireframes cover the beginner habit-formation journey from Home, plan review, run start, live tracking, cool-down, run summary, XP/streak feedback, Explore, Leaderboard, and Profile. These screens keep the core running experience available to Basic Users: GPS tracking, weekly beginner plans, reminders, streak visibility, XP display, profile history, and fair leaderboard participation where the Phase 2 leaderboard is included.
+
+The Premium User wireframes keep the same mobile navigation structure and add deeper support around goal preparation, expert verified plans, advanced analytics, LLM-enhanced post-run summaries, saved routes, advanced route presentation, and enhanced sharing/status visuals. Premium screens must add interpretation, planning depth, convenience, or presentation value without changing XP, level, streak, rank, leaderboard score, weekly XP, or monthly XP outcomes.
+
+| Coverage area | Basic User coverage | Premium User coverage | PDD image status |
+| --- | --- | --- | --- |
+| Onboarding / Profile Setup | Shared first-time setup for running goal, preferred running days/time, experience, fitness, injury or health context, and permission choices. | Same setup; Premium access is checked later through `subscriptionStatus`. | New image likely needed later. |
+| Home and plan entry | Daily plan, quick run action, XP progress, weekly plan preview, last-run summary, Premium upgrade entry. | Goal progress, richer last-run advice, recommended route content, Premium plan entry. | Existing images. |
+| Plan detail and schedule | Standard weekly beginner plan, today's plan detail, edit schedule, start run. | Workout-wise detail, goal plan journey, expert plan discovery/detail, edit schedule. | Existing images. |
+| Run and recovery | Run landing, guide, live tracking, pause/end, cool-down, summary, XP/streak update. | Same run spine with Premium summary and advanced analysis after completion. | Existing images. |
+| Explore and routes | Map landing, shared route list, route detail, route selection, report route, basic selected-route management. | Advanced route detail, saved/favourite route management, route sharing presentation, route removal state. | Existing images. |
+| Leaderboard and sharing | Territorial leaderboard map, regional rankings, league view, basic rank sharing. | Same fair ranking data plus leaderboard tips and enhanced visual share templates. | Existing images. |
+| Profile / You | Streak, calendar, recent run history, runner level, plan entry. | Same progress role with Premium plan and goal-journey entry points. | Existing images. |
+
+## 2.3 Basic And Premium Difference Boundary
+
+Basic should remain a complete beginner running habit product. The wireframes should not lock GPS tracking, weekly beginner plans, reminders, streak progress, XP visibility, basic activity summaries, or fair leaderboard participation behind Premium. Premium adds value through advanced analytics, goal-based or adaptive plan experiences, approved/published expert plans, saved routes, richer route tools, enhanced post-run summaries, and improved sharing/status presentation.
+
+Premium differences are fair only when they do not affect competitive outcomes. Premium Users must not receive extra XP, rank boosts, leaderboard score advantages, exclusive ranking data that changes competition, or client-side calculation privileges. Basic/Premium access is represented through `subscriptionStatus`; it must not be modelled as separate Basic User and Premium User subclasses.
+
+## 2.4 Mobile User Flow Coverage
+
+The first-time Basic User flow is: Onboarding / Profile Setup -> Home Dashboard -> Today's Plan Detail -> Run Guide -> Run Landing -> Live Run -> Paused Run or End Run -> Cool Down -> Basic Run Summary -> XP and Streak Update -> Updated Home Dashboard. This flow should keep one clear next action at each step so beginner runners are not forced through deep configuration before their first run.
+
+The Basic route and leaderboard flow is: Explore Map -> Route List or Route Detail -> Route Selected -> Run Landing, and separately Leaderboard Landing -> Regional Leaderboard -> More Ranking or League View -> optional Basic Share Leaderboard. Route selection should return clearly to either Run Landing or Explore, and leaderboard sharing should remain optional.
+
+The Premium expert plan flow is: Premium Home or Plan -> Premium You Plan -> Explore Expert Goal Plan -> View Expert Plan Detail -> View Goal Plan Journey -> Premium Plan/Home. Premium Users must only see expert plans that are approved and published by the Platform Administrator.
+
+The Premium post-run analysis flow is: Run Landing -> Live Run -> Paused Run or End Run -> Cool Down -> Premium Run Summary -> Premium Run Analysis -> XP and Streak Update -> Premium Updated Home. Advanced analysis should be available after the basic completion summary so the post-run result remains understandable.
+
+Premium sharing and saving flows are optional branches from Premium Run Summary, Premium Route Detail, Premium My Route, and Premium Leaderboard Ranking Sharing. These flows should include privacy confirmation when route or location information may be exposed externally.
+
+## 2.5 State Coverage Notes
+
+Most state screens can be documented as notes in the PDD rather than generated as separate figures. Separate images should be added only when a state is central to the user flow or likely to confuse assessment readers.
+
+| State | Relevant wireframe area | Documentation expectation |
+| --- | --- | --- |
+| Empty state | Profile history, saved routes, expert plan catalogue, leaderboard rank. | Explain the expected empty message and recovery action. |
+| Loading state | Home, plan detail, route list, leaderboard, post-run summary, expert plans. | Note that loading should preserve navigation and avoid duplicate actions. |
+| Error state | Schedule save, route/report submission, activity sync, summary generation. | Provide recoverable actions such as retry, cancel, or return. |
+| Permission denied | Onboarding, Run Landing, Explore Map, notification setup. | Explain why permission is needed and provide settings/retry path. |
+| GPS unavailable | Run Landing and Live Run. | Keep activity controls safe; avoid awarding trusted progression until validation succeeds. |
+| Location permission denied | Explore, Run, Leaderboard map. | Provide non-map fallback text where possible. |
+| Network unavailable | Activity upload, route list, leaderboard, summary loading. | Support local run recording and later sync where applicable. |
+| No route found | Explore Map and Route List. | Suggest widening search or returning to Explore; do not invent route recommendations outside PRD scope. |
+| No plan selected | Home, Plan, Run Landing. | Direct user to onboarding/profile setup or plan selection. |
+| Subscription locked | Expert plans, advanced analytics, saved routes, enhanced sharing. | Use clear Premium value messaging and allow return to the Basic flow. |
+| Route privacy/restricted | Route detail, route sharing, social sharing. | Confirm before exposing route data and mask sensitive start/end locations where relevant. |
+
+## 2.6 UI/UX And Accessibility Design-Level Notes
+
+The mobile wireframes should use Material Design 3 / Flutter-compatible layout conventions at a PDD level: consistent top app structure, a persistent five-tab bottom navigation after onboarding, profile/settings access through the profile circle, clear card grouping, and consistent CTA wording such as Start Run, View Plan, Save Schedule, Resume, End Run, Share, and Upgrade.
+
+For beginner usability, each screen should make the next action visible without requiring the user to understand the full app structure. Locked Premium cards should explain the additional value without making the Basic path feel blocked. Map-heavy screens should include textual route cards or ranking summaries so the user is not dependent on map interpretation alone.
+
+Accessibility notes are design-level only and are not a WCAG compliance claim. The wireframes should account for readable text, tappable target awareness, non-colour-only indicators, labelled controls, screen-reader-friendly semantics where later implemented in Flutter, and recoverable errors. Error and permission states should explain what happened and how the user can continue.
+
+## 2.7 Figure Grouping Guidance
+
+For final PDD insertion, repeated Basic/Premium variants should be grouped into thematic figures instead of shown as isolated screens one by one. Recommended groups are Home Dashboard, Onboarding / Profile Setup, Plan Home and Today's Plan Detail, Edit Schedule, Run Start and Live Run, Cool Down and Run Summary, Explore Map and Route List, Route Detail and My Route, Leaderboard, Profile / You, and Premium Expert Plan Access. Onboarding / Profile Setup is the only mobile group that likely needs a new image later; the other groups can reuse existing exported assets.
 
 ## 3. Home Dashboard
 

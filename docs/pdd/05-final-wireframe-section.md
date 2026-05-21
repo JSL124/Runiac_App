@@ -1,8 +1,12 @@
 # 5. Wireframe Descriptions
 
+> **Support/draft notice:** This file is a support draft for wireframe section assembly. The canonical final wireframe description file is `docs/pdd/05-wireframe-description.md`. Do not treat this file as the final source unless it is explicitly promoted.
+
 This section presents the Runiac wireframes prepared for the Project Design Document. The wireframes are divided into two groups. The first group covers the mobile user experience for Basic User and Premium User. The second group covers controlled web-based governance screens for Platform Administrator and Medical Trainer/Expert.
 
 The mobile wireframes are based on the completed Basic and Premium user flows. The Admin/Expert wireframes are web dashboard or controlled portal screens and are separate from the mobile app interface. Basic/Premium feature access is represented through `subscriptionStatus`, while operational and governance access is represented through `userRole`.
+
+The mobile figures should be grouped by user journey rather than inserted as every individual Basic/Premium screen. Most Basic/Premium mobile images already exist under `docs/pdd/wireframe-images/mobile-user/`; Onboarding / Profile Setup is the only likely new mobile image needed later. State coverage such as loading, empty, permission denied, GPS unavailable, network unavailable, no route found, no plan selected, subscription locked, and route privacy/restricted access can normally be explained as notes under the relevant figure group instead of separate figures.
 
 ## 5.1 Mobile User Wireframes
 
@@ -16,7 +20,7 @@ The Home Dashboard is the main entry point for Basic User and Premium User. It s
 
 ### Figure 5.2: Onboarding / Profile Setup
 
-**Suggested source:** PRD-based flow description; no separate exported wireframe asset is currently available.
+**Suggested source:** PRD-based flow description; no separate exported wireframe asset is currently available. This is the only likely new mobile image needed later.
 
 **Caption:** Onboarding flow for collecting profile, goal, fitness, and health-related information needed for beginner-safe plan generation.
 

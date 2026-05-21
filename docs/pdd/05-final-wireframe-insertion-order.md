@@ -1,10 +1,20 @@
 # Final PDD Wireframe Insertion Order
 
+> **Planning note:** This file is a figure insertion planning note. It supports final PDD assembly but is not the final wireframe description section.
+
 This section defines the recommended order for inserting Runiac wireframe figures and explanation text into the final PDD. The sequence starts with the main mobile user journey, then moves to route, leaderboard, profile, premium expert-plan access, and finally the controlled Platform Administrator and Medical Trainer/Expert governance screens.
 
 ## Recommended Placement
 
 Insert this material in PDD Section 5, after the wireframe description introduction and before detailed screen-by-screen notes. The Admin/Expert governance flow overview should appear before the Admin/Expert web wireframe figures so readers understand the expert plan lifecycle before seeing the individual governance screens.
+
+## Mobile Figure Grouping Rules
+
+Use grouped figures for repeated Basic/Premium mobile variants instead of inserting every individual screen as a separate large figure. Basic and Premium versions should be compared inside the same figure group where the difference is meaningful, such as Home, Plan, Run Summary, Routes, Leaderboard Sharing, Profile, and Premium Expert Plan Access.
+
+State screens such as loading, empty, permission denied, GPS unavailable, network unavailable, no route found, no plan selected, subscription locked, and route privacy/restricted access can normally be documented as notes under the relevant figure group. They only need separate figures if the final PDD needs to explain a state that is central to the flow.
+
+Most Basic/Premium mobile images already exist under `docs/pdd/wireframe-images/mobile-user/`. Onboarding / Profile Setup is the only likely new mobile image needed later.
 
 ## 5.1 Mobile User Wireframes
 
@@ -18,7 +28,7 @@ Insert this material in PDD Section 5, after the wireframe description introduct
 
 ### Figure 5.2: Onboarding / Profile Setup
 
-**Suggested source:** PRD-based flow description; no separate exported wireframe asset is currently available.
+**Suggested source:** PRD-based flow description; no separate exported wireframe asset is currently available. This is the only likely new mobile image needed later.
 
 **Caption:** Onboarding flow for collecting profile, goal, fitness, and health-related information needed for beginner-safe plan generation.
 
