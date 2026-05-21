@@ -6,7 +6,7 @@ This section presents the Runiac wireframes prepared for the Project Design Docu
 
 The mobile wireframes are based on the completed Basic and Premium user flows. The Admin/Expert wireframes are web dashboard or controlled portal screens and are separate from the mobile app interface. Basic/Premium feature access is represented through `subscriptionStatus`, while operational and governance access is represented through `userRole`.
 
-The mobile figures should be grouped by user journey rather than inserted as every individual Basic/Premium screen. Most Basic/Premium mobile images already exist under `docs/pdd/wireframe-images/mobile-user/`; Onboarding / Profile Setup is the only likely new mobile image needed later. State coverage such as loading, empty, permission denied, GPS unavailable, network unavailable, no route found, no plan selected, subscription locked, and route privacy/restricted access can normally be explained as notes under the relevant figure group instead of separate figures.
+The mobile figures should be grouped by user journey rather than inserted as every individual Basic/Premium screen. Most Basic/Premium mobile images already exist under `docs/pdd/wireframe-images/mobile-user/`, including the canonical 13-page onboarding sequence under `docs/pdd/wireframe-images/mobile-user/shared/onboarding/`. State coverage such as loading, empty, permission denied, GPS unavailable, network unavailable, no route found, no plan selected, subscription locked, and route privacy/restricted access can normally be explained as notes under the relevant figure group instead of separate figures.
 
 ## 5.1 Mobile User Wireframes
 
@@ -20,11 +20,11 @@ The Home Dashboard is the main entry point for Basic User and Premium User. It s
 
 ### Figure 5.2: Onboarding / Profile Setup
 
-**Suggested source:** PRD-based flow description; no separate exported wireframe asset is currently available. This is the only likely new mobile image needed later.
+**Suggested source:** Canonical 13-page onboarding sequence under `wireframe-images/mobile-user/shared/onboarding/`.
 
-**Caption:** Onboarding flow for collecting profile, goal, fitness, and health-related information needed for beginner-safe plan generation.
+**Caption:** Onboarding wireframes showing one-question-per-page setup for generating the user's first beginner running plan.
 
-Onboarding collects the information required to personalise beginner running plans, including running experience, fitness level, goals, injury history, and relevant health declarations. This supports safer progression and provides the Training Plan component with appropriate starting information.
+Onboarding collects the information required to initialise the user's first beginner running plan, including running goal, current level, weekly availability, preferred days, preferred time, session length, running place/context, motivation style, health/cautiousness inputs, and final plan preview. Health/safety inputs are readiness and cautiousness signals only; they do not diagnose, treat, provide medical advice, clear users for exercise, or claim clinical compliance. Location permission is not requested during onboarding and is requested later when starting a run or using route features.
 
 ### Figure 5.3: Plan Home and Today's Plan Detail
 
@@ -104,13 +104,15 @@ Premium Users can view and select only expert plans that have been approved and 
 
 The Admin/Expert governance flow explains how expert plan content moves from specialist preparation to controlled publication. The Medical Trainer/Expert acts only as an expert content provider. This role can create draft expert plan content and submit it for Platform Administrator review, but it must not directly publish plans or directly place published plans into the Premium User catalogue.
 
+![Support Figure: Admin/Expert Governance Flow Overview](wireframe-images/shared-governance/admin-expert-governance-flow-overview.png)
+
 The lifecycle begins when the Medical Trainer/Expert creates a draft expert plan using the Expert Plan Submission Form. The expert enters plan details, weekly structure, target beginner profile, safety notes, injury-prevention guidance, and disclaimer information. When the content is ready, the expert submits the plan for admin review. The submitted plan then appears in the Platform Administrator's pending expert plan queue, which may be accessed from the Admin Dashboard, Expert Plan Review screen, or Plan Management screen.
 
 The Platform Administrator reviews the submitted plan for safety, completeness, beginner suitability, and consistency with Runiac standards. After review, the administrator may request revision, approve, reject, archive, or publish only after approval. If revision is requested, the Medical Trainer/Expert can view the administrator comment on the Submitted Plan Status Page, update the submission, and resubmit it for review. If the plan is rejected or archived, it remains unavailable to Premium Users. If the plan is approved, the Platform Administrator can publish it through the controlled admin workflow.
 
 Premium Users can view and select only expert plans that are both approved and published. Basic/Premium feature access is controlled through `subscriptionStatus`, while operational and governance access is controlled through `userRole`. Premium expert plans must not create XP, rank, leaderboard score, or other competitive advantages; they provide richer plan guidance only.
 
-**Optional figure note:** An additional Expert Plan Review Queue wireframe is optional, not necessary for the current PDD. The existing Admin Dashboard, Expert Plan Review, Plan Management, Expert Plan Submission Form, and Submitted Plan Status Page already explain the expert plan lifecycle.
+**Support figure note:** The governance overview, expert plan review queue, expert plan publish confirmation, and expert revision response images are current support assets for explaining the controlled expert-plan lifecycle.
 
 ## 5.4 Platform Administrator Wireframes
 
@@ -146,6 +148,14 @@ This screen lets administrators inspect one user, update role or account status,
 
 Expert Plan Review is the controlled approval screen for expert-submitted plan content. It ensures safety, beginner suitability, completeness, and consistency with Runiac standards before publication. Medical Trainer/Expert does not publish plans; Platform Administrator publishes only after review and approval.
 
+### Support Figure: Expert Plan Review Queue
+
+![Support Figure: Expert Plan Review Queue](wireframe-images/platform-admin/expert-plan-review-queue.png)
+
+**Caption:** Expert Plan Review Queue showing pending expert plan submissions, review status, provider information, and administrator review actions.
+
+The Expert Plan Review Queue support figure shows how submitted Medical Trainer/Expert plans enter the Platform Administrator review workflow. Queue actions remain administrator-controlled; Medical Trainer/Expert cannot approve or publish expert plans.
+
 ### Figure 5.16: Plan Management
 
 ![Figure 5.16: Plan Management](wireframe-images/platform-admin/plan-management.png)
@@ -153,6 +163,14 @@ Expert Plan Review is the controlled approval screen for expert-submitted plan c
 **Caption:** Plan Management screen showing system and expert plan records, lifecycle statuses, search filters, and View/Edit/Archive actions.
 
 Plan Management allows the administrator to manage Runiac system goal plans and approved expert plans. It distinguishes System Plan and Expert Plan records and supports lifecycle states such as Submitted, Pending Review, Revision Requested, Approved, Published, Archived, and Rejected. Premium expert plans must not create XP, rank, leaderboard score, or competitive advantages.
+
+### Support Figure: Expert Plan Publish Confirmation
+
+![Support Figure: Expert Plan Publish Confirmation](wireframe-images/platform-admin/expert-plan-publish-confirmation.png)
+
+**Caption:** Expert Plan Publish Confirmation showing administrator pre-publication checks before making an approved expert plan visible.
+
+The Expert Plan Publish Confirmation support figure documents the controlled publication checkpoint after expert plan approval. Platform Administrator publishes only after review and approval, and publication must not create XP, rank, leaderboard score, or other competitive advantages for Premium Users.
 
 ### Figure 5.17: Route Management
 
@@ -187,3 +205,11 @@ This screen allows Medical Trainer/Expert to prepare structured expert plan cont
 **Caption:** Submitted Plan Status Page showing submitted expert plans, review statuses, admin comments, and revision-response actions.
 
 This screen allows Medical Trainer/Expert to track submitted plans, edit drafts, respond to revision requests, and resubmit for review. Published status is shown only as an outcome of Platform Administrator approval and publishing. Medical Trainer/Expert cannot approve, publish, archive published plans, or directly write published plan records.
+
+### Support Figure: Expert Plan Revision Response
+
+![Support Figure: Expert Plan Revision Response](wireframe-images/medical-trainer-expert/expert-plan-revision-response.png)
+
+**Caption:** Expert Plan Revision Response showing Medical Trainer/Expert updates after a Platform Administrator revision request.
+
+The Expert Plan Revision Response support figure clarifies the revision loop after the administrator requests changes. Medical Trainer/Expert can revise and resubmit content only; approval and publication remain Platform Administrator responsibilities.
