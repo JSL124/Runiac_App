@@ -28,11 +28,11 @@ Most Basic/Premium mobile images already exist under `docs/pdd/wireframe-images/
 
 ### Figure 5.2: Onboarding / Profile Setup
 
-**Suggested source:** PRD-based flow description; no separate exported wireframe asset is currently available. This is the only likely new mobile image needed later.
+**Suggested source:** Onboarding V2 multi-page flow under `wireframe-images/mobile-user/shared/onboarding/`. The existing combined onboarding image may remain as a support draft/reference.
 
-**Caption:** Profile Setup wireframe showing goal, current level, preferred schedule, and health/safety readiness prompts for beginner-friendly plan setup.
+**Caption:** Onboarding Version 2 wireframes showing one-question-per-page setup for generating the user's first beginner running plan.
 
-**PDD explanation:** Onboarding represents a multi-step setup summary before the user reaches the main app. It collects goal, running level, preferred schedule, and design-level health/safety readiness prompts to guide plan cautiousness and safety messaging. These prompts do not diagnose, treat, provide medical clearance, or claim clinical compliance. Location permission should be requested later when the user starts a run or uses route features, not forced during onboarding.
+**PDD explanation:** Onboarding Version 2 collects plan-generation inputs rather than cosmetic profile data. Main Goal sets the goal type and progression target, Current Running Level sets the starting difficulty, Weekly Availability and Preferred Running Days determine schedule and rest-day placement, Preferred Running Time informs reminder/display timing, Session Length caps workout duration, Running Place adds route context without requesting location permission, Motivation Style adjusts coaching/reminder tone without increasing intensity, Health Condition and Symptoms act only as readiness/cautiousness signals, and Plan Cautiousness applies the final intensity adjustment. The Plan Preview should show the selected goal, current level, weekly schedule, session length, suggested starting plan, first-week preview, and safety/cautiousness setting. Health/safety prompts do not diagnose, treat, provide medical advice, provide medical clearance, or claim clinical compliance. Location permission is requested later when the user starts a run or uses route features, not during onboarding.
 
 ### Figure 5.3: Plan Home and Today's Plan Detail
 

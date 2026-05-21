@@ -47,7 +47,7 @@ The Premium User wireframes keep the same mobile navigation structure and add de
 
 | Coverage area | Basic User coverage | Premium User coverage | PDD image status |
 | --- | --- | --- | --- |
-| Onboarding / Profile Setup | Shared first-time setup for running goal, current running level, preferred schedule, session cautiousness, and health/safety readiness prompts. | Same setup; Premium access is checked later through `subscriptionStatus`. | New image likely needed later. |
+| Onboarding / Profile Setup | Shared first-time setup for running goal, current running level, preferred schedule, session cautiousness, and health/safety readiness prompts. These answers initialise the user's first beginner running plan rather than acting as cosmetic profile fields. | Same setup; Premium access is checked later through `subscriptionStatus`. Premium expert-plan access remains separate from the Basic onboarding plan. | Existing V1 images; V2 documentation clarifies plan-generation purpose. |
 | Home and plan entry | Daily plan, quick run action, XP progress, weekly plan preview, last-run summary, Premium upgrade entry. | Goal progress, richer last-run advice, recommended route content, Premium plan entry. | Existing images. |
 | Plan detail and schedule | Standard weekly beginner plan, today's plan detail, edit schedule, start run. | Workout-wise detail, goal plan journey, expert plan discovery/detail, edit schedule. | Existing images. |
 | Run and recovery | Run landing, guide, live tracking, pause/end, cool-down, summary, XP/streak update. | Same run spine with Premium summary and advanced analysis after completion. | Existing images. |
@@ -123,13 +123,57 @@ For final PDD insertion, repeated Basic/Premium variants should be grouped into 
 
 **Screen name:** Onboarding and profile setup.
 
-**Purpose:** Onboarding collects the user information required to generate safe beginner running guidance, including running goal, current running level, preferred schedule, session cautiousness, and relevant health/safety readiness prompts.
+**Purpose:** Onboarding collects the user information required to initialise the user's first beginner running plan, including running goal, current running level, preferred schedule, session cautiousness, and relevant health/safety readiness prompts. In Onboarding Version 2, each question must have a plan-generation purpose that affects schedule, intensity, duration, safety/cautiousness, motivation style, or route context.
 
-**Main UI elements:** No dedicated onboarding wireframe asset was found in the provided `docs/pdd/wireframe-images/` folders. Therefore, this PDD section records onboarding as a required PRD flow and as a representative multi-step setup summary. The planned image should show a compact Profile Setup screen with main goal, current level, preferred schedule, a Health & Safety card, a safety note, Continue, and Set up later.
+**Main UI elements:** The Onboarding V2 flow keeps the 13-page one-question-per-screen structure: Welcome / Setup Intro, Main Goal, Current Running Level, Weekly Availability, Preferred Running Days, Preferred Running Time, Session Length, Running Place, Motivation Style, Health Condition, Symptoms During Physical Activity, Plan Cautiousness, and Plan Preview / Confirmation. The existing V1 image set can remain as the current visual baseline, while the Welcome and Plan Preview screens should be regenerated later to make the plan-generation purpose clearer.
 
-**User action flow:** The user creates or accesses an account, completes profile and running background information, answers lightweight readiness prompts, confirms or skips setup, and then proceeds to the generated running plan or Home Dashboard. Location permission should be requested later when starting a run or using route features, not forced during onboarding.
+**User action flow:** The user creates or accesses an account, answers the onboarding questions, reviews the generated beginner plan preview, confirms the plan, and then proceeds to the generated running plan or Home Dashboard. Location permission should be requested later when starting a run or using route features, not forced during onboarding.
 
 **Health and safety note:** The health/safety questions are design-level readiness prompts inspired by common physical activity readiness screening principles. They help guide plan cautiousness and safety messaging only; they do not diagnose, treat, provide medical advice, clear users for exercise, or claim clinical compliance. Users with pain, symptoms, or health concerns should be advised to speak to a healthcare professional before starting or increasing exercise.
+
+**Onboarding V2 input-to-plan mapping:**
+
+| Onboarding question | Conceptual planning input | Generated plan effect | Fallback/default | Safety boundary |
+| --- | --- | --- | --- | --- |
+| Main Goal | Goal type / progression target | Sets the plan goal label and target progression, such as habit building, first 5K base, 10K preparation starter, or stamina support. | Build habit. | A 10K goal should start with a base or 5K-style plan when the user is completely new. |
+| Current Running Level | Starting difficulty | Sets the starting week difficulty and run/walk ratio. | New runner. | Unknown or low confidence starts conservatively. |
+| Weekly Availability | Weekly run count | Sets the number of planned runs per week. | Three days, or two days if caution exists. | Avoids overloading beginners and preserves rest days where possible. |
+| Preferred Running Days | Schedule and rest-day placement | Places planned sessions and spaces rest days. | Auto-spaced days. | Rest-day spacing should override crowded preferences. |
+| Preferred Running Time | Reminder/display time | Sets reminder and schedule display timing. | Flexible. | Does not affect plan intensity. |
+| Session Length | Duration cap | Caps initial workout length. | 20 minutes, or 15 minutes if caution exists. | Duration is reduced when health/safety answers indicate caution. |
+| Running Place | Route/context note | Adds context for treadmill, road, track, park, or mixed running. | Mixed. | Does not request location permission during onboarding. |
+| Motivation Style | Coaching/reminder/advice tone | Adjusts motivational wording, reminder tone, or UI emphasis. | Clear weekly plan. | Must not increase intensity for leaderboard- or XP-oriented users. |
+| Health Condition | Caution flag | Selects safety messaging and a more cautious starting plan when needed. | Conservative if skipped. | Readiness signal only; no diagnosis, treatment, or exercise clearance. |
+| Symptoms During Physical Activity | Strong caution flag | Triggers stronger caution messaging and a conservative starting plan. | Conservative if skipped. | Recommends speaking to a healthcare professional when symptoms or concerns exist. |
+| Plan Cautiousness | Final intensity adjustment | Applies final gentle, balanced, or normal beginner intensity adjustment. | Balanced, or gentle if health/safety caution exists. | Safety/caution signals override a normal-plan preference. |
+
+**Initial plan templates:**
+
+| Template | When selected | Weekly structure | Session style | Duration range | Plan preview text |
+| --- | --- | --- | --- | --- | --- |
+| Very Gentle Start | Complete beginners, users with health/safety concern, users with concerning symptoms, skipped health/safety answers, or users choosing very cautious progression. | Two to three sessions per week with rest days between sessions where possible. | Walk-first or short run/walk progression. | 15-20 minutes. | `2-3 runs/week · walk-first intervals · gentle progression`. |
+| Balanced Beginner Plan | Default for most beginner users without strong caution signals. | Around three runs per week if availability allows, with rest days between runs where possible. | Beginner run/walk intervals with gradual progression. | 20-30 minutes. | `3 runs/week · run/walk intervals · 20 min/session`. |
+| Confidence Builder / First 5K Prep | Users who can already walk/run and select first 5K or stamina goals. | Three runs per week with spaced sessions. | Longer run/walk blocks progressing toward more continuous running. | 25-35 minutes. | `3 runs/week · longer run/walk blocks · 5K base`. |
+| 10K Preparation Starter | Users selecting 10K whose current level and availability support longer preparation. | Three to four sessions per week only when suitable. | Base-building before 10K progression. | 30-45 minutes. | `Base phase first · 10K goal later`. |
+
+**Conflict and fallback rules:**
+
+| Situation | Planning behaviour |
+| --- | --- |
+| User chooses four days per week but selects only two preferred days. | Schedule the two chosen days and suggest adding one or two flexible days. |
+| User chooses two days per week but selects five preferred days. | Choose the two best-spaced days and keep the others as alternatives. |
+| Weekly availability is Not sure. | Default to three days, or two days if a health/safety concern exists. |
+| Session length is Not sure. | Default to 20 minutes, or 15 minutes if caution exists. |
+| 10K goal plus completely new current level. | Start with a Balanced Beginner or First 5K base before 10K progression. |
+| Leaderboard challenge plus new runner or safety concern. | Keep leaderboard as motivation only; do not increase intensity. |
+| Expert guidance plus Basic User. | Show the standard beginner plan. Premium expert plans remain a separate Premium feature. |
+| User selects Set up later. | Create a conservative default starter plan. |
+| User skips health/safety pages. | Default to a conservative plan. |
+| User selects a health condition concern. | Use Very Gentle Start or a reduced Balanced Beginner Plan with safety messaging. |
+| User selects concerning symptoms. | Show a cautious plan suggestion and recommend speaking to a healthcare professional before starting or increasing exercise. |
+| User selects normal beginner plan but health/safety answers indicate caution. | Safety overrides the normal preference; use Very Gentle Start or a reduced Balanced Beginner Plan. |
+
+**Plan Preview V2 expectation:** The final onboarding page should show the selected goal, current level, weekly schedule, session length, suggested starting plan, first-week preview, and safety/cautiousness setting. Example preview text: `Suggested Starting Plan: 3 runs/week · run/walk intervals · 20 min/session`; `First Week Preview: Run 1: Walk/run intervals; Run 2: Easy run/walk; Run 3: Confidence run`. If safety concerns exist, the preview should state that a very gentle start is recommended and advise the user to speak to a healthcare professional before starting or increasing exercise if they have symptoms or health concerns.
 
 **Related user stories:** `UC-F1`, `UC-F3`, `UC-F4`.
 
