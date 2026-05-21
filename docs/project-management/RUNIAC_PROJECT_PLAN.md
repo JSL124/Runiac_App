@@ -4,7 +4,7 @@
 
 This document is a project-management support roadmap for Runiac. It helps track the expected Final Year Project phases from the completed PRD through PDD, PTD / Project Progress Report, PUM, backlog preparation, implementation, testing evidence, prototype presentation, and final submission.
 
-This document does not override `PRD.md`, PDD deliverables, future PTD or PUM documents, `AGENTS.md` instruction files, implementation rules, Firebase/security rules, or testing rules. If this roadmap conflicts with a canonical requirements, design, instruction, or implementation document, the canonical document takes priority.
+This document is not an `AGENTS.md` instruction file. It does not override `PRD.md`, PDD deliverables, future PTD or PUM documents, `AGENTS.md` instruction files, implementation rules, Firebase/security rules, or testing rules. If this roadmap conflicts with a canonical requirements, design, instruction, or implementation document, the canonical document takes priority.
 
 Implementation tasks must not start until IMPLEMENTATION_MODE is explicitly requested. Until then, `implementation/`, `firebase/`, and `tests/` remain instruction-only planning areas and must not be treated as production source folders.
 
@@ -31,7 +31,17 @@ Implementation tasks must not start until IMPLEMENTATION_MODE is explicitly requ
 | Prototype Presentation | Prototype demo and presentation material | Future |
 | Final Submission | Final documents, source, evidence, and presentation package | Future |
 
-## 4. PRD Completed
+## 4. Assessment Milestones
+
+| Milestone | Expected Evidence | Runiac Planning Note |
+| --- | --- | --- |
+| Session 1 Assessment | Preliminary Technical Documentation, Preliminary User Manual, Peer Assessment, Presentation Slides, and Functional Prototype. | PDD should be completed first, then PTD/PUM and prototype preparation should use PRD/PDD as sources. |
+| Prototype Demo | Functional product with limited functionalities on the intended platform. | This means a working Flutter/Firebase prototype, not wireframes alone. Wireframes can guide the demo flow before implementation starts. |
+| Final Assessment | Finalized documents, implemented system, testing evidence, and project evidence. | Final checks should confirm traceability from PRD to design, implementation, and QA evidence. |
+| Final Presentation | Project scope, learning objectives, research findings, development tools, prototype demonstration, and future development. | Presentation should separate completed prototype features from planned future improvements. |
+| Final Online Submission | Final report package, source files, evidence, and required submission artifacts. | Submission should exclude unrelated files, secrets, private user data, and sensitive location traces. |
+
+## 5. PRD Completed
 
 ### Purpose
 Confirm that Runiac has a stable requirements baseline before continuing design and implementation planning.
@@ -60,7 +70,7 @@ Confirm that Runiac has a stable requirements baseline before continuing design 
 - Do not change PRD requirements through this roadmap.
 - Do not add new app features during later planning unless the PRD is explicitly updated through a separate approved task.
 
-## 5. PDD In Progress
+## 6. PDD In Progress
 
 ### Purpose
 Complete the Project Design Document based on the current PRD and teacher sample expectations for architecture, diagrams, user interface, and entity/data design coverage.
@@ -108,17 +118,21 @@ Complete the Project Design Document based on the current PRD and teacher sample
 - `userRole` controls Platform Administrator and Medical Trainer/Expert governance access.
 - XP, streak, level, rank, leaderboard score, weekly XP, and monthly XP remain backend-owned.
 
-## 6. PTD / Project Progress Report
+## 7. PTD / Project Progress Report
 
 ### Purpose
 Prepare the technical and progress report expected after preliminary design. Based on the teacher sample, this phase should explain implementation rationale, platforms, proposed plan, functional requirements, user stories, use cases, workflow, architecture design, database design, data flow, sequence diagrams, UI design, non-functional requirements, schedule, team organization, and risks.
 
 ### TODO Checklist
 - [ ] Decide the repository location for PTD / Project Progress Report support files.
+- [ ] Document any functionality updates from the PRD without silently changing the approved scope.
+- [ ] Prepare an updated WBS or milestone breakdown for remaining work.
+- [ ] Update systems design requirements based on the finalized PDD.
+- [ ] Explain validation and verification approach for the prototype and final system.
 - [ ] Summarize implementation rationale from PRD and PDD.
 - [ ] Reuse PRD functional requirements F1-F10 without changing scope.
 - [ ] Add user stories or reference the backlog document once created.
-- [ ] Include use case, workflow, data flow, and sequence information where required.
+- [ ] Include use case, workflow, data flow, and sequence coverage where required.
 - [ ] Include database and data ownership design consistent with PDD.
 - [ ] Include UI design references from PDD wireframes.
 - [ ] Include NFRs, schedule, team organization, and project risks.
@@ -143,7 +157,7 @@ Prepare the technical and progress report expected after preliminary design. Bas
 - Do not create production implementation files while writing PTD.
 - Do not introduce database fields, APIs, or implementation details that conflict with PRD/PDD.
 
-## 7. PUM / Preliminary User Manual
+## 8. PUM / Preliminary User Manual
 
 ### Purpose
 Prepare a role-based preliminary user manual that explains how intended users interact with Runiac screens and workflows.
@@ -151,11 +165,13 @@ Prepare a role-based preliminary user manual that explains how intended users in
 ### TODO Checklist
 - [ ] Decide the repository location for PUM support files.
 - [ ] Create prerequisites and account access assumptions.
-- [ ] Document Basic User mobile workflows.
-- [ ] Document Premium User mobile workflows.
-- [ ] Document Platform Administrator governance workflows.
-- [ ] Document Medical Trainer/Expert submission workflows.
-- [ ] Add screen descriptions and usage steps based on PDD wireframes.
+- [ ] During PDD, use wireframes to draft the manual structure and expected screen coverage.
+- [ ] After the functional prototype exists, use or add prototype screenshots for major functionalities.
+- [ ] Document role-based usage steps for Basic User mobile workflows.
+- [ ] Document role-based usage steps for Premium User mobile workflows.
+- [ ] Document role-based usage steps for Platform Administrator governance workflows.
+- [ ] Document role-based usage steps for Medical Trainer/Expert submission workflows.
+- [ ] Add screen descriptions and usage steps based on PDD wireframes first, then update them against prototype screens.
 - [ ] Keep troubleshooting and safety notes user-facing, not implementation-focused.
 
 ### Related Repo Files/Folders
@@ -171,6 +187,7 @@ Prepare a role-based preliminary user manual that explains how intended users in
 
 ### Exit Criteria
 - PUM is role-based and readable by non-developer users.
+- Major prototype functionalities are supported by screenshots or equivalent visual evidence once the prototype exists.
 - Basic User, Premium User, Platform Administrator, and Medical Trainer/Expert flows are separated clearly.
 
 ### Risks And Boundaries
@@ -178,7 +195,7 @@ Prepare a role-based preliminary user manual that explains how intended users in
 - Do not expose sensitive data, private GPS route details, or admin-only operations as normal user actions.
 - Do not imply Medical Trainer/Expert can directly publish expert plans.
 
-## 8. User Stories / Product Backlog
+## 9. User Stories / Product Backlog
 
 ### Purpose
 Convert PRD requirements into implementable backlog items that can guide development without changing the agreed project scope.
@@ -187,6 +204,9 @@ Convert PRD requirements into implementable backlog items that can guide develop
 - [ ] Create epics aligned to PRD F1-F10.
 - [ ] Write user stories for Basic User, Premium User, Platform Administrator, and Medical Trainer/Expert where relevant.
 - [ ] Add acceptance criteria for each story.
+- [ ] Add priority labels such as MVP, should-have, future extension, or out-of-scope.
+- [ ] Group stories by sprint, milestone, or assessment phase.
+- [ ] Record dependencies between stories, screens, backend rules, and test evidence.
 - [ ] Mark each story as MVP, future extension, or out-of-scope.
 - [ ] Link stories to PDD screens, components, classes, and backend responsibilities.
 - [ ] Separate implementation tasks from documentation tasks.
@@ -205,13 +225,14 @@ Convert PRD requirements into implementable backlog items that can guide develop
 - Each backlog item traces to PRD F1-F10 or an approved non-functional requirement.
 - No story invents new product features beyond the PRD.
 - MVP and future extension boundaries are clear.
+- Priority, grouping, and dependency information is present before implementation planning begins.
 
 ### Risks And Boundaries
 - Do not add new features just because they seem useful.
 - Do not allow Premium stories to create XP, rank, leaderboard score, or competitive advantages.
 - Do not allow client-side stories to write backend-owned trusted values.
 
-## 9. Implementation Planning
+## 10. Implementation Planning
 
 ### Purpose
 Plan the build sequence before implementation begins, so Flutter, Firebase, backend logic, access control, and QA work are coordinated.
@@ -250,7 +271,7 @@ Plan the build sequence before implementation begins, so Flutter, Firebase, back
 - Do not treat UI hiding as the only Premium enforcement.
 - Do not place production source code inside `docs/`.
 
-## 10. Flutter/Firebase Implementation
+## 11. Flutter/Firebase Implementation
 
 ### Purpose
 Build the Runiac mobile app and backend services according to PRD, PDD, PTD, and backlog scope.
@@ -291,7 +312,7 @@ Build the Runiac mobile app and backend services according to PRD, PDD, PTD, and
 - Do not let Medical Trainer/Expert publish expert plans directly.
 - Do not add production implementation files during documentation-only phases.
 
-## 11. Testing / QA Evidence
+## 12. Testing / QA Evidence
 
 ### Purpose
 Produce evidence that the implemented Runiac system works against requirements, access rules, core workflows, and project constraints.
@@ -326,7 +347,7 @@ Produce evidence that the implemented Runiac system works against requirements, 
 - Do not mark testing complete without clear evidence.
 - Do not use tests to justify adding new features outside PRD scope.
 
-## 12. Prototype Presentation
+## 13. Prototype Presentation
 
 ### Purpose
 Prepare a presentation that explains the project scope, learning objectives, research findings, development tools, prototype demonstration, and future development direction.
@@ -336,7 +357,11 @@ Prepare a presentation that explains the project scope, learning objectives, res
 - [ ] Summarize learning objectives and research findings.
 - [ ] Explain development tools and platform choices.
 - [ ] Prepare prototype demo flow.
+- [ ] Prepare a timed demo script for the prototype presentation slot.
+- [ ] Prepare demo account and test data assumptions that avoid private or sensitive data.
+- [ ] Prepare fallback screenshots or a short recording in case the live demo fails.
 - [ ] Show key Basic User, Premium User, Platform Administrator, and Medical Trainer/Expert workflows as relevant.
+- [ ] Separate completed prototype features from future development items.
 - [ ] Explain future development without overstating completed work.
 
 ### Related Repo Files/Folders
@@ -354,13 +379,14 @@ Prepare a presentation that explains the project scope, learning objectives, res
 - Presentation accurately reflects completed work.
 - Prototype demo path is rehearsed and supported by evidence.
 - Future work is clearly separated from implemented scope.
+- Fallback screenshots or recording are ready if live demonstration is not reliable.
 
 ### Risks And Boundaries
 - Do not claim future extension features as completed.
 - Do not expose private user data in demo screenshots or logs.
 - Do not present UI wireframes as implemented screens unless the prototype matches them.
 
-## 13. Final Submission
+## 14. Final Submission
 
 ### Purpose
 Prepare the final submission package with all required documents, source code, test evidence, presentation material, and any required appendices.
@@ -395,7 +421,7 @@ Prepare the final submission package with all required documents, source code, t
 - Do not stage or submit unrelated files.
 - Do not include secrets, private data, or sensitive location traces.
 
-## 14. Cross-Phase Risks And Boundaries
+## 15. Cross-Phase Risks And Boundaries
 
 - PRD is the requirements baseline; roadmap items must trace back to PRD F1-F10 or documented non-functional requirements.
 - PDD describes design; it must not become production implementation.
@@ -408,7 +434,7 @@ Prepare the final submission package with all required documents, source code, t
 - Platform Administrator remains the governance role for expert plan approval and publication.
 - Sensitive route, activity, profile, and running metric data must be handled carefully in documentation, testing evidence, and demos.
 
-## 15. Next Immediate TODO
+## 16. Next Immediate TODO
 
 The immediate priority is completing the current PDD phase before starting PTD, PUM, backlog, or implementation work.
 
