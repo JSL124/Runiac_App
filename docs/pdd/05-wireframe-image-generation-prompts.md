@@ -1,5 +1,7 @@
 # A5_WIRE Wireframe Image Generation Prompts
 
+> **Prompt asset notice:** This file is a prompt asset for generating wireframe images. It is not final PDD prose.
+
 These prompts are for generating low-fidelity black-and-white web wireframe images for the Runiac PDD. They cover the Platform Administrator and Medical Trainer/Expert governance screens.
 
 ## 1. Admin Dashboard
@@ -127,3 +129,131 @@ Create a low-fidelity black-and-white desktop web wireframe for "Expert Plan Sub
 At the top, add a small summary strip with counts for Draft, Submitted, Pending Admin Review, Revision Requested, Approved, Published, Rejected, and Archived. Below it, create a submitted plan list table with columns: Plan Title, Goal Distance, Submitted Date, Current Status, Admin Comment, Last Updated, Actions. Use visible status examples: Draft, Submitted, Pending Admin Review, Revision Requested, Approved, Published, Rejected, Archived. In the Actions column, include View Submission, Edit Draft, Respond to Revision, and Resubmit for Review. Add a right-side or bottom detail preview panel showing selected plan title, latest admin comment, required changes, and next allowed action.
 
 **Important constraints:** Do not include a Publish button. Medical Trainer/Expert can view status and respond to revision requests, but cannot approve, publish, archive published plans, or directly write published plan records. Publication remains a Platform Administrator action.
+
+## Supplemental Admin/Expert Governance Wireframes
+
+These supplemental prompts clarify the expert plan governance flow for the PDD. They should be used only to generate additional low-fidelity black-and-white wireframe images under the canonical `docs/pdd/wireframe-images/` path.
+
+## 10. Admin/Expert Governance Flow Overview
+
+**Target file path:** `docs/pdd/wireframe-images/shared-governance/admin-expert-governance-flow-overview.png`
+
+**Screen purpose:** Explains the full expert plan lifecycle from Medical Trainer/Expert draft preparation through Platform Administrator review, approval, publication, and Premium User access.
+
+**Role:** Shared governance overview for Medical Trainer/Expert, Platform Administrator, and Premium User access context.
+
+**Layout sections:**
+- Header: "Runiac Expert Plan Governance Flow"
+- Three swimlane columns: Medical Trainer/Expert, Platform Administrator, Premium User
+- Flow steps: Draft Plan, Submit for Admin Review, Admin Review Queue, Review Checklist, Request Revision / Reject / Approve, Publish Approved Plan, View Published Expert Plan
+- Status legend: Draft, Submitted, Pending Admin Review, Revision Requested, Rejected, Approved, Published, Archived
+- Governance notes panel: `userRole` controls governance access; `subscriptionStatus` controls Premium plan access
+
+**Key labels/buttons:** Save Draft, Submit for Admin Review, Request Revision, Reject, Approve, Publish Approved Plan, View Published Expert Plan, "Approved is not Published", "Premium Users see approved + published plans only".
+
+**Negative constraints:** Do not show a Publish button in the Medical Trainer/Expert lane. Do not imply direct expert publication. Do not show Basic/Premium as separate subclasses. Do not show colourful UI, photo-realistic elements, implementation code, Firebase collection names, API names, or database write details. Do not show XP, rank, streak, level, leaderboard score, weekly XP, or monthly XP controls.
+
+**Final image-generation prompt:**
+
+Create a low-fidelity black-and-white PDD wireframe image titled "Runiac Expert Plan Governance Flow". Use a clean desktop/tablet documentation layout with simple rectangles, arrows, readable labels, and no colour. The image should be a governance flow overview, not an implementation diagram.
+
+Arrange the main content as three vertical swimlane columns labelled "Medical Trainer/Expert", "Platform Administrator", and "Premium User". In the Medical Trainer/Expert lane, show boxes for "Draft Expert Plan", "Save Draft", "Submit for Admin Review", "Respond to Revision", and "Resubmit for Review". In the Platform Administrator lane, show boxes for "Admin Review Queue", "Review Safety + Completeness + Beginner Suitability", "Request Revision", "Reject", "Approve", and "Publish Approved Plan". In the Premium User lane, show one final box: "View / Select Published Expert Plan".
+
+Use arrows to show the lifecycle: draft plan -> submit for admin review -> admin review queue -> review decision -> revision loop back to expert response if needed -> approve -> publish approved plan -> Premium User view/select. Add a small status legend with Draft, Submitted, Pending Admin Review, Revision Requested, Rejected, Approved, Published, and Archived. Add a governance note panel reading: "Medical Trainer/Expert prepares and revises content only. Platform Administrator controls approval and publication. Premium Users can access only approved and published expert plans." Add a second note reading: "`userRole` controls governance access; `subscriptionStatus` controls Basic/Premium feature access."
+
+Important constraints: use only black, white, and grey wireframe styling. Do not include a Publish button or direct publication action in the Medical Trainer/Expert lane. Do not imply direct expert writes to the published catalogue. Do not include implementation code, Firebase collection names, API names, or database diagrams. Do not show XP, rank, streak, level, leaderboard score, weekly XP, or monthly XP editing controls. Keep all text readable and suitable for an academic PDD.
+
+## 11. Expert Plan Review Queue
+
+**Target file path:** `docs/pdd/wireframe-images/platform-admin/expert-plan-review-queue.png`
+
+**Screen purpose:** Shows the Platform Administrator's list view for submitted expert plans waiting for review, revision tracking, approval, rejection, or publication follow-up.
+
+**Role:** Platform Administrator.
+
+**Layout sections:**
+- Admin panel header and sidebar
+- Queue summary cards
+- Search and filter panel
+- Expert plan submission table
+- Selected submission preview panel
+- Admin action area
+- Governance note
+
+**Key labels/buttons:** Runiac Admin Panel - Expert Plan Review Queue, Pending Admin Review, Revision Requested, Approved Not Published, Published, Rejected, Archived, Search plans, Filter by Status, Filter by Provider, View Submission, Open Review, Request Revision, Reject, Approve, Publish Approved Plan, Archive.
+
+**Negative constraints:** Do not show Medical Trainer/Expert publishing controls. Do not merge Approved and Published into one status. Do not show hard delete. Do not show direct XP, rank, streak, level, leaderboard score, weekly XP, or monthly XP edits. Do not show colourful UI, photo-realistic elements, implementation code, Firebase names, API names, or database tables.
+
+**Final image-generation prompt:**
+
+Create a low-fidelity black-and-white desktop web admin wireframe for "Runiac Admin Panel - Expert Plan Review Queue". Use the same plain admin panel style as the other Runiac Platform Administrator wireframes: fixed left sidebar, simple rectangles, readable table text, no colour, no gradients, and no decorative images.
+
+Include a left sidebar titled "Runiac Admin Panel" with navigation items: Dashboard, Users, Expert Plans, Plans, Shared Routes, Notifications, Reports, Settings. In the main content area, add a page header "Expert Plan Review Queue". Below the header, show summary cards labelled "Pending Admin Review", "Revision Requested", "Approved Not Published", "Published", "Rejected", and "Archived".
+
+Add a search and filter row with fields labelled "Search plans", "Filter by Status", "Filter by Provider", "Goal Distance", and "Submitted Date". Below the filters, create a large table with columns: Plan Title, Submitted By, Provider Qualification, Goal Distance, Difficulty, Submitted Date, Current Status, Last Admin Action, Actions. Use example statuses such as Pending Admin Review, Revision Requested, Approved, Approved Not Published, Published, Rejected, and Archived. In the Actions column, show buttons: View Submission, Open Review, Request Revision, Reject, Approve, Publish Approved Plan, Archive.
+
+On the right side or below the table, add a selected submission preview panel with Plan Title, Provider, Safety Notes Summary, Beginner Suitability Notes, Latest Admin Comment, and Next Required Action. Add a governance note at the bottom: "Platform Administrator reviews, approves, rejects, archives, and publishes expert plans. Medical Trainer/Expert can submit and revise only."
+
+Important constraints: use only black, white, and grey wireframe styling. Keep Approved separate from Published. Do not include hard delete. Do not show Medical Trainer/Expert publication controls. Do not include implementation code, Firebase collection names, API names, or database table details. Do not show XP, rank, streak, level, leaderboard score, weekly XP, or monthly XP editing controls. Keep the design PDD-ready, readable, and consistent with a desktop admin panel.
+
+## 12. Expert Plan Publish Confirmation
+
+**Target file path:** `docs/pdd/wireframe-images/platform-admin/expert-plan-publish-confirmation.png`
+
+**Screen purpose:** Confirms that only a Platform Administrator can publish an already approved expert plan and makes the distinction between approval and publication visible.
+
+**Role:** Platform Administrator.
+
+**Layout sections:**
+- Admin panel header and sidebar
+- Approved plan summary
+- Pre-publication checklist
+- Visibility and access confirmation panel
+- Confirmation warning panel
+- Action buttons
+- Audit note
+
+**Key labels/buttons:** Runiac Admin Panel - Publish Expert Plan, Current Status: Approved, Publication Status: Not Published, Publish Approved Plan, Cancel, Return to Review Queue, Beginner suitability checked, Safety notes reviewed, Premium visibility only, Confirm publication.
+
+**Negative constraints:** Do not show this screen as available to Medical Trainer/Expert. Do not show publication before approval. Do not show Basic Users receiving premium access. Do not imply XP or leaderboard advantages from Premium expert plans. Do not show colourful UI, photo-realistic elements, implementation code, Firebase names, API names, database write details, or hard delete.
+
+**Final image-generation prompt:**
+
+Create a low-fidelity black-and-white desktop web admin wireframe for "Runiac Admin Panel - Publish Expert Plan". Use a clean Platform Administrator panel layout with a left sidebar, rectangular sections, readable labels, no colour, no gradients, and no decorative elements.
+
+The main content should show an approved expert plan ready for publication. At the top, include a plan summary panel with labels: Plan Title, Submitted By, Goal Distance, Duration, Difficulty, Approved By, Approved Date, Current Status: Approved, Publication Status: Not Published. Below it, add a "Pre-Publication Checklist" panel with checkbox rows: Beginner suitability checked, Safety notes reviewed, Weekly schedule complete, Medical disclaimer included, Runiac standard consistency checked, No competitive XP or leaderboard advantage.
+
+Add a "Visibility and Access" panel showing "Visible to Premium Users after publication", "`subscriptionStatus` controls Premium access", and "Basic Users do not see Premium expert plan catalogue". Add a confirmation warning panel reading: "Approved is not the same as Published. Publishing makes this plan available in the Premium expert plan catalogue." At the bottom, include action buttons: Publish Approved Plan, Cancel, Return to Review Queue. Include a small audit note: "Publication action is performed by Platform Administrator through `userRole` governance access."
+
+Important constraints: use only black, white, and grey wireframe styling. This is a Platform Administrator confirmation screen only. Do not show Medical Trainer/Expert publishing controls. Do not show publication before approval. Do not imply Premium Users receive XP, rank, leaderboard score, or competitive advantages. Do not include implementation code, Firebase collection names, API names, database tables, or hard delete controls. Keep all text readable and PDD-ready.
+
+## 13. Expert Plan Revision Response
+
+**Target file path:** `docs/pdd/wireframe-images/medical-trainer-expert/expert-plan-revision-response.png`
+
+**Screen purpose:** Allows Medical Trainer/Expert to read an administrator revision request, update draft content, respond with a revision note, and resubmit for admin review.
+
+**Role:** Medical Trainer/Expert.
+
+**Layout sections:**
+- Expert Plan Submission Portal header and sidebar
+- Revision request summary
+- Admin comments and required changes
+- Editable plan update sections
+- Expert response note
+- Resubmission controls
+- Governance note
+
+**Key labels/buttons:** Expert Plan Submission Portal - Revision Response, Current Status: Revision Requested, Admin Comment, Required Changes, Update Plan Details, Update Weekly Schedule, Update Safety Notes, Expert Response Note, Save Draft, Resubmit for Admin Review, Back to Submitted Plans.
+
+**Negative constraints:** Do not include Publish, Approve, Reject, Archive Published Plan, or direct catalogue controls. Do not show the expert changing published records. Do not show Firebase, API, database, or implementation details. Do not show XP, rank, streak, level, leaderboard score, weekly XP, or monthly XP controls. Do not use colour, photo-realistic elements, or mobile app layout.
+
+**Final image-generation prompt:**
+
+Create a low-fidelity black-and-white desktop web portal wireframe for "Expert Plan Submission Portal - Revision Response". Use a simple Medical Trainer/Expert portal style, not a mobile app and not an admin dashboard. Use readable labels, rectangular panels, plain table/form placeholders, no colour, no gradients, and no decorative images.
+
+Include a top header labelled "Expert Plan Submission Portal" and a left sidebar with New Submission, Submitted Plans, Drafts, Profile. In the main content area, add the page title "Revision Response". At the top, show a revision summary panel with Plan Title, Goal Distance, Submitted Date, Current Status: Revision Requested, Reviewed By: Platform Administrator, and Last Review Date.
+
+Below the summary, add an "Admin Comment and Required Changes" panel with text rows labelled Admin Comment, Required Change 1, Required Change 2, Safety Concern, Beginner Suitability Note. Add editable form sections for "Update Plan Details", "Update Weekly Schedule", and "Update Safety Notes". The weekly schedule section should be a table with columns Week, Session, Distance/Duration, Intensity, Rest Day Guidance, Notes. Add an "Expert Response Note" text area labelled "Explain how the requested changes were addressed". At the bottom, include only these action buttons: Save Draft, Resubmit for Admin Review, Back to Submitted Plans.
+
+Add a small governance note: "Medical Trainer/Expert can revise and resubmit content only. Platform Administrator remains responsible for approval and publication." Important constraints: do not include Publish, Approve, Reject, Archive Published Plan, or direct catalogue controls. Do not imply the expert updates published plans. Do not include implementation code, Firebase collection names, API names, or database details. Do not show XP, rank, streak, level, leaderboard score, weekly XP, or monthly XP controls. Keep the image black-and-white, low-fidelity, readable, and suitable for a university PDD.
