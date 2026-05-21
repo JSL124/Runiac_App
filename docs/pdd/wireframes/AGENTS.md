@@ -149,6 +149,18 @@ When PDD_UIUX_DESIGN_MODE is active, check:
 - A8_OUTPUT_CHECKER should run before declaring the wireframe deliverable ready for commit or final PDD insertion.
 - A14_ERROR_TRIAGE is correction-only. Use it only for directly observed errors such as broken paths, missing referenced figures, contradictory role rules, invalid generated diagram output, or clear mismatch between a file reference and existing repository content.
 
+## Layered Review-Pass Routing
+- Do not create a new review agent for wireframe or UI/UX review.
+- Use a layered review-pass model instead of one monolithic review agent.
+- For PDD wireframe work, use: A5_WIRE -> A6_REVIEW -> A8_OUTPUT_CHECKER.
+- Use A14_ERROR_TRIAGE only if a concrete detected error requires a minimal scoped fix.
+- A5_WIRE performs wireframe-specific UI/UX review under PDD_UIUX_DESIGN_MODE.
+- A6_REVIEW performs cross-document consistency review and is not a completeness checker.
+- A8_OUTPUT_CHECKER performs final completeness and deliverable-readiness review and is not a broad consistency reviewer.
+- A14_ERROR_TRIAGE is not a design owner, reviewer, or output checker.
+- A5_WIRE should not declare final readiness alone; final readiness requires A6_REVIEW and A8_OUTPUT_CHECKER after A5_WIRE changes.
+- This model avoids one monolithic review agent because UI/UX, consistency, completeness, and concrete error correction require different review lenses. Keep the existing agent numbering and use separate review passes rather than adding more numbered review agents.
+
 ## Expert Plan Governance Flow
 Medical Trainer/Expert submits plan content -> plan enters admin review queue -> Platform Administrator reviews -> approve / request revision / reject -> Platform Administrator publishes approved plans -> Premium User can view/select published expert plans.
 
