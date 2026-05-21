@@ -2,9 +2,9 @@
 
 ## 1. Source Basis And Assumptions
 
-This section documents the existing Runiac wireframes for the Project Design Document. It is based on `wireframe.md`, the exported assets in `wireframe_assets/basic/` and `wireframe_assets/premium/`, `PRD.md`, the component explanation in `docs/pdd/03-component-diagram.md`, and the supplied Platform Administrator and Medical Trainer/Expert wireframe plan.
+This section documents the existing Runiac wireframes for the Project Design Document. It is based on `wireframe.md`, the exported assets in `docs/pdd/wireframe-images/`, `PRD.md`, the component explanation in `docs/pdd/03-component-diagram.md`, and the supplied Platform Administrator and Medical Trainer/Expert wireframe plan.
 
-The repository stores the wireframe source as `wireframe.md` and `wireframe_assets/` rather than `docs/wireframes/`, and the available PRD source is `PRD.md` rather than `docs/prd/Runiac_PRD.pdf`. The PRD defines use cases rather than separately numbered user stories, so this document treats the PRD use cases `UC-F1` to `UC-F10` as the related user-story references.
+The repository stores the wireframe source as `wireframe.md` and `docs/pdd/wireframe-images/` rather than `docs/wireframes/`, and the available PRD source is `PRD.md` rather than `docs/prd/Runiac_PRD.pdf`. The PRD defines use cases rather than separately numbered user stories, so this document treats the PRD use cases `UC-F1` to `UC-F10` as the related user-story references.
 
 No redesign is proposed in this section. The descriptions explain the intent, visible elements, user flow, and system relationship of the existing wireframes. No separate image assets were found for the Platform Administrator or Medical Trainer/Expert screens, so those sections document the supplied wireframe plan at design level.
 
@@ -61,7 +61,7 @@ Basic and Premium access differences are treated as subscription differences con
 
 **Purpose:** Onboarding collects the user information required to generate safe beginner running guidance, including running experience, fitness level, personal goals, injury history, relevant health conditions, and permission choices.
 
-**Main UI elements:** No dedicated onboarding wireframe asset was found in the provided `wireframe_assets/` folders. Therefore, this PDD section records onboarding only as a required PRD flow. The PRD states that onboarding must support account/profile setup and collect the health-aware information needed for training plan generation.
+**Main UI elements:** No dedicated onboarding wireframe asset was found in the provided `docs/pdd/wireframe-images/` folders. Therefore, this PDD section records onboarding only as a required PRD flow. The PRD states that onboarding must support account/profile setup and collect the health-aware information needed for training plan generation.
 
 **User action flow:** The user creates or accesses an account, completes the profile and running background information, grants required permissions such as location and notifications, and then proceeds to the generated running plan or Home Dashboard.
 

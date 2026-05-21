@@ -3,7 +3,7 @@
 > Purpose: plan the diagrams needed for the Runiac Project Design Document (PDD) and define the diagram style based on the supervisor-provided sample PDD.
 > Sample reviewed: `/Users/leejinseo/Desktop/FYP/Week 1/Sub 2 - Project Design Doc Sample.pdf`
 > UML class diagram reference reviewed: `/Users/leejinseo/Desktop/CSCI314 Software Development Methodologies/Slides/Topic 3.pdf`, especially pp.15-23.
-> Runiac references: `PRD.md`, `wireframe.md`, `PRD_assets/`, `wireframe_assets/basic/`, `wireframe_assets/premium/`
+> Runiac references: `PRD.md`, `wireframe.md`, `PRD_assets/`, `docs/pdd/wireframe-images/mobile-user/basic/`, `docs/pdd/wireframe-images/mobile-user/premium/`, `docs/pdd/wireframe-images/mobile-user/shared/`
 
 ## 1. What The Sample PDD Uses
 
@@ -266,13 +266,13 @@ Purpose:
 
 Basic User assets:
 
-- Stored in `wireframe_assets/basic/`
+- Stored in `docs/pdd/wireframe-images/mobile-user/basic/` and `docs/pdd/wireframe-images/mobile-user/shared/`
 - 31 PNG files currently saved.
 - Include Basic flow image first, then screen-by-screen catalogue.
 
 Premium User assets:
 
-- Stored in `wireframe_assets/premium/`
+- Stored in `docs/pdd/wireframe-images/mobile-user/premium/` and `docs/pdd/wireframe-images/mobile-user/shared/`
 - 36 PNG files currently saved.
 - Include Premium flow image when exported locally, then screen-by-screen catalogue.
 
@@ -399,7 +399,7 @@ Semantic data diagram:
 
 UI diagrams:
 
-- Use actual wireframe PNGs from `wireframe_assets/`.
+- Use actual wireframe PNGs from `docs/pdd/wireframe-images/`.
 - Follow the sample format: title, screenshot, short paragraph.
 - Basic and Premium sections should be separated clearly.
 

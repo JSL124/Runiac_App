@@ -1,18 +1,18 @@
 # Runiac Wireframe Reference
 
 > Status: in progress. Basic User and Premium User wireframes have been received and saved. Premium connection overview was received inline in chat; local exported PNG path is still pending.
-> Source assets are stored in `wireframe_assets/`.
+> Source assets are stored in `docs/pdd/wireframe-images/`.
 > Figma prototype: [FYP wireframe](https://www.figma.com/proto/oCLn7dUg6bMSZImRj6zQZ0/FYP_wireframe?node-id=0-1&p=f&t=apDZUaAmueQ3sZzW-0&scaling=min-zoom&content-scaling=fixed&starting-point-node-id=25%3A20)
 
 ## Basic User Wireframes
 
 Source folder: `/Users/leejinseo/Desktop/FYP/Wireframe_Figma/Basic`
 
-Saved assets: `wireframe_assets/basic/`
+Saved assets: `docs/pdd/wireframe-images/mobile-user/basic/` and `docs/pdd/wireframe-images/mobile-user/shared/`
 
 Connection overview:
 
-![Whole Wireframe Connection](<wireframe_assets/basic/Whole Wireframe Connection.png>)
+![Whole Wireframe Connection](<docs/pdd/wireframe-images/mobile-user/shared/whole-wireframe-connection.png>)
 
 ### Basic User Navigation Model
 
@@ -30,37 +30,37 @@ The Basic User wireframes use a five-tab mobile navigation model:
 
 | Area | Screen | Asset | Main Purpose |
 | --- | --- | --- | --- |
-| Home | Basic Home Page | ![Basic Home Page](<wireframe_assets/basic/BasicHomePage.png>) | Initial dashboard with today's plan, quick start, XP progress, weekly plan, last run, and premium upgrade card. |
-| Home | View Updated Home Page | ![View Updated Home Page](<wireframe_assets/basic/View Updated Home Page.png>) | Return state after completing today's plan, showing completion confirmation on the home dashboard. |
-| Home / Plan | Today's Plan Page | ![Today's Plan Page](<wireframe_assets/basic/Today's plan page.png>) | Detailed daily plan with run target, focus items, coach note, XP reward, guide entry, and start run action. |
-| Home / Plan | Tuesday's Plan Detail Page | ![Tuesday's Plan Detail Page](<wireframe_assets/basic/Tuesday's Plan detail Page.png>) | Individual planned session detail with schedule, XP reward, edit schedule, and start run action. |
-| Home / Plan | Edit Plan Schedule Page | ![Edit Plan Schedule Page](<wireframe_assets/basic/Edit Plan Schedule Page.png>) | Schedule editing screen opened from a planned session, with day selection, recommended/new time slots, change reason, save, and cancel actions. |
-| Home / Premium | Upgrade To Premium Page | ![Upgrade To Premium Page](<wireframe_assets/basic/Upgrade To Premium Page.png>) | Premium conversion screen showing coach-verified plans, advanced analytics, AI coaching, route sharing, and rank sharing benefits. |
-| Maps | Maps Landing Page | ![Maps Landing Page](<wireframe_assets/basic/Maps Lading Page.png>) | Explore screen with search, map preview, nearby shared routes, and entry points to route detail or full route list. |
-| Maps | View List of Shared Route Page | ![View List of Shared Route Page](<wireframe_assets/basic/View List of Shared Route PAge.png>) | Community route list with search, filters, and route cards. |
-| Maps | Basic Map Detail Page | ![Basic Map Detail Page](<wireframe_assets/basic/Basic Map Detail Page.png>) | Route detail screen showing route map, distance/time/difficulty, runner saves, advice, premium lock card, and select route action. |
-| Maps | Route Selected Page | ![Route Selected Page](<wireframe_assets/basic/Route Selected Page.png>) | Confirmation screen after selecting a route, with go-to-run and back-to-explore actions. |
-| Maps | Basic My Route Page | ![Basic My Route Page](<wireframe_assets/basic/Basic My Route Page.png>) | Selected route management with change/remove route actions and premium-gated favorite route collection. |
-| Maps | View Report Page | ![View Report Page](<wireframe_assets/basic/View Report Page.png>) | Report-route modal with selected route, reason options, explanation text area, and report action. |
-| Run | Run Landing Page | ![Run Landing Page](<wireframe_assets/basic/Run Landing Page.png>) | Run start screen with selected route map, today's plan metrics, setting, start, and switch route actions. |
-| Run | Run Guide Page | ![Run Guide Page](<wireframe_assets/basic/Run Guide Page.png>) | Pre-run and after-run guidance with stretch/warm-up items and confirmation action. |
-| Run | Run Tracking Page | ![Run Tracking Page](<wireframe_assets/basic/Run Tracking Page.png>) | Active run tracking with route progress, elapsed time, pace, distance, and pause action. |
-| Run | Paused Run Tracking Page | ![Paused Run Tracking Page](<wireframe_assets/basic/Pasued Run Tracking Page.png>) | Paused run state with route progress, frozen metrics, resume, and end run controls. |
-| Cool Down | Cool Down Landing Page | ![Cool Down Landing Page](<wireframe_assets/basic/Cool Down Landing Page (after end the running).png>) | Post-run cool-down intro with slow walk, stretching, start cool-down, and skip-to-summary options. |
-| Cool Down | Cool Down Slow Walking Tracking Page | ![Cool Down Slow Walking Tracking Page](<wireframe_assets/basic/Cool Down Slow Walking Tracking PAge.png>) | Timed slow walk cool-down with circular timer, tips, pause button, and next action. |
-| Cool Down | Cool Down Stretching Tracking Page | ![Cool Down Stretching Tracking Page](<wireframe_assets/basic/Cool Down Stretching Tracking Page.png>) | Timed stretching step with instruction, illustration, progress dots, and next action. |
-| Cool Down | Cool Down Completed Page | ![Cool Down Completed Page](<wireframe_assets/basic/Cool Down Completed Page.png>) | Cool-down completion confirmation with XP reward and next button. |
-| Run Summary | Basic Run Summary Page | ![Basic Run Summary Page](<wireframe_assets/basic/Basic Run Summary Page.png>) | Post-run summary with route, distance, pace, duration, heart rate, calories, pace chart, beginner summary, premium AI lock, sharing prompt, and XP update. |
-| Run Summary | Share Page | ![Share Page](<wireframe_assets/basic/Share Page.png>) | Share achievement screen for post-run route and performance metrics. |
-| Run Summary | View Updated XP and Streak Page | ![View Updated XP and Streak Page](<wireframe_assets/basic/View Updated XP&Streak Page.png>) | XP and streak result screen after a completed run. |
-| Leaderboard | Leaderboard Landing Page | ![Leaderboard Landing Page](<wireframe_assets/basic/Leaderboard Landing Page.png>) | Territorial leaderboard map with weekly/monthly XP tabs and ranked-area preview. |
-| Leaderboard | Click Regional Page | ![Click Regional Page](<wireframe_assets/basic/Click Regional Page.png>) | Regional leaderboard detail showing current region, top runners, user rank preview, and sharing actions. |
-| Leaderboard | View More Leaderboard Page | ![View More Leaderboard Page](<wireframe_assets/basic/View More Leaderboard  Page.png>) | Expanded regional leaderboard ranking list with nearby user rank. |
-| Leaderboard | View League Page | ![View League Page](<wireframe_assets/basic/View League Page.png>) | League selection/list view for level-based leaderboard divisions. |
-| Leaderboard | Basic Share Leaderboard Page | ![Basic Share Leaderboard Page](<wireframe_assets/basic/Basic Share Leaderboard Page.png>) | Share rank screen with basic rank card and premium-gated visual sharing area. |
-| You | Basic You Page | ![Basic You Page](<wireframe_assets/basic/BasicYouPage.png>) | Personal progress view with streak, consistency streak, running calendar, recent running history, and runner level. |
-| You | Basic You Plan Page | ![Basic You Plan Page](<wireframe_assets/basic/Basic You Plan Page.png>) | Weekly 10K preparation plan with planned/completed/remaining counters and premium-only goal plan section. |
-| Connectivity | Whole Wireframe Connection | ![Whole Wireframe Connection](<wireframe_assets/basic/Whole Wireframe Connection.png>) | Figma-level connection map showing screen-to-screen navigation. |
+| Home | Basic Home Page | ![Basic Home Page](<docs/pdd/wireframe-images/mobile-user/basic/basic-home-page.png>) | Initial dashboard with today's plan, quick start, XP progress, weekly plan, last run, and premium upgrade card. |
+| Home | View Updated Home Page | ![View Updated Home Page](<docs/pdd/wireframe-images/mobile-user/basic/basic-updated-home-page.png>) | Return state after completing today's plan, showing completion confirmation on the home dashboard. |
+| Home / Plan | Today's Plan Page | ![Today's Plan Page](<docs/pdd/wireframe-images/mobile-user/basic/basic-todays-plan-page.png>) | Detailed daily plan with run target, focus items, coach note, XP reward, guide entry, and start run action. |
+| Home / Plan | Tuesday's Plan Detail Page | ![Tuesday's Plan Detail Page](<docs/pdd/wireframe-images/mobile-user/basic/basic-tuesday-plan-detail-page.png>) | Individual planned session detail with schedule, XP reward, edit schedule, and start run action. |
+| Home / Plan | Edit Plan Schedule Page | ![Edit Plan Schedule Page](<docs/pdd/wireframe-images/mobile-user/shared/basic-source-edit-plan-schedule-page.png>) | Schedule editing screen opened from a planned session, with day selection, recommended/new time slots, change reason, save, and cancel actions. |
+| Home / Premium | Upgrade To Premium Page | ![Upgrade To Premium Page](<docs/pdd/wireframe-images/mobile-user/basic/upgrade-to-premium-page.png>) | Premium conversion screen showing coach-verified plans, advanced analytics, AI coaching, route sharing, and rank sharing benefits. |
+| Maps | Maps Landing Page | ![Maps Landing Page](<docs/pdd/wireframe-images/mobile-user/shared/basic-source-maps-landing-page.png>) | Explore screen with search, map preview, nearby shared routes, and entry points to route detail or full route list. |
+| Maps | View List of Shared Route Page | ![View List of Shared Route Page](<docs/pdd/wireframe-images/mobile-user/shared/basic-source-shared-route-list-page.png>) | Community route list with search, filters, and route cards. |
+| Maps | Basic Map Detail Page | ![Basic Map Detail Page](<docs/pdd/wireframe-images/mobile-user/basic/basic-map-detail-page.png>) | Route detail screen showing route map, distance/time/difficulty, runner saves, advice, premium lock card, and select route action. |
+| Maps | Route Selected Page | ![Route Selected Page](<docs/pdd/wireframe-images/mobile-user/shared/route-selected-page.png>) | Confirmation screen after selecting a route, with go-to-run and back-to-explore actions. |
+| Maps | Basic My Route Page | ![Basic My Route Page](<docs/pdd/wireframe-images/mobile-user/basic/basic-my-route-page.png>) | Selected route management with change/remove route actions and premium-gated favorite route collection. |
+| Maps | View Report Page | ![View Report Page](<docs/pdd/wireframe-images/mobile-user/shared/basic-source-route-report-page.png>) | Report-route modal with selected route, reason options, explanation text area, and report action. |
+| Run | Run Landing Page | ![Run Landing Page](<docs/pdd/wireframe-images/mobile-user/shared/basic-source-run-landing-page.png>) | Run start screen with selected route map, today's plan metrics, setting, start, and switch route actions. |
+| Run | Run Guide Page | ![Run Guide Page](<docs/pdd/wireframe-images/mobile-user/shared/run-guide-page.png>) | Pre-run and after-run guidance with stretch/warm-up items and confirmation action. |
+| Run | Run Tracking Page | ![Run Tracking Page](<docs/pdd/wireframe-images/mobile-user/shared/basic-source-run-tracking-page.png>) | Active run tracking with route progress, elapsed time, pace, distance, and pause action. |
+| Run | Paused Run Tracking Page | ![Paused Run Tracking Page](<docs/pdd/wireframe-images/mobile-user/shared/basic-source-paused-run-tracking-page.png>) | Paused run state with route progress, frozen metrics, resume, and end run controls. |
+| Cool Down | Cool Down Landing Page | ![Cool Down Landing Page](<docs/pdd/wireframe-images/mobile-user/shared/cool-down-landing-page.png>) | Post-run cool-down intro with slow walk, stretching, start cool-down, and skip-to-summary options. |
+| Cool Down | Cool Down Slow Walking Tracking Page | ![Cool Down Slow Walking Tracking Page](<docs/pdd/wireframe-images/mobile-user/shared/basic-source-cool-down-slow-walking-tracking-page.png>) | Timed slow walk cool-down with circular timer, tips, pause button, and next action. |
+| Cool Down | Cool Down Stretching Tracking Page | ![Cool Down Stretching Tracking Page](<docs/pdd/wireframe-images/mobile-user/shared/basic-source-cool-down-stretching-tracking-page.png>) | Timed stretching step with instruction, illustration, progress dots, and next action. |
+| Cool Down | Cool Down Completed Page | ![Cool Down Completed Page](<docs/pdd/wireframe-images/mobile-user/shared/basic-source-cool-down-completed-page.png>) | Cool-down completion confirmation with XP reward and next button. |
+| Run Summary | Basic Run Summary Page | ![Basic Run Summary Page](<docs/pdd/wireframe-images/mobile-user/basic/basic-run-summary-page.png>) | Post-run summary with route, distance, pace, duration, heart rate, calories, pace chart, beginner summary, premium AI lock, sharing prompt, and XP update. |
+| Run Summary | Share Page | ![Share Page](<docs/pdd/wireframe-images/mobile-user/shared/basic-source-share-page.png>) | Share achievement screen for post-run route and performance metrics. |
+| Run Summary | View Updated XP and Streak Page | ![View Updated XP and Streak Page](<docs/pdd/wireframe-images/mobile-user/shared/basic-source-xp-streak-update-page.png>) | XP and streak result screen after a completed run. |
+| Leaderboard | Leaderboard Landing Page | ![Leaderboard Landing Page](<docs/pdd/wireframe-images/mobile-user/shared/basic-source-leaderboard-landing-page.png>) | Territorial leaderboard map with weekly/monthly XP tabs and ranked-area preview. |
+| Leaderboard | Click Regional Page | ![Click Regional Page](<docs/pdd/wireframe-images/mobile-user/shared/basic-source-leaderboard-region-page.png>) | Regional leaderboard detail showing current region, top runners, user rank preview, and sharing actions. |
+| Leaderboard | View More Leaderboard Page | ![View More Leaderboard Page](<docs/pdd/wireframe-images/mobile-user/shared/basic-source-leaderboard-more-page.png>) | Expanded regional leaderboard ranking list with nearby user rank. |
+| Leaderboard | View League Page | ![View League Page](<docs/pdd/wireframe-images/mobile-user/shared/basic-source-leaderboard-league-page.png>) | League selection/list view for level-based leaderboard divisions. |
+| Leaderboard | Basic Share Leaderboard Page | ![Basic Share Leaderboard Page](<docs/pdd/wireframe-images/mobile-user/basic/basic-share-leaderboard-page.png>) | Share rank screen with basic rank card and premium-gated visual sharing area. |
+| You | Basic You Page | ![Basic You Page](<docs/pdd/wireframe-images/mobile-user/basic/basic-you-page.png>) | Personal progress view with streak, consistency streak, running calendar, recent running history, and runner level. |
+| You | Basic You Plan Page | ![Basic You Plan Page](<docs/pdd/wireframe-images/mobile-user/basic/basic-you-plan-page.png>) | Weekly 10K preparation plan with planned/completed/remaining counters and premium-only goal plan section. |
+| Connectivity | Whole Wireframe Connection | ![Whole Wireframe Connection](<docs/pdd/wireframe-images/mobile-user/shared/whole-wireframe-connection.png>) | Figma-level connection map showing screen-to-screen navigation. |
 
 ### Basic User Connectivity Summary
 
@@ -186,7 +186,7 @@ You flow:
 
 Source folder: `/Users/leejinseo/Desktop/FYP/Wireframe_Figma/Premium`
 
-Saved assets: `wireframe_assets/premium/`
+Saved assets: `docs/pdd/wireframe-images/mobile-user/premium/` and `docs/pdd/wireframe-images/mobile-user/shared/`
 
 ### Premium User Navigation Model
 
@@ -204,42 +204,42 @@ Premium keeps the same five-tab structure as Basic, but unlocks richer plan, rou
 
 | Area | Screen | Asset | Main Purpose |
 | --- | --- | --- | --- |
-| Home | Premium Home Page | ![Premium Home Page](<wireframe_assets/premium/Premium Home Page.png>) | Premium dashboard with today's plan, 10K preparation progress, XP, weekly plan, last-run advice, and recommended community routes. |
-| Home | Premium Updated Home Page | ![Premium Updated Home Page](<wireframe_assets/premium/Premium Updated Home Page.png>) | Home state after run completion or progress update. |
-| Plan | Today's Plan Detail Page | ![Today's Plan Detail Page](<wireframe_assets/premium/Today's Plan Detail Page.png>) | Premium daily plan detail with richer workout guidance. |
-| Plan | View Detail of Today's Plan | ![View Detail of Today's Plan](<wireframe_assets/premium/View Detail of Today's Plan(Workout wise).png>) | Workout-wise detail view for today's plan. |
-| Plan | Tuesday's Plan Page | ![Tuesday's Plan Page](<wireframe_assets/premium/Tuesday's Plan Page.png>) | Individual planned run detail for a weekly plan item. |
-| Plan | Edit Plan Schedule Page | ![Edit Plan Schedule Page](<wireframe_assets/premium/Edit Plan Schedule Page.png>) | Premium schedule editing flow with day, time, duration, reason, save, and cancel actions. |
-| Plan | View Goal Plan Journey Page | ![View Goal Plan Journey Page](<wireframe_assets/premium/View Goal Plan Journey Page.png>) | Goal-plan journey/progress overview for milestone preparation. |
-| Plan | Explore Expert Goal Plan Page | ![Explore Expert Goal Plan Page](<wireframe_assets/premium/Explore Expert Goal Plan Page.png>) | Premium expert plan discovery list. |
-| Plan | View Expert Plan Detail Page | ![View Expert Plan Detail Page](<wireframe_assets/premium/View Expert Plan Detail Page.png>) | Detailed view of a selected expert goal plan. |
-| Maps | Maps Landing Page | ![Maps Landing Page](<wireframe_assets/premium/Maps Landing Page.png>) | Premium explore landing with route search, map preview, and nearby shared routes. |
-| Maps | View List of Shared Route Page | ![View List of Shared Route Page](<wireframe_assets/premium/View List of Shared Route Page.png>) | Full shared route list with search and route cards. |
-| Maps | Premium Shared Map Detail Page | ![Premium Shared Map Detail Page](<wireframe_assets/premium/Premium Shared Map Detail Page.png>) | Shared route detail for premium users, including route actions. |
-| Maps | Success Selecting Route Page | ![Success Selecting Route Page](<wireframe_assets/premium/Success Selecting Route Page.png>) | Confirmation after selecting a route. |
-| Maps | Premium My Route Page | ![Premium My Route Page](<wireframe_assets/premium/Premium My Route Page.png>) | Premium route management with selected route and favorite routes. |
-| Maps | Premium My Route Page After Remove Route | ![Premium My Route Page After Remove Route](<wireframe_assets/premium/Premium My Route Page After Remove Route.png>) | My Route empty selected-route state after route removal. |
-| Maps | Premium Route Sharing Page | ![Premium Route Sharing Page](<wireframe_assets/premium/Premium Route Sharing Page.png>) | Route upload/share flow from a completed run. |
-| Maps | Report Shared Route Page | ![Report Shared Route Page](<wireframe_assets/premium/Report Shared Route Page.png>) | Report modal for a shared route. |
-| Run | Run Landing Page | ![Run Landing Page](<wireframe_assets/premium/Run Landing Page.png>) | Premium run start screen using selected plan/route context. |
-| Run | Run Tracking Page | ![Run Tracking Page](<wireframe_assets/premium/Run Tracking Page.png>) | Active run tracking with route progress and live metrics. |
-| Run | Run Paused Page | ![Run Paused Page](<wireframe_assets/premium/Run Paused Page.png>) | Paused run state with resume and end run actions. |
-| Cool Down | Cool Down Intro Page | ![Cool Down Intro Page](<wireframe_assets/premium/Cool Down Intro Page.png>) | Post-run cool-down introduction. |
-| Cool Down | Cool Down Slow Walking Tracking Page | ![Cool Down Slow Walking Tracking Page](<wireframe_assets/premium/Cool Down Slow Walking Tracking Page.png>) | Slow-walk cool-down timer screen. |
-| Cool Down | Cool Down Stretching Tracking Page | ![Cool Down Stretching Tracking Page](<wireframe_assets/premium/Cool Down Stretching Tracking Page.png>) | Stretching cool-down timer screen. |
-| Cool Down | Cool Down Completed Page | ![Cool Down Completed Page](<wireframe_assets/premium/Cool Down Completed Page.png>) | Cool-down completion and XP reward confirmation. |
-| Run Summary | Premium Run Summary Page | ![Premium Run Summary Page](<wireframe_assets/premium/Premium Run Summary Page.png>) | Premium post-run summary with advanced analysis entry and AI coaching summary. |
-| Run Summary | Premium Run Analysis Page | ![Premium Run Analysis Page](<wireframe_assets/premium/Premium Run Analysis (click more detail from summary).png>) | Detailed premium run analysis with performance, pace, heart-rate, stamina, recovery, comparison, and recommendations. |
-| Run Summary | Share Page | ![Share Page](<wireframe_assets/premium/Share Page.png>) | Share achievement screen for run metrics. |
-| Run Summary | View Updated XP and Streak Page | ![View Updated XP and Streak Page](<wireframe_assets/premium/View Updated XP&Streak Page.png>) | XP and streak update after run completion. |
-| Leaderboard | Leaderboard Landing Page | ![Leaderboard Landing Page](<wireframe_assets/premium/Leaderboard Landing Page.png>) | Premium territorial leaderboard landing view. |
-| Leaderboard | Click Region Leaderboard Page | ![Click Region Leaderboard Page](<wireframe_assets/premium/Click Region Leaderboard Page.png>) | Regional ranking detail with top runners and user rank preview. |
-| Leaderboard | View More Ranking Page | ![View More Ranking Page](<wireframe_assets/premium/View More Ranking Page.png>) | Expanded regional ranking list. |
-| Leaderboard | View League Page | ![View League Page](<wireframe_assets/premium/View League Page.png>) | League list for level-based competition divisions. |
-| Leaderboard | View Tips for Leaderboard Page | ![View Tips for Leaderboard Page](<wireframe_assets/premium/View Tips for Leaderboard page.png>) | Tips/explanation screen for leaderboard mechanics. |
-| Leaderboard | Premium Leaderboard Ranking Sharing Page | ![Premium Leaderboard Ranking Sharing Page](<wireframe_assets/premium/Premium Leaderboard Ranking Sharing Page.png>) | Premium rank sharing screen with unlocked visual card and social sharing options. |
-| You | Premium You Landing Page | ![Premium You Landing Page](<wireframe_assets/premium/Premium You Landing Page.png>) | Premium personal progress landing screen. |
-| You | Premium You Plan Page | ![Premium You Plan Page](<wireframe_assets/premium/Premium You Plan Page.png>) | Premium plan view with richer goal-plan and preparation context. |
+| Home | Premium Home Page | ![Premium Home Page](<docs/pdd/wireframe-images/mobile-user/premium/premium-home-page.png>) | Premium dashboard with today's plan, 10K preparation progress, XP, weekly plan, last-run advice, and recommended community routes. |
+| Home | Premium Updated Home Page | ![Premium Updated Home Page](<docs/pdd/wireframe-images/mobile-user/premium/premium-updated-home-page.png>) | Home state after run completion or progress update. |
+| Plan | Today's Plan Detail Page | ![Today's Plan Detail Page](<docs/pdd/wireframe-images/mobile-user/premium/premium-todays-plan-detail-page.png>) | Premium daily plan detail with richer workout guidance. |
+| Plan | View Detail of Today's Plan | ![View Detail of Today's Plan](<docs/pdd/wireframe-images/mobile-user/premium/premium-workout-detail-page.png>) | Workout-wise detail view for today's plan. |
+| Plan | Tuesday's Plan Page | ![Tuesday's Plan Page](<docs/pdd/wireframe-images/mobile-user/premium/premium-tuesday-plan-page.png>) | Individual planned run detail for a weekly plan item. |
+| Plan | Edit Plan Schedule Page | ![Edit Plan Schedule Page](<docs/pdd/wireframe-images/mobile-user/shared/premium-source-edit-plan-schedule-page.png>) | Premium schedule editing flow with day, time, duration, reason, save, and cancel actions. |
+| Plan | View Goal Plan Journey Page | ![View Goal Plan Journey Page](<docs/pdd/wireframe-images/mobile-user/premium/view-goal-plan-journey-page.png>) | Goal-plan journey/progress overview for milestone preparation. |
+| Plan | Explore Expert Goal Plan Page | ![Explore Expert Goal Plan Page](<docs/pdd/wireframe-images/mobile-user/premium/explore-expert-goal-plan-page.png>) | Premium expert plan discovery list. |
+| Plan | View Expert Plan Detail Page | ![View Expert Plan Detail Page](<docs/pdd/wireframe-images/mobile-user/premium/view-expert-plan-detail-page.png>) | Detailed view of a selected expert goal plan. |
+| Maps | Maps Landing Page | ![Maps Landing Page](<docs/pdd/wireframe-images/mobile-user/shared/premium-source-maps-landing-page.png>) | Premium explore landing with route search, map preview, and nearby shared routes. |
+| Maps | View List of Shared Route Page | ![View List of Shared Route Page](<docs/pdd/wireframe-images/mobile-user/shared/premium-source-shared-route-list-page.png>) | Full shared route list with search and route cards. |
+| Maps | Premium Shared Map Detail Page | ![Premium Shared Map Detail Page](<docs/pdd/wireframe-images/mobile-user/premium/premium-shared-map-detail-page.png>) | Shared route detail for premium users, including route actions. |
+| Maps | Success Selecting Route Page | ![Success Selecting Route Page](<docs/pdd/wireframe-images/mobile-user/shared/route-selection-success-page.png>) | Confirmation after selecting a route. |
+| Maps | Premium My Route Page | ![Premium My Route Page](<docs/pdd/wireframe-images/mobile-user/premium/premium-my-route-page.png>) | Premium route management with selected route and favorite routes. |
+| Maps | Premium My Route Page After Remove Route | ![Premium My Route Page After Remove Route](<docs/pdd/wireframe-images/mobile-user/premium/premium-my-route-after-remove-page.png>) | My Route empty selected-route state after route removal. |
+| Maps | Premium Route Sharing Page | ![Premium Route Sharing Page](<docs/pdd/wireframe-images/mobile-user/premium/premium-route-sharing-page.png>) | Route upload/share flow from a completed run. |
+| Maps | Report Shared Route Page | ![Report Shared Route Page](<docs/pdd/wireframe-images/mobile-user/shared/premium-source-route-report-page.png>) | Report modal for a shared route. |
+| Run | Run Landing Page | ![Run Landing Page](<docs/pdd/wireframe-images/mobile-user/shared/premium-source-run-landing-page.png>) | Premium run start screen using selected plan/route context. |
+| Run | Run Tracking Page | ![Run Tracking Page](<docs/pdd/wireframe-images/mobile-user/shared/premium-source-run-tracking-page.png>) | Active run tracking with route progress and live metrics. |
+| Run | Run Paused Page | ![Run Paused Page](<docs/pdd/wireframe-images/mobile-user/shared/premium-source-paused-run-tracking-page.png>) | Paused run state with resume and end run actions. |
+| Cool Down | Cool Down Intro Page | ![Cool Down Intro Page](<docs/pdd/wireframe-images/mobile-user/shared/cool-down-intro-page.png>) | Post-run cool-down introduction. |
+| Cool Down | Cool Down Slow Walking Tracking Page | ![Cool Down Slow Walking Tracking Page](<docs/pdd/wireframe-images/mobile-user/shared/premium-source-cool-down-slow-walking-tracking-page.png>) | Slow-walk cool-down timer screen. |
+| Cool Down | Cool Down Stretching Tracking Page | ![Cool Down Stretching Tracking Page](<docs/pdd/wireframe-images/mobile-user/shared/premium-source-cool-down-stretching-tracking-page.png>) | Stretching cool-down timer screen. |
+| Cool Down | Cool Down Completed Page | ![Cool Down Completed Page](<docs/pdd/wireframe-images/mobile-user/shared/premium-source-cool-down-completed-page.png>) | Cool-down completion and XP reward confirmation. |
+| Run Summary | Premium Run Summary Page | ![Premium Run Summary Page](<docs/pdd/wireframe-images/mobile-user/premium/premium-run-summary-page.png>) | Premium post-run summary with advanced analysis entry and AI coaching summary. |
+| Run Summary | Premium Run Analysis Page | ![Premium Run Analysis Page](<docs/pdd/wireframe-images/mobile-user/premium/premium-run-analysis-page.png>) | Detailed premium run analysis with performance, pace, heart-rate, stamina, recovery, comparison, and recommendations. |
+| Run Summary | Share Page | ![Share Page](<docs/pdd/wireframe-images/mobile-user/shared/premium-source-share-page.png>) | Share achievement screen for run metrics. |
+| Run Summary | View Updated XP and Streak Page | ![View Updated XP and Streak Page](<docs/pdd/wireframe-images/mobile-user/shared/premium-source-xp-streak-update-page.png>) | XP and streak update after run completion. |
+| Leaderboard | Leaderboard Landing Page | ![Leaderboard Landing Page](<docs/pdd/wireframe-images/mobile-user/shared/premium-source-leaderboard-landing-page.png>) | Premium territorial leaderboard landing view. |
+| Leaderboard | Click Region Leaderboard Page | ![Click Region Leaderboard Page](<docs/pdd/wireframe-images/mobile-user/shared/premium-source-leaderboard-region-page.png>) | Regional ranking detail with top runners and user rank preview. |
+| Leaderboard | View More Ranking Page | ![View More Ranking Page](<docs/pdd/wireframe-images/mobile-user/shared/premium-source-leaderboard-more-page.png>) | Expanded regional ranking list. |
+| Leaderboard | View League Page | ![View League Page](<docs/pdd/wireframe-images/mobile-user/shared/premium-source-leaderboard-league-page.png>) | League list for level-based competition divisions. |
+| Leaderboard | View Tips for Leaderboard Page | ![View Tips for Leaderboard Page](<docs/pdd/wireframe-images/mobile-user/premium/premium-leaderboard-tips-page.png>) | Tips/explanation screen for leaderboard mechanics. |
+| Leaderboard | Premium Leaderboard Ranking Sharing Page | ![Premium Leaderboard Ranking Sharing Page](<docs/pdd/wireframe-images/mobile-user/premium/premium-leaderboard-sharing-page.png>) | Premium rank sharing screen with unlocked visual card and social sharing options. |
+| You | Premium You Landing Page | ![Premium You Landing Page](<docs/pdd/wireframe-images/mobile-user/premium/premium-you-page.png>) | Premium personal progress landing screen. |
+| You | Premium You Plan Page | ![Premium You Plan Page](<docs/pdd/wireframe-images/mobile-user/premium/premium-you-plan-page.png>) | Premium plan view with richer goal-plan and preparation context. |
 
 ### Premium User Connectivity Summary
 

@@ -56,7 +56,7 @@ Source input note:
 
 - Requested PRD path: `docs/prd/Runiac_PRD.pdf`.
 - Requested wireframe path: `docs/wireframes/`.
-- Current checkout also contains readable source equivalents at `PRD.md`, `wireframe.md`, `PRD_assets/`, and `wireframe_assets/`. If the requested paths are unavailable, agents should use these local equivalents and flag the source substitution in their output assumptions.
+- Current checkout also contains readable source equivalents at `PRD.md`, `wireframe.md`, `PRD_assets/`, and `docs/pdd/wireframe-images/`. If the requested paths are unavailable, agents should use these local equivalents and flag the source substitution in their output assumptions.
 
 ## 4. Naming Rules
 
@@ -141,7 +141,7 @@ Naming consistency rules:
 | --- | --- |
 | Agent name | `PDD Orchestrator Agent` |
 | Purpose | Maintain the orchestration plan, assign design work, enforce shared terminology, and perform final consistency review. |
-| Input files | `AGENTS.md`, `docs/prd/Runiac_PRD.pdf`, `docs/wireframes/`, `PRD.md`, `wireframe.md`, `wireframe_assets/`, all `docs/pdd/*.md` files. |
+| Input files | `AGENTS.md`, `docs/prd/Runiac_PRD.pdf`, `docs/wireframes/`, `PRD.md`, `wireframe.md`, `docs/pdd/wireframe-images/`, all `docs/pdd/*.md` files. |
 | Output file | `docs/pdd/00-orchestration-plan.md` |
 | Allowed modifications | May modify only the orchestration plan and final review notes unless explicitly asked to edit a deliverable. |
 | Completion criteria | The plan defines scope, assumptions, naming rules, agent assignments, dependency order, consistency rules, Runiac-specific rules, and final integration checklist. |
@@ -196,7 +196,7 @@ Naming consistency rules:
 | --- | --- |
 | Agent name | `Wireframe Description Agent` |
 | Purpose | Describe the completed Basic and Premium wireframes, plus the planned Platform Administrator and Medical Trainer/Expert governance wireframes, in PDD-ready language and link each screen group to user goals and system components. |
-| Input files | `AGENTS.md`, `docs/wireframes/`, `wireframe.md`, `wireframe_assets/basic/`, `wireframe_assets/premium/`, the Platform Administrator and Medical Trainer/Expert wireframe plan supplied during PDD review, `docs/pdd/00-orchestration-plan.md`, `docs/pdd/01-application-architecture.md`, `docs/pdd/03-component-diagram.md`. |
+| Input files | `AGENTS.md`, `docs/wireframes/`, `wireframe.md`, `docs/pdd/wireframe-images/mobile-user/basic/`, `docs/pdd/wireframe-images/mobile-user/premium/`, `docs/pdd/wireframe-images/mobile-user/shared/`, the Platform Administrator and Medical Trainer/Expert wireframe plan supplied during PDD review, `docs/pdd/00-orchestration-plan.md`, `docs/pdd/01-application-architecture.md`, `docs/pdd/03-component-diagram.md`. |
 | Output file | `docs/pdd/05-wireframe-description.md` |
 | Allowed modifications | May modify only `docs/pdd/05-wireframe-description.md`. |
 | Completion criteria | Covers Basic, Premium, Platform Administrator, and Medical Trainer/Expert screen groups, explains purpose, main UI elements, user action flow, related PRD feature/component, and Basic/Premium or governance-role differences. Does not redesign screens. |
