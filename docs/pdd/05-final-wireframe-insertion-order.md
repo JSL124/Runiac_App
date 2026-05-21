@@ -114,7 +114,7 @@ Insert this material in PDD Section 5, after the wireframe description introduct
 
 ### Figure 5.13: Admin Dashboard
 
-![Figure 5.13: Admin Dashboard](wireframe-images/admin-dashboard.png)
+![Figure 5.13: Admin Dashboard](wireframe-images/platform-admin/admin-dashboard.png)
 
 **Caption:** Admin Dashboard showing system status, pending expert plans, reported routes, active notifications, quick actions, and recent activity.
 
@@ -124,7 +124,7 @@ Insert this material in PDD Section 5, after the wireframe description introduct
 
 ### Figure 5.14: User Management
 
-![Figure 5.14: User Management](wireframe-images/user-management.png)
+![Figure 5.14: User Management](wireframe-images/platform-admin/user-management.png)
 
 **Caption:** User Management screen showing account search, filters, user table, and View/Edit/Suspend actions.
 
@@ -134,7 +134,7 @@ Insert this material in PDD Section 5, after the wireframe description introduct
 
 ### Figure 5.15: User Detail / Role Control
 
-![Figure 5.15: User Detail / Role Control](wireframe-images/user-detail-role-control.png)
+![Figure 5.15: User Detail / Role Control](wireframe-images/platform-admin/user-detail-role-control.png)
 
 **Caption:** User Detail / Role Control screen showing profile, access information, read-only running summary, moderation notes, and admin actions.
 
@@ -144,7 +144,7 @@ Insert this material in PDD Section 5, after the wireframe description introduct
 
 ### Figure 5.16: Expert Plan Review
 
-![Figure 5.16: Expert Plan Review](wireframe-images/expert-plan-review.png)
+![Figure 5.16: Expert Plan Review](wireframe-images/platform-admin/expert-plan-review.png)
 
 **Caption:** Expert Plan Review screen showing submitted plan details, provider information, weekly schedule, safety notes, review checklist, admin comments, and decision buttons.
 
@@ -154,7 +154,7 @@ Insert this material in PDD Section 5, after the wireframe description introduct
 
 ### Figure 5.17: Plan Management
 
-![Figure 5.17: Plan Management](wireframe-images/plan-management.png)
+![Figure 5.17: Plan Management](wireframe-images/platform-admin/plan-management.png)
 
 **Caption:** Plan Management screen showing system and expert plan records, lifecycle statuses, search filters, and View/Edit/Archive actions.
 
@@ -164,7 +164,7 @@ Insert this material in PDD Section 5, after the wireframe description introduct
 
 ### Figure 5.18: Route Management
 
-![Figure 5.18: Route Management](wireframe-images/route-management.png)
+![Figure 5.18: Route Management](wireframe-images/platform-admin/route-management.png)
 
 **Caption:** Route Management screen showing shared route search, route table, map preview, report detail preview, and soft moderation actions.
 
@@ -174,7 +174,7 @@ Insert this material in PDD Section 5, after the wireframe description introduct
 
 ### Figure 5.19: Notification / Report Management
 
-![Figure 5.19: Notification / Report Management](wireframe-images/notification-report-management.png)
+![Figure 5.19: Notification / Report Management](wireframe-images/platform-admin/notification-report-management.png)
 
 **Caption:** Notification / Report Management screen showing notification creation, notification history, report table, and moderation actions.
 
@@ -186,7 +186,7 @@ Insert this material in PDD Section 5, after the wireframe description introduct
 
 ### Figure 5.20: Expert Plan Submission Form
 
-![Figure 5.20: Expert Plan Submission Form](wireframe-images/expert-plan-submission-form.png)
+![Figure 5.20: Expert Plan Submission Form](wireframe-images/medical-trainer-expert/expert-plan-submission-form.png)
 
 **Caption:** Expert Plan Submission Form showing expert credentials, plan details, weekly plan builder, safety guidance, and submission controls.
 
@@ -196,7 +196,7 @@ Insert this material in PDD Section 5, after the wireframe description introduct
 
 ### Figure 5.21: Submitted Plan Status Page
 
-![Figure 5.21: Submitted Plan Status Page](wireframe-images/submitted-plan-status-page.png)
+![Figure 5.21: Submitted Plan Status Page](wireframe-images/medical-trainer-expert/submitted-plan-status-page.png)
 
 **Caption:** Submitted Plan Status Page showing submitted expert plans, review statuses, admin comments, and revision-response actions.
 

@@ -112,7 +112,7 @@ Premium Users can view and select only expert plans that are both approved and p
 
 ### Figure 5.12: Admin Dashboard
 
-![Figure 5.12: Admin Dashboard](wireframe-images/admin-dashboard.png)
+![Figure 5.12: Admin Dashboard](wireframe-images/platform-admin/admin-dashboard.png)
 
 **Caption:** Admin Dashboard showing system status, pending expert plans, reported routes, active notifications, quick actions, and recent activity.
 
@@ -120,7 +120,7 @@ This screen gives the Platform Administrator a central overview of governance wo
 
 ### Figure 5.13: User Management
 
-![Figure 5.13: User Management](wireframe-images/user-management.png)
+![Figure 5.13: User Management](wireframe-images/platform-admin/user-management.png)
 
 **Caption:** User Management screen showing account search, filters, user table, and View/Edit/Suspend actions.
 
@@ -128,7 +128,7 @@ User Management supports administrator search and review of user accounts. Basic
 
 ### Figure 5.14: User Detail / Role Control
 
-![Figure 5.14: User Detail / Role Control](wireframe-images/user-detail-role-control.png)
+![Figure 5.14: User Detail / Role Control](wireframe-images/platform-admin/user-detail-role-control.png)
 
 **Caption:** User Detail / Role Control screen showing profile, access information, read-only running summary, moderation notes, and admin actions.
 
@@ -136,7 +136,7 @@ This screen lets administrators inspect one user, update role or account status,
 
 ### Figure 5.15: Expert Plan Review
 
-![Figure 5.15: Expert Plan Review](wireframe-images/expert-plan-review.png)
+![Figure 5.15: Expert Plan Review](wireframe-images/platform-admin/expert-plan-review.png)
 
 **Caption:** Expert Plan Review screen showing submitted plan details, provider information, weekly schedule, safety notes, review checklist, admin comments, and decision buttons.
 
@@ -144,7 +144,7 @@ Expert Plan Review is the controlled approval screen for expert-submitted plan c
 
 ### Figure 5.16: Plan Management
 
-![Figure 5.16: Plan Management](wireframe-images/plan-management.png)
+![Figure 5.16: Plan Management](wireframe-images/platform-admin/plan-management.png)
 
 **Caption:** Plan Management screen showing system and expert plan records, lifecycle statuses, search filters, and View/Edit/Archive actions.
 
@@ -152,7 +152,7 @@ Plan Management allows the administrator to manage Runiac system goal plans and 
 
 ### Figure 5.17: Route Management
 
-![Figure 5.17: Route Management](wireframe-images/route-management.png)
+![Figure 5.17: Route Management](wireframe-images/platform-admin/route-management.png)
 
 **Caption:** Route Management screen showing shared route search, route table, map preview, report detail preview, and soft moderation actions.
 
@@ -160,7 +160,7 @@ Route Management supports administrative review and moderation of shared routes.
 
 ### Figure 5.18: Notification / Report Management
 
-![Figure 5.18: Notification / Report Management](wireframe-images/notification-report-management.png)
+![Figure 5.18: Notification / Report Management](wireframe-images/platform-admin/notification-report-management.png)
 
 **Caption:** Notification / Report Management screen showing notification creation, notification history, report table, and moderation actions.
 
@@ -170,7 +170,7 @@ This screen combines system notification management with report handling. It sup
 
 ### Figure 5.19: Expert Plan Submission Form
 
-![Figure 5.19: Expert Plan Submission Form](wireframe-images/expert-plan-submission-form.png)
+![Figure 5.19: Expert Plan Submission Form](wireframe-images/medical-trainer-expert/expert-plan-submission-form.png)
 
 **Caption:** Expert Plan Submission Form showing expert credentials, plan details, weekly plan builder, safety guidance, and submission controls.
 
@@ -178,7 +178,7 @@ This screen allows Medical Trainer/Expert to prepare structured expert plan cont
 
 ### Figure 5.20: Submitted Plan Status Page
 
-![Figure 5.20: Submitted Plan Status Page](wireframe-images/submitted-plan-status-page.png)
+![Figure 5.20: Submitted Plan Status Page](wireframe-images/medical-trainer-expert/submitted-plan-status-page.png)
 
 **Caption:** Submitted Plan Status Page showing submitted expert plans, review statuses, admin comments, and revision-response actions.
 

@@ -20,7 +20,7 @@ Premium Users can view and select only expert plans that are both approved and p
 
 ## Figure 5.1: Admin Dashboard
 
-![Figure 5.1: Admin Dashboard](wireframe-images/admin-dashboard.png)
+![Figure 5.1: Admin Dashboard](wireframe-images/platform-admin/admin-dashboard.png)
 
 The Admin Dashboard provides the Platform Administrator with a high-level overview of system activity and pending governance tasks. It summarises user counts, premium/basic distribution, expert plan queues, route reports, active notifications, and recent administrative activity.
 
@@ -32,7 +32,7 @@ The Admin Dashboard provides the Platform Administrator with a high-level overvi
 
 ## Figure 5.2: User Management
 
-![Figure 5.2: User Management](wireframe-images/user-management.png)
+![Figure 5.2: User Management](wireframe-images/platform-admin/user-management.png)
 
 The User Management wireframe allows the Platform Administrator to search, filter, and manage user accounts. It shows account information in a table using `subscriptionStatus` for Basic/Premium access and `userRole` for operational roles.
 
@@ -44,7 +44,7 @@ The User Management wireframe allows the Platform Administrator to search, filte
 
 ## Figure 5.3: User Detail / Role Control
 
-![Figure 5.3: User Detail / Role Control](wireframe-images/user-detail-role-control.png)
+![Figure 5.3: User Detail / Role Control](wireframe-images/platform-admin/user-detail-role-control.png)
 
 The User Detail / Role Control screen provides a detailed view of one user account, including profile data, access information, running summary, moderation notes, and administrative actions. XP, level, streak, rank, and leaderboard-related values are displayed only as read-only system-calculated fields.
 
@@ -56,7 +56,7 @@ The User Detail / Role Control screen provides a detailed view of one user accou
 
 ## Figure 5.4: Expert Plan Review
 
-![Figure 5.4: Expert Plan Review](wireframe-images/expert-plan-review.png)
+![Figure 5.4: Expert Plan Review](wireframe-images/platform-admin/expert-plan-review.png)
 
 The Expert Plan Review screen allows the Platform Administrator to evaluate submitted expert plan content before publication. It includes plan details, provider information, weekly schedule, safety notes, review checklist, comments, and decision actions.
 
@@ -68,7 +68,7 @@ The Expert Plan Review screen allows the Platform Administrator to evaluate subm
 
 ## Figure 5.5: Plan Management
 
-![Figure 5.5: Plan Management](wireframe-images/plan-management.png)
+![Figure 5.5: Plan Management](wireframe-images/platform-admin/plan-management.png)
 
 The Plan Management wireframe supports administrative management of system goal plans and expert plans. It distinguishes System Plan and Expert Plan records and shows lifecycle statuses such as Submitted, Pending Review, Revision Requested, Approved, Published, Archived, and Rejected.
 
@@ -80,7 +80,7 @@ The Plan Management wireframe supports administrative management of system goal 
 
 ## Figure 5.6: Route Management
 
-![Figure 5.6: Route Management](wireframe-images/route-management.png)
+![Figure 5.6: Route Management](wireframe-images/platform-admin/route-management.png)
 
 The Route Management screen allows the Platform Administrator to search, inspect, and moderate shared routes. It includes a route table, map preview, report details, and actions such as View, Hide, Archive, and Mark as Reviewed.
 
@@ -92,7 +92,7 @@ The Route Management screen allows the Platform Administrator to search, inspect
 
 ## Figure 5.7: Notification / Report Management
 
-![Figure 5.7: Notification / Report Management](wireframe-images/notification-report-management.png)
+![Figure 5.7: Notification / Report Management](wireframe-images/platform-admin/notification-report-management.png)
 
 The Notification / Report Management wireframe combines administrative notification creation with report handling. It includes notification targeting and history, as well as report review fields and moderation actions.
 
@@ -104,7 +104,7 @@ The Notification / Report Management wireframe combines administrative notificat
 
 ## Figure 5.8: Expert Plan Submission Form
 
-![Figure 5.8: Expert Plan Submission Form](wireframe-images/expert-plan-submission-form.png)
+![Figure 5.8: Expert Plan Submission Form](wireframe-images/medical-trainer-expert/expert-plan-submission-form.png)
 
 The Expert Plan Submission Form allows a Medical Trainer/Expert to prepare structured expert plan content for administrative review. It captures expert credentials, plan details, weekly schedule, safety guidance, injury-prevention notes, and a medical disclaimer.
 
@@ -116,7 +116,7 @@ The Expert Plan Submission Form allows a Medical Trainer/Expert to prepare struc
 
 ## Figure 5.9: Submitted Plan Status Page
 
-![Figure 5.9: Submitted Plan Status Page](wireframe-images/submitted-plan-status-page.png)
+![Figure 5.9: Submitted Plan Status Page](wireframe-images/medical-trainer-expert/submitted-plan-status-page.png)
 
 The Submitted Plan Status Page allows a Medical Trainer/Expert to track submitted expert plans and respond to revision requests. It shows statuses such as Draft, Submitted, Pending Admin Review, Revision Requested, Approved, Published, Rejected, and Archived.
 
