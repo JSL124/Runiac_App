@@ -19,7 +19,8 @@ package "Entity / Model Classes" {
     - displayName: String
     - fitnessLevel: String
     - goals: List<String>
-    - healthDeclaration: String
+    - healthSafetyReadiness: String
+    - planCautiousness: String
   }
 
   class TrainingPlan <<Entity>> {
@@ -177,9 +178,9 @@ package "Service / Controller Classes" {
     + getCurrentUser(): User
   }
 
-  class PlanService <<Client Service>> {
+  class PlanService <<Coordination Service>> {
     + getActivePlan(userId: String): TrainingPlan
-    + createBeginnerPlan(userId: String): TrainingPlan
+    + createBeginnerPlanFromOnboarding(userId: String): TrainingPlan
     + reschedulePlanDay(planDayId: String): PlanDay
     + selectExpertPlan(expertPlanId: String): TrainingPlan
   }
@@ -312,6 +313,19 @@ note right of User
 subscriptionStatus distinguishes Basic and Premium access.
 userRole distinguishes operational or advisory roles,
 such as Platform Administrator and Medical Trainer/Expert.
+end note
+
+note right of UserProfile
+healthSafetyReadiness and planCautiousness are
+readiness/cautiousness signals for safe beginner
+plan generation. They are not diagnosis, treatment,
+medical advice, or exercise clearance fields.
+end note
+
+note right of PlanService
+PlanService coordinates plan access from the client,
+but first beginner plan initialisation is
+backend-supported using onboarding inputs.
 end note
 
 note right of ExpertPlan

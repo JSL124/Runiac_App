@@ -26,7 +26,7 @@ Design assumptions:
 | Class | Purpose | Key attributes |
 | --- | --- | --- |
 | `User` | Represents the authenticated Runiac account and role/tier state. | `userId`, `email`, `userRole`, `subscriptionStatus`, `createdAt` |
-| `UserProfile` | Stores onboarding and personal running profile information. | `profileId`, `userId`, `displayName`, `fitnessLevel`, `goals`, `healthDeclaration` |
+| `UserProfile` | Stores onboarding and personal running profile information, including readiness and cautiousness signals. | `profileId`, `userId`, `displayName`, `fitnessLevel`, `goals`, `healthSafetyReadiness`, `planCautiousness` |
 | `TrainingPlan` | Represents a user's active or historical running plan. | `planId`, `userId`, `goalType`, `planType`, `startDate`, `endDate`, `status` |
 | `PlanDay` | Represents one scheduled workout or rest day inside a training plan. | `planDayId`, `scheduledDate`, `workoutType`, `targetDistance`, `targetDuration`, `completionStatus`, `xpReward` |
 | `Activity` | Stores a completed or submitted run activity after run tracking. | `activityId`, `userId`, `planDayId`, `routeId`, `startedAt`, `endedAt`, `distance`, `duration`, `avgPace`, `validationStatus` |
@@ -47,7 +47,7 @@ Design assumptions:
 | Class | Layer | Design responsibility |
 | --- | --- | --- |
 | `AuthService` | Flutter client and Firebase Auth integration | Creates accounts, signs users in/out, resolves the current authenticated user, and links identity to the `User` and `UserProfile` records. |
-| `PlanService` | Flutter client service with backend support | Loads training plans, creates beginner plans, reschedules `PlanDay` items, checks premium access for published `ExpertPlan` records, and saves plan updates. |
+| `PlanService` | Client/backend coordination service | Loads training plans, requests backend-supported first beginner plan initialisation from onboarding inputs, reschedules `PlanDay` items, checks premium access for published `ExpertPlan` records, and saves plan updates. |
 | `RunTrackingService` | Flutter client controller | Starts, pauses, resumes, and ends active GPS run tracking. It creates an activity draft but does not award XP or update leaderboard data. |
 | `ActivityService` | Client/backend coordination service | Submits completed activities, retrieves activity history, and reads generated analysis or summary results. Validation is delegated to `ActivityProcessingFunction`. |
 | `ActivityProcessingFunction` | Cloud Function / backend service | Owns activity validation, anti-abuse checks, GPS trace quality checks, derived metric creation, and downstream processing events. |
@@ -114,7 +114,8 @@ package "Entity / Model Classes" {
     - displayName: String
     - fitnessLevel: String
     - goals: List<String>
-    - healthDeclaration: String
+    - healthSafetyReadiness: String
+    - planCautiousness: String
   }
 
   class TrainingPlan <<Entity>> {
@@ -272,9 +273,9 @@ package "Service / Controller Classes" {
     + getCurrentUser(): User
   }
 
-  class PlanService <<Client Service>> {
+  class PlanService <<Coordination Service>> {
     + getActivePlan(userId: String): TrainingPlan
-    + createBeginnerPlan(userId: String): TrainingPlan
+    + createBeginnerPlanFromOnboarding(userId: String): TrainingPlan
     + reschedulePlanDay(planDayId: String): PlanDay
     + selectExpertPlan(expertPlanId: String): TrainingPlan
   }
@@ -407,6 +408,19 @@ note right of User
 subscriptionStatus distinguishes Basic and Premium access.
 userRole distinguishes operational or advisory roles,
 such as Platform Administrator and Medical Trainer/Expert.
+end note
+
+note right of UserProfile
+healthSafetyReadiness and planCautiousness are
+readiness/cautiousness signals for safe beginner
+plan generation. They are not diagnosis, treatment,
+medical advice, or exercise clearance fields.
+end note
+
+note right of PlanService
+PlanService coordinates plan access from the client,
+but first beginner plan initialisation is
+backend-supported using onboarding inputs.
 end note
 
 note right of ExpertPlan
