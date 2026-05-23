@@ -6,6 +6,13 @@ Create an inspect-only plan for the requested Runiac task. Do not modify, create
 
 Use progressive context selection. Start with cheap inventory only, prefer a user-declared context class when provided, and otherwise classify conservatively from the task text. Do not perform a broad repository scan.
 
+Token/Context Discipline:
+
+- Avoid reading long files unless directly required.
+- Avoid dumping large file contents into the plan.
+- Summarize findings instead of reproducing file content.
+- Keep inspect-only workflow plans concise.
+
 Generic context classes:
 
 - `workflow`: runner scripts, agent prompts, review workflow docs, `.claude/settings.json`, and repo process automation.
@@ -55,6 +62,7 @@ Layer A: always-on Runiac invariants that apply to every plan/review regardless 
 Layer B: class-specific context scope controls what files should be read:
 
 - For `workflow`, use runner scripts, agent prompts, review workflow docs, `.claude/settings.json`, and repo process automation. Do not read product requirements, submitted assessment docs, PDFs, images, diagrams, generated assets, Flutter/Firebase source, tests, or test evidence unless explicitly allowed by the user. If the workflow task explicitly asks for product-requirement alignment, require explicit Allow paths rather than auto-expanding.
+- For inspect-only workflow smoke tests, select representative files only, not every prompt/config/runner file.
 - For `docs`, read only directly relevant docs and local instructions. Avoid PDFs/images/generated assets unless explicitly allowed.
 - For `implementation_prep`, selectively read PRD/PDD markdown if needed. Avoid submitted PDFs/images/generated assets unless explicitly allowed.
 - For `feature`, `security`, and `architecture`, consult requirement and architecture references as needed, avoid broad repo scans and large binary/generated assets, and include high-risk review mode guidance.
@@ -64,6 +72,14 @@ Output using exactly these headings:
 ## Goal
 
 ## Repo Context Checked
+
+## Planning Evidence Read
+
+Include:
+
+- Files actually read
+- Files intentionally skipped
+- Reason for skipping large/reference/irrelevant files
 
 ## Context Class Decision
 
@@ -99,6 +115,8 @@ Include:
   - touches PRD/PDD consistency: yes/no
   - touches production source code: yes/no
 - Recommended review mode: lite or standard
+
+Review Scope is not an inventory list. `Files Claude may need to read for review` must be the minimum review set needed to assess the plan. For `workflow` context, include at most 6 files unless the user explicitly allows expanded review. For inspect-only workflow smoke tests, choose representative files only. If more than 6 review files seem necessary, return a DEFER/escalation note instead of silently expanding Review Scope.
 
 Recommend lite only for low-risk documentation or workflow changes. Recommend standard for anything touching XP, streak, level, rank, leaderboard, roles, entitlements, Firebase ownership, Cloud Functions ownership, security rules, PRD/PDD consistency, or production source code.
 

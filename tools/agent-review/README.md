@@ -113,6 +113,17 @@ Prefer a user-declared context class when the user provides one. If none is prov
 
 Codex plans must include a `Context Class Decision`, `Plan Scope`, and `Review Scope`. Review Scope files must stay within Plan Scope allowed paths or explicit Allow paths. If Review Scope needs a file outside Plan Scope, the plan must flag that as an error and stop instead of silently expanding scope.
 
+Codex plans must also include `Planning Evidence Read`, listing files actually read, files intentionally skipped, and the reason for skipping large/reference/irrelevant files.
+
+Token/Context Discipline:
+
+- Avoid reading long files unless directly required.
+- Avoid dumping large file contents into the plan.
+- Summarize findings instead of reproducing file content.
+- Keep inspect-only workflow plans concise.
+
+Review Scope is not an inventory list. `Files Claude may need to read for review` must be the minimum review set, not every possibly relevant file. For `workflow` context, include at most 6 review files unless the user explicitly allows expanded review. For inspect-only workflow smoke tests, choose representative files only. If more than 6 review files seem necessary, return `DEFER` instead of silently expanding Review Scope.
+
 For `workflow` context, do not read product requirements, submitted assessment docs, PDFs, images, diagrams, generated assets, Flutter/Firebase source, tests, or test evidence unless explicitly allowed by the user. If a workflow task explicitly asks for product-requirement alignment, require explicit Allow paths rather than auto-expanding.
 
 For `docs` context, read only directly relevant docs and local instructions. Avoid PDFs/images/generated assets unless explicitly allowed.

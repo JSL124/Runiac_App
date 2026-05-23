@@ -26,6 +26,12 @@ Runiac separates two layers:
 
 For `docs`, read only directly relevant docs and local instructions. For `implementation_prep`, selectively read PRD/PDD markdown if needed. For `feature`, `security`, and `architecture`, consult requirement and architecture references as needed while avoiding broad scans and large/generated assets. Review Scope must stay inside Plan Scope allowed paths or explicit Allow paths.
 
+`Planning Evidence Read` records files actually read, files intentionally skipped, and why large/reference/irrelevant files were skipped.
+
+Token/Context Discipline: avoid reading long files unless directly required, avoid dumping large file contents into the plan, summarize findings, and keep inspect-only workflow plans concise.
+
+Review Scope is not an inventory list. `Files Claude may need to read for review` should be minimal. For `workflow` context, include at most 6 review files unless explicit expanded review is allowed. Inspect-only workflow smoke tests should use representative files only, not every prompt/config/runner file.
+
 DEFER recovery: add explicit Allow paths when the class is too restrictive, re-run with the correct class when the class is wrong, split oversized plans, or approve exact sensitive/reference paths when needed.
 
 ## Usage

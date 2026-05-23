@@ -10,6 +10,7 @@ Check the context protocol before producing the final recommendation:
 
 - Whether Claude accepted or challenged the `Context Class Decision`.
 - Whether `Plan Scope` and `Review Scope` stayed consistent.
+- Whether the plan respected the Review Scope budget and kept `Files Claude may need to read for review` minimal.
 - Whether requested additional scope requires explicit user approval.
 - Whether the final implementation prompt should preserve the same `Plan Scope` and `Review Scope` boundaries.
 - Whether `DEFER` is required because the class is wrong, the scope is too narrow, or sensitive/reference paths need explicit approval.

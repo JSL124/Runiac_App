@@ -17,6 +17,8 @@ Scope rules:
 - Confirm whether the selected context class is reasonable. If the class appears wrong, return `DEFER`.
 - Confirm that `unknown` did not silently fall back to a broader class.
 - Confirm that Review Scope files stay within Plan Scope allowed paths or explicit Allow paths.
+- Treat `Files Claude may need to read for review` as a minimum review set, not an inventory list.
+- For `workflow` context, treat a Review Scope with more than 6 review files as too broad unless explicit expanded review is allowed.
 - Use files listed under `Files expected to change` as the primary review target.
 - Prefer files listed under `Files Claude may need to read for review` for supporting context.
 - Treat files listed under `Files explicitly out of scope` as excluded unless the user explicitly expands scope.
