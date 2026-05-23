@@ -11,7 +11,7 @@ This profile contains the Runiac-specific prompts and example settings used by t
 - `prompts/04_codex_implement_approved_plan.md` is used only after explicit user approval for implementation.
 - `prompts/05_claude_review_plan_lite.md` asks Claude for a concise low-risk review in lite mode.
 
-Plans created by `prompts/01_codex_create_plan.md` must include a `Review Scope` section. The scope lists expected changed files, likely review reads, out-of-scope files, risk tags, and a recommended review mode so Claude can review efficiently.
+Plans created by `prompts/01_codex_create_plan.md` must include a `Review Scope` section. The scope lists expected changed files, likely review reads, out-of-scope files, risk tags, and a recommended review mode so Claude can review efficiently. Standard review should use that scope first and return `DEFER` with requested additional paths instead of scanning broadly when the scope is insufficient.
 
 ## Usage
 
