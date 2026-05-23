@@ -23,7 +23,7 @@ The runner uses subcommands instead of an automatic loop. It defaults to `DRY_RU
 Command examples use read-only Codex execution for plan and decision steps:
 
 ```bash
-codex exec --sandbox read-only --ask-for-approval never -C .
+codex --sandbox read-only --ask-for-approval never -C . exec
 ```
 
 First implementation runs should use interactive Codex only after explicit user approval:
@@ -32,7 +32,7 @@ First implementation runs should use interactive Codex only after explicit user 
 codex --sandbox workspace-write --ask-for-approval on-request -C .
 ```
 
-The workflow forbids `danger-full-access` and forbids `codex exec --sandbox workspace-write --ask-for-approval never`.
+The workflow forbids `danger-full-access` and forbids combining `workspace-write` with `--ask-for-approval never`.
 
 Claude plan review must use read-only tools:
 

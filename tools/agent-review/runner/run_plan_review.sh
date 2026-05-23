@@ -104,10 +104,10 @@ cmd_plan() {
 
   # Codex plan creation is read-only and cannot request approvals.
   local command_text
-  command_text="codex exec --sandbox read-only --ask-for-approval never -C . \"\$(cat $PLAN_PROMPT; printf '\\n\\nTask:\\n%s\\n' '$task_prompt')\""
+  command_text="codex --sandbox read-only --ask-for-approval never -C . exec \"\$(cat $PLAN_PROMPT; printf '\\n\\nTask:\\n%s\\n' '$task_prompt')\""
 
   run_or_dry "$output_file" "Codex inspect-only plan" "$command_text" \
-    codex exec --sandbox read-only --ask-for-approval never -C "." \
+    codex --sandbox read-only --ask-for-approval never -C "." exec \
     "$(cat "$(repo_path "$PLAN_PROMPT")"; printf '\n\nTask:\n%s\n' "$task_prompt")"
 }
 
@@ -151,10 +151,10 @@ cmd_decision() {
 
   # Codex final decision is read-only and evaluates the plan plus review.
   local command_text
-  command_text="codex exec --sandbox read-only --ask-for-approval never -C . \"\$(cat $DECISION_PROMPT; printf '\\n\\nOriginal plan:\\n'; cat '$plan_file'; printf '\\n\\nClaude review:\\n'; cat '$review_file')\""
+  command_text="codex --sandbox read-only --ask-for-approval never -C . exec \"\$(cat $DECISION_PROMPT; printf '\\n\\nOriginal plan:\\n'; cat '$plan_file'; printf '\\n\\nClaude review:\\n'; cat '$review_file')\""
 
   run_or_dry "$output_file" "Codex final review decision" "$command_text" \
-    codex exec --sandbox read-only --ask-for-approval never -C "." \
+    codex --sandbox read-only --ask-for-approval never -C "." exec \
     "$(cat "$(repo_path "$DECISION_PROMPT")"; printf '\n\nOriginal plan:\n'; cat "$plan_file"; printf '\n\nClaude review:\n'; cat "$review_file")"
 }
 
