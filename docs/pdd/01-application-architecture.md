@@ -136,7 +136,7 @@ cloud "Firebase Backend / BaaS" as Firebase {
 
 cloud "External Services" as External {
   component "Google Maps /\nMapbox APIs" as Maps
-  component "AI / LLM Summary Service\n(future extension only)" as AI
+  component "AI / LLM Summary Service\n(future Premium summary support only)" as AI
   component "Future Expert Dashboard\n(Phase 2 draft submission only)" as ExpertDash
 }
 
@@ -160,7 +160,7 @@ FCM --> Client : push notification
 Client --> Storage : upload/download media\nif needed
 Functions --> Storage : process media\nif needed
 
-Functions ..> AI : future summary request
+Functions ..> AI : future Premium\nsummary request
 AI ..> Functions : generated summary text
 
 Firestore --> UI : real-time updates

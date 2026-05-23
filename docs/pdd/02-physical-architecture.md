@@ -116,13 +116,13 @@ cloud "Firebase Managed Cloud / BaaS" as Firebase {
   database "Cloud Firestore" as Firestore
   component "Cloud Functions" as Functions
   component "Firebase Cloud Messaging" as FCM
-  database "Cloud Storage\nfor Firebase" as Storage
+  database "Cloud Storage\n(optional media storage)" as Storage
 }
 
 cloud "External Services" as External {
   component "Google Maps /\nMapbox APIs" as Maps
   component "Geocoding /\nRegion Mapping API" as Geo
-  component "External AI /\nLLM Service" as LLM
+  component "External AI /\nLLM Service\n(future Premium summary support only)" as LLM
   component "OS Share Sheet /\nSocial Media Platforms" as Share
 }
 
