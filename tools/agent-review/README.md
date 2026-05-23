@@ -106,6 +106,8 @@ CLAUDE_MAX_BUDGET_USD=0.50
 
 `CLAUDE_MAX_TURNS` limits the number of Claude turns available during plan review. `CLAUDE_MAX_BUDGET_USD` limits review spend in US dollars. Lower values can stop a review early; if that happens, rerun with caps appropriate to the requested review scope.
 
+Do not rely only on `claude --help` output to verify these cost-cap flags; some local Claude CLI versions accept flags that are not listed there. Check local compatibility with a minimal print-mode command before enabling actual runs.
+
 You can select another profile by setting `AGENT_REVIEW_PROFILE` or by setting `AGENT_REVIEW_PROFILE_DIR` directly:
 
 ```bash

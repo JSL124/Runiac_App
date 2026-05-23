@@ -58,3 +58,5 @@ CLAUDE_MAX_BUDGET_USD=0.50
 ```
 
 `CLAUDE_MAX_TURNS` limits review turns. `CLAUDE_MAX_BUDGET_USD` limits review spend in US dollars. Low caps may cause Claude review to stop early before completing the requested scope.
+
+Do not rely only on `claude --help` output to verify these flags; check local compatibility with a minimal print-mode Claude command before enabling actual runs.

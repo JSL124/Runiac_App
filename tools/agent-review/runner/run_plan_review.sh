@@ -152,8 +152,6 @@ require_agent_commands_for_actual_run() {
     require_command claude
     check_help_flag_if_possible claude "--permission-mode"
     check_help_flag_if_possible claude "--tools"
-    check_help_flag_if_possible claude "--max-turns"
-    check_help_flag_if_possible claude "--max-budget-usd"
     check_help_flag_if_possible claude "--append-system-prompt "
   fi
 }
