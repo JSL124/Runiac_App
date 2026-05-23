@@ -47,3 +47,14 @@ tools/agent-review/runner/run_plan_review.sh pipeline
 If `REVIEW_PROMPT` is set in the environment or a config file, it takes precedence over `REVIEW_MODE`.
 
 Use standard mode instead of lite mode for changes touching XP, streak, level, rank, leaderboard, roles, entitlements, premium fairness, Firebase ownership, Cloud Functions ownership, security rules, or submitted PDD / PRD consistency.
+
+## Claude Review Cost Caps
+
+The runner applies these caps only to the Claude review step:
+
+```bash
+CLAUDE_MAX_TURNS=12
+CLAUDE_MAX_BUDGET_USD=0.50
+```
+
+`CLAUDE_MAX_TURNS` limits review turns. `CLAUDE_MAX_BUDGET_USD` limits review spend in US dollars. Low caps may cause Claude review to stop early before completing the requested scope.

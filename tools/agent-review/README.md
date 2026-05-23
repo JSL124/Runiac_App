@@ -97,6 +97,15 @@ REVIEW_MODE=lite     # uses 05_claude_review_plan_lite.md
 
 Use standard mode instead of lite mode for changes touching XP, streak, level, rank, leaderboard, roles, entitlements, premium fairness, Firebase ownership, Cloud Functions ownership, security rules, or submitted PDD / PRD consistency.
 
+Claude review has two safety caps that apply only to the Claude review step:
+
+```bash
+CLAUDE_MAX_TURNS=12
+CLAUDE_MAX_BUDGET_USD=0.50
+```
+
+`CLAUDE_MAX_TURNS` limits the number of Claude turns available during plan review. `CLAUDE_MAX_BUDGET_USD` limits review spend in US dollars. Lower values can stop a review early; if that happens, rerun with caps appropriate to the requested review scope.
+
 You can select another profile by setting `AGENT_REVIEW_PROFILE` or by setting `AGENT_REVIEW_PROFILE_DIR` directly:
 
 ```bash
@@ -167,6 +176,8 @@ Claude plan review must use read-only tools:
 claude -p "$(cat tools/agent-review/profiles/runiac/prompts/02_claude_review_plan.md)" \
   --permission-mode plan \
   --tools "Read,Grep,Glob" \
+  --max-turns "$CLAUDE_MAX_TURNS" \
+  --max-budget-usd "$CLAUDE_MAX_BUDGET_USD" \
   --append-system-prompt "$(cat CLAUDE.md)"
 ```
 

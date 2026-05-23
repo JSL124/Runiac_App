@@ -91,6 +91,8 @@ IMPLEMENT_PROMPT="$(resolve_profile_prompt "$IMPLEMENT_PROMPT" "04_codex_impleme
 PLAN_DIR="${PLAN_DIR:-implementation/traceability/plans}"
 REVIEW_DIR="${REVIEW_DIR:-implementation/traceability/reviews}"
 DECISION_DIR="${DECISION_DIR:-implementation/traceability/decisions}"
+CLAUDE_MAX_TURNS="${CLAUDE_MAX_TURNS:-12}"
+CLAUDE_MAX_BUDGET_USD="${CLAUDE_MAX_BUDGET_USD:-0.50}"
 
 usage() {
   cat <<'USAGE'
@@ -105,6 +107,8 @@ Environment:
   AGENT_REVIEW_CONFIG=PATH  Optional shell env file.
   REVIEW_MODE=standard|lite Default: standard. Selects the Claude review prompt
                             unless REVIEW_PROMPT is explicitly set.
+  CLAUDE_MAX_TURNS=N       Default: 12. Claude review step turn cap.
+  CLAUDE_MAX_BUDGET_USD=N  Default: 0.50. Claude review step budget cap.
   TASK_PROMPT=TEXT          Task prompt for plan/implement/pipeline subcommands.
   TASK_PROMPT_FILE=PATH     Task prompt file for plan/implement/pipeline when TASK_PROMPT is unset.
   PLAN_FILE=PATH            Existing plan file for review/decision/implement.
@@ -148,6 +152,8 @@ require_agent_commands_for_actual_run() {
     require_command claude
     check_help_flag_if_possible claude "--permission-mode"
     check_help_flag_if_possible claude "--tools"
+    check_help_flag_if_possible claude "--max-turns"
+    check_help_flag_if_possible claude "--max-budget-usd"
     check_help_flag_if_possible claude "--append-system-prompt "
   fi
 }
@@ -224,13 +230,15 @@ run_review_step() {
 
   # Claude review is restricted to read-only tools and plan permission mode.
   local command_text
-  command_text="claude -p \"\$(cat $REVIEW_PROMPT; printf '\\n\\nPlan to review:\\n'; cat '$plan_file')\" --permission-mode plan --tools \"Read,Grep,Glob\" --append-system-prompt \"\$(cat CLAUDE.md)\""
+  command_text="claude -p \"\$(cat $REVIEW_PROMPT; printf '\\n\\nPlan to review:\\n'; cat '$plan_file')\" --permission-mode plan --tools \"Read,Grep,Glob\" --max-turns \"$CLAUDE_MAX_TURNS\" --max-budget-usd \"$CLAUDE_MAX_BUDGET_USD\" --append-system-prompt \"\$(cat CLAUDE.md)\""
 
   run_or_dry "$output_file" "Claude read-only plan review" "$command_text" \
     claude \
     -p "$(cat "$(repo_path "$REVIEW_PROMPT")"; printf '\n\nPlan to review:\n'; cat "$plan_file")" \
     --permission-mode plan \
     --tools "Read,Grep,Glob" \
+    --max-turns "$CLAUDE_MAX_TURNS" \
+    --max-budget-usd "$CLAUDE_MAX_BUDGET_USD" \
     --append-system-prompt "$(cat "$(repo_path CLAUDE.md)")"
 }
 
@@ -339,7 +347,7 @@ Review prompt:
 
 2. Claude read-only plan review
 
-   claude -p "<review prompt + PLAN_FILE>" --permission-mode plan --tools "Read,Grep,Glob" --append-system-prompt "\$(cat CLAUDE.md)"
+   claude -p "<review prompt + PLAN_FILE>" --permission-mode plan --tools "Read,Grep,Glob" --max-turns "$CLAUDE_MAX_TURNS" --max-budget-usd "$CLAUDE_MAX_BUDGET_USD" --append-system-prompt "\$(cat CLAUDE.md)"
 
    Would read PLAN_FILE:
    $plan_file
