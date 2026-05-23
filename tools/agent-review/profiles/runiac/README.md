@@ -6,9 +6,10 @@ This profile contains the Runiac-specific prompts and example settings used by t
 
 - `agent-review.env.example` defines the default prompt and output artifact paths for Runiac.
 - `prompts/01_codex_create_plan.md` asks Codex to create an inspect-only plan.
-- `prompts/02_claude_review_plan.md` asks Claude to review that plan with read-only tools.
+- `prompts/02_claude_review_plan.md` asks Claude to review that plan with read-only tools in standard mode.
 - `prompts/03_codex_final_review_decision.md` asks Codex to accept, reject, or defer Claude feedback.
 - `prompts/04_codex_implement_approved_plan.md` is used only after explicit user approval for implementation.
+- `prompts/05_claude_review_plan_lite.md` asks Claude for a concise low-risk review in lite mode.
 
 ## Usage
 
@@ -28,3 +29,19 @@ tools/agent-review/runner/run_plan_review.sh pipeline
 ```
 
 `DRY_RUN=1` remains the default, so the smoke test prints the plan-review-decision command preview without invoking Codex or Claude.
+
+## Review Modes
+
+`REVIEW_MODE=standard` is the default and uses `prompts/02_claude_review_plan.md`.
+
+`REVIEW_MODE=lite` uses `prompts/05_claude_review_plan_lite.md` only when `REVIEW_PROMPT` is not explicitly set:
+
+```bash
+REVIEW_MODE=lite \
+TASK_PROMPT="Lite mode smoke test only. Do not modify files." \
+tools/agent-review/runner/run_plan_review.sh pipeline
+```
+
+If `REVIEW_PROMPT` is set in the environment or a config file, it takes precedence over `REVIEW_MODE`.
+
+Use standard mode instead of lite mode for changes touching XP, streak, level, rank, leaderboard, roles, entitlements, premium fairness, Firebase ownership, Cloud Functions ownership, security rules, or submitted PDD / PRD consistency.

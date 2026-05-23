@@ -59,13 +59,32 @@ resolve_profile_prompt() {
   printf '%s' "$prompt_path"
 }
 
+REVIEW_MODE="${REVIEW_MODE:-standard}"
+case "$REVIEW_MODE" in
+  standard|lite) ;;
+  *) die "unsupported REVIEW_MODE: $REVIEW_MODE (expected: standard or lite)" ;;
+esac
+
+if [ "${REVIEW_PROMPT+x}" = "x" ]; then
+  REVIEW_PROMPT_EXPLICIT=1
+else
+  REVIEW_PROMPT_EXPLICIT=0
+fi
+
 PLAN_PROMPT="${PLAN_PROMPT:-$AGENT_REVIEW_PROFILE_DIR/prompts/01_codex_create_plan.md}"
-REVIEW_PROMPT="${REVIEW_PROMPT:-$AGENT_REVIEW_PROFILE_DIR/prompts/02_claude_review_plan.md}"
+REVIEW_PROMPT_STANDARD="${REVIEW_PROMPT_STANDARD:-$AGENT_REVIEW_PROFILE_DIR/prompts/02_claude_review_plan.md}"
+REVIEW_PROMPT_LITE="${REVIEW_PROMPT_LITE:-$AGENT_REVIEW_PROFILE_DIR/prompts/05_claude_review_plan_lite.md}"
+if [ "$REVIEW_PROMPT_EXPLICIT" = "0" ]; then
+  case "$REVIEW_MODE" in
+    standard) REVIEW_PROMPT="$REVIEW_PROMPT_STANDARD" ;;
+    lite) REVIEW_PROMPT="$REVIEW_PROMPT_LITE" ;;
+  esac
+fi
 DECISION_PROMPT="${DECISION_PROMPT:-$AGENT_REVIEW_PROFILE_DIR/prompts/03_codex_final_review_decision.md}"
 IMPLEMENT_PROMPT="${IMPLEMENT_PROMPT:-$AGENT_REVIEW_PROFILE_DIR/prompts/04_codex_implement_approved_plan.md}"
 
 PLAN_PROMPT="$(resolve_profile_prompt "$PLAN_PROMPT" "01_codex_create_plan.md")"
-REVIEW_PROMPT="$(resolve_profile_prompt "$REVIEW_PROMPT" "02_claude_review_plan.md")"
+REVIEW_PROMPT="$(resolve_profile_prompt "$REVIEW_PROMPT" "${REVIEW_PROMPT##*/}")"
 DECISION_PROMPT="$(resolve_profile_prompt "$DECISION_PROMPT" "03_codex_final_review_decision.md")"
 IMPLEMENT_PROMPT="$(resolve_profile_prompt "$IMPLEMENT_PROMPT" "04_codex_implement_approved_plan.md")"
 
@@ -84,6 +103,8 @@ Environment:
   AGENT_REVIEW_PROFILE_DIR=PATH
                             Default: tools/agent-review/profiles/$AGENT_REVIEW_PROFILE.
   AGENT_REVIEW_CONFIG=PATH  Optional shell env file.
+  REVIEW_MODE=standard|lite Default: standard. Selects the Claude review prompt
+                            unless REVIEW_PROMPT is explicitly set.
   TASK_PROMPT=TEXT          Task prompt for plan/implement/pipeline subcommands.
   TASK_PROMPT_FILE=PATH     Task prompt file for plan/implement/pipeline when TASK_PROMPT is unset.
   PLAN_FILE=PATH            Existing plan file for review/decision/implement.
@@ -302,6 +323,12 @@ DRY_RUN=1, so Codex and Claude will not be invoked and no plan/review/decision
 artifacts will be written.
 
 Would run:
+
+Review mode:
+   $REVIEW_MODE
+
+Review prompt:
+   $REVIEW_PROMPT
 
 1. Codex inspect-only plan
 

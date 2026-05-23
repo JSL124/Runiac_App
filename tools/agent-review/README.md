@@ -27,6 +27,7 @@ tools/agent-review/
         02_claude_review_plan.md
         03_codex_final_review_decision.md
         04_codex_implement_approved_plan.md
+        05_claude_review_plan_lite.md
 ```
 
 - `runner/` contains generic shell helpers and subcommands. It should not include Runiac PRD/PDD/business rules.
@@ -82,6 +83,17 @@ The runner defaults to `AGENT_REVIEW_PROFILE=runiac`, which resolves prompts und
 ```text
 tools/agent-review/profiles/runiac/prompts/
 ```
+
+`REVIEW_MODE` controls which Claude review prompt is selected when `REVIEW_PROMPT` is not explicitly set:
+
+```bash
+REVIEW_MODE=standard # default; uses 02_claude_review_plan.md
+REVIEW_MODE=lite     # uses 05_claude_review_plan_lite.md
+```
+
+`REVIEW_PROMPT` remains an override. If it is set in the environment or a config file, the runner uses that prompt regardless of `REVIEW_MODE`.
+
+Use standard mode instead of lite mode for changes touching XP, streak, level, rank, leaderboard, roles, entitlements, premium fairness, Firebase ownership, Cloud Functions ownership, security rules, or submitted PDD / PRD consistency.
 
 You can select another profile by setting `AGENT_REVIEW_PROFILE` or by setting `AGENT_REVIEW_PROFILE_DIR` directly:
 
@@ -157,6 +169,8 @@ claude -p "$(cat tools/agent-review/profiles/runiac/prompts/02_claude_review_pla
 ```
 
 Do not allow Claude review mode to use Bash, Edit, Write, filesystem-modifying tools, `dangerously-skip-permissions`, `bypassPermissions`, `auto`, or `acceptEdits` modes.
+
+Do not use Claude `--bare` or `--append-system-prompt-file` for this runner.
 
 ## Future
 
