@@ -10,18 +10,64 @@ cd "$REPO_ROOT"
 source "$SCRIPT_DIR/lib/common.sh"
 
 DRY_RUN="${DRY_RUN:-1}"
+AGENT_REVIEW_PROFILE="${AGENT_REVIEW_PROFILE:-runiac}"
+AGENT_REVIEW_PROFILE_DIR="${AGENT_REVIEW_PROFILE_DIR:-tools/agent-review/profiles/$AGENT_REVIEW_PROFILE}"
 CONFIG_FILE="${AGENT_REVIEW_CONFIG:-}"
+DEFAULT_CONFIG_FILE="$AGENT_REVIEW_PROFILE_DIR/agent-review.env.example"
+LEGACY_CONFIG_FILE="tools/agent-review/config/$AGENT_REVIEW_PROFILE.agent-review.env.example"
+
+resolve_config_file() {
+  local config_file="$1"
+
+  if [ -f "$config_file" ]; then
+    printf '%s' "$config_file"
+    return
+  fi
+
+  if [ "$config_file" = "$LEGACY_CONFIG_FILE" ] && [ -f "$DEFAULT_CONFIG_FILE" ]; then
+    info "legacy config path moved; using: $DEFAULT_CONFIG_FILE"
+    printf '%s' "$DEFAULT_CONFIG_FILE"
+    return
+  fi
+
+  require_file "$config_file"
+}
 
 if [ -n "$CONFIG_FILE" ]; then
-  require_file "$CONFIG_FILE"
+  CONFIG_FILE="$(resolve_config_file "$CONFIG_FILE")"
   # shellcheck disable=SC1090
   source "$CONFIG_FILE"
 fi
 
-PLAN_PROMPT="${PLAN_PROMPT:-tools/agent-review/prompts/runiac/01_codex_create_plan.md}"
-REVIEW_PROMPT="${REVIEW_PROMPT:-tools/agent-review/prompts/runiac/02_claude_review_plan.md}"
-DECISION_PROMPT="${DECISION_PROMPT:-tools/agent-review/prompts/runiac/03_codex_final_review_decision.md}"
-IMPLEMENT_PROMPT="${IMPLEMENT_PROMPT:-tools/agent-review/prompts/runiac/04_codex_implement_approved_plan.md}"
+resolve_profile_prompt() {
+  local prompt_path="$1"
+  local prompt_file="$2"
+  local legacy_prompt_path="tools/agent-review/prompts/$AGENT_REVIEW_PROFILE/$prompt_file"
+  local profile_prompt_path="$AGENT_REVIEW_PROFILE_DIR/prompts/$prompt_file"
+
+  if [ -f "$prompt_path" ]; then
+    printf '%s' "$prompt_path"
+    return
+  fi
+
+  if [ "$prompt_path" = "$legacy_prompt_path" ] && [ -f "$profile_prompt_path" ]; then
+    info "legacy prompt path moved; using: $profile_prompt_path"
+    printf '%s' "$profile_prompt_path"
+    return
+  fi
+
+  printf '%s' "$prompt_path"
+}
+
+PLAN_PROMPT="${PLAN_PROMPT:-$AGENT_REVIEW_PROFILE_DIR/prompts/01_codex_create_plan.md}"
+REVIEW_PROMPT="${REVIEW_PROMPT:-$AGENT_REVIEW_PROFILE_DIR/prompts/02_claude_review_plan.md}"
+DECISION_PROMPT="${DECISION_PROMPT:-$AGENT_REVIEW_PROFILE_DIR/prompts/03_codex_final_review_decision.md}"
+IMPLEMENT_PROMPT="${IMPLEMENT_PROMPT:-$AGENT_REVIEW_PROFILE_DIR/prompts/04_codex_implement_approved_plan.md}"
+
+PLAN_PROMPT="$(resolve_profile_prompt "$PLAN_PROMPT" "01_codex_create_plan.md")"
+REVIEW_PROMPT="$(resolve_profile_prompt "$REVIEW_PROMPT" "02_claude_review_plan.md")"
+DECISION_PROMPT="$(resolve_profile_prompt "$DECISION_PROMPT" "03_codex_final_review_decision.md")"
+IMPLEMENT_PROMPT="$(resolve_profile_prompt "$IMPLEMENT_PROMPT" "04_codex_implement_approved_plan.md")"
 
 PLAN_DIR="${PLAN_DIR:-implementation/traceability/plans}"
 REVIEW_DIR="${REVIEW_DIR:-implementation/traceability/reviews}"
@@ -34,6 +80,9 @@ Usage: run_plan_review.sh <plan|review|decision|implement|pipeline>
 Environment:
   DRY_RUN=1                 Default. Write the command that would run.
   DRY_RUN=0                 Actually invoke Codex or Claude.
+  AGENT_REVIEW_PROFILE=NAME Default: runiac.
+  AGENT_REVIEW_PROFILE_DIR=PATH
+                            Default: tools/agent-review/profiles/$AGENT_REVIEW_PROFILE.
   AGENT_REVIEW_CONFIG=PATH  Optional shell env file.
   TASK_PROMPT=TEXT          Task prompt for plan/implement/pipeline subcommands.
   TASK_PROMPT_FILE=PATH     Task prompt file for plan/implement/pipeline when TASK_PROMPT is unset.
@@ -46,7 +95,10 @@ USAGE
 }
 
 repo_path() {
-  printf '%s/%s' "$REPO_ROOT" "$1"
+  case "$1" in
+    /*) printf '%s' "$1" ;;
+    *) printf '%s/%s' "$REPO_ROOT" "$1" ;;
+  esac
 }
 
 require_common_paths() {

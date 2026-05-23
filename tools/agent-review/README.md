@@ -1,6 +1,6 @@
 # Agent Review Workflow
 
-This folder defines a Runiac-local workflow for plan review before implementation:
+This folder defines a generic local runner plus project profiles for plan review before implementation. The current default profile is `runiac`.
 
 1. Codex creates an inspect-only plan.
 2. Claude Code reviews that plan in read-only plan-review mode.
@@ -9,6 +9,29 @@ This folder defines a Runiac-local workflow for plan review before implementatio
 5. The user performs `git add`, `git commit`, and push manually.
 
 The workflow is local to this repository for now. Do not create a separate repo, Git submodule, package, or GitHub Actions workflow yet.
+
+## Structure
+
+```text
+tools/agent-review/
+  runner/
+    run_plan_review.sh
+    lib/
+      common.sh
+  profiles/
+    runiac/
+      README.md
+      agent-review.env.example
+      prompts/
+        01_codex_create_plan.md
+        02_claude_review_plan.md
+        03_codex_final_review_decision.md
+        04_codex_implement_approved_plan.md
+```
+
+- `runner/` contains generic shell helpers and subcommands. It should not include Runiac PRD/PDD/business rules.
+- `profiles/<name>/` contains project-specific prompts and example settings.
+- `profiles/runiac/` contains the Runiac prompt set and artifact path defaults.
 
 ## Runner Usage
 
@@ -54,15 +77,57 @@ tools/agent-review/runner/run_plan_review.sh pipeline
 
 If both `TASK_PROMPT` and `TASK_PROMPT_FILE` are set, `TASK_PROMPT` is used and `TASK_PROMPT_FILE` is ignored.
 
+The runner defaults to `AGENT_REVIEW_PROFILE=runiac`, which resolves prompts under:
+
+```text
+tools/agent-review/profiles/runiac/prompts/
+```
+
+You can select another profile by setting `AGENT_REVIEW_PROFILE` or by setting `AGENT_REVIEW_PROFILE_DIR` directly:
+
+```bash
+AGENT_REVIEW_PROFILE=runiac \
+tools/agent-review/runner/run_plan_review.sh plan
+```
+
+Use `AGENT_REVIEW_CONFIG` only when you need to override prompt or artifact paths:
+
+```bash
+AGENT_REVIEW_CONFIG=tools/agent-review/profiles/runiac/agent-review.env.example \
+tools/agent-review/runner/run_plan_review.sh plan
+```
+
 On failure, `pipeline` stops at the failed step (`plan`, `review`, or `decision`) and does not continue. It never falls back from Claude to Codex review and never starts implementation.
 
 `pipeline` does not run implementation, `git add`, `git commit`, `git push`, tests, builds, deployment, Flutter, Firebase, or npm commands. Implementation remains a separate, user-approved step after inspecting the decision file.
 
-## Layers
+## Backward Compatibility
 
-- `runner/` contains generic shell helpers and subcommands. It should not include Runiac PRD/PDD/business rules.
-- `prompts/runiac/` contains Runiac-specific prompts for Codex and Claude.
-- `config/` contains project-specific example settings.
+Runiac prompts moved from:
+
+```text
+tools/agent-review/prompts/runiac/
+```
+
+to:
+
+```text
+tools/agent-review/profiles/runiac/prompts/
+```
+
+The Runiac env example moved from:
+
+```text
+tools/agent-review/config/runiac.agent-review.env.example
+```
+
+to:
+
+```text
+tools/agent-review/profiles/runiac/agent-review.env.example
+```
+
+If `AGENT_REVIEW_CONFIG` points to the old Runiac env example path and that file is no longer present, the runner falls back to the new profile env example. If an older local config still points prompt variables at the old `prompts/runiac/` files, the runner maps those prompt paths to the new profile prompt files when the old files are absent.
 
 ## Safety
 
@@ -85,7 +150,7 @@ The workflow forbids `danger-full-access` and forbids combining `workspace-write
 Claude plan review must use read-only tools:
 
 ```bash
-claude -p "$(cat tools/agent-review/prompts/runiac/02_claude_review_plan.md)" \
+claude -p "$(cat tools/agent-review/profiles/runiac/prompts/02_claude_review_plan.md)" \
   --permission-mode plan \
   --tools "Read,Grep,Glob" \
   --append-system-prompt "$(cat CLAUDE.md)"
