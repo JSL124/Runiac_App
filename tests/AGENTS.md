@@ -6,6 +6,8 @@
 - This folder currently contains QA/testing guidance only.
 - No production test suite currently exists in this folder unless added later intentionally; instruction-only files here are not production test suites or test evidence.
 - Test files or evidence should be added only when implementation or testing work is explicitly requested.
+- Root-level `tests/` is for cross-system tests, Firebase rules tests, Functions integration tests, e2e scenarios, shared fixtures, and future test harness orchestration.
+- Flutter unit, widget, and integration tests must live inside the future Flutter app root, not in root-level `tests/`.
 
 ## QA Responsibilities
 - Verify changed behaviour against mapped PRD/PDD requirements.
