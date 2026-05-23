@@ -40,8 +40,7 @@ Claude plan review must use read-only tools:
 claude --bare -p "$(cat tools/agent-review/prompts/runiac/02_claude_review_plan.md)" \
   --permission-mode plan \
   --tools "Read,Grep,Glob" \
-  --append-system-prompt-file CLAUDE.md \
-  --max-turns 10
+  --append-system-prompt "$(cat CLAUDE.md)"
 ```
 
 Do not allow Claude review mode to use Bash, Edit, Write, filesystem-modifying tools, `dangerously-skip-permissions`, `bypassPermissions`, `auto`, or `acceptEdits` modes.

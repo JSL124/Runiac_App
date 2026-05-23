@@ -72,8 +72,7 @@ require_agent_commands_for_actual_run() {
     check_help_flag_if_possible claude "--bare"
     check_help_flag_if_possible claude "--permission-mode"
     check_help_flag_if_possible claude "--tools"
-    check_help_flag_if_possible claude "--append-system-prompt-file"
-    check_help_flag_if_possible claude "--max-turns"
+    check_help_flag_if_possible claude "--append-system-prompt "
   fi
 }
 
@@ -124,15 +123,14 @@ cmd_review() {
 
   # Claude review is restricted to read-only tools and plan permission mode.
   local command_text
-  command_text="claude --bare -p \"\$(cat $REVIEW_PROMPT; printf '\\n\\nPlan to review:\\n'; cat '$plan_file')\" --permission-mode plan --tools \"Read,Grep,Glob\" --append-system-prompt-file CLAUDE.md --max-turns 10"
+  command_text="claude --bare -p \"\$(cat $REVIEW_PROMPT; printf '\\n\\nPlan to review:\\n'; cat '$plan_file')\" --permission-mode plan --tools \"Read,Grep,Glob\" --append-system-prompt \"\$(cat CLAUDE.md)\""
 
   run_or_dry "$output_file" "Claude read-only plan review" "$command_text" \
     claude --bare \
     -p "$(cat "$(repo_path "$REVIEW_PROMPT")"; printf '\n\nPlan to review:\n'; cat "$plan_file")" \
     --permission-mode plan \
     --tools "Read,Grep,Glob" \
-    --append-system-prompt-file "CLAUDE.md" \
-    --max-turns 10
+    --append-system-prompt "$(cat "$(repo_path CLAUDE.md)")"
 }
 
 cmd_decision() {
