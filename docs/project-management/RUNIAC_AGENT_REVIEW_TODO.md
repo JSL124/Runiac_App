@@ -24,13 +24,13 @@ Implementation remains user-approved only. The pipeline may prepare plans, revie
   - `tools/agent-review/profiles/runiac/context-policy.yml`
 - [x] `REVIEW_ENABLED` on/off policy documented
 - [x] `REVIEW_ENABLED` runner support implemented:
-  - `REVIEW_ENABLED=1` keeps existing Claude review behavior
-  - `REVIEW_ENABLED=0` skips external review with `SKIP_REASON`
+  - `REVIEW_ENABLED=1` runs Codex read-only review
+  - `REVIEW_ENABLED=0` skips review with `SKIP_REASON`
   - skipped-review artifact is created
   - Codex final decision still runs
 - [x] `REVIEW_ENABLED=0` actual smoke test passed:
   - Codex plan was created
-  - Claude review was skipped
+  - review was skipped
   - `_external_review_skipped.md` artifact was created
   - Codex decision completed
   - implementation was not run
@@ -54,15 +54,15 @@ Implementation remains user-approved only. The pipeline may prepare plans, revie
   - block-level high-risk dry-runs stop unless approved
   - `HIGH_RISK_APPROVED=1` requires non-empty `HIGH_RISK_REASON`
   - `REVIEW_ENABLED`, `REVIEW_MODE`, and `CONTEXT_PACKET_ENABLED` remain separate from high-risk approval
-- [x] `REVIEW_PROVIDER=gemini|claude|codex` implemented:
-  - Gemini is the default review provider
-  - Claude remains available with `REVIEW_PROVIDER=claude`
-  - Codex local fallback is available with `REVIEW_PROVIDER=codex`
-  - `REVIEW_ENABLED=0` skips provider review, ignores provider selection, and still requires `SKIP_REASON`
-- [x] Gemini provider timeout safeguard added:
-  - `GEMINI_TIMEOUT_SECONDS=120` default
-  - actual Gemini review requires `timeout` or Homebrew `gtimeout`
-  - Gemini timeout fails the review step and marks the review artifact incomplete
+- [x] External provider routing abandoned and simplified:
+  - Claude review repeatedly hit the local budget cap
+  - Gemini actual headless provider smoke tests repeatedly hung
+  - active workflow is now Codex-only for feasibility, reliability, and efficiency
+- [x] Codex-only review cleanup completed:
+  - `REVIEW_ENABLED=1` runs Codex read-only plan review
+  - `REVIEW_ENABLED=0` skipped-review behavior remains available with `SKIP_REASON`
+  - Gemini and Claude provider routing are no longer active in `run_plan_review.sh`
+  - implementation remains separate and requires explicit user approval
 
 ## Current Important Limits
 

@@ -74,15 +74,8 @@ case "$REVIEW_ENABLED" in
     ;;
 esac
 
-REVIEW_PROVIDER="${REVIEW_PROVIDER:-gemini}"
-if [ "$REVIEW_ENABLED" = "1" ]; then
-  case "$REVIEW_PROVIDER" in
-    gemini|claude|codex) ;;
-    *)
-      printf 'ERROR: REVIEW_PROVIDER must be gemini, claude, or codex when REVIEW_ENABLED=1. Got: "%s"\n' "$REVIEW_PROVIDER" >&2
-      exit 1
-      ;;
-  esac
+if [ -n "${REVIEW_PROVIDER:-}" ]; then
+  printf 'WARNING: REVIEW_PROVIDER is ignored. Codex-only review is active when REVIEW_ENABLED=1.\n' >&2
 fi
 
 CONTEXT_PACKET_ENABLED="${CONTEXT_PACKET_ENABLED:-0}"
@@ -112,31 +105,12 @@ case "$HIGH_RISK_APPROVED" in
     ;;
 esac
 
-if [ "${REVIEW_PROMPT+x}" = "x" ]; then
-  REVIEW_PROMPT_EXPLICIT=1
-else
-  REVIEW_PROMPT_EXPLICIT=0
-fi
-
 PLAN_PROMPT="${PLAN_PROMPT:-$AGENT_REVIEW_PROFILE_DIR/prompts/01_codex_create_plan.md}"
-CLAUDE_REVIEW_PROMPT_STANDARD="${REVIEW_PROMPT_STANDARD:-$AGENT_REVIEW_PROFILE_DIR/prompts/02_claude_review_plan.md}"
-CLAUDE_REVIEW_PROMPT_LITE="${REVIEW_PROMPT_LITE:-$AGENT_REVIEW_PROFILE_DIR/prompts/05_claude_review_plan_lite.md}"
-if [ "$REVIEW_PROMPT_EXPLICIT" = "0" ]; then
-  case "$REVIEW_MODE" in
-    standard) CLAUDE_REVIEW_PROMPT="$CLAUDE_REVIEW_PROMPT_STANDARD" ;;
-    lite) CLAUDE_REVIEW_PROMPT="$CLAUDE_REVIEW_PROMPT_LITE" ;;
-  esac
-else
-  CLAUDE_REVIEW_PROMPT="$REVIEW_PROMPT"
-fi
-GEMINI_REVIEW_PROMPT="${GEMINI_REVIEW_PROMPT:-$AGENT_REVIEW_PROFILE_DIR/prompts/06_gemini_review_plan.md}"
 CODEX_REVIEW_PROMPT="${CODEX_REVIEW_PROMPT:-$AGENT_REVIEW_PROFILE_DIR/prompts/07_codex_review_plan.md}"
 DECISION_PROMPT="${DECISION_PROMPT:-$AGENT_REVIEW_PROFILE_DIR/prompts/03_codex_final_review_decision.md}"
 IMPLEMENT_PROMPT="${IMPLEMENT_PROMPT:-$AGENT_REVIEW_PROFILE_DIR/prompts/04_codex_implement_approved_plan.md}"
 
 PLAN_PROMPT="$(resolve_profile_prompt "$PLAN_PROMPT" "01_codex_create_plan.md")"
-CLAUDE_REVIEW_PROMPT="$(resolve_profile_prompt "$CLAUDE_REVIEW_PROMPT" "${CLAUDE_REVIEW_PROMPT##*/}")"
-GEMINI_REVIEW_PROMPT="$(resolve_profile_prompt "$GEMINI_REVIEW_PROMPT" "06_gemini_review_plan.md")"
 CODEX_REVIEW_PROMPT="$(resolve_profile_prompt "$CODEX_REVIEW_PROMPT" "07_codex_review_plan.md")"
 DECISION_PROMPT="$(resolve_profile_prompt "$DECISION_PROMPT" "03_codex_final_review_decision.md")"
 IMPLEMENT_PROMPT="$(resolve_profile_prompt "$IMPLEMENT_PROMPT" "04_codex_implement_approved_plan.md")"
@@ -144,11 +118,6 @@ IMPLEMENT_PROMPT="$(resolve_profile_prompt "$IMPLEMENT_PROMPT" "04_codex_impleme
 PLAN_DIR="${PLAN_DIR:-implementation/traceability/plans}"
 REVIEW_DIR="${REVIEW_DIR:-implementation/traceability/reviews}"
 DECISION_DIR="${DECISION_DIR:-implementation/traceability/decisions}"
-CLAUDE_MAX_TURNS="${CLAUDE_MAX_TURNS:-12}"
-CLAUDE_MAX_BUDGET_USD="${CLAUDE_MAX_BUDGET_USD:-0.50}"
-GEMINI_APPROVAL_MODE="${GEMINI_APPROVAL_MODE:-plan}"
-GEMINI_OUTPUT_FORMAT="${GEMINI_OUTPUT_FORMAT:-text}"
-GEMINI_TIMEOUT_SECONDS="${GEMINI_TIMEOUT_SECONDS:-120}"
 CONTEXT_PACKET_MAX_BYTES=8000
 CONTEXT_PACKET_BUILDER="tools/agent-review/runner/build_context_packet.sh"
 HIGH_RISK_CLASSIFIER="tools/agent-review/runner/classify_high_risk_task.sh"
@@ -159,16 +128,13 @@ Usage: run_plan_review.sh <plan|review|decision|implement|pipeline>
 
 Environment:
   DRY_RUN=1                 Default. Write the command that would run.
-  DRY_RUN=0                 Actually invoke Codex, Gemini, or Claude.
+  DRY_RUN=0                 Actually invoke Codex.
   AGENT_REVIEW_PROFILE=NAME Default: runiac.
   AGENT_REVIEW_PROFILE_DIR=PATH
                             Default: tools/agent-review/profiles/$AGENT_REVIEW_PROFILE.
   AGENT_REVIEW_CONFIG=PATH  Optional shell env file.
-  REVIEW_ENABLED=1|0       Default: 1. When 0, skip provider review
+  REVIEW_ENABLED=1|0       Default: 1. When 0, skip Codex review
                             and create a skipped-review artifact instead.
-  REVIEW_PROVIDER=gemini|claude|codex
-                            Default: gemini when REVIEW_ENABLED=1. Ignored
-                            when REVIEW_ENABLED=0.
   SKIP_REASON=TEXT          Required when REVIEW_ENABLED=0.
   CONTEXT_PACKET_ENABLED=1|0
                             Default: 0. When 1, generate a context packet
@@ -178,16 +144,9 @@ Environment:
                             approved with HIGH_RISK_APPROVED and reason.
   HIGH_RISK_APPROVED=1|0    Default: 0. Explicit high-risk approval flag.
   HIGH_RISK_REASON=TEXT     Required when HIGH_RISK_APPROVED=1.
-  REVIEW_MODE=standard|lite Default: standard. Selects Claude review depth and
-                            is passed as context to Gemini/Codex provider prompts.
-                            REVIEW_MODE remains lite|standard and does not
-                            disable review.
-  CLAUDE_MAX_TURNS=N       Default: 12. Claude review step turn cap.
-  CLAUDE_MAX_BUDGET_USD=N  Default: 0.50. Claude review step budget cap.
-  GEMINI_APPROVAL_MODE=N   Default: plan. Gemini review approval mode.
-  GEMINI_OUTPUT_FORMAT=N   Default: text. Gemini review output format.
-  GEMINI_TIMEOUT_SECONDS=N Default: 120. Positive integer timeout for actual
-                            Gemini review runs.
+  REVIEW_MODE=standard|lite Default: standard. Passed as review-depth context
+                            to the Codex reviewer prompt. REVIEW_MODE does not
+                            switch providers or disable review.
   TASK_PROMPT=TEXT          Task prompt for plan/implement/pipeline subcommands.
   TASK_PROMPT_FILE=PATH     Task prompt file for plan/implement/pipeline when TASK_PROMPT is unset.
   PLAN_FILE=PATH            Existing plan file for review/decision/implement.
@@ -206,34 +165,7 @@ repo_path() {
 }
 
 selected_review_prompt() {
-  case "$REVIEW_PROVIDER" in
-    gemini) printf '%s' "$GEMINI_REVIEW_PROMPT" ;;
-    claude) printf '%s' "$CLAUDE_REVIEW_PROMPT" ;;
-    codex) printf '%s' "$CODEX_REVIEW_PROMPT" ;;
-    *) die "unsupported REVIEW_PROVIDER: $REVIEW_PROVIDER" ;;
-  esac
-}
-
-validate_gemini_timeout_seconds() {
-  case "$GEMINI_TIMEOUT_SECONDS" in
-    ''|0|0*|*[!0-9]*)
-      die "GEMINI_TIMEOUT_SECONDS must be a positive non-zero integer. Got: \"$GEMINI_TIMEOUT_SECONDS\""
-      ;;
-  esac
-}
-
-find_timeout_command() {
-  if command -v timeout >/dev/null 2>&1; then
-    printf 'timeout'
-    return 0
-  fi
-
-  if command -v gtimeout >/dev/null 2>&1; then
-    printf 'gtimeout'
-    return 0
-  fi
-
-  return 1
+  printf '%s' "$CODEX_REVIEW_PROMPT"
 }
 
 require_common_paths() {
@@ -251,8 +183,6 @@ require_common_paths() {
 
 require_agent_commands_for_actual_run() {
   local codex_needed="$1"
-  local claude_needed="$2"
-  local gemini_needed="${3:-0}"
 
   if [ "$DRY_RUN" = "0" ] && [ "$codex_needed" = "1" ]; then
     require_command codex
@@ -261,32 +191,6 @@ require_agent_commands_for_actual_run() {
     check_help_flag_if_possible codex "-C"
   fi
 
-  if [ "$DRY_RUN" = "0" ] && [ "$claude_needed" = "1" ]; then
-    require_command claude
-    check_help_flag_if_possible claude "--permission-mode"
-    check_help_flag_if_possible claude "--tools"
-    check_help_flag_if_possible claude "--append-system-prompt "
-  fi
-
-  if [ "$DRY_RUN" = "0" ] && [ "$gemini_needed" = "1" ]; then
-    if ! command -v gemini >/dev/null 2>&1; then
-      die "REVIEW_PROVIDER=gemini requires Gemini CLI. Install/authenticate Gemini CLI or use REVIEW_PROVIDER=claude, REVIEW_PROVIDER=codex, or REVIEW_ENABLED=0."
-    fi
-    validate_gemini_timeout_seconds
-    if ! find_timeout_command >/dev/null; then
-      die "REVIEW_PROVIDER=gemini requires timeout or gtimeout to avoid hung review runs. Install coreutils or use REVIEW_PROVIDER=claude, REVIEW_PROVIDER=codex, or REVIEW_ENABLED=0."
-    fi
-  fi
-}
-
-review_provider_command_needs() {
-  local provider="$1"
-  case "$provider" in
-    gemini) printf '0 0 1' ;;
-    claude) printf '0 1 0' ;;
-    codex) printf '1 0 0' ;;
-    *) die "unsupported REVIEW_PROVIDER: $provider" ;;
-  esac
 }
 
 resolve_task_prompt() {
@@ -416,12 +320,7 @@ new_plan_output_file() {
 }
 
 new_review_output_file() {
-  case "$REVIEW_PROVIDER" in
-    gemini) repo_path "$REVIEW_DIR/$(timestamp_utc)_gemini_review.md" ;;
-    claude) repo_path "$REVIEW_DIR/$(timestamp_utc)_claude_review.md" ;;
-    codex) repo_path "$REVIEW_DIR/$(timestamp_utc)_codex_review.md" ;;
-    *) die "unsupported REVIEW_PROVIDER: $REVIEW_PROVIDER" ;;
-  esac
+  repo_path "$REVIEW_DIR/$(timestamp_utc)_codex_review.md"
 }
 
 new_skipped_review_output_file() {
@@ -433,7 +332,7 @@ new_decision_output_file() {
 }
 
 warn_review_disabled() {
-  printf 'WARNING: External review is disabled. If this plan touches XP, streak, leaderboard, Firebase, security rules, production source, or PRD/PDD consistency, consider enabling review.\n' >&2
+  printf 'WARNING: Codex review is disabled. If this plan touches XP, streak, leaderboard, Firebase, security rules, production source, or PRD/PDD consistency, consider enabling review.\n' >&2
 }
 
 require_skip_reason() {
@@ -506,7 +405,7 @@ create_skipped_review_artifact() {
     printf '## Skip Justification\n\n'
     printf '%s\n\n' "$SKIP_REASON"
     printf '## Implications\n\n'
-    printf '%s\n' '- Provider review was not run.'
+    printf '%s\n' '- Codex review was not run.'
     printf '%s\n' '- This skipped review is not approval.'
     printf '%s\n' '- Implementation still requires explicit user approval.'
     printf '%s\n' '- Codex final decision must treat this as an unreviewed plan and apply elevated self-critique.'
@@ -547,88 +446,24 @@ run_plan_step() {
     "$(cat "$(repo_path "$PLAN_PROMPT")"; printf '\n\nTask:\n%s\n' "$task_prompt")"
 }
 
-run_gemini_review_step() {
-  local output_file="$1"
-  local plan_file="$2"
-  local gemini_input
-  local timeout_command
-  local exit_code
-
-  gemini_input="$(cat "$(repo_path "$GEMINI_REVIEW_PROMPT")"; printf '\n\nProvider metadata:\n'; printf -- '- REVIEW_PROVIDER: gemini\n'; printf -- '- REVIEW_MODE: %s\n' "$REVIEW_MODE"; printf -- '- PLAN_FILE: %s\n' "$plan_file"; printf '\n\nPlan to review:\n'; cat "$plan_file")"
-
-  # Gemini review is read-only by prompt and plan approval mode.
-  local command_text
-  command_text="<timeout|gtimeout> \"$GEMINI_TIMEOUT_SECONDS\" gemini --approval-mode \"$GEMINI_APPROVAL_MODE\" --output-format \"$GEMINI_OUTPUT_FORMAT\" -p \"\$(cat $GEMINI_REVIEW_PROMPT; printf '\\n\\nProvider metadata:\\n- REVIEW_PROVIDER: gemini\\n- REVIEW_MODE: $REVIEW_MODE\\n- PLAN_FILE: $plan_file\\n\\nPlan to review:\\n'; cat '$plan_file')\""
-
-  if [ "$DRY_RUN" != "0" ]; then
-    write_dry_run "$output_file" "Gemini read-only plan review" "$command_text"
-    return
-  fi
-
-  validate_gemini_timeout_seconds
-  timeout_command="$(find_timeout_command)" || die "REVIEW_PROVIDER=gemini requires timeout or gtimeout to avoid hung review runs. Install coreutils or use REVIEW_PROVIDER=claude, REVIEW_PROVIDER=codex, or REVIEW_ENABLED=0."
-
-  ensure_new_file "$output_file"
-  if "$timeout_command" "$GEMINI_TIMEOUT_SECONDS" gemini --approval-mode "$GEMINI_APPROVAL_MODE" --output-format "$GEMINI_OUTPUT_FORMAT" -p "$gemini_input" > "$output_file"; then
-    info "output written: $output_file"
-    return
-  fi
-
-  exit_code=$?
-  if [ "$exit_code" = "124" ]; then
-    {
-      printf '\n\n## Gemini Review Timeout\n\n'
-      printf 'ERROR: Gemini review timed out after %s seconds.\n' "$GEMINI_TIMEOUT_SECONDS"
-      printf 'The review is incomplete and must not be treated as successful.\n'
-    } >> "$output_file"
-    printf 'ERROR: Gemini review timed out after %s seconds. REVIEW_FILE is incomplete: %s\n' "$GEMINI_TIMEOUT_SECONDS" "$output_file" >&2
-  else
-    printf 'ERROR: Gemini review failed with exit code %s. REVIEW_FILE may be incomplete: %s\n' "$exit_code" "$output_file" >&2
-  fi
-  return "$exit_code"
-}
-
-run_claude_review_step() {
-  local output_file="$1"
-  local plan_file="$2"
-
-  # Claude review is restricted to read-only tools and plan permission mode.
-  local command_text
-  command_text="claude -p \"\$(cat $CLAUDE_REVIEW_PROMPT; printf '\\n\\nProvider metadata:\\n- REVIEW_PROVIDER: claude\\n- REVIEW_MODE: $REVIEW_MODE\\n- PLAN_FILE: $plan_file\\n\\nPlan to review:\\n'; cat '$plan_file')\" --permission-mode plan --tools \"Read,Grep,Glob\" --max-turns \"$CLAUDE_MAX_TURNS\" --max-budget-usd \"$CLAUDE_MAX_BUDGET_USD\" --append-system-prompt \"\$(cat CLAUDE.md)\""
-
-  run_or_dry "$output_file" "Claude read-only plan review" "$command_text" \
-    claude \
-    -p "$(cat "$(repo_path "$CLAUDE_REVIEW_PROMPT")"; printf '\n\nProvider metadata:\n'; printf -- '- REVIEW_PROVIDER: claude\n'; printf -- '- REVIEW_MODE: %s\n' "$REVIEW_MODE"; printf -- '- PLAN_FILE: %s\n' "$plan_file"; printf '\n\nPlan to review:\n'; cat "$plan_file")" \
-    --permission-mode plan \
-    --tools "Read,Grep,Glob" \
-    --max-turns "$CLAUDE_MAX_TURNS" \
-    --max-budget-usd "$CLAUDE_MAX_BUDGET_USD" \
-    --append-system-prompt "$(cat "$(repo_path CLAUDE.md)")"
-}
-
 run_codex_review_step() {
   local output_file="$1"
   local plan_file="$2"
 
-  # Codex fallback review is read-only and cannot request approvals.
+  # Codex review is read-only and cannot request approvals.
   local command_text
-  command_text="codex --sandbox read-only --ask-for-approval never -C . exec \"\$(cat $CODEX_REVIEW_PROMPT; printf '\\n\\nProvider metadata:\\n- REVIEW_PROVIDER: codex\\n- REVIEW_MODE: $REVIEW_MODE\\n- PLAN_FILE: $plan_file\\n\\nPlan to review:\\n'; cat '$plan_file')\""
+  command_text="codex --sandbox read-only --ask-for-approval never -C . exec \"\$(cat $CODEX_REVIEW_PROMPT; printf '\\n\\nReview metadata:\\n- REVIEW_MODE: $REVIEW_MODE\\n- PLAN_FILE: $plan_file\\n\\nPlan to review:\\n'; cat '$plan_file')\""
 
-  run_or_dry "$output_file" "Codex read-only fallback plan review" "$command_text" \
+  run_or_dry "$output_file" "Codex read-only plan review" "$command_text" \
     codex --sandbox read-only --ask-for-approval never -C "." exec \
-    "$(cat "$(repo_path "$CODEX_REVIEW_PROMPT")"; printf '\n\nProvider metadata:\n'; printf -- '- REVIEW_PROVIDER: codex\n'; printf -- '- REVIEW_MODE: %s\n' "$REVIEW_MODE"; printf -- '- PLAN_FILE: %s\n' "$plan_file"; printf '\n\nPlan to review:\n'; cat "$plan_file")"
+    "$(cat "$(repo_path "$CODEX_REVIEW_PROMPT")"; printf '\n\nReview metadata:\n'; printf -- '- REVIEW_MODE: %s\n' "$REVIEW_MODE"; printf -- '- PLAN_FILE: %s\n' "$plan_file"; printf '\n\nPlan to review:\n'; cat "$plan_file")"
 }
 
 run_review_step() {
   local output_file="$1"
   local plan_file="$2"
 
-  case "$REVIEW_PROVIDER" in
-    gemini) run_gemini_review_step "$output_file" "$plan_file" ;;
-    claude) run_claude_review_step "$output_file" "$plan_file" ;;
-    codex) run_codex_review_step "$output_file" "$plan_file" ;;
-    *) die "unsupported REVIEW_PROVIDER: $REVIEW_PROVIDER" ;;
-  esac
+  run_codex_review_step "$output_file" "$plan_file"
 }
 
 run_decision_step() {
@@ -647,7 +482,7 @@ run_decision_step() {
 
 cmd_plan() {
   require_common_paths
-  require_agent_commands_for_actual_run 1 0 0
+  require_agent_commands_for_actual_run 1
 
   local task_prompt
   local plan_task_prompt
@@ -673,11 +508,10 @@ cmd_review() {
       cat <<REVIEW_SKIP_DRY_RUN
 # Review Dry Run Preview
 
-DRY_RUN=1, so no provider will be invoked and no skipped-review artifact will be written.
+DRY_RUN=1, so Codex review will not be invoked and no skipped-review artifact will be written.
 
 REVIEW_ENABLED=0
-External review is skipped.
-REVIEW_PROVIDER is ignored when REVIEW_ENABLED=0.
+Codex review is skipped.
 SKIP_REASON=$SKIP_REASON
 
 Would read PLAN_FILE:
@@ -693,15 +527,13 @@ REVIEW_SKIP_DRY_RUN
     return
   fi
 
-  local codex_needed claude_needed gemini_needed
-  read -r codex_needed claude_needed gemini_needed <<<"$(review_provider_command_needs "$REVIEW_PROVIDER")"
-  require_agent_commands_for_actual_run "$codex_needed" "$claude_needed" "$gemini_needed"
+  require_agent_commands_for_actual_run 1
   run_review_step "$(new_review_output_file)" "$plan_file"
 }
 
 cmd_decision() {
   require_common_paths
-  require_agent_commands_for_actual_run 1 0 0
+  require_agent_commands_for_actual_run 1
 
   local plan_file="${PLAN_FILE:-}"
   local review_file="${REVIEW_FILE:-}"
@@ -715,7 +547,7 @@ cmd_decision() {
 
 cmd_implement() {
   require_common_paths
-  require_agent_commands_for_actual_run 1 0 0
+  require_agent_commands_for_actual_run 1
 
   local plan_file="${PLAN_FILE:-}"
   [ -n "$plan_file" ] || die "PLAN_FILE is required for implement"
@@ -757,16 +589,13 @@ print_pipeline_dry_run() {
   cat <<PIPELINE_DRY_RUN
 # Pipeline Dry Run Preview
 
-DRY_RUN=1, so Codex and review provider commands will not be invoked and no
+DRY_RUN=1, so Codex commands will not be invoked and no
 plan/review/decision artifacts will be written.
 
 Would run:
 
 Review enabled:
    $REVIEW_ENABLED
-
-Review provider:
-   $([ "$REVIEW_ENABLED" = "1" ] && printf '%s' "$REVIEW_PROVIDER" || printf 'ignored because REVIEW_ENABLED=0')
 
 Review mode:
    $REVIEW_MODE
@@ -808,37 +637,11 @@ PIPELINE_DRY_RUN
 
 PIPELINE_DRY_RUN
 
-  if [ "$REVIEW_ENABLED" = "1" ] && [ "$REVIEW_PROVIDER" = "gemini" ]; then
+  if [ "$REVIEW_ENABLED" = "1" ]; then
     cat <<PIPELINE_DRY_RUN
-2. Gemini read-only plan review
+2. Codex read-only plan review
 
-   <timeout|gtimeout> "$GEMINI_TIMEOUT_SECONDS" gemini --approval-mode "$GEMINI_APPROVAL_MODE" --output-format "$GEMINI_OUTPUT_FORMAT" -p "<Gemini review prompt + provider metadata + PLAN_FILE content>"
-
-   Would read PLAN_FILE:
-   $plan_file
-
-   Would write REVIEW_FILE:
-   $review_file
-
-PIPELINE_DRY_RUN
-  elif [ "$REVIEW_ENABLED" = "1" ] && [ "$REVIEW_PROVIDER" = "claude" ]; then
-    cat <<PIPELINE_DRY_RUN
-2. Claude read-only plan review
-
-   claude -p "<Claude review prompt + provider metadata + PLAN_FILE content>" --permission-mode plan --tools "Read,Grep,Glob" --max-turns "$CLAUDE_MAX_TURNS" --max-budget-usd "$CLAUDE_MAX_BUDGET_USD" --append-system-prompt "\$(cat CLAUDE.md)"
-
-   Would read PLAN_FILE:
-   $plan_file
-
-   Would write REVIEW_FILE:
-   $review_file
-
-PIPELINE_DRY_RUN
-  elif [ "$REVIEW_ENABLED" = "1" ] && [ "$REVIEW_PROVIDER" = "codex" ]; then
-    cat <<PIPELINE_DRY_RUN
-2. Codex read-only fallback plan review
-
-   codex --sandbox read-only --ask-for-approval never -C . exec "<Codex reviewer prompt + provider metadata + PLAN_FILE content>"
+   codex --sandbox read-only --ask-for-approval never -C . exec "<Codex reviewer prompt + review metadata + PLAN_FILE content>"
 
    Would read PLAN_FILE:
    $plan_file
@@ -849,10 +652,9 @@ PIPELINE_DRY_RUN
 PIPELINE_DRY_RUN
   else
     cat <<PIPELINE_DRY_RUN
-2. External review skipped
+2. Codex review skipped
 
-   External review is skipped because REVIEW_ENABLED=0.
-   REVIEW_PROVIDER is ignored.
+   Codex review is skipped because REVIEW_ENABLED=0.
    SKIP_REASON:
    $SKIP_REASON
 
@@ -954,13 +756,7 @@ cmd_pipeline() {
     return
   fi
 
-  local provider_codex_needed=0
-  local provider_claude_needed=0
-  local provider_gemini_needed=0
-  if [ "$REVIEW_ENABLED" = "1" ]; then
-    read -r provider_codex_needed provider_claude_needed provider_gemini_needed <<<"$(review_provider_command_needs "$REVIEW_PROVIDER")"
-  fi
-  require_agent_commands_for_actual_run 1 "$provider_claude_needed" "$provider_gemini_needed"
+  require_agent_commands_for_actual_run 1
 
   if ! run_plan_step "$plan_file" "$plan_task_prompt"; then
     pipeline_failed "plan" "$plan_file" || true

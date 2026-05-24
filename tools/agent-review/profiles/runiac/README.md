@@ -7,14 +7,14 @@ This profile contains the Runiac-specific prompts and example settings used by t
 - `agent-review.env.example` defines the default prompt and output artifact paths for Runiac.
 - `context-policy.yml` documents schema-only Runiac context selection policy for future integration.
 - `prompts/01_codex_create_plan.md` asks Codex to create an inspect-only plan.
-- `prompts/02_claude_review_plan.md` asks Claude to review that plan with read-only tools in standard mode.
-- `prompts/03_codex_final_review_decision.md` asks Codex to accept, reject, or defer provider feedback.
+- `prompts/02_claude_review_plan.md` is a legacy Claude review prompt retained for reference.
+- `prompts/03_codex_final_review_decision.md` asks Codex to accept, reject, or defer review feedback.
 - `prompts/04_codex_implement_approved_plan.md` is used only after explicit user approval for implementation.
-- `prompts/05_claude_review_plan_lite.md` asks Claude for a concise low-risk review in lite mode.
-- `prompts/06_gemini_review_plan.md` asks Gemini to review the plan as the default read-only provider.
-- `prompts/07_codex_review_plan.md` asks Codex to review the plan as a local fallback provider.
+- `prompts/05_claude_review_plan_lite.md` is a legacy Claude lite prompt retained for reference.
+- `prompts/06_gemini_review_plan.md` is a legacy Gemini prompt retained for reference if present.
+- `prompts/07_codex_review_plan.md` asks Codex to review the plan in read-only mode.
 
-Plans created by `prompts/01_codex_create_plan.md` must include a `Review Scope` section. The scope lists expected changed files, likely review reads, out-of-scope files, risk tags, and a recommended review mode so the selected reviewer can review efficiently. Standard review should use that scope first and return `DEFER` or an equivalent needs-more-scope result with requested additional paths instead of scanning broadly when the scope is insufficient.
+Plans created by `prompts/01_codex_create_plan.md` must include a `Review Scope` section. The scope lists expected changed files, likely review reads, out-of-scope files, risk tags, and a recommended review mode so Codex can review efficiently. Standard review should use that scope first and return `DEFER` or an equivalent needs-more-scope result with requested additional paths instead of scanning broadly when the scope is insufficient.
 
 Review mode controls review depth, not context breadth. Context breadth is controlled by Context Class, Plan Scope, Review Scope, and explicit Allow paths. Lite review is low-risk and plan-first; standard review is deeper within the approved scope.
 
@@ -36,15 +36,15 @@ Schema validation must cover required top-level keys, `schema_version`, context 
 
 The context packet builder is the only component that should read this policy.
 
-Review provider and on/off behavior is documented in the top-level README. For Runiac, `REVIEW_PROVIDER=gemini` is the default provider, `REVIEW_PROVIDER=claude` keeps Claude available explicitly, and `REVIEW_PROVIDER=codex` uses local Codex fallback review. `REVIEW_ENABLED=0` is an explicit skip, ignores `REVIEW_PROVIDER`, is not approval, and should not be used for high-risk areas such as XP, leaderboard, roles, entitlements, Firebase/Cloud Functions ownership, security rules, production source code, or PRD/PDD consistency.
+Review on/off behavior is documented in the top-level README. For Runiac, `REVIEW_ENABLED=1` runs Codex read-only plan review. `REVIEW_ENABLED=0` skips Codex review, requires `SKIP_REASON`, is not approval, and should not be used for high-risk areas such as XP, leaderboard, roles, entitlements, Firebase/Cloud Functions ownership, security rules, production source code, or PRD/PDD consistency.
 
 High-risk guard behavior and `HIGH_RISK_*` controls are documented in the top-level README. For Runiac, guard approval is separate from `REVIEW_ENABLED`, `REVIEW_MODE`, and `CONTEXT_PACKET_ENABLED`.
 
-Skipped-review artifacts must include `Status: SKIPPED`, the `SKIP_REASON`, and implications stating that provider review was not run, the skip is not approval, implementation still requires explicit user approval, and Codex final decision must apply elevated self-critique.
+Skipped-review artifacts must include `Status: SKIPPED`, the `SKIP_REASON`, and implications stating that Codex review was not run, the skip is not approval, implementation still requires explicit user approval, and Codex final decision must apply elevated self-critique.
 
 ## Context Selection
 
-Runiac uses the generic progressive context selection protocol: cheap inventory, user-declared or conservative context class, `Plan Scope`, inspect-only plan, `Review Scope`, scope-limited provider review, and final Codex decision.
+Runiac uses the generic progressive context selection protocol: cheap inventory, user-declared or conservative context class, `Plan Scope`, inspect-only plan, `Review Scope`, scope-limited Codex review, and final Codex decision.
 
 Supported context classes are `workflow`, `docs`, `implementation_prep`, `feature`, `security`, `architecture`, and `unknown`. Prefer a user-declared class. If Codex infers the class, it must explain why in 1-2 sentences. `unknown` must stop with clarification/escalation instead of broad scanning.
 
@@ -90,43 +90,26 @@ TASK_PROMPT="Profile migration smoke test only. Do not modify files." \
 tools/agent-review/runner/run_plan_review.sh pipeline
 ```
 
-`DRY_RUN=1` remains the default, so the smoke test prints the plan-review-decision command preview without invoking Codex, Gemini, or Claude.
+`DRY_RUN=1` remains the default, so the smoke test prints the plan-review-decision command preview without invoking Codex.
 
-## Review Providers
+## Codex Review
 
-`REVIEW_PROVIDER=gemini` is the default when `REVIEW_ENABLED=1`:
+`REVIEW_ENABLED=1` runs Codex read-only plan review:
 
 ```bash
-REVIEW_PROVIDER=gemini \
-TASK_PROMPT="Gemini provider dry-run only. Do not modify files." \
+TASK_PROMPT="Codex review dry-run only. Do not modify files." \
 tools/agent-review/runner/run_plan_review.sh pipeline
 ```
 
-`REVIEW_PROVIDER=claude` keeps the existing Claude reviewer available:
+`REVIEW_ENABLED=0` skips Codex review, requires `SKIP_REASON`, and is not approval. Implementation still requires a separate explicit user-approved step.
 
-```bash
-REVIEW_PROVIDER=claude \
-TASK_PROMPT="Claude provider dry-run only. Do not modify files." \
-tools/agent-review/runner/run_plan_review.sh pipeline
-```
-
-`REVIEW_PROVIDER=codex` uses local Codex fallback review:
-
-```bash
-REVIEW_PROVIDER=codex \
-TASK_PROMPT="Codex fallback provider dry-run only. Do not modify files." \
-tools/agent-review/runner/run_plan_review.sh pipeline
-```
-
-`REVIEW_ENABLED=0` skips provider review, ignores `REVIEW_PROVIDER`, requires `SKIP_REASON`, and is not approval. `REVIEW_PROVIDER` is not approval, and implementation still requires a separate explicit user-approved step.
-
-Actual `REVIEW_PROVIDER=gemini` runs require the Gemini CLI plus `timeout` or Homebrew `gtimeout` to prevent hung review runs. `GEMINI_TIMEOUT_SECONDS=120` is the default and must be a positive non-zero integer. If Gemini times out, the review step fails and the review artifact is marked incomplete.
+`REVIEW_PROVIDER`, Gemini settings, and Claude settings are not active runner controls. If `REVIEW_PROVIDER` is present in an older shell or config, the runner warns and ignores it.
 
 ## Review Modes
 
-`REVIEW_MODE=standard` is the default. For `REVIEW_PROVIDER=claude`, it uses `prompts/02_claude_review_plan.md`.
+`REVIEW_MODE=standard` is the default. It is passed as review-depth context to `prompts/07_codex_review_plan.md`.
 
-`REVIEW_MODE=lite` uses `prompts/05_claude_review_plan_lite.md` only when `REVIEW_PROVIDER=claude` and `REVIEW_PROMPT` is not explicitly set:
+`REVIEW_MODE=lite` asks the same Codex reviewer prompt for a lighter review:
 
 ```bash
 REVIEW_MODE=lite \
@@ -134,21 +117,6 @@ TASK_PROMPT="Lite mode smoke test only. Do not modify files." \
 tools/agent-review/runner/run_plan_review.sh pipeline
 ```
 
-If `REVIEW_PROMPT` is set in the environment or a config file, it takes precedence over `REVIEW_MODE` for Claude review. Gemini and Codex fallback receive `REVIEW_MODE` as provider metadata.
-
 Use standard mode instead of lite mode for changes touching XP, streak, level, rank, leaderboard, roles, entitlements, premium fairness, Firebase ownership, Cloud Functions ownership, security rules, or submitted PDD / PRD consistency.
 
 Lite review reads the Codex plan first, prefers judging from plan content only, and reads project files only when needed to identify a `MUST_FIX` issue. For workflow smoke tests, lite review should read at most 2-3 representative files besides the plan and must return `DEFER` with standard mode recommended when broader validation is needed.
-
-## Claude Review Cost Caps
-
-The runner applies these caps only to the Claude review step:
-
-```bash
-CLAUDE_MAX_TURNS=12
-CLAUDE_MAX_BUDGET_USD=0.50
-```
-
-`CLAUDE_MAX_TURNS` limits review turns. `CLAUDE_MAX_BUDGET_USD` limits review spend in US dollars. Low caps may cause Claude review to stop early before completing the requested scope.
-
-Do not rely only on `claude --help` output to verify these flags; check local compatibility with a minimal print-mode Claude command before enabling actual runs.
