@@ -1,6 +1,6 @@
 ---
 name: runiac-review-flow
-description: Use when working in the Runiac repository to run, plan, review, smoke-test, or explain the local agent-review workflow safely, including context packets, Claude review, Codex final decisions, high-risk guard checks, and traceability artifact handling.
+description: Use when working in the Runiac repository to run, plan, review, smoke-test, or explain the local agent-review workflow safely, including context packets, Gemini/Claude/Codex review providers, Codex final decisions, high-risk guard checks, and traceability artifact handling.
 ---
 
 # Runiac Review Flow Skill
@@ -52,12 +52,17 @@ If the working tree is dirty, stop and ask the user how to proceed. Do not stage
 
 ## Review Controls
 
-- `REVIEW_ENABLED=1` runs Claude review.
-- `REVIEW_ENABLED=0` skips Claude review only, requires `SKIP_REASON`, is not approval, and still requires Codex final decision.
+- `REVIEW_ENABLED=1` runs the selected review provider.
+- `REVIEW_ENABLED=0` skips provider review, ignores `REVIEW_PROVIDER`, requires `SKIP_REASON`, is not approval, and still requires Codex final decision.
+- `REVIEW_PROVIDER=gemini` is the default review provider.
+- `REVIEW_PROVIDER=claude` keeps Claude review available when explicitly selected.
+- `REVIEW_PROVIDER=codex` uses local Codex fallback review.
+- Actual Gemini review requires Gemini CLI plus `timeout` or Homebrew `gtimeout` to prevent hung review runs.
+- `GEMINI_TIMEOUT_SECONDS=120` is the default and must be a positive non-zero integer.
 - `HIGH_RISK_GUARD_ENABLED=1` is the default.
 - `HIGH_RISK_APPROVED=0` is the default.
 - `HIGH_RISK_REASON` is required when `HIGH_RISK_APPROVED=1`.
-- `REVIEW_ENABLED`, `REVIEW_MODE`, and `CONTEXT_PACKET_ENABLED` are not high-risk approval.
+- `REVIEW_ENABLED`, `REVIEW_PROVIDER`, `REVIEW_MODE`, and `CONTEXT_PACKET_ENABLED` are not high-risk approval.
 - Codex must not add `HIGH_RISK_APPROVED=1` unless the user explicitly instructs it.
 - Implementation must not run unless the user explicitly approves it.
 
@@ -82,13 +87,25 @@ Context packet dry-run:
 DRY_RUN=1 CONTEXT_PACKET_ENABLED=1 CONTEXT_CLASS=workflow TASK_PROMPT="Context packet dry-run only. Do not modify files." tools/agent-review/runner/run_plan_review.sh pipeline
 ```
 
-Actual review pipeline with Claude review:
+Actual review pipeline with default Gemini review:
 
 ```bash
 DRY_RUN=0 CONTEXT_PACKET_ENABLED=1 CONTEXT_CLASS=workflow REVIEW_ENABLED=1 REVIEW_MODE=standard TASK_PROMPT="Describe the approved review task here." tools/agent-review/runner/run_plan_review.sh pipeline
 ```
 
-Smoke test with skipped Claude review:
+Actual review pipeline with explicit Claude review:
+
+```bash
+DRY_RUN=0 CONTEXT_PACKET_ENABLED=1 CONTEXT_CLASS=workflow REVIEW_ENABLED=1 REVIEW_PROVIDER=claude REVIEW_MODE=standard TASK_PROMPT="Describe the approved review task here." tools/agent-review/runner/run_plan_review.sh pipeline
+```
+
+Dry-run pipeline with local Codex fallback review:
+
+```bash
+DRY_RUN=1 CONTEXT_PACKET_ENABLED=1 CONTEXT_CLASS=workflow REVIEW_ENABLED=1 REVIEW_PROVIDER=codex REVIEW_MODE=lite TASK_PROMPT="Describe the workflow task here." tools/agent-review/runner/run_plan_review.sh pipeline
+```
+
+Smoke test with skipped provider review:
 
 ```bash
 DRY_RUN=0 CONTEXT_PACKET_ENABLED=1 CONTEXT_CLASS=workflow REVIEW_ENABLED=0 SKIP_REASON="workflow smoke test" REVIEW_MODE=lite TASK_PROMPT="Smoke test only. Do not modify files." tools/agent-review/runner/run_plan_review.sh pipeline

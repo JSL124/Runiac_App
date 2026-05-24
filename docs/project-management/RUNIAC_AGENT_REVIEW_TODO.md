@@ -54,6 +54,15 @@ Implementation remains user-approved only. The pipeline may prepare plans, revie
   - block-level high-risk dry-runs stop unless approved
   - `HIGH_RISK_APPROVED=1` requires non-empty `HIGH_RISK_REASON`
   - `REVIEW_ENABLED`, `REVIEW_MODE`, and `CONTEXT_PACKET_ENABLED` remain separate from high-risk approval
+- [x] `REVIEW_PROVIDER=gemini|claude|codex` implemented:
+  - Gemini is the default review provider
+  - Claude remains available with `REVIEW_PROVIDER=claude`
+  - Codex local fallback is available with `REVIEW_PROVIDER=codex`
+  - `REVIEW_ENABLED=0` skips provider review, ignores provider selection, and still requires `SKIP_REASON`
+- [x] Gemini provider timeout safeguard added:
+  - `GEMINI_TIMEOUT_SECONDS=120` default
+  - actual Gemini review requires `timeout` or Homebrew `gtimeout`
+  - Gemini timeout fails the review step and marks the review artifact incomplete
 
 ## Current Important Limits
 
@@ -77,9 +86,7 @@ Implementation remains user-approved only. The pipeline may prepare plans, revie
 
 ## Later Efficiency Work
 
-- [ ] Defer `REVIEW_PROVIDER=codex`
 - [ ] Defer `DECISION_POLICY=if-needed`
-- [ ] Defer Codex fallback reviewer
 
 ## Phase 1 Runiac Implementation Preparation
 

@@ -3,8 +3,8 @@
 This folder defines a generic local runner plus project profiles for plan review before implementation. The current default profile is `runiac`.
 
 1. Codex creates an inspect-only plan.
-2. Claude Code reviews that plan in read-only plan-review mode.
-3. Codex performs final review, accepts/rejects/deferred Claude feedback, and produces the final plan.
+2. The selected review provider reviews that plan in read-only plan-review mode. Gemini is the default provider; Claude and Codex fallback review remain available.
+3. Codex performs final review, accepts/rejects/defers reviewer feedback, and produces the final plan.
 4. Codex implements only after explicit user approval.
 5. The user performs `git add`, `git commit`, and push manually.
 
@@ -34,6 +34,8 @@ tools/agent-review/
         03_codex_final_review_decision.md
         04_codex_implement_approved_plan.md
         05_claude_review_plan_lite.md
+        06_gemini_review_plan.md
+        07_codex_review_plan.md
 ```
 
 - `runner/` contains generic shell helpers and subcommands. It should not include Runiac PRD/PDD/business rules.
@@ -58,7 +60,7 @@ The `pipeline` subcommand is a conservative convenience wrapper for only:
 plan -> review -> decision
 ```
 
-It runs Codex inspect-only planning, Claude read-only plan review, and Codex final decision, then prints the generated `PLAN_FILE`, `REVIEW_FILE`, `DECISION_FILE`, `git status --short`, and reminders that implementation was not run.
+It runs Codex inspect-only planning, selected provider read-only plan review, and Codex final decision, then prints the generated `PLAN_FILE`, `REVIEW_FILE`, `DECISION_FILE`, `git status --short`, and reminders that implementation was not run.
 
 Dry-run preview:
 
@@ -91,7 +93,7 @@ The runner defaults to `AGENT_REVIEW_PROFILE=runiac`, which resolves prompts und
 tools/agent-review/profiles/runiac/prompts/
 ```
 
-Codex plans must include a `Review Scope` section. This gives Claude a focused list of expected changes, files worth reading, out-of-scope paths, risk tags, and the recommended review mode so review does not require unnecessary repository scanning. Standard review is still risk-aware, but it should stay inside the Review Scope and return `DEFER` with requested additional paths when the scope is not enough.
+Codex plans must include a `Review Scope` section. This gives the selected reviewer a focused list of expected changes, files worth reading, out-of-scope paths, risk tags, and the recommended review mode so review does not require unnecessary repository scanning. Standard review is still risk-aware, but it should stay inside the Review Scope and return `DEFER` or an equivalent needs-more-scope result when the scope is not enough.
 
 Review mode controls review depth, not context breadth. Context breadth is controlled by Context Class, Plan Scope, Review Scope, and explicit Allow paths. Lite review is low-risk and plan-first; standard review is deeper within the approved scope, but it should not broaden context on its own.
 
@@ -138,7 +140,7 @@ Inputs:
 - `REVIEW_ENABLED`, optional, default `1`.
 - `REVIEW_MODE`, optional, default from context policy class metadata when available; otherwise `standard`.
 
-The script reads only `tools/agent-review/profiles/<PROFILE>/context-policy.yml` content plus shell metadata from `git status --short` and limited `git ls-files`. It does not read PRD/PDD/PDF/image/source file contents, does not write files by default, and does not run Codex, Claude, Flutter, Firebase, npm, tests, builds, deployment, `git add`, `git commit`, or `git push`.
+The script reads only `tools/agent-review/profiles/<PROFILE>/context-policy.yml` content plus shell metadata from `git status --short` and limited `git ls-files`. It does not read PRD/PDD/PDF/image/source file contents, does not write files by default, and does not run Codex, Gemini, Claude, Flutter, Firebase, npm, tests, builds, deployment, `git add`, `git commit`, or `git push`.
 
 The script validates the policy in two steps:
 
@@ -339,27 +341,57 @@ Future smoke tests:
 - F3b: `CONTEXT_PACKET_ENABLED=1` + `REVIEW_ENABLED=0` + `DRY_RUN=0` actual smoke test.
 - F4: missing context class failure test.
 
-## External Review On/Off Policy
+## Review Provider and On/Off Policy
 
-The runner supports `REVIEW_ENABLED` for explicitly running or skipping the external Claude review step. There is no `REVIEW_PROVIDER=none`, there is no `REVIEW_MODE=off`, and implementation is not auto-run from this policy.
+The runner supports `REVIEW_ENABLED` for explicitly running or skipping the review stage. When review is enabled, `REVIEW_PROVIDER` selects the reviewer. There is no `REVIEW_PROVIDER=none`, there is no `REVIEW_MODE=off`, and implementation is not auto-run from this policy.
 
-`REVIEW_ENABLED` controls whether an external review step runs. `REVIEW_MODE` controls review depth only when external review is enabled. `REVIEW_MODE` remains `lite|standard`; do not use `REVIEW_MODE=off`.
+`REVIEW_ENABLED` controls whether a review step runs. `REVIEW_PROVIDER` controls which provider runs only when review is enabled. `REVIEW_MODE` controls review depth only when review is enabled. `REVIEW_MODE` remains `lite|standard`; do not use `REVIEW_MODE=off`.
 
 Defaults:
 
 - For `pipeline`, `REVIEW_ENABLED=1` by default.
+- `REVIEW_PROVIDER=gemini` is the default provider.
 - `REVIEW_MODE=standard` remains the default depth when review is enabled.
 - Low-risk workflow/documentation tasks may use `REVIEW_ENABLED=0`.
 - High-risk tasks should keep review enabled.
 
 Behavior:
 
-- `REVIEW_ENABLED=1` runs the existing Claude review step.
-- `REVIEW_ENABLED=0` explicitly skips the external Claude review step.
+- `REVIEW_ENABLED=1 REVIEW_PROVIDER=gemini` runs Gemini review by default.
+- `REVIEW_ENABLED=1 REVIEW_PROVIDER=claude` runs the existing Claude review step.
+- `REVIEW_ENABLED=1 REVIEW_PROVIDER=codex` runs a local Codex fallback review step.
+- `REVIEW_ENABLED=0` explicitly skips provider review, ignores `REVIEW_PROVIDER`, and requires `SKIP_REASON`.
 - Supported values are only `1` and `0`; any other value fails before agent commands run.
+- Supported provider values are `gemini`, `claude`, and `codex` when `REVIEW_ENABLED=1`; invalid values fail before provider commands run.
 - Skipping review must never be silent.
 - Skipping review must never be treated as approval.
 - Skipping review must never auto-run implementation.
+- Provider choice must never be treated as approval.
+
+Provider artifacts:
+
+- Gemini writes `<timestamp>_gemini_review.md`.
+- Claude writes `<timestamp>_claude_review.md`.
+- Codex fallback writes `<timestamp>_codex_review.md`.
+- Skipped review writes `<timestamp>_external_review_skipped.md`.
+
+Gemini controls:
+
+- `GEMINI_APPROVAL_MODE=plan` by default.
+- `GEMINI_OUTPUT_FORMAT=text` by default.
+- `GEMINI_TIMEOUT_SECONDS=120` by default.
+- `GEMINI_REVIEW_PROMPT` defaults to `tools/agent-review/profiles/runiac/prompts/06_gemini_review_plan.md` in the Runiac profile.
+- Do not set a default `GEMINI_MODEL` until that behavior is locally tested.
+
+Gemini failure behavior:
+
+- Actual `REVIEW_PROVIDER=gemini` runs require the Gemini CLI.
+- Actual `REVIEW_PROVIDER=gemini` runs require `timeout` or Homebrew `gtimeout` so hung reviews fail instead of blocking the pipeline.
+- `GEMINI_TIMEOUT_SECONDS` must be a positive non-zero integer.
+- If Gemini CLI is missing, the runner fails clearly and suggests `REVIEW_PROVIDER=claude`, `REVIEW_PROVIDER=codex`, or `REVIEW_ENABLED=0`.
+- If `timeout`/`gtimeout` is missing, the runner fails clearly and suggests installing coreutils or selecting Claude, Codex, or skipped review.
+- If Gemini times out, the review step fails and the review artifact is marked incomplete.
+- The runner passes the full `PLAN_FILE` content into the Gemini prompt.
 
 Skip review justification:
 
@@ -373,7 +405,7 @@ Skipped-review artifact specification:
 - Location: `implementation/traceability/reviews/`
 - Filename: `<timestamp>_external_review_skipped.md`
 - The artifact must be created before Codex final decision so the decision phase can reference it.
-- For `REVIEW_ENABLED=0`, the skipped-review artifact path is assigned to `REVIEW_FILE`, using the same decision-phase passing convention as completed Claude reviews.
+- For `REVIEW_ENABLED=0`, the skipped-review artifact path is assigned to `REVIEW_FILE`, using the same decision-phase passing convention as completed provider reviews.
 - Required sections:
   - `External Review Status`
   - `Status: SKIPPED`
@@ -384,7 +416,7 @@ Skipped-review artifact specification:
   - `Implications`
   - `Codex decision proceeds without external validation.`
   - `Implementation still requires explicit user approval.`
-  - `Claude review was not run.`
+  - `Provider review was not run.`
   - `This skipped review is not approval.`
   - `Codex final decision must treat this as an unreviewed plan and apply elevated self-critique.`
 
@@ -480,7 +512,7 @@ The generic agent-review workflow should use progressive context selection:
 4. `Plan Scope`.
 5. Codex inspect-only plan.
 6. Codex-generated `Review Scope`.
-7. Claude scope-limited review.
+7. Provider scope-limited review.
 8. Codex final decision based on plan and review.
 
 Context classes:
@@ -507,14 +539,14 @@ Token/Context Discipline:
 - Keep inspect-only workflow plans concise.
 - For workflow smoke tests, use compact plan output with concise bullets and no long explanatory sections.
 
-Review Scope is not an inventory list. `Files Claude may need to read for review` must be the minimum review set, not every possibly relevant file. For `workflow` context, include at most 6 review files unless the user explicitly allows expanded review. For inspect-only workflow smoke tests, choose representative files only. If more than 6 review files seem necessary, return `DEFER` instead of silently expanding Review Scope.
+Review Scope is not an inventory list. Review files must be the minimum review set, not every possibly relevant file. For `workflow` context, include at most 6 review files unless the user explicitly allows expanded review. For inspect-only workflow smoke tests, choose representative files only. If more than 6 review files seem necessary, return `DEFER` instead of silently expanding Review Scope.
 
 Compact workflow smoke-test plan:
 
 - Use concise bullets.
 - Avoid repeating the same excluded paths in multiple sections.
 - Avoid listing more than 3 representative files under `Files actually read` unless necessary.
-- Avoid listing more than 3 representative files under `Files Claude may need to read for review` for lite review.
+- Avoid listing more than 3 representative files under review-file guidance for lite review.
 - If more files are needed, recommend standard review or `DEFER`.
 
 For `workflow` context, do not read product requirements, submitted assessment docs, PDFs, images, diagrams, generated assets, Flutter/Firebase source, tests, or test evidence unless explicitly allowed by the user. If a workflow task explicitly asks for product-requirement alignment, require explicit Allow paths rather than auto-expanding.
@@ -532,14 +564,14 @@ DEFER recovery:
 - If the plan is too large, split it into smaller plans.
 - If additional sensitive/reference docs are needed, the user approves exact paths.
 
-`REVIEW_MODE` controls which Claude review prompt is selected when `REVIEW_PROMPT` is not explicitly set:
+`REVIEW_MODE` controls which Claude review prompt is selected when `REVIEW_PROVIDER=claude` and `REVIEW_PROMPT` is not explicitly set. Gemini and Codex fallback receive `REVIEW_MODE` as provider metadata:
 
 ```bash
 REVIEW_MODE=standard # default; uses 02_claude_review_plan.md
 REVIEW_MODE=lite     # uses 05_claude_review_plan_lite.md
 ```
 
-`REVIEW_PROMPT` remains an override. If it is set in the environment or a config file, the runner uses that prompt regardless of `REVIEW_MODE`.
+`REVIEW_PROMPT` remains a Claude prompt override. If it is set in the environment or a config file, the runner uses that Claude prompt regardless of `REVIEW_MODE` when `REVIEW_PROVIDER=claude`.
 
 Use standard mode instead of lite mode for changes touching XP, streak, level, rank, leaderboard, roles, entitlements, premium fairness, Firebase ownership, Cloud Functions ownership, security rules, or submitted PDD / PRD consistency.
 
@@ -570,7 +602,7 @@ AGENT_REVIEW_CONFIG=tools/agent-review/profiles/runiac/agent-review.env.example 
 tools/agent-review/runner/run_plan_review.sh plan
 ```
 
-On failure, `pipeline` stops at the failed step (`plan`, `review`, or `decision`) and does not continue. It never falls back from Claude to Codex review and never starts implementation.
+On failure, `pipeline` stops at the failed step (`plan`, `review`, or `decision`) and does not continue. It never silently changes review providers and never starts implementation.
 
 `pipeline` does not run implementation, `git add`, `git commit`, `git push`, tests, builds, deployment, Flutter, Firebase, or npm commands. Implementation remains a separate, user-approved step after inspecting the decision file.
 
@@ -604,7 +636,7 @@ If `AGENT_REVIEW_CONFIG` points to the old Runiac env example path and that file
 
 ## Safety
 
-The runner uses subcommands instead of an automatic loop. It defaults to `DRY_RUN=1`; use `DRY_RUN=0` only when you intentionally want it to invoke Codex or Claude. In dry-run mode, if configured output directories do not exist, the runner prints the command preview to stdout instead of creating directories. Actual runs create configured output directories and refuse to overwrite existing output files.
+The runner uses subcommands instead of an automatic loop. It defaults to `DRY_RUN=1`; use `DRY_RUN=0` only when you intentionally want it to invoke Codex, Gemini, or Claude. In dry-run mode, if configured output directories do not exist, the runner prints the command preview to stdout instead of creating directories. Actual runs create configured output directories and refuse to overwrite existing output files.
 
 Command examples use read-only Codex execution for plan and decision steps:
 
@@ -634,6 +666,23 @@ claude -p "$(cat tools/agent-review/profiles/runiac/prompts/02_claude_review_pla
 Do not allow Claude review mode to use Bash, Edit, Write, filesystem-modifying tools, `dangerously-skip-permissions`, `bypassPermissions`, `auto`, or `acceptEdits` modes.
 
 Do not use Claude `--bare` or `--append-system-prompt-file` for this runner.
+
+Gemini plan review must use plan approval mode and text output by default:
+
+```bash
+gemini --approval-mode "$GEMINI_APPROVAL_MODE" \
+  --output-format "$GEMINI_OUTPUT_FORMAT" \
+  -p "<Gemini review prompt + provider metadata + PLAN_FILE content>"
+```
+
+Gemini review instructions must remain read-only and must not allow edits, staging, commits, pushes, builds, tests, deploys, Flutter, Firebase, npm, scaffolding, or project initialization.
+
+Codex fallback review must use read-only sandboxing:
+
+```bash
+codex --sandbox read-only --ask-for-approval never -C . exec \
+  "<Codex reviewer prompt + provider metadata + PLAN_FILE content>"
+```
 
 ## Future
 

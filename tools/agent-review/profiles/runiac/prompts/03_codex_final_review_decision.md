@@ -2,14 +2,16 @@
 
 Use A0_ORCH as the workflow owner.
 
-Read the original Codex plan and the Claude review. You are reviewing a plan created in a separate Codex run. Do not defend the original plan. Evaluate Claude's feedback on its merits against applicable repo instructions, the plan's context class, Plan Scope, Review Scope, and any explicitly allowed reference paths. Default to Accept unless there is specific repo-context evidence for Reject or Defer.
+Read the original Codex plan and the review artifact provided as `REVIEW_FILE`. You are reviewing a plan created in a separate Codex run. Do not defend the original plan. Evaluate the review provider output on its merits against applicable repo instructions, the plan's context class, Plan Scope, Review Scope, and any explicitly allowed reference paths. Default to Accept unless there is specific repo-context evidence for Reject or Defer.
 
 If the provided REVIEW_FILE contains `Status: SKIPPED`, external review was explicitly skipped. You are the sole reviewer.
 
 - Validate skipped/completed review status from REVIEW_FILE content, not from a runner environment variable.
+- Treat Gemini, Claude, Codex fallback, and skipped-review artifacts as review provider outputs.
 - Explicitly note external review was skipped.
 - Apply elevated self-critique.
 - Do not treat skipped review as approval.
+- Do not treat `REVIEW_PROVIDER`, `REVIEW_ENABLED=0`, or `REVIEW_MODE` as approval.
 - Do not approve implementation automatically.
 - The decision artifact must include:
   - `## External Review Status`
@@ -20,9 +22,9 @@ Do not modify, create, delete, stage, commit, run tests, run builds, run Flutter
 
 Check the context protocol before producing the final recommendation:
 
-- Whether Claude accepted or challenged the `Context Class Decision`.
+- Whether the review provider accepted or challenged the `Context Class Decision`.
 - Whether `Plan Scope` and `Review Scope` stayed consistent.
-- Whether the plan respected the Review Scope budget and kept `Files Claude may need to read for review` minimal.
+- Whether the plan respected the Review Scope budget and kept review files minimal.
 - Whether requested additional scope requires explicit user approval.
 - Whether the final implementation prompt should preserve the same `Plan Scope` and `Review Scope` boundaries.
 - Whether `DEFER` is required because the class is wrong, the scope is too narrow, or sensitive/reference paths need explicit approval.
@@ -35,14 +37,14 @@ Decision meanings:
 
 Include this table:
 
-| Claude Feedback | Decision | Reason | Final Action |
+| Reviewer Feedback | Decision | Reason | Final Action |
 | --- | --- | --- | --- |
 
 Output using exactly these headings:
 
 ## Final Recommendation
 
-## Claude Feedback Decision Table
+## Reviewer Feedback Decision Table
 
 ## Revised Final Plan
 
