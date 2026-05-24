@@ -16,6 +16,7 @@ The workflow is local to this repository for now. Do not create a separate repo,
 tools/agent-review/
   runner/
     build_context_packet.sh
+    classify_high_risk_task.sh
     run_plan_review.sh
     lib/
       common.sh
@@ -435,13 +436,28 @@ Safe skip candidates:
 - workflow smoke-test evidence
 - non-production process automation notes
 
-Future high-risk auto-routing guard specification:
+## High-Risk Guard
 
-- Trigger: plan `risk_tags` contains high-risk `yes`, the plan touches feature/security paths, or forbidden content patterns are implicated.
-- If `REVIEW_ENABLED=0` and the guard triggers, hard stop.
-- Do not silently override to `REVIEW_ENABLED=1`.
-- User must either keep review enabled or use a future explicit override with justification.
-- This is design intent only. Do not implement it in this batch.
+`tools/agent-review/runner/classify_high_risk_task.sh` is a deterministic local guard that checks explicit task input before Codex planning and before implementation prompts. It does not use an LLM, scan the repository, inspect secret contents, parse `context-policy.yml`, or replace human approval.
+
+Controls:
+
+- `HIGH_RISK_GUARD_ENABLED=1` by default. Set to `0` only with explicit approval; the runner prints a warning when disabled.
+- `HIGH_RISK_APPROVED=0` by default. Set to `1` only after explicit user approval for a known high-risk task.
+- `HIGH_RISK_REASON` is required when `HIGH_RISK_APPROVED=1`.
+
+Guard output includes:
+
+- `HIGH_RISK_LEVEL=none|warning|block`
+- `HIGH_RISK_SIGNALS=<comma-separated signals or none>`
+- `HIGH_RISK_APPROVAL_REQUIRED=yes|no`
+- `HIGH_RISK_MESSAGE=<short explanation>`
+
+Block-level signals stop the runner, including dry-runs, unless `HIGH_RISK_APPROVED=1` and `HIGH_RISK_REASON` is non-empty. This is intentional because dry-runs validate the command flow before real runs.
+
+The guard currently detects explicit high-risk paths, commands, and Runiac domain risks, including submitted assessment paths, PRD/PDD baselines, Flutter/Firebase scaffolding, Firebase rules/config/functions, secrets/env/API key/project ID wording, private GPS data, XP/streak/rank/leaderboard ownership violations, `subscriptionStatus`/`userRole` bypasses, AI/LLM scoring misuse, destructive file operations, build/test/deploy commands, and approval/review bypass language.
+
+`REVIEW_ENABLED=0`, `REVIEW_MODE=lite`, and `CONTEXT_PACKET_ENABLED=1` are not high-risk approval. Keep these responsibilities separate.
 
 Batch sequencing:
 
@@ -451,7 +467,7 @@ Batch sequencing:
 - Done: context packet builder design.
 - Done: standalone context packet builder implementation.
 - This batch: opt-in context packet builder runner integration.
-- Later: high-risk auto-routing guard.
+- Done: first deterministic high-risk auto-routing guard.
 - Each batch must remain independently committable.
 
 ## Generic Context Selection Protocol
@@ -623,4 +639,4 @@ Do not use Claude `--bare` or `--append-system-prompt-file` for this runner.
 
 After 3-5 real planning tasks, review whether the runner logic is stable enough to externalize. Do not create a separate repo, Git submodule, package, or GitHub Actions workflow yet.
 
-Future generic distribution should add broader fixture repo smoke tests and evaluate whether context packet traceability artifacts are useful. High-risk auto-routing remains future work and is not implemented in this batch.
+Future generic distribution should add broader fixture repo smoke tests and evaluate whether context packet or high-risk guard traceability artifacts are useful.

@@ -83,6 +83,24 @@ case "$CONTEXT_PACKET_ENABLED" in
     ;;
 esac
 
+HIGH_RISK_GUARD_ENABLED="${HIGH_RISK_GUARD_ENABLED:-1}"
+case "$HIGH_RISK_GUARD_ENABLED" in
+  1|0) ;;
+  *)
+    printf 'ERROR: HIGH_RISK_GUARD_ENABLED must be 1 or 0. Got: "%s"\n' "$HIGH_RISK_GUARD_ENABLED" >&2
+    exit 1
+    ;;
+esac
+
+HIGH_RISK_APPROVED="${HIGH_RISK_APPROVED:-0}"
+case "$HIGH_RISK_APPROVED" in
+  1|0) ;;
+  *)
+    printf 'ERROR: HIGH_RISK_APPROVED must be 1 or 0. Got: "%s"\n' "$HIGH_RISK_APPROVED" >&2
+    exit 1
+    ;;
+esac
+
 if [ "${REVIEW_PROMPT+x}" = "x" ]; then
   REVIEW_PROMPT_EXPLICIT=1
 else
@@ -113,6 +131,7 @@ CLAUDE_MAX_TURNS="${CLAUDE_MAX_TURNS:-12}"
 CLAUDE_MAX_BUDGET_USD="${CLAUDE_MAX_BUDGET_USD:-0.50}"
 CONTEXT_PACKET_MAX_BYTES=8000
 CONTEXT_PACKET_BUILDER="tools/agent-review/runner/build_context_packet.sh"
+HIGH_RISK_CLASSIFIER="tools/agent-review/runner/classify_high_risk_task.sh"
 
 usage() {
   cat <<'USAGE'
@@ -131,6 +150,11 @@ Environment:
   CONTEXT_PACKET_ENABLED=1|0
                             Default: 0. When 1, generate a context packet
                             before Codex inspect-only planning.
+  HIGH_RISK_GUARD_ENABLED=1|0
+                            Default: 1. When 1, block high-risk tasks unless
+                            approved with HIGH_RISK_APPROVED and reason.
+  HIGH_RISK_APPROVED=1|0    Default: 0. Explicit high-risk approval flag.
+  HIGH_RISK_REASON=TEXT     Required when HIGH_RISK_APPROVED=1.
   REVIEW_MODE=standard|lite Default: standard. Selects the Claude review prompt
                             unless REVIEW_PROMPT is explicitly set. REVIEW_MODE
                             remains lite|standard and does not disable review.
@@ -203,6 +227,51 @@ resolve_task_prompt() {
   fi
 
   die "TASK_PROMPT or TASK_PROMPT_FILE is required"
+}
+
+run_high_risk_guard() {
+  local subcommand="$1"
+  local task_prompt="${2:-}"
+  local classifier_output
+  local env_args
+  local exit_code
+
+  require_file "$(repo_path "$HIGH_RISK_CLASSIFIER")"
+
+  env_args=(
+    "AGENT_REVIEW_SUBCOMMAND=$subcommand"
+    "TASK_PROMPT=$task_prompt"
+    "DRY_RUN=$DRY_RUN"
+    "REVIEW_ENABLED=$REVIEW_ENABLED"
+    "REVIEW_MODE=$REVIEW_MODE"
+    "CONTEXT_PACKET_ENABLED=$CONTEXT_PACKET_ENABLED"
+    "HIGH_RISK_GUARD_ENABLED=$HIGH_RISK_GUARD_ENABLED"
+    "HIGH_RISK_APPROVED=$HIGH_RISK_APPROVED"
+    "HIGH_RISK_REASON=${HIGH_RISK_REASON:-}"
+  )
+  if [ "${CONTEXT_CLASS+x}" = "x" ]; then
+    env_args+=("CONTEXT_CLASS=$CONTEXT_CLASS")
+  fi
+  if [ "${ALLOW_PATHS+x}" = "x" ]; then
+    env_args+=("ALLOW_PATHS=$ALLOW_PATHS")
+  fi
+
+  if classifier_output="$(env "${env_args[@]}" "$HIGH_RISK_CLASSIFIER")"; then
+    printf '%s\n' "$classifier_output" >&2
+    return 0
+  else
+    exit_code=$?
+  fi
+
+  printf '%s\n' "$classifier_output" >&2
+  if [ "$exit_code" = "2" ]; then
+    printf 'ERROR: High-risk guard blocked %s. Set HIGH_RISK_APPROVED=1 and HIGH_RISK_REASON only after explicit user approval.\n' "$subcommand" >&2
+  elif [ "$exit_code" = "3" ]; then
+    printf 'ERROR: High-risk guard configuration is invalid.\n' >&2
+  else
+    printf 'ERROR: High-risk guard failed unexpectedly with exit code %s.\n' "$exit_code" >&2
+  fi
+  return "$exit_code"
 }
 
 build_context_packet_for_prompt() {
@@ -430,6 +499,7 @@ cmd_plan() {
   local task_prompt
   local plan_task_prompt
   task_prompt="$(resolve_task_prompt "Create an inspect-only implementation plan for the requested Runiac task.")"
+  run_high_risk_guard "plan" "$task_prompt"
   plan_task_prompt="$(task_prompt_for_plan "$task_prompt")"
   run_plan_step "$(new_plan_output_file)" "$plan_task_prompt"
 }
@@ -494,6 +564,7 @@ cmd_implement() {
   local plan_file="${PLAN_FILE:-}"
   [ -n "$plan_file" ] || die "PLAN_FILE is required for implement"
   require_file "$plan_file"
+  run_high_risk_guard "implement" "Implement approved plan from PLAN_FILE=$plan_file"
 
   local output_file
   output_file="$(repo_path "$DECISION_DIR/$(timestamp_utc)_codex_implementation_command.md")"
@@ -675,6 +746,7 @@ cmd_pipeline() {
   local plan_task_prompt
   local context_packet_preview=""
   task_prompt="$(resolve_task_prompt)"
+  run_high_risk_guard "pipeline" "$task_prompt"
   plan_task_prompt="$(task_prompt_for_plan "$task_prompt")"
   if [ "$CONTEXT_PACKET_ENABLED" = "1" ]; then
     context_packet_preview="${plan_task_prompt%%$'\n\n---\n\n'*}"

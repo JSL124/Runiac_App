@@ -49,17 +49,19 @@ Implementation remains user-approved only. The pipeline may prepare plans, revie
 - [x] Actual `CONTEXT_PACKET_ENABLED=1` + `REVIEW_ENABLED=0` smoke test passed
 - [x] Smoke-test traceability artifact committed:
   - `docs(traceability): record context packet integration smoke test`
+- [x] First deterministic high-risk auto-routing guard implemented:
+  - `HIGH_RISK_GUARD_ENABLED=1` is the default
+  - block-level high-risk dry-runs stop unless approved
+  - `HIGH_RISK_APPROVED=1` requires non-empty `HIGH_RISK_REASON`
+  - `REVIEW_ENABLED`, `REVIEW_MODE`, and `CONTEXT_PACKET_ENABLED` remain separate from high-risk approval
 
 ## Current Important Limits
 
-- [ ] High-risk auto-routing guard is not designed or implemented yet
 - [ ] TODO auto-updater is postponed
 - [ ] Flutter/Firebase implementation has not started
 
 ## Next Planned Steps
 
-- [ ] Design high-risk auto-routing guard
-- [ ] Implement high-risk guard only after explicit approval
 - [ ] Return to Runiac Phase 1 implementation preparation:
   - `implementation/traceability/requirements-map.md`
   - `implementation/traceability/setup-gates.md`
@@ -109,4 +111,4 @@ Implementation remains user-approved only. The pipeline may prepare plans, revie
 
 ## Next Codex Prompt Topic
 
-Design the high-risk auto-routing guard, or return to Phase 1 implementation preparation by drafting `implementation/traceability/requirements-map.md` and `implementation/traceability/setup-gates.md`.
+Return to Phase 1 implementation preparation by drafting `implementation/traceability/requirements-map.md` and `implementation/traceability/setup-gates.md`.

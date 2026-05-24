@@ -33,3 +33,5 @@ Schema validation must cover required top-level keys, `schema_version`, context 
 The context packet builder is the only component that should read this policy.
 
 External review on/off behavior is documented in the top-level README. The generic profile inherits `REVIEW_ENABLED` behavior and does not define project-specific skip policy.
+
+High-risk guard behavior and `HIGH_RISK_*` controls are documented in the top-level README.
