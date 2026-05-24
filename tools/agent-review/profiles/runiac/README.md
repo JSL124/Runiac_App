@@ -20,6 +20,8 @@ Review mode controls review depth, not context breadth. Context breadth is contr
 
 `context-policy.yml` documents Runiac-specific context policy. It is schema-only in this batch: no runner reads it yet, and no YAML parsing or context packet builder has been added.
 
+Future context packet builder design is documented in the top-level README section `Future: build_context_packet.sh`.
+
 The policy keeps Runiac always-on invariants in `non_negotiable_invariants`, including backend ownership for XP/streak/level/rank/leaderboard, Basic/Premium access through `subscriptionStatus`, operational/governance roles through `userRole`, expert-plan draft submission by Medical Trainer/Expert, Platform Administrator approval/publishing authority, and the rule that AI/LLM must not become official XP/rank/leaderboard logic.
 
 Class-specific allowed paths live under `allowed_paths`. Workflow scope is limited to `tools/agent-review/**` and `.claude/settings.json`; docs scope is Markdown documentation; implementation preparation includes traceability, `PRD.md`, and PDD Markdown; feature/security/architecture scopes add the relevant implementation, Firebase, and PDD areas.
@@ -28,7 +30,7 @@ Within each context class, `allowed_path_keys` may reference named `allowed_path
 
 Excluded paths document sensitive, large, and generated areas. Runiac policy excludes submitted artifacts, PDFs, images, SVGs, dependency/build folders, Dart tool output, test evidence, `.env` files, and `secrets/**` from default context breadth.
 
-Before any parser or context packet builder treats Runiac policy as authoritative, validate required top-level keys, `schema_version`, context class keys, `allowed_path_keys` references, `allowed_paths` groups, `excluded_paths` groups, `review_file_budgets`, `unknown_context_behavior`, and `explicit_allow_behavior`.
+Before any parser or context packet builder treats Runiac policy as authoritative, validate required top-level keys, `schema_version`, context class keys, `allowed_path_keys` references, `allowed_paths` groups, `excluded_paths` groups, `review_file_budgets`, `inventory_limits`, `unknown_context_behavior`, and `explicit_allow_behavior`.
 
 `context-policy.yml` remains schema-only until that parser or context packet builder is explicitly added.
 

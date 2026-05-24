@@ -108,9 +108,140 @@ Within `context_classes`, `allowed_path_keys` may refer to either named groups u
 
 Review mode controls review depth, not context breadth. Context breadth is controlled by context class, allowed paths, excluded paths, and explicit `Allow: <path>` entries. `unknown_context_behavior: "reject"` means unknown context must not auto-expand into feature, security, or architecture scope.
 
-Before any runner integration treats `context-policy.yml` as authoritative, add schema validation for required top-level keys, `schema_version`, context class keys, `allowed_path_keys` references, `allowed_paths` groups, `excluded_paths` groups, `review_file_budgets`, `unknown_context_behavior`, and `explicit_allow_behavior`.
+Before any runner integration treats `context-policy.yml` as authoritative, add schema validation for required top-level keys, `schema_version`, context class keys, `allowed_path_keys` references, `allowed_paths` groups, `excluded_paths` groups, `review_file_budgets`, `inventory_limits`, `unknown_context_behavior`, and `explicit_allow_behavior`.
 
 The generic profile must not contain project-specific invariants. Project profiles may add domain-specific invariants and forbidden content patterns.
+
+## Future: build_context_packet.sh
+
+This section is design intent only for a future context packet builder. It documents what the builder should do; it does not describe current runner behavior. The current runner does not read `context-policy.yml`, does not create context packets, and does not inject policy output into Codex prompts.
+
+The future builder should convert a task prompt plus a profile `context-policy.yml` into a bounded Markdown packet for generic agent-review context selection. It should keep context selection separate from review execution: the packet guides planning context, while `REVIEW_MODE` continues to control review depth and `REVIEW_ENABLED` continues to control whether external review runs.
+
+Design boundary:
+
+- This batch documents what the builder should do.
+- Do not add implementation pseudocode, function signatures, or shell snippets longer than 3 lines.
+- Do not add `PLAN_CONTEXT`, `build_context_packet.sh`, runner parsing of `context-policy.yml`, or changes to `run_plan_review.sh`.
+- Implementation details belong in a future batch when `build_context_packet.sh` is actually created.
+
+Future builder inputs:
+
+- Profile name.
+- Task prompt.
+- Optional user-declared context class.
+- Optional user-declared Allow paths.
+- `context-policy.yml` path.
+- Optional `REVIEW_ENABLED` value.
+- Optional `REVIEW_MODE` value.
+- Optional `SKIP_REASON` when `REVIEW_ENABLED=0`.
+
+Future builder outputs are a Markdown packet with these schemas.
+
+`Context Class Decision`:
+
+- `selected_class`: one of `context_classes`.
+- `reason`: 1-2 sentence explanation.
+- `excluded_classes_considered`: informational, not exhaustive.
+- `source`: `user-declared | inferred`.
+- If `source` is `user-declared`, `excluded_classes_considered` may be `N/A — user explicitly declared class.`
+
+`Plan Scope`:
+
+- `allowed_planning_paths`: list of paths Codex may inspect during planning.
+- `excluded_planning_paths`: list of paths blocked or excluded during planning.
+- `inventory_summary`: compact inventory output.
+- `applied_invariants`: all `non_negotiable_invariants` from the profile.
+- Do not filter `non_negotiable_invariants` by context class.
+- If the invariant list is large, group by category instead of dumping a long flat list.
+
+`Review Budget Hint`:
+
+- `review_enabled`: `1 | 0`.
+- `review_mode`: `lite | standard`.
+- `file_budget`: integer from `review_file_budgets`.
+- `skip_reason_required`: `yes | no`.
+
+`Forbidden Content Pattern Summary`:
+
+- Include the description for each category from `forbidden_content_patterns`.
+- Do not dump raw regex, grep, or scanner patterns into the packet.
+- If a category has more than 5 patterns, summarize it as `<category description> (N patterns, see context-policy.yml)`.
+
+Future cheap inventory protocol:
+
+- Use shell-level discovery before file content reads.
+- File content reads happen only after inventory is built, the context class is decided, and target paths are validated against `allowed_paths` and explicit Allow paths.
+- Inventory output itself counts toward token budget, so limits are mandatory.
+
+Examples:
+
+```bash
+git status --short
+git ls-files | head -<max_listed_files>
+find . -maxdepth <max_directory_depth> -type f | head -<max_listed_files>
+```
+
+`inventory_limits` are documented defaults for future integration:
+
+- `max_listed_files`: maximum listed paths retained in the packet inventory.
+- `max_directory_depth`: maximum directory depth for fallback `find` discovery.
+- `max_inventory_bytes`: maximum inventory bytes retained before truncation.
+
+The runner must not use these values until the future builder and runner integration batch explicitly wires them in.
+
+Future partial failure behavior has three tiers.
+
+Hard stop:
+
+- Unknown context class when `unknown_context_behavior` is `reject`.
+- Invalid YAML syntax.
+- Missing required schema keys.
+- All Allow paths invalid.
+- `REVIEW_ENABLED=0` without `SKIP_REASON`.
+- Required schema keys without documented defaults are missing.
+
+Soft handling:
+
+- Some Allow paths invalid: warn, drop invalid ones, and continue with valid ones.
+- Inventory exceeds `max_listed_files` or `max_inventory_bytes`: truncate with an explicit `truncated` marker.
+- Optional schema keys missing: use documented defaults only if the default is explicitly documented.
+
+User confirmation required:
+
+- Allow paths point into `excluded_paths`.
+- Sensitive paths are requested.
+- Broad scope expansion is requested after `DEFER`.
+- Review skip is requested for high-risk work.
+
+Future DEFER recovery design intent:
+
+- The user may re-run with explicit Allow paths.
+- The user may split the plan into smaller plans.
+- The user may escalate from `REVIEW_MODE=lite` to `REVIEW_MODE=standard`.
+- The builder re-runs from the start.
+- Do not implement automatic DEFER re-run in this batch.
+
+Future packet output format:
+
+- Markdown.
+- Stdout by default.
+- Optional future `--output <path>`.
+- Packet sections:
+  - `## Context Class Decision`
+  - `## Plan Scope`
+  - `## Review Budget Hint`
+  - `## Forbidden Content Pattern Summary`
+  - `## Inventory`
+- This packet is intended to be injected at the top of the Codex plan prompt in a future runner integration batch.
+
+Future injection mechanism options are documented here, but the decision is deferred:
+
+- Option A: prepend the packet to the task prompt string before passing to Codex.
+- Option B: write the packet to a temp file and reference it in the Codex prompt.
+- Option C: pass packet sections through environment variables.
+- Recommendation: Option A unless the packet exceeds about 2KB.
+- Final decision is deferred to the runner integration batch.
 
 ## External Review On/Off Policy
 
