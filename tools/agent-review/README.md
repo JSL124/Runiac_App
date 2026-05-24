@@ -104,9 +104,123 @@ The schema separates:
 - Layer A: `non_negotiable_invariants`, always-on domain rules.
 - Layer B: `allowed_paths` and `excluded_paths`, class-specific context scope.
 
+Within `context_classes`, `allowed_path_keys` may refer to either named groups under `allowed_paths` or the top-level `always_read` list. Future integration must resolve both reference types explicitly.
+
 Review mode controls review depth, not context breadth. Context breadth is controlled by context class, allowed paths, excluded paths, and explicit `Allow: <path>` entries. `unknown_context_behavior: "reject"` means unknown context must not auto-expand into feature, security, or architecture scope.
 
+Before any runner integration treats `context-policy.yml` as authoritative, add schema validation for required top-level keys, `schema_version`, context class keys, `allowed_path_keys` references, `allowed_paths` groups, `excluded_paths` groups, `review_file_budgets`, `unknown_context_behavior`, and `explicit_allow_behavior`.
+
 The generic profile must not contain project-specific invariants. Project profiles may add domain-specific invariants and forbidden content patterns.
+
+## External Review On/Off Design
+
+This is design intent only. The runner does not implement `REVIEW_ENABLED` yet, there is no `REVIEW_PROVIDER=none`, there is no `REVIEW_MODE=off`, and implementation must not be auto-run from this policy.
+
+`REVIEW_ENABLED` should control whether an external review step runs. `REVIEW_MODE` should control review depth only when external review is enabled. `REVIEW_MODE` remains `lite|standard`; do not use `REVIEW_MODE=off`.
+
+Recommended future defaults:
+
+- For `pipeline`, `REVIEW_ENABLED=1` by default.
+- `REVIEW_MODE=standard` remains the default depth when review is enabled.
+- Low-risk workflow/documentation tasks may use `REVIEW_ENABLED=0`.
+- High-risk tasks should keep review enabled.
+
+Proposed future behavior:
+
+- `REVIEW_ENABLED=1` runs the existing Claude review step.
+- `REVIEW_ENABLED=0` explicitly skips the external Claude review step.
+- Skipping review must never be silent.
+- Skipping review must never be treated as approval.
+- Skipping review must never auto-run implementation.
+
+Skip review justification:
+
+- `REVIEW_ENABLED=0` must require a non-empty `SKIP_REASON` environment variable or equivalent future flag.
+- Missing `SKIP_REASON` should be a hard stop.
+- `SKIP_REASON` should be stored verbatim in the skipped-review artifact.
+- This prevents accidental skipping when `REVIEW_ENABLED=0` remains in the shell environment.
+
+Skipped-review artifact specification:
+
+- Location: `implementation/traceability/reviews/`
+- Filename: `<timestamp>_external_review_skipped.md`
+- The artifact must be created before Codex final decision so the decision phase can reference it.
+- Required sections:
+  - `External Review Status`
+  - `Status: SKIPPED`
+  - `Reason`
+  - `Context Class at Time of Skip`
+  - `Risk Tags at Time of Skip`
+  - `Skip Justification`
+  - `Implications`
+  - `Codex decision proceeds without external validation.`
+  - `Implementation still requires explicit user approval.`
+
+Codex final decision behavior when review is skipped:
+
+- Decision phase still runs.
+- Input is Codex plan plus the skipped-review artifact.
+- Decision prompt must explicitly state: "External review was explicitly skipped. You are the sole reviewer."
+- Decision must apply elevated self-critique.
+- Decision artifact must include `External Review Status: SKIPPED`.
+- Decision artifact must include `Self-critique applied: yes/no`.
+
+Implementation gating when review is skipped:
+
+- Runner must not chain implementation after skipped review.
+- Even if a future auto-implement flag exists, skipped review blocks chained implementation.
+- User must run implementation as a separate explicit invocation.
+- High-risk plus skipped review should block implementation entirely unless a future explicit override mechanism is added.
+
+High-risk classification responsibility:
+
+- Primary future responsibility: runner compares plan risk tags and changed paths against `context-policy.yml` signals, including `non_negotiable_invariants`, feature/security paths, and `forbidden_content_patterns`.
+- Secondary signal: user may declare `Risk: high` or `Risk: low` in task input.
+- If user-declared and runner-detected risk disagree, runner-detected risk wins and warns the user.
+- Codex self-classification alone must not be authoritative because of self-serving bias risk.
+
+High-risk areas where external review should not be skipped:
+
+- XP
+- streak
+- level
+- rank
+- leaderboard
+- roles
+- entitlements
+- premium fairness
+- Firebase ownership
+- Cloud Functions ownership
+- security rules
+- production source code
+- PRD/PDD consistency
+
+Safe skip candidates:
+
+- README-only changes
+- prompt wording cleanup
+- schema-only documentation
+- traceability documentation
+- workflow smoke-test evidence
+- non-production process automation notes
+
+Future high-risk auto-routing guard specification:
+
+- Trigger: plan `risk_tags` contains high-risk `yes`, the plan touches feature/security paths, or forbidden content patterns are implicated.
+- If `REVIEW_ENABLED=0` and the guard triggers, hard stop.
+- Do not silently override to `REVIEW_ENABLED=1`.
+- User must either keep review enabled or use a future explicit override with justification.
+- This is design intent only. Do not implement it in this batch.
+
+Batch sequencing:
+
+- Done: schema validation note.
+- This batch: `REVIEW_ENABLED` on/off policy documentation.
+- Next: `REVIEW_ENABLED` runner integration.
+- Later: context packet builder design.
+- Later: context packet builder implementation.
+- Later: high-risk auto-routing guard.
+- Each batch must remain independently committable.
 
 ## Generic Context Selection Protocol
 

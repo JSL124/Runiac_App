@@ -24,7 +24,15 @@ The policy keeps Runiac always-on invariants in `non_negotiable_invariants`, inc
 
 Class-specific allowed paths live under `allowed_paths`. Workflow scope is limited to `tools/agent-review/**` and `.claude/settings.json`; docs scope is Markdown documentation; implementation preparation includes traceability, `PRD.md`, and PDD Markdown; feature/security/architecture scopes add the relevant implementation, Firebase, and PDD areas.
 
+Within each context class, `allowed_path_keys` may reference named `allowed_paths` groups or the top-level `always_read` list. Future schema validation must reject unknown references before runner integration.
+
 Excluded paths document sensitive, large, and generated areas. Runiac policy excludes submitted artifacts, PDFs, images, SVGs, dependency/build folders, Dart tool output, test evidence, `.env` files, and `secrets/**` from default context breadth.
+
+Before any parser or context packet builder treats Runiac policy as authoritative, validate required top-level keys, `schema_version`, context class keys, `allowed_path_keys` references, `allowed_paths` groups, `excluded_paths` groups, `review_file_budgets`, `unknown_context_behavior`, and `explicit_allow_behavior`.
+
+`context-policy.yml` remains schema-only until that parser or context packet builder is explicitly added.
+
+External review on/off behavior is documented in the top-level README. For Runiac, skipped review should not be used for high-risk areas such as XP, leaderboard, roles, entitlements, Firebase/Cloud Functions ownership, security rules, production source code, or PRD/PDD consistency.
 
 ## Context Selection
 

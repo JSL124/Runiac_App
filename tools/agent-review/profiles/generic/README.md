@@ -19,6 +19,14 @@ The schema fields are:
 - `non_negotiable_invariants`: Layer A always-on domain rules.
 - `forbidden_content_patterns`: content patterns that should trigger caution or rejection.
 
+Within each context class, `allowed_path_keys` may reference named `allowed_paths` groups or the top-level `always_read` list. Future schema validation must reject unknown references instead of silently broadening context.
+
 Review mode controls review depth, not context breadth. Context breadth is controlled by context class, allowed paths, excluded paths, and explicit Allow paths.
 
+Before runner integration, validate required top-level keys, `schema_version`, context class keys, `allowed_path_keys` references, `allowed_paths` groups, `excluded_paths` groups, `review_file_budgets`, `unknown_context_behavior`, and `explicit_allow_behavior`.
+
 `non_negotiable_invariants` and `forbidden_content_patterns` are intentionally empty by default because the generic profile must not contain project-specific rules.
+
+`context-policy.yml` remains schema-only until a parser or context packet builder is explicitly added.
+
+External review on/off behavior is documented in the top-level README. The generic profile only inherits that future `REVIEW_ENABLED` design and does not define project-specific skip policy.
