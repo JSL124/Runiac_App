@@ -65,6 +65,15 @@ case "$REVIEW_MODE" in
   *) die "unsupported REVIEW_MODE: $REVIEW_MODE (expected: standard or lite)" ;;
 esac
 
+REVIEW_ENABLED="${REVIEW_ENABLED:-1}"
+case "$REVIEW_ENABLED" in
+  1|0) ;;
+  *)
+    printf 'ERROR: REVIEW_ENABLED must be 1 or 0. Got: "%s"\n' "$REVIEW_ENABLED" >&2
+    exit 1
+    ;;
+esac
+
 if [ "${REVIEW_PROMPT+x}" = "x" ]; then
   REVIEW_PROMPT_EXPLICIT=1
 else
@@ -105,8 +114,12 @@ Environment:
   AGENT_REVIEW_PROFILE_DIR=PATH
                             Default: tools/agent-review/profiles/$AGENT_REVIEW_PROFILE.
   AGENT_REVIEW_CONFIG=PATH  Optional shell env file.
+  REVIEW_ENABLED=1|0       Default: 1. When 0, skip external Claude review
+                            and create a skipped-review artifact instead.
+  SKIP_REASON=TEXT          Required when REVIEW_ENABLED=0.
   REVIEW_MODE=standard|lite Default: standard. Selects the Claude review prompt
-                            unless REVIEW_PROMPT is explicitly set.
+                            unless REVIEW_PROMPT is explicitly set. REVIEW_MODE
+                            remains lite|standard and does not disable review.
   CLAUDE_MAX_TURNS=N       Default: 12. Claude review step turn cap.
   CLAUDE_MAX_BUDGET_USD=N  Default: 0.50. Claude review step budget cap.
   TASK_PROMPT=TEXT          Task prompt for plan/implement/pipeline subcommands.
@@ -186,8 +199,95 @@ new_review_output_file() {
   repo_path "$REVIEW_DIR/$(timestamp_utc)_claude_review.md"
 }
 
+new_skipped_review_output_file() {
+  repo_path "$REVIEW_DIR/$(timestamp_utc)_external_review_skipped.md"
+}
+
 new_decision_output_file() {
   repo_path "$DECISION_DIR/$(timestamp_utc)_codex_decision.md"
+}
+
+warn_review_disabled() {
+  printf 'WARNING: External review is disabled. If this plan touches XP, streak, leaderboard, Firebase, security rules, production source, or PRD/PDD consistency, consider enabling review.\n' >&2
+}
+
+require_skip_reason() {
+  if [ "$REVIEW_ENABLED" = "0" ] && [ -z "${SKIP_REASON:-}" ]; then
+    printf 'ERROR: REVIEW_ENABLED=0 requires SKIP_REASON to be set.\n' >&2
+    printf 'Example: SKIP_REASON="documentation-only change"\n' >&2
+    exit 1
+  fi
+}
+
+extract_context_class_for_skip() {
+  local plan_file="$1"
+  local context_section
+
+  if [ -n "${CONTEXT_CLASS:-}" ]; then
+    printf '%s\n' "$CONTEXT_CLASS"
+    return
+  fi
+
+  context_section="$(awk '
+    /^## Context Class Decision[[:space:]]*$/ { capture = 1; next }
+    /^## / && capture { exit }
+    capture { print }
+  ' "$plan_file")"
+
+  if [ -n "$context_section" ]; then
+    printf '%s\n' "$context_section"
+  else
+    printf 'Not set — context packet builder not yet integrated.\n'
+  fi
+}
+
+extract_risk_tags_for_skip() {
+  local plan_file="$1"
+  local risk_section
+
+  risk_section="$(awk '
+    /^[[:space:]]*-?[[:space:]]*Risk tags:/ { capture = 1; print; next }
+    /^## / && capture { exit }
+    /^[[:space:]]*-?[[:space:]]*Recommended review mode:/ && capture { exit }
+    capture { print }
+  ' "$plan_file")"
+
+  if [ -n "$risk_section" ]; then
+    printf '%s\n' "$risk_section"
+  else
+    printf 'Not evaluated — auto-routing guard not yet implemented.\n'
+  fi
+}
+
+create_skipped_review_artifact() {
+  local output_file="$1"
+  local plan_file="$2"
+  local context_class
+  local risk_tags
+
+  ensure_new_file "$output_file"
+  context_class="$(extract_context_class_for_skip "$plan_file")"
+  risk_tags="$(extract_risk_tags_for_skip "$plan_file")"
+
+  {
+    printf '# External Review Skipped\n\n'
+    printf '## External Review Status\n\n'
+    printf '- Status: SKIPPED\n'
+    printf '- Reason: Claude review was not run because REVIEW_ENABLED=0.\n\n'
+    printf '## Context Class at Time of Skip\n\n'
+    printf '%s\n\n' "$context_class"
+    printf '## Risk Tags at Time of Skip\n\n'
+    printf '%s\n\n' "$risk_tags"
+    printf '## Skip Justification\n\n'
+    printf '%s\n\n' "$SKIP_REASON"
+    printf '## Implications\n\n'
+    printf '- Claude review was not run.\n'
+    printf '- This is not approval.\n'
+    printf '- Codex decision proceeds without external validation.\n'
+    printf '- Implementation still requires explicit user approval.\n'
+  } > "$output_file"
+
+  info "skipped-review artifact written: $output_file"
 }
 
 run_or_dry() {
@@ -265,12 +365,40 @@ cmd_plan() {
 
 cmd_review() {
   require_common_paths
-  require_agent_commands_for_actual_run 0 1
 
   local plan_file="${PLAN_FILE:-}"
   [ -n "$plan_file" ] || die "PLAN_FILE is required for review"
   require_file "$plan_file"
 
+  if [ "$REVIEW_ENABLED" = "0" ]; then
+    require_skip_reason
+    warn_review_disabled
+    local skipped_review_file
+    skipped_review_file="$(new_skipped_review_output_file)"
+    if [ "$DRY_RUN" != "0" ]; then
+      cat <<REVIEW_SKIP_DRY_RUN
+# Review Dry Run Preview
+
+DRY_RUN=1, so Claude will not be invoked and no skipped-review artifact will be written.
+
+REVIEW_ENABLED=0
+External review is skipped.
+SKIP_REASON=$SKIP_REASON
+
+Would read PLAN_FILE:
+$plan_file
+
+Would write REVIEW_FILE as skipped-review artifact:
+$skipped_review_file
+REVIEW_SKIP_DRY_RUN
+      return
+    fi
+
+    create_skipped_review_artifact "$skipped_review_file" "$plan_file"
+    return
+  fi
+
+  require_agent_commands_for_actual_run 0 1
   run_review_step "$(new_review_output_file)" "$plan_file"
 }
 
@@ -330,6 +458,9 @@ artifacts will be written.
 
 Would run:
 
+Review enabled:
+   $REVIEW_ENABLED
+
 Review mode:
    $REVIEW_MODE
 
@@ -343,6 +474,10 @@ Review prompt:
    Would write PLAN_FILE:
    $plan_file
 
+PIPELINE_DRY_RUN
+
+  if [ "$REVIEW_ENABLED" = "1" ]; then
+    cat <<PIPELINE_DRY_RUN
 2. Claude read-only plan review
 
    claude -p "<review prompt + PLAN_FILE>" --permission-mode plan --tools "Read,Grep,Glob" --max-turns "$CLAUDE_MAX_TURNS" --max-budget-usd "$CLAUDE_MAX_BUDGET_USD" --append-system-prompt "\$(cat CLAUDE.md)"
@@ -353,6 +488,27 @@ Review prompt:
    Would write REVIEW_FILE:
    $review_file
 
+PIPELINE_DRY_RUN
+  else
+    cat <<PIPELINE_DRY_RUN
+2. External review skipped
+
+   External review is skipped because REVIEW_ENABLED=0.
+   SKIP_REASON:
+   $SKIP_REASON
+
+   Would read PLAN_FILE:
+   $plan_file
+
+   Would write REVIEW_FILE as skipped-review artifact:
+   $review_file
+
+   Codex decision will use the skipped-review artifact as REVIEW_FILE.
+
+PIPELINE_DRY_RUN
+  fi
+
+  cat <<PIPELINE_DRY_RUN
 3. Codex final review decision
 
    codex --sandbox read-only --ask-for-approval never -C . exec "<decision prompt + PLAN_FILE + REVIEW_FILE>"
@@ -408,6 +564,10 @@ PIPELINE_SUMMARY
 
 cmd_pipeline() {
   require_common_paths
+  require_skip_reason
+  if [ "$REVIEW_ENABLED" = "0" ]; then
+    warn_review_disabled
+  fi
 
   local task_prompt
   task_prompt="$(resolve_task_prompt)"
@@ -416,7 +576,11 @@ cmd_pipeline() {
   local review_file
   local decision_file
   plan_file="$(new_plan_output_file)"
-  review_file="$(new_review_output_file)"
+  if [ "$REVIEW_ENABLED" = "1" ]; then
+    review_file="$(new_review_output_file)"
+  else
+    review_file="$(new_skipped_review_output_file)"
+  fi
   decision_file="$(new_decision_output_file)"
 
   if [ "$DRY_RUN" != "0" ]; then
@@ -424,16 +588,23 @@ cmd_pipeline() {
     return
   fi
 
-  require_agent_commands_for_actual_run 1 1
+  require_agent_commands_for_actual_run 1 "$REVIEW_ENABLED"
 
   if ! run_plan_step "$plan_file" "$task_prompt"; then
     pipeline_failed "plan" "$plan_file" || true
     return 1
   fi
 
-  if ! run_review_step "$review_file" "$plan_file"; then
-    pipeline_failed "review" "$review_file" || true
-    return 1
+  if [ "$REVIEW_ENABLED" = "1" ]; then
+    if ! run_review_step "$review_file" "$plan_file"; then
+      pipeline_failed "review" "$review_file" || true
+      return 1
+    fi
+  else
+    if ! create_skipped_review_artifact "$review_file" "$plan_file"; then
+      pipeline_failed "skipped-review artifact" "$review_file" || true
+      return 1
+    fi
   fi
 
   if ! run_decision_step "$decision_file" "$plan_file" "$review_file"; then
