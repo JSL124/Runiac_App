@@ -112,23 +112,24 @@ Before any runner integration treats `context-policy.yml` as authoritative, add 
 
 The generic profile must not contain project-specific invariants. Project profiles may add domain-specific invariants and forbidden content patterns.
 
-## External Review On/Off Design
+## External Review On/Off Policy
 
-This is design intent only. The runner does not implement `REVIEW_ENABLED` yet, there is no `REVIEW_PROVIDER=none`, there is no `REVIEW_MODE=off`, and implementation must not be auto-run from this policy.
+The runner supports `REVIEW_ENABLED` for explicitly running or skipping the external Claude review step. There is no `REVIEW_PROVIDER=none`, there is no `REVIEW_MODE=off`, and implementation is not auto-run from this policy.
 
-`REVIEW_ENABLED` should control whether an external review step runs. `REVIEW_MODE` should control review depth only when external review is enabled. `REVIEW_MODE` remains `lite|standard`; do not use `REVIEW_MODE=off`.
+`REVIEW_ENABLED` controls whether an external review step runs. `REVIEW_MODE` controls review depth only when external review is enabled. `REVIEW_MODE` remains `lite|standard`; do not use `REVIEW_MODE=off`.
 
-Recommended future defaults:
+Defaults:
 
 - For `pipeline`, `REVIEW_ENABLED=1` by default.
 - `REVIEW_MODE=standard` remains the default depth when review is enabled.
 - Low-risk workflow/documentation tasks may use `REVIEW_ENABLED=0`.
 - High-risk tasks should keep review enabled.
 
-Proposed future behavior:
+Behavior:
 
 - `REVIEW_ENABLED=1` runs the existing Claude review step.
 - `REVIEW_ENABLED=0` explicitly skips the external Claude review step.
+- Supported values are only `1` and `0`; any other value fails before agent commands run.
 - Skipping review must never be silent.
 - Skipping review must never be treated as approval.
 - Skipping review must never auto-run implementation.
@@ -136,8 +137,8 @@ Proposed future behavior:
 Skip review justification:
 
 - `REVIEW_ENABLED=0` must require a non-empty `SKIP_REASON` environment variable or equivalent future flag.
-- Missing `SKIP_REASON` should be a hard stop.
-- `SKIP_REASON` should be stored verbatim in the skipped-review artifact.
+- Missing `SKIP_REASON` is a hard stop.
+- `SKIP_REASON` is stored verbatim in the skipped-review artifact.
 - This prevents accidental skipping when `REVIEW_ENABLED=0` remains in the shell environment.
 
 Skipped-review artifact specification:
@@ -145,6 +146,7 @@ Skipped-review artifact specification:
 - Location: `implementation/traceability/reviews/`
 - Filename: `<timestamp>_external_review_skipped.md`
 - The artifact must be created before Codex final decision so the decision phase can reference it.
+- For `REVIEW_ENABLED=0`, the skipped-review artifact path is assigned to `REVIEW_FILE`, using the same decision-phase passing convention as completed Claude reviews.
 - Required sections:
   - `External Review Status`
   - `Status: SKIPPED`
@@ -167,7 +169,7 @@ Codex final decision behavior when review is skipped:
 
 Implementation gating when review is skipped:
 
-- Runner must not chain implementation after skipped review.
+- Runner does not chain implementation after skipped review.
 - Even if a future auto-implement flag exists, skipped review blocks chained implementation.
 - User must run implementation as a separate explicit invocation.
 - High-risk plus skipped review should block implementation entirely unless a future explicit override mechanism is added.
@@ -215,8 +217,8 @@ Future high-risk auto-routing guard specification:
 Batch sequencing:
 
 - Done: schema validation note.
-- This batch: `REVIEW_ENABLED` on/off policy documentation.
-- Next: `REVIEW_ENABLED` runner integration.
+- Done: `REVIEW_ENABLED` on/off policy documentation.
+- This batch: `REVIEW_ENABLED` runner integration.
 - Later: context packet builder design.
 - Later: context packet builder implementation.
 - Later: high-risk auto-routing guard.

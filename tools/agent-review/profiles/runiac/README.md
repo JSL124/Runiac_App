@@ -32,7 +32,7 @@ Before any parser or context packet builder treats Runiac policy as authoritativ
 
 `context-policy.yml` remains schema-only until that parser or context packet builder is explicitly added.
 
-External review on/off behavior is documented in the top-level README. For Runiac, skipped review should not be used for high-risk areas such as XP, leaderboard, roles, entitlements, Firebase/Cloud Functions ownership, security rules, production source code, or PRD/PDD consistency.
+External review on/off behavior is documented in the top-level README. For Runiac, `REVIEW_ENABLED=0` is an explicit skip, not approval, and should not be used for high-risk areas such as XP, leaderboard, roles, entitlements, Firebase/Cloud Functions ownership, security rules, production source code, or PRD/PDD consistency.
 
 ## Context Selection
 

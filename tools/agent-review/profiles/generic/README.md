@@ -29,4 +29,4 @@ Before runner integration, validate required top-level keys, `schema_version`, c
 
 `context-policy.yml` remains schema-only until a parser or context packet builder is explicitly added.
 
-External review on/off behavior is documented in the top-level README. The generic profile only inherits that future `REVIEW_ENABLED` design and does not define project-specific skip policy.
+External review on/off behavior is documented in the top-level README. The generic profile inherits `REVIEW_ENABLED` behavior and does not define project-specific skip policy.
