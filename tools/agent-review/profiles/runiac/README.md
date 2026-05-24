@@ -20,7 +20,7 @@ Review mode controls review depth, not context breadth. Context breadth is contr
 
 `context-policy.yml` documents Runiac-specific context policy. It is schema-only in this batch: no runner reads it yet, and no YAML parsing or context packet builder has been added.
 
-Future context packet builder design is documented in the top-level README section `Future: build_context_packet.sh`.
+Standalone context packet builder usage is documented in the top-level README section `build_context_packet.sh`.
 
 The policy keeps Runiac always-on invariants in `non_negotiable_invariants`, including backend ownership for XP/streak/level/rank/leaderboard, Basic/Premium access through `subscriptionStatus`, operational/governance roles through `userRole`, expert-plan draft submission by Medical Trainer/Expert, Platform Administrator approval/publishing authority, and the rule that AI/LLM must not become official XP/rank/leaderboard logic.
 

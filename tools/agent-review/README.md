@@ -15,6 +15,7 @@ The workflow is local to this repository for now. Do not create a separate repo,
 ```text
 tools/agent-review/
   runner/
+    build_context_packet.sh
     run_plan_review.sh
     lib/
       common.sh
@@ -112,31 +113,46 @@ Before any runner integration treats `context-policy.yml` as authoritative, add 
 
 The generic profile must not contain project-specific invariants. Project profiles may add domain-specific invariants and forbidden content patterns.
 
-## Future: build_context_packet.sh
+## build_context_packet.sh
 
-This section is design intent only for a future context packet builder. It documents what the builder should do; it does not describe current runner behavior. The current runner does not read `context-policy.yml`, does not create context packets, and does not inject policy output into Codex prompts.
+`tools/agent-review/runner/build_context_packet.sh` is a standalone context packet builder for generic agent-review context selection. It is not integrated into `run_plan_review.sh` yet, the pipeline does not use it yet, and its output is not injected into Codex prompts yet.
 
-The future builder should convert a task prompt plus a profile `context-policy.yml` into a bounded Markdown packet for generic agent-review context selection. It should keep context selection separate from review execution: the packet guides planning context, while `REVIEW_MODE` continues to control review depth and `REVIEW_ENABLED` continues to control whether external review runs.
+The builder converts a task prompt plus a profile `context-policy.yml` into a bounded Markdown packet. It keeps context selection separate from review execution: the packet guides planning context, while `REVIEW_MODE` continues to control review depth and `REVIEW_ENABLED` continues to control whether external review runs.
+
+Standalone usage:
+
+```bash
+TASK_PROMPT="Context packet smoke test only. Context Class: workflow" \
+CONTEXT_CLASS=workflow \
+PROFILE=runiac \
+tools/agent-review/runner/build_context_packet.sh
+```
+
+Inputs:
+
+- `PROFILE`, default `runiac`.
+- `TASK_PROMPT` or `TASK_PROMPT_FILE`.
+- `CONTEXT_CLASS`, optional.
+- `ALLOW_PATHS`, optional comma-separated list.
+- `REVIEW_ENABLED`, optional, default `1`.
+- `REVIEW_MODE`, optional, default from context policy class metadata when available; otherwise `standard`.
+
+The script reads only `tools/agent-review/profiles/<PROFILE>/context-policy.yml` content plus shell metadata from `git status --short` and limited `git ls-files`. It does not read PRD/PDD/PDF/image/source file contents, does not write files by default, and does not run Codex, Claude, Flutter, Firebase, npm, tests, builds, deployment, `git add`, `git commit`, or `git push`.
+
+The script validates the policy in two steps:
+
+- YAML syntax validation with Ruby stdlib `YAML.load_file`.
+- Required top-level key validation for `schema_version`, `context_classes`, `always_read`, `allowed_paths`, `excluded_paths`, `review_file_budgets`, `inventory_limits`, `unknown_context_behavior`, `explicit_allow_behavior`, `non_negotiable_invariants`, and `forbidden_content_patterns`.
+
+If Ruby is unavailable, the script fails clearly. It does not require `yq`, npm, Python packages, Firebase, Flutter, or external dependencies.
 
 Design boundary:
 
-- This batch documents what the builder should do.
-- Do not add implementation pseudocode, function signatures, or shell snippets longer than 3 lines.
-- Do not add `PLAN_CONTEXT`, `build_context_packet.sh`, runner parsing of `context-policy.yml`, or changes to `run_plan_review.sh`.
-- Implementation details belong in a future batch when `build_context_packet.sh` is actually created.
+- This standalone batch implements packet generation only.
+- Do not add `PLAN_CONTEXT`, runner integration, automatic Codex prompt injection, high-risk auto-routing, review skip guards based on policy, context-policy schema migration, or implementation auto-run.
+- Do not change `run_plan_review.sh` or `runner/lib/common.sh` in this batch.
 
-Future builder inputs:
-
-- Profile name.
-- Task prompt.
-- Optional user-declared context class.
-- Optional user-declared Allow paths.
-- `context-policy.yml` path.
-- Optional `REVIEW_ENABLED` value.
-- Optional `REVIEW_MODE` value.
-- Optional `SKIP_REASON` when `REVIEW_ENABLED=0`.
-
-Future builder outputs are a Markdown packet with these schemas.
+The builder output is a Markdown packet with these schemas.
 
 `Context Class Decision`:
 
@@ -168,7 +184,7 @@ Future builder outputs are a Markdown packet with these schemas.
 - Do not dump raw regex, grep, or scanner patterns into the packet.
 - If a category has more than 5 patterns, summarize it as `<category description> (N patterns, see context-policy.yml)`.
 
-Future cheap inventory protocol:
+Cheap inventory protocol:
 
 - Use shell-level discovery before file content reads.
 - File content reads happen only after inventory is built, the context class is decided, and target paths are validated against `allowed_paths` and explicit Allow paths.
@@ -188,9 +204,9 @@ find . -maxdepth <max_directory_depth> -type f | head -<max_listed_files>
 - `max_directory_depth`: maximum directory depth for fallback `find` discovery.
 - `max_inventory_bytes`: maximum inventory bytes retained before truncation.
 
-The runner must not use these values until the future builder and runner integration batch explicitly wires them in.
+The standalone builder uses these values for packet inventory limits. The runner must not use these values until a future runner integration batch explicitly wires them in.
 
-Future partial failure behavior has three tiers.
+Standalone partial failure behavior has three tiers.
 
 Hard stop:
 
@@ -209,12 +225,12 @@ Soft handling:
 
 User confirmation required:
 
-- Allow paths point into `excluded_paths`.
+- Allow paths point into `excluded_paths`; standalone mode warns and marks them `[OVERRIDE]`, while runner integration may require explicit confirmation later.
 - Sensitive paths are requested.
 - Broad scope expansion is requested after `DEFER`.
 - Review skip is requested for high-risk work.
 
-Future DEFER recovery design intent:
+DEFER recovery design intent:
 
 - The user may re-run with explicit Allow paths.
 - The user may split the plan into smaller plans.
@@ -222,7 +238,7 @@ Future DEFER recovery design intent:
 - The builder re-runs from the start.
 - Do not implement automatic DEFER re-run in this batch.
 
-Future packet output format:
+Packet output format:
 
 - Markdown.
 - Stdout by default.
@@ -234,6 +250,14 @@ Future packet output format:
   - `## Forbidden Content Pattern Summary`
   - `## Inventory`
 - This packet is intended to be injected at the top of the Codex plan prompt in a future runner integration batch.
+
+Future tool-smoke-test artifacts should be stored at:
+
+```text
+implementation/traceability/tool-smoke-tests/<timestamp>_context-packet-smoke.md
+```
+
+Do not create that folder or artifact from the standalone builder by default.
 
 Future injection mechanism options are documented here, but the decision is deferred:
 
@@ -352,9 +376,10 @@ Batch sequencing:
 
 - Done: schema validation note.
 - Done: `REVIEW_ENABLED` on/off policy documentation.
-- This batch: `REVIEW_ENABLED` runner integration.
-- Later: context packet builder design.
-- Later: context packet builder implementation.
+- Done: `REVIEW_ENABLED` runner integration.
+- Done: context packet builder design.
+- This batch: standalone context packet builder implementation.
+- Later: context packet builder runner integration.
 - Later: high-risk auto-routing guard.
 - Each batch must remain independently committable.
 
@@ -527,4 +552,4 @@ Do not use Claude `--bare` or `--append-system-prompt-file` for this runner.
 
 After 3-5 real planning tasks, review whether the runner logic is stable enough to externalize. Do not create a separate repo, Git submodule, package, or GitHub Actions workflow yet.
 
-Future generic distribution should integrate `context-policy.yml` through a context packet builder, cheap inventory size limits, and a generic fixture repo smoke test. These integrations are future work only and are not implemented in this batch.
+Future generic distribution should integrate the standalone context packet builder into the runner, define prompt injection behavior, and add a generic fixture repo smoke test. Runner integration remains future work and is not implemented in this batch.
