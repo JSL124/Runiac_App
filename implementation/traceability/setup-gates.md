@@ -24,8 +24,8 @@ Allowed statuses:
 
 | Gate | Current Status | Approval Evidence Required | Notes |
 | --- | --- | --- | --- |
-| Gate-00: Git State Baseline | Under Review | Clean status, push baseline confirmation, no unrelated untracked/staged files, no failed traceability artifacts, explicit human/project approval evidence | Not scaffold approval; under review only. |
-| Flutter Scaffold Gate | Not Started | Human/project approval to create Flutter scaffold and package metadata | No `flutter create` yet. |
+| Gate-00: Git State Baseline | APPROVED | Clean status, push baseline confirmation, no unrelated untracked/staged files, no failed traceability artifacts, explicit human/project approval evidence | Baseline readiness approved only; not scaffold execution approval. |
+| Flutter Scaffold Gate | APPROVED FOR SCAFFOLD EXECUTION REVIEW | Human/project approval to create Flutter scaffold and package metadata | No `flutter create` yet. |
 | Firebase Project and Config Gate | Not Started | Human/project approval for Firebase project/config approach | No `firebase init`, config files, or project IDs yet. |
 | Firestore Data Model Gate | Not Started | Approved collection/access model and traceability to requirements | No collections/rules created yet. |
 | Cloud Functions Boundary Gate | Not Started | Approved backend ownership boundaries | No functions source, package files, or TypeScript config yet. |
@@ -40,7 +40,7 @@ Allowed statuses:
 
 ## 4. Gate-00: Git State Baseline
 
-Status: `Under Review`
+Status: `APPROVED`
 
 Purpose: confirm repository hygiene before any execution gate changes from `Drafted` to `Under Review` or before any scaffold/setup action is requested.
 
@@ -53,16 +53,17 @@ Required checks:
 - No pending failed traceability artifacts.
 - Manual staging, if later approved, must name exact files and must not use `git add .`.
 
-Current review-time note:
+Current baseline approval note:
 
 - `git status --short` produced no output before this document was created.
 - On 2026-05-24, `git status --short` produced no output for this documentation update.
 - On 2026-05-24, `git status -sb` showed `main...origin/main`, confirming local `main` was aligned with `origin/main`.
 - Latest traceability setup commit `30c55b5 docs(traceability): add phase 1 implementation prep gates` was present locally.
-- Gate-00 is under review only. This is not approval.
-- Gate-00 still requires explicit human/project approval evidence before it can move to `Approved`.
+- Gate-00 approval evidence is recorded in Section 18.
+- Gate-00 approval confirms baseline repository readiness only.
+- Gate-00 approval does not authorize Flutter scaffold execution.
 
-Evidence needed for `Approved`:
+Approval evidence recorded:
 
 - A fresh clean `git status --short` result.
 - A recorded confirmation that approved commits are pushed to `origin/main`.
@@ -70,7 +71,7 @@ Evidence needed for `Approved`:
 
 ## 5. Flutter Scaffold Gate
 
-Status: `Not Started`
+Status: `APPROVED FOR SCAFFOLD EXECUTION REVIEW`
 
 Blocked until approved:
 
@@ -376,7 +377,7 @@ Still forbidden until relevant gates are approved:
 
 | Date | Gate Name | Status Change | Evidence/Actor | Notes |
 | --- | --- | --- | --- | --- |
-| 2026-05-24 | Gate-00: Git State Baseline | `Drafted` to `Under Review` | A0_ORCH based on `git status --short` clean output, `git status -sb` showing `main...origin/main`, and latest traceability setup commit `30c55b5 docs(traceability): add phase 1 implementation prep gates` present locally | This is not approval. Gate-00 still requires explicit human/project approval evidence before `Approved`. |
+| 2026-05-24 | Gate-00: Git State Baseline | `Drafted` to `Under Review` | A0_ORCH based on `git status --short` clean output, `git status -sb` showing `main...origin/main`, and latest traceability setup commit `30c55b5 docs(traceability): add phase 1 implementation prep gates` present locally | Historical note from the 2026-05-24 transition. Current Gate-00 approval evidence is recorded below. |
 | 2026-05-24 | Phase 1 traceability docs | Created as `Drafted` | User approved creation of `requirements-map.md` and `setup-gates.md` only | Does not approve scaffolding or implementation. LLM/agent-generated decisions alone are not approval. |
 
 ### Gate-00 Approval Evidence
@@ -397,3 +398,29 @@ Still forbidden until relevant gates are approved:
 - Authorization scope:
   - This approval authorizes preparing scaffold approval packets only.
   - This approval does not authorize running `flutter create`, `firebase init`, or `flutterfire configure`.
+
+## Flutter Scaffold Gate Approval Evidence
+
+- Status: APPROVED FOR SCAFFOLD EXECUTION REVIEW
+- Date: 2026-05-25
+- Approver: Lee Jinseo
+- Conditions met:
+  - clean working tree
+  - branch aligned with origin/main
+  - .gitignore hardened
+  - traceability IDs added
+  - Gate-00 approval evidence recorded
+  - reverse-domain org defined
+  - platforms restricted to android and ios
+  - Firebase setup deferred
+  - firebase_options.dart generation deferred
+  - scaffold markers still absent
+- Known remaining risks:
+  - `.gitignore` covers standard `.env` and `.env.*` patterns; unconventional names like `.envrc` or `.envproduction` are not explicitly covered. Assessment: low risk for FYP scope; Runiac does not currently use these patterns. Future action: add if unconventional env files are introduced.
+  - `flutter create --no-pub` support depends on the installed Flutter version and must be verified before scaffold execution.
+- Authorized command for later review only:
+  flutter create --template=app --platforms=android,ios --org com.runiac --project-name runiac_app --no-pub implementation/mobile/runiac_app
+- Authorization scope:
+  - This approval authorizes preparing and reviewing scaffold execution only.
+  - This approval does not itself authorize running `flutter create`.
+  - This approval does not authorize Firebase setup, `firebase init`, `flutterfire configure`, dependency resolution, builds, tests, or deployment.
