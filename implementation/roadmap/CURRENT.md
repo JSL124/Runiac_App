@@ -4,9 +4,10 @@
 
 - Current track: Track A - Governance and implementation readiness
 - Current phase: `implementation/roadmap/phases/phase-01-governance-ci.md`
+- Current active capsule: `implementation/roadmap/capsules/artifact-inventory-schema-persistence.md`
 - Current status: Phase 01 governance CI closed; repository remains pre-scaffold
-- Current state: Post-Phase-01 planning gate; planning and review only
-- Current active milestone: Post-Phase-01 planning gate
+- Current state: Post-Phase-01 governance follow-up planning; planning and review only
+- Current active milestone: Artifact Inventory Schema persistence routing
 
 ## Required Reading Order
 
@@ -25,6 +26,7 @@ Do not load future phase documents unless explicitly requested.
 ## Allowed Work
 
 - Maintain roadmap/context governance files under `implementation/roadmap/`.
+- Maintain the active Artifact Inventory Schema persistence routing capsule under `implementation/roadmap/capsules/`.
 - Maintain root `AGENTS.md` roadmap context protocol when required.
 - Update `snapshots/latest.md` from confirmed repository state only.
 - Update CURRENT.md immediately when active phase, active capsule, gate status, or forbidden scope changes.
@@ -41,6 +43,8 @@ Do not load future phase documents unless explicitly requested.
 
 Run A6_REVIEW and A8_OUTPUT_CHECKER on any proposed next-phase routing.
 
-Valid next routing options are Phase 02 planning/review, scaffold gate planning, legacy/stale docs cleanup planning, or governance follow-up planning. No option is selected or approved for implementation by this file.
+The selected next routing option is governance follow-up planning through `implementation/roadmap/capsules/artifact-inventory-schema-persistence.md`.
+
+This routing selection authorizes planning and review for a future bounded documentation capsule targeting `docs/meta/ARTIFACT_INVENTORY_SCHEMA.md`. It does not create or approve creation of that schema document in the current routing patch.
 
 This planning gate does not approve Phase 02 implementation, Flutter scaffold execution, Firebase setup, dependency installation, build, init, deploy, or production implementation.
