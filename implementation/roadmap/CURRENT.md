@@ -5,6 +5,7 @@
 - Current track: Track A - Governance and implementation readiness
 - Current phase: `implementation/roadmap/phases/phase-01-governance-ci.md`
 - Current status: Phase 01 governance CI closed; repository remains pre-scaffold
+- Current state: Post-Phase-01 planning gate; planning and review only
 - Current active milestone: Post-Phase-01 planning gate
 
 ## Required Reading Order
@@ -38,4 +39,8 @@ Do not load future phase documents unless explicitly requested.
 
 ## Next Gate
 
-Run A6_REVIEW and A8_OUTPUT_CHECKER on any proposed next-phase routing. This planning gate does not approve Phase 02 implementation, Flutter scaffold execution, Firebase setup, build, init, deploy, or production implementation.
+Run A6_REVIEW and A8_OUTPUT_CHECKER on any proposed next-phase routing.
+
+Valid next routing options are Phase 02 planning/review, scaffold gate planning, legacy/stale docs cleanup planning, or governance follow-up planning. No option is selected or approved for implementation by this file.
+
+This planning gate does not approve Phase 02 implementation, Flutter scaffold execution, Firebase setup, dependency installation, build, init, deploy, or production implementation.

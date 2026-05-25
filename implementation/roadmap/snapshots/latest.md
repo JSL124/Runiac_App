@@ -4,8 +4,8 @@
 
 - Last updated phase: Phase 01 - Governance CI
 - Last updated capsule: Capsule 3 - Governance CI hardening
-- Last verified commit hash: `7ed7f275f8738b56b84c1ba65cfc52779a044da2`
-- Closure context: Phase 01 Governance CI is closed; Post-Phase-01 planning gate is active.
+- Last verified Governance CI hardening/check commit hash: `7ed7f275f8738b56b84c1ba65cfc52779a044da2`
+- Closure context: Phase 01 Governance CI is closed at `f917aab`; Post-Phase-01 planning gate is active.
 
 ## Current Implementation State
 
@@ -55,4 +55,4 @@ Pre-scaffold governance state. Worktree inspection found no committed Flutter ap
 
 ## Current Active Milestone
 
-Phase 01 - Governance CI is closed. Post-Phase-01 planning gate is active. Phase 02 implementation, Flutter scaffold execution, Firebase setup, build, init, deploy, and production implementation remain unauthorized until separate explicit approval exists.
+Phase 01 - Governance CI is closed at `f917aab`. Post-Phase-01 planning gate is active. Phase 02 implementation, Flutter scaffold execution, Firebase setup, dependency installation, build, init, deploy, and production implementation remain unauthorized until separate explicit approval exists.
