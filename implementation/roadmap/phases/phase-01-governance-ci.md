@@ -24,6 +24,13 @@ Require concise proof for gate changes, validation claims, and readiness decisio
 
 Start with the smallest checks that reduce real risk. Avoid broad CI, dependency installs, external services, or build pipelines until the relevant gates are approved.
 
+## Implementation Status
+
+- Capsule 2 - Governance CI implementation is complete.
+- Local Governance CI shell checks were committed and pushed in `50be93e chore(ci): add local governance CI checks`.
+- Implemented checks remain local-only shell scripts under `tools/governance-ci/`; no GitHub Actions, Flutter scaffold, Firebase setup, production source/config, build, deploy, dependency installation, or external service use was introduced.
+- Repository state remains pre-scaffold.
+
 ## Forbidden Deployment/Build Scope
 
 - Do not run Flutter, Firebase, npm, build, test, deploy, scaffold, or init commands unless a later active capsule explicitly authorizes them under the tier system.

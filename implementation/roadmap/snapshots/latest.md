@@ -4,8 +4,8 @@
 
 - Last updated phase: Phase 01 - Governance CI
 - Last updated capsule: Capsule 2 - Governance CI implementation
-- Last verified commit hash: `e66b1d8677258c880bbcc4a139ed513a163b9cff`
-- Closure context: Governance CI check contract committed; Capsule 2 implementation is the active next step.
+- Last verified commit hash: `50be93e80587d67d783f1e40a579f2c04dcb9dcf`
+- Closure context: Governance CI check contract and Capsule 2 local shell check implementation committed; Phase 01 post-implementation roadmap update is active.
 
 ## Current Implementation State
 
@@ -14,6 +14,7 @@ Pre-scaffold governance state. Worktree inspection found no committed Flutter ap
 ## Implemented
 
 - Governance CI check contract committed at `implementation/roadmap/ci/governance-ci-check-contract.md`.
+- Local Governance CI shell checks committed at `tools/governance-ci/` in `50be93e chore(ci): add local governance CI checks`.
 
 ## Not Implemented
 
@@ -51,4 +52,4 @@ Pre-scaffold governance state. Worktree inspection found no committed Flutter ap
 
 ## Current Active Milestone
 
-Phase 01 - Governance CI is active. Capsule 2 - Governance CI implementation is the active capsule. Phase 1 implementation preparation remains approved for scaffold execution review only; actual scaffold execution remains blocked until a separate explicit execution prompt and required approvals exist.
+Phase 01 - Governance CI is active. Capsule 2 - Governance CI implementation is complete. The next expected milestone is A6_REVIEW and A8_OUTPUT_CHECKER review of the post-implementation roadmap update before any Phase 01 closure or routing update. Phase 1 implementation preparation remains approved for scaffold execution review only; actual scaffold execution remains blocked until a separate explicit execution prompt and required approvals exist.
