@@ -1,5 +1,31 @@
 # Runiac AGENTS.md Changelog
 
+## 2026-05-26 - Add Documentation Scope Instructions
+
+### Files modified
+- `AGENTS.md`
+- `docs/AGENTS.md`
+- `docs/meta/AGENTS.md`
+- `docs/pdd/AGENTS_CHANGELOG.md`
+
+### Reason
+Added concise folder-level documentation instructions so general documentation, frozen submissions, PDD reference material, project-management notes, and non-operational meta/archive files have clear local scope without expanding root `AGENTS.md`.
+
+### Summary of changes
+- Added `docs/AGENTS.md` for documentation-wide boundaries, Markdown rules, and review expectations.
+- Added `docs/meta/AGENTS.md` to keep meta/archive files non-operational and separate from routing, approval, setup-gate, and implementation authority.
+- Updated the root mode-specific rule index to point to the new documentation and meta/archive instruction files.
+- Did not create irrelevant source, frontend, backend, infra, or scaffold folders.
+- Did not add, remove, or renumber agent roles.
+- Did not modify PRD, submitted PDD snapshots, PDD deliverable content, diagrams, wireframes, implementation source, Firebase files, tests, generated assets, or production code.
+
+### Review required
+- A6_REVIEW: verify the new docs-level and meta-level instructions do not conflict with root rules, PDD rules, roadmap authority, setup gates, or Runiac role/subscription/backend-owned progression constraints.
+- A8_OUTPUT_CHECKER: verify the new instruction files exist, root routing references them, changelog entry exists, no irrelevant folders were created, and no production/source/scaffold files were modified.
+
+### Final status
+Ready for commit.
+
 ## 2026-05-21 - Add A16 Workflow Auditor
 
 ### Files modified

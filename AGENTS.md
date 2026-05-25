@@ -94,10 +94,12 @@
 - A0_ORCH must check whether an AGENTS.md update is needed when repeated mistakes occur.
 
 ## Mode-Specific Rule Files
+- General documentation work: `docs/AGENTS.md`
 - PDD work: `docs/pdd/AGENTS.md`
 - PDD role details: `docs/pdd/AGENT_ROLES.md`
 - Diagram work: `docs/pdd/diagrams/AGENTS.md`
 - Wireframe and PDD UI/UX design work: `docs/pdd/wireframes/AGENTS.md`
+- Meta/archive work: `docs/meta/AGENTS.md`
 - Implementation work: `implementation/AGENTS.md`
 - Implementation role details: `implementation/AGENT_ROLES.md`
 - Firebase/backend work: `firebase/AGENTS.md`
