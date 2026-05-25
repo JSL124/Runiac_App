@@ -33,6 +33,9 @@ while IFS= read -r line; do
   esac
 
   case "$path" in
+    # Approved: non-operational historical archive (Phase A)
+    docs/meta/.aiignore|docs/meta/README.md|docs/meta/RETROSPECTIVE_POLICY.md|docs/meta/RUNIAC_REPOSITORY_EVOLUTION_REPORT.md|tools/governance-ci/check-historical-isolation.sh)
+      ;;
     implementation/roadmap/CURRENT.md|implementation/roadmap/phases/phase-01-governance-ci.md|implementation/roadmap/snapshots/latest.md|implementation/roadmap/ci/*|tools/governance-ci/*)
       ;;
     *)
