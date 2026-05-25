@@ -3,10 +3,10 @@
 ## Snapshot Metadata
 
 - Last updated phase: Phase 01 - Governance CI
-- Last updated capsule: Artifact Inventory Schema persistence
-- Latest verified commit: `7aaacf1 docs(meta): add artifact inventory schema`
+- Last updated capsule: Repository Workflow Record routing and documentation
+- Latest verified commit: `bbdde20 docs(agents): add documentation scope instructions`
 - Routing commit: `ce8a2d9 docs(roadmap): route artifact inventory schema persistence capsule`
-- Closure context: Phase 01 Governance CI is closed at `f917aab`; Artifact Inventory Schema persistence is complete; no active implementation capsule is selected.
+- Closure context: Phase 01 Governance CI is closed at `f917aab`; Artifact Inventory Schema persistence is complete; Repository Workflow Record documentation/governance routing is active; no active implementation capsule is selected.
 
 ## Current Implementation State
 
@@ -21,6 +21,8 @@ Pre-scaffold governance state. Worktree inspection found no committed Flutter ap
 - Governance CI runner passed for Phase 01 closure review.
 - Artifact Inventory Schema persisted at `docs/meta/ARTIFACT_INVENTORY_SCHEMA.md` in `7aaacf1 docs(meta): add artifact inventory schema`.
 - Artifact Inventory Schema remains non-operational and schema-only.
+- Documentation scope instructions committed in `bbdde20 docs(agents): add documentation scope instructions`.
+- Repository Workflow Record routing/documentation patch is active in the working tree until committed.
 
 ## Not Implemented
 
@@ -31,6 +33,7 @@ Pre-scaffold governance state. Worktree inspection found no committed Flutter ap
 - Production app source code.
 - Production tests/build/deploy pipeline.
 - Artifact inventory entries.
+- Repository Workflow Record commit closure.
 - Repository history reconstruction.
 - Timelines, Genesis material, retrospectives, or autonomous archive systems.
 
@@ -54,6 +57,7 @@ Pre-scaffold governance state. Worktree inspection found no committed Flutter ap
 - Claude deny rules and `.gitignore` cover nested `.env`, Firebase config, service account, signing, private GPS/location/route, and test-evidence artifact patterns.
 - Operational authority remains with `implementation/roadmap/CURRENT.md`, active phase/capsule documents, ADRs, and validated snapshots.
 - `docs/meta` remains non-operational and must not override operational-authority sources.
+- Repository Workflow Record work is documentation/governance-only and does not authorize implementation, setup, scaffold, source, test, build, deploy, or init work.
 
 ## Known Limitations
 
@@ -63,4 +67,4 @@ Pre-scaffold governance state. Worktree inspection found no committed Flutter ap
 
 ## Current Active Milestone
 
-Phase 01 - Governance CI is closed at `f917aab`. Artifact Inventory Schema persistence is complete at `7aaacf1`. No active implementation capsule is selected; next work requires explicit routing. Phase 02 implementation, Flutter scaffold execution, Firebase setup, dependency installation, build, init, deploy, source changes, tests, and production implementation remain unauthorized until separate explicit approval exists.
+Phase 01 - Governance CI is closed at `f917aab`. Artifact Inventory Schema persistence is complete at `7aaacf1`. Repository Workflow Record documentation/governance routing is active in the working tree and has no closure commit yet. No active implementation capsule is selected. Phase 02 implementation, Flutter scaffold execution, Firebase setup, dependency installation, build, init, deploy, source changes, tests, and production implementation remain unauthorized until separate explicit approval exists.

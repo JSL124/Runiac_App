@@ -36,6 +36,9 @@ while IFS= read -r line; do
     # Approved: non-operational historical archive (Phase A)
     docs/meta/.aiignore|docs/meta/README.md|docs/meta/RETROSPECTIVE_POLICY.md|docs/meta/RUNIAC_REPOSITORY_EVOLUTION_REPORT.md|tools/governance-ci/check-historical-isolation.sh)
       ;;
+    # Approved: routed Repository Workflow Record documentation/governance patch only
+    docs/meta/REPOSITORY_WORKFLOW_RECORD.md|implementation/roadmap/capsules/repository-workflow-record.md)
+      ;;
     implementation/roadmap/CURRENT.md|implementation/roadmap/phases/phase-01-governance-ci.md|implementation/roadmap/snapshots/latest.md|implementation/roadmap/ci/*|tools/governance-ci/*)
       ;;
     *)
