@@ -27,7 +27,46 @@ Files skipped during the earlier inspect-only planning pass were skipped only fo
 
 These sources are the baseline used for this draft and the minimum expected read-only sources for future review; they are not a hard maximum if additional approved references are needed.
 
-## 3. Phase 1 Scope Summary
+## 3. Traceability ID Model
+
+Traceability IDs provide stable links between PRD requirements, PDD design references, setup gates, implementation tasks, tests, and demo evidence.
+
+Traceability IDs are planning and verification labels only; they do not approve Flutter scaffolding, Firebase setup, production source creation, tests, builds, deployment, or environment configuration.
+
+| Prefix | Meaning | Example |
+| --- | --- | --- |
+| `REQ-F*` | PRD-numbered functional requirements only. Preserve PRD numbering without zero-padding. | `REQ-F1`, `REQ-F2`, `REQ-F10` |
+| `REQ-NF*` | PRD non-functional, privacy, safety, security, reliability, performance, or quality requirements. | `REQ-NF-PRIV`, `REQ-NF-SEC` |
+| `PDD-APP-*` | Application architecture references. | `PDD-APP-AUTH`, `PDD-APP-XP` |
+| `PDD-PHYS-*` | Physical architecture, Firebase, deployment, external service, or privacy references. | `PDD-PHYS-FIREBASE`, `PDD-PHYS-GPS` |
+| `PDD-COMP-*` | Component diagram references. | `PDD-COMP-ACTIVITY`, `PDD-COMP-NOTIFY` |
+| `PDD-CLASS-*` | Class diagram or data model references. | `PDD-CLASS-USER`, `PDD-CLASS-STATS` |
+| `GATE-FLUTTER-*` | Flutter setup gate references from `setup-gates.md`. | `GATE-FLUTTER-SCAFFOLD` |
+| `GATE-FIREBASE-*` | Firebase setup, config, Firestore, or Cloud Functions gate references from `setup-gates.md`. | `GATE-FIREBASE-CONFIG`, `GATE-FIREBASE-FUNC` |
+| `GATE-SEC-*` | Security, privacy, secrets, rules, role, entitlement, auth/authorization, or GPS gate references from `setup-gates.md`. | `GATE-SEC-SECRETS`, `GATE-SEC-GPS` |
+| `TASK-MVP-*` | Future MVP implementation task references. | `TASK-MVP-AUTH`, `TASK-MVP-XP` |
+| `TEST-UNIT-*` | Unit test target references. | `TEST-UNIT-VALIDATION` |
+| `TEST-WIDGET-*` | Flutter widget test target references. | `TEST-WIDGET-RUN` |
+| `TEST-RULES-*` | Firestore rules test target references. | `TEST-RULES-OWNER`, `TEST-RULES-XP-DENY` |
+| `TEST-FUNC-*` | Cloud Functions test target references. | `TEST-FUNC-XP-AWARD` |
+| `EVID-DEMO-*` | Demo, screenshot, walkthrough, or manual evidence references. | `EVID-DEMO-RUN`, `EVID-DEMO-PRIVACY` |
+
+Naming rules:
+
+- Keep IDs short and flat. Avoid deeply nested IDs.
+- Use `REQ-F*` only for PRD-numbered functional requirements.
+- Use `REQ-NF*` for non-functional, privacy, safety, security, reliability, performance, quality, and cross-cutting requirement constraints.
+- Use `GATE-SEC-*` for setup/security gate conditions, including authentication, authorization, roles, entitlements, secrets, rules, and GPS/privacy approval boundaries.
+- Backend-owned business rules such as XP, streak, level, leaderboard, roles, and entitlements should reference `REQ-NF-*` or `GATE-SEC-*` as appropriate, with wording that points back to `setup-gates.md` invariants.
+- Do not create new ID prefixes beyond `REQ-F*`, `REQ-NF*`, `PDD-*`, `GATE-*`, `TASK-*`, `TEST-*`, and `EVID-DEMO-*`.
+- Use semicolon-separated IDs when one row maps to multiple sources, tasks, gates, tests, or evidence items.
+- IDs are stable once assigned; rename only with an explicit traceability migration note.
+- Gate IDs reference `setup-gates.md`; they do not grant scaffold permission.
+- Future implementation plans, test descriptions, demo evidence, and commit bodies should reference relevant IDs when practical.
+
+<!-- Example mapping rows will be added after the first implementation task is created. -->
+
+## 4. Phase 1 Scope Summary
 
 Phase 1 preparation covers traceability and setup readiness only. It records the design baseline for future implementation of the MVP foundation:
 
@@ -39,7 +78,7 @@ Phase 1 preparation covers traceability and setup readiness only. It records the
 - Expert-plan governance boundaries, including Platform Administrator authority and Medical Trainer/Expert draft/content-provider limits.
 - Future or Phase 2 boundaries for route sharing, territorial leaderboard, and AI/LLM summaries.
 
-## 4. Requirements Traceability Matrix
+## 5. Requirements Traceability Matrix
 
 | Feature / Requirement Area | Source Reference | Phase 1 Priority | Implementation Owner Area | Backend-Owned Fields or Logic | Security / Access-Control Concern | Minimally Viable Test Criterion | Test Layer | Test Assertions | Scaffold Dependency | Status / Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -56,7 +95,7 @@ Phase 1 preparation covers traceability and setup readiness only. It records the
 | Post-run summary / future AI/LLM boundary | PRD F10 and Phase 2 allocation, PRD 4.2, PRD risks R18/R19, PDD app architecture 3.4 and 5, physical architecture 2.4 | Basic rule-based summary may be future/MVP-adjacent; LLM is Phase 2/Premium | Backend summary generation; Flutter display only | AI/LLM calls are backend-controlled; official scoring/ranking logic must not depend on AI/LLM output | LLM must not provide medical diagnosis, injury prediction, or official XP/rank/leaderboard decisions | Summary output is stored/displayed as explanatory feedback only and cannot alter XP, rank, leaderboard score, or plan authority | Cloud Functions Integration Test; A8_OUTPUT_CHECKER Evidence Review | Function test confirms summary path does not write trusted progression/ranking fields; review evidence confirms wording avoids medical claims | Functions and AI boundary gate required | LLM support is future/Premium summary support only |
 | GPS/privacy-sensitive data handling | PRD F1/F7/F8, PRD risks R1/R2/R5/R8, PDD physical architecture security considerations, component Route/Activity services | MVP privacy baseline | Flutter GPS collection; Firestore activity/route storage; backend validation/privacy masking | Backend validates activity plausibility and applies privacy controls before public sharing/ranking use | Precise GPS and route history are sensitive; no private route coordinates should be committed | Private GPS data is owner-only by default; public/shared route data is masked or approved before exposure | Firestore Emulator Rules Test; Manual Evidence / Screenshot | Rules deny non-owner access to raw route coordinates; manual evidence shows no precise private coordinates in committed fixtures/screenshots | Firebase rules, privacy, and map gates required | Use synthetic/coarse test data only |
 
-## 5. Backend-Owned Field and Logic Map
+## 6. Backend-Owned Field and Logic Map
 
 | Field or Logic | Trusted Owner | Client Role | Notes |
 | --- | --- | --- | --- |
@@ -70,7 +109,7 @@ Phase 1 preparation covers traceability and setup readiness only. It records the
 | Expert-plan approve/publish/update/archive/reject/suspend/manage actions | Platform Administrator authority, enforced by restricted backend/admin workflow | Premium users read published plans only; experts submit drafts/content only | Cloud Functions enforce transitions but are not the governance authority. |
 | AI/LLM summary generation | Backend-controlled summary path | Display stored summary | AI/LLM must not write official scoring/ranking/progression logic. |
 
-## 6. Security and Access-Control Notes
+## 7. Security and Access-Control Notes
 
 - Firebase Authentication is the identity source.
 - Firestore rules must protect private user profile, health/safety readiness, activity history, GPS route, training plan, notification preference, and subscription/role data.
@@ -81,7 +120,7 @@ Phase 1 preparation covers traceability and setup readiness only. It records the
 - Platform Administrator remains the authority for expert-plan approval, publishing, update, archive, rejection, suspension, and management.
 - No secrets, API keys, production project IDs, service accounts, `.env*`, `google-services.json`, `GoogleService-Info.plist`, or precise private GPS data should be committed.
 
-## 7. Test Assertions / Minimally Viable Test Criteria
+## 8. Test Assertions / Minimally Viable Test Criteria
 
 | Area | Minimally Viable Test Criterion | Test Layer | Required Assertion |
 | --- | --- | --- | --- |
@@ -98,7 +137,7 @@ Phase 1 preparation covers traceability and setup readiness only. It records the
 | Notifications | Reminder honors preference and eligibility. | Cloud Functions Integration Test; Flutter Widget Test | Disabled reminders produce no send-intent; enabled eligible reminder produces expected send-intent or local preview. |
 | AI/LLM boundary | Summary generation cannot alter official progression/ranking. | Cloud Functions Integration Test; A8_OUTPUT_CHECKER Evidence Review | Summary path writes only summary output and does not write XP/rank/leaderboard fields or medical claims. |
 
-## 8. Scaffold Dependency Notes
+## 9. Scaffold Dependency Notes
 
 Future implementation needs approved gates before creating or changing production scaffolding:
 
@@ -107,7 +146,7 @@ Future implementation needs approved gates before creating or changing productio
 - Firestore and Cloud Functions gates before rules, data collections, functions source, `package.json`, or `tsconfig.json`.
 - Secret/environment gate before any `.env*`, service account, API key, mobile platform config, or production project ID handling.
 
-## 9. Out of Scope for Phase 1
+## 10. Out of Scope for Phase 1
 
 - Full territorial leaderboard implementation unless explicitly re-approved.
 - Community route sharing beyond privacy and data-boundary preparation unless explicitly re-approved.
@@ -117,7 +156,7 @@ Future implementation needs approved gates before creating or changing productio
 - PRD/PDD rewrites.
 - Diagrams, wireframes, generated assets, production tests, deployment, or build automation.
 
-## 10. Open Questions / Approval Needed
+## 11. Open Questions / Approval Needed
 
 - Confirm whether Phase 1 implementation starts with Flutter scaffold, Firebase scaffold, or an additional design review batch.
 - Confirm whether submitted assessment artifacts are needed as read-only verification before implementation starts.
