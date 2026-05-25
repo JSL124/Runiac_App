@@ -41,6 +41,7 @@
 - In IMPLEMENTATION_MODE, do not rewrite PDD-only files unless explicitly required.
 - Do not place production source code inside `docs/`.
 - Keep `docs/pdd/` for design documentation only.
+- `docs/pdd/diagrams/` is the canonical PDD diagram source location. Root `diagrams/` is legacy/reference-only; new edits and future authoritative diagram updates must target `docs/pdd/diagrams/` only.
 - Folder-specific rules are in the closest AGENTS.md file.
 
 ## Markdown Documentation Management

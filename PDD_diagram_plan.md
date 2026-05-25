@@ -1,5 +1,7 @@
 # Runiac PDD Diagram Plan
 
+> Governance warning: this document is legacy/reference-only and is not authoritative for implementation. Current canonical architecture rules override outdated terminology here. Backend-owned XP, rank, streak, level, leaderboard score, weekly/monthly XP, subscription privilege state, and expert publication state must not be directly mutated by the client. Use `subscriptionStatus`; `subscriptionTier` is stale terminology.
+
 > Purpose: plan the diagrams needed for the Runiac Project Design Document (PDD) and define the diagram style based on the supervisor-provided sample PDD.
 > Sample reviewed: `/Users/leejinseo/Desktop/FYP/Week 1/Sub 2 - Project Design Doc Sample.pdf`
 > UML class diagram reference reviewed: `/Users/leejinseo/Desktop/CSCI314 Software Development Methodologies/Slides/Topic 3.pdf`, especially pp.15-23.

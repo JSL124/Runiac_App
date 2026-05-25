@@ -13,6 +13,8 @@
       "Read(./test-evidence/**)",
       "Read(./.env)",
       "Read(./.env.*)",
+      "Read(./**/.env)",
+      "Read(./**/.env.*)",
       "Read(./secrets/**)",
       "Read(./**/secrets/**)",
       "Read(./**/google-services.json)",

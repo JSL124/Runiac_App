@@ -1,5 +1,7 @@
 # Runiac Class Diagram Plan
 
+> Governance warning: this document is legacy/reference-only and is not authoritative for implementation. Current canonical architecture rules override outdated terminology here. Backend-owned XP, rank, streak, level, leaderboard score, weekly/monthly XP, subscription privilege state, and expert publication state must not be directly mutated by the client. Use `subscriptionStatus`; `subscriptionTier` is stale terminology.
+
 > Main reference: `Topic 3.pdf` pages 15-23, which covers the Logical View, UML class symbols, object symbols, and class relationships.
 > Purpose: define how to draw Runiac's UML class diagram for the PDD.
 

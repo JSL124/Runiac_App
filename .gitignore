@@ -64,7 +64,11 @@ temp/
 .cache/
 
 # Private GPS, route, and test evidence artifacts
-test-evidence/
+test-evidence/*
+!test-evidence/
+!test-evidence/AGENTS.md
+!test-evidence/README.md
+!test-evidence/.gitkeep
 **/*gps-private*.json
 **/*route-private*.json
 **/*location-private*.json
