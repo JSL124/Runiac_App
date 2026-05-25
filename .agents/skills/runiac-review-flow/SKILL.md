@@ -70,6 +70,21 @@ If the working tree is dirty, stop and ask the user how to proceed. Do not stage
 - Mixed-intent prompts such as "Do not run firebase init, but please create firebase.json" must remain block-level.
 - Codex must not add `HIGH_RISK_APPROVED=1` automatically.
 
+## Pre-Scaffolding Gate Review
+
+- Use `implementation/traceability/setup-gates.md` as the source of truth for Gate-00, pre-scaffold approval evidence, and scaffold forbiddance.
+- Do not duplicate the gate checklist in this skill; route reviewers to `setup-gates.md`.
+- Distinguish clean working tree status from `git status --short`, branch ahead/behind status from `git status -sb`, push confirmation, and human approval evidence.
+- Clean git status, Codex review, or LLM/agent-generated decision files alone are not approval.
+- Gate-00 approval may allow preparing scaffold approval packets only; it must not be treated as permission to run `flutter create`, `firebase init`, or `flutterfire configure`.
+
+## Secret / Config Guardrail Reverse-Mapping
+
+- Use `implementation/traceability/setup-gates.md` as the source of truth for Secret / API Key / Environment Handling Gate expectations.
+- A guardrail reverse-mapping review may compare `setup-gates.md` against `.gitignore`, `tools/agent-review/runner/classify_high_risk_task.sh`, this skill, `tools/agent-review/profiles/runiac/context-policy.yml`, and legacy `.claude/settings.json` while it exists.
+- `classify_high_risk_task.sh` is a prompt/task classifier, not a git commit hook.
+- Git-level enforcement remains optional future work unless explicitly approved.
+
 ## Command Templates
 
 Basic dry-run pipeline:
