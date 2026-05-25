@@ -4,7 +4,7 @@
 
 ## Purpose
 
-This artifact-backed summary describes the current Runiac repository workflow discipline at a high level. It exists to preserve reusable process understanding without turning `docs/meta/` into an operational source.
+This artifact-backed workflow memory record describes the current Runiac repository workflow discipline. It exists to preserve reusable process understanding without turning `docs/meta/` into an operational source.
 
 The record is intentionally bounded. It does not reconstruct full repository history, define approval state, replace roadmap routing, or authorize implementation work.
 
@@ -28,30 +28,162 @@ Governance CI was introduced as local validation support. Its checks help detect
 
 The current governed state is therefore pre-scaffold and documentation/governance-centered. Runiac has explicit instruction hierarchy, roadmap context, setup gates, local validation checks, and meta/archive boundaries, while Flutter, Firebase, production source, production tests, and Phase 02 work remain outside this record's authority.
 
+## Workflow Memory Recording Schema
+
+Checkpoint numbering is approximate record order only. It is not a complete chronology or timeline.
+
+Each checkpoint uses exactly this block format:
+
+### CP-NN — <Short stable name>
+- Trigger / context:
+- Change / approach:
+- Evidence basis:
+- Confidence:
+- Boundary / not inferred:
+- Recording trigger hint:
+
+Field constraints:
+- Each field should fit in 1-3 sentences or a short bullet list.
+- Recording trigger hint is one sentence only.
+- Recording trigger hint is passive observation only and must not contain commands to future agents.
+- Checkpoint fields should preserve workflow memory without expanding into mini-ADRs.
+
+## Confidence Level Guide
+
+ARTIFACT_VERIFIED
+- Directly supported by committed repository artifacts.
+
+ARTIFACT_INFERRED
+- Supported by multiple artifacts, but exact rationale or sequence is partly inferred.
+- The inference boundary must be stated in Boundary / not inferred.
+
+USER_MEMORY_REQUIRED
+- Cannot be safely reconstructed from repository artifacts alone.
+- Use mainly in the Unknown or User-Memory-Required History section, not as a normal factual checkpoint.
+
+UNSUPPORTED
+- Not safe to claim.
+- Use only to explicitly mark excluded or unsafe claims.
+
 ## Artifact-Backed Evolution Checkpoints
 
-This table is a current repo memory aid. It separates committed artifact-backed evidence from cautious inference, and it is not a complete historical reconstruction.
+These checkpoints are a current repo memory aid. They separate committed artifact-backed evidence from cautious inference, and they are not a complete historical reconstruction.
 
-| Checkpoint | What changed | Why this appears to have happened | Evidence basis | Confidence | Boundary / unsafe claim |
-| --- | --- | --- | --- | --- | --- |
-| FYP documentation baseline | Product/design documentation, PDD references, diagrams, wireframes, and supporting notes formed the early repository focus. | Evidence suggests the repo began as an FYP documentation and design repository before implementation governance became dominant. | `requirements-map.md` source baseline; root and docs AGENTS path protections; PDD/documentation paths referenced by current instructions. | Medium - artifact-backed existence, inferred origin order. | Do not claim the exact earliest repo creation sequence or full PRD/PDD drafting process. |
-| PRD/PDD and submitted-material protection | Submitted assessment material and PDD/reference material became protected from casual edits. | Evidence suggests the human needed stable assessment/design baselines while allowing later governance work to continue elsewhere. | `docs/AGENTS.md`; root `AGENTS.md`; `requirements-map.md` read-only source baseline. | High - committed instruction evidence. | Do not treat protected docs as automatically editable or as implementation approval. |
-| Implementation boundary separation | Production implementation work was separated from documentation and planning work. | Evidence suggests the repo needed to prevent documentation tasks from drifting into Flutter, Firebase, source, tests, builds, or deploys. | Root `AGENTS.md`; `docs/AGENTS.md`; `CURRENT.md`; `latest.md`; `setup-gates.md`. | High - repeated committed guardrails. | Do not infer Phase 02, scaffold, Firebase, source, or test authorization. |
-| Traceability and setup-gate creation | Requirements mapping and setup gates were introduced before scaffold/setup execution. | Evidence suggests the human wanted future implementation to trace back to PRD/PDD requirements and pass explicit gates before irreversible setup actions. | `requirements-map.md`; `setup-gates.md`; recent traceability commits. | High - committed planning artifacts. | Gate evidence is not the same as approval to execute scaffold/setup commands. |
-| Roadmap and `CURRENT.md` operating model | Active work began routing through `implementation/roadmap/CURRENT.md`, active phases/capsules, ADRs, and snapshots. | Evidence suggests the repo needed one current operational context to reduce stale-context and archive-driven decisions. | `AGENTS.md` roadmap context protocol; `CURRENT.md`; `latest.md`. | High - committed operational-routing evidence. | Do not use this record or other `docs/meta` files as routing authority. |
-| Capsule-based execution model | Bounded tasks began using roadmap capsules with explicit scope, forbidden work, validation, and exit criteria. | Evidence suggests the workflow needed short-lived task boundaries that prevent scope creep. | `implementation/roadmap/capsules/`; active Repository Workflow Record capsule; capsule template. | High - committed capsule structure. | Do not treat a capsule as permission for work outside its listed scope. |
-| ADR and tier-gate persistence | ADRs and setup gates preserved durable decisions about tier/access, emulator-first direction, and scaffold readiness. | Evidence suggests stable decision records were needed before implementation choices could safely proceed. | ADR files listed in `CURRENT.md`; `setup-gates.md`; `requirements-map.md`. | Medium - artifact-backed presence, inferred rationale. | Do not claim unlisted ADR decisions or unstored human rationale. |
-| Governance CI local validation checks | Local governance checks were added for roadmap routing, sensitive paths, pre-scaffold scope, historical isolation, diff hygiene, and agent governance. | Evidence suggests the repo needed repeatable local checks to catch workflow drift before readiness claims. | `tools/governance-ci/`; `latest.md`; recent governance CI commits. | High - committed tooling and snapshot evidence. | CI support does not replace human approval, A6/A8 review, or operational routing. |
-| Agent-review workflow | A0_ORCH, A6_REVIEW, A8_OUTPUT_CHECKER, and A14_ERROR_TRIAGE became explicit review lenses for routing, consistency, completeness, and concrete error triage. | Evidence suggests the repo needed named review passes so agent work could be checked without assuming real parallel subagents. | Root `AGENTS.md`; `docs/AGENTS.md`; `setup-gates.md`; `tools/agent-review/`; traceability review artifacts. | High - committed instructions and tooling evidence. | Do not claim every past task used the workflow correctly without reading its task evidence. |
-| `docs/meta` non-operational archive boundary | Meta files were explicitly limited to reflective, historical, or schema-only context. | Evidence suggests the human wanted long-term memory without allowing archive notes to become operational truth. | `docs/meta/AGENTS.md`; `META_KNOWLEDGE_ARCHITECTURE.md`; `ARTIFACT_INVENTORY_SCHEMA.md`; this record's banner. | High - committed boundary evidence. | Do not use `docs/meta` as approval evidence, routing authority, setup-gate authority, or implementation guidance. |
-| Artifact Inventory Schema creation | A schema-only meta document was persisted without creating inventory entries. | Evidence suggests the repo wanted a controlled future inventory shape while blocking live inventory, timelines, Genesis material, or autonomous archives. | `ARTIFACT_INVENTORY_SCHEMA.md`; `CURRENT.md`; `latest.md`; artifact inventory capsule routing/completion references. | High - committed artifact and routing evidence. | Do not create inventory entries or infer artifact authority from the schema. |
-| AGENTS hierarchy refinement | Root and folder-level AGENTS files became the active instruction hierarchy for global and local scope rules. | Evidence suggests the repo needed concise global rules plus folder-specific boundaries to avoid duplicated or conflicting instructions. | Root `AGENTS.md`; `docs/AGENTS.md`; `docs/meta/AGENTS.md`; documentation-scope commit context in `latest.md`. | High - committed instruction evidence. | Do not treat planning or meta files as active instructions unless explicitly routed. |
-| Repository Workflow Record routing | A bounded non-operational workflow record was routed under `docs/meta`. | Evidence suggests the human wanted a practical process memory aid without creating a Genesis file, timeline, or full history reconstruction. | `CURRENT.md`; `latest.md`; active workflow-record capsule; this document. | High for active route; medium for human motivation. | Do not claim this record is complete history or operational authority. |
-| Current governed pre-scaffold state | The current repo state is governed, pre-scaffold, and documentation/governance-centered. | Evidence suggests prior workflow choices shaped a repo that can prepare implementation without yet authorizing scaffold/setup execution. | `CURRENT.md`; `latest.md`; `setup-gates.md`; root AGENTS; governance CI files. | High - committed current-state evidence. | Do not infer Flutter scaffold execution, Firebase setup, Phase 02, source, tests, builds, init, deploy, or production implementation. |
+### CP-01 — FYP documentation baseline
+- Trigger / context: Product/design documentation, PDD references, diagrams, wireframes, and supporting notes formed the early repository focus.
+- Change / approach: The repository memory records a design-documentation baseline before the later governance-centered structure became dominant.
+- Evidence basis: `requirements-map.md` source baseline; root and docs AGENTS path protections; PDD/documentation paths referenced by current instructions.
+- Confidence: ARTIFACT_INFERRED.
+- Boundary / not inferred: Artifact presence is visible, but the exact earliest repo creation sequence and complete PRD/PDD drafting process are not reconstructed.
+- Recording trigger hint: Future changes to committed baseline documentation or protected PDD/reference paths may indicate that this checkpoint should be reviewed.
+
+### CP-02 — PRD/PDD and submitted-material protection
+- Trigger / context: Submitted assessment material and PDD/reference material became protected from casual edits.
+- Change / approach: Documentation protections separated stable assessment/design baselines from later governance or planning work.
+- Evidence basis: `docs/AGENTS.md`; root `AGENTS.md`; `requirements-map.md` read-only source baseline.
+- Confidence: ARTIFACT_VERIFIED.
+- Boundary / not inferred: Protected docs are not automatically editable and do not create implementation approval.
+- Recording trigger hint: Future changes to submitted-material or PDD protection rules may indicate that this checkpoint should be reviewed.
+
+### CP-03 — Implementation boundary separation
+- Trigger / context: Production implementation work was separated from documentation and planning work.
+- Change / approach: Guardrails block documentation tasks from drifting into Flutter, Firebase, source, tests, builds, or deploys.
+- Evidence basis: Root `AGENTS.md`; `docs/AGENTS.md`; `CURRENT.md`; `latest.md`; `setup-gates.md`.
+- Confidence: ARTIFACT_VERIFIED.
+- Boundary / not inferred: Phase 02, scaffold, Firebase, source, or test authorization is not inferred.
+- Recording trigger hint: Future changes to documentation or implementation boundary rules may indicate that this checkpoint should be reviewed.
+
+### CP-04 — Traceability and setup-gate creation
+- Trigger / context: Requirements mapping and setup gates were introduced before scaffold/setup execution.
+- Change / approach: Future implementation planning was tied to PRD/PDD traceability and explicit gates before irreversible or external setup actions.
+- Evidence basis: `requirements-map.md`; `setup-gates.md`; recent traceability commits.
+- Confidence: ARTIFACT_VERIFIED.
+- Boundary / not inferred: Gate evidence is not approval to execute scaffold/setup commands.
+- Recording trigger hint: Future setup-gate or traceability changes may indicate that this checkpoint should be reviewed.
+
+### CP-05 — Roadmap and `CURRENT.md` operating model
+- Trigger / context: Active work began routing through `implementation/roadmap/CURRENT.md`, active phases/capsules, ADRs, and snapshots.
+- Change / approach: The workflow established one current operational context to reduce stale-context and archive-driven decisions.
+- Evidence basis: `AGENTS.md` roadmap context protocol; `CURRENT.md`; `latest.md`.
+- Confidence: ARTIFACT_VERIFIED.
+- Boundary / not inferred: This record and other `docs/meta` files are not routing authority.
+- Recording trigger hint: Future changes to roadmap context routing may indicate that this checkpoint should be reviewed.
+
+### CP-06 — Capsule-based execution model
+- Trigger / context: Bounded tasks began using roadmap capsules with explicit scope, forbidden work, validation, and exit criteria.
+- Change / approach: Short-lived task boundaries were used to prevent scope creep and keep work inside selected capsule scope.
+- Evidence basis: `implementation/roadmap/capsules/`; Repository Workflow Record capsule; capsule template.
+- Confidence: ARTIFACT_VERIFIED.
+- Boundary / not inferred: A capsule is not permission for work outside its listed scope.
+- Recording trigger hint: Future capsule model or template changes may indicate that this checkpoint should be reviewed.
+
+### CP-07 — ADR and tier-gate persistence
+- Trigger / context: ADRs and setup gates preserved durable decisions about tier/access, emulator-first direction, and scaffold readiness.
+- Change / approach: The repository records stable decisions before implementation choices proceed.
+- Evidence basis: ADR files listed in `CURRENT.md`; `setup-gates.md`; `requirements-map.md`.
+- Confidence: ARTIFACT_INFERRED.
+- Boundary / not inferred: The stored decisions are artifact-backed, but unlisted ADR decisions and unstored human rationale are not claimed.
+- Recording trigger hint: Future ADR or setup-gate persistence changes may indicate that this checkpoint should be reviewed.
+
+### CP-08 — Governance CI local validation checks
+- Trigger / context: Local governance checks were added for roadmap routing, sensitive paths, pre-scaffold scope, historical isolation, diff hygiene, and agent governance.
+- Change / approach: Repeatable local checks support readiness review by catching workflow drift before readiness claims.
+- Evidence basis: `tools/governance-ci/`; `latest.md`; recent governance CI commits.
+- Confidence: ARTIFACT_VERIFIED.
+- Boundary / not inferred: CI support does not replace human approval, A6/A8 review, or operational routing.
+- Recording trigger hint: Future Governance CI check changes may indicate that this checkpoint should be reviewed.
+
+### CP-09 — Agent-review workflow
+- Trigger / context: A0_ORCH, A6_REVIEW, A8_OUTPUT_CHECKER, and A14_ERROR_TRIAGE became explicit review lenses for routing, consistency, completeness, and concrete error triage.
+- Change / approach: Named review passes let agent work be checked without assuming real parallel subagents.
+- Evidence basis: Root `AGENTS.md`; `docs/AGENTS.md`; `setup-gates.md`; `tools/agent-review/`; traceability review artifacts.
+- Confidence: ARTIFACT_VERIFIED.
+- Boundary / not inferred: This does not claim every past task used the workflow correctly without reading its task evidence.
+- Recording trigger hint: Future changes to review lenses or agent-review tooling may indicate that this checkpoint should be reviewed.
+
+### CP-10 — `docs/meta` non-operational archive boundary
+- Trigger / context: Meta files were explicitly limited to reflective, historical, or schema-only context.
+- Change / approach: Long-term memory was separated from operational truth, routing authority, approval evidence, setup-gate evidence, and implementation guidance.
+- Evidence basis: `docs/meta/AGENTS.md`; `META_KNOWLEDGE_ARCHITECTURE.md`; `ARTIFACT_INVENTORY_SCHEMA.md`; this record's banner.
+- Confidence: ARTIFACT_VERIFIED.
+- Boundary / not inferred: `docs/meta` must not be used as approval evidence, routing authority, setup-gate authority, or implementation guidance.
+- Recording trigger hint: Future changes to `docs/meta` authority boundaries may indicate that this checkpoint should be reviewed.
+
+### CP-11 — Artifact Inventory Schema creation
+- Trigger / context: A schema-only meta document was persisted without creating inventory entries.
+- Change / approach: A controlled future inventory shape was recorded while blocking live inventory, timelines, Genesis material, or autonomous archives.
+- Evidence basis: `ARTIFACT_INVENTORY_SCHEMA.md`; `CURRENT.md`; `latest.md`; artifact inventory capsule routing/completion references.
+- Confidence: ARTIFACT_VERIFIED.
+- Boundary / not inferred: Inventory entries are not created, and artifact authority is not inferred from the schema.
+- Recording trigger hint: Future artifact inventory schema or entry-scope changes may indicate that this checkpoint should be reviewed.
+
+### CP-12 — AGENTS hierarchy refinement
+- Trigger / context: Root and folder-level AGENTS files became the active instruction hierarchy for global and local scope rules.
+- Change / approach: Concise global rules and folder-specific boundaries reduce duplicated or conflicting instructions.
+- Evidence basis: Root `AGENTS.md`; `docs/AGENTS.md`; `docs/meta/AGENTS.md`; documentation-scope commit context in `latest.md`.
+- Confidence: ARTIFACT_VERIFIED.
+- Boundary / not inferred: Planning or meta files are not active instructions unless explicitly routed.
+- Recording trigger hint: Future AGENTS hierarchy changes may indicate that this checkpoint should be reviewed.
+
+### CP-13 — Repository Workflow Record routing
+- Trigger / context: A bounded non-operational workflow record was routed under `docs/meta`.
+- Change / approach: A practical process memory aid was recorded without creating a Genesis file, timeline, or full history reconstruction.
+- Evidence basis: `CURRENT.md`; `latest.md`; Repository Workflow Record capsule; this document.
+- Confidence: ARTIFACT_INFERRED.
+- Boundary / not inferred: The active route is artifact-backed, but human motivation is not fully reconstructed and this record is not complete history or operational authority.
+- Recording trigger hint: Future changes to Repository Workflow Record routing or closure state may indicate that this checkpoint should be reviewed.
+
+### CP-14 — Current governed pre-scaffold state
+- Trigger / context: The current repo state is governed, pre-scaffold, and documentation/governance-centered.
+- Change / approach: Existing workflow choices support implementation preparation without authorizing scaffold/setup execution.
+- Evidence basis: `CURRENT.md`; `latest.md`; `setup-gates.md`; root AGENTS; governance CI files.
+- Confidence: ARTIFACT_VERIFIED.
+- Boundary / not inferred: Flutter scaffold execution, Firebase setup, Phase 02, source, tests, builds, init, deploy, or production implementation are not inferred.
+- Recording trigger hint: Future changes to scaffold/setup authorization or repository implementation state may indicate that this checkpoint should be reviewed.
 
 ## Unknown or User-Memory-Required History
 
-The current repo memory cannot safely reconstruct every part of the human workflow. These items require human memory, external chat summaries, or additional artifact-backed evidence:
+The current repo memory cannot safely reconstruct every part of the human workflow. These items align with USER_MEMORY_REQUIRED and require human memory, external chat summaries, or additional artifact-backed evidence:
 
 - The exact earliest repo creation sequence.
 - Chat-only decisions that were not persisted into committed artifacts.
@@ -90,7 +222,7 @@ A8_OUTPUT_CHECKER checks completeness, readiness claims, modified file lists, va
 
 ## Human Approval Gates
 
-Human approval remains required for higher-risk work, especially irreversible or external actions. The current setup-gate discipline separates review readiness from execution approval.
+Human approval remains required for Tier 1 or external work, especially irreversible actions. The current setup-gate discipline separates review readiness from execution approval.
 
 Review results, clean status, or agent-generated decisions do not authorize Flutter scaffold execution, Firebase setup, production service changes, deployment, source creation, or tests unless a human-approved task explicitly grants that scope.
 
