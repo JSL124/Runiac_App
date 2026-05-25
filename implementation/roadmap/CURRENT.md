@@ -4,8 +4,8 @@
 
 - Current track: Track A - Governance and implementation readiness
 - Current phase: `implementation/roadmap/phases/phase-01-governance-ci.md`
-- Current status: Phase 00 governance freeze closed; Phase 01 governance CI active; Governance CI check contract and local shell checks committed
-- Current active milestone: Capsule 2 complete; Phase 01 post-implementation roadmap update and review
+- Current status: Phase 00 governance freeze closed; Phase 01 governance CI active; Governance CI check contract, local shell checks, and Capsule 3 routing hardening committed
+- Current active milestone: Capsule 3 complete; Phase 01 closure review pending
 
 ## Required Reading Order
 
@@ -38,4 +38,4 @@ Do not load future phase documents unless explicitly requested.
 
 ## Next Gate
 
-Run A6_REVIEW and A8_OUTPUT_CHECKER on this post-implementation roadmap update, then prepare the next Phase 01 closure or routing update only after review approval. Do not advance Flutter scaffold approval or execution.
+Run A6_REVIEW and A8_OUTPUT_CHECKER on Phase 01 closure readiness before any phase transition. Do not advance Flutter scaffold approval or execution.

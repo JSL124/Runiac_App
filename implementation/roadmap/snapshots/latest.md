@@ -3,9 +3,9 @@
 ## Snapshot Metadata
 
 - Last updated phase: Phase 01 - Governance CI
-- Last updated capsule: Capsule 2 - Governance CI implementation
-- Last verified commit hash: `50be93e80587d67d783f1e40a579f2c04dcb9dcf`
-- Closure context: Governance CI check contract and Capsule 2 local shell check implementation committed; Phase 01 post-implementation roadmap update is active.
+- Last updated capsule: Capsule 3 - Governance CI hardening
+- Last verified commit hash: `7ed7f275f8738b56b84c1ba65cfc52779a044da2`
+- Closure context: Capsule 3 Governance CI hardening committed; Phase 01 closure review is the next gate.
 
 ## Current Implementation State
 
@@ -15,6 +15,8 @@ Pre-scaffold governance state. Worktree inspection found no committed Flutter ap
 
 - Governance CI check contract committed at `implementation/roadmap/ci/governance-ci-check-contract.md`.
 - Local Governance CI shell checks committed at `tools/governance-ci/` in `50be93e chore(ci): add local governance CI checks`.
+- Governance CI routing hardening committed in `7ed7f27 chore(ci): harden governance CI routing`.
+- `tools/governance-ci/check-roadmap-routing.sh` is generalized and `tools/governance-ci/run-all-checks.sh` is available as the local runner.
 
 ## Not Implemented
 
@@ -52,4 +54,4 @@ Pre-scaffold governance state. Worktree inspection found no committed Flutter ap
 
 ## Current Active Milestone
 
-Phase 01 - Governance CI is active. Capsule 2 - Governance CI implementation is complete. The next expected milestone is A6_REVIEW and A8_OUTPUT_CHECKER review of the post-implementation roadmap update before any Phase 01 closure or routing update. Phase 1 implementation preparation remains approved for scaffold execution review only; actual scaffold execution remains blocked until a separate explicit execution prompt and required approvals exist.
+Phase 01 - Governance CI is active. Capsule 3 - Governance CI hardening is complete. The next expected milestone is A6_REVIEW and A8_OUTPUT_CHECKER Phase 01 closure review. Phase 1 implementation preparation remains approved for scaffold execution review only; actual scaffold execution remains blocked until a separate explicit execution prompt and required approvals exist.

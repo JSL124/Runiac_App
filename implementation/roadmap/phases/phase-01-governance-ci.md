@@ -28,6 +28,8 @@ Start with the smallest checks that reduce real risk. Avoid broad CI, dependency
 
 - Capsule 2 - Governance CI implementation is complete.
 - Local Governance CI shell checks were committed and pushed in `50be93e chore(ci): add local governance CI checks`.
+- Capsule 3 - Governance CI hardening is complete.
+- `check-roadmap-routing.sh` was generalized and `run-all-checks.sh` was added in `7ed7f27 chore(ci): harden governance CI routing`.
 - Implemented checks remain local-only shell scripts under `tools/governance-ci/`; no GitHub Actions, Flutter scaffold, Firebase setup, production source/config, build, deploy, dependency installation, or external service use was introduced.
 - Repository state remains pre-scaffold.
 
