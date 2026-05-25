@@ -378,3 +378,22 @@ Still forbidden until relevant gates are approved:
 | --- | --- | --- | --- | --- |
 | 2026-05-24 | Gate-00: Git State Baseline | `Drafted` to `Under Review` | A0_ORCH based on `git status --short` clean output, `git status -sb` showing `main...origin/main`, and latest traceability setup commit `30c55b5 docs(traceability): add phase 1 implementation prep gates` present locally | This is not approval. Gate-00 still requires explicit human/project approval evidence before `Approved`. |
 | 2026-05-24 | Phase 1 traceability docs | Created as `Drafted` | User approved creation of `requirements-map.md` and `setup-gates.md` only | Does not approve scaffolding or implementation. LLM/agent-generated decisions alone are not approval. |
+
+### Gate-00 Approval Evidence
+
+- Status: APPROVED
+- Date: 2026-05-25
+- Approver: Lee Jinseo
+- Conditions met:
+  - clean working tree
+  - branch aligned with origin/main
+  - .gitignore hardened
+  - traceability IDs added
+  - Gate-00 reviewed while marked Under Review
+  - protected materials untouched
+  - Flutter/Firebase scaffold markers absent
+- Known remaining risks:
+  - .gitignore covers standard `.env` and `.env.*` patterns; unconventional names like `.envrc` or `.envproduction` are not explicitly covered. Assessment: low risk for FYP scope; Runiac does not currently use these patterns. Future action: add if unconventional env files are introduced.
+- Authorization scope:
+  - This approval authorizes preparing scaffold approval packets only.
+  - This approval does not authorize running `flutter create`, `firebase init`, or `flutterfire configure`.
