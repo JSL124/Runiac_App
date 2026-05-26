@@ -19,8 +19,8 @@ is_allowed_path() {
     docs/meta/.aiignore|docs/meta/README.md|docs/meta/RETROSPECTIVE_POLICY.md|docs/meta/RUNIAC_REPOSITORY_EVOLUTION_REPORT.md|tools/governance-ci/check-historical-isolation.sh)
       return 0
       ;;
-    # Approved: routed Repository Workflow Record documentation/governance patch only
-    docs/meta/REPOSITORY_WORKFLOW_RECORD.md|implementation/roadmap/capsules/repository-workflow-record.md)
+    # Approved: routed capsule documentation/governance patches only
+    docs/meta/REPOSITORY_WORKFLOW_RECORD.md|implementation/roadmap/capsules/repository-workflow-record.md|implementation/roadmap/capsules/flutter-app-shell-baseline.md)
       return 0
       ;;
     # Approved: scaffold-baseline instruction/setup-gate alignment only

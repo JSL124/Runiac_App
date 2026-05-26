@@ -4,18 +4,19 @@
 
 - Current track: Track A - Governance and implementation readiness
 - Current phase: `implementation/roadmap/phases/phase-01-governance-ci.md`
-- Current active capsule: None selected
+- Current active capsule: `implementation/roadmap/capsules/flutter-app-shell-baseline.md`
 - Most recent completed capsule: `implementation/roadmap/capsules/repository-workflow-record.md`
-- Current status: Phase 01 governance CI closed; Artifact Inventory Schema persistence completed; Repository Workflow Record capsule closed; Flutter scaffold baseline present at `implementation/mobile/runiac_app/`
-- Current state: Scaffold-baseline governance state; next work requires explicit routing
-- Current active milestone: None selected
+- Current status: Phase 01 governance CI closed; Artifact Inventory Schema persistence completed; Repository Workflow Record capsule closed; Flutter scaffold baseline present at `implementation/mobile/runiac_app/`; `flutter-app-shell-baseline` selected for routing/planning only
+- Current state: Scaffold-baseline governance state; active capsule routing does not authorize Flutter source implementation
+- Current active milestone: `flutter-app-shell-baseline` routing and review
 
 ## Required Reading Order
 
 1. `implementation/roadmap/CURRENT.md`
-2. Active phase document: `implementation/roadmap/phases/phase-01-governance-ci.md` (closed); no active capsule is selected
-3. Relevant ADRs listed below
-4. `implementation/roadmap/snapshots/latest.md`
+2. Active phase document: `implementation/roadmap/phases/phase-01-governance-ci.md` (closed)
+3. Active capsule document: `implementation/roadmap/capsules/flutter-app-shell-baseline.md`
+4. Relevant ADRs listed below
+5. `implementation/roadmap/snapshots/latest.md`
 
 Do not load future phase documents unless explicitly requested.
 
@@ -48,9 +49,11 @@ Do not load future phase documents unless explicitly requested.
 
 ## Next Gate
 
-Select the next work item explicitly before any further governance or implementation task.
+Review the `flutter-app-shell-baseline` routing patch before any Flutter source implementation.
 
-Run A6_REVIEW and A8_OUTPUT_CHECKER on any proposed next-phase routing.
+Run A6_REVIEW and A8_OUTPUT_CHECKER before committing this routing patch and again before any future Flutter source implementation patch.
+
+This active capsule is a routing/planning activation only. It does not approve Phase 02 implementation, Firebase setup, `flutterfire configure`, dependency installation, build, init, deploy, tests, source changes beyond the future capsule's explicitly allowed files, or production implementation. Flutter source implementation requires a separate implementation-approved prompt after review.
 
 Artifact Inventory Schema persistence is complete:
 
@@ -58,7 +61,7 @@ Artifact Inventory Schema persistence is complete:
 - Completion commit: `7aaacf1 docs(meta): add artifact inventory schema`
 - Created document: `docs/meta/ARTIFACT_INVENTORY_SCHEMA.md`
 
-No active implementation capsule should be inferred from this completed work.
+No implementation authorization should be inferred from this completed work.
 
 This post-completion state records the already-approved Flutter scaffold baseline only. It does not approve Phase 02 implementation, Firebase setup, `flutterfire configure`, dependency installation, build, init, deploy, tests, source changes beyond the stock scaffold baseline, or production implementation.
 
@@ -69,7 +72,7 @@ Flutter scaffold baseline is present:
 - Scaffold path: `implementation/mobile/runiac_app/`
 - Firebase remains uninitialized.
 - `flutterfire configure` has not been run.
-- No production Runiac feature implementation is authorized.
+- No production Runiac feature implementation is authorized by this routing patch.
 - No build, deploy, source expansion, or test expansion is authorized unless separately routed.
 - Flutter may later display trusted XP, streak, level, rank, weekly XP, monthly XP, leaderboard, subscription, and expert-plan state, but the client must not write backend-owned progression, entitlement, ranking, or expert-publication fields.
 
