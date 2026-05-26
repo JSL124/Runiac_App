@@ -113,67 +113,396 @@ class _HomeTab extends StatelessWidget {
       child: ColoredBox(
         color: RuniacColors.background,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
-          children: [
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: RuniacColors.white,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: RuniacColors.border),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const _HomeAccentBar(),
-                  const SizedBox(height: 18),
-                  const Text(
-                    'Ready for an easy run?',
-                    style: TextStyle(
-                      color: RuniacColors.textPrimary,
-                      fontSize: 30,
-                      fontWeight: FontWeight.w800,
-                      height: 1.12,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  const Text(
-                    'Keep today comfortable. Choose a route you know, ease into '
-                    'the pace, and stop whenever your body asks for a break.',
-                    style: TextStyle(
-                      color: RuniacColors.textSecondary,
-                      fontSize: 16,
-                      height: 1.45,
-                    ),
-                  ),
-                  const SizedBox(height: 22),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton.icon(
-                      onPressed: () {},
-                      icon: const Icon(Icons.directions_run),
-                      label: const Text('Start Run'),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: RuniacColors.primaryBlue,
-                        foregroundColor: RuniacColors.white,
-                        minimumSize: const Size.fromHeight(52),
-                        textStyle: const TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 18),
-            const _HomeGuidanceCard(),
-            const SizedBox(height: 14),
-            const _HomeEmptyStateCard(),
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 32),
+          children: const [
+            _HomeHeader(),
+            SizedBox(height: 16),
+            _TodayPlanCard(),
+            SizedBox(height: 14),
+            _GoalPreparationCard(),
+            SizedBox(height: 14),
+            _RunnerProgressCard(),
+            SizedBox(height: 14),
+            _WeeklyPlanCard(),
+            SizedBox(height: 14),
+            _LastRunCard(),
+            SizedBox(height: 14),
+            _AdviceCard(),
+            SizedBox(height: 14),
+            _CommunityRouteCard(),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _HomeHeader extends StatelessWidget {
+  const _HomeHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _HomeAccentBar(),
+        SizedBox(height: 16),
+        Text(
+          'Good to see you',
+          style: TextStyle(
+            color: RuniacColors.textPrimary,
+            fontSize: 30,
+            fontWeight: FontWeight.w800,
+            height: 1.12,
+          ),
+        ),
+        SizedBox(height: 8),
+        Text(
+          'Your Home dashboard is ready for a calm start.',
+          style: TextStyle(
+            color: RuniacColors.textSecondary,
+            fontSize: 16,
+            height: 1.4,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _TodayPlanCard extends StatelessWidget {
+  const _TodayPlanCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return _DashboardCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _CardTitle(icon: Icons.calendar_today, title: 'Today\'s Plan'),
+          const SizedBox(height: 16),
+          const Text(
+            'Ready for an easy run?',
+            style: TextStyle(
+              color: RuniacColors.textPrimary,
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              height: 1.15,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Your next run will appear here.',
+            style: TextStyle(
+              color: RuniacColors.textSecondary,
+              fontSize: 15,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 18),
+          Row(
+            children: [
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: () {},
+                  icon: const Icon(Icons.directions_run),
+                  label: const Text('Quick Start'),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(48),
+                    textStyle: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () {},
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: RuniacColors.primaryBlue,
+                    side: const BorderSide(color: RuniacColors.border),
+                    minimumSize: const Size.fromHeight(48),
+                    textStyle: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  child: const Text('View Plan'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GoalPreparationCard extends StatelessWidget {
+  const _GoalPreparationCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return const _DashboardCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _CardTitle(icon: Icons.flag_outlined, title: 'Goal Preparation'),
+          SizedBox(height: 14),
+          Text(
+            'Your training progress will appear here.',
+            style: TextStyle(
+              color: RuniacColors.textPrimary,
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          SizedBox(height: 8),
+          Text(
+            'Next milestone appears after your plan starts.',
+            style: TextStyle(
+              color: RuniacColors.textSecondary,
+              fontSize: 15,
+              height: 1.4,
+            ),
+          ),
+          SizedBox(height: 18),
+          _ProgressPlaceholder(),
+        ],
+      ),
+    );
+  }
+}
+
+class _RunnerProgressCard extends StatelessWidget {
+  const _RunnerProgressCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return const _DashboardCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _CardTitle(
+            icon: Icons.emoji_events_outlined,
+            title: 'Runner Progress',
+          ),
+          SizedBox(height: 14),
+          Text(
+            'XP and level will appear after verified runs.',
+            style: TextStyle(
+              color: RuniacColors.textSecondary,
+              fontSize: 15,
+              height: 1.4,
+            ),
+          ),
+          SizedBox(height: 18),
+          _ProgressPlaceholder(),
+        ],
+      ),
+    );
+  }
+}
+
+class _WeeklyPlanCard extends StatelessWidget {
+  const _WeeklyPlanCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return _DashboardCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _CardTitle(
+            icon: Icons.view_week_outlined,
+            title: 'This Week\'s Plan',
+          ),
+          const SizedBox(height: 14),
+          const Text(
+            'Your weekly plan will appear after setup.',
+            style: TextStyle(
+              color: RuniacColors.textSecondary,
+              fontSize: 15,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 16),
+          const _PlanSkeletonRow(),
+          const SizedBox(height: 10),
+          const _PlanSkeletonRow(),
+          const SizedBox(height: 10),
+          const _PlanSkeletonRow(),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: () {},
+              style: OutlinedButton.styleFrom(
+                foregroundColor: RuniacColors.primaryBlue,
+                side: const BorderSide(color: RuniacColors.border),
+                minimumSize: const Size.fromHeight(46),
+                textStyle: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+              child: const Text('View Plan'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LastRunCard extends StatelessWidget {
+  const _LastRunCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return const _DashboardCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _CardTitle(icon: Icons.history, title: 'Last Run'),
+          SizedBox(height: 14),
+          Text(
+            'Complete a run to see your summary.',
+            style: TextStyle(
+              color: RuniacColors.textPrimary,
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          SizedBox(height: 8),
+          Text(
+            'Your first run summary will appear here.',
+            style: TextStyle(
+              color: RuniacColors.textSecondary,
+              fontSize: 15,
+              height: 1.4,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AdviceCard extends StatelessWidget {
+  const _AdviceCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return const _DashboardCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _CardTitle(icon: Icons.tips_and_updates_outlined, title: 'Advice'),
+          SizedBox(height: 14),
+          Text(
+            'Post-run advice will appear after your completed runs.',
+            style: TextStyle(
+              color: RuniacColors.textSecondary,
+              fontSize: 15,
+              height: 1.4,
+            ),
+          ),
+          SizedBox(height: 12),
+          _SoftNotice(text: 'Helpful guidance will appear here after a run.'),
+        ],
+      ),
+    );
+  }
+}
+
+class _CommunityRouteCard extends StatelessWidget {
+  const _CommunityRouteCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return const _DashboardCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _CardTitle(
+            icon: Icons.route_outlined,
+            title: 'Recommended Community Route',
+            accent: true,
+          ),
+          SizedBox(height: 14),
+          Text(
+            'Community routes will appear here.',
+            style: TextStyle(
+              color: RuniacColors.textSecondary,
+              fontSize: 15,
+              height: 1.4,
+            ),
+          ),
+          SizedBox(height: 16),
+          _RoutePlaceholder(),
+        ],
+      ),
+    );
+  }
+}
+
+class _DashboardCard extends StatelessWidget {
+  const _DashboardCard({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 0,
+      color: RuniacColors.white,
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: const BorderSide(color: RuniacColors.border),
+      ),
+      child: Padding(padding: const EdgeInsets.all(20), child: child),
+    );
+  }
+}
+
+class _CardTitle extends StatelessWidget {
+  const _CardTitle({
+    required this.icon,
+    required this.title,
+    this.accent = false,
+  });
+
+  final IconData icon;
+  final String title;
+  final bool accent;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(
+            color: accent ? const Color(0x1AFC6818) : const Color(0x1A2F50C7),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(
+            icon,
+            color: accent
+                ? RuniacColors.accentOrange
+                : RuniacColors.primaryBlue,
+            size: 20,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            title,
+            style: const TextStyle(
+              color: RuniacColors.textPrimary,
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+              height: 1.2,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -186,7 +515,7 @@ class _HomeAccentBar extends StatelessWidget {
     return Row(
       children: [
         Container(
-          width: 40,
+          width: 42,
           height: 5,
           decoration: BoxDecoration(
             color: RuniacColors.primaryBlue,
@@ -207,118 +536,166 @@ class _HomeAccentBar extends StatelessWidget {
   }
 }
 
-class _HomeGuidanceCard extends StatelessWidget {
-  const _HomeGuidanceCard();
+class _ProgressPlaceholder extends StatelessWidget {
+  const _ProgressPlaceholder();
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 0,
-      color: RuniacColors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-        side: const BorderSide(color: RuniacColors.border),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
-            Text(
-              'Today\'s gentle focus',
-              style: TextStyle(
-                color: RuniacColors.textPrimary,
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            SizedBox(height: 14),
-            _GuidanceRow(
-              icon: Icons.self_improvement,
-              text: 'Start easy and let the first stretch feel relaxed.',
-            ),
-            SizedBox(height: 12),
-            _GuidanceRow(
-              icon: Icons.favorite_border,
-              text: 'Keep breathing comfortable instead of chasing speed.',
-            ),
-            SizedBox(height: 12),
-            _GuidanceRow(
-              icon: Icons.check_circle_outline,
-              text: 'Finishing calmly still counts as a useful session.',
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _GuidanceRow extends StatelessWidget {
-  const _GuidanceRow({required this.icon, required this.text});
-
-  final IconData icon;
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
       children: [
-        Icon(icon, size: 22, color: RuniacColors.accentOrange),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            text,
-            style: const TextStyle(
-              color: RuniacColors.textSecondary,
-              fontSize: 15,
-              height: 1.35,
-            ),
+        Container(
+          height: 12,
+          decoration: BoxDecoration(
+            color: RuniacColors.background,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: RuniacColors.border),
           ),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: const [
+            Expanded(child: _SkeletonLine()),
+            SizedBox(width: 12),
+            _SkeletonLine(width: 58),
+          ],
         ),
       ],
     );
   }
 }
 
-class _HomeEmptyStateCard extends StatelessWidget {
-  const _HomeEmptyStateCard();
+class _PlanSkeletonRow extends StatelessWidget {
+  const _PlanSkeletonRow();
 
   @override
   Widget build(BuildContext context) {
-    return const Card(
-      elevation: 0,
-      color: RuniacColors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.all(Radius.circular(8)),
-        side: BorderSide(color: RuniacColors.border),
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: RuniacColors.background,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: RuniacColors.border),
       ),
-      child: Padding(
-        padding: EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Your plan will appear here',
-              style: TextStyle(
-                color: RuniacColors.textPrimary,
-                fontSize: 17,
-                fontWeight: FontWeight.w700,
+      child: Row(
+        children: const [
+          _SkeletonDot(),
+          SizedBox(width: 12),
+          Expanded(child: _SkeletonLine()),
+          SizedBox(width: 12),
+          _SkeletonLine(width: 44),
+        ],
+      ),
+    );
+  }
+}
+
+class _RoutePlaceholder extends StatelessWidget {
+  const _RoutePlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 92,
+      decoration: BoxDecoration(
+        color: RuniacColors.background,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: RuniacColors.border),
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            left: 20,
+            top: 44,
+            right: 20,
+            child: Container(
+              height: 4,
+              decoration: BoxDecoration(
+                color: RuniacColors.accentOrange,
+                borderRadius: BorderRadius.circular(999),
               ),
             ),
-            SizedBox(height: 8),
-            Text(
-              'For now, use Start Run when you are ready for a simple, '
-              'comfortable session.',
-              style: TextStyle(
-                color: RuniacColors.textSecondary,
-                fontSize: 15,
-                height: 1.4,
-              ),
-            ),
-          ],
+          ),
+          const Positioned(left: 18, top: 35, child: _RoutePin()),
+          const Positioned(right: 18, top: 35, child: _RoutePin()),
+        ],
+      ),
+    );
+  }
+}
+
+class _RoutePin extends StatelessWidget {
+  const _RoutePin();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 22,
+      height: 22,
+      decoration: BoxDecoration(
+        color: RuniacColors.white,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: RuniacColors.accentOrange, width: 3),
+      ),
+    );
+  }
+}
+
+class _SoftNotice extends StatelessWidget {
+  const _SoftNotice({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: RuniacColors.background,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: RuniacColors.border),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(
+          color: RuniacColors.textSecondary,
+          fontSize: 14,
+          height: 1.35,
         ),
+      ),
+    );
+  }
+}
+
+class _SkeletonDot extends StatelessWidget {
+  const _SkeletonDot();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 12,
+      height: 12,
+      decoration: BoxDecoration(
+        color: RuniacColors.border,
+        borderRadius: BorderRadius.circular(999),
+      ),
+    );
+  }
+}
+
+class _SkeletonLine extends StatelessWidget {
+  const _SkeletonLine({this.width});
+
+  final double? width;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width,
+      height: 10,
+      decoration: BoxDecoration(
+        color: RuniacColors.border,
+        borderRadius: BorderRadius.circular(999),
       ),
     );
   }

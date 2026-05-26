@@ -5,9 +5,9 @@
 - Current track: Track A - Governance and implementation readiness
 - Current phase: `implementation/roadmap/phases/phase-01-governance-ci.md`
 - Current active capsule: none selected
-- Most recent completed capsule: `implementation/roadmap/capsules/home-dashboard-visual-polish.md`
-- Current status: Phase 01 governance CI closed; Artifact Inventory Schema persistence completed; Repository Workflow Record capsule closed; Flutter scaffold baseline present at `implementation/mobile/runiac_app/`; `flutter-app-shell-baseline` capsule closed after static app shell implementation; post-shell static UI/nav alignment checkpoint pushed at `247b4e5 feat(mobile): align static Runiac nav baseline`; `android-ui-smoke-test-evidence` validation capsule closed; `home-dashboard-visual-polish` capsule closed after static Home dashboard visual polish
-- Current state: Scaffold-baseline governance state with the active Home dashboard visual polish capsule closed; Phase 02 remains unselected; no active implementation capsule is selected
+- Most recent completed capsule: `implementation/roadmap/capsules/premium-home-dashboard-static-wireframe-alignment.md`
+- Current status: Phase 01 governance CI closed; Artifact Inventory Schema persistence completed; Repository Workflow Record capsule closed; Flutter scaffold baseline present at `implementation/mobile/runiac_app/`; `flutter-app-shell-baseline` capsule closed after static app shell implementation; post-shell static UI/nav alignment checkpoint pushed at `247b4e5 feat(mobile): align static Runiac nav baseline`; `android-ui-smoke-test-evidence` validation capsule closed; `home-dashboard-visual-polish` capsule closed after static Home dashboard visual polish; `premium-home-dashboard-static-wireframe-alignment` capsule closed after static Premium Home Dashboard wireframe alignment
+- Current state: Scaffold-baseline governance state with the Premium Home Dashboard static wireframe alignment capsule closed; Phase 02 remains unselected; no active implementation capsule is selected
 - Current active milestone: select the next capsule explicitly before further implementation
 
 ## Required Reading Order
@@ -51,6 +51,18 @@ Do not load future phase documents unless explicitly requested.
 No active capsule is selected.
 
 The next milestone is explicit next capsule selection. This closed state does not approve Phase 02 implementation, Firebase setup, `flutterfire configure`, dependency installation, build, init, deploy, backend work, or additional Flutter implementation. Future Flutter UI work requires a newly routed active capsule and the required review chain for that capsule.
+
+Premium Home Dashboard static wireframe alignment capsule is complete:
+
+- Capsule: `implementation/roadmap/capsules/premium-home-dashboard-static-wireframe-alignment.md`
+- Type: Flutter UI product-code-changing
+- Completion commit target: `feat(mobile): align premium home dashboard static UI`
+- Chain: A0_ORCH -> A9_TRACE -> A5_WIRE -> A10_FLUTTER_IMPL -> A6_REVIEW -> A12_QA_TEST -> A8_OUTPUT_CHECKER
+- Validation: `flutter analyze --no-pub` PASS; `flutter test` PASS after one layout fix rerun; `git diff --check` PASS; Governance CI PASS; Android smoke evidence PASS on `emulator-5554`
+- Implemented scope: static Home dashboard section order aligned to the Premium Home Dashboard wireframe structure, placeholder-only Today's Plan, Goal Preparation, Runner Progress, This Week's Plan, Last Run, Advice, and Recommended Community Route sections
+- Bottom navigation remains Home / Maps / Run / Leaderboard / You.
+- No Firebase, Auth, Firestore, Cloud Functions, GPS/tracking, real run recording, premium entitlement logic, AI advice logic, fake XP, fake streak, fake level, fake rank, fake leaderboard score, fake weekly/monthly XP, fake subscription state, fake premium state, fake run history, fake route data, backend-owned values, dependency changes, or native Android/iOS changes were introduced.
+- Phase 02 remains unselected.
 
 Home dashboard visual polish capsule is complete:
 
