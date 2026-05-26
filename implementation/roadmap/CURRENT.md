@@ -4,17 +4,17 @@
 
 - Current track: Track A - Governance and implementation readiness
 - Current phase: `implementation/roadmap/phases/phase-01-governance-ci.md`
-- Current active capsule: none
+- Current active capsule: `implementation/roadmap/capsules/leaderboard-static-motivation-hierarchy-polish.md`
 - Most recent completed capsule: `implementation/roadmap/capsules/maps-static-discovery-hierarchy-polish.md` committed and pushed at `60fe96f feat(mobile): polish maps discovery hierarchy`
-- Current status: Phase 01 governance CI closed; Artifact Inventory Schema persistence completed; Repository Workflow Record capsule closed; Flutter scaffold baseline present at `implementation/mobile/runiac_app/`; `flutter-app-shell-baseline` capsule closed after static app shell implementation; post-shell static UI/nav alignment checkpoint pushed at `247b4e5 feat(mobile): align static Runiac nav baseline`; `android-ui-smoke-test-evidence` validation capsule closed; `home-dashboard-visual-polish` capsule closed after static Home dashboard visual polish; `premium-home-dashboard-static-wireframe-alignment` capsule closed after static Premium Home Dashboard wireframe alignment; `github-actions-governance-ci-baseline` closed after adding the minimal GitHub Actions governance workflow; `home-dashboard-scroll-layout-stability-fix` closed after stabilizing Home dashboard scroll/card layout; `run-tab-static-placeholder` closed after adding the static RunLandingPage-style Run tab placeholder; `run-tab-fullscreen-map-overlay-alignment` closed after static Run tab fullscreen map overlay layout alignment; `home-dashboard-reference-layout-alignment` closed after static Home dashboard reference layout alignment; `maps-tab-static-placeholder` committed and pushed at `323507b feat(mobile): polish static maps layout`; `run-launch-fullscreen-static-interaction` committed and pushed at `b5c31ef feat(mobile): add static run launch interaction`; Run launch back-handling cleanup committed and pushed at `5851057 chore(mobile): simplify run launch back handling`; `home-dashboard-primary-action-simplification` closed after Home primary action and brand color hierarchy polish; `run-launch-brand-color-polish` closed after static Run launch brand color polish; `maps-static-discovery-hierarchy-polish` closed after static frontend-only Maps discovery hierarchy polish.
-- Current state: Scaffold-baseline governance state with the static Flutter mobile UI split into a feature-first-lite source structure; Phase 02 remains unselected; no active implementation capsule is selected.
-- Current active milestone: none; `maps-static-discovery-hierarchy-polish` is closed and no next capsule is selected.
+- Current status: Phase 01 governance CI closed; Artifact Inventory Schema persistence completed; Repository Workflow Record capsule closed; Flutter scaffold baseline present at `implementation/mobile/runiac_app/`; `flutter-app-shell-baseline` capsule closed after static app shell implementation; post-shell static UI/nav alignment checkpoint pushed at `247b4e5 feat(mobile): align static Runiac nav baseline`; `android-ui-smoke-test-evidence` validation capsule closed; `home-dashboard-visual-polish` capsule closed after static Home dashboard visual polish; `premium-home-dashboard-static-wireframe-alignment` capsule closed after static Premium Home Dashboard wireframe alignment; `github-actions-governance-ci-baseline` closed after adding the minimal GitHub Actions governance workflow; `home-dashboard-scroll-layout-stability-fix` closed after stabilizing Home dashboard scroll/card layout; `run-tab-static-placeholder` closed after adding the static RunLandingPage-style Run tab placeholder; `run-tab-fullscreen-map-overlay-alignment` closed after static Run tab fullscreen map overlay layout alignment; `home-dashboard-reference-layout-alignment` closed after static Home dashboard reference layout alignment; `maps-tab-static-placeholder` committed and pushed at `323507b feat(mobile): polish static maps layout`; `run-launch-fullscreen-static-interaction` committed and pushed at `b5c31ef feat(mobile): add static run launch interaction`; Run launch back-handling cleanup committed and pushed at `5851057 chore(mobile): simplify run launch back handling`; `home-dashboard-primary-action-simplification` closed after Home primary action and brand color hierarchy polish; `run-launch-brand-color-polish` closed after static Run launch brand color polish; `maps-static-discovery-hierarchy-polish` closed after static frontend-only Maps discovery hierarchy polish; `leaderboard-static-motivation-hierarchy-polish` selected for static frontend-only Leaderboard visual hierarchy polish.
+- Current state: Scaffold-baseline governance state with the static Flutter mobile UI split into a feature-first-lite source structure; Phase 02 remains unselected; active implementation capsule is limited to static frontend-only Leaderboard motivation hierarchy polish.
+- Current active milestone: implement `leaderboard-static-motivation-hierarchy-polish` only after implementation approval, within its static Leaderboard-only file and scope boundaries.
 
 ## Required Reading Order
 
 1. `implementation/roadmap/CURRENT.md`
 2. Active phase document: `implementation/roadmap/phases/phase-01-governance-ci.md` (closed)
-3. Active capsule document: none currently selected
+3. Active capsule document: `implementation/roadmap/capsules/leaderboard-static-motivation-hierarchy-polish.md`
 4. Relevant ADRs listed below
 5. `implementation/roadmap/snapshots/latest.md`
 
@@ -49,13 +49,17 @@ Do not load future phase documents unless explicitly requested.
 
 ## Next Gate
 
-No active implementation capsule is selected.
+Active implementation capsule selected for future work:
 
-- Most recent completed capsule: `implementation/roadmap/capsules/maps-static-discovery-hierarchy-polish.md`
-- Completion commit: `60fe96f feat(mobile): polish maps discovery hierarchy`
-- Validation completed: `git diff --check` PASS; `flutter analyze --no-pub` PASS; `flutter test` PASS; Governance CI PASS.
-- Required boundary preserved: no Phase 02 selection, Firebase, Auth, Firestore, Cloud Functions, FCM, GPS/location permission, current location state, real map SDK, real map tiles, route generation, route recommendation logic, route persistence, saved-route behavior, fake route metrics, XP/streak/level/rank/leaderboard, premium entitlement, backend-like data behavior, dependency, native platform, shell navigation, Home, Run, Leaderboard, You/Profile, or unrelated screen changes.
-- Stop state: no next capsule selected; further implementation requires separate routing and approval.
+- Capsule: `implementation/roadmap/capsules/leaderboard-static-motivation-hierarchy-polish.md`
+- Type: Flutter static frontend-only Leaderboard visual hierarchy polish capsule
+- Completion commit target: `feat(mobile): polish leaderboard motivation hierarchy`
+- Chain: A0_ORCH -> A9_TRACE -> A5_WIRE -> A10_FLUTTER_IMPL -> A6_REVIEW -> A12_QA_TEST -> A8_OUTPUT_CHECKER
+- Allowed future implementation files: `implementation/mobile/runiac_app/lib/features/leaderboard/presentation/leaderboard_tab.dart`; `implementation/mobile/runiac_app/test/widget_test.dart` only if stable visible text expectations need updates.
+- Required boundary: no Phase 02 selection, Firebase, Auth, Firestore, Cloud Functions, FCM, GPS/location, real leaderboard data, leaderboard aggregation, XP/streak/level/rank/leaderboard score/weekly XP/monthly XP mutation, subscription privilege state, expert plan publication state, fake users, fake ranks, fake XP, fake scores, shell navigation changes, Home, Maps, Run, You/Profile, dependencies, native platform changes, scaffold, build, init, deploy, or unrelated screen changes.
+- Validation required for future implementation: `git diff --check`; `flutter analyze --no-pub`; `flutter test`; `./tools/governance-ci/run-all-checks.sh`; `git status --short`.
+- Current implementation state: no Leaderboard implementation has started for this capsule.
+- Stop state: selected for implementation-approved static Leaderboard polish only; do not select Phase 02 or any future capsule.
 
 Most recent completed capsule:
 
