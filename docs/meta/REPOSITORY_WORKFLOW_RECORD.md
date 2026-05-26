@@ -181,6 +181,14 @@ These checkpoints are a current repo memory aid. They separate committed artifac
 - Boundary / not inferred: Flutter scaffold execution, Firebase setup, Phase 02, source, tests, builds, init, deploy, or production implementation are not inferred.
 - Recording trigger hint: Future changes to scaffold/setup authorization or repository implementation state may indicate that this checkpoint should be reviewed.
 
+### CP-15 — Agent-review output template standardization
+- Trigger / context: The agent-review workflow gained a Level 1.5 output/review-template layer after a workflow-impacting patch was pushed.
+- Change / approach: Standardized Codex output and review-gate expectations were added as reusable templates, with Governance CI diff hygiene narrowly allowing Markdown template files under `tools/agent-review/templates/`.
+- Evidence basis: `2c56893 chore(agent-review): add output and review templates`; pushed/recorded on 2026-05-26 15:09 SGT; `tools/agent-review/templates/CODEX_OUTPUT_TEMPLATE.md`; `tools/agent-review/templates/REVIEW_GATE_TEMPLATE.md`; `tools/governance-ci/check-diff-hygiene.sh`; Governance CI passed before push.
+- Confidence: ARTIFACT_VERIFIED.
+- Boundary / not inferred: This records workflow-template standardization only; it does not claim that every future task used the templates correctly, and it does not create implementation, setup, scaffold, Firebase, build, test, deploy, staging, commit, or push approval.
+- Recording trigger hint: Future changes to agent-review output templates, review-gate templates, or their Governance CI allowlist may indicate that this checkpoint should be reviewed.
+
 ## Unknown or User-Memory-Required History
 
 The current repo memory cannot safely reconstruct every part of the human workflow. These items align with USER_MEMORY_REQUIRED and require human memory, external chat summaries, or additional artifact-backed evidence:
