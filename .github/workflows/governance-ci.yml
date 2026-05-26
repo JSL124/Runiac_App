@@ -16,14 +16,28 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        run: |
-          git init
-          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
-          git fetch --depth 1 origin "${GITHUB_SHA}"
-          git checkout --detach FETCH_HEAD
+        uses: actions/checkout@v4
 
       - name: Check diff whitespace
         run: git diff --check
 
       - name: Run governance checks
         run: ./tools/governance-ci/run-all-checks.sh
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.0'
+          channel: stable
+
+      - name: Resolve Flutter dependencies
+        working-directory: implementation/mobile/runiac_app
+        run: flutter pub get
+
+      - name: Analyze Flutter app
+        working-directory: implementation/mobile/runiac_app
+        run: flutter analyze --no-pub
+
+      - name: Test Flutter app
+        working-directory: implementation/mobile/runiac_app
+        run: flutter test
