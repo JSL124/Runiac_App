@@ -12,6 +12,7 @@ checks=(
   "tools/governance-ci/check-historical-isolation.sh"
   "tools/governance-ci/check-sensitive-paths.sh"
   "tools/governance-ci/check-workflow-memory-drift.sh"
+  "tools/governance-ci/measure-context-overhead.sh"
 )
 
 failures=0
