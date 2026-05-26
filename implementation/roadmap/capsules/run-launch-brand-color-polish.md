@@ -12,11 +12,11 @@ Type: Flutter static frontend-only Run launch visual polish capsule.
 
 ## Status
 
-Status: Selected for implementation; implementation not started.
+Status: Closed; implementation committed and pushed.
 
 Routed on: 2026-05-27 Asia/Singapore.
 
-Completion evidence commit target: `feat(mobile): polish run launch brand colors`.
+Completion evidence commit: `e1f9c6d feat(mobile): polish run launch brand colors`.
 
 ## Required Agent Chain
 
@@ -98,13 +98,21 @@ Apply narrow static Run launch brand color polish so the Run launch surface has 
 - A9_TRACE routing finding: this capsule remains static frontend-only and does not introduce GPS/location, tracking, timers, route setup logic, Firebase, backend behavior, fake run metrics, dependencies, native changes, or shell navigation changes.
 - A6_REVIEW routing finding: the capsule is small and deterministic because it targets Run launch color hierarchy only.
 
+## Closure Evidence
+
+- Implementation commit: `e1f9c6d feat(mobile): polish run launch brand colors`.
+- Implemented scope: Start button changed to orange/action-oriented, Start shadow changed to subtle orange, Setting and Route setup remained secondary white/blue pill actions, and Run launch background moved to soft gray-blue.
+- Preserved scope: route line remained blue, Today's Plan remained calm and readable, map placeholder and markers were not redesigned, and behavior stayed static/inert.
+- Validation: `git diff --check` PASS; `flutter analyze --no-pub` PASS; `flutter test` PASS; `./tools/governance-ci/run-all-checks.sh` PASS.
+- Scope boundary: no Home, Maps, shell navigation, Firebase/Auth/Firestore/Cloud Functions, GPS/location, tracking, timers, route setup logic, backend-owned values, fake run metrics, dependencies, native Android/iOS changes, or Phase 02 selection were introduced.
+
 ## Exit Criteria
 
-- [ ] Start button/action color hierarchy is improved.
-- [ ] Route line remains blue.
-- [ ] Secondary controls remain visually secondary.
-- [ ] Static frontend-only behavior preserved.
-- [ ] No forbidden files or scopes touched.
-- [ ] Required validation completed.
-- [ ] Capsule, CURRENT.md, and snapshot updated with confirmed implementation state.
-- [ ] Ready for commit only unless explicit commit approval is granted.
+- [x] Start button/action color hierarchy is improved.
+- [x] Route line remains blue.
+- [x] Secondary controls remain visually secondary.
+- [x] Static frontend-only behavior preserved.
+- [x] No forbidden files or scopes touched.
+- [x] Required validation completed.
+- [x] Capsule, CURRENT.md, and snapshot updated with confirmed implementation state.
+- [x] Ready for commit only unless explicit commit approval is granted.
