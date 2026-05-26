@@ -76,7 +76,7 @@ class _RuniacShellState extends State<_RuniacShell> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Runiac')),
+      appBar: _selectedIndex == 2 ? null : AppBar(title: const Text('Runiac')),
       body: _tabs[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
@@ -714,22 +714,11 @@ class _RunTab extends StatelessWidget {
     return SafeArea(
       child: ColoredBox(
         color: RuniacColors.background,
-        child: Column(
-          children: [
-            Expanded(
-              child: Stack(
-                children: const [
-                  Positioned.fill(child: _RunMapPlaceholder()),
-                  Positioned(
-                    left: 20,
-                    right: 20,
-                    bottom: 18,
-                    child: _RunPlanCard(),
-                  ),
-                ],
-              ),
-            ),
-            const _RunControls(),
+        child: Stack(
+          children: const [
+            Positioned.fill(child: _RunMapPlaceholder()),
+            Positioned(left: 20, right: 20, bottom: 156, child: _RunPlanCard()),
+            Positioned(left: 20, right: 20, bottom: 18, child: _RunControls()),
           ],
         ),
       ),
@@ -742,24 +731,16 @@ class _RunMapPlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-      decoration: BoxDecoration(
-        color: RuniacColors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: RuniacColors.border),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: Stack(
-          children: const [
-            Positioned.fill(child: _RunMapGrid()),
-            Positioned.fill(child: _RunRouteLine()),
-            Positioned(left: 52, top: 92, child: _RunRouteMarker()),
-            Positioned(right: 58, top: 148, child: _RunRouteFlag()),
-            Positioned(left: 110, bottom: 132, child: _RunRouteMarker()),
-          ],
-        ),
+    return DecoratedBox(
+      decoration: const BoxDecoration(color: RuniacColors.background),
+      child: Stack(
+        children: const [
+          Positioned.fill(child: _RunMapGrid()),
+          Positioned.fill(child: _RunRouteLine()),
+          Positioned(left: 52, top: 92, child: _RunRouteMarker()),
+          Positioned(right: 58, top: 148, child: _RunRouteFlag()),
+          Positioned(left: 110, bottom: 196, child: _RunRouteMarker()),
+        ],
       ),
     );
   }
@@ -826,75 +807,68 @@ class _RunControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 18),
-      decoration: const BoxDecoration(
-        color: RuniacColors.white,
-        border: Border(top: BorderSide(color: RuniacColors.border)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.tune),
-                  label: const Text('Setting'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: RuniacColors.primaryBlue,
-                    side: const BorderSide(color: RuniacColors.border),
-                    minimumSize: const Size.fromHeight(48),
-                    textStyle: const TextStyle(fontWeight: FontWeight.w700),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () {},
+                icon: const Icon(Icons.tune),
+                label: const Text('Setting'),
+                style: OutlinedButton.styleFrom(
+                  backgroundColor: RuniacColors.white,
+                  foregroundColor: RuniacColors.primaryBlue,
+                  side: const BorderSide(color: RuniacColors.border),
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  minimumSize: const Size.fromHeight(48),
+                  textStyle: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.alt_route),
-                  label: const Text('Switch Route'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: RuniacColors.primaryBlue,
-                    side: const BorderSide(color: RuniacColors.border),
-                    minimumSize: const Size.fromHeight(48),
-                    textStyle: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(width: 14),
+            SizedBox(
+              width: 96,
+              height: 96,
+              child: FilledButton(
+                onPressed: () {},
+                style: FilledButton.styleFrom(
+                  shape: const CircleBorder(),
+                  textStyle: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                child: const Text('Start'),
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () {},
+                icon: const Icon(Icons.alt_route),
+                label: const Text('Switch Route'),
+                style: OutlinedButton.styleFrom(
+                  backgroundColor: RuniacColors.white,
+                  foregroundColor: RuniacColors.primaryBlue,
+                  side: const BorderSide(color: RuniacColors.border),
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  minimumSize: const Size.fromHeight(48),
+                  textStyle: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          SizedBox(
-            width: 112,
-            height: 112,
-            child: FilledButton(
-              onPressed: () {},
-              style: FilledButton.styleFrom(
-                shape: const CircleBorder(),
-                textStyle: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              child: const Text('Start'),
             ),
-          ),
-          const SizedBox(height: 12),
-          const Text(
-            'Tracking setup will be enabled later.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: RuniacColors.textSecondary,
-              fontSize: 14,
-              height: 1.35,
-            ),
-          ),
-        ],
-      ),
+          ],
+        ),
+      ],
     );
   }
 }
