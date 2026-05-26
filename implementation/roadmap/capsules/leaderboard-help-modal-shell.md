@@ -12,7 +12,7 @@ Type: Flutter static frontend-only Leaderboard help modal/sheet shell.
 
 ## Status
 
-Status: Routed; resumable after `github-actions-flutter-validation-baseline`.
+Status: Active; reactivated after `github-actions-flutter-validation-baseline` CI parity closure.
 
 Routed on: 2026-05-27 Asia/Singapore.
 
@@ -20,9 +20,13 @@ Deferred on: 2026-05-27 Asia/Singapore.
 
 Resumable on: 2026-05-27 Asia/Singapore.
 
+Reactivated on: 2026-05-27 Asia/Singapore.
+
 Depends on: `implementation/roadmap/capsules/leaderboard-map-first-landing-shell.md` closed at `b1ed742 feat(mobile): add leaderboard map landing shell`.
 
-Deferred because: hosted GitHub Actions previously ran governance checks but did not yet run the Flutter analyze/test validation expected by this product capsule. `github-actions-flutter-validation-baseline` is now closed after local validation and hosted GitHub Actions PASS for `587cc0e`; this capsule remains routed and resumable by explicit reactivation/routing, and should not be marked completed or superseded.
+Deferred because: hosted GitHub Actions previously ran governance checks but did not yet run the Flutter analyze/test validation expected by this product capsule. `github-actions-flutter-validation-baseline` is now closed after local validation and hosted GitHub Actions PASS for `587cc0e`.
+
+Reactivated because: hosted Flutter validation CI parity is complete. This reactivation is routing-only; no help modal implementation has occurred yet, and the capsule must not be marked completed or superseded until its future implementation and validation are finished.
 
 ## Required Agent Chain
 
