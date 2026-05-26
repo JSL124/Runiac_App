@@ -10,14 +10,37 @@ class RunTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const SafeArea(
+    return SafeArea(
       child: ColoredBox(
         color: RuniacColors.background,
         child: Stack(
           children: [
-            Positioned.fill(child: RunMapPlaceholder()),
-            Positioned(left: 20, right: 20, bottom: 156, child: RunPlanCard()),
-            Positioned(left: 20, right: 20, bottom: 18, child: RunControls()),
+            const Positioned.fill(child: RunMapPlaceholder()),
+            Positioned(
+              left: 20,
+              right: 20,
+              bottom: 28,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final compact = constraints.maxWidth < 360;
+
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 430),
+                        child: const RunPlanCard(),
+                      ),
+                      SizedBox(height: compact ? 14 : 18),
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 430),
+                        child: RunControls(compact: compact),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
           ],
         ),
       ),

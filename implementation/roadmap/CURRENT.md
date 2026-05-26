@@ -4,17 +4,17 @@
 
 - Current track: Track A - Governance and implementation readiness
 - Current phase: `implementation/roadmap/phases/phase-01-governance-ci.md`
-- Current active capsule: `implementation/roadmap/capsules/flutter-source-structure-refactor.md`
+- Current active capsule: `implementation/roadmap/capsules/run-controls-and-plan-spacing-polish.md`
 - Most recent completed capsule: `implementation/roadmap/capsules/maps-tab-static-placeholder.md` (ready for commit state recorded; not staged, committed, or pushed by that pass)
-- Current status: Phase 01 governance CI closed; Artifact Inventory Schema persistence completed; Repository Workflow Record capsule closed; Flutter scaffold baseline present at `implementation/mobile/runiac_app/`; `flutter-app-shell-baseline` capsule closed after static app shell implementation; post-shell static UI/nav alignment checkpoint pushed at `247b4e5 feat(mobile): align static Runiac nav baseline`; `android-ui-smoke-test-evidence` validation capsule closed; `home-dashboard-visual-polish` capsule closed after static Home dashboard visual polish; `premium-home-dashboard-static-wireframe-alignment` capsule closed after static Premium Home Dashboard wireframe alignment; `github-actions-governance-ci-baseline` capsule closed after adding the minimal GitHub Actions governance workflow; `home-dashboard-scroll-layout-stability-fix` capsule closed after stabilizing Home dashboard scroll/card layout; `run-tab-static-placeholder` capsule closed after adding the static RunLandingPage-style Run tab placeholder; `run-tab-fullscreen-map-overlay-alignment` closed after static Run tab fullscreen map overlay layout alignment; `home-dashboard-reference-layout-alignment` closed after static Home dashboard reference layout alignment; `maps-tab-static-placeholder` recorded ready for commit after static Maps tab placeholder implementation and validation; `flutter-source-structure-refactor` is routed and ready for commit after a behavior-preserving feature-first-lite source split
-- Current state: Scaffold-baseline governance state with the static Flutter mobile UI split into a feature-first-lite source structure; Phase 02 remains unselected; the active implementation capsule is limited to behavior-preserving source structure refactor work
-- Current active milestone: commit `implementation/roadmap/capsules/flutter-source-structure-refactor.md` and its scoped source-structure changes only if explicitly approved later
+- Current status: Phase 01 governance CI closed; Artifact Inventory Schema persistence completed; Repository Workflow Record capsule closed; Flutter scaffold baseline present at `implementation/mobile/runiac_app/`; `flutter-app-shell-baseline` capsule closed after static app shell implementation; post-shell static UI/nav alignment checkpoint pushed at `247b4e5 feat(mobile): align static Runiac nav baseline`; `android-ui-smoke-test-evidence` validation capsule closed; `home-dashboard-visual-polish` capsule closed after static Home dashboard visual polish; `premium-home-dashboard-static-wireframe-alignment` capsule closed after static Premium Home Dashboard wireframe alignment; `github-actions-governance-ci-baseline` capsule closed after adding the minimal GitHub Actions governance workflow; `home-dashboard-scroll-layout-stability-fix` capsule closed after stabilizing Home dashboard scroll/card layout; `run-tab-static-placeholder` capsule closed after adding the static RunLandingPage-style Run tab placeholder; `run-tab-fullscreen-map-overlay-alignment` closed after static Run tab fullscreen map overlay layout alignment; `home-dashboard-reference-layout-alignment` closed after static Home dashboard reference layout alignment; `maps-tab-static-placeholder` recorded ready for commit after static Maps tab placeholder implementation and validation; `flutter-source-structure-refactor` is routed and ready for commit after a behavior-preserving feature-first-lite source split; `run-controls-and-plan-spacing-polish` is ready for commit after static Run tab spacing/control polish
+- Current state: Scaffold-baseline governance state with the static Flutter mobile UI split into a feature-first-lite source structure; Phase 02 remains unselected; the active implementation capsule is limited to static Run tab spacing/control polish
+- Current active milestone: commit `implementation/roadmap/capsules/run-controls-and-plan-spacing-polish.md` and its scoped static Run tab polish changes only if explicitly approved later
 
 ## Required Reading Order
 
 1. `implementation/roadmap/CURRENT.md`
 2. Active phase document: `implementation/roadmap/phases/phase-01-governance-ci.md` (closed)
-3. Active capsule document: `implementation/roadmap/capsules/flutter-source-structure-refactor.md`
+3. Active capsule document: `implementation/roadmap/capsules/run-controls-and-plan-spacing-polish.md`
 4. Relevant ADRs listed below
 5. `implementation/roadmap/snapshots/latest.md`
 
@@ -48,6 +48,20 @@ Do not load future phase documents unless explicitly requested.
 - Do not create Repository Genesis material, timelines, full history reconstruction, retrospectives, artifact inventory entries, or autonomous archive/index systems.
 
 ## Next Gate
+
+Run controls and plan spacing polish capsule is ready for commit:
+
+- Capsule: `implementation/roadmap/capsules/run-controls-and-plan-spacing-polish.md`
+- Type: Flutter static UI polish capsule
+- Completion commit target: `fix(mobile): polish run tab controls spacing`
+- Chain: A0_ORCH -> A9_TRACE -> A5_WIRE -> A10_FLUTTER_IMPL -> A6_REVIEW -> A12_QA_TEST -> A8_OUTPUT_CHECKER
+- Allowed scope: static Run tab spacing, constraints, hierarchy, bottom/nav clearance, and small-screen readability for Setting / Start / Switch Route.
+- Required boundary: no Phase 02 selection, Firebase, Auth, Firestore, Cloud Functions, GPS/location permission, current location state, real map SDK, route generation, route persistence, run tracking, timer, distance, pace, duration, heart-rate, cadence, activity submission, XP/streak/level/rank/leaderboard, premium entitlement, dependency, native platform, GitHub Actions workflow, or unrelated screen changes.
+- Validation: `flutter analyze --no-pub` PASS; `flutter test` PASS; `git diff --check` PASS; Governance CI PASS; Android smoke evidence PASS on `emulator-5554`.
+- Implemented scope: grouped the Today’s Plan card and controls into one bottom overlay column, increased bottom clearance, capped overlay width, added compact spacing for narrow widths, kept Start visually primary, and kept Setting / Switch Route as static secondary controls with safer label fit.
+- Stop state: ready for commit only; do not stage, commit, or push.
+
+Prior ready-for-commit milestone remains uncommitted:
 
 Flutter source structure refactor capsule is ready for commit:
 
