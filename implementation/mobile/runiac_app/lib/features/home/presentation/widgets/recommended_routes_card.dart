@@ -5,6 +5,9 @@ import '../../../../core/widgets/card_title.dart';
 import '../../../../core/widgets/crossed_placeholder.dart';
 import '../../../../core/widgets/dashboard_card.dart';
 
+const _sportOrange = Color(0xFFFF7A1A);
+const _placeholderGrayBlue = Color(0xFFE8EEF7);
+
 class RecommendedRoutesCard extends StatelessWidget {
   const RecommendedRoutesCard({super.key});
 
@@ -87,7 +90,7 @@ class _CarouselDot extends StatelessWidget {
       width: active ? 7 : 5,
       height: active ? 7 : 5,
       decoration: BoxDecoration(
-        color: active ? RuniacColors.primaryBlue : RuniacColors.border,
+        color: active ? _sportOrange : _placeholderGrayBlue,
         borderRadius: BorderRadius.circular(999),
       ),
     );

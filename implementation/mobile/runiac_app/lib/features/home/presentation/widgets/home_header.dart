@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/runiac_colors.dart';
 
+const _brandBlue = Color(0xFF2F5BFF);
+const _sportOrange = Color(0xFFFF7A1A);
+
 class HomeHeader extends StatelessWidget {
   const HomeHeader({super.key});
 
@@ -118,7 +121,7 @@ class _HomeAccentBar extends StatelessWidget {
           width: 42,
           height: 5,
           decoration: BoxDecoration(
-            color: RuniacColors.primaryBlue,
+            color: _brandBlue,
             borderRadius: BorderRadius.circular(999),
           ),
         ),
@@ -127,7 +130,7 @@ class _HomeAccentBar extends StatelessWidget {
           width: 18,
           height: 5,
           decoration: BoxDecoration(
-            color: RuniacColors.accentOrange,
+            color: _sportOrange,
             borderRadius: BorderRadius.circular(999),
           ),
         ),

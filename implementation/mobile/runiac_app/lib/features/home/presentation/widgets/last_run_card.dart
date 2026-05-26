@@ -4,6 +4,10 @@ import '../../../../core/theme/runiac_colors.dart';
 import '../../../../core/widgets/card_title.dart';
 import '../../../../core/widgets/dashboard_card.dart';
 
+const _softOrange = Color(0xFFFFF1E7);
+const _sportOrange = Color(0xFFFF7A1A);
+const _orangeBorder = Color(0xFFFFD8BD);
+
 class LastRunCard extends StatelessWidget {
   const LastRunCard({super.key});
 
@@ -61,15 +65,11 @@ class _InitialTile extends StatelessWidget {
       width: 40,
       height: 40,
       decoration: BoxDecoration(
-        color: RuniacColors.background,
+        color: _softOrange,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: RuniacColors.border),
+        border: Border.all(color: _orangeBorder),
       ),
-      child: const Icon(
-        Icons.directions_run,
-        color: RuniacColors.textSecondary,
-        size: 20,
-      ),
+      child: const Icon(Icons.directions_run, color: _sportOrange, size: 20),
     );
   }
 }

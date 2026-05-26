@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/runiac_colors.dart';
 import 'widgets/goal_preparation_card.dart';
 import 'widgets/home_header.dart';
 import 'widgets/last_run_card.dart';
@@ -10,6 +9,8 @@ import 'widgets/runner_progress_card.dart';
 import 'widgets/today_plan_card.dart';
 import 'widgets/weekly_plan_card.dart';
 
+const _homeScreenBackground = Color(0xFFF7F9FD);
+
 class HomeTab extends StatelessWidget {
   const HomeTab({super.key});
 
@@ -17,7 +18,7 @@ class HomeTab extends StatelessWidget {
   Widget build(BuildContext context) {
     return SafeArea(
       child: ColoredBox(
-        color: RuniacColors.background,
+        color: _homeScreenBackground,
         child: ScrollConfiguration(
           behavior: ScrollConfiguration.of(context).copyWith(overscroll: false),
           child: ListView(

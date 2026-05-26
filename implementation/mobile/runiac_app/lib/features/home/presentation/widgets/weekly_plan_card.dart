@@ -5,6 +5,9 @@ import '../../../../core/widgets/card_title.dart';
 import '../../../../core/widgets/dashboard_card.dart';
 import 'home_placeholders.dart';
 
+const _softBlue = Color(0xFFEEF3FF);
+const _blueBorder = Color(0xFFDCE6FF);
+
 class WeeklyPlanCard extends StatelessWidget {
   const WeeklyPlanCard({super.key});
 
@@ -28,11 +31,32 @@ class WeeklyPlanCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          const PlanSkeletonRow(),
-          const SizedBox(height: 8),
-          const PlanSkeletonRow(),
-          const SizedBox(height: 8),
-          const PlanSkeletonRow(),
+          const _WeeklyPreviewRows(),
+        ],
+      ),
+    );
+  }
+}
+
+class _WeeklyPreviewRows extends StatelessWidget {
+  const _WeeklyPreviewRows();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: _softBlue,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: _blueBorder),
+      ),
+      child: const Column(
+        children: [
+          PlanSkeletonRow(),
+          SizedBox(height: 8),
+          PlanSkeletonRow(),
+          SizedBox(height: 8),
+          PlanSkeletonRow(),
         ],
       ),
     );

@@ -5,6 +5,11 @@ import '../../../../core/widgets/card_title.dart';
 import '../../../../core/widgets/crossed_placeholder.dart';
 import '../../../../core/widgets/dashboard_card.dart';
 
+const _primaryBlue = Color(0xFF2F5BFF);
+const _blueBorder = Color(0xFFDCE6FF);
+const _sportOrange = Color(0xFFFF7A1A);
+const _orangeStrong = Color(0xFFF97316);
+
 class TodayPlanCard extends StatelessWidget {
   const TodayPlanCard({super.key});
 
@@ -14,6 +19,8 @@ class TodayPlanCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          const _TodayAccentStrip(),
+          const SizedBox(height: 14),
           const CardTitle(icon: Icons.calendar_today, title: 'Today\'s Plan'),
           const SizedBox(height: 14),
           const Row(
@@ -55,8 +62,8 @@ class TodayPlanCard extends StatelessWidget {
                 child: OutlinedButton(
                   onPressed: () {},
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: RuniacColors.primaryBlue,
-                    side: const BorderSide(color: RuniacColors.border),
+                    foregroundColor: _primaryBlue,
+                    side: const BorderSide(color: _blueBorder),
                     minimumSize: const Size.fromHeight(44),
                     textStyle: const TextStyle(fontWeight: FontWeight.w700),
                   ),
@@ -70,6 +77,8 @@ class TodayPlanCard extends StatelessWidget {
                   icon: const Icon(Icons.play_arrow_rounded),
                   label: const Text('Quick Start'),
                   style: FilledButton.styleFrom(
+                    backgroundColor: _sportOrange,
+                    foregroundColor: RuniacColors.white,
                     minimumSize: const Size.fromHeight(44),
                     textStyle: const TextStyle(fontWeight: FontWeight.w800),
                   ),
@@ -79,6 +88,36 @@ class TodayPlanCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _TodayAccentStrip extends StatelessWidget {
+  const _TodayAccentStrip();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: Container(
+            height: 4,
+            decoration: BoxDecoration(
+              color: _primaryBlue,
+              borderRadius: BorderRadius.circular(999),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Container(
+          width: 34,
+          height: 4,
+          decoration: BoxDecoration(
+            color: _orangeStrong,
+            borderRadius: BorderRadius.circular(999),
+          ),
+        ),
+      ],
     );
   }
 }
