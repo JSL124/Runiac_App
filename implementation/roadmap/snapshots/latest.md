@@ -3,20 +3,22 @@
 ## Snapshot Metadata
 
 - Last updated phase: Phase 01 - Governance CI
-- Last updated capsule: Repository Workflow Record closure and Governance CI historical isolation integration
-- Latest verified commit: `6d65fa1 ci(governance): include historical isolation check`
+- Last updated capsule: Flutter scaffold baseline commit and Governance CI scaffold-baseline transition
+- Latest verified commit: `4b375d2 chore(mobile): add Flutter scaffold baseline`
 - Routing commit: `04e0972 docs(roadmap): route repository workflow record`
-- Closure context: Phase 01 Governance CI is closed at `f917aab`; Artifact Inventory Schema persistence is complete; Repository Workflow Record capsule is closed; workflow memory schema migration, historical isolation check repair, and historical isolation runner integration are pushed and verified; no active implementation capsule is selected.
+- Closure context: Phase 01 Governance CI is closed at `f917aab`; Artifact Inventory Schema persistence is complete; Repository Workflow Record capsule is closed; workflow memory schema migration, historical isolation check repair, historical isolation runner integration, Governance CI scaffold-baseline transition, and Flutter scaffold baseline are pushed and verified; no active implementation capsule is selected.
 
 ## Current Implementation State
 
-Approved Flutter scaffold baseline has been generated under `implementation/mobile/runiac_app/` with:
+Approved Flutter scaffold baseline has been generated, committed, and pushed under `implementation/mobile/runiac_app/` with:
 
 ```bash
 flutter create --template=app --platforms=android,ios --org com.runiac --project-name runiac_app --no-pub implementation/mobile/runiac_app
 ```
 
 No `flutter pub get`, `firebase init`, `flutterfire configure`, build, deploy, or Firebase setup command was run. Worktree inspection found no Firebase project config, `firebase.json`, `.firebaserc`, `firebase_options.dart`, `google-services.json`, `GoogleService-Info.plist`, committed `.env*`, service account, or credentials file. The repository remains Firebase-uninitialized.
+
+The repository is now in scaffold-baseline state, not pre-scaffold state. The generated baseline is stock Flutter scaffold only and does not authorize Phase 02 feature work, Firebase setup, dependency installation, builds, deploys, custom production tests, or Runiac production source implementation.
 
 ## Implemented
 
@@ -36,6 +38,8 @@ No `flutter pub get`, `firebase init`, `flutterfire configure`, build, deploy, o
 - Historical isolation check narrowed in `0619874 ci(governance): narrow historical isolation check` to allow legitimate `docs/meta` non-operational boundary references while preserving failure behavior for operational authority/dependency usage.
 - Main Governance CI runner includes historical isolation coverage as of `6d65fa1 ci(governance): include historical isolation check`.
 - Local Governance CI has been transitioned to allow the approved Flutter scaffold baseline under `implementation/mobile/runiac_app/` while continuing to block Firebase config, secrets, service accounts, credentials, signing material, Cloud Functions, Firestore rules, Storage rules, build/deploy artifacts, and unauthorized scaffold paths.
+- Governance CI scaffold-baseline transition committed in `c8b2942 ci(governance): allow approved Flutter scaffold baseline`.
+- Flutter scaffold baseline committed in `4b375d2 chore(mobile): add Flutter scaffold baseline`.
 - Workflow Memory Drift Check is detection-only, WARN-only local Governance CI support. It does not automatically update workflow memory, snapshots, CURRENT.md, or capsules.
 - Repository Workflow Record capsule is closed.
 
@@ -82,4 +86,4 @@ No `flutter pub get`, `firebase init`, `flutterfire configure`, build, deploy, o
 
 ## Current Active Milestone
 
-Phase 01 - Governance CI is closed at `f917aab`. Artifact Inventory Schema persistence is complete at `7aaacf1`. Repository Workflow Record capsule is closed after `04e0972`, `0eb37c8`, `93fff5e`, schema refresh commit `9f2c832`, historical isolation repair commit `0619874`, and historical isolation runner integration commit `6d65fa1`. No active implementation capsule is selected; next work requires explicit routing. Phase 02 implementation, Flutter scaffold execution, Firebase setup, dependency installation, build, init, deploy, source changes, tests, and production implementation remain unauthorized until separate explicit approval exists.
+Phase 01 - Governance CI is closed at `f917aab`. Artifact Inventory Schema persistence is complete at `7aaacf1`. Repository Workflow Record capsule is closed after `04e0972`, `0eb37c8`, `93fff5e`, schema refresh commit `9f2c832`, historical isolation repair commit `0619874`, and historical isolation runner integration commit `6d65fa1`. Governance CI scaffold-baseline transition is committed at `c8b2942`; Flutter scaffold baseline is committed and pushed at `4b375d2`. No active implementation capsule is selected; next work requires explicit routing. Phase 02 implementation, Firebase setup, `flutterfire configure`, dependency installation, build, init, deploy, source changes beyond the stock scaffold baseline, custom tests, and production implementation remain unauthorized until separate explicit approval exists.
