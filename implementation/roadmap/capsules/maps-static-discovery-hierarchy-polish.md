@@ -12,11 +12,13 @@ Type: Flutter static frontend-only Maps visual hierarchy polish capsule.
 
 ## Status
 
-Status: Selected for implementation; implementation not started.
+Status: Closed.
 
 Routed on: 2026-05-27 Asia/Singapore.
 
-Completion evidence commit target: `feat(mobile): polish maps discovery hierarchy`.
+Completed on: 2026-05-27 Asia/Singapore.
+
+Completion evidence commit: `60fe96f feat(mobile): polish maps discovery hierarchy`.
 
 ## Required Agent Chain
 
@@ -106,11 +108,19 @@ No backend, Firebase, GPS, or security-rules tests are required for this static 
 - A6_REVIEW routing finding: a new capsule is required before implementation and the capsule must not imply Phase 02 readiness.
 - A12_QA_TEST routing finding: future implementation should run Flutter analyze, Flutter widget tests, diff whitespace check, and local Governance CI; no backend/Firebase tests are needed.
 
+## Completion Evidence
+
+- Implementation commit: `60fe96f feat(mobile): polish maps discovery hierarchy`.
+- Implemented scope: static frontend-only Maps visual hierarchy polish with route/structure blue treatment, light orange discovery/location accents, calmer search/Saved balance, route-card visual polish, and a simpler draggable Shared Routes sheet.
+- Bottom sheet closure state: draggable behavior preserved; collapsed state is handle-only; expanded state is capped at `0.5`; subtitle/helper copy and Preview badge removed.
+- Validation before implementation commit: `git diff --check` PASS; `flutter analyze --no-pub` PASS; `flutter test` PASS; `./tools/governance-ci/run-all-checks.sh` PASS.
+- Required boundary preserved: no Phase 02 selection, Firebase, Auth, Firestore, Cloud Functions, FCM, GPS/location permission, current-location state, real map SDK, real map tiles, route generation, route recommendation logic, route persistence, saved-route behavior, fake route metrics, XP/streak/level/rank/leaderboard, premium entitlement, backend-like data behavior, dependency, native platform, shell navigation, Home, Run, Leaderboard, You/Profile, or unrelated screen changes.
+
 ## Exit Criteria
 
-- [ ] Maps route discovery hierarchy is clearer for a beginner.
-- [ ] Static frontend-only behavior preserved.
-- [ ] No forbidden files or scopes touched.
-- [ ] Required validation completed.
-- [ ] Capsule, CURRENT.md, and snapshot updated with confirmed implementation state.
-- [ ] Ready for commit only unless explicit commit approval is granted.
+- [x] Maps route discovery hierarchy is clearer for a beginner.
+- [x] Static frontend-only behavior preserved.
+- [x] No forbidden files or scopes touched.
+- [x] Required validation completed.
+- [x] Capsule, CURRENT.md, and snapshot updated with confirmed implementation state.
+- [x] Closed and pushed; no next capsule selected.
