@@ -4,7 +4,7 @@
 
 - Last updated phase: Phase 01 - Governance CI
 - Last updated capsule: Flutter scaffold baseline commit and Governance CI scaffold-baseline transition
-- Latest verified commit: `4b375d2 chore(mobile): add Flutter scaffold baseline`
+- Latest verified commit: `aa33a36 docs(implementation): align scaffold baseline instructions`
 - Routing commit: `04e0972 docs(roadmap): route repository workflow record`
 - Closure context: Phase 01 Governance CI is closed at `f917aab`; Artifact Inventory Schema persistence is complete; Repository Workflow Record capsule is closed; workflow memory schema migration, historical isolation check repair, historical isolation runner integration, Governance CI scaffold-baseline transition, and Flutter scaffold baseline are pushed and verified; no active implementation capsule is selected.
 

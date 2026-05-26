@@ -27,6 +27,10 @@ is_allowed_path() {
     implementation/AGENTS.md|implementation/mobile/AGENTS.md|implementation/traceability/setup-gates.md)
       return 0
       ;;
+    # Approved: scaffold-baseline and Codex-only review instruction cleanup
+    AGENTS.md|.agents/skills/runiac-review-flow/SKILL.md|tools/agent-review/profiles/runiac/context-policy.yml|tools/agent-review/profiles/runiac/prompts/01_codex_create_plan.md)
+      return 0
+      ;;
     implementation/roadmap/CURRENT.md|implementation/roadmap/phases/phase-01-governance-ci.md|implementation/roadmap/snapshots/latest.md|implementation/roadmap/ci/*|tools/governance-ci/*)
       return 0
       ;;

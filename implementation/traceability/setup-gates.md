@@ -244,9 +244,9 @@ Clarifications:
 - `GoogleService-Info.plist` is Firebase iOS mobile configuration.
 - `ios/**/Info.plist` is native iOS app metadata where keys may accidentally be hardcoded.
 
-Configuration injection strategy requirement before scaffolding:
+Configuration injection strategy requirement before further Firebase/mobile configuration:
 
-- Choose and document a config injection strategy before Flutter/Firebase scaffolding begins.
+- Choose and document a config injection strategy before Firebase configuration, FlutterFire configuration, or mobile configuration expansion begins.
 - Compare only at a high level for now: `--dart-define`, `--dart-define-from-file`, `flutter_dotenv`, native placeholder substitution, and CI/CD environment variables.
 - Do not choose the final strategy in this gate until explicit approval evidence exists.
 - Client-side injection strategies do not prevent reverse-engineering of compiled binaries.

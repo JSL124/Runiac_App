@@ -31,8 +31,8 @@ Start with the smallest checks that reduce real risk. Avoid broad CI, dependency
 - Local Governance CI shell checks were committed and pushed in `50be93e chore(ci): add local governance CI checks`.
 - Capsule 3 - Governance CI hardening is complete.
 - `check-roadmap-routing.sh` was generalized and `run-all-checks.sh` was added in `7ed7f27 chore(ci): harden governance CI routing`.
-- Implemented checks remain local-only shell scripts under `tools/governance-ci/`; no GitHub Actions, Flutter scaffold, Firebase setup, production source/config, build, deploy, dependency installation, or external service use was introduced.
-- Repository state remains pre-scaffold.
+- Implemented checks remain local-only shell scripts under `tools/governance-ci/`; no GitHub Actions, Firebase setup, production source/config, build, deploy, dependency installation, or external service use was introduced.
+- Repository state is now an approved scaffold-baseline state with the stock Flutter scaffold present under `implementation/mobile/runiac_app/`.
 
 ## Forbidden Deployment/Build Scope
 
@@ -44,7 +44,7 @@ Start with the smallest checks that reduce real risk. Avoid broad CI, dependency
 
 - Classify any proposed check by ADR-001 tier.
 - Verify checks do not require secrets, production services, generated app scaffolds, or dependency installation.
-- Preserve `setup-gates.md` as the source of truth for pre-scaffold approval state.
+- Preserve `setup-gates.md` as the source of truth for scaffold-baseline setup-gate approval state.
 - Run A6_REVIEW and A8_OUTPUT_CHECKER before Ready for commit.
 
 ## Snapshot Update Requirement
@@ -58,6 +58,6 @@ Update `implementation/roadmap/CURRENT.md` immediately when the next phase becom
 ## Exit Criteria
 
 - [x] snapshots/latest.md updated
-  - Evidence: Capsule 2 commit `50be93e`, Capsule 3 commit `7ed7f27`, Governance CI runner pass state, and pre-scaffold state are recorded.
+  - Evidence: Capsule 2 commit `50be93e`, Capsule 3 commit `7ed7f27`, Governance CI runner pass state, and scaffold-baseline state are recorded.
 - [x] CURRENT.md moved to post-Phase-01 planning gate
   - Evidence: CURRENT.md routes to the Post-Phase-01 planning gate and does not approve Phase 02 implementation, scaffold execution, Flutter work, Firebase setup, or production implementation.

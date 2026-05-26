@@ -2,7 +2,7 @@ schema_version: 1
 
 context_classes:
   workflow:
-    description: "Agent-review runner scripts, prompts, workflow docs, Claude settings, and process automation."
+    description: "Agent-review runner scripts, prompts, workflow docs, local reviewer settings, and process automation."
     default_review_mode: "lite"
     allowed_path_keys: ["workflow", "always_read"]
   docs:

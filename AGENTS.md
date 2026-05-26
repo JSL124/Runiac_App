@@ -3,7 +3,7 @@
 ## Project Defaults
 - Default mode is PDD_MODE unless the user explicitly asks for implementation, build, test, or code changes.
 - Runiac is a beginner-focused running app for a Final Year Project.
-- Current primary work is Project Design Document preparation.
+- Current work state and routing are determined by `implementation/roadmap/CURRENT.md`.
 - Use `grep` and `find` for repository searches.
 
 ## Commit Protocol

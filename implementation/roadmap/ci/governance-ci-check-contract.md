@@ -8,13 +8,13 @@
 
 ## Purpose
 
-Define deterministic, pre-scaffold-safe governance checks for repository hygiene, forbidden-scope detection, roadmap context discipline, and evidence readiness. This document is a contract only; it does not define GitHub Actions and does not implement scripts.
+Define deterministic, scaffold-baseline-safe governance checks for repository hygiene, forbidden-scope detection, roadmap context discipline, and evidence readiness. This document is a contract only; it does not define GitHub Actions and does not implement scripts.
 
 ## Check Contracts
 
 | Script name | Purpose | Scanned paths | Allowlist | Pass criteria | Fail criteria |
 | --- | --- | --- | --- | --- | --- |
-| `check-pre-scaffold-scope.sh` | Confirm the repository remains pre-scaffold and no production app/config files were introduced. | `.` with shallow path filters | Roadmap/docs placeholders, README files, AGENTS files, `.gitkeep` | No Flutter scaffold, Firebase config, production source/config, `pubspec.yaml`, `firebase.json`, `.firebaserc`, app `package.json`, `google-services.json`, or `GoogleService-Info.plist` found. | Any forbidden scaffold/config/source marker appears outside an explicit approved placeholder. |
+| `check-pre-scaffold-scope.sh` | Confirm the repository remains within the approved scaffold-baseline boundary and no unauthorized app/config files were introduced. | `.` with shallow path filters | Approved stock Flutter scaffold under `implementation/mobile/runiac_app/`, roadmap/docs placeholders, README files, AGENTS files, `.gitkeep` | Stock Flutter scaffold markers are limited to `implementation/mobile/runiac_app/`; no Firebase config, production source/config, `firebase.json`, `.firebaserc`, app `package.json`, `google-services.json`, or `GoogleService-Info.plist` found outside an explicitly approved boundary. | Any forbidden scaffold/config/source marker appears outside an explicit approved boundary. |
 | `check-sensitive-paths.sh` | Confirm sensitive/config/private artifacts are ignored or denied by governance policy. | `.gitignore`, `.claude/settings.json`, `tools/agent-review/profiles/runiac/context-policy.yml` | `.env.example`, `.env.*.example`, documented placeholders | Required deny/ignore patterns exist for `.env*`, nested `.env*`, secrets, Firebase config, service accounts, signing files, private GPS/location/route artifacts, and test evidence. | Required pattern missing, malformed JSON/YAML, or broad private-data pattern replaced with unsafe generic matching. |
 | `check-roadmap-routing.sh` | Confirm roadmap context routing is deterministic. | `implementation/roadmap/CURRENT.md`, active phase file, `implementation/roadmap/snapshots/latest.md` | None | `CURRENT.md` names one active phase, required reading order is present, snapshot commit hash is present, and forbidden scope remains explicit. | Missing active phase, stale Phase 00 routing after closure, missing snapshot hash, or missing forbidden-scope language. |
 | `check-agent-governance.sh` | Confirm root agent governance remains concise and aligned with current constraints. | `AGENTS.md` | Existing role index and mode-specific rule list | Non-negotiable Runiac rules, commit protocol, canonical diagram path, roadmap context protocol, and path protection are present. | Rules missing, duplicated into conflicting versions, or canonical `docs/pdd/diagrams/` ownership weakened. |
@@ -61,6 +61,6 @@ next_step=Update governance policy, then rerun once.
 - Retry only after a scoped change that directly addresses the reported failure.
 - After 2 failed attempts, stop and require human review approval before further changes.
 
-## Pre-Scaffold Safety Boundary
+## Scaffold-Baseline Safety Boundary
 
 These checks must not run Flutter, Firebase, npm, scaffold, init, build, deploy, dependency installation, emulators, or production service commands. They may use deterministic shell, Git, JSON/YAML parsing, and Markdown/path inspection only.

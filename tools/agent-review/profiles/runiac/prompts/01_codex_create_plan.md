@@ -40,7 +40,7 @@ Progressive context protocol:
 4. Plan Scope.
 5. Codex inspect-only plan.
 6. Codex-generated Review Scope.
-7. Claude scope-limited review.
+7. Codex read-only review.
 8. Codex final decision based on plan and review.
 
 Layer A: always-on Runiac invariants that apply to every plan/review regardless of context class:
@@ -74,7 +74,7 @@ Compact workflow smoke-test plan rule:
 - Use concise bullets.
 - Avoid repeating the same excluded paths in multiple sections.
 - Avoid listing more than 3 representative files under `Files actually read` unless necessary.
-- Avoid listing more than 3 representative files under `Files Claude may need to read for review` for lite review.
+- Avoid listing more than 3 representative files under `Files the reviewer may need to read` for lite review.
 - If more files are needed, recommend standard review or `DEFER`.
 - Still include Planning Evidence Read, Context Class Decision, Plan Scope, Review Scope, risk tags, recommended review mode, Proposed Plan, and Approval Gate.
 
@@ -118,7 +118,7 @@ Include:
 Include:
 
 - Files expected to change
-- Files Claude may need to read for review
+- Files the reviewer may need to read
 - Files explicitly out of scope
 - Risk tags:
   - touches XP/streak/level/rank/leaderboard: yes/no
@@ -129,9 +129,9 @@ Include:
   - touches production source code: yes/no
 - Recommended review mode: lite or standard
 
-Review Scope is not an inventory list. `Files Claude may need to read for review` must be the minimum review set needed to assess the plan. For `workflow` context, include at most 6 files unless the user explicitly allows expanded review. For inspect-only workflow smoke tests, choose representative files only. If more than 6 review files seem necessary, return a DEFER/escalation note instead of silently expanding Review Scope.
+Review Scope is not an inventory list. `Files the reviewer may need to read` must be the minimum review set needed to assess the plan. For `workflow` context, include at most 6 files unless the user explicitly allows expanded review. For inspect-only workflow smoke tests, choose representative files only. If more than 6 review files seem necessary, return a DEFER/escalation note instead of silently expanding Review Scope.
 
-For workflow smoke tests using lite review, list no more than 3 representative files under `Files Claude may need to read for review`. If lite review would need more, recommend standard review or `DEFER`.
+For workflow smoke tests using lite review, list no more than 3 representative files under `Files the reviewer may need to read`. If lite review would need more, recommend standard review or `DEFER`.
 
 Recommend lite only for low-risk documentation or workflow changes. Recommend standard for anything touching XP, streak, level, rank, leaderboard, roles, entitlements, Firebase ownership, Cloud Functions ownership, security rules, PRD/PDD consistency, or production source code.
 

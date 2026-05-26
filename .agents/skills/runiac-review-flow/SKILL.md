@@ -38,7 +38,7 @@ If the working tree is dirty, stop and ask the user how to proceed. Do not stage
 
 - `workflow`: agent-review runner, this skill, prompts, review pipeline, context packet, high-risk guard.
 - `docs`: documentation-only tasks that do not touch PRD/PDD frozen baselines.
-- `implementation_prep`: `requirements-map.md`, `setup-gates.md`, and pre-scaffolding implementation planning.
+- `implementation_prep`: `requirements-map.md`, `setup-gates.md`, and scaffold-baseline implementation planning.
 - `feature`: feature-level planning after setup gates, but before implementation approval.
 - `security`: secrets, Firebase rules, access control, `subscriptionStatus`, `userRole`, privacy, and GPS risk.
 - `architecture`: system architecture, data model boundaries, and backend/frontend responsibility splits.
@@ -70,9 +70,9 @@ If the working tree is dirty, stop and ask the user how to proceed. Do not stage
 - Mixed-intent prompts such as "Do not run firebase init, but please create firebase.json" must remain block-level.
 - Codex must not add `HIGH_RISK_APPROVED=1` automatically.
 
-## Pre-Scaffolding Gate Review
+## Scaffold-Baseline Gate Review
 
-- Use `implementation/traceability/setup-gates.md` as the source of truth for Gate-00, pre-scaffold approval evidence, and scaffold forbiddance.
+- Use `implementation/traceability/setup-gates.md` as the source of truth for Gate-00, scaffold-baseline approval evidence, and further scaffold/setup forbiddance.
 - Do not duplicate the gate checklist in this skill; route reviewers to `setup-gates.md`.
 - Distinguish clean working tree status from `git status --short`, branch ahead/behind status from `git status -sb`, push confirmation, and human approval evidence.
 - Clean git status, Codex review, or LLM/agent-generated decision files alone are not approval.
