@@ -9,55 +9,47 @@ class RunLaunchScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) {
-        if (!didPop) {
-          Navigator.of(context).pop();
-        }
-      },
-      child: Scaffold(
-        backgroundColor: RuniacColors.background,
-        body: Stack(
-          children: [
-            const Positioned.fill(child: RunMapPlaceholder()),
-            SafeArea(
-              child: Stack(
-                children: [
-                  Positioned(
-                    left: 16,
-                    top: 12,
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        color: RuniacColors.white,
-                        borderRadius: BorderRadius.circular(999),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color(0x1A172033),
-                            blurRadius: 14,
-                            offset: Offset(0, 6),
-                          ),
-                        ],
-                      ),
-                      child: IconButton(
-                        tooltip: 'Close',
-                        onPressed: () => Navigator.of(context).pop(),
-                        icon: const Icon(Icons.close),
-                        color: RuniacColors.textPrimary,
-                      ),
+    return Scaffold(
+      backgroundColor: RuniacColors.background,
+      body: Stack(
+        children: [
+          const Positioned.fill(child: RunMapPlaceholder()),
+          SafeArea(
+            child: Stack(
+              children: [
+                Positioned(
+                  left: 16,
+                  top: 12,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: RuniacColors.white,
+                      borderRadius: BorderRadius.circular(999),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x1A172033),
+                          blurRadius: 14,
+                          offset: Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: IconButton(
+                      tooltip: 'Close',
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(Icons.close),
+                      color: RuniacColors.textPrimary,
                     ),
                   ),
-                  Positioned(
-                    left: 20,
-                    right: 20,
-                    bottom: 24,
-                    child: const _RunLaunchOverlays(),
-                  ),
-                ],
-              ),
+                ),
+                Positioned(
+                  left: 20,
+                  right: 20,
+                  bottom: 24,
+                  child: const _RunLaunchOverlays(),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
