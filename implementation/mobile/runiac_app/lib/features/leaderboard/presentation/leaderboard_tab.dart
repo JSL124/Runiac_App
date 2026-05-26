@@ -177,26 +177,195 @@ class _InfoBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       label: 'Leaderboard information',
-      child: Container(
-        width: 50,
-        height: 50,
-        decoration: BoxDecoration(
-          color: const Color(0xEFFFFFFF),
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: const Color(0x552F50C7), width: 1.4),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x17172033),
-              blurRadius: 10,
-              offset: Offset(0, 4),
+      button: true,
+      child: ExcludeSemantics(
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            customBorder: const CircleBorder(),
+            onTap: () => _showLeaderboardTipsDialog(context),
+            child: Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                color: const Color(0xEFFFFFFF),
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: const Color(0x552F50C7), width: 1.4),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x17172033),
+                    blurRadius: 10,
+                    offset: Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.info_outline,
+                color: RuniacColors.primaryBlue,
+                size: 28,
+              ),
             ),
-          ],
+          ),
         ),
-        child: const Icon(
-          Icons.info_outline,
-          color: RuniacColors.primaryBlue,
-          size: 28,
+      ),
+    );
+  }
+}
+
+void _showLeaderboardTipsDialog(BuildContext context) {
+  showDialog<void>(
+    context: context,
+    barrierColor: RuniacColors.textPrimary.withValues(alpha: 0.38),
+    builder: (context) => const _LeaderboardTipsDialog(),
+  );
+}
+
+class _LeaderboardTipsDialog extends StatelessWidget {
+  const _LeaderboardTipsDialog();
+
+  @override
+  Widget build(BuildContext context) {
+    final maxDialogHeight = MediaQuery.sizeOf(context).height - 56;
+
+    return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 24),
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: 430, maxHeight: maxDialogHeight),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: const Color(0xF8FFFFFF),
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(color: const Color(0x552F50C7)),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x33172033),
+                blurRadius: 28,
+                offset: Offset(0, 14),
+              ),
+            ],
+          ),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(18, 14, 18, 22),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    IconButton(
+                      tooltip: 'Close tips',
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(Icons.close),
+                      color: RuniacColors.textPrimary,
+                    ),
+                    const Expanded(
+                      child: Center(
+                        child: Text(
+                          'Tips',
+                          style: TextStyle(
+                            color: RuniacColors.textPrimary,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 48),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                const _TipsSection(
+                  icon: Icons.emoji_events_outlined,
+                  title: 'Leagues',
+                  body:
+                      'Leagues group runners by broad progress bands so the board feels fair and beginner-friendly.',
+                ),
+                const SizedBox(height: 10),
+                const _TipsSection(
+                  icon: Icons.calendar_month_outlined,
+                  title: 'Weekly vs Monthly',
+                  body:
+                      'Weekly and monthly views will help compare progress once leaderboard data is ready.',
+                ),
+                const SizedBox(height: 10),
+                const _TipsSection(
+                  icon: Icons.verified_user_outlined,
+                  title: 'Ranking readiness',
+                  body:
+                      'Real rankings will be calculated safely by Runiac later.',
+                ),
+              ],
+            ),
+          ),
         ),
+      ),
+    );
+  }
+}
+
+class _TipsSection extends StatelessWidget {
+  const _TipsSection({
+    required this.icon,
+    required this.title,
+    required this.body,
+  });
+
+  final IconData icon;
+  final String title;
+  final String body;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+      decoration: BoxDecoration(
+        color: RuniacColors.primaryBlue.withValues(alpha: 0.07),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: RuniacColors.primaryBlue.withValues(alpha: 0.16),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF3EC),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Icon(icon, color: RuniacColors.accentOrange, size: 19),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: RuniacColors.textPrimary,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  body,
+                  style: const TextStyle(
+                    color: RuniacColors.textPrimary,
+                    fontSize: 13,
+                    height: 1.35,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

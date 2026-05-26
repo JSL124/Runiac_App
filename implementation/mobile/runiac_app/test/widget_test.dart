@@ -117,6 +117,30 @@ void main() {
     expect(find.text('Your ranked area'), findsOneWidget);
     expect(find.bySemanticsLabel('Leaderboard information'), findsOneWidget);
 
+    await tester.tap(find.bySemanticsLabel('Leaderboard information'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Tips'), findsOneWidget);
+    expect(find.text('Leagues'), findsOneWidget);
+    expect(find.text('Weekly vs Monthly'), findsOneWidget);
+    expect(find.text('Ranking readiness'), findsOneWidget);
+    expect(
+      find.text(
+        'Leagues group runners by broad progress bands so the board feels fair and beginner-friendly.',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.text(
+        'Weekly and monthly views will help compare progress once leaderboard data is ready.',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.text('Real rankings will be calculated safely by Runiac later.'),
+      findsOneWidget,
+    );
+
     expect(find.text('Community motivation'), findsNothing);
     expect(find.text('No live ranking data yet'), findsNothing);
     expect(find.text('520 XP'), findsNothing);
@@ -128,6 +152,15 @@ void main() {
     expect(find.textContaining('Alex'), findsNothing);
     expect(find.textContaining('Maya'), findsNothing);
     expect(find.textContaining('520'), findsNothing);
+    expect(find.textContaining('My Rank'), findsNothing);
+    expect(find.textContaining('Region preview'), findsNothing);
+
+    await tester.tap(find.byTooltip('Close tips'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Tips'), findsNothing);
+    expect(find.text('Leagues'), findsNothing);
+    expect(find.text('Rising Runner Division'), findsOneWidget);
   });
 
   testWidgets('Run item opens and closes static full-screen launch surface', (
