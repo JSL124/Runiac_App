@@ -4,17 +4,17 @@
 
 - Current track: Track A - Governance and implementation readiness
 - Current phase: `implementation/roadmap/phases/phase-01-governance-ci.md`
-- Current active capsule: None selected
+- Current active capsule: `implementation/roadmap/capsules/android-ui-smoke-test-evidence.md`
 - Most recent completed capsule: `implementation/roadmap/capsules/flutter-app-shell-baseline.md` at `e48a348 feat(mobile): add static Runiac app shell`
-- Current status: Phase 01 governance CI closed; Artifact Inventory Schema persistence completed; Repository Workflow Record capsule closed; Flutter scaffold baseline present at `implementation/mobile/runiac_app/`; `flutter-app-shell-baseline` capsule closed after static app shell implementation; post-shell static UI/nav alignment checkpoint pushed at `247b4e5 feat(mobile): align static Runiac nav baseline`
-- Current state: Scaffold-baseline governance state; no active capsule selected; future work requires explicit routing
-- Current active milestone: explicit next capsule selection
+- Current status: Phase 01 governance CI closed; Artifact Inventory Schema persistence completed; Repository Workflow Record capsule closed; Flutter scaffold baseline present at `implementation/mobile/runiac_app/`; `flutter-app-shell-baseline` capsule closed after static app shell implementation; post-shell static UI/nav alignment checkpoint pushed at `247b4e5 feat(mobile): align static Runiac nav baseline`; `android-ui-smoke-test-evidence` selected as validation-only capsule
+- Current state: Scaffold-baseline governance state; active capsule is validation-only and does not authorize product code changes
+- Current active milestone: execute Android UI smoke-test evidence capsule
 
 ## Required Reading Order
 
 1. `implementation/roadmap/CURRENT.md`
 2. Active phase document: `implementation/roadmap/phases/phase-01-governance-ci.md` (closed)
-3. Active capsule document: none selected
+3. Active capsule document: `implementation/roadmap/capsules/android-ui-smoke-test-evidence.md`
 4. Relevant ADRs listed below
 5. `implementation/roadmap/snapshots/latest.md`
 
@@ -49,11 +49,20 @@ Do not load future phase documents unless explicitly requested.
 
 ## Next Gate
 
-No active capsule is selected.
+The active capsule is `implementation/roadmap/capsules/android-ui-smoke-test-evidence.md`.
 
-Run A6_REVIEW and A8_OUTPUT_CHECKER before selecting any future routing or implementation patch.
+Run A6_REVIEW and A8_OUTPUT_CHECKER before committing this routing patch and again before closing the validation capsule.
 
-This post-capsule state does not approve Phase 02 implementation, Firebase setup, `flutterfire configure`, dependency installation, build, init, deploy, tests, new source changes, or production implementation. Future work requires separate explicit routing and approval.
+This validation-only capsule does not approve Phase 02 implementation, Firebase setup, `flutterfire configure`, dependency installation, build, init, deploy, new source changes, new tests, or production implementation. Future product work requires separate explicit routing and approval.
+
+Android UI smoke-test evidence capsule is active:
+
+- Capsule: `implementation/roadmap/capsules/android-ui-smoke-test-evidence.md`
+- Type: validation-only
+- Goal: verify the current static Flutter UI baseline on Android emulator `emulator-5554`
+- Expected static bottom navigation evidence: Home / Maps / Run / Leaderboard / You
+- No product files should be modified.
+- iOS/Xcode/CocoaPods issues remain out of scope for this capsule.
 
 Artifact Inventory Schema persistence is complete:
 
