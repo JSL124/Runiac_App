@@ -47,6 +47,7 @@ Implement the first map-first Leaderboard landing shell as a static frontend-onl
 
 - Static frontend-only Leaderboard map-first landing shell.
 - Local Leaderboard presentation layout, color, copy, spacing, and static placeholder clarity.
+- Minimal shell AppBar suppression only for the Leaderboard tab so the Leaderboard page can use a map-first full-screen surface.
 - Static overlay segmented control for `Weekly XP / Monthly XP`.
 - Static overlay current league selector.
 - Static visual info icon button.
@@ -56,10 +57,17 @@ Implement the first map-first Leaderboard landing shell as a static frontend-onl
 ## Allowed Files For Future Implementation
 
 - `implementation/mobile/runiac_app/lib/features/leaderboard/presentation/leaderboard_tab.dart`
+- `implementation/mobile/runiac_app/lib/features/shell/runiac_shell.dart` only for hiding/removing the top AppBar when the active tab is Leaderboard.
 - `implementation/mobile/runiac_app/test/widget_test.dart` only if stable visible expectations need updates.
 
 ## Forbidden Scope
 
+- No shell navigation redesign.
+- No bottom navigation changes.
+- No Home, Maps, Run, or You/Profile AppBar behavior changes unless unavoidable and explicitly reported.
+- No global Scaffold refactor.
+- No route or navigation architecture changes.
+- No unrelated shell styling.
 - No help modal behavior.
 - No region tap behavior.
 - No region preview bottom sheet.
@@ -88,7 +96,7 @@ Implement the first map-first Leaderboard landing shell as a static frontend-onl
 - No GPS/current-location permission.
 - No real location state.
 - No real map SDK or real map tiles.
-- No shell navigation changes.
+- No shell changes except the exact Leaderboard-only AppBar suppression listed in allowed files.
 - No Home, Maps, Run, or You/Profile changes.
 - No dependency changes.
 - No native Android/iOS changes.
@@ -102,11 +110,12 @@ The repository may contain dirty Flutter files from an earlier uncommitted Leade
 - `implementation/mobile/runiac_app/lib/features/leaderboard/presentation/leaderboard_tab.dart`
 - `implementation/mobile/runiac_app/test/widget_test.dart`
 
-Those dirty files are unapproved context only. They are not completion evidence for this capsule, must not be staged as part of routing, and must not be treated as approved final implementation.
+Those dirty files are unapproved implementation context until a future implementation pass intentionally updates them within this capsule. They are not completion evidence for this scope-amendment pass, must not be staged as part of routing, and must not be treated as approved final implementation without the required implementation validation.
 
 ## Future Implementation Plan
 
 - Replace the current Leaderboard surface with a map-first static landing shell.
+- Suppress the shell AppBar only while the active tab is Leaderboard, preserving bottom navigation and other tab behavior.
 - Keep the default view dominated by the map-like background.
 - Place compact static controls as overlays rather than a scroll/card hierarchy.
 - Keep the info button visual only in this capsule; route help modal behavior separately.
