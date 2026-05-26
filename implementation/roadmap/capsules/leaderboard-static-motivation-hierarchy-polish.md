@@ -12,11 +12,17 @@ Type: Flutter static frontend-only Leaderboard visual hierarchy polish capsule.
 
 ## Status
 
-Status: Selected for implementation; implementation not started.
+Status: Superseded before implementation.
 
 Routed on: 2026-05-27 Asia/Singapore.
 
-Completion evidence commit target: `feat(mobile): polish leaderboard motivation hierarchy`.
+Superseded on: 2026-05-27 Asia/Singapore.
+
+Superseded by: `implementation/roadmap/capsules/leaderboard-map-first-landing-shell.md`.
+
+Completion evidence commit target: not applicable; this capsule was not implemented.
+
+Supersession reason: plan-only Leaderboard review found that the desired UX direction changed from a scroll/card-based static motivation placeholder to a map-first, region-based Leaderboard landing direction. The refined direction changes the screen hierarchy enough that a new, narrower first capsule is safer than implementing this capsule as originally written.
 
 ## Required Agent Chain
 
@@ -132,8 +138,8 @@ Widget tests are recommended only for stable visible text and placeholder behavi
 
 ## Exit Criteria
 
-- [ ] Leaderboard static motivation hierarchy polish implemented inside the allowed files.
-- [ ] Static frontend-only behavior preserved.
-- [ ] No forbidden files or scopes touched.
-- [ ] Required validation completed.
-- [ ] Capsule, CURRENT.md, and snapshot updated with confirmed implementation state.
+- [x] Superseded before implementation because the desired Leaderboard direction changed.
+  - Evidence: `leaderboard-map-first-landing-shell` selected as the refined first map-first capsule.
+- [x] Old capsule is not treated as completed implementation.
+- [x] No implementation completion commit target is claimed.
+- [x] Dirty Flutter files from the earlier uncommitted attempt remain unapproved context only and must not be staged as closure evidence for this capsule.
