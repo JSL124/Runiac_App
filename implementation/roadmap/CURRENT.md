@@ -4,17 +4,17 @@
 
 - Current track: Track A - Governance and implementation readiness
 - Current phase: `implementation/roadmap/phases/phase-01-governance-ci.md`
-- Current active capsule: `implementation/roadmap/capsules/flutter-frontend-hygiene-cleanup.md`
+- Current active capsule: none selected
 - Most recent completed capsule: `implementation/roadmap/capsules/leaderboard-help-modal-shell.md` committed and pushed at `96a2706 feat(mobile): add leaderboard tips popup`
-- Current status: Phase 01 governance CI closed; Artifact Inventory Schema persistence completed; Repository Workflow Record capsule closed; Flutter scaffold baseline present at `implementation/mobile/runiac_app/`; `flutter-app-shell-baseline` capsule closed after static app shell implementation; post-shell static UI/nav alignment checkpoint pushed at `247b4e5 feat(mobile): align static Runiac nav baseline`; `android-ui-smoke-test-evidence` validation capsule closed; `home-dashboard-visual-polish` closed after static Home dashboard visual polish; `premium-home-dashboard-static-wireframe-alignment` closed after static Premium Home Dashboard wireframe alignment; `github-actions-governance-ci-baseline` closed after adding the minimal GitHub Actions governance workflow; `home-dashboard-scroll-layout-stability-fix` closed after stabilizing Home dashboard scroll/card layout; `run-tab-static-placeholder` closed after adding the static RunLandingPage-style Run tab placeholder; `run-tab-fullscreen-map-overlay-alignment` closed after static Run tab fullscreen map overlay layout alignment; `home-dashboard-reference-layout-alignment` closed after static Home dashboard reference layout alignment; `maps-tab-static-placeholder` committed and pushed at `323507b feat(mobile): polish static maps layout`; `run-launch-fullscreen-static-interaction` committed and pushed at `b5c31ef feat(mobile): add static run launch interaction`; Run launch back-handling cleanup committed and pushed at `5851057 chore(mobile): simplify run launch back handling`; `home-dashboard-primary-action-simplification` closed after Home primary action and brand color hierarchy polish; `run-launch-brand-color-polish` closed after static Run launch brand color polish; `maps-static-discovery-hierarchy-polish` closed after static frontend-only Maps discovery hierarchy polish; `leaderboard-static-motivation-hierarchy-polish` superseded before implementation due to the refined map-first Leaderboard direction; `leaderboard-map-first-landing-shell` closed after static frontend-only Leaderboard map-first landing shell implementation; `github-actions-flutter-validation-baseline` is closed after workflow commit `587cc0e ci: add flutter validation to governance workflow`; `leaderboard-help-modal-shell` is closed after implementation commit `96a2706 feat(mobile): add leaderboard tips popup`, roadmap closure commit `2d1ec46 docs(roadmap): close leaderboard help modal capsule`, and manually confirmed hosted GitHub Actions PASS for `96a2706`; inspect-only Flutter frontend hygiene audit is complete and `flutter-frontend-hygiene-cleanup` is routed as the active behavior-preserving cleanup capsule.
-- Current state: Scaffold-baseline governance state with the static Flutter mobile UI split into a feature-first-lite source structure; Phase 02 remains unselected; hosted GitHub Actions now runs `git diff --check`, `./tools/governance-ci/run-all-checks.sh`, Flutter SDK setup, `flutter pub get`, `flutter analyze --no-pub`, and `flutter test`; hosted GitHub Actions for `96a2706` was manually confirmed PASS by the user; the Leaderboard information affordance now opens a centered static Tips popup/dialog with concise beginner-friendly help content and clear close behavior; frontend hygiene cleanup implementation has not started.
-- Current active milestone: `flutter-frontend-hygiene-cleanup` selected for future implementation-approved, behavior-preserving Flutter frontend hygiene cleanup only.
+- Current status: Phase 01 governance CI closed; Artifact Inventory Schema persistence completed; Repository Workflow Record capsule closed; Flutter scaffold baseline present at `implementation/mobile/runiac_app/`; `flutter-app-shell-baseline` capsule closed after static app shell implementation; post-shell static UI/nav alignment checkpoint pushed at `247b4e5 feat(mobile): align static Runiac nav baseline`; `android-ui-smoke-test-evidence` validation capsule closed; `home-dashboard-visual-polish` closed after static Home dashboard visual polish; `premium-home-dashboard-static-wireframe-alignment` closed after static Premium Home Dashboard wireframe alignment; `github-actions-governance-ci-baseline` closed after adding the minimal GitHub Actions governance workflow; `home-dashboard-scroll-layout-stability-fix` closed after stabilizing Home dashboard scroll/card layout; `run-tab-static-placeholder` closed after adding the static RunLandingPage-style Run tab placeholder; `run-tab-fullscreen-map-overlay-alignment` closed after static Run tab fullscreen map overlay layout alignment; `home-dashboard-reference-layout-alignment` closed after static Home dashboard reference layout alignment; `maps-tab-static-placeholder` committed and pushed at `323507b feat(mobile): polish static maps layout`; `run-launch-fullscreen-static-interaction` committed and pushed at `b5c31ef feat(mobile): add static run launch interaction`; Run launch back-handling cleanup committed and pushed at `5851057 chore(mobile): simplify run launch back handling`; `home-dashboard-primary-action-simplification` closed after Home primary action and brand color hierarchy polish; `run-launch-brand-color-polish` closed after static Run launch brand color polish; `maps-static-discovery-hierarchy-polish` closed after static frontend-only Maps discovery hierarchy polish; `leaderboard-static-motivation-hierarchy-polish` superseded before implementation due to the refined map-first Leaderboard direction; `leaderboard-map-first-landing-shell` closed after static frontend-only Leaderboard map-first landing shell implementation; `github-actions-flutter-validation-baseline` is closed after workflow commit `587cc0e ci: add flutter validation to governance workflow`; `leaderboard-help-modal-shell` is closed after implementation commit `96a2706 feat(mobile): add leaderboard tips popup`, roadmap closure commit `2d1ec46 docs(roadmap): close leaderboard help modal capsule`, and manually confirmed hosted GitHub Actions PASS for `96a2706`; `flutter-frontend-hygiene-cleanup` is closed after implementation commit `8074092 chore(mobile): apply frontend hygiene cleanup`, local validation, and manually confirmed hosted GitHub Actions PASS for `8074092`.
+- Current state: Scaffold-baseline governance state with the static Flutter mobile UI split into a feature-first-lite source structure; Phase 02 remains unselected; hosted GitHub Actions now runs `git diff --check`, `./tools/governance-ci/run-all-checks.sh`, Flutter SDK setup, `flutter pub get`, `flutter analyze --no-pub`, and `flutter test`; hosted GitHub Actions for `8074092` was manually confirmed PASS by the user; the Leaderboard information affordance opens a centered static Tips popup/dialog; frontend hygiene cleanup is complete and closed.
+- Current active milestone: none selected; `flutter-frontend-hygiene-cleanup` is closed and no next capsule is selected.
 
 ## Required Reading Order
 
 1. `implementation/roadmap/CURRENT.md`
 2. Active phase document: `implementation/roadmap/phases/phase-01-governance-ci.md` (closed)
-3. Active capsule document: `implementation/roadmap/capsules/flutter-frontend-hygiene-cleanup.md`
+3. Active capsule document: none selected
 4. Relevant ADRs listed below
 5. `implementation/roadmap/snapshots/latest.md`
 
@@ -49,25 +49,22 @@ Do not load future phase documents unless explicitly requested.
 
 ## Next Gate
 
-Active implementation capsule selected: `implementation/roadmap/capsules/flutter-frontend-hygiene-cleanup.md`.
+No active implementation capsule selected.
 
-## Operational TODO / Active Capsule
+## Operational TODO / Next Candidate
 
-Next work is behavior-preserving Flutter frontend hygiene cleanup for `flutter-frontend-hygiene-cleanup`.
+No next capsule is selected.
 
-Implementation has not started. The future pass must stay within the capsule's allowed files and must preserve product behavior.
+The next likely action remains inspect-only for `leaderboard-region-preview-sheet-shell`, but it is a candidate only and must not be routed, selected, or implemented without a separate explicit routing pass.
 
 Suggested next-session checklist:
 
 1. Start with required layered context loading from `implementation/roadmap/CURRENT.md`.
 2. Confirm clean repository state with `git status --short`.
-3. Load `implementation/roadmap/capsules/flutter-frontend-hygiene-cleanup.md`.
-4. Investigate and resolve or document the possible unreachable RunTab shell path only if behavior-preserving.
-5. Apply only tiny safe cleanup such as single-wrapper simplification, analyzer-safe const hygiene, and stable widget-test assertion improvement.
-6. Do not implement league selector popup, region tap behavior, region preview sheet, fake leaderboard data, backend-owned value logic, Firebase/GPS/native/dependency/workflow changes, broad visual redesign, broad architecture refactor, or Phase 02 selection.
-7. Run the capsule validation plan before any readiness claim.
-
-Deferred candidate after this cleanup: inspect-only for `leaderboard-region-preview-sheet-shell`. This remains a future candidate only and is not active while `flutter-frontend-hygiene-cleanup` is selected.
+3. Confirm no active capsule is selected.
+4. If continuing Leaderboard region work, run inspect-only review for `leaderboard-region-preview-sheet-shell`.
+5. Do not implement region preview sheet behavior until a new capsule is explicitly routed.
+6. Keep future region preview scope frontend-only if later routed: no fake users/ranks/XP/scores and no Firebase/backend/GPS/native/dependency work.
 
 Recently closed CI capsule:
 

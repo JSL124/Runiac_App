@@ -12,17 +12,27 @@ Type: Flutter frontend hygiene / behavior-preserving cleanup.
 
 ## Status
 
-Status: Active.
+Status: Closed.
 
 Routed on: 2026-05-27 Asia/Singapore.
 
 Selected on: 2026-05-27 Asia/Singapore.
 
+Closed on: 2026-05-27 Asia/Singapore.
+
 Depends on: `implementation/roadmap/capsules/leaderboard-help-modal-shell.md` closed at `96a2706 feat(mobile): add leaderboard tips popup` and roadmap closure commit `2d1ec46 docs(roadmap): close leaderboard help modal capsule`.
 
 Routing basis: inspect-only Flutter frontend hygiene audit completed after the Leaderboard help modal closure. The audit found no critical blockers and recommended a separate behavior-preserving cleanup capsule before editing frontend code.
 
-Implementation state: not started. This capsule selection is roadmap routing only.
+Implementation commit: `8074092 chore(mobile): apply frontend hygiene cleanup`.
+
+Closure evidence: local `git diff --check`, `cd implementation/mobile/runiac_app && flutter analyze --no-pub`, `cd implementation/mobile/runiac_app && flutter test`, and `./tools/governance-ci/run-all-checks.sh` passed before commit; hosted GitHub Actions for `8074092` was manually confirmed PASS by the user.
+
+Closure summary: behavior-preserving frontend hygiene cleanup completed. The inactive RunTab shell body path was removed from `RuniacShell` while preserving Run launch route behavior; the redundant `RunControls` wrapper was flattened; safe const constructors/usages were added for small custom painters; and a stable widget-test assertion now confirms `Tips` is absent before tapping `Leaderboard information`.
+
+Closure skipped scope: broad refactors, inert placeholder behavior changes, league selector popup, region tap behavior, region preview sheet, `leaderboard_tab.dart` splitting, and color-system normalization were intentionally left unchanged.
+
+Closure boundary preserved: no Flutter source/test changes in this roadmap closure pass, no new UX features, no fake leaderboard users/ranks/XP/scores/levels/streaks, no backend-owned value mutation, no Firebase/Auth/Firestore/Cloud Functions/FCM, no GPS/location behavior, no native Android/iOS changes, no dependency or `pubspec.yaml` changes, no workflow changes, no broad visual redesign, no broad architecture refactor, no next capsule selection, and no Phase 02 selection.
 
 ## Required Agent Chain
 
@@ -141,9 +151,9 @@ git status --short
 
 ## Done When
 
-- [ ] The possible unreachable Run shell path is resolved or explicitly documented without changing product behavior.
-- [ ] Tiny redundant wrappers are simplified where clearly behavior-neutral.
-- [ ] Safe const constructors/usages are added where analyzer-safe.
-- [ ] Widget tests are updated only for stable visible behavior if useful.
-- [ ] No new UX feature, fake data, backend-owned value, Firebase/GPS/native/dependency/workflow scope, broad redesign, broad architecture refactor, or Phase 02 selection is introduced.
-- [ ] Required validation passes.
+- [x] The possible unreachable Run shell path is resolved or explicitly documented without changing product behavior.
+- [x] Tiny redundant wrappers are simplified where clearly behavior-neutral.
+- [x] Safe const constructors/usages are added where analyzer-safe.
+- [x] Widget tests are updated only for stable visible behavior if useful.
+- [x] No new UX feature, fake data, backend-owned value, Firebase/GPS/native/dependency/workflow scope, broad redesign, broad architecture refactor, or Phase 02 selection is introduced.
+- [x] Required validation passes.
