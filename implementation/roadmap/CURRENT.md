@@ -4,17 +4,17 @@
 
 - Current track: Track A - Governance and implementation readiness
 - Current phase: `implementation/roadmap/phases/phase-01-governance-ci.md`
-- Current active capsule: `implementation/roadmap/capsules/github-actions-flutter-validation-baseline.md`
+- Current active capsule: none selected
 - Most recent completed capsule: `implementation/roadmap/capsules/leaderboard-map-first-landing-shell.md` committed and pushed at `b1ed742 feat(mobile): add leaderboard map landing shell`
-- Current status: Phase 01 governance CI closed; Artifact Inventory Schema persistence completed; Repository Workflow Record capsule closed; Flutter scaffold baseline present at `implementation/mobile/runiac_app/`; `flutter-app-shell-baseline` capsule closed after static app shell implementation; post-shell static UI/nav alignment checkpoint pushed at `247b4e5 feat(mobile): align static Runiac nav baseline`; `android-ui-smoke-test-evidence` validation capsule closed; `home-dashboard-visual-polish` closed after static Home dashboard visual polish; `premium-home-dashboard-static-wireframe-alignment` closed after static Premium Home Dashboard wireframe alignment; `github-actions-governance-ci-baseline` closed after adding the minimal GitHub Actions governance workflow; `home-dashboard-scroll-layout-stability-fix` closed after stabilizing Home dashboard scroll/card layout; `run-tab-static-placeholder` closed after adding the static RunLandingPage-style Run tab placeholder; `run-tab-fullscreen-map-overlay-alignment` closed after static Run tab fullscreen map overlay layout alignment; `home-dashboard-reference-layout-alignment` closed after static Home dashboard reference layout alignment; `maps-tab-static-placeholder` committed and pushed at `323507b feat(mobile): polish static maps layout`; `run-launch-fullscreen-static-interaction` committed and pushed at `b5c31ef feat(mobile): add static run launch interaction`; Run launch back-handling cleanup committed and pushed at `5851057 chore(mobile): simplify run launch back handling`; `home-dashboard-primary-action-simplification` closed after Home primary action and brand color hierarchy polish; `run-launch-brand-color-polish` closed after static Run launch brand color polish; `maps-static-discovery-hierarchy-polish` closed after static frontend-only Maps discovery hierarchy polish; `leaderboard-static-motivation-hierarchy-polish` superseded before implementation due to the refined map-first Leaderboard direction; `leaderboard-map-first-landing-shell` closed after static frontend-only Leaderboard map-first landing shell implementation; `leaderboard-help-modal-shell` is routed but deferred; `github-actions-flutter-validation-baseline` is selected to add hosted Flutter analyze/test validation parity before product implementation continues.
-- Current state: Scaffold-baseline governance state with the static Flutter mobile UI split into a feature-first-lite source structure; Phase 02 remains unselected; hosted GitHub Actions currently runs `git diff --check` and `./tools/governance-ci/run-all-checks.sh` but does not run Flutter SDK setup, `flutter analyze --no-pub`, or `flutter test`; `leaderboard-help-modal-shell` remains routed but deferred pending CI parity. No help modal implementation has started.
-- Current active milestone: `github-actions-flutter-validation-baseline`; stop before workflow implementation until a separate implementation-approved pass.
+- Current status: Phase 01 governance CI closed; Artifact Inventory Schema persistence completed; Repository Workflow Record capsule closed; Flutter scaffold baseline present at `implementation/mobile/runiac_app/`; `flutter-app-shell-baseline` capsule closed after static app shell implementation; post-shell static UI/nav alignment checkpoint pushed at `247b4e5 feat(mobile): align static Runiac nav baseline`; `android-ui-smoke-test-evidence` validation capsule closed; `home-dashboard-visual-polish` closed after static Home dashboard visual polish; `premium-home-dashboard-static-wireframe-alignment` closed after static Premium Home Dashboard wireframe alignment; `github-actions-governance-ci-baseline` closed after adding the minimal GitHub Actions governance workflow; `home-dashboard-scroll-layout-stability-fix` closed after stabilizing Home dashboard scroll/card layout; `run-tab-static-placeholder` closed after adding the static RunLandingPage-style Run tab placeholder; `run-tab-fullscreen-map-overlay-alignment` closed after static Run tab fullscreen map overlay layout alignment; `home-dashboard-reference-layout-alignment` closed after static Home dashboard reference layout alignment; `maps-tab-static-placeholder` committed and pushed at `323507b feat(mobile): polish static maps layout`; `run-launch-fullscreen-static-interaction` committed and pushed at `b5c31ef feat(mobile): add static run launch interaction`; Run launch back-handling cleanup committed and pushed at `5851057 chore(mobile): simplify run launch back handling`; `home-dashboard-primary-action-simplification` closed after Home primary action and brand color hierarchy polish; `run-launch-brand-color-polish` closed after static Run launch brand color polish; `maps-static-discovery-hierarchy-polish` closed after static frontend-only Maps discovery hierarchy polish; `leaderboard-static-motivation-hierarchy-polish` superseded before implementation due to the refined map-first Leaderboard direction; `leaderboard-map-first-landing-shell` closed after static frontend-only Leaderboard map-first landing shell implementation; `github-actions-flutter-validation-baseline` is closed after workflow commit `587cc0e ci: add flutter validation to governance workflow`; `leaderboard-help-modal-shell` remains routed and resumable by explicit reactivation/routing.
+- Current state: Scaffold-baseline governance state with the static Flutter mobile UI split into a feature-first-lite source structure; Phase 02 remains unselected; hosted GitHub Actions now runs `git diff --check`, `./tools/governance-ci/run-all-checks.sh`, Flutter SDK setup, `flutter pub get`, `flutter analyze --no-pub`, and `flutter test`; hosted GitHub Actions for `587cc0e` was manually confirmed PASS by the user; no help modal implementation has started.
+- Current active milestone: none selected; recommend explicit reactivation/routing of `leaderboard-help-modal-shell` before product implementation resumes.
 
 ## Required Reading Order
 
 1. `implementation/roadmap/CURRENT.md`
 2. Active phase document: `implementation/roadmap/phases/phase-01-governance-ci.md` (closed)
-3. Active capsule document: `implementation/roadmap/capsules/github-actions-flutter-validation-baseline.md`
+3. Active capsule document: none selected; if resuming product work, route `implementation/roadmap/capsules/leaderboard-help-modal-shell.md`
 4. Relevant ADRs listed below
 5. `implementation/roadmap/snapshots/latest.md`
 
@@ -49,22 +49,24 @@ Do not load future phase documents unless explicitly requested.
 
 ## Next Gate
 
-Active implementation capsule selected:
+No active implementation capsule selected.
+
+Recently closed CI capsule:
 
 - Capsule: `implementation/roadmap/capsules/github-actions-flutter-validation-baseline.md`
 - Type: CI workflow update / hosted validation baseline
-- Goal: add hosted GitHub Actions validation parity for the Flutter app so CI runs governance checks plus Flutter analyze/test before continuing product implementation.
-- Starting point: `.github/workflows/governance-ci.yml` currently runs `git diff --check` and `./tools/governance-ci/run-all-checks.sh`, but does not set up Flutter or run `flutter analyze --no-pub` / `flutter test`.
-- Future allowed files: `.github/workflows/governance-ci.yml`; `implementation/roadmap/CURRENT.md` only if required by closure; `implementation/roadmap/snapshots/latest.md` only if required by closure; `implementation/roadmap/capsules/github-actions-flutter-validation-baseline.md` only for closure; `tools/governance-ci/*` only if necessary and explicitly justified.
-- Required boundary: no Flutter app source changes, no Flutter widget test behavior changes unless strictly required by CI path discovery, no Firebase/Auth/Firestore/Cloud Functions/FCM, no Firebase init/deploy, no secrets/config/environment setup, no Android/iOS native build or release workflow, no dependency/package changes unless separately approved, no product feature implementation, no `leaderboard-help-modal-shell` implementation, and no Phase 02 selection.
-- Routing state: roadmap-only; no workflow implementation has started in this routing pass.
+- Routing commit: `95d1eed docs(roadmap): route flutter validation ci capsule`
+- Implementation commit: `587cc0e ci: add flutter validation to governance workflow`
+- Closure evidence: local `git diff --check`, `./tools/governance-ci/run-all-checks.sh`, `flutter analyze --no-pub`, and `flutter test` passed before commit; hosted GitHub Actions status for `587cc0e` was manually confirmed PASS by the user.
+- Implemented workflow scope: `.github/workflows/governance-ci.yml` now runs `git diff --check`, `./tools/governance-ci/run-all-checks.sh`, Flutter SDK setup, `flutter pub get`, `flutter analyze --no-pub`, and `flutter test`.
+- Required boundary preserved: no Flutter app source changes, no Flutter widget test behavior changes, no Firebase/Auth/Firestore/Cloud Functions/FCM, no Firebase init/deploy, no secrets/config/environment setup, no Android/iOS native build or release workflow, no dependency/package changes, no product feature implementation, no `leaderboard-help-modal-shell` implementation, and no Phase 02 selection.
 
 Deferred product capsule:
 
 - Capsule: `implementation/roadmap/capsules/leaderboard-help-modal-shell.md`
-- State: routed but deferred pending hosted CI Flutter validation parity.
+- State: routed and resumable by explicit reactivation/routing after hosted CI Flutter validation parity closure.
 - Do not mark completed or superseded.
-- Do not implement until `github-actions-flutter-validation-baseline` is closed or explicitly rerouted.
+- Do not implement until explicitly reactivated/routed.
 
 Recently closed capsule:
 
