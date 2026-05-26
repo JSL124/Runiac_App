@@ -4,9 +4,9 @@
 
 - Last updated phase: Phase 01 - Governance CI
 - Last updated capsule: Repository Workflow Record closure and Governance CI historical isolation integration
-- Latest verified commit: `0619874 ci(governance): narrow historical isolation check`
+- Latest verified commit: `6d65fa1 ci(governance): include historical isolation check`
 - Routing commit: `04e0972 docs(roadmap): route repository workflow record`
-- Closure context: Phase 01 Governance CI is closed at `f917aab`; Artifact Inventory Schema persistence is complete; Repository Workflow Record capsule is closed; workflow memory schema migration and historical isolation check repair are pushed and verified; no active implementation capsule is selected.
+- Closure context: Phase 01 Governance CI is closed at `f917aab`; Artifact Inventory Schema persistence is complete; Repository Workflow Record capsule is closed; workflow memory schema migration, historical isolation check repair, and historical isolation runner integration are pushed and verified; no active implementation capsule is selected.
 
 ## Current Implementation State
 
@@ -28,7 +28,7 @@ Pre-scaffold governance state. Worktree inspection found no committed Flutter ap
 - Workflow memory schema migration pushed in `9f2c832 docs(meta): standardize workflow memory schema`.
 - `docs/meta/REPOSITORY_WORKFLOW_RECORD.md` now uses the standardized 7-field workflow memory checkpoint schema and deterministic confidence labels.
 - Historical isolation check narrowed in `0619874 ci(governance): narrow historical isolation check` to allow legitimate `docs/meta` non-operational boundary references while preserving failure behavior for operational authority/dependency usage.
-- Main Governance CI runner now includes historical isolation coverage.
+- Main Governance CI runner includes historical isolation coverage as of `6d65fa1 ci(governance): include historical isolation check`.
 - Workflow Memory Drift Check is detection-only, WARN-only local Governance CI support. It does not automatically update workflow memory, snapshots, CURRENT.md, or capsules.
 - Repository Workflow Record capsule is closed.
 
@@ -75,4 +75,4 @@ Pre-scaffold governance state. Worktree inspection found no committed Flutter ap
 
 ## Current Active Milestone
 
-Phase 01 - Governance CI is closed at `f917aab`. Artifact Inventory Schema persistence is complete at `7aaacf1`. Repository Workflow Record capsule is closed after `04e0972`, `0eb37c8`, `93fff5e`, schema refresh commit `9f2c832`, and historical isolation repair commit `0619874`. No active implementation capsule is selected; next work requires explicit routing. Phase 02 implementation, Flutter scaffold execution, Firebase setup, dependency installation, build, init, deploy, source changes, tests, and production implementation remain unauthorized until separate explicit approval exists.
+Phase 01 - Governance CI is closed at `f917aab`. Artifact Inventory Schema persistence is complete at `7aaacf1`. Repository Workflow Record capsule is closed after `04e0972`, `0eb37c8`, `93fff5e`, schema refresh commit `9f2c832`, historical isolation repair commit `0619874`, and historical isolation runner integration commit `6d65fa1`. No active implementation capsule is selected; next work requires explicit routing. Phase 02 implementation, Flutter scaffold execution, Firebase setup, dependency installation, build, init, deploy, source changes, tests, and production implementation remain unauthorized until separate explicit approval exists.

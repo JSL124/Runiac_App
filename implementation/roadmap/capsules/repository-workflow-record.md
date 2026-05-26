@@ -92,6 +92,14 @@ Completed outputs:
 - Workflow memory checkpoints were added to `docs/meta/REPOSITORY_WORKFLOW_RECORD.md` in `0eb37c8 docs(meta): add workflow memory checkpoints`.
 - A Workflow Memory Drift Check was added to local Governance CI in `93fff5e ci(governance): add workflow memory drift check`.
 
+Post-closure governance consistency follow-ups:
+
+- Workflow memory schema was standardized in `9f2c832 docs(meta): standardize workflow memory schema`.
+- Historical isolation check behavior was narrowed in `0619874 ci(governance): narrow historical isolation check` so legitimate `docs/meta` non-operational boundary references do not fail while operational authority/dependency usage remains unsafe.
+- Historical isolation coverage was added to the main Governance CI runner in `6d65fa1 ci(governance): include historical isolation check`.
+
+These follow-ups clarify and align the closed workflow-memory governance state. They do not reopen this capsule, select an active capsule, or authorize implementation work.
+
 Closure boundaries:
 
 - No Repository Genesis material or `REPOSITORY_GENESIS.md` was created.
