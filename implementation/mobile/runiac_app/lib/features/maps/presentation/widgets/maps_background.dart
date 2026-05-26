@@ -28,8 +28,9 @@ class _MapPinPlaceholder extends StatelessWidget {
       width: 30,
       height: 30,
       decoration: BoxDecoration(
-        color: RuniacColors.textPrimary,
+        color: RuniacColors.white,
         borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: RuniacColors.primaryBlue, width: 2),
         boxShadow: const [
           BoxShadow(
             color: Color(0x24172033),
@@ -38,7 +39,11 @@ class _MapPinPlaceholder extends StatelessWidget {
           ),
         ],
       ),
-      child: const Icon(Icons.place, color: RuniacColors.white, size: 18),
+      child: const Icon(
+        Icons.place,
+        color: RuniacColors.accentOrange,
+        size: 17,
+      ),
     );
   }
 }
@@ -52,15 +57,16 @@ class _MapFocusDot extends StatelessWidget {
       width: 48,
       height: 48,
       decoration: BoxDecoration(
-        color: const Color(0xEFFFFFFF),
+        color: const Color(0xF2FFFFFF),
         borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: const Color(0x33FC6818), width: 2),
       ),
       child: Center(
         child: Container(
           width: 18,
           height: 18,
           decoration: BoxDecoration(
-            color: RuniacColors.textPrimary,
+            color: RuniacColors.accentOrange,
             borderRadius: BorderRadius.circular(999),
           ),
         ),
@@ -162,6 +168,20 @@ class _MapsBackgroundPainter extends CustomPainter {
         size.height * 0.60,
       );
     canvas.drawPath(routePath, routePaint);
+
+    final routeStartPaint = Paint()..color = RuniacColors.accentOrange;
+    final routeEndPaint = Paint()..color = RuniacColors.primaryBlue;
+    canvas
+      ..drawCircle(
+        Offset(size.width * 0.18, size.height * 0.38),
+        6,
+        routeStartPaint,
+      )
+      ..drawCircle(
+        Offset(size.width * 0.64, size.height * 0.60),
+        6,
+        routeEndPaint,
+      );
   }
 
   @override

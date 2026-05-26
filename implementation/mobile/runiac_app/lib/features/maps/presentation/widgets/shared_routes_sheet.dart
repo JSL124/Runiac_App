@@ -9,11 +9,11 @@ class SharedRoutesSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DraggableScrollableSheet(
-      minChildSize: 0.065,
-      initialChildSize: 0.56,
-      maxChildSize: 0.68,
+      minChildSize: 0.055,
+      initialChildSize: 0.38,
+      maxChildSize: 0.5,
       snap: true,
-      snapSizes: const [0.065, 0.56, 0.68],
+      snapSizes: const [0.055, 0.38, 0.5],
       builder: (context, scrollController) {
         return DecoratedBox(
           decoration: const BoxDecoration(
@@ -34,29 +34,20 @@ class SharedRoutesSheet extends StatelessWidget {
             children: const [
               _SheetHandleArea(),
               _SharedRoutesHeader(),
-              SizedBox(height: 5),
-              Text(
-                'Shared route previews will appear here after app setup.',
-                style: TextStyle(
-                  color: RuniacColors.textSecondary,
-                  fontSize: 13,
-                  height: 1.35,
-                ),
-              ),
               SizedBox(height: 14),
               RoutePreviewCard(
                 title: 'Route preview',
-                message: 'Map and route notes will stay as placeholders.',
+                message: 'A calm route card can guide the next step later.',
               ),
               SizedBox(height: 10),
               RoutePreviewCard(
                 title: 'Shared routes',
-                message: 'Community cards can be reviewed later.',
+                message: 'Community route ideas remain review-only for now.',
               ),
               SizedBox(height: 10),
               RoutePreviewCard(
                 title: 'Saved routes',
-                message: 'Saved route slots remain static for now.',
+                message: 'Saved route slots stay visible without saving data.',
               ),
             ],
           ),
@@ -71,7 +62,7 @@ class _SheetHandleArea extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const SizedBox(height: 48, child: Center(child: _SheetDragHandle()));
+    return const SizedBox(height: 60, child: Center(child: _SheetDragHandle()));
   }
 }
 
@@ -98,32 +89,14 @@ class _SharedRoutesHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        const Expanded(
-          child: Text(
-            'Shared Routes',
-            style: TextStyle(
-              color: RuniacColors.textPrimary,
-              fontSize: 21,
-              fontWeight: FontWeight.w800,
-              height: 1.15,
-            ),
-          ),
-        ),
-        TextButton(
-          onPressed: () {},
-          style: TextButton.styleFrom(
-            foregroundColor: RuniacColors.primaryBlue,
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            textStyle: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          child: const Text('See all'),
-        ),
-      ],
+    return const Text(
+      'Shared Routes',
+      style: TextStyle(
+        color: RuniacColors.textPrimary,
+        fontSize: 21,
+        fontWeight: FontWeight.w800,
+        height: 1.15,
+      ),
     );
   }
 }

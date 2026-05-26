@@ -19,7 +19,7 @@ class RoutePreviewCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: const Color(0xFFFAFBFF),
+          color: RuniacColors.white,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: RuniacColors.border),
           boxShadow: const [
@@ -61,10 +61,18 @@ class RoutePreviewCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            const Icon(
-              Icons.chevron_right,
-              color: RuniacColors.textSecondary,
-              size: 22,
+            Container(
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(
+                color: const Color(0xFFEFF3FF),
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: const Icon(
+                Icons.arrow_forward,
+                color: RuniacColors.primaryBlue,
+                size: 17,
+              ),
             ),
           ],
         ),
@@ -83,8 +91,9 @@ class _RouteThumbnailPlaceholder extends StatelessWidget {
       height: 58,
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: RuniacColors.background,
+          color: const Color(0xFFF4F7FF),
           borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: const Color(0xFFDDE6FF)),
         ),
         child: CustomPaint(painter: _RouteThumbnailPainter()),
       ),
@@ -127,6 +136,12 @@ class _RouteThumbnailPainter extends CustomPainter {
         size.height * 0.36,
       );
     canvas.drawPath(routePath, routePaint);
+
+    final startPaint = Paint()..color = RuniacColors.accentOrange;
+    final endPaint = Paint()..color = RuniacColors.primaryBlue;
+    canvas
+      ..drawCircle(Offset(size.width * 0.24, size.height * 0.68), 4, startPaint)
+      ..drawCircle(Offset(size.width * 0.78, size.height * 0.36), 4, endPaint);
   }
 
   @override

@@ -28,7 +28,7 @@ class _MapsSearchField extends StatelessWidget {
       decoration: BoxDecoration(
         color: RuniacColors.white,
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: RuniacColors.border),
+        border: Border.all(color: const Color(0xFFE1E7F5)),
         boxShadow: const [
           BoxShadow(
             color: Color(0x14172033),
@@ -39,11 +39,11 @@ class _MapsSearchField extends StatelessWidget {
       ),
       child: const Row(
         children: [
-          Icon(Icons.search, color: RuniacColors.textPrimary, size: 22),
+          Icon(Icons.search, color: RuniacColors.primaryBlue, size: 22),
           SizedBox(width: 8),
           Expanded(
             child: Text(
-              'Search routes or area',
+              'Search routes or parks',
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: RuniacColors.textSecondary,
@@ -67,11 +67,12 @@ class _SavedRoutesButton extends StatelessWidget {
       height: 48,
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: RuniacColors.primaryBlue,
+        color: RuniacColors.white,
         borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: const Color(0x332F50C7)),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x332F50C7),
+            color: Color(0x14172033),
             blurRadius: 10,
             offset: Offset(0, 5),
           ),
@@ -80,12 +81,16 @@ class _SavedRoutesButton extends StatelessWidget {
       child: const Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.bookmark_border, color: RuniacColors.white, size: 19),
+          Icon(
+            Icons.bookmark_border,
+            color: RuniacColors.primaryBlue,
+            size: 19,
+          ),
           SizedBox(width: 6),
           Text(
             'Saved',
             style: TextStyle(
-              color: RuniacColors.white,
+              color: RuniacColors.primaryBlue,
               fontSize: 13,
               fontWeight: FontWeight.w800,
             ),

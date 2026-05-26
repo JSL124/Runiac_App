@@ -62,27 +62,41 @@ void main() {
     await tester.tap(find.text('Maps'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Search routes or area'), findsOneWidget);
+    expect(find.text('Search routes or parks'), findsOneWidget);
     expect(find.text('Saved'), findsOneWidget);
     expect(find.text('Shared Routes'), findsOneWidget);
+    expect(find.text('Beginner-friendly route ideas'), findsNothing);
+    expect(find.text('Preview'), findsNothing);
     expect(
-      find.text('Shared route previews will appear here after app setup.'),
-      findsOneWidget,
+      find.text(
+        'Start with a gentle preview. Routes stay as placeholders until setup is ready.',
+      ),
+      findsNothing,
     );
     expect(find.text('Route preview'), findsOneWidget);
     expect(
-      find.text('Map and route notes will stay as placeholders.'),
+      find.text('A calm route card can guide the next step later.'),
       findsOneWidget,
     );
 
     await tester.drag(find.text('Shared Routes'), const Offset(0, -260));
     await tester.pumpAndSettle();
 
+    expect(find.text('Shared Routes'), findsOneWidget);
+    expect(find.text('Beginner-friendly route ideas'), findsNothing);
+    expect(find.text('Preview'), findsNothing);
     expect(find.text('Shared routes'), findsOneWidget);
-    expect(find.text('Community cards can be reviewed later.'), findsOneWidget);
+    expect(
+      find.text('Community route ideas remain review-only for now.'),
+      findsOneWidget,
+    );
+
+    await tester.drag(find.text('Shared routes'), const Offset(0, -160));
+    await tester.pumpAndSettle();
+
     expect(find.text('Saved routes'), findsOneWidget);
     expect(
-      find.text('Saved route slots remain static for now.'),
+      find.text('Saved route slots stay visible without saving data.'),
       findsOneWidget,
     );
   });
