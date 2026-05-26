@@ -4,17 +4,17 @@
 
 - Current track: Track A - Governance and implementation readiness
 - Current phase: `implementation/roadmap/phases/phase-01-governance-ci.md`
-- Current active capsule: None selected
+- Current active capsule: `implementation/roadmap/capsules/home-dashboard-visual-polish.md`
 - Most recent completed capsule: `implementation/roadmap/capsules/android-ui-smoke-test-evidence.md`
-- Current status: Phase 01 governance CI closed; Artifact Inventory Schema persistence completed; Repository Workflow Record capsule closed; Flutter scaffold baseline present at `implementation/mobile/runiac_app/`; `flutter-app-shell-baseline` capsule closed after static app shell implementation; post-shell static UI/nav alignment checkpoint pushed at `247b4e5 feat(mobile): align static Runiac nav baseline`; `android-ui-smoke-test-evidence` validation capsule closed
-- Current state: Scaffold-baseline governance state; no active capsule selected; future work requires explicit routing
-- Current active milestone: explicit next capsule selection
+- Current status: Phase 01 governance CI closed; Artifact Inventory Schema persistence completed; Repository Workflow Record capsule closed; Flutter scaffold baseline present at `implementation/mobile/runiac_app/`; `flutter-app-shell-baseline` capsule closed after static app shell implementation; post-shell static UI/nav alignment checkpoint pushed at `247b4e5 feat(mobile): align static Runiac nav baseline`; `android-ui-smoke-test-evidence` validation capsule closed; `home-dashboard-visual-polish` capsule routed
+- Current state: Scaffold-baseline governance state; Phase 02 remains unselected; active Flutter UI product-code-changing capsule routed for future implementation
+- Current active milestone: implement `home-dashboard-visual-polish` through the Flutter UI Capsule Chain
 
 ## Required Reading Order
 
 1. `implementation/roadmap/CURRENT.md`
 2. Active phase document: `implementation/roadmap/phases/phase-01-governance-ci.md` (closed)
-3. Active capsule document: none selected
+3. Active capsule document: `implementation/roadmap/capsules/home-dashboard-visual-polish.md`
 4. Relevant ADRs listed below
 5. `implementation/roadmap/snapshots/latest.md`
 
@@ -49,11 +49,17 @@ Do not load future phase documents unless explicitly requested.
 
 ## Next Gate
 
-No active capsule is selected.
+Active capsule: `implementation/roadmap/capsules/home-dashboard-visual-polish.md`.
 
-Run A6_REVIEW and A8_OUTPUT_CHECKER before selecting any future routing or implementation patch.
+Required agent chain for future implementation:
 
-This post-validation state does not approve Phase 02 implementation, Firebase setup, `flutterfire configure`, dependency installation, build, init, deploy, new source changes, new tests, or production implementation. Future product work requires separate explicit routing and approval.
+```text
+A0_ORCH -> A9_TRACE -> A5_WIRE -> A10_FLUTTER_IMPL -> A6_REVIEW -> A12_QA_TEST -> A8_OUTPUT_CHECKER
+```
+
+Run A9_TRACE, A5_WIRE, A6_REVIEW, A12_QA_TEST, and A8_OUTPUT_CHECKER before any implementation commit for this capsule.
+
+This routed state does not approve Phase 02 implementation, Firebase setup, `flutterfire configure`, dependency installation, build, init, deploy, backend work, or implementation outside `home-dashboard-visual-polish`. Future Home dashboard visual polish implementation is limited to the routed capsule scope and still requires the Flutter UI Capsule Chain review and validation.
 
 Android UI smoke-test evidence capsule is complete:
 
