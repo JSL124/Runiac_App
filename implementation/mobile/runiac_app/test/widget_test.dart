@@ -245,25 +245,29 @@ void main() {
     await tester.tap(find.text('Run'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Today\'s Plan'), findsOneWidget);
-    expect(find.text('Ready for an easy run?'), findsOneWidget);
-    expect(find.text('Route details will appear after setup.'), findsOneWidget);
-    expect(find.text('Recommended effort will appear here.'), findsOneWidget);
-    expect(find.text('Route setup'), findsOneWidget);
+    expect(find.text('GPS ready'), findsOneWidget);
+    expect(find.byTooltip('Run settings'), findsOneWidget);
+    expect(find.text('TODAY\'S PLAN'), findsOneWidget);
+    expect(find.text('4.5'), findsOneWidget);
+    expect(find.text('km easy run'), findsOneWidget);
+    expect(find.text('Pace 7:10-7:40 / km · ~32 min'), findsOneWidget);
+    expect(find.text('Switch route'), findsOneWidget);
+    expect(find.text('Start run'), findsOneWidget);
     expect(find.text('Home'), findsNothing);
     expect(find.text('Maps'), findsNothing);
     expect(find.text('Leaderboard'), findsNothing);
     expect(find.text('You'), findsNothing);
 
-    await tester.tap(find.text('Start'));
+    await tester.tap(find.text('Start run'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Ready for an easy run?'), findsOneWidget);
+    expect(find.text('GPS ready'), findsOneWidget);
+    expect(find.text('Start run'), findsOneWidget);
 
     await tester.tap(find.byTooltip('Close'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Route setup'), findsNothing);
+    expect(find.text('GPS ready'), findsNothing);
     expect(find.text('Good to see you'), findsOneWidget);
     expect(find.text('Home'), findsOneWidget);
     expect(find.text('Maps'), findsOneWidget);
@@ -283,14 +287,14 @@ void main() {
 
     await tester.tap(find.text('Run'));
     await tester.pumpAndSettle();
-    expect(find.text('Ready for an easy run?'), findsOneWidget);
+    expect(find.text('GPS ready'), findsOneWidget);
     expect(find.text('Maps'), findsNothing);
 
     final handled = await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
 
     expect(handled, isTrue);
-    expect(find.text('Route setup'), findsNothing);
+    expect(find.text('GPS ready'), findsNothing);
     expect(find.text('Shared Routes'), findsOneWidget);
     expect(find.text('Home'), findsOneWidget);
     expect(find.text('Maps'), findsOneWidget);

@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/runiac_colors.dart';
+const _mapBlue = Color(0xFF3153C9);
+const _softRoadBlue = Color(0x337A91E5);
+const _deepRoadBlue = Color(0x28304BB7);
+const _routeWhite = Color(0xFFF8FAFF);
+const _runnerHalo = Color(0x66304BB7);
+const _runnerOrange = Color(0xFFFF6818);
 
 class RunMapPlaceholder extends StatelessWidget {
   const RunMapPlaceholder({super.key});
@@ -8,180 +13,132 @@ class RunMapPlaceholder extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const DecoratedBox(
-      decoration: BoxDecoration(color: RuniacColors.background),
+      decoration: BoxDecoration(color: _mapBlue),
       child: Stack(
         children: [
-          Positioned.fill(child: _RunMapGrid()),
-          Positioned.fill(child: _RunRouteLine()),
-          Positioned(left: 52, top: 92, child: _RunRouteMarker()),
-          Positioned(right: 58, top: 148, child: _RunRouteFlag()),
-          Positioned(left: 110, bottom: 196, child: _RunRouteMarker()),
+          Positioned.fill(child: _RunMapBackground()),
+          Center(child: _RunnerMarker()),
         ],
       ),
     );
   }
 }
 
-class _RunMapGrid extends StatelessWidget {
-  const _RunMapGrid();
+class _RunMapBackground extends StatelessWidget {
+  const _RunMapBackground();
 
   @override
   Widget build(BuildContext context) {
-    return const CustomPaint(painter: _RunMapGridPainter());
+    return const CustomPaint(painter: _RunMapPainter());
   }
 }
 
-class _RunRouteLine extends StatelessWidget {
-  const _RunRouteLine();
-
-  @override
-  Widget build(BuildContext context) {
-    return const CustomPaint(painter: _RunRouteLinePainter());
-  }
-}
-
-class _RunRouteMarker extends StatelessWidget {
-  const _RunRouteMarker();
+class _RunnerMarker extends StatelessWidget {
+  const _RunnerMarker();
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 28,
-      height: 28,
+      width: 88,
+      height: 88,
+      alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: RuniacColors.white,
+        color: _runnerHalo,
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: RuniacColors.accentOrange, width: 3),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x1A172033),
-            blurRadius: 10,
-            offset: Offset(0, 4),
-          ),
-        ],
       ),
-      child: const Icon(
-        Icons.place,
-        color: RuniacColors.accentOrange,
-        size: 16,
+      child: Container(
+        width: 58,
+        height: 58,
+        decoration: BoxDecoration(
+          color: _runnerOrange,
+          borderRadius: BorderRadius.circular(999),
+        ),
       ),
     );
   }
 }
 
-class _RunRouteFlag extends StatelessWidget {
-  const _RunRouteFlag();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 34,
-      height: 34,
-      decoration: BoxDecoration(
-        color: RuniacColors.primaryBlue,
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x1A172033),
-            blurRadius: 10,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: const Icon(Icons.flag, color: RuniacColors.white, size: 20),
-    );
-  }
-}
-
-class _RunMapGridPainter extends CustomPainter {
-  const _RunMapGridPainter();
+class _RunMapPainter extends CustomPainter {
+  const _RunMapPainter();
 
   @override
   void paint(Canvas canvas, Size size) {
-    final backgroundPaint = Paint()..color = RuniacColors.background;
+    final backgroundPaint = Paint()..color = _mapBlue;
     canvas.drawRect(Offset.zero & size, backgroundPaint);
 
-    final roadPaint = Paint()
-      ..color = RuniacColors.border
-      ..strokeWidth = 2;
-    for (var x = -size.height; x < size.width; x += 76) {
-      canvas.drawLine(
-        Offset(x, 0),
-        Offset(x + size.height, size.height),
-        roadPaint,
-      );
-    }
-    for (var y = 34.0; y < size.height; y += 72) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y + 26), roadPaint);
-    }
+    final wideRoadPaint = Paint()
+      ..color = _softRoadBlue
+      ..strokeWidth = size.width * 0.17
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
 
-    final parkPaint = Paint()..color = const Color(0x1435B779);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(size.width * 0.58, 30, size.width * 0.28, 84),
-        const Radius.circular(8),
-      ),
-      parkPaint,
-    );
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(24, size.height * 0.62, size.width * 0.32, 78),
-        const Radius.circular(8),
-      ),
-      parkPaint,
-    );
-  }
+    final deepRoadPaint = Paint()
+      ..color = _deepRoadBlue
+      ..strokeWidth = size.width * 0.13
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
 
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-class _RunRouteLinePainter extends CustomPainter {
-  const _RunRouteLinePainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final routePath = Path()
-      ..moveTo(size.width * 0.18, size.height * 0.34)
-      ..cubicTo(
-        size.width * 0.36,
-        size.height * 0.18,
-        size.width * 0.52,
-        size.height * 0.56,
-        size.width * 0.68,
-        size.height * 0.42,
-      )
-      ..cubicTo(
-        size.width * 0.82,
-        size.height * 0.30,
-        size.width * 0.82,
-        size.height * 0.66,
-        size.width * 0.56,
-        size.height * 0.70,
-      )
-      ..cubicTo(
-        size.width * 0.40,
-        size.height * 0.73,
-        size.width * 0.34,
-        size.height * 0.56,
-        size.width * 0.30,
-        size.height * 0.82,
-      );
-
-    final shadowPaint = Paint()
-      ..color = const Color(0x332F50C7)
+    final routePaint = Paint()
+      ..color = _routeWhite
       ..strokeWidth = 12
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
-    canvas.drawPath(routePath, shadowPaint);
 
-    final routePaint = Paint()
-      ..color = RuniacColors.primaryBlue
-      ..strokeWidth = 6
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
+    final leftRoad = Path()
+      ..moveTo(size.width * -0.18, size.height * -0.02)
+      ..lineTo(size.width * 0.48, size.height * 0.56);
+    final lowerRoad = Path()
+      ..moveTo(size.width * -0.12, size.height * 0.58)
+      ..quadraticBezierTo(
+        size.width * 0.36,
+        size.height * 0.84,
+        size.width * 1.14,
+        size.height * 0.55,
+      );
+    final rightRoad = Path()
+      ..moveTo(size.width * 1.12, size.height * 0.43)
+      ..lineTo(size.width * 0.58, size.height * 0.62)
+      ..lineTo(size.width * 0.78, size.height * 1.14);
+    final crossRoad = Path()
+      ..moveTo(size.width * -0.10, size.height * 0.50)
+      ..lineTo(size.width * 1.12, size.height * 0.92);
+
+    canvas.drawPath(leftRoad, wideRoadPaint);
+    canvas.drawPath(lowerRoad, wideRoadPaint);
+    canvas.drawPath(rightRoad, wideRoadPaint);
+    canvas.drawPath(crossRoad, wideRoadPaint);
+
+    final shadowRoad = Path()
+      ..moveTo(size.width * 0.56, size.height * 0.66)
+      ..quadraticBezierTo(
+        size.width * 0.82,
+        size.height * 0.60,
+        size.width * 1.08,
+        size.height * 0.46,
+      );
+    canvas.drawPath(shadowRoad, deepRoadPaint);
+
+    final routePath = Path()
+      ..moveTo(size.width * -0.08, size.height * 0.64)
+      ..cubicTo(
+        size.width * 0.18,
+        size.height * 0.58,
+        size.width * 0.34,
+        size.height * 0.58,
+        size.width * 0.48,
+        size.height * 0.50,
+      )
+      ..cubicTo(
+        size.width * 0.63,
+        size.height * 0.41,
+        size.width * 0.72,
+        size.height * 0.40,
+        size.width * 1.08,
+        size.height * 0.42,
+      );
     canvas.drawPath(routePath, routePaint);
   }
 
