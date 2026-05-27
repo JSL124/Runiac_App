@@ -286,6 +286,8 @@ void main() {
     expect(find.text('Paused · easy'), findsOneWidget);
     expect(find.text('Resume'), findsOneWidget);
     expect(find.text('End'), findsOneWidget);
+    expect(find.text('Hold to end'), findsNothing);
+    expect(find.text('Keep holding...'), findsNothing);
     expect(find.text('Pause'), findsNothing);
     expect(find.text('4.10 of 4.50 km'), findsOneWidget);
     expect(find.text('91%'), findsOneWidget);
@@ -297,16 +299,61 @@ void main() {
     expect(find.text('AVG PACE'), findsOneWidget);
     expect(find.text('6:30/km'), findsOneWidget);
 
-    await tester.tap(find.text('End'));
+    await tester.tap(find.byKey(const Key('run_hold_to_end_button')));
     await tester.pumpAndSettle();
 
     expect(find.text('Paused · easy'), findsOneWidget);
     expect(find.text('Resume'), findsOneWidget);
     expect(find.text('End'), findsOneWidget);
+    expect(find.text('Hold to end'), findsNothing);
+    expect(find.text('Keep holding...'), findsNothing);
     expect(find.text('Run summary'), findsNothing);
     expect(find.textContaining('XP'), findsNothing);
     expect(find.textContaining('streak'), findsNothing);
     expect(find.text('Leaderboard'), findsNothing);
+    expect(find.textContaining('Activity saved'), findsNothing);
+    expect(find.textContaining('Saved activity'), findsNothing);
+
+    final earlyReleaseGesture = await tester.startGesture(
+      tester.getCenter(find.byKey(const Key('run_hold_to_end_button'))),
+    );
+    await tester.pump(const Duration(milliseconds: 250));
+
+    expect(find.text('End'), findsOneWidget);
+    expect(find.text('Hold to end'), findsNothing);
+    expect(find.text('Keep holding...'), findsNothing);
+
+    await earlyReleaseGesture.up();
+    await tester.pumpAndSettle();
+
+    expect(find.text('Paused · easy'), findsOneWidget);
+    expect(find.text('Resume'), findsOneWidget);
+    expect(find.text('End'), findsOneWidget);
+    expect(find.text('Hold to end'), findsNothing);
+    expect(find.text('Keep holding...'), findsNothing);
+    expect(find.text('Run summary'), findsNothing);
+    expect(find.textContaining('XP'), findsNothing);
+    expect(find.textContaining('streak'), findsNothing);
+    expect(find.text('Leaderboard'), findsNothing);
+
+    final completedHoldGesture = await tester.startGesture(
+      tester.getCenter(find.byKey(const Key('run_hold_to_end_button'))),
+    );
+    await tester.pump(const Duration(milliseconds: 1600));
+    await completedHoldGesture.up();
+    await tester.pumpAndSettle();
+
+    expect(find.text('Paused · easy'), findsOneWidget);
+    expect(find.text('Resume'), findsOneWidget);
+    expect(find.text('End'), findsOneWidget);
+    expect(find.text('Hold to end'), findsNothing);
+    expect(find.text('Keep holding...'), findsNothing);
+    expect(find.text('Run summary'), findsNothing);
+    expect(find.textContaining('XP'), findsNothing);
+    expect(find.textContaining('streak'), findsNothing);
+    expect(find.text('Leaderboard'), findsNothing);
+    expect(find.textContaining('Activity saved'), findsNothing);
+    expect(find.textContaining('Saved activity'), findsNothing);
 
     await tester.tap(find.text('Resume'));
     await tester.pumpAndSettle();
@@ -315,6 +362,8 @@ void main() {
     expect(find.text('Pause'), findsOneWidget);
     expect(find.text('Resume'), findsNothing);
     expect(find.text('End'), findsNothing);
+    expect(find.text('Hold to end'), findsNothing);
+    expect(find.text('Keep holding...'), findsNothing);
     expect(find.text('4.10 of 4.50 km'), findsOneWidget);
     expect(find.text('30:10'), findsOneWidget);
   });

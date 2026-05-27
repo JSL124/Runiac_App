@@ -16,6 +16,7 @@ const _controlHighlight = Color(0x24FFFFFF);
 const _panelTextBlue = Color(0xFF3151C8);
 const _mutedBlue = Color(0xFF8296E8);
 const _controlPressHold = Duration(milliseconds: 90);
+const _endHoldDuration = Duration(milliseconds: 1500);
 
 enum _RunScreenMode { launch, live, paused }
 
@@ -506,18 +507,9 @@ class _LiveRunActions extends StatelessWidget {
                         flex: 2,
                         child: SizedBox(
                           height: height,
-                          child: OutlinedButton(
-                            onPressed: onEnd,
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: _panelTextBlue,
-                              side: const BorderSide(color: _blueBorder),
-                              backgroundColor: const Color(0xFFF8FAFF),
-                              textStyle: TextStyle(
-                                fontSize: compact ? 18 : 20,
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                            child: const Text('End'),
+                          child: _HoldToEndButton(
+                            compact: compact,
+                            onCompleted: onEnd,
                           ),
                         ),
                       ),
@@ -542,6 +534,127 @@ class _LiveRunActions extends StatelessWidget {
                     ),
                   ),
                 ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HoldToEndButton extends StatefulWidget {
+  const _HoldToEndButton({required this.compact, required this.onCompleted});
+
+  final bool compact;
+  final VoidCallback onCompleted;
+
+  @override
+  State<_HoldToEndButton> createState() => _HoldToEndButtonState();
+}
+
+class _HoldToEndButtonState extends State<_HoldToEndButton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  bool _completed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this, duration: _endHoldDuration)
+      ..addStatusListener(_handleHoldStatus);
+  }
+
+  @override
+  void dispose() {
+    _controller
+      ..removeStatusListener(_handleHoldStatus)
+      ..dispose();
+    super.dispose();
+  }
+
+  void _handleHoldStatus(AnimationStatus status) {
+    if (status != AnimationStatus.completed || _completed) {
+      return;
+    }
+
+    _completed = true;
+    widget.onCompleted();
+    if (!mounted) {
+      return;
+    }
+    _controller.reset();
+  }
+
+  void _startHold(PointerDownEvent event) {
+    _completed = false;
+    _controller.forward(from: 0);
+  }
+
+  void _cancelHold() {
+    if (_completed) {
+      _completed = false;
+      return;
+    }
+
+    _controller.reset();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: 'Hold to end',
+      child: Listener(
+        key: const Key('run_hold_to_end_button'),
+        behavior: HitTestBehavior.opaque,
+        onPointerDown: _startHold,
+        onPointerUp: (_) => _cancelHold(),
+        onPointerCancel: (_) => _cancelHold(),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(999),
+          child: AnimatedBuilder(
+            animation: _controller,
+            builder: (context, child) {
+              return Stack(
+                fit: StackFit.expand,
+                children: [
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFF),
+                      border: Border.all(color: _blueBorder),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: FractionallySizedBox(
+                      key: const Key('run_hold_to_end_fill'),
+                      widthFactor: _controller.value,
+                      heightFactor: 1,
+                      child: const DecoratedBox(
+                        decoration: BoxDecoration(color: Color(0x26FF7A1A)),
+                      ),
+                    ),
+                  ),
+                  child!,
+                ],
+              );
+            },
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    'End',
+                    style: TextStyle(
+                      color: _panelTextBlue,
+                      fontSize: widget.compact ? 18 : 20,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );
