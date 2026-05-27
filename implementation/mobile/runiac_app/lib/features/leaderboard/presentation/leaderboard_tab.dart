@@ -514,47 +514,61 @@ class _LeagueSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 54,
-      padding: const EdgeInsets.symmetric(horizontal: 13),
-      decoration: BoxDecoration(
-        color: const Color(0xEFFFFFFF),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0x552F50C7)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x17172033),
-            blurRadius: 12,
-            offset: Offset(0, 5),
-          ),
-        ],
-      ),
-      child: const Row(
-        children: [
-          _LeagueMedalIcon(),
-          SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              'Rising Runner Division',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: RuniacColors.textPrimary,
-                fontSize: 15,
-                fontWeight: FontWeight.w800,
+    return Semantics(
+      label: 'Open leagues list',
+      button: true,
+      child: ExcludeSemantics(
+        child: Material(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(18),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(18),
+            onTap: () => _showLeaderboardLeaguesDialog(context),
+            child: Ink(
+              height: 54,
+              padding: const EdgeInsets.symmetric(horizontal: 13),
+              decoration: BoxDecoration(
+                color: const Color(0xEFFFFFFF),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: const Color(0x552F50C7)),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x17172033),
+                    blurRadius: 12,
+                    offset: Offset(0, 5),
+                  ),
+                ],
+              ),
+              child: const Row(
+                children: [
+                  _LeagueMedalIcon(),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Rising Runner Division',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: RuniacColors.textPrimary,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 8),
+                  Text(
+                    'Lv.11 - Lv.20',
+                    style: TextStyle(
+                      color: RuniacColors.textSecondary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
-          SizedBox(width: 8),
-          Text(
-            'Lv.11 - Lv.20',
-            style: TextStyle(
-              color: RuniacColors.textSecondary,
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -620,6 +634,14 @@ void _showLeaderboardTipsDialog(BuildContext context) {
     context: context,
     barrierColor: RuniacColors.textPrimary.withValues(alpha: 0.38),
     builder: (context) => const _LeaderboardTipsDialog(),
+  );
+}
+
+void _showLeaderboardLeaguesDialog(BuildContext context) {
+  showDialog<void>(
+    context: context,
+    barrierColor: RuniacColors.textPrimary.withValues(alpha: 0.38),
+    builder: (context) => const _LeaderboardLeaguesDialog(),
   );
 }
 
@@ -702,6 +724,141 @@ class _LeaderboardTipsDialog extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _LeaderboardLeaguesDialog extends StatelessWidget {
+  const _LeaderboardLeaguesDialog();
+
+  static const List<_LeagueTaxonomyEntry> _leagues = [
+    _LeagueTaxonomyEntry('Apex Runner League', 'Lv.81 - Lv.90'),
+    _LeagueTaxonomyEntry('Summitborn League', 'Lv.71 - Lv.80'),
+    _LeagueTaxonomyEntry('Roadrunner League', 'Lv.51 - Lv.60'),
+    _LeagueTaxonomyEntry('Endurancer League', 'Lv.41 - Lv.50'),
+    _LeagueTaxonomyEntry('Milehunter League', 'Lv.31 - Lv.40'),
+    _LeagueTaxonomyEntry('Pacebreaker League', 'Lv.21 - Lv.30'),
+    _LeagueTaxonomyEntry('Strideforge League', 'Lv.11 - Lv.20'),
+    _LeagueTaxonomyEntry('Trailborn League', 'Lv.1 - Lv.10'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final maxDialogHeight = MediaQuery.sizeOf(context).height - 56;
+
+    return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 24),
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: 430, maxHeight: maxDialogHeight),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: const Color(0xF8FFFFFF),
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(color: const Color(0x552F50C7)),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x33172033),
+                blurRadius: 28,
+                offset: Offset(0, 14),
+              ),
+            ],
+          ),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(14, 14, 14, 22),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    IconButton(
+                      tooltip: 'Close leagues',
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(Icons.close),
+                      color: RuniacColors.textPrimary,
+                    ),
+                    const Expanded(
+                      child: Center(
+                        child: Text(
+                          'Leagues',
+                          style: TextStyle(
+                            color: RuniacColors.textPrimary,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 48),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: RuniacColors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFDADDE1)),
+                  ),
+                  child: Column(
+                    children: [
+                      for (final entry in _leagues) ...[
+                        _LeagueTaxonomyRow(entry: entry),
+                        if (entry != _leagues.last)
+                          const Divider(height: 1, color: Color(0xFFE7E9EC)),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LeagueTaxonomyEntry {
+  const _LeagueTaxonomyEntry(this.name, this.range);
+
+  final String name;
+  final String range;
+}
+
+class _LeagueTaxonomyRow extends StatelessWidget {
+  const _LeagueTaxonomyRow({required this.entry});
+
+  final _LeagueTaxonomyEntry entry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      child: Row(
+        children: [
+          const SizedBox(
+            width: 28,
+            height: 32,
+            child: CustomPaint(painter: _LeagueMedalPainter()),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Text(
+              '${entry.name} (${entry.range})',
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: RuniacColors.textPrimary,
+                fontSize: 14,
+                height: 1.2,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

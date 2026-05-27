@@ -4,11 +4,11 @@
 
 - Current track: Track A - Governance and implementation readiness
 - Current phase: `implementation/roadmap/phases/phase-01-governance-ci.md`
-- Current active capsule: `implementation/roadmap/capsules/leaderboard-region-preview-sheet-shell.md`
-- Most recent completed capsule: `implementation/roadmap/capsules/leaderboard-help-modal-shell.md` committed and pushed at `96a2706 feat(mobile): add leaderboard tips popup`
-- Current status: Phase 01 governance CI closed; Artifact Inventory Schema persistence completed; Repository Workflow Record capsule closed; Flutter scaffold baseline present at `implementation/mobile/runiac_app/`; `flutter-app-shell-baseline` capsule closed after static app shell implementation; post-shell static UI/nav alignment checkpoint pushed at `247b4e5 feat(mobile): align static Runiac nav baseline`; `android-ui-smoke-test-evidence` validation capsule closed; `home-dashboard-visual-polish` closed after static Home dashboard visual polish; `premium-home-dashboard-static-wireframe-alignment` closed after static Premium Home Dashboard wireframe alignment; `github-actions-governance-ci-baseline` closed after adding the minimal GitHub Actions governance workflow; `home-dashboard-scroll-layout-stability-fix` closed after stabilizing Home dashboard scroll/card layout; `run-tab-static-placeholder` closed after adding the static RunLandingPage-style Run tab placeholder; `run-tab-fullscreen-map-overlay-alignment` closed after static Run tab fullscreen map overlay layout alignment; `home-dashboard-reference-layout-alignment` closed after static Home dashboard reference layout alignment; `maps-tab-static-placeholder` committed and pushed at `323507b feat(mobile): polish static maps layout`; `run-launch-fullscreen-static-interaction` committed and pushed at `b5c31ef feat(mobile): add static run launch interaction`; Run launch back-handling cleanup committed and pushed at `5851057 chore(mobile): simplify run launch back handling`; `home-dashboard-primary-action-simplification` closed after Home primary action and brand color hierarchy polish; `run-launch-brand-color-polish` closed after static Run launch brand color polish; `maps-static-discovery-hierarchy-polish` closed after static frontend-only Maps discovery hierarchy polish; `leaderboard-static-motivation-hierarchy-polish` superseded before implementation due to the refined map-first Leaderboard direction; `leaderboard-map-first-landing-shell` closed after static frontend-only Leaderboard map-first landing shell implementation; `github-actions-flutter-validation-baseline` is closed after workflow commit `587cc0e ci: add flutter validation to governance workflow`; `leaderboard-help-modal-shell` is closed after implementation commit `96a2706 feat(mobile): add leaderboard tips popup`, roadmap closure commit `2d1ec46 docs(roadmap): close leaderboard help modal capsule`, and manually confirmed hosted GitHub Actions PASS for `96a2706`; `flutter-frontend-hygiene-cleanup` is closed after implementation commit `8074092 chore(mobile): apply frontend hygiene cleanup`, local validation, and manually confirmed hosted GitHub Actions PASS for `8074092`; `leaderboard-region-preview-sheet-shell` is ready for commit after implementation-approved static frontend-only Leaderboard region preview sheet work, draggable sheet refinement, and local validation.
-- Current state: Scaffold-baseline governance state with the static Flutter mobile UI split into a feature-first-lite source structure; Phase 02 remains unselected; hosted GitHub Actions now runs `git diff --check`, `./tools/governance-ci/run-all-checks.sh`, Flutter SDK setup, `flutter pub get`, `flutter analyze --no-pub`, and `flutter test`; hosted GitHub Actions for `8074092` was manually confirmed PASS by the user; the Leaderboard information affordance opens a centered static Tips popup/dialog; frontend hygiene cleanup is complete and closed; `leaderboard-region-preview-sheet-shell` is ready for commit as a static frontend-only Safe Visible Product Acceleration capsule with local draggable expanded/collapsed sheet behavior.
-- Current active milestone: `leaderboard-region-preview-sheet-shell` ready for commit; Phase 02 remains unselected.
+- Current active capsule: `implementation/roadmap/capsules/leaderboard-leagues-popup-shell.md`
+- Most recent completed capsule: `implementation/roadmap/capsules/leaderboard-region-preview-sheet-shell.md` committed at `09d6389 feat(mobile): add draggable leaderboard region preview sheet` with hosted GitHub Actions Governance CI #41 PASS.
+- Current status: Phase 01 governance CI closed; Artifact Inventory Schema persistence completed; Repository Workflow Record capsule closed; Flutter scaffold baseline present at `implementation/mobile/runiac_app/`; `flutter-app-shell-baseline` capsule closed after static app shell implementation; post-shell static UI/nav alignment checkpoint pushed at `247b4e5 feat(mobile): align static Runiac nav baseline`; `android-ui-smoke-test-evidence` validation capsule closed; `home-dashboard-visual-polish` closed after static Home dashboard visual polish; `premium-home-dashboard-static-wireframe-alignment` closed after static Premium Home Dashboard wireframe alignment; `github-actions-governance-ci-baseline` closed after adding the minimal GitHub Actions governance workflow; `home-dashboard-scroll-layout-stability-fix` closed after stabilizing Home dashboard scroll/card layout; `run-tab-static-placeholder` closed after adding the static RunLandingPage-style Run tab placeholder; `run-tab-fullscreen-map-overlay-alignment` closed after static Run tab fullscreen map overlay layout alignment; `home-dashboard-reference-layout-alignment` closed after static Home dashboard reference layout alignment; `maps-tab-static-placeholder` committed and pushed at `323507b feat(mobile): polish static maps layout`; `run-launch-fullscreen-static-interaction` committed and pushed at `b5c31ef feat(mobile): add static run launch interaction`; Run launch back-handling cleanup committed and pushed at `5851057 chore(mobile): simplify run launch back handling`; `home-dashboard-primary-action-simplification` closed after Home primary action and brand color hierarchy polish; `run-launch-brand-color-polish` closed after static Run launch brand color polish; `maps-static-discovery-hierarchy-polish` closed after static frontend-only Maps discovery hierarchy polish; `leaderboard-static-motivation-hierarchy-polish` superseded before implementation due to the refined map-first Leaderboard direction; `leaderboard-map-first-landing-shell` closed after static frontend-only Leaderboard map-first landing shell implementation; `github-actions-flutter-validation-baseline` is closed after workflow commit `587cc0e ci: add flutter validation to governance workflow`; `leaderboard-help-modal-shell` is closed after implementation commit `96a2706 feat(mobile): add leaderboard tips popup`, roadmap closure commit `2d1ec46 docs(roadmap): close leaderboard help modal capsule`, and manually confirmed hosted GitHub Actions PASS for `96a2706`; `flutter-frontend-hygiene-cleanup` is closed after implementation commit `8074092 chore(mobile): apply frontend hygiene cleanup`, local validation, and manually confirmed hosted GitHub Actions PASS for `8074092`; `leaderboard-region-preview-sheet-shell` is closed at `09d6389` with hosted GitHub Actions Governance CI #41 PASS; `leaderboard-leagues-popup-shell` is ready for commit after implementation-approved static frontend-only Leagues popup work and local validation.
+- Current state: Scaffold-baseline governance state with the static Flutter mobile UI split into a feature-first-lite source structure; Phase 02 remains unselected; hosted GitHub Actions now runs `git diff --check`, `./tools/governance-ci/run-all-checks.sh`, Flutter SDK setup, `flutter pub get`, `flutter analyze --no-pub`, and `flutter test`; the Leaderboard information affordance still opens a centered static Tips popup/dialog; the Leaderboard league/division pill opens a separate static Leagues taxonomy popup; the region preview sheet remains draggable and static; `leaderboard-leagues-popup-shell` is ready for commit as a static frontend-only Safe Visible Product Acceleration capsule.
+- Current active milestone: `leaderboard-leagues-popup-shell` ready for commit; Phase 02 remains unselected.
 
 ## Layered Reading Order
 
@@ -17,7 +17,7 @@ Use minimal context loading. CURRENT.md remains the operational source of truth,
 Hot path, read by default:
 
 1. `implementation/roadmap/CURRENT.md`
-2. Active capsule document: `implementation/roadmap/capsules/leaderboard-region-preview-sheet-shell.md`
+2. Active capsule document: `implementation/roadmap/capsules/leaderboard-leagues-popup-shell.md`
 3. `implementation/roadmap/snapshots/latest.md`
 
 Warm path, read only when triggered by routing, scope, risk, or a direct task request:
@@ -63,25 +63,25 @@ Do not load future phase documents unless explicitly requested.
 
 ## Next Gate
 
-Manual staging and commit only if the user chooses to commit `leaderboard-region-preview-sheet-shell`.
+Manual staging and commit only if the user chooses to commit `leaderboard-leagues-popup-shell`.
 
 ## Operational TODO / Active Capsule
 
-Active capsule: `implementation/roadmap/capsules/leaderboard-region-preview-sheet-shell.md`.
+Active capsule: `implementation/roadmap/capsules/leaderboard-leagues-popup-shell.md`.
 
 Required next-session checklist:
 
 1. Start with required layered context loading from `implementation/roadmap/CURRENT.md`.
 2. Confirm repository state with `git status --short`.
-3. Review the unstaged ready-for-commit changes for `leaderboard-region-preview-sheet-shell`.
+3. Review the unstaged ready-for-commit changes for `leaderboard-leagues-popup-shell`.
 4. If committing, stage only the task-relevant files listed in the capsule document.
-5. Do not add fake users/ranks/XP/scores/levels, sorting, ranking, leaderboard aggregation, Firebase/backend/GPS/native/dependency work, sharing integration, premium gating, subscription logic, or Phase 02 selection.
+5. Do not add fake users/ranks/XP/scores/levels, current/selected/unlocked league styling, sorting, ranking, leaderboard aggregation, Firebase/backend/GPS/native/dependency work, sharing integration, premium gating, subscription logic, or Phase 02 selection.
 
-Ready-for-commit validation for `leaderboard-region-preview-sheet-shell`:
+Ready-for-commit validation for `leaderboard-leagues-popup-shell`:
 
 - `git diff --check` PASS.
 - `cd implementation/mobile/runiac_app && flutter analyze --no-pub` PASS.
-- `cd implementation/mobile/runiac_app && flutter test` PASS after fixing a rounded-border paint assertion and after the draggable sheet refinement.
+- `cd implementation/mobile/runiac_app && flutter test` PASS.
 - `./tools/governance-ci/run-all-checks.sh` PASS after adding the routed capsule document to the diff-hygiene allowlist.
 
 Recently closed CI capsule:

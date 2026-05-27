@@ -12,11 +12,17 @@ Type: Flutter static frontend-only Leaderboard region preview sheet shell.
 
 ## Status
 
-Status: Ready for commit.
+Status: Closed.
 
 Routed on: 2026-05-27 Asia/Singapore.
 
 Ready for commit on: 2026-05-27 Asia/Singapore.
+
+Closed on: 2026-05-27 Asia/Singapore.
+
+Completion commit: `09d6389 feat(mobile): add draggable leaderboard region preview sheet`.
+
+Hosted validation: GitHub Actions Governance CI #41 PASS for commit `09d6389`.
 
 Depends on:
 
@@ -148,11 +154,12 @@ git status --short
 - The visual reference must not be copied as data.
 - Drag behavior must move the whole sheet; it must not introduce internal sheet scrolling.
 
-## Ready-For-Commit Scope Review
+## Closure Scope Review
 
 - No fake users, fake ranks, fake XP, fake scores, fake levels, sorting, ranking logic, or leaderboard aggregation was introduced.
 - No Firebase, Auth, Firestore, Cloud Functions, GPS/native configuration, map SDK, sharing integration, premium gating, subscription logic, dependency, `pubspec.yaml`, Android/iOS native, or Phase 02 work was introduced.
-- No staging, commit, or push was performed.
+- Implementation was committed at `09d6389 feat(mobile): add draggable leaderboard region preview sheet`.
+- Hosted GitHub Actions Governance CI #41 passed for commit `09d6389`.
 
 ## Done When
 

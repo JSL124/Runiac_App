@@ -195,6 +195,46 @@ void main() {
     expect(find.text('Leagues'), findsNothing);
     expect(find.text('Rising Runner Division'), findsOneWidget);
     expect(find.text('Region Preview'), findsOneWidget);
+
+    await tester.tap(find.text('Rising Runner Division'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Leagues'), findsOneWidget);
+    expect(find.text('Apex Runner League (Lv.81 - Lv.90)'), findsOneWidget);
+    expect(find.text('Summitborn League (Lv.71 - Lv.80)'), findsOneWidget);
+    expect(find.text('Roadrunner League (Lv.51 - Lv.60)'), findsOneWidget);
+    expect(find.text('Endurancer League (Lv.41 - Lv.50)'), findsOneWidget);
+    expect(find.text('Milehunter League (Lv.31 - Lv.40)'), findsOneWidget);
+    expect(find.text('Pacebreaker League (Lv.21 - Lv.30)'), findsOneWidget);
+    expect(find.text('Strideforge League (Lv.11 - Lv.20)'), findsOneWidget);
+    expect(find.text('Trailborn League (Lv.1 - Lv.10)'), findsOneWidget);
+    expect(find.text('Home'), findsOneWidget);
+    expect(find.text('Maps'), findsOneWidget);
+    expect(find.text('Run'), findsOneWidget);
+    expect(find.text('Leaderboard'), findsOneWidget);
+    expect(find.text('You'), findsOneWidget);
+    expect(find.textContaining('Current'), findsNothing);
+    expect(find.textContaining('current'), findsNothing);
+    expect(find.textContaining('Selected'), findsNothing);
+    expect(find.textContaining('selected'), findsNothing);
+    expect(find.textContaining('Unlocked'), findsNothing);
+    expect(find.textContaining('unlocked'), findsNothing);
+    expect(find.textContaining('Earned'), findsNothing);
+    expect(find.textContaining('earned'), findsNothing);
+    expect(find.textContaining('Alex'), findsNothing);
+    expect(find.textContaining('Maya'), findsNothing);
+    expect(find.textContaining('Ryan'), findsNothing);
+    expect(find.text('520 XP'), findsNothing);
+    expect(find.textContaining('#18'), findsNothing);
+    expect(find.textContaining('Lv.18'), findsNothing);
+
+    await tester.tap(find.byTooltip('Close leagues'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Leagues'), findsNothing);
+    expect(find.text('Rising Runner Division'), findsOneWidget);
+    expect(find.text('Lv.11 - Lv.20'), findsOneWidget);
+    expect(find.text('Region Preview'), findsOneWidget);
   });
 
   testWidgets('Run item opens and closes static full-screen launch surface', (
