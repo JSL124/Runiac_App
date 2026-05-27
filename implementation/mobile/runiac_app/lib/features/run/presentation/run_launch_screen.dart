@@ -17,6 +17,8 @@ const _panelTextBlue = Color(0xFF3151C8);
 const _mutedBlue = Color(0xFF8296E8);
 const _controlPressHold = Duration(milliseconds: 90);
 
+enum _RunScreenMode { launch, live, paused }
+
 class RunLaunchScreen extends StatefulWidget {
   const RunLaunchScreen({super.key});
 
@@ -25,10 +27,24 @@ class RunLaunchScreen extends StatefulWidget {
 }
 
 class _RunLaunchScreenState extends State<RunLaunchScreen> {
-  bool _isLiveTracking = false;
+  _RunScreenMode _mode = _RunScreenMode.launch;
+
+  bool get _hasActiveRun => _mode != _RunScreenMode.launch;
 
   void _startRun() {
-    setState(() => _isLiveTracking = true);
+    setState(() => _mode = _RunScreenMode.live);
+  }
+
+  void _pauseRun() {
+    setState(() => _mode = _RunScreenMode.paused);
+  }
+
+  void _resumeRun() {
+    setState(() => _mode = _RunScreenMode.live);
+  }
+
+  void _endRun() {
+    // Static placeholder only. Real end-run flow belongs to a later capsule.
   }
 
   @override
@@ -51,7 +67,7 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
                 padding: const EdgeInsets.only(top: 12),
                 child: Row(
                   children: [
-                    if (_isLiveTracking)
+                    if (_hasActiveRun)
                       const SizedBox(width: 58, height: 58)
                     else
                       _MapCircleButton(
@@ -62,13 +78,15 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
                     Expanded(
                       child: Center(
                         child: _RunStatusPill(
-                          label: _isLiveTracking
-                              ? 'Running · easy'
-                              : 'GPS ready',
+                          label: switch (_mode) {
+                            _RunScreenMode.launch => 'GPS ready',
+                            _RunScreenMode.live => 'Running · easy',
+                            _RunScreenMode.paused => 'Paused · easy',
+                          },
                         ),
                       ),
                     ),
-                    if (_isLiveTracking)
+                    if (_hasActiveRun)
                       const SizedBox(width: 58, height: 58)
                     else
                       _MapCircleButton(
@@ -92,8 +110,14 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
                   duration: const Duration(milliseconds: 180),
                   switchInCurve: Curves.easeOutCubic,
                   switchOutCurve: Curves.easeInCubic,
-                  child: _isLiveTracking
-                      ? const _LiveTrackingPanel(key: ValueKey('live'))
+                  child: _hasActiveRun
+                      ? _LiveTrackingPanel(
+                          key: const ValueKey('live'),
+                          isPaused: _mode == _RunScreenMode.paused,
+                          onPause: _pauseRun,
+                          onResume: _resumeRun,
+                          onEnd: _endRun,
+                        )
                       : _RunBottomPanel(
                           key: const ValueKey('launch'),
                           onStart: _startRun,
@@ -341,7 +365,18 @@ class _RunBottomPanel extends StatelessWidget {
 }
 
 class _LiveTrackingPanel extends StatelessWidget {
-  const _LiveTrackingPanel({super.key});
+  const _LiveTrackingPanel({
+    super.key,
+    required this.isPaused,
+    required this.onPause,
+    required this.onResume,
+    required this.onEnd,
+  });
+
+  final bool isPaused;
+  final VoidCallback onPause;
+  final VoidCallback onResume;
+  final VoidCallback onEnd;
 
   @override
   Widget build(BuildContext context) {
@@ -380,29 +415,135 @@ class _LiveTrackingPanel extends StatelessWidget {
               SizedBox(height: compact ? 10 : 12),
               const _LiveMetricRow(),
               SizedBox(height: compact ? 14 : 16),
-              SizedBox(
-                width: double.infinity,
+              _LiveRunActions(
+                isPaused: isPaused,
                 height: pauseHeight,
-                child: FilledButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.pause_rounded, size: 26),
-                  label: const Text('Pause'),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: _panelTextBlue,
-                    foregroundColor: RuniacColors.white,
-                    elevation: 8,
-                    shadowColor: const Color(0x333151C8),
-                    textStyle: TextStyle(
-                      fontSize: compact ? 20 : 22,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
+                compact: compact,
+                onPause: onPause,
+                onResume: onResume,
+                onEnd: onEnd,
               ),
             ],
           ),
         );
       },
+    );
+  }
+}
+
+class _LiveRunActions extends StatelessWidget {
+  const _LiveRunActions({
+    required this.isPaused,
+    required this.height,
+    required this.compact,
+    required this.onPause,
+    required this.onResume,
+    required this.onEnd,
+  });
+
+  final bool isPaused;
+  final double height;
+  final bool compact;
+  final VoidCallback onPause;
+  final VoidCallback onResume;
+  final VoidCallback onEnd;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOutCubic,
+      alignment: Alignment.center,
+      child: SizedBox(
+        width: double.infinity,
+        height: height,
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 180),
+          switchInCurve: Curves.easeOutCubic,
+          switchOutCurve: Curves.easeInCubic,
+          transitionBuilder: (child, animation) {
+            return FadeTransition(
+              opacity: animation,
+              child: SizeTransition(
+                sizeFactor: animation,
+                axis: Axis.horizontal,
+                alignment: Alignment.center,
+                child: child,
+              ),
+            );
+          },
+          child: isPaused
+              ? SizedBox.expand(
+                  key: const ValueKey('paused-actions'),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        flex: 3,
+                        child: SizedBox(
+                          height: height,
+                          child: FilledButton.icon(
+                            onPressed: onResume,
+                            icon: const Icon(
+                              Icons.play_arrow_rounded,
+                              size: 25,
+                            ),
+                            label: const Text('Resume'),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: _panelTextBlue,
+                              foregroundColor: RuniacColors.white,
+                              elevation: 8,
+                              shadowColor: const Color(0x333151C8),
+                              textStyle: TextStyle(
+                                fontSize: compact ? 18 : 20,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        flex: 2,
+                        child: SizedBox(
+                          height: height,
+                          child: OutlinedButton(
+                            onPressed: onEnd,
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: _panelTextBlue,
+                              side: const BorderSide(color: _blueBorder),
+                              backgroundColor: const Color(0xFFF8FAFF),
+                              textStyle: TextStyle(
+                                fontSize: compact ? 18 : 20,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                            child: const Text('End'),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : SizedBox.expand(
+                  key: const ValueKey('live-action'),
+                  child: FilledButton.icon(
+                    onPressed: onPause,
+                    icon: const Icon(Icons.pause_rounded, size: 26),
+                    label: const Text('Pause'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: _panelTextBlue,
+                      foregroundColor: RuniacColors.white,
+                      elevation: 8,
+                      shadowColor: const Color(0x333151C8),
+                      textStyle: TextStyle(
+                        fontSize: compact ? 20 : 22,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                ),
+        ),
+      ),
     );
   }
 }
