@@ -246,6 +246,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('GPS ready'), findsOneWidget);
+    expect(find.byTooltip('Close'), findsOneWidget);
     expect(find.byTooltip('Run settings'), findsOneWidget);
     expect(find.text('TODAY\'S PLAN'), findsOneWidget);
     expect(find.text('4.5'), findsOneWidget);
@@ -261,19 +262,23 @@ void main() {
     await tester.tap(find.text('Start run'));
     await tester.pumpAndSettle();
 
-    expect(find.text('GPS ready'), findsOneWidget);
-    expect(find.text('Start run'), findsOneWidget);
-
-    await tester.tap(find.byTooltip('Close'));
-    await tester.pumpAndSettle();
-
+    expect(find.text('Running · easy'), findsOneWidget);
+    expect(find.text('TODAY\'S PLAN'), findsNothing);
+    expect(find.text('RUNNING'), findsNothing);
+    expect(find.text('4.10 of 4.50 km'), findsOneWidget);
+    expect(find.text('91%'), findsOneWidget);
+    expect(find.text('DISTANCE'), findsOneWidget);
+    expect(find.text('4.10'), findsOneWidget);
+    expect(find.text('km'), findsOneWidget);
+    expect(find.text('TIME'), findsOneWidget);
+    expect(find.text('30:10'), findsOneWidget);
+    expect(find.text('AVG PACE'), findsOneWidget);
+    expect(find.text('6:30/km'), findsOneWidget);
+    expect(find.text('HEART'), findsNothing);
+    expect(find.text('Pause'), findsOneWidget);
+    expect(find.byTooltip('Close'), findsNothing);
     expect(find.text('GPS ready'), findsNothing);
-    expect(find.text('Good to see you'), findsOneWidget);
-    expect(find.text('Home'), findsOneWidget);
-    expect(find.text('Maps'), findsOneWidget);
-    expect(find.text('Run'), findsOneWidget);
-    expect(find.text('Leaderboard'), findsOneWidget);
-    expect(find.text('You'), findsOneWidget);
+    expect(find.text('Start run'), findsNothing);
   });
 
   testWidgets('Android back dismisses static Run launch surface', (

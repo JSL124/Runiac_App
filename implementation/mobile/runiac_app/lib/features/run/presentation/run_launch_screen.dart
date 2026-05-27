@@ -17,8 +17,19 @@ const _panelTextBlue = Color(0xFF3151C8);
 const _mutedBlue = Color(0xFF8296E8);
 const _controlPressHold = Duration(milliseconds: 90);
 
-class RunLaunchScreen extends StatelessWidget {
+class RunLaunchScreen extends StatefulWidget {
   const RunLaunchScreen({super.key});
+
+  @override
+  State<RunLaunchScreen> createState() => _RunLaunchScreenState();
+}
+
+class _RunLaunchScreenState extends State<RunLaunchScreen> {
+  bool _isLiveTracking = false;
+
+  void _startRun() {
+    setState(() => _isLiveTracking = true);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -40,17 +51,31 @@ class RunLaunchScreen extends StatelessWidget {
                 padding: const EdgeInsets.only(top: 12),
                 child: Row(
                   children: [
-                    _MapCircleButton(
-                      tooltip: 'Close',
-                      icon: Icons.close,
-                      onPressed: () => Navigator.of(context).pop(),
+                    if (_isLiveTracking)
+                      const SizedBox(width: 58, height: 58)
+                    else
+                      _MapCircleButton(
+                        tooltip: 'Close',
+                        icon: Icons.close,
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                    Expanded(
+                      child: Center(
+                        child: _RunStatusPill(
+                          label: _isLiveTracking
+                              ? 'Running · easy'
+                              : 'GPS ready',
+                        ),
+                      ),
                     ),
-                    const Expanded(child: Center(child: _GpsReadyPill())),
-                    _MapCircleButton(
-                      tooltip: 'Run settings',
-                      icon: Icons.settings_outlined,
-                      onPressed: () {},
-                    ),
+                    if (_isLiveTracking)
+                      const SizedBox(width: 58, height: 58)
+                    else
+                      _MapCircleButton(
+                        tooltip: 'Run settings',
+                        icon: Icons.settings_outlined,
+                        onPressed: () {},
+                      ),
                   ],
                 ),
               ),
@@ -63,7 +88,17 @@ class RunLaunchScreen extends StatelessWidget {
             child: Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 430),
-                child: const _RunBottomPanel(),
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 180),
+                  switchInCurve: Curves.easeOutCubic,
+                  switchOutCurve: Curves.easeInCubic,
+                  child: _isLiveTracking
+                      ? const _LiveTrackingPanel(key: ValueKey('live'))
+                      : _RunBottomPanel(
+                          key: const ValueKey('launch'),
+                          onStart: _startRun,
+                        ),
+                ),
               ),
             ),
           ),
@@ -146,8 +181,10 @@ class _MapCircleButtonState extends State<_MapCircleButton> {
   }
 }
 
-class _GpsReadyPill extends StatelessWidget {
-  const _GpsReadyPill();
+class _RunStatusPill extends StatelessWidget {
+  const _RunStatusPill({required this.label});
+
+  final String label;
 
   @override
   Widget build(BuildContext context) {
@@ -157,14 +194,14 @@ class _GpsReadyPill extends StatelessWidget {
         color: _softControlBlue,
         borderRadius: BorderRadius.circular(999),
       ),
-      child: const Row(
+      child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.circle, color: _sportOrange, size: 14),
-          SizedBox(width: 10),
+          const Icon(Icons.circle, color: _sportOrange, size: 14),
+          const SizedBox(width: 10),
           Text(
-            'GPS ready',
-            style: TextStyle(
+            label,
+            style: const TextStyle(
               color: RuniacColors.white,
               fontSize: 17,
               fontWeight: FontWeight.w800,
@@ -178,7 +215,9 @@ class _GpsReadyPill extends StatelessWidget {
 }
 
 class _RunBottomPanel extends StatelessWidget {
-  const _RunBottomPanel();
+  const _RunBottomPanel({super.key, required this.onStart});
+
+  final VoidCallback onStart;
 
   @override
   Widget build(BuildContext context) {
@@ -278,7 +317,7 @@ class _RunBottomPanel extends StatelessWidget {
                 width: double.infinity,
                 height: startHeight,
                 child: FilledButton.icon(
-                  onPressed: () {},
+                  onPressed: onStart,
                   icon: const Icon(Icons.play_arrow_rounded, size: 32),
                   label: const Text('Start run'),
                   style: FilledButton.styleFrom(
@@ -297,6 +336,239 @@ class _RunBottomPanel extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class _LiveTrackingPanel extends StatelessWidget {
+  const _LiveTrackingPanel({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 360;
+        final panelPadding = compact
+            ? const EdgeInsets.fromLTRB(20, 18, 20, 18)
+            : const EdgeInsets.fromLTRB(24, 20, 24, 22);
+        final pauseHeight = compact ? 50.0 : 56.0;
+
+        return Container(
+          padding: panelPadding,
+          decoration: BoxDecoration(
+            color: RuniacColors.white,
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x26172033),
+                blurRadius: 30,
+                offset: Offset(0, 14),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const _ProgressSummaryRow(),
+              const SizedBox(height: 8),
+              const _RunProgressBar(progress: 0.91),
+              SizedBox(height: compact ? 14 : 16),
+              const _DistanceFocus(),
+              SizedBox(height: compact ? 12 : 14),
+              const Divider(height: 1, color: _blueBorder),
+              SizedBox(height: compact ? 10 : 12),
+              const _LiveMetricRow(),
+              SizedBox(height: compact ? 14 : 16),
+              SizedBox(
+                width: double.infinity,
+                height: pauseHeight,
+                child: FilledButton.icon(
+                  onPressed: () {},
+                  icon: const Icon(Icons.pause_rounded, size: 26),
+                  label: const Text('Pause'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: _panelTextBlue,
+                    foregroundColor: RuniacColors.white,
+                    elevation: 8,
+                    shadowColor: const Color(0x333151C8),
+                    textStyle: TextStyle(
+                      fontSize: compact ? 20 : 22,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _ProgressSummaryRow extends StatelessWidget {
+  const _ProgressSummaryRow();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Row(
+      children: [
+        Expanded(
+          child: Text(
+            '4.10 of 4.50 km',
+            style: TextStyle(
+              color: _mutedBlue,
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+        Text(
+          '91%',
+          style: TextStyle(
+            color: _panelTextBlue,
+            fontSize: 16,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _RunProgressBar extends StatelessWidget {
+  const _RunProgressBar({required this.progress});
+
+  final double progress;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(999),
+      child: LinearProgressIndicator(
+        value: progress,
+        minHeight: 8,
+        backgroundColor: const Color(0xFFE5EAFF),
+        color: _sportOrange,
+      ),
+    );
+  }
+}
+
+class _DistanceFocus extends StatelessWidget {
+  const _DistanceFocus();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'DISTANCE',
+            style: TextStyle(
+              color: _mutedBlue,
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0,
+            ),
+          ),
+          SizedBox(height: 6),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '4.10',
+                style: TextStyle(
+                  color: _panelTextBlue,
+                  fontSize: 48,
+                  fontWeight: FontWeight.w900,
+                  height: 0.92,
+                ),
+              ),
+              SizedBox(width: 5),
+              Padding(
+                padding: EdgeInsets.only(bottom: 4),
+                child: Text(
+                  'km',
+                  style: TextStyle(
+                    color: _mutedBlue,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LiveMetricRow extends StatelessWidget {
+  const _LiveMetricRow();
+
+  @override
+  Widget build(BuildContext context) {
+    return const IntrinsicHeight(
+      child: Row(
+        children: [
+          Expanded(
+            child: _MetricItem(label: 'TIME', value: '30:10'),
+          ),
+          VerticalDivider(width: 1, thickness: 1, color: _blueBorder),
+          Expanded(
+            child: _MetricItem(label: 'AVG PACE', value: '6:30/km'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MetricItem extends StatelessWidget {
+  const _MetricItem({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            color: _mutedBlue,
+            fontSize: 11,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 0,
+          ),
+        ),
+        const SizedBox(height: 6),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                value,
+                style: const TextStyle(
+                  color: _panelTextBlue,
+                  fontSize: 28,
+                  fontWeight: FontWeight.w900,
+                  height: 0.95,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
