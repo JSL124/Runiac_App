@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -562,6 +564,22 @@ void main() {
     expect(find.text('Keep holding...'), findsNothing);
     expect(find.text('4.10 of 4.50 km'), findsOneWidget);
     expect(find.text('30:10'), findsOneWidget);
+  });
+
+  test('Run launch source isolates static display snapshots', () {
+    final source = File(
+      'lib/features/run/presentation/run_launch_screen.dart',
+    ).readAsStringSync();
+
+    expect(source, contains('class _RunLaunchDisplaySnapshot'));
+    expect(source, contains('class _RunLiveDisplaySnapshot'));
+    expect(source, contains('const _runLaunchSnapshot'));
+    expect(source, contains('const _runLiveSnapshot'));
+    expect(source, isNot(contains(RegExp(r'\bonCompleted\b'))));
+    expect(source, isNot(contains('bool _completed')));
+    expect(source, isNot(contains('completedRun')));
+    expect(source, isNot(contains('calculateRunCompletion')));
+    expect(source, isNot(contains('saveActivity')));
   });
 
   testWidgets('Android back dismisses static Run launch surface', (

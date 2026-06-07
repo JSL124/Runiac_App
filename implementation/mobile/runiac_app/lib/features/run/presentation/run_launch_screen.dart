@@ -18,7 +18,73 @@ const _mutedBlue = Color(0xFF8296E8);
 const _controlPressHold = Duration(milliseconds: 90);
 const _endHoldDuration = Duration(milliseconds: 1500);
 
+const _runLaunchSnapshot = _RunLaunchDisplaySnapshot(
+  planLabel: 'TODAY\'S PLAN',
+  switchRouteLabel: 'Switch route',
+  distanceValue: '4.5',
+  distanceUnitLabel: 'km easy run',
+  paceLabel: 'Pace 7:10-7:40 / km · ~32 min',
+  startLabel: 'Start run',
+);
+
+const _runLiveSnapshot = _RunLiveDisplaySnapshot(
+  progressSummaryLabel: '4.10 of 4.50 km',
+  progressPercentLabel: '91%',
+  progressValue: 0.91,
+  distanceLabel: 'DISTANCE',
+  distanceValue: '4.10',
+  distanceUnitLabel: 'km',
+  timeLabel: 'TIME',
+  timeValue: '30:10',
+  avgPaceLabel: 'AVG PACE',
+  avgPaceValue: '6:30/km',
+);
+
 enum _RunScreenMode { launch, live, paused }
+
+class _RunLaunchDisplaySnapshot {
+  const _RunLaunchDisplaySnapshot({
+    required this.planLabel,
+    required this.switchRouteLabel,
+    required this.distanceValue,
+    required this.distanceUnitLabel,
+    required this.paceLabel,
+    required this.startLabel,
+  });
+
+  final String planLabel;
+  final String switchRouteLabel;
+  final String distanceValue;
+  final String distanceUnitLabel;
+  final String paceLabel;
+  final String startLabel;
+}
+
+class _RunLiveDisplaySnapshot {
+  const _RunLiveDisplaySnapshot({
+    required this.progressSummaryLabel,
+    required this.progressPercentLabel,
+    required this.progressValue,
+    required this.distanceLabel,
+    required this.distanceValue,
+    required this.distanceUnitLabel,
+    required this.timeLabel,
+    required this.timeValue,
+    required this.avgPaceLabel,
+    required this.avgPaceValue,
+  });
+
+  final String progressSummaryLabel;
+  final String progressPercentLabel;
+  final double progressValue;
+  final String distanceLabel;
+  final String distanceValue;
+  final String distanceUnitLabel;
+  final String timeLabel;
+  final String timeValue;
+  final String avgPaceLabel;
+  final String avgPaceValue;
+}
 
 class RunLaunchScreen extends StatefulWidget {
   const RunLaunchScreen({super.key});
@@ -273,10 +339,10 @@ class _RunBottomPanel extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'TODAY\'S PLAN',
-                      style: TextStyle(
+                      _runLaunchSnapshot.planLabel,
+                      style: const TextStyle(
                         color: _sportOrange,
                         fontSize: 16,
                         fontWeight: FontWeight.w900,
@@ -296,19 +362,19 @@ class _RunBottomPanel extends StatelessWidget {
                         fontWeight: FontWeight.w800,
                       ),
                     ),
-                    child: const Text('Switch route'),
+                    child: Text(_runLaunchSnapshot.switchRouteLabel),
                   ),
                 ],
               ),
               SizedBox(height: compact ? 16 : 22),
-              const Wrap(
+              Wrap(
                 crossAxisAlignment: WrapCrossAlignment.end,
                 spacing: 8,
                 runSpacing: 2,
                 children: [
                   Text(
-                    '4.5',
-                    style: TextStyle(
+                    _runLaunchSnapshot.distanceValue,
+                    style: const TextStyle(
                       color: _panelTextBlue,
                       fontSize: 46,
                       fontWeight: FontWeight.w900,
@@ -316,10 +382,10 @@ class _RunBottomPanel extends StatelessWidget {
                     ),
                   ),
                   Padding(
-                    padding: EdgeInsets.only(bottom: 5),
+                    padding: const EdgeInsets.only(bottom: 5),
                     child: Text(
-                      'km easy run',
-                      style: TextStyle(
+                      _runLaunchSnapshot.distanceUnitLabel,
+                      style: const TextStyle(
                         color: _mutedBlue,
                         fontSize: 22,
                         fontWeight: FontWeight.w800,
@@ -329,9 +395,9 @@ class _RunBottomPanel extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 8),
-              const Text(
-                'Pace 7:10-7:40 / km · ~32 min',
-                style: TextStyle(
+              Text(
+                _runLaunchSnapshot.paceLabel,
+                style: const TextStyle(
                   color: _mutedBlue,
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
@@ -344,7 +410,7 @@ class _RunBottomPanel extends StatelessWidget {
                 child: FilledButton.icon(
                   onPressed: onStart,
                   icon: const Icon(Icons.play_arrow_rounded, size: 32),
-                  label: const Text('Start run'),
+                  label: Text(_runLaunchSnapshot.startLabel),
                   style: FilledButton.styleFrom(
                     backgroundColor: _sportOrange,
                     foregroundColor: RuniacColors.white,
@@ -408,7 +474,7 @@ class _LiveTrackingPanel extends StatelessWidget {
             children: [
               const _ProgressSummaryRow(),
               const SizedBox(height: 8),
-              const _RunProgressBar(progress: 0.91),
+              _RunProgressBar(progress: _runLiveSnapshot.progressValue),
               SizedBox(height: compact ? 14 : 16),
               const _DistanceFocus(),
               SizedBox(height: compact ? 12 : 14),
@@ -509,7 +575,7 @@ class _LiveRunActions extends StatelessWidget {
                           height: height,
                           child: _HoldToEndButton(
                             compact: compact,
-                            onCompleted: onEnd,
+                            onHoldAnimationCompleted: onEnd,
                           ),
                         ),
                       ),
@@ -541,10 +607,13 @@ class _LiveRunActions extends StatelessWidget {
 }
 
 class _HoldToEndButton extends StatefulWidget {
-  const _HoldToEndButton({required this.compact, required this.onCompleted});
+  const _HoldToEndButton({
+    required this.compact,
+    required this.onHoldAnimationCompleted,
+  });
 
   final bool compact;
-  final VoidCallback onCompleted;
+  final VoidCallback onHoldAnimationCompleted;
 
   @override
   State<_HoldToEndButton> createState() => _HoldToEndButtonState();
@@ -553,7 +622,7 @@ class _HoldToEndButton extends StatefulWidget {
 class _HoldToEndButtonState extends State<_HoldToEndButton>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
-  bool _completed = false;
+  bool _holdAnimationCompleted = false;
 
   @override
   void initState() {
@@ -571,12 +640,12 @@ class _HoldToEndButtonState extends State<_HoldToEndButton>
   }
 
   void _handleHoldStatus(AnimationStatus status) {
-    if (status != AnimationStatus.completed || _completed) {
+    if (status != AnimationStatus.completed || _holdAnimationCompleted) {
       return;
     }
 
-    _completed = true;
-    widget.onCompleted();
+    _holdAnimationCompleted = true;
+    widget.onHoldAnimationCompleted();
     if (!mounted) {
       return;
     }
@@ -584,13 +653,13 @@ class _HoldToEndButtonState extends State<_HoldToEndButton>
   }
 
   void _startHold(PointerDownEvent event) {
-    _completed = false;
+    _holdAnimationCompleted = false;
     _controller.forward(from: 0);
   }
 
   void _cancelHold() {
-    if (_completed) {
-      _completed = false;
+    if (_holdAnimationCompleted) {
+      _holdAnimationCompleted = false;
       return;
     }
 
@@ -666,12 +735,12 @@ class _ProgressSummaryRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Row(
+    return Row(
       children: [
         Expanded(
           child: Text(
-            '4.10 of 4.50 km',
-            style: TextStyle(
+            _runLiveSnapshot.progressSummaryLabel,
+            style: const TextStyle(
               color: _mutedBlue,
               fontSize: 15,
               fontWeight: FontWeight.w800,
@@ -679,8 +748,8 @@ class _ProgressSummaryRow extends StatelessWidget {
           ),
         ),
         Text(
-          '91%',
-          style: TextStyle(
+          _runLiveSnapshot.progressPercentLabel,
+          style: const TextStyle(
             color: _panelTextBlue,
             fontSize: 16,
             fontWeight: FontWeight.w900,
@@ -715,39 +784,39 @@ class _DistanceFocus extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
+    return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            'DISTANCE',
-            style: TextStyle(
+            _runLiveSnapshot.distanceLabel,
+            style: const TextStyle(
               color: _mutedBlue,
               fontSize: 12,
               fontWeight: FontWeight.w900,
               letterSpacing: 0,
             ),
           ),
-          SizedBox(height: 6),
+          const SizedBox(height: 6),
           Row(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                '4.10',
-                style: TextStyle(
+                _runLiveSnapshot.distanceValue,
+                style: const TextStyle(
                   color: _panelTextBlue,
                   fontSize: 48,
                   fontWeight: FontWeight.w900,
                   height: 0.92,
                 ),
               ),
-              SizedBox(width: 5),
+              const SizedBox(width: 5),
               Padding(
-                padding: EdgeInsets.only(bottom: 4),
+                padding: const EdgeInsets.only(bottom: 4),
                 child: Text(
-                  'km',
-                  style: TextStyle(
+                  _runLiveSnapshot.distanceUnitLabel,
+                  style: const TextStyle(
                     color: _mutedBlue,
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
@@ -767,15 +836,21 @@ class _LiveMetricRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const IntrinsicHeight(
+    return IntrinsicHeight(
       child: Row(
         children: [
           Expanded(
-            child: _MetricItem(label: 'TIME', value: '30:10'),
+            child: _MetricItem(
+              label: _runLiveSnapshot.timeLabel,
+              value: _runLiveSnapshot.timeValue,
+            ),
           ),
-          VerticalDivider(width: 1, thickness: 1, color: _blueBorder),
+          const VerticalDivider(width: 1, thickness: 1, color: _blueBorder),
           Expanded(
-            child: _MetricItem(label: 'AVG PACE', value: '6:30/km'),
+            child: _MetricItem(
+              label: _runLiveSnapshot.avgPaceLabel,
+              value: _runLiveSnapshot.avgPaceValue,
+            ),
           ),
         ],
       ),
