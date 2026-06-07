@@ -144,7 +144,10 @@ void main() {
     expect(find.text('10K Preparation'), findsOneWidget);
     expect(find.text("This Week's 10K Preparation Plan"), findsOneWidget);
 
-    await tester.ensureVisible(find.text('15 min walk-run'));
+    await Scrollable.ensureVisible(
+      tester.element(find.text('15 min walk-run')),
+      alignment: 0.45,
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text('15 min walk-run'));
     await tester.pumpAndSettle();
@@ -184,5 +187,45 @@ void main() {
     expect(find.text('Good to see you'), findsOneWidget);
     expect(find.text('Quick Start'), findsOneWidget);
     expect(find.text('This Week'), findsNothing);
+  });
+
+  testWidgets('Run launch from You hides the You header once settled', (
+    WidgetTester tester,
+  ) async {
+    await _openYouTab(tester);
+
+    expect(find.text('You'), findsWidgets);
+    expect(find.text('This Week'), findsOneWidget);
+
+    await tester.tap(find.text('Run'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('GPS ready'), findsOneWidget);
+    expect(find.text('You').hitTestable(), findsNothing);
+    expect(find.text('This Week').hitTestable(), findsNothing);
+  });
+
+  testWidgets('Run close from You reveals the You page during transition', (
+    WidgetTester tester,
+  ) async {
+    await _openYouTab(tester);
+
+    await tester.tap(find.text('Run'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('GPS ready'), findsOneWidget);
+    expect(find.text('You').hitTestable(), findsNothing);
+
+    await tester.tap(find.byTooltip('Close'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+
+    expect(
+      find.byKey(const ValueKey('run_launch_transition_cover')),
+      findsNothing,
+    );
+    expect(find.text('You', skipOffstage: false), findsWidgets);
+
+    await tester.pump(const Duration(milliseconds: 100));
   });
 }

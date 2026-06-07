@@ -14,14 +14,6 @@ class RuniacShell extends StatefulWidget {
 }
 
 class _RuniacShellState extends State<RuniacShell> {
-  static const List<Widget> _tabs = [
-    HomeTab(),
-    MapsTab(),
-    SizedBox.shrink(),
-    LeaderboardTab(),
-    YouTab(),
-  ];
-
   int _selectedIndex = 0;
 
   void _handleNavigationTap(int index) {
@@ -53,11 +45,23 @@ class _RuniacShellState extends State<RuniacShell> {
 
   @override
   Widget build(BuildContext context) {
+    final tabs = [
+      const HomeTab(),
+      const MapsTab(),
+      const SizedBox.shrink(),
+      const LeaderboardTab(),
+      const YouTab(),
+    ];
+
     return Scaffold(
-      appBar: _selectedIndex == 0 || _selectedIndex == 1 || _selectedIndex == 3
+      appBar:
+          _selectedIndex == 0 ||
+              _selectedIndex == 1 ||
+              _selectedIndex == 3 ||
+              _selectedIndex == 4
           ? null
           : AppBar(title: const Text('Runiac')),
-      body: _tabs[_selectedIndex],
+      body: tabs[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         type: BottomNavigationBarType.fixed,

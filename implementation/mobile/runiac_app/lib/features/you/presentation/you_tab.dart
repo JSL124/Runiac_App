@@ -226,63 +226,47 @@ class YouTab extends StatefulWidget {
 class _YouTabState extends State<YouTab> {
   var _plans = false;
   var _visibleCalendarMonth = DateTime(2026, 5);
-  OverlayEntry? _headerOverlay;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || _headerOverlay != null) {
-        return;
-      }
-
-      _headerOverlay = OverlayEntry(
-        builder: (context) {
-          final topPadding = MediaQuery.paddingOf(context).top;
-          return Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: topPadding + kToolbarHeight,
-            child: const _YouHeaderOverlay(),
-          );
-        },
-      );
-      Overlay.of(context, rootOverlay: true).insert(_headerOverlay!);
-    });
-  }
-
-  @override
-  void dispose() {
-    _headerOverlay?.remove();
-    _headerOverlay = null;
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
+    final topPadding = MediaQuery.paddingOf(context).top;
+    final headerHeight = topPadding + kToolbarHeight;
+
     return ColoredBox(
       color: RuniacColors.background,
-      child: ScrollConfiguration(
-        behavior: ScrollConfiguration.of(context).copyWith(overscroll: false),
-        child: ListView(
-          physics: const ClampingScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
-          children: [
-            _segments(['Progress', 'Plans'], _plans ? 1 : 0, (index) {
-              setState(() => _plans = index == 1);
-            }),
-            const SizedBox(height: 12),
-            if (_plans)
-              _plansEmpty()
-            else
-              _progress(
-                _visibleCalendarMonth,
-                _showPreviousCalendarMonth,
-                _showNextCalendarMonth,
-              ),
-          ],
-        ),
+      child: Stack(
+        children: [
+          ScrollConfiguration(
+            behavior: ScrollConfiguration.of(
+              context,
+            ).copyWith(overscroll: false),
+            child: ListView(
+              physics: const ClampingScrollPhysics(),
+              padding: EdgeInsets.fromLTRB(16, headerHeight + 8, 16, 28),
+              children: [
+                _segments(['Progress', 'Plans'], _plans ? 1 : 0, (index) {
+                  setState(() => _plans = index == 1);
+                }),
+                const SizedBox(height: 12),
+                if (_plans)
+                  _plansEmpty()
+                else
+                  _progress(
+                    _visibleCalendarMonth,
+                    _showPreviousCalendarMonth,
+                    _showNextCalendarMonth,
+                  ),
+              ],
+            ),
+          ),
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: headerHeight,
+            child: const _YouHeaderOverlay(),
+          ),
+        ],
       ),
     );
   }
