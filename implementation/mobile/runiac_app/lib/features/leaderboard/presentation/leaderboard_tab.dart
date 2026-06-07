@@ -2,6 +2,49 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/runiac_colors.dart';
 
+const _leaderboardPreviewSnapshot = _LeaderboardPreviewSnapshot(
+  weeklyLabel: 'Weekly XP',
+  monthlyLabel: 'Monthly XP',
+  tipsTitle: 'Tips',
+  leaguesTipTitle: 'Leagues',
+  cadenceTipTitle: 'Weekly vs Monthly',
+  readinessTipTitle: 'Ranking readiness',
+  leaguesTipBody:
+      'Leagues group runners by broad progress bands so the board feels fair and beginner-friendly.',
+  cadenceTipBody:
+      'Weekly and monthly views will help compare progress once leaderboard data is ready.',
+  readinessTipBody: 'Real rankings will be prepared safely by Runiac later.',
+);
+
+const _leaderboardLeagueSnapshot = _LeaderboardLeagueSnapshot(
+  selectedDivision: 'Rising Runner Division',
+  selectedLevelRange: 'Lv.11 - Lv.20',
+  dialogTitle: 'Leagues',
+  entries: [
+    _LeagueTaxonomyEntry('Apex Runner League', 'Lv.81 - Lv.90'),
+    _LeagueTaxonomyEntry('Summitborn League', 'Lv.71 - Lv.80'),
+    _LeagueTaxonomyEntry('Roadrunner League', 'Lv.51 - Lv.60'),
+    _LeagueTaxonomyEntry('Endurancer League', 'Lv.41 - Lv.50'),
+    _LeagueTaxonomyEntry('Milehunter League', 'Lv.31 - Lv.40'),
+    _LeagueTaxonomyEntry('Pacebreaker League', 'Lv.21 - Lv.30'),
+    _LeagueTaxonomyEntry('Strideforge League', 'Lv.11 - Lv.20'),
+    _LeagueTaxonomyEntry('Trailborn League', 'Lv.1 - Lv.10'),
+  ],
+);
+
+const _leaderboardRegionSnapshot = _LeaderboardRegionSnapshot(
+  regionName: 'Jurong East',
+  cadenceDivisionLabel: 'Weekly XP · Rising Runner Division',
+  previewTitle: 'Region Preview',
+  previewStatus: 'Ranking preview pending',
+  pendingRowLabel: 'Pending',
+  rankPreviewTitle: 'My Rank Preview',
+  rankPreviewBody: 'Your position will appear after leaderboard data is ready.',
+  primaryActionLabel: 'View More Ranking',
+  secondaryActionLabel: 'Share My Rank',
+  userAreaLabel: 'Your ranked area',
+);
+
 class LeaderboardTab extends StatefulWidget {
   const LeaderboardTab({super.key});
 
@@ -88,6 +131,70 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
   }
 }
 
+class _LeaderboardPreviewSnapshot {
+  const _LeaderboardPreviewSnapshot({
+    required this.weeklyLabel,
+    required this.monthlyLabel,
+    required this.tipsTitle,
+    required this.leaguesTipTitle,
+    required this.cadenceTipTitle,
+    required this.readinessTipTitle,
+    required this.leaguesTipBody,
+    required this.cadenceTipBody,
+    required this.readinessTipBody,
+  });
+
+  final String weeklyLabel;
+  final String monthlyLabel;
+  final String tipsTitle;
+  final String leaguesTipTitle;
+  final String cadenceTipTitle;
+  final String readinessTipTitle;
+  final String leaguesTipBody;
+  final String cadenceTipBody;
+  final String readinessTipBody;
+}
+
+class _LeaderboardLeagueSnapshot {
+  const _LeaderboardLeagueSnapshot({
+    required this.selectedDivision,
+    required this.selectedLevelRange,
+    required this.dialogTitle,
+    required this.entries,
+  });
+
+  final String selectedDivision;
+  final String selectedLevelRange;
+  final String dialogTitle;
+  final List<_LeagueTaxonomyEntry> entries;
+}
+
+class _LeaderboardRegionSnapshot {
+  const _LeaderboardRegionSnapshot({
+    required this.regionName,
+    required this.cadenceDivisionLabel,
+    required this.previewTitle,
+    required this.previewStatus,
+    required this.pendingRowLabel,
+    required this.rankPreviewTitle,
+    required this.rankPreviewBody,
+    required this.primaryActionLabel,
+    required this.secondaryActionLabel,
+    required this.userAreaLabel,
+  });
+
+  final String regionName;
+  final String cadenceDivisionLabel;
+  final String previewTitle;
+  final String previewStatus;
+  final String pendingRowLabel;
+  final String rankPreviewTitle;
+  final String rankPreviewBody;
+  final String primaryActionLabel;
+  final String secondaryActionLabel;
+  final String userAreaLabel;
+}
+
 class _LeaderboardTopOverlay extends StatelessWidget {
   const _LeaderboardTopOverlay();
 
@@ -139,9 +246,9 @@ class _XpSegmentedControl extends StatelessWidget {
                 color: const Color(0xFF2F5FD7),
                 borderRadius: BorderRadius.circular(999),
               ),
-              child: const Text(
-                'Weekly XP',
-                style: TextStyle(
+              child: Text(
+                _leaderboardPreviewSnapshot.weeklyLabel,
+                style: const TextStyle(
                   color: RuniacColors.white,
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
@@ -149,11 +256,11 @@ class _XpSegmentedControl extends StatelessWidget {
               ),
             ),
           ),
-          const Expanded(
+          Expanded(
             child: Center(
               child: Text(
-                'Monthly XP',
-                style: TextStyle(
+                _leaderboardPreviewSnapshot.monthlyLabel,
+                style: const TextStyle(
                   color: RuniacColors.textPrimary,
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
@@ -203,32 +310,32 @@ class _RegionPreviewSheet extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(16, 9, 16, 14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                Center(child: _SheetHandle()),
-                SizedBox(height: 10),
+              children: [
+                const Center(child: _SheetHandle()),
+                const SizedBox(height: 10),
                 Text(
-                  'Jurong East',
-                  style: TextStyle(
+                  _leaderboardRegionSnapshot.regionName,
+                  style: const TextStyle(
                     color: RuniacColors.textPrimary,
                     fontSize: 21,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                SizedBox(height: 4),
+                const SizedBox(height: 4),
                 Text(
-                  'Weekly XP · Rising Runner Division',
-                  style: TextStyle(
+                  _leaderboardRegionSnapshot.cadenceDivisionLabel,
+                  style: const TextStyle(
                     color: RuniacColors.textSecondary,
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                SizedBox(height: 12),
-                _RegionPreviewList(),
-                SizedBox(height: 12),
-                _MyRankPreviewCard(),
-                SizedBox(height: 12),
-                _RegionPreviewActions(),
+                const SizedBox(height: 12),
+                const _RegionPreviewList(),
+                const SizedBox(height: 12),
+                const _MyRankPreviewCard(),
+                const SizedBox(height: 12),
+                const _RegionPreviewActions(),
               ],
             ),
           ),
@@ -264,26 +371,26 @@ class _RegionPreviewList extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: const [
+      children: [
         Text(
-          'Region Preview',
-          style: TextStyle(
+          _leaderboardRegionSnapshot.previewTitle,
+          style: const TextStyle(
             color: RuniacColors.textPrimary,
             fontSize: 14,
             fontWeight: FontWeight.w900,
           ),
         ),
-        SizedBox(height: 3),
+        const SizedBox(height: 3),
         Text(
-          'Ranking preview pending',
-          style: TextStyle(
+          _leaderboardRegionSnapshot.previewStatus,
+          style: const TextStyle(
             color: RuniacColors.textSecondary,
             fontSize: 12,
             fontWeight: FontWeight.w700,
           ),
         ),
-        SizedBox(height: 7),
-        _PreviewListShell(),
+        const SizedBox(height: 7),
+        const _PreviewListShell(),
       ],
     );
   }
@@ -359,8 +466,8 @@ class _PreviewShellRow extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 12),
-        const Text(
-          'Pending',
+        Text(
+          _leaderboardRegionSnapshot.pendingRowLabel,
           style: TextStyle(
             color: RuniacColors.textSecondary,
             fontSize: 12,
@@ -397,9 +504,9 @@ class _MyRankPreviewCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'My Rank Preview',
-          style: TextStyle(
+        Text(
+          _leaderboardRegionSnapshot.rankPreviewTitle,
+          style: const TextStyle(
             color: RuniacColors.textPrimary,
             fontSize: 14,
             fontWeight: FontWeight.w900,
@@ -417,13 +524,13 @@ class _MyRankPreviewCard extends StatelessWidget {
             ),
           ),
           child: Row(
-            children: const [
-              _RankPreviewIcon(),
-              SizedBox(width: 11),
+            children: [
+              const _RankPreviewIcon(),
+              const SizedBox(width: 11),
               Expanded(
                 child: Text(
-                  'Your position will appear after leaderboard data is ready.',
-                  style: TextStyle(
+                  _leaderboardRegionSnapshot.rankPreviewBody,
+                  style: const TextStyle(
                     color: RuniacColors.textPrimary,
                     fontSize: 12,
                     height: 1.2,
@@ -466,10 +573,20 @@ class _RegionPreviewActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
-      children: const [
-        Expanded(child: _VisualCta(label: 'View More Ranking', filled: true)),
-        SizedBox(width: 10),
-        Expanded(child: _VisualCta(label: 'Share My Rank', filled: false)),
+      children: [
+        Expanded(
+          child: _VisualCta(
+            label: _leaderboardRegionSnapshot.primaryActionLabel,
+            filled: true,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _VisualCta(
+            label: _leaderboardRegionSnapshot.secondaryActionLabel,
+            filled: false,
+          ),
+        ),
       ],
     );
   }
@@ -539,26 +656,26 @@ class _LeagueSelector extends StatelessWidget {
                   ),
                 ],
               ),
-              child: const Row(
+              child: Row(
                 children: [
-                  _LeagueMedalIcon(),
-                  SizedBox(width: 10),
+                  const _LeagueMedalIcon(),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      'Rising Runner Division',
+                      _leaderboardLeagueSnapshot.selectedDivision,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: RuniacColors.textPrimary,
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
                   ),
-                  SizedBox(width: 8),
+                  const SizedBox(width: 8),
                   Text(
-                    'Lv.11 - Lv.20',
-                    style: TextStyle(
+                    _leaderboardLeagueSnapshot.selectedLevelRange,
+                    style: const TextStyle(
                       color: RuniacColors.textSecondary,
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
@@ -684,11 +801,11 @@ class _LeaderboardTipsDialog extends StatelessWidget {
                       icon: const Icon(Icons.close),
                       color: RuniacColors.textPrimary,
                     ),
-                    const Expanded(
+                    Expanded(
                       child: Center(
                         child: Text(
-                          'Tips',
-                          style: TextStyle(
+                          _leaderboardPreviewSnapshot.tipsTitle,
+                          style: const TextStyle(
                             color: RuniacColors.textPrimary,
                             fontSize: 22,
                             fontWeight: FontWeight.w900,
@@ -700,25 +817,22 @@ class _LeaderboardTipsDialog extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 14),
-                const _TipsSection(
+                _TipsSection(
                   icon: Icons.emoji_events_outlined,
-                  title: 'Leagues',
-                  body:
-                      'Leagues group runners by broad progress bands so the board feels fair and beginner-friendly.',
+                  title: _leaderboardPreviewSnapshot.leaguesTipTitle,
+                  body: _leaderboardPreviewSnapshot.leaguesTipBody,
                 ),
                 const SizedBox(height: 10),
-                const _TipsSection(
+                _TipsSection(
                   icon: Icons.calendar_month_outlined,
-                  title: 'Weekly vs Monthly',
-                  body:
-                      'Weekly and monthly views will help compare progress once leaderboard data is ready.',
+                  title: _leaderboardPreviewSnapshot.cadenceTipTitle,
+                  body: _leaderboardPreviewSnapshot.cadenceTipBody,
                 ),
                 const SizedBox(height: 10),
-                const _TipsSection(
+                _TipsSection(
                   icon: Icons.verified_user_outlined,
-                  title: 'Ranking readiness',
-                  body:
-                      'Real rankings will be calculated safely by Runiac later.',
+                  title: _leaderboardPreviewSnapshot.readinessTipTitle,
+                  body: _leaderboardPreviewSnapshot.readinessTipBody,
                 ),
               ],
             ),
@@ -731,17 +845,6 @@ class _LeaderboardTipsDialog extends StatelessWidget {
 
 class _LeaderboardLeaguesDialog extends StatelessWidget {
   const _LeaderboardLeaguesDialog();
-
-  static const List<_LeagueTaxonomyEntry> _leagues = [
-    _LeagueTaxonomyEntry('Apex Runner League', 'Lv.81 - Lv.90'),
-    _LeagueTaxonomyEntry('Summitborn League', 'Lv.71 - Lv.80'),
-    _LeagueTaxonomyEntry('Roadrunner League', 'Lv.51 - Lv.60'),
-    _LeagueTaxonomyEntry('Endurancer League', 'Lv.41 - Lv.50'),
-    _LeagueTaxonomyEntry('Milehunter League', 'Lv.31 - Lv.40'),
-    _LeagueTaxonomyEntry('Pacebreaker League', 'Lv.21 - Lv.30'),
-    _LeagueTaxonomyEntry('Strideforge League', 'Lv.11 - Lv.20'),
-    _LeagueTaxonomyEntry('Trailborn League', 'Lv.1 - Lv.10'),
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -779,11 +882,11 @@ class _LeaderboardLeaguesDialog extends StatelessWidget {
                       icon: const Icon(Icons.close),
                       color: RuniacColors.textPrimary,
                     ),
-                    const Expanded(
+                    Expanded(
                       child: Center(
                         child: Text(
-                          'Leagues',
-                          style: TextStyle(
+                          _leaderboardLeagueSnapshot.dialogTitle,
+                          style: const TextStyle(
                             color: RuniacColors.textPrimary,
                             fontSize: 22,
                             fontWeight: FontWeight.w900,
@@ -804,9 +907,10 @@ class _LeaderboardLeaguesDialog extends StatelessWidget {
                   ),
                   child: Column(
                     children: [
-                      for (final entry in _leagues) ...[
+                      for (final entry
+                          in _leaderboardLeagueSnapshot.entries) ...[
                         _LeagueTaxonomyRow(entry: entry),
-                        if (entry != _leagues.last)
+                        if (entry != _leaderboardLeagueSnapshot.entries.last)
                           const Divider(height: 1, color: Color(0xFFE7E9EC)),
                       ],
                     ],
@@ -1017,7 +1121,7 @@ class _UserAreaMarker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      label: 'Your ranked area',
+      label: _leaderboardRegionSnapshot.userAreaLabel,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -1062,9 +1166,9 @@ class _UserAreaMarker extends StatelessWidget {
                 ),
               ],
             ),
-            child: const Text(
-              'Your ranked area',
-              style: TextStyle(
+            child: Text(
+              _leaderboardRegionSnapshot.userAreaLabel,
+              style: const TextStyle(
                 color: Color(0xFFFF6B00),
                 fontSize: 13,
                 fontWeight: FontWeight.w800,

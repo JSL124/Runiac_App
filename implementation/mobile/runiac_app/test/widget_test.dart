@@ -367,7 +367,7 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.text('Real rankings will be calculated safely by Runiac later.'),
+      find.text('Real rankings will be prepared safely by Runiac later.'),
       findsOneWidget,
     );
 
@@ -433,6 +433,71 @@ void main() {
     expect(find.text('Rising Runner Division'), findsOneWidget);
     expect(find.text('Lv.11 - Lv.20'), findsOneWidget);
     expect(find.text('Region Preview'), findsOneWidget);
+  });
+
+  test('Leaderboard source isolates static display snapshots', () {
+    final source = File(
+      'lib/features/leaderboard/presentation/leaderboard_tab.dart',
+    ).readAsStringSync();
+
+    expect(source, contains('class _LeaderboardPreviewSnapshot'));
+    expect(source, contains('class _LeaderboardLeagueSnapshot'));
+    expect(source, contains('class _LeaderboardRegionSnapshot'));
+    expect(source, contains('const _leaderboardPreviewSnapshot'));
+    expect(source, contains('const _leaderboardLeagueSnapshot'));
+    expect(source, contains('const _leaderboardRegionSnapshot'));
+
+    for (final forbidden in [
+      'calculateRank',
+      'calculateScore',
+      'calculateXP',
+      'deriveDivision',
+      'sortLeaderboard',
+      'aggregateWeeklyXp',
+    ]) {
+      expect(source, isNot(contains(forbidden)));
+    }
+  });
+
+  testWidgets('Leaderboard static labels do not expose owned totals', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const RuniacApp());
+
+    await tester.tap(find.text('Leaderboard'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Weekly XP'), findsOneWidget);
+    expect(find.text('Monthly XP'), findsOneWidget);
+    expect(find.textContaining(RegExp(r'\d+\s*XP')), findsNothing);
+    expect(
+      find.textContaining(RegExp(r'rank\s*#', caseSensitive: false)),
+      findsNothing,
+    );
+    expect(
+      find.textContaining(RegExp('score', caseSensitive: false)),
+      findsNothing,
+    );
+    expect(
+      find.textContaining(RegExp('points', caseSensitive: false)),
+      findsNothing,
+    );
+    expect(
+      find.textContaining(RegExp('calculated', caseSensitive: false)),
+      findsNothing,
+    );
+    expect(
+      find.textContaining(RegExp('eligible', caseSensitive: false)),
+      findsNothing,
+    );
+    expect(
+      find.textContaining(RegExp('premium advantage', caseSensitive: false)),
+      findsNothing,
+    );
+    expect(
+      find.textContaining(RegExp('subscription', caseSensitive: false)),
+      findsNothing,
+    );
   });
 
   testWidgets('Run item opens and closes static full-screen launch surface', (
