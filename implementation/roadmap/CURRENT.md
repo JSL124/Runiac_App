@@ -5,11 +5,11 @@
 - Current track: Track A - Governance and implementation readiness
 - Current phase: `implementation/roadmap/phases/phase-01-governance-ci.md`
 - Current active capsule: `implementation/roadmap/capsules/you-plans-static-ui.md`.
-- Most recent completed capsule: `you-plans-static-ui` implementation committed at `6624267 feat(you): add static plans tab`. Previous hosted GitHub Actions-confirmed mobile capsule remains Run Hold-to-End static interaction at `027c960 feat(run): add hold to end interaction` with Governance CI #49 PASS.
+- Most recent completed capsule: `you-plans-static-ui` follow-up backend-read-model readiness refactor committed and pushed at `acdbcff refactor(you): prepare static plans UI for read models`; initial Plans UI implementation was committed at `6624267 feat(you): add static plans tab`. Previous hosted GitHub Actions-confirmed mobile capsule remains Run Hold-to-End static interaction at `027c960 feat(run): add hold to end interaction` with Governance CI #49 PASS.
 - Current status: Phase 01 governance CI closed; Artifact Inventory Schema persistence completed; Repository Workflow Record capsule closed; Flutter scaffold baseline present at `implementation/mobile/runiac_app/`; `flutter-app-shell-baseline` capsule closed after static app shell implementation; post-shell static UI/nav alignment checkpoint pushed at `247b4e5 feat(mobile): align static Runiac nav baseline`; `android-ui-smoke-test-evidence` validation capsule closed; `home-dashboard-visual-polish` closed after static Home dashboard visual polish; `premium-home-dashboard-static-wireframe-alignment` closed after static Premium Home Dashboard wireframe alignment; `github-actions-governance-ci-baseline` closed after adding the minimal GitHub Actions governance workflow; `home-dashboard-scroll-layout-stability-fix` closed after stabilizing Home dashboard scroll/card layout; `run-tab-static-placeholder` closed after adding the static RunLandingPage-style Run tab placeholder; `run-tab-fullscreen-map-overlay-alignment` closed after static Run tab fullscreen map overlay layout alignment; `home-dashboard-reference-layout-alignment` closed after static Home dashboard reference layout alignment; `maps-tab-static-placeholder` committed and pushed at `323507b feat(mobile): polish static maps layout`; `run-launch-fullscreen-static-interaction` committed and pushed at `b5c31ef feat(mobile): add static run launch interaction`; Run launch back-handling cleanup committed and pushed at `5851057 chore(mobile): simplify run launch back handling`; `home-dashboard-primary-action-simplification` closed after Home primary action and brand color hierarchy polish; `run-launch-brand-color-polish` closed after static Run launch brand color polish; `maps-static-discovery-hierarchy-polish` closed after static frontend-only Maps discovery hierarchy polish; `leaderboard-static-motivation-hierarchy-polish` superseded before implementation due to the refined map-first Leaderboard direction; `leaderboard-map-first-landing-shell` closed after static frontend-only Leaderboard map-first landing shell implementation; `github-actions-flutter-validation-baseline` is closed after workflow commit `587cc0e ci: add flutter validation to governance workflow`; `leaderboard-help-modal-shell` is closed after implementation commit `96a2706 feat(mobile): add leaderboard tips popup`, roadmap closure commit `2d1ec46 docs(roadmap): close leaderboard help modal capsule`, and manually confirmed hosted GitHub Actions PASS for `96a2706`; `flutter-frontend-hygiene-cleanup` is closed after implementation commit `8074092 chore(mobile): apply frontend hygiene cleanup`, local validation, and manually confirmed hosted GitHub Actions PASS for `8074092`; `leaderboard-region-preview-sheet-shell` is closed at `09d6389` with hosted GitHub Actions Governance CI #41 PASS; `leaderboard-leagues-popup-shell` is closed at `e1d8b74` with hosted GitHub Actions Governance CI #42 PASS; Run launch map UI is closed at `08c51c7` with hosted GitHub Actions Governance CI #43 PASS; Run Live Tracking compact card is closed at `b0798b0` with hosted GitHub Actions Governance CI #45 PASS; Run Live Tracking pause split controls are closed at `5cb00ad` with hosted GitHub Actions Governance CI #47 PASS; Run Hold-to-End static interaction is closed at `027c960` with hosted GitHub Actions Governance CI #49 PASS.
-- Current state: Scaffold-baseline governance state with the static Flutter mobile UI split into a feature-first-lite source structure; Phase 02 remains unselected; hosted GitHub Actions now runs `git diff --check`, `./tools/governance-ci/run-all-checks.sh`, Flutter SDK setup, `flutter pub get`, `flutter analyze --no-pub`, and `flutter test`; the Leaderboard information affordance still opens a centered static Tips popup/dialog; the Leaderboard league/division pill opens a separate static Leagues taxonomy popup; the region preview sheet remains draggable and static; Run launch displays a static full-screen map-style launch UI with top close/GPS/settings controls, shared circular tap feedback, static runner marker, and a floating Today's Plan / Start Run card; the Run Live Tracking state uses a compact static progress card with no internal Today's Plan / Running header, no Heart metric, no backend-owned value mutation, and a static Pause to Resume / End interaction with shared action-area width and matching action heights; paused End now requires press-and-hold with an internal progress/fill, keeps the visible label exactly `End`, normal tap does not end, early release resets, and completed hold remains an inert/no-op boundary; `you-plans-static-ui` is committed at `6624267`; the current uncommitted follow-up is a small presentation-layer snapshot-readiness refactor for the You page static UI.
+- Current state: Scaffold-baseline governance state with the static Flutter mobile UI split into a feature-first-lite source structure; Phase 02 remains unselected; hosted GitHub Actions now runs `git diff --check`, `./tools/governance-ci/run-all-checks.sh`, Flutter SDK setup, `flutter pub get`, `flutter analyze --no-pub`, and `flutter test`; the Leaderboard information affordance still opens a centered static Tips popup/dialog; the Leaderboard league/division pill opens a separate static Leagues taxonomy popup; the region preview sheet remains draggable and static; Run launch displays a static full-screen map-style launch UI with top close/GPS/settings controls, shared circular tap feedback, static runner marker, and a floating Today's Plan / Start Run card; the Run Live Tracking state uses a compact static progress card with no internal Today's Plan / Running header, no Heart metric, no backend-owned value mutation, and a static Pause to Resume / End interaction with shared action-area width and matching action heights; paused End now requires press-and-hold with an internal progress/fill, keeps the visible label exactly `End`, normal tap does not end, early release resets, and completed hold remains an inert/no-op boundary; `you-plans-static-ui` is committed at `6624267`; the You page presentation-layer backend-read-model readiness refactor is committed and pushed at `acdbcff`.
 - Current governance decision record: ADR-003 Governance Lite Execution Lanes is adopted as a decision record only. It documents UI Fast Lane, Backend Guarded Lane, and Governance/Architecture Lane for future routed work, but does not activate or enforce a new workflow, change CI, change AGENTS instructions, authorize Flutter/Firebase/backend implementation, or select Phase 02.
-- Current active milestone: You page backend-read-model readiness refactor for static UI placeholders; implementation-approved, presentation-layer only, and not staged/committed/pushed; Phase 02 remains unselected.
+- Current active milestone: You page backend-read-model readiness refactor for static UI placeholders is complete at `acdbcff`; Phase 02 remains unselected. Next recommended work remains future planning only, likely Run static read-model snapshot readiness, but no next capsule is selected.
 
 ## Layered Reading Order
 
@@ -65,7 +65,7 @@ Do not load future phase documents unless explicitly requested.
 
 ## Next Gate
 
-Next gate is user review for the You page backend-read-model readiness refactor. The follow-up refactor is not staged, committed, or pushed.
+Next gate is user review of the committed You page backend-read-model readiness refactor at `acdbcff`. Future Run or Leaderboard read-model readiness work requires separate planning and routing; no next capsule is selected.
 
 ## Operational TODO / Active Capsule
 
@@ -76,7 +76,7 @@ Required next-session checklist:
 1. Start with required layered context loading from `implementation/roadmap/CURRENT.md`.
 2. Confirm repository state with `git status --short`.
 3. Load the active capsule document before any follow-up work.
-4. Review the ready-for-commit diff for the You page backend-read-model readiness refactor.
+4. Review the committed `acdbcff` roadmap and You page state before selecting any next refactor capsule.
 5. If committing, stage only the task-relevant files listed by the final status.
 6. Do not touch unrelated dirty files if any appear.
 7. Do not add fake users/ranks/XP/scores/levels, plan completion calculations, completed-run calculations, remaining-run calculations, expert eligibility logic, Firebase/backend/GPS/native/dependency work, sharing integration, premium gating, subscription logic, or Phase 02 selection.
@@ -200,7 +200,7 @@ Run controls and plan spacing polish capsule is committed and pushed:
 - Implemented scope: grouped the Today’s Plan card and controls into one bottom overlay column, increased bottom clearance, capped overlay width, added compact spacing for narrow widths, kept Start visually primary, and kept Setting / Switch Route as static secondary controls with safer label fit.
 - Stop state: ready for commit only; do not stage, commit, or push.
 
-Prior ready-for-commit milestone remains uncommitted:
+Prior ready-for-commit milestone remains awaiting manual commit:
 
 Flutter source structure refactor capsule is ready for commit:
 
@@ -211,7 +211,7 @@ Flutter source structure refactor capsule is ready for commit:
 - Validation: `flutter analyze --no-pub` PASS; `flutter test` PASS; `git diff --check` PASS; Governance CI PASS; Android smoke evidence PASS on `emulator-5554`.
 - Implemented scope: split the static Flutter app from monolithic `app.dart` into a thin app composition file, core theme/colors, shared visual widgets, shell navigation, and currently implemented Home, Maps, Run, Leaderboard, and You feature presentation files.
 - Required boundary preserved: behavior-preserving source structure only; no UI redesign, new features, Firebase, Auth, Firestore, Cloud Functions, GPS/location permission, current location state, real map SDK, route generation, route persistence, run tracking, activity submission, backend-owned values, dependency changes, native Android/iOS changes, workflow configuration changes, Plan bottom-navigation tab, empty Plan folders, or Phase 02 selection.
-- Stop state: ready for commit only; not staged, committed, or pushed.
+- Stop state: ready for commit only; awaiting manual staging, commit, and push.
 
 This closed state does not approve Phase 02 implementation, Firebase setup, `flutterfire configure`, dependency installation, build, init, deploy, backend work, or additional Flutter implementation.
 
@@ -224,7 +224,7 @@ Maps tab static placeholder capsule is ready for commit:
 - Validation: `flutter analyze --no-pub` PASS; `flutter test` PASS; `git diff --check` PASS; Governance CI PASS; Android smoke evidence PASS on `emulator-5554`.
 - Implemented scope: replaced the generic Maps placeholder with a static MapsLandingPage-style screen using a full map-like background, decorative roads/route-like shapes, marker placeholders, a top search bar, a primary-blue Saved pill control, and a draggable bottom shared route panel with safe placeholder cards.
 - Required boundary preserved: static UI layout only; no Firebase, Auth, Firestore, Cloud Functions, GPS/location permission, current location state, real map SDK, route generation, route recommendation logic, saved-route persistence, fake route/place/distance/duration/difficulty/rating/saved-count/community data, dependency changes, native Android/iOS changes, workflow configuration changes, or Phase 02 selection.
-- Stop state: ready for commit only; not staged, committed, or pushed.
+- Stop state: ready for commit only; awaiting manual staging, commit, and push.
 
 Home dashboard reference layout alignment capsule is complete:
 
@@ -308,7 +308,7 @@ Android UI smoke-test evidence capsule is complete:
 - Capsule: `implementation/roadmap/capsules/android-ui-smoke-test-evidence.md`
 - Type: validation-only
 - Evidence: Android emulator `emulator-5554` detected; app launched successfully; bottom navigation visible with Home / Maps / Run / Leaderboard / You; old Plan / Explore bottom-navigation labels were not visible; no runtime crash observed.
-- Temporary screenshot captured outside the repository at `/private/tmp/runiac-android-smoke.png`; screenshot is not committed.
+- Temporary screenshot captured outside the repository at `/private/tmp/runiac-android-smoke.png`; screenshot remains outside version control.
 - No product files were modified.
 - iOS/Xcode/CocoaPods issues remain out of scope for this capsule.
 

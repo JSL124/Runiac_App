@@ -12,11 +12,11 @@ Type: Flutter static frontend-only You tab Plans UI capsule.
 
 ## Status
 
-Status: Implemented and committed at `6624267 feat(you): add static plans tab`; current follow-up is an uncommitted presentation-layer backend-read-model readiness refactor.
+Status: Implemented and committed at `6624267 feat(you): add static plans tab`; follow-up presentation-layer backend-read-model readiness refactor committed and pushed at `acdbcff refactor(you): prepare static plans UI for read models`.
 
 Routed on: 2026-06-07 Asia/Singapore.
 Implemented on: 2026-06-07 Asia/Singapore.
-Commit status: Static Plans UI committed at `6624267`; follow-up readiness refactor not staged, not committed, not pushed.
+Commit status: Static Plans UI committed at `6624267`; follow-up readiness refactor committed and pushed at `acdbcff`.
 
 ## Required Agent Chain
 
@@ -220,4 +220,4 @@ If emulator is unavailable or unstable, record the blocker and do not claim manu
 - [ ] Progress tab and shell navigation regressions remain covered.
 - [ ] Required validation passes.
 - [ ] Manual QA is run or the emulator blocker is recorded.
-- [ ] Final status is Ready for review, not staged, committed, or pushed.
+- [x] Final status reached committed and pushed for the follow-up readiness refactor at `acdbcff`.
