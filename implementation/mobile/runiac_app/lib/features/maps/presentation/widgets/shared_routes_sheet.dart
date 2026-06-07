@@ -3,56 +3,141 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/runiac_colors.dart';
 import 'route_preview_card.dart';
 
-class SharedRoutesSheet extends StatelessWidget {
+const _homeAccentBlue = Color(0xFF2F5BFF);
+const _homeAccentOrange = Color(0xFFF97316);
+const _sheetAnimationDuration = Duration(milliseconds: 220);
+const _expandedSheetHeight = 370.0;
+const _collapsedSheetHeight = 46.0;
+const _sheetBottomPadding = 14.0;
+
+class SharedRoutesSheet extends StatefulWidget {
   const SharedRoutesSheet({super.key});
 
   @override
+  State<SharedRoutesSheet> createState() => _SharedRoutesSheetState();
+}
+
+class _SharedRoutesSheetState extends State<SharedRoutesSheet> {
+  double _sheetProgress = 1;
+
+  void _handleDragUpdate(DragUpdateDetails details) {
+    setState(() {
+      _sheetProgress =
+          (_sheetProgress -
+                  details.delta.dy /
+                      (_expandedSheetHeight - _collapsedSheetHeight))
+              .clamp(0, 1);
+    });
+  }
+
+  void _handleDragEnd(DragEndDetails details) {
+    final velocity = details.primaryVelocity ?? 0;
+
+    setState(() {
+      if (velocity > 260) {
+        _sheetProgress = 0;
+      } else if (velocity < -260) {
+        _sheetProgress = 1;
+      } else {
+        _sheetProgress = _sheetProgress >= 0.5 ? 1 : 0;
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return DraggableScrollableSheet(
-      minChildSize: 0.055,
-      initialChildSize: 0.38,
-      maxChildSize: 0.5,
-      snap: true,
-      snapSizes: const [0.055, 0.38, 0.5],
-      builder: (context, scrollController) {
-        return DecoratedBox(
-          decoration: const BoxDecoration(
-            color: RuniacColors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
-            boxShadow: [
-              BoxShadow(
-                color: Color(0x1A172033),
-                blurRadius: 18,
-                offset: Offset(0, -6),
+    final hiddenSheetHeight =
+        (_expandedSheetHeight - _collapsedSheetHeight) * (1 - _sheetProgress);
+
+    return Positioned.fill(
+      child: Stack(
+        children: [
+          AnimatedPositioned(
+            duration: _sheetAnimationDuration,
+            curve: Curves.easeOutCubic,
+            left: 0,
+            right: 0,
+            bottom: -hiddenSheetHeight,
+            child: GestureDetector(
+              key: const Key('maps_sheet_surface'),
+              behavior: HitTestBehavior.opaque,
+              onVerticalDragUpdate: _handleDragUpdate,
+              onVerticalDragEnd: _handleDragEnd,
+              child: SizedBox(
+                height: _expandedSheetHeight,
+                child: DecoratedBox(
+                  decoration: const BoxDecoration(
+                    color: RuniacColors.white,
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(22),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Color(0x1A172033),
+                        blurRadius: 18,
+                        offset: Offset(0, -6),
+                      ),
+                    ],
+                  ),
+                  child: _SharedRoutesSheetBody(
+                    isCollapsed: _sheetProgress <= 0.01,
+                  ),
+                ),
               ),
-            ],
+            ),
           ),
-          child: ListView(
-            controller: scrollController,
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-            physics: const ClampingScrollPhysics(),
-            children: const [
-              _SheetHandleArea(),
-              _SharedRoutesHeader(),
-              SizedBox(height: 14),
-              RoutePreviewCard(
-                title: 'Route preview',
-                message: 'A calm route card can guide the next step later.',
-              ),
-              SizedBox(height: 10),
-              RoutePreviewCard(
-                title: 'Shared routes',
-                message: 'Community route ideas remain review-only for now.',
-              ),
-              SizedBox(height: 10),
-              RoutePreviewCard(
-                title: 'Saved routes',
-                message: 'Saved route slots stay visible without saving data.',
-              ),
-            ],
-          ),
-        );
-      },
+        ],
+      ),
+    );
+  }
+}
+
+class _SharedRoutesSheetBody extends StatelessWidget {
+  const _SharedRoutesSheetBody({required this.isCollapsed});
+
+  final bool isCollapsed;
+
+  @override
+  Widget build(BuildContext context) {
+    if (isCollapsed) {
+      return const KeyedSubtree(
+        key: Key('maps_sheet_body'),
+        child: _SheetHandleArea(),
+      );
+    }
+
+    return const KeyedSubtree(
+      key: Key('maps_sheet_body'),
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(16, 0, 16, _sheetBottomPadding),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _SheetHandleArea(),
+            _MapsSheetAccentStrip(),
+            SizedBox(height: 10),
+            _SharedRoutesHeader(),
+            SizedBox(height: 10),
+            RoutePreviewCard(
+              key: Key('route_preview_card_route_preview'),
+              title: 'Route preview',
+              message: 'A calm route card can guide the next step later.',
+            ),
+            SizedBox(height: 8),
+            RoutePreviewCard(
+              key: Key('route_preview_card_shared_routes'),
+              title: 'Shared routes',
+              message: 'Community route ideas remain review-only for now.',
+            ),
+            SizedBox(height: 8),
+            RoutePreviewCard(
+              key: Key('route_preview_card_saved_routes'),
+              title: 'Saved routes',
+              message: 'Saved route slots stay visible without saving data.',
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -62,7 +147,7 @@ class _SheetHandleArea extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const SizedBox(height: 60, child: Center(child: _SheetDragHandle()));
+    return const SizedBox(height: 46, child: Center(child: _SheetDragHandle()));
   }
 }
 
@@ -73,6 +158,7 @@ class _SheetDragHandle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Container(
+        key: const Key('maps_sheet_handle'),
         width: 44,
         height: 5,
         decoration: BoxDecoration(
@@ -80,6 +166,39 @@ class _SheetDragHandle extends StatelessWidget {
           borderRadius: BorderRadius.circular(999),
         ),
       ),
+    );
+  }
+}
+
+class _MapsSheetAccentStrip extends StatelessWidget {
+  const _MapsSheetAccentStrip();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      key: const Key('maps_sheet_accent_strip'),
+      children: [
+        Expanded(
+          child: Container(
+            key: const Key('maps_sheet_accent_blue'),
+            height: 4,
+            decoration: BoxDecoration(
+              color: _homeAccentBlue,
+              borderRadius: BorderRadius.circular(999),
+            ),
+          ),
+        ),
+        const SizedBox(key: Key('maps_sheet_accent_gap'), width: 8),
+        Container(
+          key: const Key('maps_sheet_accent_orange'),
+          width: 34,
+          height: 4,
+          decoration: BoxDecoration(
+            color: _homeAccentOrange,
+            borderRadius: BorderRadius.circular(999),
+          ),
+        ),
+      ],
     );
   }
 }

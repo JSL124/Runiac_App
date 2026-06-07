@@ -15,9 +15,9 @@ class RoutePreviewCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: 88),
+      constraints: const BoxConstraints(minHeight: 82, maxHeight: 82),
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
           color: RuniacColors.white,
           borderRadius: BorderRadius.circular(8),
@@ -33,7 +33,7 @@ class RoutePreviewCard extends StatelessWidget {
         child: Row(
           children: [
             const _RouteThumbnailPlaceholder(),
-            const SizedBox(width: 14),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -41,6 +41,8 @@ class RoutePreviewCard extends StatelessWidget {
                 children: [
                   Text(
                     title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: RuniacColors.textPrimary,
                       fontSize: 15,
@@ -48,9 +50,11 @@ class RoutePreviewCard extends StatelessWidget {
                       height: 1.2,
                     ),
                   ),
-                  const SizedBox(height: 7),
+                  const SizedBox(height: 5),
                   Text(
                     message,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: RuniacColors.textSecondary,
                       fontSize: 13,
@@ -87,8 +91,8 @@ class _RouteThumbnailPlaceholder extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 72,
-      height: 58,
+      width: 56,
+      height: 44,
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: const Color(0xFFF4F7FF),

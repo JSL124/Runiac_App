@@ -91,14 +91,210 @@ void main() {
       findsOneWidget,
     );
 
-    await tester.drag(find.text('Shared routes'), const Offset(0, -160));
-    await tester.pumpAndSettle();
-
     expect(find.text('Saved routes'), findsOneWidget);
     expect(
       find.text('Saved route slots stay visible without saving data.'),
       findsOneWidget,
     );
+  });
+
+  testWidgets('Maps sheet keeps a non-scrolling Home-style accent layout', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const RuniacApp());
+
+    await tester.tap(find.text('Maps'));
+    await tester.pumpAndSettle();
+
+    final sheetBody = find.byKey(const Key('maps_sheet_body'));
+    final handle = find.byKey(const Key('maps_sheet_handle'));
+    final accentStrip = find.byKey(const Key('maps_sheet_accent_strip'));
+    final accentBlue = find.byKey(const Key('maps_sheet_accent_blue'));
+    final accentGap = find.byKey(const Key('maps_sheet_accent_gap'));
+    final accentOrange = find.byKey(const Key('maps_sheet_accent_orange'));
+
+    expect(sheetBody, findsOneWidget);
+    expect(handle, findsOneWidget);
+    expect(accentStrip, findsOneWidget);
+    expect(accentBlue, findsOneWidget);
+    expect(accentGap, findsOneWidget);
+    expect(accentOrange, findsOneWidget);
+
+    expect(
+      find.descendant(
+        of: sheetBody,
+        matching: find.byType(SingleChildScrollView),
+      ),
+      findsNothing,
+    );
+    expect(
+      find.descendant(of: sheetBody, matching: find.byType(ListView)),
+      findsNothing,
+    );
+    expect(
+      find.descendant(of: sheetBody, matching: find.byType(CustomScrollView)),
+      findsNothing,
+    );
+
+    expect(tester.getSize(accentBlue).height, 4);
+    expect(tester.getSize(accentGap).width, 8);
+    expect(tester.getSize(accentOrange), const Size(34, 4));
+
+    expect(
+      tester.getTopLeft(handle).dy,
+      lessThan(tester.getTopLeft(accentStrip).dy),
+    );
+    expect(
+      tester.getBottomLeft(accentStrip).dy,
+      lessThan(tester.getTopLeft(find.text('Shared Routes')).dy),
+    );
+  });
+
+  testWidgets('Maps route cards stay compact with bounded text', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const RuniacApp());
+
+    await tester.tap(find.text('Maps'));
+    await tester.pumpAndSettle();
+
+    for (final key in const [
+      Key('route_preview_card_route_preview'),
+      Key('route_preview_card_shared_routes'),
+      Key('route_preview_card_saved_routes'),
+    ]) {
+      expect(tester.getSize(find.byKey(key)).height, 82);
+    }
+
+    final routeTitle = tester.widget<Text>(find.text('Route preview'));
+    final routeMessage = tester.widget<Text>(
+      find.text('A calm route card can guide the next step later.'),
+    );
+
+    expect(routeTitle.maxLines, 1);
+    expect(routeTitle.overflow, TextOverflow.ellipsis);
+    expect(routeMessage.maxLines, 2);
+    expect(routeMessage.overflow, TextOverflow.ellipsis);
+  });
+
+  testWidgets('Maps sheet first landing is the maximum full-content height', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const RuniacApp());
+
+    await tester.tap(find.text('Maps'));
+    await tester.pumpAndSettle();
+
+    final sheetSurface = find.byKey(const Key('maps_sheet_surface'));
+    final initialTop = tester.getTopLeft(sheetSurface).dy;
+
+    expect(find.text('Route preview'), findsOneWidget);
+    expect(find.text('Shared routes'), findsOneWidget);
+    expect(find.text('Saved routes'), findsOneWidget);
+
+    await tester.drag(
+      find.byKey(const Key('maps_sheet_handle')),
+      const Offset(0, -360),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.getTopLeft(sheetSurface).dy, initialTop);
+    expect(find.text('Saved routes'), findsOneWidget);
+  });
+
+  testWidgets(
+    'Maps sheet height fits the shared route content bottom padding',
+    (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(430, 932);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(const RuniacApp());
+
+      await tester.tap(find.text('Maps'));
+      await tester.pumpAndSettle();
+
+      final sheetSurface = find.byKey(const Key('maps_sheet_surface'));
+      final savedRouteCard = find.byKey(
+        const Key('route_preview_card_saved_routes'),
+      );
+
+      expect(sheetSurface, findsOneWidget);
+      expect(savedRouteCard, findsOneWidget);
+
+      final bottomPadding =
+          tester.getBottomLeft(sheetSurface).dy -
+          tester.getBottomLeft(savedRouteCard).dy;
+
+      expect(bottomPadding, closeTo(14, 1));
+    },
+  );
+
+  testWidgets('Maps sheet collapses without an internal scrollable body', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const RuniacApp());
+
+    await tester.tap(find.text('Maps'));
+    await tester.pumpAndSettle();
+
+    final sheetBody = find.byKey(const Key('maps_sheet_body'));
+    final initialTop = tester.getTopLeft(sheetBody).dy;
+
+    await tester.drag(
+      find.byKey(const Key('maps_sheet_handle')),
+      const Offset(0, 700),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.getTopLeft(sheetBody).dy, greaterThan(initialTop + 200));
+    expect(find.text('Shared Routes'), findsNothing);
+    expect(
+      find.descendant(of: sheetBody, matching: find.byType(ListView)),
+      findsNothing,
+    );
+  });
+
+  testWidgets('Maps sheet uses progressive Leaderboard-style dragging', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const RuniacApp());
+
+    await tester.tap(find.text('Maps'));
+    await tester.pumpAndSettle();
+
+    final sheetSurface = find.byKey(const Key('maps_sheet_surface'));
+    final initialTop = tester.getTopLeft(sheetSurface).dy;
+
+    final collapseGesture = await tester.startGesture(
+      tester.getCenter(find.byKey(const Key('maps_sheet_handle'))),
+    );
+    await collapseGesture.moveBy(const Offset(0, 120));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 60));
+
+    final partialCollapseTop = tester.getTopLeft(sheetSurface).dy;
+
+    expect(partialCollapseTop, greaterThan(initialTop));
+    expect(find.text('Shared Routes'), findsOneWidget);
+    await collapseGesture.up();
+
+    await tester.drag(
+      find.byKey(const Key('maps_sheet_handle')),
+      const Offset(0, 700),
+    );
+    await tester.pumpAndSettle();
+    final collapsedTop = tester.getTopLeft(sheetSurface).dy;
+
+    expect(collapsedTop, greaterThan(partialCollapseTop));
+    expect(find.text('Shared Routes'), findsNothing);
+
+    await tester.flingFrom(const Offset(400, 505), const Offset(0, -700), 1000);
+    await tester.pumpAndSettle();
+    final restoredTop = tester.getTopLeft(sheetSurface).dy;
+
+    expect(restoredTop, initialTop);
+    expect(find.text('Shared Routes'), findsOneWidget);
   });
 
   testWidgets('Leaderboard tab shows static map-first landing shell', (
