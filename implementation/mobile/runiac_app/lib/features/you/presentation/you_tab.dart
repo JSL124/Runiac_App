@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/dashboard_card.dart';
+import 'goal_plan_detail_screen.dart';
 
 const _monthNames = [
   'January',
@@ -225,10 +226,19 @@ class YouTab extends StatefulWidget {
 
 class _YouTabState extends State<YouTab> {
   var _plans = false;
+  var _goalPlanDetailVisible = false;
   var _visibleCalendarMonth = DateTime(2026, 5);
 
   @override
   Widget build(BuildContext context) {
+    if (_goalPlanDetailVisible) {
+      return GoalPlanDetailScreen(
+        onBack: () {
+          setState(() => _goalPlanDetailVisible = false);
+        },
+      );
+    }
+
     final topPadding = MediaQuery.paddingOf(context).top;
     final headerHeight = topPadding + kToolbarHeight;
 
@@ -249,7 +259,7 @@ class _YouTabState extends State<YouTab> {
                 }),
                 const SizedBox(height: 12),
                 if (_plans)
-                  _plansEmpty()
+                  _plansEmpty(_showGoalPlanDetail)
                 else
                   _progress(
                     _visibleCalendarMonth,
@@ -287,6 +297,10 @@ class _YouTabState extends State<YouTab> {
         _visibleCalendarMonth.month + 1,
       );
     });
+  }
+
+  void _showGoalPlanDetail() {
+    setState(() => _goalPlanDetailVisible = true);
   }
 }
 
@@ -446,23 +460,25 @@ Widget _segments(
   );
 }
 
-Widget _plansEmpty() {
-  return const Column(
+Widget _plansEmpty(VoidCallback onViewGoalPlan) {
+  return Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      _RuniacAccentStrip(),
-      SizedBox(height: 12),
-      _CurrentGoalPlanCard(),
-      SizedBox(height: 12),
-      _WeeklyPlanCard(),
-      SizedBox(height: 12),
-      _ExpertPlansCard(),
+      const _RuniacAccentStrip(),
+      const SizedBox(height: 12),
+      _CurrentGoalPlanCard(onViewGoalPlan),
+      const SizedBox(height: 12),
+      const _WeeklyPlanCard(),
+      const SizedBox(height: 12),
+      const _ExpertPlansCard(),
     ],
   );
 }
 
 class _CurrentGoalPlanCard extends StatelessWidget {
-  const _CurrentGoalPlanCard();
+  const _CurrentGoalPlanCard(this.onViewGoalPlan);
+
+  final VoidCallback onViewGoalPlan;
 
   @override
   Widget build(BuildContext context) {
@@ -518,7 +534,10 @@ class _CurrentGoalPlanCard extends StatelessWidget {
           const SizedBox(height: 16),
           const _PlanMilestoneRow(),
           const SizedBox(height: 14),
-          _StaticPlanAction(_plansSnapshot.goalActionLabel),
+          _StaticPlanAction(
+            _plansSnapshot.goalActionLabel,
+            onTap: onViewGoalPlan,
+          ),
         ],
       ),
     );
@@ -788,17 +807,24 @@ class _CoachCreatedBadge extends StatelessWidget {
 }
 
 class _StaticPlanAction extends StatelessWidget {
-  const _StaticPlanAction(this.label);
+  const _StaticPlanAction(this.label, {this.onTap});
 
   final String label;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 44,
-      alignment: Alignment.center,
-      decoration: _cardLikeDecoration,
-      child: Text(label, style: _buttonTextStyle),
+    return Semantics(
+      button: onTap != null,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          height: 44,
+          alignment: Alignment.center,
+          decoration: _cardLikeDecoration,
+          child: Text(label, style: _buttonTextStyle),
+        ),
+      ),
     );
   }
 }

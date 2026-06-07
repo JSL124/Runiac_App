@@ -141,7 +141,11 @@ void main() {
     expect(find.byType(AlertDialog), findsNothing);
     expect(find.byType(BottomSheet), findsNothing);
     expect(find.byType(SnackBar), findsNothing);
-    expect(find.text('10K Preparation'), findsOneWidget);
+    expect(find.text('10K Goal Plan'), findsOneWidget);
+    expect(find.text('10K Preparation'), findsWidgets);
+
+    await tester.tap(find.byTooltip('Back to Plans'));
+    await tester.pumpAndSettle();
     expect(find.text("This Week's 10K Preparation Plan"), findsOneWidget);
 
     await Scrollable.ensureVisible(
@@ -168,6 +172,108 @@ void main() {
     expect(find.text('Activity History'), findsNothing);
     expect(find.text('Explore Expert Plans'), findsOneWidget);
   });
+
+  testWidgets(
+    'View Goal Plan opens static goal detail with bottom nav visible',
+    (WidgetTester tester) async {
+      // Given: the user is viewing the static Plans section in the You tab.
+      await _openYouTab(tester);
+      await tester.tap(find.text('Plans'));
+      await tester.pumpAndSettle();
+
+      // When: the user opens the current goal plan detail.
+      await tester.tap(find.text('View Goal Plan'));
+      await tester.pumpAndSettle();
+
+      // Then: the static detail snapshot is shown without leaving the app shell.
+      expect(find.text('10K Goal Plan'), findsOneWidget);
+      expect(find.text('10K Preparation'), findsWidgets);
+      expect(find.text('Week 3 of 8'), findsOneWidget);
+      expect(find.text('43% completed'), findsOneWidget);
+      expect(find.text('Current Phase'), findsOneWidget);
+      expect(find.text('Base Endurance'), findsWidgets);
+      expect(find.text('Home'), findsOneWidget);
+      expect(find.text('Maps'), findsOneWidget);
+      expect(find.text('Run'), findsOneWidget);
+      expect(find.text('Leaderboard'), findsOneWidget);
+      expect(find.text('You'), findsOneWidget);
+    },
+  );
+
+  testWidgets('Goal Plan Detail renders static timeline rows only', (
+    WidgetTester tester,
+  ) async {
+    // Given: the static Goal Plan Detail screen is open.
+    await _openYouTab(tester);
+    await tester.tap(find.text('Plans'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('View Goal Plan'));
+    await tester.pumpAndSettle();
+
+    // Then: every accepted static week row is rendered from the snapshot.
+    for (final text in [
+      'Week 1',
+      'Build Routine',
+      'Week 2',
+      'Easy Distance',
+      'Week 3',
+      'Base Endurance',
+      'Week 4',
+      '6 km Milestone',
+      'Week 5',
+      'Longer Effort',
+      'Week 6',
+      '8 km Progression',
+      'Week 7',
+      '10K Preparation',
+      'Week 8',
+      '10K Attempt',
+      'Completed',
+      'Current',
+      'Upcoming',
+      'Goal Week',
+    ]) {
+      expect(find.text(text), findsWidgets);
+    }
+
+    // When: a week row is tapped.
+    await tester.tap(find.text('6 km Milestone'));
+    await tester.pumpAndSettle();
+
+    // Then: no week detail or modal behavior is introduced.
+    expect(find.byType(AlertDialog), findsNothing);
+    expect(find.byType(BottomSheet), findsNothing);
+    expect(find.byType(SnackBar), findsNothing);
+    expect(find.text('10K Goal Plan'), findsOneWidget);
+    expect(find.text('6 km Milestone'), findsOneWidget);
+  });
+
+  testWidgets(
+    'Goal Plan Detail back returns to Plans without Home entry point',
+    (WidgetTester tester) async {
+      // Given: Home does not expose the Goal Plan Detail entry point.
+      await tester.pumpWidget(const RuniacApp());
+      expect(find.text('View Goal Plan'), findsNothing);
+
+      // And: the user opens the detail from the You tab Plans section.
+      await tester.tap(find.text('You'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Plans'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('View Goal Plan'));
+      await tester.pumpAndSettle();
+      expect(find.text('10K Goal Plan'), findsOneWidget);
+
+      // When: the detail back button is tapped.
+      await tester.tap(find.byTooltip('Back to Plans'));
+      await tester.pumpAndSettle();
+
+      // Then: the previous Plans screen is restored.
+      expect(find.text('10K Goal Plan'), findsNothing);
+      expect(find.text('View Goal Plan'), findsOneWidget);
+      expect(find.text("This Week's 10K Preparation Plan"), findsOneWidget);
+    },
+  );
 
   testWidgets('You page preserves shell navigation around adjacent tabs', (
     WidgetTester tester,
