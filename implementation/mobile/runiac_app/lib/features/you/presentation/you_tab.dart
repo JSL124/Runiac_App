@@ -270,20 +270,376 @@ Widget _segments(
 }
 
 Widget _plansEmpty() {
-  return DashboardCard(
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: const [
-        _CardHeader(Icons.event_note, 'Plans'),
-        SizedBox(height: 12),
-        Text('Build your next running habit here.', style: _largeValueStyle),
-        SizedBox(height: 6),
-        Text(
-          'A simple plan space will stay ready without adding pressure.',
-          style: _bodyStyle,
+  return const Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      _RuniacAccentStrip(),
+      SizedBox(height: 12),
+      _CurrentGoalPlanCard(),
+      SizedBox(height: 12),
+      _WeeklyPlanCard(),
+      SizedBox(height: 12),
+      _ExpertPlansCard(),
+    ],
+  );
+}
+
+class _CurrentGoalPlanCard extends StatelessWidget {
+  const _CurrentGoalPlanCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return DashboardCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Current Goal', style: _planAccentLabelStyle),
+                    SizedBox(height: 6),
+                    Text('10K Preparation', style: _largeValueStyle),
+                  ],
+                ),
+              ),
+              _planBadge('Week 3 of 8'),
+            ],
+          ),
+          const SizedBox(height: 14),
+          const Row(
+            children: [
+              Text('43% completed', style: _planAccentLabelStyle),
+              Spacer(),
+              Text('43%', style: _planPercentStyle),
+            ],
+          ),
+          const SizedBox(height: 8),
+          const ClipRRect(
+            borderRadius: BorderRadius.all(Radius.circular(999)),
+            child: LinearProgressIndicator(
+              value: 0.43,
+              minHeight: 7,
+              backgroundColor: Color(0xFFE8EEF8),
+              valueColor: AlwaysStoppedAnimation(RuniacColors.primaryBlue),
+            ),
+          ),
+          const SizedBox(height: 16),
+          const _PlanMilestoneRow(),
+          const SizedBox(height: 14),
+          const _StaticPlanAction('View Goal Plan'),
+        ],
+      ),
+    );
+  }
+}
+
+class _PlanMilestoneRow extends StatelessWidget {
+  const _PlanMilestoneRow();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 34,
+          height: 34,
+          decoration: _softIconDecoration,
+          child: const Icon(
+            Icons.flag_outlined,
+            color: RuniacColors.primaryBlue,
+            size: 18,
+          ),
+        ),
+        const SizedBox(width: 10),
+        const Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Next Milestone', style: _smallStrongStyle),
+              SizedBox(height: 2),
+              Text('Complete 6 km comfortably', style: _bodyStrongStyle),
+            ],
+          ),
         ),
       ],
-    ),
+    );
+  }
+}
+
+class _WeeklyPlanCard extends StatelessWidget {
+  const _WeeklyPlanCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return DashboardCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: const [
+          Text("This Week's 10K Preparation Plan", style: _cardTitleStyle),
+          SizedBox(height: 8),
+          Text(
+            'Take each easy run as a steady step forward.',
+            style: _bodyStyle,
+          ),
+          SizedBox(height: 14),
+          Row(
+            children: [
+              _PlanCounter('3', 'Planned Runs'),
+              SizedBox(width: 8),
+              _PlanCounter('2', 'Completed'),
+              SizedBox(width: 8),
+              _PlanCounter('1', 'Remaining'),
+            ],
+          ),
+          SizedBox(height: 14),
+          _WeeklyPlanRow('Mon', 'Rest Day', 'Rest Day', Icons.hotel_outlined),
+          _WeeklyPlanRow(
+            'Tue',
+            '15 min walk-run',
+            'Completed',
+            Icons.check_circle,
+            active: true,
+          ),
+          _WeeklyPlanRow('Wed', 'Rest Day', 'Rest Day', Icons.hotel_outlined),
+          _WeeklyPlanRow(
+            'Thu',
+            '20 min easy run',
+            'Upcoming · 7:30 AM',
+            Icons.radio_button_unchecked,
+            active: true,
+          ),
+          _WeeklyPlanRow('Fri', 'Rest Day', 'Rest Day', Icons.hotel_outlined),
+          _WeeklyPlanRow(
+            'Sat',
+            '20 min easy run',
+            'Completed',
+            Icons.check_circle,
+            active: true,
+          ),
+          _WeeklyPlanRow('Sun', 'Rest Day', 'Rest Day', Icons.hotel_outlined),
+        ],
+      ),
+    );
+  }
+}
+
+class _PlanCounter extends StatelessWidget {
+  const _PlanCounter(this.value, this.label);
+
+  final String value;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 62),
+        alignment: Alignment.center,
+        decoration: _counterDecoration,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(value, style: _planCounterValueStyle),
+            const SizedBox(height: 3),
+            Text(label, textAlign: TextAlign.center, style: _smallBodyStyle),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _WeeklyPlanRow extends StatelessWidget {
+  const _WeeklyPlanRow(
+    this.day,
+    this.title,
+    this.status,
+    this.icon, {
+    this.active = false,
+  });
+
+  final String day;
+  final String title;
+  final String status;
+  final IconData icon;
+  final bool active;
+
+  @override
+  Widget build(BuildContext context) {
+    final titleColor = active
+        ? RuniacColors.textPrimary
+        : RuniacColors.textSecondary;
+    return Container(
+      constraints: const BoxConstraints(minHeight: 48),
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      decoration: const BoxDecoration(
+        border: Border(top: BorderSide(color: RuniacColors.border)),
+      ),
+      child: Row(
+        children: [
+          SizedBox(width: 34, child: Text(day, style: _bodyStrongStyle)),
+          const SizedBox(width: 8),
+          Icon(
+            icon,
+            size: 22,
+            color: active
+                ? RuniacColors.primaryBlue
+                : RuniacColors.textSecondary,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              title,
+              style: TextStyle(
+                color: titleColor,
+                fontSize: 13,
+                fontWeight: active ? FontWeight.w700 : FontWeight.w600,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(status, textAlign: TextAlign.right, style: _smallBodyStyle),
+        ],
+      ),
+    );
+  }
+}
+
+class _ExpertPlansCard extends StatelessWidget {
+  const _ExpertPlansCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return DashboardCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: const [
+          _CardHeader(
+            Icons.workspace_premium_outlined,
+            'Explore expert goal plan',
+          ),
+          SizedBox(height: 8),
+          Text(
+            'Browse coach-created plans and apply one to your current goal plan.',
+            style: _bodyStyle,
+          ),
+          SizedBox(height: 14),
+          Row(
+            children: [
+              _ExpertPlanOption(
+                Icons.directions_run,
+                'First 5K',
+                featured: true,
+              ),
+              SizedBox(width: 10),
+              _ExpertPlanOption(Icons.flag_outlined, '10K', featured: true),
+            ],
+          ),
+          SizedBox(height: 10),
+          Row(
+            children: [
+              _ExpertPlanOption(Icons.terrain_outlined, 'Half Marathon'),
+              SizedBox(width: 10),
+              _ExpertPlanOption(Icons.landscape_outlined, 'Full Marathon'),
+            ],
+          ),
+          SizedBox(height: 12),
+          _CoachCreatedBadge(),
+          SizedBox(height: 16),
+          _StaticPlanAction('Explore Expert Plans'),
+        ],
+      ),
+    );
+  }
+}
+
+class _ExpertPlanOption extends StatelessWidget {
+  const _ExpertPlanOption(this.icon, this.label, {this.featured = false});
+
+  final IconData icon;
+  final String label;
+  final bool featured;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 74),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: featured ? const Color(0xFFF7FAFF) : RuniacColors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: featured ? RuniacColors.primaryBlue : RuniacColors.border,
+          ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              color: featured
+                  ? RuniacColors.primaryBlue
+                  : RuniacColors.textSecondary,
+              size: 24,
+            ),
+            const SizedBox(height: 7),
+            Text(label, textAlign: TextAlign.center, style: _bodyStrongStyle),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CoachCreatedBadge extends StatelessWidget {
+  const _CoachCreatedBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 26,
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      decoration: _pillDecoration(const Color(0xFFF7FAFF)),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.verified_user, size: 14, color: RuniacColors.primaryBlue),
+          SizedBox(width: 6),
+          Text('Coach-created', style: _smallStrongStyle),
+        ],
+      ),
+    );
+  }
+}
+
+class _StaticPlanAction extends StatelessWidget {
+  const _StaticPlanAction(this.label);
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 44,
+      alignment: Alignment.center,
+      decoration: _cardLikeDecoration,
+      child: Text(label, style: _buttonTextStyle),
+    );
+  }
+}
+
+Widget _planBadge(String label) {
+  return Container(
+    height: 30,
+    alignment: Alignment.center,
+    padding: const EdgeInsets.symmetric(horizontal: 10),
+    decoration: _pillDecoration(const Color(0xFFF7FAFF)),
+    child: Text(label, style: _smallStrongStyle),
   );
 }
 
@@ -581,6 +937,16 @@ final _cardLikeDecoration = BoxDecoration(
   borderRadius: BorderRadius.circular(8),
   border: Border.all(color: RuniacColors.border),
 );
+final _counterDecoration = BoxDecoration(
+  color: RuniacColors.white,
+  borderRadius: BorderRadius.circular(8),
+  border: Border.all(color: RuniacColors.border),
+);
+final _softIconDecoration = BoxDecoration(
+  color: const Color(0xFFF7FAFF),
+  borderRadius: BorderRadius.circular(8),
+  border: Border.all(color: RuniacColors.border),
+);
 
 const _cardTitleStyle = TextStyle(
   color: RuniacColors.textPrimary,
@@ -614,6 +980,17 @@ const _metricStyle = TextStyle(
   fontWeight: FontWeight.w900,
   height: 1,
 );
+const _planPercentStyle = TextStyle(
+  color: RuniacColors.primaryBlue,
+  fontSize: 22,
+  fontWeight: FontWeight.w900,
+);
+const _planCounterValueStyle = TextStyle(
+  color: RuniacColors.textPrimary,
+  fontSize: 24,
+  fontWeight: FontWeight.w900,
+  height: 1,
+);
 const _runTitleStyle = TextStyle(
   color: RuniacColors.textPrimary,
   fontSize: 15,
@@ -633,6 +1010,16 @@ const _smallStrongStyle = TextStyle(
   color: RuniacColors.textSecondary,
   fontSize: 12,
   fontWeight: FontWeight.w700,
+);
+const _planAccentLabelStyle = TextStyle(
+  color: RuniacColors.primaryBlue,
+  fontSize: 12,
+  fontWeight: FontWeight.w800,
+);
+const _bodyStrongStyle = TextStyle(
+  color: RuniacColors.textPrimary,
+  fontSize: 13,
+  fontWeight: FontWeight.w800,
 );
 const _calendarTitleStyle = TextStyle(
   color: RuniacColors.textPrimary,

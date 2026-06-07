@@ -39,33 +39,102 @@ void main() {
     expect(find.text('Level 12 Runner'), findsOneWidget);
   });
 
-  testWidgets('You page keeps backend owned values display only', (
+  testWidgets('You page shows static plans overview when Plans is selected', (
     WidgetTester tester,
   ) async {
     await _openYouTab(tester);
 
-    await tester.drag(find.byType(ListView), const Offset(0, -900));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Run Level'), findsOneWidget);
-    expect(find.text('Level 12 Runner'), findsOneWidget);
-    expect(find.textContaining('XP'), findsNothing);
-    expect(find.textContaining('rank'), findsNothing);
-    expect(find.textContaining('leaderboard score'), findsNothing);
-
-    await tester.tap(find.text('More Activities'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Activity History'), findsNothing);
-    expect(find.text('More Activities'), findsOneWidget);
-
-    await tester.drag(find.byType(ListView), const Offset(0, 900));
-    await tester.pumpAndSettle();
     await tester.tap(find.text('Plans'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Build your next running habit here.'), findsOneWidget);
-    expect(find.text('This Week'), findsNothing);
+    expect(find.text('10K Preparation'), findsOneWidget);
+    expect(find.text('Week 3 of 8'), findsOneWidget);
+    expect(find.text('43% completed'), findsOneWidget);
+    expect(find.text('43%'), findsOneWidget);
+    expect(find.text('Next Milestone'), findsOneWidget);
+    expect(find.text('Complete 6 km comfortably'), findsOneWidget);
+    expect(find.text('View Goal Plan'), findsOneWidget);
+    expect(find.text("This Week's 10K Preparation Plan"), findsOneWidget);
+    expect(find.text('Planned Runs'), findsOneWidget);
+    expect(find.text('Completed'), findsWidgets);
+    expect(find.text('Remaining'), findsOneWidget);
+    expect(
+      find.text('Take each easy run as a steady step forward.'),
+      findsOneWidget,
+    );
+    expect(find.text('Running Calendar'), findsNothing);
+    expect(find.text('Recent Running'), findsNothing);
+
+    for (final text in [
+      'Mon',
+      'Tue',
+      'Wed',
+      'Thu',
+      'Fri',
+      'Sat',
+      'Sun',
+      'Rest Day',
+      '15 min walk-run',
+      '20 min easy run',
+      'Upcoming · 7:30 AM',
+    ]) {
+      expect(find.text(text), findsWidgets);
+    }
+
+    await tester.drag(find.byType(ListView), const Offset(0, -700));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Explore expert goal plan'), findsOneWidget);
+    expect(
+      find.text(
+        'Browse coach-created plans and apply one to your current goal plan.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Coach-created'), findsOneWidget);
+    expect(find.text('First 5K'), findsOneWidget);
+    expect(find.text('10K'), findsOneWidget);
+    expect(find.text('Half Marathon'), findsOneWidget);
+    expect(find.text('Full Marathon'), findsOneWidget);
+    expect(find.text('Explore Expert Plans'), findsOneWidget);
+  });
+
+  testWidgets('You page keeps plans controls visual only and backend safe', (
+    WidgetTester tester,
+  ) async {
+    await _openYouTab(tester);
+
+    await tester.tap(find.text('Plans'));
+    await tester.pumpAndSettle();
+
+    for (final forbidden in [
+      'Premium',
+      'Locked',
+      'XP',
+      'rank',
+      'leaderboard',
+      'published',
+      'approved',
+      'Missed',
+    ]) {
+      expect(find.textContaining(forbidden), findsNothing);
+    }
+
+    await tester.tap(find.text('View Goal Plan'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AlertDialog), findsNothing);
+    expect(find.text('10K Preparation'), findsOneWidget);
+    expect(find.text("This Week's 10K Preparation Plan"), findsOneWidget);
+
+    await tester.ensureVisible(find.text('Explore Expert Plans'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Explore Expert Plans'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AlertDialog), findsNothing);
+    expect(find.text('Activity History'), findsNothing);
+    expect(find.text('Explore Expert Plans'), findsOneWidget);
   });
 
   testWidgets('You page preserves shell navigation around adjacent tabs', (
