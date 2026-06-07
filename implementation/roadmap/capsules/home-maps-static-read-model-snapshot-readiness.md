@@ -12,7 +12,7 @@ Type: Flutter static frontend-only Home and Maps presentation refactor capsule.
 
 ## Status
 
-Status: Implemented and validated on 2026-06-08 Asia/Singapore; commit and push handled by this capsule execution.
+Status: Implemented, validated, committed, pushed, and hosted Governance CI passed on 2026-06-08 Asia/Singapore at `386d324 refactor(home-maps): isolate static display snapshots`.
 
 ## Required Agent Chain
 
