@@ -4,12 +4,12 @@
 
 - Current track: Track A - Governance and implementation readiness
 - Current phase: `implementation/roadmap/phases/phase-01-governance-ci.md`
-- Current active capsule: none selected.
+- Current active capsule: `implementation/roadmap/capsules/you-tab-progress-overview-static.md`.
 - Most recent completed capsule: Run Hold-to-End static interaction implementation committed at `027c960 feat(run): add hold to end interaction` with hosted GitHub Actions Governance CI #49 PASS. Most recent completed roadmap capsule document remains `implementation/roadmap/capsules/leaderboard-leagues-popup-shell.md` committed at `e1d8b74 feat(mobile): add leaderboard leagues popup` with hosted GitHub Actions Governance CI #42 PASS.
 - Current status: Phase 01 governance CI closed; Artifact Inventory Schema persistence completed; Repository Workflow Record capsule closed; Flutter scaffold baseline present at `implementation/mobile/runiac_app/`; `flutter-app-shell-baseline` capsule closed after static app shell implementation; post-shell static UI/nav alignment checkpoint pushed at `247b4e5 feat(mobile): align static Runiac nav baseline`; `android-ui-smoke-test-evidence` validation capsule closed; `home-dashboard-visual-polish` closed after static Home dashboard visual polish; `premium-home-dashboard-static-wireframe-alignment` closed after static Premium Home Dashboard wireframe alignment; `github-actions-governance-ci-baseline` closed after adding the minimal GitHub Actions governance workflow; `home-dashboard-scroll-layout-stability-fix` closed after stabilizing Home dashboard scroll/card layout; `run-tab-static-placeholder` closed after adding the static RunLandingPage-style Run tab placeholder; `run-tab-fullscreen-map-overlay-alignment` closed after static Run tab fullscreen map overlay layout alignment; `home-dashboard-reference-layout-alignment` closed after static Home dashboard reference layout alignment; `maps-tab-static-placeholder` committed and pushed at `323507b feat(mobile): polish static maps layout`; `run-launch-fullscreen-static-interaction` committed and pushed at `b5c31ef feat(mobile): add static run launch interaction`; Run launch back-handling cleanup committed and pushed at `5851057 chore(mobile): simplify run launch back handling`; `home-dashboard-primary-action-simplification` closed after Home primary action and brand color hierarchy polish; `run-launch-brand-color-polish` closed after static Run launch brand color polish; `maps-static-discovery-hierarchy-polish` closed after static frontend-only Maps discovery hierarchy polish; `leaderboard-static-motivation-hierarchy-polish` superseded before implementation due to the refined map-first Leaderboard direction; `leaderboard-map-first-landing-shell` closed after static frontend-only Leaderboard map-first landing shell implementation; `github-actions-flutter-validation-baseline` is closed after workflow commit `587cc0e ci: add flutter validation to governance workflow`; `leaderboard-help-modal-shell` is closed after implementation commit `96a2706 feat(mobile): add leaderboard tips popup`, roadmap closure commit `2d1ec46 docs(roadmap): close leaderboard help modal capsule`, and manually confirmed hosted GitHub Actions PASS for `96a2706`; `flutter-frontend-hygiene-cleanup` is closed after implementation commit `8074092 chore(mobile): apply frontend hygiene cleanup`, local validation, and manually confirmed hosted GitHub Actions PASS for `8074092`; `leaderboard-region-preview-sheet-shell` is closed at `09d6389` with hosted GitHub Actions Governance CI #41 PASS; `leaderboard-leagues-popup-shell` is closed at `e1d8b74` with hosted GitHub Actions Governance CI #42 PASS; Run launch map UI is closed at `08c51c7` with hosted GitHub Actions Governance CI #43 PASS; Run Live Tracking compact card is closed at `b0798b0` with hosted GitHub Actions Governance CI #45 PASS; Run Live Tracking pause split controls are closed at `5cb00ad` with hosted GitHub Actions Governance CI #47 PASS; Run Hold-to-End static interaction is closed at `027c960` with hosted GitHub Actions Governance CI #49 PASS.
-- Current state: Scaffold-baseline governance state with the static Flutter mobile UI split into a feature-first-lite source structure; Phase 02 remains unselected; hosted GitHub Actions now runs `git diff --check`, `./tools/governance-ci/run-all-checks.sh`, Flutter SDK setup, `flutter pub get`, `flutter analyze --no-pub`, and `flutter test`; the Leaderboard information affordance still opens a centered static Tips popup/dialog; the Leaderboard league/division pill opens a separate static Leagues taxonomy popup; the region preview sheet remains draggable and static; Run launch displays a static full-screen map-style launch UI with top close/GPS/settings controls, shared circular tap feedback, static runner marker, and a floating Today's Plan / Start Run card; the Run Live Tracking state uses a compact static progress card with no internal Today's Plan / Running header, no Heart metric, no backend-owned value mutation, and a static Pause to Resume / End interaction with shared action-area width and matching action heights; paused End now requires press-and-hold with an internal progress/fill, keeps the visible label exactly `End`, normal tap does not end, early release resets, and completed hold remains an inert/no-op boundary; no active implementation capsule is selected.
+- Current state: Scaffold-baseline governance state with the static Flutter mobile UI split into a feature-first-lite source structure; Phase 02 remains unselected; hosted GitHub Actions now runs `git diff --check`, `./tools/governance-ci/run-all-checks.sh`, Flutter SDK setup, `flutter pub get`, `flutter analyze --no-pub`, and `flutter test`; the Leaderboard information affordance still opens a centered static Tips popup/dialog; the Leaderboard league/division pill opens a separate static Leagues taxonomy popup; the region preview sheet remains draggable and static; Run launch displays a static full-screen map-style launch UI with top close/GPS/settings controls, shared circular tap feedback, static runner marker, and a floating Today's Plan / Start Run card; the Run Live Tracking state uses a compact static progress card with no internal Today's Plan / Running header, no Heart metric, no backend-owned value mutation, and a static Pause to Resume / End interaction with shared action-area width and matching action heights; paused End now requires press-and-hold with an internal progress/fill, keeps the visible label exactly `End`, normal tap does not end, early release resets, and completed hold remains an inert/no-op boundary; `you-tab-progress-overview-static` is selected for the next static frontend-only You tab implementation capsule.
 - Current governance decision record: ADR-003 Governance Lite Execution Lanes is adopted as a decision record only. It documents UI Fast Lane, Backend Guarded Lane, and Governance/Architecture Lane for future routed work, but does not activate or enforce a new workflow, change CI, change AGENTS instructions, authorize Flutter/Firebase/backend implementation, or select Phase 02.
-- Current active milestone: post-Run-Hold-to-End-static-interaction closure planning gate; Phase 02 remains unselected; the next milestone requires explicit next capsule selection.
+- Current active milestone: `you-tab-progress-overview-static` routed for future implementation; Phase 02 remains unselected.
 
 ## Layered Reading Order
 
@@ -18,7 +18,7 @@ Use minimal context loading. CURRENT.md remains the operational source of truth,
 Hot path, read by default:
 
 1. `implementation/roadmap/CURRENT.md`
-2. Active capsule document, if one is selected. No active capsule is currently selected.
+2. Active capsule document: `implementation/roadmap/capsules/you-tab-progress-overview-static.md`
 3. `implementation/roadmap/snapshots/latest.md`
 
 Warm path, read only when triggered by routing, scope, risk, or a direct task request:
@@ -42,7 +42,7 @@ Do not load future phase documents unless explicitly requested.
 ## Allowed Work
 
 - Maintain roadmap/context governance files under `implementation/roadmap/`.
-- Maintain completed governance capsule status under `implementation/roadmap/capsules/` when explicitly routed.
+- Maintain active and completed capsule status under `implementation/roadmap/capsules/` when explicitly routed.
 - Maintain root `AGENTS.md` roadmap context protocol when required.
 - Update `snapshots/latest.md` from confirmed repository state only.
 - Update CURRENT.md immediately when active phase, active capsule, gate status, or forbidden scope changes.
@@ -65,19 +65,21 @@ Do not load future phase documents unless explicitly requested.
 
 ## Next Gate
 
-Next capsule selection requires separate explicit routing. Manual staging and commit only if the user chooses to commit this closure-record patch.
+Next gate is implementation approval for `you-tab-progress-overview-static`. Manual staging and commit only if the user chooses to commit this routing patch.
 
 ## Operational TODO / Active Capsule
 
-Active capsule: none selected.
+Active capsule: `implementation/roadmap/capsules/you-tab-progress-overview-static.md`.
 
 Required next-session checklist:
 
 1. Start with required layered context loading from `implementation/roadmap/CURRENT.md`.
 2. Confirm repository state with `git status --short`.
-3. If committing this closure-record patch, stage only the task-relevant roadmap files.
-4. Do not create or route the next capsule without separate explicit approval.
-5. Do not add fake users/ranks/XP/scores/levels, current/selected/unlocked league styling, sorting, ranking, leaderboard aggregation, Firebase/backend/GPS/native/dependency work, sharing integration, premium gating, subscription logic, or Phase 02 selection.
+3. Load the active capsule document before any implementation.
+4. If committing this routing patch, stage only the task-relevant roadmap files.
+5. Do not implement until the user explicitly approves implementation mode for the active capsule.
+6. Do not touch unrelated dirty Maps/widget-test files.
+7. Do not add fake users/ranks/XP/scores/levels, current/selected/unlocked league styling, sorting, ranking, leaderboard aggregation, Firebase/backend/GPS/native/dependency work, sharing integration, premium gating, subscription logic, or Phase 02 selection.
 
 Closure validation for `leaderboard-leagues-popup-shell`:
 
