@@ -64,6 +64,7 @@ android/key.properties
 tmp/
 temp/
 .cache/
+.omo/
 
 # Private GPS, route, and test evidence artifacts
 test-evidence/*
