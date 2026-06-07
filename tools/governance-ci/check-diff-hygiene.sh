@@ -35,7 +35,7 @@ is_allowed_path() {
     tools/agent-review/templates/*.md)
       return 0
       ;;
-    implementation/roadmap/CURRENT.md|implementation/roadmap/phases/phase-01-governance-ci.md|implementation/roadmap/snapshots/latest.md|implementation/roadmap/ci/*|tools/governance-ci/*|.github/workflows/governance-ci.yml)
+    implementation/roadmap/CURRENT.md|implementation/roadmap/phases/phase-01-governance-ci.md|implementation/roadmap/snapshots/latest.md|implementation/roadmap/decisions/ADR-003-governance-lite-execution-lanes.md|implementation/roadmap/ci/*|tools/governance-ci/*|.github/workflows/governance-ci.yml)
       return 0
       ;;
     .gitignore)
