@@ -58,6 +58,9 @@ void main() {
     expect(find.text('Planned Runs'), findsOneWidget);
     expect(find.text('Completed'), findsWidgets);
     expect(find.text('Remaining'), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp(r'3\s+Planned Runs')), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp(r'2\s+Completed')), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp(r'1\s+Remaining')), findsOneWidget);
     expect(
       find.text('Take each easy run as a steady step forward.'),
       findsOneWidget,
@@ -107,25 +110,49 @@ void main() {
     await tester.tap(find.text('Plans'));
     await tester.pumpAndSettle();
 
-    for (final forbidden in [
-      'Premium',
-      'Locked',
-      'XP',
-      'rank',
-      'leaderboard',
-      'published',
-      'approved',
-      'Missed',
+    for (final forbidden in <Pattern>[
+      RegExp('premium', caseSensitive: false),
+      RegExp('locked', caseSensitive: false),
+      RegExp(r'\bXP\b', caseSensitive: false),
+      RegExp('rank', caseSensitive: false),
+      RegExp('leaderboard', caseSensitive: false),
+      RegExp('published', caseSensitive: false),
+      RegExp('approved', caseSensitive: false),
+      RegExp('missed', caseSensitive: false),
+      RegExp('subscription', caseSensitive: false),
+      RegExp('entitlement', caseSensitive: false),
+      RegExp('eligible', caseSensitive: false),
+      RegExp('publication', caseSensitive: false),
+      RegExp('approval', caseSensitive: false),
+      RegExp('admin review', caseSensitive: false),
     ]) {
-      expect(find.textContaining(forbidden), findsNothing);
+      expect(
+        find.descendant(
+          of: find.byType(ListView),
+          matching: find.textContaining(forbidden),
+        ),
+        findsNothing,
+      );
     }
 
     await tester.tap(find.text('View Goal Plan'));
     await tester.pumpAndSettle();
 
     expect(find.byType(AlertDialog), findsNothing);
+    expect(find.byType(BottomSheet), findsNothing);
+    expect(find.byType(SnackBar), findsNothing);
     expect(find.text('10K Preparation'), findsOneWidget);
     expect(find.text("This Week's 10K Preparation Plan"), findsOneWidget);
+
+    await tester.ensureVisible(find.text('15 min walk-run'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('15 min walk-run'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AlertDialog), findsNothing);
+    expect(find.byType(BottomSheet), findsNothing);
+    expect(find.byType(SnackBar), findsNothing);
+    expect(find.text('15 min walk-run'), findsOneWidget);
 
     await tester.ensureVisible(find.text('Explore Expert Plans'));
     await tester.pumpAndSettle();
@@ -133,6 +160,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(AlertDialog), findsNothing);
+    expect(find.byType(BottomSheet), findsNothing);
+    expect(find.byType(SnackBar), findsNothing);
     expect(find.text('Activity History'), findsNothing);
     expect(find.text('Explore Expert Plans'), findsOneWidget);
   });

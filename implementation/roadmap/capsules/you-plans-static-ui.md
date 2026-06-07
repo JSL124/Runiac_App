@@ -12,11 +12,11 @@ Type: Flutter static frontend-only You tab Plans UI capsule.
 
 ## Status
 
-Status: Implemented and locally validated; ready for review / manual commit.
+Status: Implemented and committed at `6624267 feat(you): add static plans tab`; current follow-up is an uncommitted presentation-layer backend-read-model readiness refactor.
 
 Routed on: 2026-06-07 Asia/Singapore.
 Implemented on: 2026-06-07 Asia/Singapore.
-Commit status: Not staged, not committed, not pushed.
+Commit status: Static Plans UI committed at `6624267`; follow-up readiness refactor not staged, not committed, not pushed.
 
 ## Required Agent Chain
 
