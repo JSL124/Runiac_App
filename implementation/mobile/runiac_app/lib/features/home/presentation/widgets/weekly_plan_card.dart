@@ -8,23 +8,27 @@ import 'home_placeholders.dart';
 const _softBlue = Color(0xFFEEF3FF);
 const _blueBorder = Color(0xFFDCE6FF);
 
+const _weeklyPlanDisplaySnapshot = _WeeklyPlanDisplaySnapshot(
+  title: 'This Week\'s Plan',
+  message: 'Your weekly plan will appear after setup.',
+);
+
 class WeeklyPlanCard extends StatelessWidget {
   const WeeklyPlanCard({super.key});
 
   @override
   Widget build(BuildContext context) {
+    const snapshot = _weeklyPlanDisplaySnapshot;
+
     return DashboardCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const CardTitle(
-            icon: Icons.view_week_outlined,
-            title: 'This Week\'s Plan',
-          ),
+          CardTitle(icon: Icons.view_week_outlined, title: snapshot.title),
           const SizedBox(height: 12),
-          const Text(
-            'Your weekly plan will appear after setup.',
-            style: TextStyle(
+          Text(
+            snapshot.message,
+            style: const TextStyle(
               color: RuniacColors.textSecondary,
               fontSize: 14,
               height: 1.35,
@@ -36,6 +40,16 @@ class WeeklyPlanCard extends StatelessWidget {
       ),
     );
   }
+}
+
+class _WeeklyPlanDisplaySnapshot {
+  const _WeeklyPlanDisplaySnapshot({
+    required this.title,
+    required this.message,
+  });
+
+  final String title;
+  final String message;
 }
 
 class _WeeklyPreviewRows extends StatelessWidget {

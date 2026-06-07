@@ -8,34 +8,48 @@ import 'home_placeholders.dart';
 const _softBlue = Color(0xFFEEF3FF);
 const _blueBorder = Color(0xFFDCE6FF);
 
+const _runnerProgressDisplaySnapshot = _RunnerProgressDisplaySnapshot(
+  title: 'Runner Progress',
+  message: 'Progress summaries will appear after verified runs.',
+);
+
 class RunnerProgressCard extends StatelessWidget {
   const RunnerProgressCard({super.key});
 
   @override
   Widget build(BuildContext context) {
+    const snapshot = _runnerProgressDisplaySnapshot;
+
     return DashboardCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
-          CardTitle(
-            icon: Icons.emoji_events_outlined,
-            title: 'Runner Progress',
-          ),
-          SizedBox(height: 12),
+        children: [
+          CardTitle(icon: Icons.emoji_events_outlined, title: snapshot.title),
+          const SizedBox(height: 12),
           Text(
-            'Progress summaries will appear after verified runs.',
-            style: TextStyle(
+            snapshot.message,
+            style: const TextStyle(
               color: RuniacColors.textSecondary,
               fontSize: 14,
               height: 1.35,
             ),
           ),
-          SizedBox(height: 14),
-          _RunnerProgressPreview(),
+          const SizedBox(height: 14),
+          const _RunnerProgressPreview(),
         ],
       ),
     );
   }
+}
+
+class _RunnerProgressDisplaySnapshot {
+  const _RunnerProgressDisplaySnapshot({
+    required this.title,
+    required this.message,
+  });
+
+  final String title;
+  final String message;
 }
 
 class _RunnerProgressPreview extends StatelessWidget {

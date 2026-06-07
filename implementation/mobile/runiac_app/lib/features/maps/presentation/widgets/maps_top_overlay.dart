@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/runiac_colors.dart';
 
+const _mapsTopOverlayDisplaySnapshot = _MapsTopOverlayDisplaySnapshot(
+  searchPlaceholder: 'Search routes or parks',
+  savedActionLabel: 'Saved',
+);
+
 class MapsTopOverlay extends StatelessWidget {
   const MapsTopOverlay({super.key});
 
@@ -22,6 +27,8 @@ class _MapsSearchField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const snapshot = _mapsTopOverlayDisplaySnapshot;
+
     return Container(
       height: 48,
       padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -37,15 +44,15 @@ class _MapsSearchField extends StatelessWidget {
           ),
         ],
       ),
-      child: const Row(
+      child: Row(
         children: [
-          Icon(Icons.search, color: RuniacColors.primaryBlue, size: 22),
-          SizedBox(width: 8),
+          const Icon(Icons.search, color: RuniacColors.primaryBlue, size: 22),
+          const SizedBox(width: 8),
           Expanded(
             child: Text(
-              'Search routes or parks',
+              snapshot.searchPlaceholder,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
+              style: const TextStyle(
                 color: RuniacColors.textSecondary,
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
@@ -63,6 +70,8 @@ class _SavedRoutesButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const snapshot = _mapsTopOverlayDisplaySnapshot;
+
     return Container(
       height: 48,
       padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -78,18 +87,18 @@ class _SavedRoutesButton extends StatelessWidget {
           ),
         ],
       ),
-      child: const Row(
+      child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
+          const Icon(
             Icons.bookmark_border,
             color: RuniacColors.primaryBlue,
             size: 19,
           ),
-          SizedBox(width: 6),
+          const SizedBox(width: 6),
           Text(
-            'Saved',
-            style: TextStyle(
+            snapshot.savedActionLabel,
+            style: const TextStyle(
               color: RuniacColors.primaryBlue,
               fontSize: 13,
               fontWeight: FontWeight.w800,
@@ -99,4 +108,14 @@ class _SavedRoutesButton extends StatelessWidget {
       ),
     );
   }
+}
+
+class _MapsTopOverlayDisplaySnapshot {
+  const _MapsTopOverlayDisplaySnapshot({
+    required this.searchPlaceholder,
+    required this.savedActionLabel,
+  });
+
+  final String searchPlaceholder;
+  final String savedActionLabel;
 }

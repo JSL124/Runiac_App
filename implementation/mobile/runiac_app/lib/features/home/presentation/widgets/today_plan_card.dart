@@ -10,20 +10,30 @@ const _blueBorder = Color(0xFFDCE6FF);
 const _sportOrange = Color(0xFFFF7A1A);
 const _orangeStrong = Color(0xFFF97316);
 
+const _todayPlanDisplaySnapshot = _TodayPlanDisplaySnapshot(
+  title: 'Today\'s Plan',
+  headline: 'Ready for an easy run?',
+  message: 'Start small and keep it comfortable.',
+  secondaryActionLabel: 'View Plan',
+  primaryActionLabel: 'Quick Start',
+);
+
 class TodayPlanCard extends StatelessWidget {
   const TodayPlanCard({super.key});
 
   @override
   Widget build(BuildContext context) {
+    const snapshot = _todayPlanDisplaySnapshot;
+
     return DashboardCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const _TodayAccentStrip(),
           const SizedBox(height: 14),
-          const CardTitle(icon: Icons.calendar_today, title: 'Today\'s Plan'),
+          CardTitle(icon: Icons.calendar_today, title: snapshot.title),
           const SizedBox(height: 14),
-          const Row(
+          Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
@@ -31,18 +41,18 @@ class TodayPlanCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Ready for an easy run?',
-                      style: TextStyle(
+                      snapshot.headline,
+                      style: const TextStyle(
                         color: RuniacColors.textPrimary,
                         fontSize: 20,
                         fontWeight: FontWeight.w800,
                         height: 1.15,
                       ),
                     ),
-                    SizedBox(height: 8),
+                    const SizedBox(height: 8),
                     Text(
-                      'Start small and keep it comfortable.',
-                      style: TextStyle(
+                      snapshot.message,
+                      style: const TextStyle(
                         color: RuniacColors.textSecondary,
                         fontSize: 14,
                         height: 1.35,
@@ -51,8 +61,8 @@ class TodayPlanCard extends StatelessWidget {
                   ],
                 ),
               ),
-              SizedBox(width: 14),
-              _PlanImagePlaceholder(),
+              const SizedBox(width: 14),
+              const _PlanImagePlaceholder(),
             ],
           ),
           const SizedBox(height: 16),
@@ -67,7 +77,7 @@ class TodayPlanCard extends StatelessWidget {
                     minimumSize: const Size.fromHeight(44),
                     textStyle: const TextStyle(fontWeight: FontWeight.w700),
                   ),
-                  child: const Text('View Plan'),
+                  child: Text(snapshot.secondaryActionLabel),
                 ),
               ),
               const SizedBox(width: 10),
@@ -75,7 +85,7 @@ class TodayPlanCard extends StatelessWidget {
                 child: FilledButton.icon(
                   onPressed: () {},
                   icon: const Icon(Icons.play_arrow_rounded),
-                  label: const Text('Quick Start'),
+                  label: Text(snapshot.primaryActionLabel),
                   style: FilledButton.styleFrom(
                     backgroundColor: _sportOrange,
                     foregroundColor: RuniacColors.white,
@@ -90,6 +100,22 @@ class TodayPlanCard extends StatelessWidget {
       ),
     );
   }
+}
+
+class _TodayPlanDisplaySnapshot {
+  const _TodayPlanDisplaySnapshot({
+    required this.title,
+    required this.headline,
+    required this.message,
+    required this.secondaryActionLabel,
+    required this.primaryActionLabel,
+  });
+
+  final String title;
+  final String headline;
+  final String message;
+  final String secondaryActionLabel;
+  final String primaryActionLabel;
 }
 
 class _TodayAccentStrip extends StatelessWidget {

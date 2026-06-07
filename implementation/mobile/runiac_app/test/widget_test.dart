@@ -5,6 +5,13 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runiac_app/app.dart';
 
+final _forbiddenBackendOwnedCopy = RegExp(
+  r'\bXP\b|streak|level|rank|score|saved count|popularity|owned|'
+  r'territory owned|route completed|activity saved|synced|premium|'
+  r'subscription',
+  caseSensitive: false,
+);
+
 void main() {
   testWidgets('Runiac app shell shows static tabs', (
     WidgetTester tester,
@@ -54,6 +61,7 @@ void main() {
     expect(find.text('This Week\'s Plan'), findsOneWidget);
     expect(find.text('Last Run'), findsOneWidget);
     expect(find.text('View Details'), findsNothing);
+    expect(find.textContaining(_forbiddenBackendOwnedCopy), findsNothing);
   });
 
   testWidgets('Maps tab shows static route discovery placeholder', (
@@ -98,6 +106,7 @@ void main() {
       find.text('Saved route slots stay visible without saving data.'),
       findsOneWidget,
     );
+    expect(find.textContaining(_forbiddenBackendOwnedCopy), findsNothing);
   });
 
   testWidgets('Maps sheet keeps a non-scrolling Home-style accent layout', (
