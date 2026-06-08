@@ -235,6 +235,182 @@ void main() {
     expect(find.text("This Week's 10K Preparation Plan"), findsOneWidget);
   });
 
+  testWidgets(
+    'goal plan detail matches Plan Preview header and timeline alignment',
+    (WidgetTester tester) async {
+      // Given: the static Goal Plan Detail screen is open from You > Plans.
+      await _openYouTab(tester);
+      await tester.tap(find.text('Plans'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('View Goal Plan'));
+      await tester.pumpAndSettle();
+
+      // Then: the header follows the Plan Preview fixed-header pattern.
+      final backButton = find.byTooltip('Back to Plans');
+      expect(backButton, findsOneWidget);
+      expect(find.byIcon(Icons.arrow_back), findsOneWidget);
+      expect(find.text('10K Goal Plan'), findsOneWidget);
+      expect(
+        tester.getTopLeft(find.text('10K Goal Plan')).dx,
+        greaterThan(tester.getTopLeft(find.byIcon(Icons.arrow_back)).dx),
+      );
+
+      // Then: a long blue/orange content accent strip starts the scroll body.
+      final accentStrip = find.byKey(
+        const ValueKey('goal_plan_detail_header_accent_strip'),
+      );
+      expect(accentStrip, findsOneWidget);
+      expect(tester.getSize(accentStrip).width, greaterThan(650));
+      expect(
+        tester.getTopLeft(accentStrip).dy,
+        greaterThan(tester.getBottomLeft(backButton).dy),
+      );
+      expect(
+        tester.getTopLeft(accentStrip).dy,
+        lessThan(tester.getTopLeft(find.text('10K Preparation').first).dy),
+      );
+
+      // Then: timeline markers align with each Week label row.
+      for (final week in const ['Week 1', 'Week 3', 'Week 8']) {
+        final marker = find.byKey(ValueKey('goal_plan_detail_marker_$week'));
+        expect(marker, findsOneWidget);
+
+        final markerCenter = tester.getCenter(marker).dy;
+        final weekCenter = tester.getCenter(find.text(week)).dy;
+        expect((markerCenter - weekCenter).abs(), lessThanOrEqualTo(1.0));
+      }
+
+      // Then: progress state is visual-only on week rows.
+      expect(find.text('Completed'), findsNothing);
+      expect(find.text('Current'), findsNothing);
+      expect(find.text('Upcoming'), findsNothing);
+      expect(find.byIcon(Icons.check), findsWidgets);
+      for (final summary in const [
+        '4 days · 8 km',
+        '4 days · 10 km',
+        '4 days · 12 km',
+        '4 days · 14 km',
+        '4 days · 16 km',
+        '4 days · 18 km',
+        '4 days · 20 km',
+        '4 days · 10K',
+      ]) {
+        expect(find.text(summary), findsNothing);
+      }
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('goal_plan_detail_marker_Week 3')),
+          matching: find.byIcon(Icons.directions_run),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('goal_plan_detail_marker_Week 4')),
+        findsOneWidget,
+      );
+      expect(
+        tester
+            .getTopRight(
+              find.byKey(
+                const ValueKey('goal_plan_detail_chevron_Week 3_collapsed'),
+              ),
+            )
+            .dx,
+        greaterThan(tester.getTopRight(find.text('Base Endurance').first).dx),
+      );
+
+      // Then: the current week highlight spans the whole row surface.
+      final currentHighlight = find.byKey(
+        const ValueKey('goal_plan_detail_current_week_highlight'),
+      );
+      expect(currentHighlight, findsOneWidget);
+      expect(tester.getSize(currentHighlight).width, greaterThan(650));
+
+      // Then: all weekly dropdown plans are initially collapsed.
+      expect(
+        find.byKey(const ValueKey('goal_plan_detail_daily_plan_Week 3')),
+        findsNothing,
+      );
+      for (final day in const [
+        'Monday',
+        'Tuesday',
+        'Wednesday',
+        'Thursday',
+        'Friday',
+        'Saturday',
+        'Sunday',
+      ]) {
+        expect(find.text(day), findsNothing);
+      }
+
+      // When: the current week is expanded.
+      await tester.tap(
+        find.byKey(const ValueKey('goal_plan_detail_week_toggle_Week 3')),
+      );
+      await tester.pumpAndSettle();
+
+      // Then: the sample onboarding run/rest mapping is visible in order.
+      final weekThreePlan = find.byKey(
+        const ValueKey('goal_plan_detail_daily_plan_Week 3'),
+      );
+      expect(weekThreePlan, findsOneWidget);
+      for (final day in const [
+        'Monday',
+        'Tuesday',
+        'Wednesday',
+        'Thursday',
+        'Friday',
+        'Saturday',
+        'Sunday',
+      ]) {
+        expect(
+          find.byKey(ValueKey('goal_plan_detail_day_Week 3_$day')),
+          findsOneWidget,
+        );
+      }
+      expect(find.text('Easy Run'), findsNWidgets(2));
+      expect(find.text('Tempo Run'), findsOneWidget);
+      expect(find.text('Long Run'), findsOneWidget);
+      expect(find.text('Rest'), findsNWidgets(3));
+      expect(find.text('3 km'), findsOneWidget);
+      expect(find.text('25 min'), findsOneWidget);
+      expect(find.text('4 km'), findsOneWidget);
+      expect(find.text('5 km'), findsOneWidget);
+      expect(find.text('0 min'), findsNWidgets(3));
+      expect(find.text('4 days · 12 km'), findsNothing);
+      expect(
+        find.byKey(const ValueKey('goal_plan_detail_chevron_Week 3_expanded')),
+        findsOneWidget,
+      );
+
+      // When: the same week is tapped again.
+      await tester.tap(
+        find.byKey(const ValueKey('goal_plan_detail_week_toggle_Week 3')),
+      );
+      await tester.pumpAndSettle();
+
+      // Then: it collapses back to the static week-list state.
+      expect(weekThreePlan, findsNothing);
+      expect(find.text('Monday'), findsNothing);
+      expect(
+        find.byKey(const ValueKey('goal_plan_detail_chevron_Week 3_collapsed')),
+        findsOneWidget,
+      );
+
+      // When: the detail content scrolls.
+      await tester.drag(find.byType(Scrollable).last, const Offset(0, -700));
+      await tester.pumpAndSettle();
+
+      // Then: the header remains available, while the accent strip is not sticky.
+      expect(find.text('10K Goal Plan'), findsOneWidget);
+      expect(backButton, findsOneWidget);
+      expect(
+        tester.getTopLeft(accentStrip).dy,
+        lessThan(tester.getTopLeft(backButton).dy),
+      );
+    },
+  );
+
   testWidgets('first expert plan opens static preview detail only', (
     WidgetTester tester,
   ) async {
@@ -840,24 +1016,51 @@ void main() {
       '10K Preparation',
       'Week 8',
       '10K Attempt',
-      'Completed',
-      'Current',
-      'Upcoming',
-      'Goal Week',
     ]) {
       expect(find.text(text), findsWidgets);
     }
+    for (final label in ['Completed', 'Current', 'Upcoming', 'Goal Week']) {
+      expect(find.text(label), findsNothing);
+    }
+    for (final summary in const [
+      '4 days · 8 km',
+      '4 days · 10 km',
+      '4 days · 12 km',
+      '4 days · 14 km',
+      '4 days · 16 km',
+      '4 days · 18 km',
+      '4 days · 20 km',
+      '4 days · 10K',
+    ]) {
+      expect(find.text(summary), findsNothing);
+    }
+    expect(find.byIcon(Icons.check), findsWidgets);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('goal_plan_detail_marker_Week 3')),
+        matching: find.byIcon(Icons.directions_run),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Monday'), findsNothing);
 
     // When: a week row is tapped.
-    await tester.tap(find.text('6 km Milestone'));
+    await tester.tap(
+      find.byKey(const ValueKey('goal_plan_detail_week_toggle_Week 4')),
+    );
     await tester.pumpAndSettle();
 
-    // Then: no week detail or modal behavior is introduced.
+    // Then: only the static preview dropdown opens; no modal behavior appears.
     expect(find.byType(AlertDialog), findsNothing);
     expect(find.byType(BottomSheet), findsNothing);
     expect(find.byType(SnackBar), findsNothing);
     expect(find.text('10K Goal Plan'), findsOneWidget);
     expect(find.text('6 km Milestone'), findsOneWidget);
+    expect(find.text('Monday'), findsOneWidget);
+    expect(find.text('Sunday'), findsOneWidget);
+    expect(find.text('Rest'), findsNWidgets(3));
+    expect(find.text('0 min'), findsNWidgets(3));
+    expect(find.text('4 days · 14 km'), findsNothing);
   });
 
   testWidgets(

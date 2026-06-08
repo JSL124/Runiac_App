@@ -19,52 +19,82 @@ const goalPlanDisplaySnapshot = GoalPlanDisplaySnapshot(
       weekLabel: 'Week 1',
       title: 'Build Routine',
       status: GoalPlanWeekStatus.completed,
-      statusLabel: 'Completed',
     ),
     GoalPlanWeekDisplaySnapshot(
       weekLabel: 'Week 2',
       title: 'Easy Distance',
       status: GoalPlanWeekStatus.completed,
-      statusLabel: 'Completed',
     ),
     GoalPlanWeekDisplaySnapshot(
       weekLabel: 'Week 3',
       title: 'Base Endurance',
       status: GoalPlanWeekStatus.current,
-      statusLabel: 'Current',
     ),
     GoalPlanWeekDisplaySnapshot(
       weekLabel: 'Week 4',
       title: '6 km Milestone',
       status: GoalPlanWeekStatus.upcoming,
-      statusLabel: 'Upcoming',
     ),
     GoalPlanWeekDisplaySnapshot(
       weekLabel: 'Week 5',
       title: 'Longer Effort',
       status: GoalPlanWeekStatus.upcoming,
-      statusLabel: 'Upcoming',
     ),
     GoalPlanWeekDisplaySnapshot(
       weekLabel: 'Week 6',
       title: '8 km Progression',
       status: GoalPlanWeekStatus.upcoming,
-      statusLabel: 'Upcoming',
     ),
     GoalPlanWeekDisplaySnapshot(
       weekLabel: 'Week 7',
       title: '10K Preparation',
       status: GoalPlanWeekStatus.upcoming,
-      statusLabel: 'Upcoming',
     ),
     GoalPlanWeekDisplaySnapshot(
       weekLabel: 'Week 8',
       title: '10K Attempt',
       status: GoalPlanWeekStatus.goalWeek,
-      statusLabel: 'Goal Week',
     ),
   ],
 );
+
+const _sampleDailyPlan = [
+  GoalPlanDayDisplaySnapshot(
+    weekday: 'Monday',
+    workoutType: 'Easy Run',
+    distanceOrTime: '3 km',
+  ),
+  GoalPlanDayDisplaySnapshot(
+    weekday: 'Tuesday',
+    workoutType: 'Rest',
+    distanceOrTime: '0 min',
+  ),
+  GoalPlanDayDisplaySnapshot(
+    weekday: 'Wednesday',
+    workoutType: 'Tempo Run',
+    distanceOrTime: '25 min',
+  ),
+  GoalPlanDayDisplaySnapshot(
+    weekday: 'Thursday',
+    workoutType: 'Rest',
+    distanceOrTime: '0 min',
+  ),
+  GoalPlanDayDisplaySnapshot(
+    weekday: 'Friday',
+    workoutType: 'Easy Run',
+    distanceOrTime: '4 km',
+  ),
+  GoalPlanDayDisplaySnapshot(
+    weekday: 'Saturday',
+    workoutType: 'Long Run',
+    distanceOrTime: '5 km',
+  ),
+  GoalPlanDayDisplaySnapshot(
+    weekday: 'Sunday',
+    workoutType: 'Rest',
+    distanceOrTime: '0 min',
+  ),
+];
 
 class GoalPlanDisplaySnapshot {
   const GoalPlanDisplaySnapshot({
@@ -95,16 +125,28 @@ class GoalPlanWeekDisplaySnapshot {
     required this.weekLabel,
     required this.title,
     required this.status,
-    required this.statusLabel,
+    this.dailyPlan = _sampleDailyPlan,
   });
 
   final String weekLabel;
   final String title;
   final GoalPlanWeekStatus status;
-  final String statusLabel;
+  final List<GoalPlanDayDisplaySnapshot> dailyPlan;
 }
 
-class GoalPlanDetailScreen extends StatelessWidget {
+class GoalPlanDayDisplaySnapshot {
+  const GoalPlanDayDisplaySnapshot({
+    required this.weekday,
+    required this.workoutType,
+    required this.distanceOrTime,
+  });
+
+  final String weekday;
+  final String workoutType;
+  final String distanceOrTime;
+}
+
+class GoalPlanDetailScreen extends StatefulWidget {
   const GoalPlanDetailScreen({
     required this.onBack,
     this.snapshot = goalPlanDisplaySnapshot,
@@ -115,20 +157,60 @@ class GoalPlanDetailScreen extends StatelessWidget {
   final GoalPlanDisplaySnapshot snapshot;
 
   @override
+  State<GoalPlanDetailScreen> createState() => _GoalPlanDetailScreenState();
+}
+
+class _GoalPlanDetailScreenState extends State<GoalPlanDetailScreen> {
+  final _expandedWeekIndexes = <int>{};
+
+  @override
   Widget build(BuildContext context) {
     return ColoredBox(
       color: RuniacColors.background,
       child: SafeArea(
         bottom: false,
-        child: ListView(
-          physics: const ClampingScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 28),
+        child: Column(
           children: [
-            _GoalPlanHeader(title: snapshot.title, onBack: onBack),
-            const SizedBox(height: 16),
-            _GoalPlanSummaryCard(snapshot),
-            const SizedBox(height: 12),
-            _GoalPlanTimelineCard(snapshot.weeks),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 0, 16, 8),
+              child: _GoalPlanHeader(
+                title: widget.snapshot.title,
+                onBack: widget.onBack,
+              ),
+            ),
+            Expanded(
+              child: ScrollConfiguration(
+                behavior: ScrollConfiguration.of(
+                  context,
+                ).copyWith(overscroll: false),
+                child: SingleChildScrollView(
+                  physics: const ClampingScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const _GoalPlanDetailAccentStrip(),
+                      const SizedBox(height: 14),
+                      _GoalPlanSummaryCard(widget.snapshot),
+                      const SizedBox(height: 12),
+                      _GoalPlanTimelineCard(
+                        weeks: widget.snapshot.weeks,
+                        expandedWeekIndexes: _expandedWeekIndexes,
+                        onWeekSelected: (index) {
+                          setState(() {
+                            if (_expandedWeekIndexes.contains(index)) {
+                              _expandedWeekIndexes.remove(index);
+                            } else {
+                              _expandedWeekIndexes.add(index);
+                            }
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -144,26 +226,54 @@ class _GoalPlanHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 48,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Align(
-            alignment: Alignment.centerLeft,
-            child: IconButton(
-              tooltip: 'Back to Plans',
-              icon: const Icon(
-                Icons.chevron_left,
-                color: RuniacColors.textPrimary,
-                size: 32,
-              ),
-              onPressed: onBack,
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        IconButton(
+          tooltip: 'Back to Plans',
+          icon: const Icon(Icons.arrow_back),
+          color: RuniacColors.textPrimary,
+          onPressed: onBack,
+        ),
+        const SizedBox(width: 2),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Text(title, style: _screenTitleStyle),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _GoalPlanDetailAccentStrip extends StatelessWidget {
+  const _GoalPlanDetailAccentStrip();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      key: const ValueKey('goal_plan_detail_header_accent_strip'),
+      children: [
+        Expanded(
+          child: Container(
+            height: 4,
+            decoration: BoxDecoration(
+              color: RuniacColors.primaryBlue,
+              borderRadius: BorderRadius.circular(999),
             ),
           ),
-          Text(title, textAlign: TextAlign.center, style: _screenTitleStyle),
-        ],
-      ),
+        ),
+        const SizedBox(width: 8),
+        Container(
+          width: 34,
+          height: 4,
+          decoration: BoxDecoration(
+            color: RuniacColors.accentOrange,
+            borderRadius: BorderRadius.circular(999),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -280,20 +390,30 @@ class _GoalPlanProgress extends StatelessWidget {
 }
 
 class _GoalPlanTimelineCard extends StatelessWidget {
-  const _GoalPlanTimelineCard(this.weeks);
+  const _GoalPlanTimelineCard({
+    required this.weeks,
+    required this.expandedWeekIndexes,
+    required this.onWeekSelected,
+  });
 
   final List<GoalPlanWeekDisplaySnapshot> weeks;
+  final Set<int> expandedWeekIndexes;
+  final ValueChanged<int> onWeekSelected;
 
   @override
   Widget build(BuildContext context) {
     return DashboardCard(
       child: Column(
         children: [
-          for (var index = 0; index < weeks.length; index++)
+          for (var index = 0; index < weeks.length; index++) ...[
             _GoalPlanTimelineRow(
               display: weeks[index],
-              isLast: index == weeks.length - 1,
+              isExpanded: expandedWeekIndexes.contains(index),
+              onSelected: () => onWeekSelected(index),
             ),
+            if (index < weeks.length - 1)
+              const Divider(height: 1, color: RuniacColors.border),
+          ],
         ],
       ),
     );
@@ -301,55 +421,145 @@ class _GoalPlanTimelineCard extends StatelessWidget {
 }
 
 class _GoalPlanTimelineRow extends StatelessWidget {
-  const _GoalPlanTimelineRow({required this.display, required this.isLast});
+  const _GoalPlanTimelineRow({
+    required this.display,
+    required this.isExpanded,
+    required this.onSelected,
+  });
 
   final GoalPlanWeekDisplaySnapshot display;
-  final bool isLast;
+  final bool isExpanded;
+  final VoidCallback onSelected;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      constraints: const BoxConstraints(minHeight: 48),
-      decoration: BoxDecoration(
-        color: display.status == GoalPlanWeekStatus.current
-            ? const Color(0xFFF7FAFF)
-            : null,
-        borderRadius: display.status == GoalPlanWeekStatus.current
-            ? BorderRadius.circular(8)
-            : null,
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 30,
-            child: _TimelineMarker(status: display.status, isLast: isLast),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: 52,
-                    child: Text(display.weekLabel, style: _smallBodyStyle),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      display.title,
-                      style: display.status == GoalPlanWeekStatus.current
-                          ? _bodyStrongStyle
-                          : _bodyStyle,
+    return Column(
+      key: ValueKey('goal_plan_detail_week_${display.weekLabel}'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            key: ValueKey('goal_plan_detail_week_toggle_${display.weekLabel}'),
+            borderRadius: BorderRadius.circular(8),
+            onTap: onSelected,
+            child: Container(
+              key: display.status == GoalPlanWeekStatus.current
+                  ? const ValueKey('goal_plan_detail_current_week_highlight')
+                  : null,
+              constraints: const BoxConstraints(minHeight: 58),
+              decoration: BoxDecoration(
+                color: display.status == GoalPlanWeekStatus.current
+                    ? const Color(0xFFF7FAFF)
+                    : null,
+                borderRadius: display.status == GoalPlanWeekStatus.current
+                    ? BorderRadius.circular(8)
+                    : null,
+              ),
+              child: IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SizedBox(
+                      width: 30,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          _TimelineMarker(
+                            key: ValueKey(
+                              'goal_plan_detail_marker_${display.weekLabel}',
+                            ),
+                            status: display.status,
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(display.statusLabel, style: _smallBodyStyle),
-                ],
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: Row(
+                          children: [
+                            SizedBox(
+                              width: 52,
+                              child: Text(
+                                display.weekLabel,
+                                style: _smallBodyStyle,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                display.title,
+                                style:
+                                    display.status == GoalPlanWeekStatus.current
+                                    ? _bodyStrongStyle
+                                    : _bodyStyle,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Icon(
+                              isExpanded
+                                  ? Icons.keyboard_arrow_up
+                                  : Icons.keyboard_arrow_down,
+                              key: ValueKey(
+                                'goal_plan_detail_chevron_${display.weekLabel}_${isExpanded ? 'expanded' : 'collapsed'}',
+                              ),
+                              color: RuniacColors.textSecondary,
+                              size: 20,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
+        ),
+        if (isExpanded)
+          _WeeklyDailyPlanRows(
+            weekLabel: display.weekLabel,
+            dailyPlan: display.dailyPlan,
+          ),
+      ],
+    );
+  }
+}
+
+class _WeeklyDailyPlanRows extends StatelessWidget {
+  const _WeeklyDailyPlanRows({
+    required this.weekLabel,
+    required this.dailyPlan,
+  });
+
+  final String weekLabel;
+  final List<GoalPlanDayDisplaySnapshot> dailyPlan;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      key: ValueKey('goal_plan_detail_daily_plan_$weekLabel'),
+      padding: const EdgeInsets.fromLTRB(40, 0, 0, 12),
+      child: Column(
+        children: [
+          for (final day in dailyPlan)
+            Padding(
+              key: ValueKey('goal_plan_detail_day_${weekLabel}_${day.weekday}'),
+              padding: const EdgeInsets.only(top: 8),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 82,
+                    child: Text(day.weekday, style: _smallBodyStyle),
+                  ),
+                  Expanded(child: Text(day.workoutType, style: _bodyStyle)),
+                  const SizedBox(width: 8),
+                  Text(day.distanceOrTime, style: _smallBodyStyle),
+                ],
+              ),
+            ),
         ],
       ),
     );
@@ -357,10 +567,9 @@ class _GoalPlanTimelineRow extends StatelessWidget {
 }
 
 class _TimelineMarker extends StatelessWidget {
-  const _TimelineMarker({required this.status, required this.isLast});
+  const _TimelineMarker({super.key, required this.status});
 
   final GoalPlanWeekStatus status;
-  final bool isLast;
 
   @override
   Widget build(BuildContext context) {
@@ -376,22 +585,16 @@ class _TimelineMarker extends StatelessWidget {
         ? RuniacColors.primaryBlue
         : markerColor;
 
-    return Column(
-      children: [
-        Container(
-          width: 28,
-          height: 28,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: markerColor,
-            shape: BoxShape.circle,
-            border: Border.all(color: borderColor),
-          ),
-          child: _markerChild(status),
-        ),
-        if (!isLast)
-          Container(width: 1, height: 20, color: RuniacColors.border),
-      ],
+    return Container(
+      width: 28,
+      height: 28,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: markerColor,
+        shape: BoxShape.circle,
+        border: Border.all(color: borderColor),
+      ),
+      child: _markerChild(status),
     );
   }
 }
@@ -403,7 +606,11 @@ Widget _markerChild(GoalPlanWeekStatus status) {
       size: 16,
       color: RuniacColors.white,
     ),
-    GoalPlanWeekStatus.current => const Text('3', style: _markerTextStyle),
+    GoalPlanWeekStatus.current => const Icon(
+      Icons.directions_run,
+      size: 16,
+      color: RuniacColors.white,
+    ),
     GoalPlanWeekStatus.upcoming => const SizedBox.shrink(),
     GoalPlanWeekStatus.goalWeek => const Icon(
       Icons.flag,
@@ -446,12 +653,6 @@ const _smallBodyStyle = TextStyle(
 const _progressInsideStyle = TextStyle(
   color: RuniacColors.white,
   fontSize: 10,
-  fontWeight: FontWeight.w800,
-);
-
-const _markerTextStyle = TextStyle(
-  color: RuniacColors.white,
-  fontSize: 12,
   fontWeight: FontWeight.w800,
 );
 
