@@ -75,9 +75,14 @@ const _expertPlans = [
 ];
 
 class ExpertPlanListScreen extends StatelessWidget {
-  const ExpertPlanListScreen({required this.onBack, super.key});
+  const ExpertPlanListScreen({
+    required this.onBack,
+    required this.onFirstPlanSelected,
+    super.key,
+  });
 
   final VoidCallback onBack;
+  final VoidCallback onFirstPlanSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -104,8 +109,13 @@ class ExpertPlanListScreen extends StatelessWidget {
                   const SizedBox(height: _expertPlanSectionGap),
                   const _FilterRow(),
                   const SizedBox(height: _expertPlanSectionGap),
-                  for (final plan in _expertPlans) ...[
-                    _ExpertPlanCard(plan),
+                  for (var index = 0; index < _expertPlans.length; index++) ...[
+                    _ExpertPlanCard(
+                      _expertPlans[index],
+                      onViewPlan: index == 0
+                          ? onFirstPlanSelected
+                          : _handleNoOp,
+                    ),
                     const SizedBox(height: 10),
                   ],
                   const _MedicalNote(),
@@ -124,6 +134,8 @@ class ExpertPlanListScreen extends StatelessWidget {
       ),
     );
   }
+
+  void _handleNoOp() {}
 }
 
 class _ExpertPlanDisplay {
@@ -279,9 +291,10 @@ class _FilterChip extends StatelessWidget {
 }
 
 class _ExpertPlanCard extends StatelessWidget {
-  const _ExpertPlanCard(this.plan);
+  const _ExpertPlanCard(this.plan, {required this.onViewPlan});
 
   final _ExpertPlanDisplay plan;
+  final VoidCallback onViewPlan;
 
   @override
   Widget build(BuildContext context) {
@@ -331,7 +344,7 @@ class _ExpertPlanCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 14),
-          const _VisualOnlyViewPlanButton(),
+          _VisualOnlyViewPlanButton(onTap: onViewPlan),
         ],
       ),
     );
@@ -425,14 +438,16 @@ class _MetaPill extends StatelessWidget {
 }
 
 class _VisualOnlyViewPlanButton extends StatelessWidget {
-  const _VisualOnlyViewPlanButton();
+  const _VisualOnlyViewPlanButton({required this.onTap});
+
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return Semantics(
       button: true,
       child: GestureDetector(
-        onTap: () {},
+        onTap: onTap,
         child: Container(
           height: 42,
           alignment: Alignment.center,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/dashboard_card.dart';
+import 'expert_plan_detail_screen.dart';
 import 'expert_plan_list_screen.dart';
 import 'goal_plan_detail_screen.dart';
 import 'weekly_workout_detail_screen.dart';
@@ -236,6 +237,7 @@ class YouTab extends StatefulWidget {
 class _YouTabState extends State<YouTab> {
   var _plans = false;
   var _expertPlanListVisible = false;
+  var _expertPlanDetailVisible = false;
   var _goalPlanDetailVisible = false;
   var _workoutDetailVisible = false;
   var _workoutDetailSnapshot = weeklyWorkoutDetailSnapshot;
@@ -260,11 +262,20 @@ class _YouTabState extends State<YouTab> {
       );
     }
 
+    if (_expertPlanDetailVisible) {
+      return ExpertPlanDetailScreen(
+        onBack: () {
+          setState(() => _expertPlanDetailVisible = false);
+        },
+      );
+    }
+
     if (_expertPlanListVisible) {
       return ExpertPlanListScreen(
         onBack: () {
           setState(() => _expertPlanListVisible = false);
         },
+        onFirstPlanSelected: _showExpertPlanDetail,
       );
     }
 
@@ -345,6 +356,10 @@ class _YouTabState extends State<YouTab> {
 
   void _showExpertPlanList() {
     setState(() => _expertPlanListVisible = true);
+  }
+
+  void _showExpertPlanDetail() {
+    setState(() => _expertPlanDetailVisible = true);
   }
 }
 

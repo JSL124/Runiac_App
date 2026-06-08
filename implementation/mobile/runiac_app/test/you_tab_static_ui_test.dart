@@ -235,7 +235,7 @@ void main() {
     expect(find.text("This Week's 10K Preparation Plan"), findsOneWidget);
   });
 
-  testWidgets('expert plan list keeps filters and View Plan visual only', (
+  testWidgets('first expert plan opens static preview detail only', (
     WidgetTester tester,
   ) async {
     await _openYouTab(tester);
@@ -270,15 +270,128 @@ void main() {
     await tester.tap(find.text('View Plan').first);
     await tester.pumpAndSettle();
 
-    expect(find.text('Expert Plans'), findsOneWidget);
+    expect(find.text('Plan Preview'), findsOneWidget);
+    expect(find.byIcon(Icons.arrow_back), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('expert_plan_detail_header_accent_strip')),
+      findsOneWidget,
+    );
+    expect(
+      tester
+          .getSize(
+            find.byKey(
+              const ValueKey('expert_plan_detail_header_accent_strip'),
+            ),
+          )
+          .width,
+      greaterThan(650),
+    );
+    expect(
+      tester.getTopLeft(find.text('Plan Preview')).dx,
+      greaterThan(tester.getTopLeft(find.byIcon(Icons.arrow_back)).dx),
+    );
+    expect(find.text('First 5K Preparation'), findsOneWidget);
+    expect(
+      find.text('A gentle plan for building confidence toward your first 5K.'),
+      findsOneWidget,
+    );
+    expect(find.text('Coach Insight'), findsOneWidget);
+    expect(find.text('Coach Verified'), findsOneWidget);
+    expect(find.text('6 weeks'), findsOneWidget);
+    expect(find.text('3 runs/week'), findsOneWidget);
+    expect(find.text('Beginner'), findsOneWidget);
+    expect(find.text('Low pressure'), findsOneWidget);
+    expect(find.text('Who this is for'), findsNothing);
+    expect(find.text('Week 6'), findsOneWidget);
+    expect(find.text('First 5K attempt'), findsOneWidget);
+    expect(find.text("What you'll do"), findsNothing);
+    expect(find.text('2 walk-run sessions'), findsNothing);
+    expect(find.text('1 easy recovery walk'), findsNothing);
+    expect(find.text('Rest between run days'), findsNothing);
+    expect(find.text('Short easy intervals'), findsNothing);
+
+    await tester.ensureVisible(find.text('Week 1'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Week 1'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('2 walk-run sessions'), findsOneWidget);
+    expect(find.text('1 easy recovery walk'), findsOneWidget);
+    expect(find.text('Rest between run days'), findsOneWidget);
+
+    await tester.ensureVisible(find.text('Week 2'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Week 2'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('2 walk-run sessions'), findsOneWidget);
+    expect(find.text('Short easy intervals'), findsOneWidget);
+    expect(find.text('Comfortable walking breaks'), findsOneWidget);
+    expect(find.text('Focus on showing up consistently'), findsOneWidget);
+
+    await tester.tap(find.text('Week 2'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('2 walk-run sessions'), findsOneWidget);
+    expect(find.text('Short easy intervals'), findsNothing);
+
+    await tester.ensureVisible(find.text('Week 1'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Week 1'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('2 walk-run sessions'), findsNothing);
+
+    expect(find.text('Select This Plan'), findsOneWidget);
+    expect(
+      find.text('Plan selection is not available in this preview.'),
+      findsOneWidget,
+    );
+    expect(
+      find.text(
+        'This preview does not enroll you in a plan or update your progress.',
+      ),
+      findsOneWidget,
+    );
     expect(find.byType(AlertDialog), findsNothing);
     expect(find.byType(BottomSheet), findsNothing);
     expect(find.byType(SnackBar), findsNothing);
+    expect(find.text('Expert Plans'), findsNothing);
     expect(find.text('10K Goal Plan'), findsNothing);
     expect(find.text('Workout detail'), findsNothing);
     expect(find.text('Enroll'), findsNothing);
     expect(find.text('Unlock Premium'), findsNothing);
     expect(find.text('Activate Plan'), findsNothing);
+
+    await tester.ensureVisible(find.text('Select This Plan'));
+    await tester.pumpAndSettle();
+
+    expect(tester.getTopLeft(find.text('Plan Preview')).dy, greaterThan(0));
+    expect(
+      tester.getTopLeft(find.byTooltip('Back to Expert Plans')).dy,
+      greaterThan(0),
+    );
+
+    await tester.tap(find.text('Select This Plan'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Plan Preview'), findsOneWidget);
+    expect(find.byType(AlertDialog), findsNothing);
+    expect(find.byType(BottomSheet), findsNothing);
+    expect(find.byType(SnackBar), findsNothing);
+    expect(find.text('Enrolled'), findsNothing);
+
+    await tester.tap(find.byTooltip('Back to Expert Plans'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Expert Plans'), findsOneWidget);
+
+    await tester.tap(find.text('View Plan').first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Plan Preview'), findsOneWidget);
+    expect(find.text('2 walk-run sessions'), findsNothing);
+    expect(find.text('Short easy intervals'), findsNothing);
   });
 
   testWidgets('Upcoming weekly workout opens static workout detail only', (
