@@ -83,6 +83,9 @@ void main() {
     ]) {
       expect(find.text(text), findsWidgets);
     }
+    expect(find.text('Rest Day'), findsNWidgets(4));
+    expect(find.text('Completed'), findsWidgets);
+    expect(find.text('Upcoming · 7:30 AM'), findsOneWidget);
 
     await tester.drag(find.byType(ListView), const Offset(0, -700));
     await tester.pumpAndSettle();
@@ -203,6 +206,78 @@ void main() {
     expect(find.text('Start This Run'), findsOneWidget);
   });
 
+  testWidgets('Saturday weekly workout opens matching instruction preview', (
+    WidgetTester tester,
+  ) async {
+    // Given: the static Plans weekly schedule is visible.
+    await _openYouTab(tester);
+    await tester.tap(find.text('Plans'));
+    await tester.pumpAndSettle();
+
+    // When: the Saturday easy-run row is tapped.
+    await Scrollable.ensureVisible(
+      tester.element(find.text('Sat')),
+      alignment: 0.45,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Sat'));
+    await tester.pumpAndSettle();
+
+    // Then: the same static instruction sheet opens with Saturday labeling.
+    expect(find.text('Workout detail'), findsOneWidget);
+    expect(find.text('SATURDAY · EASY RUN'), findsOneWidget);
+    expect(find.text('THURSDAY · EASY RUN'), findsNothing);
+    expect(find.text('A gentle 20 minutes.'), findsOneWidget);
+    expect(find.text('Suggested pace'), findsOneWidget);
+    expect(find.text('Warm-up'), findsOneWidget);
+    expect(find.text('Easy run'), findsOneWidget);
+    expect(find.text('Cool-down'), findsOneWidget);
+
+    await tester.tap(find.text('Edit schedule'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(BottomSheet), findsOneWidget);
+    expect(find.text('Current schedule'), findsOneWidget);
+    expect(find.text('Saturday'), findsOneWidget);
+    expect(find.text('Sat · 7:30 AM'), findsNothing);
+    expect(find.text('Saturday · 7:30 AM'), findsNothing);
+  });
+
+  testWidgets('Only available workout instruction rows show tap affordance', (
+    WidgetTester tester,
+  ) async {
+    // Given: the static Plans weekly schedule is visible.
+    await _openYouTab(tester);
+    await tester.tap(find.text('Plans'));
+    await tester.pumpAndSettle();
+
+    // Then: Thu and Sat expose detail chevrons, while completed and rest rows do not.
+    expect(
+      find.byKey(const ValueKey('weekly_workout_detail_chevron')),
+      findsNWidgets(2),
+    );
+  });
+
+  testWidgets(
+    'Weekly plan rows keep day column aligned across affordance states',
+    (WidgetTester tester) async {
+      // Given: the static Plans weekly schedule is visible.
+      await _openYouTab(tester);
+      await tester.tap(find.text('Plans'));
+      await tester.pumpAndSettle();
+
+      // Then: tappable workout rows use the same day-column grid as rest/completed rows.
+      final monLeft = tester.getTopLeft(find.text('Mon')).dx;
+      final tueLeft = tester.getTopLeft(find.text('Tue')).dx;
+      final thuLeft = tester.getTopLeft(find.text('Thu')).dx;
+      final satLeft = tester.getTopLeft(find.text('Sat')).dx;
+
+      expect(tueLeft, monLeft);
+      expect(thuLeft, monLeft);
+      expect(satLeft, monLeft);
+    },
+  );
+
   testWidgets('Rest and completed weekly rows do not open workout detail', (
     WidgetTester tester,
   ) async {
@@ -211,10 +286,10 @@ void main() {
     await tester.tap(find.text('Plans'));
     await tester.pumpAndSettle();
 
-    // Then: only the upcoming workout exposes a detail chevron.
+    // Then: only available instruction previews expose detail chevrons.
     expect(
       find.byKey(const ValueKey('weekly_workout_detail_chevron')),
-      findsOneWidget,
+      findsNWidgets(2),
     );
 
     // When: a completed workout row is tapped.
@@ -258,21 +333,119 @@ void main() {
     await tester.tap(find.text('Edit schedule'));
     await tester.pumpAndSettle();
 
-    // Then: the bottom sheet explains that backend-controlled updates come later.
+    // Then: the bottom sheet presents a richer static preview without mutation.
     expect(find.byType(BottomSheet), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('edit_schedule_drag_handle')),
+      findsOneWidget,
+    );
     expect(find.text('Edit schedule'), findsWidgets);
-    expect(find.text('Current plan'), findsOneWidget);
-    expect(find.text('Thursday · 7:30 AM'), findsOneWidget);
-    expect(find.text('Morning · 7:30 AM'), findsOneWidget);
-    expect(find.text('Lunch · 12:30 PM'), findsOneWidget);
-    expect(find.text('Evening · 6:30 PM'), findsOneWidget);
+    final handleBottom = tester
+        .getBottomLeft(find.byKey(const ValueKey('edit_schedule_drag_handle')))
+        .dy;
+    final titleTop = tester.getTopLeft(find.text('Edit schedule').last).dy;
+    expect(handleBottom, lessThan(titleTop));
+    expect(
+      find.byKey(const ValueKey('edit_schedule_brand_accent')),
+      findsOneWidget,
+    );
+    expect(
+      find.text('Preview only — changes are not saved yet.'),
+      findsOneWidget,
+    );
+    final titleBottom = tester
+        .getBottomLeft(find.text('Edit schedule').last)
+        .dy;
+    final accentTop = tester
+        .getTopLeft(find.byKey(const ValueKey('edit_schedule_brand_accent')))
+        .dy;
+    final accentBottom = tester
+        .getBottomLeft(find.byKey(const ValueKey('edit_schedule_brand_accent')))
+        .dy;
+    final previewTop = tester
+        .getTopLeft(find.text('Preview only — changes are not saved yet.'))
+        .dy;
+    expect(accentTop, greaterThan(titleBottom));
+    expect(accentBottom, lessThan(previewTop));
+    expect(find.text('Current schedule'), findsOneWidget);
+    expect(find.text('Thu · 7:30 AM'), findsOneWidget);
+    expect(find.text('Preview example'), findsOneWidget);
+    expect(find.text('Fri · 7:30 AM'), findsOneWidget);
+    expect(find.text('Suggested time previews'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('edit_schedule_suggested_preview_row')),
+      findsNothing,
+    );
+    expect(find.text('Tonight · 6:30 PM'), findsNothing);
+    expect(find.text('Tomorrow morning · 7:30 AM'), findsNothing);
+    expect(find.text('Weekend morning · 8:00 AM'), findsNothing);
+    expect(find.text('Advanced preview'), findsOneWidget);
+    expect(find.text('These options are examples only.'), findsOneWidget);
+    expect(find.text('Select day'), findsOneWidget);
+    for (final text in [
+      'Mon',
+      'Tue',
+      'Wed',
+      'Thu',
+      'Fri',
+      'Sat',
+      'Sun',
+      '07:00 AM',
+      '08:00 AM',
+      '06:30 PM',
+      '07:30 PM',
+    ]) {
+      expect(find.text(text), findsWidgets);
+    }
+    expect(find.text('Select time'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('edit_schedule_time_preview_grid')),
+      findsOneWidget,
+    );
+    expect(find.text('Choose custom time'), findsOneWidget);
+    expect(find.text('Why might you move it later?'), findsNothing);
+    for (final reason in [
+      'Busy at original time',
+      'Feeling tired',
+      'Bad weather',
+      'Injury / discomfort',
+      'Prefer another time',
+      'Other',
+    ]) {
+      expect(find.text(reason), findsNothing);
+    }
     expect(
       find.text(
-        'Preview only. Schedule changes will be connected later through backend-controlled plan updates.',
+        'You’ll be able to add a reason when schedule changes are enabled.',
       ),
       findsOneWidget,
     );
-    expect(find.text('Save'), findsNothing);
+    expect(
+      find.text('Saving schedule changes will be available later.'),
+      findsOneWidget,
+    );
+    final saveButton = tester.widget<ElevatedButton>(
+      find.widgetWithText(ElevatedButton, 'Save New Schedule'),
+    );
+    expect(saveButton.onPressed, isNull);
+    expect(find.text('Close'), findsOneWidget);
+
+    await Scrollable.ensureVisible(
+      tester.element(find.text('Save New Schedule')),
+      alignment: 0.5,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save New Schedule'));
+    await tester.pumpAndSettle();
+    expect(find.byType(BottomSheet), findsOneWidget);
+    expect(find.text('Saved'), findsNothing);
+
+    await Scrollable.ensureVisible(tester.element(find.text('Close')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Close'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(BottomSheet), findsNothing);
   });
 
   testWidgets('Workout detail disables overscroll stretch locally', (

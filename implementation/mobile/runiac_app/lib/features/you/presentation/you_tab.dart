@@ -58,7 +58,7 @@ const _plansSnapshot = _YouPlansSnapshot(
     _PlanCounterDisplay('1', 'Remaining'),
   ],
   scheduleRows: [
-    _PlanScheduleRow('Mon', 'Rest Day', 'Rest Day', Icons.hotel_outlined),
+    _PlanScheduleRow('Mon', 'Rest Day', '', Icons.hotel_outlined),
     _PlanScheduleRow(
       'Tue',
       '15 min walk-run',
@@ -66,7 +66,7 @@ const _plansSnapshot = _YouPlansSnapshot(
       Icons.check_circle,
       active: true,
     ),
-    _PlanScheduleRow('Wed', 'Rest Day', 'Rest Day', Icons.hotel_outlined),
+    _PlanScheduleRow('Wed', 'Rest Day', '', Icons.hotel_outlined),
     _PlanScheduleRow(
       'Thu',
       '20 min easy run',
@@ -74,16 +74,19 @@ const _plansSnapshot = _YouPlansSnapshot(
       Icons.radio_button_unchecked,
       active: true,
       opensWorkoutDetail: true,
+      detailSnapshot: weeklyWorkoutDetailSnapshot,
     ),
-    _PlanScheduleRow('Fri', 'Rest Day', 'Rest Day', Icons.hotel_outlined),
+    _PlanScheduleRow('Fri', 'Rest Day', '', Icons.hotel_outlined),
     _PlanScheduleRow(
       'Sat',
       '20 min easy run',
-      'Completed',
-      Icons.check_circle,
+      '',
+      Icons.radio_button_unchecked,
       active: true,
+      opensWorkoutDetail: true,
+      detailSnapshot: saturdayWeeklyWorkoutDetailSnapshot,
     ),
-    _PlanScheduleRow('Sun', 'Rest Day', 'Rest Day', Icons.hotel_outlined),
+    _PlanScheduleRow('Sun', 'Rest Day', '', Icons.hotel_outlined),
   ],
   expertTitle: 'Explore expert goal plan',
   expertCopy:
@@ -199,6 +202,7 @@ class _PlanScheduleRow {
     this.icon, {
     this.active = false,
     this.opensWorkoutDetail = false,
+    this.detailSnapshot,
   });
 
   final String day;
@@ -207,6 +211,7 @@ class _PlanScheduleRow {
   final IconData icon;
   final bool active;
   final bool opensWorkoutDetail;
+  final WeeklyWorkoutDetailSnapshot? detailSnapshot;
 }
 
 class _ExpertPlanOptionDisplay {
@@ -232,12 +237,14 @@ class _YouTabState extends State<YouTab> {
   var _plans = false;
   var _goalPlanDetailVisible = false;
   var _workoutDetailVisible = false;
+  var _workoutDetailSnapshot = weeklyWorkoutDetailSnapshot;
   var _visibleCalendarMonth = DateTime(2026, 5);
 
   @override
   Widget build(BuildContext context) {
     if (_workoutDetailVisible) {
       return WeeklyWorkoutDetailScreen(
+        snapshot: _workoutDetailSnapshot,
         onBack: () {
           setState(() => _workoutDetailVisible = false);
         },
@@ -316,8 +323,11 @@ class _YouTabState extends State<YouTab> {
     setState(() => _goalPlanDetailVisible = true);
   }
 
-  void _showWorkoutDetail() {
-    setState(() => _workoutDetailVisible = true);
+  void _showWorkoutDetail(WeeklyWorkoutDetailSnapshot snapshot) {
+    setState(() {
+      _workoutDetailSnapshot = snapshot;
+      _workoutDetailVisible = true;
+    });
   }
 }
 
@@ -477,7 +487,10 @@ Widget _segments(
   );
 }
 
-Widget _plansEmpty(VoidCallback onViewGoalPlan, VoidCallback onViewWorkout) {
+Widget _plansEmpty(
+  VoidCallback onViewGoalPlan,
+  ValueChanged<WeeklyWorkoutDetailSnapshot> onViewWorkout,
+) {
   return Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
@@ -597,7 +610,7 @@ class _PlanMilestoneRow extends StatelessWidget {
 class _WeeklyPlanCard extends StatelessWidget {
   const _WeeklyPlanCard(this.onViewWorkout);
 
-  final VoidCallback onViewWorkout;
+  final ValueChanged<WeeklyWorkoutDetailSnapshot> onViewWorkout;
 
   @override
   Widget build(BuildContext context) {
@@ -624,14 +637,23 @@ class _WeeklyPlanCard extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           for (final row in _plansSnapshot.scheduleRows)
-            _WeeklyPlanRow(
-              row,
-              onTap: row.opensWorkoutDetail ? onViewWorkout : null,
-            ),
+            _WeeklyPlanRow(row, onTap: _workoutDetailTap(row, onViewWorkout)),
         ],
       ),
     );
   }
+}
+
+VoidCallback? _workoutDetailTap(
+  _PlanScheduleRow row,
+  ValueChanged<WeeklyWorkoutDetailSnapshot> onViewWorkout,
+) {
+  final detailSnapshot = row.detailSnapshot;
+  if (!row.opensWorkoutDetail || detailSnapshot == null) {
+    return null;
+  }
+
+  return () => onViewWorkout(detailSnapshot);
 }
 
 class _PlanCounter extends StatelessWidget {
@@ -680,6 +702,7 @@ class _WeeklyPlanRow extends StatelessWidget {
     final titleColor = display.active
         ? RuniacColors.textPrimary
         : RuniacColors.textSecondary;
+    final status = display.status;
     final row = Container(
       constraints: const BoxConstraints(minHeight: 48),
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -689,9 +712,7 @@ class _WeeklyPlanRow extends StatelessWidget {
         borderRadius: tappable ? BorderRadius.circular(8) : null,
       ),
       child: Padding(
-        padding: tappable
-            ? const EdgeInsets.symmetric(horizontal: 8)
-            : EdgeInsets.zero,
+        padding: EdgeInsets.zero,
         child: Row(
           children: [
             SizedBox(
@@ -722,12 +743,10 @@ class _WeeklyPlanRow extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(width: 8),
-            Text(
-              display.status,
-              textAlign: TextAlign.right,
-              style: _smallBodyStyle,
-            ),
+            if (status.isNotEmpty) ...[
+              const SizedBox(width: 8),
+              Text(status, textAlign: TextAlign.right, style: _smallBodyStyle),
+            ],
             if (tappable) ...[
               const SizedBox(width: 6),
               const Icon(
