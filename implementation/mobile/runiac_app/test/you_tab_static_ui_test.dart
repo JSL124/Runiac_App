@@ -90,11 +90,9 @@ void main() {
     await tester.drag(find.byType(ListView), const Offset(0, -700));
     await tester.pumpAndSettle();
 
-    expect(find.text('Explore expert goal plan'), findsOneWidget);
+    expect(find.text('Explore expert plans'), findsOneWidget);
     expect(
-      find.text(
-        'Browse coach-created plans and apply one to your current goal plan.',
-      ),
+      find.text('Browse coach-reviewed plans at your own pace.'),
       findsOneWidget,
     );
     expect(find.text('Coach-created'), findsOneWidget);
@@ -104,6 +102,61 @@ void main() {
     expect(find.text('Full Marathon'), findsOneWidget);
     expect(find.text('Explore Expert Plans'), findsOneWidget);
   });
+
+  testWidgets(
+    'expert plan list opens from You Plans and renders approved static content',
+    (WidgetTester tester) async {
+      await _openYouTab(tester);
+
+      await tester.tap(find.text('Plans'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Explore Expert Plans'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Explore Expert Plans'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Expert Plans'), findsOneWidget);
+      expect(
+        find.text('Browse coach-reviewed plans at your own pace.'),
+        findsNothing,
+      );
+      expect(find.text('Search plans'), findsOneWidget);
+
+      for (final filter in const [
+        'Recommended',
+        '5K',
+        '10K',
+        'Consistency',
+        'Healthy Running',
+        'Half',
+        'Full',
+      ]) {
+        expect(find.text(filter), findsOneWidget);
+      }
+
+      for (final title in const [
+        'First 5K Preparation',
+        'Build Running Consistency',
+        '10K Preparation',
+        'Healthy Running Starter Plan',
+        'Half Marathon Preparation',
+        'Full Marathon Preparation',
+      ]) {
+        expect(find.text(title), findsOneWidget);
+      }
+
+      expect(find.text('Coach-created'), findsNothing);
+      expect(find.text('Coach Verified'), findsNothing);
+      expect(find.text('Weight Loss Starter Plan'), findsNothing);
+      expect(
+        find.text(
+          'Plans are reviewed for beginner suitability. This is general fitness guidance, not medical advice.',
+        ),
+        findsOneWidget,
+      );
+    },
+  );
 
   testWidgets('You page keeps plans controls visual only and backend safe', (
     WidgetTester tester,
@@ -173,7 +226,59 @@ void main() {
     expect(find.byType(BottomSheet), findsNothing);
     expect(find.byType(SnackBar), findsNothing);
     expect(find.text('Activity History'), findsNothing);
-    expect(find.text('Explore Expert Plans'), findsOneWidget);
+    expect(find.text('Expert Plans'), findsOneWidget);
+    expect(find.text('First 5K Preparation'), findsOneWidget);
+    expect(find.text('Explore Expert Plans'), findsNothing);
+
+    await tester.tap(find.byTooltip('Back to Plans'));
+    await tester.pumpAndSettle();
+    expect(find.text("This Week's 10K Preparation Plan"), findsOneWidget);
+  });
+
+  testWidgets('expert plan list keeps filters and View Plan visual only', (
+    WidgetTester tester,
+  ) async {
+    await _openYouTab(tester);
+
+    await tester.tap(find.text('Plans'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Explore Expert Plans'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Explore Expert Plans'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Recommended'), findsOneWidget);
+    expect(find.text('Search plans'), findsOneWidget);
+    expect(find.text('View Plan'), findsNWidgets(6));
+
+    await tester.tap(find.text('Search plans'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('First 5K Preparation'), findsOneWidget);
+    expect(find.text('Full Marathon Preparation'), findsOneWidget);
+    expect(find.byType(AlertDialog), findsNothing);
+    expect(find.byType(BottomSheet), findsNothing);
+    expect(find.byType(SnackBar), findsNothing);
+
+    await tester.tap(find.text('5K'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('First 5K Preparation'), findsOneWidget);
+    expect(find.text('Full Marathon Preparation'), findsOneWidget);
+    expect(find.text('Recommended'), findsOneWidget);
+
+    await tester.tap(find.text('View Plan').first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Expert Plans'), findsOneWidget);
+    expect(find.byType(AlertDialog), findsNothing);
+    expect(find.byType(BottomSheet), findsNothing);
+    expect(find.byType(SnackBar), findsNothing);
+    expect(find.text('10K Goal Plan'), findsNothing);
+    expect(find.text('Workout detail'), findsNothing);
+    expect(find.text('Enroll'), findsNothing);
+    expect(find.text('Unlock Premium'), findsNothing);
+    expect(find.text('Activate Plan'), findsNothing);
   });
 
   testWidgets('Upcoming weekly workout opens static workout detail only', (

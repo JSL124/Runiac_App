@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/dashboard_card.dart';
+import 'expert_plan_list_screen.dart';
 import 'goal_plan_detail_screen.dart';
 import 'weekly_workout_detail_screen.dart';
 
@@ -88,9 +89,8 @@ const _plansSnapshot = _YouPlansSnapshot(
     ),
     _PlanScheduleRow('Sun', 'Rest Day', '', Icons.hotel_outlined),
   ],
-  expertTitle: 'Explore expert goal plan',
-  expertCopy:
-      'Browse coach-created plans and apply one to your current goal plan.',
+  expertTitle: 'Explore expert plans',
+  expertCopy: 'Browse coach-reviewed plans at your own pace.',
   expertBadgeLabel: 'Coach-created',
   expertActionLabel: 'Explore Expert Plans',
   expertOptions: [
@@ -235,6 +235,7 @@ class YouTab extends StatefulWidget {
 
 class _YouTabState extends State<YouTab> {
   var _plans = false;
+  var _expertPlanListVisible = false;
   var _goalPlanDetailVisible = false;
   var _workoutDetailVisible = false;
   var _workoutDetailSnapshot = weeklyWorkoutDetailSnapshot;
@@ -259,6 +260,14 @@ class _YouTabState extends State<YouTab> {
       );
     }
 
+    if (_expertPlanListVisible) {
+      return ExpertPlanListScreen(
+        onBack: () {
+          setState(() => _expertPlanListVisible = false);
+        },
+      );
+    }
+
     final topPadding = MediaQuery.paddingOf(context).top;
     final headerHeight = topPadding + kToolbarHeight;
 
@@ -279,7 +288,11 @@ class _YouTabState extends State<YouTab> {
                 }),
                 const SizedBox(height: 12),
                 if (_plans)
-                  _plansEmpty(_showGoalPlanDetail, _showWorkoutDetail)
+                  _plansEmpty(
+                    _showGoalPlanDetail,
+                    _showWorkoutDetail,
+                    _showExpertPlanList,
+                  )
                 else
                   _progress(
                     _visibleCalendarMonth,
@@ -328,6 +341,10 @@ class _YouTabState extends State<YouTab> {
       _workoutDetailSnapshot = snapshot;
       _workoutDetailVisible = true;
     });
+  }
+
+  void _showExpertPlanList() {
+    setState(() => _expertPlanListVisible = true);
   }
 }
 
@@ -490,6 +507,7 @@ Widget _segments(
 Widget _plansEmpty(
   VoidCallback onViewGoalPlan,
   ValueChanged<WeeklyWorkoutDetailSnapshot> onViewWorkout,
+  VoidCallback onViewExpertPlans,
 ) {
   return Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -500,7 +518,7 @@ Widget _plansEmpty(
       const SizedBox(height: 12),
       _WeeklyPlanCard(onViewWorkout),
       const SizedBox(height: 12),
-      const _ExpertPlansCard(),
+      _ExpertPlansCard(onViewExpertPlans),
     ],
   );
 }
@@ -780,7 +798,9 @@ class _WeeklyPlanRow extends StatelessWidget {
 }
 
 class _ExpertPlansCard extends StatelessWidget {
-  const _ExpertPlansCard();
+  const _ExpertPlansCard(this.onViewExpertPlans);
+
+  final VoidCallback onViewExpertPlans;
 
   @override
   Widget build(BuildContext context) {
@@ -810,7 +830,10 @@ class _ExpertPlansCard extends StatelessWidget {
           const SizedBox(height: 12),
           const _CoachCreatedBadge(),
           const SizedBox(height: 16),
-          _StaticPlanAction(_plansSnapshot.expertActionLabel),
+          _StaticPlanAction(
+            _plansSnapshot.expertActionLabel,
+            onTap: onViewExpertPlans,
+          ),
         ],
       ),
     );
