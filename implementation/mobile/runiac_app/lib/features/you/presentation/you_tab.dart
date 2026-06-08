@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/dashboard_card.dart';
 import 'goal_plan_detail_screen.dart';
+import 'weekly_workout_detail_screen.dart';
 
 const _monthNames = [
   'January',
@@ -72,6 +73,7 @@ const _plansSnapshot = _YouPlansSnapshot(
       'Upcoming · 7:30 AM',
       Icons.radio_button_unchecked,
       active: true,
+      opensWorkoutDetail: true,
     ),
     _PlanScheduleRow('Fri', 'Rest Day', 'Rest Day', Icons.hotel_outlined),
     _PlanScheduleRow(
@@ -196,6 +198,7 @@ class _PlanScheduleRow {
     this.status,
     this.icon, {
     this.active = false,
+    this.opensWorkoutDetail = false,
   });
 
   final String day;
@@ -203,6 +206,7 @@ class _PlanScheduleRow {
   final String status;
   final IconData icon;
   final bool active;
+  final bool opensWorkoutDetail;
 }
 
 class _ExpertPlanOptionDisplay {
@@ -227,10 +231,19 @@ class YouTab extends StatefulWidget {
 class _YouTabState extends State<YouTab> {
   var _plans = false;
   var _goalPlanDetailVisible = false;
+  var _workoutDetailVisible = false;
   var _visibleCalendarMonth = DateTime(2026, 5);
 
   @override
   Widget build(BuildContext context) {
+    if (_workoutDetailVisible) {
+      return WeeklyWorkoutDetailScreen(
+        onBack: () {
+          setState(() => _workoutDetailVisible = false);
+        },
+      );
+    }
+
     if (_goalPlanDetailVisible) {
       return GoalPlanDetailScreen(
         onBack: () {
@@ -259,7 +272,7 @@ class _YouTabState extends State<YouTab> {
                 }),
                 const SizedBox(height: 12),
                 if (_plans)
-                  _plansEmpty(_showGoalPlanDetail)
+                  _plansEmpty(_showGoalPlanDetail, _showWorkoutDetail)
                 else
                   _progress(
                     _visibleCalendarMonth,
@@ -301,6 +314,10 @@ class _YouTabState extends State<YouTab> {
 
   void _showGoalPlanDetail() {
     setState(() => _goalPlanDetailVisible = true);
+  }
+
+  void _showWorkoutDetail() {
+    setState(() => _workoutDetailVisible = true);
   }
 }
 
@@ -460,7 +477,7 @@ Widget _segments(
   );
 }
 
-Widget _plansEmpty(VoidCallback onViewGoalPlan) {
+Widget _plansEmpty(VoidCallback onViewGoalPlan, VoidCallback onViewWorkout) {
   return Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
@@ -468,7 +485,7 @@ Widget _plansEmpty(VoidCallback onViewGoalPlan) {
       const SizedBox(height: 12),
       _CurrentGoalPlanCard(onViewGoalPlan),
       const SizedBox(height: 12),
-      const _WeeklyPlanCard(),
+      _WeeklyPlanCard(onViewWorkout),
       const SizedBox(height: 12),
       const _ExpertPlansCard(),
     ],
@@ -578,7 +595,9 @@ class _PlanMilestoneRow extends StatelessWidget {
 }
 
 class _WeeklyPlanCard extends StatelessWidget {
-  const _WeeklyPlanCard();
+  const _WeeklyPlanCard(this.onViewWorkout);
+
+  final VoidCallback onViewWorkout;
 
   @override
   Widget build(BuildContext context) {
@@ -604,7 +623,11 @@ class _WeeklyPlanCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 14),
-          for (final row in _plansSnapshot.scheduleRows) _WeeklyPlanRow(row),
+          for (final row in _plansSnapshot.scheduleRows)
+            _WeeklyPlanRow(
+              row,
+              onTap: row.opensWorkoutDetail ? onViewWorkout : null,
+            ),
         ],
       ),
     );
@@ -646,53 +669,92 @@ class _PlanCounter extends StatelessWidget {
 }
 
 class _WeeklyPlanRow extends StatelessWidget {
-  const _WeeklyPlanRow(this.display);
+  const _WeeklyPlanRow(this.display, {this.onTap});
 
   final _PlanScheduleRow display;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
+    final tappable = onTap != null;
     final titleColor = display.active
         ? RuniacColors.textPrimary
         : RuniacColors.textSecondary;
-    return Container(
+    final row = Container(
       constraints: const BoxConstraints(minHeight: 48),
       padding: const EdgeInsets.symmetric(vertical: 8),
-      decoration: const BoxDecoration(
-        border: Border(top: BorderSide(color: RuniacColors.border)),
+      decoration: BoxDecoration(
+        color: tappable ? const Color(0xFFF7FAFF) : null,
+        border: const Border(top: BorderSide(color: RuniacColors.border)),
+        borderRadius: tappable ? BorderRadius.circular(8) : null,
       ),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 34,
-            child: Text(display.day, style: _bodyStrongStyle),
-          ),
-          const SizedBox(width: 8),
-          Icon(
-            display.icon,
-            size: 22,
-            color: display.active
-                ? RuniacColors.primaryBlue
-                : RuniacColors.textSecondary,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              display.title,
-              style: TextStyle(
-                color: titleColor,
-                fontSize: 13,
-                fontWeight: display.active ? FontWeight.w700 : FontWeight.w600,
+      child: Padding(
+        padding: tappable
+            ? const EdgeInsets.symmetric(horizontal: 8)
+            : EdgeInsets.zero,
+        child: Row(
+          children: [
+            SizedBox(
+              width: 34,
+              child: Text(
+                display.day,
+                style: display.active ? _bodyStrongStyle : _smallBodyStyle,
               ),
             ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            display.status,
-            textAlign: TextAlign.right,
-            style: _smallBodyStyle,
-          ),
-        ],
+            const SizedBox(width: 8),
+            Icon(
+              display.icon,
+              size: 22,
+              color: display.active
+                  ? RuniacColors.primaryBlue
+                  : RuniacColors.textSecondary,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                display.title,
+                style: TextStyle(
+                  color: titleColor,
+                  fontSize: 13,
+                  fontWeight: display.active
+                      ? FontWeight.w800
+                      : FontWeight.w600,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              display.status,
+              textAlign: TextAlign.right,
+              style: _smallBodyStyle,
+            ),
+            if (tappable) ...[
+              const SizedBox(width: 6),
+              const Icon(
+                Icons.chevron_right,
+                key: ValueKey('weekly_workout_detail_chevron'),
+                color: RuniacColors.primaryBlue,
+                size: 20,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+
+    if (!tappable) {
+      return row;
+    }
+
+    return Semantics(
+      button: true,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(8),
+          onTap: onTap,
+          child: row,
+        ),
       ),
     );
   }

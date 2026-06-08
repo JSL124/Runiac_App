@@ -173,6 +173,227 @@ void main() {
     expect(find.text('Explore Expert Plans'), findsOneWidget);
   });
 
+  testWidgets('Upcoming weekly workout opens static workout detail only', (
+    WidgetTester tester,
+  ) async {
+    // Given: the static Plans weekly schedule is visible.
+    await _openYouTab(tester);
+    await tester.tap(find.text('Plans'));
+    await tester.pumpAndSettle();
+
+    // When: the upcoming Thu workout row is tapped.
+    await Scrollable.ensureVisible(
+      tester.element(find.text('Upcoming · 7:30 AM')),
+      alignment: 0.45,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Upcoming · 7:30 AM'));
+    await tester.pumpAndSettle();
+
+    // Then: the static workout instruction detail is shown.
+    expect(find.text('Workout detail'), findsOneWidget);
+    expect(find.text('THURSDAY · EASY RUN'), findsOneWidget);
+    expect(find.text('A gentle 20 minutes.'), findsOneWidget);
+    expect(find.text('Suggested pace'), findsOneWidget);
+    expect(find.text('Warm-up'), findsOneWidget);
+    expect(find.text('Easy run'), findsOneWidget);
+    expect(find.text('Cool-down'), findsOneWidget);
+    await tester.drag(find.byType(ListView), const Offset(0, -700));
+    await tester.pumpAndSettle();
+    expect(find.text('Start This Run'), findsOneWidget);
+  });
+
+  testWidgets('Rest and completed weekly rows do not open workout detail', (
+    WidgetTester tester,
+  ) async {
+    // Given: the static Plans weekly schedule is visible.
+    await _openYouTab(tester);
+    await tester.tap(find.text('Plans'));
+    await tester.pumpAndSettle();
+
+    // Then: only the upcoming workout exposes a detail chevron.
+    expect(
+      find.byKey(const ValueKey('weekly_workout_detail_chevron')),
+      findsOneWidget,
+    );
+
+    // When: a completed workout row is tapped.
+    await Scrollable.ensureVisible(
+      tester.element(find.text('15 min walk-run')),
+      alignment: 0.45,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('15 min walk-run'));
+    await tester.pumpAndSettle();
+
+    // Then: no completed-workout detail flow is introduced.
+    expect(find.text('Workout detail'), findsNothing);
+    expect(find.text('15 min walk-run'), findsOneWidget);
+
+    // When: a Rest Day row is tapped.
+    await tester.tap(find.text('Mon'));
+    await tester.pumpAndSettle();
+
+    // Then: no Rest Day detail flow is introduced.
+    expect(find.text('Workout detail'), findsNothing);
+    expect(find.text('Rest Day'), findsWidgets);
+  });
+
+  testWidgets('Workout detail edit schedule is preview only', (
+    WidgetTester tester,
+  ) async {
+    // Given: the static Workout detail screen is open.
+    await _openYouTab(tester);
+    await tester.tap(find.text('Plans'));
+    await tester.pumpAndSettle();
+    await Scrollable.ensureVisible(
+      tester.element(find.text('Upcoming · 7:30 AM')),
+      alignment: 0.45,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Upcoming · 7:30 AM'));
+    await tester.pumpAndSettle();
+
+    // When: the preview-only Edit schedule action is opened.
+    await tester.tap(find.text('Edit schedule'));
+    await tester.pumpAndSettle();
+
+    // Then: the bottom sheet explains that backend-controlled updates come later.
+    expect(find.byType(BottomSheet), findsOneWidget);
+    expect(find.text('Edit schedule'), findsWidgets);
+    expect(find.text('Current plan'), findsOneWidget);
+    expect(find.text('Thursday · 7:30 AM'), findsOneWidget);
+    expect(find.text('Morning · 7:30 AM'), findsOneWidget);
+    expect(find.text('Lunch · 12:30 PM'), findsOneWidget);
+    expect(find.text('Evening · 6:30 PM'), findsOneWidget);
+    expect(
+      find.text(
+        'Preview only. Schedule changes will be connected later through backend-controlled plan updates.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Save'), findsNothing);
+  });
+
+  testWidgets('Workout detail disables overscroll stretch locally', (
+    WidgetTester tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 520);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    // Given: the static Workout detail screen is open on a constrained viewport.
+    await _openYouTab(tester);
+    await tester.tap(find.text('Plans'));
+    await tester.pumpAndSettle();
+    await Scrollable.ensureVisible(
+      tester.element(find.text('Upcoming · 7:30 AM')),
+      alignment: 0.45,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Upcoming · 7:30 AM'));
+    await tester.pumpAndSettle();
+
+    // Then: the detail scroll surface disables overscroll stretch locally.
+    expect(
+      find.byKey(const ValueKey('workout_detail_no_overscroll')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.text('Edit schedule'));
+    await tester.pumpAndSettle();
+
+    // And: the preview-only sheet uses the same no-stretch boundary locally.
+    expect(
+      find.byKey(const ValueKey('edit_schedule_no_overscroll')),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Workout detail keeps Suggested pace metric compact', (
+    WidgetTester tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    // Given: the static Workout detail screen is open on a narrow viewport.
+    await _openYouTab(tester);
+    await tester.tap(find.text('Plans'));
+    await tester.pumpAndSettle();
+    await Scrollable.ensureVisible(
+      tester.element(find.text('Upcoming · 7:30 AM')),
+      alignment: 0.45,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Upcoming · 7:30 AM'));
+    await tester.pumpAndSettle();
+
+    final suggestedPaceLabel = tester.widget<Text>(
+      find.byKey(const ValueKey('suggested_pace_metric_label')),
+    );
+
+    // Then: the long metric label remains a compact single-line label.
+    expect(suggestedPaceLabel.data, 'Suggested pace');
+    expect(suggestedPaceLabel.maxLines, 1);
+    expect(suggestedPaceLabel.softWrap, isFalse);
+    expect(find.text('7:30 /km'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Workout detail start action stays visual only', (
+    WidgetTester tester,
+  ) async {
+    // Given: the static Workout detail screen is open.
+    await _openYouTab(tester);
+    await tester.tap(find.text('Plans'));
+    await tester.pumpAndSettle();
+    await Scrollable.ensureVisible(
+      tester.element(find.text('Upcoming · 7:30 AM')),
+      alignment: 0.45,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Upcoming · 7:30 AM'));
+    await tester.pumpAndSettle();
+
+    // When: Start This Run is tapped.
+    await tester.drag(find.byType(ListView), const Offset(0, -700));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Start This Run'));
+    await tester.pumpAndSettle();
+
+    // Then: it does not navigate to Run launch, complete anything, or show mutation UI.
+    expect(find.text('Start This Run'), findsOneWidget);
+    expect(find.text('GPS ready'), findsNothing);
+    expect(find.byType(AlertDialog), findsNothing);
+    expect(find.byType(BottomSheet), findsNothing);
+    expect(find.byType(SnackBar), findsNothing);
+
+    for (final forbidden in <Pattern>[
+      RegExp(r'\bXP\b', caseSensitive: false),
+      RegExp('streak', caseSensitive: false),
+      RegExp('rank', caseSensitive: false),
+      RegExp('leaderboard', caseSensitive: false),
+      RegExp('completed', caseSensitive: false),
+      RegExp('saved', caseSensitive: false),
+    ]) {
+      expect(
+        find.descendant(
+          of: find.byType(ListView),
+          matching: find.textContaining(forbidden),
+        ),
+        findsNothing,
+      );
+    }
+  });
+
   testWidgets(
     'View Goal Plan opens static goal detail with bottom nav visible',
     (WidgetTester tester) async {
