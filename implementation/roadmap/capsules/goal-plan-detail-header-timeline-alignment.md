@@ -12,7 +12,7 @@ Type: Flutter static frontend-only You tab Goal Plan Detail UI alignment and wee
 
 ## Status
 
-Status: Selected for implementation. Implementation may begin only after `implementation/roadmap/CURRENT.md` confirms this capsule as the current active capsule.
+Status: Closed after implementation commit `7798f058ae1b272e8eca6dd8a31cba4490c8faa1 feat(you): refine goal plan detail week list` was pushed to `origin/main` and hosted Governance CI #65 passed.
 
 ## Required Agent Chain
 
@@ -42,7 +42,7 @@ The screen remains a static backend-owned display snapshot only. Static Monday-t
 - Remove or avoid older short strip treatment on the Goal Plan Detail screen.
 - Align completed, current, upcoming, and goal-week timeline markers with their corresponding `Week` labels and row content.
 - Add horizontal dividers between week blocks.
-- Keep the vertical connector visually continuous and centered through the marker column, bounded to week header rows only, and never extended through expanded daily-plan content.
+- Remove vertical connector lines between week markers; keep standalone markers aligned to each `Week` label and row content.
 - Preserve static progress semantics, but represent them visually only.
 - Remove visible `Completed`, `Current`, and `Upcoming` row text labels.
 - Treat `Goal Week` as a visual/static milestone state only if it remains present; do not require a visible `Goal Week` row label.
@@ -50,7 +50,7 @@ The screen remains a static backend-owned display snapshot only. Static Monday-t
 - Add initially-collapsed weekly dropdown behavior for each week row.
 - When a week is expanded, show static Monday-to-Sunday daily plan rows with day plus Run/Rest or workout type plus distance/time.
 - Use explicit static sample onboarding mapping for preview only: for the sample `10K Goal Plan`, running days are Monday, Wednesday, Friday, and Saturday; rest days are Tuesday, Thursday, and Sunday.
-- Add a current-week full-row light-blue highlight that includes the marker, week title, distance/time summary, and chevron within the row content margins.
+- Add a current-week full-row light-blue highlight that includes the marker, week title, and chevron within the row content margins without visible weekly distance/time summary text.
 
 ## Forbidden Scope
 
@@ -87,18 +87,28 @@ Stage 2 implementation validation before Ready for commit:
 - `./tools/governance-ci/run-all-checks.sh`.
 - Android emulator screenshot smoke for initial header/accent strip, timeline alignment, and sticky behavior unless unavailable.
 
+## Closure Evidence
+
+- Routing commit: `ab47260 docs(roadmap): select goal plan detail alignment capsule`.
+- Scope refinement commit: `53ddd1e docs(roadmap): refine goal plan detail capsule scope`.
+- Implementation commit: `7798f058ae1b272e8eca6dd8a31cba4490c8faa1 feat(you): refine goal plan detail week list`.
+- Hosted Governance CI: #65 PASS, run ID `27160664756`, exact head SHA `7798f058ae1b272e8eca6dd8a31cba4490c8faa1`.
+- Local validation before implementation commit: focused Goal Plan Detail widget test PASS, `flutter test test/you_tab_static_ui_test.dart` PASS, `flutter analyze --no-pub` PASS, `flutter test` PASS, `git diff --check` PASS, and `./tools/governance-ci/run-all-checks.sh` PASS.
+- Android screenshot smoke before implementation commit: `/private/tmp/runiac-goal-plan-no-summary-initial.png` and `/private/tmp/runiac-goal-plan-no-summary-week3-expanded.png` confirmed no weekly summary text, no vertical marker connector lines, preserved standalone markers, preserved chevrons, preserved current-week highlight, and preserved daily plan rows.
+
 ## Done When
 
-- [ ] `CURRENT.md` confirms this capsule as active.
-- [ ] Header/back/title layout matches the Expert Plan Detail / Plan Preview pattern.
-- [ ] Long blue/orange accent strip appears directly below the fixed header as first content.
-- [ ] Accent strip is not sticky and is not part of fixed header height.
-- [ ] Weekly timeline markers align with the `Week` labels and row content.
-- [ ] Week blocks have horizontal dividers and connector lines remain bounded to week header rows.
-- [ ] Completed/current/upcoming/goal-week semantics remain static and visually consistent without visible `Completed`, `Current`, or `Upcoming` row labels.
-- [ ] Weekly dropdowns are initially collapsed and show static Monday-to-Sunday daily plan rows when expanded.
-- [ ] Sample daily rows use static preview-only run/rest mapping and do not introduce persistence, onboarding mutation, or trusted progress state.
-- [ ] Current week has a full-row light-blue highlight and an orange circular running-person marker.
-- [ ] No backend-owned state behavior, persistence, calculation, or mutation is introduced.
-- [ ] Required validation passes.
-- [ ] Implementation stops at Ready for commit.
+- [x] `CURRENT.md` confirmed this capsule as active before implementation.
+- [x] Header/back/title layout matches the Expert Plan Detail / Plan Preview pattern.
+- [x] Long blue/orange accent strip appears directly below the fixed header as first content.
+- [x] Accent strip is not sticky and is not part of fixed header height.
+- [x] Weekly timeline markers align with the `Week` labels and row content.
+- [x] Week blocks have horizontal dividers, and vertical connector lines were removed per the refined follow-up QA seed.
+- [x] Completed/current/upcoming/goal-week semantics remain static and visually consistent without visible `Completed`, `Current`, or `Upcoming` row labels.
+- [x] Weekly dropdowns are initially collapsed and show static Monday-to-Sunday daily plan rows when expanded.
+- [x] Sample daily rows use static preview-only run/rest mapping and do not introduce persistence, onboarding mutation, or trusted progress state.
+- [x] Current week has a full-row light-blue highlight and an orange circular running-person marker.
+- [x] Visible weekly distance/time summary text was removed from week rows while daily row distance/time display remains static preview data.
+- [x] No backend-owned state behavior, persistence, calculation, or mutation is introduced.
+- [x] Required validation passed.
+- [x] Implementation was pushed and verified by hosted Governance CI.
