@@ -12,9 +12,38 @@ Type: Flutter static frontend-only You tab Expert Plan list capsule.
 
 ## Status
 
-Status: Routed; implementation not started.
+Status: Closed.
 
 Routed on: 2026-06-08 Asia/Singapore.
+Implemented and closed on: 2026-06-08 Asia/Singapore.
+
+Implementation commit: `8111423de83369aec37425c1582897af9febdf59 feat(you): add expert plan list screen`.
+
+Validation:
+
+- `git diff --check`: PASS.
+- `flutter analyze`: PASS.
+- `flutter test`: PASS, `+35`.
+- `./tools/governance-ci/run-all-checks.sh`: PASS.
+
+Closure summary:
+
+- Added a static Expert Plans list screen from `You > Plans > Expert Plans`.
+- Preserved the existing bottom navigation; no new Explore tab was added.
+- Rendered static filter chips with `Recommended` visually selected.
+- Rendered beginner-friendly static plan cards in the approved order.
+- Used `Coach reviewed` wording and did not use `Coach Verified`.
+- Used `Healthy Running Starter Plan` instead of direct weight-loss framing.
+- Kept `View Plan` controls visual-only/no-op.
+- Added visual-only search shell and Runiac long stripe refinement while preserving static-only behavior.
+- Added/updated focused widget tests for static content, entry routing, visual-only search/filter controls, no-op `View Plan`, and back-to-Plans behavior.
+
+Backend-owned boundary preserved:
+
+- No expert plan detail screen.
+- No functional filtering, purchase, enrollment, activation, subscription unlock, publication workflow, trainer/admin role logic, or real coach verification logic.
+- No Firebase/Auth/Firestore/Cloud Functions/FCM/backend calls, GPS/native work, dependency changes, services, repositories, providers, DTOs, backend contracts, or domain models.
+- No client-owned mutation of XP, streak, level, rank, leaderboard score, weekly XP, monthly XP, subscription privilege state, expert plan publication state, trusted enrollment state, or trusted progress/completion state.
 
 ## Required Agent Chain
 
