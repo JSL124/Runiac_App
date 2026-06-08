@@ -12,7 +12,7 @@ Type: Flutter static frontend-only You tab Expert Plan Detail capsule.
 
 ## Status
 
-Status: Implemented locally, validated, and ready for commit.
+Status: Closed after implementation commit, push, and hosted Governance CI verification.
 
 ## Required Agent Chain
 
@@ -79,6 +79,12 @@ Static display values remain presentation-only placeholders until backend read m
 
 ## Validation Evidence
 
+Implementation closure evidence:
+
+- Implementation commit: `bd5c4b2c118bf0ce3776747418a40aa0d8e14007 feat(you): add expert plan detail preview`.
+- Hosted Governance CI #63 PASS for run ID `27151963998`.
+- Hosted Governance CI head SHA: `bd5c4b2c118bf0ce3776747418a40aa0d8e14007`.
+
 Local implementation validation before commit:
 
 - `cd implementation/mobile/runiac_app && flutter test test/you_tab_static_ui_test.dart` PASS.
@@ -93,6 +99,7 @@ Governance CI note:
 
 - `check-workflow-memory-drift` emitted a WARN because `tools/governance-ci/check-diff-hygiene.sh` changed to allowlist the new routed capsule document.
 - The warning is reviewed as expected and does not indicate a failing gate; all Governance CI checks completed with PASS.
+- The pushed implementation commit was later verified by hosted Governance CI #63 PASS for run ID `27151963998` at exact head SHA `bd5c4b2c118bf0ce3776747418a40aa0d8e14007`.
 
 ## Done When
 
