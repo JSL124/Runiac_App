@@ -6,15 +6,20 @@
 
 ## Mode / Type
 
-Mode: implementation-approved for the future implementation step.
+Mode: implementation-approved.
 
 Type: Flutter static frontend-only You tab Weekly Workout Detail capsule.
 
 ## Status
 
-Status: Routed; implementation not started.
+Status: Implemented, validated, committed locally, and closed on 2026-06-08 Asia/Singapore.
 
 Routed on: 2026-06-08 Asia/Singapore.
+
+Implementation commits:
+
+- `a6f7e7f8b0b977df06e60d33158d1c2421878c64 feat(you): add weekly workout detail screen`
+- `67f67534add890b97ee39cedfa358cdac7fe21a4 fix(you): refine weekly plan and schedule preview`
 
 ## Required Agent Chain
 
@@ -24,11 +29,26 @@ A0_ORCH -> A9_TRACE -> A5_WIRE -> A10_FLUTTER_IMPL -> A6_REVIEW -> A12_QA_TEST -
 
 ## Goal
 
-Add a static beginner-friendly Weekly Workout Detail screen opened from the You > Plans weekly schedule row:
+Add a static beginner-friendly Weekly Workout Detail screen opened from the You > Plans weekly schedule workout rows that have an available instruction preview:
 
 `Thu · 20 min easy run · Upcoming · 7:30 AM`
 
+`Sat · 20 min easy run`
+
 The screen must behave as a workout instruction sheet, not analytics, not a real run start, and not real schedule editing.
+
+## Implemented Scope
+
+- Added the static `WeeklyWorkoutDetailScreen`.
+- Opened static workout instruction previews from the You > Plans Thu upcoming and Sat easy-run rows.
+- Kept the Tue completed workout row and all Rest Day rows non-clickable.
+- Kept completed workout rows free of analytics, XP, streak, route, completion summary, and backend-owned state flows.
+- Added static Saturday labeling with no invented schedule time.
+- Refined the preview-only Edit schedule sheet.
+- Preserved `Start This Run` as visual-only/no-op.
+- Polished weekly plan row alignment so tappable and non-tappable rows share the same day-column grid.
+- Removed duplicate right-side Rest Day labels while preserving muted non-clickable rest rows.
+- Added focused widget coverage for static detail entry, Sat detail, tappable affordances, non-clickable Rest/Completed rows, schedule preview boundaries, visual-only start action, and row alignment.
 
 ## Product Direction
 
@@ -40,13 +60,14 @@ The screen must behave as a workout instruction sheet, not analytics, not a real
 
 ## Approved UI Decisions
 
-- Only the `Thu · 20 min easy run · Upcoming · 7:30 AM` row is tappable.
-- Rest Day rows are not tappable in this capsule.
-- Completed workout rows are not tappable in this capsule.
-- The whole Thu upcoming row should feel tappable, not only the day label.
-- The Thu row should use a subtle highlight, stronger title, right chevron, row-wide tap affordance, and normal mobile pressed feedback.
+- The `Thu · 20 min easy run · Upcoming · 7:30 AM` row is tappable.
+- The `Sat · 20 min easy run` row is tappable.
+- Tappable workout rows open static workout instruction preview only.
+- The whole tappable workout row should feel tappable, not only the day label.
+- Tappable workout rows should use a workout status circle, stronger title, right chevron, row-wide tap affordance, and normal mobile pressed feedback.
 - Rest Day rows should be visually quieter with no chevron, no highlight, and no pressed feedback.
 - Completed rows should keep the completed indicator but must not show a chevron or detail affordance.
+- The `Tue · 15 min walk-run · Completed` row remains non-clickable because completed workout detail is unavailable in this static capsule.
 - The Workout Detail screen title is `Workout detail`.
 - The top-right secondary action is `Edit schedule`.
 - `Start This Run` is visual-only and no-op in this capsule.
@@ -104,6 +125,7 @@ Edit schedule bottom sheet:
 - `Edit schedule`
 - `Current plan`
 - `Thursday · 7:30 AM`
+- For the Saturday workout detail, the current plan label is `Saturday` with no invented time.
 - `Suggested options`
 - `Morning · 7:30 AM`
 - `Lunch · 12:30 PM`
@@ -125,7 +147,8 @@ Edit schedule bottom sheet:
 
 - Static frontend-only You tab weekly workout detail interaction.
 - Add the static detail screen under the You feature presentation layer.
-- Make only the Thu upcoming workout row tappable.
+- Make the Thu upcoming and Sat easy-run workout rows tappable.
+- Keep the Tue completed workout row and all Rest Day rows non-clickable.
 - Add the preview-only Edit schedule bottom sheet.
 - Add or update focused widget tests for the new static UI and interaction boundaries.
 - Use existing Flutter widgets and existing dependencies only.
@@ -158,6 +181,7 @@ Edit schedule bottom sheet:
 - No client-side progress calculation.
 - No Rest Day detail flow.
 - No Completed workout detail flow.
+- No analytics, XP, streak, route, completion summary, or backend-owned state flow from completed workouts.
 - No services, repositories, providers, DTOs, backend contracts, or domain models.
 - No unrelated refactors.
 - No new ADRs.
@@ -196,6 +220,19 @@ git status --short
 
 If Flutter validation requires dependency resolution and dependencies are missing, stop and report the blocker instead of expanding scope.
 
+## Validation Evidence
+
+Local implementation and polish validation:
+
+- `git diff --check` PASS.
+- `dart format implementation/mobile/runiac_app/lib/features/you/presentation/you_tab.dart implementation/mobile/runiac_app/lib/features/you/presentation/weekly_workout_detail_screen.dart implementation/mobile/runiac_app/test/you_tab_static_ui_test.dart` PASS.
+- `cd implementation/mobile/runiac_app && flutter analyze --no-pub` PASS.
+- `cd implementation/mobile/runiac_app && flutter test` PASS.
+- `./tools/governance-ci/run-all-checks.sh` PASS.
+- Android emulator launch smoke PASS on `emulator-5554`; app built, installed, launched without runtime crash, and the Flutter run session was stopped cleanly.
+
+No hosted validation is claimed for these local commits in this closure record.
+
 ## Routing Evidence
 
 - Phase 01 Governance CI is closed.
@@ -208,6 +245,7 @@ If Flutter validation requires dependency resolution and dependencies are missin
 
 - The weekly plan schedule touches protected plan status language; keep all values static and display-only.
 - Do not make Rest Day or Completed rows look tappable.
+- Completed workout rows may show the completed status circle but must not show a chevron or row-wide tap affordance.
 - Do not make `Start This Run` look like it starts GPS, real tracking, completion, XP, streak, plan progress, or leaderboard updates.
 - Do not make Edit schedule look like a real schedule mutation.
 - Do not imply user-history analysis with copy such as `Yesterday's pace looked quick`.
@@ -215,13 +253,15 @@ If Flutter validation requires dependency resolution and dependencies are missin
 
 ## Done When
 
-- [ ] This capsule is selected before Flutter edits.
-- [ ] Only the Thu upcoming row opens the detail screen.
-- [ ] Rest Day and Completed rows remain non-clickable.
-- [ ] Static `Workout detail` screen renders the approved hero, metrics, 20-minute breakdown, effort guide, coach note, and visual-only CTA.
-- [ ] `Edit schedule` opens a preview-only bottom sheet with no save action or mutation.
-- [ ] `Start This Run` remains visual-only/no-op.
-- [ ] No forbidden files or scopes are touched.
-- [ ] No Firebase, backend, GPS/native, dependencies, real completion, schedule mutation, or trusted backend-owned state logic is introduced.
-- [ ] Required validation passes during the future implementation step.
-- [ ] Capsule, `CURRENT.md`, and snapshot are updated at closure.
+- [x] This capsule was selected before Flutter edits.
+- [x] The Thu upcoming and Sat easy-run rows open the static detail screen.
+- [x] The Sat detail uses the same 20-minute easy-run instruction content with Saturday labeling and no invented time.
+- [x] Rest Day and Completed rows remain non-clickable.
+- [x] Static `Workout detail` screen renders the approved hero, metrics, 20-minute breakdown, effort guide, coach note, and visual-only CTA.
+- [x] `Edit schedule` opens a preview-only bottom sheet with no trusted schedule mutation.
+- [x] `Start This Run` remains visual-only/no-op.
+- [x] Weekly plan row affordance and alignment polish is implemented and covered by widget tests.
+- [x] No forbidden files or scopes are touched.
+- [x] No Firebase, backend, GPS/native, dependencies, real completion, schedule mutation, or trusted backend-owned state logic is introduced.
+- [x] Required validation passed.
+- [x] Capsule, `CURRENT.md`, and snapshot are updated at closure.
