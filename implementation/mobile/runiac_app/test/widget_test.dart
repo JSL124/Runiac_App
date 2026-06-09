@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runiac_app/app.dart';
@@ -532,6 +533,75 @@ void main() {
     expect(find.text('Jinseo'), findsOneWidget);
     expect(find.text('Jurong East · Rank #18'), findsOneWidget);
     expect(find.text('520 XP'), findsNothing);
+  });
+
+  testWidgets('Share My Rank opens floating share card panel', (
+    WidgetTester tester,
+  ) async {
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    addTearDown(() {
+      messenger.setMockMethodCallHandler(SystemChannels.platform, null);
+    });
+    messenger.setMockMethodCallHandler(SystemChannels.platform, (
+      MethodCall methodCall,
+    ) async {
+      if (methodCall.method == 'Clipboard.setData') {
+        return null;
+      }
+
+      return null;
+    });
+
+    await tester.pumpWidget(const RuniacApp());
+
+    await tester.tap(find.text('Leaderboard'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('leaderboard_share_my_rank_button')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('leaderboard_share_rank_panel')),
+      findsOneWidget,
+    );
+    expect(find.text('Share your rank'), findsOneWidget);
+    expect(
+      tester.getCenter(find.text('Share your rank')).dx,
+      moreOrLessEquals(
+        tester
+            .getCenter(find.byKey(const Key('leaderboard_share_rank_panel')))
+            .dx,
+        epsilon: 2,
+      ),
+    );
+    expect(
+      find.byKey(const Key('leaderboard_share_rank_card_background')),
+      findsOneWidget,
+    );
+    expect(find.text('Jurong East'), findsWidgets);
+    expect(find.text('Rising Runner Division'), findsWidgets);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('leaderboard_share_rank_panel')),
+        matching: find.text('520 XP'),
+      ),
+      findsNothing,
+    );
+    expect(find.text('Share to'), findsOneWidget);
+    expect(find.text('Instagram'), findsOneWidget);
+    expect(find.text('Copy to\nClipboard'), findsOneWidget);
+    expect(find.text('Save'), findsOneWidget);
+    expect(find.text('Copy Link'), findsOneWidget);
+    expect(find.text('More'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('leaderboard_copy_rank_action')));
+    await tester.pump();
+    expect(find.text('Rank copied to clipboard'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Close share rank'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('leaderboard_share_rank_panel')), findsNothing);
   });
 
   testWidgets('View More Ranking opens static monthly detail board', (

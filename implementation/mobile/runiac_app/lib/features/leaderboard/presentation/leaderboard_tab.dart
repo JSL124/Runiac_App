@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../core/theme/runiac_colors.dart';
+
+const _shareRankCardAsset =
+    'assets/images/leaderboard/share_rank_card_background.png';
 
 const _leaderboardPreviewSnapshot = _LeaderboardPreviewSnapshot(
   tipsTitle: 'Tips',
@@ -324,6 +328,24 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
     });
   }
 
+  void _openShareRankPanel() {
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      barrierColor: RuniacColors.textPrimary.withValues(alpha: 0.28),
+      builder: (context) {
+        final currentUserRow = _leaderboardDetailSnapshot.nearbyRanks
+            .firstWhere((row) => row.isCurrentUser);
+
+        return _ShareRankFloatingPanel(
+          regionName: _leaderboardRegionSnapshot.regionName,
+          divisionName: _leaderboardDetailSnapshot.divisionLabel,
+          rankLabel: currentUserRow.rankLabel,
+        );
+      },
+    );
+  }
+
   void _closeRunnerProfile() {
     setState(() {
       _selectedProfile = null;
@@ -411,6 +433,7 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
               onVerticalDragUpdate: _handleSheetDragUpdate,
               onVerticalDragEnd: _handleSheetDragEnd,
               onViewMoreRanking: _openDetail,
+              onShareMyRank: _openShareRankPanel,
               onProfileSelected: _openRunnerProfile,
             ),
           ),
@@ -1697,6 +1720,7 @@ class _RegionPreviewSheet extends StatelessWidget {
     required this.onVerticalDragUpdate,
     required this.onVerticalDragEnd,
     required this.onViewMoreRanking,
+    required this.onShareMyRank,
     required this.onProfileSelected,
   });
 
@@ -1704,6 +1728,7 @@ class _RegionPreviewSheet extends StatelessWidget {
   final GestureDragUpdateCallback onVerticalDragUpdate;
   final GestureDragEndCallback onVerticalDragEnd;
   final VoidCallback onViewMoreRanking;
+  final VoidCallback onShareMyRank;
   final ValueChanged<_RunnerAchievementProfileSnapshot> onProfileSelected;
 
   @override
@@ -1758,7 +1783,10 @@ class _RegionPreviewSheet extends StatelessWidget {
                 const SizedBox(height: 12),
                 _MyRankPreviewCard(onProfileSelected: onProfileSelected),
                 const SizedBox(height: 12),
-                _RegionPreviewActions(onViewMoreRanking: onViewMoreRanking),
+                _RegionPreviewActions(
+                  onViewMoreRanking: onViewMoreRanking,
+                  onShareMyRank: onShareMyRank,
+                ),
               ],
             ),
           ),
@@ -2118,9 +2146,13 @@ class _MyRankPreviewCard extends StatelessWidget {
 }
 
 class _RegionPreviewActions extends StatelessWidget {
-  const _RegionPreviewActions({required this.onViewMoreRanking});
+  const _RegionPreviewActions({
+    required this.onViewMoreRanking,
+    required this.onShareMyRank,
+  });
 
   final VoidCallback onViewMoreRanking;
+  final VoidCallback onShareMyRank;
 
   @override
   Widget build(BuildContext context) {
@@ -2137,11 +2169,434 @@ class _RegionPreviewActions extends StatelessWidget {
         const SizedBox(width: 10),
         Expanded(
           child: _VisualCta(
+            key: const Key('leaderboard_share_my_rank_button'),
             label: _leaderboardRegionSnapshot.secondaryActionLabel,
             filled: false,
+            onTap: onShareMyRank,
           ),
         ),
       ],
+    );
+  }
+}
+
+class _ShareRankFloatingPanel extends StatelessWidget {
+  const _ShareRankFloatingPanel({
+    required this.regionName,
+    required this.divisionName,
+    required this.rankLabel,
+  });
+
+  final String regionName;
+  final String divisionName;
+  final String rankLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      key: const Key('leaderboard_share_rank_panel'),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+      backgroundColor: Colors.transparent,
+      child: FractionallySizedBox(
+        heightFactor: 0.84,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: RuniacColors.white,
+            borderRadius: BorderRadius.circular(22),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x26172033),
+                blurRadius: 26,
+                offset: Offset(0, 12),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(22),
+            child: Column(
+              children: [
+                _ShareRankPanelHeader(
+                  onClose: () => Navigator.of(context).pop(),
+                ),
+                Expanded(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      return Align(
+                        alignment: Alignment.topCenter,
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(8, 10, 8, 10),
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              maxHeight: constraints.maxHeight - 20,
+                            ),
+                            child: _ShareRankCardPreview(
+                              regionName: regionName,
+                              divisionName: divisionName,
+                              rankLabel: rankLabel,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                const Divider(height: 1, color: Color(0xFFE4E9FA)),
+                _ShareRankActions(
+                  regionName: regionName,
+                  divisionName: divisionName,
+                  rankLabel: rankLabel,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ShareRankPanelHeader extends StatelessWidget {
+  const _ShareRankPanelHeader({required this.onClose});
+
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 14, 12, 8),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 52),
+              child: Text(
+                'Share your rank',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: RuniacColors.textPrimary,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+          ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: IconButton(
+              key: const Key('leaderboard_share_rank_close_button'),
+              tooltip: 'Close share rank',
+              icon: const Icon(Icons.close),
+              color: RuniacColors.textPrimary,
+              onPressed: onClose,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ShareRankCardPreview extends StatelessWidget {
+  const _ShareRankCardPreview({
+    required this.regionName,
+    required this.divisionName,
+    required this.rankLabel,
+  });
+
+  final String regionName;
+  final String divisionName;
+  final String rankLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    return AspectRatio(
+      aspectRatio: 1122 / 1402,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final cardWidth = constraints.maxWidth;
+          final cardHeight = constraints.maxHeight;
+
+          return Stack(
+            key: const Key('leaderboard_share_rank_card_preview'),
+            fit: StackFit.expand,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: Image.asset(
+                  _shareRankCardAsset,
+                  key: const Key('leaderboard_share_rank_card_background'),
+                  fit: BoxFit.cover,
+                ),
+              ),
+              Positioned(
+                left: cardWidth * 0.34,
+                right: cardWidth * 0.29,
+                top: cardHeight * 0.344,
+                height: cardHeight * 0.075,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    regionName,
+                    maxLines: 1,
+                    textAlign: TextAlign.left,
+                    style: const TextStyle(
+                      color: RuniacColors.white,
+                      fontSize: 28,
+                      fontWeight: FontWeight.w900,
+                      height: 1,
+                      shadows: [
+                        Shadow(
+                          color: Color(0x99000000),
+                          blurRadius: 10,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: cardWidth * 0.18,
+                right: cardWidth * 0.18,
+                top: cardHeight * 0.435,
+                height: cardHeight * 0.052,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    divisionName,
+                    maxLines: 1,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Color(0xFFE1E8FF),
+                      fontSize: 25,
+                      fontWeight: FontWeight.w800,
+                      shadows: [
+                        Shadow(
+                          color: Color(0x99000000),
+                          blurRadius: 8,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: cardWidth * 0.2,
+                right: cardWidth * 0.2,
+                top: cardHeight * 0.535,
+                height: cardHeight * 0.225,
+                child: FittedBox(
+                  fit: BoxFit.contain,
+                  child: _ShareRankNumber(rankLabel: rankLabel),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _ShareRankNumber extends StatelessWidget {
+  const _ShareRankNumber({required this.rankLabel});
+
+  final String rankLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final rankNumber = rankLabel.startsWith('#')
+        ? rankLabel.substring(1)
+        : rankLabel;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.baseline,
+      textBaseline: TextBaseline.alphabetic,
+      children: [
+        const Text(
+          '#',
+          style: TextStyle(
+            color: RuniacColors.accentOrange,
+            fontSize: 122,
+            fontWeight: FontWeight.w900,
+            height: 0.94,
+            shadows: [
+              Shadow(
+                color: Color(0xAA000000),
+                blurRadius: 16,
+                offset: Offset(0, 3),
+              ),
+            ],
+          ),
+        ),
+        Text(
+          rankNumber,
+          style: const TextStyle(
+            color: RuniacColors.white,
+            fontSize: 150,
+            fontWeight: FontWeight.w900,
+            height: 0.94,
+            shadows: [
+              Shadow(
+                color: Color(0xAA000000),
+                blurRadius: 16,
+                offset: Offset(0, 3),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ShareRankActions extends StatelessWidget {
+  const _ShareRankActions({
+    required this.regionName,
+    required this.divisionName,
+    required this.rankLabel,
+  });
+
+  final String regionName;
+  final String divisionName;
+  final String rankLabel;
+
+  Future<void> _copyRank(BuildContext context) async {
+    await Clipboard.setData(
+      ClipboardData(
+        text:
+            'I\'m ranked $rankLabel in $regionName\'s $divisionName on Runiac.',
+      ),
+    );
+
+    if (!context.mounted) {
+      return;
+    }
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Rank copied to clipboard')));
+  }
+
+  void _showComingSoon(BuildContext context) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Share action coming soon')));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Share to',
+            style: TextStyle(
+              color: RuniacColors.textPrimary,
+              fontSize: 15,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _ShareActionButton(
+                icon: Icons.camera_alt_outlined,
+                label: 'Instagram',
+                onTap: () => _showComingSoon(context),
+              ),
+              _ShareActionButton(
+                key: const Key('leaderboard_copy_rank_action'),
+                icon: Icons.content_paste_outlined,
+                label: 'Copy to\nClipboard',
+                onTap: () => _copyRank(context),
+              ),
+              _ShareActionButton(
+                icon: Icons.file_download_outlined,
+                label: 'Save',
+                onTap: () => _showComingSoon(context),
+              ),
+              _ShareActionButton(
+                icon: Icons.link,
+                label: 'Copy Link',
+                onTap: () => _showComingSoon(context),
+              ),
+              _ShareActionButton(
+                icon: Icons.more_horiz,
+                label: 'More',
+                onTap: () => _showComingSoon(context),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ShareActionButton extends StatelessWidget {
+  const _ShareActionButton({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 58,
+      child: Column(
+        children: [
+          Material(
+            color: RuniacColors.white,
+            borderRadius: BorderRadius.circular(14),
+            elevation: 4,
+            shadowColor: RuniacColors.textPrimary.withValues(alpha: 0.12),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(14),
+              onTap: onTap,
+              child: Container(
+                width: 54,
+                height: 54,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFFE4E9FA)),
+                ),
+                child: Icon(icon, color: RuniacColors.primaryBlue, size: 29),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: RuniacColors.textPrimary,
+              fontSize: 10,
+              height: 1.05,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
