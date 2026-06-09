@@ -122,32 +122,36 @@ class _SharedRoutesSheetBody extends StatelessWidget {
   Widget build(BuildContext context) {
     const snapshot = _sharedRoutesDisplaySnapshot;
 
-    if (isCollapsed) {
-      return const KeyedSubtree(
-        key: Key('maps_sheet_body'),
-        child: _SheetHandleArea(),
-      );
-    }
-
     return KeyedSubtree(
       key: const Key('maps_sheet_body'),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, _sheetBottomPadding),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const _SheetHandleArea(),
-            const _MapsSheetAccentStrip(),
-            const SizedBox(height: 10),
-            const _SharedRoutesHeader(),
-            const SizedBox(height: 10),
-            _SharedRouteCard(snapshot: snapshot.routeCards[0]),
-            const SizedBox(height: 8),
-            _SharedRouteCard(snapshot: snapshot.routeCards[1]),
-            const SizedBox(height: 8),
-            _SharedRouteCard(snapshot: snapshot.routeCards[2]),
-          ],
-        ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _SheetHandleArea(),
+          if (!isCollapsed)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                16,
+                0,
+                16,
+                _sheetBottomPadding,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const _MapsSheetAccentStrip(),
+                  const SizedBox(height: 10),
+                  const _SharedRoutesHeader(),
+                  const SizedBox(height: 10),
+                  _SharedRouteCard(snapshot: snapshot.routeCards[0]),
+                  const SizedBox(height: 8),
+                  _SharedRouteCard(snapshot: snapshot.routeCards[1]),
+                  const SizedBox(height: 8),
+                  _SharedRouteCard(snapshot: snapshot.routeCards[2]),
+                ],
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -173,7 +177,7 @@ class _SheetDragHandle extends StatelessWidget {
         width: 44,
         height: 5,
         decoration: BoxDecoration(
-          color: RuniacColors.border,
+          color: RuniacColors.textSecondary.withValues(alpha: 0.28),
           borderRadius: BorderRadius.circular(999),
         ),
       ),

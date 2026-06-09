@@ -257,18 +257,38 @@ void main() {
     await tester.pumpAndSettle();
 
     final sheetBody = find.byKey(const Key('maps_sheet_body'));
+    final sheetSurface = find.byKey(const Key('maps_sheet_surface'));
+    final handle = find.byKey(const Key('maps_sheet_handle'));
     final initialTop = tester.getTopLeft(sheetBody).dy;
 
-    await tester.drag(
-      find.byKey(const Key('maps_sheet_handle')),
-      const Offset(0, 700),
-    );
+    await tester.drag(handle, const Offset(0, 700));
     await tester.pumpAndSettle();
 
+    final collapsedSheetTop = tester.getTopLeft(sheetSurface).dy;
+    final handleTop = tester.getTopLeft(handle).dy;
+    final handleBottom = tester.getBottomLeft(handle).dy;
+    final bottomNavTop = tester.getTopLeft(find.byType(BottomNavigationBar)).dy;
+
     expect(tester.getTopLeft(sheetBody).dy, greaterThan(initialTop + 200));
+    expect(handle, findsOneWidget);
+    expect(handleTop, greaterThanOrEqualTo(0));
+    expect(handleBottom, lessThanOrEqualTo(bottomNavTop));
+    expect(handleTop, greaterThanOrEqualTo(collapsedSheetTop));
+    expect(handleBottom, lessThanOrEqualTo(collapsedSheetTop + 46));
     expect(find.text('Shared Routes'), findsNothing);
     expect(
+      find.descendant(
+        of: sheetBody,
+        matching: find.byType(SingleChildScrollView),
+      ),
+      findsNothing,
+    );
+    expect(
       find.descendant(of: sheetBody, matching: find.byType(ListView)),
+      findsNothing,
+    );
+    expect(
+      find.descendant(of: sheetBody, matching: find.byType(CustomScrollView)),
       findsNothing,
     );
   });
