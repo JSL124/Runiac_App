@@ -69,6 +69,7 @@ const _leaderboardDetailSnapshot = _LeaderboardDetailDisplaySnapshot(
         bestStreakLabel: '365 days',
       ),
       trophy: true,
+      medalTone: _RegionPreviewMedalTone.gold,
     ),
     _LeaderboardRankRowDisplaySnapshot(
       rankLabel: '#2',
@@ -84,6 +85,7 @@ const _leaderboardDetailSnapshot = _LeaderboardDetailDisplaySnapshot(
         totalDistanceLabel: '198.2 km',
         bestStreakLabel: '19 days',
       ),
+      medalTone: _RegionPreviewMedalTone.silver,
     ),
     _LeaderboardRankRowDisplaySnapshot(
       rankLabel: '#3',
@@ -99,6 +101,7 @@ const _leaderboardDetailSnapshot = _LeaderboardDetailDisplaySnapshot(
         totalDistanceLabel: '176.0 km',
         bestStreakLabel: '18 days',
       ),
+      medalTone: _RegionPreviewMedalTone.bronze,
     ),
     _LeaderboardRankRowDisplaySnapshot(
       rankLabel: '#4',
@@ -516,6 +519,7 @@ class _LeaderboardRankRowDisplaySnapshot {
     required this.profile,
     this.trophy = false,
     this.isCurrentUser = false,
+    this.medalTone,
   });
 
   final String rankLabel;
@@ -525,6 +529,7 @@ class _LeaderboardRankRowDisplaySnapshot {
   final _RunnerAchievementProfileSnapshot profile;
   final bool trophy;
   final bool isCurrentUser;
+  final _RegionPreviewMedalTone? medalTone;
 }
 
 const _runnerAchievementBadges = [
@@ -1485,6 +1490,26 @@ class _RankBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final medalTone = row.medalTone;
+    if (medalTone != null) {
+      final colors = _resolveRegionPreviewMedalColors(medalTone);
+
+      return Container(
+        width: 42,
+        height: 42,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: colors.background,
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Icon(
+          Icons.emoji_events_outlined,
+          color: colors.foreground,
+          size: 22,
+        ),
+      );
+    }
+
     return Container(
       width: 42,
       height: 42,
@@ -1877,6 +1902,25 @@ class _RegionPreviewRankCard extends StatelessWidget {
 
 enum _RegionPreviewMedalTone { gold, silver, bronze }
 
+({Color background, Color foreground}) _resolveRegionPreviewMedalColors(
+  _RegionPreviewMedalTone tone,
+) {
+  return switch (tone) {
+    _RegionPreviewMedalTone.gold => (
+      background: const Color(0xFFFFF2E2),
+      foreground: RuniacColors.accentOrange,
+    ),
+    _RegionPreviewMedalTone.silver => (
+      background: const Color(0xFFEFF3FB),
+      foreground: RuniacColors.textSecondary,
+    ),
+    _RegionPreviewMedalTone.bronze => (
+      background: const Color(0xFFFFEBDD),
+      foreground: const Color(0xFFB56A36),
+    ),
+  };
+}
+
 class _RegionPreviewRankRow extends StatelessWidget {
   const _RegionPreviewRankRow({
     super.key,
@@ -1997,20 +2041,7 @@ class _RegionPreviewRankBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final tone = medalTone;
     if (tone != null) {
-      final colors = switch (tone) {
-        _RegionPreviewMedalTone.gold => (
-          background: const Color(0xFFFFF2E2),
-          foreground: RuniacColors.accentOrange,
-        ),
-        _RegionPreviewMedalTone.silver => (
-          background: const Color(0xFFEFF3FB),
-          foreground: RuniacColors.textSecondary,
-        ),
-        _RegionPreviewMedalTone.bronze => (
-          background: const Color(0xFFFFEBDD),
-          foreground: const Color(0xFFB56A36),
-        ),
-      };
+      final colors = _resolveRegionPreviewMedalColors(tone);
 
       return Container(
         width: size,

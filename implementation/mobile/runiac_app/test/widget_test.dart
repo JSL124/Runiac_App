@@ -585,6 +585,17 @@ void main() {
       find.byKey(const ValueKey('leaderboard_detail_top_rank_row_10')),
       findsNothing,
     );
+    for (var index = 0; index < 3; index++) {
+      expect(
+        find.descendant(
+          of: find.byKey(ValueKey('leaderboard_detail_top_rank_row_$index')),
+          matching: find.byIcon(Icons.emoji_events_outlined),
+        ),
+        findsOneWidget,
+      );
+    }
+    expect(find.text('#2'), findsNothing);
+    expect(find.text('#3'), findsNothing);
 
     for (var index = 0; index < 5; index++) {
       expect(
