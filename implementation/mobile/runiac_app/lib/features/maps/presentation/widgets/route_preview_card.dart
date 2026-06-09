@@ -17,7 +17,7 @@ class RoutePreviewCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final card = Container(
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.all(11),
       decoration: BoxDecoration(
         color: RuniacColors.white,
         borderRadius: BorderRadius.circular(8),
@@ -83,7 +83,7 @@ class RoutePreviewCard extends StatelessWidget {
     );
 
     return ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: 82, maxHeight: 82),
+      constraints: const BoxConstraints(minHeight: 92, maxHeight: 92),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
@@ -102,8 +102,8 @@ class _RouteThumbnailPlaceholder extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 56,
-      height: 44,
+      width: 64,
+      height: 50,
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: const Color(0xFFF4F7FF),

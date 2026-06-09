@@ -7,7 +7,7 @@ import 'shared_route_sheet_card.dart';
 const _homeAccentBlue = Color(0xFF2F5BFF);
 const _homeAccentOrange = Color(0xFFF97316);
 const _sheetAnimationDuration = Duration(milliseconds: 220);
-const _expandedSheetHeight = 370.0;
+const _expandedSheetHeight = 400.0;
 const _collapsedSheetHeight = 46.0;
 
 const _sharedRoutesDisplaySnapshot = _SharedRoutesDisplaySnapshot(
@@ -143,8 +143,12 @@ class _SharedRoutesSheetBody extends StatelessWidget {
                     title: snapshot.routeCards[0].title,
                     message: snapshot.routeCards[0].message,
                     onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const SharedRouteDetailScreen(),
+                      PageRouteBuilder<void>(
+                        transitionDuration: Duration.zero,
+                        reverseTransitionDuration: Duration.zero,
+                        pageBuilder: (context, animation, secondaryAnimation) {
+                          return const SharedRouteDetailScreen();
+                        },
                       ),
                     ),
                   ),

@@ -116,6 +116,54 @@ void main() {
     expect(find.textContaining(_forbiddenBackendOwnedCopy), findsNothing);
   });
 
+  testWidgets('Maps Saved opens static My routes page', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const RuniacApp());
+
+    await tester.tap(find.text('Maps'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Saved'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('My routes'), findsOneWidget);
+    expect(find.text('SELECTED FOR TODAY'), findsOneWidget);
+    expect(find.text('Marina Bay easy loop'), findsOneWidget);
+    expect(find.text('3.2 km · 25 min · Easy'), findsOneWidget);
+    expect(find.text('Ready for today'), findsOneWidget);
+    expect(find.text('Change route'), findsOneWidget);
+    expect(find.text('Remove'), findsOneWidget);
+    expect(find.text('Favourite routes'), findsOneWidget);
+    expect(find.text('Bishan Park starter route'), findsOneWidget);
+    expect(find.text('East Coast flat run'), findsOneWidget);
+
+    await tester.tap(find.text('Change route'));
+    await tester.pumpAndSettle();
+    expect(find.text('My routes'), findsOneWidget);
+
+    await tester.tap(find.text('Remove'));
+    await tester.pumpAndSettle();
+    expect(find.text('My routes'), findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.text('Kallang riverside run'),
+      180,
+      scrollable: find.byType(Scrollable).last,
+    );
+
+    expect(find.text('Punggol waterway loop'), findsOneWidget);
+    expect(find.text('Kallang riverside run'), findsOneWidget);
+    expect(find.textContaining(_forbiddenBackendOwnedCopy), findsNothing);
+
+    await tester.tap(find.bySemanticsLabel('Back'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('My routes'), findsNothing);
+    expect(find.text('Search routes or parks'), findsOneWidget);
+    expect(find.text('Shared Routes'), findsOneWidget);
+  });
+
   testWidgets('Maps sheet keeps a non-scrolling Home-style accent layout', (
     WidgetTester tester,
   ) async {
@@ -181,7 +229,7 @@ void main() {
       Key('route_preview_card_shared_routes'),
       Key('route_preview_card_saved_routes'),
     ]) {
-      expect(tester.getSize(find.byKey(key)).height, 82);
+      expect(tester.getSize(find.byKey(key)).height, 92);
     }
 
     final routeTitle = tester.widget<Text>(find.text('Route preview'));
