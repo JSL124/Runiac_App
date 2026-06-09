@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/runiac_colors.dart';
 
-const _brandBlue = Color(0xFF2F5BFF);
-const _sportOrange = Color(0xFFFF7A1A);
+const _brandBlue = RuniacColors.primaryBlue;
+const _sportOrange = RuniacColors.accentOrange;
 
 class HomeHeader extends StatelessWidget {
   const HomeHeader({super.key});

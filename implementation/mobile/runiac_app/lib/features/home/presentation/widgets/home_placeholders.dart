@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/runiac_colors.dart';
 import '../../../../core/widgets/skeleton.dart';
 
+const _placeholderSurface = Color(0xFFF8FAFF);
+
 class ProgressPlaceholder extends StatelessWidget {
   const ProgressPlaceholder({super.key});
 
@@ -13,7 +15,7 @@ class ProgressPlaceholder extends StatelessWidget {
         Container(
           height: 12,
           decoration: BoxDecoration(
-            color: RuniacColors.background,
+            color: _placeholderSurface,
             borderRadius: BorderRadius.circular(999),
             border: Border.all(color: RuniacColors.border),
           ),
@@ -39,7 +41,7 @@ class PlanSkeletonRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: RuniacColors.background,
+        color: _placeholderSurface,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: RuniacColors.border),
       ),

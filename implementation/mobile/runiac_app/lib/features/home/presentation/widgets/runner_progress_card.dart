@@ -5,8 +5,8 @@ import '../../../../core/widgets/card_title.dart';
 import '../../../../core/widgets/dashboard_card.dart';
 import 'home_placeholders.dart';
 
-const _softBlue = Color(0xFFEEF3FF);
-const _blueBorder = Color(0xFFDCE6FF);
+const _softBlue = Color(0xFFF8FAFF);
+const _blueBorder = RuniacColors.border;
 
 const _runnerProgressDisplaySnapshot = _RunnerProgressDisplaySnapshot(
   title: 'Runner Progress',

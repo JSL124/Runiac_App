@@ -9,7 +9,7 @@ import 'widgets/runner_progress_card.dart';
 import 'widgets/today_plan_card.dart';
 import 'widgets/weekly_plan_card.dart';
 
-const _homeScreenBackground = Color(0xFFF7F9FD);
+const _homeScreenBackground = Colors.white;
 
 class HomeTab extends StatelessWidget {
   const HomeTab({super.key});

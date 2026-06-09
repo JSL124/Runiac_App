@@ -5,8 +5,8 @@ import '../../../../core/widgets/card_title.dart';
 import '../../../../core/widgets/crossed_placeholder.dart';
 import '../../../../core/widgets/dashboard_card.dart';
 
-const _sportOrange = Color(0xFFFF7A1A);
-const _placeholderGrayBlue = Color(0xFFE8EEF7);
+const _sportOrange = RuniacColors.accentOrange;
+const _placeholderGrayBlue = RuniacColors.border;
 
 const _recommendedRoutesDisplaySnapshot = _RecommendedRoutesDisplaySnapshot(
   title: 'Recommended Routes',

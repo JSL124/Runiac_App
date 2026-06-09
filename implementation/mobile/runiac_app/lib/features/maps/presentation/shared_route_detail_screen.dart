@@ -140,7 +140,7 @@ class _SharedRouteDetailScreenState extends State<SharedRouteDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFF),
+      backgroundColor: RuniacColors.white,
       body: Stack(
         children: [
           SafeArea(

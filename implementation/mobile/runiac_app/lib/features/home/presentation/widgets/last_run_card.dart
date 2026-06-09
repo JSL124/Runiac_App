@@ -4,9 +4,9 @@ import '../../../../core/theme/runiac_colors.dart';
 import '../../../../core/widgets/card_title.dart';
 import '../../../../core/widgets/dashboard_card.dart';
 
-const _softOrange = Color(0xFFFFF1E7);
-const _sportOrange = Color(0xFFFF7A1A);
-const _orangeBorder = Color(0xFFFFD8BD);
+const _softOrange = Color(0xFFFFF7F2);
+const _sportOrange = RuniacColors.accentOrange;
+const _orangeBorder = Color(0xFFFFE2D4);
 
 const _lastRunDisplaySnapshot = _LastRunDisplaySnapshot(
   title: 'Last Run',

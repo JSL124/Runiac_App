@@ -5,10 +5,10 @@ import '../../../../core/widgets/card_title.dart';
 import '../../../../core/widgets/crossed_placeholder.dart';
 import '../../../../core/widgets/dashboard_card.dart';
 
-const _primaryBlue = Color(0xFF2F5BFF);
-const _blueBorder = Color(0xFFDCE6FF);
-const _sportOrange = Color(0xFFFF7A1A);
-const _orangeStrong = Color(0xFFF97316);
+const _primaryBlue = RuniacColors.primaryBlue;
+const _blueBorder = RuniacColors.border;
+const _sportOrange = RuniacColors.accentOrange;
+const _orangeStrong = RuniacColors.accentOrange;
 
 const _todayPlanDisplaySnapshot = _TodayPlanDisplaySnapshot(
   title: 'Today\'s Plan',
