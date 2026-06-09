@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/runiac_colors.dart';
+import 'shared_route_detail_sections.dart';
 
 class RouteDetailHeader extends StatelessWidget {
-  const RouteDetailHeader({super.key});
+  const RouteDetailHeader({required this.onShare, super.key});
+
+  final VoidCallback onShare;
 
   @override
   Widget build(BuildContext context) {
@@ -36,9 +39,226 @@ class RouteDetailHeader extends StatelessWidget {
             button: true,
             child: IconButton(
               tooltip: 'Share route',
-              onPressed: () {},
+              onPressed: onShare,
               icon: const Icon(Icons.share_outlined),
               color: RuniacColors.primaryBlue,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class RouteDetailSharePreviewSheet extends StatelessWidget {
+  const RouteDetailSharePreviewSheet({required this.onClose, super.key});
+
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: SingleChildScrollView(
+        physics: const ClampingScrollPhysics(),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text(
+                'Share route preview',
+                style: TextStyle(
+                  color: RuniacColors.textPrimary,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 14),
+              const _RouteShareSummaryCard(),
+              const SizedBox(height: 14),
+              const _SharePreviewNotice(),
+              const SizedBox(height: 16),
+              const _SharePreviewActionRow(
+                icon: Icons.link,
+                label: 'Copy Link',
+              ),
+              const SizedBox(height: 8),
+              const _SharePreviewActionRow(
+                icon: Icons.chat_bubble_outline,
+                label: 'Messages',
+              ),
+              const SizedBox(height: 8),
+              const _SharePreviewActionRow(
+                icon: Icons.more_horiz,
+                label: 'More',
+              ),
+              const SizedBox(height: 18),
+              FilledButton(
+                onPressed: onClose,
+                style: FilledButton.styleFrom(
+                  backgroundColor: RuniacColors.primaryBlue,
+                  foregroundColor: RuniacColors.white,
+                  minimumSize: const Size.fromHeight(48),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: const Text('Close'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RouteShareSummaryCard extends StatelessWidget {
+  const _RouteShareSummaryCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: RuniacColors.white,
+        border: Border.all(color: RuniacColors.border),
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0A172033),
+            blurRadius: 12,
+            offset: Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFF),
+              border: Border.all(color: RuniacColors.border),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(
+              Icons.route_outlined,
+              color: RuniacColors.primaryBlue,
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  routeDetailTitle,
+                  style: TextStyle(
+                    color: RuniacColors.textPrimary,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                SizedBox(height: 5),
+                Text(
+                  '3.2 km · 25 min · Easy',
+                  style: TextStyle(
+                    color: RuniacColors.textSecondary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF7F2),
+              border: Border.all(color: Color(0xFFFFE2D4)),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: const Text(
+              'Preview only',
+              style: TextStyle(
+                color: RuniacColors.accentOrange,
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SharePreviewNotice extends StatelessWidget {
+  const _SharePreviewNotice();
+
+  @override
+  Widget build(BuildContext context) {
+    const noticeStyle = TextStyle(
+      color: RuniacColors.textSecondary,
+      fontSize: 14,
+      height: 1.4,
+    );
+    return const Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Route sharing is preview-only in this prototype.',
+          style: noticeStyle,
+        ),
+        SizedBox(height: 4),
+        Text('Link sharing will be available after setup.', style: noticeStyle),
+      ],
+    );
+  }
+}
+
+class _SharePreviewActionRow extends StatelessWidget {
+  const _SharePreviewActionRow({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 46,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        border: Border.all(color: RuniacColors.border),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: RuniacColors.textSecondary, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: RuniacColors.textSecondary,
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          const Text(
+            'Coming soon',
+            style: TextStyle(
+              color: RuniacColors.textSecondary,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ],

@@ -244,6 +244,54 @@ void main() {
     },
   );
 
+  testWidgets('Maps shared route detail share opens preview-only sheet', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const RuniacApp());
+
+    await tester.tap(find.text('Maps'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Route preview'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.bySemanticsLabel('Share route'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Share route preview'), findsOneWidget);
+    expect(find.text('Marina Bay easy loop'), findsWidgets);
+    expect(find.text('3.2 km · 25 min · Easy'), findsOneWidget);
+    expect(find.text('Preview only'), findsOneWidget);
+    expect(
+      find.text('Route sharing is preview-only in this prototype.'),
+      findsOneWidget,
+    );
+    expect(
+      find.text('Link sharing will be available after setup.'),
+      findsOneWidget,
+    );
+    expect(find.text('Copy Link'), findsOneWidget);
+    expect(find.text('Messages'), findsOneWidget);
+    expect(find.text('More'), findsOneWidget);
+    expect(find.text('Coming soon'), findsNWidgets(3));
+    expect(find.text('Close'), findsOneWidget);
+    expect(find.text('Shared successfully'), findsNothing);
+    expect(find.text('Link copied'), findsNothing);
+    expect(find.text('Route sent'), findsNothing);
+    expect(find.text('Invite friends now'), findsNothing);
+
+    await tester.scrollUntilVisible(
+      find.text('Close'),
+      120,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.tap(find.text('Close'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Share route preview'), findsNothing);
+    expect(find.text('Route'), findsOneWidget);
+    expect(find.text('Marina Bay easy loop'), findsOneWidget);
+  });
+
   testWidgets(
     'Maps shared route detail confirms with saving overlay and stay here disables select',
     (WidgetTester tester) async {

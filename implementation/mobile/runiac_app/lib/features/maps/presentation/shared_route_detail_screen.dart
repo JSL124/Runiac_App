@@ -137,6 +137,23 @@ class _SharedRouteDetailScreenState extends State<SharedRouteDetailScreen> {
     );
   }
 
+  void _showSharePreviewSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      backgroundColor: RuniacColors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        return RouteDetailSharePreviewSheet(
+          onClose: () => Navigator.of(context).pop(),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -146,7 +163,7 @@ class _SharedRouteDetailScreenState extends State<SharedRouteDetailScreen> {
           SafeArea(
             child: Column(
               children: [
-                const RouteDetailHeader(),
+                RouteDetailHeader(onShare: _showSharePreviewSheet),
                 Expanded(
                   child: ScrollConfiguration(
                     behavior: ScrollConfiguration.of(
