@@ -325,7 +325,7 @@ void main() {
     expect(find.text('Runiac'), findsNothing);
     expect(find.text('Weekly XP'), findsNothing);
     expect(find.text('Monthly XP'), findsNothing);
-    expect(find.text('Rising Runner Division'), findsNWidgets(2));
+    expect(find.text('Rising Runner Division'), findsOneWidget);
     expect(find.text('Lv.11 - Lv.20'), findsOneWidget);
     expect(find.text('Your ranked area'), findsOneWidget);
     expect(find.text('Home'), findsOneWidget);
@@ -354,12 +354,60 @@ void main() {
         .dy;
     final leaderboardTitleTop = tester.getTopLeft(find.text('Jurong East')).dy;
     expect(leaderboardTitleTop - leaderboardAccentBottom, closeTo(10, 0.1));
-    expect(find.text('Region Preview'), findsOneWidget);
-    expect(find.text('Ranking preview pending'), findsOneWidget);
+    expect(find.text('Refreshes in 24:14:05:45'), findsOneWidget);
+    expect(find.text('Rising Runner Division'), findsOneWidget);
+    expect(find.text('Region Leaderboard'), findsNothing);
+    expect(find.text('Region Preview'), findsNothing);
+    expect(find.text('Ranking preview pending'), findsNothing);
     expect(find.text('My Rank Preview'), findsOneWidget);
+    expect(find.text('Alex T.'), findsOneWidget);
+    expect(find.text('Maya L.'), findsOneWidget);
+    expect(find.text('Ryan K.'), findsOneWidget);
+    expect(find.text('Jinseo (You)'), findsOneWidget);
+    expect(find.text('Level 18'), findsOneWidget);
+    expect(find.text('Level 17'), findsOneWidget);
+    expect(find.text('Level 16'), findsOneWidget);
+    expect(find.text('Level 12'), findsOneWidget);
+    expect(find.text('1,240 XP'), findsOneWidget);
+    expect(find.text('1,180 XP'), findsOneWidget);
+    expect(find.text('1,050 XP'), findsOneWidget);
+    expect(find.text('520 XP'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('leaderboard_region_top_rank_row_0')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('leaderboard_region_top_rank_row_1')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('leaderboard_region_top_rank_row_2')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('leaderboard_region_top_rank_row_3')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('leaderboard_region_my_rank_row_0')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('leaderboard_region_current_user_row')),
+      findsOneWidget,
+    );
+    final currentUserRowMaterial = tester.widget<Material>(
+      find
+          .ancestor(
+            of: find.byKey(const Key('leaderboard_region_current_user_row')),
+            matching: find.byType(Material),
+          )
+          .first,
+    );
+    expect(currentUserRowMaterial.color, Colors.transparent);
     expect(
       find.text('Your position will appear after leaderboard data is ready.'),
-      findsOneWidget,
+      findsNothing,
     );
     expect(find.text('View More Ranking'), findsOneWidget);
     expect(find.text('Share My Rank'), findsOneWidget);
@@ -378,7 +426,7 @@ void main() {
     await tester.tap(find.text('Your ranked area'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Region Preview'), findsOneWidget);
+    expect(find.text('Region Leaderboard'), findsNothing);
     expect(find.text('View More Ranking'), findsOneWidget);
 
     await tester.tap(find.bySemanticsLabel('Leaderboard information'));
@@ -387,7 +435,7 @@ void main() {
     expect(find.text('Tips'), findsOneWidget);
     expect(find.text('Leagues'), findsOneWidget);
     expect(find.text('Board timing'), findsOneWidget);
-    expect(find.text('Ranking readiness'), findsOneWidget);
+    expect(find.text('Static sample data'), findsOneWidget);
     expect(
       find.text(
         'Leagues group runners by broad progress bands so the board feels fair and beginner-friendly.',
@@ -396,37 +444,29 @@ void main() {
     );
     expect(
       find.text(
-        'This static preview keeps one board context until trusted leaderboard data is ready.',
+        'This static preview keeps one monthly board context for a calmer comparison.',
       ),
       findsOneWidget,
     );
     expect(
-      find.text('Real rankings will be prepared safely by Runiac later.'),
+      find.text(
+        'Leaderboard values shown here are display-only sample rows for this UI milestone.',
+      ),
       findsOneWidget,
     );
 
     expect(find.text('Community motivation'), findsNothing);
     expect(find.text('No live ranking data yet'), findsNothing);
     expect(find.text('Top 3 Runners'), findsNothing);
-    expect(find.textContaining('Alex'), findsNothing);
-    expect(find.textContaining('Maya'), findsNothing);
-    expect(find.textContaining('Ryan'), findsNothing);
-    expect(find.text('520 XP'), findsNothing);
-    expect(find.textContaining('#1'), findsNothing);
-    expect(find.textContaining('#18'), findsNothing);
     expect(find.textContaining('Lv.18'), findsNothing);
-    expect(find.textContaining('1,240 XP'), findsNothing);
-    expect(find.textContaining('1,180 XP'), findsNothing);
-    expect(find.textContaining('1,050 XP'), findsNothing);
-    expect(find.textContaining('520'), findsNothing);
 
     await tester.tap(find.byTooltip('Close tips'));
     await tester.pumpAndSettle();
 
     expect(find.text('Tips'), findsNothing);
     expect(find.text('Leagues'), findsNothing);
-    expect(find.text('Rising Runner Division'), findsNWidgets(2));
-    expect(find.text('Region Preview'), findsOneWidget);
+    expect(find.text('Rising Runner Division'), findsOneWidget);
+    expect(find.text('Region Leaderboard'), findsNothing);
 
     await tester.tap(find.bySemanticsLabel('Open leagues list'));
     await tester.pumpAndSettle();
@@ -453,20 +493,45 @@ void main() {
     expect(find.textContaining('unlocked'), findsNothing);
     expect(find.textContaining('Earned'), findsNothing);
     expect(find.textContaining('earned'), findsNothing);
-    expect(find.textContaining('Alex'), findsNothing);
-    expect(find.textContaining('Maya'), findsNothing);
-    expect(find.textContaining('Ryan'), findsNothing);
-    expect(find.text('520 XP'), findsNothing);
-    expect(find.textContaining('#18'), findsNothing);
-    expect(find.textContaining('Lv.18'), findsNothing);
 
     await tester.tap(find.byTooltip('Close leagues'));
     await tester.pumpAndSettle();
 
     expect(find.text('Leagues'), findsNothing);
-    expect(find.text('Rising Runner Division'), findsNWidgets(2));
+    expect(find.text('Rising Runner Division'), findsOneWidget);
     expect(find.text('Lv.11 - Lv.20'), findsOneWidget);
-    expect(find.text('Region Preview'), findsOneWidget);
+    expect(find.text('Region Leaderboard'), findsNothing);
+  });
+
+  testWidgets('Leaderboard preview rank rows open runner profiles', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const RuniacApp());
+
+    await tester.tap(find.text('Leaderboard'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const ValueKey('leaderboard_region_top_rank_row_0')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Runner profile'), findsOneWidget);
+    expect(find.text('Alex T.'), findsOneWidget);
+    expect(find.text('Jurong East · Rank #1'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Back to Rankings'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const ValueKey('leaderboard_region_my_rank_row_0')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Runner profile'), findsOneWidget);
+    expect(find.text('Jinseo'), findsOneWidget);
+    expect(find.text('Jurong East · Rank #18'), findsOneWidget);
+    expect(find.text('520 XP'), findsNothing);
   });
 
   testWidgets('View More Ranking opens static monthly detail board', (
@@ -560,7 +625,7 @@ void main() {
     await tester.tap(find.byTooltip('Back to Leaderboard'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Region Preview'), findsOneWidget);
+    expect(find.text('Region Leaderboard'), findsNothing);
     expect(find.text('View More Ranking'), findsOneWidget);
     expect(find.text('Monthly board'), findsNothing);
   });
@@ -779,7 +844,10 @@ void main() {
 
     expect(find.text('Weekly XP'), findsNothing);
     expect(find.text('Monthly XP'), findsNothing);
-    expect(find.textContaining(RegExp(r'\d+\s*XP')), findsNothing);
+    expect(find.text('1,240 XP'), findsOneWidget);
+    expect(find.text('1,180 XP'), findsOneWidget);
+    expect(find.text('1,050 XP'), findsOneWidget);
+    expect(find.text('520 XP'), findsOneWidget);
     expect(
       find.textContaining(RegExp(r'rank\s*#', caseSensitive: false)),
       findsNothing,

@@ -6,12 +6,13 @@ const _leaderboardPreviewSnapshot = _LeaderboardPreviewSnapshot(
   tipsTitle: 'Tips',
   leaguesTipTitle: 'Leagues',
   cadenceTipTitle: 'Board timing',
-  readinessTipTitle: 'Ranking readiness',
+  readinessTipTitle: 'Static sample data',
   leaguesTipBody:
       'Leagues group runners by broad progress bands so the board feels fair and beginner-friendly.',
   cadenceTipBody:
-      'This static preview keeps one board context until trusted leaderboard data is ready.',
-  readinessTipBody: 'Real rankings will be prepared safely by Runiac later.',
+      'This static preview keeps one monthly board context for a calmer comparison.',
+  readinessTipBody:
+      'Leaderboard values shown here are display-only sample rows for this UI milestone.',
 );
 
 const _leaderboardLeagueSnapshot = _LeaderboardLeagueSnapshot(
@@ -32,12 +33,7 @@ const _leaderboardLeagueSnapshot = _LeaderboardLeagueSnapshot(
 
 const _leaderboardRegionSnapshot = _LeaderboardRegionSnapshot(
   regionName: 'Jurong East',
-  cadenceDivisionLabel: 'Rising Runner Division',
-  previewTitle: 'Region Preview',
-  previewStatus: 'Ranking preview pending',
-  pendingRowLabel: 'Pending',
   rankPreviewTitle: 'My Rank Preview',
-  rankPreviewBody: 'Your position will appear after leaderboard data is ready.',
   primaryActionLabel: 'View More Ranking',
   secondaryActionLabel: 'Share My Rank',
   userAreaLabel: 'Your ranked area',
@@ -299,7 +295,7 @@ class LeaderboardTab extends StatefulWidget {
 }
 
 class _LeaderboardTabState extends State<LeaderboardTab> {
-  static const double _expandedSheetHeight = 442;
+  static const double _expandedSheetHeight = 464;
   static const double _collapsedSheetHeight = 46;
 
   double _sheetProgress = 1;
@@ -412,6 +408,7 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
               onVerticalDragUpdate: _handleSheetDragUpdate,
               onVerticalDragEnd: _handleSheetDragEnd,
               onViewMoreRanking: _openDetail,
+              onProfileSelected: _openRunnerProfile,
             ),
           ),
         ],
@@ -457,24 +454,14 @@ class _LeaderboardLeagueSnapshot {
 class _LeaderboardRegionSnapshot {
   const _LeaderboardRegionSnapshot({
     required this.regionName,
-    required this.cadenceDivisionLabel,
-    required this.previewTitle,
-    required this.previewStatus,
-    required this.pendingRowLabel,
     required this.rankPreviewTitle,
-    required this.rankPreviewBody,
     required this.primaryActionLabel,
     required this.secondaryActionLabel,
     required this.userAreaLabel,
   });
 
   final String regionName;
-  final String cadenceDivisionLabel;
-  final String previewTitle;
-  final String previewStatus;
-  final String pendingRowLabel;
   final String rankPreviewTitle;
-  final String rankPreviewBody;
   final String primaryActionLabel;
   final String secondaryActionLabel;
   final String userAreaLabel;
@@ -1685,12 +1672,14 @@ class _RegionPreviewSheet extends StatelessWidget {
     required this.onVerticalDragUpdate,
     required this.onVerticalDragEnd,
     required this.onViewMoreRanking,
+    required this.onProfileSelected,
   });
 
   final double height;
   final GestureDragUpdateCallback onVerticalDragUpdate;
   final GestureDragEndCallback onVerticalDragEnd;
   final VoidCallback onViewMoreRanking;
+  final ValueChanged<_RunnerAchievementProfileSnapshot> onProfileSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -1732,17 +1721,17 @@ class _RegionPreviewSheet extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  _leaderboardRegionSnapshot.cadenceDivisionLabel,
+                  _leaderboardDetailSnapshot.refreshLabel,
                   style: const TextStyle(
-                    color: RuniacColors.textSecondary,
+                    color: RuniacColors.primaryBlue,
                     fontSize: 12,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
                 const SizedBox(height: 12),
-                const _RegionPreviewList(),
+                _RegionPreviewList(onProfileSelected: onProfileSelected),
                 const SizedBox(height: 12),
-                const _MyRankPreviewCard(),
+                _MyRankPreviewCard(onProfileSelected: onProfileSelected),
                 const SizedBox(height: 12),
                 _RegionPreviewActions(onViewMoreRanking: onViewMoreRanking),
               ],
@@ -1818,142 +1807,262 @@ class _SheetHandle extends StatelessWidget {
 }
 
 class _RegionPreviewList extends StatelessWidget {
-  const _RegionPreviewList();
+  const _RegionPreviewList({required this.onProfileSelected});
+
+  final ValueChanged<_RunnerAchievementProfileSnapshot> onProfileSelected;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          _leaderboardRegionSnapshot.previewTitle,
-          style: const TextStyle(
-            color: RuniacColors.textPrimary,
-            fontSize: 14,
-            fontWeight: FontWeight.w900,
-          ),
+        _RegionPreviewRankCard(
+          rows: _leaderboardDetailSnapshot.topRanks.take(3).toList(),
+          onProfileSelected: onProfileSelected,
+          keyPrefix: 'leaderboard_region_top_rank_row',
+          useTopMedals: true,
         ),
-        const SizedBox(height: 3),
-        Text(
-          _leaderboardRegionSnapshot.previewStatus,
-          style: const TextStyle(
-            color: RuniacColors.textSecondary,
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        const SizedBox(height: 7),
-        const _PreviewListShell(),
       ],
     );
   }
 }
 
-class _PreviewListShell extends StatelessWidget {
-  const _PreviewListShell();
+class _RegionPreviewRankCard extends StatelessWidget {
+  const _RegionPreviewRankCard({
+    required this.rows,
+    required this.onProfileSelected,
+    required this.keyPrefix,
+    this.useTopMedals = false,
+    this.useDetailRowSizing = false,
+  });
+
+  final List<_LeaderboardRankRowDisplaySnapshot> rows;
+  final ValueChanged<_RunnerAchievementProfileSnapshot> onProfileSelected;
+  final String keyPrefix;
+  final bool useTopMedals;
+  final bool useDetailRowSizing;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
         color: RuniacColors.white,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: RuniacColors.textSecondary.withValues(alpha: 0.32),
-        ),
+        border: Border.all(color: const Color(0xFFDDE3F8)),
       ),
-      child: Column(
-        children: const [
-          _PreviewShellRow(widthFactor: 0.82),
-          Divider(height: 12, color: Color(0xFFE4E7EB)),
-          _PreviewShellRow(widthFactor: 0.68),
-          Divider(height: 12, color: Color(0xFFE4E7EB)),
-          _PreviewShellRow(widthFactor: 0.74),
-        ],
-      ),
-    );
-  }
-}
-
-class _PreviewShellRow extends StatelessWidget {
-  const _PreviewShellRow({required this.widthFactor});
-
-  final double widthFactor;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          width: 22,
-          height: 22,
-          decoration: BoxDecoration(
-            color: RuniacColors.textSecondary.withValues(alpha: 0.18),
-            borderRadius: BorderRadius.circular(999),
-          ),
-          child: Icon(
-            Icons.person_outline,
-            color: RuniacColors.textSecondary.withValues(alpha: 0.44),
-            size: 15,
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              FractionallySizedBox(
-                widthFactor: widthFactor,
-                alignment: Alignment.centerLeft,
-                child: const _PreviewBar(height: 9),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Column(
+          children: [
+            for (var index = 0; index < rows.length; index++) ...[
+              _RegionPreviewRankRow(
+                key: ValueKey('${keyPrefix}_$index'),
+                row: rows[index],
+                medalTone: useTopMedals
+                    ? _RegionPreviewMedalTone.values[index]
+                    : null,
+                onProfileSelected: onProfileSelected,
+                useDetailRowSizing: useDetailRowSizing,
               ),
-              const SizedBox(height: 5),
-              const FractionallySizedBox(
-                widthFactor: 0.42,
-                alignment: Alignment.centerLeft,
-                child: _PreviewBar(height: 7),
-              ),
+              if (index != rows.length - 1)
+                const Divider(height: 1, color: Color(0xFFE4E9FA)),
             ],
-          ),
+          ],
         ),
-        const SizedBox(width: 12),
-        Text(
-          _leaderboardRegionSnapshot.pendingRowLabel,
-          style: TextStyle(
-            color: RuniacColors.textSecondary,
-            fontSize: 12,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-      ],
+      ),
     );
   }
 }
 
-class _PreviewBar extends StatelessWidget {
-  const _PreviewBar({required this.height});
+enum _RegionPreviewMedalTone { gold, silver, bronze }
 
-  final double height;
+class _RegionPreviewRankRow extends StatelessWidget {
+  const _RegionPreviewRankRow({
+    super.key,
+    required this.row,
+    required this.onProfileSelected,
+    this.medalTone,
+    this.useDetailRowSizing = false,
+  });
+
+  final _LeaderboardRankRowDisplaySnapshot row;
+  final ValueChanged<_RunnerAchievementProfileSnapshot> onProfileSelected;
+  final _RegionPreviewMedalTone? medalTone;
+  final bool useDetailRowSizing;
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
+    final rowMinHeight = useDetailRowSizing ? 64.0 : 56.0;
+    final horizontalPadding = useDetailRowSizing ? 12.0 : 10.0;
+    final verticalPadding = useDetailRowSizing ? 10.0 : 7.0;
+    final rankGap = useDetailRowSizing ? 12.0 : 10.0;
+    final nameGap = useDetailRowSizing ? 12.0 : 10.0;
+    final xpGap = useDetailRowSizing ? 12.0 : 8.0;
+    final badgeSize = useDetailRowSizing ? 42.0 : 38.0;
+    final nameFontSize = useDetailRowSizing ? 16.0 : 14.0;
+    final levelFontSize = useDetailRowSizing ? 12.0 : 11.0;
+    final xpFontSize = useDetailRowSizing ? 16.0 : 14.0;
+
+    return Semantics(
+      button: true,
+      label: 'Open ${row.name} runner profile',
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => onProfileSelected(row.profile),
+          child: Container(
+            key: row.isCurrentUser
+                ? const Key('leaderboard_region_current_user_row')
+                : null,
+            constraints: BoxConstraints(minHeight: rowMinHeight),
+            padding: EdgeInsets.symmetric(
+              horizontal: horizontalPadding,
+              vertical: verticalPadding,
+            ),
+            child: Row(
+              children: [
+                _RegionPreviewRankBadge(
+                  row: row,
+                  medalTone: medalTone,
+                  size: badgeSize,
+                  useDetailSizing: useDetailRowSizing,
+                ),
+                SizedBox(width: rankGap),
+                _InitialBadge(name: row.name, isCurrentUser: row.isCurrentUser),
+                SizedBox(width: nameGap),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        row.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: row.isCurrentUser
+                              ? RuniacColors.primaryBlue
+                              : RuniacColors.textPrimary,
+                          fontSize: nameFontSize,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        row.levelLabel,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: RuniacColors.textSecondary,
+                          fontSize: levelFontSize,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(width: xpGap),
+                Text(
+                  row.xpLabel,
+                  style: TextStyle(
+                    color: RuniacColors.primaryBlue,
+                    fontSize: xpFontSize,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RegionPreviewRankBadge extends StatelessWidget {
+  const _RegionPreviewRankBadge({
+    required this.row,
+    required this.size,
+    required this.useDetailSizing,
+    this.medalTone,
+  });
+
+  final _LeaderboardRankRowDisplaySnapshot row;
+  final double size;
+  final bool useDetailSizing;
+  final _RegionPreviewMedalTone? medalTone;
+
+  @override
+  Widget build(BuildContext context) {
+    final tone = medalTone;
+    if (tone != null) {
+      final colors = switch (tone) {
+        _RegionPreviewMedalTone.gold => (
+          background: const Color(0xFFFFF2E2),
+          foreground: RuniacColors.accentOrange,
+        ),
+        _RegionPreviewMedalTone.silver => (
+          background: const Color(0xFFEFF3FB),
+          foreground: RuniacColors.textSecondary,
+        ),
+        _RegionPreviewMedalTone.bronze => (
+          background: const Color(0xFFFFEBDD),
+          foreground: const Color(0xFFB56A36),
+        ),
+      };
+
+      return Container(
+        width: size,
+        height: size,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: colors.background,
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Icon(
+          Icons.emoji_events_outlined,
+          color: colors.foreground,
+          size: useDetailSizing ? 22 : 21,
+        ),
+      );
+    }
+
+    return Container(
+      width: size,
+      height: size,
+      alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: RuniacColors.primaryBlue.withValues(alpha: 0.11),
+        color: row.isCurrentUser
+            ? const Color(0xFFFFE2D2)
+            : RuniacColors.primaryBlue.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(999),
       ),
-      child: SizedBox(height: height),
+      child: Text(
+        row.rankLabel,
+        style: TextStyle(
+          color: row.isCurrentUser
+              ? RuniacColors.accentOrange
+              : RuniacColors.primaryBlue,
+          fontSize: useDetailSizing ? 16 : 14,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
     );
   }
 }
 
 class _MyRankPreviewCard extends StatelessWidget {
-  const _MyRankPreviewCard();
+  const _MyRankPreviewCard({required this.onProfileSelected});
+
+  final ValueChanged<_RunnerAchievementProfileSnapshot> onProfileSelected;
 
   @override
   Widget build(BuildContext context) {
+    final currentUserRow = _leaderboardDetailSnapshot.nearbyRanks.firstWhere(
+      (row) => row.isCurrentUser,
+    );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1966,56 +2075,13 @@ class _MyRankPreviewCard extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 7),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-          decoration: BoxDecoration(
-            color: RuniacColors.white,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: RuniacColors.textSecondary.withValues(alpha: 0.38),
-            ),
-          ),
-          child: Row(
-            children: [
-              const _RankPreviewIcon(),
-              const SizedBox(width: 11),
-              Expanded(
-                child: Text(
-                  _leaderboardRegionSnapshot.rankPreviewBody,
-                  style: const TextStyle(
-                    color: RuniacColors.textPrimary,
-                    fontSize: 12,
-                    height: 1.2,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-            ],
-          ),
+        _RegionPreviewRankCard(
+          rows: [currentUserRow],
+          onProfileSelected: onProfileSelected,
+          keyPrefix: 'leaderboard_region_my_rank_row',
+          useDetailRowSizing: true,
         ),
       ],
-    );
-  }
-}
-
-class _RankPreviewIcon extends StatelessWidget {
-  const _RankPreviewIcon();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 30,
-      height: 30,
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF3EC),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: const Icon(
-        Icons.emoji_events_outlined,
-        color: RuniacColors.accentOrange,
-        size: 18,
-      ),
     );
   }
 }
