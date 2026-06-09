@@ -3,16 +3,14 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/runiac_colors.dart';
 
 const _leaderboardPreviewSnapshot = _LeaderboardPreviewSnapshot(
-  weeklyLabel: 'Weekly XP',
-  monthlyLabel: 'Monthly XP',
   tipsTitle: 'Tips',
   leaguesTipTitle: 'Leagues',
-  cadenceTipTitle: 'Weekly vs Monthly',
+  cadenceTipTitle: 'Board timing',
   readinessTipTitle: 'Ranking readiness',
   leaguesTipBody:
       'Leagues group runners by broad progress bands so the board feels fair and beginner-friendly.',
   cadenceTipBody:
-      'Weekly and monthly views will help compare progress once leaderboard data is ready.',
+      'This static preview keeps one board context until trusted leaderboard data is ready.',
   readinessTipBody: 'Real rankings will be prepared safely by Runiac later.',
 );
 
@@ -34,7 +32,7 @@ const _leaderboardLeagueSnapshot = _LeaderboardLeagueSnapshot(
 
 const _leaderboardRegionSnapshot = _LeaderboardRegionSnapshot(
   regionName: 'Jurong East',
-  cadenceDivisionLabel: 'Weekly XP · Rising Runner Division',
+  cadenceDivisionLabel: 'Rising Runner Division',
   previewTitle: 'Region Preview',
   previewStatus: 'Ranking preview pending',
   pendingRowLabel: 'Pending',
@@ -45,6 +43,254 @@ const _leaderboardRegionSnapshot = _LeaderboardRegionSnapshot(
   userAreaLabel: 'Your ranked area',
 );
 
+const _leaderboardDetailSnapshot = _LeaderboardDetailDisplaySnapshot(
+  regionName: 'Jurong East',
+  periodLabel: 'June 2026',
+  fallbackPeriodLabel: 'Monthly board',
+  refreshLabel: 'Refreshes in 24:14:05:45',
+  fallbackRefreshLabel: 'Refreshes in 00:00:00:00',
+  divisionLabel: 'Rising Runner Division',
+  topRanksTitle: 'Regional ranking',
+  nearbyRanksTitle: 'Nearby your rank',
+  currentUser: _CurrentUserRankSummaryDisplaySnapshot(
+    rankLabel: '#18',
+    title: 'You · Monthly ranking preview',
+    xpLabel: '520 XP',
+  ),
+  topRanks: [
+    _LeaderboardRankRowDisplaySnapshot(
+      rankLabel: '#1',
+      name: 'Alex T.',
+      levelLabel: 'Level 18',
+      xpLabel: '1,240 XP',
+      profile: _RunnerAchievementProfileSnapshot(
+        name: 'Alex T.',
+        initial: 'A',
+        regionRankLabel: 'Jurong East · Rank #1',
+        levelBadgeLabel: 'Lv.18',
+        divisionLevelLabel: 'Rising Runner Division · Level 18',
+        totalDistanceLabel: '10000 km',
+        bestStreakLabel: '365 days',
+      ),
+      trophy: true,
+    ),
+    _LeaderboardRankRowDisplaySnapshot(
+      rankLabel: '#2',
+      name: 'Maya L.',
+      levelLabel: 'Level 17',
+      xpLabel: '1,180 XP',
+      profile: _RunnerAchievementProfileSnapshot(
+        name: 'Maya L.',
+        initial: 'M',
+        regionRankLabel: 'Jurong East · Rank #2',
+        levelBadgeLabel: 'Lv.17',
+        divisionLevelLabel: 'Rising Runner Division · Level 17',
+        totalDistanceLabel: '198.2 km',
+        bestStreakLabel: '19 days',
+      ),
+    ),
+    _LeaderboardRankRowDisplaySnapshot(
+      rankLabel: '#3',
+      name: 'Ryan K.',
+      levelLabel: 'Level 16',
+      xpLabel: '1,050 XP',
+      profile: _RunnerAchievementProfileSnapshot(
+        name: 'Ryan K.',
+        initial: 'R',
+        regionRankLabel: 'Jurong East · Rank #3',
+        levelBadgeLabel: 'Lv.16',
+        divisionLevelLabel: 'Rising Runner Division · Level 16',
+        totalDistanceLabel: '176.0 km',
+        bestStreakLabel: '18 days',
+      ),
+    ),
+    _LeaderboardRankRowDisplaySnapshot(
+      rankLabel: '#4',
+      name: 'Ethan G.',
+      levelLabel: 'Level 15',
+      xpLabel: '870 XP',
+      profile: _RunnerAchievementProfileSnapshot(
+        name: 'Ethan G.',
+        initial: 'E',
+        regionRankLabel: 'Jurong East · Rank #4',
+        levelBadgeLabel: 'Lv.15',
+        divisionLevelLabel: 'Rising Runner Division · Level 15',
+        totalDistanceLabel: '154.5 km',
+        bestStreakLabel: '16 days',
+      ),
+    ),
+    _LeaderboardRankRowDisplaySnapshot(
+      rankLabel: '#5',
+      name: 'Sarah C.',
+      levelLabel: 'Level 14',
+      xpLabel: '760 XP',
+      profile: _RunnerAchievementProfileSnapshot(
+        name: 'Sarah C.',
+        initial: 'S',
+        regionRankLabel: 'Jurong East · Rank #5',
+        levelBadgeLabel: 'Lv.14',
+        divisionLevelLabel: 'Rising Runner Division · Level 14',
+        totalDistanceLabel: '143.6 km',
+        bestStreakLabel: '15 days',
+      ),
+    ),
+    _LeaderboardRankRowDisplaySnapshot(
+      rankLabel: '#6',
+      name: 'Priya N.',
+      levelLabel: 'Level 14',
+      xpLabel: '735 XP',
+      profile: _RunnerAchievementProfileSnapshot(
+        name: 'Priya N.',
+        initial: 'P',
+        regionRankLabel: 'Jurong East · Rank #6',
+        levelBadgeLabel: 'Lv.14',
+        divisionLevelLabel: 'Rising Runner Division · Level 14',
+        totalDistanceLabel: '139.2 km',
+        bestStreakLabel: '14 days',
+      ),
+    ),
+    _LeaderboardRankRowDisplaySnapshot(
+      rankLabel: '#7',
+      name: 'Omar R.',
+      levelLabel: 'Level 13',
+      xpLabel: '710 XP',
+      profile: _RunnerAchievementProfileSnapshot(
+        name: 'Omar R.',
+        initial: 'O',
+        regionRankLabel: 'Jurong East · Rank #7',
+        levelBadgeLabel: 'Lv.13',
+        divisionLevelLabel: 'Rising Runner Division · Level 13',
+        totalDistanceLabel: '135.8 km',
+        bestStreakLabel: '13 days',
+      ),
+    ),
+    _LeaderboardRankRowDisplaySnapshot(
+      rankLabel: '#8',
+      name: 'Hana S.',
+      levelLabel: 'Level 13',
+      xpLabel: '690 XP',
+      profile: _RunnerAchievementProfileSnapshot(
+        name: 'Hana S.',
+        initial: 'H',
+        regionRankLabel: 'Jurong East · Rank #8',
+        levelBadgeLabel: 'Lv.13',
+        divisionLevelLabel: 'Rising Runner Division · Level 13',
+        totalDistanceLabel: '132.4 km',
+        bestStreakLabel: '12 days',
+      ),
+    ),
+    _LeaderboardRankRowDisplaySnapshot(
+      rankLabel: '#9',
+      name: 'Leo P.',
+      levelLabel: 'Level 13',
+      xpLabel: '675 XP',
+      profile: _RunnerAchievementProfileSnapshot(
+        name: 'Leo P.',
+        initial: 'L',
+        regionRankLabel: 'Jurong East · Rank #9',
+        levelBadgeLabel: 'Lv.13',
+        divisionLevelLabel: 'Rising Runner Division · Level 13',
+        totalDistanceLabel: '130.1 km',
+        bestStreakLabel: '12 days',
+      ),
+    ),
+    _LeaderboardRankRowDisplaySnapshot(
+      rankLabel: '#10',
+      name: 'Grace L.',
+      levelLabel: 'Level 13',
+      xpLabel: '660 XP',
+      profile: _RunnerAchievementProfileSnapshot(
+        name: 'Grace L.',
+        initial: 'G',
+        regionRankLabel: 'Jurong East · Rank #10',
+        levelBadgeLabel: 'Lv.13',
+        divisionLevelLabel: 'Rising Runner Division · Level 13',
+        totalDistanceLabel: '128.8 km',
+        bestStreakLabel: '11 days',
+      ),
+    ),
+  ],
+  nearbyRanks: [
+    _LeaderboardRankRowDisplaySnapshot(
+      rankLabel: '#16',
+      name: 'Chloe B.',
+      levelLabel: 'Level 13',
+      xpLabel: '650 XP',
+      profile: _RunnerAchievementProfileSnapshot(
+        name: 'Chloe B.',
+        initial: 'C',
+        regionRankLabel: 'Jurong East · Rank #16',
+        levelBadgeLabel: 'Lv.13',
+        divisionLevelLabel: 'Rising Runner Division · Level 13',
+        totalDistanceLabel: '126.1 km',
+        bestStreakLabel: '11 days',
+      ),
+    ),
+    _LeaderboardRankRowDisplaySnapshot(
+      rankLabel: '#17',
+      name: 'Daniel W.',
+      levelLabel: 'Level 13',
+      xpLabel: '640 XP',
+      profile: _RunnerAchievementProfileSnapshot(
+        name: 'Daniel W.',
+        initial: 'D',
+        regionRankLabel: 'Jurong East · Rank #17',
+        levelBadgeLabel: 'Lv.13',
+        divisionLevelLabel: 'Rising Runner Division · Level 13',
+        totalDistanceLabel: '124.7 km',
+        bestStreakLabel: '10 days',
+      ),
+    ),
+    _LeaderboardRankRowDisplaySnapshot(
+      rankLabel: '#18',
+      name: 'Jinseo (You)',
+      levelLabel: 'Level 12',
+      xpLabel: '520 XP',
+      profile: _RunnerAchievementProfileSnapshot(
+        name: 'Jinseo',
+        initial: 'J',
+        regionRankLabel: 'Jurong East · Rank #18',
+        levelBadgeLabel: 'Lv.12',
+        divisionLevelLabel: 'Rising Runner Division · Level 12',
+        totalDistanceLabel: '128.4 km',
+        bestStreakLabel: '14 days',
+        isCurrentUser: true,
+      ),
+      isCurrentUser: true,
+    ),
+    _LeaderboardRankRowDisplaySnapshot(
+      rankLabel: '#19',
+      name: 'Noah K.',
+      levelLabel: 'Level 12',
+      xpLabel: '505 XP',
+      profile: _RunnerAchievementProfileSnapshot(
+        name: 'Noah K.',
+        initial: 'N',
+        regionRankLabel: 'Jurong East · Rank #19',
+        levelBadgeLabel: 'Lv.12',
+        divisionLevelLabel: 'Rising Runner Division · Level 12',
+        totalDistanceLabel: '119.3 km',
+        bestStreakLabel: '9 days',
+      ),
+    ),
+    _LeaderboardRankRowDisplaySnapshot(
+      rankLabel: '#20',
+      name: 'Aisha P.',
+      levelLabel: 'Level 12',
+      xpLabel: '492 XP',
+      profile: _RunnerAchievementProfileSnapshot(
+        name: 'Aisha P.',
+        initial: 'A',
+        regionRankLabel: 'Jurong East · Rank #20',
+        levelBadgeLabel: 'Lv.12',
+        divisionLevelLabel: 'Rising Runner Division · Level 12',
+        totalDistanceLabel: '116.6 km',
+        bestStreakLabel: '8 days',
+      ),
+    ),
+  ],
+);
+
 class LeaderboardTab extends StatefulWidget {
   const LeaderboardTab({super.key});
 
@@ -53,10 +299,37 @@ class LeaderboardTab extends StatefulWidget {
 }
 
 class _LeaderboardTabState extends State<LeaderboardTab> {
-  static const double _expandedSheetHeight = 396;
-  static const double _collapsedSheetHeight = 28;
+  static const double _expandedSheetHeight = 442;
+  static const double _collapsedSheetHeight = 46;
 
   double _sheetProgress = 1;
+  bool _showingDetail = false;
+  _RunnerAchievementProfileSnapshot? _selectedProfile;
+
+  void _openDetail() {
+    setState(() {
+      _showingDetail = true;
+    });
+  }
+
+  void _closeDetail() {
+    setState(() {
+      _showingDetail = false;
+      _selectedProfile = null;
+    });
+  }
+
+  void _openRunnerProfile(_RunnerAchievementProfileSnapshot profile) {
+    setState(() {
+      _selectedProfile = profile;
+    });
+  }
+
+  void _closeRunnerProfile() {
+    setState(() {
+      _selectedProfile = null;
+    });
+  }
 
   void _expandSheet() {
     setState(() {
@@ -90,6 +363,21 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
 
   @override
   Widget build(BuildContext context) {
+    final selectedProfile = _selectedProfile;
+    if (selectedProfile != null) {
+      return _RunnerAchievementProfileScreen(
+        profile: selectedProfile,
+        onBack: _closeRunnerProfile,
+      );
+    }
+
+    if (_showingDetail) {
+      return _LeaderboardDetailScreen(
+        onBack: _closeDetail,
+        onProfileSelected: _openRunnerProfile,
+      );
+    }
+
     final hiddenSheetHeight =
         (_expandedSheetHeight - _collapsedSheetHeight) * (1 - _sheetProgress);
 
@@ -123,6 +411,7 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
               height: _expandedSheetHeight,
               onVerticalDragUpdate: _handleSheetDragUpdate,
               onVerticalDragEnd: _handleSheetDragEnd,
+              onViewMoreRanking: _openDetail,
             ),
           ),
         ],
@@ -133,8 +422,6 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
 
 class _LeaderboardPreviewSnapshot {
   const _LeaderboardPreviewSnapshot({
-    required this.weeklyLabel,
-    required this.monthlyLabel,
     required this.tipsTitle,
     required this.leaguesTipTitle,
     required this.cadenceTipTitle,
@@ -144,8 +431,6 @@ class _LeaderboardPreviewSnapshot {
     required this.readinessTipBody,
   });
 
-  final String weeklyLabel;
-  final String monthlyLabel;
   final String tipsTitle;
   final String leaguesTipTitle;
   final String cadenceTipTitle;
@@ -195,81 +480,1201 @@ class _LeaderboardRegionSnapshot {
   final String userAreaLabel;
 }
 
-class _LeaderboardTopOverlay extends StatelessWidget {
-  const _LeaderboardTopOverlay();
+class _LeaderboardDetailDisplaySnapshot {
+  const _LeaderboardDetailDisplaySnapshot({
+    required this.regionName,
+    required this.periodLabel,
+    required this.fallbackPeriodLabel,
+    required this.refreshLabel,
+    required this.fallbackRefreshLabel,
+    required this.divisionLabel,
+    required this.topRanksTitle,
+    required this.nearbyRanksTitle,
+    required this.currentUser,
+    required this.topRanks,
+    required this.nearbyRanks,
+  });
+
+  final String regionName;
+  final String periodLabel;
+  final String fallbackPeriodLabel;
+  final String refreshLabel;
+  final String fallbackRefreshLabel;
+  final String divisionLabel;
+  final String topRanksTitle;
+  final String nearbyRanksTitle;
+  final _CurrentUserRankSummaryDisplaySnapshot currentUser;
+  final List<_LeaderboardRankRowDisplaySnapshot> topRanks;
+  final List<_LeaderboardRankRowDisplaySnapshot> nearbyRanks;
+}
+
+String resolveLeaderboardPeriodLabelForDisplay({
+  required String periodLabel,
+  required String fallbackPeriodLabel,
+}) {
+  final trimmedPeriodLabel = periodLabel.trim();
+  if (trimmedPeriodLabel.isNotEmpty) {
+    return trimmedPeriodLabel;
+  }
+
+  return fallbackPeriodLabel;
+}
+
+class _LeaderboardRankRowDisplaySnapshot {
+  const _LeaderboardRankRowDisplaySnapshot({
+    required this.rankLabel,
+    required this.name,
+    required this.levelLabel,
+    required this.xpLabel,
+    required this.profile,
+    this.trophy = false,
+    this.isCurrentUser = false,
+  });
+
+  final String rankLabel;
+  final String name;
+  final String levelLabel;
+  final String xpLabel;
+  final _RunnerAchievementProfileSnapshot profile;
+  final bool trophy;
+  final bool isCurrentUser;
+}
+
+const _runnerAchievementBadges = [
+  _RunnerAchievementBadgeSnapshot(
+    icon: Icons.flag_outlined,
+    label: 'First 5K',
+    highlighted: true,
+  ),
+  _RunnerAchievementBadgeSnapshot(
+    icon: Icons.check,
+    label: 'Consistency Starter',
+  ),
+  _RunnerAchievementBadgeSnapshot(
+    icon: Icons.favorite_border,
+    label: 'Weekend Runner',
+  ),
+  _RunnerAchievementBadgeSnapshot(
+    icon: Icons.wb_sunny_outlined,
+    label: 'Morning Miles',
+    highlighted: true,
+  ),
+  _RunnerAchievementBadgeSnapshot(
+    icon: Icons.route_outlined,
+    label: 'Steady Builder',
+  ),
+  _RunnerAchievementBadgeSnapshot(
+    icon: Icons.location_on_outlined,
+    label: 'Park Route Fan',
+  ),
+];
+
+class _RunnerAchievementProfileSnapshot {
+  const _RunnerAchievementProfileSnapshot({
+    required this.name,
+    required this.initial,
+    required this.regionRankLabel,
+    required this.levelBadgeLabel,
+    required this.divisionLevelLabel,
+    required this.totalDistanceLabel,
+    required this.bestStreakLabel,
+    this.isCurrentUser = false,
+  });
+
+  final String name;
+  final String initial;
+  final String regionRankLabel;
+  final String levelBadgeLabel;
+  final String divisionLevelLabel;
+  final String totalDistanceLabel;
+  final String bestStreakLabel;
+  final String privacyNote = 'Only public running achievements are shown.';
+  final List<_RunnerAchievementBadgeSnapshot> badges = _runnerAchievementBadges;
+  final bool isCurrentUser;
+}
+
+class _RunnerAchievementBadgeSnapshot {
+  const _RunnerAchievementBadgeSnapshot({
+    required this.icon,
+    required this.label,
+    this.highlighted = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool highlighted;
+}
+
+class _CurrentUserRankSummaryDisplaySnapshot {
+  const _CurrentUserRankSummaryDisplaySnapshot({
+    required this.rankLabel,
+    required this.title,
+    required this.xpLabel,
+  });
+
+  final String rankLabel;
+  final String title;
+  final String xpLabel;
+}
+
+class _RunnerAchievementProfileScreen extends StatelessWidget {
+  const _RunnerAchievementProfileScreen({
+    required this.profile,
+    required this.onBack,
+  });
+
+  final _RunnerAchievementProfileSnapshot profile;
+  final VoidCallback onBack;
 
   @override
   Widget build(BuildContext context) {
-    return const Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _XpSegmentedControl(),
-        SizedBox(height: 10),
-        Row(
+    return ColoredBox(
+      color: RuniacColors.background,
+      child: SafeArea(
+        bottom: false,
+        child: Column(
           children: [
-            Expanded(child: _LeagueSelector()),
-            SizedBox(width: 10),
-            _InfoBadge(),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 0, 16, 8),
+              child: _RunnerProfileHeader(onBack: onBack),
+            ),
+            Expanded(
+              child: ScrollConfiguration(
+                behavior: ScrollConfiguration.of(
+                  context,
+                ).copyWith(overscroll: false),
+                child: SingleChildScrollView(
+                  physics: const ClampingScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _RunnerIdentityCard(profile: profile),
+                      const SizedBox(height: 16),
+                      _RunnerPublicMetrics(profile: profile),
+                      const SizedBox(height: 18),
+                      _RunnerAchievementsSection(profile: profile),
+                      const SizedBox(height: 14),
+                      Text(
+                        profile.privacyNote,
+                        key: const Key('runner_profile_privacy_note'),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: RuniacColors.textSecondary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RunnerProfileHeader extends StatelessWidget {
+  const _RunnerProfileHeader({required this.onBack});
+
+  final VoidCallback onBack;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        IconButton(
+          tooltip: 'Back to Rankings',
+          icon: const Icon(Icons.arrow_back),
+          color: RuniacColors.textPrimary,
+          onPressed: onBack,
+        ),
+        const SizedBox(width: 2),
+        const Expanded(
+          child: Padding(
+            padding: EdgeInsets.only(bottom: 8),
+            child: Text(
+              'Runner profile',
+              style: TextStyle(
+                color: RuniacColors.textPrimary,
+                fontSize: 24,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
         ),
       ],
     );
   }
 }
 
-class _XpSegmentedControl extends StatelessWidget {
-  const _XpSegmentedControl();
+class _RunnerIdentityCard extends StatelessWidget {
+  const _RunnerIdentityCard({required this.profile});
+
+  final _RunnerAchievementProfileSnapshot profile;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: RuniacColors.primaryBlue,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        children: [
+          Container(
+            height: 12,
+            decoration: const BoxDecoration(
+              color: RuniacColors.accentOrange,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 22, 18, 22),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    _RunnerProfileAvatar(profile: profile),
+                    const SizedBox(width: 18),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            profile.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: RuniacColors.white,
+                              fontSize: 32,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.location_on_outlined,
+                                color: Color(0xFFE1E8FF),
+                                size: 18,
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  profile.regionRankLabel,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: Color(0xFFE1E8FF),
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: RuniacColors.white.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.wb_sunny_outlined,
+                          color: RuniacColors.accentOrange,
+                          size: 22,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            profile.divisionLevelLabel,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: RuniacColors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RunnerProfileAvatar extends StatelessWidget {
+  const _RunnerProfileAvatar({required this.profile});
+
+  final _RunnerAchievementProfileSnapshot profile;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      clipBehavior: Clip.none,
+      alignment: Alignment.bottomCenter,
+      children: [
+        Container(
+          width: 88,
+          height: 88,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: RuniacColors.white,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: RuniacColors.accentOrange, width: 3),
+          ),
+          child: Text(
+            profile.initial,
+            style: const TextStyle(
+              color: RuniacColors.primaryBlue,
+              fontSize: 44,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
+        Positioned(
+          bottom: -11,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: RuniacColors.accentOrange,
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              child: Text(
+                profile.levelBadgeLabel,
+                style: const TextStyle(
+                  color: RuniacColors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _RunnerPublicMetrics extends StatelessWidget {
+  const _RunnerPublicMetrics({required this.profile});
+
+  final _RunnerAchievementProfileSnapshot profile;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: _RunnerMetricTile(
+            key: const Key('runner_profile_total_distance_metric'),
+            icon: Icons.route_outlined,
+            value: profile.totalDistanceLabel,
+            label: 'Total distance',
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _RunnerMetricTile(
+            key: const Key('runner_profile_best_streak_metric'),
+            icon: Icons.water_drop_outlined,
+            value: profile.bestStreakLabel,
+            label: 'Best streak',
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _RunnerMetricTile extends StatelessWidget {
+  const _RunnerMetricTile({
+    super.key,
+    required this.icon,
+    required this.value,
+    required this.label,
+  });
+
+  final IconData icon;
+  final String value;
+  final String label;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 48,
+      constraints: const BoxConstraints(minHeight: 94),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 15),
       decoration: BoxDecoration(
-        color: const Color(0xEFFFFFFF),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: const Color(0x662F50C7)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x1A172033),
-            blurRadius: 14,
-            offset: Offset(0, 6),
+        color: RuniacColors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFFDDE3F8)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: RuniacColors.primaryBlue.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: RuniacColors.primaryBlue, size: 22),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _RunnerMetricValueText(value: value),
+                const SizedBox(height: 3),
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: RuniacColors.textSecondary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _RunnerMetricValueText extends StatelessWidget {
+  const _RunnerMetricValueText({required this.value});
+
+  static const double maxFontSize = 24;
+  static const double minFontSize = 16;
+
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final fontSize = resolveRunnerMetricValueFontSize(
+          value: value,
+          maxWidth: constraints.maxWidth,
+        );
+
+        return Text(
+          value,
+          maxLines: 1,
+          softWrap: false,
+          style: TextStyle(
+            color: RuniacColors.primaryBlue,
+            fontSize: fontSize,
+            fontWeight: FontWeight.w900,
+          ),
+        );
+      },
+    );
+  }
+}
+
+double resolveRunnerMetricValueFontSize({
+  required String value,
+  required double maxWidth,
+}) {
+  if (!maxWidth.isFinite || maxWidth <= 0) {
+    return _RunnerMetricValueText.minFontSize;
+  }
+
+  const minSize = _RunnerMetricValueText.minFontSize;
+  const maxSize = _RunnerMetricValueText.maxFontSize;
+  final painter = TextPainter(textDirection: TextDirection.ltr, maxLines: 1);
+
+  for (var fontSize = maxSize; fontSize >= minSize; fontSize--) {
+    painter.text = TextSpan(
+      text: value,
+      style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.w900),
+    );
+    painter.layout(maxWidth: double.infinity);
+
+    if (painter.width <= maxWidth) {
+      return fontSize;
+    }
+  }
+
+  return minSize;
+}
+
+class _RunnerAchievementsSection extends StatelessWidget {
+  const _RunnerAchievementsSection({required this.profile});
+
+  final _RunnerAchievementProfileSnapshot profile;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      key: const Key('runner_profile_achievements_section'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            const Expanded(
+              child: Text(
+                'Achievements',
+                style: TextStyle(
+                  color: RuniacColors.primaryBlue,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+            Text(
+              '${profile.badges.length} earned',
+              style: const TextStyle(
+                color: RuniacColors.textSecondary,
+                fontSize: 16,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Container(
+          padding: const EdgeInsets.fromLTRB(12, 20, 12, 18),
+          decoration: BoxDecoration(
+            color: RuniacColors.white,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: const Color(0xFFDDE3F8)),
+          ),
+          child: GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: profile.badges.length,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              mainAxisSpacing: 18,
+              crossAxisSpacing: 10,
+              childAspectRatio: 0.82,
+            ),
+            itemBuilder: (context, index) =>
+                _RunnerAchievementBadge(badge: profile.badges[index]),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _RunnerAchievementBadge extends StatelessWidget {
+  const _RunnerAchievementBadge({required this.badge});
+
+  final _RunnerAchievementBadgeSnapshot badge;
+
+  @override
+  Widget build(BuildContext context) {
+    final badgeColor = badge.highlighted
+        ? RuniacColors.accentOrange
+        : RuniacColors.primaryBlue;
+
+    return Column(
+      children: [
+        Container(
+          width: 68,
+          height: 68,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: badge.highlighted
+                ? const Color(0xFFFFECE5)
+                : RuniacColors.primaryBlue.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: badgeColor.withValues(alpha: 0.28)),
+          ),
+          child: Icon(badge.icon, color: badgeColor, size: 28),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          badge.label,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: RuniacColors.textSecondary,
+            fontSize: 13,
+            height: 1.1,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _LeaderboardDetailScreen extends StatelessWidget {
+  const _LeaderboardDetailScreen({
+    required this.onBack,
+    required this.onProfileSelected,
+  });
+
+  final VoidCallback onBack;
+  final ValueChanged<_RunnerAchievementProfileSnapshot> onProfileSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    const snapshot = _leaderboardDetailSnapshot;
+
+    return ColoredBox(
+      color: RuniacColors.background,
+      child: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 0, 16, 8),
+              child: _LeaderboardDetailHeader(
+                title: snapshot.regionName,
+                onBack: onBack,
+              ),
+            ),
+            Expanded(
+              child: Stack(
+                children: [
+                  ScrollConfiguration(
+                    behavior: ScrollConfiguration.of(
+                      context,
+                    ).copyWith(overscroll: false),
+                    child: SingleChildScrollView(
+                      physics: const ClampingScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(16, 14, 16, 122),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const _LeaderboardDetailAccentStrip(),
+                          const SizedBox(height: 14),
+                          _LeaderboardDetailSummary(snapshot: snapshot),
+                          const SizedBox(height: 12),
+                          _LeaderboardRankListCard(
+                            title: snapshot.topRanksTitle,
+                            rows: snapshot.topRanks,
+                            keyPrefix: 'leaderboard_detail_top_rank_row',
+                            onProfileSelected: onProfileSelected,
+                          ),
+                          const SizedBox(height: 14),
+                          _LeaderboardNearbyDivider(
+                            title: snapshot.nearbyRanksTitle,
+                          ),
+                          const SizedBox(height: 10),
+                          _LeaderboardRankListCard(
+                            rows: snapshot.nearbyRanks,
+                            keyPrefix: 'leaderboard_detail_nearby_rank_row',
+                            onProfileSelected: onProfileSelected,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    left: 24,
+                    right: 24,
+                    bottom: 18,
+                    child: _CurrentUserFloatingRankBar(
+                      summary: snapshot.currentUser,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LeaderboardDetailHeader extends StatelessWidget {
+  const _LeaderboardDetailHeader({required this.title, required this.onBack});
+
+  final String title;
+  final VoidCallback onBack;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        IconButton(
+          tooltip: 'Back to Leaderboard',
+          icon: const Icon(Icons.arrow_back),
+          color: RuniacColors.textPrimary,
+          onPressed: onBack,
+        ),
+        const SizedBox(width: 2),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Text(
+              title,
+              style: const TextStyle(
+                color: RuniacColors.textPrimary,
+                fontSize: 24,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _LeaderboardDetailAccentStrip extends StatelessWidget {
+  const _LeaderboardDetailAccentStrip();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      key: const ValueKey('leaderboard_detail_header_accent_strip'),
+      children: [
+        Expanded(
+          child: Container(
+            height: 4,
+            decoration: BoxDecoration(
+              color: RuniacColors.primaryBlue,
+              borderRadius: BorderRadius.circular(999),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Container(
+          width: 34,
+          height: 4,
+          decoration: BoxDecoration(
+            color: RuniacColors.accentOrange,
+            borderRadius: BorderRadius.circular(999),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _LeaderboardDetailSummary extends StatelessWidget {
+  const _LeaderboardDetailSummary({required this.snapshot});
+
+  final _LeaderboardDetailDisplaySnapshot snapshot;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+      decoration: BoxDecoration(
+        color: RuniacColors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFFDDE3F8)),
       ),
       child: Row(
         children: [
           Expanded(
-            child: Container(
-              height: double.infinity,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: const Color(0xFF2F5FD7),
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: Text(
-                _leaderboardPreviewSnapshot.weeklyLabel,
-                style: const TextStyle(
-                  color: RuniacColors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  resolveLeaderboardPeriodLabelForDisplay(
+                    periodLabel: snapshot.periodLabel,
+                    fallbackPeriodLabel: snapshot.fallbackPeriodLabel,
+                  ),
+                  style: const TextStyle(
+                    color: RuniacColors.textPrimary,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
-              ),
+                const SizedBox(height: 4),
+                Text(
+                  snapshot.divisionLabel,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: RuniacColors.textSecondary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
             ),
           ),
-          Expanded(
-            child: Center(
-              child: Text(
-                _leaderboardPreviewSnapshot.monthlyLabel,
-                style: const TextStyle(
-                  color: RuniacColors.textPrimary,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                ),
+          const SizedBox(width: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: RuniacColors.primaryBlue.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              snapshot.refreshLabel,
+              style: const TextStyle(
+                color: RuniacColors.primaryBlue,
+                fontSize: 12,
+                fontWeight: FontWeight.w900,
               ),
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _LeaderboardRankListCard extends StatelessWidget {
+  const _LeaderboardRankListCard({
+    required this.rows,
+    required this.keyPrefix,
+    required this.onProfileSelected,
+    this.title,
+  });
+
+  final String? title;
+  final List<_LeaderboardRankRowDisplaySnapshot> rows;
+  final String keyPrefix;
+  final ValueChanged<_RunnerAchievementProfileSnapshot> onProfileSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (title != null) ...[
+          Text(
+            title!,
+            style: const TextStyle(
+              color: RuniacColors.textPrimary,
+              fontSize: 16,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 8),
+        ],
+        Container(
+          decoration: BoxDecoration(
+            color: RuniacColors.white,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: const Color(0xFFDDE3F8)),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Column(
+              children: [
+                for (var index = 0; index < rows.length; index++) ...[
+                  _LeaderboardRankRow(
+                    key: ValueKey('${keyPrefix}_$index'),
+                    row: rows[index],
+                    onProfileSelected: onProfileSelected,
+                  ),
+                  if (index != rows.length - 1)
+                    const Divider(height: 1, color: Color(0xFFE4E9FA)),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _LeaderboardRankRow extends StatelessWidget {
+  const _LeaderboardRankRow({
+    super.key,
+    required this.row,
+    required this.onProfileSelected,
+  });
+
+  final _LeaderboardRankRowDisplaySnapshot row;
+  final ValueChanged<_RunnerAchievementProfileSnapshot> onProfileSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final background = row.isCurrentUser
+        ? const Color(0xFFFFF1EA)
+        : Colors.transparent;
+
+    return Semantics(
+      button: true,
+      label: 'Open ${row.name} runner profile',
+      child: Material(
+        color: background,
+        child: InkWell(
+          onTap: () => onProfileSelected(row.profile),
+          child: Container(
+            key: row.isCurrentUser
+                ? const Key('leaderboard_detail_current_user_row')
+                : null,
+            constraints: const BoxConstraints(minHeight: 64),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Row(
+              children: [
+                _RankBadge(row: row),
+                const SizedBox(width: 12),
+                _InitialBadge(name: row.name, isCurrentUser: row.isCurrentUser),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        row.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: row.isCurrentUser
+                              ? RuniacColors.primaryBlue
+                              : RuniacColors.textPrimary,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        row.levelLabel,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: RuniacColors.textSecondary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  row.xpLabel,
+                  style: const TextStyle(
+                    color: RuniacColors.primaryBlue,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RankBadge extends StatelessWidget {
+  const _RankBadge({required this.row});
+
+  final _LeaderboardRankRowDisplaySnapshot row;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 42,
+      height: 42,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: row.trophy
+            ? const Color(0xFFFFF2E9)
+            : RuniacColors.primaryBlue.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: row.trophy
+          ? const Icon(
+              Icons.emoji_events_outlined,
+              color: RuniacColors.accentOrange,
+              size: 22,
+            )
+          : Text(
+              row.rankLabel,
+              style: TextStyle(
+                color: row.isCurrentUser
+                    ? RuniacColors.accentOrange
+                    : RuniacColors.primaryBlue,
+                fontSize: 16,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+    );
+  }
+}
+
+class _InitialBadge extends StatelessWidget {
+  const _InitialBadge({required this.name, required this.isCurrentUser});
+
+  final String name;
+  final bool isCurrentUser;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 42,
+      height: 42,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: isCurrentUser
+            ? const Color(0xFFFFE2D2)
+            : RuniacColors.primaryBlue.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: const Color(0xFFD4DDF7)),
+      ),
+      child: Text(
+        name.substring(0, 1).toUpperCase(),
+        style: const TextStyle(
+          color: RuniacColors.primaryBlue,
+          fontSize: 16,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    );
+  }
+}
+
+class _LeaderboardNearbyDivider extends StatelessWidget {
+  const _LeaderboardNearbyDivider({required this.title});
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: Divider(
+            color: RuniacColors.primaryBlue.withValues(alpha: 0.18),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Text(
+          title.toUpperCase(),
+          style: const TextStyle(
+            color: RuniacColors.textSecondary,
+            fontSize: 12,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Divider(
+            color: RuniacColors.primaryBlue.withValues(alpha: 0.18),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CurrentUserFloatingRankBar extends StatelessWidget {
+  const _CurrentUserFloatingRankBar({required this.summary});
+
+  final _CurrentUserRankSummaryDisplaySnapshot summary;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      key: const Key('leaderboard_current_user_floating_bar'),
+      decoration: BoxDecoration(
+        color: RuniacColors.primaryBlue,
+        borderRadius: BorderRadius.circular(26),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x33172033),
+            blurRadius: 20,
+            offset: Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        child: Row(
+          children: [
+            Container(
+              width: 54,
+              height: 54,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: RuniacColors.accentOrange,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                summary.rankLabel,
+                style: const TextStyle(
+                  color: RuniacColors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                summary.title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: RuniacColors.white,
+                  fontSize: 15,
+                  height: 1.18,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              summary.xpLabel,
+              style: const TextStyle(
+                color: RuniacColors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LeaderboardTopOverlay extends StatelessWidget {
+  const _LeaderboardTopOverlay();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Row(
+      children: [
+        Expanded(child: _LeagueSelector()),
+        SizedBox(width: 10),
+        _InfoBadge(),
+      ],
     );
   }
 }
@@ -279,15 +1684,18 @@ class _RegionPreviewSheet extends StatelessWidget {
     required this.height,
     required this.onVerticalDragUpdate,
     required this.onVerticalDragEnd,
+    required this.onViewMoreRanking,
   });
 
   final double height;
   final GestureDragUpdateCallback onVerticalDragUpdate;
   final GestureDragEndCallback onVerticalDragEnd;
+  final VoidCallback onViewMoreRanking;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      key: const Key('leaderboard_sheet_surface'),
       behavior: HitTestBehavior.opaque,
       onVerticalDragUpdate: onVerticalDragUpdate,
       onVerticalDragEnd: onVerticalDragEnd,
@@ -307,11 +1715,12 @@ class _RegionPreviewSheet extends StatelessWidget {
             ],
           ),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 9, 16, 14),
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Center(child: _SheetHandle()),
+                const _LeaderboardSheetHandleArea(),
+                const _LeaderboardAccentStrip(),
                 const SizedBox(height: 10),
                 Text(
                   _leaderboardRegionSnapshot.regionName,
@@ -335,12 +1744,56 @@ class _RegionPreviewSheet extends StatelessWidget {
                 const SizedBox(height: 12),
                 const _MyRankPreviewCard(),
                 const SizedBox(height: 12),
-                const _RegionPreviewActions(),
+                _RegionPreviewActions(onViewMoreRanking: onViewMoreRanking),
               ],
             ),
           ),
         ),
       ),
+    );
+  }
+}
+
+class _LeaderboardAccentStrip extends StatelessWidget {
+  const _LeaderboardAccentStrip();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      key: const ValueKey('leaderboard_region_accent_strip'),
+      children: [
+        Expanded(
+          child: Container(
+            height: 4,
+            decoration: BoxDecoration(
+              color: RuniacColors.primaryBlue,
+              borderRadius: BorderRadius.circular(999),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Container(
+          width: 34,
+          height: 4,
+          decoration: BoxDecoration(
+            color: RuniacColors.accentOrange,
+            borderRadius: BorderRadius.circular(999),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _LeaderboardSheetHandleArea extends StatelessWidget {
+  const _LeaderboardSheetHandleArea();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SizedBox(
+      key: Key('leaderboard_sheet_handle_area'),
+      height: 46,
+      child: Center(child: _SheetHandle()),
     );
   }
 }
@@ -358,7 +1811,7 @@ class _SheetHandle extends StatelessWidget {
           color: RuniacColors.textSecondary.withValues(alpha: 0.28),
           borderRadius: BorderRadius.circular(999),
         ),
-        child: const SizedBox(width: 34, height: 4),
+        child: const SizedBox(width: 44, height: 5),
       ),
     );
   }
@@ -568,7 +2021,9 @@ class _RankPreviewIcon extends StatelessWidget {
 }
 
 class _RegionPreviewActions extends StatelessWidget {
-  const _RegionPreviewActions();
+  const _RegionPreviewActions({required this.onViewMoreRanking});
+
+  final VoidCallback onViewMoreRanking;
 
   @override
   Widget build(BuildContext context) {
@@ -576,8 +2031,10 @@ class _RegionPreviewActions extends StatelessWidget {
       children: [
         Expanded(
           child: _VisualCta(
+            key: const Key('leaderboard_view_more_ranking_button'),
             label: _leaderboardRegionSnapshot.primaryActionLabel,
             filled: true,
+            onTap: onViewMoreRanking,
           ),
         ),
         const SizedBox(width: 10),
@@ -593,33 +2050,51 @@ class _RegionPreviewActions extends StatelessWidget {
 }
 
 class _VisualCta extends StatelessWidget {
-  const _VisualCta({required this.label, required this.filled});
+  const _VisualCta({
+    super.key,
+    required this.label,
+    required this.filled,
+    this.onTap,
+  });
 
   final String label;
   final bool filled;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 36,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: filled ? RuniacColors.textPrimary : RuniacColors.white,
+    return Semantics(
+      button: onTap != null,
+      child: Material(
+        color: Colors.transparent,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: filled
-              ? RuniacColors.textPrimary
-              : RuniacColors.textSecondary.withValues(alpha: 0.48),
-        ),
-      ),
-      child: Text(
-        label,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: TextStyle(
-          color: filled ? RuniacColors.white : RuniacColors.textPrimary,
-          fontSize: 13,
-          fontWeight: FontWeight.w900,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(8),
+          onTap: onTap,
+          child: Ink(
+            height: 36,
+            decoration: BoxDecoration(
+              color: filled ? RuniacColors.textPrimary : RuniacColors.white,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: filled
+                    ? RuniacColors.textPrimary
+                    : RuniacColors.textSecondary.withValues(alpha: 0.48),
+              ),
+            ),
+            child: Center(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: filled ? RuniacColors.white : RuniacColors.textPrimary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );

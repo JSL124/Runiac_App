@@ -4,12 +4,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runiac_app/app.dart';
+import 'package:runiac_app/features/leaderboard/presentation/leaderboard_tab.dart';
 
 final _forbiddenBackendOwnedCopy = RegExp(
   r'\bXP\b|streak|level|rank|score|saved count|popularity|owned|'
   r'territory owned|route completed|activity saved|synced|premium|'
   r'subscription',
   caseSensitive: false,
+);
+
+final _isWithinMetricFontRange = allOf(
+  greaterThanOrEqualTo(16),
+  lessThanOrEqualTo(24),
 );
 
 void main() {
@@ -317,9 +323,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Runiac'), findsNothing);
-    expect(find.text('Weekly XP'), findsOneWidget);
-    expect(find.text('Monthly XP'), findsOneWidget);
-    expect(find.text('Rising Runner Division'), findsOneWidget);
+    expect(find.text('Weekly XP'), findsNothing);
+    expect(find.text('Monthly XP'), findsNothing);
+    expect(find.text('Rising Runner Division'), findsNWidgets(2));
     expect(find.text('Lv.11 - Lv.20'), findsOneWidget);
     expect(find.text('Your ranked area'), findsOneWidget);
     expect(find.text('Home'), findsOneWidget);
@@ -328,7 +334,26 @@ void main() {
     expect(find.text('Leaderboard'), findsOneWidget);
     expect(find.text('You'), findsOneWidget);
     expect(find.text('Jurong East'), findsOneWidget);
-    expect(find.text('Weekly XP · Rising Runner Division'), findsOneWidget);
+    expect(find.text('Weekly XP · Rising Runner Division'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('leaderboard_region_accent_strip')),
+      findsOneWidget,
+    );
+    expect(
+      tester.getSize(find.byKey(const Key('leaderboard_sheet_handle_area'))),
+      const Size(768, 46),
+    );
+    expect(
+      tester.getSize(find.byKey(const Key('leaderboard_sheet_handle'))),
+      const Size(44, 5),
+    );
+    final leaderboardAccentBottom = tester
+        .getBottomLeft(
+          find.byKey(const ValueKey('leaderboard_region_accent_strip')),
+        )
+        .dy;
+    final leaderboardTitleTop = tester.getTopLeft(find.text('Jurong East')).dy;
+    expect(leaderboardTitleTop - leaderboardAccentBottom, closeTo(10, 0.1));
     expect(find.text('Region Preview'), findsOneWidget);
     expect(find.text('Ranking preview pending'), findsOneWidget);
     expect(find.text('My Rank Preview'), findsOneWidget);
@@ -361,7 +386,7 @@ void main() {
 
     expect(find.text('Tips'), findsOneWidget);
     expect(find.text('Leagues'), findsOneWidget);
-    expect(find.text('Weekly vs Monthly'), findsOneWidget);
+    expect(find.text('Board timing'), findsOneWidget);
     expect(find.text('Ranking readiness'), findsOneWidget);
     expect(
       find.text(
@@ -371,7 +396,7 @@ void main() {
     );
     expect(
       find.text(
-        'Weekly and monthly views will help compare progress once leaderboard data is ready.',
+        'This static preview keeps one board context until trusted leaderboard data is ready.',
       ),
       findsOneWidget,
     );
@@ -400,10 +425,10 @@ void main() {
 
     expect(find.text('Tips'), findsNothing);
     expect(find.text('Leagues'), findsNothing);
-    expect(find.text('Rising Runner Division'), findsOneWidget);
+    expect(find.text('Rising Runner Division'), findsNWidgets(2));
     expect(find.text('Region Preview'), findsOneWidget);
 
-    await tester.tap(find.text('Rising Runner Division'));
+    await tester.tap(find.bySemanticsLabel('Open leagues list'));
     await tester.pumpAndSettle();
 
     expect(find.text('Leagues'), findsOneWidget);
@@ -439,9 +464,203 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Leagues'), findsNothing);
-    expect(find.text('Rising Runner Division'), findsOneWidget);
+    expect(find.text('Rising Runner Division'), findsNWidgets(2));
     expect(find.text('Lv.11 - Lv.20'), findsOneWidget);
     expect(find.text('Region Preview'), findsOneWidget);
+  });
+
+  testWidgets('View More Ranking opens static monthly detail board', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const RuniacApp());
+
+    await tester.tap(find.text('Leaderboard'));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const Key('leaderboard_view_more_ranking_button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byTooltip('Back to Leaderboard'), findsOneWidget);
+    expect(find.byIcon(Icons.arrow_back), findsOneWidget);
+    expect(find.text('Jurong East'), findsOneWidget);
+    expect(find.text('June 2026'), findsOneWidget);
+    expect(find.text('Monthly board'), findsNothing);
+    expect(find.text('Refreshes in 24:14:05:45'), findsOneWidget);
+    expect(find.text('Refreshes in 12 days'), findsNothing);
+    expect(find.text('Refreshes in 24D : 14H : 05M : 45S'), findsNothing);
+    expect(find.text('24:14:05:45'), findsNothing);
+    expect(find.text('Rising Runner Division'), findsOneWidget);
+    expect(find.text('Weekly XP'), findsNothing);
+    expect(find.text('Monthly XP'), findsNothing);
+    expect(find.text('Regional ranking'), findsOneWidget);
+    expect(find.text('NEARBY YOUR RANK'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('leaderboard_detail_header_accent_strip')),
+      findsOneWidget,
+    );
+    expect(
+      tester
+          .getSize(
+            find.byKey(
+              const ValueKey('leaderboard_detail_header_accent_strip'),
+            ),
+          )
+          .width,
+      greaterThan(650),
+    );
+
+    for (var index = 0; index < 10; index++) {
+      expect(
+        find.byKey(ValueKey('leaderboard_detail_top_rank_row_$index')),
+        findsOneWidget,
+      );
+    }
+    expect(
+      find.byKey(const ValueKey('leaderboard_detail_top_rank_row_10')),
+      findsNothing,
+    );
+
+    for (var index = 0; index < 5; index++) {
+      expect(
+        find.byKey(ValueKey('leaderboard_detail_nearby_rank_row_$index')),
+        findsOneWidget,
+      );
+    }
+    expect(find.text('Alex T.'), findsOneWidget);
+    expect(find.text('Grace L.'), findsOneWidget);
+    expect(find.text('Daniel W.'), findsOneWidget);
+    expect(find.text('Jinseo (You)'), findsOneWidget);
+    expect(find.text('#18'), findsNWidgets(2));
+    expect(find.text('520 XP'), findsNWidgets(2));
+    expect(
+      find.byKey(const Key('leaderboard_detail_current_user_row')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('leaderboard_current_user_floating_bar')),
+      findsOneWidget,
+    );
+    expect(find.textContaining('to reach'), findsNothing);
+    expect(find.textContaining('progress'), findsNothing);
+
+    final floatingBarBottom = tester
+        .getBottomLeft(
+          find.byKey(const Key('leaderboard_current_user_floating_bar')),
+        )
+        .dy;
+    final bottomNavTop = tester.getTopLeft(find.text('Home')).dy;
+    expect(floatingBarBottom, lessThan(bottomNavTop));
+    expect(find.text('Home'), findsOneWidget);
+    expect(find.text('Maps'), findsOneWidget);
+    expect(find.text('Run'), findsOneWidget);
+    expect(find.text('Leaderboard'), findsOneWidget);
+    expect(find.text('You'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Back to Leaderboard'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Region Preview'), findsOneWidget);
+    expect(find.text('View More Ranking'), findsOneWidget);
+    expect(find.text('Monthly board'), findsNothing);
+  });
+
+  testWidgets('Leaderboard rows open read-only runner achievement profiles', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const RuniacApp());
+
+    await tester.tap(find.text('Leaderboard'));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const Key('leaderboard_view_more_ranking_button')),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const ValueKey('leaderboard_detail_top_rank_row_0')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Runner profile'), findsOneWidget);
+    expect(find.text('PUBLIC'), findsNothing);
+    expect(find.text('Alex T.'), findsOneWidget);
+    expect(find.text('Jurong East · Rank #1'), findsOneWidget);
+    expect(find.text('Rising Runner Division · Level 18'), findsOneWidget);
+    expect(
+      find.byKey(const Key('runner_profile_total_distance_metric')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('runner_profile_best_streak_metric')),
+      findsOneWidget,
+    );
+    expect(find.text('10000 km'), findsOneWidget);
+    expect(find.text('365 days'), findsOneWidget);
+    expect(find.text('Total distance'), findsOneWidget);
+    expect(find.text('Total distance (km)'), findsNothing);
+    expect(find.text('Best streak'), findsOneWidget);
+    expect(find.text('Achievements'), findsOneWidget);
+    expect(find.text('6 earned'), findsOneWidget);
+    expect(find.text('First 5K'), findsOneWidget);
+    expect(find.text('Consistency Starter'), findsOneWidget);
+    expect(find.text('Weekend Runner'), findsOneWidget);
+    expect(find.text('Morning Miles'), findsOneWidget);
+    expect(find.text('Steady Builder'), findsOneWidget);
+    expect(find.text('Park Route Fan'), findsOneWidget);
+    expect(
+      find.text('Only public running achievements are shown.'),
+      findsOneWidget,
+    );
+    expect(find.text('Experience'), findsNothing);
+    expect(find.text('1,240 XP'), findsNothing);
+    expect(find.byKey(const Key('runner_profile_level_metric')), findsNothing);
+    expect(find.text('Recent Public Achievements'), findsNothing);
+    expect(find.textContaining('GPS'), findsNothing);
+    expect(find.textContaining('pace'), findsNothing);
+    expect(find.textContaining('calories'), findsNothing);
+    expect(find.textContaining('premium'), findsNothing);
+
+    await tester.tap(find.byTooltip('Back to Rankings'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Regional ranking'), findsOneWidget);
+
+    final nearbyRow = find.byKey(
+      const ValueKey('leaderboard_detail_nearby_rank_row_1'),
+    );
+    await tester.ensureVisible(nearbyRow);
+    await tester.pumpAndSettle();
+    await tester.tap(nearbyRow);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Runner profile'), findsOneWidget);
+    expect(find.text('Daniel W.'), findsOneWidget);
+    expect(find.text('Jurong East · Rank #17'), findsOneWidget);
+    expect(find.text('640 XP'), findsNothing);
+
+    await tester.tap(find.byTooltip('Back to Rankings'));
+    await tester.pumpAndSettle();
+
+    final currentUserRow = find.byKey(
+      const ValueKey('leaderboard_detail_nearby_rank_row_2'),
+    );
+    await tester.ensureVisible(currentUserRow);
+    await tester.pumpAndSettle();
+    await tester.tap(currentUserRow);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Runner profile'), findsOneWidget);
+    expect(find.text('Jinseo'), findsOneWidget);
+    expect(find.text('Jurong East · Rank #18'), findsOneWidget);
+    expect(find.text('520 XP'), findsNothing);
+    expect(find.text('You'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Back to Rankings'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Runner profile'), findsNothing);
+    expect(find.text('Regional ranking'), findsOneWidget);
   });
 
   test('Leaderboard source isolates static display snapshots', () {
@@ -452,20 +671,102 @@ void main() {
     expect(source, contains('class _LeaderboardPreviewSnapshot'));
     expect(source, contains('class _LeaderboardLeagueSnapshot'));
     expect(source, contains('class _LeaderboardRegionSnapshot'));
+    expect(source, contains('class _LeaderboardDetailDisplaySnapshot'));
+    expect(source, contains('class _LeaderboardRankRowDisplaySnapshot'));
+    expect(source, contains('class _RunnerAchievementProfileSnapshot'));
+    expect(source, contains('class _RunnerAchievementBadgeSnapshot'));
+    expect(source, contains('class _RunnerMetricValueText'));
     expect(source, contains('const _leaderboardPreviewSnapshot'));
     expect(source, contains('const _leaderboardLeagueSnapshot'));
     expect(source, contains('const _leaderboardRegionSnapshot'));
+    expect(source, contains('const _leaderboardDetailSnapshot'));
+    expect(source, contains('periodLabel: \'June 2026\''));
+    expect(source, contains('fallbackPeriodLabel: \'Monthly board\''));
+    expect(source, contains('Refreshes in 24:14:05:45'));
+    expect(source, contains('Refreshes in 00:00:00:00'));
 
     for (final forbidden in [
       'calculateRank',
       'calculateScore',
       'calculateXP',
       'deriveDivision',
+      'deriveNearbyRanks',
       'sortLeaderboard',
       'aggregateWeeklyXp',
+      'daysUntilMonthlyReset',
+      'calculateRefresh',
+      'calculateLevel',
+      'calculateStreak',
+      'calculateTotalDistance',
+      'calculateAchievements',
+      'deriveAchievement',
+      'DateTime.now',
+      'Timer.periodic',
+      'nextRefreshAt',
+      'monthEnd',
+      'tickCountdown',
+      'currentYear',
+      'currentMonth',
+      'DateFormat',
+      'reformatMetric',
+      'roundMetric',
+      'capMetric',
+      'shortenMetric',
     ]) {
       expect(source, isNot(contains(forbidden)));
     }
+
+    final metricValueStart = source.indexOf('class _RunnerMetricValueText');
+    final metricValueEnd = source.indexOf(
+      'class _RunnerAchievementsSection',
+      metricValueStart,
+    );
+    final metricValueSource = source.substring(
+      metricValueStart,
+      metricValueEnd,
+    );
+
+    expect(metricValueSource, contains('minFontSize = 16'));
+    expect(metricValueSource, isNot(contains('TextOverflow.ellipsis')));
+  });
+
+  test('Runner metric value font size adapts without changing labels', () {
+    expect(
+      resolveRunnerMetricValueFontSize(value: '10000 km', maxWidth: 240),
+      _isWithinMetricFontRange,
+    );
+    expect(
+      resolveRunnerMetricValueFontSize(value: '365 days', maxWidth: 240),
+      _isWithinMetricFontRange,
+    );
+    expect(
+      resolveRunnerMetricValueFontSize(value: '10000 km', maxWidth: 72),
+      greaterThanOrEqualTo(16),
+    );
+  });
+
+  test('Leaderboard period label falls back without date derivation', () {
+    expect(
+      resolveLeaderboardPeriodLabelForDisplay(
+        periodLabel: 'June 2026',
+        fallbackPeriodLabel: 'Monthly board',
+      ),
+      'June 2026',
+    );
+    expect(
+      resolveLeaderboardPeriodLabelForDisplay(
+        periodLabel: '',
+        fallbackPeriodLabel: 'Monthly board',
+      ),
+      'Monthly board',
+    );
+    expect(
+      resolveLeaderboardPeriodLabelForDisplay(
+        periodLabel: '   ',
+        fallbackPeriodLabel: 'Monthly board',
+      ),
+      'Monthly board',
+    );
   });
 
   testWidgets('Leaderboard static labels do not expose owned totals', (
@@ -476,8 +777,8 @@ void main() {
     await tester.tap(find.text('Leaderboard'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Weekly XP'), findsOneWidget);
-    expect(find.text('Monthly XP'), findsOneWidget);
+    expect(find.text('Weekly XP'), findsNothing);
+    expect(find.text('Monthly XP'), findsNothing);
     expect(find.textContaining(RegExp(r'\d+\s*XP')), findsNothing);
     expect(
       find.textContaining(RegExp(r'rank\s*#', caseSensitive: false)),
