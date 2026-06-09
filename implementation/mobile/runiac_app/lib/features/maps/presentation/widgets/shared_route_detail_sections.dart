@@ -5,7 +5,7 @@ import 'shared_route_detail_painters.dart';
 
 const routeDetailTitle = 'Marina Bay easy loop';
 const routeDetailTagLine = 'EASY \u00B7 LOOP';
-const routeDetailLikeSummary = '\u2661 128';
+const routeDetailLikeSummary = '128';
 const routeDetailSharePayload = 'Marina Bay easy loop, 3.2 km, route link';
 const routeDetailSignInFailureCopy = 'Sign in to select this route.';
 const routeDetailOfflineFailureCopy =
@@ -51,21 +51,12 @@ class RouteDetailHero extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          decoration: BoxDecoration(
-            color: RuniacColors.white,
-            border: Border.all(color: RuniacColors.border),
-            borderRadius: BorderRadius.circular(999),
-          ),
-          child: const Text(
-            routeDetailTagLine,
-            style: TextStyle(
-              color: RuniacColors.accentOrange,
-              fontSize: 13,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.6,
-            ),
+        const Text(
+          routeDetailTagLine,
+          style: TextStyle(
+            color: RuniacColors.accentOrange,
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
           ),
         ),
         const SizedBox(height: 10),

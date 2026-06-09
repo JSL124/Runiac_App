@@ -208,7 +208,7 @@ void main() {
       expect(find.text('Route'), findsOneWidget);
       expect(find.text('Marina Bay easy loop'), findsOneWidget);
       expect(find.text('EASY · LOOP'), findsOneWidget);
-      expect(find.text('♡ 128'), findsOneWidget);
+      expect(find.text('128'), findsOneWidget);
       expect(find.text('3.2 km'), findsWidgets);
       expect(find.text('25 min'), findsOneWidget);
       expect(find.text('Easy'), findsWidgets);
