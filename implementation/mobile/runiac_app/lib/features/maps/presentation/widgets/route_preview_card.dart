@@ -6,79 +6,90 @@ class RoutePreviewCard extends StatelessWidget {
   const RoutePreviewCard({
     required this.title,
     required this.message,
+    this.onTap,
     super.key,
   });
 
   final String title;
   final String message;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
+    final card = Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: RuniacColors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: RuniacColors.border),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0A172033),
+            blurRadius: 10,
+            offset: Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          const _RouteThumbnailPlaceholder(),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: RuniacColors.textPrimary,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    height: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  message,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: RuniacColors.textSecondary,
+                    fontSize: 13,
+                    height: 1.35,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            width: 30,
+            height: 30,
+            decoration: BoxDecoration(
+              color: const Color(0xFFEFF3FF),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: const Icon(
+              Icons.arrow_forward,
+              color: RuniacColors.primaryBlue,
+              size: 17,
+            ),
+          ),
+        ],
+      ),
+    );
+
     return ConstrainedBox(
       constraints: const BoxConstraints(minHeight: 82, maxHeight: 82),
-      child: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: RuniacColors.white,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: RuniacColors.border),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x0A172033),
-              blurRadius: 10,
-              offset: Offset(0, 5),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            const _RouteThumbnailPlaceholder(),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: RuniacColors.textPrimary,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                      height: 1.2,
-                    ),
-                  ),
-                  const SizedBox(height: 5),
-                  Text(
-                    message,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: RuniacColors.textSecondary,
-                      fontSize: 13,
-                      height: 1.35,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            Container(
-              width: 30,
-              height: 30,
-              decoration: BoxDecoration(
-                color: const Color(0xFFEFF3FF),
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: const Icon(
-                Icons.arrow_forward,
-                color: RuniacColors.primaryBlue,
-                size: 17,
-              ),
-            ),
-          ],
+          child: card,
         ),
       ),
     );

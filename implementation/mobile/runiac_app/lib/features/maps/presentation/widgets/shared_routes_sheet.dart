@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/runiac_colors.dart';
-import 'route_preview_card.dart';
+import '../shared_route_detail_screen.dart';
+import 'shared_route_sheet_card.dart';
 
 const _homeAccentBlue = Color(0xFF2F5BFF);
 const _homeAccentOrange = Color(0xFFF97316);
 const _sheetAnimationDuration = Duration(milliseconds: 220);
 const _expandedSheetHeight = 370.0;
 const _collapsedSheetHeight = 46.0;
-const _sheetBottomPadding = 14.0;
 
 const _sharedRoutesDisplaySnapshot = _SharedRoutesDisplaySnapshot(
   title: 'Shared Routes',
@@ -130,12 +130,7 @@ class _SharedRoutesSheetBody extends StatelessWidget {
           const _SheetHandleArea(),
           if (!isCollapsed)
             Padding(
-              padding: const EdgeInsets.fromLTRB(
-                16,
-                0,
-                16,
-                _sheetBottomPadding,
-              ),
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -143,11 +138,28 @@ class _SharedRoutesSheetBody extends StatelessWidget {
                   const SizedBox(height: 10),
                   const _SharedRoutesHeader(),
                   const SizedBox(height: 10),
-                  _SharedRouteCard(snapshot: snapshot.routeCards[0]),
+                  SharedRouteSheetCard(
+                    keySuffix: snapshot.routeCards[0].keySuffix,
+                    title: snapshot.routeCards[0].title,
+                    message: snapshot.routeCards[0].message,
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const SharedRouteDetailScreen(),
+                      ),
+                    ),
+                  ),
                   const SizedBox(height: 8),
-                  _SharedRouteCard(snapshot: snapshot.routeCards[1]),
+                  SharedRouteSheetCard(
+                    keySuffix: snapshot.routeCards[1].keySuffix,
+                    title: snapshot.routeCards[1].title,
+                    message: snapshot.routeCards[1].message,
+                  ),
                   const SizedBox(height: 8),
-                  _SharedRouteCard(snapshot: snapshot.routeCards[2]),
+                  SharedRouteSheetCard(
+                    keySuffix: snapshot.routeCards[2].keySuffix,
+                    title: snapshot.routeCards[2].title,
+                    message: snapshot.routeCards[2].message,
+                  ),
                 ],
               ),
             ),
@@ -233,21 +245,6 @@ class _SharedRoutesHeader extends StatelessWidget {
         fontWeight: FontWeight.w800,
         height: 1.15,
       ),
-    );
-  }
-}
-
-class _SharedRouteCard extends StatelessWidget {
-  const _SharedRouteCard({required this.snapshot});
-
-  final _RouteCardDisplaySnapshot snapshot;
-
-  @override
-  Widget build(BuildContext context) {
-    return RoutePreviewCard(
-      key: Key('route_preview_card_${snapshot.keySuffix}'),
-      title: snapshot.title,
-      message: snapshot.message,
     );
   }
 }

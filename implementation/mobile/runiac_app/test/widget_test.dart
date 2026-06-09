@@ -195,6 +195,156 @@ void main() {
     expect(routeMessage.overflow, TextOverflow.ellipsis);
   });
 
+  testWidgets(
+    'Maps shared route detail opens from first card and renders static route content',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(const RuniacApp());
+
+      await tester.tap(find.text('Maps'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Route preview'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Route'), findsOneWidget);
+      expect(find.text('Marina Bay easy loop'), findsOneWidget);
+      expect(find.text('EASY · LOOP'), findsOneWidget);
+      expect(find.text('♡ 128'), findsOneWidget);
+      expect(find.text('3.2 km'), findsWidgets);
+      expect(find.text('25 min'), findsOneWidget);
+      expect(find.text('Easy'), findsWidgets);
+      final detailScrollView = tester.widget<ListView>(
+        find.byKey(const Key('shared_route_detail_scroll_view')),
+      );
+      expect(detailScrollView.physics, isA<ClampingScrollPhysics>());
+
+      final mapPainterSize = tester.getSize(
+        find.byKey(const Key('shared_route_detail_map_painter')),
+      );
+      expect(mapPainterSize.width, greaterThan(0));
+      expect(mapPainterSize.height, greaterThan(0));
+
+      await tester.scrollUntilVisible(
+        find.text('Runner notes'),
+        320,
+        scrollable: find.byType(Scrollable).last,
+      );
+
+      expect(find.text('Runner notes'), findsOneWidget);
+      expect(
+        tester
+            .getSize(
+              find.byKey(const Key('shared_route_detail_elevation_painter')),
+            )
+            .width,
+        greaterThan(0),
+      );
+      expect(find.bySemanticsLabel('Save route'), findsOneWidget);
+      expect(find.bySemanticsLabel('Share route'), findsOneWidget);
+      expect(find.text('Select Route'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'Maps shared route detail confirms with saving overlay and stay here disables select',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(const RuniacApp());
+
+      await tester.tap(find.text('Maps'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Route preview'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Select Route'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Confirm Route'), findsOneWidget);
+      expect(
+        find.text('This will replace your current selected route.'),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.text('Confirm Route'));
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(find.text('Setting up your next run...'), findsOneWidget);
+
+      await tester.pump(const Duration(milliseconds: 2600));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Route selected'), findsOneWidget);
+      expect(
+        find.text('This route has been saved and set for your next run.'),
+        findsOneWidget,
+      );
+      expect(find.text('Start Run'), findsOneWidget);
+      expect(find.text('View Planned Routes'), findsOneWidget);
+      expect(find.text('Stay Here'), findsOneWidget);
+
+      await tester.tap(find.text('Stay Here'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Route selected'), findsNothing);
+      expect(find.text('Selected for your next run'), findsNothing);
+
+      final selectButton = tester.widget<ElevatedButton>(
+        find.widgetWithText(ElevatedButton, 'Select Route'),
+      );
+      expect(selectButton.onPressed, isNull);
+    },
+  );
+
+  testWidgets(
+    'Maps shared route detail remains static and preserves sheet regression boundaries',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(const RuniacApp());
+
+      await tester.tap(find.text('Maps'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Shared Routes'), findsOneWidget);
+      expect(find.text('Shared routes'), findsOneWidget);
+      expect(find.text('Saved routes'), findsOneWidget);
+
+      await tester.tap(find.text('Route preview'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.bySemanticsLabel('Back'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Shared Routes'), findsOneWidget);
+      expect(find.text('Route preview'), findsOneWidget);
+
+      final mapsSource = Directory('lib/features/maps')
+          .listSync(recursive: true)
+          .whereType<File>()
+          .map((file) {
+            return file.readAsStringSync();
+          })
+          .join('\n');
+
+      expect(mapsSource, contains('Sign in to select this route.'));
+      expect(
+        mapsSource,
+        contains("You seem to be offline. Try again when you're connected."),
+      );
+      expect(
+        mapsSource,
+        contains("We couldn't select this route. Please try again."),
+      );
+      expect(mapsSource, contains('Marina Bay easy loop, 3.2 km'));
+      expect(
+        mapsSource,
+        isNot(
+          contains(
+            RegExp(
+              r'Firebase|Firestore|FirebaseAuth|cloud_firestore|'
+              r'firebase_auth|\bcollection\(|\bdoc\(|\bupdate\(|\bset\(',
+            ),
+          ),
+        ),
+      );
+    },
+  );
+
   testWidgets('Maps sheet first landing is the maximum full-content height', (
     WidgetTester tester,
   ) async {
