@@ -137,7 +137,7 @@ void main() {
     expect(find.textContaining(_forbiddenBackendOwnedCopy), findsNothing);
   });
 
-  testWidgets('Maps See all opens static fuller shared routes preview', (
+  testWidgets('Maps See all opens scrollable static shared routes state', (
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(const RuniacApp());
@@ -147,25 +147,109 @@ void main() {
 
     final sheetSurface = find.byKey(const Key('maps_sheet_surface'));
     final initialTop = tester.getTopLeft(sheetSurface).dy;
+    final screenHeight =
+        tester.view.physicalSize.height / tester.view.devicePixelRatio;
+    final initialHeight = tester.getSize(sheetSurface).height;
 
     expect(find.text('Shared Routes'), findsOneWidget);
+    expect(find.text('See all'), findsOneWidget);
     expect(find.text('All shared routes'), findsNothing);
+    expect(find.text('Show less'), findsNothing);
     expect(find.text('Park connector loop'), findsNothing);
     expect(find.text('Morning waterfront'), findsNothing);
 
     await tester.tap(find.byKey(const Key('maps_see_all_shared_routes')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Shared Routes'), findsNothing);
-    expect(find.text('All shared routes'), findsOneWidget);
+    expect(find.text('Shared Routes'), findsOneWidget);
+    expect(find.text('All shared routes'), findsNothing);
+    expect(find.text('See all'), findsNothing);
+    expect(find.text('Show less'), findsOneWidget);
     expect(find.text('Route preview'), findsOneWidget);
     expect(find.text('Shared routes'), findsOneWidget);
     expect(find.text('Saved routes'), findsOneWidget);
     expect(find.text('Park connector loop'), findsOneWidget);
-    expect(find.text('Morning waterfront'), findsOneWidget);
     expect(tester.getTopLeft(sheetSurface).dy, lessThan(initialTop));
+    expect(tester.getSize(sheetSurface).height, closeTo(screenHeight * 0.7, 1));
+    expect(
+      find.byKey(const Key('maps_expanded_shared_routes_list')),
+      findsOneWidget,
+    );
+
+    final expandedTop = tester.getTopLeft(sheetSurface).dy;
+    final expandedHeight = tester.getSize(sheetSurface).height;
+
+    await tester.scrollUntilVisible(
+      find.text('Sunset recovery route'),
+      120,
+      scrollable: find.descendant(
+        of: find.byKey(const Key('maps_expanded_shared_routes_list')),
+        matching: find.byType(Scrollable),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Sunset recovery route'), findsOneWidget);
+    expect(tester.getTopLeft(sheetSurface).dy, expandedTop);
+    expect(tester.getSize(sheetSurface).height, expandedHeight);
     expect(find.textContaining(_forbiddenBackendOwnedCopy), findsNothing);
+
+    await tester.tap(find.byKey(const Key('maps_show_less_shared_routes')));
+    await tester.pumpAndSettle();
+
+    expect(tester.getTopLeft(sheetSurface).dy, initialTop);
+    expect(tester.getSize(sheetSurface).height, initialHeight);
+    expect(find.text('Shared Routes'), findsOneWidget);
+    expect(find.text('See all'), findsOneWidget);
+    expect(find.text('Show less'), findsNothing);
+    expect(find.text('All shared routes'), findsNothing);
+    expect(find.text('Park connector loop'), findsNothing);
+    expect(find.text('Morning waterfront'), findsNothing);
+    expect(find.text('Sunset recovery route'), findsNothing);
   });
+
+  testWidgets(
+    'Maps manual collapse from expanded routes resets to preview state',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(const RuniacApp());
+
+      await tester.tap(find.text('Maps'));
+      await tester.pumpAndSettle();
+
+      final sheetSurface = find.byKey(const Key('maps_sheet_surface'));
+      final initialTop = tester.getTopLeft(sheetSurface).dy;
+
+      await tester.tap(find.byKey(const Key('maps_see_all_shared_routes')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Shared Routes'), findsOneWidget);
+      expect(find.text('Show less'), findsOneWidget);
+      expect(find.text('Park connector loop'), findsOneWidget);
+
+      await tester.drag(
+        find.byKey(const Key('maps_sheet_handle')),
+        const Offset(0, 700),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Shared Routes'), findsNothing);
+      expect(find.text('Show less'), findsNothing);
+      expect(find.text('Park connector loop'), findsNothing);
+
+      await tester.flingFrom(
+        const Offset(400, 505),
+        const Offset(0, -700),
+        1000,
+      );
+      await tester.pumpAndSettle();
+
+      expect(tester.getTopLeft(sheetSurface).dy, initialTop);
+      expect(find.text('Shared Routes'), findsOneWidget);
+      expect(find.text('See all'), findsOneWidget);
+      expect(find.text('Show less'), findsNothing);
+      expect(find.text('Park connector loop'), findsNothing);
+    },
+  );
 
   testWidgets('Maps Saved opens static My routes page', (
     WidgetTester tester,
