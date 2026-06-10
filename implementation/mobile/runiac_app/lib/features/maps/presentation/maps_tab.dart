@@ -13,12 +13,36 @@ class MapsTab extends StatefulWidget {
 }
 
 class _MapsTabState extends State<MapsTab> {
+  final _searchController = TextEditingController();
+  final _searchFocusNode = FocusNode();
+
   bool _isSearchActive = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchFocusNode.addListener(_handleSearchFocusChanged);
+  }
+
+  void _handleSearchFocusChanged() {
+    setState(() {
+      _isSearchActive =
+          _searchFocusNode.hasFocus || _searchController.text.isNotEmpty;
+    });
+  }
 
   void _activateSearchPreview() {
     setState(() {
       _isSearchActive = true;
     });
+  }
+
+  @override
+  void dispose() {
+    _searchFocusNode.removeListener(_handleSearchFocusChanged);
+    _searchFocusNode.dispose();
+    _searchController.dispose();
+    super.dispose();
   }
 
   @override
@@ -28,6 +52,7 @@ class _MapsTabState extends State<MapsTab> {
       child: Stack(
         children: [
           const Positioned.fill(child: MapsBackground()),
+          const SharedRoutesSheet(),
           Positioned(
             left: 14,
             right: 14,
@@ -36,11 +61,12 @@ class _MapsTabState extends State<MapsTab> {
               minimum: const EdgeInsets.only(top: 14),
               child: MapsTopOverlay(
                 isSearchActive: _isSearchActive,
+                searchController: _searchController,
+                searchFocusNode: _searchFocusNode,
                 onSearchTap: _activateSearchPreview,
               ),
             ),
           ),
-          const SharedRoutesSheet(),
         ],
       ),
     );

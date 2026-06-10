@@ -116,7 +116,7 @@ void main() {
     expect(find.textContaining(_forbiddenBackendOwnedCopy), findsNothing);
   });
 
-  testWidgets('Maps search field shows static focused query preview', (
+  testWidgets('Maps search field accepts focus and visible typed input', (
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(const RuniacApp());
@@ -124,16 +124,28 @@ void main() {
     await tester.tap(find.text('Maps'));
     await tester.pumpAndSettle();
 
+    final sheetSurface = find.byKey(const Key('maps_sheet_surface'));
+    final initialSheetTop = tester.getTopLeft(sheetSurface).dy;
+    final searchField = find.byKey(const Key('maps_search_field'));
+
     expect(find.text('Search routes or parks'), findsOneWidget);
     expect(find.text('Marina Bay'), findsNothing);
-    expect(find.byKey(const Key('maps_search_preview_cursor')), findsNothing);
+    expect(tester.widget<TextField>(searchField).focusNode?.hasFocus, isFalse);
 
-    await tester.tap(find.byKey(const Key('maps_search_field')));
+    await tester.tap(searchField);
+    await tester.pump();
+    await tester.enterText(searchField, 'Marina Bay');
     await tester.pumpAndSettle();
 
-    expect(find.text('Search routes or parks'), findsNothing);
     expect(find.text('Marina Bay'), findsOneWidget);
-    expect(find.byKey(const Key('maps_search_preview_cursor')), findsOneWidget);
+    final focusedSearchField = tester.widget<TextField>(searchField);
+
+    expect(focusedSearchField.controller?.text, 'Marina Bay');
+    expect(focusedSearchField.focusNode?.hasFocus, isTrue);
+    expect(tester.getTopLeft(sheetSurface).dy, initialSheetTop);
+    expect(find.text('Shared Routes'), findsOneWidget);
+    expect(find.text('See all'), findsOneWidget);
+    expect(find.text('Show less'), findsNothing);
     expect(find.textContaining(_forbiddenBackendOwnedCopy), findsNothing);
   });
 
