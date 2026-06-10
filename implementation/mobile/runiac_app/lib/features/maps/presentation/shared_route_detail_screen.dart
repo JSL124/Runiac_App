@@ -2,10 +2,40 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/runiac_colors.dart';
 import 'widgets/shared_route_detail_actions.dart';
+import 'widgets/shared_route_detail_painters.dart';
 import 'widgets/shared_route_detail_sections.dart';
 
+class SharedRouteDetailSnapshot {
+  const SharedRouteDetailSnapshot({
+    required this.title,
+    required this.distance,
+    required this.duration,
+    required this.difficulty,
+  });
+
+  static const defaultRoute = SharedRouteDetailSnapshot(
+    title: routeDetailTitle,
+    distance: '3.2 km',
+    duration: '25 min',
+    difficulty: 'Easy',
+  );
+
+  final String title;
+  final String distance;
+  final String duration;
+  final String difficulty;
+
+  String get meta => '$distance · $duration · $difficulty';
+  String get tagLine => '${difficulty.toUpperCase()} · LOOP';
+}
+
 class SharedRouteDetailScreen extends StatefulWidget {
-  const SharedRouteDetailScreen({super.key});
+  const SharedRouteDetailScreen({
+    this.route = SharedRouteDetailSnapshot.defaultRoute,
+    super.key,
+  });
+
+  final SharedRouteDetailSnapshot route;
 
   @override
   State<SharedRouteDetailScreen> createState() =>
@@ -62,7 +92,7 @@ class _SharedRouteDetailScreenState extends State<SharedRouteDetailScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              const RouteMetricStrip(compact: true),
+              _RouteMetricStrip(route: widget.route, compact: true),
               const SizedBox(height: 20),
               FilledButton(
                 onPressed: _confirmRouteSelection,
@@ -173,16 +203,16 @@ class _SharedRouteDetailScreenState extends State<SharedRouteDetailScreen> {
                       key: const Key('shared_route_detail_scroll_view'),
                       physics: const ClampingScrollPhysics(),
                       padding: const EdgeInsets.fromLTRB(16, 8, 16, 112),
-                      children: const [
-                        RouteDetailAccentStrip(),
-                        SizedBox(height: 14),
-                        RouteDetailHero(),
-                        SizedBox(height: 24),
-                        RouteDetailElevationSection(),
-                        SizedBox(height: 26),
-                        RouteDetailRunnerNotes(),
-                        SizedBox(height: 12),
-                        RouteDetailHiddenFailureCopy(),
+                      children: [
+                        const RouteDetailAccentStrip(),
+                        const SizedBox(height: 14),
+                        _RouteDetailHero(route: widget.route),
+                        const SizedBox(height: 24),
+                        const RouteDetailElevationSection(),
+                        const SizedBox(height: 26),
+                        const RouteDetailRunnerNotes(),
+                        const SizedBox(height: 12),
+                        const RouteDetailHiddenFailureCopy(),
                       ],
                     ),
                   ),
@@ -201,6 +231,164 @@ class _SharedRouteDetailScreenState extends State<SharedRouteDetailScreen> {
           if (_isSaving) const RouteDetailSavingOverlay(),
         ],
       ),
+    );
+  }
+}
+
+class _RouteDetailHero extends StatelessWidget {
+  const _RouteDetailHero({required this.route});
+
+  final SharedRouteDetailSnapshot route;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          route.tagLine,
+          style: const TextStyle(
+            color: RuniacColors.accentOrange,
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          route.title,
+          style: const TextStyle(
+            color: RuniacColors.textPrimary,
+            fontSize: 30,
+            fontWeight: FontWeight.w900,
+            height: 1.08,
+          ),
+        ),
+        const SizedBox(height: 12),
+        const Row(
+          children: [
+            Icon(
+              Icons.favorite_border,
+              color: RuniacColors.primaryBlue,
+              size: 18,
+            ),
+            SizedBox(width: 6),
+            Text(
+              routeDetailLikeSummary,
+              style: TextStyle(
+                color: RuniacColors.textSecondary,
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 18),
+        Container(
+          height: 356,
+          decoration: BoxDecoration(
+            color: const Color(0xFFF6F8FF),
+            border: Border.all(color: RuniacColors.border),
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x0A172033),
+                blurRadius: 12,
+                offset: Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Expanded(
+                child: CustomPaint(
+                  key: Key('shared_route_detail_map_painter'),
+                  painter: RouteMapPainter(),
+                ),
+              ),
+              _RouteMetricStrip(route: route),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _RouteMetricStrip extends StatelessWidget {
+  const _RouteMetricStrip({required this.route, this.compact = false});
+
+  final SharedRouteDetailSnapshot route;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final items = [
+      ('DISTANCE', route.distance),
+      ('EST. TIME', route.duration),
+      ('DIFFICULTY', route.difficulty),
+    ];
+
+    return Container(
+      height: compact ? 72 : 98,
+      decoration: BoxDecoration(
+        color: RuniacColors.white,
+        border: const Border(top: BorderSide(color: RuniacColors.border)),
+        borderRadius: BorderRadius.vertical(
+          bottom: Radius.circular(compact ? 0 : 12),
+        ),
+      ),
+      child: Row(
+        children: [
+          for (final item in items) ...[
+            Expanded(
+              child: _MetricCell(label: item.$1, value: item.$2),
+            ),
+            if (item != items.last)
+              const SizedBox(
+                height: 42,
+                child: VerticalDivider(
+                  width: 1,
+                  thickness: 1,
+                  color: RuniacColors.border,
+                ),
+              ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _MetricCell extends StatelessWidget {
+  const _MetricCell({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            color: Color(0xFF7F97EE),
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          value,
+          style: const TextStyle(
+            color: RuniacColors.textPrimary,
+            fontSize: 21,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ],
     );
   }
 }

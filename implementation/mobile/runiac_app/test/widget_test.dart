@@ -141,9 +141,24 @@ void main() {
     expect(find.text('Ready for today'), findsNothing);
     expect(find.text('Change route'), findsOneWidget);
     expect(find.text('Remove'), findsOneWidget);
+    expect(
+      find.byKey(const Key('selected_route_change_action')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('selected_route_remove_action')),
+      findsOneWidget,
+    );
     expect(find.text('Favourite routes'), findsOneWidget);
     expect(find.text('Bishan Park starter route'), findsOneWidget);
     expect(find.text('East Coast flat run'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('selected_route_card')),
+        matching: find.byKey(const Key('selected_route_arrow_affordance')),
+      ),
+      findsOneWidget,
+    );
     expect(
       find.byKey(const Key('favourite_route_arrow_affordance')),
       findsWidgets,
@@ -152,19 +167,7 @@ void main() {
       find.byKey(const Key('favourite_route_radio_affordance')),
       findsNothing,
     );
-    expect(
-      find.descendant(
-        of: find.byKey(const Key('selected_route_card')),
-        matching: find.byKey(const Key('favourite_route_arrow_affordance')),
-      ),
-      findsNothing,
-    );
-
     await tester.tap(find.text('Change route'));
-    await tester.pumpAndSettle();
-    expect(find.text('My routes'), findsOneWidget);
-
-    await tester.tap(find.text('Remove'));
     await tester.pumpAndSettle();
     expect(find.text('My routes'), findsOneWidget);
 
@@ -185,6 +188,141 @@ void main() {
     expect(find.text('Search routes or parks'), findsOneWidget);
     expect(find.text('Shared Routes'), findsOneWidget);
   });
+
+  testWidgets('Maps Saved selected route opens static route detail preview', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const RuniacApp());
+
+    await tester.tap(find.text('Maps'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Saved'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('selected_route_card')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Route'), findsOneWidget);
+    expect(find.text('Marina Bay easy loop'), findsOneWidget);
+    expect(find.text('3.2 km'), findsWidgets);
+    expect(find.text('25 min'), findsOneWidget);
+    expect(find.text('Easy'), findsWidgets);
+
+    await tester.tap(find.bySemanticsLabel('Back'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('My routes'), findsOneWidget);
+  });
+
+  testWidgets('Maps Saved favourite route opens static route detail preview', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const RuniacApp());
+
+    await tester.tap(find.text('Maps'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Saved'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Bishan Park starter route'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Route'), findsOneWidget);
+    expect(find.text('Bishan Park starter route'), findsOneWidget);
+    expect(find.text('2.4 km'), findsWidgets);
+    expect(find.text('18 min'), findsOneWidget);
+    expect(find.text('Easy'), findsWidgets);
+
+    await tester.tap(find.bySemanticsLabel('Back'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('My routes'), findsOneWidget);
+  });
+
+  testWidgets('Maps Saved remove dialog can cancel without changing route', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const RuniacApp());
+
+    await tester.tap(find.text('Maps'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Saved'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('selected_route_remove_action')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Remove selected route?'), findsOneWidget);
+    expect(
+      find.text(
+        'This will remove Marina Bay easy loop from today’s selected route.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Cancel'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.text('Remove'),
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('My routes'), findsOneWidget);
+    expect(find.text('Marina Bay easy loop'), findsOneWidget);
+    expect(find.byKey(const Key('selected_route_card')), findsOneWidget);
+    expect(
+      find.byKey(const Key('selected_route_remove_action')),
+      findsOneWidget,
+    );
+    expect(find.text('No route selected for today'), findsNothing);
+  });
+
+  testWidgets(
+    'Maps Saved confirm remove shows local empty selected route state',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(const RuniacApp());
+
+      await tester.tap(find.text('Maps'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Saved'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('selected_route_remove_action')));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.text('Remove'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('No route selected for today'), findsOneWidget);
+      expect(
+        find.text('Choose a route when you are ready to plan your next run.'),
+        findsOneWidget,
+      );
+      expect(find.text('Change route'), findsOneWidget);
+      expect(find.byKey(const Key('selected_route_card')), findsNothing);
+      expect(
+        find.byKey(const Key('selected_route_remove_action')),
+        findsNothing,
+      );
+      expect(find.text('Route removed'), findsNothing);
+      expect(find.text('Deleted from Firestore'), findsNothing);
+      expect(find.textContaining(_forbiddenBackendOwnedCopy), findsNothing);
+
+      await tester.tap(find.text('Change route'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('My routes'), findsOneWidget);
+      expect(find.text('No route selected for today'), findsOneWidget);
+    },
+  );
 
   testWidgets('Maps sheet keeps a non-scrolling Home-style accent layout', (
     WidgetTester tester,
