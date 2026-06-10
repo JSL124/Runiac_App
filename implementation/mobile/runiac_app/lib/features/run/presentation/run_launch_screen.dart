@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/runiac_colors.dart';
+import 'cool_down_screen.dart';
 import 'widgets/run_map_placeholder.dart';
 
 const _blueBorder = Color(0xFFDCE6FF);
@@ -111,7 +112,15 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
   }
 
   void _endRun() {
-    // Static placeholder only. Real end-run flow belongs to a later capsule.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(builder: (context) => const CoolDownScreen()),
+      );
+    });
   }
 
   @override
