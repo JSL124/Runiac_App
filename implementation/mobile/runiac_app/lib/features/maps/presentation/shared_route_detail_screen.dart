@@ -4,6 +4,7 @@ import '../../../core/theme/runiac_colors.dart';
 import 'widgets/shared_route_detail_actions.dart';
 import 'widgets/shared_route_detail_painters.dart';
 import 'widgets/shared_route_detail_sections.dart';
+import 'widgets/shared_route_report_sheet.dart';
 
 class SharedRouteDetailSnapshot {
   const SharedRouteDetailSnapshot({
@@ -184,6 +185,25 @@ class _SharedRouteDetailScreenState extends State<SharedRouteDetailScreen> {
     );
   }
 
+  void _showReportSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      backgroundColor: RuniacColors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        return SharedRouteReportSheet(
+          routeTitle: widget.route.title,
+          routeMeta: widget.route.meta,
+          onClose: () => Navigator.of(context).pop(),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -193,7 +213,10 @@ class _SharedRouteDetailScreenState extends State<SharedRouteDetailScreen> {
           SafeArea(
             child: Column(
               children: [
-                RouteDetailHeader(onShare: _showSharePreviewSheet),
+                _RouteDetailHeader(
+                  onReport: _showReportSheet,
+                  onShare: _showSharePreviewSheet,
+                ),
                 Expanded(
                   child: ScrollConfiguration(
                     behavior: ScrollConfiguration.of(
@@ -229,6 +252,64 @@ class _SharedRouteDetailScreenState extends State<SharedRouteDetailScreen> {
             ),
           ),
           if (_isSaving) const RouteDetailSavingOverlay(),
+        ],
+      ),
+    );
+  }
+}
+
+class _RouteDetailHeader extends StatelessWidget {
+  const _RouteDetailHeader({required this.onReport, required this.onShare});
+
+  final VoidCallback onReport;
+  final VoidCallback onShare;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 10, 8, 6),
+      child: Row(
+        children: [
+          Semantics(
+            label: 'Back',
+            button: true,
+            child: IconButton(
+              tooltip: 'Back',
+              onPressed: () => Navigator.of(context).pop(),
+              icon: const Icon(Icons.arrow_back_ios_new, size: 22),
+              color: RuniacColors.primaryBlue,
+            ),
+          ),
+          const Expanded(
+            child: Text(
+              'Route',
+              style: TextStyle(
+                color: RuniacColors.textPrimary,
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+          Semantics(
+            label: 'Report route',
+            button: true,
+            child: IconButton(
+              tooltip: 'Report route',
+              onPressed: onReport,
+              icon: const Icon(Icons.flag_outlined),
+              color: RuniacColors.primaryBlue,
+            ),
+          ),
+          Semantics(
+            label: 'Share route',
+            button: true,
+            child: IconButton(
+              tooltip: 'Share route',
+              onPressed: onShare,
+              icon: const Icon(Icons.share_outlined),
+              color: RuniacColors.primaryBlue,
+            ),
+          ),
         ],
       ),
     );

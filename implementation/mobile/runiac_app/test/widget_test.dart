@@ -501,6 +501,167 @@ void main() {
   });
 
   testWidgets(
+    'Maps shared route detail report sheet submits static report note',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(const RuniacApp());
+
+      await tester.tap(find.text('Maps'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Route preview'));
+      await tester.pumpAndSettle();
+
+      expect(
+        tester.getTopLeft(find.bySemanticsLabel('Report route')).dx,
+        lessThan(tester.getTopLeft(find.bySemanticsLabel('Share route')).dx),
+      );
+
+      await tester.tap(find.bySemanticsLabel('Report route'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Report Route'), findsOneWidget);
+      expect(find.text('Reporting'), findsOneWidget);
+      expect(find.text('Marina Bay easy loop'), findsWidgets);
+      expect(find.text('3.2 km · 25 min · Easy'), findsWidgets);
+      expect(find.text('Doesn’t exist'), findsOneWidget);
+      expect(find.text('Unsafe'), findsOneWidget);
+      expect(find.text('Wrong info'), findsOneWidget);
+      expect(find.text('Inappropriate'), findsOneWidget);
+      expect(find.byIcon(Icons.wrong_location_outlined), findsOneWidget);
+      expect(find.byIcon(Icons.warning_amber_outlined), findsOneWidget);
+      expect(find.byIcon(Icons.edit_location_alt_outlined), findsOneWidget);
+      expect(find.byIcon(Icons.report_gmailerrorred_outlined), findsOneWidget);
+
+      await tester.tap(find.text('Wrong info'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(
+          'Tell us which distance, time, difficulty, or location detail seems wrong.',
+        ),
+        findsOneWidget,
+      );
+
+      await tester.enterText(
+        find.byKey(const Key('route_report_why_field')),
+        'The distance marker looks incorrect.',
+      );
+      await tester.pumpAndSettle();
+
+      final reportButton = tester.widget<FilledButton>(
+        find.widgetWithText(FilledButton, 'Report'),
+      );
+      expect(reportButton.onPressed, isNotNull);
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Report'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Report noted'), findsOneWidget);
+      expect(
+        find.text('This preview keeps your report on this screen only.'),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.text('Close'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Report noted'), findsNothing);
+      expect(find.text('Route'), findsOneWidget);
+    },
+  );
+
+  testWidgets('Maps shared route detail report sheet requires reason and why', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const RuniacApp());
+
+    await tester.tap(find.text('Maps'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Route preview'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.bySemanticsLabel('Report route'));
+    await tester.pumpAndSettle();
+
+    FilledButton currentReportButton() {
+      return tester.widget<FilledButton>(
+        find.widgetWithText(FilledButton, 'Report'),
+      );
+    }
+
+    expect(currentReportButton().onPressed, isNull);
+    expect(
+      find.text('Add details to help us review this route.'),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.text('Unsafe'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Tell us what makes this route feel unsafe.'),
+      findsOneWidget,
+    );
+    expect(currentReportButton().onPressed, isNull);
+
+    await tester.enterText(
+      find.byKey(const Key('route_report_why_field')),
+      '   ',
+    );
+    await tester.pumpAndSettle();
+
+    expect(currentReportButton().onPressed, isNull);
+
+    await tester.enterText(
+      find.byKey(const Key('route_report_why_field')),
+      'Poor lighting after sunset',
+    );
+    await tester.pumpAndSettle();
+
+    expect(currentReportButton().onPressed, isNotNull);
+  });
+
+  testWidgets(
+    'Maps shared route detail keeps share preview after adding report',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(const RuniacApp());
+
+      await tester.tap(find.text('Maps'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Route preview'));
+      await tester.pumpAndSettle();
+
+      expect(find.bySemanticsLabel('Report route'), findsOneWidget);
+      expect(find.bySemanticsLabel('Share route'), findsOneWidget);
+      expect(
+        tester.getTopLeft(find.bySemanticsLabel('Report route')).dx,
+        lessThan(tester.getTopLeft(find.bySemanticsLabel('Share route')).dx),
+      );
+
+      await tester.tap(find.bySemanticsLabel('Share route'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Share route preview'), findsOneWidget);
+      expect(find.text('Copy Link'), findsOneWidget);
+
+      await tester.scrollUntilVisible(
+        find.text('Close'),
+        120,
+        scrollable: find.byType(Scrollable).last,
+      );
+      await tester.tap(find.text('Close'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.bySemanticsLabel('Report route'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Report Route'), findsOneWidget);
+      expect(find.text('Submitted to Firebase'), findsNothing);
+      expect(find.text('Sent to moderation queue'), findsNothing);
+      expect(find.text('Admin review created'), findsNothing);
+      expect(find.textContaining(_forbiddenBackendOwnedCopy), findsNothing);
+    },
+  );
+
+  testWidgets(
     'Maps shared route detail confirms with saving overlay and stay here disables select',
     (WidgetTester tester) async {
       await tester.pumpWidget(const RuniacApp());
