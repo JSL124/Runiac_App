@@ -128,15 +128,37 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('My routes'), findsOneWidget);
+    expect(
+      find.byKey(const Key('my_routes_header_accent_strip')),
+      findsOneWidget,
+    );
+    expect(find.byIcon(Icons.arrow_back), findsOneWidget);
+    expect(find.byIcon(Icons.arrow_back_ios_new), findsNothing);
     expect(find.text('SELECTED FOR TODAY'), findsOneWidget);
+    expect(find.byKey(const Key('selected_route_card')), findsOneWidget);
     expect(find.text('Marina Bay easy loop'), findsOneWidget);
     expect(find.text('3.2 km · 25 min · Easy'), findsOneWidget);
-    expect(find.text('Ready for today'), findsOneWidget);
+    expect(find.text('Ready for today'), findsNothing);
     expect(find.text('Change route'), findsOneWidget);
     expect(find.text('Remove'), findsOneWidget);
     expect(find.text('Favourite routes'), findsOneWidget);
     expect(find.text('Bishan Park starter route'), findsOneWidget);
     expect(find.text('East Coast flat run'), findsOneWidget);
+    expect(
+      find.byKey(const Key('favourite_route_arrow_affordance')),
+      findsWidgets,
+    );
+    expect(
+      find.byKey(const Key('favourite_route_radio_affordance')),
+      findsNothing,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('selected_route_card')),
+        matching: find.byKey(const Key('favourite_route_arrow_affordance')),
+      ),
+      findsNothing,
+    );
 
     await tester.tap(find.text('Change route'));
     await tester.pumpAndSettle();

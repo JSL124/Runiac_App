@@ -20,6 +20,10 @@ class SavedRoutesScreen extends StatelessWidget {
         child: Column(
           children: [
             _header(context),
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 0, 16, 12),
+              child: _MyRoutesHeaderAccentStrip(),
+            ),
             Expanded(
               child: ScrollConfiguration(
                 behavior: ScrollConfiguration.of(
@@ -28,11 +32,13 @@ class SavedRoutesScreen extends StatelessWidget {
                 child: ListView(
                   key: const Key('saved_routes_scroll_view'),
                   physics: const ClampingScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 28),
                   children: [
                     _sectionLabel('SELECTED FOR TODAY'),
                     const SizedBox(height: 10),
                     _selectedRouteCard(),
+                    const SizedBox(height: 12),
+                    _selectedRouteActions(),
                     const SizedBox(height: 26),
                     _sectionTitle('Favourite routes'),
                     const SizedBox(height: 12),
@@ -54,6 +60,7 @@ class SavedRoutesScreen extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(8, 10, 16, 8),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           Semantics(
             label: 'Back',
@@ -61,17 +68,21 @@ class SavedRoutesScreen extends StatelessWidget {
             child: IconButton(
               tooltip: 'Back',
               onPressed: () => Navigator.of(context).pop(),
-              icon: const Icon(Icons.arrow_back_ios_new, size: 22),
-              color: RuniacColors.primaryBlue,
+              icon: const Icon(Icons.arrow_back),
+              color: RuniacColors.textPrimary,
             ),
           ),
+          const SizedBox(width: 2),
           const Expanded(
-            child: Text(
-              'My routes',
-              style: TextStyle(
-                color: RuniacColors.textPrimary,
-                fontSize: 24,
-                fontWeight: FontWeight.w900,
+            child: Padding(
+              padding: EdgeInsets.only(bottom: 8),
+              child: Text(
+                'My routes',
+                style: TextStyle(
+                  color: RuniacColors.textPrimary,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
             ),
           ),
@@ -82,53 +93,42 @@ class SavedRoutesScreen extends StatelessWidget {
 
   Widget _selectedRouteCard() {
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: _cardDecoration(
-        borderColor: const Color(0xFFDDE6FF),
-        shadowColor: const Color(0x0F172033),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      key: const Key('selected_route_card'),
+      padding: const EdgeInsets.all(12),
+      decoration: _cardDecoration(borderColor: const Color(0xFFE1E7F5)),
+      child: Row(
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _routeThumbnail(82),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _titleText('Marina Bay easy loop', fontSize: 18),
-                    const SizedBox(height: 6),
-                    _metaText('3.2 km · 25 min · Easy'),
-                    const SizedBox(height: 10),
-                    _readyStatusPill(),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () {},
-                  child: const Text('Change route'),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: TextButton(
-                  onPressed: () {},
-                  child: const Text('Remove'),
-                ),
-              ),
-            ],
+          _routeThumbnail(62),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _titleText('Marina Bay easy loop'),
+                const SizedBox(height: 5),
+                _metaText('3.2 km · 25 min · Easy'),
+              ],
+            ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _selectedRouteActions() {
+    return Row(
+      children: [
+        Expanded(
+          child: OutlinedButton(
+            onPressed: () {},
+            child: const Text('Change route'),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: TextButton(onPressed: () {}, child: const Text('Remove')),
+        ),
+      ],
     );
   }
 
@@ -151,7 +151,7 @@ class SavedRoutesScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          _radioCircle(),
+          _favouriteRouteArrowAffordance(),
         ],
       ),
     );
@@ -230,34 +230,19 @@ class SavedRoutesScreen extends StatelessWidget {
     );
   }
 
-  Widget _readyStatusPill() {
-    return DecoratedBox(
+  Widget _favouriteRouteArrowAffordance() {
+    return Container(
+      key: const Key('favourite_route_arrow_affordance'),
+      width: 30,
+      height: 30,
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF7F2),
-        border: Border.all(color: const Color(0xFFFFE2D4)),
+        color: const Color(0xFFEFF3FF),
         borderRadius: BorderRadius.circular(999),
       ),
-      child: const Padding(
-        padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        child: Text(
-          'Ready for today',
-          style: TextStyle(
-            color: RuniacColors.accentOrange,
-            fontSize: 12,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _radioCircle() {
-    return Container(
-      width: 22,
-      height: 22,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.all(color: const Color(0xFF9AAEEE), width: 2),
+      child: const Icon(
+        Icons.arrow_forward,
+        color: RuniacColors.primaryBlue,
+        size: 17,
       ),
     );
   }
@@ -307,6 +292,37 @@ class SavedRoutesScreen extends StatelessWidget {
         fontSize: 13,
         fontWeight: FontWeight.w600,
       ),
+    );
+  }
+}
+
+class _MyRoutesHeaderAccentStrip extends StatelessWidget {
+  const _MyRoutesHeaderAccentStrip();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      key: const Key('my_routes_header_accent_strip'),
+      children: [
+        Expanded(
+          child: Container(
+            height: 4,
+            decoration: BoxDecoration(
+              color: RuniacColors.primaryBlue,
+              borderRadius: BorderRadius.circular(999),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Container(
+          width: 34,
+          height: 4,
+          decoration: BoxDecoration(
+            color: RuniacColors.accentOrange,
+            borderRadius: BorderRadius.circular(999),
+          ),
+        ),
+      ],
     );
   }
 }
