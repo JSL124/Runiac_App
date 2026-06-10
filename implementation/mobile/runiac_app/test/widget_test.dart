@@ -116,6 +116,57 @@ void main() {
     expect(find.textContaining(_forbiddenBackendOwnedCopy), findsNothing);
   });
 
+  testWidgets('Maps search field shows static focused query preview', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const RuniacApp());
+
+    await tester.tap(find.text('Maps'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Search routes or parks'), findsOneWidget);
+    expect(find.text('Marina Bay'), findsNothing);
+    expect(find.byKey(const Key('maps_search_preview_cursor')), findsNothing);
+
+    await tester.tap(find.byKey(const Key('maps_search_field')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Search routes or parks'), findsNothing);
+    expect(find.text('Marina Bay'), findsOneWidget);
+    expect(find.byKey(const Key('maps_search_preview_cursor')), findsOneWidget);
+    expect(find.textContaining(_forbiddenBackendOwnedCopy), findsNothing);
+  });
+
+  testWidgets('Maps See all opens static fuller shared routes preview', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const RuniacApp());
+
+    await tester.tap(find.text('Maps'));
+    await tester.pumpAndSettle();
+
+    final sheetSurface = find.byKey(const Key('maps_sheet_surface'));
+    final initialTop = tester.getTopLeft(sheetSurface).dy;
+
+    expect(find.text('Shared Routes'), findsOneWidget);
+    expect(find.text('All shared routes'), findsNothing);
+    expect(find.text('Park connector loop'), findsNothing);
+    expect(find.text('Morning waterfront'), findsNothing);
+
+    await tester.tap(find.byKey(const Key('maps_see_all_shared_routes')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Shared Routes'), findsNothing);
+    expect(find.text('All shared routes'), findsOneWidget);
+    expect(find.text('Route preview'), findsOneWidget);
+    expect(find.text('Shared routes'), findsOneWidget);
+    expect(find.text('Saved routes'), findsOneWidget);
+    expect(find.text('Park connector loop'), findsOneWidget);
+    expect(find.text('Morning waterfront'), findsOneWidget);
+    expect(tester.getTopLeft(sheetSurface).dy, lessThan(initialTop));
+    expect(find.textContaining(_forbiddenBackendOwnedCopy), findsNothing);
+  });
+
   testWidgets('Maps Saved opens static My routes page', (
     WidgetTester tester,
   ) async {

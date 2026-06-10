@@ -7,11 +7,14 @@ import 'shared_route_sheet_card.dart';
 const _homeAccentBlue = Color(0xFF2F5BFF);
 const _homeAccentOrange = Color(0xFFF97316);
 const _sheetAnimationDuration = Duration(milliseconds: 220);
-const _expandedSheetHeight = 400.0;
+const _expandedSheetHeight = 405.0;
+const _allRoutesSheetHeight = 625.0;
 const _collapsedSheetHeight = 46.0;
 
 const _sharedRoutesDisplaySnapshot = _SharedRoutesDisplaySnapshot(
   title: 'Shared Routes',
+  allRoutesTitle: 'All shared routes',
+  seeAllActionLabel: 'See all',
   routeCards: [
     _RouteCardDisplaySnapshot(
       keySuffix: 'route_preview',
@@ -28,6 +31,16 @@ const _sharedRoutesDisplaySnapshot = _SharedRoutesDisplaySnapshot(
       title: 'Saved routes',
       message: 'Saved route slots stay visible without saving data.',
     ),
+    _RouteCardDisplaySnapshot(
+      keySuffix: 'park_connector',
+      title: 'Park connector loop',
+      message: 'Flat route inspiration stays static and review-only.',
+    ),
+    _RouteCardDisplaySnapshot(
+      keySuffix: 'morning_waterfront',
+      title: 'Morning waterfront',
+      message: 'Gentle community ideas appear without loading data.',
+    ),
   ],
 );
 
@@ -40,13 +53,17 @@ class SharedRoutesSheet extends StatefulWidget {
 
 class _SharedRoutesSheetState extends State<SharedRoutesSheet> {
   double _sheetProgress = 1;
+  bool _isShowingAllRoutes = false;
+
+  double get _currentExpandedSheetHeight =>
+      _isShowingAllRoutes ? _allRoutesSheetHeight : _expandedSheetHeight;
 
   void _handleDragUpdate(DragUpdateDetails details) {
     setState(() {
       _sheetProgress =
           (_sheetProgress -
                   details.delta.dy /
-                      (_expandedSheetHeight - _collapsedSheetHeight))
+                      (_currentExpandedSheetHeight - _collapsedSheetHeight))
               .clamp(0, 1);
     });
   }
@@ -65,10 +82,18 @@ class _SharedRoutesSheetState extends State<SharedRoutesSheet> {
     });
   }
 
+  void _showAllRoutes() {
+    setState(() {
+      _isShowingAllRoutes = true;
+      _sheetProgress = 1;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final hiddenSheetHeight =
-        (_expandedSheetHeight - _collapsedSheetHeight) * (1 - _sheetProgress);
+        (_currentExpandedSheetHeight - _collapsedSheetHeight) *
+        (1 - _sheetProgress);
 
     return Positioned.fill(
       child: Stack(
@@ -85,7 +110,7 @@ class _SharedRoutesSheetState extends State<SharedRoutesSheet> {
               onVerticalDragUpdate: _handleDragUpdate,
               onVerticalDragEnd: _handleDragEnd,
               child: SizedBox(
-                height: _expandedSheetHeight,
+                height: _currentExpandedSheetHeight,
                 child: DecoratedBox(
                   decoration: const BoxDecoration(
                     color: RuniacColors.white,
@@ -102,6 +127,8 @@ class _SharedRoutesSheetState extends State<SharedRoutesSheet> {
                   ),
                   child: _SharedRoutesSheetBody(
                     isCollapsed: _sheetProgress <= 0.01,
+                    isShowingAllRoutes: _isShowingAllRoutes,
+                    onSeeAllTap: _showAllRoutes,
                   ),
                 ),
               ),
@@ -114,9 +141,15 @@ class _SharedRoutesSheetState extends State<SharedRoutesSheet> {
 }
 
 class _SharedRoutesSheetBody extends StatelessWidget {
-  const _SharedRoutesSheetBody({required this.isCollapsed});
+  const _SharedRoutesSheetBody({
+    required this.isCollapsed,
+    required this.isShowingAllRoutes,
+    required this.onSeeAllTap,
+  });
 
   final bool isCollapsed;
+  final bool isShowingAllRoutes;
+  final VoidCallback onSeeAllTap;
 
   @override
   Widget build(BuildContext context) {
@@ -136,34 +169,36 @@ class _SharedRoutesSheetBody extends StatelessWidget {
                 children: [
                   const _MapsSheetAccentStrip(),
                   const SizedBox(height: 10),
-                  const _SharedRoutesHeader(),
+                  _SharedRoutesHeader(
+                    isShowingAllRoutes: isShowingAllRoutes,
+                    onSeeAllTap: onSeeAllTap,
+                  ),
                   const SizedBox(height: 10),
-                  SharedRouteSheetCard(
-                    keySuffix: snapshot.routeCards[0].keySuffix,
-                    title: snapshot.routeCards[0].title,
-                    message: snapshot.routeCards[0].message,
-                    onTap: () => Navigator.of(context).push(
-                      PageRouteBuilder<void>(
-                        transitionDuration: Duration.zero,
-                        reverseTransitionDuration: Duration.zero,
-                        pageBuilder: (context, animation, secondaryAnimation) {
-                          return const SharedRouteDetailScreen();
-                        },
-                      ),
+                  for (final entry
+                      in snapshot
+                          .visibleRouteCards(
+                            isShowingAllRoutes: isShowingAllRoutes,
+                          )
+                          .indexed) ...[
+                    if (entry.$1 > 0) const SizedBox(height: 8),
+                    SharedRouteSheetCard(
+                      keySuffix: entry.$2.keySuffix,
+                      title: entry.$2.title,
+                      message: entry.$2.message,
+                      onTap: entry.$1 == 0
+                          ? () => Navigator.of(context).push(
+                              PageRouteBuilder<void>(
+                                transitionDuration: Duration.zero,
+                                reverseTransitionDuration: Duration.zero,
+                                pageBuilder:
+                                    (context, animation, secondaryAnimation) {
+                                      return const SharedRouteDetailScreen();
+                                    },
+                              ),
+                            )
+                          : null,
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  SharedRouteSheetCard(
-                    keySuffix: snapshot.routeCards[1].keySuffix,
-                    title: snapshot.routeCards[1].title,
-                    message: snapshot.routeCards[1].message,
-                  ),
-                  const SizedBox(height: 8),
-                  SharedRouteSheetCard(
-                    keySuffix: snapshot.routeCards[2].keySuffix,
-                    title: snapshot.routeCards[2].title,
-                    message: snapshot.routeCards[2].message,
-                  ),
+                  ],
                 ],
               ),
             ),
@@ -235,20 +270,53 @@ class _MapsSheetAccentStrip extends StatelessWidget {
 }
 
 class _SharedRoutesHeader extends StatelessWidget {
-  const _SharedRoutesHeader();
+  const _SharedRoutesHeader({
+    required this.isShowingAllRoutes,
+    required this.onSeeAllTap,
+  });
+
+  final bool isShowingAllRoutes;
+  final VoidCallback onSeeAllTap;
 
   @override
   Widget build(BuildContext context) {
     const snapshot = _sharedRoutesDisplaySnapshot;
 
-    return Text(
-      snapshot.title,
-      style: const TextStyle(
-        color: RuniacColors.textPrimary,
-        fontSize: 21,
-        fontWeight: FontWeight.w800,
-        height: 1.15,
-      ),
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            isShowingAllRoutes ? snapshot.allRoutesTitle : snapshot.title,
+            style: const TextStyle(
+              color: RuniacColors.textPrimary,
+              fontSize: 21,
+              fontWeight: FontWeight.w800,
+              height: 1.15,
+            ),
+          ),
+        ),
+        if (!isShowingAllRoutes)
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              key: const Key('maps_see_all_shared_routes'),
+              borderRadius: BorderRadius.circular(999),
+              overlayColor: WidgetStateProperty.all(Colors.transparent),
+              onTap: onSeeAllTap,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                child: Text(
+                  snapshot.seeAllActionLabel,
+                  style: const TextStyle(
+                    color: RuniacColors.primaryBlue,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }
@@ -256,11 +324,21 @@ class _SharedRoutesHeader extends StatelessWidget {
 class _SharedRoutesDisplaySnapshot {
   const _SharedRoutesDisplaySnapshot({
     required this.title,
+    required this.allRoutesTitle,
+    required this.seeAllActionLabel,
     required this.routeCards,
   });
 
   final String title;
+  final String allRoutesTitle;
+  final String seeAllActionLabel;
   final List<_RouteCardDisplaySnapshot> routeCards;
+
+  Iterable<_RouteCardDisplaySnapshot> visibleRouteCards({
+    required bool isShowingAllRoutes,
+  }) {
+    return routeCards.take(isShowingAllRoutes ? 5 : 3);
+  }
 }
 
 class _RouteCardDisplaySnapshot {
