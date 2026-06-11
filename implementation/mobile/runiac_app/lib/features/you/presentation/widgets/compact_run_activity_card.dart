@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/runiac_colors.dart';
+import '../../../../core/widgets/runiac_buttons.dart';
 import '../../../run/presentation/models/run_activity_display_model.dart';
 
 class CompactRunActivityCard extends StatelessWidget {
@@ -15,31 +16,26 @@ class CompactRunActivityCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      label: 'Open ${activity.title} summary',
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: Container(
-          constraints: const BoxConstraints(minHeight: 100),
-          padding: const EdgeInsets.fromLTRB(12, 12, 10, 12),
-          decoration: _historyCardDecoration,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              _RouteIconTile(seed: activity.title.length),
-              const SizedBox(width: 14),
-              Expanded(child: _ActivityCardContent(activity: activity)),
-              const SizedBox(width: 8),
-              const Icon(
-                Icons.chevron_right_rounded,
-                color: Color(0xFFB8C5EE),
-                size: 28,
-              ),
-            ],
+    return RuniacTappableSurface(
+      onTap: onTap,
+      semanticLabel: 'Open ${activity.title} summary',
+      borderRadius: BorderRadius.circular(20),
+      constraints: const BoxConstraints(minHeight: 100),
+      padding: const EdgeInsets.fromLTRB(12, 12, 10, 12),
+      decoration: _historyCardDecoration,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          _RouteIconTile(seed: activity.title.length),
+          const SizedBox(width: 14),
+          Expanded(child: _ActivityCardContent(activity: activity)),
+          const SizedBox(width: 8),
+          const Icon(
+            Icons.chevron_right_rounded,
+            color: Color(0xFFB8C5EE),
+            size: 28,
           ),
-        ),
+        ],
       ),
     );
   }

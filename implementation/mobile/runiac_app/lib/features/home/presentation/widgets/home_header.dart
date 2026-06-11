@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/runiac_colors.dart';
+import '../../../../core/widgets/runiac_buttons.dart';
 
 const _brandBlue = RuniacColors.primaryBlue;
 const _sportOrange = RuniacColors.accentOrange;
@@ -60,48 +61,26 @@ class _HomeProfilePlaceholder extends StatelessWidget {
           Positioned(
             left: 0,
             top: 7,
-            child: Semantics(
-              label: 'Notifications',
-              button: true,
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () {},
-                child: const SizedBox(
-                  width: 44,
-                  height: 44,
-                  child: Icon(
-                    Icons.notifications_none,
-                    color: RuniacColors.textPrimary,
-                    size: 24,
-                  ),
-                ),
-              ),
+            child: RuniacIconTileButton(
+              icon: Icons.notifications_none,
+              onPressed: () {},
+              semanticLabel: 'Notifications',
+              size: 44,
+              iconColor: RuniacColors.textPrimary,
+              backgroundColor: Colors.transparent,
             ),
           ),
           Positioned(
             right: 0,
             top: 2,
-            child: Semantics(
-              label: 'Profile',
-              button: true,
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () {},
-                child: Container(
-                  width: 54,
-                  height: 54,
-                  decoration: BoxDecoration(
-                    color: RuniacColors.white,
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(color: RuniacColors.border),
-                  ),
-                  child: const Icon(
-                    Icons.person_outline,
-                    color: RuniacColors.textSecondary,
-                    size: 30,
-                  ),
-                ),
-              ),
+            child: RuniacIconTileButton(
+              icon: Icons.person_outline,
+              onPressed: () {},
+              semanticLabel: 'Profile',
+              size: 54,
+              iconSize: 30,
+              iconColor: RuniacColors.textSecondary,
+              borderColor: RuniacColors.border,
             ),
           ),
         ],

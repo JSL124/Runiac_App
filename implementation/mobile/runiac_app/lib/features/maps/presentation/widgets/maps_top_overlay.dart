@@ -145,7 +145,6 @@ class _SavedRoutesButton extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(999),
-          overlayColor: WidgetStateProperty.all(Colors.transparent),
           onTap: () => Navigator.of(context).push(_buildSavedRoutesRoute()),
           child: Container(
             height: 48,

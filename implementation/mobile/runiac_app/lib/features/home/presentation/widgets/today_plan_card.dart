@@ -4,10 +4,10 @@ import '../../../../core/theme/runiac_colors.dart';
 import '../../../../core/widgets/card_title.dart';
 import '../../../../core/widgets/crossed_placeholder.dart';
 import '../../../../core/widgets/dashboard_card.dart';
+import '../../../../core/widgets/runiac_buttons.dart';
 
 const _primaryBlue = RuniacColors.primaryBlue;
 const _blueBorder = RuniacColors.border;
-const _sportOrange = RuniacColors.accentOrange;
 const _orangeStrong = RuniacColors.accentOrange;
 
 const _todayPlanDisplaySnapshot = _TodayPlanDisplaySnapshot(
@@ -71,7 +71,7 @@ class TodayPlanCard extends StatelessWidget {
               Expanded(
                 child: OutlinedButton(
                   onPressed: () {},
-                  style: OutlinedButton.styleFrom(
+                  style: RuniacButtonStyles.secondary(
                     foregroundColor: _primaryBlue,
                     side: const BorderSide(color: _blueBorder),
                     minimumSize: const Size.fromHeight(44),
@@ -86,9 +86,8 @@ class TodayPlanCard extends StatelessWidget {
                   onPressed: () {},
                   icon: const Icon(Icons.play_arrow_rounded),
                   label: Text(snapshot.primaryActionLabel),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: _sportOrange,
-                    foregroundColor: RuniacColors.white,
+                  style: RuniacButtonStyles.primary(
+                    tone: RuniacButtonTone.orange,
                     minimumSize: const Size.fromHeight(44),
                     textStyle: const TextStyle(fontWeight: FontWeight.w800),
                   ),

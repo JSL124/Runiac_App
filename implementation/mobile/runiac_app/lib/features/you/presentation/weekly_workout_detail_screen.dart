@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/dashboard_card.dart';
 import '../../../core/widgets/runiac_bottom_sheet_handle.dart';
+import '../../../core/widgets/runiac_buttons.dart';
 
 const weeklyWorkoutDetailSnapshot = WeeklyWorkoutDetailSnapshot(
   title: 'Workout detail',
@@ -500,17 +501,16 @@ class _StartRunAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return RuniacTappableSurface(
       onTap: () {},
-      child: Container(
-        height: 52,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: RuniacColors.accentOrange,
-          borderRadius: BorderRadius.circular(999),
-        ),
-        child: Text(label, style: _startActionStyle),
+      borderRadius: BorderRadius.circular(999),
+      height: 52,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: RuniacColors.accentOrange,
+        borderRadius: BorderRadius.circular(999),
       ),
+      child: Text(label, style: _startActionStyle),
     );
   }
 }

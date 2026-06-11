@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/runiac_colors.dart';
+import '../../../../core/widgets/runiac_buttons.dart';
 
 class RunControls extends StatelessWidget {
   const RunControls({this.compact = false, super.key});
@@ -33,7 +34,7 @@ class RunControls extends StatelessWidget {
           height: startSize,
           child: FilledButton(
             onPressed: () {},
-            style: FilledButton.styleFrom(
+            style: RuniacButtonStyles.primary(
               elevation: 6,
               padding: EdgeInsets.zero,
               shadowColor: const Color(0x332F50C7),
@@ -82,7 +83,7 @@ class _RunSecondaryControl extends StatelessWidget {
       onPressed: () {},
       icon: Icon(icon, size: iconSize),
       label: FittedBox(fit: BoxFit.scaleDown, child: Text(label, maxLines: 1)),
-      style: OutlinedButton.styleFrom(
+      style: RuniacButtonStyles.secondary(
         backgroundColor: RuniacColors.white,
         foregroundColor: RuniacColors.primaryBlue,
         side: const BorderSide(color: RuniacColors.border),

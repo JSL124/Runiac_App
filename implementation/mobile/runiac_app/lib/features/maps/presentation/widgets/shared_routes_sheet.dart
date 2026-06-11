@@ -424,7 +424,6 @@ class _SharedRoutesHeader extends StatelessWidget {
                   : 'maps_see_all_shared_routes',
             ),
             borderRadius: BorderRadius.circular(999),
-            overlayColor: WidgetStateProperty.all(Colors.transparent),
             onTap: isShowingAllRoutes ? onShowLessTap : onSeeAllTap,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),

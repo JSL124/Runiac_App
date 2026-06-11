@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/dashboard_card.dart';
 import '../../../core/widgets/runiac_back_header.dart';
+import '../../../core/widgets/runiac_buttons.dart';
 
 const _expertPlanFilters = [
   'Recommended',
@@ -418,21 +419,18 @@ class _VisualOnlyViewPlanButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          height: 42,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: RuniacColors.white,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: RuniacColors.primaryBlue),
-          ),
-          child: const Text('View Plan', style: _buttonTextStyle),
-        ),
+    return RuniacTappableSurface(
+      onTap: onTap,
+      semanticsButton: true,
+      height: 42,
+      alignment: Alignment.center,
+      borderRadius: BorderRadius.circular(18),
+      decoration: BoxDecoration(
+        color: RuniacColors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: RuniacColors.primaryBlue),
       ),
+      child: const Text('View Plan', style: _buttonTextStyle),
     );
   }
 }

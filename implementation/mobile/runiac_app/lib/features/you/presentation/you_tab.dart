@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/runiac_colors.dart';
+import '../../../core/widgets/runiac_buttons.dart';
 import '../../../core/widgets/runiac_section_header.dart';
 import '../../run/presentation/models/recent_running_display_data.dart';
 import '../../run/presentation/models/run_activity_display_model.dart';
@@ -441,17 +442,13 @@ Widget _recentRunningHeader(VoidCallback onSeeAll) {
     crossAxisAlignment: CrossAxisAlignment.center,
     children: [
       const Expanded(child: Text('Recent Running', style: _sectionStyle)),
-      Semantics(
-        button: true,
-        child: GestureDetector(
-          key: const ValueKey('recent_running_see_all'),
-          behavior: HitTestBehavior.opaque,
-          onTap: onSeeAll,
-          child: const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 2, vertical: 6),
-            child: Text('See all', style: _seeAllTextStyle),
-          ),
-        ),
+      RuniacTappableSurface(
+        key: const ValueKey('recent_running_see_all'),
+        onTap: onSeeAll,
+        borderRadius: BorderRadius.circular(999),
+        padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 6),
+        decoration: const BoxDecoration(color: Colors.transparent),
+        child: const Text('See all', style: _seeAllTextStyle),
       ),
     ],
   );
@@ -970,17 +967,14 @@ class _StaticPlanAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Semantics(
-      button: onTap != null,
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          height: 44,
-          alignment: Alignment.center,
-          decoration: _cardLikeDecoration,
-          child: Text(label, style: _buttonTextStyle),
-        ),
-      ),
+    return RuniacTappableSurface(
+      onTap: onTap,
+      semanticsButton: onTap != null,
+      borderRadius: BorderRadius.circular(_youInnerRadius),
+      height: 44,
+      alignment: Alignment.center,
+      decoration: _cardLikeDecoration,
+      child: Text(label, style: _buttonTextStyle),
     );
   }
 }
@@ -1179,30 +1173,25 @@ Set<int> _runDaysFor(DateTime month) {
 }
 
 Widget _moreActivities(VoidCallback onTap) {
-  return Semantics(
-    button: true,
-    child: GestureDetector(
-      key: const ValueKey('more_activities_button'),
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: Container(
-        height: 54,
-        alignment: Alignment.center,
-        decoration: _moreActivitiesDecoration,
-        child: const Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('More Activities', style: _moreActivitiesTextStyle),
-            SizedBox(width: 10),
-            Icon(
-              Icons.chevron_right_rounded,
-              key: ValueKey('more_activities_chevron'),
-              color: RuniacColors.primaryBlue,
-              size: 26,
-            ),
-          ],
+  return RuniacTappableSurface(
+    key: const ValueKey('more_activities_button'),
+    onTap: onTap,
+    borderRadius: BorderRadius.circular(999),
+    height: 54,
+    alignment: Alignment.center,
+    decoration: _moreActivitiesDecoration,
+    child: const Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text('More Activities', style: _moreActivitiesTextStyle),
+        SizedBox(width: 10),
+        Icon(
+          Icons.chevron_right_rounded,
+          key: ValueKey('more_activities_chevron'),
+          color: RuniacColors.primaryBlue,
+          size: 26,
         ),
-      ),
+      ],
     ),
   );
 }
