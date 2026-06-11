@@ -7,7 +7,7 @@ import 'xp_update_screen.dart';
 
 const _rBlue = Color(0xFF2F51C8);
 const _rOrange = Color(0xFFFB6414);
-const _rWhite = Color(0xFFF8FAFF);
+const _rWhite = Color(0xFFFFFFFF);
 const _rBlue90 = Color(0xE62F51C8);
 const _rBlue75 = Color(0xBF2F51C8);
 const _rBlue60 = Color(0x992F51C8);
@@ -73,7 +73,7 @@ class ViewSummaryScreen extends StatelessWidget {
                         children: [
                           _MapPreview(routeName: summary.routeName),
                           _HeroDistance(distanceKm: summary.distanceKm),
-                          _MetricGrid(summary: summary),
+                          _MetricSummary(summary: summary),
                           const _PaceSection(),
                           _AnalysisSection(
                             onMoreDetails: () {
@@ -378,118 +378,94 @@ class _HeroDistance extends StatelessWidget {
   }
 }
 
-class _MetricGrid extends StatelessWidget {
-  const _MetricGrid({required this.summary});
+class _MetricSummary extends StatelessWidget {
+  const _MetricSummary({required this.summary});
 
   final RunSummarySnapshot summary;
 
   @override
   Widget build(BuildContext context) {
-    return GridView.count(
-      padding: const EdgeInsets.fromLTRB(16, 18, 16, 0),
-      crossAxisCount: 2,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      childAspectRatio: 1.44,
-      crossAxisSpacing: 10,
-      mainAxisSpacing: 10,
-      children: [
-        _MetricTile(
-          icon: Icons.speed_rounded,
-          value: summary.avgPace,
-          label: 'Avg Pace',
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(34, 18, 34, 0),
+      child: Align(
+        alignment: Alignment.center,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 360),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: _MetricText(
+                      value: summary.avgPace,
+                      label: 'Avg Pace',
+                    ),
+                  ),
+                  Expanded(
+                    child: _MetricText(value: summary.duration, label: 'Time'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: _MetricText(
+                      value: '${summary.avgHeartRate} bpm',
+                      label: 'Avg Heart Rate',
+                    ),
+                  ),
+                  Expanded(
+                    child: _MetricText(
+                      value: '${summary.calories} kcal',
+                      label: 'Calories',
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
-        _MetricTile(
-          icon: Icons.schedule_rounded,
-          value: summary.duration,
-          label: 'Time',
-        ),
-        _MetricTile(
-          icon: Icons.favorite_border_rounded,
-          value: summary.avgHeartRate,
-          unit: 'bpm',
-          label: 'Avg Heart Rate',
-        ),
-        _MetricTile(
-          icon: Icons.local_fire_department_outlined,
-          value: summary.calories,
-          unit: 'kcal',
-          label: 'Calories',
-        ),
-      ],
+      ),
     );
   }
 }
 
-class _MetricTile extends StatelessWidget {
-  const _MetricTile({
-    required this.icon,
-    required this.value,
-    required this.label,
-    this.unit,
-  });
+class _MetricText extends StatelessWidget {
+  const _MetricText({required this.value, required this.label});
 
-  final IconData icon;
   final String value;
   final String label;
-  final String? unit;
 
   @override
   Widget build(BuildContext context) {
-    return _CardSurface(
-      radius: 18,
-      padding: const EdgeInsets.fromLTRB(16, 15, 16, 15),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              color: _rBlue06,
-              borderRadius: BorderRadius.circular(11),
-            ),
-            child: Icon(icon, color: _rBlue, size: 18),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          value,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: _rBlue,
+            fontSize: 23,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.3,
+            height: 1.05,
           ),
-          const Spacer(),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Text(
-                value,
-                style: const TextStyle(
-                  color: _rBlue,
-                  fontSize: 24,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.6,
-                ),
-              ),
-              if (unit != null) ...[
-                const SizedBox(width: 4),
-                Text(
-                  unit!,
-                  style: const TextStyle(
-                    color: _rBlue60,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ],
+        ),
+        const SizedBox(height: 5),
+        Text(
+          label,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: _rBlue60,
+            fontSize: 12.5,
+            fontWeight: FontWeight.w600,
+            letterSpacing: -0.1,
+            height: 1.2,
           ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: const TextStyle(
-              color: _rBlue60,
-              fontSize: 12.5,
-              fontWeight: FontWeight.w600,
-              letterSpacing: -0.1,
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -932,13 +908,11 @@ class _CardSurface extends StatelessWidget {
     required this.child,
     this.color = _rWhite,
     this.padding = const EdgeInsets.all(16),
-    this.radius = _cardRadius,
   });
 
   final Widget child;
   final Color color;
   final EdgeInsets padding;
-  final double radius;
 
   @override
   Widget build(BuildContext context) {
@@ -946,7 +920,7 @@ class _CardSurface extends StatelessWidget {
       decoration: BoxDecoration(
         color: color,
         border: Border.all(color: _rBlue10),
-        borderRadius: BorderRadius.circular(radius),
+        borderRadius: BorderRadius.circular(_cardRadius),
       ),
       child: Padding(padding: padding, child: child),
     );

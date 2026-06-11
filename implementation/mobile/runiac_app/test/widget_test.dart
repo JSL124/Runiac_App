@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runiac_app/app.dart';
+import 'package:runiac_app/core/theme/runiac_colors.dart';
 import 'package:runiac_app/features/leaderboard/presentation/leaderboard_tab.dart';
 import 'package:runiac_app/features/run/presentation/advanced_analysis_screen.dart';
 import 'package:runiac_app/features/run/presentation/cool_down_guide_screen.dart';
@@ -1978,6 +1979,8 @@ void main() {
     _useTallSummarySurface(tester);
     await tester.pumpWidget(const MaterialApp(home: ViewSummaryScreen()));
 
+    final summaryScaffold = tester.widget<Scaffold>(find.byType(Scaffold));
+    expect(summaryScaffold.backgroundColor, RuniacColors.white);
     expect(find.text('Saturday Morning Run'), findsOneWidget);
     expect(find.text('Today · 7:06 AM'), findsOneWidget);
     expect(find.byTooltip('Back to cool down'), findsOneWidget);
@@ -1990,11 +1993,15 @@ void main() {
     expect(find.text('Avg Pace'), findsOneWidget);
     expect(find.text('30:15'), findsOneWidget);
     expect(find.text('Time'), findsOneWidget);
-    expect(find.text('145'), findsNWidgets(2));
-    expect(find.text('bpm'), findsOneWidget);
-    expect(find.text('kcal'), findsOneWidget);
+    expect(find.text('145 bpm'), findsOneWidget);
+    expect(find.text('145 kcal'), findsOneWidget);
     expect(find.text('Avg Heart Rate'), findsOneWidget);
     expect(find.text('Calories'), findsOneWidget);
+    expect(find.byType(GridView), findsNothing);
+    expect(find.byIcon(Icons.speed_rounded), findsNothing);
+    expect(find.byIcon(Icons.schedule_rounded), findsNothing);
+    expect(find.byIcon(Icons.favorite_border_rounded), findsNothing);
+    expect(find.byIcon(Icons.local_fire_department_outlined), findsNothing);
     expect(find.text('Pace Over Time'), findsOneWidget);
     expect(find.text('4:00'), findsOneWidget);
     expect(find.text('10:00'), findsNWidgets(2));
@@ -2095,8 +2102,8 @@ void main() {
     expect(find.text('5.17'), findsOneWidget);
     expect(find.text('7’40”'), findsOneWidget);
     expect(find.text('39:38'), findsOneWidget);
-    expect(find.text('132'), findsOneWidget);
-    expect(find.text('286'), findsOneWidget);
+    expect(find.text('132 bpm'), findsOneWidget);
+    expect(find.text('286 kcal'), findsOneWidget);
     expect(find.text('Saturday Morning Run'), findsNothing);
     expect(find.widgetWithText(OutlinedButton, 'Share Route'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'View XP Update'), findsOneWidget);
