@@ -7,12 +7,10 @@ import '../../../core/widgets/runiac_buttons.dart';
 
 const weeklyWorkoutDetailSnapshot = WeeklyWorkoutDetailSnapshot(
   title: 'Workout detail',
-  dayLabel: 'THURSDAY · EASY RUN',
+  dayLabel: 'Thursday · Easy Run',
+  planTitle: '20 min easy run',
   editScheduleCurrentLabel: 'Thu · 7:30 AM',
   editSchedulePreviewLabel: 'Fri · 7:30 AM',
-  heroTitle: 'A gentle 20 minutes.',
-  heroCopy: 'You should be able to chat the whole way through.',
-  heroSupportCopy: 'No race — just rhythm.',
   metrics: [
     WorkoutMetricDisplay('Distance', '3.0 km'),
     WorkoutMetricDisplay('Time', '20 min'),
@@ -44,12 +42,10 @@ const weeklyWorkoutDetailSnapshot = WeeklyWorkoutDetailSnapshot(
 
 const saturdayWeeklyWorkoutDetailSnapshot = WeeklyWorkoutDetailSnapshot(
   title: 'Workout detail',
-  dayLabel: 'SATURDAY · EASY RUN',
+  dayLabel: 'Saturday · Easy Run',
+  planTitle: '20 min easy run',
   editScheduleCurrentLabel: 'Saturday',
   editSchedulePreviewLabel: 'Preview only',
-  heroTitle: 'A gentle 20 minutes.',
-  heroCopy: 'You should be able to chat the whole way through.',
-  heroSupportCopy: 'No race — just rhythm.',
   metrics: [
     WorkoutMetricDisplay('Distance', '3.0 km'),
     WorkoutMetricDisplay('Time', '20 min'),
@@ -83,25 +79,24 @@ class WeeklyWorkoutDetailSnapshot {
   const WeeklyWorkoutDetailSnapshot({
     required this.title,
     required this.dayLabel,
+    String? planTitle,
     required this.editScheduleCurrentLabel,
     required this.editSchedulePreviewLabel,
-    required this.heroTitle,
-    required this.heroCopy,
-    required this.heroSupportCopy,
+    String? heroTitle,
+    String? heroCopy,
+    String? heroSupportCopy,
     required this.metrics,
     required this.breakdown,
     required this.effortGuide,
     required this.coachNotes,
     required this.startActionLabel,
-  });
+  }) : planTitle = planTitle ?? heroTitle ?? '';
 
   final String title;
   final String dayLabel;
+  final String planTitle;
   final String editScheduleCurrentLabel;
   final String editSchedulePreviewLabel;
-  final String heroTitle;
-  final String heroCopy;
-  final String heroSupportCopy;
   final List<WorkoutMetricDisplay> metrics;
   final List<WorkoutStepDisplay> breakdown;
   final String effortGuide;
@@ -152,8 +147,8 @@ class WeeklyWorkoutDetailScreen extends StatelessWidget {
                 onEditSchedule: () => _showEditScheduleSheet(context, snapshot),
               ),
               const SizedBox(height: 16),
-              _WorkoutHero(snapshot),
-              const SizedBox(height: 12),
+              _WorkoutPlanIdentity(snapshot),
+              const SizedBox(height: 10),
               _MetricSummaryCard(snapshot.metrics),
               const SizedBox(height: 12),
               _WorkoutBreakdownCard(snapshot.breakdown),
@@ -264,28 +259,33 @@ class _NoOverscroll extends StatelessWidget {
   }
 }
 
-class _WorkoutHero extends StatelessWidget {
-  const _WorkoutHero(this.snapshot);
+class _WorkoutPlanIdentity extends StatelessWidget {
+  const _WorkoutPlanIdentity(this.snapshot);
 
   final WeeklyWorkoutDetailSnapshot snapshot;
 
   @override
   Widget build(BuildContext context) {
-    return DashboardCard(
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(snapshot.dayLabel, style: _heroLabelStyle),
-          const SizedBox(height: 8),
-          Text(snapshot.heroTitle, style: _heroTitleStyle),
-          const SizedBox(height: 10),
-          Text(snapshot.heroCopy, style: _heroCopyStyle),
-          const SizedBox(height: 4),
-          Text(snapshot.heroSupportCopy, style: _heroCopyStyle),
+          Text(_planIdentityLabel(snapshot.dayLabel), style: _heroLabelStyle),
+          const SizedBox(height: 6),
+          Text(snapshot.planTitle, style: _planTitleStyle),
         ],
       ),
     );
   }
+}
+
+String _planIdentityLabel(String label) {
+  return switch (label) {
+    'THURSDAY · EASY RUN' => 'Thursday · Easy Run',
+    'SATURDAY · EASY RUN' => 'Saturday · Easy Run',
+    _ => label,
+  };
 }
 
 class _MetricSummaryCard extends StatelessWidget {
@@ -884,18 +884,11 @@ const _heroLabelStyle = TextStyle(
   letterSpacing: 0,
 );
 
-const _heroTitleStyle = TextStyle(
+const _planTitleStyle = TextStyle(
   color: RuniacColors.primaryBlue,
-  fontSize: 30,
+  fontSize: 26,
   fontWeight: FontWeight.w900,
   letterSpacing: 0,
-);
-
-const _heroCopyStyle = TextStyle(
-  color: RuniacColors.textSecondary,
-  fontSize: 15,
-  height: 1.35,
-  fontWeight: FontWeight.w600,
 );
 
 const _sectionTitleStyle = TextStyle(

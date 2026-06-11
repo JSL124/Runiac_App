@@ -799,9 +799,14 @@ void main() {
 
     // Then: the static workout instruction detail is shown.
     expect(find.text('Workout detail'), findsOneWidget);
-    expect(find.text('THURSDAY · EASY RUN'), findsOneWidget);
+    expect(find.text('Thursday · Easy Run'), findsOneWidget);
     expect(find.text('20 min easy run'), findsOneWidget);
     expect(find.text('A gentle 20 minutes.'), findsNothing);
+    expect(
+      find.text('You should be able to chat the whole way through.'),
+      findsNothing,
+    );
+    expect(find.text('No race — just rhythm.'), findsNothing);
     expect(find.text('Suggested pace'), findsOneWidget);
     expect(find.text('Warm-up'), findsOneWidget);
     expect(find.text('Easy run'), findsOneWidget);
@@ -830,8 +835,8 @@ void main() {
 
     // Then: the same static instruction sheet opens with Saturday labeling.
     expect(find.text('Workout detail'), findsOneWidget);
-    expect(find.text('SATURDAY · EASY RUN'), findsOneWidget);
-    expect(find.text('THURSDAY · EASY RUN'), findsNothing);
+    expect(find.text('Saturday · Easy Run'), findsOneWidget);
+    expect(find.text('Thursday · Easy Run'), findsNothing);
     expect(find.text('20 min easy run'), findsOneWidget);
     expect(find.text('A gentle 20 minutes.'), findsNothing);
     expect(find.text('Suggested pace'), findsOneWidget);
