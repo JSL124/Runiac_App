@@ -2150,7 +2150,7 @@ class _ShareRankFloatingPanel extends StatelessWidget {
       title: 'Share your rank',
       preview: LayoutBuilder(
         builder: (context, constraints) {
-          final cardWidth = (MediaQuery.sizeOf(context).width * 0.84)
+          final cardWidth = (MediaQuery.sizeOf(context).width * 0.88)
               .clamp(0.0, constraints.maxWidth)
               .toDouble();
 
@@ -2159,7 +2159,7 @@ class _ShareRankFloatingPanel extends StatelessWidget {
             child: Align(
               alignment: Alignment.bottomCenter,
               child: Padding(
-                padding: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.only(bottom: 24),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [

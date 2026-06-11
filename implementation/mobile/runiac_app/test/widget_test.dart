@@ -1410,9 +1410,11 @@ void main() {
     final cardRect = tester.getRect(
       find.byKey(const Key('leaderboard_share_rank_card_background')),
     );
+    final titleRect = tester.getRect(find.text('Share your rank'));
     final shareToRect = tester.getRect(find.text('SHARE TO'));
-    expect(cardRect.width, greaterThanOrEqualTo(sheetRect.width * 0.82));
-    expect(shareToRect.top - cardRect.bottom, lessThanOrEqualTo(56));
+    expect(cardRect.width, greaterThanOrEqualTo(sheetRect.width * 0.86));
+    expect(cardRect.top - titleRect.bottom, lessThanOrEqualTo(84));
+    expect(shareToRect.top - cardRect.bottom, lessThanOrEqualTo(72));
     expect(find.text('Jurong East'), findsWidgets);
     expect(find.text('Rising Runner Division'), findsWidgets);
     expect(find.text('#'), findsOneWidget);
