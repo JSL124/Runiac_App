@@ -64,20 +64,6 @@ class RoutePreviewCard extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: 8),
-          Container(
-            width: 30,
-            height: 30,
-            decoration: BoxDecoration(
-              color: const Color(0xFFEFF3FF),
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: const Icon(
-              Icons.arrow_forward,
-              color: RuniacColors.primaryBlue,
-              size: 17,
-            ),
-          ),
         ],
       ),
     );

@@ -183,7 +183,6 @@ class _SavedRoutesScreenState extends State<SavedRoutesScreen> {
     return _SavedRouteCard(
       key: const Key('selected_route_card'),
       route: route,
-      arrowKey: const Key('selected_route_arrow_affordance'),
       onTap: () => _openRouteDetail(route),
     );
   }
@@ -213,11 +212,7 @@ class _SavedRoutesScreenState extends State<SavedRoutesScreen> {
   }
 
   Widget _favouriteRouteRow(SharedRouteDetailSnapshot route) {
-    return _SavedRouteCard(
-      route: route,
-      arrowKey: const Key('favourite_route_arrow_affordance'),
-      onTap: () => _openRouteDetail(route),
-    );
+    return _SavedRouteCard(route: route, onTap: () => _openRouteDetail(route));
   }
 
   Widget _sectionLabel(String label) {
@@ -245,16 +240,10 @@ class _SavedRoutesScreenState extends State<SavedRoutesScreen> {
 }
 
 class _SavedRouteCard extends StatelessWidget {
-  const _SavedRouteCard({
-    required this.route,
-    required this.onTap,
-    this.arrowKey,
-    super.key,
-  });
+  const _SavedRouteCard({required this.route, required this.onTap, super.key});
 
   final SharedRouteDetailSnapshot route;
   final VoidCallback onTap;
-  final Key? arrowKey;
 
   @override
   Widget build(BuildContext context) {
@@ -303,10 +292,6 @@ class _SavedRouteCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                if (arrowKey != null) ...[
-                  const SizedBox(width: 12),
-                  _RouteArrowAffordance(key: arrowKey),
-                ],
               ],
             ),
           ),
@@ -422,27 +407,6 @@ class _ThumbnailDot extends StatelessWidget {
       width: size * .13,
       height: size * .13,
       decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-    );
-  }
-}
-
-class _RouteArrowAffordance extends StatelessWidget {
-  const _RouteArrowAffordance({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 30,
-      height: 30,
-      decoration: BoxDecoration(
-        color: const Color(0xFFEFF3FF),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: const Icon(
-        Icons.arrow_forward,
-        color: RuniacColors.primaryBlue,
-        size: 17,
-      ),
     );
   }
 }

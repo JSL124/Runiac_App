@@ -389,11 +389,11 @@ void main() {
         of: find.byKey(const Key('selected_route_card')),
         matching: find.byKey(const Key('selected_route_arrow_affordance')),
       ),
-      findsOneWidget,
+      findsNothing,
     );
     expect(
       find.byKey(const Key('favourite_route_arrow_affordance')),
-      findsWidgets,
+      findsNothing,
     );
     expect(
       find.byKey(const Key('favourite_route_radio_affordance')),
