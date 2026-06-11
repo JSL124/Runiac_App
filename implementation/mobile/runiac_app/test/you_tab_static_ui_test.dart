@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runiac_app/app.dart';
+import 'package:runiac_app/features/you/presentation/widgets/activity_history_card.dart';
 
 Future<void> _openYouTab(WidgetTester tester) async {
   await tester.pumpWidget(const RuniacApp());
@@ -102,6 +103,85 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Recent Running'), findsOneWidget);
     }
+  });
+
+  testWidgets(
+    'More Activities opens Activity History with shell navigation preserved',
+    (WidgetTester tester) async {
+      await _openYouTab(tester);
+
+      await tester.ensureVisible(find.text('More Activities'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('More Activities'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Activity History'), findsOneWidget);
+      expect(find.text('Review your runs at your own pace.'), findsNothing);
+      expect(find.text('All years'), findsOneWidget);
+      expect(find.text('All months'), findsOneWidget);
+      expect(find.text('Showing your recent activities'), findsOneWidget);
+
+      for (final label in const ['Home', 'Maps', 'Run', 'Leaderboard', 'You']) {
+        expect(find.text(label), findsWidgets);
+      }
+    },
+  );
+
+  testWidgets('Activity History groups mock activities by month', (
+    WidgetTester tester,
+  ) async {
+    await _openYouTab(tester);
+
+    await tester.ensureVisible(find.text('More Activities'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('More Activities'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('June 2026'), findsOneWidget);
+    expect(find.text('May 2026'), findsOneWidget);
+    expect(find.text('April 2026'), findsOneWidget);
+
+    for (final title in const [
+      'Saturday Night Run',
+      'Easy Morning Jog',
+      'Riverside Recovery',
+      'Sunset Loop',
+      'Tuesday Tempo',
+      'Park Walk + Run',
+      'First 5K Attempt',
+      'Gentle Start',
+    ]) {
+      expect(find.text(title), findsOneWidget);
+    }
+
+    expect(find.byType(ActivityHistoryCard), findsNWidgets(8));
+    expect(find.byType(VerticalDivider), findsNWidgets(16));
+  });
+
+  testWidgets('Activity History opens run summary without XP update action', (
+    WidgetTester tester,
+  ) async {
+    await _openYouTab(tester);
+
+    await tester.ensureVisible(find.text('More Activities'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('More Activities'));
+    await tester.pumpAndSettle();
+
+    final saturdayCard = find.byKey(
+      const ValueKey('activity_history_card_Saturday Night Run'),
+    );
+    expect(saturdayCard, findsOneWidget);
+
+    await tester.tap(saturdayCard);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Saturday Night Run'), findsOneWidget);
+    expect(find.text('6 Jun 2026 · 9:18 PM'), findsOneWidget);
+    expect(find.text('5.12'), findsOneWidget);
+    expect(find.text('6\'45"'), findsOneWidget);
+    expect(find.text('34:32'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, 'View XP Update'), findsNothing);
   });
 
   testWidgets('You page shows static plans overview when Plans is selected', (

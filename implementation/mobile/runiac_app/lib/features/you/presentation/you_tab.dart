@@ -5,6 +5,7 @@ import '../../../core/widgets/dashboard_card.dart';
 import '../../run/presentation/models/recent_running_display_data.dart';
 import '../../run/presentation/models/run_activity_display_model.dart';
 import '../../run/presentation/view_summary_screen.dart';
+import 'activity_history_screen.dart';
 import 'expert_plan_detail_screen.dart';
 import 'expert_plan_list_screen.dart';
 import 'goal_plan_detail_screen.dart';
@@ -223,11 +224,21 @@ class _YouTabState extends State<YouTab> {
   var _expertPlanDetailVisible = false;
   var _goalPlanDetailVisible = false;
   var _workoutDetailVisible = false;
+  var _activityHistoryVisible = false;
   var _workoutDetailSnapshot = weeklyWorkoutDetailSnapshot;
   var _visibleCalendarMonth = DateTime(2026, 5);
 
   @override
   Widget build(BuildContext context) {
+    if (_activityHistoryVisible) {
+      return ActivityHistoryScreen(
+        onBack: () {
+          setState(() => _activityHistoryVisible = false);
+        },
+        onActivitySelected: _showRunSummary,
+      );
+    }
+
     if (_workoutDetailVisible) {
       return WeeklyWorkoutDetailScreen(
         snapshot: _workoutDetailSnapshot,
@@ -293,6 +304,7 @@ class _YouTabState extends State<YouTab> {
                     _showPreviousCalendarMonth,
                     _showNextCalendarMonth,
                     _showRunSummary,
+                    _showActivityHistory,
                   ),
               ],
             ),
@@ -346,6 +358,10 @@ class _YouTabState extends State<YouTab> {
     setState(() => _expertPlanDetailVisible = true);
   }
 
+  void _showActivityHistory() {
+    setState(() => _activityHistoryVisible = true);
+  }
+
   void _showRunSummary(RunActivityDisplayModel run) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
@@ -387,6 +403,7 @@ Widget _progress(
   VoidCallback onPreviousMonth,
   VoidCallback onNextMonth,
   ValueChanged<RunActivityDisplayModel> onRunSelected,
+  VoidCallback onMoreActivities,
 ) {
   return Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -407,7 +424,7 @@ Widget _progress(
         _runCard(run, () => onRunSelected(run)),
         const SizedBox(height: 10),
       ],
-      _moreActivities(),
+      _moreActivities(onMoreActivities),
       const SizedBox(height: 14),
       _runLevel(),
     ],
@@ -1189,12 +1206,19 @@ Widget _metric(String value, String label) {
   );
 }
 
-Widget _moreActivities() {
-  return Container(
-    height: 44,
-    alignment: Alignment.center,
-    decoration: _cardLikeDecoration,
-    child: const Text('More Activities', style: _buttonTextStyle),
+Widget _moreActivities(VoidCallback onTap) {
+  return Semantics(
+    button: true,
+    child: GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        height: 44,
+        alignment: Alignment.center,
+        decoration: _cardLikeDecoration,
+        child: const Text('More Activities', style: _buttonTextStyle),
+      ),
+    ),
   );
 }
 
