@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/dashboard_card.dart';
+import '../../run/presentation/models/run_summary_snapshot.dart';
 import '../../run/presentation/view_summary_screen.dart';
 import 'expert_plan_detail_screen.dart';
 import 'expert_plan_list_screen.dart';

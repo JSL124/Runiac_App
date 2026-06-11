@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'advanced_analysis_screen.dart';
+import 'models/run_summary_snapshot.dart';
 import 'widgets/share_achievement_sheet.dart';
 import 'xp_update_screen.dart';
 
@@ -17,44 +18,6 @@ const _rBlue10 = Color(0x1A2F51C8);
 const _rBlue06 = Color(0x0F2F51C8);
 const _rOrange12 = Color(0x1FFB6414);
 const _cardRadius = 20.0;
-
-const defaultRunSummarySnapshot = RunSummarySnapshot(
-  title: 'Saturday Morning Run',
-  dateLabel: 'Today',
-  timeLabel: '7:06 AM',
-  distanceKm: '4.03',
-  avgPace: '6’30”',
-  duration: '30:15',
-  avgHeartRate: '145',
-  calories: '145',
-  routeName: 'East Coast Park Loop',
-);
-
-class RunSummarySnapshot {
-  const RunSummarySnapshot({
-    required this.title,
-    required this.dateLabel,
-    required this.timeLabel,
-    required this.distanceKm,
-    required this.avgPace,
-    required this.duration,
-    required this.avgHeartRate,
-    required this.calories,
-    required this.routeName,
-  });
-
-  final String title;
-  final String dateLabel;
-  final String timeLabel;
-  final String distanceKm;
-  final String avgPace;
-  final String duration;
-  final String avgHeartRate;
-  final String calories;
-  final String routeName;
-
-  String get dateTimeLabel => '$dateLabel · $timeLabel';
-}
 
 class ViewSummaryScreen extends StatelessWidget {
   const ViewSummaryScreen({
