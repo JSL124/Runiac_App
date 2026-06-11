@@ -14,55 +14,55 @@ const _blue10 = Color(0x1A2F51C8);
 const _blue06 = Color(0x0F2F51C8);
 const _orange12 = Color(0x1FFB6414);
 
-const _demoReward = RunReward(
-  name: 'Jinseo',
-  xpEarned: 120,
-  totalXp: 2520,
-  level: 12,
-  nextLevel: 13,
-  xpToNext: 600,
-  priorPct: 0.52,
-  newPct: 0.60,
-  streakPrev: 5,
-  streakNew: 6,
+const defaultXpUpdateDisplayModel = XpUpdateDisplayModel(
+  runnerName: 'Jinseo',
+  earnedXpLabel: '+120 XP',
+  totalXpLabel: '2,520 XP',
+  levelLabel: '12',
+  nextLevelLabel: '13',
+  progressTargetLabel: 'Progress to Lv.13',
+  xpRemainingLabel: '600 XP to go',
+  previousProgressFraction: 0.52,
+  currentProgressFraction: 0.60,
+  streakChangeLabel: '5 \u2192 6 days',
   streakNote: 'Great consistency!',
-  leveledUp: false,
+  didLevelUp: false,
 );
 
-class RunReward {
-  const RunReward({
-    required this.name,
-    required this.xpEarned,
-    required this.totalXp,
-    required this.level,
-    required this.nextLevel,
-    required this.xpToNext,
-    required this.priorPct,
-    required this.newPct,
-    required this.streakPrev,
-    required this.streakNew,
+class XpUpdateDisplayModel {
+  const XpUpdateDisplayModel({
+    required this.runnerName,
+    required this.earnedXpLabel,
+    required this.totalXpLabel,
+    required this.levelLabel,
+    required this.nextLevelLabel,
+    required this.progressTargetLabel,
+    required this.xpRemainingLabel,
+    required this.previousProgressFraction,
+    required this.currentProgressFraction,
+    required this.streakChangeLabel,
     required this.streakNote,
-    required this.leveledUp,
+    required this.didLevelUp,
   });
 
-  final String name;
-  final int xpEarned;
-  final int totalXp;
-  final int level;
-  final int nextLevel;
-  final int xpToNext;
-  final double priorPct;
-  final double newPct;
-  final int streakPrev;
-  final int streakNew;
+  final String runnerName;
+  final String earnedXpLabel;
+  final String totalXpLabel;
+  final String levelLabel;
+  final String nextLevelLabel;
+  final String progressTargetLabel;
+  final String xpRemainingLabel;
+  final double previousProgressFraction;
+  final double currentProgressFraction;
+  final String streakChangeLabel;
   final String streakNote;
-  final bool leveledUp;
+  final bool didLevelUp;
 }
 
 class XpUpdateScreen extends StatefulWidget {
-  const XpUpdateScreen({super.key, this.reward = _demoReward});
+  const XpUpdateScreen({super.key, this.model = defaultXpUpdateDisplayModel});
 
-  final RunReward reward;
+  final XpUpdateDisplayModel model;
 
   @override
   State<XpUpdateScreen> createState() => _XpUpdateScreenState();
@@ -146,17 +146,17 @@ class _XpUpdateScreenState extends State<XpUpdateScreen>
                                       CrossAxisAlignment.stretch,
                                   children: [
                                     _HeroRewardCard(
-                                      reward: widget.reward,
+                                      model: widget.model,
                                       animationValue: value,
                                       tokens: tokens,
                                     ),
                                     SizedBox(height: compact ? 10 : 12),
                                     _TotalXpCard(
-                                      reward: widget.reward,
+                                      model: widget.model,
                                       animationValue: value,
                                     ),
                                     SizedBox(height: compact ? 10 : 12),
-                                    _StreakCard(reward: widget.reward),
+                                    _StreakCard(model: widget.model),
                                     SizedBox(height: compact ? 12 : 18),
                                     const Spacer(),
                                     _GoHomeButton(
@@ -228,21 +228,24 @@ class _XpHeader extends StatelessWidget {
 
 class _HeroRewardCard extends StatelessWidget {
   const _HeroRewardCard({
-    required this.reward,
+    required this.model,
     required this.animationValue,
     required this.tokens,
   });
 
-  final RunReward reward;
+  final XpUpdateDisplayModel model;
   final double animationValue;
   final _XpLayoutTokens tokens;
 
   @override
   Widget build(BuildContext context) {
-    final shownXp = (reward.xpEarned * animationValue).round();
-    final ringPct = reward.leveledUp
+    final ringPct = model.didLevelUp
         ? 1.0
-        : _lerp(reward.priorPct, reward.newPct, animationValue);
+        : _lerp(
+            model.previousProgressFraction,
+            model.currentProgressFraction,
+            animationValue,
+          );
 
     return _XpCardSurface(
       radius: 24,
@@ -255,9 +258,9 @@ class _HeroRewardCard extends StatelessWidget {
       child: Column(
         children: [
           Text(
-            reward.leveledUp
-                ? 'Level ${reward.nextLevel}, ${reward.name}!'
-                : 'Nice work, ${reward.name}!',
+            model.didLevelUp
+                ? 'Level ${model.nextLevelLabel}, ${model.runnerName}!'
+                : 'Nice work, ${model.runnerName}!',
             textAlign: TextAlign.center,
             style: const TextStyle(
               color: _blue,
@@ -269,14 +272,14 @@ class _HeroRewardCard extends StatelessWidget {
           ),
           SizedBox(height: tokens.titleGap),
           _LevelRing(
-            reward: reward,
+            model: model,
             progress: ringPct,
             ringSize: tokens.ring,
             avatarSize: tokens.avatar,
           ),
           SizedBox(height: tokens.xpTopGap),
           Text(
-            '+$shownXp XP',
+            model.earnedXpLabel,
             style: TextStyle(
               color: _orange,
               fontSize: tokens.xpGainSize,
@@ -287,7 +290,7 @@ class _HeroRewardCard extends StatelessWidget {
           ),
           const SizedBox(height: 7),
           Text(
-            reward.leveledUp
+            model.didLevelUp
                 ? 'You reached a new level. Keep it up.'
                 : 'Earned from this run',
             textAlign: TextAlign.center,
@@ -308,16 +311,15 @@ class _HeroRewardCard extends StatelessWidget {
 }
 
 class _TotalXpCard extends StatelessWidget {
-  const _TotalXpCard({required this.reward, required this.animationValue});
+  const _TotalXpCard({required this.model, required this.animationValue});
 
-  final RunReward reward;
+  final XpUpdateDisplayModel model;
   final double animationValue;
 
   @override
   Widget build(BuildContext context) {
-    final shownTotal = (reward.totalXp * animationValue).round();
-    final priorPct = reward.leveledUp ? 0.0 : reward.priorPct;
-    final newPct = reward.leveledUp ? 0.08 : reward.newPct;
+    final priorPct = model.didLevelUp ? 0.0 : model.previousProgressFraction;
+    final newPct = model.didLevelUp ? 0.08 : model.currentProgressFraction;
     final shownPct = _lerp(priorPct, newPct, animationValue);
 
     return _XpCardSurface(
@@ -349,7 +351,7 @@ class _TotalXpCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '${_formatInt(shownTotal)} XP',
+                      model.totalXpLabel,
                       style: const TextStyle(
                         color: _blue,
                         fontSize: 26,
@@ -370,7 +372,7 @@ class _TotalXpCard extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  'Progress to Lv.${reward.leveledUp ? reward.nextLevel + 1 : reward.nextLevel}',
+                  model.progressTargetLabel,
                   style: const TextStyle(
                     color: _blue60,
                     fontSize: 12.5,
@@ -392,9 +394,9 @@ class _TotalXpCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 5),
                   Text(
-                    reward.leveledUp
+                    model.didLevelUp
                         ? 'Just leveled up'
-                        : '${reward.xpToNext} XP to go',
+                        : model.xpRemainingLabel,
                     style: const TextStyle(
                       color: _blue,
                       fontSize: 12.5,
@@ -413,9 +415,9 @@ class _TotalXpCard extends StatelessWidget {
 }
 
 class _StreakCard extends StatelessWidget {
-  const _StreakCard({required this.reward});
+  const _StreakCard({required this.model});
 
-  final RunReward reward;
+  final XpUpdateDisplayModel model;
 
   @override
   Widget build(BuildContext context) {
@@ -445,7 +447,7 @@ class _StreakCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  '${reward.streakPrev} \u2192 ${reward.streakNew} days',
+                  model.streakChangeLabel,
                   style: const TextStyle(
                     color: _blue,
                     fontSize: 26,
@@ -464,7 +466,7 @@ class _StreakCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(99),
             ),
             child: Text(
-              reward.streakNote,
+              model.streakNote,
               style: const TextStyle(
                 color: _blue60,
                 fontSize: 12,
@@ -510,13 +512,13 @@ class _GoHomeButton extends StatelessWidget {
 
 class _LevelRing extends StatelessWidget {
   const _LevelRing({
-    required this.reward,
+    required this.model,
     required this.progress,
     required this.ringSize,
     required this.avatarSize,
   });
 
-  final RunReward reward;
+  final XpUpdateDisplayModel model;
   final double progress;
   final double ringSize;
   final double avatarSize;
@@ -544,7 +546,7 @@ class _LevelRing extends StatelessWidget {
             ),
             child: Center(
               child: Text(
-                reward.name.characters.first,
+                model.runnerName.characters.first,
                 style: TextStyle(
                   color: _blue,
                   fontSize: ringSize < 100 ? 26 : 30,
@@ -566,7 +568,7 @@ class _LevelRing extends StatelessWidget {
               ),
               child: Center(
                 child: Text(
-                  'Lv.${reward.leveledUp ? reward.nextLevel : reward.level}',
+                  'Lv.${model.didLevelUp ? model.nextLevelLabel : model.levelLabel}',
                   style: const TextStyle(
                     color: _pureWhite,
                     fontSize: 11,
@@ -755,16 +757,4 @@ class _XpLayoutTokens {
 
 double _lerp(double from, double to, double value) {
   return from + (to - from) * value.clamp(0, 1);
-}
-
-String _formatInt(int value) {
-  final digits = value.toString();
-  final buffer = StringBuffer();
-  for (var index = 0; index < digits.length; index += 1) {
-    if (index > 0 && (digits.length - index) % 3 == 0) {
-      buffer.write(',');
-    }
-    buffer.write(digits[index]);
-  }
-  return buffer.toString();
 }

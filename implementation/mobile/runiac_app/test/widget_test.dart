@@ -11,6 +11,7 @@ import 'package:runiac_app/features/run/presentation/cool_down_guide_screen.dart
 import 'package:runiac_app/features/run/presentation/cool_down_screen.dart';
 import 'package:runiac_app/features/run/presentation/view_summary_screen.dart';
 import 'package:runiac_app/features/run/presentation/widgets/share_achievement_sheet.dart';
+import 'package:runiac_app/features/run/presentation/xp_update_screen.dart';
 
 final _forbiddenBackendOwnedCopy = RegExp(
   r'\bXP\b|streak|level|rank|score|saved count|popularity|owned|'
@@ -2269,6 +2270,81 @@ void main() {
 
     expect(find.text('XP & Streak Update'), findsNothing);
     expect(find.text('Saturday Morning Run'), findsOneWidget);
+  });
+
+  testWidgets('XP Update renders supplied backend-ready display model values', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: XpUpdateScreen(
+          model: XpUpdateDisplayModel(
+            runnerName: 'Maya',
+            earnedXpLabel: '+80 XP',
+            totalXpLabel: '1,840 XP',
+            levelLabel: '9',
+            nextLevelLabel: '10',
+            progressTargetLabel: 'Progress to Lv.10',
+            xpRemainingLabel: '220 XP to go',
+            previousProgressFraction: 0.41,
+            currentProgressFraction: 0.49,
+            streakChangeLabel: '2 \u2192 3 days',
+            streakNote: 'Steady return!',
+            didLevelUp: false,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Nice work, Maya!'), findsOneWidget);
+    expect(find.text('+80 XP'), findsOneWidget);
+    expect(find.text('1,840 XP'), findsOneWidget);
+    expect(find.text('Lv.9'), findsOneWidget);
+    expect(find.text('Progress to Lv.10'), findsOneWidget);
+    expect(find.text('220 XP to go'), findsOneWidget);
+    expect(find.text('2 \u2192 3 days'), findsOneWidget);
+    expect(find.text('Steady return!'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, 'Go Home'), findsOneWidget);
+    expect(find.text('Nice work, Jinseo!'), findsNothing);
+    expect(find.text('+120 XP'), findsNothing);
+    expect(
+      find.textContaining(_forbiddenXpUpdateCompetitiveCopy),
+      findsNothing,
+    );
+  });
+
+  testWidgets('XP Update source stays display-only and backend free', (
+    WidgetTester tester,
+  ) async {
+    final source = File(
+      'lib/features/run/presentation/xp_update_screen.dart',
+    ).readAsStringSync();
+
+    expect(source, contains('class XpUpdateDisplayModel'));
+    expect(source, isNot(contains('class RunReward')));
+    expect(source, isNot(contains('_demoReward')));
+    for (final forbidden in [
+      'calculateXP',
+      'calculateXp',
+      'calculateLevel',
+      'calculateStreak',
+      'Firebase',
+      'firebase',
+      'Firestore',
+      'Auth',
+      'SharedPreferences',
+    ]) {
+      expect(source, isNot(contains(forbidden)));
+    }
+    for (final forbiddenCall in [
+      RegExp(r'\bcollection\s*\('),
+      RegExp(r'\bdoc\s*\('),
+      RegExp(r'\bset\s*\('),
+      RegExp(r'\bupdate\s*\('),
+    ]) {
+      expect(source, isNot(contains(forbiddenCall)));
+    }
   });
 
   testWidgets(
