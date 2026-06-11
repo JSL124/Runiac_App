@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/dashboard_card.dart';
 import '../../../core/widgets/runiac_back_header.dart';
+import '../../../core/widgets/runiac_section_header.dart';
 
 const expertPlanDetailSnapshot = ExpertPlanDetailSnapshot(
   title: 'First 5K Preparation',
@@ -428,12 +429,10 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, color: RuniacColors.primaryBlue, size: 18),
-        const SizedBox(width: 8),
-        Expanded(child: Text(title, style: _sectionTitleStyle)),
-      ],
+    return RuniacSectionHeader(
+      title: title,
+      leading: Icon(icon, color: RuniacColors.primaryBlue, size: 18),
+      titleStyle: _sectionTitleStyle,
     );
   }
 }

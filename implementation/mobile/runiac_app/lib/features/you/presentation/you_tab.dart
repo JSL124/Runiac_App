@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/runiac_colors.dart';
+import '../../../core/widgets/runiac_section_header.dart';
 import '../../run/presentation/models/recent_running_display_data.dart';
 import '../../run/presentation/models/run_activity_display_model.dart';
 import '../../run/presentation/view_summary_screen.dart';
@@ -1230,16 +1231,14 @@ class _CardHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(
-          icon,
-          size: 18,
-          color: accent ? RuniacColors.accentOrange : RuniacColors.primaryBlue,
-        ),
-        const SizedBox(width: 8),
-        Expanded(child: Text(label, style: _cardTitleStyle)),
-      ],
+    return RuniacSectionHeader(
+      title: label,
+      leading: Icon(
+        icon,
+        size: 18,
+        color: accent ? RuniacColors.accentOrange : RuniacColors.primaryBlue,
+      ),
+      titleStyle: _cardTitleStyle,
     );
   }
 }

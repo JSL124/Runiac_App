@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/runiac_back_header.dart';
+import '../../../core/widgets/runiac_bottom_sheet_handle.dart';
 
 const _shareRankCardAsset =
     'assets/images/leaderboard/share_rank_card_background.png';
@@ -1774,16 +1775,11 @@ class _SheetHandle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Semantics(
-      key: const Key('leaderboard_sheet_handle'),
-      label: 'Leaderboard sheet handle',
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: RuniacColors.textSecondary.withValues(alpha: 0.28),
-          borderRadius: BorderRadius.circular(999),
-        ),
-        child: const SizedBox(width: 44, height: 5),
-      ),
+    return const RuniacBottomSheetHandle(
+      key: Key('leaderboard_sheet_handle'),
+      width: 44,
+      height: 5,
+      semanticLabel: 'Leaderboard sheet handle',
     );
   }
 }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/dashboard_card.dart';
 import '../../../core/widgets/runiac_back_header.dart';
+import '../../../core/widgets/runiac_bottom_sheet_handle.dart';
 
 const weeklyWorkoutDetailSnapshot = WeeklyWorkoutDetailSnapshot(
   title: 'Workout detail',
@@ -558,14 +559,11 @@ class _EditScheduleDragHandle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      key: const ValueKey('edit_schedule_drag_handle'),
+    return const RuniacBottomSheetHandle(
+      key: ValueKey('edit_schedule_drag_handle'),
       width: 44,
       height: 4,
-      decoration: BoxDecoration(
-        color: const Color(0xFFD7DCE3),
-        borderRadius: BorderRadius.circular(999),
-      ),
+      color: Color(0xFFD7DCE3),
     );
   }
 }

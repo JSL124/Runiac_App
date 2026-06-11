@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/runiac_colors.dart';
+import '../../../../core/widgets/runiac_bottom_sheet_handle.dart';
 import '../shared_route_detail_screen.dart';
 import 'shared_route_sheet_card.dart';
 
@@ -345,16 +346,10 @@ class _SheetDragHandle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Container(
-        key: const Key('maps_sheet_handle'),
-        width: 44,
-        height: 5,
-        decoration: BoxDecoration(
-          color: RuniacColors.textSecondary.withValues(alpha: 0.28),
-          borderRadius: BorderRadius.circular(999),
-        ),
-      ),
+    return const RuniacBottomSheetHandle(
+      key: Key('maps_sheet_handle'),
+      width: 44,
+      height: 5,
     );
   }
 }

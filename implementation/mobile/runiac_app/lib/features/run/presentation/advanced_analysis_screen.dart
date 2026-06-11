@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:runiac_app/core/widgets/runiac_back_header.dart';
+import 'package:runiac_app/core/widgets/runiac_section_header.dart';
 
 const _blue = Color(0xFF2F51C8);
 const _orange = Color(0xFFFB6414);
@@ -523,23 +524,17 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        _IconTile(icon: icon),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            title,
-            style: const TextStyle(
-              color: _ink,
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
-              letterSpacing: -0.6,
-            ),
-          ),
-        ),
-        if (badge != null) _Badge(label: badge!, hot: hotBadge),
-      ],
+    return RuniacSectionHeader(
+      title: title,
+      leading: _IconTile(icon: icon),
+      leadingSpacing: 12,
+      trailing: badge == null ? null : _Badge(label: badge!, hot: hotBadge),
+      titleStyle: const TextStyle(
+        color: _ink,
+        fontSize: 18,
+        fontWeight: FontWeight.w800,
+        letterSpacing: -0.6,
+      ),
     );
   }
 }

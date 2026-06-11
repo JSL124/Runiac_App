@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:runiac_app/core/widgets/runiac_bottom_sheet_handle.dart';
 
 const _blue = Color(0xFF2F51C8);
 const _blueBright = Color(0xFF3E63E6);
@@ -74,14 +75,12 @@ class _Grabber extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Container(
+    return const Center(
+      child: RuniacBottomSheetHandle(
         width: 40,
         height: 5,
-        decoration: BoxDecoration(
-          color: _blue18,
-          borderRadius: BorderRadius.circular(99),
-        ),
+        color: _blue18,
+        borderRadius: 99,
       ),
     );
   }
