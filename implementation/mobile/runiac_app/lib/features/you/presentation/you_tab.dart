@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/dashboard_card.dart';
-import '../../run/presentation/models/run_summary_snapshot.dart';
+import '../../run/presentation/models/recent_running_display_data.dart';
+import '../../run/presentation/models/run_activity_display_model.dart';
 import '../../run/presentation/view_summary_screen.dart';
 import 'expert_plan_detail_screen.dart';
 import 'expert_plan_list_screen.dart';
@@ -32,62 +33,7 @@ const _progressSnapshot = _YouProgressSnapshot(
   weeklyGoalLabel: '82% of weekly goal',
   streakValue: '6 days',
   streakCopy: 'Planned rest days keep your streak protected.',
-  runs: [
-    _RunDisplay(
-      '4/11/26',
-      'Saturday Night Run',
-      '4.03 km',
-      '6\'30"',
-      '30:15',
-      RunSummarySnapshot(
-        title: 'Saturday Night Run',
-        dateLabel: '4/11/26',
-        timeLabel: '9:18 PM',
-        distanceKm: '4.03',
-        avgPace: '6’30”',
-        duration: '30:15',
-        avgHeartRate: '145',
-        calories: '145',
-        routeName: 'East Coast Park Night Loop',
-      ),
-    ),
-    _RunDisplay(
-      '4/11/26',
-      'Morning Easy Run',
-      '3.20 km',
-      '7\'05"',
-      '24:10',
-      RunSummarySnapshot(
-        title: 'Morning Easy Run',
-        dateLabel: '4/11/26',
-        timeLabel: '6:45 AM',
-        distanceKm: '3.20',
-        avgPace: '7’05”',
-        duration: '24:10',
-        avgHeartRate: '138',
-        calories: '212',
-        routeName: 'Neighbourhood Easy Loop',
-      ),
-    ),
-    _RunDisplay(
-      '4/11/26',
-      'Recovery Jog',
-      '5.17 km',
-      '7\'40"',
-      '39:38',
-      RunSummarySnapshot(
-        title: 'Recovery Jog',
-        dateLabel: '4/11/26',
-        timeLabel: '8:10 PM',
-        distanceKm: '5.17',
-        avgPace: '7’40”',
-        duration: '39:38',
-        avgHeartRate: '132',
-        calories: '286',
-        routeName: 'Park Connector Recovery Loop',
-      ),
-    ),
-  ],
+  runs: recentRunningDisplayData,
   runDayPlaceholders: {
     '2026-5': {1, 3, 5, 8, 10, 12, 15, 17, 20},
   },
@@ -177,28 +123,10 @@ class _YouProgressSnapshot {
   final String weeklyGoalLabel;
   final String streakValue;
   final String streakCopy;
-  final List<_RunDisplay> runs;
+  final List<RunActivityDisplayModel> runs;
   final Map<String, Set<int>> runDayPlaceholders;
   final String levelTitle;
   final String levelCopy;
-}
-
-class _RunDisplay {
-  const _RunDisplay(
-    this.date,
-    this.title,
-    this.distance,
-    this.avgPace,
-    this.time,
-    this.summary,
-  );
-
-  final String date;
-  final String title;
-  final String distance;
-  final String avgPace;
-  final String time;
-  final RunSummarySnapshot summary;
 }
 
 class _YouPlansSnapshot {
@@ -418,7 +346,7 @@ class _YouTabState extends State<YouTab> {
     setState(() => _expertPlanDetailVisible = true);
   }
 
-  void _showRunSummary(_RunDisplay run) {
+  void _showRunSummary(RunActivityDisplayModel run) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (context) =>
@@ -458,7 +386,7 @@ Widget _progress(
   DateTime visibleCalendarMonth,
   VoidCallback onPreviousMonth,
   VoidCallback onNextMonth,
-  ValueChanged<_RunDisplay> onRunSelected,
+  ValueChanged<RunActivityDisplayModel> onRunSelected,
 ) {
   return Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1207,7 +1135,7 @@ Set<int> _runDaysFor(DateTime month) {
       const {};
 }
 
-Widget _runCard(_RunDisplay run, VoidCallback onTap) {
+Widget _runCard(RunActivityDisplayModel run, VoidCallback onTap) {
   return Semantics(
     button: true,
     label: 'Open ${run.title} summary',
@@ -1228,16 +1156,16 @@ Widget _runCard(_RunDisplay run, VoidCallback onTap) {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(run.date, style: _smallStrongStyle),
+                  Text(run.timeAgoLabel, style: _smallStrongStyle),
                   Text(run.title, style: _runTitleStyle),
                   const SizedBox(height: 10),
                   Wrap(
                     spacing: 18,
                     runSpacing: 8,
                     children: [
-                      _metric(run.distance, 'Distance'),
-                      _metric(run.avgPace, 'Avg Pace'),
-                      _metric(run.time, 'Time'),
+                      _metric(run.distanceLabel, 'Distance'),
+                      _metric(run.paceLabel, 'Avg Pace'),
+                      _metric(run.durationLabel, 'Time'),
                     ],
                   ),
                 ],
