@@ -1983,11 +1983,11 @@ void main() {
     expect(find.textContaining(_forbiddenRealActivitySaveCopy), findsNothing);
 
     await tester.tap(find.byTooltip('Share summary'));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
-    expect(find.text('Sharing will be available soon.'), findsOneWidget);
+    expect(find.text('Share Your Achievement'), findsOneWidget);
 
-    await tester.pump(const Duration(seconds: 5));
+    await tester.tap(find.widgetWithText(TextButton, 'Close'));
     await tester.pumpAndSettle();
     await tester.ensureVisible(
       find.widgetWithText(OutlinedButton, 'More Details'),
@@ -2021,6 +2021,78 @@ void main() {
     expect(find.text('+120 XP'), findsOneWidget);
     expect(find.text('Earned from this run'), findsOneWidget);
   });
+
+  testWidgets(
+    'View summary share icon opens Share Your Achievement bottom sheet',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(const MaterialApp(home: ViewSummaryScreen()));
+
+      expect(find.byTooltip('Share summary'), findsOneWidget);
+      expect(find.text('Share Your Achievement'), findsNothing);
+
+      await tester.tap(find.byTooltip('Share summary'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Saturday Morning Run'), findsWidgets);
+      expect(find.text('Share Your Achievement'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'Share achievement sheet renders static preview metrics and actions',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(const MaterialApp(home: ViewSummaryScreen()));
+
+      await tester.tap(find.byTooltip('Share summary'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Share Your Achievement'), findsOneWidget);
+      expect(find.text('4.03'), findsWidgets);
+      expect(find.text('km'), findsWidgets);
+      expect(find.text('6\'30"'), findsOneWidget);
+      expect(find.text('Avg pace'), findsOneWidget);
+      expect(find.text('30:15'), findsWidgets);
+      expect(find.text('Time'), findsWidgets);
+      expect(find.text('Avg HR'), findsOneWidget);
+      expect(find.text('145'), findsWidgets);
+      expect(find.text('Calories'), findsWidgets);
+      expect(find.text('Edit card'), findsOneWidget);
+      expect(find.text('Change theme'), findsOneWidget);
+      expect(find.text('Instagram Stories'), findsOneWidget);
+      expect(find.text('Copy Image'), findsOneWidget);
+      expect(find.text('Save Image'), findsOneWidget);
+      expect(find.text('Copy Link'), findsOneWidget);
+      expect(find.text('More'), findsWidgets);
+
+      await tester.ensureVisible(find.text('Copy Image'));
+      await tester.tap(find.text('Copy Image'));
+      await tester.pump();
+
+      expect(
+        find.text('Preview only. Image copying is not connected yet.'),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
+    'Share achievement sheet close dismisses without leaving summary',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(const MaterialApp(home: ViewSummaryScreen()));
+
+      await tester.tap(find.byTooltip('Share summary'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Share Your Achievement'), findsOneWidget);
+
+      await tester.tap(find.widgetWithText(TextButton, 'Close'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Share Your Achievement'), findsNothing);
+      expect(find.text('Saturday Morning Run'), findsOneWidget);
+      expect(find.text('Run saved'), findsNothing);
+    },
+  );
 
   testWidgets('Advanced Analysis renders handoff sections and sample values', (
     WidgetTester tester,

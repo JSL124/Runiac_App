@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'advanced_analysis_screen.dart';
+import 'widgets/share_achievement_sheet.dart';
 import 'xp_update_screen.dart';
 
 const _rBlue = Color(0xFF2F51C8);
@@ -42,9 +43,13 @@ class ViewSummaryScreen extends StatelessWidget {
                     }
                   },
                   onShare: () {
-                    _showSoonMessage(
-                      context,
-                      'Sharing will be available soon.',
+                    showModalBottomSheet<void>(
+                      context: context,
+                      isScrollControlled: true,
+                      useSafeArea: true,
+                      backgroundColor: Colors.transparent,
+                      barrierColor: Colors.black.withValues(alpha: 0.48),
+                      builder: (context) => const ShareAchievementSheet(),
                     );
                   },
                 ),
