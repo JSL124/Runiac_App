@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:runiac_app/core/theme/runiac_colors.dart';
+import 'package:runiac_app/core/widgets/runiac_back_header.dart';
 
 import 'advanced_analysis_screen.dart';
 import 'models/run_summary_snapshot.dart';
@@ -46,23 +47,47 @@ class ViewSummaryScreen extends StatelessWidget {
           return SafeArea(
             child: Column(
               children: [
-                _SummaryHeader(
-                  summary: summary,
+                RuniacBackHeader(
+                  title: summary.title,
+                  subtitle: summary.dateTimeLabel,
+                  tooltip: 'Back to cool down',
                   onBack: () {
                     if (Navigator.of(context).canPop()) {
                       Navigator.of(context).pop();
                     }
                   },
-                  onShare: () {
-                    showModalBottomSheet<void>(
-                      context: context,
-                      isScrollControlled: true,
-                      useSafeArea: true,
-                      backgroundColor: Colors.transparent,
-                      barrierColor: Colors.black.withValues(alpha: 0.48),
-                      builder: (context) => const ShareAchievementSheet(),
-                    );
-                  },
+                  titleStyle: const TextStyle(
+                    color: _rBlue,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.3,
+                    height: 1.15,
+                  ),
+                  subtitleStyle: const TextStyle(
+                    color: _rBlue60,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    height: 1.15,
+                  ),
+                  trailing: IconButton(
+                    tooltip: 'Share summary',
+                    onPressed: () {
+                      showModalBottomSheet<void>(
+                        context: context,
+                        isScrollControlled: true,
+                        useSafeArea: true,
+                        backgroundColor: Colors.transparent,
+                        barrierColor: Colors.black.withValues(alpha: 0.48),
+                        builder: (context) => const ShareAchievementSheet(),
+                      );
+                    },
+                    style: IconButton.styleFrom(
+                      foregroundColor: _rBlue,
+                      minimumSize: const Size(40, 40),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    icon: const Icon(Icons.share_outlined, size: 20),
+                  ),
                 ),
                 Expanded(
                   child: ScrollConfiguration(
@@ -133,101 +158,6 @@ class _NoOverscrollBehavior extends ScrollBehavior {
   @override
   ScrollPhysics getScrollPhysics(BuildContext context) {
     return const ClampingScrollPhysics();
-  }
-}
-
-class _SummaryHeader extends StatelessWidget {
-  const _SummaryHeader({
-    required this.summary,
-    required this.onBack,
-    required this.onShare,
-  });
-
-  final RunSummarySnapshot summary;
-  final VoidCallback onBack;
-  final VoidCallback onShare;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 56,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        child: Row(
-          children: [
-            _HeaderIconButton(
-              tooltip: 'Back to cool down',
-              icon: Icons.chevron_left_rounded,
-              iconSize: 30,
-              onPressed: onBack,
-            ),
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    summary.title,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: _rBlue,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.3,
-                      height: 1.15,
-                    ),
-                  ),
-                  const SizedBox(height: 1),
-                  Text(
-                    summary.dateTimeLabel,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: _rBlue60,
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w600,
-                      height: 1.15,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            _HeaderIconButton(
-              tooltip: 'Share summary',
-              icon: Icons.share_outlined,
-              iconSize: 20,
-              onPressed: onShare,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _HeaderIconButton extends StatelessWidget {
-  const _HeaderIconButton({
-    required this.tooltip,
-    required this.icon,
-    required this.iconSize,
-    required this.onPressed,
-  });
-
-  final String tooltip;
-  final IconData icon;
-  final double iconSize;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return IconButton(
-      tooltip: tooltip,
-      onPressed: onPressed,
-      style: IconButton.styleFrom(
-        foregroundColor: _rBlue,
-        minimumSize: const Size(40, 40),
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      ),
-      icon: Icon(icon, size: iconSize),
-    );
   }
 }
 

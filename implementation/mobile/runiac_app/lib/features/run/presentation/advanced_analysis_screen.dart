@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:runiac_app/core/widgets/runiac_back_header.dart';
 
 const _blue = Color(0xFF2F51C8);
 const _orange = Color(0xFFFB6414);
@@ -82,11 +83,36 @@ class AdvancedAnalysisScreen extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            _AnalysisHeader(
+            RuniacBackHeader(
+              title: 'Saturday Morning Run',
+              subtitle: 'Today · 7:06 AM',
+              tooltip: 'Back to summary',
               onBack: () => Navigator.of(context).maybePop(),
-              onShare: () => _showSoon(
-                context,
-                'Advanced analysis sharing will be available soon.',
+              titleStyle: const TextStyle(
+                color: _blue,
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.3,
+                height: 1.15,
+              ),
+              subtitleStyle: const TextStyle(
+                color: _blue60,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+                height: 1.15,
+              ),
+              trailing: IconButton(
+                tooltip: 'Share advanced analysis',
+                onPressed: () => _showSoon(
+                  context,
+                  'Advanced analysis sharing will be available soon.',
+                ),
+                style: IconButton.styleFrom(
+                  foregroundColor: _blue,
+                  minimumSize: const Size(40, 40),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                icon: const Icon(Icons.share_outlined, size: 20),
               ),
             ),
             Expanded(
@@ -143,96 +169,6 @@ class _NoOverscrollBehavior extends ScrollBehavior {
   @override
   ScrollPhysics getScrollPhysics(BuildContext context) {
     return const ClampingScrollPhysics();
-  }
-}
-
-class _AnalysisHeader extends StatelessWidget {
-  const _AnalysisHeader({required this.onBack, required this.onShare});
-
-  final VoidCallback onBack;
-  final VoidCallback onShare;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 56,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        child: Row(
-          children: [
-            _HeaderIconButton(
-              tooltip: 'Back to summary',
-              icon: Icons.chevron_left_rounded,
-              iconSize: 30,
-              onPressed: onBack,
-            ),
-            const Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    'Saturday Morning Run',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: _blue,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.3,
-                      height: 1.15,
-                    ),
-                  ),
-                  SizedBox(height: 1),
-                  Text(
-                    'Today · 7:06 AM',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: _blue60,
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w600,
-                      height: 1.15,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            _HeaderIconButton(
-              tooltip: 'Share advanced analysis',
-              icon: Icons.share_outlined,
-              iconSize: 20,
-              onPressed: onShare,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _HeaderIconButton extends StatelessWidget {
-  const _HeaderIconButton({
-    required this.tooltip,
-    required this.icon,
-    required this.iconSize,
-    required this.onPressed,
-  });
-
-  final String tooltip;
-  final IconData icon;
-  final double iconSize;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return IconButton(
-      tooltip: tooltip,
-      onPressed: onPressed,
-      style: IconButton.styleFrom(
-        foregroundColor: _blue,
-        minimumSize: const Size(40, 40),
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      ),
-      icon: Icon(icon, size: iconSize),
-    );
   }
 }
 

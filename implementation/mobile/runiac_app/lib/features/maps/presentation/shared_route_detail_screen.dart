@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/runiac_colors.dart';
+import '../../../core/widgets/runiac_back_header.dart';
 import 'widgets/shared_route_detail_actions.dart';
 import 'widgets/shared_route_detail_painters.dart';
 import 'widgets/shared_route_detail_sections.dart';
@@ -213,9 +214,40 @@ class _SharedRouteDetailScreenState extends State<SharedRouteDetailScreen> {
           SafeArea(
             child: Column(
               children: [
-                _RouteDetailHeader(
-                  onReport: _showReportSheet,
-                  onShare: _showSharePreviewSheet,
+                RuniacBackHeader(
+                  title: 'Route',
+                  height: 64,
+                  trailingWidth: 96,
+                  titleStyle: const TextStyle(
+                    color: RuniacColors.textPrimary,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                  ),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Semantics(
+                        label: 'Report route',
+                        button: true,
+                        child: IconButton(
+                          tooltip: 'Report route',
+                          onPressed: _showReportSheet,
+                          icon: const Icon(Icons.flag_outlined),
+                          color: RuniacColors.primaryBlue,
+                        ),
+                      ),
+                      Semantics(
+                        label: 'Share route',
+                        button: true,
+                        child: IconButton(
+                          tooltip: 'Share route',
+                          onPressed: _showSharePreviewSheet,
+                          icon: const Icon(Icons.share_outlined),
+                          color: RuniacColors.primaryBlue,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 Expanded(
                   child: ScrollConfiguration(
@@ -252,64 +284,6 @@ class _SharedRouteDetailScreenState extends State<SharedRouteDetailScreen> {
             ),
           ),
           if (_isSaving) const RouteDetailSavingOverlay(),
-        ],
-      ),
-    );
-  }
-}
-
-class _RouteDetailHeader extends StatelessWidget {
-  const _RouteDetailHeader({required this.onReport, required this.onShare});
-
-  final VoidCallback onReport;
-  final VoidCallback onShare;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 10, 8, 6),
-      child: Row(
-        children: [
-          Semantics(
-            label: 'Back',
-            button: true,
-            child: IconButton(
-              tooltip: 'Back',
-              onPressed: () => Navigator.of(context).pop(),
-              icon: const Icon(Icons.arrow_back_ios_new, size: 22),
-              color: RuniacColors.primaryBlue,
-            ),
-          ),
-          const Expanded(
-            child: Text(
-              'Route',
-              style: TextStyle(
-                color: RuniacColors.textPrimary,
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ),
-          Semantics(
-            label: 'Report route',
-            button: true,
-            child: IconButton(
-              tooltip: 'Report route',
-              onPressed: onReport,
-              icon: const Icon(Icons.flag_outlined),
-              color: RuniacColors.primaryBlue,
-            ),
-          ),
-          Semantics(
-            label: 'Share route',
-            button: true,
-            child: IconButton(
-              tooltip: 'Share route',
-              onPressed: onShare,
-              icon: const Icon(Icons.share_outlined),
-              color: RuniacColors.primaryBlue,
-            ),
-          ),
         ],
       ),
     );

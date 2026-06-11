@@ -7,47 +7,135 @@ class RuniacBackHeader extends StatelessWidget {
     required this.title,
     this.onBack,
     this.tooltip = 'Back',
+    this.subtitle,
+    this.trailing,
+    this.titleStyle,
+    this.subtitleStyle,
+    this.height = 56,
+    this.trailingWidth = 48,
     super.key,
   });
 
   final String title;
   final VoidCallback? onBack;
   final String tooltip;
+  final String? subtitle;
+  final Widget? trailing;
+  final TextStyle? titleStyle;
+  final TextStyle? subtitleStyle;
+  final double height;
+  final double trailingWidth;
 
   @override
   Widget build(BuildContext context) {
+    final actionSlotWidth = trailing == null ? 48.0 : trailingWidth;
+
     return SizedBox(
-      height: 56,
+      height: height,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12),
         child: Row(
           children: [
-            IconButton(
-              tooltip: tooltip,
-              icon: const Icon(
-                Icons.chevron_left_rounded,
-                color: RuniacColors.primaryBlue,
-                size: 30,
-              ),
-              onPressed: onBack ?? () => Navigator.of(context).pop(),
-            ),
-            Expanded(
-              child: Text(
-                title,
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: RuniacColors.textPrimary,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w900,
+            SizedBox(
+              width: actionSlotWidth,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Semantics(
+                  label: tooltip,
+                  button: true,
+                  child: IconButton(
+                    tooltip: tooltip,
+                    icon: const Icon(
+                      Icons.chevron_left_rounded,
+                      color: RuniacColors.primaryBlue,
+                      size: 30,
+                    ),
+                    onPressed: onBack ?? () => Navigator.of(context).pop(),
+                  ),
                 ),
               ),
             ),
-            const SizedBox(width: 48),
+            Expanded(
+              child: _RuniacBackHeaderTitle(
+                title: title,
+                subtitle: subtitle,
+                titleStyle: titleStyle,
+                subtitleStyle: subtitleStyle,
+              ),
+            ),
+            SizedBox(
+              width: actionSlotWidth,
+              child: trailing == null
+                  ? null
+                  : Align(alignment: Alignment.centerRight, child: trailing),
+            ),
           ],
         ),
       ),
     );
   }
 }
+
+class _RuniacBackHeaderTitle extends StatelessWidget {
+  const _RuniacBackHeaderTitle({
+    required this.title,
+    required this.subtitle,
+    required this.titleStyle,
+    required this.subtitleStyle,
+  });
+
+  final String title;
+  final String? subtitle;
+  final TextStyle? titleStyle;
+  final TextStyle? subtitleStyle;
+
+  @override
+  Widget build(BuildContext context) {
+    final effectiveTitleStyle = titleStyle ?? _defaultTitleStyle;
+    final subtitle = this.subtitle;
+
+    if (subtitle == null) {
+      return Text(
+        title,
+        textAlign: TextAlign.center,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: effectiveTitleStyle,
+      );
+    }
+
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          title,
+          textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: effectiveTitleStyle,
+        ),
+        const SizedBox(height: 1),
+        Text(
+          subtitle,
+          textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: subtitleStyle ?? _defaultSubtitleStyle,
+        ),
+      ],
+    );
+  }
+}
+
+const _defaultTitleStyle = TextStyle(
+  color: RuniacColors.textPrimary,
+  fontSize: 16,
+  fontWeight: FontWeight.w900,
+);
+
+const _defaultSubtitleStyle = TextStyle(
+  color: RuniacColors.textSecondary,
+  fontSize: 12.5,
+  fontWeight: FontWeight.w600,
+  height: 1.15,
+);
