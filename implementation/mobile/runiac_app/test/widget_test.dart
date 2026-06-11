@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runiac_app/app.dart';
 import 'package:runiac_app/core/theme/runiac_colors.dart';
+import 'package:runiac_app/core/widgets/runiac_share_bottom_sheet.dart';
 import 'package:runiac_app/features/leaderboard/presentation/leaderboard_tab.dart';
 import 'package:runiac_app/features/run/presentation/advanced_analysis_screen.dart';
 import 'package:runiac_app/features/run/presentation/cool_down_guide_screen.dart';
@@ -1362,6 +1363,7 @@ void main() {
   testWidgets('Share My Rank opens floating share card panel', (
     WidgetTester tester,
   ) async {
+    _useCompactShareSheetSurface(tester);
     final messenger =
         TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
     addTearDown(() {
@@ -1402,8 +1404,32 @@ void main() {
       find.byKey(const Key('leaderboard_share_rank_card_background')),
       findsOneWidget,
     );
+    final sheetRect = tester.getRect(
+      find.byKey(const Key('leaderboard_share_rank_panel')),
+    );
+    final cardRect = tester.getRect(
+      find.byKey(const Key('leaderboard_share_rank_card_background')),
+    );
+    final shareToRect = tester.getRect(find.text('SHARE TO'));
+    expect(cardRect.width, greaterThanOrEqualTo(sheetRect.width * 0.82));
+    expect(shareToRect.top - cardRect.bottom, lessThanOrEqualTo(56));
     expect(find.text('Jurong East'), findsWidgets);
     expect(find.text('Rising Runner Division'), findsWidgets);
+    expect(find.text('#'), findsOneWidget);
+    expect(find.text('18'), findsOneWidget);
+    expect(
+      find.byKey(const Key('leaderboard_share_rank_page_indicator')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('leaderboard_share_rank_panel')),
+        matching: find.image(
+          const AssetImage('assets/icons/instagram_stories.png'),
+        ),
+      ),
+      findsOneWidget,
+    );
     expect(
       find.descendant(
         of: find.byKey(const Key('leaderboard_share_rank_panel')),
@@ -1411,9 +1437,11 @@ void main() {
       ),
       findsNothing,
     );
-    expect(find.text('Share to'), findsOneWidget);
+    expect(find.byType(RuniacShareBottomSheet), findsOneWidget);
+    expect(find.widgetWithText(TextButton, 'Close'), findsOneWidget);
+    expect(find.text('SHARE TO'), findsOneWidget);
     expect(find.text('Instagram'), findsOneWidget);
-    expect(find.text('Copy to\nClipboard'), findsOneWidget);
+    expect(find.text('Copy to Clipboard'), findsOneWidget);
     expect(find.text('Save'), findsOneWidget);
     expect(find.text('Copy Link'), findsOneWidget);
     expect(find.text('More'), findsOneWidget);
@@ -1422,7 +1450,7 @@ void main() {
     await tester.pump();
     expect(find.text('Rank copied to clipboard'), findsOneWidget);
 
-    await tester.tap(find.byTooltip('Close share rank'));
+    await tester.tap(find.widgetWithText(TextButton, 'Close'));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('leaderboard_share_rank_panel')), findsNothing);

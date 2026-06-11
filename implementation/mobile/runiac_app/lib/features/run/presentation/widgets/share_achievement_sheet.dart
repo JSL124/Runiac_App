@@ -2,18 +2,14 @@ import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:runiac_app/core/widgets/runiac_bottom_sheet_handle.dart';
+import 'package:runiac_app/core/widgets/runiac_share_bottom_sheet.dart';
 
 const _blue = Color(0xFF2F51C8);
 const _blueBright = Color(0xFF3E63E6);
 const _orange = Color(0xFFFB6414);
-const _surface = Color(0xFFF4F7FF);
 const _card = Color(0xFFFFFFFF);
 const _ink = Color(0xFF16235C);
-const _blue75 = Color(0xBF2F51C8);
-const _blue60 = Color(0x992F51C8);
 const _blue22 = Color(0x382F51C8);
-const _blue18 = Color(0x2E2F51C8);
 const _blue12 = Color(0x1F2F51C8);
 const _blue10 = Color(0x1A2F51C8);
 const _orange22 = Color(0x38FB6414);
@@ -30,119 +26,61 @@ class ShareAchievementSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final sheetHeight = MediaQuery.sizeOf(context).height * 0.82;
-    final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
-
-    return SizedBox(
-      height: sheetHeight,
-      child: DecoratedBox(
-        decoration: const BoxDecoration(
-          color: _surface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
-          boxShadow: [
-            BoxShadow(
-              color: Color(0x292F51C8),
-              blurRadius: 50,
-              offset: Offset(0, -18),
-            ),
-          ],
-        ),
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(20, 9, 20, 12 + bottomInset),
-          child: Column(
-            children: [
-              const _Grabber(),
-              _SheetHeader(onClose: () => Navigator.of(context).pop()),
-              SharePreviewCard(
-                onFeedback: (message) =>
-                    _showPlaceholderFeedback(context, message),
-              ),
-              const SizedBox(height: 12),
-              ShareActions(
-                onFeedback: (message) =>
-                    _showPlaceholderFeedback(context, message),
-              ),
-            ],
+    return RuniacShareBottomSheet(
+      title: 'Share Your Achievement',
+      preview: const SharePreviewCard(),
+      actionRow: _ShareUtilityActions(
+        onFeedback: (message) => _showPlaceholderFeedback(context, message),
+      ),
+      shareTargets: [
+        RuniacShareTargetButton(
+          icon: Icons.auto_awesome_rounded,
+          iconAsset: _instagramStoriesIconAsset,
+          label: 'Instagram Stories',
+          onPressed: () => _showPlaceholderFeedback(
+            context,
+            'Preview only. Instagram sharing is not connected yet.',
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _Grabber extends StatelessWidget {
-  const _Grabber();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: RuniacBottomSheetHandle(
-        width: 40,
-        height: 5,
-        color: _blue18,
-        borderRadius: 99,
-      ),
-    );
-  }
-}
-
-class _SheetHeader extends StatelessWidget {
-  const _SheetHeader({required this.onClose});
-
-  final VoidCallback onClose;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(0, 6, 0, 8),
-      child: SizedBox(
-        height: 36,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton(
-                onPressed: onClose,
-                style: TextButton.styleFrom(
-                  foregroundColor: _blue,
-                  padding: const EdgeInsets.symmetric(horizontal: 2),
-                  minimumSize: const Size(48, 32),
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  textStyle: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -0.1,
-                  ),
-                ),
-                child: const Text('Close'),
-              ),
-            ),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 58),
-              child: Text(
-                'Share Your Achievement',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: _ink,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.4,
-                ),
-              ),
-            ),
-          ],
+        RuniacShareTargetButton(
+          icon: Icons.copy_rounded,
+          label: 'Copy Image',
+          onPressed: () => _showPlaceholderFeedback(
+            context,
+            'Preview only. Image copying is not connected yet.',
+          ),
         ),
-      ),
+        RuniacShareTargetButton(
+          icon: Icons.file_download_outlined,
+          label: 'Save Image',
+          onPressed: () => _showPlaceholderFeedback(
+            context,
+            'Preview only. Image saving is not connected yet.',
+          ),
+        ),
+        RuniacShareTargetButton(
+          icon: Icons.link_rounded,
+          label: 'Copy Link',
+          onPressed: () => _showPlaceholderFeedback(
+            context,
+            'Preview only. Link copying is not connected yet.',
+          ),
+        ),
+        RuniacShareTargetButton(
+          icon: Icons.more_horiz_rounded,
+          label: 'More',
+          onPressed: () => _showPlaceholderFeedback(
+            context,
+            'Preview only. More sharing is not connected yet.',
+          ),
+        ),
+      ],
     );
   }
 }
 
 class SharePreviewCard extends StatelessWidget {
-  const SharePreviewCard({super.key, required this.onFeedback});
-
-  final ValueChanged<String> onFeedback;
+  const SharePreviewCard({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -151,28 +89,36 @@ class SharePreviewCard extends StatelessWidget {
         const _ShareCardSurface(),
         const SizedBox(height: 8),
         const _ThemeDots(),
-        const SizedBox(height: 10),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Flexible(
-              child: UtilityActionChip(
-                icon: Icons.edit_outlined,
-                label: 'Edit card',
-                onPressed: () =>
-                    onFeedback('Card editing will be available soon.'),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Flexible(
-              child: UtilityActionChip(
-                icon: Icons.palette_outlined,
-                label: 'Change theme',
-                onPressed: () =>
-                    onFeedback('Theme changes will be available soon.'),
-              ),
-            ),
-          ],
+      ],
+    );
+  }
+}
+
+class _ShareUtilityActions extends StatelessWidget {
+  const _ShareUtilityActions({required this.onFeedback});
+
+  final ValueChanged<String> onFeedback;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Flexible(
+          child: UtilityActionChip(
+            icon: Icons.edit_outlined,
+            label: 'Edit card',
+            onPressed: () => onFeedback('Card editing will be available soon.'),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Flexible(
+          child: UtilityActionChip(
+            icon: Icons.palette_outlined,
+            label: 'Change theme',
+            onPressed: () =>
+                onFeedback('Theme changes will be available soon.'),
+          ),
         ),
       ],
     );
@@ -602,170 +548,6 @@ class UtilityActionChip extends StatelessWidget {
             child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class ShareActions extends StatelessWidget {
-  const ShareActions({super.key, required this.onFeedback});
-
-  final ValueChanged<String> onFeedback;
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: const BoxDecoration(
-        border: Border(top: BorderSide(color: _blue10)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.only(top: 14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'SHARE TO',
-              style: TextStyle(
-                color: _blue60,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.3,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ShareActionButton(
-                  icon: Icons.auto_awesome_rounded,
-                  iconAsset: _instagramStoriesIconAsset,
-                  label: 'Instagram Stories',
-                  onPressed: () => onFeedback(
-                    'Preview only. Instagram sharing is not connected yet.',
-                  ),
-                ),
-                ShareActionButton(
-                  icon: Icons.copy_rounded,
-                  label: 'Copy Image',
-                  onPressed: () => onFeedback(
-                    'Preview only. Image copying is not connected yet.',
-                  ),
-                ),
-                ShareActionButton(
-                  icon: Icons.file_download_outlined,
-                  label: 'Save Image',
-                  onPressed: () => onFeedback(
-                    'Preview only. Image saving is not connected yet.',
-                  ),
-                ),
-                ShareActionButton(
-                  icon: Icons.link_rounded,
-                  label: 'Copy Link',
-                  onPressed: () => onFeedback(
-                    'Preview only. Link copying is not connected yet.',
-                  ),
-                ),
-                ShareActionButton(
-                  icon: Icons.more_horiz_rounded,
-                  label: 'More',
-                  onPressed: () => onFeedback(
-                    'Preview only. More sharing is not connected yet.',
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class ShareActionButton extends StatelessWidget {
-  const ShareActionButton({
-    super.key,
-    required this.icon,
-    required this.label,
-    required this.onPressed,
-    this.iconAsset,
-  });
-
-  final IconData icon;
-  final String? iconAsset;
-  final String label;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    const actionWidth = 61.0;
-    const iconBoxSize = 56.0;
-    const iconVisualSize = 22.0;
-    const assetIconVisualSize = 26.0;
-    const labelGap = 6.0;
-    const labelAreaHeight = 28.0;
-
-    final iconBox = BoxDecoration(
-      color: _card,
-      border: Border.all(color: _blue10),
-      borderRadius: BorderRadius.circular(20),
-      boxShadow: const [
-        BoxShadow(
-          color: Color(0x142F51C8),
-          blurRadius: 14,
-          offset: Offset(0, 4),
-        ),
-      ],
-    );
-
-    return SizedBox(
-      width: actionWidth,
-      child: Semantics(
-        button: true,
-        label: label,
-        child: InkWell(
-          onTap: onPressed,
-          borderRadius: BorderRadius.circular(22),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Container(
-                width: iconBoxSize,
-                height: iconBoxSize,
-                decoration: iconBox,
-                alignment: Alignment.center,
-                child: iconAsset == null
-                    ? Icon(icon, color: _blue, size: iconVisualSize)
-                    : Image.asset(
-                        iconAsset!,
-                        width: assetIconVisualSize,
-                        height: assetIconVisualSize,
-                        fit: BoxFit.contain,
-                      ),
-              ),
-              const SizedBox(height: labelGap),
-              SizedBox(
-                height: labelAreaHeight,
-                child: Align(
-                  alignment: Alignment.topCenter,
-                  child: Text(
-                    label,
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    style: const TextStyle(
-                      color: _blue75,
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: -0.1,
-                      height: 1.18,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

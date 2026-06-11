@@ -4,9 +4,11 @@ import 'package:flutter/services.dart';
 import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/runiac_back_header.dart';
 import '../../../core/widgets/runiac_bottom_sheet_handle.dart';
+import '../../../core/widgets/runiac_share_bottom_sheet.dart';
 
 const _shareRankCardAsset =
     'assets/images/leaderboard/share_rank_card_background.png';
+const _instagramStoriesIconAsset = 'assets/icons/instagram_stories.png';
 
 const _leaderboardPreviewSnapshot = _LeaderboardPreviewSnapshot(
   tipsTitle: 'Tips',
@@ -331,10 +333,12 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
   }
 
   void _openShareRankPanel() {
-    showDialog<void>(
+    showModalBottomSheet<void>(
       context: context,
-      barrierDismissible: false,
-      barrierColor: RuniacColors.textPrimary.withValues(alpha: 0.28),
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: RuniacColors.textPrimary.withValues(alpha: 0.48),
       builder: (context) {
         final currentUserRow = _leaderboardDetailSnapshot.nearbyRanks
             .firstWhere((row) => row.isCurrentUser);
@@ -2116,110 +2120,133 @@ class _ShareRankFloatingPanel extends StatelessWidget {
   final String divisionName;
   final String rankLabel;
 
+  Future<void> _copyRank(BuildContext context) async {
+    await Clipboard.setData(
+      ClipboardData(
+        text:
+            'I\'m ranked $rankLabel in $regionName\'s $divisionName on Runiac.',
+      ),
+    );
+
+    if (!context.mounted) {
+      return;
+    }
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Rank copied to clipboard')));
+  }
+
+  void _showComingSoon(BuildContext context) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Share action coming soon')));
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Dialog(
+    return RuniacShareBottomSheet(
       key: const Key('leaderboard_share_rank_panel'),
-      insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
-      backgroundColor: Colors.transparent,
-      child: FractionallySizedBox(
-        heightFactor: 0.84,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: RuniacColors.white,
-            borderRadius: BorderRadius.circular(22),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x26172033),
-                blurRadius: 26,
-                offset: Offset(0, 12),
+      title: 'Share your rank',
+      preview: LayoutBuilder(
+        builder: (context, constraints) {
+          final cardWidth = (MediaQuery.sizeOf(context).width * 0.84)
+              .clamp(0.0, constraints.maxWidth)
+              .toDouble();
+
+          return SizedBox(
+            height: constraints.maxHeight,
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: cardWidth,
+                      child: _ShareRankCardPreview(
+                        regionName: regionName,
+                        divisionName: divisionName,
+                        rankLabel: rankLabel,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const _ShareRankPageIndicator(),
+                  ],
+                ),
               ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(22),
-            child: Column(
-              children: [
-                _ShareRankPanelHeader(
-                  onClose: () => Navigator.of(context).pop(),
-                ),
-                Expanded(
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      return Align(
-                        alignment: Alignment.topCenter,
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(8, 10, 8, 10),
-                          child: ConstrainedBox(
-                            constraints: BoxConstraints(
-                              maxHeight: constraints.maxHeight - 20,
-                            ),
-                            child: _ShareRankCardPreview(
-                              regionName: regionName,
-                              divisionName: divisionName,
-                              rankLabel: rankLabel,
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                const Divider(height: 1, color: Color(0xFFE4E9FA)),
-                _ShareRankActions(
-                  regionName: regionName,
-                  divisionName: divisionName,
-                  rankLabel: rankLabel,
-                ),
-              ],
             ),
-          ),
-        ),
+          );
+        },
       ),
+      shareTargets: [
+        RuniacShareTargetButton(
+          icon: Icons.camera_alt_outlined,
+          iconAsset: _instagramStoriesIconAsset,
+          label: 'Instagram',
+          onPressed: () => _showComingSoon(context),
+        ),
+        RuniacShareTargetButton(
+          key: const Key('leaderboard_copy_rank_action'),
+          icon: Icons.content_paste_outlined,
+          label: 'Copy to Clipboard',
+          onPressed: () => _copyRank(context),
+        ),
+        RuniacShareTargetButton(
+          icon: Icons.file_download_outlined,
+          label: 'Save',
+          onPressed: () => _showComingSoon(context),
+        ),
+        RuniacShareTargetButton(
+          icon: Icons.link,
+          label: 'Copy Link',
+          onPressed: () => _showComingSoon(context),
+        ),
+        RuniacShareTargetButton(
+          icon: Icons.more_horiz,
+          label: 'More',
+          onPressed: () => _showComingSoon(context),
+        ),
+      ],
     );
   }
 }
 
-class _ShareRankPanelHeader extends StatelessWidget {
-  const _ShareRankPanelHeader({required this.onClose});
-
-  final VoidCallback onClose;
+class _ShareRankPageIndicator extends StatelessWidget {
+  const _ShareRankPageIndicator();
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 14, 12, 8),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          const Center(
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 52),
-              child: Text(
-                'Share your rank',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: RuniacColors.textPrimary,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ),
-          ),
-          Align(
-            alignment: Alignment.centerRight,
-            child: IconButton(
-              key: const Key('leaderboard_share_rank_close_button'),
-              tooltip: 'Close share rank',
-              icon: const Icon(Icons.close),
-              color: RuniacColors.textPrimary,
-              onPressed: onClose,
-            ),
-          ),
-        ],
+    return const Row(
+      key: Key('leaderboard_share_rank_page_indicator'),
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _ShareRankIndicatorDot(active: true),
+        SizedBox(width: 6),
+        _ShareRankIndicatorDot(active: false),
+        SizedBox(width: 6),
+        _ShareRankIndicatorDot(active: false),
+      ],
+    );
+  }
+}
+
+class _ShareRankIndicatorDot extends StatelessWidget {
+  const _ShareRankIndicatorDot({required this.active});
+
+  final bool active;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: active
+            ? RuniacColors.primaryBlue
+            : RuniacColors.primaryBlue.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(999),
       ),
+      child: SizedBox(width: active ? 18 : 7, height: 7),
     );
   }
 }
@@ -2244,83 +2271,83 @@ class _ShareRankCardPreview extends StatelessWidget {
           final cardWidth = constraints.maxWidth;
           final cardHeight = constraints.maxHeight;
 
-          return Stack(
-            key: const Key('leaderboard_share_rank_card_preview'),
-            fit: StackFit.expand,
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(24),
-                child: Image.asset(
+          return ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: Stack(
+              key: const Key('leaderboard_share_rank_card_preview'),
+              fit: StackFit.expand,
+              children: [
+                Image.asset(
                   _shareRankCardAsset,
                   key: const Key('leaderboard_share_rank_card_background'),
                   fit: BoxFit.cover,
                 ),
-              ),
-              Positioned(
-                left: cardWidth * 0.34,
-                right: cardWidth * 0.29,
-                top: cardHeight * 0.344,
-                height: cardHeight * 0.075,
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerRight,
-                  child: Text(
-                    regionName,
-                    maxLines: 1,
-                    textAlign: TextAlign.left,
-                    style: const TextStyle(
-                      color: RuniacColors.white,
-                      fontSize: 28,
-                      fontWeight: FontWeight.w900,
-                      height: 1,
-                      shadows: [
-                        Shadow(
-                          color: Color(0x99000000),
-                          blurRadius: 10,
-                          offset: Offset(0, 2),
-                        ),
-                      ],
+                Positioned(
+                  left: cardWidth * 0.34,
+                  right: cardWidth * 0.29,
+                  top: cardHeight * 0.344,
+                  height: cardHeight * 0.075,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      regionName,
+                      maxLines: 1,
+                      textAlign: TextAlign.left,
+                      style: const TextStyle(
+                        color: RuniacColors.white,
+                        fontSize: 28,
+                        fontWeight: FontWeight.w900,
+                        height: 1,
+                        shadows: [
+                          Shadow(
+                            color: Color(0x99000000),
+                            blurRadius: 10,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-              Positioned(
-                left: cardWidth * 0.18,
-                right: cardWidth * 0.18,
-                top: cardHeight * 0.435,
-                height: cardHeight * 0.052,
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    divisionName,
-                    maxLines: 1,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: Color(0xFFE1E8FF),
-                      fontSize: 25,
-                      fontWeight: FontWeight.w800,
-                      shadows: [
-                        Shadow(
-                          color: Color(0x99000000),
-                          blurRadius: 8,
-                          offset: Offset(0, 2),
-                        ),
-                      ],
+                Positioned(
+                  left: cardWidth * 0.18,
+                  right: cardWidth * 0.18,
+                  top: cardHeight * 0.435,
+                  height: cardHeight * 0.052,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      divisionName,
+                      maxLines: 1,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Color(0xFFE1E8FF),
+                        fontSize: 25,
+                        fontWeight: FontWeight.w800,
+                        shadows: [
+                          Shadow(
+                            color: Color(0x99000000),
+                            blurRadius: 8,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-              Positioned(
-                left: cardWidth * 0.2,
-                right: cardWidth * 0.2,
-                top: cardHeight * 0.535,
-                height: cardHeight * 0.225,
-                child: FittedBox(
-                  fit: BoxFit.contain,
-                  child: _ShareRankNumber(rankLabel: rankLabel),
+                Positioned(
+                  left: cardWidth * 0.2,
+                  right: cardWidth * 0.2,
+                  top: cardHeight * 0.535,
+                  height: cardHeight * 0.225,
+                  child: FittedBox(
+                    fit: BoxFit.contain,
+                    child: _ShareRankNumber(rankLabel: rankLabel),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           );
         },
       ),
@@ -2377,151 +2404,6 @@ class _ShareRankNumber extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _ShareRankActions extends StatelessWidget {
-  const _ShareRankActions({
-    required this.regionName,
-    required this.divisionName,
-    required this.rankLabel,
-  });
-
-  final String regionName;
-  final String divisionName;
-  final String rankLabel;
-
-  Future<void> _copyRank(BuildContext context) async {
-    await Clipboard.setData(
-      ClipboardData(
-        text:
-            'I\'m ranked $rankLabel in $regionName\'s $divisionName on Runiac.',
-      ),
-    );
-
-    if (!context.mounted) {
-      return;
-    }
-
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Rank copied to clipboard')));
-  }
-
-  void _showComingSoon(BuildContext context) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Share action coming soon')));
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Share to',
-            style: TextStyle(
-              color: RuniacColors.textPrimary,
-              fontSize: 15,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _ShareActionButton(
-                icon: Icons.camera_alt_outlined,
-                label: 'Instagram',
-                onTap: () => _showComingSoon(context),
-              ),
-              _ShareActionButton(
-                key: const Key('leaderboard_copy_rank_action'),
-                icon: Icons.content_paste_outlined,
-                label: 'Copy to\nClipboard',
-                onTap: () => _copyRank(context),
-              ),
-              _ShareActionButton(
-                icon: Icons.file_download_outlined,
-                label: 'Save',
-                onTap: () => _showComingSoon(context),
-              ),
-              _ShareActionButton(
-                icon: Icons.link,
-                label: 'Copy Link',
-                onTap: () => _showComingSoon(context),
-              ),
-              _ShareActionButton(
-                icon: Icons.more_horiz,
-                label: 'More',
-                onTap: () => _showComingSoon(context),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ShareActionButton extends StatelessWidget {
-  const _ShareActionButton({
-    super.key,
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 58,
-      child: Column(
-        children: [
-          Material(
-            color: RuniacColors.white,
-            borderRadius: BorderRadius.circular(14),
-            elevation: 4,
-            shadowColor: RuniacColors.textPrimary.withValues(alpha: 0.12),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(14),
-              onTap: onTap,
-              child: Container(
-                width: 54,
-                height: 54,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: const Color(0xFFE4E9FA)),
-                ),
-                child: Icon(icon, color: RuniacColors.primaryBlue, size: 29),
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: RuniacColors.textPrimary,
-              fontSize: 10,
-              height: 1.05,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
