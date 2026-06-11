@@ -3,11 +3,12 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import 'package:runiac_app/core/theme/runiac_colors.dart';
+
 import 'view_summary_screen.dart';
 
 const _navy = Color(0xFF2F51C8);
 const _orange = Color(0xFFFB6414);
-const _surface = Color(0xFFF8FAFF);
 const _pureWhite = Color(0xFFFFFFFF);
 const _navy75 = Color(0xBF2F51C8);
 const _navy60 = Color(0x992F51C8);
@@ -188,7 +189,7 @@ class _CoolDownGuideScreenState extends State<CoolDownGuideScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _surface,
+      backgroundColor: RuniacColors.background,
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {

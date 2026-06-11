@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:runiac_app/core/theme/runiac_colors.dart';
+
 import 'cool_down_guide_screen.dart';
 import 'view_summary_screen.dart';
 
@@ -19,7 +21,7 @@ class CoolDownScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _rWhite,
+      backgroundColor: RuniacColors.background,
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {

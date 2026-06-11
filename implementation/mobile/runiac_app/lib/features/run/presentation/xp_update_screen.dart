@@ -2,11 +2,12 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import 'package:runiac_app/core/theme/runiac_colors.dart';
+
 import 'models/xp_update_display_model.dart';
 
 const _blue = Color(0xFF2F51C8);
 const _orange = Color(0xFFFB6414);
-const _softWhite = Color(0xFFF8FAFF);
 const _pureWhite = Color(0xFFFFFFFF);
 const _priorSolid = Color(0xFFBBC7EE);
 const _blue60 = Color(0x992F51C8);
@@ -63,7 +64,7 @@ class _XpUpdateScreenState extends State<XpUpdateScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _softWhite,
+      backgroundColor: RuniacColors.background,
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
