@@ -20,7 +20,7 @@ class RoutePreviewCard extends StatelessWidget {
       padding: const EdgeInsets.all(11),
       decoration: BoxDecoration(
         color: RuniacColors.white,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: RuniacColors.border),
         boxShadow: const [
           BoxShadow(
@@ -74,7 +74,7 @@ class RoutePreviewCard extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(20),
           child: card,
         ),
       ),
@@ -93,7 +93,7 @@ class _RouteThumbnailPlaceholder extends StatelessWidget {
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: const Color(0xFFF4F7FF),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(color: const Color(0xFFDDE6FF)),
         ),
         child: const CustomPaint(painter: _RouteThumbnailPainter()),

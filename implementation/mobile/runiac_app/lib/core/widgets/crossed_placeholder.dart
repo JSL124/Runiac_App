@@ -19,7 +19,7 @@ class CrossedPlaceholder extends StatelessWidget {
       height: height,
       decoration: BoxDecoration(
         color: RuniacColors.background,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: RuniacColors.border),
       ),
       child: CustomPaint(painter: _PlaceholderCrossPainter()),

@@ -42,7 +42,7 @@ class PlanSkeletonRow extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: _placeholderSurface,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: RuniacColors.border),
       ),
       child: const Row(

@@ -875,7 +875,7 @@ class _SplitChip extends StatelessWidget {
               ? _orange16
               : _blue10,
         ),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         children: [

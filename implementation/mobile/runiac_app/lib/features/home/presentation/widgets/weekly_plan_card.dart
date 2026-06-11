@@ -61,7 +61,7 @@ class _WeeklyPreviewRows extends StatelessWidget {
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: _softBlue,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: _blueBorder),
       ),
       child: const Column(

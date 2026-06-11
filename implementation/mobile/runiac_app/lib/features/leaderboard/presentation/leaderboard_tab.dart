@@ -737,7 +737,7 @@ class _RunnerIdentityCard extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: RuniacColors.primaryBlue,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
         children: [
@@ -745,7 +745,7 @@ class _RunnerIdentityCard extends StatelessWidget {
             height: 12,
             decoration: const BoxDecoration(
               color: RuniacColors.accentOrange,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
             ),
           ),
           Padding(
@@ -802,7 +802,7 @@ class _RunnerIdentityCard extends StatelessWidget {
                 DecoratedBox(
                   decoration: BoxDecoration(
                     color: RuniacColors.white.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(16),
                   ),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
@@ -946,7 +946,7 @@ class _RunnerMetricTile extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 15),
       decoration: BoxDecoration(
         color: RuniacColors.white,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: const Color(0xFFDDE3F8)),
       ),
       child: Row(
@@ -957,7 +957,7 @@ class _RunnerMetricTile extends StatelessWidget {
             alignment: Alignment.center,
             decoration: BoxDecoration(
               color: RuniacColors.primaryBlue.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(16),
             ),
             child: Icon(icon, color: RuniacColors.primaryBlue, size: 22),
           ),
@@ -1085,7 +1085,7 @@ class _RunnerAchievementsSection extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(12, 20, 12, 18),
           decoration: BoxDecoration(
             color: RuniacColors.white,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(20),
             border: Border.all(color: const Color(0xFFDDE3F8)),
           ),
           child: GridView.builder(
@@ -1310,7 +1310,7 @@ class _LeaderboardDetailSummary extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
       decoration: BoxDecoration(
         color: RuniacColors.white,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: const Color(0xFFDDE3F8)),
       ),
       child: Row(
@@ -1349,7 +1349,7 @@ class _LeaderboardDetailSummary extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             decoration: BoxDecoration(
               color: RuniacColors.primaryBlue.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(16),
             ),
             child: Text(
               snapshot.refreshLabel,
@@ -1398,11 +1398,11 @@ class _LeaderboardRankListCard extends StatelessWidget {
         Container(
           decoration: BoxDecoration(
             color: RuniacColors.white,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(20),
             border: Border.all(color: const Color(0xFFDDE3F8)),
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(20),
             child: Column(
               children: [
                 for (var index = 0; index < rows.length; index++) ...[
@@ -1901,11 +1901,11 @@ class _RegionPreviewRankCard extends StatelessWidget {
       width: double.infinity,
       decoration: BoxDecoration(
         color: RuniacColors.white,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: const Color(0xFFDDE3F8)),
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(20),
         child: Column(
           children: [
             for (var index = 0; index < rows.length; index++) ...[
@@ -2619,15 +2619,15 @@ class _VisualCta extends StatelessWidget {
       button: onTap != null,
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(18),
         child: InkWell(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(18),
           onTap: onTap,
           child: Ink(
             height: 36,
             decoration: BoxDecoration(
               color: filled ? RuniacColors.textPrimary : RuniacColors.white,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(18),
               border: Border.all(
                 color: filled
                     ? RuniacColors.textPrimary

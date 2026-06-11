@@ -363,7 +363,7 @@ class _PlanThumbnail extends StatelessWidget {
       height: 76,
       decoration: BoxDecoration(
         color: const Color(0xFFF7FAFF),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: RuniacColors.border),
       ),
       child: Stack(
@@ -453,7 +453,7 @@ class _VisualOnlyViewPlanButton extends StatelessWidget {
           alignment: Alignment.center,
           decoration: BoxDecoration(
             color: RuniacColors.white,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(18),
             border: Border.all(color: RuniacColors.primaryBlue),
           ),
           child: const Text('View Plan', style: _buttonTextStyle),
@@ -472,7 +472,7 @@ class _MedicalNote extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: const Color(0xFFFFF7F2),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFFFFE2D4)),
       ),
       child: Row(

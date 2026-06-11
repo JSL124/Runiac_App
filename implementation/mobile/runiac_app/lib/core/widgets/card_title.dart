@@ -23,7 +23,7 @@ class CardTitle extends StatelessWidget {
           height: 30,
           decoration: BoxDecoration(
             color: accent ? const Color(0x1AFC6818) : const Color(0x1A2F50C7),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(12),
           ),
           child: Icon(
             icon,

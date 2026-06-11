@@ -101,7 +101,7 @@ class _SharedRouteDetailScreenState extends State<SharedRouteDetailScreen> {
                   backgroundColor: RuniacColors.primaryBlue,
                   minimumSize: const Size.fromHeight(52),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(18),
                   ),
                 ),
                 child: const Text('Confirm Route'),
@@ -369,7 +369,7 @@ class _RouteDetailHero extends StatelessWidget {
           decoration: BoxDecoration(
             color: const Color(0xFFF6F8FF),
             border: Border.all(color: RuniacColors.border),
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(20),
             boxShadow: const [
               BoxShadow(
                 color: Color(0x0A172033),

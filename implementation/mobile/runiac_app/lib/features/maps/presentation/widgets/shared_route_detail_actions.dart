@@ -102,7 +102,7 @@ class RouteDetailSharePreviewSheet extends StatelessWidget {
                   foregroundColor: RuniacColors.white,
                   minimumSize: const Size.fromHeight(48),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(18),
                   ),
                 ),
                 child: const Text('Close'),
@@ -125,7 +125,7 @@ class _RouteShareSummaryCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: RuniacColors.white,
         border: Border.all(color: RuniacColors.border),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: const [
           BoxShadow(
             color: Color(0x0A172033),
@@ -143,7 +143,7 @@ class _RouteShareSummaryCard extends StatelessWidget {
             decoration: BoxDecoration(
               color: const Color(0xFFF8FAFF),
               border: Border.all(color: RuniacColors.border),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(16),
             ),
             child: const Icon(
               Icons.route_outlined,
@@ -237,7 +237,7 @@ class _SharePreviewActionRow extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFF8FAFC),
         border: Border.all(color: RuniacColors.border),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
         children: [
@@ -309,7 +309,7 @@ class RouteDetailBottomActionBar extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: RuniacColors.white,
                       border: Border.all(color: RuniacColors.border),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(18),
                     ),
                     child: IconButton(
                       tooltip: 'Save route',
@@ -333,7 +333,7 @@ class RouteDetailBottomActionBar extends StatelessWidget {
                     foregroundColor: RuniacColors.white,
                     minimumSize: const Size.fromHeight(56),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(18),
                     ),
                   ),
                   child: const Text(
@@ -365,7 +365,7 @@ class RouteDetailSavingOverlay extends StatelessWidget {
             decoration: BoxDecoration(
               color: RuniacColors.white,
               border: Border.all(color: RuniacColors.border),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(20),
               boxShadow: const [
                 BoxShadow(
                   color: Color(0x1F172033),

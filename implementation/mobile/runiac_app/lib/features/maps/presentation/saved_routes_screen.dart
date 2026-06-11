@@ -253,12 +253,12 @@ class _SavedRouteCard extends StatelessWidget {
       child: Material(
         color: RuniacColors.white,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(20),
           side: const BorderSide(color: Color(0xFFE1E7F5)),
         ),
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(20),
           child: Padding(
             padding: const EdgeInsets.all(12),
             child: Row(
@@ -313,7 +313,7 @@ class _SelectedRouteEmptyState extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFF8FAFF),
         border: Border.all(color: const Color(0xFFE1E7F5)),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(20),
       ),
       child: const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -355,7 +355,7 @@ class _RouteThumbnail extends StatelessWidget {
         decoration: BoxDecoration(
           color: const Color(0xFFF4F7FF),
           border: Border.all(color: const Color(0xFFDDE6FF)),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(16),
         ),
         child: Stack(
           children: [

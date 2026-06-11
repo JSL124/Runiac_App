@@ -136,20 +136,20 @@ class _SharedRouteReportSheetState extends State<SharedRouteReportSheet> {
                       filled: true,
                       fillColor: const Color(0xFFF8FAFF),
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(16),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderSide: const BorderSide(
                           color: RuniacColors.border,
                         ),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(16),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderSide: const BorderSide(
                           color: RuniacColors.primaryBlue,
                           width: 1.4,
                         ),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(16),
                       ),
                     ),
                   ),
@@ -161,7 +161,7 @@ class _SharedRouteReportSheetState extends State<SharedRouteReportSheet> {
                       disabledBackgroundColor: const Color(0xFFE3E7F2),
                       minimumSize: const Size.fromHeight(52),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(18),
                       ),
                     ),
                     child: const Text('Report'),
@@ -186,7 +186,7 @@ class _ReportRouteSummary extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFF8FAFF),
         border: Border.all(color: RuniacColors.border),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
         children: [
@@ -196,7 +196,7 @@ class _ReportRouteSummary extends StatelessWidget {
             decoration: BoxDecoration(
               color: RuniacColors.white,
               border: Border.all(color: RuniacColors.border),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(16),
             ),
             child: const Icon(
               Icons.route_outlined,
@@ -344,7 +344,7 @@ class _ReportSuccess extends StatelessWidget {
               backgroundColor: RuniacColors.primaryBlue,
               minimumSize: const Size.fromHeight(48),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(18),
               ),
             ),
             child: const Text('Close'),

@@ -86,7 +86,7 @@ class _InitialTile extends StatelessWidget {
       height: 40,
       decoration: BoxDecoration(
         color: _softOrange,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: _orangeBorder),
       ),
       child: const Icon(Icons.directions_run, color: _sportOrange, size: 20),

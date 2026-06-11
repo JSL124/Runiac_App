@@ -14,7 +14,7 @@ class SoftNotice extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: RuniacColors.background,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: RuniacColors.border),
       ),
       child: Text(

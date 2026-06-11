@@ -297,7 +297,7 @@ class _GoalPlanSummaryCard extends StatelessWidget {
                 height: 52,
                 decoration: BoxDecoration(
                   color: const Color(0xFFF7FAFF),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: RuniacColors.border),
                 ),
                 child: const Icon(
@@ -441,7 +441,7 @@ class _GoalPlanTimelineRow extends StatelessWidget {
           color: Colors.transparent,
           child: InkWell(
             key: ValueKey('goal_plan_detail_week_toggle_${display.weekLabel}'),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(16),
             onTap: onSelected,
             child: Container(
               key: display.status == GoalPlanWeekStatus.current
@@ -453,7 +453,7 @@ class _GoalPlanTimelineRow extends StatelessWidget {
                     ? const Color(0xFFF7FAFF)
                     : null,
                 borderRadius: display.status == GoalPlanWeekStatus.current
-                    ? BorderRadius.circular(8)
+                    ? BorderRadius.circular(16)
                     : null,
               ),
               child: IntrinsicHeight(
@@ -658,6 +658,6 @@ const _progressInsideStyle = TextStyle(
 
 final _softIconDecoration = BoxDecoration(
   color: const Color(0xFFF7FAFF),
-  borderRadius: BorderRadius.circular(8),
+  borderRadius: BorderRadius.circular(16),
   border: Border.all(color: RuniacColors.border),
 );

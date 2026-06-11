@@ -228,7 +228,7 @@ class _ExpertPlanHeroBanner extends StatelessWidget {
       height: 154,
       decoration: BoxDecoration(
         color: RuniacColors.white,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: RuniacColors.border),
       ),
       clipBehavior: Clip.antiAlias,
@@ -397,7 +397,7 @@ class _CoachVerifiedBadge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
         color: const Color(0xFFF2ECFF),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(14),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -545,7 +545,7 @@ class _TimelineRow extends StatelessWidget {
     return Column(
       children: [
         InkWell(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(16),
           onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 12),
@@ -624,7 +624,7 @@ class _DisabledSelectionCallToAction extends StatelessWidget {
               ),
               disabledForegroundColor: RuniacColors.white,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(18),
               ),
             ),
             child: const Text('Select This Plan', style: _ctaTextStyle),
@@ -679,7 +679,7 @@ class _NoteBox extends StatelessWidget {
       padding: const EdgeInsets.all(13),
       decoration: BoxDecoration(
         color: RuniacColors.white,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: RuniacColors.border),
       ),
       child: Row(

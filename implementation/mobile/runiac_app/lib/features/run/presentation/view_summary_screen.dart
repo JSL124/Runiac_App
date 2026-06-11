@@ -957,7 +957,7 @@ class _SparkBadge extends StatelessWidget {
       height: 38,
       decoration: BoxDecoration(
         color: _rBlue,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
         boxShadow: const [
           BoxShadow(
             color: Color(0x472F51C8),

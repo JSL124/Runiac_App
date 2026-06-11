@@ -14,7 +14,7 @@ class DashboardCard extends StatelessWidget {
       color: RuniacColors.white,
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(20),
         side: const BorderSide(color: RuniacColors.border),
       ),
       child: Padding(padding: const EdgeInsets.all(14), child: child),

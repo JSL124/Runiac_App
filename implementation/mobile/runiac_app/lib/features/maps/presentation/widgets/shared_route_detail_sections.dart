@@ -94,7 +94,7 @@ class RouteDetailHero extends StatelessWidget {
           decoration: BoxDecoration(
             color: const Color(0xFFF6F8FF),
             border: Border.all(color: RuniacColors.border),
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(20),
             boxShadow: const [
               BoxShadow(
                 color: Color(0x0A172033),
@@ -210,7 +210,7 @@ class RouteDetailRunnerNotes extends StatelessWidget {
           decoration: BoxDecoration(
             color: RuniacColors.white,
             border: Border.all(color: RuniacColors.border),
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(20),
           ),
           child: const Text(
             'Good to run in the evening - flat path, well-lit. Avoid around '
@@ -285,7 +285,7 @@ class _ElevationCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: RuniacColors.white,
         border: Border.all(color: RuniacColors.border),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(20),
       ),
       child: const Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
