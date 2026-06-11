@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:runiac_app/core/theme/runiac_colors.dart';
+
 import 'advanced_analysis_screen.dart';
 import 'models/run_summary_snapshot.dart';
 import 'widgets/share_achievement_sheet.dart';
@@ -919,7 +921,7 @@ class _CardSurface extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: color,
-        border: Border.all(color: _rBlue10),
+        border: Border.all(color: RuniacColors.cardBorder),
         borderRadius: BorderRadius.circular(_cardRadius),
       ),
       child: Padding(padding: padding, child: child),

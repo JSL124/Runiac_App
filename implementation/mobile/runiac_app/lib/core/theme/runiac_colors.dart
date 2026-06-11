@@ -7,7 +7,12 @@ class RuniacColors {
   static const accentOrange = Color(0xFFFC6818);
   static const white = Color(0xFFFFFFFF);
   static const background = Color(0xFFFFFFFF);
+  static const sectionSurface = Color(0xFFF4F7FF);
+  static const sectionSurfaceStrong = Color(0xFFEEF3FF);
+  static const innerTileSurface = Color(0xFFF7FAFF);
   static const textPrimary = Color(0xFF172033);
   static const textSecondary = Color(0xFF6B7280);
   static const border = Color(0xFFE6EAF2);
+  static const cardBorder = Color(0xFFDCE5FF);
+  static const softCardShadow = Color(0x0F2F50C7);
 }

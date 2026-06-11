@@ -656,9 +656,9 @@ class _XpCardSurface extends StatelessWidget {
     return Container(
       padding: padding,
       decoration: BoxDecoration(
-        color: _pureWhite,
+        color: RuniacColors.white,
         borderRadius: BorderRadius.circular(radius),
-        border: Border.all(color: _blue10),
+        border: Border.all(color: RuniacColors.cardBorder),
         boxShadow: [
           ?shadow,
           const BoxShadow(

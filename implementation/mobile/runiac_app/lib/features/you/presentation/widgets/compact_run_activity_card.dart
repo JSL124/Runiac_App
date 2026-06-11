@@ -210,17 +210,21 @@ class _Metric extends StatelessWidget {
 }
 
 final _routeTileDecoration = BoxDecoration(
-  color: const Color(0xFFF5F7FE),
+  color: RuniacColors.sectionSurface,
   borderRadius: BorderRadius.circular(18),
-  border: Border.all(color: const Color(0xFFDCE5FF), width: 1.4),
+  border: Border.all(color: RuniacColors.cardBorder, width: 1.4),
 );
 
 final _historyCardDecoration = BoxDecoration(
   color: RuniacColors.white,
   borderRadius: BorderRadius.circular(24),
-  border: Border.all(color: const Color(0xFFE1E7FB), width: 1.1),
+  border: Border.all(color: RuniacColors.cardBorder, width: 1.1),
   boxShadow: const [
-    BoxShadow(color: Color(0x0F2F50C7), blurRadius: 16, offset: Offset(0, 8)),
+    BoxShadow(
+      color: RuniacColors.softCardShadow,
+      blurRadius: 16,
+      offset: Offset(0, 8),
+    ),
   ],
 );
 

@@ -21,7 +21,7 @@ class RoutePreviewCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: RuniacColors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: RuniacColors.border),
+        border: Border.all(color: RuniacColors.cardBorder),
         boxShadow: const [
           BoxShadow(
             color: Color(0x0A172033),
@@ -92,9 +92,9 @@ class _RouteThumbnailPlaceholder extends StatelessWidget {
       height: 50,
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: const Color(0xFFF4F7FF),
+          color: RuniacColors.sectionSurface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFDDE6FF)),
+          border: Border.all(color: RuniacColors.cardBorder),
         ),
         child: const CustomPaint(painter: _RouteThumbnailPainter()),
       ),

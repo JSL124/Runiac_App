@@ -1257,7 +1257,7 @@ class _YouDashboardCard extends StatelessWidget {
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(_youCardRadius),
-        side: const BorderSide(color: RuniacColors.border),
+        side: const BorderSide(color: RuniacColors.cardBorder),
       ),
       child: Padding(padding: const EdgeInsets.all(14), child: child),
     );
@@ -1275,20 +1275,20 @@ BoxDecoration _pillDecoration(Color color) {
 final _cardLikeDecoration = BoxDecoration(
   color: RuniacColors.white,
   borderRadius: BorderRadius.circular(_youInnerRadius),
-  border: Border.all(color: RuniacColors.border),
+  border: Border.all(color: RuniacColors.cardBorder),
 );
 final _moreActivitiesDecoration = BoxDecoration(
   color: RuniacColors.white,
   borderRadius: BorderRadius.circular(999),
-  border: Border.all(color: const Color(0xFFDCE5FF), width: 1.2),
+  border: Border.all(color: RuniacColors.cardBorder, width: 1.2),
 );
 final _counterDecoration = BoxDecoration(
   color: RuniacColors.white,
   borderRadius: BorderRadius.circular(_youInnerRadius),
-  border: Border.all(color: RuniacColors.border),
+  border: Border.all(color: RuniacColors.cardBorder),
 );
 final _softIconDecoration = BoxDecoration(
-  color: const Color(0xFFF7FAFF),
+  color: RuniacColors.innerTileSurface,
   borderRadius: BorderRadius.circular(_youInnerRadius),
   border: Border.all(color: RuniacColors.border),
 );
