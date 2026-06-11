@@ -154,55 +154,84 @@ class _AnalysisHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 72,
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      decoration: const BoxDecoration(
-        color: _card,
-        border: Border(bottom: BorderSide(color: _blue10)),
-      ),
-      child: Row(
-        children: [
-          IconButton(
-            tooltip: 'Back to summary',
-            onPressed: onBack,
-            icon: const Icon(Icons.chevron_left_rounded, size: 34),
-            color: _blue,
-          ),
-          const Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  'Saturday Morning Run',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: _ink,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-                SizedBox(height: 2),
-                Text(
-                  'Today · 7:06 AM',
-                  style: TextStyle(
-                    color: _blue60,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
+    return SizedBox(
+      height: 56,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: Row(
+          children: [
+            _HeaderIconButton(
+              tooltip: 'Back to summary',
+              icon: Icons.chevron_left_rounded,
+              iconSize: 30,
+              onPressed: onBack,
             ),
-          ),
-          IconButton(
-            tooltip: 'Share advanced analysis',
-            onPressed: onShare,
-            icon: const Icon(Icons.ios_share_rounded, size: 24),
-            color: _blue,
-          ),
-        ],
+            const Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Saturday Morning Run',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: _blue,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.3,
+                      height: 1.15,
+                    ),
+                  ),
+                  SizedBox(height: 1),
+                  Text(
+                    'Today · 7:06 AM',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: _blue60,
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                      height: 1.15,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            _HeaderIconButton(
+              tooltip: 'Share advanced analysis',
+              icon: Icons.share_outlined,
+              iconSize: 20,
+              onPressed: onShare,
+            ),
+          ],
+        ),
       ),
+    );
+  }
+}
+
+class _HeaderIconButton extends StatelessWidget {
+  const _HeaderIconButton({
+    required this.tooltip,
+    required this.icon,
+    required this.iconSize,
+    required this.onPressed,
+  });
+
+  final String tooltip;
+  final IconData icon;
+  final double iconSize;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      tooltip: tooltip,
+      onPressed: onPressed,
+      style: IconButton.styleFrom(
+        foregroundColor: _blue,
+        minimumSize: const Size(40, 40),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+      icon: Icon(icon, size: iconSize),
     );
   }
 }
