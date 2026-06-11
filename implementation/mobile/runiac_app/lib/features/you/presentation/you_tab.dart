@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/runiac_colors.dart';
-import '../../../core/widgets/dashboard_card.dart';
 import '../../run/presentation/models/recent_running_display_data.dart';
 import '../../run/presentation/models/run_activity_display_model.dart';
 import '../../run/presentation/view_summary_screen.dart';
@@ -582,7 +581,7 @@ class _CurrentGoalPlanCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DashboardCard(
+    return _YouDashboardCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -684,7 +683,7 @@ class _WeeklyPlanCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DashboardCard(
+    return _YouDashboardCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -779,7 +778,7 @@ class _WeeklyPlanRow extends StatelessWidget {
       decoration: BoxDecoration(
         color: tappable ? const Color(0xFFF7FAFF) : null,
         border: const Border(top: BorderSide(color: RuniacColors.border)),
-        borderRadius: tappable ? BorderRadius.circular(8) : null,
+        borderRadius: tappable ? BorderRadius.circular(_youInnerRadius) : null,
       ),
       child: Padding(
         padding: EdgeInsets.zero,
@@ -840,7 +839,7 @@ class _WeeklyPlanRow extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(_youInnerRadius),
           onTap: onTap,
           child: row,
         ),
@@ -856,7 +855,7 @@ class _ExpertPlansCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DashboardCard(
+    return _YouDashboardCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -907,7 +906,7 @@ class _ExpertPlanOption extends StatelessWidget {
           color: display.featured
               ? const Color(0xFFF7FAFF)
               : RuniacColors.white,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(_youInnerRadius),
           border: Border.all(
             color: display.featured
                 ? RuniacColors.primaryBlue
@@ -996,7 +995,7 @@ Widget _planBadge(String label) {
 }
 
 Widget _thisWeek() {
-  return DashboardCard(
+  return _YouDashboardCard(
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1036,7 +1035,7 @@ Widget _thisWeek() {
 }
 
 Widget _streak() {
-  return DashboardCard(
+  return _YouDashboardCard(
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1065,7 +1064,7 @@ Widget _calendarCard(
       calendarStart.add(Duration(days: offset)),
   ];
 
-  return DashboardCard(
+  return _YouDashboardCard(
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1208,7 +1207,7 @@ Widget _moreActivities(VoidCallback onTap) {
 }
 
 Widget _runLevel() {
-  return DashboardCard(
+  return _YouDashboardCard(
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1245,6 +1244,26 @@ class _CardHeader extends StatelessWidget {
   }
 }
 
+class _YouDashboardCard extends StatelessWidget {
+  const _YouDashboardCard({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 0,
+      color: RuniacColors.white,
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(_youCardRadius),
+        side: const BorderSide(color: RuniacColors.border),
+      ),
+      child: Padding(padding: const EdgeInsets.all(14), child: child),
+    );
+  }
+}
+
 BoxDecoration _pillDecoration(Color color) {
   return BoxDecoration(
     color: color,
@@ -1255,7 +1274,7 @@ BoxDecoration _pillDecoration(Color color) {
 
 final _cardLikeDecoration = BoxDecoration(
   color: RuniacColors.white,
-  borderRadius: BorderRadius.circular(8),
+  borderRadius: BorderRadius.circular(_youInnerRadius),
   border: Border.all(color: RuniacColors.border),
 );
 final _moreActivitiesDecoration = BoxDecoration(
@@ -1265,14 +1284,17 @@ final _moreActivitiesDecoration = BoxDecoration(
 );
 final _counterDecoration = BoxDecoration(
   color: RuniacColors.white,
-  borderRadius: BorderRadius.circular(8),
+  borderRadius: BorderRadius.circular(_youInnerRadius),
   border: Border.all(color: RuniacColors.border),
 );
 final _softIconDecoration = BoxDecoration(
   color: const Color(0xFFF7FAFF),
-  borderRadius: BorderRadius.circular(8),
+  borderRadius: BorderRadius.circular(_youInnerRadius),
   border: Border.all(color: RuniacColors.border),
 );
+
+const _youCardRadius = 20.0;
+const _youInnerRadius = 16.0;
 
 const _cardTitleStyle = TextStyle(
   color: RuniacColors.textPrimary,
