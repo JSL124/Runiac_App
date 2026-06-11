@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/runiac_colors.dart';
 import '../../run/presentation/models/run_activity_display_model.dart';
 import '../../run/presentation/models/run_summary_snapshot.dart';
-import 'widgets/activity_history_card.dart';
+import 'widgets/compact_run_activity_card.dart';
 
 const activityHistoryDisplayData = [
   _ActivityHistoryMonth(
@@ -208,7 +208,7 @@ class ActivityHistoryScreen extends StatelessWidget {
                         _MonthHeader(month: month),
                         const SizedBox(height: 10),
                         for (final activity in month.activities) ...[
-                          ActivityHistoryCard(
+                          CompactRunActivityCard(
                             key: ValueKey(
                               'activity_history_card_${activity.title}',
                             ),

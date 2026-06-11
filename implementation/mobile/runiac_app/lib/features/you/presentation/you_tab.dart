@@ -418,9 +418,9 @@ Widget _progress(
       _streak(),
       const SizedBox(height: 10),
       _calendarCard(visibleCalendarMonth, onPreviousMonth, onNextMonth),
-      const SizedBox(height: 16),
-      const Center(child: Text('Recent Running', style: _sectionStyle)),
-      const SizedBox(height: 10),
+      const SizedBox(height: 18),
+      _recentRunningHeader(onMoreActivities),
+      const SizedBox(height: 12),
       for (final run in _progressSnapshot.runs) ...[
         CompactRunActivityCard(
           key: ValueKey('recent_running_card_${run.title}'),
@@ -432,6 +432,27 @@ Widget _progress(
       _moreActivities(onMoreActivities),
       const SizedBox(height: 14),
       _runLevel(),
+    ],
+  );
+}
+
+Widget _recentRunningHeader(VoidCallback onSeeAll) {
+  return Row(
+    crossAxisAlignment: CrossAxisAlignment.center,
+    children: [
+      const Expanded(child: Text('Recent Running', style: _sectionStyle)),
+      Semantics(
+        button: true,
+        child: GestureDetector(
+          key: const ValueKey('recent_running_see_all'),
+          behavior: HitTestBehavior.opaque,
+          onTap: onSeeAll,
+          child: const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 2, vertical: 6),
+            child: Text('See all', style: _seeAllTextStyle),
+          ),
+        ),
+      ),
     ],
   );
 }
@@ -1161,13 +1182,26 @@ Widget _moreActivities(VoidCallback onTap) {
   return Semantics(
     button: true,
     child: GestureDetector(
+      key: const ValueKey('more_activities_button'),
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Container(
-        height: 44,
+        height: 54,
         alignment: Alignment.center,
-        decoration: _cardLikeDecoration,
-        child: const Text('More Activities', style: _buttonTextStyle),
+        decoration: _moreActivitiesDecoration,
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('More Activities', style: _moreActivitiesTextStyle),
+            SizedBox(width: 10),
+            Icon(
+              Icons.chevron_right_rounded,
+              key: ValueKey('more_activities_chevron'),
+              color: RuniacColors.primaryBlue,
+              size: 26,
+            ),
+          ],
+        ),
       ),
     ),
   );
@@ -1224,6 +1258,11 @@ final _cardLikeDecoration = BoxDecoration(
   borderRadius: BorderRadius.circular(8),
   border: Border.all(color: RuniacColors.border),
 );
+final _moreActivitiesDecoration = BoxDecoration(
+  color: RuniacColors.white,
+  borderRadius: BorderRadius.circular(999),
+  border: Border.all(color: const Color(0xFFDCE5FF), width: 1.2),
+);
 final _counterDecoration = BoxDecoration(
   color: RuniacColors.white,
   borderRadius: BorderRadius.circular(8),
@@ -1247,8 +1286,13 @@ const _headerTitleStyle = TextStyle(
 );
 const _sectionStyle = TextStyle(
   color: RuniacColors.textPrimary,
-  fontSize: 20,
+  fontSize: 24,
   fontWeight: FontWeight.w900,
+);
+const _seeAllTextStyle = TextStyle(
+  color: Color(0xFF8EA2EA),
+  fontSize: 15,
+  fontWeight: FontWeight.w800,
 );
 const _heroNumberStyle = TextStyle(
   color: RuniacColors.textPrimary,
@@ -1275,6 +1319,11 @@ const _planCounterValueStyle = TextStyle(
 const _buttonTextStyle = TextStyle(
   color: RuniacColors.textPrimary,
   fontSize: 13,
+  fontWeight: FontWeight.w900,
+);
+const _moreActivitiesTextStyle = TextStyle(
+  color: RuniacColors.primaryBlue,
+  fontSize: 17,
   fontWeight: FontWeight.w900,
 );
 const _labelStrongStyle = TextStyle(

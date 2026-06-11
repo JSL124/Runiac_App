@@ -32,6 +32,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Recent Running'), findsOneWidget);
+    expect(find.text('See all'), findsOneWidget);
+    expect(
+      tester.getTopLeft(find.text('Recent Running')).dx,
+      lessThan(tester.getTopLeft(find.text('See all')).dx),
+    );
     expect(find.text('Saturday Night Run'), findsOneWidget);
     expect(find.text('Morning Easy Run'), findsOneWidget);
     expect(find.text('Recovery Jog'), findsOneWidget);
@@ -64,6 +69,10 @@ void main() {
       findsNWidgets(6),
     );
     expect(find.text('More Activities'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('more_activities_chevron')),
+      findsOneWidget,
+    );
     expect(find.text('Run Level'), findsOneWidget);
     expect(find.text('Level 12 Runner'), findsOneWidget);
   });
@@ -134,6 +143,22 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Recent Running'), findsOneWidget);
     }
+  });
+
+  testWidgets('Recent Running See all opens Activity History', (
+    WidgetTester tester,
+  ) async {
+    await _openYouTab(tester);
+
+    final seeAll = find.byKey(const ValueKey('recent_running_see_all'));
+    await Scrollable.ensureVisible(tester.element(seeAll), alignment: 0.55);
+    await tester.pumpAndSettle();
+    await tester.tap(seeAll);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Activity History'), findsOneWidget);
+    expect(find.text('All years'), findsOneWidget);
+    expect(find.text('All months'), findsOneWidget);
   });
 
   testWidgets(
