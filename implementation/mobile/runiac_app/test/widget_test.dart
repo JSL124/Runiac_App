@@ -1780,6 +1780,12 @@ void main() {
     expect(find.text('Start run'), findsNothing);
 
     await tester.tap(find.text('Pause'));
+    await tester.pump();
+
+    expect(find.text('Pause'), findsNothing);
+    expect(find.text('Resume'), findsOneWidget);
+    expect(find.text('End'), findsOneWidget);
+
     await tester.pumpAndSettle();
 
     expect(find.text('Paused · easy'), findsOneWidget);

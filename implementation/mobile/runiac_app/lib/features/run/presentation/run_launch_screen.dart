@@ -537,6 +537,9 @@ class _LiveRunActions extends StatelessWidget {
           duration: const Duration(milliseconds: 180),
           switchInCurve: Curves.easeOutCubic,
           switchOutCurve: Curves.easeInCubic,
+          layoutBuilder: (currentChild, previousChildren) {
+            return currentChild ?? const SizedBox.shrink();
+          },
           transitionBuilder: (child, animation) {
             return FadeTransition(
               opacity: animation,
@@ -567,8 +570,8 @@ class _LiveRunActions extends StatelessWidget {
                             style: FilledButton.styleFrom(
                               backgroundColor: _panelTextBlue,
                               foregroundColor: RuniacColors.white,
-                              elevation: 8,
-                              shadowColor: const Color(0x333151C8),
+                              elevation: 0,
+                              shadowColor: Colors.transparent,
                               textStyle: TextStyle(
                                 fontSize: compact ? 18 : 20,
                                 fontWeight: FontWeight.w900,
@@ -600,8 +603,8 @@ class _LiveRunActions extends StatelessWidget {
                     style: FilledButton.styleFrom(
                       backgroundColor: _panelTextBlue,
                       foregroundColor: RuniacColors.white,
-                      elevation: 8,
-                      shadowColor: const Color(0x333151C8),
+                      elevation: 0,
+                      shadowColor: Colors.transparent,
                       textStyle: TextStyle(
                         fontSize: compact ? 20 : 22,
                         fontWeight: FontWeight.w900,
