@@ -2,6 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import 'models/xp_update_display_model.dart';
+
 const _blue = Color(0xFF2F51C8);
 const _orange = Color(0xFFFB6414);
 const _softWhite = Color(0xFFF8FAFF);
@@ -13,51 +15,6 @@ const _blue12 = Color(0x1F2F51C8);
 const _blue10 = Color(0x1A2F51C8);
 const _blue06 = Color(0x0F2F51C8);
 const _orange12 = Color(0x1FFB6414);
-
-const defaultXpUpdateDisplayModel = XpUpdateDisplayModel(
-  runnerName: 'Jinseo',
-  earnedXpLabel: '+120 XP',
-  totalXpLabel: '2,520 XP',
-  levelLabel: '12',
-  nextLevelLabel: '13',
-  progressTargetLabel: 'Progress to Lv.13',
-  xpRemainingLabel: '600 XP to go',
-  previousProgressFraction: 0.52,
-  currentProgressFraction: 0.60,
-  streakChangeLabel: '5 \u2192 6 days',
-  streakNote: 'Great consistency!',
-  didLevelUp: false,
-);
-
-class XpUpdateDisplayModel {
-  const XpUpdateDisplayModel({
-    required this.runnerName,
-    required this.earnedXpLabel,
-    required this.totalXpLabel,
-    required this.levelLabel,
-    required this.nextLevelLabel,
-    required this.progressTargetLabel,
-    required this.xpRemainingLabel,
-    required this.previousProgressFraction,
-    required this.currentProgressFraction,
-    required this.streakChangeLabel,
-    required this.streakNote,
-    required this.didLevelUp,
-  });
-
-  final String runnerName;
-  final String earnedXpLabel;
-  final String totalXpLabel;
-  final String levelLabel;
-  final String nextLevelLabel;
-  final String progressTargetLabel;
-  final String xpRemainingLabel;
-  final double previousProgressFraction;
-  final double currentProgressFraction;
-  final String streakChangeLabel;
-  final String streakNote;
-  final bool didLevelUp;
-}
 
 class XpUpdateScreen extends StatefulWidget {
   const XpUpdateScreen({super.key, this.model = defaultXpUpdateDisplayModel});

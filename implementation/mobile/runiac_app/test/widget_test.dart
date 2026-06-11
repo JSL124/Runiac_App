@@ -10,6 +10,7 @@ import 'package:runiac_app/features/run/presentation/advanced_analysis_screen.da
 import 'package:runiac_app/features/run/presentation/cool_down_guide_screen.dart';
 import 'package:runiac_app/features/run/presentation/cool_down_screen.dart';
 import 'package:runiac_app/features/run/presentation/models/run_summary_snapshot.dart';
+import 'package:runiac_app/features/run/presentation/models/xp_update_display_model.dart';
 import 'package:runiac_app/features/run/presentation/view_summary_screen.dart';
 import 'package:runiac_app/features/run/presentation/widgets/share_achievement_sheet.dart';
 import 'package:runiac_app/features/run/presentation/xp_update_screen.dart';
@@ -2318,13 +2319,19 @@ void main() {
   testWidgets('XP Update source stays display-only and backend free', (
     WidgetTester tester,
   ) async {
-    final source = File(
+    final screenSource = File(
       'lib/features/run/presentation/xp_update_screen.dart',
     ).readAsStringSync();
+    final modelSource = File(
+      'lib/features/run/presentation/models/xp_update_display_model.dart',
+    ).readAsStringSync();
 
-    expect(source, contains('class XpUpdateDisplayModel'));
-    expect(source, isNot(contains('class RunReward')));
-    expect(source, isNot(contains('_demoReward')));
+    expect(modelSource, contains('class XpUpdateDisplayModel'));
+    expect(screenSource, contains('models/xp_update_display_model.dart'));
+    expect(screenSource, isNot(contains('class RunReward')));
+    expect(modelSource, isNot(contains('class RunReward')));
+    expect(screenSource, isNot(contains('_demoReward')));
+    expect(modelSource, isNot(contains('_demoReward')));
     for (final forbidden in [
       'calculateXP',
       'calculateXp',
@@ -2336,7 +2343,8 @@ void main() {
       'Auth',
       'SharedPreferences',
     ]) {
-      expect(source, isNot(contains(forbidden)));
+      expect(screenSource, isNot(contains(forbidden)));
+      expect(modelSource, isNot(contains(forbidden)));
     }
     for (final forbiddenCall in [
       RegExp(r'\bcollection\s*\('),
@@ -2344,7 +2352,8 @@ void main() {
       RegExp(r'\bset\s*\('),
       RegExp(r'\bupdate\s*\('),
     ]) {
-      expect(source, isNot(contains(forbiddenCall)));
+      expect(screenSource, isNot(contains(forbiddenCall)));
+      expect(modelSource, isNot(contains(forbiddenCall)));
     }
   });
 
