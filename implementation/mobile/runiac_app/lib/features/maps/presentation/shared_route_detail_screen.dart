@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/runiac_back_header.dart';
+import '../../../core/widgets/runiac_buttons.dart';
 import 'widgets/shared_route_detail_actions.dart';
 import 'widgets/shared_route_detail_painters.dart';
 import 'widgets/shared_route_detail_sections.dart';
@@ -98,8 +99,7 @@ class _SharedRouteDetailScreenState extends State<SharedRouteDetailScreen> {
               const SizedBox(height: 20),
               FilledButton(
                 onPressed: _confirmRouteSelection,
-                style: FilledButton.styleFrom(
-                  backgroundColor: RuniacColors.primaryBlue,
+                style: RuniacButtonStyles.primary(
                   minimumSize: const Size.fromHeight(52),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(18),
@@ -147,8 +147,7 @@ class _SharedRouteDetailScreenState extends State<SharedRouteDetailScreen> {
               const SizedBox(height: 18),
               FilledButton(
                 onPressed: () => Navigator.of(context).pop(),
-                style: FilledButton.styleFrom(
-                  backgroundColor: RuniacColors.primaryBlue,
+                style: RuniacButtonStyles.primary(
                   minimumSize: const Size.fromHeight(48),
                 ),
                 child: const Text('Start Run'),

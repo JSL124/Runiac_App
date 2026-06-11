@@ -584,8 +584,10 @@ class _EditScheduleSheet extends StatelessWidget {
                     child: ElevatedButton(
                       onPressed: null,
                       style: ElevatedButton.styleFrom(
-                        disabledBackgroundColor: const Color(0xFFE4E8EF),
-                        disabledForegroundColor: RuniacColors.textSecondary,
+                        disabledBackgroundColor:
+                            RuniacColors.disabledButtonBackground,
+                        disabledForegroundColor:
+                            RuniacColors.disabledButtonForeground,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(999),
                         ),

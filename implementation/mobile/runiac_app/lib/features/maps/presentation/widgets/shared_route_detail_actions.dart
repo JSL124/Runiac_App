@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/runiac_colors.dart';
+import '../../../../core/widgets/runiac_buttons.dart';
 import 'shared_route_detail_sections.dart';
 
 class RouteDetailHeader extends StatelessWidget {
@@ -97,9 +98,7 @@ class RouteDetailSharePreviewSheet extends StatelessWidget {
               const SizedBox(height: 18),
               FilledButton(
                 onPressed: onClose,
-                style: FilledButton.styleFrom(
-                  backgroundColor: RuniacColors.primaryBlue,
-                  foregroundColor: RuniacColors.white,
+                style: RuniacButtonStyles.primary(
                   minimumSize: const Size.fromHeight(48),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(18),
@@ -327,10 +326,11 @@ class RouteDetailBottomActionBar extends StatelessWidget {
               Expanded(
                 child: ElevatedButton(
                   onPressed: onSelectRoute,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: RuniacColors.primaryBlue,
-                    disabledBackgroundColor: const Color(0xFFC9D5FF),
-                    foregroundColor: RuniacColors.white,
+                  style: RuniacButtonStyles.primary(
+                    disabledBackgroundColor:
+                        RuniacColors.disabledButtonBackground,
+                    disabledForegroundColor:
+                        RuniacColors.disabledButtonForeground,
                     minimumSize: const Size.fromHeight(56),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(18),

@@ -15,6 +15,9 @@ class RuniacButtonStyles {
     EdgeInsetsGeometry? padding,
     double? elevation,
     Color? shadowColor,
+    Color foregroundColor = RuniacColors.white,
+    Color? disabledBackgroundColor,
+    Color? disabledForegroundColor,
   }) {
     final color = switch (tone) {
       RuniacButtonTone.blue => RuniacColors.primaryBlue,
@@ -23,7 +26,9 @@ class RuniacButtonStyles {
 
     return FilledButton.styleFrom(
       backgroundColor: color,
-      foregroundColor: RuniacColors.white,
+      foregroundColor: foregroundColor,
+      disabledBackgroundColor: disabledBackgroundColor,
+      disabledForegroundColor: disabledForegroundColor,
       minimumSize: minimumSize,
       shape: shape,
       textStyle: textStyle,

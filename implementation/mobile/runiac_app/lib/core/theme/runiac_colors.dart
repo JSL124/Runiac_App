@@ -15,4 +15,8 @@ class RuniacColors {
   static const border = Color(0xFFE6EAF2);
   static const cardBorder = Color(0xFFDCE5FF);
   static const softCardShadow = Color(0x0F2F50C7);
+  static const disabledButtonBackground = Color(0xFFE4E8EF);
+  static const disabledButtonForeground = textSecondary;
+  static const primaryButtonShadow = Color(0x332F50C7);
+  static const orangeButtonShadow = Color(0x33FC6818);
 }

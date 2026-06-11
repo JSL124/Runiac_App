@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/runiac_colors.dart';
+import '../../../../core/widgets/runiac_buttons.dart';
 
 enum RouteReportReason {
   missing(
@@ -156,9 +157,11 @@ class _SharedRouteReportSheetState extends State<SharedRouteReportSheet> {
                   const SizedBox(height: 22),
                   FilledButton(
                     onPressed: _canReport ? _handleReport : null,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: RuniacColors.primaryBlue,
-                      disabledBackgroundColor: const Color(0xFFE3E7F2),
+                    style: RuniacButtonStyles.primary(
+                      disabledBackgroundColor:
+                          RuniacColors.disabledButtonBackground,
+                      disabledForegroundColor:
+                          RuniacColors.disabledButtonForeground,
                       minimumSize: const Size.fromHeight(52),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(18),
@@ -340,8 +343,7 @@ class _ReportSuccess extends StatelessWidget {
           const SizedBox(height: 20),
           FilledButton(
             onPressed: onClose,
-            style: FilledButton.styleFrom(
-              backgroundColor: RuniacColors.primaryBlue,
+            style: RuniacButtonStyles.primary(
               minimumSize: const Size.fromHeight(48),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(18),

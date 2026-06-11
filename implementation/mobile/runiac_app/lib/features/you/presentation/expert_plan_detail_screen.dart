@@ -587,10 +587,8 @@ class _DisabledSelectionCallToAction extends StatelessWidget {
           child: ElevatedButton(
             onPressed: null,
             style: ElevatedButton.styleFrom(
-              disabledBackgroundColor: RuniacColors.primaryBlue.withValues(
-                alpha: 0.34,
-              ),
-              disabledForegroundColor: RuniacColors.white,
+              disabledBackgroundColor: RuniacColors.disabledButtonBackground,
+              disabledForegroundColor: RuniacColors.disabledButtonForeground,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(18),
               ),
