@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'xp_update_screen.dart';
+
 const _rBlue = Color(0xFF2F51C8);
 const _rOrange = Color(0xFFFB6414);
 const _rWhite = Color(0xFFF8FAFF);
@@ -73,9 +75,10 @@ class ViewSummaryScreen extends StatelessWidget {
                     );
                   },
                   onXpUpdate: () {
-                    _showSoonMessage(
-                      context,
-                      'XP update preview will be added later.',
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (context) => const XpUpdateScreen(),
+                      ),
                     );
                   },
                 ),

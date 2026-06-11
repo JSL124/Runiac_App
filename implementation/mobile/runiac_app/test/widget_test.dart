@@ -36,6 +36,11 @@ final _forbiddenRealActivitySaveCopy = RegExp(
   caseSensitive: false,
 );
 
+final _forbiddenXpUpdateCompetitiveCopy = RegExp(
+  r'leaderboard|rank|ranking|percentile|beat others|division',
+  caseSensitive: false,
+);
+
 Future<void> _openPausedRun(WidgetTester tester) async {
   await tester.pumpWidget(const RuniacApp());
 
@@ -1892,11 +1897,31 @@ void main() {
         find.widgetWithText(FilledButton, 'View XP Update'),
         findsOneWidget,
       );
+      expect(find.text('XP & Streak Update'), findsNothing);
       expect(find.textContaining(_forbiddenRealActivitySaveCopy), findsNothing);
+
+      await tester.tap(find.widgetWithText(FilledButton, 'View XP Update'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('XP & Streak Update'), findsOneWidget);
+      expect(find.text('Nice work, Jinseo!'), findsOneWidget);
+      expect(find.text('+120 XP'), findsOneWidget);
+      expect(find.text('Total XP'), findsOneWidget);
+      expect(find.text('2,520 XP'), findsOneWidget);
+      expect(find.text('5 \u2192 6 days'), findsOneWidget);
+      expect(find.text('Great consistency!'), findsOneWidget);
+      expect(find.widgetWithText(FilledButton, 'Go Home'), findsOneWidget);
+
+      await tester.ensureVisible(find.widgetWithText(FilledButton, 'Go Home'));
+      await tester.tap(find.widgetWithText(FilledButton, 'Go Home'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('XP & Streak Update'), findsNothing);
+      expect(find.text('Good to see you'), findsOneWidget);
     },
   );
 
-  testWidgets('View summary static content and placeholder actions match design', (
+  testWidgets('View summary static content and actions match design', (
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(const MaterialApp(home: ViewSummaryScreen()));
@@ -1986,7 +2011,42 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, 'View XP Update'));
     await tester.pumpAndSettle();
 
-    expect(find.text('XP update preview will be added later.'), findsOneWidget);
+    expect(find.text('XP & Streak Update'), findsOneWidget);
+    expect(find.text('Nice work, Jinseo!'), findsOneWidget);
+    expect(find.text('+120 XP'), findsOneWidget);
+    expect(find.text('Earned from this run'), findsOneWidget);
+  });
+
+  testWidgets('View XP Update opens reward screen and Go Home exits it', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const MaterialApp(home: ViewSummaryScreen()));
+
+    await tester.ensureVisible(
+      find.widgetWithText(FilledButton, 'View XP Update'),
+    );
+    await tester.tap(find.widgetWithText(FilledButton, 'View XP Update'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('XP & Streak Update'), findsOneWidget);
+    expect(find.text('Nice work, Jinseo!'), findsOneWidget);
+    expect(find.text('+120 XP'), findsOneWidget);
+    expect(find.text('Total XP'), findsOneWidget);
+    expect(find.text('2,520 XP'), findsOneWidget);
+    expect(find.text('5 \u2192 6 days'), findsOneWidget);
+    expect(find.text('Great consistency!'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, 'Go Home'), findsOneWidget);
+    expect(
+      find.textContaining(_forbiddenXpUpdateCompetitiveCopy),
+      findsNothing,
+    );
+
+    await tester.ensureVisible(find.widgetWithText(FilledButton, 'Go Home'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Go Home'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('XP & Streak Update'), findsNothing);
+    expect(find.text('Saturday Morning Run'), findsOneWidget);
   });
 
   testWidgets(
@@ -2080,13 +2140,52 @@ void main() {
     expect(find.text('Next'), findsOneWidget);
     expect(find.text('Tips'), findsOneWidget);
     expect(find.byTooltip('Pause'), findsOneWidget);
+    expect(
+      tester
+          .widget<FilledButton>(find.widgetWithText(FilledButton, 'Next'))
+          .onPressed,
+      isNotNull,
+    );
+
+    await tester.tap(find.text('Stretch'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('03:00'), findsOneWidget);
+    expect(find.text('Slow Walk'), findsOneWidget);
+    expect(find.text('Gentle Stretch'), findsNothing);
+
+    await tester.tap(find.widgetWithText(FilledButton, 'Next'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('05:00'), findsOneWidget);
+    expect(find.text('Gentle Stretch'), findsOneWidget);
+    expect(find.text('Slow Walk'), findsNothing);
 
     await tester.tap(find.byTooltip('Pause'));
     await tester.pumpAndSettle();
 
     expect(find.text('PAUSED'), findsOneWidget);
-    expect(find.text('03:00'), findsOneWidget);
+    expect(find.text('05:00'), findsOneWidget);
     expect(find.byTooltip('Resume'), findsOneWidget);
+
+    await tester.tap(find.text('Walk'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('PAUSED'), findsOneWidget);
+    expect(find.text('05:00'), findsOneWidget);
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: CoolDownGuideScreen(timerEnabled: true, initialSecondsLeft: 1),
+      ),
+    );
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pumpAndSettle();
+
+    expect(find.text('DONE'), findsOneWidget);
+    expect(find.text('Walk complete'), findsOneWidget);
+    expect(find.byTooltip('Pause'), findsNothing);
+    expect(find.text('Gentle Stretch'), findsOneWidget);
 
     await tester.pumpWidget(
       const MaterialApp(
@@ -2104,12 +2203,21 @@ void main() {
     expect(find.text('UP NEXT'), findsOneWidget);
     expect(find.text('Gentle Stretch'), findsOneWidget);
     expect(find.text('5 min · gentle recovery'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, 'Next'), findsOneWidget);
     expect(
-      find.widgetWithText(FilledButton, 'Start stretching'),
-      findsOneWidget,
+      tester
+          .widget<FilledButton>(find.widgetWithText(FilledButton, 'Next'))
+          .onPressed,
+      isNotNull,
     );
 
-    await tester.tap(find.widgetWithText(FilledButton, 'Start stretching'));
+    await tester.tap(find.text('Stretch'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('DONE'), findsOneWidget);
+    expect(find.text('Walk complete'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(FilledButton, 'Next'));
     await tester.pumpAndSettle();
 
     expect(find.text('05:00'), findsOneWidget);
@@ -2151,6 +2259,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Saturday Morning Run'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, 'View XP Update'), findsOneWidget);
+    expect(find.text('XP & Streak Update'), findsNothing);
   });
 
   test('Run launch source isolates static display snapshots', () {

@@ -117,19 +117,6 @@ class _CoolDownGuideScreenState extends State<CoolDownGuideScreen> {
     });
   }
 
-  void _selectPhase(CoolDownPhase phase) {
-    if (phase == _phase) {
-      return;
-    }
-
-    setState(() {
-      _phase = phase;
-      _secondsLeft = _durationFor(phase);
-      _status = _CoolDownStatus.running;
-    });
-    _scheduleTick();
-  }
-
   void _togglePause() {
     if (_status == _CoolDownStatus.complete) {
       return;
@@ -145,21 +132,11 @@ class _CoolDownGuideScreenState extends State<CoolDownGuideScreen> {
 
   void _handlePrimaryAction() {
     if (_phase == CoolDownPhase.walk) {
-      if (_status == _CoolDownStatus.complete) {
-        setState(() {
-          _completedPhases.add(CoolDownPhase.walk);
-          _phase = CoolDownPhase.stretch;
-          _secondsLeft = _stretchDuration;
-          _status = _CoolDownStatus.running;
-        });
-        _scheduleTick();
-        return;
-      }
-
       setState(() {
-        _secondsLeft = 0;
-        _status = _CoolDownStatus.complete;
         _completedPhases.add(CoolDownPhase.walk);
+        _phase = CoolDownPhase.stretch;
+        _secondsLeft = _stretchDuration;
+        _status = _CoolDownStatus.running;
       });
       _scheduleTick();
       return;
@@ -187,7 +164,7 @@ class _CoolDownGuideScreenState extends State<CoolDownGuideScreen> {
         completeTitle: 'Walk complete',
         completeHelper: 'Nicely done. Let’s move into some gentle stretching.',
         bottomLabel: 'Next',
-        completeCta: 'Start stretching',
+        completeCta: 'Next',
         icon: Icons.directions_walk_rounded,
       );
     }
@@ -238,7 +215,6 @@ class _CoolDownGuideScreenState extends State<CoolDownGuideScreen> {
                       _CoolDownPhaseSelector(
                         phase: _phase,
                         completedPhases: _completedPhases,
-                        onSelected: _selectPhase,
                       ),
                       SizedBox(height: compact ? 8 : 18),
                       Center(
@@ -388,12 +364,10 @@ class _CoolDownPhaseSelector extends StatelessWidget {
   const _CoolDownPhaseSelector({
     required this.phase,
     required this.completedPhases,
-    required this.onSelected,
   });
 
   final CoolDownPhase phase;
   final Set<CoolDownPhase> completedPhases;
-  final ValueChanged<CoolDownPhase> onSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -404,24 +378,46 @@ class _CoolDownPhaseSelector extends StatelessWidget {
         border: Border.all(color: _navy10),
         borderRadius: BorderRadius.circular(18),
       ),
-      child: Row(
-        children: [
-          _PhasePill(
-            label: 'Walk',
-            number: '1',
-            active: phase == CoolDownPhase.walk,
-            done: completedPhases.contains(CoolDownPhase.walk),
-            onPressed: () => onSelected(CoolDownPhase.walk),
-          ),
-          const SizedBox(width: 5),
-          _PhasePill(
-            label: 'Stretch',
-            number: '2',
-            active: phase == CoolDownPhase.stretch,
-            done: completedPhases.contains(CoolDownPhase.stretch),
-            onPressed: () => onSelected(CoolDownPhase.stretch),
-          ),
-        ],
+      child: SizedBox(
+        height: 42,
+        child: Stack(
+          children: [
+            AnimatedAlign(
+              alignment: phase == CoolDownPhase.walk
+                  ? Alignment.centerLeft
+                  : Alignment.centerRight,
+              duration: const Duration(milliseconds: 260),
+              curve: Curves.easeOutCubic,
+              child: FractionallySizedBox(
+                widthFactor: 0.5,
+                heightFactor: 1,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: _pureWhite,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+              ),
+            ),
+            Row(
+              children: [
+                _PhasePill(
+                  label: 'Walk',
+                  number: '1',
+                  active: phase == CoolDownPhase.walk,
+                  done: completedPhases.contains(CoolDownPhase.walk),
+                ),
+                const SizedBox(width: 5),
+                _PhasePill(
+                  label: 'Stretch',
+                  number: '2',
+                  active: phase == CoolDownPhase.stretch,
+                  done: completedPhases.contains(CoolDownPhase.stretch),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -433,35 +429,17 @@ class _PhasePill extends StatelessWidget {
     required this.number,
     required this.active,
     required this.done,
-    required this.onPressed,
   });
 
   final String label;
   final String number;
   final bool active;
   final bool done;
-  final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
     return Expanded(
-      child: TextButton(
-        onPressed: onPressed,
-        style: TextButton.styleFrom(
-          backgroundColor: active ? _pureWhite : Colors.transparent,
-          foregroundColor: active ? _navy : _navy45,
-          minimumSize: const Size.fromHeight(42),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-          elevation: 0,
-          padding: EdgeInsets.zero,
-          textStyle: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
-            letterSpacing: -0.2,
-          ),
-        ),
+      child: Center(
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -485,7 +463,15 @@ class _PhasePill extends StatelessWidget {
                     ),
             ),
             const SizedBox(width: 8),
-            Text(label),
+            Text(
+              label,
+              style: TextStyle(
+                color: active ? _navy : _navy45,
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.2,
+              ),
+            ),
           ],
         ),
       ),
@@ -950,7 +936,7 @@ class _CoolDownPrimaryCta extends StatelessWidget {
 
   final String label;
   final _CtaTone tone;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
