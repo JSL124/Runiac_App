@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'advanced_analysis_screen.dart';
 import 'xp_update_screen.dart';
 
 const _rBlue = Color(0xFF2F51C8);
@@ -53,15 +54,24 @@ class ViewSummaryScreen extends StatelessWidget {
                     child: SingleChildScrollView(
                       physics: const ClampingScrollPhysics(),
                       padding: const EdgeInsets.only(bottom: 16),
-                      child: const Column(
+                      child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          _MapPreview(),
-                          _HeroDistance(),
-                          _MetricGrid(),
-                          _PaceSection(),
-                          _AnalysisSection(),
-                          _CoachingSection(),
+                          const _MapPreview(),
+                          const _HeroDistance(),
+                          const _MetricGrid(),
+                          const _PaceSection(),
+                          _AnalysisSection(
+                            onMoreDetails: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute<void>(
+                                  builder: (context) =>
+                                      const AdvancedAnalysisScreen(),
+                                ),
+                              );
+                            },
+                          ),
+                          const _CoachingSection(),
                         ],
                       ),
                     ),
@@ -551,7 +561,9 @@ class _AxisLabel extends StatelessWidget {
 }
 
 class _AnalysisSection extends StatelessWidget {
-  const _AnalysisSection();
+  const _AnalysisSection({required this.onMoreDetails});
+
+  final VoidCallback onMoreDetails;
 
   @override
   Widget build(BuildContext context) {
@@ -596,17 +608,7 @@ class _AnalysisSection extends StatelessWidget {
             const _ZoneBars(),
             const SizedBox(height: 16),
             OutlinedButton.icon(
-              onPressed: () {
-                ScaffoldMessenger.of(context)
-                  ..hideCurrentSnackBar()
-                  ..showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Advanced analysis will be available soon.',
-                      ),
-                    ),
-                  );
-              },
+              onPressed: onMoreDetails,
               icon: const SizedBox.shrink(),
               label: const Row(
                 mainAxisAlignment: MainAxisAlignment.center,

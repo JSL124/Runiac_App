@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runiac_app/app.dart';
 import 'package:runiac_app/features/leaderboard/presentation/leaderboard_tab.dart';
+import 'package:runiac_app/features/run/presentation/advanced_analysis_screen.dart';
 import 'package:runiac_app/features/run/presentation/cool_down_guide_screen.dart';
 import 'package:runiac_app/features/run/presentation/cool_down_screen.dart';
 import 'package:runiac_app/features/run/presentation/view_summary_screen.dart';
@@ -1994,12 +1995,10 @@ void main() {
     await tester.tap(find.widgetWithText(OutlinedButton, 'More Details'));
     await tester.pumpAndSettle();
 
-    expect(
-      find.text('Advanced analysis will be available soon.'),
-      findsOneWidget,
-    );
+    expect(find.text('Performance Overview'), findsOneWidget);
+    expect(find.text('Good steady effort'), findsOneWidget);
 
-    await tester.pump(const Duration(seconds: 5));
+    await tester.tap(find.byTooltip('Back to summary'));
     await tester.pumpAndSettle();
     await tester.ensureVisible(
       find.widgetWithText(OutlinedButton, 'Share Route'),
@@ -2021,6 +2020,61 @@ void main() {
     expect(find.text('Nice work, Jinseo!'), findsOneWidget);
     expect(find.text('+120 XP'), findsOneWidget);
     expect(find.text('Earned from this run'), findsOneWidget);
+  });
+
+  testWidgets('Advanced Analysis renders handoff sections and sample values', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const MaterialApp(home: AdvancedAnalysisScreen()));
+
+    expect(find.text('Saturday Morning Run'), findsOneWidget);
+    expect(find.text('Today · 7:06 AM'), findsOneWidget);
+    expect(find.text('Performance Overview'), findsOneWidget);
+    expect(find.text('82'), findsOneWidget);
+    expect(find.text('/ 100'), findsOneWidget);
+    expect(find.text('Good steady effort'), findsOneWidget);
+    expect(find.text('Stable Pace'), findsOneWidget);
+    expect(find.text('Controlled HR'), findsOneWidget);
+    expect(find.text('Good Endurance'), findsOneWidget);
+
+    expect(find.text('Pace Analysis'), findsOneWidget);
+    expect(find.text('6’30”'), findsOneWidget);
+    expect(find.text('5’58”'), findsOneWidget);
+    expect(find.text('7’05”'), findsOneWidget);
+    expect(find.text('86'), findsOneWidget);
+    expect(find.text('1 km'), findsOneWidget);
+    expect(find.text('4.03 km'), findsOneWidget);
+
+    await tester.ensureVisible(find.text('Heart Rate Analysis'));
+
+    expect(find.text('Heart Rate Analysis'), findsOneWidget);
+    expect(find.text('145'), findsOneWidget);
+    expect(find.text('158'), findsOneWidget);
+    expect(find.text('130–150'), findsOneWidget);
+    expect(find.text('72'), findsOneWidget);
+    expect(find.text('Zone 2 Aerobic'), findsOneWidget);
+
+    await tester.ensureVisible(find.text('Recovery Recommendation'));
+
+    expect(find.text('Effort & Intensity'), findsOneWidget);
+    expect(find.text('88% · Good'), findsOneWidget);
+    expect(find.text('Elevation Analysis'), findsOneWidget);
+    expect(find.text('+12'), findsOneWidget);
+    expect(find.text('11'), findsOneWidget);
+    expect(find.text('Mostly Flat'), findsOneWidget);
+    expect(find.text('Running Form / Cadence'), findsOneWidget);
+    expect(find.text('164'), findsOneWidget);
+    expect(find.text('160–175'), findsOneWidget);
+    expect(find.text('Recovery Recommendation'), findsOneWidget);
+    expect(find.text('Light'), findsOneWidget);
+    expect(find.text('5–8 min'), findsOneWidget);
+    expect(find.text('Drink water'), findsOneWidget);
+    expect(find.text('Ready in 24 hours'), findsOneWidget);
+    expect(
+      find.widgetWithText(FilledButton, 'View Recommended Stretches'),
+      findsOneWidget,
+    );
+    expect(find.textContaining(_forbiddenRealActivitySaveCopy), findsNothing);
   });
 
   testWidgets('View XP Update opens reward screen and Go Home exits it', (
