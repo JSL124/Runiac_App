@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../core/theme/runiac_colors.dart';
+import '../../../core/widgets/runiac_back_header.dart';
 
 const _shareRankCardAsset =
     'assets/images/leaderboard/share_rank_card_background.png';
@@ -649,9 +650,10 @@ class _RunnerAchievementProfileScreen extends StatelessWidget {
         bottom: false,
         child: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(8, 0, 16, 8),
-              child: _RunnerProfileHeader(onBack: onBack),
+            RuniacBackHeader(
+              title: 'Runner profile',
+              tooltip: 'Back to Rankings',
+              onBack: onBack,
             ),
             Expanded(
               child: ScrollConfiguration(
@@ -688,41 +690,6 @@ class _RunnerAchievementProfileScreen extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-class _RunnerProfileHeader extends StatelessWidget {
-  const _RunnerProfileHeader({required this.onBack});
-
-  final VoidCallback onBack;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        IconButton(
-          tooltip: 'Back to Rankings',
-          icon: const Icon(Icons.arrow_back),
-          color: RuniacColors.textPrimary,
-          onPressed: onBack,
-        ),
-        const SizedBox(width: 2),
-        const Expanded(
-          child: Padding(
-            padding: EdgeInsets.only(bottom: 8),
-            child: Text(
-              'Runner profile',
-              style: TextStyle(
-                color: RuniacColors.textPrimary,
-                fontSize: 24,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-          ),
-        ),
-      ],
     );
   }
 }
@@ -1170,12 +1137,10 @@ class _LeaderboardDetailScreen extends StatelessWidget {
         bottom: false,
         child: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(8, 0, 16, 8),
-              child: _LeaderboardDetailHeader(
-                title: snapshot.regionName,
-                onBack: onBack,
-              ),
+            RuniacBackHeader(
+              title: snapshot.regionName,
+              tooltip: 'Back to Leaderboard',
+              onBack: onBack,
             ),
             Expanded(
               child: Stack(
@@ -1228,42 +1193,6 @@ class _LeaderboardDetailScreen extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-class _LeaderboardDetailHeader extends StatelessWidget {
-  const _LeaderboardDetailHeader({required this.title, required this.onBack});
-
-  final String title;
-  final VoidCallback onBack;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        IconButton(
-          tooltip: 'Back to Leaderboard',
-          icon: const Icon(Icons.arrow_back),
-          color: RuniacColors.textPrimary,
-          onPressed: onBack,
-        ),
-        const SizedBox(width: 2),
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Text(
-              title,
-              style: const TextStyle(
-                color: RuniacColors.textPrimary,
-                fontSize: 24,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

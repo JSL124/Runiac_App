@@ -368,7 +368,8 @@ void main() {
       find.byKey(const Key('my_routes_header_accent_strip')),
       findsOneWidget,
     );
-    expect(find.byIcon(Icons.arrow_back), findsOneWidget);
+    expect(find.byIcon(Icons.chevron_left_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.arrow_back), findsNothing);
     expect(find.byIcon(Icons.arrow_back_ios_new), findsNothing);
     expect(find.text('SELECTED FOR TODAY'), findsOneWidget);
     expect(find.byKey(const Key('selected_route_card')), findsOneWidget);
@@ -417,7 +418,7 @@ void main() {
     expect(find.text('Kallang riverside run'), findsOneWidget);
     expect(find.textContaining(_forbiddenBackendOwnedCopy), findsNothing);
 
-    await tester.tap(find.bySemanticsLabel('Back'));
+    await tester.tap(find.byTooltip('Back'));
     await tester.pumpAndSettle();
 
     expect(find.text('My routes'), findsNothing);
@@ -1440,7 +1441,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byTooltip('Back to Leaderboard'), findsOneWidget);
-    expect(find.byIcon(Icons.arrow_back), findsOneWidget);
+    expect(find.byIcon(Icons.chevron_left_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.arrow_back), findsNothing);
     expect(find.text('Jurong East'), findsOneWidget);
     expect(find.text('June 2026'), findsOneWidget);
     expect(find.text('Monthly board'), findsNothing);

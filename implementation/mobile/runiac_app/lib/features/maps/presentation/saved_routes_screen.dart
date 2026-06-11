@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/runiac_colors.dart';
+import '../../../core/widgets/runiac_back_header.dart';
 import 'shared_route_detail_screen.dart';
 
 const _selectedRouteSnapshot = SharedRouteDetailSnapshot(
@@ -56,7 +57,7 @@ class _SavedRoutesScreenState extends State<SavedRoutesScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            _header(context),
+            const RuniacBackHeader(title: 'My routes'),
             const Padding(
               padding: EdgeInsets.fromLTRB(16, 0, 16, 12),
               child: _MyRoutesHeaderAccentStrip(),
@@ -142,41 +143,6 @@ class _SavedRoutesScreenState extends State<SavedRoutesScreen> {
     if (shouldRemove != true || !mounted) return;
 
     setState(() => _selectedRoute = null);
-  }
-
-  Widget _header(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 10, 16, 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          Semantics(
-            label: 'Back',
-            button: true,
-            child: IconButton(
-              tooltip: 'Back',
-              onPressed: () => Navigator.of(context).pop(),
-              icon: const Icon(Icons.arrow_back),
-              color: RuniacColors.textPrimary,
-            ),
-          ),
-          const SizedBox(width: 2),
-          const Expanded(
-            child: Padding(
-              padding: EdgeInsets.only(bottom: 8),
-              child: Text(
-                'My routes',
-                style: TextStyle(
-                  color: RuniacColors.textPrimary,
-                  fontSize: 24,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   Widget _selectedRouteCard(SharedRouteDetailSnapshot route) {

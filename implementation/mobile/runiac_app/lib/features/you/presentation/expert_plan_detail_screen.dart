@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/dashboard_card.dart';
+import '../../../core/widgets/runiac_back_header.dart';
 
 const expertPlanDetailSnapshot = ExpertPlanDetailSnapshot(
   title: 'First 5K Preparation',
@@ -101,9 +102,10 @@ class _ExpertPlanDetailScreenState extends State<ExpertPlanDetailScreen> {
         bottom: false,
         child: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(8, 0, 16, 8),
-              child: _ExpertPlanHeader(onBack: widget.onBack),
+            RuniacBackHeader(
+              title: 'Plan Preview',
+              tooltip: 'Back to Expert Plans',
+              onBack: widget.onBack,
             ),
             Expanded(
               child: ScrollConfiguration(
@@ -151,39 +153,6 @@ class _ExpertPlanDetailScreenState extends State<ExpertPlanDetailScreen> {
           ],
         ),
       ),
-    );
-  }
-}
-
-class _ExpertPlanHeader extends StatelessWidget {
-  const _ExpertPlanHeader({required this.onBack});
-
-  final VoidCallback onBack;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            IconButton(
-              tooltip: 'Back to Expert Plans',
-              icon: const Icon(Icons.arrow_back),
-              color: RuniacColors.textPrimary,
-              onPressed: onBack,
-            ),
-            const SizedBox(width: 2),
-            const Expanded(
-              child: Padding(
-                padding: EdgeInsets.only(bottom: 8),
-                child: Text('Plan Preview', style: _screenTitleStyle),
-              ),
-            ),
-          ],
-        ),
-      ],
     );
   }
 }
@@ -693,12 +662,6 @@ class _NoteBox extends StatelessWidget {
     );
   }
 }
-
-const _screenTitleStyle = TextStyle(
-  color: RuniacColors.textPrimary,
-  fontSize: 24,
-  fontWeight: FontWeight.w900,
-);
 
 const _planTitleStyle = TextStyle(
   color: RuniacColors.textPrimary,

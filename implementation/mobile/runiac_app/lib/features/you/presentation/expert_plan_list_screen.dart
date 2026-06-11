@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/dashboard_card.dart';
+import '../../../core/widgets/runiac_back_header.dart';
 
 const _expertPlanFilters = [
   'Recommended',
@@ -128,7 +129,17 @@ class ExpertPlanListScreen extends StatelessWidget {
             left: 0,
             right: 0,
             height: headerHeight,
-            child: _ExpertPlanHeader(onBack),
+            child: Material(
+              color: RuniacColors.background,
+              child: SafeArea(
+                bottom: false,
+                child: RuniacBackHeader(
+                  title: 'Expert Plans',
+                  tooltip: 'Back to Plans',
+                  onBack: onBack,
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -156,43 +167,6 @@ class _ExpertPlanDisplay {
   final String frequency;
   final String level;
   final String reviewer;
-}
-
-class _ExpertPlanHeader extends StatelessWidget {
-  const _ExpertPlanHeader(this.onBack);
-
-  final VoidCallback onBack;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: RuniacColors.background,
-      child: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(8, 0, 16, 8),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              IconButton(
-                tooltip: 'Back to Plans',
-                icon: const Icon(Icons.arrow_back),
-                color: RuniacColors.textPrimary,
-                onPressed: onBack,
-              ),
-              const SizedBox(width: 2),
-              const Expanded(
-                child: Padding(
-                  padding: EdgeInsets.only(bottom: 8),
-                  child: Text('Expert Plans', style: _headerTitleStyle),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 class _PlanSearchShell extends StatelessWidget {
@@ -533,12 +507,6 @@ BoxDecoration _pillDecoration(Color color) {
     border: Border.all(color: RuniacColors.border),
   );
 }
-
-const _headerTitleStyle = TextStyle(
-  color: RuniacColors.textPrimary,
-  fontSize: 24,
-  fontWeight: FontWeight.w900,
-);
 
 const _searchPlaceholderStyle = TextStyle(
   color: RuniacColors.textSecondary,

@@ -449,11 +449,14 @@ void main() {
       // Then: the header follows the Plan Preview fixed-header pattern.
       final backButton = find.byTooltip('Back to Plans');
       expect(backButton, findsOneWidget);
-      expect(find.byIcon(Icons.arrow_back), findsOneWidget);
+      expect(find.byIcon(Icons.chevron_left_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.arrow_back), findsNothing);
       expect(find.text('10K Goal Plan'), findsOneWidget);
       expect(
         tester.getTopLeft(find.text('10K Goal Plan')).dx,
-        greaterThan(tester.getTopLeft(find.byIcon(Icons.arrow_back)).dx),
+        greaterThan(
+          tester.getTopLeft(find.byIcon(Icons.chevron_left_rounded)).dx,
+        ),
       );
 
       // Then: a long blue/orange content accent strip starts the scroll body.
@@ -648,7 +651,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Plan Preview'), findsOneWidget);
-    expect(find.byIcon(Icons.arrow_back), findsOneWidget);
+    expect(find.byIcon(Icons.chevron_left_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.arrow_back), findsNothing);
     expect(
       find.byKey(const ValueKey('expert_plan_detail_header_accent_strip')),
       findsOneWidget,
@@ -665,7 +669,9 @@ void main() {
     );
     expect(
       tester.getTopLeft(find.text('Plan Preview')).dx,
-      greaterThan(tester.getTopLeft(find.byIcon(Icons.arrow_back)).dx),
+      greaterThan(
+        tester.getTopLeft(find.byIcon(Icons.chevron_left_rounded)).dx,
+      ),
     );
     expect(find.text('First 5K Preparation'), findsOneWidget);
     expect(

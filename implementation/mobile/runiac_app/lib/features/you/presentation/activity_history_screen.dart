@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/runiac_colors.dart';
+import '../../../core/widgets/runiac_back_header.dart';
 import '../../run/presentation/models/run_activity_display_model.dart';
 import '../../run/presentation/models/run_summary_snapshot.dart';
 import 'widgets/compact_run_activity_card.dart';
@@ -185,7 +186,11 @@ class ActivityHistoryScreen extends StatelessWidget {
         bottom: false,
         child: Column(
           children: [
-            _ActivityHistoryHeader(onBack: onBack),
+            RuniacBackHeader(
+              title: 'Activity History',
+              tooltip: 'Back to You',
+              onBack: onBack,
+            ),
             Expanded(
               child: ScrollConfiguration(
                 behavior: ScrollConfiguration.of(
@@ -236,43 +241,6 @@ class _ActivityHistoryMonth {
 
   final String label;
   final List<RunActivityDisplayModel> activities;
-}
-
-class _ActivityHistoryHeader extends StatelessWidget {
-  const _ActivityHistoryHeader({required this.onBack});
-
-  final VoidCallback onBack;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 56,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        child: Row(
-          children: [
-            IconButton(
-              tooltip: 'Back to You',
-              icon: const Icon(
-                Icons.chevron_left_rounded,
-                color: RuniacColors.primaryBlue,
-                size: 30,
-              ),
-              onPressed: onBack,
-            ),
-            const Expanded(
-              child: Text(
-                'Activity History',
-                textAlign: TextAlign.center,
-                style: _headerTitleStyle,
-              ),
-            ),
-            const SizedBox(width: 48),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 class _FilterRow extends StatelessWidget {
@@ -341,11 +309,6 @@ final _pillDecoration = BoxDecoration(
   border: Border.all(color: RuniacColors.border),
 );
 
-const _headerTitleStyle = TextStyle(
-  color: RuniacColors.textPrimary,
-  fontSize: 16,
-  fontWeight: FontWeight.w900,
-);
 const _filterTextStyle = TextStyle(
   color: RuniacColors.textPrimary,
   fontSize: 13,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/dashboard_card.dart';
+import '../../../core/widgets/runiac_back_header.dart';
 
 enum GoalPlanWeekStatus { completed, current, upcoming, goalWeek }
 
@@ -171,12 +172,10 @@ class _GoalPlanDetailScreenState extends State<GoalPlanDetailScreen> {
         bottom: false,
         child: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(8, 0, 16, 8),
-              child: _GoalPlanHeader(
-                title: widget.snapshot.title,
-                onBack: widget.onBack,
-              ),
+            RuniacBackHeader(
+              title: widget.snapshot.title,
+              tooltip: 'Back to Plans',
+              onBack: widget.onBack,
             ),
             Expanded(
               child: ScrollConfiguration(
@@ -214,35 +213,6 @@ class _GoalPlanDetailScreenState extends State<GoalPlanDetailScreen> {
           ],
         ),
       ),
-    );
-  }
-}
-
-class _GoalPlanHeader extends StatelessWidget {
-  const _GoalPlanHeader({required this.title, required this.onBack});
-
-  final String title;
-  final VoidCallback onBack;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        IconButton(
-          tooltip: 'Back to Plans',
-          icon: const Icon(Icons.arrow_back),
-          color: RuniacColors.textPrimary,
-          onPressed: onBack,
-        ),
-        const SizedBox(width: 2),
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Text(title, style: _screenTitleStyle),
-          ),
-        ),
-      ],
     );
   }
 }
@@ -619,12 +589,6 @@ Widget _markerChild(GoalPlanWeekStatus status) {
     ),
   };
 }
-
-const _screenTitleStyle = TextStyle(
-  color: RuniacColors.textPrimary,
-  fontSize: 24,
-  fontWeight: FontWeight.w800,
-);
 
 const _cardTitleStyle = TextStyle(
   color: RuniacColors.textPrimary,
