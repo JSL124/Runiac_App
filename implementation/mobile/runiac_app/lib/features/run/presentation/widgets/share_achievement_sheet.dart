@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 const _blue = Color(0xFF2F51C8);
 const _blueBright = Color(0xFF3E63E6);
 const _orange = Color(0xFFFB6414);
-const _orangeDeep = Color(0xFFE8550A);
 const _surface = Color(0xFFF4F7FF);
 const _card = Color(0xFFFFFFFF);
 const _ink = Color(0xFF16235C);
@@ -17,6 +16,7 @@ const _blue18 = Color(0x2E2F51C8);
 const _blue12 = Color(0x1F2F51C8);
 const _blue10 = Color(0x1A2F51C8);
 const _orange22 = Color(0x38FB6414);
+const _instagramStoriesIconAsset = 'assets/icons/instagram_stories.png';
 
 class ShareAchievementSheet extends StatelessWidget {
   const ShareAchievementSheet({super.key});
@@ -29,56 +29,42 @@ class ShareAchievementSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bottomInset = MediaQuery.paddingOf(context).bottom;
+    final sheetHeight = MediaQuery.sizeOf(context).height * 0.82;
+    final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
 
-    return DraggableScrollableSheet(
-      initialChildSize: 0.9,
-      minChildSize: 0.55,
-      maxChildSize: 0.94,
-      expand: false,
-      builder: (context, scrollController) {
-        return DecoratedBox(
-          decoration: const BoxDecoration(
-            color: _surface,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
-            boxShadow: [
-              BoxShadow(
-                color: Color(0x292F51C8),
-                blurRadius: 50,
-                offset: Offset(0, -18),
-              ),
-            ],
-          ),
+    return SizedBox(
+      height: sheetHeight,
+      child: DecoratedBox(
+        decoration: const BoxDecoration(
+          color: _surface,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+          boxShadow: [
+            BoxShadow(
+              color: Color(0x292F51C8),
+              blurRadius: 50,
+              offset: Offset(0, -18),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(20, 9, 20, 12 + bottomInset),
           child: Column(
             children: [
-              const SizedBox(height: 9),
               const _Grabber(),
               _SheetHeader(onClose: () => Navigator.of(context).pop()),
-              Expanded(
-                child: SingleChildScrollView(
-                  controller: scrollController,
-                  padding: EdgeInsets.fromLTRB(20, 4, 20, 8 + bottomInset),
-                  child: Column(
-                    children: [
-                      SharePreviewCard(
-                        onFeedback: (message) =>
-                            _showPlaceholderFeedback(context, message),
-                      ),
-                      const SizedBox(height: 22),
-                      ShareActions(
-                        onFeedback: (message) =>
-                            _showPlaceholderFeedback(context, message),
-                      ),
-                      const SizedBox(height: 16),
-                      const _HomeIndicator(),
-                    ],
-                  ),
-                ),
+              SharePreviewCard(
+                onFeedback: (message) =>
+                    _showPlaceholderFeedback(context, message),
+              ),
+              const SizedBox(height: 12),
+              ShareActions(
+                onFeedback: (message) =>
+                    _showPlaceholderFeedback(context, message),
               ),
             ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }
@@ -109,18 +95,20 @@ class _SheetHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
-      child: Row(
-        children: [
-          Expanded(
-            child: Align(
+      padding: const EdgeInsets.fromLTRB(0, 6, 0, 8),
+      child: SizedBox(
+        height: 36,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Align(
               alignment: Alignment.centerLeft,
               child: TextButton(
                 onPressed: onClose,
                 style: TextButton.styleFrom(
                   foregroundColor: _blue,
                   padding: const EdgeInsets.symmetric(horizontal: 2),
-                  minimumSize: const Size(48, 36),
+                  minimumSize: const Size(48, 32),
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   textStyle: const TextStyle(
                     fontSize: 15,
@@ -131,18 +119,22 @@ class _SheetHeader extends StatelessWidget {
                 child: const Text('Close'),
               ),
             ),
-          ),
-          const Text(
-            'Share Your Achievement',
-            style: TextStyle(
-              color: _ink,
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
-              letterSpacing: -0.4,
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 58),
+              child: Text(
+                'Share Your Achievement',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: _ink,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.4,
+                ),
+              ),
             ),
-          ),
-          const Expanded(child: SizedBox.shrink()),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -158,24 +150,28 @@ class SharePreviewCard extends StatelessWidget {
     return Column(
       children: [
         const _ShareCardSurface(),
-        const SizedBox(height: 16),
+        const SizedBox(height: 8),
         const _ThemeDots(),
-        const SizedBox(height: 16),
+        const SizedBox(height: 10),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            UtilityActionChip(
-              icon: Icons.edit_outlined,
-              label: 'Edit card',
-              onPressed: () =>
-                  onFeedback('Card editing will be available soon.'),
+            Flexible(
+              child: UtilityActionChip(
+                icon: Icons.edit_outlined,
+                label: 'Edit card',
+                onPressed: () =>
+                    onFeedback('Card editing will be available soon.'),
+              ),
             ),
-            const SizedBox(width: 10),
-            UtilityActionChip(
-              icon: Icons.palette_outlined,
-              label: 'Change theme',
-              onPressed: () =>
-                  onFeedback('Theme changes will be available soon.'),
+            const SizedBox(width: 8),
+            Flexible(
+              child: UtilityActionChip(
+                icon: Icons.palette_outlined,
+                label: 'Change theme',
+                onPressed: () =>
+                    onFeedback('Theme changes will be available soon.'),
+              ),
             ),
           ],
         ),
@@ -189,11 +185,11 @@ class _ShareCardSurface extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cardWidth = math.min(MediaQuery.sizeOf(context).width - 40, 312.0);
+    final cardWidth = math.min(MediaQuery.sizeOf(context).width * 0.66, 258.0);
 
     return Container(
       width: cardWidth,
-      padding: const EdgeInsets.fromLTRB(18, 18, 18, 20),
+      padding: const EdgeInsets.fromLTRB(18, 22, 18, 20),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(26),
         gradient: const LinearGradient(
@@ -230,11 +226,11 @@ class _ShareCardSurface extends StatelessWidget {
               _ShareCardTopRow(),
               SizedBox(height: 14),
               RoutePreviewPanel(),
-              SizedBox(height: 15),
+              SizedBox(height: 24),
               _ShareCardTitleBlock(),
-              SizedBox(height: 16),
-              _HeroMetric(),
               SizedBox(height: 18),
+              _HeroMetric(),
+              SizedBox(height: 22),
               _ShareMetricGrid(),
             ],
           ),
@@ -256,18 +252,23 @@ class _ShareCardTopRow extends StatelessWidget {
           'Runiac',
           style: TextStyle(
             color: Colors.white,
-            fontSize: 18,
+            fontSize: 8,
             fontWeight: FontWeight.w800,
-            letterSpacing: -0.5,
+            letterSpacing: -0.2,
           ),
         ),
-        Text(
-          'Today · 7:06 AM',
-          style: TextStyle(
-            color: Color(0xA8FFFFFF),
-            fontSize: 10.5,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.2,
+        Flexible(
+          child: Text(
+            'Today · 7:06 AM',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.right,
+            style: TextStyle(
+              color: Color(0xA8FFFFFF),
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.2,
+            ),
           ),
         ),
       ],
@@ -285,7 +286,7 @@ class RoutePreviewPanel extends StatelessWidget {
       child: Stack(
         children: [
           const SizedBox(
-            height: 134,
+            height: 126,
             width: double.infinity,
             child: CustomPaint(
               painter: _RoutePreviewPainter(),
@@ -294,7 +295,7 @@ class RoutePreviewPanel extends StatelessWidget {
           ),
           Positioned(
             left: 10,
-            bottom: 10,
+            bottom: 11,
             child: ClipRRect(
               borderRadius: BorderRadius.circular(99),
               child: BackdropFilter(
@@ -308,13 +309,13 @@ class RoutePreviewPanel extends StatelessWidget {
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.location_pin, color: _orange, size: 12),
+                      Icon(Icons.location_pin, color: _orange, size: 13),
                       SizedBox(width: 4),
                       Text(
                         'Marina Bay loop',
                         style: TextStyle(
                           color: _ink,
-                          fontSize: 10.5,
+                          fontSize: 11,
                           fontWeight: FontWeight.w700,
                           letterSpacing: -0.1,
                         ),
@@ -343,7 +344,7 @@ class _ShareCardTitleBlock extends StatelessWidget {
           'Saturday Morning Run',
           style: TextStyle(
             color: Colors.white,
-            fontSize: 17,
+            fontSize: 18,
             fontWeight: FontWeight.w800,
             letterSpacing: -0.4,
             height: 1.1,
@@ -355,12 +356,16 @@ class _ShareCardTitleBlock extends StatelessWidget {
           children: [
             _SupportiveDot(),
             SizedBox(width: 6),
-            Text(
-              'Good steady effort',
-              style: TextStyle(
-                color: Color(0xA8FFFFFF),
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
+            Flexible(
+              child: Text(
+                'Good steady effort',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: Color(0xA8FFFFFF),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ],
@@ -397,39 +402,43 @@ class _HeroMetric extends StatelessWidget {
     return const Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.baseline,
-          textBaseline: TextBaseline.alphabetic,
-          children: [
-            Text(
-              '4.03',
-              style: TextStyle(
-                color: Colors.white,
-                fontFeatures: [FontFeature.tabularFigures()],
-                fontSize: 52,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -2.5,
-                height: 0.9,
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Text(
+                '4.03',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontFeatures: [FontFeature.tabularFigures()],
+                  fontSize: 58,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -3.2,
+                  height: 0.9,
+                ),
               ),
-            ),
-            SizedBox(width: 7),
-            Text(
-              'km',
-              style: TextStyle(
-                color: Color(0xA8FFFFFF),
-                fontSize: 21,
-                fontWeight: FontWeight.w700,
-                letterSpacing: -0.5,
+              SizedBox(width: 7),
+              Text(
+                'km',
+                style: TextStyle(
+                  color: Color(0xA8FFFFFF),
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.5,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-        SizedBox(height: 7),
+        SizedBox(height: 4),
         Text(
           'Distance',
           style: TextStyle(
             color: Color(0xA8FFFFFF),
-            fontSize: 11,
+            fontSize: 12,
             fontWeight: FontWeight.w700,
             letterSpacing: 0.6,
           ),
@@ -449,7 +458,7 @@ class _ShareMetricGrid extends StatelessWidget {
         border: Border(top: BorderSide(color: Color(0x29FFFFFF))),
       ),
       child: Padding(
-        padding: EdgeInsets.only(top: 16),
+        padding: EdgeInsets.only(top: 12),
         child: Row(
           children: [
             Expanded(
@@ -491,13 +500,13 @@ class _ShareMetric extends StatelessWidget {
           style: const TextStyle(
             color: Colors.white,
             fontFeatures: [FontFeature.tabularFigures()],
-            fontSize: 18,
+            fontSize: 17,
             fontWeight: FontWeight.w800,
             letterSpacing: -0.6,
             height: 1,
           ),
         ),
-        const SizedBox(height: 5),
+        const SizedBox(height: 3),
         Text(
           label,
           maxLines: 1,
@@ -568,24 +577,32 @@ class UtilityActionChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return OutlinedButton.icon(
+    return OutlinedButton(
       onPressed: onPressed,
-      icon: Icon(icon, size: 15),
-      label: Text(label),
       style: OutlinedButton.styleFrom(
         foregroundColor: _blue,
         backgroundColor: _card,
         side: const BorderSide(color: _blue10),
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        minimumSize: const Size(0, 38),
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        minimumSize: const Size(0, 32),
         shape: const StadiumBorder(),
         textStyle: const TextStyle(
-          fontSize: 13,
+          fontSize: 11.5,
           fontWeight: FontWeight.w700,
           letterSpacing: -0.1,
         ),
         shadowColor: _blue12,
         elevation: 3,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14),
+          const SizedBox(width: 5),
+          Flexible(
+            child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+          ),
+        ],
       ),
     );
   }
@@ -603,7 +620,7 @@ class ShareActions extends StatelessWidget {
         border: Border(top: BorderSide(color: _blue10)),
       ),
       child: Padding(
-        padding: const EdgeInsets.only(top: 18),
+        padding: const EdgeInsets.only(top: 14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -616,14 +633,15 @@ class ShareActions extends StatelessWidget {
                 letterSpacing: 0.3,
               ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 ShareActionButton(
                   icon: Icons.auto_awesome_rounded,
+                  iconAsset: _instagramStoriesIconAsset,
                   label: 'Instagram Stories',
-                  isPrimary: true,
                   onPressed: () => onFeedback(
                     'Preview only. Instagram sharing is not connected yet.',
                   ),
@@ -671,47 +689,38 @@ class ShareActionButton extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.onPressed,
-    this.isPrimary = false,
+    this.iconAsset,
   });
 
   final IconData icon;
+  final String? iconAsset;
   final String label;
   final VoidCallback onPressed;
-  final bool isPrimary;
 
   @override
   Widget build(BuildContext context) {
-    final iconBox = isPrimary
-        ? const BoxDecoration(
-            borderRadius: BorderRadius.all(Radius.circular(20)),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [_orange, _orangeDeep],
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Color(0x52FB6414),
-                blurRadius: 24,
-                offset: Offset(0, 10),
-              ),
-            ],
-          )
-        : BoxDecoration(
-            color: _card,
-            border: Border.all(color: _blue10),
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x142F51C8),
-                blurRadius: 14,
-                offset: Offset(0, 4),
-              ),
-            ],
-          );
+    const actionWidth = 61.0;
+    const iconBoxSize = 56.0;
+    const iconVisualSize = 22.0;
+    const assetIconVisualSize = 26.0;
+    const labelGap = 6.0;
+    const labelAreaHeight = 28.0;
+
+    final iconBox = BoxDecoration(
+      color: _card,
+      border: Border.all(color: _blue10),
+      borderRadius: BorderRadius.circular(20),
+      boxShadow: const [
+        BoxShadow(
+          color: Color(0x142F51C8),
+          blurRadius: 14,
+          offset: Offset(0, 4),
+        ),
+      ],
+    );
 
     return SizedBox(
-      width: 61,
+      width: actionWidth,
       child: Semantics(
         button: true,
         label: label,
@@ -720,50 +729,43 @@ class ShareActionButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(22),
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Container(
-                width: 56,
-                height: 56,
+                width: iconBoxSize,
+                height: iconBoxSize,
                 decoration: iconBox,
-                child: Icon(
-                  icon,
-                  color: isPrimary ? Colors.white : _blue,
-                  size: isPrimary ? 24 : 22,
-                ),
+                alignment: Alignment.center,
+                child: iconAsset == null
+                    ? Icon(icon, color: _blue, size: iconVisualSize)
+                    : Image.asset(
+                        iconAsset!,
+                        width: assetIconVisualSize,
+                        height: assetIconVisualSize,
+                        fit: BoxFit.contain,
+                      ),
               ),
-              const SizedBox(height: 8),
-              Text(
-                label,
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                style: TextStyle(
-                  color: isPrimary ? _ink : _blue75,
-                  fontSize: 11.5,
-                  fontWeight: isPrimary ? FontWeight.w700 : FontWeight.w600,
-                  letterSpacing: -0.1,
-                  height: 1.18,
+              const SizedBox(height: labelGap),
+              SizedBox(
+                height: labelAreaHeight,
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: Text(
+                    label,
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    style: const TextStyle(
+                      color: _blue75,
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: -0.1,
+                      height: 1.18,
+                    ),
+                  ),
                 ),
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _HomeIndicator extends StatelessWidget {
-  const _HomeIndicator();
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Container(
-        width: 134,
-        height: 5,
-        decoration: BoxDecoration(
-          color: _blue22,
-          borderRadius: BorderRadius.circular(99),
         ),
       ),
     );

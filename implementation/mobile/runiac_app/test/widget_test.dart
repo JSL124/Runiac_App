@@ -10,6 +10,7 @@ import 'package:runiac_app/features/run/presentation/advanced_analysis_screen.da
 import 'package:runiac_app/features/run/presentation/cool_down_guide_screen.dart';
 import 'package:runiac_app/features/run/presentation/cool_down_screen.dart';
 import 'package:runiac_app/features/run/presentation/view_summary_screen.dart';
+import 'package:runiac_app/features/run/presentation/widgets/share_achievement_sheet.dart';
 
 final _forbiddenBackendOwnedCopy = RegExp(
   r'\bXP\b|streak|level|rank|score|saved count|popularity|owned|'
@@ -41,6 +42,46 @@ final _forbiddenXpUpdateCompetitiveCopy = RegExp(
   r'leaderboard|rank|ranking|percentile|beat others|division',
   caseSensitive: false,
 );
+
+void _useCompactShareSheetSurface(WidgetTester tester) {
+  tester.view
+    ..physicalSize = const Size(390, 900)
+    ..devicePixelRatio = 1;
+  addTearDown(tester.view.reset);
+}
+
+void _useTallSummarySurface(WidgetTester tester) {
+  tester.view
+    ..physicalSize = const Size(800, 900)
+    ..devicePixelRatio = 1;
+  addTearDown(tester.view.reset);
+}
+
+Widget _shareSheetHarness() {
+  return MaterialApp(
+    home: Scaffold(
+      body: Builder(
+        builder: (context) {
+          return Center(
+            child: FilledButton(
+              onPressed: () {
+                showModalBottomSheet<void>(
+                  context: context,
+                  isScrollControlled: true,
+                  useSafeArea: true,
+                  backgroundColor: Colors.transparent,
+                  barrierColor: Colors.black.withValues(alpha: 0.48),
+                  builder: (context) => const ShareAchievementSheet(),
+                );
+              },
+              child: const Text('Open share sheet'),
+            ),
+          );
+        },
+      ),
+    ),
+  );
+}
 
 Future<void> _openPausedRun(WidgetTester tester) async {
   await tester.pumpWidget(const RuniacApp());
@@ -1931,6 +1972,7 @@ void main() {
   testWidgets('View summary static content and actions match design', (
     WidgetTester tester,
   ) async {
+    _useTallSummarySurface(tester);
     await tester.pumpWidget(const MaterialApp(home: ViewSummaryScreen()));
 
     expect(find.text('Saturday Morning Run'), findsOneWidget);
@@ -2025,6 +2067,7 @@ void main() {
   testWidgets(
     'View summary share icon opens Share Your Achievement bottom sheet',
     (WidgetTester tester) async {
+      _useTallSummarySurface(tester);
       await tester.pumpWidget(const MaterialApp(home: ViewSummaryScreen()));
 
       expect(find.byTooltip('Share summary'), findsOneWidget);
@@ -2041,9 +2084,10 @@ void main() {
   testWidgets(
     'Share achievement sheet renders static preview metrics and actions',
     (WidgetTester tester) async {
-      await tester.pumpWidget(const MaterialApp(home: ViewSummaryScreen()));
+      _useCompactShareSheetSurface(tester);
+      await tester.pumpWidget(_shareSheetHarness());
 
-      await tester.tap(find.byTooltip('Share summary'));
+      await tester.tap(find.text('Open share sheet'));
       await tester.pumpAndSettle();
 
       expect(find.text('Share Your Achievement'), findsOneWidget);
@@ -2063,8 +2107,18 @@ void main() {
       expect(find.text('Save Image'), findsOneWidget);
       expect(find.text('Copy Link'), findsOneWidget);
       expect(find.text('More'), findsWidgets);
+      expect(
+        find.image(const AssetImage('assets/icons/instagram_stories.png')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byType(ShareAchievementSheet),
+          matching: find.byType(Scrollable),
+        ),
+        findsNothing,
+      );
 
-      await tester.ensureVisible(find.text('Copy Image'));
       await tester.tap(find.text('Copy Image'));
       await tester.pump();
 
@@ -2078,6 +2132,7 @@ void main() {
   testWidgets(
     'Share achievement sheet close dismisses without leaving summary',
     (WidgetTester tester) async {
+      _useTallSummarySurface(tester);
       await tester.pumpWidget(const MaterialApp(home: ViewSummaryScreen()));
 
       await tester.tap(find.byTooltip('Share summary'));
