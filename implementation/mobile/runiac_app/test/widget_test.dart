@@ -2064,6 +2064,41 @@ void main() {
     expect(find.text('Earned from this run'), findsOneWidget);
   });
 
+  testWidgets('View summary accepts selected static run summary data', (
+    WidgetTester tester,
+  ) async {
+    _useTallSummarySurface(tester);
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: ViewSummaryScreen(
+          summary: RunSummarySnapshot(
+            title: 'Recovery Jog',
+            dateLabel: '4/11/26',
+            timeLabel: '8:10 PM',
+            distanceKm: '5.17',
+            avgPace: '7’40”',
+            duration: '39:38',
+            avgHeartRate: '132',
+            calories: '286',
+            routeName: 'Park Connector Recovery Loop',
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Recovery Jog'), findsOneWidget);
+    expect(find.text('4/11/26 · 8:10 PM'), findsOneWidget);
+    expect(find.text('Park Connector Recovery Loop'), findsOneWidget);
+    expect(find.text('5.17'), findsOneWidget);
+    expect(find.text('7’40”'), findsOneWidget);
+    expect(find.text('39:38'), findsOneWidget);
+    expect(find.text('132'), findsOneWidget);
+    expect(find.text('286'), findsOneWidget);
+    expect(find.text('Saturday Morning Run'), findsNothing);
+    expect(find.widgetWithText(OutlinedButton, 'Share Route'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, 'View XP Update'), findsOneWidget);
+  });
+
   testWidgets(
     'View summary share icon opens Share Your Achievement bottom sheet',
     (WidgetTester tester) async {

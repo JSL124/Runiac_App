@@ -18,8 +18,53 @@ const _rBlue06 = Color(0x0F2F51C8);
 const _rOrange12 = Color(0x1FFB6414);
 const _cardRadius = 20.0;
 
+const defaultRunSummarySnapshot = RunSummarySnapshot(
+  title: 'Saturday Morning Run',
+  dateLabel: 'Today',
+  timeLabel: '7:06 AM',
+  distanceKm: '4.03',
+  avgPace: '6’30”',
+  duration: '30:15',
+  avgHeartRate: '145',
+  calories: '145',
+  routeName: 'East Coast Park Loop',
+);
+
+class RunSummarySnapshot {
+  const RunSummarySnapshot({
+    required this.title,
+    required this.dateLabel,
+    required this.timeLabel,
+    required this.distanceKm,
+    required this.avgPace,
+    required this.duration,
+    required this.avgHeartRate,
+    required this.calories,
+    required this.routeName,
+  });
+
+  final String title;
+  final String dateLabel;
+  final String timeLabel;
+  final String distanceKm;
+  final String avgPace;
+  final String duration;
+  final String avgHeartRate;
+  final String calories;
+  final String routeName;
+
+  String get dateTimeLabel => '$dateLabel · $timeLabel';
+}
+
 class ViewSummaryScreen extends StatelessWidget {
-  const ViewSummaryScreen({super.key});
+  const ViewSummaryScreen({
+    super.key,
+    this.summary = defaultRunSummarySnapshot,
+    this.showXpUpdateAction = true,
+  });
+
+  final RunSummarySnapshot summary;
+  final bool showXpUpdateAction;
 
   void _showSoonMessage(BuildContext context, String message) {
     ScaffoldMessenger.of(context)
@@ -37,6 +82,7 @@ class ViewSummaryScreen extends StatelessWidget {
             child: Column(
               children: [
                 _SummaryHeader(
+                  summary: summary,
                   onBack: () {
                     if (Navigator.of(context).canPop()) {
                       Navigator.of(context).pop();
@@ -62,9 +108,9 @@ class ViewSummaryScreen extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          const _MapPreview(),
-                          const _HeroDistance(),
-                          const _MetricGrid(),
+                          _MapPreview(routeName: summary.routeName),
+                          _HeroDistance(distanceKm: summary.distanceKm),
+                          _MetricGrid(summary: summary),
                           const _PaceSection(),
                           _AnalysisSection(
                             onMoreDetails: () {
@@ -83,6 +129,7 @@ class ViewSummaryScreen extends StatelessWidget {
                   ),
                 ),
                 _BottomActions(
+                  showXpUpdateAction: showXpUpdateAction,
                   onShareRoute: () {
                     _showSoonMessage(
                       context,
@@ -125,8 +172,13 @@ class _NoOverscrollBehavior extends ScrollBehavior {
 }
 
 class _SummaryHeader extends StatelessWidget {
-  const _SummaryHeader({required this.onBack, required this.onShare});
+  const _SummaryHeader({
+    required this.summary,
+    required this.onBack,
+    required this.onShare,
+  });
 
+  final RunSummarySnapshot summary;
   final VoidCallback onBack;
   final VoidCallback onShare;
 
@@ -144,14 +196,14 @@ class _SummaryHeader extends StatelessWidget {
               iconSize: 30,
               onPressed: onBack,
             ),
-            const Expanded(
+            Expanded(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    'Saturday Morning Run',
+                    summary.title,
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: _rBlue,
                       fontSize: 16,
                       fontWeight: FontWeight.w800,
@@ -159,11 +211,11 @@ class _SummaryHeader extends StatelessWidget {
                       height: 1.15,
                     ),
                   ),
-                  SizedBox(height: 1),
+                  const SizedBox(height: 1),
                   Text(
-                    'Today · 7:06 AM',
+                    summary.dateTimeLabel,
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: _rBlue60,
                       fontSize: 12.5,
                       fontWeight: FontWeight.w600,
@@ -215,7 +267,9 @@ class _HeaderIconButton extends StatelessWidget {
 }
 
 class _MapPreview extends StatelessWidget {
-  const _MapPreview();
+  const _MapPreview({required this.routeName});
+
+  final String routeName;
 
   @override
   Widget build(BuildContext context) {
@@ -257,14 +311,14 @@ class _MapPreview extends StatelessWidget {
                       ),
                     ],
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.location_pin, color: _rOrange, size: 14),
-                      SizedBox(width: 6),
+                      const Icon(Icons.location_pin, color: _rOrange, size: 14),
+                      const SizedBox(width: 6),
                       Text(
-                        'East Coast Park Loop',
-                        style: TextStyle(
+                        routeName,
+                        style: const TextStyle(
                           color: _rBlue,
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
@@ -302,15 +356,17 @@ class _MapFade extends StatelessWidget {
 }
 
 class _HeroDistance extends StatelessWidget {
-  const _HeroDistance();
+  const _HeroDistance({required this.distanceKm});
+
+  final String distanceKm;
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.fromLTRB(20, 22, 20, 6),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 22, 20, 6),
       child: Column(
         children: [
-          Row(
+          const Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(Icons.check_rounded, color: _rOrange, size: 15),
@@ -326,15 +382,15 @@ class _HeroDistance extends StatelessWidget {
               ),
             ],
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.baseline,
             textBaseline: TextBaseline.alphabetic,
             children: [
               Text(
-                '4.03',
-                style: TextStyle(
+                distanceKm,
+                style: const TextStyle(
                   color: _rBlue,
                   fontSize: 72,
                   fontWeight: FontWeight.w800,
@@ -342,8 +398,8 @@ class _HeroDistance extends StatelessWidget {
                   height: 0.95,
                 ),
               ),
-              SizedBox(width: 8),
-              Text(
+              const SizedBox(width: 8),
+              const Text(
                 'km',
                 style: TextStyle(
                   color: _rBlue75,
@@ -360,7 +416,9 @@ class _HeroDistance extends StatelessWidget {
 }
 
 class _MetricGrid extends StatelessWidget {
-  const _MetricGrid();
+  const _MetricGrid({required this.summary});
+
+  final RunSummarySnapshot summary;
 
   @override
   Widget build(BuildContext context) {
@@ -372,26 +430,26 @@ class _MetricGrid extends StatelessWidget {
       childAspectRatio: 1.44,
       crossAxisSpacing: 10,
       mainAxisSpacing: 10,
-      children: const [
+      children: [
         _MetricTile(
           icon: Icons.speed_rounded,
-          value: '6’30”',
+          value: summary.avgPace,
           label: 'Avg Pace',
         ),
         _MetricTile(
           icon: Icons.schedule_rounded,
-          value: '30:15',
+          value: summary.duration,
           label: 'Time',
         ),
         _MetricTile(
           icon: Icons.favorite_border_rounded,
-          value: '145',
+          value: summary.avgHeartRate,
           unit: 'bpm',
           label: 'Avg Heart Rate',
         ),
         _MetricTile(
           icon: Icons.local_fire_department_outlined,
-          value: '145',
+          value: summary.calories,
           unit: 'kcal',
           label: 'Calories',
         ),
@@ -815,8 +873,13 @@ class _NextTipCard extends StatelessWidget {
 }
 
 class _BottomActions extends StatelessWidget {
-  const _BottomActions({required this.onShareRoute, required this.onXpUpdate});
+  const _BottomActions({
+    required this.showXpUpdateAction,
+    required this.onShareRoute,
+    required this.onXpUpdate,
+  });
 
+  final bool showXpUpdateAction;
   final VoidCallback onShareRoute;
   final VoidCallback onXpUpdate;
 
@@ -850,27 +913,29 @@ class _BottomActions extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 10),
-          FilledButton.icon(
-            onPressed: onXpUpdate,
-            icon: const Icon(Icons.auto_awesome_rounded, size: 19),
-            label: const Text('View XP Update'),
-            style: FilledButton.styleFrom(
-              backgroundColor: _rOrange,
-              foregroundColor: _rWhite,
-              minimumSize: const Size.fromHeight(56),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+          if (showXpUpdateAction) ...[
+            const SizedBox(height: 10),
+            FilledButton.icon(
+              onPressed: onXpUpdate,
+              icon: const Icon(Icons.auto_awesome_rounded, size: 19),
+              label: const Text('View XP Update'),
+              style: FilledButton.styleFrom(
+                backgroundColor: _rOrange,
+                foregroundColor: _rWhite,
+                minimumSize: const Size.fromHeight(56),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                textStyle: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.2,
+                ),
+                elevation: 8,
+                shadowColor: const Color(0x4DFB6414),
               ),
-              textStyle: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.2,
-              ),
-              elevation: 8,
-              shadowColor: const Color(0x4DFB6414),
             ),
-          ),
+          ],
         ],
       ),
     );

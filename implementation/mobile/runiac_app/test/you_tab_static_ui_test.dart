@@ -39,6 +39,71 @@ void main() {
     expect(find.text('Level 12 Runner'), findsOneWidget);
   });
 
+  testWidgets('Recent Running card opens selected summary with matching data', (
+    WidgetTester tester,
+  ) async {
+    await _openYouTab(tester);
+
+    await tester.drag(find.byType(ListView), const Offset(0, -700));
+    await tester.pumpAndSettle();
+
+    const runs = [
+      (
+        title: 'Saturday Night Run',
+        dateTime: '4/11/26 · 9:18 PM',
+        distance: '4.03',
+        pace: '6’30”',
+        duration: '30:15',
+        route: 'East Coast Park Night Loop',
+      ),
+      (
+        title: 'Morning Easy Run',
+        dateTime: '4/11/26 · 6:45 AM',
+        distance: '3.20',
+        pace: '7’05”',
+        duration: '24:10',
+        route: 'Neighbourhood Easy Loop',
+      ),
+      (
+        title: 'Recovery Jog',
+        dateTime: '4/11/26 · 8:10 PM',
+        distance: '5.17',
+        pace: '7’40”',
+        duration: '39:38',
+        route: 'Park Connector Recovery Loop',
+      ),
+    ];
+
+    for (final run in runs) {
+      final cardButton = find.bySemanticsLabel('Open ${run.title} summary');
+      await Scrollable.ensureVisible(
+        tester.element(cardButton),
+        alignment: 0.55,
+      );
+      await tester.pumpAndSettle();
+
+      expect(cardButton, findsOneWidget);
+      await tester.tap(cardButton);
+      await tester.pumpAndSettle();
+
+      expect(find.text(run.title), findsOneWidget);
+      expect(find.text(run.dateTime), findsOneWidget);
+      expect(find.text(run.route), findsOneWidget);
+      expect(find.text(run.distance), findsOneWidget);
+      expect(find.text(run.pace), findsOneWidget);
+      expect(find.text(run.duration), findsOneWidget);
+      expect(
+        find.widgetWithText(OutlinedButton, 'Share Route'),
+        findsOneWidget,
+      );
+      expect(find.widgetWithText(FilledButton, 'View XP Update'), findsNothing);
+
+      await tester.tap(find.byTooltip('Back to cool down'));
+      await tester.pumpAndSettle();
+      expect(find.text('Recent Running'), findsOneWidget);
+    }
+  });
+
   testWidgets('You page shows static plans overview when Plans is selected', (
     WidgetTester tester,
   ) async {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/dashboard_card.dart';
+import '../../run/presentation/view_summary_screen.dart';
 import 'expert_plan_detail_screen.dart';
 import 'expert_plan_list_screen.dart';
 import 'goal_plan_detail_screen.dart';
@@ -31,9 +32,60 @@ const _progressSnapshot = _YouProgressSnapshot(
   streakValue: '6 days',
   streakCopy: 'Planned rest days keep your streak protected.',
   runs: [
-    _RunDisplay('4/11/26', 'Saturday Night Run', '4.03 km', '6\'30"', '30:15'),
-    _RunDisplay('4/11/26', 'Morning Easy Run', '3.20 km', '7\'05"', '24:10'),
-    _RunDisplay('4/11/26', 'Recovery Jog', '5.17 km', '7\'40"', '39:38'),
+    _RunDisplay(
+      '4/11/26',
+      'Saturday Night Run',
+      '4.03 km',
+      '6\'30"',
+      '30:15',
+      RunSummarySnapshot(
+        title: 'Saturday Night Run',
+        dateLabel: '4/11/26',
+        timeLabel: '9:18 PM',
+        distanceKm: '4.03',
+        avgPace: '6’30”',
+        duration: '30:15',
+        avgHeartRate: '145',
+        calories: '145',
+        routeName: 'East Coast Park Night Loop',
+      ),
+    ),
+    _RunDisplay(
+      '4/11/26',
+      'Morning Easy Run',
+      '3.20 km',
+      '7\'05"',
+      '24:10',
+      RunSummarySnapshot(
+        title: 'Morning Easy Run',
+        dateLabel: '4/11/26',
+        timeLabel: '6:45 AM',
+        distanceKm: '3.20',
+        avgPace: '7’05”',
+        duration: '24:10',
+        avgHeartRate: '138',
+        calories: '212',
+        routeName: 'Neighbourhood Easy Loop',
+      ),
+    ),
+    _RunDisplay(
+      '4/11/26',
+      'Recovery Jog',
+      '5.17 km',
+      '7\'40"',
+      '39:38',
+      RunSummarySnapshot(
+        title: 'Recovery Jog',
+        dateLabel: '4/11/26',
+        timeLabel: '8:10 PM',
+        distanceKm: '5.17',
+        avgPace: '7’40”',
+        duration: '39:38',
+        avgHeartRate: '132',
+        calories: '286',
+        routeName: 'Park Connector Recovery Loop',
+      ),
+    ),
   ],
   runDayPlaceholders: {
     '2026-5': {1, 3, 5, 8, 10, 12, 15, 17, 20},
@@ -137,6 +189,7 @@ class _RunDisplay {
     this.distance,
     this.avgPace,
     this.time,
+    this.summary,
   );
 
   final String date;
@@ -144,6 +197,7 @@ class _RunDisplay {
   final String distance;
   final String avgPace;
   final String time;
+  final RunSummarySnapshot summary;
 }
 
 class _YouPlansSnapshot {
@@ -309,6 +363,7 @@ class _YouTabState extends State<YouTab> {
                     _visibleCalendarMonth,
                     _showPreviousCalendarMonth,
                     _showNextCalendarMonth,
+                    _showRunSummary,
                   ),
               ],
             ),
@@ -361,6 +416,15 @@ class _YouTabState extends State<YouTab> {
   void _showExpertPlanDetail() {
     setState(() => _expertPlanDetailVisible = true);
   }
+
+  void _showRunSummary(_RunDisplay run) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) =>
+            ViewSummaryScreen(summary: run.summary, showXpUpdateAction: false),
+      ),
+    );
+  }
 }
 
 class _YouHeaderOverlay extends StatelessWidget {
@@ -393,6 +457,7 @@ Widget _progress(
   DateTime visibleCalendarMonth,
   VoidCallback onPreviousMonth,
   VoidCallback onNextMonth,
+  ValueChanged<_RunDisplay> onRunSelected,
 ) {
   return Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -410,7 +475,7 @@ Widget _progress(
       const Center(child: Text('Recent Running', style: _sectionStyle)),
       const SizedBox(height: 10),
       for (final run in _progressSnapshot.runs) ...[
-        _runCard(run),
+        _runCard(run, () => onRunSelected(run)),
         const SizedBox(height: 10),
       ],
       _moreActivities(),
@@ -1141,37 +1206,45 @@ Set<int> _runDaysFor(DateTime month) {
       const {};
 }
 
-Widget _runCard(_RunDisplay run) {
-  return DashboardCard(
-    child: Row(
-      children: [
-        Container(
-          width: 82,
-          height: 82,
-          decoration: _cardGraphicDecoration,
-          child: const Icon(Icons.route, color: RuniacColors.primaryBlue),
-        ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(run.date, style: _smallStrongStyle),
-              Text(run.title, style: _runTitleStyle),
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 18,
-                runSpacing: 8,
+Widget _runCard(_RunDisplay run, VoidCallback onTap) {
+  return Semantics(
+    button: true,
+    label: 'Open ${run.title} summary',
+    child: GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: DashboardCard(
+        child: Row(
+          children: [
+            Container(
+              width: 82,
+              height: 82,
+              decoration: _cardGraphicDecoration,
+              child: const Icon(Icons.route, color: RuniacColors.primaryBlue),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _metric(run.distance, 'Distance'),
-                  _metric(run.avgPace, 'Avg Pace'),
-                  _metric(run.time, 'Time'),
+                  Text(run.date, style: _smallStrongStyle),
+                  Text(run.title, style: _runTitleStyle),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 18,
+                    runSpacing: 8,
+                    children: [
+                      _metric(run.distance, 'Distance'),
+                      _metric(run.avgPace, 'Avg Pace'),
+                      _metric(run.time, 'Time'),
+                    ],
+                  ),
                 ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
-      ],
+      ),
     ),
   );
 }
