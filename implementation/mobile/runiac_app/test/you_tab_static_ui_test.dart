@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runiac_app/app.dart';
-import 'package:runiac_app/features/you/presentation/widgets/activity_history_card.dart';
+import 'package:runiac_app/features/you/presentation/widgets/compact_run_activity_card.dart';
 
 Future<void> _openYouTab(WidgetTester tester) async {
   await tester.pumpWidget(const RuniacApp());
@@ -35,6 +35,34 @@ void main() {
     expect(find.text('Saturday Night Run'), findsOneWidget);
     expect(find.text('Morning Easy Run'), findsOneWidget);
     expect(find.text('Recovery Jog'), findsOneWidget);
+    final recentRunCards = find.byType(CompactRunActivityCard);
+    expect(recentRunCards, findsNWidgets(3));
+    expect(
+      find.descendant(
+        of: recentRunCards,
+        matching: find.byIcon(Icons.chevron_right_rounded),
+      ),
+      findsNWidgets(3),
+    );
+    expect(
+      find.descendant(of: recentRunCards, matching: find.text('DISTANCE')),
+      findsNWidgets(3),
+    );
+    expect(
+      find.descendant(of: recentRunCards, matching: find.text('AVG PACE')),
+      findsNWidgets(3),
+    );
+    expect(
+      find.descendant(of: recentRunCards, matching: find.text('TIME')),
+      findsNWidgets(3),
+    );
+    expect(
+      find.descendant(
+        of: recentRunCards,
+        matching: find.byType(VerticalDivider),
+      ),
+      findsNWidgets(6),
+    );
     expect(find.text('More Activities'), findsOneWidget);
     expect(find.text('Run Level'), findsOneWidget);
     expect(find.text('Level 12 Runner'), findsOneWidget);
@@ -76,14 +104,17 @@ void main() {
     ];
 
     for (final run in runs) {
-      final cardButton = find.bySemanticsLabel('Open ${run.title} summary');
+      final cardButton = find.byKey(
+        ValueKey('recent_running_card_${run.title}'),
+      );
+      expect(cardButton, findsOneWidget);
+
       await Scrollable.ensureVisible(
         tester.element(cardButton),
         alignment: 0.55,
       );
       await tester.pumpAndSettle();
 
-      expect(cardButton, findsOneWidget);
       await tester.tap(cardButton);
       await tester.pumpAndSettle();
 
@@ -154,7 +185,7 @@ void main() {
       expect(find.text(title), findsOneWidget);
     }
 
-    expect(find.byType(ActivityHistoryCard), findsNWidgets(8));
+    expect(find.byType(CompactRunActivityCard), findsNWidgets(8));
     expect(find.byType(VerticalDivider), findsNWidgets(16));
   });
 

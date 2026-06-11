@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/runiac_colors.dart';
 import '../../../run/presentation/models/run_activity_display_model.dart';
 
-class ActivityHistoryCard extends StatelessWidget {
-  const ActivityHistoryCard({
+class CompactRunActivityCard extends StatelessWidget {
+  const CompactRunActivityCard({
     required this.activity,
     required this.onTap,
     super.key,

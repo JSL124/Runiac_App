@@ -10,6 +10,7 @@ import 'expert_plan_detail_screen.dart';
 import 'expert_plan_list_screen.dart';
 import 'goal_plan_detail_screen.dart';
 import 'weekly_workout_detail_screen.dart';
+import 'widgets/compact_run_activity_card.dart';
 
 const _monthNames = [
   'January',
@@ -421,7 +422,11 @@ Widget _progress(
       const Center(child: Text('Recent Running', style: _sectionStyle)),
       const SizedBox(height: 10),
       for (final run in _progressSnapshot.runs) ...[
-        _runCard(run, () => onRunSelected(run)),
+        CompactRunActivityCard(
+          key: ValueKey('recent_running_card_${run.title}'),
+          activity: run,
+          onTap: () => onRunSelected(run),
+        ),
         const SizedBox(height: 10),
       ],
       _moreActivities(onMoreActivities),
@@ -1152,60 +1157,6 @@ Set<int> _runDaysFor(DateTime month) {
       const {};
 }
 
-Widget _runCard(RunActivityDisplayModel run, VoidCallback onTap) {
-  return Semantics(
-    button: true,
-    label: 'Open ${run.title} summary',
-    child: GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: DashboardCard(
-        child: Row(
-          children: [
-            Container(
-              width: 82,
-              height: 82,
-              decoration: _cardGraphicDecoration,
-              child: const Icon(Icons.route, color: RuniacColors.primaryBlue),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(run.timeAgoLabel, style: _smallStrongStyle),
-                  Text(run.title, style: _runTitleStyle),
-                  const SizedBox(height: 10),
-                  Wrap(
-                    spacing: 18,
-                    runSpacing: 8,
-                    children: [
-                      _metric(run.distanceLabel, 'Distance'),
-                      _metric(run.paceLabel, 'Avg Pace'),
-                      _metric(run.durationLabel, 'Time'),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
-}
-
-Widget _metric(String value, String label) {
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(value, style: _metricStyle),
-      const SizedBox(height: 3),
-      Text(label, style: _smallBodyStyle),
-    ],
-  );
-}
-
 Widget _moreActivities(VoidCallback onTap) {
   return Semantics(
     button: true,
@@ -1268,12 +1219,6 @@ BoxDecoration _pillDecoration(Color color) {
   );
 }
 
-final _cardGraphicDecoration = BoxDecoration(
-  color: const Color(0xFFF1F4FA),
-  borderRadius: BorderRadius.circular(8),
-  border: Border.all(color: RuniacColors.border),
-);
-
 final _cardLikeDecoration = BoxDecoration(
   color: RuniacColors.white,
   borderRadius: BorderRadius.circular(8),
@@ -1316,12 +1261,6 @@ const _largeValueStyle = TextStyle(
   fontSize: 22,
   fontWeight: FontWeight.w900,
 );
-const _metricStyle = TextStyle(
-  color: RuniacColors.textPrimary,
-  fontSize: 21,
-  fontWeight: FontWeight.w900,
-  height: 1,
-);
 const _planPercentStyle = TextStyle(
   color: RuniacColors.primaryBlue,
   fontSize: 22,
@@ -1332,11 +1271,6 @@ const _planCounterValueStyle = TextStyle(
   fontSize: 24,
   fontWeight: FontWeight.w900,
   height: 1,
-);
-const _runTitleStyle = TextStyle(
-  color: RuniacColors.textPrimary,
-  fontSize: 15,
-  fontWeight: FontWeight.w900,
 );
 const _buttonTextStyle = TextStyle(
   color: RuniacColors.textPrimary,
