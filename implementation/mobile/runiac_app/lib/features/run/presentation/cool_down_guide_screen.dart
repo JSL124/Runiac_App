@@ -3,23 +3,24 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-const _cdBlue = Color(0xFF2F51C8);
-const _cdOrange = Color(0xFFFB6414);
-const _cdWhite = Color(0xFFF8FAFF);
-const _cdBlue75 = Color(0xBF2F51C8);
-const _cdBlue60 = Color(0x992F51C8);
-const _cdBlue45 = Color(0x732F51C8);
-const _cdBlue30 = Color(0x4D2F51C8);
-const _cdBlue18 = Color(0x2E2F51C8);
-const _cdBlue10 = Color(0x1A2F51C8);
-const _cdBlue06 = Color(0x0F2F51C8);
-const _completeBg = Color(0x1A22C55E);
-const _completeBorder = Color(0x3816A34A);
-const _completeCheck = Color(0xE016A34A);
+import 'view_summary_screen.dart';
+
+const _navy = Color(0xFF2F51C8);
+const _orange = Color(0xFFFB6414);
+const _surface = Color(0xFFF8FAFF);
+const _pureWhite = Color(0xFFFFFFFF);
+const _navy75 = Color(0xBF2F51C8);
+const _navy60 = Color(0x992F51C8);
+const _navy45 = Color(0x732F51C8);
+const _navy30 = Color(0x4D2F51C8);
+const _navy18 = Color(0x2E2F51C8);
+const _navy12 = Color(0x1F2F51C8);
+const _navy10 = Color(0x1A2F51C8);
+const _navy06 = Color(0x0F2F51C8);
 
 enum CoolDownPhase { walk, stretch }
 
-enum _TimerStatus { running, paused, complete }
+enum _CoolDownStatus { running, paused, complete }
 
 class CoolDownGuideScreen extends StatefulWidget {
   const CoolDownGuideScreen({
@@ -27,11 +28,13 @@ class CoolDownGuideScreen extends StatefulWidget {
     this.timerEnabled = true,
     this.initialPhase = CoolDownPhase.walk,
     this.initialSecondsLeft,
+    this.initialCompletedPhases = const <CoolDownPhase>{},
   });
 
   final bool timerEnabled;
   final CoolDownPhase initialPhase;
   final int? initialSecondsLeft;
+  final Set<CoolDownPhase> initialCompletedPhases;
 
   @override
   State<CoolDownGuideScreen> createState() => _CoolDownGuideScreenState();
@@ -43,7 +46,8 @@ class _CoolDownGuideScreenState extends State<CoolDownGuideScreen> {
 
   late CoolDownPhase _phase;
   late int _secondsLeft;
-  late _TimerStatus _status;
+  late _CoolDownStatus _status;
+  late Set<CoolDownPhase> _completedPhases;
   Timer? _timer;
 
   @override
@@ -56,9 +60,10 @@ class _CoolDownGuideScreenState extends State<CoolDownGuideScreen> {
   @override
   void didUpdateWidget(covariant CoolDownGuideScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.initialPhase != widget.initialPhase ||
+    if (oldWidget.timerEnabled != widget.timerEnabled ||
+        oldWidget.initialPhase != widget.initialPhase ||
         oldWidget.initialSecondsLeft != widget.initialSecondsLeft ||
-        oldWidget.timerEnabled != widget.timerEnabled) {
+        oldWidget.initialCompletedPhases != widget.initialCompletedPhases) {
       _resetFromWidget();
       _scheduleTick();
     }
@@ -77,23 +82,35 @@ class _CoolDownGuideScreenState extends State<CoolDownGuideScreen> {
   void _resetFromWidget() {
     _phase = widget.initialPhase;
     _secondsLeft = widget.initialSecondsLeft ?? _durationFor(_phase);
-    _status = _secondsLeft <= 0 ? _TimerStatus.complete : _TimerStatus.running;
+    _status = _secondsLeft <= 0
+        ? _CoolDownStatus.complete
+        : _CoolDownStatus.running;
+    _completedPhases = {...widget.initialCompletedPhases};
+    if (_status == _CoolDownStatus.complete) {
+      _completedPhases.add(_phase);
+      if (_phase == CoolDownPhase.stretch) {
+        _completedPhases.add(CoolDownPhase.walk);
+      }
+    }
   }
 
   void _scheduleTick() {
     _timer?.cancel();
-    if (!widget.timerEnabled || _status != _TimerStatus.running) {
+    if (!widget.timerEnabled || _status != _CoolDownStatus.running) {
       return;
     }
+
     _timer = Timer(const Duration(seconds: 1), () {
-      if (!mounted || _status != _TimerStatus.running) {
+      if (!mounted || _status != _CoolDownStatus.running) {
         return;
       }
+
       setState(() {
         _secondsLeft -= 1;
         if (_secondsLeft <= 0) {
           _secondsLeft = 0;
-          _status = _TimerStatus.complete;
+          _status = _CoolDownStatus.complete;
+          _completedPhases.add(_phase);
         }
       });
       _scheduleTick();
@@ -101,108 +118,178 @@ class _CoolDownGuideScreenState extends State<CoolDownGuideScreen> {
   }
 
   void _selectPhase(CoolDownPhase phase) {
+    if (phase == _phase) {
+      return;
+    }
+
     setState(() {
       _phase = phase;
       _secondsLeft = _durationFor(phase);
-      _status = _TimerStatus.running;
+      _status = _CoolDownStatus.running;
     });
     _scheduleTick();
   }
 
   void _togglePause() {
+    if (_status == _CoolDownStatus.complete) {
+      return;
+    }
+
     setState(() {
-      _status = _status == _TimerStatus.running
-          ? _TimerStatus.paused
-          : _TimerStatus.running;
+      _status = _status == _CoolDownStatus.running
+          ? _CoolDownStatus.paused
+          : _CoolDownStatus.running;
     });
     _scheduleTick();
   }
 
-  void _handlePrimary() {
+  void _handlePrimaryAction() {
     if (_phase == CoolDownPhase.walk) {
-      _selectPhase(CoolDownPhase.stretch);
+      if (_status == _CoolDownStatus.complete) {
+        setState(() {
+          _completedPhases.add(CoolDownPhase.walk);
+          _phase = CoolDownPhase.stretch;
+          _secondsLeft = _stretchDuration;
+          _status = _CoolDownStatus.running;
+        });
+        _scheduleTick();
+        return;
+      }
+
+      setState(() {
+        _secondsLeft = 0;
+        _status = _CoolDownStatus.complete;
+        _completedPhases.add(CoolDownPhase.walk);
+      });
+      _scheduleTick();
       return;
     }
-    _showFinishedMessage();
-  }
 
-  void _showFinishedMessage() {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        const SnackBar(
-          content: Text('Cool-down complete. Summary will be available next.'),
+    if (_status == _CoolDownStatus.complete) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute<void>(
+          builder: (context) => const ViewSummaryScreen(),
         ),
       );
+    }
   }
 
-  _PhaseContent get _content {
-    return _phase == CoolDownPhase.walk
-        ? const _PhaseContent(
-            title: 'Slow Walk',
-            guidance: 'Walk slowly to bring your heart rate down.',
-            tips: [
-              'Keep your breathing relaxed.',
-              'Walk at an easy, comfortable pace.',
-              'Let your heart rate come down gradually.',
-            ],
-            completeTitle: 'Walk complete',
-            completeHelper: 'Nice work. Let’s move into gentle stretching.',
-            primaryLabel: 'Start Stretching',
-            ghostLabel: 'Next',
-            icon: Icons.directions_walk_rounded,
-          )
-        : const _PhaseContent(
-            title: 'Stretching',
-            guidance: 'Move gently through each stretch.',
-            tips: [
-              'Stretch slowly and avoid bouncing.',
-              'Keep breathing steady.',
-              'Stop if anything feels painful.',
-            ],
-            completeTitle: 'Stretching complete',
-            completeHelper: 'You’ve finished your cool-down. Well done!',
-            primaryLabel: 'Finish',
-            ghostLabel: 'Finish',
-            icon: Icons.self_improvement,
-          );
+  _PhaseCopy get _copy {
+    if (_phase == CoolDownPhase.walk) {
+      return const _PhaseCopy(
+        stepTitle: 'Slow Walk',
+        helper: 'Walk slowly to lower your heart rate.',
+        tips: [
+          'Keep your breathing relaxed.',
+          'Walk at an easy pace.',
+          'Let your heart rate come down gradually.',
+        ],
+        completeTitle: 'Walk complete',
+        completeHelper: 'Nicely done. Let’s move into some gentle stretching.',
+        bottomLabel: 'Next',
+        completeCta: 'Start stretching',
+        icon: Icons.directions_walk_rounded,
+      );
+    }
+
+    return const _PhaseCopy(
+      stepTitle: 'Gentle Stretch',
+      helper: 'Ease through each stretch and breathe.',
+      tips: [
+        'Stretch slowly — never bounce.',
+        'Keep your breathing steady.',
+        'Stop if anything feels sharp.',
+      ],
+      completeTitle: 'Cool-down complete',
+      completeHelper: 'That’s your recovery done. Great work today.',
+      bottomLabel: 'Finish',
+      completeCta: 'Finish',
+      icon: Icons.self_improvement_rounded,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _cdBlue,
+      backgroundColor: _surface,
       body: SafeArea(
-        bottom: false,
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final compact = constraints.maxHeight < 670;
+            final compact = constraints.maxHeight < 690;
+            final content = _status == _CoolDownStatus.complete
+                ? _copy.completeContent
+                : _copy.runningContent;
 
-            return Column(
-              children: [
-                _HeroSection(
-                  phase: _phase,
-                  status: _status,
-                  secondsLeft: _secondsLeft,
-                  totalSeconds: _durationFor(_phase),
-                  compact: compact,
-                  onBack: () => Navigator.of(context).pop(),
-                  onPhaseSelected: _selectPhase,
-                ),
-                Expanded(
-                  child: _GuidanceSheet(
-                    phase: _phase,
-                    status: _status,
-                    content: _content,
-                    compact: compact,
-                    onPauseResume: _togglePause,
-                    onPrimary: _handlePrimary,
-                    onGhost: _phase == CoolDownPhase.walk
-                        ? () => _selectPhase(CoolDownPhase.stretch)
-                        : _showFinishedMessage,
+            return Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 430),
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    compact ? 16 : 18,
+                    0,
+                    compact ? 16 : 18,
+                    compact ? 8 : 18,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _TopNav(onBack: () => Navigator.of(context).pop()),
+                      SizedBox(height: compact ? 4 : 8),
+                      _CoolDownPhaseSelector(
+                        phase: _phase,
+                        completedPhases: _completedPhases,
+                        onSelected: _selectPhase,
+                      ),
+                      SizedBox(height: compact ? 8 : 18),
+                      Center(
+                        child: _CoolDownTimerRing(
+                          secondsLeft: _secondsLeft,
+                          totalSeconds: _durationFor(_phase),
+                          status: _status,
+                          compact: compact,
+                        ),
+                      ),
+                      SizedBox(height: compact ? 8 : 18),
+                      _CoolDownStepIdentity(
+                        icon: content.icon,
+                        title: content.title,
+                        helper: content.helper,
+                        compact: compact,
+                      ),
+                      SizedBox(height: compact ? 8 : 16),
+                      if (_status == _CoolDownStatus.complete &&
+                          _phase == CoolDownPhase.walk)
+                        const _CoolDownUpNextCard()
+                      else if (_status != _CoolDownStatus.complete)
+                        _CoolDownTipsCard(tips: _copy.tips, compact: compact),
+                      const Spacer(),
+                      if (_status == _CoolDownStatus.complete)
+                        _CoolDownPrimaryCta(
+                          label: _copy.completeCta,
+                          tone: _CtaTone.orange,
+                          onPressed: _handlePrimaryAction,
+                        )
+                      else
+                        Row(
+                          children: [
+                            _CoolDownPauseButton(
+                              status: _status,
+                              onPressed: _togglePause,
+                            ),
+                            SizedBox(width: compact ? 10 : 14),
+                            Expanded(
+                              child: _CoolDownPrimaryCta(
+                                label: _copy.bottomLabel,
+                                tone: _CtaTone.navy,
+                                onPressed: _handlePrimaryAction,
+                              ),
+                            ),
+                          ],
+                        ),
+                    ],
                   ),
                 ),
-              ],
+              ),
             );
           },
         ),
@@ -211,140 +298,128 @@ class _CoolDownGuideScreenState extends State<CoolDownGuideScreen> {
   }
 }
 
-class _PhaseContent {
-  const _PhaseContent({
-    required this.title,
-    required this.guidance,
+class _PhaseCopy {
+  const _PhaseCopy({
+    required this.stepTitle,
+    required this.helper,
     required this.tips,
     required this.completeTitle,
     required this.completeHelper,
-    required this.primaryLabel,
-    required this.ghostLabel,
+    required this.bottomLabel,
+    required this.completeCta,
     required this.icon,
   });
 
-  final String title;
-  final String guidance;
+  final String stepTitle;
+  final String helper;
   final List<String> tips;
   final String completeTitle;
   final String completeHelper;
-  final String primaryLabel;
-  final String ghostLabel;
+  final String bottomLabel;
+  final String completeCta;
   final IconData icon;
+
+  _StepContent get runningContent {
+    return _StepContent(icon: icon, title: stepTitle, helper: helper);
+  }
+
+  _StepContent get completeContent {
+    return _StepContent(
+      icon: Icons.check_rounded,
+      title: completeTitle,
+      helper: completeHelper,
+    );
+  }
 }
 
-class _HeroSection extends StatelessWidget {
-  const _HeroSection({
-    required this.phase,
-    required this.status,
-    required this.secondsLeft,
-    required this.totalSeconds,
-    required this.compact,
-    required this.onBack,
-    required this.onPhaseSelected,
+class _StepContent {
+  const _StepContent({
+    required this.icon,
+    required this.title,
+    required this.helper,
   });
 
-  final CoolDownPhase phase;
-  final _TimerStatus status;
-  final int secondsLeft;
-  final int totalSeconds;
-  final bool compact;
+  final IconData icon;
+  final String title;
+  final String helper;
+}
+
+class _TopNav extends StatelessWidget {
+  const _TopNav({required this.onBack});
+
   final VoidCallback onBack;
-  final ValueChanged<CoolDownPhase> onPhaseSelected;
 
   @override
   Widget build(BuildContext context) {
-    final heroBottomPadding = compact ? 10.0 : 30.0;
-    final tabBottomGap = compact ? 8.0 : 24.0;
-
-    return ColoredBox(
-      color: _cdBlue,
-      child: Padding(
-        padding: EdgeInsets.only(bottom: heroBottomPadding),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SizedBox(
-              height: compact ? 42 : 52,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  children: [
-                    IconButton(
-                      tooltip: 'Back',
-                      onPressed: onBack,
-                      style: IconButton.styleFrom(
-                        backgroundColor: const Color(0x1AFFFFFF),
-                        foregroundColor: _cdWhite,
-                        minimumSize: const Size(36, 36),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(11),
-                        ),
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                      icon: const Icon(Icons.chevron_left_rounded, size: 26),
-                    ),
-                    const Expanded(
-                      child: Text(
-                        'Cool down guide',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: _cdWhite,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: -0.3,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 36),
-                  ],
-                ),
+    return SizedBox(
+      height: 56,
+      child: Row(
+        children: [
+          IconButton(
+            tooltip: 'Back',
+            onPressed: onBack,
+            style: IconButton.styleFrom(
+              foregroundColor: _navy45,
+              minimumSize: const Size(40, 40),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            icon: const Icon(Icons.chevron_left_rounded, size: 30),
+          ),
+          const Expanded(
+            child: Text(
+              'Cool down guide',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: _navy,
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.3,
               ),
             ),
-            Padding(
-              padding: EdgeInsets.fromLTRB(20, 0, 20, tabBottomGap),
-              child: _PhaseTabs(phase: phase, onPhaseSelected: onPhaseSelected),
-            ),
-            _TimerRing(
-              secondsLeft: secondsLeft,
-              totalSeconds: totalSeconds,
-              status: status,
-              compact: compact,
-            ),
-          ],
-        ),
+          ),
+          const SizedBox(width: 40),
+        ],
       ),
     );
   }
 }
 
-class _PhaseTabs extends StatelessWidget {
-  const _PhaseTabs({required this.phase, required this.onPhaseSelected});
+class _CoolDownPhaseSelector extends StatelessWidget {
+  const _CoolDownPhaseSelector({
+    required this.phase,
+    required this.completedPhases,
+    required this.onSelected,
+  });
 
   final CoolDownPhase phase;
-  final ValueChanged<CoolDownPhase> onPhaseSelected;
+  final Set<CoolDownPhase> completedPhases;
+  final ValueChanged<CoolDownPhase> onSelected;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(4),
+      padding: const EdgeInsets.all(5),
       decoration: BoxDecoration(
-        color: const Color(0x33000000),
-        borderRadius: BorderRadius.circular(14),
+        color: _navy06,
+        border: Border.all(color: _navy10),
+        borderRadius: BorderRadius.circular(18),
       ),
       child: Row(
         children: [
-          _PhaseTab(
+          _PhasePill(
             label: 'Walk',
             number: '1',
             active: phase == CoolDownPhase.walk,
-            onTap: () => onPhaseSelected(CoolDownPhase.walk),
+            done: completedPhases.contains(CoolDownPhase.walk),
+            onPressed: () => onSelected(CoolDownPhase.walk),
           ),
-          _PhaseTab(
+          const SizedBox(width: 5),
+          _PhasePill(
             label: 'Stretch',
             number: '2',
             active: phase == CoolDownPhase.stretch,
-            onTap: () => onPhaseSelected(CoolDownPhase.stretch),
+            done: completedPhases.contains(CoolDownPhase.stretch),
+            onPressed: () => onSelected(CoolDownPhase.stretch),
           ),
         ],
       ),
@@ -352,31 +427,35 @@ class _PhaseTabs extends StatelessWidget {
   }
 }
 
-class _PhaseTab extends StatelessWidget {
-  const _PhaseTab({
+class _PhasePill extends StatelessWidget {
+  const _PhasePill({
     required this.label,
     required this.number,
     required this.active,
-    required this.onTap,
+    required this.done,
+    required this.onPressed,
   });
 
   final String label;
   final String number;
   final bool active;
-  final VoidCallback onTap;
+  final bool done;
+  final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
     return Expanded(
       child: TextButton(
-        onPressed: onTap,
+        onPressed: onPressed,
         style: TextButton.styleFrom(
-          backgroundColor: active ? _cdWhite : Colors.transparent,
-          foregroundColor: active ? _cdBlue : const Color(0x80FFFFFF),
-          minimumSize: const Size.fromHeight(38),
+          backgroundColor: active ? _pureWhite : Colors.transparent,
+          foregroundColor: active ? _navy : _navy45,
+          minimumSize: const Size.fromHeight(42),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(11),
+            borderRadius: BorderRadius.circular(14),
           ),
+          elevation: 0,
+          padding: EdgeInsets.zero,
           textStyle: const TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w700,
@@ -387,23 +466,25 @@ class _PhaseTab extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 17,
-              height: 17,
+              width: 20,
+              height: 20,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: active ? _cdBlue : const Color(0x29FFFFFF),
-                borderRadius: BorderRadius.circular(9),
+                color: active ? _navy : (done ? _navy18 : _navy12),
+                shape: BoxShape.circle,
               ),
-              child: Text(
-                number,
-                style: TextStyle(
-                  color: active ? _cdWhite : const Color(0x73FFFFFF),
-                  fontSize: 9.5,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
+              child: done && !active
+                  ? const Icon(Icons.check_rounded, color: _navy60, size: 12)
+                  : Text(
+                      number,
+                      style: TextStyle(
+                        color: active ? _pureWhite : _navy45,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
             ),
-            const SizedBox(width: 7),
+            const SizedBox(width: 8),
             Text(label),
           ],
         ),
@@ -412,8 +493,8 @@ class _PhaseTab extends StatelessWidget {
   }
 }
 
-class _TimerRing extends StatelessWidget {
-  const _TimerRing({
+class _CoolDownTimerRing extends StatelessWidget {
+  const _CoolDownTimerRing({
     required this.secondsLeft,
     required this.totalSeconds,
     required this.status,
@@ -422,44 +503,65 @@ class _TimerRing extends StatelessWidget {
 
   final int secondsLeft;
   final int totalSeconds;
-  final _TimerStatus status;
+  final _CoolDownStatus status;
   final bool compact;
 
   @override
   Widget build(BuildContext context) {
-    final size = compact ? 112.0 : 168.0;
+    final size = compact ? 150.0 : 190.0;
     final minutes = (secondsLeft ~/ 60).toString().padLeft(2, '0');
     final seconds = (secondsLeft % 60).toString().padLeft(2, '0');
-    final isComplete = status == _TimerStatus.complete;
-    final isPaused = status == _TimerStatus.paused;
+    final isPaused = status == _CoolDownStatus.paused;
+    final isComplete = status == _CoolDownStatus.complete;
 
-    return SizedBox(
-      width: size,
-      height: size,
+    return SizedBox.square(
+      dimension: size,
       child: Stack(
         alignment: Alignment.center,
         children: [
           CustomPaint(
             painter: _TimerRingPainter(
-              progress: totalSeconds == 0 ? 0 : secondsLeft / totalSeconds,
-              paused: isPaused,
-              complete: isComplete,
+              progress: isComplete
+                  ? 1
+                  : (totalSeconds == 0 ? 0 : secondsLeft / totalSeconds),
+              status: status,
             ),
-            child: SizedBox.expand(),
+            child: const SizedBox.expand(),
           ),
           if (isComplete)
             const Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.check_rounded, color: Color(0xE0FFFFFF), size: 36),
-                SizedBox(height: 6),
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: _navy,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Color(0x332F51C8),
+                        blurRadius: 18,
+                        offset: Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  child: SizedBox(
+                    width: 52,
+                    height: 52,
+                    child: Icon(
+                      Icons.check_rounded,
+                      color: _pureWhite,
+                      size: 30,
+                    ),
+                  ),
+                ),
+                SizedBox(height: 12),
                 Text(
                   'DONE',
                   style: TextStyle(
-                    color: Color(0x73FFFFFF),
-                    fontSize: 10,
+                    color: _navy45,
+                    fontSize: 11,
                     fontWeight: FontWeight.w700,
-                    letterSpacing: 1.1,
+                    letterSpacing: 1.3,
                   ),
                 ),
               ],
@@ -471,21 +573,21 @@ class _TimerRing extends StatelessWidget {
                 Text(
                   '$minutes:$seconds',
                   style: TextStyle(
-                    color: isPaused ? const Color(0x80FFFFFF) : _cdWhite,
-                    fontSize: compact ? 28 : 38,
+                    color: isPaused ? _navy45 : _navy,
+                    fontSize: compact ? 32 : 46,
                     fontWeight: FontWeight.w800,
-                    letterSpacing: -2,
                     height: 1,
+                    letterSpacing: -2,
                   ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 9),
                 Text(
                   isPaused ? 'PAUSED' : 'REMAINING',
-                  style: const TextStyle(
-                    color: Color(0x73FFFFFF),
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 1.2,
+                  style: TextStyle(
+                    color: isPaused ? _orange : _navy45,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.3,
                   ),
                 ),
               ],
@@ -497,322 +599,132 @@ class _TimerRing extends StatelessWidget {
 }
 
 class _TimerRingPainter extends CustomPainter {
-  const _TimerRingPainter({
-    required this.progress,
-    required this.paused,
-    required this.complete,
-  });
+  const _TimerRingPainter({required this.progress, required this.status});
 
   final double progress;
-  final bool paused;
-  final bool complete;
+  final _CoolDownStatus status;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final scale = size.shortestSide / 168;
     final center = Offset(size.width / 2, size.height / 2);
-    final radius = 70 * scale;
-    final stroke = 9 * scale;
+    final scale = size.shortestSide / 190;
+    final radius = 83 * scale;
+    final strokeWidth = 12 * scale;
+    final clampedProgress = progress.clamp(0.0, 1.0);
+    final isPaused = status == _CoolDownStatus.paused;
+    final isComplete = status == _CoolDownStatus.complete;
 
-    canvas.drawCircle(
-      center,
-      82 * scale,
-      Paint()
-        ..color = const Color(0x0AFFFFFF)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 20 * scale,
-    );
     canvas.drawCircle(
       center,
       radius,
       Paint()
-        ..color = const Color(0x1FFFFFFF)
+        ..color = _navy12
         ..style = PaintingStyle.stroke
-        ..strokeWidth = stroke,
+        ..strokeWidth = strokeWidth,
     );
 
-    if (complete) {
+    if (isComplete) {
       canvas.drawCircle(
         center,
         radius,
         Paint()
-          ..color = const Color(0x47FFFFFF)
+          ..color = _navy
           ..style = PaintingStyle.stroke
-          ..strokeWidth = stroke,
+          ..strokeCap = StrokeCap.round
+          ..strokeWidth = strokeWidth,
       );
       return;
     }
 
-    final clampedProgress = progress.clamp(0.0, 1.0);
-    final ringPaint = Paint()
-      ..color = paused ? const Color(0x80FFFFFF) : _cdWhite
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = stroke
-      ..strokeCap = StrokeCap.round;
     canvas.drawArc(
       Rect.fromCircle(center: center, radius: radius),
       -math.pi / 2,
       2 * math.pi * clampedProgress,
       false,
-      ringPaint,
+      Paint()
+        ..color = isPaused ? _navy30 : _navy
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round
+        ..strokeWidth = strokeWidth,
     );
 
-    if (clampedProgress > 0.02) {
+    if (!isPaused && clampedProgress > 0.01 && clampedProgress < 0.995) {
       final angle = -math.pi / 2 + (1 - clampedProgress) * 2 * math.pi;
-      final dot = Offset(
+      final dotCenter = Offset(
         center.dx + radius * math.cos(angle),
         center.dy + radius * math.sin(angle),
       );
-      canvas.drawCircle(
-        dot,
-        5 * scale,
-        Paint()..color = paused ? const Color(0x80FFFFFF) : _cdWhite,
-      );
+      canvas
+        ..drawCircle(dotCenter, 9 * scale, Paint()..color = _pureWhite)
+        ..drawCircle(dotCenter, 6.5 * scale, Paint()..color = _orange);
     }
   }
 
   @override
   bool shouldRepaint(covariant _TimerRingPainter oldDelegate) {
-    return oldDelegate.progress != progress ||
-        oldDelegate.paused != paused ||
-        oldDelegate.complete != complete;
+    return oldDelegate.progress != progress || oldDelegate.status != status;
   }
 }
 
-class _GuidanceSheet extends StatelessWidget {
-  const _GuidanceSheet({
-    required this.phase,
-    required this.status,
-    required this.content,
+class _CoolDownStepIdentity extends StatelessWidget {
+  const _CoolDownStepIdentity({
+    required this.icon,
+    required this.title,
+    required this.helper,
     required this.compact,
-    required this.onPauseResume,
-    required this.onPrimary,
-    required this.onGhost,
   });
 
-  final CoolDownPhase phase;
-  final _TimerStatus status;
-  final _PhaseContent content;
+  final IconData icon;
+  final String title;
+  final String helper;
   final bool compact;
-  final VoidCallback onPauseResume;
-  final VoidCallback onPrimary;
-  final VoidCallback onGhost;
-
-  @override
-  Widget build(BuildContext context) {
-    return Transform.translate(
-      offset: const Offset(0, -22),
-      child: Container(
-        decoration: const BoxDecoration(
-          color: _cdWhite,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
-          boxShadow: [
-            BoxShadow(
-              color: Color(0x142F51C8),
-              blurRadius: 28,
-              offset: Offset(0, -8),
-            ),
-          ],
-        ),
-        padding: EdgeInsets.fromLTRB(
-          20,
-          compact ? 12 : 22,
-          20,
-          compact ? 12 : 24,
-        ),
-        child: status == _TimerStatus.complete
-            ? _CompleteSheet(
-                phase: phase,
-                content: content,
-                onPrimary: onPrimary,
-              )
-            : _RunningSheet(
-                content: content,
-                status: status,
-                compact: compact,
-                onPauseResume: onPauseResume,
-                onGhost: onGhost,
-              ),
-      ),
-    );
-  }
-}
-
-class _RunningSheet extends StatelessWidget {
-  const _RunningSheet({
-    required this.content,
-    required this.status,
-    required this.compact,
-    required this.onPauseResume,
-    required this.onGhost,
-  });
-
-  final _PhaseContent content;
-  final _TimerStatus status;
-  final bool compact;
-  final VoidCallback onPauseResume;
-  final VoidCallback onGhost;
-
-  @override
-  Widget build(BuildContext context) {
-    final isPaused = status == _TimerStatus.paused;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _StepHeader(content: content),
-        SizedBox(height: compact ? 3 : 5),
-        Padding(
-          padding: const EdgeInsets.only(left: 50),
-          child: Text(
-            content.guidance,
-            style: TextStyle(
-              color: _cdBlue60,
-              fontSize: compact ? 13 : 14,
-              fontWeight: FontWeight.w500,
-              height: compact ? 1.35 : 1.55,
-            ),
-          ),
-        ),
-        SizedBox(height: compact ? 7 : 14),
-        _TipsCard(tips: content.tips, compact: compact),
-        const Spacer(),
-        Center(
-          child: IconButton(
-            tooltip: isPaused
-                ? 'Resume cool-down timer'
-                : 'Pause cool-down timer',
-            onPressed: onPauseResume,
-            style: IconButton.styleFrom(
-              backgroundColor: _cdBlue06,
-              foregroundColor: _cdBlue,
-              side: const BorderSide(color: _cdBlue18, width: 1.5),
-              fixedSize: Size(compact ? 48 : 58, compact ? 48 : 58),
-              shape: const CircleBorder(),
-            ),
-            icon: Icon(
-              isPaused ? Icons.play_arrow_rounded : Icons.pause_rounded,
-              size: isPaused ? 28 : 24,
-            ),
-          ),
-        ),
-        SizedBox(height: compact ? 6 : 10),
-        OutlinedButton.icon(
-          onPressed: onGhost,
-          icon: const SizedBox.shrink(),
-          label: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(content.ghostLabel),
-              const SizedBox(width: 6),
-              const Icon(Icons.chevron_right_rounded, size: 14),
-            ],
-          ),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: _cdBlue60,
-            side: const BorderSide(color: _cdBlue18, width: 1.5),
-            minimumSize: Size.fromHeight(compact ? 40 : 48),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(13),
-            ),
-            textStyle: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              letterSpacing: -0.15,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _CompleteSheet extends StatelessWidget {
-  const _CompleteSheet({
-    required this.phase,
-    required this.content,
-    required this.onPrimary,
-  });
-
-  final CoolDownPhase phase;
-  final _PhaseContent content;
-  final VoidCallback onPrimary;
 
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 38,
-              height: 38,
+              width: compact ? 28 : 30,
+              height: compact ? 28 : 30,
               decoration: BoxDecoration(
-                color: _completeBg,
-                border: Border.all(color: _completeBorder),
-                borderRadius: BorderRadius.circular(12),
+                color: _navy06,
+                border: Border.all(color: _navy10),
+                borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(
-                Icons.check_rounded,
-                color: _completeCheck,
-                size: 20,
-              ),
+              child: Icon(icon, color: _navy, size: compact ? 17 : 19),
             ),
-            const SizedBox(width: 12),
-            Expanded(
+            const SizedBox(width: 9),
+            Flexible(
               child: Text(
-                content.completeTitle,
-                style: const TextStyle(
-                  color: _cdBlue,
-                  fontSize: 20,
+                title,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: _navy,
+                  fontSize: compact ? 20 : 24,
                   fontWeight: FontWeight.w800,
-                  letterSpacing: -0.5,
+                  letterSpacing: -0.6,
                 ),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 6),
-        Padding(
-          padding: const EdgeInsets.only(left: 50),
+        const SizedBox(height: 7),
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 300),
           child: Text(
-            content.completeHelper,
-            style: const TextStyle(
-              color: _cdBlue60,
-              fontSize: 14,
+            helper,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: _navy60,
+              fontSize: compact ? 13 : 14,
               fontWeight: FontWeight.w500,
-              height: 1.55,
+              height: 1.48,
+              letterSpacing: -0.1,
             ),
-          ),
-        ),
-        const SizedBox(height: 18),
-        if (phase == CoolDownPhase.walk) const _UpNextCard(),
-        const Spacer(),
-        FilledButton(
-          onPressed: onPrimary,
-          style: FilledButton.styleFrom(
-            backgroundColor: _cdOrange,
-            foregroundColor: _cdWhite,
-            minimumSize: const Size.fromHeight(54),
-            elevation: 8,
-            shadowColor: const Color(0x42FB6414),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            textStyle: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              letterSpacing: -0.2,
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(content.primaryLabel),
-              const SizedBox(width: 8),
-              const Icon(Icons.chevron_right_rounded, size: 16),
-            ],
           ),
         ),
       ],
@@ -820,121 +732,92 @@ class _CompleteSheet extends StatelessWidget {
   }
 }
 
-class _StepHeader extends StatelessWidget {
-  const _StepHeader({required this.content});
-
-  final _PhaseContent content;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        _IconChip(icon: content.icon),
-        const SizedBox(width: 12),
-        Text(
-          content.title,
-          style: const TextStyle(
-            color: _cdBlue,
-            fontSize: 20,
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.5,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _TipsCard extends StatelessWidget {
-  const _TipsCard({required this.tips, required this.compact});
+class _CoolDownTipsCard extends StatelessWidget {
+  const _CoolDownTipsCard({required this.tips, required this.compact});
 
   final List<String> tips;
   final bool compact;
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: _cdBlue06,
-        border: Border.all(color: _cdBlue10),
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Padding(
-        padding: EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: compact ? 11 : 14,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 26,
-                  height: 26,
-                  decoration: BoxDecoration(
-                    color: _cdWhite,
-                    border: Border.all(color: _cdBlue10),
-                    borderRadius: BorderRadius.circular(9),
-                  ),
-                  child: const Icon(
-                    Icons.auto_awesome_rounded,
-                    color: _cdBlue,
-                    size: 13,
-                  ),
+    return _SoftCard(
+      padding: EdgeInsets.symmetric(horizontal: 16, vertical: compact ? 9 : 15),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: compact ? 24 : 28,
+                height: compact ? 24 : 28,
+                decoration: BoxDecoration(
+                  color: _pureWhite,
+                  border: Border.all(color: _navy10),
+                  borderRadius: BorderRadius.circular(9),
                 ),
-                const SizedBox(width: 8),
-                const Text(
-                  'Tips',
-                  style: TextStyle(
-                    color: _cdBlue,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -0.15,
-                  ),
+                child: const Icon(
+                  Icons.auto_awesome_rounded,
+                  color: _navy,
+                  size: 15,
                 ),
-              ],
-            ),
-            SizedBox(height: compact ? 8 : 10),
-            for (final tip in tips) ...[
-              _TipRow(tip),
-              if (tip != tips.last) SizedBox(height: compact ? 6 : 8),
+              ),
+              const SizedBox(width: 9),
+              const Text(
+                'Tips',
+                style: TextStyle(
+                  color: _navy,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.1,
+                ),
+              ),
             ],
+          ),
+          SizedBox(height: compact ? 6 : 11),
+          for (final tip in tips) ...[
+            _TipRow(tip: tip, compact: compact),
+            if (tip != tips.last) SizedBox(height: compact ? 5 : 9),
           ],
-        ),
+        ],
       ),
     );
   }
 }
 
 class _TipRow extends StatelessWidget {
-  const _TipRow(this.text);
+  const _TipRow({required this.tip, required this.compact});
 
-  final String text;
+  final String tip;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Container(
-          width: 5,
-          height: 5,
-          margin: const EdgeInsets.only(top: 7),
+          width: compact ? 18 : 22,
+          height: compact ? 18 : 22,
           decoration: BoxDecoration(
-            color: _cdBlue30,
-            borderRadius: BorderRadius.circular(3),
+            color: _navy06,
+            border: Border.all(color: _navy10),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            Icons.check_rounded,
+            color: _navy60,
+            size: compact ? 11 : 13,
           ),
         ),
         const SizedBox(width: 10),
         Expanded(
           child: Text(
-            text,
-            style: const TextStyle(
-              color: _cdBlue75,
-              fontSize: 13,
+            tip,
+            style: TextStyle(
+              color: _navy75,
+              fontSize: compact ? 12.5 : 13,
               fontWeight: FontWeight.w500,
-              height: 1.55,
+              height: 1.4,
             ),
           ),
         ),
@@ -943,85 +826,162 @@ class _TipRow extends StatelessWidget {
   }
 }
 
-class _UpNextCard extends StatelessWidget {
-  const _UpNextCard();
+class _CoolDownUpNextCard extends StatelessWidget {
+  const _CoolDownUpNextCard();
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: _cdBlue06,
-        border: Border.all(color: _cdBlue10),
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: const Padding(
-        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'UP NEXT',
-              style: TextStyle(
-                color: _cdBlue45,
-                fontSize: 10.5,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 1,
-              ),
+    return _SoftCard(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: _pureWhite,
+              border: Border.all(color: _navy10),
+              borderRadius: BorderRadius.circular(14),
             ),
-            SizedBox(height: 10),
-            Row(
+            child: const Icon(
+              Icons.self_improvement_rounded,
+              color: _navy,
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _IconChip(icon: Icons.self_improvement, onWhite: true),
-                SizedBox(width: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Stretching',
-                      style: TextStyle(
-                        color: _cdBlue,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.4,
-                      ),
-                    ),
-                    SizedBox(height: 2),
-                    Text(
-                      '5 min · gentle recovery',
-                      style: TextStyle(
-                        color: _cdBlue60,
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
+                Text(
+                  'UP NEXT',
+                  style: TextStyle(
+                    color: _navy45,
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1,
+                  ),
+                ),
+                SizedBox(height: 6),
+                Text(
+                  'Gentle Stretch',
+                  style: TextStyle(
+                    color: _navy,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.4,
+                  ),
+                ),
+                SizedBox(height: 2),
+                Text(
+                  '5 min · gentle recovery',
+                  style: TextStyle(
+                    color: _navy60,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _IconChip extends StatelessWidget {
-  const _IconChip({required this.icon, this.onWhite = false});
+class _SoftCard extends StatelessWidget {
+  const _SoftCard({required this.child, required this.padding});
 
-  final IconData icon;
-  final bool onWhite;
+  final Widget child;
+  final EdgeInsetsGeometry padding;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 38,
-      height: 38,
+    return DecoratedBox(
       decoration: BoxDecoration(
-        color: onWhite ? _cdWhite : _cdBlue06,
-        border: Border.all(color: _cdBlue10),
-        borderRadius: BorderRadius.circular(12),
+        color: _navy06,
+        border: Border.all(color: _navy10),
+        borderRadius: BorderRadius.circular(22),
       ),
-      child: Icon(icon, color: _cdBlue, size: 18),
+      child: Padding(padding: padding, child: child),
+    );
+  }
+}
+
+class _CoolDownPauseButton extends StatelessWidget {
+  const _CoolDownPauseButton({required this.status, required this.onPressed});
+
+  final _CoolDownStatus status;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final paused = status == _CoolDownStatus.paused;
+
+    return IconButton(
+      tooltip: paused ? 'Resume' : 'Pause',
+      onPressed: onPressed,
+      style: IconButton.styleFrom(
+        backgroundColor: _navy,
+        foregroundColor: _pureWhite,
+        fixedSize: const Size(58, 58),
+        shape: const CircleBorder(),
+        elevation: 8,
+        shadowColor: const Color(0x332F51C8),
+      ),
+      icon: Icon(
+        paused ? Icons.play_arrow_rounded : Icons.pause_rounded,
+        size: 28,
+      ),
+    );
+  }
+}
+
+enum _CtaTone { navy, orange }
+
+class _CoolDownPrimaryCta extends StatelessWidget {
+  const _CoolDownPrimaryCta({
+    required this.label,
+    required this.tone,
+    required this.onPressed,
+  });
+
+  final String label;
+  final _CtaTone tone;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = tone == _CtaTone.orange ? _orange : _navy;
+    final shadowColor = tone == _CtaTone.orange
+        ? const Color(0x42FB6414)
+        : const Color(0x332F51C8);
+
+    return FilledButton(
+      onPressed: onPressed,
+      style: FilledButton.styleFrom(
+        backgroundColor: color,
+        foregroundColor: _pureWhite,
+        minimumSize: const Size.fromHeight(56),
+        elevation: 8,
+        shadowColor: shadowColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        textStyle: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w700,
+          letterSpacing: -0.2,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(label),
+          const SizedBox(width: 8),
+          const Icon(Icons.chevron_right_rounded, size: 18),
+        ],
+      ),
     );
   }
 }

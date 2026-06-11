@@ -2050,17 +2050,14 @@ void main() {
     expect(find.text('Cool down guide'), findsOneWidget);
     expect(find.text('Walk'), findsOneWidget);
     expect(find.text('Slow Walk'), findsOneWidget);
-    expect(
-      find.text('Walk slowly to bring your heart rate down.'),
-      findsOneWidget,
-    );
+    expect(find.text('Walk slowly to lower your heart rate.'), findsOneWidget);
     expect(find.text('Keep your breathing relaxed.'), findsOneWidget);
-    expect(find.text('Walk at an easy, comfortable pace.'), findsOneWidget);
+    expect(find.text('Walk at an easy pace.'), findsOneWidget);
     expect(
       find.text('Let your heart rate come down gradually.'),
       findsOneWidget,
     );
-    expect(find.byTooltip('Pause cool-down timer'), findsOneWidget);
+    expect(find.byTooltip('Pause'), findsOneWidget);
     expect(find.byType(SingleChildScrollView), findsNothing);
     expect(find.byType(ListView), findsNothing);
     expect(find.textContaining(_forbiddenRealActivitySaveCopy), findsNothing);
@@ -2079,18 +2076,17 @@ void main() {
     expect(find.text('03:00'), findsOneWidget);
     expect(find.text('REMAINING'), findsOneWidget);
     expect(find.text('Slow Walk'), findsOneWidget);
-    expect(
-      find.text('Walk slowly to bring your heart rate down.'),
-      findsOneWidget,
-    );
+    expect(find.text('Walk slowly to lower your heart rate.'), findsOneWidget);
+    expect(find.text('Next'), findsOneWidget);
     expect(find.text('Tips'), findsOneWidget);
-    expect(find.byTooltip('Pause cool-down timer'), findsOneWidget);
+    expect(find.byTooltip('Pause'), findsOneWidget);
 
-    await tester.tap(find.byTooltip('Pause cool-down timer'));
+    await tester.tap(find.byTooltip('Pause'));
     await tester.pumpAndSettle();
 
     expect(find.text('PAUSED'), findsOneWidget);
-    expect(find.byTooltip('Resume cool-down timer'), findsOneWidget);
+    expect(find.text('03:00'), findsOneWidget);
+    expect(find.byTooltip('Resume'), findsOneWidget);
 
     await tester.pumpWidget(
       const MaterialApp(
@@ -2102,26 +2098,32 @@ void main() {
     expect(find.text('DONE'), findsOneWidget);
     expect(find.text('Walk complete'), findsOneWidget);
     expect(
-      find.text('Nice work. Let’s move into gentle stretching.'),
+      find.text('Nicely done. Let’s move into some gentle stretching.'),
       findsOneWidget,
     );
     expect(find.text('UP NEXT'), findsOneWidget);
-    expect(find.text('Stretching'), findsOneWidget);
+    expect(find.text('Gentle Stretch'), findsOneWidget);
     expect(find.text('5 min · gentle recovery'), findsOneWidget);
     expect(
-      find.widgetWithText(FilledButton, 'Start Stretching'),
+      find.widgetWithText(FilledButton, 'Start stretching'),
       findsOneWidget,
     );
 
-    await tester.tap(find.widgetWithText(FilledButton, 'Start Stretching'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Start stretching'));
     await tester.pumpAndSettle();
 
     expect(find.text('05:00'), findsOneWidget);
-    expect(find.text('Stretching'), findsOneWidget);
-    expect(find.text('Move gently through each stretch.'), findsOneWidget);
-    expect(find.text('Stretch slowly and avoid bouncing.'), findsOneWidget);
-    expect(find.text('Keep breathing steady.'), findsOneWidget);
-    expect(find.text('Stop if anything feels painful.'), findsOneWidget);
+    expect(find.text('Gentle Stretch'), findsOneWidget);
+    expect(find.text('Ease through each stretch and breathe.'), findsOneWidget);
+    expect(find.text('Stretch slowly — never bounce.'), findsOneWidget);
+    expect(find.text('Keep your breathing steady.'), findsOneWidget);
+    expect(find.text('Stop if anything feels sharp.'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(FilledButton, 'Finish'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Gentle Stretch'), findsOneWidget);
+    expect(find.text('Saturday Morning Run'), findsNothing);
 
     await tester.pumpWidget(
       const MaterialApp(
@@ -2134,23 +2136,21 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Stretching complete'), findsOneWidget);
+    expect(find.text('Cool-down complete'), findsOneWidget);
     expect(
-      find.text('You’ve finished your cool-down. Well done!'),
+      find.text('That’s your recovery done. Great work today.'),
       findsOneWidget,
     );
     expect(find.widgetWithText(FilledButton, 'Finish'), findsOneWidget);
-
-    await tester.tap(find.widgetWithText(FilledButton, 'Finish'));
-    await tester.pump();
-
-    expect(
-      find.text('Cool-down complete. Summary will be available next.'),
-      findsOneWidget,
-    );
+    expect(find.text('UP NEXT'), findsNothing);
     expect(find.byType(SingleChildScrollView), findsNothing);
     expect(find.byType(ListView), findsNothing);
     expect(find.textContaining(_forbiddenRealActivitySaveCopy), findsNothing);
+
+    await tester.tap(find.widgetWithText(FilledButton, 'Finish'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Saturday Morning Run'), findsOneWidget);
   });
 
   test('Run launch source isolates static display snapshots', () {
