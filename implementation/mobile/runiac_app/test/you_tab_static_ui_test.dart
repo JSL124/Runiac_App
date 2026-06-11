@@ -255,16 +255,18 @@ void main() {
     expect(find.text('Next Milestone'), findsOneWidget);
     expect(find.text('Complete 6 km comfortably'), findsOneWidget);
     expect(find.text('View Goal Plan'), findsOneWidget);
-    expect(find.text("This Week's 10K Preparation Plan"), findsOneWidget);
-    expect(find.text('Planned Runs'), findsOneWidget);
-    expect(find.text('Completed'), findsWidgets);
-    expect(find.text('Remaining'), findsOneWidget);
-    expect(find.bySemanticsLabel(RegExp(r'3\s+Planned Runs')), findsOneWidget);
-    expect(find.bySemanticsLabel(RegExp(r'2\s+Completed')), findsOneWidget);
-    expect(find.bySemanticsLabel(RegExp(r'1\s+Remaining')), findsOneWidget);
+    expect(find.text("This Week's Plan"), findsOneWidget);
+    expect(find.text("This Week's 10K Preparation Plan"), findsNothing);
+    expect(find.text('Week 3 of 8 · 10K Plan'), findsNothing);
+    expect(find.text('2 of 3 done'), findsOneWidget);
+    expect(find.text('Planned Runs'), findsNothing);
+    expect(find.text('Remaining'), findsNothing);
+    expect(find.bySemanticsLabel(RegExp(r'3\s+Planned Runs')), findsNothing);
+    expect(find.bySemanticsLabel(RegExp(r'2\s+Completed')), findsNothing);
+    expect(find.bySemanticsLabel(RegExp(r'1\s+Remaining')), findsNothing);
     expect(
       find.text('Take each easy run as a steady step forward.'),
-      findsOneWidget,
+      findsNothing,
     );
     expect(find.text('Running Calendar'), findsNothing);
     expect(find.text('Recent Running'), findsNothing);
@@ -287,6 +289,7 @@ void main() {
     expect(find.text('Rest Day'), findsNWidgets(4));
     expect(find.text('Completed'), findsWidgets);
     expect(find.text('Upcoming · 7:30 AM'), findsOneWidget);
+    expect(find.text('Scheduled · 8:00 AM'), findsNothing);
 
     await tester.drag(find.byType(ListView), const Offset(0, -700));
     await tester.pumpAndSettle();
@@ -403,7 +406,7 @@ void main() {
 
     await tester.tap(find.byTooltip('Back to Plans'));
     await tester.pumpAndSettle();
-    expect(find.text("This Week's 10K Preparation Plan"), findsOneWidget);
+    expect(find.text("This Week's Plan"), findsOneWidget);
 
     await Scrollable.ensureVisible(
       tester.element(find.text('15 min walk-run')),
@@ -433,7 +436,7 @@ void main() {
 
     await tester.tap(find.byTooltip('Back to Plans'));
     await tester.pumpAndSettle();
-    expect(find.text("This Week's 10K Preparation Plan"), findsOneWidget);
+    expect(find.text("This Week's Plan"), findsOneWidget);
   });
 
   testWidgets(
@@ -797,7 +800,8 @@ void main() {
     // Then: the static workout instruction detail is shown.
     expect(find.text('Workout detail'), findsOneWidget);
     expect(find.text('THURSDAY · EASY RUN'), findsOneWidget);
-    expect(find.text('A gentle 20 minutes.'), findsOneWidget);
+    expect(find.text('20 min easy run'), findsOneWidget);
+    expect(find.text('A gentle 20 minutes.'), findsNothing);
     expect(find.text('Suggested pace'), findsOneWidget);
     expect(find.text('Warm-up'), findsOneWidget);
     expect(find.text('Easy run'), findsOneWidget);
@@ -828,7 +832,8 @@ void main() {
     expect(find.text('Workout detail'), findsOneWidget);
     expect(find.text('SATURDAY · EASY RUN'), findsOneWidget);
     expect(find.text('THURSDAY · EASY RUN'), findsNothing);
-    expect(find.text('A gentle 20 minutes.'), findsOneWidget);
+    expect(find.text('20 min easy run'), findsOneWidget);
+    expect(find.text('A gentle 20 minutes.'), findsNothing);
     expect(find.text('Suggested pace'), findsOneWidget);
     expect(find.text('Warm-up'), findsOneWidget);
     expect(find.text('Easy run'), findsOneWidget);
@@ -1305,7 +1310,7 @@ void main() {
       // Then: the previous Plans screen is restored.
       expect(find.text('10K Goal Plan'), findsNothing);
       expect(find.text('View Goal Plan'), findsOneWidget);
-      expect(find.text("This Week's 10K Preparation Plan"), findsOneWidget);
+      expect(find.text("This Week's Plan"), findsOneWidget);
     },
   );
 

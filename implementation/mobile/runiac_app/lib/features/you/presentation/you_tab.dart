@@ -54,13 +54,7 @@ const _plansSnapshot = _YouPlansSnapshot(
   milestoneLabel: 'Next Milestone',
   milestoneTitle: 'Complete 6 km comfortably',
   goalActionLabel: 'View Goal Plan',
-  weeklyTitle: "This Week's 10K Preparation Plan",
-  weeklyCopy: 'Take each easy run as a steady step forward.',
-  counters: [
-    _PlanCounterDisplay('3', 'Planned Runs'),
-    _PlanCounterDisplay('2', 'Completed'),
-    _PlanCounterDisplay('1', 'Remaining'),
-  ],
+  weeklyTitle: "This Week's Plan",
   scheduleRows: [
     _PlanScheduleRow('Mon', 'Rest Day', '', Icons.hotel_outlined),
     _PlanScheduleRow(
@@ -78,7 +72,7 @@ const _plansSnapshot = _YouPlansSnapshot(
       Icons.radio_button_unchecked,
       active: true,
       opensWorkoutDetail: true,
-      detailSnapshot: weeklyWorkoutDetailSnapshot,
+      detailSnapshot: _thursdayWeeklyPlanDetailSnapshot,
     ),
     _PlanScheduleRow('Fri', 'Rest Day', '', Icons.hotel_outlined),
     _PlanScheduleRow(
@@ -88,7 +82,7 @@ const _plansSnapshot = _YouPlansSnapshot(
       Icons.radio_button_unchecked,
       active: true,
       opensWorkoutDetail: true,
-      detailSnapshot: saturdayWeeklyWorkoutDetailSnapshot,
+      detailSnapshot: _saturdayWeeklyPlanDetailSnapshot,
     ),
     _PlanScheduleRow('Sun', 'Rest Day', '', Icons.hotel_outlined),
   ],
@@ -102,6 +96,80 @@ const _plansSnapshot = _YouPlansSnapshot(
     _ExpertPlanOptionDisplay(Icons.terrain_outlined, 'Half Marathon'),
     _ExpertPlanOptionDisplay(Icons.landscape_outlined, 'Full Marathon'),
   ],
+);
+
+const _thursdayWeeklyPlanDetailSnapshot = WeeklyWorkoutDetailSnapshot(
+  title: 'Workout detail',
+  dayLabel: 'THURSDAY · EASY RUN',
+  editScheduleCurrentLabel: 'Thu · 7:30 AM',
+  editSchedulePreviewLabel: 'Fri · 7:30 AM',
+  heroTitle: '20 min easy run',
+  heroCopy: 'You should be able to chat the whole way through.',
+  heroSupportCopy: 'No race — just rhythm.',
+  metrics: [
+    WorkoutMetricDisplay('Distance', '3.0 km'),
+    WorkoutMetricDisplay('Time', '20 min'),
+    WorkoutMetricDisplay('Suggested pace', '7:30 /km'),
+    WorkoutMetricDisplay('Effort', 'Low'),
+  ],
+  breakdown: [
+    WorkoutStepDisplay(Icons.directions_walk, 'Warm-up', '5 min · easy walk'),
+    WorkoutStepDisplay(
+      Icons.directions_run,
+      'Easy run',
+      '12 min · conversational pace',
+    ),
+    WorkoutStepDisplay(
+      Icons.self_improvement,
+      'Cool-down',
+      '3 min · slow walk',
+    ),
+  ],
+  effortGuide:
+      'Aim for 2 out of 5 — you can speak full sentences without gasping.',
+  coachNotes: [
+    'Start slower than you think.',
+    'If breathing feels sharp, walk briefly and reset.',
+    'Easy runs should feel almost too slow at first. That is normal.',
+  ],
+  startActionLabel: 'Start This Run',
+);
+
+const _saturdayWeeklyPlanDetailSnapshot = WeeklyWorkoutDetailSnapshot(
+  title: 'Workout detail',
+  dayLabel: 'SATURDAY · EASY RUN',
+  editScheduleCurrentLabel: 'Saturday',
+  editSchedulePreviewLabel: 'Preview only',
+  heroTitle: '20 min easy run',
+  heroCopy: 'You should be able to chat the whole way through.',
+  heroSupportCopy: 'No race — just rhythm.',
+  metrics: [
+    WorkoutMetricDisplay('Distance', '3.0 km'),
+    WorkoutMetricDisplay('Time', '20 min'),
+    WorkoutMetricDisplay('Suggested pace', '7:30 /km'),
+    WorkoutMetricDisplay('Effort', 'Low'),
+  ],
+  breakdown: [
+    WorkoutStepDisplay(Icons.directions_walk, 'Warm-up', '5 min · easy walk'),
+    WorkoutStepDisplay(
+      Icons.directions_run,
+      'Easy run',
+      '12 min · conversational pace',
+    ),
+    WorkoutStepDisplay(
+      Icons.self_improvement,
+      'Cool-down',
+      '3 min · slow walk',
+    ),
+  ],
+  effortGuide:
+      'Aim for 2 out of 5 — you can speak full sentences without gasping.',
+  coachNotes: [
+    'Start slower than you think.',
+    'If breathing feels sharp, walk briefly and reset.',
+    'Easy runs should feel almost too slow at first. That is normal.',
+  ],
+  startActionLabel: 'Start This Run',
 );
 
 class _YouProgressSnapshot {
@@ -144,8 +212,6 @@ class _YouPlansSnapshot {
     required this.milestoneTitle,
     required this.goalActionLabel,
     required this.weeklyTitle,
-    required this.weeklyCopy,
-    required this.counters,
     required this.scheduleRows,
     required this.expertTitle,
     required this.expertCopy,
@@ -164,21 +230,12 @@ class _YouPlansSnapshot {
   final String milestoneTitle;
   final String goalActionLabel;
   final String weeklyTitle;
-  final String weeklyCopy;
-  final List<_PlanCounterDisplay> counters;
   final List<_PlanScheduleRow> scheduleRows;
   final String expertTitle;
   final String expertCopy;
   final String expertBadgeLabel;
   final String expertActionLabel;
   final List<_ExpertPlanOptionDisplay> expertOptions;
-}
-
-class _PlanCounterDisplay {
-  const _PlanCounterDisplay(this.value, this.label);
-
-  final String value;
-  final String label;
 }
 
 class _PlanScheduleRow {
@@ -685,26 +742,46 @@ class _WeeklyPlanCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(_plansSnapshot.weeklyTitle, style: _cardTitleStyle),
-          const SizedBox(height: 8),
-          Text(_plansSnapshot.weeklyCopy, style: _bodyStyle),
-          const SizedBox(height: 14),
           Row(
             children: [
-              for (
-                var index = 0;
-                index < _plansSnapshot.counters.length;
-                index++
-              ) ...[
-                _PlanCounter(_plansSnapshot.counters[index]),
-                if (index < _plansSnapshot.counters.length - 1)
-                  const SizedBox(width: 8),
-              ],
+              Expanded(
+                child: Text(_plansSnapshot.weeklyTitle, style: _cardTitleStyle),
+              ),
+              const SizedBox(width: 12),
+              const Text('2 of 3 done', style: _weeklyPlanProgressLabelStyle),
             ],
           ),
-          const SizedBox(height: 14),
-          for (final row in _plansSnapshot.scheduleRows)
-            _WeeklyPlanRow(row, onTap: _workoutDetailTap(row, onViewWorkout)),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: const BorderRadius.all(Radius.circular(999)),
+            child: LinearProgressIndicator(
+              value: 2 / 3,
+              minHeight: 7,
+              backgroundColor: RuniacColors.primaryBlue.withValues(alpha: 0.10),
+              valueColor: const AlwaysStoppedAnimation(
+                RuniacColors.accentOrange,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            height: 1,
+            color: RuniacColors.primaryBlue.withValues(alpha: 0.10),
+          ),
+          const SizedBox(height: 4),
+          for (
+            var index = 0;
+            index < _plansSnapshot.scheduleRows.length;
+            index++
+          )
+            _WeeklyPlanDayRow(
+              _plansSnapshot.scheduleRows[index],
+              showDivider: index > 0,
+              onTap: _workoutDetailTap(
+                _plansSnapshot.scheduleRows[index],
+                onViewWorkout,
+              ),
+            ),
         ],
       ),
     );
@@ -723,60 +800,51 @@ VoidCallback? _workoutDetailTap(
   return () => onViewWorkout(detailSnapshot);
 }
 
-class _PlanCounter extends StatelessWidget {
-  const _PlanCounter(this.display);
-
-  final _PlanCounterDisplay display;
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Semantics(
-        label: '${display.value} ${display.label}',
-        child: ExcludeSemantics(
-          child: Container(
-            constraints: const BoxConstraints(minHeight: 62),
-            alignment: Alignment.center,
-            decoration: _counterDecoration,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(display.value, style: _planCounterValueStyle),
-                const SizedBox(height: 3),
-                Text(
-                  display.label,
-                  textAlign: TextAlign.center,
-                  style: _smallBodyStyle,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _WeeklyPlanRow extends StatelessWidget {
-  const _WeeklyPlanRow(this.display, {this.onTap});
+class _WeeklyPlanDayRow extends StatelessWidget {
+  const _WeeklyPlanDayRow(
+    this.display, {
+    required this.showDivider,
+    this.onTap,
+  });
 
   final _PlanScheduleRow display;
+  final bool showDivider;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final tappable = onTap != null;
-    final titleColor = display.active
-        ? RuniacColors.textPrimary
-        : RuniacColors.textSecondary;
+    final completed = display.status == 'Completed';
+    final next = display.status == 'Upcoming · 7:30 AM';
+    final upcoming = tappable && !next && !completed;
+    final rest = display.title == 'Rest Day';
+    final rowColor = next
+        ? RuniacColors.accentOrange.withValues(alpha: 0.06)
+        : upcoming
+        ? RuniacColors.primaryBlue.withValues(alpha: 0.06)
+        : null;
+    final dayColor = next
+        ? const Color(0xFFE8550A)
+        : (completed || upcoming)
+        ? RuniacColors.primaryBlue
+        : RuniacColors.primaryBlue.withValues(alpha: 0.45);
+    final subtitleColor = next
+        ? const Color(0xFFE8550A)
+        : RuniacColors.primaryBlue.withValues(alpha: 0.60);
     final status = display.status;
     final row = Container(
-      constraints: const BoxConstraints(minHeight: 48),
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      constraints: const BoxConstraints(minHeight: 50),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
       decoration: BoxDecoration(
-        color: tappable ? const Color(0xFFF7FAFF) : null,
-        border: const Border(top: BorderSide(color: RuniacColors.border)),
-        borderRadius: tappable ? BorderRadius.circular(_youInnerRadius) : null,
+        color: rowColor,
+        border: showDivider && !next && !upcoming
+            ? Border(
+                top: BorderSide(
+                  color: RuniacColors.primaryBlue.withValues(alpha: 0.10),
+                ),
+              )
+            : null,
+        borderRadius: BorderRadius.circular(14),
       ),
       child: Padding(
         padding: EdgeInsets.zero,
@@ -786,40 +854,62 @@ class _WeeklyPlanRow extends StatelessWidget {
               width: 34,
               child: Text(
                 display.day,
-                style: display.active ? _bodyStrongStyle : _smallBodyStyle,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Icon(
-              display.icon,
-              size: 22,
-              color: display.active
-                  ? RuniacColors.primaryBlue
-                  : RuniacColors.textSecondary,
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                display.title,
                 style: TextStyle(
-                  color: titleColor,
+                  color: dayColor,
                   fontSize: 13,
-                  fontWeight: display.active
+                  fontWeight: (next || completed || upcoming)
                       ? FontWeight.w800
                       : FontWeight.w600,
                 ),
               ),
             ),
-            if (status.isNotEmpty) ...[
-              const SizedBox(width: 8),
-              Text(status, textAlign: TextAlign.right, style: _smallBodyStyle),
-            ],
+            const SizedBox(width: 10),
+            SizedBox(
+              width: 30,
+              child: _WeeklyPlanStatusNode(
+                completed: completed,
+                next: next,
+                upcoming: upcoming,
+                rest: rest,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    display.title,
+                    style: TextStyle(
+                      color: rest
+                          ? RuniacColors.primaryBlue.withValues(alpha: 0.75)
+                          : RuniacColors.primaryBlue,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  if (status.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      status,
+                      style: TextStyle(
+                        color: subtitleColor,
+                        fontSize: 12,
+                        fontWeight: next ? FontWeight.w700 : FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
             if (tappable) ...[
-              const SizedBox(width: 6),
-              const Icon(
+              const SizedBox(width: 8),
+              Icon(
                 Icons.chevron_right,
                 key: ValueKey('weekly_workout_detail_chevron'),
-                color: RuniacColors.primaryBlue,
+                color: next
+                    ? RuniacColors.accentOrange
+                    : RuniacColors.primaryBlue.withValues(alpha: 0.45),
                 size: 20,
               ),
             ],
@@ -837,12 +927,81 @@ class _WeeklyPlanRow extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(_youInnerRadius),
+          borderRadius: BorderRadius.circular(14),
           onTap: onTap,
           child: row,
         ),
       ),
     );
+  }
+}
+
+class _WeeklyPlanStatusNode extends StatelessWidget {
+  const _WeeklyPlanStatusNode({
+    required this.completed,
+    required this.next,
+    required this.upcoming,
+    required this.rest,
+  });
+
+  final bool completed;
+  final bool next;
+  final bool upcoming;
+  final bool rest;
+
+  @override
+  Widget build(BuildContext context) {
+    if (completed) {
+      return Container(
+        width: 28,
+        height: 28,
+        decoration: BoxDecoration(
+          color: RuniacColors.primaryBlue,
+          borderRadius: BorderRadius.circular(999),
+          boxShadow: [
+            BoxShadow(
+              color: RuniacColors.primaryBlue.withValues(alpha: 0.24),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: const Icon(
+          Icons.check_rounded,
+          color: RuniacColors.white,
+          size: 17,
+        ),
+      );
+    }
+
+    if (next || upcoming) {
+      return Container(
+        width: 28,
+        height: 28,
+        decoration: BoxDecoration(
+          color: next
+              ? RuniacColors.accentOrange.withValues(alpha: 0.06)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            width: next ? 2.3 : 2,
+            color: next
+                ? RuniacColors.accentOrange
+                : RuniacColors.primaryBlue.withValues(alpha: 0.30),
+          ),
+        ),
+      );
+    }
+
+    if (rest) {
+      return Icon(
+        Icons.hotel_outlined,
+        color: RuniacColors.primaryBlue.withValues(alpha: 0.45),
+        size: 24,
+      );
+    }
+
+    return const SizedBox(width: 28, height: 28);
   }
 }
 
@@ -1270,17 +1429,11 @@ final _moreActivitiesDecoration = BoxDecoration(
   borderRadius: BorderRadius.circular(999),
   border: Border.all(color: RuniacColors.cardBorder, width: 1.2),
 );
-final _counterDecoration = BoxDecoration(
-  color: RuniacColors.white,
-  borderRadius: BorderRadius.circular(_youInnerRadius),
-  border: Border.all(color: RuniacColors.cardBorder),
-);
 final _softIconDecoration = BoxDecoration(
   color: RuniacColors.innerTileSurface,
   borderRadius: BorderRadius.circular(_youInnerRadius),
   border: Border.all(color: RuniacColors.border),
 );
-
 const _youCardRadius = 20.0;
 const _youInnerRadius = 16.0;
 
@@ -1319,12 +1472,6 @@ const _planPercentStyle = TextStyle(
   color: RuniacColors.primaryBlue,
   fontSize: 22,
   fontWeight: FontWeight.w900,
-);
-const _planCounterValueStyle = TextStyle(
-  color: RuniacColors.textPrimary,
-  fontSize: 24,
-  fontWeight: FontWeight.w900,
-  height: 1,
 );
 const _buttonTextStyle = TextStyle(
   color: RuniacColors.textPrimary,
@@ -1365,4 +1512,10 @@ const _bodyStyle = TextStyle(color: RuniacColors.textSecondary, fontSize: 13);
 const _smallBodyStyle = TextStyle(
   color: RuniacColors.textSecondary,
   fontSize: 11,
+);
+const _weeklyPlanProgressLabelStyle = TextStyle(
+  color: Color(0xBF2F51C8),
+  fontSize: 12,
+  fontWeight: FontWeight.w700,
+  letterSpacing: -0.1,
 );
