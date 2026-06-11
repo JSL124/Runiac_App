@@ -1110,9 +1110,21 @@ void main() {
     await tester.tap(find.text('Upcoming · 7:30 AM'));
     await tester.pumpAndSettle();
 
+    final headerTitle = tester.widget<Text>(
+      find.byKey(const ValueKey('workout_detail_header_title')),
+    );
+    final headerTitleSize = tester.getSize(
+      find.byKey(const ValueKey('workout_detail_header_title')),
+    );
     final suggestedPaceLabel = tester.widget<Text>(
       find.byKey(const ValueKey('suggested_pace_metric_label')),
     );
+
+    // Then: the centered header title has room before ellipsis is needed.
+    expect(headerTitle.data, 'Workout detail');
+    expect(headerTitle.maxLines, 1);
+    expect(headerTitle.overflow, TextOverflow.ellipsis);
+    expect(headerTitleSize.width, greaterThan(120));
 
     // Then: the long metric label remains a compact single-line label.
     expect(suggestedPaceLabel.data, 'Suggested pace');

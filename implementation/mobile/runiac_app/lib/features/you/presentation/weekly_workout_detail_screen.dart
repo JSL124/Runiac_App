@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/dashboard_card.dart';
-import '../../../core/widgets/runiac_back_header.dart';
 import '../../../core/widgets/runiac_bottom_sheet_handle.dart';
 
 const weeklyWorkoutDetailSnapshot = WeeklyWorkoutDetailSnapshot(
@@ -146,21 +145,10 @@ class WeeklyWorkoutDetailScreen extends StatelessWidget {
             physics: const ClampingScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 28),
             children: [
-              RuniacBackHeader(
+              _WeeklyWorkoutDetailHeader(
                 title: snapshot.title,
-                tooltip: 'Back to Plans',
                 onBack: onBack,
-                height: 48,
-                trailingWidth: 112,
-                titleStyle: _headerTitleStyle,
-                trailing: TextButton(
-                  onPressed: () => _showEditScheduleSheet(context, snapshot),
-                  style: TextButton.styleFrom(
-                    foregroundColor: RuniacColors.primaryBlue,
-                    textStyle: _editActionStyle,
-                  ),
-                  child: const Text('Edit schedule'),
-                ),
+                onEditSchedule: () => _showEditScheduleSheet(context, snapshot),
               ),
               const SizedBox(height: 16),
               _WorkoutHero(snapshot),
@@ -176,6 +164,85 @@ class WeeklyWorkoutDetailScreen extends StatelessWidget {
               _StartRunAction(snapshot.startActionLabel),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _WeeklyWorkoutDetailHeader extends StatelessWidget {
+  const _WeeklyWorkoutDetailHeader({
+    required this.title,
+    required this.onBack,
+    required this.onEditSchedule,
+  });
+
+  final String title;
+  final VoidCallback onBack;
+  final VoidCallback onEditSchedule;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 48,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Positioned.fill(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 56),
+                child: Center(
+                  child: Text(
+                    title,
+                    key: const ValueKey('workout_detail_header_title'),
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: _headerTitleStyle,
+                  ),
+                ),
+              ),
+            ),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Semantics(
+                label: 'Back to Plans',
+                button: true,
+                child: IconButton(
+                  tooltip: 'Back to Plans',
+                  icon: const Icon(
+                    Icons.chevron_left_rounded,
+                    color: RuniacColors.primaryBlue,
+                    size: 30,
+                  ),
+                  onPressed: onBack,
+                ),
+              ),
+            ),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: onEditSchedule,
+                style: TextButton.styleFrom(
+                  foregroundColor: RuniacColors.primaryBlue,
+                  minimumSize: Size.zero,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 8,
+                  ),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  textStyle: _editActionStyle,
+                ),
+                child: const Text(
+                  'Edit schedule',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
