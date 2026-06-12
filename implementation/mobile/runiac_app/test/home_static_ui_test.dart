@@ -6,10 +6,10 @@ import 'package:runiac_app/features/home/presentation/widgets/today_plan_card.da
 
 const _todayPlanHeroAssetPath = 'assets/images/home/todays_plan_runner.png';
 
-final _forbiddenBackendOwnedCopy = RegExp(
-  r'\bXP\b|streak|level|rank|score|saved count|popularity|owned|'
-  r'territory owned|route completed|activity saved|synced|premium|'
-  r'subscription',
+final _forbiddenTrustedStateCopy = RegExp(
+  r'leaderboard score|saved count|popularity|owned|territory owned|'
+  r'route completed|activity saved|synced|premium|subscription|'
+  r'validated|eligible|enrolled|official',
   caseSensitive: false,
 );
 
@@ -50,6 +50,34 @@ void main() {
     );
     expect(find.text('View Plan'), findsOneWidget);
     expect(find.text('Quick Start'), findsOneWidget);
+    expect(find.text('First 10K Preparation'), findsOneWidget);
+    expect(find.text('Week 3 of 8'), findsOneWidget);
+    expect(find.text('43%'), findsWidgets);
+    expect(find.text('Next Milestone'), findsOneWidget);
+    expect(find.text('Complete 6 km comfortably'), findsOneWidget);
+    expect(find.text('Readiness'), findsOneWidget);
+    expect(find.text('+5% vs last week'), findsOneWidget);
+    expect(find.text('Streak'), findsOneWidget);
+    expect(find.text('6 days'), findsOneWidget);
+    expect(find.text('Keep it going!'), findsOneWidget);
+    expect(find.text('XP'), findsOneWidget);
+    expect(find.text('1,240 xp'), findsOneWidget);
+    expect(find.text('360 XP to Lv.13'), findsOneWidget);
+    expect(find.text('Advanced Insight'), findsOneWidget);
+    expect(find.text('Pace consistency'), findsOneWidget);
+    expect(find.text('Improved'), findsOneWidget);
+    expect(find.text('Training load'), findsOneWidget);
+    expect(find.text('Balanced'), findsOneWidget);
+    expect(find.text('Goal forecast'), findsOneWidget);
+    expect(find.text('On track'), findsOneWidget);
+    expect(
+      find.text('Your training preparation will appear here.'),
+      findsNothing,
+    );
+    expect(
+      find.text('Progress summaries will appear after verified runs.'),
+      findsNothing,
+    );
     expect(find.bySemanticsLabel('Notifications'), findsOneWidget);
     expect(find.bySemanticsLabel('Profile'), findsOneWidget);
 
@@ -67,15 +95,42 @@ void main() {
       findsOneWidget,
     );
 
-    await tester.drag(find.byType(ListView), const Offset(0, -500));
+    await tester.scrollUntilVisible(
+      find.text('This Week\'s Plan'),
+      180,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('This Week\'s Plan'), findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.text('Last Run'),
+      220,
+      scrollable: find.byType(Scrollable).last,
+    );
     await tester.pumpAndSettle();
 
-    expect(find.text('This Week\'s Plan'), findsOneWidget);
     expect(find.text('Last Run'), findsOneWidget);
     expect(find.text('View Details'), findsNothing);
     expect(find.text('Ready for an easy run?'), findsNothing);
     expect(find.text('Start small and keep it comfortable.'), findsNothing);
-    expect(find.textContaining(_forbiddenBackendOwnedCopy), findsNothing);
+    expect(find.textContaining(_forbiddenTrustedStateCopy), findsNothing);
+  });
+
+  testWidgets('Home progress insight section fits a narrow mobile surface', (
+    WidgetTester tester,
+  ) async {
+    tester.view.physicalSize = const Size(360, 760);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(const RuniacApp());
+
+    expect(find.text('First 10K Preparation'), findsOneWidget);
+    expect(find.text('Readiness'), findsOneWidget);
+    expect(find.text('Advanced Insight'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('Home today plan hero fits a narrow mobile surface', (

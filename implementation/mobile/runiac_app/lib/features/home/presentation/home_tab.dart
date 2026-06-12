@@ -2,12 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../../run/presentation/run_launch_screen.dart';
 import '../../you/presentation/weekly_workout_detail_screen.dart';
-import 'widgets/goal_preparation_card.dart';
 import 'widgets/home_header.dart';
+import 'widgets/home_progress_insight_section.dart';
 import 'widgets/last_run_card.dart';
 import 'widgets/post_run_feedback_card.dart';
 import 'widgets/recommended_routes_card.dart';
-import 'widgets/runner_progress_card.dart';
 import 'widgets/today_plan_card.dart';
 import 'widgets/weekly_plan_card.dart';
 
@@ -68,9 +67,7 @@ class HomeTab extends StatelessWidget {
                 onQuickStart: () => _openQuickStart(context),
               ),
               const SizedBox(height: 10),
-              const GoalPreparationCard(),
-              const SizedBox(height: 10),
-              const RunnerProgressCard(),
+              const HomeProgressInsightSection(),
               const SizedBox(height: 10),
               const WeeklyPlanCard(),
               const SizedBox(height: 10),
