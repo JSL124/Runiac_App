@@ -54,17 +54,17 @@ const homeDashboardDemoSnapshot = HomeDashboardDemoSnapshot(
     rows: [
       HomeInsightRowDemoSnapshot(
         icon: Icons.show_chart_rounded,
-        label: 'Pace consistency',
+        label: 'Pace rhythm',
         value: 'Improved',
       ),
       HomeInsightRowDemoSnapshot(
         icon: Icons.bar_chart_rounded,
-        label: 'Training load',
+        label: 'Effort balance',
         value: 'Balanced',
       ),
       HomeInsightRowDemoSnapshot(
         icon: Icons.track_changes_rounded,
-        label: 'Goal forecast',
+        label: 'Goal progress',
         value: 'On track',
       ),
     ],

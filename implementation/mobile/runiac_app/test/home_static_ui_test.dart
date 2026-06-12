@@ -53,17 +53,17 @@ const _longXpHomeSnapshot = HomeDashboardDemoSnapshot(
     rows: [
       HomeInsightRowDemoSnapshot(
         icon: Icons.show_chart_rounded,
-        label: 'Pace consistency',
+        label: 'Pace rhythm',
         value: 'Improved',
       ),
       HomeInsightRowDemoSnapshot(
         icon: Icons.bar_chart_rounded,
-        label: 'Training load',
+        label: 'Effort balance',
         value: 'Balanced',
       ),
       HomeInsightRowDemoSnapshot(
         icon: Icons.track_changes_rounded,
-        label: 'Goal forecast',
+        label: 'Goal progress',
         value: 'On track',
       ),
     ],
@@ -121,11 +121,11 @@ void main() {
     expect(find.text('1,240 xp'), findsOneWidget);
     expect(find.text('360 XP to Lv.13'), findsOneWidget);
     expect(find.text('Advanced Insight'), findsOneWidget);
-    expect(find.text('Pace consistency'), findsOneWidget);
+    expect(find.text('Pace rhythm'), findsOneWidget);
     expect(find.text('Improved'), findsOneWidget);
-    expect(find.text('Training load'), findsOneWidget);
+    expect(find.text('Effort balance'), findsOneWidget);
     expect(find.text('Balanced'), findsOneWidget);
-    expect(find.text('Goal forecast'), findsOneWidget);
+    expect(find.text('Goal progress'), findsOneWidget);
     expect(find.text('On track'), findsOneWidget);
     expect(
       find.text('Your training preparation will appear here.'),
