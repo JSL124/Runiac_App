@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runiac_app/app.dart';
+import 'package:runiac_app/core/assets/runiac_assets.dart';
 import 'package:runiac_app/features/home/presentation/data/home_dashboard_demo_snapshots.dart';
 import 'package:runiac_app/features/home/presentation/widgets/home_progress_insight_section.dart';
 import 'package:runiac_app/features/home/presentation/widgets/today_plan_card.dart';
 
-const _todayPlanHeroAssetPath = 'assets/images/home/todays_plan_runner.png';
+const _todayPlanHeroAssetPath = RuniacAssets.homeTodayPlanRunner;
 
 final _forbiddenTrustedStateCopy = RegExp(
   r'leaderboard score|saved count|popularity|owned|territory owned|'
@@ -29,6 +30,7 @@ Finder _nearestDecoratedBoxContaining(String text) {
 }
 
 const _longXpHomeSnapshot = HomeDashboardDemoSnapshot(
+  todayPlan: homeTodayPlanDemoSnapshot,
   goal: HomeGoalProgressDemoSnapshot(
     title: 'First 10K Preparation',
     weekLabel: 'Week 3 of 8',
@@ -76,6 +78,10 @@ void main() {
   ) async {
     await tester.pumpWidget(const RuniacApp(showSplash: false));
 
+    expect(
+      RuniacAssets.homeTodayPlanRunner,
+      'assets/images/home/todays_plan_runner.png',
+    );
     expect(find.text('Good to see you'), findsOneWidget);
     expect(
       find.text('Your Home dashboard is ready for a calm start.'),

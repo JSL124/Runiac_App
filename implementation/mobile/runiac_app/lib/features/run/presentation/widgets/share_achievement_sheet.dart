@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:runiac_app/core/assets/runiac_assets.dart';
 import 'package:runiac_app/core/widgets/runiac_share_bottom_sheet.dart';
 
 const _blue = Color(0xFF2F51C8);
@@ -13,7 +14,6 @@ const _blue22 = Color(0x382F51C8);
 const _blue12 = Color(0x1F2F51C8);
 const _blue10 = Color(0x1A2F51C8);
 const _orange22 = Color(0x38FB6414);
-const _instagramStoriesIconAsset = 'assets/icons/instagram_stories.png';
 
 class ShareAchievementSheet extends StatelessWidget {
   const ShareAchievementSheet({super.key});
@@ -35,7 +35,7 @@ class ShareAchievementSheet extends StatelessWidget {
       shareTargets: [
         RuniacShareTargetButton(
           icon: Icons.auto_awesome_rounded,
-          iconAsset: _instagramStoriesIconAsset,
+          iconAsset: RuniacAssets.instagramStoriesIcon,
           label: 'Instagram Stories',
           onPressed: () => _showPlaceholderFeedback(
             context,

@@ -911,11 +911,19 @@ void main() {
     final source = File(
       'lib/features/run/presentation/run_launch_screen.dart',
     ).readAsStringSync();
+    final snapshotSource = File(
+      'lib/features/run/presentation/data/run_launch_demo_snapshots.dart',
+    ).readAsStringSync();
 
-    expect(source, contains('class _RunLaunchDisplaySnapshot'));
-    expect(source, contains('class _RunLiveDisplaySnapshot'));
-    expect(source, contains('const _runLaunchSnapshot'));
-    expect(source, contains('const _runLiveSnapshot'));
+    expect(source, contains('data/run_launch_demo_snapshots.dart'));
+    expect(source, contains('runLaunchDemoSnapshot'));
+    expect(source, contains('runLiveDemoSnapshot'));
+    expect(source, isNot(contains('class _RunLaunchDisplaySnapshot')));
+    expect(source, isNot(contains('class _RunLiveDisplaySnapshot')));
+    expect(snapshotSource, contains('class RunLaunchDemoSnapshot'));
+    expect(snapshotSource, contains('class RunLiveDemoSnapshot'));
+    expect(snapshotSource, contains('const runLaunchDemoSnapshot'));
+    expect(snapshotSource, contains('const runLiveDemoSnapshot'));
     expect(source, isNot(contains(RegExp(r'\bonCompleted\b'))));
     expect(source, isNot(contains('bool _completed')));
     expect(source, isNot(contains('completedRun')));

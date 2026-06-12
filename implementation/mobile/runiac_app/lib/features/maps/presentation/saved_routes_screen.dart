@@ -2,41 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/runiac_back_header.dart';
+import 'data/maps_route_demo_snapshots.dart';
 import 'shared_route_detail_screen.dart';
-
-const _selectedRouteSnapshot = SharedRouteDetailSnapshot(
-  title: 'Marina Bay easy loop',
-  distance: '3.2 km',
-  duration: '25 min',
-  difficulty: 'Easy',
-);
-
-const _favouriteRoutes = <SharedRouteDetailSnapshot>[
-  SharedRouteDetailSnapshot(
-    title: 'Bishan Park starter route',
-    distance: '2.4 km',
-    duration: '18 min',
-    difficulty: 'Easy',
-  ),
-  SharedRouteDetailSnapshot(
-    title: 'East Coast flat run',
-    distance: '4.0 km',
-    duration: '32 min',
-    difficulty: 'Easy',
-  ),
-  SharedRouteDetailSnapshot(
-    title: 'Punggol waterway loop',
-    distance: '3.6 km',
-    duration: '28 min',
-    difficulty: 'Easy',
-  ),
-  SharedRouteDetailSnapshot(
-    title: 'Kallang riverside run',
-    distance: '3.0 km',
-    duration: '23 min',
-    difficulty: 'Easy',
-  ),
-];
 
 class SavedRoutesScreen extends StatefulWidget {
   const SavedRoutesScreen({super.key});
@@ -46,7 +13,7 @@ class SavedRoutesScreen extends StatefulWidget {
 }
 
 class _SavedRoutesScreenState extends State<SavedRoutesScreen> {
-  SharedRouteDetailSnapshot? _selectedRoute = _selectedRouteSnapshot;
+  SharedRouteDetailSnapshot? _selectedRoute = selectedRouteDemoSnapshot;
 
   @override
   Widget build(BuildContext context) {
@@ -85,7 +52,7 @@ class _SavedRoutesScreenState extends State<SavedRoutesScreen> {
                     const SizedBox(height: 26),
                     _sectionTitle('Favourite routes'),
                     const SizedBox(height: 12),
-                    for (final route in _favouriteRoutes) ...[
+                    for (final route in favouriteRouteDemoSnapshots) ...[
                       _favouriteRouteRow(route),
                       const SizedBox(height: 10),
                     ],

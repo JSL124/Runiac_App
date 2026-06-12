@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../core/assets/runiac_assets.dart';
 import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/runiac_back_header.dart';
 import '../../../core/widgets/runiac_bottom_sheet_handle.dart';
@@ -8,10 +9,6 @@ import '../../../core/widgets/runiac_share_bottom_sheet.dart';
 
 import 'data/leaderboard_demo_snapshots.dart';
 import 'models/leaderboard_display_models.dart';
-
-const _shareRankCardAsset =
-    'assets/images/leaderboard/share_rank_card_background.png';
-const _instagramStoriesIconAsset = 'assets/icons/instagram_stories.png';
 
 class LeaderboardTab extends StatefulWidget {
   const LeaderboardTab({super.key});
@@ -1707,7 +1704,7 @@ class _ShareRankFloatingPanel extends StatelessWidget {
       shareTargets: [
         RuniacShareTargetButton(
           icon: Icons.camera_alt_outlined,
-          iconAsset: _instagramStoriesIconAsset,
+          iconAsset: RuniacAssets.instagramStoriesIcon,
           label: 'Instagram',
           onPressed: () => _showComingSoon(context),
         ),
@@ -1802,7 +1799,7 @@ class _ShareRankCardPreview extends StatelessWidget {
               fit: StackFit.expand,
               children: [
                 Image.asset(
-                  _shareRankCardAsset,
+                  RuniacAssets.leaderboardShareRankCardBackground,
                   key: const Key('leaderboard_share_rank_card_background'),
                   fit: BoxFit.cover,
                 ),

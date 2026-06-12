@@ -1,6 +1,19 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/assets/runiac_assets.dart';
+
+const homeTodayPlanDemoSnapshot = HomeTodayPlanDemoSnapshot(
+  heroAssetPath: RuniacAssets.homeTodayPlanRunner,
+  title: 'Today\'s Plan',
+  headline: '20 min easy run',
+  badgeLabel: 'Goal Mode: First 5K',
+  message: 'Build consistency with an easy, comfortable effort.',
+  secondaryActionLabel: 'View Plan',
+  primaryActionLabel: 'Quick Start',
+);
+
 const homeDashboardDemoSnapshot = HomeDashboardDemoSnapshot(
+  todayPlan: homeTodayPlanDemoSnapshot,
   goal: HomeGoalProgressDemoSnapshot(
     title: 'First 10K Preparation',
     weekLabel: 'Week 3 of 8',
@@ -44,16 +57,38 @@ const homeDashboardDemoSnapshot = HomeDashboardDemoSnapshot(
 
 class HomeDashboardDemoSnapshot {
   const HomeDashboardDemoSnapshot({
+    required this.todayPlan,
     required this.goal,
     required this.streak,
     required this.xp,
     required this.insight,
   });
 
+  final HomeTodayPlanDemoSnapshot todayPlan;
   final HomeGoalProgressDemoSnapshot goal;
   final HomeMetricDemoSnapshot streak;
   final HomeMetricDemoSnapshot xp;
   final HomeInsightDemoSnapshot insight;
+}
+
+class HomeTodayPlanDemoSnapshot {
+  const HomeTodayPlanDemoSnapshot({
+    required this.heroAssetPath,
+    required this.title,
+    required this.headline,
+    required this.badgeLabel,
+    required this.message,
+    required this.secondaryActionLabel,
+    required this.primaryActionLabel,
+  });
+
+  final String heroAssetPath;
+  final String title;
+  final String headline;
+  final String badgeLabel;
+  final String message;
+  final String secondaryActionLabel;
+  final String primaryActionLabel;
 }
 
 class HomeGoalProgressDemoSnapshot {

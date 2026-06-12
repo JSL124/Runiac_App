@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/runiac_colors.dart';
 import 'cool_down_screen.dart';
+import 'data/run_launch_demo_snapshots.dart';
 import 'widgets/run_map_placeholder.dart';
 
 const _blueBorder = Color(0xFFDCE6FF);
@@ -19,73 +20,7 @@ const _mutedBlue = Color(0xFF8296E8);
 const _controlPressHold = Duration(milliseconds: 90);
 const _endHoldDuration = Duration(milliseconds: 1500);
 
-const _runLaunchSnapshot = _RunLaunchDisplaySnapshot(
-  planLabel: 'TODAY\'S PLAN',
-  switchRouteLabel: 'Switch route',
-  distanceValue: '4.5',
-  distanceUnitLabel: 'km easy run',
-  paceLabel: 'Pace 7:10-7:40 / km · ~32 min',
-  startLabel: 'Start run',
-);
-
-const _runLiveSnapshot = _RunLiveDisplaySnapshot(
-  progressSummaryLabel: '4.10 of 4.50 km',
-  progressPercentLabel: '91%',
-  progressValue: 0.91,
-  distanceLabel: 'DISTANCE',
-  distanceValue: '4.10',
-  distanceUnitLabel: 'km',
-  timeLabel: 'TIME',
-  timeValue: '30:10',
-  avgPaceLabel: 'AVG PACE',
-  avgPaceValue: '6:30/km',
-);
-
 enum _RunScreenMode { launch, live, paused }
-
-class _RunLaunchDisplaySnapshot {
-  const _RunLaunchDisplaySnapshot({
-    required this.planLabel,
-    required this.switchRouteLabel,
-    required this.distanceValue,
-    required this.distanceUnitLabel,
-    required this.paceLabel,
-    required this.startLabel,
-  });
-
-  final String planLabel;
-  final String switchRouteLabel;
-  final String distanceValue;
-  final String distanceUnitLabel;
-  final String paceLabel;
-  final String startLabel;
-}
-
-class _RunLiveDisplaySnapshot {
-  const _RunLiveDisplaySnapshot({
-    required this.progressSummaryLabel,
-    required this.progressPercentLabel,
-    required this.progressValue,
-    required this.distanceLabel,
-    required this.distanceValue,
-    required this.distanceUnitLabel,
-    required this.timeLabel,
-    required this.timeValue,
-    required this.avgPaceLabel,
-    required this.avgPaceValue,
-  });
-
-  final String progressSummaryLabel;
-  final String progressPercentLabel;
-  final double progressValue;
-  final String distanceLabel;
-  final String distanceValue;
-  final String distanceUnitLabel;
-  final String timeLabel;
-  final String timeValue;
-  final String avgPaceLabel;
-  final String avgPaceValue;
-}
 
 class RunLaunchScreen extends StatefulWidget {
   const RunLaunchScreen({super.key});
@@ -366,7 +301,7 @@ class _RunBottomPanel extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      _runLaunchSnapshot.planLabel,
+                      runLaunchDemoSnapshot.planLabel,
                       style: const TextStyle(
                         color: _sportOrange,
                         fontSize: 16,
@@ -387,7 +322,7 @@ class _RunBottomPanel extends StatelessWidget {
                         fontWeight: FontWeight.w800,
                       ),
                     ),
-                    child: Text(_runLaunchSnapshot.switchRouteLabel),
+                    child: Text(runLaunchDemoSnapshot.switchRouteLabel),
                   ),
                 ],
               ),
@@ -398,7 +333,7 @@ class _RunBottomPanel extends StatelessWidget {
                 runSpacing: 2,
                 children: [
                   Text(
-                    _runLaunchSnapshot.distanceValue,
+                    runLaunchDemoSnapshot.distanceValue,
                     style: const TextStyle(
                       color: _panelTextBlue,
                       fontSize: 46,
@@ -409,7 +344,7 @@ class _RunBottomPanel extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.only(bottom: 5),
                     child: Text(
-                      _runLaunchSnapshot.distanceUnitLabel,
+                      runLaunchDemoSnapshot.distanceUnitLabel,
                       style: const TextStyle(
                         color: _mutedBlue,
                         fontSize: 22,
@@ -421,7 +356,7 @@ class _RunBottomPanel extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                _runLaunchSnapshot.paceLabel,
+                runLaunchDemoSnapshot.paceLabel,
                 style: const TextStyle(
                   color: _mutedBlue,
                   fontSize: 16,
@@ -435,7 +370,7 @@ class _RunBottomPanel extends StatelessWidget {
                 child: FilledButton.icon(
                   onPressed: onStart,
                   icon: const Icon(Icons.play_arrow_rounded, size: 32),
-                  label: Text(_runLaunchSnapshot.startLabel),
+                  label: Text(runLaunchDemoSnapshot.startLabel),
                   style: FilledButton.styleFrom(
                     backgroundColor: _sportOrange,
                     foregroundColor: RuniacColors.white,
@@ -499,7 +434,7 @@ class _LiveTrackingPanel extends StatelessWidget {
             children: [
               const _ProgressSummaryRow(),
               const SizedBox(height: 8),
-              _RunProgressBar(progress: _runLiveSnapshot.progressValue),
+              _RunProgressBar(progress: runLiveDemoSnapshot.progressValue),
               SizedBox(height: compact ? 14 : 16),
               const _DistanceFocus(),
               SizedBox(height: compact ? 12 : 14),
@@ -767,7 +702,7 @@ class _ProgressSummaryRow extends StatelessWidget {
       children: [
         Expanded(
           child: Text(
-            _runLiveSnapshot.progressSummaryLabel,
+            runLiveDemoSnapshot.progressSummaryLabel,
             style: const TextStyle(
               color: _mutedBlue,
               fontSize: 15,
@@ -776,7 +711,7 @@ class _ProgressSummaryRow extends StatelessWidget {
           ),
         ),
         Text(
-          _runLiveSnapshot.progressPercentLabel,
+          runLiveDemoSnapshot.progressPercentLabel,
           style: const TextStyle(
             color: _panelTextBlue,
             fontSize: 16,
@@ -817,7 +752,7 @@ class _DistanceFocus extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            _runLiveSnapshot.distanceLabel,
+            runLiveDemoSnapshot.distanceLabel,
             style: const TextStyle(
               color: _mutedBlue,
               fontSize: 12,
@@ -831,7 +766,7 @@ class _DistanceFocus extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                _runLiveSnapshot.distanceValue,
+                runLiveDemoSnapshot.distanceValue,
                 style: const TextStyle(
                   color: _panelTextBlue,
                   fontSize: 48,
@@ -843,7 +778,7 @@ class _DistanceFocus extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.only(bottom: 4),
                 child: Text(
-                  _runLiveSnapshot.distanceUnitLabel,
+                  runLiveDemoSnapshot.distanceUnitLabel,
                   style: const TextStyle(
                     color: _mutedBlue,
                     fontSize: 18,
@@ -869,15 +804,15 @@ class _LiveMetricRow extends StatelessWidget {
         children: [
           Expanded(
             child: _MetricItem(
-              label: _runLiveSnapshot.timeLabel,
-              value: _runLiveSnapshot.timeValue,
+              label: runLiveDemoSnapshot.timeLabel,
+              value: runLiveDemoSnapshot.timeValue,
             ),
           ),
           const VerticalDivider(width: 1, thickness: 1, color: _blueBorder),
           Expanded(
             child: _MetricItem(
-              label: _runLiveSnapshot.avgPaceLabel,
-              value: _runLiveSnapshot.avgPaceValue,
+              label: runLiveDemoSnapshot.avgPaceLabel,
+              value: runLiveDemoSnapshot.avgPaceValue,
             ),
           ),
         ],

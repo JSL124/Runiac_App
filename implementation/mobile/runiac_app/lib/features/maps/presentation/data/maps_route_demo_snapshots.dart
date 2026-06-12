@@ -1,0 +1,114 @@
+import '../shared_route_detail_screen.dart';
+
+const selectedRouteDemoSnapshot = SharedRouteDetailSnapshot(
+  title: 'Marina Bay easy loop',
+  distance: '3.2 km',
+  duration: '25 min',
+  difficulty: 'Easy',
+);
+
+const favouriteRouteDemoSnapshots = <SharedRouteDetailSnapshot>[
+  SharedRouteDetailSnapshot(
+    title: 'Bishan Park starter route',
+    distance: '2.4 km',
+    duration: '18 min',
+    difficulty: 'Easy',
+  ),
+  SharedRouteDetailSnapshot(
+    title: 'East Coast flat run',
+    distance: '4.0 km',
+    duration: '32 min',
+    difficulty: 'Easy',
+  ),
+  SharedRouteDetailSnapshot(
+    title: 'Punggol waterway loop',
+    distance: '3.6 km',
+    duration: '28 min',
+    difficulty: 'Easy',
+  ),
+  SharedRouteDetailSnapshot(
+    title: 'Kallang riverside run',
+    distance: '3.0 km',
+    duration: '23 min',
+    difficulty: 'Easy',
+  ),
+];
+
+const sharedRoutesDemoSnapshot = SharedRoutesDemoSnapshot(
+  title: 'Shared Routes',
+  seeAllActionLabel: 'See all',
+  showLessActionLabel: 'Show less',
+  routeCards: [
+    RouteCardDemoSnapshot(
+      keySuffix: 'marina_bay_easy_loop',
+      title: 'Marina Bay easy loop',
+      distance: '3.2 km',
+      duration: '25 min',
+      difficulty: 'Easy',
+    ),
+    RouteCardDemoSnapshot(
+      keySuffix: 'bishan_park_starter_route',
+      title: 'Bishan Park starter route',
+      distance: '2.4 km',
+      duration: '18 min',
+      difficulty: 'Easy',
+    ),
+    RouteCardDemoSnapshot(
+      keySuffix: 'east_coast_flat_run',
+      title: 'East Coast flat run',
+      distance: '4.0 km',
+      duration: '32 min',
+      difficulty: 'Easy',
+    ),
+    RouteCardDemoSnapshot(
+      keySuffix: 'punggol_waterway_loop',
+      title: 'Punggol waterway loop',
+      distance: '3.6 km',
+      duration: '28 min',
+      difficulty: 'Easy',
+    ),
+    RouteCardDemoSnapshot(
+      keySuffix: 'kallang_riverside_run',
+      title: 'Kallang riverside run',
+      distance: '3.0 km',
+      duration: '23 min',
+      difficulty: 'Easy',
+    ),
+  ],
+);
+
+class SharedRoutesDemoSnapshot {
+  const SharedRoutesDemoSnapshot({
+    required this.title,
+    required this.seeAllActionLabel,
+    required this.showLessActionLabel,
+    required this.routeCards,
+  });
+
+  final String title;
+  final String seeAllActionLabel;
+  final String showLessActionLabel;
+  final List<RouteCardDemoSnapshot> routeCards;
+
+  Iterable<RouteCardDemoSnapshot> get previewRouteCards => routeCards.take(3);
+
+  List<RouteCardDemoSnapshot> get expandedRouteCards => routeCards;
+}
+
+class RouteCardDemoSnapshot {
+  const RouteCardDemoSnapshot({
+    required this.keySuffix,
+    required this.title,
+    required this.distance,
+    required this.duration,
+    required this.difficulty,
+  });
+
+  final String keySuffix;
+  final String title;
+  final String distance;
+  final String duration;
+  final String difficulty;
+
+  String get meta => '$distance · $duration · $difficulty';
+}

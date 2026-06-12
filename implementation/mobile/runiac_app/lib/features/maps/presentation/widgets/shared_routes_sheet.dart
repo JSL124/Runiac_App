@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/runiac_colors.dart';
 import '../../../../core/widgets/runiac_bottom_sheet_handle.dart';
+import '../data/maps_route_demo_snapshots.dart';
 import '../shared_route_detail_screen.dart';
 import 'shared_route_sheet_card.dart';
 
@@ -11,49 +12,6 @@ const _sheetAnimationDuration = Duration(milliseconds: 220);
 const _previewSheetHeight = 405.0;
 const _expandedSheetScreenFraction = 0.7;
 const _collapsedSheetHeight = 46.0;
-
-const _sharedRoutesDisplaySnapshot = _SharedRoutesDisplaySnapshot(
-  title: 'Shared Routes',
-  seeAllActionLabel: 'See all',
-  showLessActionLabel: 'Show less',
-  routeCards: [
-    _RouteCardDisplaySnapshot(
-      keySuffix: 'marina_bay_easy_loop',
-      title: 'Marina Bay easy loop',
-      distance: '3.2 km',
-      duration: '25 min',
-      difficulty: 'Easy',
-    ),
-    _RouteCardDisplaySnapshot(
-      keySuffix: 'bishan_park_starter_route',
-      title: 'Bishan Park starter route',
-      distance: '2.4 km',
-      duration: '18 min',
-      difficulty: 'Easy',
-    ),
-    _RouteCardDisplaySnapshot(
-      keySuffix: 'east_coast_flat_run',
-      title: 'East Coast flat run',
-      distance: '4.0 km',
-      duration: '32 min',
-      difficulty: 'Easy',
-    ),
-    _RouteCardDisplaySnapshot(
-      keySuffix: 'punggol_waterway_loop',
-      title: 'Punggol waterway loop',
-      distance: '3.6 km',
-      duration: '28 min',
-      difficulty: 'Easy',
-    ),
-    _RouteCardDisplaySnapshot(
-      keySuffix: 'kallang_riverside_run',
-      title: 'Kallang riverside run',
-      distance: '3.0 km',
-      duration: '23 min',
-      difficulty: 'Easy',
-    ),
-  ],
-);
 
 class SharedRoutesSheet extends StatefulWidget {
   const SharedRoutesSheet({super.key});
@@ -211,7 +169,7 @@ class _SharedRoutesSheetBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const snapshot = _sharedRoutesDisplaySnapshot;
+    const snapshot = sharedRoutesDemoSnapshot;
 
     return KeyedSubtree(
       key: const Key('maps_sheet_body'),
@@ -380,7 +338,7 @@ class _SharedRoutesHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const snapshot = _sharedRoutesDisplaySnapshot;
+    const snapshot = sharedRoutesDemoSnapshot;
 
     return Row(
       children: [
@@ -423,41 +381,4 @@ class _SharedRoutesHeader extends StatelessWidget {
       ],
     );
   }
-}
-
-class _SharedRoutesDisplaySnapshot {
-  const _SharedRoutesDisplaySnapshot({
-    required this.title,
-    required this.seeAllActionLabel,
-    required this.showLessActionLabel,
-    required this.routeCards,
-  });
-
-  final String title;
-  final String seeAllActionLabel;
-  final String showLessActionLabel;
-  final List<_RouteCardDisplaySnapshot> routeCards;
-
-  Iterable<_RouteCardDisplaySnapshot> get previewRouteCards =>
-      routeCards.take(3);
-
-  List<_RouteCardDisplaySnapshot> get expandedRouteCards => routeCards;
-}
-
-class _RouteCardDisplaySnapshot {
-  const _RouteCardDisplaySnapshot({
-    required this.keySuffix,
-    required this.title,
-    required this.distance,
-    required this.duration,
-    required this.difficulty,
-  });
-
-  final String keySuffix;
-  final String title;
-  final String distance;
-  final String duration;
-  final String difficulty;
-
-  String get meta => '$distance · $duration · $difficulty';
 }

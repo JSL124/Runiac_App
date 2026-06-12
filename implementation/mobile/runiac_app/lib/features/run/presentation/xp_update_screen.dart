@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:runiac_app/core/theme/runiac_colors.dart';
 
 import '../domain/models/xp_update_display_model.dart';
+import 'data/run_completion_demo_snapshots.dart';
 
 const _blue = Color(0xFF2F51C8);
 const _orange = Color(0xFFFB6414);

@@ -1,16 +1,3 @@
-/// Display-only run summary snapshot for the static run completion surface.
-const defaultRunSummarySnapshot = RunSummarySnapshot(
-  title: 'Saturday Morning Run',
-  dateLabel: 'Today',
-  timeLabel: '7:06 AM',
-  distanceKm: '4.03',
-  avgPace: '6’30”',
-  duration: '30:15',
-  avgHeartRate: '145',
-  calories: '145',
-  routeName: 'East Coast Park Loop',
-);
-
 class RunSummarySnapshot {
   const RunSummarySnapshot({
     required this.title,

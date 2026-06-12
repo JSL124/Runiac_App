@@ -1,17 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/runiac_colors.dart';
-
-const _todayPlanHeroAssetPath = 'assets/images/home/todays_plan_runner.png';
-
-const _todayPlanDisplaySnapshot = _TodayPlanDisplaySnapshot(
-  title: 'Today\'s Plan',
-  headline: '20 min easy run',
-  badgeLabel: 'Goal Mode: First 5K',
-  message: 'Build consistency with an easy, comfortable effort.',
-  secondaryActionLabel: 'View Plan',
-  primaryActionLabel: 'Quick Start',
-);
+import '../data/home_dashboard_demo_snapshots.dart';
 
 class TodayPlanCard extends StatelessWidget {
   const TodayPlanCard({
@@ -25,7 +15,7 @@ class TodayPlanCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const snapshot = _todayPlanDisplaySnapshot;
+    const snapshot = homeTodayPlanDemoSnapshot;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -47,7 +37,7 @@ class TodayPlanCard extends StatelessWidget {
               fit: StackFit.expand,
               children: [
                 Image.asset(
-                  _todayPlanHeroAssetPath,
+                  snapshot.heroAssetPath,
                   key: const ValueKey('today_plan_hero_image'),
                   fit: BoxFit.cover,
                   alignment: Alignment.centerRight,
@@ -83,24 +73,6 @@ class TodayPlanCard extends StatelessWidget {
       },
     );
   }
-}
-
-class _TodayPlanDisplaySnapshot {
-  const _TodayPlanDisplaySnapshot({
-    required this.title,
-    required this.headline,
-    required this.badgeLabel,
-    required this.message,
-    required this.secondaryActionLabel,
-    required this.primaryActionLabel,
-  });
-
-  final String title;
-  final String headline;
-  final String badgeLabel;
-  final String message;
-  final String secondaryActionLabel;
-  final String primaryActionLabel;
 }
 
 class _HeroBlueOverlay extends StatelessWidget {
@@ -147,7 +119,7 @@ class _HeroBlueOverlay extends StatelessWidget {
 class _TodayPlanCopy extends StatelessWidget {
   const _TodayPlanCopy({required this.snapshot});
 
-  final _TodayPlanDisplaySnapshot snapshot;
+  final HomeTodayPlanDemoSnapshot snapshot;
 
   @override
   Widget build(BuildContext context) {
@@ -271,7 +243,7 @@ class _TodayPlanActions extends StatelessWidget {
 
   final VoidCallback onViewPlan;
   final VoidCallback onQuickStart;
-  final _TodayPlanDisplaySnapshot snapshot;
+  final HomeTodayPlanDemoSnapshot snapshot;
 
   @override
   Widget build(BuildContext context) {
