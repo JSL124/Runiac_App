@@ -59,6 +59,7 @@ flutter:
 
   assets:
     - assets/icons/instagram_stories.png
+    - assets/images/home/todays_plan_runner.png
     - assets/images/leaderboard/share_rank_card_background.png
 
   # To add assets to your application, add an assets section, like this:

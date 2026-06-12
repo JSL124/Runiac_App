@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runiac_app/app.dart';
+import 'package:runiac_app/features/home/presentation/widgets/today_plan_card.dart';
+
+const _todayPlanHeroAssetPath = 'assets/images/home/todays_plan_runner.png';
 
 final _forbiddenBackendOwnedCopy = RegExp(
   r'\bXP\b|streak|level|rank|score|saved count|popularity|owned|'
@@ -28,8 +31,23 @@ void main() {
       find.text('Your Home dashboard is ready for a calm start.'),
       findsOneWidget,
     );
-    expect(find.text('Ready for an easy run?'), findsOneWidget);
-    expect(find.text('Start small and keep it comfortable.'), findsOneWidget);
+    expect(find.text('Today\'s Plan'), findsOneWidget);
+    expect(find.text('20 min easy run'), findsOneWidget);
+    expect(find.text('Goal Mode: First 5K'), findsOneWidget);
+    expect(
+      find.text('Build consistency with an easy, comfortable effort.'),
+      findsOneWidget,
+    );
+    expect(
+      find.byWidgetPredicate((widget) {
+        if (widget is! Image || widget.image is! AssetImage) {
+          return false;
+        }
+        final image = widget.image as AssetImage;
+        return image.assetName == _todayPlanHeroAssetPath;
+      }),
+      findsOneWidget,
+    );
     expect(find.text('View Plan'), findsOneWidget);
     expect(find.text('Quick Start'), findsOneWidget);
     expect(find.bySemanticsLabel('Notifications'), findsOneWidget);
@@ -55,7 +73,37 @@ void main() {
     expect(find.text('This Week\'s Plan'), findsOneWidget);
     expect(find.text('Last Run'), findsOneWidget);
     expect(find.text('View Details'), findsNothing);
+    expect(find.text('Ready for an easy run?'), findsNothing);
+    expect(find.text('Start small and keep it comfortable.'), findsNothing);
     expect(find.textContaining(_forbiddenBackendOwnedCopy), findsNothing);
+  });
+
+  testWidgets('Home today plan hero fits a narrow mobile surface', (
+    WidgetTester tester,
+  ) async {
+    tester.view.physicalSize = const Size(360, 760);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Padding(
+            padding: const EdgeInsets.all(16),
+            child: TodayPlanCard(onViewPlan: () {}, onQuickStart: () {}),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('20 min easy run'), findsOneWidget);
+    expect(find.text('Goal Mode: First 5K'), findsOneWidget);
+    expect(
+      find.text('Build consistency with an easy, comfortable effort.'),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('Home Quick Start opens the existing run launch screen', (

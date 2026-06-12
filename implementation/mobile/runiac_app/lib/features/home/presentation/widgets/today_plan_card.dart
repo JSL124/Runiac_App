@@ -1,19 +1,14 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/runiac_colors.dart';
-import '../../../../core/widgets/card_title.dart';
-import '../../../../core/widgets/crossed_placeholder.dart';
-import '../../../../core/widgets/dashboard_card.dart';
-import '../../../../core/widgets/runiac_buttons.dart';
 
-const _primaryBlue = RuniacColors.primaryBlue;
-const _blueBorder = RuniacColors.border;
-const _orangeStrong = RuniacColors.accentOrange;
+const _todayPlanHeroAssetPath = 'assets/images/home/todays_plan_runner.png';
 
 const _todayPlanDisplaySnapshot = _TodayPlanDisplaySnapshot(
   title: 'Today\'s Plan',
-  headline: 'Ready for an easy run?',
-  message: 'Start small and keep it comfortable.',
+  headline: '20 min easy run',
+  badgeLabel: 'Goal Mode: First 5K',
+  message: 'Build consistency with an easy, comfortable effort.',
   secondaryActionLabel: 'View Plan',
   primaryActionLabel: 'Quick Start',
 );
@@ -32,78 +27,60 @@ class TodayPlanCard extends StatelessWidget {
   Widget build(BuildContext context) {
     const snapshot = _todayPlanDisplaySnapshot;
 
-    return DashboardCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const _TodayAccentStrip(),
-          const SizedBox(height: 14),
-          CardTitle(icon: Icons.calendar_today, title: snapshot.title),
-          const SizedBox(height: 14),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      snapshot.headline,
-                      style: const TextStyle(
-                        color: RuniacColors.textPrimary,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800,
-                        height: 1.15,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      snapshot.message,
-                      style: const TextStyle(
-                        color: RuniacColors.textSecondary,
-                        fontSize: 14,
-                        height: 1.35,
-                      ),
-                    ),
-                  ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cardWidth = constraints.maxWidth.isFinite
+            ? constraints.maxWidth
+            : MediaQuery.sizeOf(context).width - 32;
+        const cardHeight = 236.0;
+        final horizontalPadding = cardWidth < 360 ? 18.0 : 22.0;
+        final contentMaxWidth = cardWidth < 360
+            ? cardWidth * 0.68
+            : cardWidth * 0.62;
+
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(28),
+          child: SizedBox(
+            height: cardHeight,
+            width: double.infinity,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                Image.asset(
+                  _todayPlanHeroAssetPath,
+                  key: const ValueKey('today_plan_hero_image'),
+                  fit: BoxFit.cover,
+                  alignment: Alignment.centerRight,
                 ),
-              ),
-              const SizedBox(width: 14),
-              const _PlanImagePlaceholder(),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: onViewPlan,
-                  style: RuniacButtonStyles.secondary(
-                    foregroundColor: _primaryBlue,
-                    side: const BorderSide(color: _blueBorder),
-                    minimumSize: const Size.fromHeight(44),
-                    textStyle: const TextStyle(fontWeight: FontWeight.w700),
+                const _HeroBlueOverlay(),
+                Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    horizontalPadding,
+                    16,
+                    horizontalPadding,
+                    16,
                   ),
-                  child: Text(snapshot.secondaryActionLabel),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: FilledButton.icon(
-                  onPressed: onQuickStart,
-                  icon: const Icon(Icons.play_arrow_rounded),
-                  label: Text(snapshot.primaryActionLabel),
-                  style: RuniacButtonStyles.primary(
-                    tone: RuniacButtonTone.orange,
-                    minimumSize: const Size.fromHeight(44),
-                    textStyle: const TextStyle(fontWeight: FontWeight.w800),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ConstrainedBox(
+                        constraints: BoxConstraints(maxWidth: contentMaxWidth),
+                        child: const _TodayPlanCopy(snapshot: snapshot),
+                      ),
+                      const Spacer(),
+                      _TodayPlanActions(
+                        onViewPlan: onViewPlan,
+                        onQuickStart: onQuickStart,
+                        snapshot: snapshot,
+                      ),
+                    ],
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -112,6 +89,7 @@ class _TodayPlanDisplaySnapshot {
   const _TodayPlanDisplaySnapshot({
     required this.title,
     required this.headline,
+    required this.badgeLabel,
     required this.message,
     required this.secondaryActionLabel,
     required this.primaryActionLabel,
@@ -119,34 +97,46 @@ class _TodayPlanDisplaySnapshot {
 
   final String title;
   final String headline;
+  final String badgeLabel;
   final String message;
   final String secondaryActionLabel;
   final String primaryActionLabel;
 }
 
-class _TodayAccentStrip extends StatelessWidget {
-  const _TodayAccentStrip();
+class _HeroBlueOverlay extends StatelessWidget {
+  const _HeroBlueOverlay();
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Stack(
+      fit: StackFit.expand,
       children: [
-        Expanded(
-          child: Container(
-            height: 4,
-            decoration: BoxDecoration(
-              color: _primaryBlue,
-              borderRadius: BorderRadius.circular(999),
+        DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+              colors: [
+                RuniacColors.primaryBlue.withValues(alpha: 0.96),
+                const Color(0xFF193B95).withValues(alpha: 0.88),
+                const Color(0xFF2858B8).withValues(alpha: 0.48),
+                Colors.transparent,
+              ],
+              stops: const [0, 0.38, 0.66, 1],
             ),
           ),
         ),
-        const SizedBox(width: 8),
-        Container(
-          width: 34,
-          height: 4,
+        DecoratedBox(
           decoration: BoxDecoration(
-            color: _orangeStrong,
-            borderRadius: BorderRadius.circular(999),
+            gradient: LinearGradient(
+              begin: Alignment.bottomCenter,
+              end: Alignment.topCenter,
+              colors: [
+                const Color(0xFF081D54).withValues(alpha: 0.42),
+                Colors.transparent,
+              ],
+              stops: const [0, 0.58],
+            ),
           ),
         ),
       ],
@@ -154,11 +144,179 @@ class _TodayAccentStrip extends StatelessWidget {
   }
 }
 
-class _PlanImagePlaceholder extends StatelessWidget {
-  const _PlanImagePlaceholder();
+class _TodayPlanCopy extends StatelessWidget {
+  const _TodayPlanCopy({required this.snapshot});
+
+  final _TodayPlanDisplaySnapshot snapshot;
 
   @override
   Widget build(BuildContext context) {
-    return const CrossedPlaceholder(width: 96, height: 96);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(
+                Icons.calendar_today_rounded,
+                color: Colors.white,
+                size: 18,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Flexible(
+              child: Text(
+                snapshot.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  height: 1,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text(
+            snapshot.headline,
+            maxLines: 1,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 34,
+              fontWeight: FontWeight.w900,
+              height: 1.02,
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        _GoalModeBadge(label: snapshot.badgeLabel),
+        const SizedBox(height: 8),
+        Text(
+          snapshot.message,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.92),
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            height: 1.24,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _GoalModeBadge extends StatelessWidget {
+  const _GoalModeBadge({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.emoji_events_rounded,
+            color: Color(0xFFFFC445),
+            size: 16,
+          ),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+                height: 1,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TodayPlanActions extends StatelessWidget {
+  const _TodayPlanActions({
+    required this.onViewPlan,
+    required this.onQuickStart,
+    required this.snapshot,
+  });
+
+  final VoidCallback onViewPlan;
+  final VoidCallback onQuickStart;
+  final _TodayPlanDisplaySnapshot snapshot;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: OutlinedButton(
+            onPressed: onViewPlan,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.white,
+              minimumSize: const Size.fromHeight(44),
+              side: BorderSide(color: Colors.white.withValues(alpha: 0.72)),
+              backgroundColor: Colors.white.withValues(alpha: 0.04),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15),
+              ),
+              textStyle: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            child: Text(snapshot.secondaryActionLabel),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: FilledButton.icon(
+            onPressed: onQuickStart,
+            icon: const Icon(Icons.play_arrow_rounded, size: 24),
+            label: Text(snapshot.primaryActionLabel),
+            style: FilledButton.styleFrom(
+              foregroundColor: RuniacColors.primaryBlue,
+              backgroundColor: Colors.white,
+              minimumSize: const Size.fromHeight(44),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15),
+              ),
+              textStyle: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }
