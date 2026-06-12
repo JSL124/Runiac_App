@@ -152,22 +152,14 @@ void main() {
       findsOneWidget,
     );
 
-    await tester.scrollUntilVisible(
-      find.text('This Week\'s Plan'),
-      180,
-      scrollable: find.byType(Scrollable).last,
+    expect(find.text('This Week\'s Plan'), findsNothing);
+    expect(find.text('Last Run'), findsNothing);
+    expect(find.text('Post-run Feedback'), findsNothing);
+    expect(find.text('Complete a run to see your summary.'), findsNothing);
+    expect(
+      find.text('Feedback will appear after a completed run.'),
+      findsNothing,
     );
-    await tester.pumpAndSettle();
-    expect(find.text('This Week\'s Plan'), findsOneWidget);
-
-    await tester.scrollUntilVisible(
-      find.text('Last Run'),
-      220,
-      scrollable: find.byType(Scrollable).last,
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.text('Last Run'), findsOneWidget);
     expect(find.text('View Details'), findsNothing);
     expect(find.text('Ready for an easy run?'), findsNothing);
     expect(find.text('Start small and keep it comfortable.'), findsNothing);

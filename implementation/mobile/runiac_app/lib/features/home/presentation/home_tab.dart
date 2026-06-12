@@ -4,11 +4,8 @@ import '../../run/presentation/run_launch_screen.dart';
 import '../../you/presentation/weekly_workout_detail_screen.dart';
 import 'widgets/home_header.dart';
 import 'widgets/home_progress_insight_section.dart';
-import 'widgets/last_run_card.dart';
-import 'widgets/post_run_feedback_card.dart';
 import 'widgets/explore_routes_section.dart';
 import 'widgets/today_plan_card.dart';
-import 'widgets/weekly_plan_card.dart';
 
 const _homeScreenBackground = Colors.white;
 
@@ -68,12 +65,6 @@ class HomeTab extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               const HomeProgressInsightSection(),
-              const SizedBox(height: 10),
-              const WeeklyPlanCard(),
-              const SizedBox(height: 10),
-              const LastRunCard(),
-              const SizedBox(height: 10),
-              const PostRunFeedbackCard(),
               const SizedBox(height: 10),
               const ExploreRoutesSection(),
             ],
