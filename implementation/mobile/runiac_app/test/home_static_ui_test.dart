@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runiac_app/app.dart';
+import 'package:runiac_app/features/home/presentation/data/home_dashboard_demo_snapshots.dart';
+import 'package:runiac_app/features/home/presentation/widgets/home_progress_insight_section.dart';
 import 'package:runiac_app/features/home/presentation/widgets/today_plan_card.dart';
 
 const _todayPlanHeroAssetPath = 'assets/images/home/todays_plan_runner.png';
@@ -19,6 +21,54 @@ TextStyle? _effectiveTextStyle(Finder textFinder, WidgetTester tester) {
   );
   return richText.text.style;
 }
+
+Finder _nearestDecoratedBoxContaining(String text) {
+  return find
+      .ancestor(of: find.text(text), matching: find.byType(DecoratedBox))
+      .last;
+}
+
+const _longXpHomeSnapshot = HomeDashboardDemoSnapshot(
+  goal: HomeGoalProgressDemoSnapshot(
+    title: 'First 10K Preparation',
+    weekLabel: 'Week 3 of 8',
+    progressLabel: '43%',
+    milestoneLabel: 'Next Milestone',
+    milestoneValue: 'Complete 6 km comfortably',
+  ),
+  streak: HomeMetricDemoSnapshot(
+    title: 'Streak',
+    value: '6 days',
+    caption: 'Keep it going!',
+  ),
+  xp: HomeMetricDemoSnapshot(
+    title: 'XP',
+    value: '100,000 xp',
+    caption: '360 XP to Lv.13',
+  ),
+  insight: HomeInsightDemoSnapshot(
+    title: 'Advanced Insight',
+    rows: [
+      HomeInsightRowDemoSnapshot(
+        icon: Icons.show_chart_rounded,
+        label: 'Pace consistency',
+        value: 'Improved',
+      ),
+      HomeInsightRowDemoSnapshot(
+        icon: Icons.bar_chart_rounded,
+        label: 'Training load',
+        value: 'Balanced',
+      ),
+      HomeInsightRowDemoSnapshot(
+        icon: Icons.track_changes_rounded,
+        label: 'Goal forecast',
+        value: 'On track',
+      ),
+    ],
+    chartLabels: ['May 6', 'May 13', 'May 20', 'May 27', 'Jun 3'],
+    chartValues: [0.42, 0.33, 0.18, 0.36, 0.55, 0.62, 0.72],
+  ),
+);
 
 void main() {
   testWidgets('Home dashboard keeps a calm primary quick start', (
@@ -129,7 +179,89 @@ void main() {
 
     expect(find.text('First 10K Preparation'), findsOneWidget);
     expect(find.text('Readiness'), findsNothing);
+    expect(find.text('Streak'), findsOneWidget);
+    expect(find.text('6 days'), findsOneWidget);
+    expect(find.text('Keep it going!'), findsOneWidget);
+    expect(find.text('XP'), findsOneWidget);
+    expect(find.text('1,240 xp'), findsOneWidget);
+    expect(find.text('360 XP to Lv.13'), findsOneWidget);
     expect(find.text('Advanced Insight'), findsOneWidget);
+
+    final streakTitleRect = tester.getRect(find.text('Streak'));
+    final xpTitleRect = tester.getRect(find.text('XP'));
+    final streakValueRect = tester.getRect(find.text('6 days'));
+    final xpValueRect = tester.getRect(find.text('1,240 xp'));
+    final streakCaptionRect = tester.getRect(find.text('Keep it going!'));
+    final xpCaptionRect = tester.getRect(find.text('360 XP to Lv.13'));
+    final streakCardHeight = tester
+        .getSize(_nearestDecoratedBoxContaining('Streak'))
+        .height;
+    final xpCardHeight = tester
+        .getSize(_nearestDecoratedBoxContaining('XP'))
+        .height;
+
+    expect(streakTitleRect.center.dx, lessThan(xpTitleRect.center.dx));
+    expect(
+      (streakTitleRect.center.dy - xpTitleRect.center.dy).abs(),
+      lessThan(1),
+    );
+    expect(
+      (streakValueRect.center.dy - xpValueRect.center.dy).abs(),
+      lessThan(1),
+    );
+    expect(
+      (streakCaptionRect.center.dy - xpCaptionRect.center.dy).abs(),
+      lessThan(1),
+    );
+    expect((streakCardHeight - xpCardHeight).abs(), lessThan(1));
+    expect(streakCardHeight, lessThan(102));
+    expect(xpCardHeight, lessThan(102));
+    expect(
+      tester
+          .widget<Icon>(find.byIcon(Icons.local_fire_department_rounded))
+          .size,
+      lessThanOrEqualTo(27),
+    );
+    expect(
+      tester.widget<Icon>(find.byIcon(Icons.star_rounded)).size,
+      lessThanOrEqualTo(27),
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Home XP mini card fits a long display value', (
+    WidgetTester tester,
+  ) async {
+    tester.view.physicalSize = const Size(360, 760);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: Padding(
+            padding: EdgeInsets.all(16),
+            child: HomeProgressInsightSection(snapshot: _longXpHomeSnapshot),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Streak'), findsOneWidget);
+    expect(find.text('6 days'), findsOneWidget);
+    expect(find.text('XP'), findsOneWidget);
+    expect(find.text('100,000 xp'), findsOneWidget);
+    expect(find.text('360 XP to Lv.13'), findsOneWidget);
+
+    final streakTitleRect = tester.getRect(find.text('Streak'));
+    final xpTitleRect = tester.getRect(find.text('XP'));
+    final longXpValueRect = tester.getRect(find.text('100,000 xp'));
+    final xpCardRect = tester.getRect(_nearestDecoratedBoxContaining('XP'));
+
+    expect(streakTitleRect.center.dx, lessThan(xpTitleRect.center.dx));
+    expect(longXpValueRect.left, greaterThanOrEqualTo(xpCardRect.left));
+    expect(longXpValueRect.right, lessThanOrEqualTo(xpCardRect.right));
     expect(tester.takeException(), isNull);
   });
 

@@ -10,12 +10,15 @@ const _softOrange = Color(0xFFFFF4DF);
 const _starOrange = Color(0xFFF6A800);
 
 class HomeProgressInsightSection extends StatelessWidget {
-  const HomeProgressInsightSection({super.key});
+  const HomeProgressInsightSection({
+    super.key,
+    this.snapshot = homeDashboardDemoSnapshot,
+  });
+
+  final HomeDashboardDemoSnapshot snapshot;
 
   @override
   Widget build(BuildContext context) {
-    const snapshot = homeDashboardDemoSnapshot;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -224,7 +227,6 @@ class _MetricCardsRow extends StatelessWidget {
             icon: Icons.star_rounded,
             iconColor: _starOrange,
             iconBackground: _softOrange,
-            showProgress: true,
           ),
         ),
       ],
@@ -238,80 +240,89 @@ class _MetricCard extends StatelessWidget {
     required this.icon,
     required this.iconColor,
     required this.iconBackground,
-    this.showProgress = false,
   });
 
   final HomeMetricDemoSnapshot metric;
   final IconData icon;
   final Color iconColor;
   final Color iconBackground;
-  final bool showProgress;
 
   @override
   Widget build(BuildContext context) {
-    return _ReferenceCard(
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        children: [
-          _IconTile(
-            icon: icon,
-            background: iconBackground,
-            color: iconColor,
-            size: 64,
-            iconSize: 36,
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  metric.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: RuniacColors.textPrimary,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    metric.value,
-                    maxLines: 1,
-                    style: const TextStyle(
-                      color: RuniacColors.textPrimary,
-                      fontSize: 25,
-                      fontWeight: FontWeight.w800,
-                      height: 1.08,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    metric.caption,
-                    maxLines: 1,
-                    style: const TextStyle(
-                      color: RuniacColors.textSecondary,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                if (showProgress) ...[
-                  const SizedBox(height: 10),
-                  const _MiniProgressBar(),
-                ],
-              ],
+    return SizedBox(
+      height: 98,
+      child: _ReferenceCard(
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 11),
+        child: Row(
+          children: [
+            _IconTile(
+              icon: icon,
+              background: iconBackground,
+              color: iconColor,
+              size: 48,
+              iconSize: 26,
             ),
-          ),
-        ],
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    height: 18,
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        metric.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: RuniacColors.textPrimary,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: 25,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        metric.value,
+                        maxLines: 1,
+                        style: const TextStyle(
+                          color: RuniacColors.textPrimary,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          height: 1.08,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: 16,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        metric.caption,
+                        maxLines: 1,
+                        style: const TextStyle(
+                          color: RuniacColors.textSecondary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -539,37 +550,6 @@ class _IconTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(size * 0.32),
       ),
       child: Icon(icon, color: color, size: iconSize),
-    );
-  }
-}
-
-class _MiniProgressBar extends StatelessWidget {
-  const _MiniProgressBar();
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return Stack(
-          children: [
-            Container(
-              height: 6,
-              decoration: BoxDecoration(
-                color: RuniacColors.sectionSurfaceStrong,
-                borderRadius: BorderRadius.circular(999),
-              ),
-            ),
-            Container(
-              width: constraints.maxWidth * 0.74,
-              height: 6,
-              decoration: BoxDecoration(
-                color: RuniacColors.primaryBlue,
-                borderRadius: BorderRadius.circular(999),
-              ),
-            ),
-          ],
-        );
-      },
     );
   }
 }
