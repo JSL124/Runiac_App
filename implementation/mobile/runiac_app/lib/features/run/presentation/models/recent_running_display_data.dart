@@ -1,5 +1,5 @@
-import 'run_activity_display_model.dart';
-import 'run_summary_snapshot.dart';
+import '../../domain/models/run_activity_display_model.dart';
+import '../../domain/models/run_summary_snapshot.dart';
 
 const recentRunningDisplayData = [
   RunActivityDisplayModel(

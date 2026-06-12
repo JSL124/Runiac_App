@@ -8,8 +8,8 @@ import 'package:runiac_app/core/theme/runiac_colors.dart';
 import 'package:runiac_app/features/run/presentation/advanced_analysis_screen.dart';
 import 'package:runiac_app/features/run/presentation/cool_down_guide_screen.dart';
 import 'package:runiac_app/features/run/presentation/cool_down_screen.dart';
-import 'package:runiac_app/features/run/presentation/models/run_summary_snapshot.dart';
-import 'package:runiac_app/features/run/presentation/models/xp_update_display_model.dart';
+import 'package:runiac_app/features/run/domain/models/run_summary_snapshot.dart';
+import 'package:runiac_app/features/run/domain/models/xp_update_display_model.dart';
 import 'package:runiac_app/features/run/presentation/view_summary_screen.dart';
 import 'package:runiac_app/features/run/presentation/widgets/share_achievement_sheet.dart';
 import 'package:runiac_app/features/run/presentation/xp_update_screen.dart';
@@ -656,11 +656,14 @@ void main() {
       'lib/features/run/presentation/xp_update_screen.dart',
     ).readAsStringSync();
     final modelSource = File(
-      'lib/features/run/presentation/models/xp_update_display_model.dart',
+      'lib/features/run/domain/models/xp_update_display_model.dart',
     ).readAsStringSync();
 
     expect(modelSource, contains('class XpUpdateDisplayModel'));
-    expect(screenSource, contains('models/xp_update_display_model.dart'));
+    expect(
+      screenSource,
+      contains('../domain/models/xp_update_display_model.dart'),
+    );
     expect(screenSource, isNot(contains('class RunReward')));
     expect(modelSource, isNot(contains('class RunReward')));
     expect(screenSource, isNot(contains('_demoReward')));

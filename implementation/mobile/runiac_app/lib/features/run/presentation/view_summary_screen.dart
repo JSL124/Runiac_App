@@ -4,7 +4,7 @@ import 'package:runiac_app/core/theme/runiac_colors.dart';
 import 'package:runiac_app/core/widgets/runiac_back_header.dart';
 
 import 'advanced_analysis_screen.dart';
-import 'models/run_summary_snapshot.dart';
+import '../domain/models/run_summary_snapshot.dart';
 import 'widgets/share_achievement_sheet.dart';
 import 'xp_update_screen.dart';
 

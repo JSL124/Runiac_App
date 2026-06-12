@@ -4,7 +4,7 @@ import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/runiac_buttons.dart';
 import '../../../core/widgets/runiac_section_header.dart';
 import '../../run/presentation/models/recent_running_display_data.dart';
-import '../../run/presentation/models/run_activity_display_model.dart';
+import '../../run/domain/models/run_activity_display_model.dart';
 import '../../run/presentation/view_summary_screen.dart';
 import 'activity_history_screen.dart';
 import 'expert_plan_detail_screen.dart';

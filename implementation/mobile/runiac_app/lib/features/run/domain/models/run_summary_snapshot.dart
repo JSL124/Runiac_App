@@ -1,3 +1,4 @@
+/// Display-only run summary snapshot for the static run completion surface.
 const defaultRunSummarySnapshot = RunSummarySnapshot(
   title: 'Saturday Morning Run',
   dateLabel: 'Today',

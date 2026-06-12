@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/runiac_colors.dart';
 import '../../../../core/widgets/runiac_buttons.dart';
-import '../../../run/presentation/models/run_activity_display_model.dart';
+import '../../../run/domain/models/run_activity_display_model.dart';
 
 class CompactRunActivityCard extends StatelessWidget {
   const CompactRunActivityCard({

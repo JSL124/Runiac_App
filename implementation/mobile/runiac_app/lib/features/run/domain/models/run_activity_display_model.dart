@@ -1,5 +1,6 @@
 import 'run_summary_snapshot.dart';
 
+/// Display-only activity row model backed by future run history read models.
 class RunActivityDisplayModel {
   const RunActivityDisplayModel({
     required this.title,

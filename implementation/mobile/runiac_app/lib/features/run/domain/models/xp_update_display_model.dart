@@ -1,3 +1,6 @@
+/// Display-only result labels for the static run completion surface.
+///
+/// Production progression values should be supplied by backend-owned results.
 const defaultXpUpdateDisplayModel = XpUpdateDisplayModel(
   runnerName: 'Jinseo',
   earnedXpLabel: '+120 XP',

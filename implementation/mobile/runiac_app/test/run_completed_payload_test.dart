@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:runiac_app/features/run/presentation/models/run_completed_payload.dart';
+import 'package:runiac_app/features/run/domain/models/run_completed_payload.dart';
 
 void main() {
   group('RunCompletedPayload', () {
@@ -62,7 +62,7 @@ void main() {
     test('source stays backend-free and excludes trusted field names', () {
       // Given: the model source file.
       final source = File(
-        'lib/features/run/presentation/models/run_completed_payload.dart',
+        'lib/features/run/domain/models/run_completed_payload.dart',
       ).readAsStringSync();
 
       // When: checking forbidden backend, persistence, and progression terms.

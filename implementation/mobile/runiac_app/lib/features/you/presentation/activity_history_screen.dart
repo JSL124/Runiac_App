@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/runiac_back_header.dart';
-import '../../run/presentation/models/run_activity_display_model.dart';
-import '../../run/presentation/models/run_summary_snapshot.dart';
+import '../../run/domain/models/run_activity_display_model.dart';
+import '../../run/domain/models/run_summary_snapshot.dart';
 import 'widgets/compact_run_activity_card.dart';
 
 const activityHistoryDisplayData = [

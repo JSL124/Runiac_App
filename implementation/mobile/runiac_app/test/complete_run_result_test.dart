@@ -1,9 +1,9 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:runiac_app/features/run/presentation/models/complete_run_result.dart';
-import 'package:runiac_app/features/run/presentation/models/run_summary_snapshot.dart';
-import 'package:runiac_app/features/run/presentation/models/xp_update_display_model.dart';
+import 'package:runiac_app/features/run/domain/models/complete_run_result.dart';
+import 'package:runiac_app/features/run/domain/models/run_summary_snapshot.dart';
+import 'package:runiac_app/features/run/domain/models/xp_update_display_model.dart';
 
 void main() {
   group('CompleteRunResult', () {
@@ -45,9 +45,9 @@ void main() {
       expect(result.xpUpdate.streakChangeLabel, '5 -> 6 days');
     });
 
-    test('source stays presentation-only and backend free', () {
+    test('source stays display-result only and backend free', () {
       final source = File(
-        'lib/features/run/presentation/models/complete_run_result.dart',
+        'lib/features/run/domain/models/complete_run_result.dart',
       ).readAsStringSync();
 
       const forbiddenTerms = [
