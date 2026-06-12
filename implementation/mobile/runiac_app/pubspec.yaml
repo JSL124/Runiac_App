@@ -61,6 +61,7 @@ flutter:
     - assets/icons/instagram_stories.png
     - assets/images/home/todays_plan_runner.png
     - assets/images/leaderboard/share_rank_card_background.png
+    - assets/images/splash/runiac_splash_logo.png
 
   # To add assets to your application, add an assets section, like this:
   # assets:

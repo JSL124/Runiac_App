@@ -74,7 +74,7 @@ Widget _shareSheetHarness() {
 }
 
 Future<void> _openPausedRun(WidgetTester tester) async {
-  await tester.pumpWidget(const RuniacApp());
+  await tester.pumpWidget(const RuniacApp(showSplash: false));
 
   await tester.tap(find.text('Run'));
   await tester.pumpAndSettle();
@@ -98,7 +98,7 @@ void main() {
   testWidgets('Run item opens and protects static live end controls', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const RuniacApp());
+    await tester.pumpWidget(const RuniacApp(showSplash: false));
 
     await tester.tap(find.text('Run'));
     await tester.pumpAndSettle();
@@ -926,7 +926,7 @@ void main() {
   testWidgets('Android back dismisses static Run launch surface', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const RuniacApp());
+    await tester.pumpWidget(const RuniacApp(showSplash: false));
 
     await tester.tap(find.text('Maps'));
     await tester.pumpAndSettle();

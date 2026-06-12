@@ -6,7 +6,7 @@ void main() {
   testWidgets('Runiac app shell shows static tabs', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const RuniacApp());
+    await tester.pumpWidget(const RuniacApp(showSplash: false));
 
     expect(find.text('Good to see you'), findsOneWidget);
     expect(find.text('Home'), findsOneWidget);

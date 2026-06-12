@@ -74,7 +74,7 @@ void main() {
   testWidgets('Home dashboard keeps a calm primary quick start', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const RuniacApp());
+    await tester.pumpWidget(const RuniacApp(showSplash: false));
 
     expect(find.text('Good to see you'), findsOneWidget);
     expect(
@@ -175,7 +175,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(const RuniacApp());
+    await tester.pumpWidget(const RuniacApp(showSplash: false));
 
     expect(find.text('First 10K Preparation'), findsOneWidget);
     expect(find.text('Readiness'), findsNothing);
@@ -296,7 +296,7 @@ void main() {
   testWidgets('Home Quick Start opens the existing run launch screen', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const RuniacApp());
+    await tester.pumpWidget(const RuniacApp(showSplash: false));
 
     await tester.tap(find.text('Quick Start'));
     await tester.pumpAndSettle();
@@ -310,7 +310,7 @@ void main() {
   testWidgets('Home View Plan opens today workout detail without editing', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const RuniacApp());
+    await tester.pumpWidget(const RuniacApp(showSplash: false));
 
     await tester.tap(find.text('View Plan'));
     await tester.pumpAndSettle();
