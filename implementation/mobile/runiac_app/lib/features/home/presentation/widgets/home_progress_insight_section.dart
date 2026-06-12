@@ -6,7 +6,6 @@ import '../../../../core/theme/runiac_colors.dart';
 import '../data/home_dashboard_demo_snapshots.dart';
 
 const _successGreen = Color(0xFF0F9F52);
-const _successSurface = Color(0xFFE8F8EF);
 const _softOrange = Color(0xFFFFF4DF);
 const _starOrange = Color(0xFFF6A800);
 
@@ -20,7 +19,7 @@ class HomeProgressInsightSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _GoalReadinessCard(goal: snapshot.goal, readiness: snapshot.readiness),
+        _GoalProgressCard(goal: snapshot.goal),
         const SizedBox(height: 10),
         _MetricCardsRow(streak: snapshot.streak, xp: snapshot.xp),
         const SizedBox(height: 10),
@@ -30,48 +29,16 @@ class HomeProgressInsightSection extends StatelessWidget {
   }
 }
 
-class _GoalReadinessCard extends StatelessWidget {
-  const _GoalReadinessCard({required this.goal, required this.readiness});
+class _GoalProgressCard extends StatelessWidget {
+  const _GoalProgressCard({required this.goal});
 
   final HomeGoalProgressDemoSnapshot goal;
-  final HomeReadinessDemoSnapshot readiness;
 
   @override
   Widget build(BuildContext context) {
     return _ReferenceCard(
       padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final stackReadiness = constraints.maxWidth < 322;
-
-          if (stackReadiness) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _GoalProgressBlock(goal: goal),
-                const SizedBox(height: 16),
-                const Divider(color: RuniacColors.border, height: 1),
-                const SizedBox(height: 14),
-                _ReadinessBlock(readiness: readiness, centered: false),
-              ],
-            );
-          }
-
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(flex: 7, child: _GoalProgressBlock(goal: goal)),
-              const SizedBox(width: 16),
-              const _VerticalDivider(height: 146),
-              const SizedBox(width: 16),
-              Expanded(
-                flex: 4,
-                child: _ReadinessBlock(readiness: readiness, centered: true),
-              ),
-            ],
-          );
-        },
-      ),
+      child: _GoalProgressBlock(goal: goal),
     );
   }
 }
@@ -95,9 +62,9 @@ class _GoalProgressBlock extends StatelessWidget {
             maxLines: 1,
             style: const TextStyle(
               color: RuniacColors.textPrimary,
-              fontSize: 23,
-              fontWeight: FontWeight.w900,
-              height: 1.08,
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              height: 1.12,
             ),
           ),
         ),
@@ -106,8 +73,8 @@ class _GoalProgressBlock extends StatelessWidget {
           goal.weekLabel,
           style: const TextStyle(
             color: RuniacColors.textSecondary,
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
           ),
         ),
         const SizedBox(height: 14),
@@ -133,8 +100,8 @@ class _GoalProgressBlock extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: RuniacColors.textSecondary,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -144,9 +111,9 @@ class _GoalProgressBlock extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: RuniacColors.textPrimary,
-                      fontSize: 17,
-                      fontWeight: FontWeight.w900,
-                      height: 1.15,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      height: 1.18,
                     ),
                   ),
                 ],
@@ -232,48 +199,6 @@ class _GoalProgressBar extends StatelessWidget {
   }
 }
 
-class _ReadinessBlock extends StatelessWidget {
-  const _ReadinessBlock({required this.readiness, required this.centered});
-
-  final HomeReadinessDemoSnapshot readiness;
-  final bool centered;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: centered
-          ? CrossAxisAlignment.center
-          : CrossAxisAlignment.start,
-      children: [
-        Text(
-          readiness.title,
-          style: const TextStyle(
-            color: RuniacColors.textSecondary,
-            fontSize: 17,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          readiness.value,
-          style: const TextStyle(
-            color: RuniacColors.textPrimary,
-            fontSize: 42,
-            fontWeight: FontWeight.w900,
-            height: 0.98,
-          ),
-        ),
-        const SizedBox(height: 18),
-        _StatusPill(
-          icon: Icons.trending_up_rounded,
-          label: readiness.trendLabel,
-        ),
-      ],
-    );
-  }
-}
-
 class _MetricCardsRow extends StatelessWidget {
   const _MetricCardsRow({required this.streak, required this.xp});
 
@@ -346,8 +271,8 @@ class _MetricCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: RuniacColors.textPrimary,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w900,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -359,9 +284,9 @@ class _MetricCard extends StatelessWidget {
                     maxLines: 1,
                     style: const TextStyle(
                       color: RuniacColors.textPrimary,
-                      fontSize: 29,
-                      fontWeight: FontWeight.w900,
-                      height: 1.05,
+                      fontSize: 25,
+                      fontWeight: FontWeight.w800,
+                      height: 1.08,
                     ),
                   ),
                 ),
@@ -375,7 +300,7 @@ class _MetricCard extends StatelessWidget {
                     style: const TextStyle(
                       color: RuniacColors.textSecondary,
                       fontSize: 13,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
@@ -464,9 +389,9 @@ class _InsightRows extends StatelessWidget {
                   maxLines: 1,
                   style: const TextStyle(
                     color: RuniacColors.textPrimary,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w900,
-                    height: 1,
+                    fontSize: 19,
+                    fontWeight: FontWeight.w800,
+                    height: 1.08,
                   ),
                 ),
               ),
@@ -509,8 +434,8 @@ class _InsightRow extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 color: RuniacColors.textSecondary,
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
@@ -526,7 +451,7 @@ class _InsightRow extends StatelessWidget {
                 style: TextStyle(
                   color: isBalanced ? const Color(0xFF2563EB) : _successGreen,
                   fontSize: 14,
-                  fontWeight: FontWeight.w900,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
             ),
@@ -614,46 +539,6 @@ class _IconTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(size * 0.32),
       ),
       child: Icon(icon, color: color, size: iconSize),
-    );
-  }
-}
-
-class _StatusPill extends StatelessWidget {
-  const _StatusPill({required this.icon, required this.label});
-
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: _successSurface,
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: _successGreen, size: 17),
-          const SizedBox(width: 6),
-          Flexible(
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(
-                label,
-                maxLines: 1,
-                style: const TextStyle(
-                  color: _successGreen,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

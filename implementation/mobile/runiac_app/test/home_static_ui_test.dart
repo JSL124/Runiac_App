@@ -55,8 +55,8 @@ void main() {
     expect(find.text('43%'), findsWidgets);
     expect(find.text('Next Milestone'), findsOneWidget);
     expect(find.text('Complete 6 km comfortably'), findsOneWidget);
-    expect(find.text('Readiness'), findsOneWidget);
-    expect(find.text('+5% vs last week'), findsOneWidget);
+    expect(find.text('Readiness'), findsNothing);
+    expect(find.text('+5% vs last week'), findsNothing);
     expect(find.text('Streak'), findsOneWidget);
     expect(find.text('6 days'), findsOneWidget);
     expect(find.text('Keep it going!'), findsOneWidget);
@@ -128,7 +128,7 @@ void main() {
     await tester.pumpWidget(const RuniacApp());
 
     expect(find.text('First 10K Preparation'), findsOneWidget);
-    expect(find.text('Readiness'), findsOneWidget);
+    expect(find.text('Readiness'), findsNothing);
     expect(find.text('Advanced Insight'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });

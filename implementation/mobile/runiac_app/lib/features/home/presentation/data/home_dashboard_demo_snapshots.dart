@@ -8,11 +8,6 @@ const homeDashboardDemoSnapshot = HomeDashboardDemoSnapshot(
     milestoneLabel: 'Next Milestone',
     milestoneValue: 'Complete 6 km comfortably',
   ),
-  readiness: HomeReadinessDemoSnapshot(
-    title: 'Readiness',
-    value: '43%',
-    trendLabel: '+5% vs last week',
-  ),
   streak: HomeMetricDemoSnapshot(
     title: 'Streak',
     value: '6 days',
@@ -50,14 +45,12 @@ const homeDashboardDemoSnapshot = HomeDashboardDemoSnapshot(
 class HomeDashboardDemoSnapshot {
   const HomeDashboardDemoSnapshot({
     required this.goal,
-    required this.readiness,
     required this.streak,
     required this.xp,
     required this.insight,
   });
 
   final HomeGoalProgressDemoSnapshot goal;
-  final HomeReadinessDemoSnapshot readiness;
   final HomeMetricDemoSnapshot streak;
   final HomeMetricDemoSnapshot xp;
   final HomeInsightDemoSnapshot insight;
@@ -77,18 +70,6 @@ class HomeGoalProgressDemoSnapshot {
   final String progressLabel;
   final String milestoneLabel;
   final String milestoneValue;
-}
-
-class HomeReadinessDemoSnapshot {
-  const HomeReadinessDemoSnapshot({
-    required this.title,
-    required this.value,
-    required this.trendLabel,
-  });
-
-  final String title;
-  final String value;
-  final String trendLabel;
 }
 
 class HomeMetricDemoSnapshot {
