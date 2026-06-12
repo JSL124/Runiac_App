@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/app.dart';
 import 'package:runiac_app/core/widgets/runiac_share_bottom_sheet.dart';
 import 'package:runiac_app/features/leaderboard/presentation/leaderboard_tab.dart';
+import 'package:runiac_app/features/leaderboard/presentation/models/leaderboard_display_models.dart';
 
 void _useCompactShareSheetSurface(WidgetTester tester) {
   tester.view
@@ -546,26 +547,39 @@ void main() {
   });
 
   test('Leaderboard source isolates static display snapshots', () {
-    final source = File(
+    final uiSource = File(
       'lib/features/leaderboard/presentation/leaderboard_tab.dart',
     ).readAsStringSync();
+    final modelSource = File(
+      'lib/features/leaderboard/presentation/models/leaderboard_display_models.dart',
+    ).readAsStringSync();
+    final demoSource = File(
+      'lib/features/leaderboard/presentation/data/leaderboard_demo_snapshots.dart',
+    ).readAsStringSync();
+    final source = '$uiSource\n$modelSource\n$demoSource';
 
-    expect(source, contains('class _LeaderboardPreviewSnapshot'));
-    expect(source, contains('class _LeaderboardLeagueSnapshot'));
-    expect(source, contains('class _LeaderboardRegionSnapshot'));
-    expect(source, contains('class _LeaderboardDetailDisplaySnapshot'));
-    expect(source, contains('class _LeaderboardRankRowDisplaySnapshot'));
-    expect(source, contains('class _RunnerAchievementProfileSnapshot'));
-    expect(source, contains('class _RunnerAchievementBadgeSnapshot'));
-    expect(source, contains('class _RunnerMetricValueText'));
-    expect(source, contains('const _leaderboardPreviewSnapshot'));
-    expect(source, contains('const _leaderboardLeagueSnapshot'));
-    expect(source, contains('const _leaderboardRegionSnapshot'));
-    expect(source, contains('const _leaderboardDetailSnapshot'));
-    expect(source, contains('periodLabel: \'June 2026\''));
-    expect(source, contains('fallbackPeriodLabel: \'Monthly board\''));
-    expect(source, contains('Refreshes in 24:14:05:45'));
-    expect(source, contains('Refreshes in 00:00:00:00'));
+    expect(modelSource, contains('class LeaderboardPreviewSnapshot'));
+    expect(modelSource, contains('class LeaderboardLeagueSnapshot'));
+    expect(modelSource, contains('class LeaderboardRegionSnapshot'));
+    expect(modelSource, contains('class LeaderboardDetailDisplaySnapshot'));
+    expect(modelSource, contains('class LeaderboardRankRowDisplaySnapshot'));
+    expect(modelSource, contains('class RunnerAchievementProfileSnapshot'));
+    expect(modelSource, contains('class RunnerAchievementBadgeSnapshot'));
+    expect(modelSource, contains('enum RegionPreviewMedalTone'));
+    expect(modelSource, contains('class LeagueTaxonomyEntry'));
+    expect(uiSource, contains('class _RunnerMetricValueText'));
+    expect(demoSource, contains('const leaderboardPreviewDemoSnapshot'));
+    expect(demoSource, contains('const leaderboardLeagueDemoSnapshot'));
+    expect(demoSource, contains('const leaderboardRegionDemoSnapshot'));
+    expect(demoSource, contains('const leaderboardDetailDemoSnapshot'));
+    expect(demoSource, contains('periodLabel: \'June 2026\''));
+    expect(demoSource, contains('fallbackPeriodLabel: \'Monthly board\''));
+    expect(demoSource, contains('Refreshes in 24:14:05:45'));
+    expect(demoSource, contains('Refreshes in 00:00:00:00'));
+    expect(uiSource, isNot(contains('const leaderboardPreviewDemoSnapshot')));
+    expect(uiSource, isNot(contains('const leaderboardLeagueDemoSnapshot')));
+    expect(uiSource, isNot(contains('const leaderboardRegionDemoSnapshot')));
+    expect(uiSource, isNot(contains('const leaderboardDetailDemoSnapshot')));
 
     for (final forbidden in [
       'calculateRank',
@@ -598,12 +612,12 @@ void main() {
       expect(source, isNot(contains(forbidden)));
     }
 
-    final metricValueStart = source.indexOf('class _RunnerMetricValueText');
-    final metricValueEnd = source.indexOf(
+    final metricValueStart = uiSource.indexOf('class _RunnerMetricValueText');
+    final metricValueEnd = uiSource.indexOf(
       'class _RunnerAchievementsSection',
       metricValueStart,
     );
-    final metricValueSource = source.substring(
+    final metricValueSource = uiSource.substring(
       metricValueStart,
       metricValueEnd,
     );

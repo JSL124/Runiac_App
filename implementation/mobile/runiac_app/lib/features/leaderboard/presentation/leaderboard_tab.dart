@@ -6,297 +6,12 @@ import '../../../core/widgets/runiac_back_header.dart';
 import '../../../core/widgets/runiac_bottom_sheet_handle.dart';
 import '../../../core/widgets/runiac_share_bottom_sheet.dart';
 
+import 'data/leaderboard_demo_snapshots.dart';
+import 'models/leaderboard_display_models.dart';
+
 const _shareRankCardAsset =
     'assets/images/leaderboard/share_rank_card_background.png';
 const _instagramStoriesIconAsset = 'assets/icons/instagram_stories.png';
-
-const _leaderboardPreviewSnapshot = _LeaderboardPreviewSnapshot(
-  tipsTitle: 'Tips',
-  leaguesTipTitle: 'Leagues',
-  cadenceTipTitle: 'Board timing',
-  readinessTipTitle: 'Static sample data',
-  leaguesTipBody:
-      'Leagues group runners by broad progress bands so the board feels fair and beginner-friendly.',
-  cadenceTipBody:
-      'This static preview keeps one monthly board context for a calmer comparison.',
-  readinessTipBody:
-      'Leaderboard values shown here are display-only sample rows for this UI milestone.',
-);
-
-const _leaderboardLeagueSnapshot = _LeaderboardLeagueSnapshot(
-  selectedDivision: 'Rising Runner Division',
-  selectedLevelRange: 'Lv.11 - Lv.20',
-  dialogTitle: 'Leagues',
-  entries: [
-    _LeagueTaxonomyEntry('Apex Runner League', 'Lv.81 - Lv.90'),
-    _LeagueTaxonomyEntry('Summitborn League', 'Lv.71 - Lv.80'),
-    _LeagueTaxonomyEntry('Roadrunner League', 'Lv.51 - Lv.60'),
-    _LeagueTaxonomyEntry('Endurancer League', 'Lv.41 - Lv.50'),
-    _LeagueTaxonomyEntry('Milehunter League', 'Lv.31 - Lv.40'),
-    _LeagueTaxonomyEntry('Pacebreaker League', 'Lv.21 - Lv.30'),
-    _LeagueTaxonomyEntry('Strideforge League', 'Lv.11 - Lv.20'),
-    _LeagueTaxonomyEntry('Trailborn League', 'Lv.1 - Lv.10'),
-  ],
-);
-
-const _leaderboardRegionSnapshot = _LeaderboardRegionSnapshot(
-  regionName: 'Jurong East',
-  rankPreviewTitle: 'My Rank Preview',
-  primaryActionLabel: 'View More Ranking',
-  secondaryActionLabel: 'Share My Rank',
-  userAreaLabel: 'Your ranked area',
-);
-
-const _leaderboardDetailSnapshot = _LeaderboardDetailDisplaySnapshot(
-  regionName: 'Jurong East',
-  periodLabel: 'June 2026',
-  fallbackPeriodLabel: 'Monthly board',
-  refreshLabel: 'Refreshes in 24:14:05:45',
-  fallbackRefreshLabel: 'Refreshes in 00:00:00:00',
-  divisionLabel: 'Rising Runner Division',
-  topRanksTitle: 'Regional ranking',
-  nearbyRanksTitle: 'Nearby your rank',
-  currentUser: _CurrentUserRankSummaryDisplaySnapshot(
-    rankLabel: '#18',
-    title: 'You · Monthly ranking preview',
-    xpLabel: '520 XP',
-  ),
-  topRanks: [
-    _LeaderboardRankRowDisplaySnapshot(
-      rankLabel: '#1',
-      name: 'Alex T.',
-      levelLabel: 'Level 18',
-      xpLabel: '1,240 XP',
-      profile: _RunnerAchievementProfileSnapshot(
-        name: 'Alex T.',
-        initial: 'A',
-        regionRankLabel: 'Jurong East · Rank #1',
-        levelBadgeLabel: 'Lv.18',
-        divisionLevelLabel: 'Rising Runner Division · Level 18',
-        totalDistanceLabel: '10000 km',
-        bestStreakLabel: '365 days',
-      ),
-      trophy: true,
-      medalTone: _RegionPreviewMedalTone.gold,
-    ),
-    _LeaderboardRankRowDisplaySnapshot(
-      rankLabel: '#2',
-      name: 'Maya L.',
-      levelLabel: 'Level 17',
-      xpLabel: '1,180 XP',
-      profile: _RunnerAchievementProfileSnapshot(
-        name: 'Maya L.',
-        initial: 'M',
-        regionRankLabel: 'Jurong East · Rank #2',
-        levelBadgeLabel: 'Lv.17',
-        divisionLevelLabel: 'Rising Runner Division · Level 17',
-        totalDistanceLabel: '198.2 km',
-        bestStreakLabel: '19 days',
-      ),
-      medalTone: _RegionPreviewMedalTone.silver,
-    ),
-    _LeaderboardRankRowDisplaySnapshot(
-      rankLabel: '#3',
-      name: 'Ryan K.',
-      levelLabel: 'Level 16',
-      xpLabel: '1,050 XP',
-      profile: _RunnerAchievementProfileSnapshot(
-        name: 'Ryan K.',
-        initial: 'R',
-        regionRankLabel: 'Jurong East · Rank #3',
-        levelBadgeLabel: 'Lv.16',
-        divisionLevelLabel: 'Rising Runner Division · Level 16',
-        totalDistanceLabel: '176.0 km',
-        bestStreakLabel: '18 days',
-      ),
-      medalTone: _RegionPreviewMedalTone.bronze,
-    ),
-    _LeaderboardRankRowDisplaySnapshot(
-      rankLabel: '#4',
-      name: 'Ethan G.',
-      levelLabel: 'Level 15',
-      xpLabel: '870 XP',
-      profile: _RunnerAchievementProfileSnapshot(
-        name: 'Ethan G.',
-        initial: 'E',
-        regionRankLabel: 'Jurong East · Rank #4',
-        levelBadgeLabel: 'Lv.15',
-        divisionLevelLabel: 'Rising Runner Division · Level 15',
-        totalDistanceLabel: '154.5 km',
-        bestStreakLabel: '16 days',
-      ),
-    ),
-    _LeaderboardRankRowDisplaySnapshot(
-      rankLabel: '#5',
-      name: 'Sarah C.',
-      levelLabel: 'Level 14',
-      xpLabel: '760 XP',
-      profile: _RunnerAchievementProfileSnapshot(
-        name: 'Sarah C.',
-        initial: 'S',
-        regionRankLabel: 'Jurong East · Rank #5',
-        levelBadgeLabel: 'Lv.14',
-        divisionLevelLabel: 'Rising Runner Division · Level 14',
-        totalDistanceLabel: '143.6 km',
-        bestStreakLabel: '15 days',
-      ),
-    ),
-    _LeaderboardRankRowDisplaySnapshot(
-      rankLabel: '#6',
-      name: 'Priya N.',
-      levelLabel: 'Level 14',
-      xpLabel: '735 XP',
-      profile: _RunnerAchievementProfileSnapshot(
-        name: 'Priya N.',
-        initial: 'P',
-        regionRankLabel: 'Jurong East · Rank #6',
-        levelBadgeLabel: 'Lv.14',
-        divisionLevelLabel: 'Rising Runner Division · Level 14',
-        totalDistanceLabel: '139.2 km',
-        bestStreakLabel: '14 days',
-      ),
-    ),
-    _LeaderboardRankRowDisplaySnapshot(
-      rankLabel: '#7',
-      name: 'Omar R.',
-      levelLabel: 'Level 13',
-      xpLabel: '710 XP',
-      profile: _RunnerAchievementProfileSnapshot(
-        name: 'Omar R.',
-        initial: 'O',
-        regionRankLabel: 'Jurong East · Rank #7',
-        levelBadgeLabel: 'Lv.13',
-        divisionLevelLabel: 'Rising Runner Division · Level 13',
-        totalDistanceLabel: '135.8 km',
-        bestStreakLabel: '13 days',
-      ),
-    ),
-    _LeaderboardRankRowDisplaySnapshot(
-      rankLabel: '#8',
-      name: 'Hana S.',
-      levelLabel: 'Level 13',
-      xpLabel: '690 XP',
-      profile: _RunnerAchievementProfileSnapshot(
-        name: 'Hana S.',
-        initial: 'H',
-        regionRankLabel: 'Jurong East · Rank #8',
-        levelBadgeLabel: 'Lv.13',
-        divisionLevelLabel: 'Rising Runner Division · Level 13',
-        totalDistanceLabel: '132.4 km',
-        bestStreakLabel: '12 days',
-      ),
-    ),
-    _LeaderboardRankRowDisplaySnapshot(
-      rankLabel: '#9',
-      name: 'Leo P.',
-      levelLabel: 'Level 13',
-      xpLabel: '675 XP',
-      profile: _RunnerAchievementProfileSnapshot(
-        name: 'Leo P.',
-        initial: 'L',
-        regionRankLabel: 'Jurong East · Rank #9',
-        levelBadgeLabel: 'Lv.13',
-        divisionLevelLabel: 'Rising Runner Division · Level 13',
-        totalDistanceLabel: '130.1 km',
-        bestStreakLabel: '12 days',
-      ),
-    ),
-    _LeaderboardRankRowDisplaySnapshot(
-      rankLabel: '#10',
-      name: 'Grace L.',
-      levelLabel: 'Level 13',
-      xpLabel: '660 XP',
-      profile: _RunnerAchievementProfileSnapshot(
-        name: 'Grace L.',
-        initial: 'G',
-        regionRankLabel: 'Jurong East · Rank #10',
-        levelBadgeLabel: 'Lv.13',
-        divisionLevelLabel: 'Rising Runner Division · Level 13',
-        totalDistanceLabel: '128.8 km',
-        bestStreakLabel: '11 days',
-      ),
-    ),
-  ],
-  nearbyRanks: [
-    _LeaderboardRankRowDisplaySnapshot(
-      rankLabel: '#16',
-      name: 'Chloe B.',
-      levelLabel: 'Level 13',
-      xpLabel: '650 XP',
-      profile: _RunnerAchievementProfileSnapshot(
-        name: 'Chloe B.',
-        initial: 'C',
-        regionRankLabel: 'Jurong East · Rank #16',
-        levelBadgeLabel: 'Lv.13',
-        divisionLevelLabel: 'Rising Runner Division · Level 13',
-        totalDistanceLabel: '126.1 km',
-        bestStreakLabel: '11 days',
-      ),
-    ),
-    _LeaderboardRankRowDisplaySnapshot(
-      rankLabel: '#17',
-      name: 'Daniel W.',
-      levelLabel: 'Level 13',
-      xpLabel: '640 XP',
-      profile: _RunnerAchievementProfileSnapshot(
-        name: 'Daniel W.',
-        initial: 'D',
-        regionRankLabel: 'Jurong East · Rank #17',
-        levelBadgeLabel: 'Lv.13',
-        divisionLevelLabel: 'Rising Runner Division · Level 13',
-        totalDistanceLabel: '124.7 km',
-        bestStreakLabel: '10 days',
-      ),
-    ),
-    _LeaderboardRankRowDisplaySnapshot(
-      rankLabel: '#18',
-      name: 'Jinseo (You)',
-      levelLabel: 'Level 12',
-      xpLabel: '520 XP',
-      profile: _RunnerAchievementProfileSnapshot(
-        name: 'Jinseo',
-        initial: 'J',
-        regionRankLabel: 'Jurong East · Rank #18',
-        levelBadgeLabel: 'Lv.12',
-        divisionLevelLabel: 'Rising Runner Division · Level 12',
-        totalDistanceLabel: '128.4 km',
-        bestStreakLabel: '14 days',
-        isCurrentUser: true,
-      ),
-      isCurrentUser: true,
-    ),
-    _LeaderboardRankRowDisplaySnapshot(
-      rankLabel: '#19',
-      name: 'Noah K.',
-      levelLabel: 'Level 12',
-      xpLabel: '505 XP',
-      profile: _RunnerAchievementProfileSnapshot(
-        name: 'Noah K.',
-        initial: 'N',
-        regionRankLabel: 'Jurong East · Rank #19',
-        levelBadgeLabel: 'Lv.12',
-        divisionLevelLabel: 'Rising Runner Division · Level 12',
-        totalDistanceLabel: '119.3 km',
-        bestStreakLabel: '9 days',
-      ),
-    ),
-    _LeaderboardRankRowDisplaySnapshot(
-      rankLabel: '#20',
-      name: 'Aisha P.',
-      levelLabel: 'Level 12',
-      xpLabel: '492 XP',
-      profile: _RunnerAchievementProfileSnapshot(
-        name: 'Aisha P.',
-        initial: 'A',
-        regionRankLabel: 'Jurong East · Rank #20',
-        levelBadgeLabel: 'Lv.12',
-        divisionLevelLabel: 'Rising Runner Division · Level 12',
-        totalDistanceLabel: '116.6 km',
-        bestStreakLabel: '8 days',
-      ),
-    ),
-  ],
-);
 
 class LeaderboardTab extends StatefulWidget {
   const LeaderboardTab({super.key});
@@ -311,7 +26,7 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
 
   double _sheetProgress = 1;
   bool _showingDetail = false;
-  _RunnerAchievementProfileSnapshot? _selectedProfile;
+  RunnerAchievementProfileSnapshot? _selectedProfile;
 
   void _openDetail() {
     setState(() {
@@ -326,7 +41,7 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
     });
   }
 
-  void _openRunnerProfile(_RunnerAchievementProfileSnapshot profile) {
+  void _openRunnerProfile(RunnerAchievementProfileSnapshot profile) {
     setState(() {
       _selectedProfile = profile;
     });
@@ -340,12 +55,12 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
       backgroundColor: Colors.transparent,
       barrierColor: RuniacColors.textPrimary.withValues(alpha: 0.48),
       builder: (context) {
-        final currentUserRow = _leaderboardDetailSnapshot.nearbyRanks
+        final currentUserRow = leaderboardDetailDemoSnapshot.nearbyRanks
             .firstWhere((row) => row.isCurrentUser);
 
         return _ShareRankFloatingPanel(
-          regionName: _leaderboardRegionSnapshot.regionName,
-          divisionName: _leaderboardDetailSnapshot.divisionLabel,
+          regionName: leaderboardRegionDemoSnapshot.regionName,
+          divisionName: leaderboardDetailDemoSnapshot.divisionLabel,
           rankLabel: currentUserRow.rankLabel,
         );
       },
@@ -449,202 +164,13 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
   }
 }
 
-class _LeaderboardPreviewSnapshot {
-  const _LeaderboardPreviewSnapshot({
-    required this.tipsTitle,
-    required this.leaguesTipTitle,
-    required this.cadenceTipTitle,
-    required this.readinessTipTitle,
-    required this.leaguesTipBody,
-    required this.cadenceTipBody,
-    required this.readinessTipBody,
-  });
-
-  final String tipsTitle;
-  final String leaguesTipTitle;
-  final String cadenceTipTitle;
-  final String readinessTipTitle;
-  final String leaguesTipBody;
-  final String cadenceTipBody;
-  final String readinessTipBody;
-}
-
-class _LeaderboardLeagueSnapshot {
-  const _LeaderboardLeagueSnapshot({
-    required this.selectedDivision,
-    required this.selectedLevelRange,
-    required this.dialogTitle,
-    required this.entries,
-  });
-
-  final String selectedDivision;
-  final String selectedLevelRange;
-  final String dialogTitle;
-  final List<_LeagueTaxonomyEntry> entries;
-}
-
-class _LeaderboardRegionSnapshot {
-  const _LeaderboardRegionSnapshot({
-    required this.regionName,
-    required this.rankPreviewTitle,
-    required this.primaryActionLabel,
-    required this.secondaryActionLabel,
-    required this.userAreaLabel,
-  });
-
-  final String regionName;
-  final String rankPreviewTitle;
-  final String primaryActionLabel;
-  final String secondaryActionLabel;
-  final String userAreaLabel;
-}
-
-class _LeaderboardDetailDisplaySnapshot {
-  const _LeaderboardDetailDisplaySnapshot({
-    required this.regionName,
-    required this.periodLabel,
-    required this.fallbackPeriodLabel,
-    required this.refreshLabel,
-    required this.fallbackRefreshLabel,
-    required this.divisionLabel,
-    required this.topRanksTitle,
-    required this.nearbyRanksTitle,
-    required this.currentUser,
-    required this.topRanks,
-    required this.nearbyRanks,
-  });
-
-  final String regionName;
-  final String periodLabel;
-  final String fallbackPeriodLabel;
-  final String refreshLabel;
-  final String fallbackRefreshLabel;
-  final String divisionLabel;
-  final String topRanksTitle;
-  final String nearbyRanksTitle;
-  final _CurrentUserRankSummaryDisplaySnapshot currentUser;
-  final List<_LeaderboardRankRowDisplaySnapshot> topRanks;
-  final List<_LeaderboardRankRowDisplaySnapshot> nearbyRanks;
-}
-
-String resolveLeaderboardPeriodLabelForDisplay({
-  required String periodLabel,
-  required String fallbackPeriodLabel,
-}) {
-  final trimmedPeriodLabel = periodLabel.trim();
-  if (trimmedPeriodLabel.isNotEmpty) {
-    return trimmedPeriodLabel;
-  }
-
-  return fallbackPeriodLabel;
-}
-
-class _LeaderboardRankRowDisplaySnapshot {
-  const _LeaderboardRankRowDisplaySnapshot({
-    required this.rankLabel,
-    required this.name,
-    required this.levelLabel,
-    required this.xpLabel,
-    required this.profile,
-    this.trophy = false,
-    this.isCurrentUser = false,
-    this.medalTone,
-  });
-
-  final String rankLabel;
-  final String name;
-  final String levelLabel;
-  final String xpLabel;
-  final _RunnerAchievementProfileSnapshot profile;
-  final bool trophy;
-  final bool isCurrentUser;
-  final _RegionPreviewMedalTone? medalTone;
-}
-
-const _runnerAchievementBadges = [
-  _RunnerAchievementBadgeSnapshot(
-    icon: Icons.flag_outlined,
-    label: 'First 5K',
-    highlighted: true,
-  ),
-  _RunnerAchievementBadgeSnapshot(
-    icon: Icons.check,
-    label: 'Consistency Starter',
-  ),
-  _RunnerAchievementBadgeSnapshot(
-    icon: Icons.favorite_border,
-    label: 'Weekend Runner',
-  ),
-  _RunnerAchievementBadgeSnapshot(
-    icon: Icons.wb_sunny_outlined,
-    label: 'Morning Miles',
-    highlighted: true,
-  ),
-  _RunnerAchievementBadgeSnapshot(
-    icon: Icons.route_outlined,
-    label: 'Steady Builder',
-  ),
-  _RunnerAchievementBadgeSnapshot(
-    icon: Icons.location_on_outlined,
-    label: 'Park Route Fan',
-  ),
-];
-
-class _RunnerAchievementProfileSnapshot {
-  const _RunnerAchievementProfileSnapshot({
-    required this.name,
-    required this.initial,
-    required this.regionRankLabel,
-    required this.levelBadgeLabel,
-    required this.divisionLevelLabel,
-    required this.totalDistanceLabel,
-    required this.bestStreakLabel,
-    this.isCurrentUser = false,
-  });
-
-  final String name;
-  final String initial;
-  final String regionRankLabel;
-  final String levelBadgeLabel;
-  final String divisionLevelLabel;
-  final String totalDistanceLabel;
-  final String bestStreakLabel;
-  final String privacyNote = 'Only public running achievements are shown.';
-  final List<_RunnerAchievementBadgeSnapshot> badges = _runnerAchievementBadges;
-  final bool isCurrentUser;
-}
-
-class _RunnerAchievementBadgeSnapshot {
-  const _RunnerAchievementBadgeSnapshot({
-    required this.icon,
-    required this.label,
-    this.highlighted = false,
-  });
-
-  final IconData icon;
-  final String label;
-  final bool highlighted;
-}
-
-class _CurrentUserRankSummaryDisplaySnapshot {
-  const _CurrentUserRankSummaryDisplaySnapshot({
-    required this.rankLabel,
-    required this.title,
-    required this.xpLabel,
-  });
-
-  final String rankLabel;
-  final String title;
-  final String xpLabel;
-}
-
 class _RunnerAchievementProfileScreen extends StatelessWidget {
   const _RunnerAchievementProfileScreen({
     required this.profile,
     required this.onBack,
   });
 
-  final _RunnerAchievementProfileSnapshot profile;
+  final RunnerAchievementProfileSnapshot profile;
   final VoidCallback onBack;
 
   @override
@@ -702,7 +228,7 @@ class _RunnerAchievementProfileScreen extends StatelessWidget {
 class _RunnerIdentityCard extends StatelessWidget {
   const _RunnerIdentityCard({required this.profile});
 
-  final _RunnerAchievementProfileSnapshot profile;
+  final RunnerAchievementProfileSnapshot profile;
 
   @override
   Widget build(BuildContext context) {
@@ -817,7 +343,7 @@ class _RunnerIdentityCard extends StatelessWidget {
 class _RunnerProfileAvatar extends StatelessWidget {
   const _RunnerProfileAvatar({required this.profile});
 
-  final _RunnerAchievementProfileSnapshot profile;
+  final RunnerAchievementProfileSnapshot profile;
 
   @override
   Widget build(BuildContext context) {
@@ -871,7 +397,7 @@ class _RunnerProfileAvatar extends StatelessWidget {
 class _RunnerPublicMetrics extends StatelessWidget {
   const _RunnerPublicMetrics({required this.profile});
 
-  final _RunnerAchievementProfileSnapshot profile;
+  final RunnerAchievementProfileSnapshot profile;
 
   @override
   Widget build(BuildContext context) {
@@ -1022,7 +548,7 @@ double resolveRunnerMetricValueFontSize({
 class _RunnerAchievementsSection extends StatelessWidget {
   const _RunnerAchievementsSection({required this.profile});
 
-  final _RunnerAchievementProfileSnapshot profile;
+  final RunnerAchievementProfileSnapshot profile;
 
   @override
   Widget build(BuildContext context) {
@@ -1082,7 +608,7 @@ class _RunnerAchievementsSection extends StatelessWidget {
 class _RunnerAchievementBadge extends StatelessWidget {
   const _RunnerAchievementBadge({required this.badge});
 
-  final _RunnerAchievementBadgeSnapshot badge;
+  final RunnerAchievementBadgeSnapshot badge;
 
   @override
   Widget build(BuildContext context) {
@@ -1130,11 +656,11 @@ class _LeaderboardDetailScreen extends StatelessWidget {
   });
 
   final VoidCallback onBack;
-  final ValueChanged<_RunnerAchievementProfileSnapshot> onProfileSelected;
+  final ValueChanged<RunnerAchievementProfileSnapshot> onProfileSelected;
 
   @override
   Widget build(BuildContext context) {
-    const snapshot = _leaderboardDetailSnapshot;
+    const snapshot = leaderboardDetailDemoSnapshot;
 
     return ColoredBox(
       color: RuniacColors.background,
@@ -1236,7 +762,7 @@ class _LeaderboardDetailAccentStrip extends StatelessWidget {
 class _LeaderboardDetailSummary extends StatelessWidget {
   const _LeaderboardDetailSummary({required this.snapshot});
 
-  final _LeaderboardDetailDisplaySnapshot snapshot;
+  final LeaderboardDetailDisplaySnapshot snapshot;
 
   @override
   Widget build(BuildContext context) {
@@ -1309,9 +835,9 @@ class _LeaderboardRankListCard extends StatelessWidget {
   });
 
   final String? title;
-  final List<_LeaderboardRankRowDisplaySnapshot> rows;
+  final List<LeaderboardRankRowDisplaySnapshot> rows;
   final String keyPrefix;
-  final ValueChanged<_RunnerAchievementProfileSnapshot> onProfileSelected;
+  final ValueChanged<RunnerAchievementProfileSnapshot> onProfileSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -1364,8 +890,8 @@ class _LeaderboardRankRow extends StatelessWidget {
     required this.onProfileSelected,
   });
 
-  final _LeaderboardRankRowDisplaySnapshot row;
-  final ValueChanged<_RunnerAchievementProfileSnapshot> onProfileSelected;
+  final LeaderboardRankRowDisplaySnapshot row;
+  final ValueChanged<RunnerAchievementProfileSnapshot> onProfileSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -1443,7 +969,7 @@ class _LeaderboardRankRow extends StatelessWidget {
 class _RankBadge extends StatelessWidget {
   const _RankBadge({required this.row});
 
-  final _LeaderboardRankRowDisplaySnapshot row;
+  final LeaderboardRankRowDisplaySnapshot row;
 
   @override
   Widget build(BuildContext context) {
@@ -1565,7 +1091,7 @@ class _LeaderboardNearbyDivider extends StatelessWidget {
 class _CurrentUserFloatingRankBar extends StatelessWidget {
   const _CurrentUserFloatingRankBar({required this.summary});
 
-  final _CurrentUserRankSummaryDisplaySnapshot summary;
+  final CurrentUserRankSummaryDisplaySnapshot summary;
 
   @override
   Widget build(BuildContext context) {
@@ -1663,7 +1189,7 @@ class _RegionPreviewSheet extends StatelessWidget {
   final GestureDragEndCallback onVerticalDragEnd;
   final VoidCallback onViewMoreRanking;
   final VoidCallback onShareMyRank;
-  final ValueChanged<_RunnerAchievementProfileSnapshot> onProfileSelected;
+  final ValueChanged<RunnerAchievementProfileSnapshot> onProfileSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -1696,7 +1222,7 @@ class _RegionPreviewSheet extends StatelessWidget {
                 const _LeaderboardAccentStrip(),
                 const SizedBox(height: 10),
                 Text(
-                  _leaderboardRegionSnapshot.regionName,
+                  leaderboardRegionDemoSnapshot.regionName,
                   style: const TextStyle(
                     color: RuniacColors.textPrimary,
                     fontSize: 21,
@@ -1705,7 +1231,7 @@ class _RegionPreviewSheet extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  _leaderboardDetailSnapshot.refreshLabel,
+                  leaderboardDetailDemoSnapshot.refreshLabel,
                   style: const TextStyle(
                     color: RuniacColors.primaryBlue,
                     fontSize: 12,
@@ -1791,7 +1317,7 @@ class _SheetHandle extends StatelessWidget {
 class _RegionPreviewList extends StatelessWidget {
   const _RegionPreviewList({required this.onProfileSelected});
 
-  final ValueChanged<_RunnerAchievementProfileSnapshot> onProfileSelected;
+  final ValueChanged<RunnerAchievementProfileSnapshot> onProfileSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -1799,7 +1325,7 @@ class _RegionPreviewList extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _RegionPreviewRankCard(
-          rows: _leaderboardDetailSnapshot.topRanks.take(3).toList(),
+          rows: leaderboardDetailDemoSnapshot.topRanks.take(3).toList(),
           onProfileSelected: onProfileSelected,
           keyPrefix: 'leaderboard_region_top_rank_row',
           useTopMedals: true,
@@ -1818,8 +1344,8 @@ class _RegionPreviewRankCard extends StatelessWidget {
     this.useDetailRowSizing = false,
   });
 
-  final List<_LeaderboardRankRowDisplaySnapshot> rows;
-  final ValueChanged<_RunnerAchievementProfileSnapshot> onProfileSelected;
+  final List<LeaderboardRankRowDisplaySnapshot> rows;
+  final ValueChanged<RunnerAchievementProfileSnapshot> onProfileSelected;
   final String keyPrefix;
   final bool useTopMedals;
   final bool useDetailRowSizing;
@@ -1842,7 +1368,7 @@ class _RegionPreviewRankCard extends StatelessWidget {
                 key: ValueKey('${keyPrefix}_$index'),
                 row: rows[index],
                 medalTone: useTopMedals
-                    ? _RegionPreviewMedalTone.values[index]
+                    ? RegionPreviewMedalTone.values[index]
                     : null,
                 onProfileSelected: onProfileSelected,
                 useDetailRowSizing: useDetailRowSizing,
@@ -1857,21 +1383,19 @@ class _RegionPreviewRankCard extends StatelessWidget {
   }
 }
 
-enum _RegionPreviewMedalTone { gold, silver, bronze }
-
 ({Color background, Color foreground}) _resolveRegionPreviewMedalColors(
-  _RegionPreviewMedalTone tone,
+  RegionPreviewMedalTone tone,
 ) {
   return switch (tone) {
-    _RegionPreviewMedalTone.gold => (
+    RegionPreviewMedalTone.gold => (
       background: const Color(0xFFFFF2E2),
       foreground: RuniacColors.accentOrange,
     ),
-    _RegionPreviewMedalTone.silver => (
+    RegionPreviewMedalTone.silver => (
       background: const Color(0xFFEFF3FB),
       foreground: RuniacColors.textSecondary,
     ),
-    _RegionPreviewMedalTone.bronze => (
+    RegionPreviewMedalTone.bronze => (
       background: const Color(0xFFFFEBDD),
       foreground: const Color(0xFFB56A36),
     ),
@@ -1887,9 +1411,9 @@ class _RegionPreviewRankRow extends StatelessWidget {
     this.useDetailRowSizing = false,
   });
 
-  final _LeaderboardRankRowDisplaySnapshot row;
-  final ValueChanged<_RunnerAchievementProfileSnapshot> onProfileSelected;
-  final _RegionPreviewMedalTone? medalTone;
+  final LeaderboardRankRowDisplaySnapshot row;
+  final ValueChanged<RunnerAchievementProfileSnapshot> onProfileSelected;
+  final RegionPreviewMedalTone? medalTone;
   final bool useDetailRowSizing;
 
   @override
@@ -1989,10 +1513,10 @@ class _RegionPreviewRankBadge extends StatelessWidget {
     this.medalTone,
   });
 
-  final _LeaderboardRankRowDisplaySnapshot row;
+  final LeaderboardRankRowDisplaySnapshot row;
   final double size;
   final bool useDetailSizing;
-  final _RegionPreviewMedalTone? medalTone;
+  final RegionPreviewMedalTone? medalTone;
 
   @override
   Widget build(BuildContext context) {
@@ -2043,11 +1567,11 @@ class _RegionPreviewRankBadge extends StatelessWidget {
 class _MyRankPreviewCard extends StatelessWidget {
   const _MyRankPreviewCard({required this.onProfileSelected});
 
-  final ValueChanged<_RunnerAchievementProfileSnapshot> onProfileSelected;
+  final ValueChanged<RunnerAchievementProfileSnapshot> onProfileSelected;
 
   @override
   Widget build(BuildContext context) {
-    final currentUserRow = _leaderboardDetailSnapshot.nearbyRanks.firstWhere(
+    final currentUserRow = leaderboardDetailDemoSnapshot.nearbyRanks.firstWhere(
       (row) => row.isCurrentUser,
     );
 
@@ -2055,7 +1579,7 @@ class _MyRankPreviewCard extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          _leaderboardRegionSnapshot.rankPreviewTitle,
+          leaderboardRegionDemoSnapshot.rankPreviewTitle,
           style: const TextStyle(
             color: RuniacColors.textPrimary,
             fontSize: 14,
@@ -2090,7 +1614,7 @@ class _RegionPreviewActions extends StatelessWidget {
         Expanded(
           child: _VisualCta(
             key: const Key('leaderboard_view_more_ranking_button'),
-            label: _leaderboardRegionSnapshot.primaryActionLabel,
+            label: leaderboardRegionDemoSnapshot.primaryActionLabel,
             filled: true,
             onTap: onViewMoreRanking,
           ),
@@ -2099,7 +1623,7 @@ class _RegionPreviewActions extends StatelessWidget {
         Expanded(
           child: _VisualCta(
             key: const Key('leaderboard_share_my_rank_button'),
-            label: _leaderboardRegionSnapshot.secondaryActionLabel,
+            label: leaderboardRegionDemoSnapshot.secondaryActionLabel,
             filled: false,
             onTap: onShareMyRank,
           ),
@@ -2496,7 +2020,7 @@ class _LeagueSelector extends StatelessWidget {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      _leaderboardLeagueSnapshot.selectedDivision,
+                      leaderboardLeagueDemoSnapshot.selectedDivision,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
@@ -2508,7 +2032,7 @@ class _LeagueSelector extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    _leaderboardLeagueSnapshot.selectedLevelRange,
+                    leaderboardLeagueDemoSnapshot.selectedLevelRange,
                     style: const TextStyle(
                       color: RuniacColors.textSecondary,
                       fontSize: 14,
@@ -2638,7 +2162,7 @@ class _LeaderboardTipsDialog extends StatelessWidget {
                     Expanded(
                       child: Center(
                         child: Text(
-                          _leaderboardPreviewSnapshot.tipsTitle,
+                          leaderboardPreviewDemoSnapshot.tipsTitle,
                           style: const TextStyle(
                             color: RuniacColors.textPrimary,
                             fontSize: 22,
@@ -2653,20 +2177,20 @@ class _LeaderboardTipsDialog extends StatelessWidget {
                 const SizedBox(height: 14),
                 _TipsSection(
                   icon: Icons.emoji_events_outlined,
-                  title: _leaderboardPreviewSnapshot.leaguesTipTitle,
-                  body: _leaderboardPreviewSnapshot.leaguesTipBody,
+                  title: leaderboardPreviewDemoSnapshot.leaguesTipTitle,
+                  body: leaderboardPreviewDemoSnapshot.leaguesTipBody,
                 ),
                 const SizedBox(height: 10),
                 _TipsSection(
                   icon: Icons.calendar_month_outlined,
-                  title: _leaderboardPreviewSnapshot.cadenceTipTitle,
-                  body: _leaderboardPreviewSnapshot.cadenceTipBody,
+                  title: leaderboardPreviewDemoSnapshot.cadenceTipTitle,
+                  body: leaderboardPreviewDemoSnapshot.cadenceTipBody,
                 ),
                 const SizedBox(height: 10),
                 _TipsSection(
                   icon: Icons.verified_user_outlined,
-                  title: _leaderboardPreviewSnapshot.readinessTipTitle,
-                  body: _leaderboardPreviewSnapshot.readinessTipBody,
+                  title: leaderboardPreviewDemoSnapshot.readinessTipTitle,
+                  body: leaderboardPreviewDemoSnapshot.readinessTipBody,
                 ),
               ],
             ),
@@ -2719,7 +2243,7 @@ class _LeaderboardLeaguesDialog extends StatelessWidget {
                     Expanded(
                       child: Center(
                         child: Text(
-                          _leaderboardLeagueSnapshot.dialogTitle,
+                          leaderboardLeagueDemoSnapshot.dialogTitle,
                           style: const TextStyle(
                             color: RuniacColors.textPrimary,
                             fontSize: 22,
@@ -2742,9 +2266,9 @@ class _LeaderboardLeaguesDialog extends StatelessWidget {
                   child: Column(
                     children: [
                       for (final entry
-                          in _leaderboardLeagueSnapshot.entries) ...[
+                          in leaderboardLeagueDemoSnapshot.entries) ...[
                         _LeagueTaxonomyRow(entry: entry),
-                        if (entry != _leaderboardLeagueSnapshot.entries.last)
+                        if (entry != leaderboardLeagueDemoSnapshot.entries.last)
                           const Divider(height: 1, color: Color(0xFFE7E9EC)),
                       ],
                     ],
@@ -2759,17 +2283,10 @@ class _LeaderboardLeaguesDialog extends StatelessWidget {
   }
 }
 
-class _LeagueTaxonomyEntry {
-  const _LeagueTaxonomyEntry(this.name, this.range);
-
-  final String name;
-  final String range;
-}
-
 class _LeagueTaxonomyRow extends StatelessWidget {
   const _LeagueTaxonomyRow({required this.entry});
 
-  final _LeagueTaxonomyEntry entry;
+  final LeagueTaxonomyEntry entry;
 
   @override
   Widget build(BuildContext context) {
@@ -2955,7 +2472,7 @@ class _UserAreaMarker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      label: _leaderboardRegionSnapshot.userAreaLabel,
+      label: leaderboardRegionDemoSnapshot.userAreaLabel,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -3001,7 +2518,7 @@ class _UserAreaMarker extends StatelessWidget {
               ],
             ),
             child: Text(
-              _leaderboardRegionSnapshot.userAreaLabel,
+              leaderboardRegionDemoSnapshot.userAreaLabel,
               style: const TextStyle(
                 color: Color(0xFFFF6B00),
                 fontSize: 13,
