@@ -1155,7 +1155,16 @@ void main() {
     expect(headerTitle.data, 'Workout detail');
     expect(headerTitle.maxLines, 1);
     expect(headerTitle.overflow, TextOverflow.ellipsis);
+    expect(headerTitle.style?.fontFamily, isNull);
+    expect(headerTitle.style?.decoration, isNot(TextDecoration.underline));
     expect(headerTitleSize.width, greaterThan(120));
+
+    final dayLabel = tester.widget<Text>(find.text('Thursday · Easy Run'));
+    final planTitle = tester.widget<Text>(find.text('20 min easy run'));
+    expect(dayLabel.style?.fontFamily, isNull);
+    expect(dayLabel.style?.decoration, isNot(TextDecoration.underline));
+    expect(planTitle.style?.fontFamily, isNull);
+    expect(planTitle.style?.decoration, isNot(TextDecoration.underline));
 
     // Then: the long metric label remains a compact single-line label.
     expect(suggestedPaceLabel.data, 'Suggested pace');

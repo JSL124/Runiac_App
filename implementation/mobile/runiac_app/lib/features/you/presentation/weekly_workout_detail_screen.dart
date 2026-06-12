@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/dashboard_card.dart';
+import '../../../core/widgets/runiac_back_header.dart';
 import '../../../core/widgets/runiac_bottom_sheet_handle.dart';
 import '../../../core/widgets/runiac_buttons.dart';
 import '../../run/presentation/run_launch_screen.dart';
@@ -142,7 +143,7 @@ class WeeklyWorkoutDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ColoredBox(
+    return Material(
       color: RuniacColors.background,
       child: SafeArea(
         bottom: false,
@@ -152,12 +153,34 @@ class WeeklyWorkoutDetailScreen extends StatelessWidget {
             physics: const ClampingScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 28),
             children: [
-              _WeeklyWorkoutDetailHeader(
+              RuniacBackHeader(
                 title: snapshot.title,
+                titleKey: const ValueKey('workout_detail_header_title'),
+                titleStyle: _headerTitleStyle,
+                tooltip: 'Back to Plans',
                 onBack: onBack,
-                onEditSchedule: showEditScheduleAction
-                    ? () => _showEditScheduleSheet(context, snapshot)
+                trailing: showEditScheduleAction
+                    ? TextButton(
+                        onPressed: () =>
+                            _showEditScheduleSheet(context, snapshot),
+                        style: TextButton.styleFrom(
+                          foregroundColor: RuniacColors.primaryBlue,
+                          minimumSize: Size.zero,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 8,
+                          ),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          textStyle: _editActionStyle,
+                        ),
+                        child: const Text(
+                          'Edit schedule',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      )
                     : null,
+                trailingWidth: 96,
               ),
               const SizedBox(height: 16),
               _WorkoutPlanIdentity(snapshot),
@@ -176,86 +199,6 @@ class WeeklyWorkoutDetailScreen extends StatelessWidget {
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _WeeklyWorkoutDetailHeader extends StatelessWidget {
-  const _WeeklyWorkoutDetailHeader({
-    required this.title,
-    required this.onBack,
-    required this.onEditSchedule,
-  });
-
-  final String title;
-  final VoidCallback onBack;
-  final VoidCallback? onEditSchedule;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 48,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            Positioned.fill(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 56),
-                child: Center(
-                  child: Text(
-                    title,
-                    key: const ValueKey('workout_detail_header_title'),
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: _headerTitleStyle,
-                  ),
-                ),
-              ),
-            ),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Semantics(
-                label: 'Back to Plans',
-                button: true,
-                child: IconButton(
-                  tooltip: 'Back to Plans',
-                  icon: const Icon(
-                    Icons.chevron_left_rounded,
-                    color: RuniacColors.primaryBlue,
-                    size: 30,
-                  ),
-                  onPressed: onBack,
-                ),
-              ),
-            ),
-            if (onEditSchedule != null)
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: onEditSchedule,
-                  style: TextButton.styleFrom(
-                    foregroundColor: RuniacColors.primaryBlue,
-                    minimumSize: Size.zero,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 8,
-                    ),
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    textStyle: _editActionStyle,
-                  ),
-                  child: const Text(
-                    'Edit schedule',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ),
-          ],
         ),
       ),
     );
@@ -889,13 +832,13 @@ class _CustomTimePreviewRow extends StatelessWidget {
   }
 }
 
+const _editActionStyle = TextStyle(fontSize: 12, fontWeight: FontWeight.w800);
+
 const _headerTitleStyle = TextStyle(
   color: RuniacColors.textPrimary,
   fontSize: 20,
   fontWeight: FontWeight.w800,
 );
-
-const _editActionStyle = TextStyle(fontSize: 12, fontWeight: FontWeight.w800);
 
 const _heroLabelStyle = TextStyle(
   color: RuniacColors.accentOrange,

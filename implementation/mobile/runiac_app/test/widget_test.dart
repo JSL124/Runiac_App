@@ -62,6 +62,13 @@ void _useTallSummarySurface(WidgetTester tester) {
   addTearDown(tester.view.reset);
 }
 
+TextStyle? _effectiveTextStyle(Finder textFinder, WidgetTester tester) {
+  final richText = tester.widget<RichText>(
+    find.descendant(of: textFinder, matching: find.byType(RichText)).first,
+  );
+  return richText.text.style;
+}
+
 Widget _shareSheetHarness() {
   return MaterialApp(
     home: Scaffold(
@@ -190,6 +197,39 @@ void main() {
     expect(find.text('20 min easy run'), findsOneWidget);
     expect(find.text('Edit schedule'), findsNothing);
     expect(find.text('10K Goal Plan'), findsNothing);
+
+    final headerTitle = tester.widget<Text>(
+      find.byKey(const ValueKey('workout_detail_header_title')),
+    );
+
+    expect(headerTitle.style?.fontSize, 20);
+    expect(headerTitle.style?.fontFamily, isNull);
+    expect(headerTitle.style?.decoration, isNot(TextDecoration.underline));
+
+    final effectiveHeaderTitleStyle = _effectiveTextStyle(
+      find.byKey(const ValueKey('workout_detail_header_title')),
+      tester,
+    );
+    final effectiveDayLabelStyle = _effectiveTextStyle(
+      find.text('Thursday · Easy Run'),
+      tester,
+    );
+    final effectivePlanTitleStyle = _effectiveTextStyle(
+      find.text('20 min easy run'),
+      tester,
+    );
+    expect(effectiveHeaderTitleStyle?.fontFamily, isNot('monospace'));
+    expect(
+      effectiveHeaderTitleStyle?.decoration,
+      isNot(TextDecoration.underline),
+    );
+    expect(effectiveDayLabelStyle?.fontFamily, isNot('monospace'));
+    expect(effectiveDayLabelStyle?.decoration, isNot(TextDecoration.underline));
+    expect(effectivePlanTitleStyle?.fontFamily, isNot('monospace'));
+    expect(
+      effectivePlanTitleStyle?.decoration,
+      isNot(TextDecoration.underline),
+    );
 
     await tester.scrollUntilVisible(
       find.text('Start This Run'),

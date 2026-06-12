@@ -9,6 +9,7 @@ class RuniacBackHeader extends StatelessWidget {
     this.tooltip = 'Back',
     this.subtitle,
     this.trailing,
+    this.titleKey,
     this.titleStyle,
     this.subtitleStyle,
     this.height = 56,
@@ -21,6 +22,7 @@ class RuniacBackHeader extends StatelessWidget {
   final String tooltip;
   final String? subtitle;
   final Widget? trailing;
+  final Key? titleKey;
   final TextStyle? titleStyle;
   final TextStyle? subtitleStyle;
   final double height;
@@ -59,6 +61,7 @@ class RuniacBackHeader extends StatelessWidget {
               child: _RuniacBackHeaderTitle(
                 title: title,
                 subtitle: subtitle,
+                titleKey: titleKey,
                 titleStyle: titleStyle,
                 subtitleStyle: subtitleStyle,
               ),
@@ -80,12 +83,14 @@ class _RuniacBackHeaderTitle extends StatelessWidget {
   const _RuniacBackHeaderTitle({
     required this.title,
     required this.subtitle,
+    required this.titleKey,
     required this.titleStyle,
     required this.subtitleStyle,
   });
 
   final String title;
   final String? subtitle;
+  final Key? titleKey;
   final TextStyle? titleStyle;
   final TextStyle? subtitleStyle;
 
@@ -97,6 +102,7 @@ class _RuniacBackHeaderTitle extends StatelessWidget {
     if (subtitle == null) {
       return Text(
         title,
+        key: titleKey,
         textAlign: TextAlign.center,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
@@ -109,6 +115,7 @@ class _RuniacBackHeaderTitle extends StatelessWidget {
       children: [
         Text(
           title,
+          key: titleKey,
           textAlign: TextAlign.center,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
