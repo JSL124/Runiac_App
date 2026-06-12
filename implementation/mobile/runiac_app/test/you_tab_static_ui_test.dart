@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -11,6 +13,63 @@ Future<void> _openYouTab(WidgetTester tester) async {
 }
 
 void main() {
+  test('You static demo snapshots live outside presentation widgets', () {
+    // Given: the You feature keeps demo/read-only data behind a data boundary.
+    final dataFiles = [
+      'lib/features/you/presentation/data/you_overview_demo_snapshots.dart',
+      'lib/features/you/presentation/data/activity_history_demo_snapshots.dart',
+      'lib/features/you/presentation/data/goal_plan_demo_snapshots.dart',
+      'lib/features/you/presentation/data/weekly_workout_demo_snapshots.dart',
+      'lib/features/you/presentation/data/expert_plan_demo_snapshots.dart',
+    ];
+
+    // Then: each expected snapshot file exists for backend-readiness.
+    for (final path in dataFiles) {
+      expect(File(path).existsSync(), isTrue, reason: '$path must exist');
+    }
+
+    final presentationFiles = {
+      'lib/features/you/presentation/you_tab.dart': [
+        'const _progressSnapshot =',
+        'const _plansSnapshot =',
+        'class _YouProgressSnapshot',
+        'class _YouPlansSnapshot',
+      ],
+      'lib/features/you/presentation/activity_history_screen.dart': [
+        'const activityHistoryDisplayData =',
+        'class _ActivityHistoryMonth',
+      ],
+      'lib/features/you/presentation/goal_plan_detail_screen.dart': [
+        'const goalPlanDisplaySnapshot =',
+        'const _sampleDailyPlan =',
+      ],
+      'lib/features/you/presentation/weekly_workout_detail_screen.dart': [
+        'const weeklyWorkoutDetailSnapshot =',
+        'const saturdayWeeklyWorkoutDetailSnapshot =',
+      ],
+      'lib/features/you/presentation/expert_plan_list_screen.dart': [
+        'const _expertPlanFilters =',
+        'const _expertPlans =',
+        'class _ExpertPlanDisplay',
+      ],
+      'lib/features/you/presentation/expert_plan_detail_screen.dart': [
+        'const expertPlanDetailSnapshot =',
+      ],
+    };
+
+    // Then: large presentation widgets no longer own static/demo snapshots.
+    for (final entry in presentationFiles.entries) {
+      final source = File(entry.key).readAsStringSync();
+      for (final forbiddenSnippet in entry.value) {
+        expect(
+          source,
+          isNot(contains(forbiddenSnippet)),
+          reason: '${entry.key} still contains $forbiddenSnippet',
+        );
+      }
+    }
+  });
+
   testWidgets('You page shows progress overview sections when selected', (
     WidgetTester tester,
   ) async {

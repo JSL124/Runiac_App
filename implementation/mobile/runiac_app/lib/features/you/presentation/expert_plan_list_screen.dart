@@ -4,77 +4,9 @@ import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/dashboard_card.dart';
 import '../../../core/widgets/runiac_back_header.dart';
 import '../../../core/widgets/runiac_buttons.dart';
-
-const _expertPlanFilters = [
-  'Recommended',
-  '5K',
-  '10K',
-  'Consistency',
-  'Healthy Running',
-  'Half',
-  'Full',
-];
+import 'data/expert_plan_demo_snapshots.dart';
 
 const _expertPlanSectionGap = 14.0;
-
-const _expertPlans = [
-  _ExpertPlanDisplay(
-    icon: Icons.directions_run,
-    title: 'First 5K Preparation',
-    description: 'A gentle plan for building confidence toward your first 5K.',
-    duration: '6 weeks',
-    frequency: '3 runs/week',
-    level: 'Beginner',
-    reviewer: 'Reviewed by Running Coach',
-  ),
-  _ExpertPlanDisplay(
-    icon: Icons.repeat,
-    title: 'Build Running Consistency',
-    description:
-        'Create a steady running habit with balanced, achievable workouts.',
-    duration: '4 weeks',
-    frequency: '2–3 runs/week',
-    level: 'Beginner',
-    reviewer: 'Reviewed by Fitness Trainer',
-  ),
-  _ExpertPlanDisplay(
-    icon: Icons.flag_outlined,
-    title: '10K Preparation',
-    description: 'Build endurance and confidence for a comfortable 10K.',
-    duration: '8 weeks',
-    frequency: '3 runs/week',
-    level: 'Beginner',
-    reviewer: 'Reviewed by Running Coach',
-  ),
-  _ExpertPlanDisplay(
-    icon: Icons.favorite_border,
-    title: 'Healthy Running Starter Plan',
-    description:
-        'Build a healthier running routine with steady, low-pressure sessions.',
-    duration: '3 weeks',
-    frequency: '3 runs/week',
-    level: 'Beginner',
-    reviewer: 'Reviewed by Health Advisor',
-  ),
-  _ExpertPlanDisplay(
-    icon: Icons.terrain_outlined,
-    title: 'Half Marathon Preparation',
-    description: 'Step up gradually with a longer-distance plan.',
-    duration: '12 weeks',
-    frequency: '3–4 runs/week',
-    level: 'Intermediate',
-    reviewer: 'Reviewed by Running Coach',
-  ),
-  _ExpertPlanDisplay(
-    icon: Icons.landscape_outlined,
-    title: 'Full Marathon Preparation',
-    description: 'A longer plan for experienced runners preparing for 42.2K.',
-    duration: '18 weeks',
-    frequency: '4–5 runs/week',
-    level: 'Advanced',
-    reviewer: 'Reviewed by Running Coach',
-  ),
-];
 
 class ExpertPlanListScreen extends StatelessWidget {
   const ExpertPlanListScreen({
@@ -111,9 +43,9 @@ class ExpertPlanListScreen extends StatelessWidget {
                   const SizedBox(height: _expertPlanSectionGap),
                   const _FilterRow(),
                   const SizedBox(height: _expertPlanSectionGap),
-                  for (var index = 0; index < _expertPlans.length; index++) ...[
+                  for (var index = 0; index < expertPlans.length; index++) ...[
                     _ExpertPlanCard(
-                      _expertPlans[index],
+                      expertPlans[index],
                       onViewPlan: index == 0
                           ? onFirstPlanSelected
                           : () => _showPlanPreviewMessage(context),
@@ -154,26 +86,6 @@ class ExpertPlanListScreen extends StatelessWidget {
         const SnackBar(content: Text('Plan preview is coming soon.')),
       );
   }
-}
-
-class _ExpertPlanDisplay {
-  const _ExpertPlanDisplay({
-    required this.icon,
-    required this.title,
-    required this.description,
-    required this.duration,
-    required this.frequency,
-    required this.level,
-    required this.reviewer,
-  });
-
-  final IconData icon;
-  final String title;
-  final String description;
-  final String duration;
-  final String frequency;
-  final String level;
-  final String reviewer;
 }
 
 class _PlanSearchShell extends StatelessWidget {
@@ -226,9 +138,9 @@ class _FilterRow extends StatelessWidget {
       scrollDirection: Axis.horizontal,
       child: Row(
         children: [
-          for (var index = 0; index < _expertPlanFilters.length; index++) ...[
-            _FilterChip(_expertPlanFilters[index], selected: index == 0),
-            if (index < _expertPlanFilters.length - 1) const SizedBox(width: 8),
+          for (var index = 0; index < expertPlanFilters.length; index++) ...[
+            _FilterChip(expertPlanFilters[index], selected: index == 0),
+            if (index < expertPlanFilters.length - 1) const SizedBox(width: 8),
           ],
         ],
       ),
@@ -274,7 +186,7 @@ class _FilterChip extends StatelessWidget {
 class _ExpertPlanCard extends StatelessWidget {
   const _ExpertPlanCard(this.plan, {required this.onViewPlan});
 
-  final _ExpertPlanDisplay plan;
+  final ExpertPlanDisplay plan;
   final VoidCallback onViewPlan;
 
   @override

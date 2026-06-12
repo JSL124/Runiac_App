@@ -3,10 +3,11 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/runiac_buttons.dart';
 import '../../../core/widgets/runiac_section_header.dart';
-import '../../run/presentation/models/recent_running_display_data.dart';
 import '../../run/domain/models/run_activity_display_model.dart';
 import '../../run/presentation/view_summary_screen.dart';
 import 'activity_history_screen.dart';
+import 'data/weekly_workout_demo_snapshots.dart';
+import 'data/you_overview_demo_snapshots.dart';
 import 'expert_plan_detail_screen.dart';
 import 'expert_plan_list_screen.dart';
 import 'goal_plan_detail_screen.dart';
@@ -27,248 +28,6 @@ const _monthNames = [
   'November',
   'December',
 ];
-
-const _progressSnapshot = _YouProgressSnapshot(
-  weeklyDistance: '12.4',
-  weeklyDistanceUnit: 'km',
-  weeklyRunSummary: '3 runs this week',
-  weeklyGoalProgress: 0.82,
-  weeklyGoalLabel: '82% of weekly goal',
-  streakValue: '6 days',
-  streakCopy: 'Planned rest days keep your streak protected.',
-  runs: recentRunningDisplayData,
-  runDayPlaceholders: {
-    '2026-5': {1, 3, 5, 8, 10, 12, 15, 17, 20},
-  },
-  levelTitle: 'Level 12 Runner',
-  levelCopy: 'Keep showing up at a comfortable pace.',
-);
-
-const _plansSnapshot = _YouPlansSnapshot(
-  goalLabel: 'Current Goal',
-  goalTitle: '10K Preparation',
-  goalBadge: 'Week 3 of 8',
-  completionLabel: '43% completed',
-  completionPercentLabel: '43%',
-  completionProgress: 0.43,
-  milestoneLabel: 'Next Milestone',
-  milestoneTitle: 'Complete 6 km comfortably',
-  goalActionLabel: 'View Goal Plan',
-  weeklyTitle: "This Week's Plan",
-  scheduleRows: [
-    _PlanScheduleRow('Mon', 'Rest Day', '', Icons.hotel_outlined),
-    _PlanScheduleRow(
-      'Tue',
-      '15 min walk-run',
-      'Completed',
-      Icons.check_circle,
-      active: true,
-    ),
-    _PlanScheduleRow('Wed', 'Rest Day', '', Icons.hotel_outlined),
-    _PlanScheduleRow(
-      'Thu',
-      '20 min easy run',
-      'Upcoming · 7:30 AM',
-      Icons.radio_button_unchecked,
-      active: true,
-      opensWorkoutDetail: true,
-      detailSnapshot: _thursdayWeeklyPlanDetailSnapshot,
-    ),
-    _PlanScheduleRow('Fri', 'Rest Day', '', Icons.hotel_outlined),
-    _PlanScheduleRow(
-      'Sat',
-      '20 min easy run',
-      '',
-      Icons.radio_button_unchecked,
-      active: true,
-      opensWorkoutDetail: true,
-      detailSnapshot: _saturdayWeeklyPlanDetailSnapshot,
-    ),
-    _PlanScheduleRow('Sun', 'Rest Day', '', Icons.hotel_outlined),
-  ],
-  expertTitle: 'Explore expert plans',
-  expertCopy: 'Browse coach-reviewed plans at your own pace.',
-  expertBadgeLabel: 'Coach-created',
-  expertActionLabel: 'Explore Expert Plans',
-  expertOptions: [
-    _ExpertPlanOptionDisplay(Icons.directions_run, 'First 5K', featured: true),
-    _ExpertPlanOptionDisplay(Icons.flag_outlined, '10K', featured: true),
-    _ExpertPlanOptionDisplay(Icons.terrain_outlined, 'Half Marathon'),
-    _ExpertPlanOptionDisplay(Icons.landscape_outlined, 'Full Marathon'),
-  ],
-);
-
-const _thursdayWeeklyPlanDetailSnapshot = WeeklyWorkoutDetailSnapshot(
-  title: 'Workout detail',
-  dayLabel: 'THURSDAY · EASY RUN',
-  editScheduleCurrentLabel: 'Thu · 7:30 AM',
-  editSchedulePreviewLabel: 'Fri · 7:30 AM',
-  heroTitle: '20 min easy run',
-  heroCopy: 'You should be able to chat the whole way through.',
-  heroSupportCopy: 'No race — just rhythm.',
-  metrics: [
-    WorkoutMetricDisplay('Distance', '3.0 km'),
-    WorkoutMetricDisplay('Time', '20 min'),
-    WorkoutMetricDisplay('Suggested pace', '7:30 /km'),
-    WorkoutMetricDisplay('Effort', 'Low'),
-  ],
-  breakdown: [
-    WorkoutStepDisplay(Icons.directions_walk, 'Warm-up', '5 min · easy walk'),
-    WorkoutStepDisplay(
-      Icons.directions_run,
-      'Easy run',
-      '12 min · conversational pace',
-    ),
-    WorkoutStepDisplay(
-      Icons.self_improvement,
-      'Cool-down',
-      '3 min · slow walk',
-    ),
-  ],
-  effortGuide:
-      'Aim for 2 out of 5 — you can speak full sentences without gasping.',
-  coachNotes: [
-    'Start slower than you think.',
-    'If breathing feels sharp, walk briefly and reset.',
-    'Easy runs should feel almost too slow at first. That is normal.',
-  ],
-  startActionLabel: 'Start This Run',
-);
-
-const _saturdayWeeklyPlanDetailSnapshot = WeeklyWorkoutDetailSnapshot(
-  title: 'Workout detail',
-  dayLabel: 'SATURDAY · EASY RUN',
-  editScheduleCurrentLabel: 'Saturday',
-  editSchedulePreviewLabel: 'Preview only',
-  heroTitle: '20 min easy run',
-  heroCopy: 'You should be able to chat the whole way through.',
-  heroSupportCopy: 'No race — just rhythm.',
-  metrics: [
-    WorkoutMetricDisplay('Distance', '3.0 km'),
-    WorkoutMetricDisplay('Time', '20 min'),
-    WorkoutMetricDisplay('Suggested pace', '7:30 /km'),
-    WorkoutMetricDisplay('Effort', 'Low'),
-  ],
-  breakdown: [
-    WorkoutStepDisplay(Icons.directions_walk, 'Warm-up', '5 min · easy walk'),
-    WorkoutStepDisplay(
-      Icons.directions_run,
-      'Easy run',
-      '12 min · conversational pace',
-    ),
-    WorkoutStepDisplay(
-      Icons.self_improvement,
-      'Cool-down',
-      '3 min · slow walk',
-    ),
-  ],
-  effortGuide:
-      'Aim for 2 out of 5 — you can speak full sentences without gasping.',
-  coachNotes: [
-    'Start slower than you think.',
-    'If breathing feels sharp, walk briefly and reset.',
-    'Easy runs should feel almost too slow at first. That is normal.',
-  ],
-  startActionLabel: 'Start This Run',
-);
-
-class _YouProgressSnapshot {
-  const _YouProgressSnapshot({
-    required this.weeklyDistance,
-    required this.weeklyDistanceUnit,
-    required this.weeklyRunSummary,
-    required this.weeklyGoalProgress,
-    required this.weeklyGoalLabel,
-    required this.streakValue,
-    required this.streakCopy,
-    required this.runs,
-    required this.runDayPlaceholders,
-    required this.levelTitle,
-    required this.levelCopy,
-  });
-
-  final String weeklyDistance;
-  final String weeklyDistanceUnit;
-  final String weeklyRunSummary;
-  final double weeklyGoalProgress;
-  final String weeklyGoalLabel;
-  final String streakValue;
-  final String streakCopy;
-  final List<RunActivityDisplayModel> runs;
-  final Map<String, Set<int>> runDayPlaceholders;
-  final String levelTitle;
-  final String levelCopy;
-}
-
-class _YouPlansSnapshot {
-  const _YouPlansSnapshot({
-    required this.goalLabel,
-    required this.goalTitle,
-    required this.goalBadge,
-    required this.completionLabel,
-    required this.completionPercentLabel,
-    required this.completionProgress,
-    required this.milestoneLabel,
-    required this.milestoneTitle,
-    required this.goalActionLabel,
-    required this.weeklyTitle,
-    required this.scheduleRows,
-    required this.expertTitle,
-    required this.expertCopy,
-    required this.expertBadgeLabel,
-    required this.expertActionLabel,
-    required this.expertOptions,
-  });
-
-  final String goalLabel;
-  final String goalTitle;
-  final String goalBadge;
-  final String completionLabel;
-  final String completionPercentLabel;
-  final double completionProgress;
-  final String milestoneLabel;
-  final String milestoneTitle;
-  final String goalActionLabel;
-  final String weeklyTitle;
-  final List<_PlanScheduleRow> scheduleRows;
-  final String expertTitle;
-  final String expertCopy;
-  final String expertBadgeLabel;
-  final String expertActionLabel;
-  final List<_ExpertPlanOptionDisplay> expertOptions;
-}
-
-class _PlanScheduleRow {
-  const _PlanScheduleRow(
-    this.day,
-    this.title,
-    this.status,
-    this.icon, {
-    this.active = false,
-    this.opensWorkoutDetail = false,
-    this.detailSnapshot,
-  });
-
-  final String day;
-  final String title;
-  final String status;
-  final IconData icon;
-  final bool active;
-  final bool opensWorkoutDetail;
-  final WeeklyWorkoutDetailSnapshot? detailSnapshot;
-}
-
-class _ExpertPlanOptionDisplay {
-  const _ExpertPlanOptionDisplay(
-    this.icon,
-    this.label, {
-    this.featured = false,
-  });
-
-  final IconData icon;
-  final String label;
-  final bool featured;
-}
 
 class YouTab extends StatefulWidget {
   const YouTab({super.key});
@@ -479,7 +238,7 @@ Widget _progress(
       const SizedBox(height: 18),
       _recentRunningHeader(onMoreActivities),
       const SizedBox(height: 12),
-      for (final run in _progressSnapshot.runs) ...[
+      for (final run in youProgressSnapshot.runs) ...[
         CompactRunActivityCard(
           key: ValueKey('recent_running_card_${run.title}'),
           activity: run,
@@ -648,27 +407,27 @@ class _CurrentGoalPlanCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _plansSnapshot.goalLabel,
+                      youPlansSnapshot.goalLabel,
                       style: _planAccentLabelStyle,
                     ),
                     SizedBox(height: 6),
-                    Text(_plansSnapshot.goalTitle, style: _largeValueStyle),
+                    Text(youPlansSnapshot.goalTitle, style: _largeValueStyle),
                   ],
                 ),
               ),
-              _planBadge(_plansSnapshot.goalBadge),
+              _planBadge(youPlansSnapshot.goalBadge),
             ],
           ),
           const SizedBox(height: 14),
           Row(
             children: [
               Text(
-                _plansSnapshot.completionLabel,
+                youPlansSnapshot.completionLabel,
                 style: _planAccentLabelStyle,
               ),
               const Spacer(),
               Text(
-                _plansSnapshot.completionPercentLabel,
+                youPlansSnapshot.completionPercentLabel,
                 style: _planPercentStyle,
               ),
             ],
@@ -677,7 +436,7 @@ class _CurrentGoalPlanCard extends StatelessWidget {
           ClipRRect(
             borderRadius: const BorderRadius.all(Radius.circular(999)),
             child: LinearProgressIndicator(
-              value: _plansSnapshot.completionProgress,
+              value: youPlansSnapshot.completionProgress,
               minHeight: 7,
               backgroundColor: const Color(0xFFE8EEF8),
               valueColor: const AlwaysStoppedAnimation(
@@ -689,7 +448,7 @@ class _CurrentGoalPlanCard extends StatelessWidget {
           const _PlanMilestoneRow(),
           const SizedBox(height: 14),
           _StaticPlanAction(
-            _plansSnapshot.goalActionLabel,
+            youPlansSnapshot.goalActionLabel,
             onTap: onViewGoalPlan,
           ),
         ],
@@ -720,9 +479,9 @@ class _PlanMilestoneRow extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(_plansSnapshot.milestoneLabel, style: _smallStrongStyle),
+              Text(youPlansSnapshot.milestoneLabel, style: _smallStrongStyle),
               const SizedBox(height: 2),
-              Text(_plansSnapshot.milestoneTitle, style: _bodyStrongStyle),
+              Text(youPlansSnapshot.milestoneTitle, style: _bodyStrongStyle),
             ],
           ),
         ),
@@ -745,7 +504,10 @@ class _WeeklyPlanCard extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: Text(_plansSnapshot.weeklyTitle, style: _cardTitleStyle),
+                child: Text(
+                  youPlansSnapshot.weeklyTitle,
+                  style: _cardTitleStyle,
+                ),
               ),
               const SizedBox(width: 12),
               const Text('2 of 3 done', style: _weeklyPlanProgressLabelStyle),
@@ -771,14 +533,14 @@ class _WeeklyPlanCard extends StatelessWidget {
           const SizedBox(height: 4),
           for (
             var index = 0;
-            index < _plansSnapshot.scheduleRows.length;
+            index < youPlansSnapshot.scheduleRows.length;
             index++
           )
             _WeeklyPlanDayRow(
-              _plansSnapshot.scheduleRows[index],
+              youPlansSnapshot.scheduleRows[index],
               showDivider: index > 0,
               onTap: _workoutDetailTap(
-                _plansSnapshot.scheduleRows[index],
+                youPlansSnapshot.scheduleRows[index],
                 onViewWorkout,
               ),
             ),
@@ -789,7 +551,7 @@ class _WeeklyPlanCard extends StatelessWidget {
 }
 
 VoidCallback? _workoutDetailTap(
-  _PlanScheduleRow row,
+  YouPlanScheduleRow row,
   ValueChanged<WeeklyWorkoutDetailSnapshot> onViewWorkout,
 ) {
   final detailSnapshot = row.detailSnapshot;
@@ -807,7 +569,7 @@ class _WeeklyPlanDayRow extends StatelessWidget {
     this.onTap,
   });
 
-  final _PlanScheduleRow display;
+  final YouPlanScheduleRow display;
   final bool showDivider;
   final VoidCallback? onTap;
 
@@ -1016,30 +778,30 @@ class _ExpertPlansCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _CardHeader(Icons.school_outlined, _plansSnapshot.expertTitle),
+          _CardHeader(Icons.school_outlined, youPlansSnapshot.expertTitle),
           const SizedBox(height: 8),
-          Text(_plansSnapshot.expertCopy, style: _bodyStyle),
+          Text(youPlansSnapshot.expertCopy, style: _bodyStyle),
           const SizedBox(height: 14),
           Row(
             children: [
-              _ExpertPlanOption(_plansSnapshot.expertOptions[0]),
+              _ExpertPlanOption(youPlansSnapshot.expertOptions[0]),
               const SizedBox(width: 10),
-              _ExpertPlanOption(_plansSnapshot.expertOptions[1]),
+              _ExpertPlanOption(youPlansSnapshot.expertOptions[1]),
             ],
           ),
           const SizedBox(height: 10),
           Row(
             children: [
-              _ExpertPlanOption(_plansSnapshot.expertOptions[2]),
+              _ExpertPlanOption(youPlansSnapshot.expertOptions[2]),
               const SizedBox(width: 10),
-              _ExpertPlanOption(_plansSnapshot.expertOptions[3]),
+              _ExpertPlanOption(youPlansSnapshot.expertOptions[3]),
             ],
           ),
           const SizedBox(height: 12),
           const _CoachCreatedBadge(),
           const SizedBox(height: 16),
           _StaticPlanAction(
-            _plansSnapshot.expertActionLabel,
+            youPlansSnapshot.expertActionLabel,
             onTap: onViewExpertPlans,
           ),
         ],
@@ -1051,7 +813,7 @@ class _ExpertPlansCard extends StatelessWidget {
 class _ExpertPlanOption extends StatelessWidget {
   const _ExpertPlanOption(this.display);
 
-  final _ExpertPlanOptionDisplay display;
+  final YouExpertPlanOptionDisplay display;
 
   @override
   Widget build(BuildContext context) {
@@ -1111,7 +873,7 @@ class _CoachCreatedBadge extends StatelessWidget {
             color: RuniacColors.primaryBlue,
           ),
           const SizedBox(width: 6),
-          Text(_plansSnapshot.expertBadgeLabel, style: _smallStrongStyle),
+          Text(youPlansSnapshot.expertBadgeLabel, style: _smallStrongStyle),
         ],
       ),
     );
@@ -1158,31 +920,31 @@ Widget _thisWeek() {
         Row(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            Text(_progressSnapshot.weeklyDistance, style: _heroNumberStyle),
+            Text(youProgressSnapshot.weeklyDistance, style: _heroNumberStyle),
             const SizedBox(width: 8),
             Padding(
               padding: const EdgeInsets.only(bottom: 4),
               child: Text(
-                _progressSnapshot.weeklyDistanceUnit,
+                youProgressSnapshot.weeklyDistanceUnit,
                 style: _labelStrongStyle,
               ),
             ),
           ],
         ),
         const SizedBox(height: 6),
-        Text(_progressSnapshot.weeklyRunSummary, style: _bodyStyle),
+        Text(youProgressSnapshot.weeklyRunSummary, style: _bodyStyle),
         const SizedBox(height: 12),
         ClipRRect(
           borderRadius: const BorderRadius.all(Radius.circular(999)),
           child: LinearProgressIndicator(
-            value: _progressSnapshot.weeklyGoalProgress,
+            value: youProgressSnapshot.weeklyGoalProgress,
             minHeight: 7,
             backgroundColor: RuniacColors.border,
             valueColor: const AlwaysStoppedAnimation(RuniacColors.primaryBlue),
           ),
         ),
         const SizedBox(height: 8),
-        Text(_progressSnapshot.weeklyGoalLabel, style: _smallBodyStyle),
+        Text(youProgressSnapshot.weeklyGoalLabel, style: _smallBodyStyle),
       ],
     ),
   );
@@ -1195,9 +957,9 @@ Widget _streak() {
       children: [
         const _CardHeader(Icons.local_fire_department, 'Consistency Streak'),
         const SizedBox(height: 10),
-        Text(_progressSnapshot.streakValue, style: _heroNumberStyle),
+        Text(youProgressSnapshot.streakValue, style: _heroNumberStyle),
         const SizedBox(height: 8),
-        Text(_progressSnapshot.streakCopy, style: _bodyStyle),
+        Text(youProgressSnapshot.streakCopy, style: _bodyStyle),
       ],
     ),
   );
@@ -1327,7 +1089,8 @@ Widget _dateCell(DateTime day, DateTime visibleMonth) {
 }
 
 Set<int> _runDaysFor(DateTime month) {
-  return _progressSnapshot.runDayPlaceholders['${month.year}-${month.month}'] ??
+  return youProgressSnapshot
+          .runDayPlaceholders['${month.year}-${month.month}'] ??
       const {};
 }
 
@@ -1362,9 +1125,9 @@ Widget _runLevel() {
       children: [
         const _CardHeader(Icons.star_border, 'Run Level', accent: true),
         const SizedBox(height: 12),
-        Text(_progressSnapshot.levelTitle, style: _largeValueStyle),
+        Text(youProgressSnapshot.levelTitle, style: _largeValueStyle),
         const SizedBox(height: 6),
-        Text(_progressSnapshot.levelCopy, style: _bodyStyle),
+        Text(youProgressSnapshot.levelCopy, style: _bodyStyle),
       ],
     ),
   );
