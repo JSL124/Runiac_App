@@ -174,14 +174,17 @@ class _GoalProgressBar extends StatelessWidget {
               ),
               Positioned(
                 right: math.max(4, width - fillWidth + 6),
-                top: 2,
-                child: Text(
-                  label,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w900,
-                    height: 1,
+                top: 0,
+                bottom: 0,
+                child: Center(
+                  child: Text(
+                    label,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w900,
+                      height: 1,
+                    ),
                   ),
                 ),
               ),

@@ -228,6 +228,32 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('Home goal progress percentage is vertically centered', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: Padding(
+            padding: EdgeInsets.all(16),
+            child: HomeProgressInsightSection(),
+          ),
+        ),
+      ),
+    );
+
+    final progressLabelRect = tester.getRect(find.text('43%'));
+    final progressBarRect = tester.getRect(
+      find.ancestor(of: find.text('43%'), matching: find.byType(Stack)).last,
+    );
+
+    expect(
+      (progressLabelRect.center.dy - progressBarRect.center.dy).abs(),
+      lessThanOrEqualTo(0.5),
+    );
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('Home Explore Routes replaces the old routes empty state', (
     WidgetTester tester,
   ) async {
