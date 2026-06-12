@@ -16,17 +16,17 @@ const homeExploreRouteDemoSnapshots = <HomeExploreRouteDemoSnapshot>[
   HomeExploreRouteDemoSnapshot(
     title: 'Haneul Park Trail',
     distance: '3.2 km',
-    subtitle: 'Flat • Popular for Sunset',
+    subtitle: '3.2 km · 25 min · Easy',
   ),
   HomeExploreRouteDemoSnapshot(
     title: 'Olympic Park Loop',
     distance: '5.0 km',
-    subtitle: 'Moderate • Wide Paths',
+    subtitle: '5.0 km · 40 min · Moderate',
   ),
   HomeExploreRouteDemoSnapshot(
     title: 'Marina Bay Easy Loop',
     distance: '3.2 km',
-    subtitle: 'Easy • Scenic Waterfront',
+    subtitle: '3.2 km · 25 min · Easy',
   ),
 ];
 

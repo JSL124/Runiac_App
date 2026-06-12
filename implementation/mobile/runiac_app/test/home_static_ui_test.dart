@@ -277,6 +277,8 @@ void main() {
     expect(find.text('Explore Routes'), findsOneWidget);
     expect(find.text('View All'), findsOneWidget);
     expect(find.text('Haneul Park Trail'), findsOneWidget);
+    expect(find.text('3.2 km · 25 min · Easy'), findsOneWidget);
+    expect(find.text('Flat • Popular for Sunset'), findsNothing);
     expect(find.text('3.2 km'), findsWidgets);
 
     await tester.tap(find.text('View All'));
@@ -291,6 +293,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Olympic Park Loop'), findsOneWidget);
+    expect(find.text('5.0 km · 40 min · Moderate'), findsOneWidget);
+    expect(find.text('Moderate • Wide Paths'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
