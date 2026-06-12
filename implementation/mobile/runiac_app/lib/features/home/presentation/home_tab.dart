@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../run/presentation/run_launch_screen.dart';
+import '../../you/presentation/weekly_workout_detail_screen.dart';
 import 'widgets/goal_preparation_card.dart';
 import 'widgets/home_header.dart';
 import 'widgets/last_run_card.dart';
@@ -14,6 +16,31 @@ const _homeScreenBackground = Colors.white;
 class HomeTab extends StatelessWidget {
   const HomeTab({super.key});
 
+  void _showPreviewMessage(BuildContext context, String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void _openTodayWorkout(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) {
+          return WeeklyWorkoutDetailScreen(
+            onBack: () => Navigator.of(context).pop(),
+            showEditScheduleAction: false,
+          );
+        },
+      ),
+    );
+  }
+
+  void _openQuickStart(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (context) => const RunLaunchScreen()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -24,22 +51,34 @@ class HomeTab extends StatelessWidget {
           child: ListView(
             physics: const ClampingScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
-            children: const [
-              HomeHeader(),
-              SizedBox(height: 12),
-              TodayPlanCard(),
-              SizedBox(height: 10),
-              GoalPreparationCard(),
-              SizedBox(height: 10),
-              RunnerProgressCard(),
-              SizedBox(height: 10),
-              WeeklyPlanCard(),
-              SizedBox(height: 10),
-              LastRunCard(),
-              SizedBox(height: 10),
-              PostRunFeedbackCard(),
-              SizedBox(height: 10),
-              RecommendedRoutesCard(),
+            children: [
+              HomeHeader(
+                onNotifications: () => _showPreviewMessage(
+                  context,
+                  'Notifications preview is coming soon.',
+                ),
+                onProfile: () => _showPreviewMessage(
+                  context,
+                  'Profile settings preview is coming soon.',
+                ),
+              ),
+              const SizedBox(height: 12),
+              TodayPlanCard(
+                onViewPlan: () => _openTodayWorkout(context),
+                onQuickStart: () => _openQuickStart(context),
+              ),
+              const SizedBox(height: 10),
+              const GoalPreparationCard(),
+              const SizedBox(height: 10),
+              const RunnerProgressCard(),
+              const SizedBox(height: 10),
+              const WeeklyPlanCard(),
+              const SizedBox(height: 10),
+              const LastRunCard(),
+              const SizedBox(height: 10),
+              const PostRunFeedbackCard(),
+              const SizedBox(height: 10),
+              const RecommendedRoutesCard(),
             ],
           ),
         ),

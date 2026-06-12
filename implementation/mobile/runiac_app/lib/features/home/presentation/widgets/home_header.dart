@@ -7,14 +7,21 @@ const _brandBlue = RuniacColors.primaryBlue;
 const _sportOrange = RuniacColors.accentOrange;
 
 class HomeHeader extends StatelessWidget {
-  const HomeHeader({super.key});
+  const HomeHeader({
+    required this.onNotifications,
+    required this.onProfile,
+    super.key,
+  });
+
+  final VoidCallback onNotifications;
+  final VoidCallback onProfile;
 
   @override
   Widget build(BuildContext context) {
-    return const Row(
+    return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Expanded(
+        const Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -41,15 +48,24 @@ class HomeHeader extends StatelessWidget {
             ],
           ),
         ),
-        SizedBox(width: 12),
-        _HomeProfilePlaceholder(),
+        const SizedBox(width: 12),
+        _HomeProfilePlaceholder(
+          onNotifications: onNotifications,
+          onProfile: onProfile,
+        ),
       ],
     );
   }
 }
 
 class _HomeProfilePlaceholder extends StatelessWidget {
-  const _HomeProfilePlaceholder();
+  const _HomeProfilePlaceholder({
+    required this.onNotifications,
+    required this.onProfile,
+  });
+
+  final VoidCallback onNotifications;
+  final VoidCallback onProfile;
 
   @override
   Widget build(BuildContext context) {
@@ -63,7 +79,7 @@ class _HomeProfilePlaceholder extends StatelessWidget {
             top: 7,
             child: RuniacIconTileButton(
               icon: Icons.notifications_none,
-              onPressed: () {},
+              onPressed: onNotifications,
               semanticLabel: 'Notifications',
               size: 44,
               iconColor: RuniacColors.textPrimary,
@@ -75,7 +91,7 @@ class _HomeProfilePlaceholder extends StatelessWidget {
             top: 2,
             child: RuniacIconTileButton(
               icon: Icons.person_outline,
-              onPressed: () {},
+              onPressed: onProfile,
               semanticLabel: 'Profile',
               size: 54,
               iconSize: 30,

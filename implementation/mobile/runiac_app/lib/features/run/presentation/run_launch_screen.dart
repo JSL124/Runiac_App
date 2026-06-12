@@ -123,6 +123,12 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
     });
   }
 
+  void _showPreviewMessage(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
   @override
   Widget build(BuildContext context) {
     final viewPadding = MediaQuery.viewPaddingOf(context);
@@ -168,7 +174,9 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
                       _MapCircleButton(
                         tooltip: 'Run settings',
                         icon: Icons.settings_outlined,
-                        onPressed: () {},
+                        onPressed: () => _showPreviewMessage(
+                          'Run settings preview is coming soon.',
+                        ),
                       ),
                   ],
                 ),
@@ -197,6 +205,9 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
                       : _RunBottomPanel(
                           key: const ValueKey('launch'),
                           onStart: _startRun,
+                          onSwitchRoute: () => _showPreviewMessage(
+                            'Route switching preview is coming soon.',
+                          ),
                         ),
                 ),
               ),
@@ -315,9 +326,14 @@ class _RunStatusPill extends StatelessWidget {
 }
 
 class _RunBottomPanel extends StatelessWidget {
-  const _RunBottomPanel({super.key, required this.onStart});
+  const _RunBottomPanel({
+    super.key,
+    required this.onStart,
+    required this.onSwitchRoute,
+  });
 
   final VoidCallback onStart;
+  final VoidCallback onSwitchRoute;
 
   @override
   Widget build(BuildContext context) {
@@ -360,7 +376,7 @@ class _RunBottomPanel extends StatelessWidget {
                     ),
                   ),
                   OutlinedButton(
-                    onPressed: () {},
+                    onPressed: onSwitchRoute,
                     style: OutlinedButton.styleFrom(
                       foregroundColor: _panelTextBlue,
                       side: const BorderSide(color: _blueBorder),

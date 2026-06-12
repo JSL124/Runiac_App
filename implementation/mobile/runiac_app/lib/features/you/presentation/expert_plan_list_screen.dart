@@ -116,7 +116,7 @@ class ExpertPlanListScreen extends StatelessWidget {
                       _expertPlans[index],
                       onViewPlan: index == 0
                           ? onFirstPlanSelected
-                          : _handleNoOp,
+                          : () => _showPlanPreviewMessage(context),
                     ),
                     const SizedBox(height: 10),
                   ],
@@ -147,7 +147,13 @@ class ExpertPlanListScreen extends StatelessWidget {
     );
   }
 
-  void _handleNoOp() {}
+  void _showPlanPreviewMessage(BuildContext context) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(content: Text('Plan preview is coming soon.')),
+      );
+  }
 }
 
 class _ExpertPlanDisplay {

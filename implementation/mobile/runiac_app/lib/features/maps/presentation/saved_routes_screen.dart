@@ -111,6 +111,14 @@ class _SavedRoutesScreenState extends State<SavedRoutesScreen> {
     );
   }
 
+  void _showRouteChangePreview() {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(content: Text('Route changing preview is coming soon.')),
+      );
+  }
+
   Future<void> _showRemoveSelectedRouteDialog() async {
     final selectedRoute = _selectedRoute;
     if (selectedRoute == null) return;
@@ -156,11 +164,12 @@ class _SavedRoutesScreenState extends State<SavedRoutesScreen> {
   Widget _selectedRouteActions({required bool hasSelectedRoute}) {
     return Row(
       children: [
-        const Expanded(
+        Expanded(
           child: _SelectedRouteActionButton(
-            key: Key('selected_route_change_action'),
+            key: const Key('selected_route_change_action'),
             label: 'Change route',
             primary: true,
+            onPressed: _showRouteChangePreview,
           ),
         ),
         if (hasSelectedRoute) ...[

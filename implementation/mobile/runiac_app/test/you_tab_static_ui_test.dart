@@ -634,6 +634,27 @@ void main() {
     expect(find.text('Search plans'), findsOneWidget);
     expect(find.text('View Plan'), findsNWidgets(6));
 
+    await Scrollable.ensureVisible(
+      tester.element(find.text('Build Running Consistency')),
+      alignment: 0.45,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('View Plan').at(1));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Plan preview is coming soon.'), findsOneWidget);
+    expect(find.text('Expert Plans'), findsOneWidget);
+    expect(find.text('Plan Preview'), findsNothing);
+
+    await tester.pump(const Duration(seconds: 4));
+    await tester.pumpAndSettle();
+    expect(find.byType(SnackBar), findsNothing);
+
+    await Scrollable.ensureVisible(
+      tester.element(find.text('Search plans')),
+      alignment: 0.1,
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Search plans'));
     await tester.pumpAndSettle();
 
@@ -1144,7 +1165,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('Workout detail start action stays visual only', (
+  testWidgets('Workout detail start action opens run launch screen', (
     WidgetTester tester,
   ) async {
     // Given: the static Workout detail screen is open.
@@ -1165,9 +1186,10 @@ void main() {
     await tester.tap(find.text('Start This Run'));
     await tester.pumpAndSettle();
 
-    // Then: it does not navigate to Run launch, complete anything, or show mutation UI.
-    expect(find.text('Start This Run'), findsOneWidget);
-    expect(find.text('GPS ready'), findsNothing);
+    // Then: it routes only to the existing frontend run launch screen.
+    expect(find.text('GPS ready'), findsOneWidget);
+    expect(find.text('Start run'), findsOneWidget);
+    expect(find.text('Start This Run'), findsNothing);
     expect(find.byType(AlertDialog), findsNothing);
     expect(find.byType(BottomSheet), findsNothing);
     expect(find.byType(SnackBar), findsNothing);

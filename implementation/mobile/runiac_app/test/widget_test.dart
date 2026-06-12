@@ -140,17 +140,19 @@ void main() {
     expect(find.bySemanticsLabel('Notifications'), findsOneWidget);
     expect(find.bySemanticsLabel('Profile'), findsOneWidget);
 
-    await tester.tap(find.text('Quick Start'));
+    await tester.tap(find.bySemanticsLabel('Notifications'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Good to see you'), findsOneWidget);
-    expect(find.text('Quick Start'), findsOneWidget);
+    expect(find.text('Notifications preview is coming soon.'), findsOneWidget);
 
-    await tester.tap(find.bySemanticsLabel('Notifications'));
     await tester.tap(find.bySemanticsLabel('Profile'));
     await tester.pumpAndSettle();
 
     expect(find.text('Good to see you'), findsOneWidget);
+    expect(
+      find.text('Profile settings preview is coming soon.'),
+      findsOneWidget,
+    );
 
     await tester.drag(find.byType(ListView), const Offset(0, -500));
     await tester.pumpAndSettle();
@@ -159,6 +161,47 @@ void main() {
     expect(find.text('Last Run'), findsOneWidget);
     expect(find.text('View Details'), findsNothing);
     expect(find.textContaining(_forbiddenBackendOwnedCopy), findsNothing);
+  });
+
+  testWidgets('Home Quick Start opens the existing run launch screen', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const RuniacApp());
+
+    await tester.tap(find.text('Quick Start'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('GPS ready'), findsOneWidget);
+    expect(find.text('Start run'), findsOneWidget);
+    expect(find.text('Good to see you'), findsNothing);
+    expect(find.text('Home'), findsNothing);
+  });
+
+  testWidgets('Home View Plan opens today workout detail without editing', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const RuniacApp());
+
+    await tester.tap(find.text('View Plan'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Workout detail'), findsOneWidget);
+    expect(find.text('Thursday · Easy Run'), findsOneWidget);
+    expect(find.text('20 min easy run'), findsOneWidget);
+    expect(find.text('Edit schedule'), findsNothing);
+    expect(find.text('10K Goal Plan'), findsNothing);
+
+    await tester.scrollUntilVisible(
+      find.text('Start This Run'),
+      220,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Start This Run'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('GPS ready'), findsOneWidget);
+    expect(find.text('Start run'), findsOneWidget);
   });
 
   testWidgets('Maps tab shows static route discovery placeholder', (
@@ -408,6 +451,7 @@ void main() {
     await tester.tap(find.text('Change route'));
     await tester.pumpAndSettle();
     expect(find.text('My routes'), findsOneWidget);
+    expect(find.text('Route changing preview is coming soon.'), findsOneWidget);
 
     await tester.scrollUntilVisible(
       find.text('Kallang riverside run'),
@@ -559,6 +603,10 @@ void main() {
 
       expect(find.text('My routes'), findsOneWidget);
       expect(find.text('No route selected for today'), findsOneWidget);
+      expect(
+        find.text('Route changing preview is coming soon.'),
+        findsOneWidget,
+      );
     },
   );
 
@@ -1835,6 +1883,19 @@ void main() {
     expect(find.text('Maps'), findsNothing);
     expect(find.text('Leaderboard'), findsNothing);
     expect(find.text('You'), findsNothing);
+
+    await tester.tap(find.text('Switch route'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Route switching preview is coming soon.'),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byTooltip('Run settings'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Run settings preview is coming soon.'), findsOneWidget);
 
     await tester.tap(find.text('Start run'));
     await tester.pumpAndSettle();

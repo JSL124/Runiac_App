@@ -19,7 +19,14 @@ const _todayPlanDisplaySnapshot = _TodayPlanDisplaySnapshot(
 );
 
 class TodayPlanCard extends StatelessWidget {
-  const TodayPlanCard({super.key});
+  const TodayPlanCard({
+    required this.onViewPlan,
+    required this.onQuickStart,
+    super.key,
+  });
+
+  final VoidCallback onViewPlan;
+  final VoidCallback onQuickStart;
 
   @override
   Widget build(BuildContext context) {
@@ -70,7 +77,7 @@ class TodayPlanCard extends StatelessWidget {
             children: [
               Expanded(
                 child: OutlinedButton(
-                  onPressed: () {},
+                  onPressed: onViewPlan,
                   style: RuniacButtonStyles.secondary(
                     foregroundColor: _primaryBlue,
                     side: const BorderSide(color: _blueBorder),
@@ -83,7 +90,7 @@ class TodayPlanCard extends StatelessWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: FilledButton.icon(
-                  onPressed: () {},
+                  onPressed: onQuickStart,
                   icon: const Icon(Icons.play_arrow_rounded),
                   label: Text(snapshot.primaryActionLabel),
                   style: RuniacButtonStyles.primary(

@@ -4,6 +4,7 @@ import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/dashboard_card.dart';
 import '../../../core/widgets/runiac_bottom_sheet_handle.dart';
 import '../../../core/widgets/runiac_buttons.dart';
+import '../../run/presentation/run_launch_screen.dart';
 
 const weeklyWorkoutDetailSnapshot = WeeklyWorkoutDetailSnapshot(
   title: 'Workout detail',
@@ -123,11 +124,21 @@ class WeeklyWorkoutDetailScreen extends StatelessWidget {
   const WeeklyWorkoutDetailScreen({
     required this.onBack,
     this.snapshot = weeklyWorkoutDetailSnapshot,
+    this.showEditScheduleAction = true,
+    this.onStartRun,
     super.key,
   });
 
   final VoidCallback onBack;
   final WeeklyWorkoutDetailSnapshot snapshot;
+  final bool showEditScheduleAction;
+  final VoidCallback? onStartRun;
+
+  void _openRunLaunch(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (context) => const RunLaunchScreen()),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -144,7 +155,9 @@ class WeeklyWorkoutDetailScreen extends StatelessWidget {
               _WeeklyWorkoutDetailHeader(
                 title: snapshot.title,
                 onBack: onBack,
-                onEditSchedule: () => _showEditScheduleSheet(context, snapshot),
+                onEditSchedule: showEditScheduleAction
+                    ? () => _showEditScheduleSheet(context, snapshot)
+                    : null,
               ),
               const SizedBox(height: 16),
               _WorkoutPlanIdentity(snapshot),
@@ -157,7 +170,10 @@ class WeeklyWorkoutDetailScreen extends StatelessWidget {
               const SizedBox(height: 12),
               _CoachNoteCard(snapshot.coachNotes),
               const SizedBox(height: 16),
-              _StartRunAction(snapshot.startActionLabel),
+              _StartRunAction(
+                snapshot.startActionLabel,
+                onTap: onStartRun ?? () => _openRunLaunch(context),
+              ),
             ],
           ),
         ),
@@ -175,7 +191,7 @@ class _WeeklyWorkoutDetailHeader extends StatelessWidget {
 
   final String title;
   final VoidCallback onBack;
-  final VoidCallback onEditSchedule;
+  final VoidCallback? onEditSchedule;
 
   @override
   Widget build(BuildContext context) {
@@ -217,27 +233,28 @@ class _WeeklyWorkoutDetailHeader extends StatelessWidget {
                 ),
               ),
             ),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: onEditSchedule,
-                style: TextButton.styleFrom(
-                  foregroundColor: RuniacColors.primaryBlue,
-                  minimumSize: Size.zero,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 8,
+            if (onEditSchedule != null)
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: onEditSchedule,
+                  style: TextButton.styleFrom(
+                    foregroundColor: RuniacColors.primaryBlue,
+                    minimumSize: Size.zero,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 8,
+                    ),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    textStyle: _editActionStyle,
                   ),
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  textStyle: _editActionStyle,
-                ),
-                child: const Text(
-                  'Edit schedule',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                  child: const Text(
+                    'Edit schedule',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ),
-            ),
           ],
         ),
       ),
@@ -495,14 +512,15 @@ class _CoachNoteCard extends StatelessWidget {
 }
 
 class _StartRunAction extends StatelessWidget {
-  const _StartRunAction(this.label);
+  const _StartRunAction(this.label, {required this.onTap});
 
   final String label;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return RuniacTappableSurface(
-      onTap: () {},
+      onTap: onTap,
       borderRadius: BorderRadius.circular(999),
       height: 52,
       alignment: Alignment.center,
