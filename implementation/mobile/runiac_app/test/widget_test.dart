@@ -263,10 +263,12 @@ void main() {
       ),
       findsNothing,
     );
-    expect(find.text('Route preview'), findsOneWidget);
+    expect(find.text('Marina Bay easy loop'), findsOneWidget);
+    expect(find.text('3.2 km · 25 min · Easy'), findsOneWidget);
+    expect(find.text('Route preview'), findsNothing);
     expect(
       find.text('A calm route card can guide the next step later.'),
-      findsOneWidget,
+      findsNothing,
     );
 
     await tester.drag(find.text('Shared Routes'), const Offset(0, -260));
@@ -275,17 +277,13 @@ void main() {
     expect(find.text('Shared Routes'), findsOneWidget);
     expect(find.text('Beginner-friendly route ideas'), findsNothing);
     expect(find.text('Preview'), findsNothing);
-    expect(find.text('Shared routes'), findsOneWidget);
-    expect(
-      find.text('Community route ideas remain review-only for now.'),
-      findsOneWidget,
-    );
+    expect(find.text('Bishan Park starter route'), findsOneWidget);
+    expect(find.text('2.4 km · 18 min · Easy'), findsOneWidget);
 
-    expect(find.text('Saved routes'), findsOneWidget);
-    expect(
-      find.text('Saved route slots stay visible without saving data.'),
-      findsOneWidget,
-    );
+    expect(find.text('East Coast flat run'), findsOneWidget);
+    expect(find.text('4.0 km · 32 min · Easy'), findsOneWidget);
+    expect(find.text('Shared routes'), findsNothing);
+    expect(find.text('Saved routes'), findsNothing);
     expect(find.textContaining(_forbiddenBackendOwnedCopy), findsNothing);
   });
 
@@ -340,8 +338,8 @@ void main() {
     expect(find.text('See all'), findsOneWidget);
     expect(find.text('All shared routes'), findsNothing);
     expect(find.text('Show less'), findsNothing);
-    expect(find.text('Park connector loop'), findsNothing);
-    expect(find.text('Morning waterfront'), findsNothing);
+    expect(find.text('Punggol waterway loop'), findsNothing);
+    expect(find.text('Kallang riverside run'), findsNothing);
 
     await tester.tap(find.byKey(const Key('maps_see_all_shared_routes')));
     await tester.pumpAndSettle();
@@ -350,10 +348,11 @@ void main() {
     expect(find.text('All shared routes'), findsNothing);
     expect(find.text('See all'), findsNothing);
     expect(find.text('Show less'), findsOneWidget);
-    expect(find.text('Route preview'), findsOneWidget);
-    expect(find.text('Shared routes'), findsOneWidget);
-    expect(find.text('Saved routes'), findsOneWidget);
-    expect(find.text('Park connector loop'), findsOneWidget);
+    expect(find.text('Marina Bay easy loop'), findsOneWidget);
+    expect(find.text('Bishan Park starter route'), findsOneWidget);
+    expect(find.text('East Coast flat run'), findsOneWidget);
+    expect(find.text('Punggol waterway loop'), findsOneWidget);
+    expect(find.text('3.6 km · 28 min · Easy'), findsOneWidget);
     expect(tester.getTopLeft(sheetSurface).dy, lessThan(initialTop));
     expect(tester.getSize(sheetSurface).height, closeTo(screenHeight * 0.7, 1));
     expect(
@@ -365,7 +364,7 @@ void main() {
     final expandedHeight = tester.getSize(sheetSurface).height;
 
     await tester.scrollUntilVisible(
-      find.text('Sunset recovery route'),
+      find.text('Kallang riverside run'),
       120,
       scrollable: find.descendant(
         of: find.byKey(const Key('maps_expanded_shared_routes_list')),
@@ -374,7 +373,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Sunset recovery route'), findsOneWidget);
+    expect(find.text('Kallang riverside run'), findsOneWidget);
+    expect(find.text('3.0 km · 23 min · Easy'), findsOneWidget);
     expect(tester.getTopLeft(sheetSurface).dy, expandedTop);
     expect(tester.getSize(sheetSurface).height, expandedHeight);
     expect(find.textContaining(_forbiddenBackendOwnedCopy), findsNothing);
@@ -388,9 +388,8 @@ void main() {
     expect(find.text('See all'), findsOneWidget);
     expect(find.text('Show less'), findsNothing);
     expect(find.text('All shared routes'), findsNothing);
-    expect(find.text('Park connector loop'), findsNothing);
-    expect(find.text('Morning waterfront'), findsNothing);
-    expect(find.text('Sunset recovery route'), findsNothing);
+    expect(find.text('Punggol waterway loop'), findsNothing);
+    expect(find.text('Kallang riverside run'), findsNothing);
   });
 
   testWidgets(
@@ -409,7 +408,7 @@ void main() {
 
       expect(find.text('Shared Routes'), findsOneWidget);
       expect(find.text('Show less'), findsOneWidget);
-      expect(find.text('Park connector loop'), findsOneWidget);
+      expect(find.text('Punggol waterway loop'), findsOneWidget);
 
       await tester.drag(
         find.byKey(const Key('maps_sheet_handle')),
@@ -419,7 +418,7 @@ void main() {
 
       expect(find.text('Shared Routes'), findsNothing);
       expect(find.text('Show less'), findsNothing);
-      expect(find.text('Park connector loop'), findsNothing);
+      expect(find.text('Punggol waterway loop'), findsNothing);
 
       await tester.flingFrom(
         const Offset(400, 505),
@@ -432,7 +431,7 @@ void main() {
       expect(find.text('Shared Routes'), findsOneWidget);
       expect(find.text('See all'), findsOneWidget);
       expect(find.text('Show less'), findsNothing);
-      expect(find.text('Park connector loop'), findsNothing);
+      expect(find.text('Punggol waterway loop'), findsNothing);
     },
   );
 
@@ -711,16 +710,16 @@ void main() {
     await tester.pumpAndSettle();
 
     for (final key in const [
-      Key('route_preview_card_route_preview'),
-      Key('route_preview_card_shared_routes'),
-      Key('route_preview_card_saved_routes'),
+      Key('route_preview_card_marina_bay_easy_loop'),
+      Key('route_preview_card_bishan_park_starter_route'),
+      Key('route_preview_card_east_coast_flat_run'),
     ]) {
       expect(tester.getSize(find.byKey(key)).height, 92);
     }
 
-    final routeTitle = tester.widget<Text>(find.text('Route preview'));
+    final routeTitle = tester.widget<Text>(find.text('Marina Bay easy loop'));
     final routeMessage = tester.widget<Text>(
-      find.text('A calm route card can guide the next step later.'),
+      find.text('3.2 km · 25 min · Easy'),
     );
 
     expect(routeTitle.maxLines, 1);
@@ -736,7 +735,7 @@ void main() {
 
       await tester.tap(find.text('Maps'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Route preview'));
+      await tester.tap(find.text('Marina Bay easy loop'));
       await tester.pumpAndSettle();
 
       expect(find.text('Route'), findsOneWidget);
@@ -785,7 +784,7 @@ void main() {
 
     await tester.tap(find.text('Maps'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Route preview'));
+    await tester.tap(find.text('Marina Bay easy loop'));
     await tester.pumpAndSettle();
 
     await tester.tap(find.bySemanticsLabel('Share route'));
@@ -833,7 +832,7 @@ void main() {
 
       await tester.tap(find.text('Maps'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Route preview'));
+      await tester.tap(find.text('Marina Bay easy loop'));
       await tester.pumpAndSettle();
 
       expect(
@@ -902,7 +901,7 @@ void main() {
 
     await tester.tap(find.text('Maps'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Route preview'));
+    await tester.tap(find.text('Marina Bay easy loop'));
     await tester.pumpAndSettle();
     await tester.tap(find.bySemanticsLabel('Report route'));
     await tester.pumpAndSettle();
@@ -952,7 +951,7 @@ void main() {
 
       await tester.tap(find.text('Maps'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Route preview'));
+      await tester.tap(find.text('Marina Bay easy loop'));
       await tester.pumpAndSettle();
 
       expect(find.bySemanticsLabel('Report route'), findsOneWidget);
@@ -994,7 +993,7 @@ void main() {
 
       await tester.tap(find.text('Maps'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Route preview'));
+      await tester.tap(find.text('Marina Bay easy loop'));
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('Select Route'));
@@ -1045,16 +1044,16 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Shared Routes'), findsOneWidget);
-      expect(find.text('Shared routes'), findsOneWidget);
-      expect(find.text('Saved routes'), findsOneWidget);
+      expect(find.text('Bishan Park starter route'), findsOneWidget);
+      expect(find.text('East Coast flat run'), findsOneWidget);
 
-      await tester.tap(find.text('Route preview'));
+      await tester.tap(find.text('Marina Bay easy loop'));
       await tester.pumpAndSettle();
       await tester.tap(find.bySemanticsLabel('Back'));
       await tester.pumpAndSettle();
 
       expect(find.text('Shared Routes'), findsOneWidget);
-      expect(find.text('Route preview'), findsOneWidget);
+      expect(find.text('Marina Bay easy loop'), findsOneWidget);
 
       final mapsSource = Directory('lib/features/maps')
           .listSync(recursive: true)
@@ -1099,9 +1098,9 @@ void main() {
     final sheetSurface = find.byKey(const Key('maps_sheet_surface'));
     final initialTop = tester.getTopLeft(sheetSurface).dy;
 
-    expect(find.text('Route preview'), findsOneWidget);
-    expect(find.text('Shared routes'), findsOneWidget);
-    expect(find.text('Saved routes'), findsOneWidget);
+    expect(find.text('Marina Bay easy loop'), findsOneWidget);
+    expect(find.text('Bishan Park starter route'), findsOneWidget);
+    expect(find.text('East Coast flat run'), findsOneWidget);
 
     await tester.drag(
       find.byKey(const Key('maps_sheet_handle')),
@@ -1110,7 +1109,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(tester.getTopLeft(sheetSurface).dy, initialTop);
-    expect(find.text('Saved routes'), findsOneWidget);
+    expect(find.text('East Coast flat run'), findsOneWidget);
   });
 
   testWidgets(
@@ -1127,7 +1126,7 @@ void main() {
 
       final sheetSurface = find.byKey(const Key('maps_sheet_surface'));
       final savedRouteCard = find.byKey(
-        const Key('route_preview_card_saved_routes'),
+        const Key('route_preview_card_east_coast_flat_run'),
       );
 
       expect(sheetSurface, findsOneWidget);

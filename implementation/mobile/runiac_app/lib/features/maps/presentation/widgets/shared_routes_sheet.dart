@@ -18,59 +18,39 @@ const _sharedRoutesDisplaySnapshot = _SharedRoutesDisplaySnapshot(
   showLessActionLabel: 'Show less',
   routeCards: [
     _RouteCardDisplaySnapshot(
-      keySuffix: 'route_preview',
-      title: 'Route preview',
-      message: 'A calm route card can guide the next step later.',
+      keySuffix: 'marina_bay_easy_loop',
+      title: 'Marina Bay easy loop',
+      distance: '3.2 km',
+      duration: '25 min',
+      difficulty: 'Easy',
     ),
     _RouteCardDisplaySnapshot(
-      keySuffix: 'shared_routes',
-      title: 'Shared routes',
-      message: 'Community route ideas remain review-only for now.',
+      keySuffix: 'bishan_park_starter_route',
+      title: 'Bishan Park starter route',
+      distance: '2.4 km',
+      duration: '18 min',
+      difficulty: 'Easy',
     ),
     _RouteCardDisplaySnapshot(
-      keySuffix: 'saved_routes',
-      title: 'Saved routes',
-      message: 'Saved route slots stay visible without saving data.',
+      keySuffix: 'east_coast_flat_run',
+      title: 'East Coast flat run',
+      distance: '4.0 km',
+      duration: '32 min',
+      difficulty: 'Easy',
     ),
     _RouteCardDisplaySnapshot(
-      keySuffix: 'park_connector',
-      title: 'Park connector loop',
-      message: 'Flat route inspiration stays static and review-only.',
+      keySuffix: 'punggol_waterway_loop',
+      title: 'Punggol waterway loop',
+      distance: '3.6 km',
+      duration: '28 min',
+      difficulty: 'Easy',
     ),
     _RouteCardDisplaySnapshot(
-      keySuffix: 'morning_waterfront',
-      title: 'Morning waterfront',
-      message: 'Gentle community ideas appear without loading data.',
-    ),
-    _RouteCardDisplaySnapshot(
-      keySuffix: 'marina_bay_easy',
-      title: 'Marina Bay easy route',
-      message: 'A simple waterfront idea for relaxed route browsing.',
-    ),
-    _RouteCardDisplaySnapshot(
-      keySuffix: 'garden_evening',
-      title: 'Garden evening loop',
-      message: 'A calm garden loop stays static until routes are real.',
-    ),
-    _RouteCardDisplaySnapshot(
-      keySuffix: 'beginner_riverside',
-      title: 'Beginner riverside route',
-      message: 'Short riverside inspiration keeps the preview friendly.',
-    ),
-    _RouteCardDisplaySnapshot(
-      keySuffix: 'coffee_recovery',
-      title: 'Coffee stop recovery route',
-      message: 'Recovery route ideas remain display-only and gentle.',
-    ),
-    _RouteCardDisplaySnapshot(
-      keySuffix: 'quiet_neighbourhood',
-      title: 'Quiet neighbourhood loop',
-      message: 'Low-pressure neighbourhood browsing for future routes.',
-    ),
-    _RouteCardDisplaySnapshot(
-      keySuffix: 'sunset_recovery',
-      title: 'Sunset recovery route',
-      message: 'An easy sunset route card for the static list preview.',
+      keySuffix: 'kallang_riverside_run',
+      title: 'Kallang riverside run',
+      distance: '3.0 km',
+      duration: '23 min',
+      difficulty: 'Easy',
     ),
   ],
 );
@@ -273,7 +253,7 @@ class _SharedRoutesSheetBody extends StatelessWidget {
                               return SharedRouteSheetCard(
                                 keySuffix: route.keySuffix,
                                 title: route.title,
-                                message: route.message,
+                                message: route.meta,
                                 onTap: index == 0
                                     ? () => Navigator.of(context).push(
                                         PageRouteBuilder<void>(
@@ -303,7 +283,7 @@ class _SharedRoutesSheetBody extends StatelessWidget {
                         SharedRouteSheetCard(
                           keySuffix: entry.$2.keySuffix,
                           title: entry.$2.title,
-                          message: entry.$2.message,
+                          message: entry.$2.meta,
                           onTap: entry.$1 == 0
                               ? () => Navigator.of(context).push(
                                   PageRouteBuilder<void>(
@@ -468,10 +448,16 @@ class _RouteCardDisplaySnapshot {
   const _RouteCardDisplaySnapshot({
     required this.keySuffix,
     required this.title,
-    required this.message,
+    required this.distance,
+    required this.duration,
+    required this.difficulty,
   });
 
   final String keySuffix;
   final String title;
-  final String message;
+  final String distance;
+  final String duration;
+  final String difficulty;
+
+  String get meta => '$distance · $duration · $difficulty';
 }
