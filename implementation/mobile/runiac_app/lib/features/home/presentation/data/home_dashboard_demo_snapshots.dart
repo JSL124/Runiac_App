@@ -12,6 +12,24 @@ const homeTodayPlanDemoSnapshot = HomeTodayPlanDemoSnapshot(
   primaryActionLabel: 'Quick Start',
 );
 
+const homeExploreRouteDemoSnapshots = <HomeExploreRouteDemoSnapshot>[
+  HomeExploreRouteDemoSnapshot(
+    title: 'Haneul Park Trail',
+    distance: '3.2 km',
+    subtitle: 'Flat • Popular for Sunset',
+  ),
+  HomeExploreRouteDemoSnapshot(
+    title: 'Olympic Park Loop',
+    distance: '5.0 km',
+    subtitle: 'Moderate • Wide Paths',
+  ),
+  HomeExploreRouteDemoSnapshot(
+    title: 'Marina Bay Easy Loop',
+    distance: '3.2 km',
+    subtitle: 'Easy • Scenic Waterfront',
+  ),
+];
+
 const homeDashboardDemoSnapshot = HomeDashboardDemoSnapshot(
   todayPlan: homeTodayPlanDemoSnapshot,
   goal: HomeGoalProgressDemoSnapshot(
@@ -53,6 +71,7 @@ const homeDashboardDemoSnapshot = HomeDashboardDemoSnapshot(
     chartLabels: ['May 6', 'May 13', 'May 20', 'May 27', 'Jun 3'],
     chartValues: [0.42, 0.33, 0.18, 0.36, 0.55, 0.62, 0.72],
   ),
+  exploreRoutes: homeExploreRouteDemoSnapshots,
 );
 
 class HomeDashboardDemoSnapshot {
@@ -62,6 +81,7 @@ class HomeDashboardDemoSnapshot {
     required this.streak,
     required this.xp,
     required this.insight,
+    required this.exploreRoutes,
   });
 
   final HomeTodayPlanDemoSnapshot todayPlan;
@@ -69,6 +89,7 @@ class HomeDashboardDemoSnapshot {
   final HomeMetricDemoSnapshot streak;
   final HomeMetricDemoSnapshot xp;
   final HomeInsightDemoSnapshot insight;
+  final List<HomeExploreRouteDemoSnapshot> exploreRoutes;
 }
 
 class HomeTodayPlanDemoSnapshot {
@@ -145,4 +166,16 @@ class HomeInsightRowDemoSnapshot {
   final IconData icon;
   final String label;
   final String value;
+}
+
+class HomeExploreRouteDemoSnapshot {
+  const HomeExploreRouteDemoSnapshot({
+    required this.title,
+    required this.distance,
+    required this.subtitle,
+  });
+
+  final String title;
+  final String distance;
+  final String subtitle;
 }

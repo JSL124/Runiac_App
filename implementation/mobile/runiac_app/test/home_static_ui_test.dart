@@ -70,6 +70,7 @@ const _longXpHomeSnapshot = HomeDashboardDemoSnapshot(
     chartLabels: ['May 6', 'May 13', 'May 20', 'May 27', 'Jun 3'],
     chartValues: [0.42, 0.33, 0.18, 0.36, 0.55, 0.62, 0.72],
   ),
+  exploreRoutes: homeExploreRouteDemoSnapshots,
 );
 
 void main() {
@@ -232,6 +233,46 @@ void main() {
       tester.widget<Icon>(find.byIcon(Icons.star_rounded)).size,
       lessThanOrEqualTo(27),
     );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Home Explore Routes replaces the old routes empty state', (
+    WidgetTester tester,
+  ) async {
+    tester.view.physicalSize = const Size(360, 760);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(const RuniacApp(showSplash: false));
+
+    expect(find.text('Recommended Routes'), findsNothing);
+    expect(find.text('Community routes will appear here.'), findsNothing);
+
+    await tester.scrollUntilVisible(
+      find.text('Explore Routes'),
+      260,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Explore Routes'), findsOneWidget);
+    expect(find.text('View All'), findsOneWidget);
+    expect(find.text('Haneul Park Trail'), findsOneWidget);
+    expect(find.text('3.2 km'), findsWidgets);
+
+    await tester.tap(find.text('View All'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Route explorer preview'), findsOneWidget);
+
+    await tester.drag(
+      find.byKey(const ValueKey('home_explore_routes_carousel')),
+      const Offset(-220, 0),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Olympic Park Loop'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
