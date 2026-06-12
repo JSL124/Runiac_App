@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/runiac_colors.dart';
+import '../../../../core/widgets/runiac_buttons.dart';
 
 class RoutePreviewCard extends StatelessWidget {
   const RoutePreviewCard({
@@ -16,11 +17,16 @@ class RoutePreviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final card = Container(
+    final borderRadius = BorderRadius.circular(20);
+
+    return RuniacTappableSurface(
+      onTap: onTap,
+      borderRadius: borderRadius,
+      height: 92,
       padding: const EdgeInsets.all(11),
       decoration: BoxDecoration(
         color: RuniacColors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: borderRadius,
         border: Border.all(color: RuniacColors.cardBorder),
         boxShadow: const [
           BoxShadow(
@@ -30,6 +36,7 @@ class RoutePreviewCard extends StatelessWidget {
           ),
         ],
       ),
+      semanticsButton: onTap != null,
       child: Row(
         children: [
           const _RouteThumbnailPlaceholder(),
@@ -65,18 +72,6 @@ class RoutePreviewCard extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-
-    return ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: 92, maxHeight: 92),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(20),
-          child: card,
-        ),
       ),
     );
   }
