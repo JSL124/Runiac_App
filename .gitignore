@@ -28,6 +28,7 @@ serviceAccount*.json
 .firebase/
 .firebaserc
 .runtimeconfig.json
+**/firebase_options.dart
 firebase-debug.log
 firestore-debug.log
 database-debug.log
