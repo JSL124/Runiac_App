@@ -11,7 +11,7 @@ class CurrentGoalPlanCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return YouDashboardCard(
+    return YouDividerSection(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

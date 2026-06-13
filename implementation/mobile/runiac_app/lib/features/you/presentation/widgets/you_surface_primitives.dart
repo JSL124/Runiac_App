@@ -104,6 +104,36 @@ class YouDashboardCard extends StatelessWidget {
   }
 }
 
+class YouDividerSection extends StatelessWidget {
+  const YouDividerSection({required this.child, super.key});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const _YouSectionDivider(),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          child: child,
+        ),
+        const _YouSectionDivider(),
+      ],
+    );
+  }
+}
+
+class _YouSectionDivider extends StatelessWidget {
+  const _YouSectionDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(height: 1, color: RuniacColors.border);
+  }
+}
+
 class StaticPlanAction extends StatelessWidget {
   const StaticPlanAction(this.label, {this.onTap, super.key});
 

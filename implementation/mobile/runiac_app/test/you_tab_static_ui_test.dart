@@ -393,6 +393,7 @@ void main() {
     await tester.tap(find.text('Plans'));
     await tester.pumpAndSettle();
 
+    expect(find.text('Current Goal'), findsOneWidget);
     expect(find.text('10K Preparation'), findsOneWidget);
     expect(find.text('Week 3 of 8'), findsOneWidget);
     expect(find.text('43% completed'), findsOneWidget);
