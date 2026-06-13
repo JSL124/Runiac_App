@@ -26,7 +26,7 @@ Allowed statuses:
 | --- | --- | --- | --- |
 | Gate-00: Git State Baseline | APPROVED | Clean status, push baseline confirmation, no unrelated untracked/staged files, no failed traceability artifacts, explicit human/project approval evidence | Baseline readiness approved only; not scaffold execution approval. |
 | Flutter Scaffold Gate | EXECUTED FOR STOCK SCAFFOLD BASELINE | Human/project approval to create Flutter scaffold and package metadata | Stock scaffold baseline exists at `implementation/mobile/runiac_app/`; no Firebase setup or feature implementation is authorized. |
-| Firebase Project and Config Gate | Not Started | Human/project approval for Firebase project/config approach | No `firebase init`, config files, or project IDs yet. |
+| Firebase Project and Config Gate | PARTIALLY APPROVED FOR EMULATOR-ONLY ROOT FIREBASE.JSON | Human/project approval for Firebase project/config approach | Root `firebase.json` is approved only for the `firebase-emulator-shell` Firestore emulator shell; no production project, `.firebaserc`, mobile config, rules, indexes, or Functions are approved. |
 | Firestore Data Model Gate | Not Started | Approved collection/access model and traceability to requirements | No collections/rules created yet. |
 | Cloud Functions Boundary Gate | Not Started | Approved backend ownership boundaries | No functions source, package files, or TypeScript config yet. |
 | Firestore Security Rules Gate | Not Started | Approved rules strategy and emulator test plan | No rules files yet. |
@@ -105,12 +105,26 @@ Approval evidence required:
 
 ## 6. Firebase Project and Config Gate
 
-Status: `Not Started`
+Status: `PARTIALLY APPROVED FOR EMULATOR-ONLY ROOT FIREBASE.JSON`
+
+Approved exception:
+
+- Root `firebase.json` is approved only for the `firebase-emulator-shell` capsule.
+- The approved file is limited to Firestore emulator configuration.
+- Firestore emulator host is local-only.
+- No production Firebase project ID is approved.
+- No `.firebaserc` is approved.
+- No `firebase init` or `firebase init emulators` command is approved.
+- No FlutterFire or mobile Firebase configuration is approved.
+- No Cloud Functions are approved.
+- No Firestore rules or indexes are approved.
+- No Auth/Firestore app wiring is approved.
+- No backend-owned state logic is approved.
 
 Blocked until approved:
 
 - No `firebase init`.
-- No `firebase.json`.
+- No additional or nested `firebase.json` beyond the approved root emulator shell file.
 - No `.firebaserc`.
 - No Firebase production project IDs.
 - No `google-services.json`.
@@ -379,7 +393,7 @@ Still forbidden until relevant gates are approved:
 - No `firebase init`.
 - No `flutterfire configure`.
 - No `pubspec.yaml`.
-- No `firebase.json`.
+- No additional or nested `firebase.json` beyond the approved root emulator shell file.
 - No `.firebaserc`.
 - No `package.json`.
 - No `tsconfig.json`.
@@ -393,6 +407,7 @@ Still forbidden until relevant gates are approved:
 | --- | --- | --- | --- | --- |
 | 2026-05-24 | Gate-00: Git State Baseline | `Drafted` to `Under Review` | A0_ORCH based on `git status --short` clean output, `git status -sb` showing `main...origin/main`, and latest traceability setup commit `30c55b5 docs(traceability): add phase 1 implementation prep gates` present locally | Historical note from the 2026-05-24 transition. Current Gate-00 approval evidence is recorded below. |
 | 2026-05-24 | Phase 1 traceability docs | Created as `Drafted` | User approved creation of `requirements-map.md` and `setup-gates.md` only | Does not approve scaffolding or implementation. LLM/agent-generated decisions alone are not approval. |
+| 2026-06-14 | Firebase Project and Config Gate | `Not Started` to `PARTIALLY APPROVED FOR EMULATOR-ONLY ROOT FIREBASE.JSON` | Lee Jinseo approved the chat phrase for Firebase Project and Config Gate emulator-only setup; capsule: `firebase-emulator-shell`; commit reference: commit pending | Approval is limited to root `firebase.json` for Firestore emulator only. Validation evidence: transient `npx firebase-tools@14`, Firestore emulator hub check, Governance CI pass, and direct forbidden artifact scan. Latest `firebase-tools` required Java 21; current smoke validation used transient `firebase-tools@14.27.0`. Java 21/tooling upgrade is future work and is not approved by this capsule. |
 
 ### Gate-00 Approval Evidence
 
@@ -454,6 +469,6 @@ Still forbidden until relevant gates are approved:
   - No `firebase init` was run.
   - `flutterfire configure` has not been run.
   - No Firebase config/secrets were generated or committed.
-  - Firebase Project and Config Gate remains `Not Started`.
+  - Firebase Project and Config Gate remained `Not Started` at scaffold execution time. It is now partially approved only for the root Firestore emulator `firebase.json` recorded above.
   - Stock Flutter scaffold baseline is present, but production Runiac feature implementation has not started.
   - Build, deploy, custom tests, source expansion, Firebase setup, and Phase 02 feature work remain unauthorized until separately routed and approved.

@@ -24,7 +24,7 @@ is_allowed_path() {
       return 0
       ;;
     # Approved: scaffold-baseline instruction/setup-gate alignment only
-    implementation/AGENTS.md|implementation/mobile/AGENTS.md|implementation/traceability/setup-gates.md)
+    implementation/AGENTS.md|implementation/mobile/AGENTS.md|implementation/traceability/setup-gates.md|implementation/traceability/requirements-map.md)
       return 0
       ;;
     # Approved: scaffold-baseline and Codex-only review instruction cleanup
@@ -41,6 +41,9 @@ is_allowed_path() {
     .gitignore)
       return 0
       ;;
+    firebase.json)
+      return 0
+      ;;
     implementation/mobile/runiac_app/*)
       return 0
       ;;
@@ -52,6 +55,9 @@ is_allowed_path() {
 
 is_forbidden_path() {
   case "$1" in
+    firebase.json)
+      return 1
+      ;;
     *.env.example|*.env.*.example)
       return 1
       ;;

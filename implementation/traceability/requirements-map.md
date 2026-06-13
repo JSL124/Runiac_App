@@ -142,7 +142,7 @@ Phase 1 preparation covers traceability and setup readiness only. It records the
 Future implementation needs approved gates before creating or changing production scaffolding:
 
 - Flutter scaffold gate before `flutter create`, `pubspec.yaml`, production Dart files, or app package structure.
-- Firebase project/config gate before `firebase init`, `firebase.json`, `.firebaserc`, rules files, emulator config, or production Firebase project references.
+- Firebase project/config gate before `firebase init`, `.firebaserc`, Firestore rules/indexes, production Firebase project references, mobile config, or non-emulator Firebase setup. Approved exception: root `firebase.json` for the Firestore emulator shell is allowed under the limited `firebase-emulator-shell` approval.
 - Firestore and Cloud Functions gates before rules, data collections, functions source, `package.json`, or `tsconfig.json`.
 - Secret/environment gate before any `.env*`, service account, API key, mobile platform config, or production project ID handling.
 
