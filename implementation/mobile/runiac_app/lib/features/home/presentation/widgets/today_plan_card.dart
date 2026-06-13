@@ -28,46 +28,43 @@ class TodayPlanCard extends StatelessWidget {
             ? cardWidth * 0.68
             : cardWidth * 0.62;
 
-        return ClipRRect(
-          borderRadius: BorderRadius.circular(28),
-          child: SizedBox(
-            height: cardHeight,
-            width: double.infinity,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                Image.asset(
-                  snapshot.heroAssetPath,
-                  key: const ValueKey('today_plan_hero_image'),
-                  fit: BoxFit.cover,
-                  alignment: Alignment.centerRight,
+        return SizedBox(
+          height: cardHeight,
+          width: double.infinity,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Image.asset(
+                snapshot.heroAssetPath,
+                key: const ValueKey('today_plan_hero_image'),
+                fit: BoxFit.cover,
+                alignment: Alignment.centerRight,
+              ),
+              const _HeroBlueOverlay(),
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  horizontalPadding,
+                  16,
+                  horizontalPadding,
+                  16,
                 ),
-                const _HeroBlueOverlay(),
-                Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    horizontalPadding,
-                    16,
-                    horizontalPadding,
-                    16,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      ConstrainedBox(
-                        constraints: BoxConstraints(maxWidth: contentMaxWidth),
-                        child: const _TodayPlanCopy(snapshot: snapshot),
-                      ),
-                      const Spacer(),
-                      _TodayPlanActions(
-                        onViewPlan: onViewPlan,
-                        onQuickStart: onQuickStart,
-                        snapshot: snapshot,
-                      ),
-                    ],
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: contentMaxWidth),
+                      child: const _TodayPlanCopy(snapshot: snapshot),
+                    ),
+                    const Spacer(),
+                    _TodayPlanActions(
+                      onViewPlan: onViewPlan,
+                      onQuickStart: onQuickStart,
+                      snapshot: snapshot,
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         );
       },

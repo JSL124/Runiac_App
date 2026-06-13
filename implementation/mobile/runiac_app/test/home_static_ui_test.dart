@@ -138,6 +138,13 @@ void main() {
     expect(find.bySemanticsLabel('Notifications'), findsOneWidget);
     expect(find.bySemanticsLabel('Profile'), findsOneWidget);
 
+    final todayPlanRect = tester.getRect(find.byType(TodayPlanCard));
+    final progressSectionRect = tester.getRect(
+      find.byType(HomeProgressInsightSection),
+    );
+    expect(todayPlanRect.left, lessThan(progressSectionRect.left));
+    expect(todayPlanRect.right, greaterThan(progressSectionRect.right));
+
     await tester.tap(find.bySemanticsLabel('Notifications'));
     await tester.pumpAndSettle();
 
@@ -192,12 +199,6 @@ void main() {
     final xpValueRect = tester.getRect(find.text('1,240 xp'));
     final streakCaptionRect = tester.getRect(find.text('Keep it going!'));
     final xpCaptionRect = tester.getRect(find.text('360 XP to Lv.13'));
-    final streakCardHeight = tester
-        .getSize(_nearestDecoratedBoxContaining('Streak'))
-        .height;
-    final xpCardHeight = tester
-        .getSize(_nearestDecoratedBoxContaining('XP'))
-        .height;
 
     expect(streakTitleRect.center.dx, lessThan(xpTitleRect.center.dx));
     expect(
@@ -212,9 +213,6 @@ void main() {
       (streakCaptionRect.center.dy - xpCaptionRect.center.dy).abs(),
       lessThan(1),
     );
-    expect((streakCardHeight - xpCardHeight).abs(), lessThan(1));
-    expect(streakCardHeight, lessThan(102));
-    expect(xpCardHeight, lessThan(102));
     expect(
       tester
           .widget<Icon>(find.byIcon(Icons.local_fire_department_rounded))
@@ -334,33 +332,46 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('Home today plan hero fits a narrow mobile surface', (
-    WidgetTester tester,
-  ) async {
-    tester.view.physicalSize = const Size(360, 760);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
+  testWidgets(
+    'Home today plan hero keeps runner image and fills a narrow mobile surface',
+    (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(360, 760);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: Padding(
-            padding: const EdgeInsets.all(16),
-            child: TodayPlanCard(onViewPlan: () {}, onQuickStart: () {}),
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: TodayPlanCard(onViewPlan: () {}, onQuickStart: () {}),
           ),
         ),
-      ),
-    );
+      );
 
-    expect(find.text('20 min easy run'), findsOneWidget);
-    expect(find.text('Goal Mode: First 5K'), findsOneWidget);
-    expect(
-      find.text('Build consistency with an easy, comfortable effort.'),
-      findsOneWidget,
-    );
-    expect(tester.takeException(), isNull);
-  });
+      expect(find.text('Today\'s Plan'), findsOneWidget);
+      expect(find.text('20 min easy run'), findsOneWidget);
+      expect(find.text('Goal Mode: First 5K'), findsOneWidget);
+      expect(
+        find.text('Build consistency with an easy, comfortable effort.'),
+        findsOneWidget,
+      );
+      expect(find.text('View Plan'), findsOneWidget);
+      expect(find.text('Quick Start'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('today_plan_hero_image')),
+        findsOneWidget,
+      );
+      final heroClipFinder = find.ancestor(
+        of: find.text('Today\'s Plan'),
+        matching: find.byType(ClipRRect),
+      );
+      expect(heroClipFinder, findsNothing);
+      final heroRect = tester.getRect(find.byType(TodayPlanCard));
+      expect(heroRect.left, equals(0));
+      expect(heroRect.right, equals(tester.view.physicalSize.width));
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets('Home Quick Start opens the existing run launch screen', (
     WidgetTester tester,

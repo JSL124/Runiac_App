@@ -213,32 +213,38 @@ class _MetricCardsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: _MetricCard(
-            metric: streak,
-            icon: Icons.local_fire_department_rounded,
-            iconColor: RuniacColors.primaryBlue,
-            iconBackground: RuniacColors.sectionSurfaceStrong,
+    return _HomeDividerSection(
+      padding: const EdgeInsets.fromLTRB(0, 14, 0, 15),
+      child: Row(
+        children: [
+          Expanded(
+            child: _MetricBlock(
+              metric: streak,
+              icon: Icons.local_fire_department_rounded,
+              iconColor: RuniacColors.primaryBlue,
+              iconBackground: RuniacColors.sectionSurfaceStrong,
+            ),
           ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _MetricCard(
-            metric: xp,
-            icon: Icons.star_rounded,
-            iconColor: _starOrange,
-            iconBackground: _softOrange,
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 12),
+            child: _VerticalDivider(height: 76),
           ),
-        ),
-      ],
+          Expanded(
+            child: _MetricBlock(
+              metric: xp,
+              icon: Icons.star_rounded,
+              iconColor: _starOrange,
+              iconBackground: _softOrange,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
 
-class _MetricCard extends StatelessWidget {
-  const _MetricCard({
+class _MetricBlock extends StatelessWidget {
+  const _MetricBlock({
     required this.metric,
     required this.icon,
     required this.iconColor,
@@ -253,79 +259,76 @@ class _MetricCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 98,
-      child: _ReferenceCard(
-        padding: const EdgeInsets.fromLTRB(12, 12, 12, 11),
-        child: Row(
-          children: [
-            _IconTile(
-              icon: icon,
-              background: iconBackground,
-              color: iconColor,
-              size: 48,
-              iconSize: 26,
+      height: 76,
+      child: Row(
+        children: [
+          _IconTile(
+            icon: icon,
+            background: iconBackground,
+            color: iconColor,
+            size: 48,
+            iconSize: 26,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  height: 18,
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      metric.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: RuniacColors.textPrimary,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  height: 25,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      metric.value,
+                      maxLines: 1,
+                      style: const TextStyle(
+                        color: RuniacColors.textPrimary,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        height: 1.08,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  height: 16,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      metric.caption,
+                      maxLines: 1,
+                      style: const TextStyle(
+                        color: RuniacColors.textSecondary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(
-                    height: 18,
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        metric.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: RuniacColors.textPrimary,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    height: 25,
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        metric.value,
-                        maxLines: 1,
-                        style: const TextStyle(
-                          color: RuniacColors.textPrimary,
-                          fontSize: 22,
-                          fontWeight: FontWeight.w800,
-                          height: 1.08,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    height: 16,
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        metric.caption,
-                        maxLines: 1,
-                        style: const TextStyle(
-                          color: RuniacColors.textSecondary,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -338,7 +341,7 @@ class _AdvancedInsightCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _ReferenceCard(
+    return _HomeDividerSection(
       padding: const EdgeInsets.fromLTRB(16, 18, 16, 16),
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -498,32 +501,6 @@ class _InsightChart extends StatelessWidget {
         ),
         child: const SizedBox.expand(),
       ),
-    );
-  }
-}
-
-class _ReferenceCard extends StatelessWidget {
-  const _ReferenceCard({required this.child, required this.padding});
-
-  final Widget child;
-  final EdgeInsetsGeometry padding;
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: RuniacColors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: RuniacColors.cardBorder),
-        boxShadow: [
-          BoxShadow(
-            color: RuniacColors.primaryBlue.withValues(alpha: 0.05),
-            blurRadius: 18,
-            offset: const Offset(0, 7),
-          ),
-        ],
-      ),
-      child: Padding(padding: padding, child: child),
     );
   }
 }

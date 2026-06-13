@@ -46,16 +46,18 @@ class HomeTab extends StatelessWidget {
           behavior: ScrollConfiguration.of(context).copyWith(overscroll: false),
           child: ListView(
             physics: const ClampingScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+            padding: const EdgeInsets.fromLTRB(0, 8, 0, 28),
             children: [
-              HomeHeader(
-                onNotifications: () => _showPreviewMessage(
-                  context,
-                  'Notifications preview is coming soon.',
-                ),
-                onProfile: () => _showPreviewMessage(
-                  context,
-                  'Profile settings preview is coming soon.',
+              _HomeContentPadding(
+                child: HomeHeader(
+                  onNotifications: () => _showPreviewMessage(
+                    context,
+                    'Notifications preview is coming soon.',
+                  ),
+                  onProfile: () => _showPreviewMessage(
+                    context,
+                    'Profile settings preview is coming soon.',
+                  ),
                 ),
               ),
               const SizedBox(height: 12),
@@ -64,13 +66,27 @@ class HomeTab extends StatelessWidget {
                 onQuickStart: () => _openQuickStart(context),
               ),
               const SizedBox(height: 10),
-              const HomeProgressInsightSection(),
+              const _HomeContentPadding(child: HomeProgressInsightSection()),
               const SizedBox(height: 10),
-              const ExploreRoutesSection(),
+              const _HomeContentPadding(child: ExploreRoutesSection()),
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+class _HomeContentPadding extends StatelessWidget {
+  const _HomeContentPadding({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: child,
     );
   }
 }
