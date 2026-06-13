@@ -550,13 +550,16 @@ void main() {
     final uiSource = File(
       'lib/features/leaderboard/presentation/leaderboard_tab.dart',
     ).readAsStringSync();
+    final runnerProfileSource = File(
+      'lib/features/leaderboard/presentation/widgets/runner_achievement_profile_screen.dart',
+    ).readAsStringSync();
     final modelSource = File(
       'lib/features/leaderboard/presentation/models/leaderboard_display_models.dart',
     ).readAsStringSync();
     final demoSource = File(
       'lib/features/leaderboard/presentation/data/leaderboard_demo_snapshots.dart',
     ).readAsStringSync();
-    final source = '$uiSource\n$modelSource\n$demoSource';
+    final source = '$uiSource\n$runnerProfileSource\n$modelSource\n$demoSource';
 
     expect(modelSource, contains('class LeaderboardPreviewSnapshot'));
     expect(modelSource, contains('class LeaderboardLeagueSnapshot'));
@@ -567,7 +570,7 @@ void main() {
     expect(modelSource, contains('class RunnerAchievementBadgeSnapshot'));
     expect(modelSource, contains('enum RegionPreviewMedalTone'));
     expect(modelSource, contains('class LeagueTaxonomyEntry'));
-    expect(uiSource, contains('class _RunnerMetricValueText'));
+    expect(runnerProfileSource, contains('class RunnerMetricValueText'));
     expect(demoSource, contains('const leaderboardPreviewDemoSnapshot'));
     expect(demoSource, contains('const leaderboardLeagueDemoSnapshot'));
     expect(demoSource, contains('const leaderboardRegionDemoSnapshot'));
@@ -612,12 +615,14 @@ void main() {
       expect(source, isNot(contains(forbidden)));
     }
 
-    final metricValueStart = uiSource.indexOf('class _RunnerMetricValueText');
-    final metricValueEnd = uiSource.indexOf(
+    final metricValueStart = runnerProfileSource.indexOf(
+      'class RunnerMetricValueText',
+    );
+    final metricValueEnd = runnerProfileSource.indexOf(
       'class _RunnerAchievementsSection',
       metricValueStart,
     );
-    final metricValueSource = uiSource.substring(
+    final metricValueSource = runnerProfileSource.substring(
       metricValueStart,
       metricValueEnd,
     );
