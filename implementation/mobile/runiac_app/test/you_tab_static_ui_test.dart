@@ -980,6 +980,11 @@ void main() {
     expect(find.text('Cool-down'), findsOneWidget);
     await tester.drag(find.byType(ListView), const Offset(0, -700));
     await tester.pumpAndSettle();
+    expect(find.text('Workout detail'), findsOneWidget);
+    expect(find.text('Edit schedule'), findsOneWidget);
+    expect(find.byTooltip('Back to Plans'), findsOneWidget);
+    expect(tester.getTopLeft(find.text('Workout detail')).dy, greaterThan(0));
+    expect(tester.getTopLeft(find.text('Edit schedule')).dy, greaterThan(0));
     expect(find.text('Start This Run'), findsOneWidget);
   });
 

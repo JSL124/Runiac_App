@@ -34,13 +34,11 @@ class WeeklyWorkoutDetailScreen extends StatelessWidget {
       color: RuniacColors.background,
       child: SafeArea(
         bottom: false,
-        child: _NoOverscroll(
-          key: const ValueKey('workout_detail_no_overscroll'),
-          child: ListView(
-            physics: const ClampingScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 28),
-            children: [
-              RuniacBackHeader(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+              child: RuniacBackHeader(
                 title: snapshot.title,
                 titleKey: const ValueKey('workout_detail_header_title'),
                 titleStyle: _headerTitleStyle,
@@ -69,23 +67,33 @@ class WeeklyWorkoutDetailScreen extends StatelessWidget {
                     : null,
                 trailingWidth: 96,
               ),
-              const SizedBox(height: 16),
-              _WorkoutPlanIdentity(snapshot),
-              const SizedBox(height: 10),
-              _MetricSummaryCard(snapshot.metrics),
-              const SizedBox(height: 12),
-              _WorkoutBreakdownCard(snapshot.breakdown),
-              const SizedBox(height: 12),
-              _EffortGuideCard(snapshot.effortGuide),
-              const SizedBox(height: 12),
-              _CoachNoteCard(snapshot.coachNotes),
-              const SizedBox(height: 16),
-              _StartRunAction(
-                snapshot.startActionLabel,
-                onTap: onStartRun ?? () => _openRunLaunch(context),
+            ),
+            Expanded(
+              child: _NoOverscroll(
+                key: const ValueKey('workout_detail_no_overscroll'),
+                child: ListView(
+                  physics: const ClampingScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
+                  children: [
+                    _WorkoutPlanIdentity(snapshot),
+                    const SizedBox(height: 10),
+                    _MetricSummaryCard(snapshot.metrics),
+                    const SizedBox(height: 12),
+                    _WorkoutBreakdownCard(snapshot.breakdown),
+                    const SizedBox(height: 12),
+                    _EffortGuideCard(snapshot.effortGuide),
+                    const SizedBox(height: 12),
+                    _CoachNoteCard(snapshot.coachNotes),
+                    const SizedBox(height: 16),
+                    _StartRunAction(
+                      snapshot.startActionLabel,
+                      onTap: onStartRun ?? () => _openRunLaunch(context),
+                    ),
+                  ],
+                ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
