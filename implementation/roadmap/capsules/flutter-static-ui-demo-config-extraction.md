@@ -12,7 +12,7 @@ Type: Flutter UI Fast Lane presentation-data extraction capsule.
 
 ## Status
 
-Status: Implemented and locally validated on 2026-06-12 Asia/Singapore; not staged, committed, or pushed.
+Status: Closed after implementation, local validation, and commit `bdc1a47 refactor(mobile): extract static ui demo data`.
 
 ## Required Agent Chain
 
@@ -96,7 +96,7 @@ Any XP, streak, level, rank, leaderboard, route, or activity-looking values touc
 - No real GPS/tracking, activity saving/syncing, XP, streak, level, rank, leaderboard, subscription, or expert plan logic.
 - No Firebase Remote Config or large configuration framework.
 - No intentional UI, navigation, or run-tracking behavior changes.
-- No staging, commit, or push in this capsule execution.
+- No staging, commit, or push was authorized during the original capsule execution; the completed capsule is now recorded as committed at `bdc1a47 refactor(mobile): extract static ui demo data`.
 
 ## Required Validation
 
@@ -118,4 +118,5 @@ git status --short
 - [x] Clearly duplicated asset paths are consolidated without widening into a global config framework.
 - [x] No backend/native/Firebase/dependency files are changed.
 - [x] Required validation passes.
-- [x] No commit or push is performed.
+- [x] Original capsule execution stopped before commit/push as required.
+- [x] Follow-up roadmap reconciliation records the completed capsule commit: `bdc1a47 refactor(mobile): extract static ui demo data`.
