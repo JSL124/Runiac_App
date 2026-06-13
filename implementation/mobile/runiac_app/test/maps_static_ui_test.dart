@@ -498,6 +498,42 @@ void main() {
   });
 
   testWidgets(
+    'Maps shared route list like action toggles without opening detail',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(const RuniacApp(showSplash: false));
+
+      await tester.tap(find.text('Maps'));
+      await tester.pumpAndSettle();
+
+      final routeCard = find.byKey(
+        const Key('route_preview_card_marina_bay_easy_loop'),
+      );
+      final likeAction = find.byKey(
+        const Key('shared_route_like_action_marina_bay_easy_loop'),
+      );
+      final routeLikeCount = find.descendant(
+        of: routeCard,
+        matching: find.text('128'),
+      );
+
+      expect(routeCard, findsOneWidget);
+      expect(likeAction, findsOneWidget);
+      expect(routeLikeCount, findsOneWidget);
+
+      await tester.tap(likeAction);
+      await tester.pump();
+
+      expect(find.text('Route'), findsNothing);
+      expect(routeLikeCount, findsOneWidget);
+
+      await tester.tap(find.text('Marina Bay easy loop'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Route'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
     'Maps shared route detail opens from first card and renders static route content',
     (WidgetTester tester) async {
       await tester.pumpWidget(const RuniacApp(showSplash: false));
@@ -543,6 +579,40 @@ void main() {
       expect(find.bySemanticsLabel('Save route'), findsOneWidget);
       expect(find.bySemanticsLabel('Share route'), findsOneWidget);
       expect(find.text('Select Route'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'Maps shared route detail like action toggles with stable count',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(const RuniacApp(showSplash: false));
+
+      await tester.tap(find.text('Maps'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Marina Bay easy loop'));
+      await tester.pumpAndSettle();
+
+      final detailScrollView = find.byKey(
+        const Key('shared_route_detail_scroll_view'),
+      );
+      final detailLikeAction = find.byKey(
+        const Key('shared_route_detail_like_action'),
+      );
+      final detailLikeCount = find.descendant(
+        of: detailScrollView,
+        matching: find.text('128'),
+      );
+
+      expect(find.text('Route'), findsOneWidget);
+      expect(detailScrollView, findsOneWidget);
+      expect(detailLikeAction, findsOneWidget);
+      expect(detailLikeCount, findsOneWidget);
+
+      await tester.tap(detailLikeAction);
+      await tester.pump();
+
+      expect(detailLikeCount, findsOneWidget);
+      expect(find.text('Route'), findsOneWidget);
     },
   );
 

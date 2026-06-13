@@ -212,6 +212,7 @@ class _SharedRoutesSheetBody extends StatelessWidget {
                                 keySuffix: route.keySuffix,
                                 title: route.title,
                                 message: route.meta,
+                                likeCountLabel: route.likeCountLabel,
                                 onTap: index == 0
                                     ? () => Navigator.of(context).push(
                                         PageRouteBuilder<void>(
@@ -242,6 +243,7 @@ class _SharedRoutesSheetBody extends StatelessWidget {
                           keySuffix: entry.$2.keySuffix,
                           title: entry.$2.title,
                           message: entry.$2.meta,
+                          likeCountLabel: entry.$2.likeCountLabel,
                           onTap: entry.$1 == 0
                               ? () => Navigator.of(context).push(
                                   PageRouteBuilder<void>(

@@ -7,12 +7,16 @@ class RoutePreviewCard extends StatelessWidget {
   const RoutePreviewCard({
     required this.title,
     required this.message,
+    this.likeActionKey,
+    this.likeCountLabel,
     this.onTap,
     super.key,
   });
 
   final String title;
   final String message;
+  final Key? likeActionKey;
+  final String? likeCountLabel;
   final VoidCallback? onTap;
 
   @override
@@ -42,36 +46,107 @@ class RoutePreviewCard extends StatelessWidget {
           const _RouteThumbnailPlaceholder(),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: RuniacColors.textPrimary,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    height: 1.2,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: RuniacColors.textPrimary,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          height: 1.2,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        message,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: RuniacColors.textSecondary,
+                          fontSize: 13,
+                          height: 1.35,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 5),
-                Text(
-                  message,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: RuniacColors.textSecondary,
-                    fontSize: 13,
-                    height: 1.35,
+                if (likeCountLabel != null && likeActionKey != null) ...[
+                  const SizedBox(width: 8),
+                  _RouteLikeAction(
+                    actionKey: likeActionKey!,
+                    countLabel: likeCountLabel!,
                   ),
-                ),
+                ],
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _RouteLikeAction extends StatefulWidget {
+  const _RouteLikeAction({required this.actionKey, required this.countLabel});
+
+  final Key actionKey;
+  final String countLabel;
+
+  @override
+  State<_RouteLikeAction> createState() => _RouteLikeActionState();
+}
+
+class _RouteLikeActionState extends State<_RouteLikeAction> {
+  bool _isLiked = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: _isLiked ? 'Unlike route' : 'Like route',
+      button: true,
+      child: SizedBox(
+        height: 44,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            IconButton(
+              key: widget.actionKey,
+              tooltip: _isLiked ? 'Unlike route' : 'Like route',
+              onPressed: () => setState(() => _isLiked = !_isLiked),
+              icon: Icon(
+                _isLiked ? Icons.favorite : Icons.favorite_border,
+                color: RuniacColors.primaryBlue,
+                size: 20,
+              ),
+              visualDensity: VisualDensity.compact,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+            ),
+            const SizedBox(width: 2),
+            Text(
+              widget.countLabel,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: RuniacColors.textSecondary,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                height: 1,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

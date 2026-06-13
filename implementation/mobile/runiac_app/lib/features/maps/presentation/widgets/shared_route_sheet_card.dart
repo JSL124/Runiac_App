@@ -7,6 +7,7 @@ class SharedRouteSheetCard extends StatelessWidget {
     required this.keySuffix,
     required this.title,
     required this.message,
+    required this.likeCountLabel,
     this.onTap,
     super.key,
   });
@@ -14,6 +15,7 @@ class SharedRouteSheetCard extends StatelessWidget {
   final String keySuffix;
   final String title;
   final String message;
+  final String likeCountLabel;
   final VoidCallback? onTap;
 
   @override
@@ -22,6 +24,8 @@ class SharedRouteSheetCard extends StatelessWidget {
       key: Key('route_preview_card_$keySuffix'),
       title: title,
       message: message,
+      likeActionKey: Key('shared_route_like_action_$keySuffix'),
+      likeCountLabel: likeCountLabel,
       onTap: onTap,
     );
   }

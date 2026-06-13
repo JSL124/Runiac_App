@@ -14,6 +14,7 @@ class SharedRouteDetailSnapshot {
     required this.distance,
     required this.duration,
     required this.difficulty,
+    this.likeCountLabel = routeDetailLikeSummary,
   });
 
   static const defaultRoute = SharedRouteDetailSnapshot(
@@ -21,12 +22,14 @@ class SharedRouteDetailSnapshot {
     distance: '3.2 km',
     duration: '25 min',
     difficulty: 'Easy',
+    likeCountLabel: routeDetailLikeSummary,
   );
 
   final String title;
   final String distance;
   final String duration;
   final String difficulty;
+  final String likeCountLabel;
 
   String get meta => '$distance · $duration · $difficulty';
   String get tagLine => '${difficulty.toUpperCase()} · LOOP';
@@ -47,6 +50,7 @@ class SharedRouteDetailScreen extends StatefulWidget {
 
 class _SharedRouteDetailScreenState extends State<SharedRouteDetailScreen> {
   bool _isBookmarked = false;
+  bool _isLiked = false;
   bool _isSaving = false;
   bool _isSelected = false;
 
@@ -260,7 +264,11 @@ class _SharedRouteDetailScreenState extends State<SharedRouteDetailScreen> {
                       children: [
                         const RouteDetailAccentStrip(),
                         const SizedBox(height: 14),
-                        _RouteDetailHero(route: widget.route),
+                        _RouteDetailHero(
+                          route: widget.route,
+                          isLiked: _isLiked,
+                          onLike: () => setState(() => _isLiked = !_isLiked),
+                        ),
                         const SizedBox(height: 24),
                         const RouteDetailElevationSection(),
                         const SizedBox(height: 26),
@@ -290,9 +298,15 @@ class _SharedRouteDetailScreenState extends State<SharedRouteDetailScreen> {
 }
 
 class _RouteDetailHero extends StatelessWidget {
-  const _RouteDetailHero({required this.route});
+  const _RouteDetailHero({
+    required this.route,
+    required this.isLiked,
+    required this.onLike,
+  });
 
   final SharedRouteDetailSnapshot route;
+  final bool isLiked;
+  final VoidCallback onLike;
 
   @override
   Widget build(BuildContext context) {
@@ -318,17 +332,25 @@ class _RouteDetailHero extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
-        const Row(
+        Row(
           children: [
-            Icon(
-              Icons.favorite_border,
-              color: RuniacColors.primaryBlue,
-              size: 18,
+            IconButton(
+              key: const Key('shared_route_detail_like_action'),
+              tooltip: isLiked ? 'Unlike route' : 'Like route',
+              onPressed: onLike,
+              icon: Icon(
+                isLiked ? Icons.favorite : Icons.favorite_border,
+                color: RuniacColors.primaryBlue,
+                size: 22,
+              ),
+              visualDensity: VisualDensity.compact,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
             ),
-            SizedBox(width: 6),
+            const SizedBox(width: 4),
             Text(
-              routeDetailLikeSummary,
-              style: TextStyle(
+              route.likeCountLabel,
+              style: const TextStyle(
                 color: RuniacColors.textSecondary,
                 fontSize: 15,
                 fontWeight: FontWeight.w600,

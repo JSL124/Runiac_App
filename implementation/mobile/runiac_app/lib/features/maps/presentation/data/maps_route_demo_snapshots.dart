@@ -5,6 +5,7 @@ const selectedRouteDemoSnapshot = SharedRouteDetailSnapshot(
   distance: '3.2 km',
   duration: '25 min',
   difficulty: 'Easy',
+  likeCountLabel: '128',
 );
 
 const favouriteRouteDemoSnapshots = <SharedRouteDetailSnapshot>[
@@ -13,24 +14,28 @@ const favouriteRouteDemoSnapshots = <SharedRouteDetailSnapshot>[
     distance: '2.4 km',
     duration: '18 min',
     difficulty: 'Easy',
+    likeCountLabel: '86',
   ),
   SharedRouteDetailSnapshot(
     title: 'East Coast flat run',
     distance: '4.0 km',
     duration: '32 min',
     difficulty: 'Easy',
+    likeCountLabel: '104',
   ),
   SharedRouteDetailSnapshot(
     title: 'Punggol waterway loop',
     distance: '3.6 km',
     duration: '28 min',
     difficulty: 'Easy',
+    likeCountLabel: '72',
   ),
   SharedRouteDetailSnapshot(
     title: 'Kallang riverside run',
     distance: '3.0 km',
     duration: '23 min',
     difficulty: 'Easy',
+    likeCountLabel: '58',
   ),
 ];
 
@@ -45,6 +50,7 @@ const sharedRoutesDemoSnapshot = SharedRoutesDemoSnapshot(
       distance: '3.2 km',
       duration: '25 min',
       difficulty: 'Easy',
+      likeCountLabel: '128',
     ),
     RouteCardDemoSnapshot(
       keySuffix: 'bishan_park_starter_route',
@@ -52,6 +58,7 @@ const sharedRoutesDemoSnapshot = SharedRoutesDemoSnapshot(
       distance: '2.4 km',
       duration: '18 min',
       difficulty: 'Easy',
+      likeCountLabel: '86',
     ),
     RouteCardDemoSnapshot(
       keySuffix: 'east_coast_flat_run',
@@ -59,6 +66,7 @@ const sharedRoutesDemoSnapshot = SharedRoutesDemoSnapshot(
       distance: '4.0 km',
       duration: '32 min',
       difficulty: 'Easy',
+      likeCountLabel: '104',
     ),
     RouteCardDemoSnapshot(
       keySuffix: 'punggol_waterway_loop',
@@ -66,6 +74,7 @@ const sharedRoutesDemoSnapshot = SharedRoutesDemoSnapshot(
       distance: '3.6 km',
       duration: '28 min',
       difficulty: 'Easy',
+      likeCountLabel: '72',
     ),
     RouteCardDemoSnapshot(
       keySuffix: 'kallang_riverside_run',
@@ -73,6 +82,7 @@ const sharedRoutesDemoSnapshot = SharedRoutesDemoSnapshot(
       distance: '3.0 km',
       duration: '23 min',
       difficulty: 'Easy',
+      likeCountLabel: '58',
     ),
   ],
 );
@@ -102,6 +112,7 @@ class RouteCardDemoSnapshot {
     required this.distance,
     required this.duration,
     required this.difficulty,
+    required this.likeCountLabel,
   });
 
   final String keySuffix;
@@ -109,6 +120,7 @@ class RouteCardDemoSnapshot {
   final String distance;
   final String duration;
   final String difficulty;
+  final String likeCountLabel;
 
   String get meta => '$distance · $duration · $difficulty';
 }
