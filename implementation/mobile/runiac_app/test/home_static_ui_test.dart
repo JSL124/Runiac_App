@@ -153,11 +153,59 @@ void main() {
     await tester.tap(find.bySemanticsLabel('Profile'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Good to see you'), findsOneWidget);
+    expect(find.text('Account'), findsOneWidget);
+    expect(find.text('Runiac'), findsNothing);
+    expect(find.text('Runiac Runner'), findsOneWidget);
+    final displayName = tester.widget<Text>(find.text('Runiac Runner'));
+    expect(displayName.maxLines, 2);
+    expect(displayName.overflow, TextOverflow.ellipsis);
+    expect(find.text('Jurong East, Singapore'), findsOneWidget);
+    expect(find.text('Lv. 12'), findsOneWidget);
+    expect(find.text('Preview only'), findsNothing);
+    expect(find.text('Goal'), findsNothing);
+    expect(find.text('Lv. 1'), findsNothing);
+    expect(find.text('Beginner 10K preparation'), findsNothing);
+    expect(find.text('Building consistency'), findsNothing);
     expect(
-      find.text('Profile settings preview is coming soon.'),
+      find.text('Account changes are not saved in this prototype.'),
       findsOneWidget,
     );
+    expect(find.text('RUNNING SETUP'), findsOneWidget);
+    expect(find.text('Settings'), findsOneWidget);
+    expect(find.text('Privacy & Safety'), findsOneWidget);
+    expect(find.text('Notifications'), findsOneWidget);
+    expect(find.text('About Runiac'), findsOneWidget);
+    expect(find.text('Profile settings preview is coming soon.'), findsNothing);
+    for (final forbiddenCopy in <String>[
+      'logout',
+      'delete account',
+      'Firebase',
+      'Auth',
+      'signed in',
+      'verified account',
+      'location permission',
+      'GPS',
+      'subscription',
+      'entitlement',
+      'XP',
+      'streak',
+      'level',
+      'Level',
+      'rank',
+      'leaderboard',
+      'published',
+      'approved',
+      'expert publication',
+      'admin review',
+    ]) {
+      expect(find.textContaining(forbiddenCopy), findsNothing);
+    }
+
+    await tester.tap(find.bySemanticsLabel('Back to Home'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Good to see you'), findsOneWidget);
+    expect(find.text('Account'), findsNothing);
 
     expect(find.text('This Week\'s Plan'), findsNothing);
     expect(find.text('Last Run'), findsNothing);
@@ -171,6 +219,65 @@ void main() {
     expect(find.text('Ready for an easy run?'), findsNothing);
     expect(find.text('Start small and keep it comfortable.'), findsNothing);
     expect(find.textContaining(_forbiddenTrustedStateCopy), findsNothing);
+  });
+
+  testWidgets('Account profile preview rows stay preview-only', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const RuniacApp(showSplash: false));
+
+    await tester.tap(find.bySemanticsLabel('Profile'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Account'), findsOneWidget);
+
+    for (final row in <(String, String)>[
+      ('Settings', 'Settings preview is coming soon.'),
+      ('Privacy & Safety', 'Privacy & Safety preview is coming soon.'),
+      ('Notifications', 'Notification preferences preview is coming soon.'),
+      ('About Runiac', 'About Runiac preview is coming soon.'),
+    ]) {
+      await tester.scrollUntilVisible(
+        find.text(row.$1),
+        180,
+        scrollable: find.byType(Scrollable).last,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(row.$1));
+      await tester.pumpAndSettle();
+
+      expect(find.text(row.$2), findsOneWidget);
+      expect(find.text('Account'), findsOneWidget);
+    }
+  });
+
+  testWidgets('Account profile preview fits a narrow mobile surface', (
+    WidgetTester tester,
+  ) async {
+    tester.view.physicalSize = const Size(360, 760);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(const RuniacApp(showSplash: false));
+
+    await tester.tap(find.bySemanticsLabel('Profile'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Account'), findsOneWidget);
+    expect(find.text('Runiac'), findsNothing);
+    expect(find.text('Runiac Runner'), findsOneWidget);
+    expect(find.text('Jurong East, Singapore'), findsOneWidget);
+    expect(find.text('Lv. 12'), findsOneWidget);
+    expect(find.text('Preview only'), findsNothing);
+    expect(find.text('Goal'), findsNothing);
+    expect(find.text('Lv. 1'), findsNothing);
+    expect(find.text('Beginner 10K preparation'), findsNothing);
+    expect(find.text('Building consistency'), findsNothing);
+    expect(find.text('Settings'), findsOneWidget);
+    expect(find.text('Privacy & Safety'), findsOneWidget);
+    expect(find.bySemanticsLabel('Back to Home'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('Home progress insight section fits a narrow mobile surface', (

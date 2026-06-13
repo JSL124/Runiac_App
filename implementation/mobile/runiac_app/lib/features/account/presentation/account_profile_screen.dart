@@ -1,0 +1,496 @@
+import 'package:flutter/material.dart';
+
+import '../../../core/theme/runiac_colors.dart';
+import '../../../core/widgets/runiac_back_header.dart';
+import '../../../core/widgets/runiac_buttons.dart';
+import 'data/account_profile_demo_snapshots.dart';
+
+class AccountProfileScreen extends StatelessWidget {
+  const AccountProfileScreen({
+    required this.onBack,
+    this.snapshot = accountProfileDemoSnapshot,
+    super.key,
+  });
+
+  final VoidCallback onBack;
+  final AccountProfileDemoSnapshot snapshot;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: RuniacColors.background,
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            RuniacBackHeader(
+              title: 'Account',
+              tooltip: 'Back to Home',
+              onBack: onBack,
+            ),
+            Expanded(
+              child: ScrollConfiguration(
+                behavior: ScrollConfiguration.of(
+                  context,
+                ).copyWith(overscroll: false),
+                child: SingleChildScrollView(
+                  physics: const ClampingScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _IdentityCard(snapshot: snapshot),
+                      const SizedBox(height: 14),
+                      _PreviewNote(message: snapshot.previewNote),
+                      const SizedBox(height: 22),
+                      _SectionLabel(snapshot.setupSectionLabel),
+                      const SizedBox(height: 8),
+                      _SetupSection(items: snapshot.setupItems),
+                      const SizedBox(height: 22),
+                      _SectionLabel(snapshot.manageSectionLabel),
+                      const SizedBox(height: 8),
+                      _ManageSection(rows: snapshot.manageRows),
+                      const SizedBox(height: 22),
+                      Text(
+                        snapshot.footerCaption,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: RuniacColors.textSecondary,
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                          height: 1.25,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _IdentityCard extends StatelessWidget {
+  const _IdentityCard({required this.snapshot});
+
+  final AccountProfileDemoSnapshot snapshot;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const _IdentityAccentStrip(),
+        const SizedBox(height: 16),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 14),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              _AvatarWithLevelBadge(levelBadge: snapshot.previewLevelBadge),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      snapshot.displayName,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: RuniacColors.textPrimary,
+                        fontSize: 21,
+                        fontWeight: FontWeight.w900,
+                        height: 1.1,
+                      ),
+                    ),
+                    const SizedBox(height: 7),
+                    Text(
+                      snapshot.regionLabel,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: RuniacColors.primaryBlue,
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w800,
+                        height: 1.2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _IdentityAccentStrip extends StatelessWidget {
+  const _IdentityAccentStrip();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: Container(
+            height: 4,
+            decoration: BoxDecoration(
+              color: RuniacColors.primaryBlue,
+              borderRadius: BorderRadius.circular(999),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Container(
+          width: 34,
+          height: 4,
+          decoration: BoxDecoration(
+            color: RuniacColors.accentOrange,
+            borderRadius: BorderRadius.circular(999),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _AvatarWithLevelBadge extends StatelessWidget {
+  const _AvatarWithLevelBadge({required this.levelBadge});
+
+  final String levelBadge;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 98,
+      height: 98,
+      child: Stack(
+        clipBehavior: Clip.none,
+        alignment: Alignment.topCenter,
+        children: [
+          const _AccountAvatar(),
+          Positioned(
+            top: 69,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: RuniacColors.primaryBlue,
+                borderRadius: BorderRadius.circular(7),
+                border: Border.all(color: RuniacColors.white, width: 2),
+                boxShadow: [
+                  BoxShadow(
+                    color: RuniacColors.primaryBlue.withValues(alpha: 0.18),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                child: Text(
+                  levelBadge,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: RuniacColors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
+                    height: 1.05,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AccountAvatar extends StatelessWidget {
+  const _AccountAvatar();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 84,
+      height: 84,
+      padding: const EdgeInsets.all(5),
+      alignment: Alignment.center,
+      decoration: const BoxDecoration(
+        color: RuniacColors.accentOrange,
+        shape: BoxShape.circle,
+      ),
+      child: const DecoratedBox(
+        decoration: BoxDecoration(
+          color: RuniacColors.primaryBlue,
+          shape: BoxShape.circle,
+        ),
+        child: Center(
+          child: Text(
+            'R',
+            style: TextStyle(
+              color: RuniacColors.white,
+              fontSize: 32,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PreviewNote extends StatelessWidget {
+  const _PreviewNote({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: RuniacColors.innerTileSurface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: RuniacColors.border),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Icon(
+              Icons.info_outline,
+              color: RuniacColors.primaryBlue,
+              size: 18,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(
+                  color: RuniacColors.textPrimary,
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w700,
+                  height: 1.25,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel(this.label);
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      label,
+      style: const TextStyle(
+        color: RuniacColors.textSecondary,
+        fontSize: 12,
+        fontWeight: FontWeight.w900,
+        letterSpacing: 0,
+      ),
+    );
+  }
+}
+
+class _SetupSection extends StatelessWidget {
+  const _SetupSection({required this.items});
+
+  final List<AccountProfileInfoItem> items;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: RuniacColors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: RuniacColors.border),
+      ),
+      child: Column(
+        children: [
+          for (var index = 0; index < items.length; index++) ...[
+            _SetupRow(item: items[index]),
+            if (index != items.length - 1)
+              const Divider(
+                height: 1,
+                thickness: 1,
+                color: RuniacColors.border,
+                indent: 58,
+              ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _SetupRow extends StatelessWidget {
+  const _SetupRow({required this.item});
+
+  final AccountProfileInfoItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _RowIcon(icon: item.icon),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.title,
+                  style: const TextStyle(
+                    color: RuniacColors.textSecondary,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w800,
+                    height: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  item.value,
+                  softWrap: true,
+                  style: const TextStyle(
+                    color: RuniacColors.textPrimary,
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w800,
+                    height: 1.25,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ManageSection extends StatelessWidget {
+  const _ManageSection({required this.rows});
+
+  final List<AccountProfileManageRow> rows;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        for (var index = 0; index < rows.length; index++) ...[
+          _ManageRow(row: rows[index]),
+          if (index != rows.length - 1) const SizedBox(height: 8),
+        ],
+      ],
+    );
+  }
+}
+
+class _ManageRow extends StatelessWidget {
+  const _ManageRow({required this.row});
+
+  final AccountProfileManageRow row;
+
+  @override
+  Widget build(BuildContext context) {
+    return RuniacTappableSurface(
+      semanticLabel: row.title,
+      borderRadius: BorderRadius.circular(18),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+      decoration: BoxDecoration(
+        color: RuniacColors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: RuniacColors.border),
+      ),
+      onTap: () {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(content: Text(row.snackBarMessage)));
+      },
+      child: Row(
+        children: [
+          _RowIcon(icon: row.icon),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  row.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: RuniacColors.textPrimary,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                    height: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  row.subtitle,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: RuniacColors.textSecondary,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                    height: 1.25,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          const Icon(
+            Icons.chevron_right_rounded,
+            color: RuniacColors.textSecondary,
+            size: 22,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RowIcon extends StatelessWidget {
+  const _RowIcon({required this.icon});
+
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 34,
+      height: 34,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: RuniacColors.sectionSurfaceStrong,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Icon(icon, color: RuniacColors.primaryBlue, size: 18),
+    );
+  }
+}

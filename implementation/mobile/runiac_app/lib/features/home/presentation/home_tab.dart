@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../account/presentation/account_profile_screen.dart';
 import '../../run/presentation/run_launch_screen.dart';
 import '../../you/presentation/weekly_workout_detail_screen.dart';
 import 'widgets/home_header.dart';
@@ -37,6 +38,18 @@ class HomeTab extends StatelessWidget {
     );
   }
 
+  void _openAccountProfile(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) {
+          return AccountProfileScreen(
+            onBack: () => Navigator.of(context).pop(),
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -54,10 +67,7 @@ class HomeTab extends StatelessWidget {
                     context,
                     'Notifications preview is coming soon.',
                   ),
-                  onProfile: () => _showPreviewMessage(
-                    context,
-                    'Profile settings preview is coming soon.',
-                  ),
+                  onProfile: () => _openAccountProfile(context),
                 ),
               ),
               const SizedBox(height: 12),
