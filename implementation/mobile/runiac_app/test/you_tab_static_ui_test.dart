@@ -158,8 +158,9 @@ void main() {
       find.byKey(const ValueKey('more_activities_chevron')),
       findsOneWidget,
     );
-    expect(find.text('Run Level'), findsOneWidget);
-    expect(find.text('Level 12 Runner'), findsOneWidget);
+    expect(find.text('Run Level'), findsNothing);
+    expect(find.text('Level 12 Runner'), findsNothing);
+    expect(find.text('Keep showing up at a comfortable pace.'), findsNothing);
   });
 
   testWidgets(

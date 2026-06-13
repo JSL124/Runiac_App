@@ -35,8 +35,6 @@ const youProgressSnapshot = YouProgressSnapshot(
   runDayPlaceholders: {
     '2026-5': {1, 3, 5, 8, 10, 12, 15, 17, 20},
   },
-  levelTitle: 'Level 12 Runner',
-  levelCopy: 'Keep showing up at a comfortable pace.',
 );
 
 const youPlansSnapshot = YouPlansSnapshot(
@@ -104,8 +102,6 @@ class YouProgressSnapshot {
     required this.streakCopy,
     required this.runs,
     required this.runDayPlaceholders,
-    required this.levelTitle,
-    required this.levelCopy,
   });
 
   final List<YouDistancePeriodSummary> distancePeriodSummaries;
@@ -113,8 +109,6 @@ class YouProgressSnapshot {
   final String streakCopy;
   final List<RunActivityDisplayModel> runs;
   final Map<String, Set<int>> runDayPlaceholders;
-  final String levelTitle;
-  final String levelCopy;
 }
 
 class YouDistancePeriodSummary {

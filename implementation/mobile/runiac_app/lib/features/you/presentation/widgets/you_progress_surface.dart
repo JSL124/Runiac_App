@@ -87,8 +87,6 @@ class _YouProgressSurfaceState extends State<YouProgressSurface> {
           const SizedBox(height: 10),
         ],
         _MoreActivitiesButton(onTap: widget.onMoreActivities),
-        const SizedBox(height: 14),
-        const _RunLevelCard(),
       ],
     );
   }
@@ -412,26 +410,6 @@ class _MoreActivitiesButton extends StatelessWidget {
             color: RuniacColors.primaryBlue,
             size: 26,
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _RunLevelCard extends StatelessWidget {
-  const _RunLevelCard();
-
-  @override
-  Widget build(BuildContext context) {
-    return YouDashboardCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const YouCardHeader(Icons.star_border, 'Run Level', accent: true),
-          const SizedBox(height: 12),
-          Text(youProgressSnapshot.levelTitle, style: YouTextStyles.largeValue),
-          const SizedBox(height: 6),
-          Text(youProgressSnapshot.levelCopy, style: YouTextStyles.body),
         ],
       ),
     );
