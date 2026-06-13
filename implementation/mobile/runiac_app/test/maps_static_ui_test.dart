@@ -520,6 +520,12 @@ void main() {
       final likeAction = find.byKey(
         const Key('shared_route_like_action_marina_bay_easy_loop'),
       );
+      final secondLikeAction = find.byKey(
+        const Key('shared_route_like_action_bishan_park_starter_route'),
+      );
+      final thirdLikeAction = find.byKey(
+        const Key('shared_route_like_action_east_coast_flat_run'),
+      );
       final routeLikeCount = find.descendant(
         of: routeCard,
         matching: find.text('1.4k'),
@@ -527,11 +533,26 @@ void main() {
 
       expect(routeCard, findsOneWidget);
       expect(likeAction, findsOneWidget);
+      expect(secondLikeAction, findsOneWidget);
+      expect(thirdLikeAction, findsOneWidget);
       expect(routeLikeCount, findsOneWidget);
       expect(find.text('1400'), findsNothing);
       expect(
         tester.getCenter(likeAction).dy,
         moreOrLessEquals(tester.getCenter(routeLikeCount).dy, epsilon: 1),
+      );
+      expect(
+        tester.getTopLeft(likeAction).dx,
+        moreOrLessEquals(tester.getTopLeft(secondLikeAction).dx, epsilon: 0.5),
+      );
+      expect(
+        tester.getTopLeft(likeAction).dx,
+        moreOrLessEquals(tester.getTopLeft(thirdLikeAction).dx, epsilon: 0.5),
+      );
+      expect(
+        tester.getTopLeft(routeLikeCount).dx -
+            tester.getTopRight(likeAction).dx,
+        moreOrLessEquals(4, epsilon: 0.5),
       );
 
       await tester.tap(likeAction);

@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/runiac_colors.dart';
 import '../../../../core/widgets/runiac_buttons.dart';
 
+const double _routeLikeActionWidth = 96;
+
 class RoutePreviewCard extends StatelessWidget {
   const RoutePreviewCard({
     required this.title,
@@ -82,9 +84,15 @@ class RoutePreviewCard extends StatelessWidget {
                 ),
                 if (likeCountLabel != null && likeActionKey != null) ...[
                   const SizedBox(width: 8),
-                  _RouteLikeAction(
-                    actionKey: likeActionKey!,
-                    countLabel: likeCountLabel!,
+                  SizedBox(
+                    width: _routeLikeActionWidth,
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: _RouteLikeAction(
+                        actionKey: likeActionKey!,
+                        countLabel: likeCountLabel!,
+                      ),
+                    ),
                   ),
                 ],
               ],
@@ -133,7 +141,7 @@ class _RouteLikeActionState extends State<_RouteLikeAction> {
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints.tightFor(width: 30, height: 44),
             ),
-            const SizedBox(width: 6),
+            const SizedBox(width: 4),
             Text(
               widget.countLabel,
               maxLines: 1,
