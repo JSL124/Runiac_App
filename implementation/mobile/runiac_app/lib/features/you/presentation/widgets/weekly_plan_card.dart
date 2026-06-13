@@ -19,9 +19,10 @@ class WeeklyPlanCard extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: Text(
+                child: YouCardHeader(
+                  Icons.calendar_today_outlined,
                   youPlansSnapshot.weeklyTitle,
-                  style: YouTextStyles.cardTitle,
+                  iconSize: 20,
                 ),
               ),
               const SizedBox(width: 12),

@@ -64,11 +64,18 @@ class YouHeaderAccentStrip extends StatelessWidget {
 }
 
 class YouCardHeader extends StatelessWidget {
-  const YouCardHeader(this.icon, this.label, {this.accent = false, super.key});
+  const YouCardHeader(
+    this.icon,
+    this.label, {
+    this.accent = false,
+    this.iconSize = 18,
+    super.key,
+  });
 
   final IconData icon;
   final String label;
   final bool accent;
+  final double iconSize;
 
   @override
   Widget build(BuildContext context) {
@@ -76,7 +83,7 @@ class YouCardHeader extends StatelessWidget {
       title: label,
       leading: Icon(
         icon,
-        size: 18,
+        size: iconSize,
         color: accent ? RuniacColors.accentOrange : RuniacColors.primaryBlue,
       ),
       titleStyle: YouTextStyles.cardTitle,
@@ -196,8 +203,9 @@ const youInnerRadius = 16.0;
 abstract final class YouTextStyles {
   static const cardTitle = TextStyle(
     color: RuniacColors.textPrimary,
-    fontSize: 16,
+    fontSize: 19,
     fontWeight: FontWeight.w800,
+    height: 1.08,
   );
 
   static const headerTitle = TextStyle(

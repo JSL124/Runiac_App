@@ -22,9 +22,10 @@ class CurrentGoalPlanCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    YouCardHeader(
+                      Icons.flag_outlined,
                       youPlansSnapshot.goalLabel,
-                      style: YouTextStyles.planAccentLabel,
+                      iconSize: 20,
                     ),
                     const SizedBox(height: 6),
                     Text(
