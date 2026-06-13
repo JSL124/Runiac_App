@@ -5,6 +5,7 @@ import '../../../../core/widgets/runiac_buttons.dart';
 import '../../../run/domain/models/run_activity_display_model.dart';
 import '../data/you_overview_demo_snapshots.dart';
 import 'compact_run_activity_card.dart';
+import 'monthly_distance_graph.dart';
 import 'you_segmented_control.dart';
 import 'you_surface_primitives.dart';
 
@@ -23,7 +24,7 @@ const _monthNames = [
   'December',
 ];
 
-class YouProgressSurface extends StatelessWidget {
+class YouProgressSurface extends StatefulWidget {
   const YouProgressSurface({
     required this.visibleCalendarMonth,
     required this.onPreviousMonth,
@@ -40,39 +41,52 @@ class YouProgressSurface extends StatelessWidget {
   final VoidCallback onMoreActivities;
 
   @override
+  State<YouProgressSurface> createState() => _YouProgressSurfaceState();
+}
+
+class _YouProgressSurfaceState extends State<YouProgressSurface> {
+  var _selectedDistancePeriod = 0;
+
+  @override
   Widget build(BuildContext context) {
+    final summaries = youProgressSnapshot.distancePeriodSummaries;
+    final selectedSummary = summaries[_selectedDistancePeriod];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const RuniacAccentStrip(),
         const SizedBox(height: 12),
-        const YouSegmentedControl(
-          labels: ['Week', 'Month', 'Year', 'All'],
-          selected: 0,
+        YouSegmentedControl(
+          labels: [for (final summary in summaries) summary.segmentLabel],
+          selected: _selectedDistancePeriod,
           compact: true,
+          onTap: (index) {
+            setState(() => _selectedDistancePeriod = index);
+          },
         ),
         const SizedBox(height: 12),
-        const _ThisWeekCard(),
+        _MonthlyDistanceSection(summary: selectedSummary),
         const SizedBox(height: 10),
         const _StreakCard(),
         const SizedBox(height: 10),
         _CalendarCard(
-          visibleMonth: visibleCalendarMonth,
-          onPreviousMonth: onPreviousMonth,
-          onNextMonth: onNextMonth,
+          visibleMonth: widget.visibleCalendarMonth,
+          onPreviousMonth: widget.onPreviousMonth,
+          onNextMonth: widget.onNextMonth,
         ),
         const SizedBox(height: 18),
-        _RecentRunningHeader(onSeeAll: onMoreActivities),
+        _RecentRunningHeader(onSeeAll: widget.onMoreActivities),
         const SizedBox(height: 12),
         for (final run in youProgressSnapshot.runs) ...[
           CompactRunActivityCard(
             key: ValueKey('recent_running_card_${run.title}'),
             activity: run,
-            onTap: () => onRunSelected(run),
+            onTap: () => widget.onRunSelected(run),
           ),
           const SizedBox(height: 10),
         ],
-        _MoreActivitiesButton(onTap: onMoreActivities),
+        _MoreActivitiesButton(onTap: widget.onMoreActivities),
         const SizedBox(height: 14),
         const _RunLevelCard(),
       ],
@@ -106,56 +120,54 @@ class _RecentRunningHeader extends StatelessWidget {
   }
 }
 
-class _ThisWeekCard extends StatelessWidget {
-  const _ThisWeekCard();
+class _MonthlyDistanceSection extends StatelessWidget {
+  const _MonthlyDistanceSection({required this.summary});
+
+  final YouDistancePeriodSummary summary;
 
   @override
   Widget build(BuildContext context) {
-    return YouDashboardCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const YouCardHeader(Icons.directions_run, 'This Week'),
-          const SizedBox(height: 12),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const _SectionDivider(),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                youProgressSnapshot.weeklyDistance,
-                style: YouTextStyles.heroNumber,
+              Text(summary.title, style: YouTextStyles.cardTitle),
+              const SizedBox(height: 10),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(summary.distance, style: YouTextStyles.heroNumber),
+                  const SizedBox(width: 8),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Text(summary.unit, style: YouTextStyles.labelStrong),
+                  ),
+                ],
               ),
-              const SizedBox(width: 8),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Text(
-                  youProgressSnapshot.weeklyDistanceUnit,
-                  style: YouTextStyles.labelStrong,
-                ),
+              const SizedBox(height: 12),
+              const PastTwelveWeeksDistanceGraph(
+                key: ValueKey('you_monthly_distance_graph'),
               ),
             ],
           ),
-          const SizedBox(height: 6),
-          Text(youProgressSnapshot.weeklyRunSummary, style: YouTextStyles.body),
-          const SizedBox(height: 12),
-          ClipRRect(
-            borderRadius: const BorderRadius.all(Radius.circular(999)),
-            child: LinearProgressIndicator(
-              value: youProgressSnapshot.weeklyGoalProgress,
-              minHeight: 7,
-              backgroundColor: RuniacColors.border,
-              valueColor: const AlwaysStoppedAnimation(
-                RuniacColors.primaryBlue,
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            youProgressSnapshot.weeklyGoalLabel,
-            style: YouTextStyles.smallBody,
-          ),
-        ],
-      ),
+        ),
+        const _SectionDivider(),
+      ],
     );
+  }
+}
+
+class _SectionDivider extends StatelessWidget {
+  const _SectionDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(height: 1, color: RuniacColors.border);
   }
 }
 

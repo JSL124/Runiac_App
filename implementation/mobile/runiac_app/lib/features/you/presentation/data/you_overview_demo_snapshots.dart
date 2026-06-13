@@ -6,12 +6,29 @@ import 'weekly_workout_demo_snapshots.dart';
 
 // Display-only You overview data. Future production values must come from
 // backend-owned read models, not client-side trusted-state calculations.
+const pastTwelveWeeksDistanceGraphLabels = ['APR', 'MAY', 'JUN'];
+const pastTwelveWeeksDistanceGraphValues = [
+  0.0,
+  0.0,
+  5.8,
+  0.0,
+  0.0,
+  0.0,
+  0.0,
+  0.0,
+  0.0,
+  0.0,
+  13.0,
+  0.0,
+];
+
 const youProgressSnapshot = YouProgressSnapshot(
-  weeklyDistance: '12.4',
-  weeklyDistanceUnit: 'km',
-  weeklyRunSummary: '3 runs this week',
-  weeklyGoalProgress: 0.82,
-  weeklyGoalLabel: '82% of weekly goal',
+  distancePeriodSummaries: [
+    YouDistancePeriodSummary('Week', 'Weekly Distance', '12.4', 'km'),
+    YouDistancePeriodSummary('Month', 'Monthly Distance', '48.6', 'km'),
+    YouDistancePeriodSummary('Year', 'Yearly Distance', '326.8', 'km'),
+    YouDistancePeriodSummary('All', 'Total Distance', '1,284.2', 'km'),
+  ],
   streakValue: '6 days',
   streakCopy: 'Planned rest days keep your streak protected.',
   runs: recentRunningDisplayData,
@@ -82,11 +99,7 @@ const youPlansSnapshot = YouPlansSnapshot(
 
 class YouProgressSnapshot {
   const YouProgressSnapshot({
-    required this.weeklyDistance,
-    required this.weeklyDistanceUnit,
-    required this.weeklyRunSummary,
-    required this.weeklyGoalProgress,
-    required this.weeklyGoalLabel,
+    required this.distancePeriodSummaries,
     required this.streakValue,
     required this.streakCopy,
     required this.runs,
@@ -95,17 +108,27 @@ class YouProgressSnapshot {
     required this.levelCopy,
   });
 
-  final String weeklyDistance;
-  final String weeklyDistanceUnit;
-  final String weeklyRunSummary;
-  final double weeklyGoalProgress;
-  final String weeklyGoalLabel;
+  final List<YouDistancePeriodSummary> distancePeriodSummaries;
   final String streakValue;
   final String streakCopy;
   final List<RunActivityDisplayModel> runs;
   final Map<String, Set<int>> runDayPlaceholders;
   final String levelTitle;
   final String levelCopy;
+}
+
+class YouDistancePeriodSummary {
+  const YouDistancePeriodSummary(
+    this.segmentLabel,
+    this.title,
+    this.distance,
+    this.unit,
+  );
+
+  final String segmentLabel;
+  final String title;
+  final String distance;
+  final String unit;
 }
 
 class YouPlansSnapshot {

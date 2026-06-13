@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runiac_app/app.dart';
+import 'package:runiac_app/features/you/presentation/data/you_overview_demo_snapshots.dart';
 import 'package:runiac_app/features/you/presentation/widgets/compact_run_activity_card.dart';
+import 'package:runiac_app/features/you/presentation/widgets/monthly_distance_graph.dart';
 
 Future<void> _openYouTab(WidgetTester tester) async {
   await tester.pumpWidget(const RuniacApp(showSplash: false));
@@ -13,6 +15,25 @@ Future<void> _openYouTab(WidgetTester tester) async {
 }
 
 void main() {
+  void expectFixedDistanceGraph(WidgetTester tester) {
+    final graphFinder = find.byKey(
+      const ValueKey('you_monthly_distance_graph'),
+    );
+    expect(graphFinder, findsOneWidget);
+
+    final graph = tester.widget<PastTwelveWeeksDistanceGraph>(graphFinder);
+    expect(graph.labels, pastTwelveWeeksDistanceGraphLabels);
+    expect(graph.values, pastTwelveWeeksDistanceGraphValues);
+    expect(
+      find.bySemanticsLabel(
+        RegExp(
+          r'Past 12 weeks distance graph.*APR.*MAY.*JUN.*0 km.*6 km.*13 km',
+        ),
+      ),
+      findsOneWidget,
+    );
+  }
+
   test('You static demo snapshots live outside presentation widgets', () {
     // Given: the You feature keeps demo/read-only data behind a data boundary.
     final dataFiles = [
@@ -79,9 +100,14 @@ void main() {
     expect(find.text('Progress'), findsOneWidget);
     expect(find.text('Plans'), findsOneWidget);
     expect(find.text('Week'), findsOneWidget);
-    expect(find.text('This Week'), findsOneWidget);
+    expect(find.text('Weekly Distance'), findsOneWidget);
+    expect(find.text('Monthly Distance'), findsNothing);
+    expect(find.text('Past 12 weeks'), findsOneWidget);
     expect(find.text('12.4'), findsOneWidget);
-    expect(find.text('3 runs this week'), findsOneWidget);
+    expectFixedDistanceGraph(tester);
+    expect(find.text('3 runs this week'), findsNothing);
+    expect(find.text('82% of weekly goal'), findsNothing);
+    expect(find.text('This Week'), findsNothing);
     expect(find.text('Consistency Streak'), findsOneWidget);
     expect(find.text('6 days'), findsOneWidget);
     expect(find.text('Running Calendar'), findsOneWidget);
@@ -134,6 +160,65 @@ void main() {
     );
     expect(find.text('Run Level'), findsOneWidget);
     expect(find.text('Level 12 Runner'), findsOneWidget);
+  });
+
+  testWidgets(
+    'You page shows Runiac-styled weekly distance graph in progress overview',
+    (WidgetTester tester) async {
+      await _openYouTab(tester);
+
+      expect(find.text('Weekly Distance'), findsOneWidget);
+      expect(find.text('Monthly Distance'), findsNothing);
+      expect(find.text('Past 12 weeks'), findsOneWidget);
+      expect(find.text('12.4'), findsOneWidget);
+      expect(find.text('km'), findsWidgets);
+      expectFixedDistanceGraph(tester);
+      expect(find.text('This Week'), findsNothing);
+      expect(find.text('3 runs this week'), findsNothing);
+      expect(find.text('82% of weekly goal'), findsNothing);
+    },
+  );
+
+  testWidgets('You progress period buttons update only distance summary', (
+    WidgetTester tester,
+  ) async {
+    await _openYouTab(tester);
+
+    void expectFixedGraphContext() {
+      expect(find.text('Past 12 weeks'), findsOneWidget);
+      expectFixedDistanceGraph(tester);
+      expect(find.text('This Week'), findsNothing);
+      expect(find.text('3 runs this week'), findsNothing);
+      expect(find.text('82% of weekly goal'), findsNothing);
+    }
+
+    expect(find.text('Weekly Distance'), findsOneWidget);
+    expect(find.text('12.4'), findsOneWidget);
+    expectFixedGraphContext();
+
+    await tester.tap(find.text('Month'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Monthly Distance'), findsOneWidget);
+    expect(find.text('48.6'), findsOneWidget);
+    expect(find.text('Weekly Distance'), findsNothing);
+    expectFixedGraphContext();
+
+    await tester.tap(find.text('Year'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Yearly Distance'), findsOneWidget);
+    expect(find.text('326.8'), findsOneWidget);
+    expect(find.text('Monthly Distance'), findsNothing);
+    expectFixedGraphContext();
+
+    await tester.tap(find.text('All'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Total Distance'), findsOneWidget);
+    expect(find.text('1,284.2'), findsOneWidget);
+    expect(find.text('Yearly Distance'), findsNothing);
+    expectFixedGraphContext();
   });
 
   testWidgets('Recent Running card opens selected summary with matching data', (
@@ -1419,14 +1504,14 @@ void main() {
     expect(find.text('Run'), findsOneWidget);
     expect(find.text('Leaderboard'), findsOneWidget);
     expect(find.text('You'), findsWidgets);
-    expect(find.text('This Week'), findsOneWidget);
+    expect(find.text('Weekly Distance'), findsOneWidget);
 
     await tester.tap(find.text('Home'));
     await tester.pumpAndSettle();
 
     expect(find.text('Good to see you'), findsOneWidget);
     expect(find.text('Quick Start'), findsOneWidget);
-    expect(find.text('This Week'), findsNothing);
+    expect(find.text('Weekly Distance'), findsNothing);
   });
 
   testWidgets('Run launch from You hides the You header once settled', (
@@ -1435,14 +1520,14 @@ void main() {
     await _openYouTab(tester);
 
     expect(find.text('You'), findsWidgets);
-    expect(find.text('This Week'), findsOneWidget);
+    expect(find.text('Weekly Distance'), findsOneWidget);
 
     await tester.tap(find.text('Run'));
     await tester.pumpAndSettle();
 
     expect(find.text('GPS ready'), findsOneWidget);
     expect(find.text('You').hitTestable(), findsNothing);
-    expect(find.text('This Week').hitTestable(), findsNothing);
+    expect(find.text('Weekly Distance').hitTestable(), findsNothing);
   });
 
   testWidgets('Run close from You reveals the You page during transition', (
