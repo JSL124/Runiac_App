@@ -68,9 +68,9 @@ class _YouProgressSurfaceState extends State<YouProgressSurface> {
         const SizedBox(height: 12),
         _MonthlyDistanceSection(summary: selectedSummary),
         const SizedBox(height: 10),
-        const _StreakCard(),
+        const _StreakSection(),
         const SizedBox(height: 10),
-        _CalendarCard(
+        _CalendarSection(
           visibleMonth: widget.visibleCalendarMonth,
           onPreviousMonth: widget.onPreviousMonth,
           onNextMonth: widget.onNextMonth,
@@ -171,12 +171,12 @@ class _SectionDivider extends StatelessWidget {
   }
 }
 
-class _StreakCard extends StatelessWidget {
-  const _StreakCard();
+class _StreakSection extends StatelessWidget {
+  const _StreakSection();
 
   @override
   Widget build(BuildContext context) {
-    return YouDashboardCard(
+    return _DividerSection(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -197,8 +197,8 @@ class _StreakCard extends StatelessWidget {
   }
 }
 
-class _CalendarCard extends StatelessWidget {
-  const _CalendarCard({
+class _CalendarSection extends StatelessWidget {
+  const _CalendarSection({
     required this.visibleMonth,
     required this.onPreviousMonth,
     required this.onNextMonth,
@@ -220,7 +220,7 @@ class _CalendarCard extends StatelessWidget {
         calendarStart.add(Duration(days: offset)),
     ];
 
-    return YouDashboardCard(
+    return _DividerSection(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -263,6 +263,27 @@ class _CalendarCard extends StatelessWidget {
           ],
         ],
       ),
+    );
+  }
+}
+
+class _DividerSection extends StatelessWidget {
+  const _DividerSection({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const _SectionDivider(),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          child: child,
+        ),
+        const _SectionDivider(),
+      ],
     );
   }
 }
