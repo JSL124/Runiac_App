@@ -552,7 +552,7 @@ void main() {
       expect(
         tester.getTopLeft(routeLikeCount).dx -
             tester.getTopRight(likeAction).dx,
-        moreOrLessEquals(4, epsilon: 0.5),
+        moreOrLessEquals(1, epsilon: 0.5),
       );
 
       await tester.tap(likeAction);

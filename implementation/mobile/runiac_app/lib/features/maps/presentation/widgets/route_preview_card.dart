@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/runiac_colors.dart';
 import '../../../../core/widgets/runiac_buttons.dart';
 
-const double _routeLikeActionWidth = 96;
+const double _routeLikeActionOffset = 4;
+const double _routeLikeIconOffset = 5;
+const double _routeLikeActionWidth = 92;
 
 class RoutePreviewCard extends StatelessWidget {
   const RoutePreviewCard({
@@ -88,9 +90,12 @@ class RoutePreviewCard extends StatelessWidget {
                     width: _routeLikeActionWidth,
                     child: Align(
                       alignment: Alignment.centerLeft,
-                      child: _RouteLikeAction(
-                        actionKey: likeActionKey!,
-                        countLabel: likeCountLabel!,
+                      child: Transform.translate(
+                        offset: const Offset(_routeLikeActionOffset, 0),
+                        child: _RouteLikeAction(
+                          actionKey: likeActionKey!,
+                          countLabel: likeCountLabel!,
+                        ),
                       ),
                     ),
                   ),
@@ -132,16 +137,19 @@ class _RouteLikeActionState extends State<_RouteLikeAction> {
               key: widget.actionKey,
               tooltip: _isLiked ? 'Unlike route' : 'Like route',
               onPressed: () => setState(() => _isLiked = !_isLiked),
-              icon: Icon(
-                _isLiked ? Icons.favorite : Icons.favorite_border,
-                color: RuniacColors.primaryBlue,
-                size: 20,
+              icon: Transform.translate(
+                offset: const Offset(_routeLikeIconOffset, 0),
+                child: Icon(
+                  _isLiked ? Icons.favorite : Icons.favorite_border,
+                  color: RuniacColors.primaryBlue,
+                  size: 20,
+                ),
               ),
               visualDensity: VisualDensity.compact,
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints.tightFor(width: 30, height: 44),
             ),
-            const SizedBox(width: 4),
+            const SizedBox(width: 1),
             Text(
               widget.countLabel,
               maxLines: 1,
