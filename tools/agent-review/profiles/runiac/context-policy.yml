@@ -74,6 +74,8 @@ excluded_paths:
   sensitive:
     - .env
     - .env.*
+    - "*.env"
+    - "**/*.env"
     - "secrets/**"
     - "*service-account*.json"
     - "**/*service-account*.json"
@@ -91,6 +93,8 @@ excluded_paths:
     - "**/.runtimeconfig.json"
     - "firebase-export-*/**"
     - "**/firebase-export-*/**"
+    - "firebase_options.dart"
+    - "**/firebase_options.dart"
     - "google-services.json"
     - "**/google-services.json"
     - "GoogleService-Info.plist"

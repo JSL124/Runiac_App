@@ -33,8 +33,9 @@ is_sensitive_path() {
   local path
   path="$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')"
   case "$path" in
-    .env|.env.*|*/.env|*/.env.*) return 0 ;;
+    .env|.env.*|*.env|*/.env|*/.env.*) return 0 ;;
     secrets/*|*/secrets/*) return 0 ;;
+    firebase_options.dart|*/firebase_options.dart) return 0 ;;
     google-services.json|*/google-services.json) return 0 ;;
     googleservice-info.plist|*/googleservice-info.plist) return 0 ;;
     *service-account*.json|*serviceaccount*.json|*-service-account.json|*.credentials.json) return 0 ;;
@@ -151,13 +152,16 @@ for negated_phrase in \
   "do not create .env" \
   "do not modify .env" \
   "do not run flutter create" \
+  "do not run flutterfire configure" \
   "do not run flutter build" \
   "do not run npm install" \
   "do not run firebase deploy" \
   "must not run firebase init" \
+  "must not run flutterfire configure" \
   "must not create firebase config" \
   "must not modify prd.md" \
   "without running firebase init" \
+  "without running flutterfire configure" \
   "without creating firebase config" \
   "without modifying prd.md" \
   "without reading .env" \
@@ -182,7 +186,7 @@ case "$normalized_input" in
 esac
 
 positive_risky_action=0
-if positive_contains "run firebase init" || positive_contains "create firebase.json" || positive_contains "create .firebaserc" || positive_contains "create firestore.rules" || positive_contains "create storage.rules" || positive_contains "modify prd.md" || positive_contains "edit prd.md" || positive_contains "modify docs/pdd" || positive_contains "edit docs/pdd" || positive_contains "edit submitted pdd" || positive_contains "modify submitted pdd" || positive_contains "add api key" || positive_contains "add an api key" || positive_contains "add secret" || positive_contains "add token" || positive_contains "create .env" || positive_contains "modify .env" || positive_contains "implement client-side xp" || positive_contains "client writes xp" || positive_contains "write rank from flutter" || positive_contains "llm awards xp" || positive_contains "ai awards xp" || positive_contains "firebase deploy" || positive_contains "flutter create" || positive_contains "flutter build" || positive_contains "npm install" || positive_contains "rm -rf"; then
+if positive_contains "run firebase init" || positive_contains "run flutterfire configure" || positive_contains "flutterfire configure" || positive_contains "create firebase.json" || positive_contains "create .firebaserc" || positive_contains "create firestore.rules" || positive_contains "create storage.rules" || positive_contains "modify prd.md" || positive_contains "edit prd.md" || positive_contains "modify docs/pdd" || positive_contains "edit docs/pdd" || positive_contains "edit submitted pdd" || positive_contains "modify submitted pdd" || positive_contains "add api key" || positive_contains "add an api key" || positive_contains "add secret" || positive_contains "add token" || positive_contains "create .env" || positive_contains "modify .env" || positive_contains "implement client-side xp" || positive_contains "client writes xp" || positive_contains "write rank from flutter" || positive_contains "llm awards xp" || positive_contains "ai awards xp" || positive_contains "firebase deploy" || positive_contains "flutter create" || positive_contains "flutter build" || positive_contains "npm install" || positive_contains "rm -rf"; then
   positive_risky_action=1
 fi
 
@@ -191,6 +195,7 @@ for risky_mutation_verb in create edit modify write add update; do
     "firebase.json" \
     ".firebaserc" \
     ".runtimeconfig.json" \
+    "firebase_options.dart" \
     "google-services.json" \
     "googleservice-info.plist" \
     "service-account json" \
@@ -199,6 +204,7 @@ for risky_mutation_verb in create edit modify write add update; do
     "credentials.json" \
     ".env" \
     ".env*" \
+    "*.env" \
     "secrets/" \
     "secrets/**" \
     ".jks" \
@@ -216,12 +222,20 @@ for risky_mutation_verb in create edit modify write add update; do
       positive_risky_action=1
     fi
   done
+  if positive_contains "$risky_mutation_verb " && positive_contains ".env"; then
+    positive_risky_action=1
+  fi
 done
 
 positive_guardrail_blocker=0
-if positive_contains "read .env" || positive_contains "inspect .env" || positive_contains "show .env" || positive_contains "cat .env" || positive_contains "print .env" || positive_contains "expose api key" || positive_contains "show api key" || positive_contains "read api key" || positive_contains "add api key" || positive_contains "add an api key" || positive_contains "add secret" || positive_contains "read secret" || positive_contains "show secret" || positive_contains "expose secret" || positive_contains "read token" || positive_contains "show token" || positive_contains "read private key" || positive_contains "show private key" || positive_contains "read service account" || positive_contains "show service account" || positive_contains "read google-services.json" || positive_contains "show google-services.json" || positive_contains "read googleservice-info.plist" || positive_contains "show googleservice-info.plist" || positive_contains "read private gps" || positive_contains "inspect private gps" || positive_contains "show private gps" || positive_contains "review private gps route coordinates" || positive_contains "read raw route coordinates" || positive_contains "show raw route coordinates" || positive_contains "exact location history" || positive_contains "skip approval" || positive_contains "bypass review" || positive_contains "ignore guard" || positive_contains "implement without approval"; then
+if positive_contains "read .env" || positive_contains "inspect .env" || positive_contains "show .env" || positive_contains "cat .env" || positive_contains "print .env" || positive_contains "expose api key" || positive_contains "show api key" || positive_contains "read api key" || positive_contains "add api key" || positive_contains "add an api key" || positive_contains "add secret" || positive_contains "read secret" || positive_contains "show secret" || positive_contains "expose secret" || positive_contains "read token" || positive_contains "show token" || positive_contains "read private key" || positive_contains "show private key" || positive_contains "read service account" || positive_contains "show service account" || positive_contains "read firebase_options.dart" || positive_contains "show firebase_options.dart" || positive_contains "read google-services.json" || positive_contains "show google-services.json" || positive_contains "read googleservice-info.plist" || positive_contains "show googleservice-info.plist" || positive_contains "read private gps" || positive_contains "inspect private gps" || positive_contains "show private gps" || positive_contains "review private gps route coordinates" || positive_contains "read raw route coordinates" || positive_contains "show raw route coordinates" || positive_contains "exact location history" || positive_contains "skip approval" || positive_contains "bypass review" || positive_contains "ignore guard" || positive_contains "implement without approval"; then
   positive_guardrail_blocker=1
 fi
+for sensitive_env_read_verb in read inspect show cat print; do
+  if positive_contains "$sensitive_env_read_verb " && positive_contains ".env"; then
+    positive_guardrail_blocker=1
+  fi
+done
 
 sensitive_allow_path_blocker=0
 if [ -n "$allow_paths" ]; then
@@ -244,7 +258,7 @@ if contains "prd.md" || contains "docs/pdd" || contains "pdd baseline"; then
   add_signal "prd_pdd_baseline_paths"
 fi
 
-if contains "flutter create" || contains "firebase init" || contains "firebase.json" || contains ".firebaserc" || contains "pubspec.yaml" || contains "package.json for functions" || contains "tsconfig.json for functions" || contains "firestore.rules" || contains "storage.rules" || contains "implementation/mobile/runiac_app" || contains "firebase/functions" || contains "firebase/firestore" || contains "firebase/storage"; then
+if contains "flutter create" || contains "flutterfire configure" || contains "firebase init" || contains "firebase.json" || contains ".firebaserc" || contains "firebase_options.dart" || contains "pubspec.yaml" || contains "package.json for functions" || contains "tsconfig.json for functions" || contains "firestore.rules" || contains "storage.rules" || contains "implementation/mobile/runiac_app" || contains "firebase/functions" || contains "firebase/firestore" || contains "firebase/storage"; then
   add_signal "flutter_firebase_scaffolding"
 fi
 
@@ -252,7 +266,7 @@ if contains "firebase rules" || contains "firestore rules" || contains "storage 
   add_signal "firebase_rules_config_functions"
 fi
 
-if contains ".env" || contains "api key" || contains "apikey" || contains "secret" || contains "token" || contains "private key" || contains "service account" || contains "google-services.json" || contains "googleservice-info.plist" || contains "production project id"; then
+if contains ".env" || contains "api key" || contains "apikey" || contains "secret" || contains "token" || contains "private key" || contains "service account" || contains "firebase_options.dart" || contains "google-services.json" || contains "googleservice-info.plist" || contains "production project id"; then
   add_signal "secrets_env_api_keys_project_ids"
 fi
 
@@ -276,7 +290,7 @@ if contains "delete many files" || contains "remove docs/pdd" || contains "renam
   add_signal "destructive_file_operations"
 fi
 
-if contains "npm install" || contains "npm test" || contains "npm run build" || contains "flutter test" || contains "flutter build" || contains "firebase deploy" || contains "firebase emulators" || contains "firebase init"; then
+if contains "npm install" || contains "npm test" || contains "npm run build" || contains "flutter test" || contains "flutter build" || contains "flutterfire configure" || contains "firebase deploy" || contains "firebase emulators" || contains "firebase init"; then
   add_signal "build_test_deploy_tool_commands"
 fi
 
