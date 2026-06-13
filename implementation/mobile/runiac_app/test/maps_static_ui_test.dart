@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runiac_app/app.dart';
 import 'package:runiac_app/features/maps/presentation/data/maps_route_demo_snapshots.dart';
+import 'package:runiac_app/features/maps/presentation/saved_routes_screen.dart';
 
 final _forbiddenBackendOwnedCopy = RegExp(
   r'\bXP\b|streak|level|rank|score|saved count|popularity|owned|'
@@ -236,6 +237,14 @@ void main() {
     expect(find.byKey(const Key('selected_route_card')), findsOneWidget);
     expect(find.text('Marina Bay easy loop'), findsOneWidget);
     expect(find.text('3.2 km · 25 min · Easy'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('selected_route_card')),
+        matching: find.text('24'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.bySemanticsLabel('24 likes'), findsOneWidget);
     expect(find.text('Ready for today'), findsNothing);
     expect(find.text('Change route'), findsOneWidget);
     expect(find.text('Remove'), findsOneWidget);
@@ -250,6 +259,44 @@ void main() {
     expect(find.text('Favourite routes'), findsOneWidget);
     expect(find.text('Bishan Park starter route'), findsOneWidget);
     expect(find.text('East Coast flat run'), findsOneWidget);
+    expect(find.text('18'), findsOneWidget);
+    expect(find.text('31'), findsOneWidget);
+    expect(find.bySemanticsLabel('18 likes'), findsOneWidget);
+    expect(find.bySemanticsLabel('31 likes'), findsOneWidget);
+    final selectedLikeCluster = find.byKey(
+      const Key('saved_route_like_cluster_marina_bay_easy_loop'),
+    );
+    final firstFavouriteLikeCluster = find.byKey(
+      const Key('saved_route_like_cluster_bishan_park_starter_route'),
+    );
+    final secondFavouriteLikeCluster = find.byKey(
+      const Key('saved_route_like_cluster_east_coast_flat_run'),
+    );
+
+    expect(selectedLikeCluster, findsOneWidget);
+    expect(firstFavouriteLikeCluster, findsOneWidget);
+    expect(secondFavouriteLikeCluster, findsOneWidget);
+    expect(
+      tester.getTopLeft(selectedLikeCluster).dx,
+      moreOrLessEquals(
+        tester.getTopLeft(firstFavouriteLikeCluster).dx,
+        epsilon: 2,
+      ),
+    );
+    expect(
+      tester.getTopLeft(selectedLikeCluster).dx,
+      moreOrLessEquals(
+        tester.getTopLeft(secondFavouriteLikeCluster).dx,
+        epsilon: 2,
+      ),
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('selected_route_card')),
+        matching: find.byType(IconButton),
+      ),
+      findsNothing,
+    );
     expect(
       find.descendant(
         of: find.byKey(const Key('selected_route_card')),
@@ -286,6 +333,26 @@ void main() {
     expect(find.text('My routes'), findsNothing);
     expect(find.text('Search routes or parks'), findsOneWidget);
     expect(find.text('Shared Routes'), findsOneWidget);
+  });
+
+  testWidgets('Maps Saved route like counts fit on a narrow surface', (
+    WidgetTester tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(const MaterialApp(home: SavedRoutesScreen()));
+    await tester.pumpAndSettle();
+
+    expect(find.text('My routes'), findsOneWidget);
+    expect(find.text('Marina Bay easy loop'), findsOneWidget);
+    expect(find.text('3.2 km · 25 min · Easy'), findsOneWidget);
+    expect(find.bySemanticsLabel('24 likes'), findsOneWidget);
+    expect(find.text('Bishan Park starter route'), findsOneWidget);
+    expect(find.text('2.4 km · 18 min · Easy'), findsOneWidget);
+    expect(find.bySemanticsLabel('18 likes'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('Maps Saved selected route opens static route detail preview', (

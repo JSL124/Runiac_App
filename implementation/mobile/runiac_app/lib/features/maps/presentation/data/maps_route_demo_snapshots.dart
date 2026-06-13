@@ -5,7 +5,7 @@ const selectedRouteDemoSnapshot = SharedRouteDetailSnapshot(
   distance: '3.2 km',
   duration: '25 min',
   difficulty: 'Easy',
-  likeCountLabel: '128',
+  likeCountLabel: '24',
 );
 
 const favouriteRouteDemoSnapshots = <SharedRouteDetailSnapshot>[
@@ -14,28 +14,28 @@ const favouriteRouteDemoSnapshots = <SharedRouteDetailSnapshot>[
     distance: '2.4 km',
     duration: '18 min',
     difficulty: 'Easy',
-    likeCountLabel: '86',
+    likeCountLabel: '18',
   ),
   SharedRouteDetailSnapshot(
     title: 'East Coast flat run',
     distance: '4.0 km',
     duration: '32 min',
     difficulty: 'Easy',
-    likeCountLabel: '104',
+    likeCountLabel: '31',
   ),
   SharedRouteDetailSnapshot(
     title: 'Punggol waterway loop',
     distance: '3.6 km',
     duration: '28 min',
     difficulty: 'Easy',
-    likeCountLabel: '72',
+    likeCountLabel: '22',
   ),
   SharedRouteDetailSnapshot(
     title: 'Kallang riverside run',
     distance: '3.0 km',
     duration: '23 min',
     difficulty: 'Easy',
-    likeCountLabel: '58',
+    likeCountLabel: '15',
   ),
 ];
 

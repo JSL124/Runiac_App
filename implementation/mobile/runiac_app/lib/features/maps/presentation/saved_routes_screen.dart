@@ -5,6 +5,10 @@ import '../../../core/widgets/runiac_back_header.dart';
 import 'data/maps_route_demo_snapshots.dart';
 import 'shared_route_detail_screen.dart';
 
+const double _savedRouteLikeClusterWidth = 92;
+const double _savedRouteLikeClusterOffset = 4;
+const double _savedRouteLikeIconOffset = 5;
+
 class SavedRoutesScreen extends StatefulWidget {
   const SavedRoutesScreen({super.key});
 
@@ -192,6 +196,8 @@ class _SavedRouteCard extends StatelessWidget {
     return Semantics(
       label: 'Open route details for ${route.title}',
       button: true,
+      container: true,
+      explicitChildNodes: true,
       child: Material(
         color: RuniacColors.white,
         shape: RoundedRectangleBorder(
@@ -208,27 +214,58 @@ class _SavedRouteCard extends StatelessWidget {
                 const _RouteThumbnail(size: 62),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Text(
-                        route.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: RuniacColors.textPrimary,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                          height: 1.18,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              route.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: RuniacColors.textPrimary,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                                height: 1.18,
+                              ),
+                            ),
+                            const SizedBox(height: 5),
+                            Text(
+                              route.meta,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: RuniacColors.textSecondary,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 5),
-                      Text(
-                        route.meta,
-                        style: const TextStyle(
-                          color: RuniacColors.textSecondary,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
+                      const SizedBox(width: 8),
+                      SizedBox(
+                        width: _savedRouteLikeClusterWidth,
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Transform.translate(
+                            offset: const Offset(
+                              _savedRouteLikeClusterOffset,
+                              0,
+                            ),
+                            child: _RouteLikeCount(
+                              key: Key(
+                                'saved_route_like_cluster_${_routeKeySuffix(route.title)}',
+                              ),
+                              countLabel: route.likeCountLabel,
+                              keySuffix: _routeKeySuffix(route.title),
+                            ),
+                          ),
                         ),
                       ),
                     ],
@@ -241,6 +278,68 @@ class _SavedRouteCard extends StatelessWidget {
       ),
     );
   }
+}
+
+class _RouteLikeCount extends StatelessWidget {
+  const _RouteLikeCount({
+    required this.countLabel,
+    required this.keySuffix,
+    super.key,
+  });
+
+  final String countLabel;
+  final String keySuffix;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      container: true,
+      label: '$countLabel likes',
+      child: ExcludeSemantics(
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            SizedBox(
+              width: 30,
+              height: 44,
+              child: Center(
+                child: Transform.translate(
+                  offset: const Offset(_savedRouteLikeIconOffset, 0),
+                  child: Icon(
+                    key: Key('saved_route_like_icon_$keySuffix'),
+                    Icons.favorite_border,
+                    size: 20,
+                    color: RuniacColors.primaryBlue,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 1),
+            Text(
+              countLabel,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: RuniacColors.textSecondary,
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+                height: 1,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+String _routeKeySuffix(String title) {
+  return title
+      .trim()
+      .toLowerCase()
+      .replaceAll(RegExp(r'[^a-z0-9]+'), '_')
+      .replaceAll(RegExp(r'^_|_$'), '');
 }
 
 class _SelectedRouteEmptyState extends StatelessWidget {
