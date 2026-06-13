@@ -39,8 +39,8 @@ class _GoalProgressCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _ReferenceCard(
-      padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
+    return _HomeDividerSection(
+      padding: const EdgeInsets.fromLTRB(0, 18, 0, 16),
       child: _GoalProgressBlock(goal: goal),
     );
   }
@@ -522,6 +522,26 @@ class _ReferenceCard extends StatelessWidget {
             offset: const Offset(0, 7),
           ),
         ],
+      ),
+      child: Padding(padding: padding, child: child),
+    );
+  }
+}
+
+class _HomeDividerSection extends StatelessWidget {
+  const _HomeDividerSection({required this.child, required this.padding});
+
+  final Widget child;
+  final EdgeInsetsGeometry padding;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        color: RuniacColors.white,
+        border: Border.symmetric(
+          horizontal: BorderSide(color: RuniacColors.border),
+        ),
       ),
       child: Padding(padding: padding, child: child),
     );

@@ -3,7 +3,6 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/runiac_colors.dart';
-import '../../../../core/widgets/dashboard_card.dart';
 import '../data/home_dashboard_demo_snapshots.dart';
 
 const _routeCardGap = 12.0;
@@ -26,7 +25,7 @@ class ExploreRoutesSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DashboardCard(
+    return _HomeDividerSection(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -111,6 +110,28 @@ class ExploreRoutesSection extends StatelessWidget {
             },
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _HomeDividerSection extends StatelessWidget {
+  const _HomeDividerSection({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        color: RuniacColors.white,
+        border: Border.symmetric(
+          horizontal: BorderSide(color: RuniacColors.border),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(0, 16, 0, 18),
+        child: child,
       ),
     );
   }
