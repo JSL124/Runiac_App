@@ -3,9 +3,14 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/runiac_colors.dart';
 import '../../../../core/widgets/runiac_buttons.dart';
 
-const double _routeLikeActionOffset = 4;
-const double _routeLikeIconOffset = 5;
-const double _routeLikeActionWidth = 92;
+const double _routeLikeTrailingWidth = 92;
+const double _routeLikeTapTargetWidth = 30;
+const double _routeLikeTapTargetHeight = 44;
+const double _routeLikeIconSize = 20;
+const double _routeLikeIconCountGap = 1;
+const double _routeLikeCountWidth = 38;
+const double _routeLikeClusterWidth =
+    _routeLikeTapTargetWidth + _routeLikeIconCountGap + _routeLikeCountWidth;
 
 class RoutePreviewCard extends StatelessWidget {
   const RoutePreviewCard({
@@ -87,11 +92,11 @@ class RoutePreviewCard extends StatelessWidget {
                 if (likeCountLabel != null && likeActionKey != null) ...[
                   const SizedBox(width: 8),
                   SizedBox(
-                    width: _routeLikeActionWidth,
+                    width: _routeLikeTrailingWidth,
                     child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: Transform.translate(
-                        offset: const Offset(_routeLikeActionOffset, 0),
+                      alignment: Alignment.centerRight,
+                      child: SizedBox(
+                        width: _routeLikeClusterWidth,
                         child: _RouteLikeAction(
                           actionKey: likeActionKey!,
                           countLabel: likeCountLabel!,
@@ -128,7 +133,7 @@ class _RouteLikeActionState extends State<_RouteLikeAction> {
       label: _isLiked ? 'Unlike route' : 'Like route',
       button: true,
       child: SizedBox(
-        height: 44,
+        height: _routeLikeTapTargetHeight,
         child: Row(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -137,28 +142,45 @@ class _RouteLikeActionState extends State<_RouteLikeAction> {
               key: widget.actionKey,
               tooltip: _isLiked ? 'Unlike route' : 'Like route',
               onPressed: () => setState(() => _isLiked = !_isLiked),
-              icon: Transform.translate(
-                offset: const Offset(_routeLikeIconOffset, 0),
-                child: Icon(
-                  _isLiked ? Icons.favorite : Icons.favorite_border,
-                  color: RuniacColors.primaryBlue,
-                  size: 20,
-                ),
+              icon: Icon(
+                _isLiked ? Icons.favorite : Icons.favorite_border,
+                color: RuniacColors.primaryBlue,
+                size: _routeLikeIconSize,
               ),
+              alignment: Alignment.centerRight,
               visualDensity: VisualDensity.compact,
               padding: EdgeInsets.zero,
-              constraints: const BoxConstraints.tightFor(width: 30, height: 44),
+              style: IconButton.styleFrom(
+                alignment: Alignment.centerRight,
+                fixedSize: const Size(
+                  _routeLikeTapTargetWidth,
+                  _routeLikeTapTargetHeight,
+                ),
+                minimumSize: const Size(
+                  _routeLikeTapTargetWidth,
+                  _routeLikeTapTargetHeight,
+                ),
+                padding: EdgeInsets.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              constraints: const BoxConstraints.tightFor(
+                width: _routeLikeTapTargetWidth,
+                height: _routeLikeTapTargetHeight,
+              ),
             ),
-            const SizedBox(width: 1),
-            Text(
-              widget.countLabel,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: RuniacColors.textSecondary,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                height: 1,
+            const SizedBox(width: _routeLikeIconCountGap),
+            SizedBox(
+              width: _routeLikeCountWidth,
+              child: Text(
+                widget.countLabel,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: RuniacColors.textSecondary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  height: 1,
+                ),
               ),
             ),
           ],

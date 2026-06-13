@@ -597,13 +597,25 @@ void main() {
         of: routeCard,
         matching: find.text('1.4k'),
       );
+      final routeLikeIcon = find.descendant(
+        of: likeAction,
+        matching: find.byIcon(Icons.favorite_border),
+      );
+      final routeLikeTransforms = find.descendant(
+        of: likeAction,
+        matching: find.byType(Transform),
+      );
 
       expect(routeCard, findsOneWidget);
       expect(likeAction, findsOneWidget);
       expect(secondLikeAction, findsOneWidget);
       expect(thirdLikeAction, findsOneWidget);
       expect(routeLikeCount, findsOneWidget);
+      expect(routeLikeIcon, findsOneWidget);
+      expect(routeLikeTransforms, findsNothing);
       expect(find.text('1400'), findsNothing);
+      expect(find.text('86'), findsOneWidget);
+      expect(find.text('104'), findsOneWidget);
       expect(
         tester.getCenter(likeAction).dy,
         moreOrLessEquals(tester.getCenter(routeLikeCount).dy, epsilon: 1),
@@ -620,6 +632,16 @@ void main() {
         tester.getTopLeft(routeLikeCount).dx -
             tester.getTopRight(likeAction).dx,
         moreOrLessEquals(1, epsilon: 0.5),
+      );
+      expect(
+        tester.getTopLeft(routeLikeCount).dx -
+            tester.getTopRight(routeLikeIcon).dx,
+        lessThanOrEqualTo(3),
+      );
+      expect(
+        tester.getTopRight(routeCard).dx -
+            tester.getTopRight(routeLikeCount).dx,
+        lessThanOrEqualTo(12),
       );
 
       await tester.tap(likeAction);
