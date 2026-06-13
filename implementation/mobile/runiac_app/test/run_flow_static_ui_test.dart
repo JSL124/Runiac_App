@@ -525,6 +525,9 @@ void main() {
   ) async {
     await tester.pumpWidget(const MaterialApp(home: AdvancedAnalysisScreen()));
 
+    final scaffold = tester.widget<Scaffold>(find.byType(Scaffold));
+    expect(scaffold.backgroundColor, RuniacColors.background);
+
     expect(find.text('Saturday Morning Run'), findsOneWidget);
     expect(find.text('Today · 7:06 AM'), findsOneWidget);
     expect(find.text('Performance Overview'), findsOneWidget);

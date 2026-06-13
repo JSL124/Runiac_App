@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:runiac_app/core/theme/runiac_colors.dart';
 import 'package:runiac_app/core/widgets/runiac_back_header.dart';
 
 import 'widgets/advanced_analysis/advanced_analysis_metric_sections.dart';
@@ -18,7 +19,7 @@ class AdvancedAnalysisScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: advancedAnalysisSurface,
+      backgroundColor: RuniacColors.background,
       body: SafeArea(
         child: Column(
           children: [

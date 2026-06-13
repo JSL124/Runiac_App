@@ -147,9 +147,15 @@ class AdvancedAnalysisCadenceChartPainter extends CustomPainter {
     );
     final bandTop = yFor(175);
     final bandBottom = yFor(160);
-    canvas.drawRect(
-      Rect.fromLTRB(plot.left, bandTop, plot.right, bandBottom),
-      Paint()..color = advancedAnalysisBlue07,
+    final offsets = advancedAnalysisCadencePoints
+        .map((p) => Offset(xFor(p.x), yFor(p.y)))
+        .toList();
+    drawAdvancedAnalysisLineArea(
+      canvas,
+      offsets,
+      plot.bottom,
+      advancedAnalysisBlue07,
+      advancedAnalysisBlue,
     );
     drawAdvancedAnalysisDashedLine(
       canvas,
@@ -168,10 +174,6 @@ class AdvancedAnalysisCadenceChartPainter extends CustomPainter {
       advancedAnalysisBlue45,
       10,
     );
-    final offsets = advancedAnalysisCadencePoints
-        .map((p) => Offset(xFor(p.x), yFor(p.y)))
-        .toList();
-    drawAdvancedAnalysisPolyline(canvas, offsets, advancedAnalysisBlue);
   }
 
   @override
