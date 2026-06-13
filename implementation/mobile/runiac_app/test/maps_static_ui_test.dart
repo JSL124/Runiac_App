@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runiac_app/app.dart';
+import 'package:runiac_app/features/maps/presentation/data/maps_route_demo_snapshots.dart';
 
 final _forbiddenBackendOwnedCopy = RegExp(
   r'\bXP\b|streak|level|rank|score|saved count|popularity|owned|'
@@ -13,6 +14,14 @@ final _forbiddenBackendOwnedCopy = RegExp(
 );
 
 void main() {
+  test('Shared route like counts use compact social formatting', () {
+    expect(formatRouteLikeCount(999), '999');
+    expect(formatRouteLikeCount(1000), '1k');
+    expect(formatRouteLikeCount(1200), '1.2k');
+    expect(formatRouteLikeCount(1400), '1.4k');
+    expect(formatRouteLikeCount(12500), '12.5k');
+  });
+
   testWidgets('Maps tab shows static route discovery placeholder', (
     WidgetTester tester,
   ) async {
@@ -513,12 +522,17 @@ void main() {
       );
       final routeLikeCount = find.descendant(
         of: routeCard,
-        matching: find.text('128'),
+        matching: find.text('1.4k'),
       );
 
       expect(routeCard, findsOneWidget);
       expect(likeAction, findsOneWidget);
       expect(routeLikeCount, findsOneWidget);
+      expect(find.text('1400'), findsNothing);
+      expect(
+        tester.getCenter(likeAction).dy,
+        moreOrLessEquals(tester.getCenter(routeLikeCount).dy, epsilon: 1),
+      );
 
       await tester.tap(likeAction);
       await tester.pump();

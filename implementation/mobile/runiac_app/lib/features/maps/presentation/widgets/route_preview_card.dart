@@ -118,7 +118,7 @@ class _RouteLikeActionState extends State<_RouteLikeAction> {
         height: 44,
         child: Row(
           mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.end,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             IconButton(
               key: widget.actionKey,
@@ -131,9 +131,9 @@ class _RouteLikeActionState extends State<_RouteLikeAction> {
               ),
               visualDensity: VisualDensity.compact,
               padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+              constraints: const BoxConstraints.tightFor(width: 30, height: 44),
             ),
-            const SizedBox(width: 2),
+            const SizedBox(width: 6),
             Text(
               widget.countLabel,
               maxLines: 1,

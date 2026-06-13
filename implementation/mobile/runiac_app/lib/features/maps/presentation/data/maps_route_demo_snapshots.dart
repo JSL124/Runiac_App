@@ -50,7 +50,7 @@ const sharedRoutesDemoSnapshot = SharedRoutesDemoSnapshot(
       distance: '3.2 km',
       duration: '25 min',
       difficulty: 'Easy',
-      likeCountLabel: '128',
+      likeCount: 1400,
     ),
     RouteCardDemoSnapshot(
       keySuffix: 'bishan_park_starter_route',
@@ -58,7 +58,7 @@ const sharedRoutesDemoSnapshot = SharedRoutesDemoSnapshot(
       distance: '2.4 km',
       duration: '18 min',
       difficulty: 'Easy',
-      likeCountLabel: '86',
+      likeCount: 86,
     ),
     RouteCardDemoSnapshot(
       keySuffix: 'east_coast_flat_run',
@@ -66,7 +66,7 @@ const sharedRoutesDemoSnapshot = SharedRoutesDemoSnapshot(
       distance: '4.0 km',
       duration: '32 min',
       difficulty: 'Easy',
-      likeCountLabel: '104',
+      likeCount: 104,
     ),
     RouteCardDemoSnapshot(
       keySuffix: 'punggol_waterway_loop',
@@ -74,7 +74,7 @@ const sharedRoutesDemoSnapshot = SharedRoutesDemoSnapshot(
       distance: '3.6 km',
       duration: '28 min',
       difficulty: 'Easy',
-      likeCountLabel: '72',
+      likeCount: 72,
     ),
     RouteCardDemoSnapshot(
       keySuffix: 'kallang_riverside_run',
@@ -82,7 +82,7 @@ const sharedRoutesDemoSnapshot = SharedRoutesDemoSnapshot(
       distance: '3.0 km',
       duration: '23 min',
       difficulty: 'Easy',
-      likeCountLabel: '58',
+      likeCount: 58,
     ),
   ],
 );
@@ -112,7 +112,7 @@ class RouteCardDemoSnapshot {
     required this.distance,
     required this.duration,
     required this.difficulty,
-    required this.likeCountLabel,
+    required this.likeCount,
   });
 
   final String keySuffix;
@@ -120,7 +120,18 @@ class RouteCardDemoSnapshot {
   final String distance;
   final String duration;
   final String difficulty;
-  final String likeCountLabel;
+  final int likeCount;
 
   String get meta => '$distance · $duration · $difficulty';
+  String get likeCountLabel => formatRouteLikeCount(likeCount);
+}
+
+String formatRouteLikeCount(int count) {
+  if (count < 1000) {
+    return '$count';
+  }
+
+  final thousands = count / 1000;
+  final formatted = thousands.toStringAsFixed(count % 1000 == 0 ? 0 : 1);
+  return '${formatted.replaceAll(RegExp(r'\.0$'), '')}k';
 }
