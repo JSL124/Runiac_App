@@ -1,0 +1,43 @@
+class ActivityHistoryReadModel {
+  ActivityHistoryReadModel({
+    required List<ActivityHistoryItemReadModel> recentRuns,
+    List<ActivityHistoryMonthReadModel> months =
+        const <ActivityHistoryMonthReadModel>[],
+  }) : recentRuns = List.unmodifiable(recentRuns),
+       months = List.unmodifiable(months);
+
+  final List<ActivityHistoryItemReadModel> recentRuns;
+  final List<ActivityHistoryMonthReadModel> months;
+}
+
+class ActivityHistoryMonthReadModel {
+  ActivityHistoryMonthReadModel({
+    required this.label,
+    required List<ActivityHistoryItemReadModel> activities,
+  }) : activities = List.unmodifiable(activities);
+
+  final String label;
+  final List<ActivityHistoryItemReadModel> activities;
+}
+
+class ActivityHistoryItemReadModel {
+  const ActivityHistoryItemReadModel({
+    required this.activityId,
+    required this.title,
+    required this.completedAtLabel,
+    required this.distanceLabel,
+    required this.paceLabel,
+    this.durationLabel = '',
+    this.timeLabel = '',
+    this.routeNameLabel = '',
+  });
+
+  final String activityId;
+  final String title;
+  final String completedAtLabel;
+  final String distanceLabel;
+  final String paceLabel;
+  final String durationLabel;
+  final String timeLabel;
+  final String routeNameLabel;
+}
