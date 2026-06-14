@@ -5,11 +5,18 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runiac_app/app.dart';
 import 'package:runiac_app/core/theme/runiac_colors.dart';
+import 'package:runiac_app/features/run/domain/models/complete_run_result.dart';
+import 'package:runiac_app/features/run/domain/models/local_run_completion_payload.dart';
+import 'package:runiac_app/features/run/domain/models/progression_display_model.dart';
+import 'package:runiac_app/features/run/domain/models/run_activity_read_model.dart';
 import 'package:runiac_app/features/run/presentation/advanced_analysis_screen.dart';
 import 'package:runiac_app/features/run/presentation/cool_down_guide_screen.dart';
 import 'package:runiac_app/features/run/presentation/cool_down_screen.dart';
+import 'package:runiac_app/features/run/domain/models/run_summary_read_model.dart';
 import 'package:runiac_app/features/run/domain/models/run_summary_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/xp_update_display_model.dart';
+import 'package:runiac_app/features/run/domain/repositories/run_repository.dart';
+import 'package:runiac_app/features/run/presentation/run_launch_screen.dart';
 import 'package:runiac_app/features/run/presentation/view_summary_screen.dart';
 import 'package:runiac_app/features/run/presentation/widgets/share_achievement_sheet.dart';
 import 'package:runiac_app/features/run/presentation/xp_update_screen.dart';
@@ -91,6 +98,92 @@ Future<void> _finishPausedRun(WidgetTester tester) async {
   await holdGesture.up();
   await tester.pumpAndSettle();
 }
+
+class _ResultRunRepository implements RunRepository {
+  const _ResultRunRepository(this.result);
+
+  final CompleteRunResult result;
+
+  @override
+  Future<CompleteRunResult> completeRun(
+    LocalRunCompletionPayload payload,
+  ) async {
+    return result;
+  }
+
+  @override
+  Future<CompleteRunResult> loadLatestCompletionResult() async {
+    return result;
+  }
+
+  @override
+  Future<RunActivityReadModel> loadLatestRunActivity() async {
+    return const RunActivityReadModel(
+      activityId: 'repo-activity',
+      title: 'Repository Run',
+      completedAtLabel: 'Today',
+      distanceLabel: '5.40 km',
+      durationLabel: '36:00',
+      avgPaceLabel: '6’40”',
+      routeLabel: 'Repository Route',
+    );
+  }
+
+  @override
+  Future<RunSummaryReadModel> loadLatestRunSummary() async {
+    return const RunSummaryReadModel(
+      summaryId: 'repo-summary',
+      title: 'Repository Run',
+      dateLabel: 'Today',
+      timeLabel: '8:10 AM',
+      distanceLabel: '5.40 km',
+      avgPaceLabel: '6’40”',
+      durationLabel: '36:00',
+      avgHeartRateLabel: '138 bpm',
+      caloriesLabel: '280 kcal',
+      routeName: 'Repository Route',
+    );
+  }
+}
+
+const _repositoryCompletionResult = CompleteRunResult(
+  activityId: 'repo-activity',
+  summaryId: 'repo-summary',
+  progressionEventId: 'repo-progression',
+  validationStatus: 'validated',
+  summary: RunSummarySnapshot(
+    title: 'Repository Result Run',
+    dateLabel: 'Today',
+    timeLabel: '8:10 AM',
+    distanceKm: '5.40',
+    avgPace: '6’40”',
+    duration: '36:00',
+    avgHeartRate: '138',
+    calories: '280',
+    routeName: 'Repository Route',
+  ),
+  progressionDisplay: ProgressionDisplayModel(
+    xpDelta: 0,
+    countsTowardLeaderboard: false,
+    status: 'deferred',
+    reason: 'progression_formula_deferred',
+  ),
+  xpUpdate: XpUpdateDisplayModel(
+    runnerName: 'Maya',
+    earnedXpLabel: '+0 XP',
+    totalXpLabel: '0 XP',
+    levelLabel: '0',
+    nextLevelLabel: '1',
+    progressTargetLabel: 'Progress deferred',
+    xpRemainingLabel: 'Pending',
+    previousProgressFraction: 0,
+    currentProgressFraction: 0,
+    streakChangeLabel: 'Deferred',
+    streakNote: 'Accepted.',
+    didLevelUp: false,
+  ),
+  message: 'Static repository completion accepted.',
+);
 
 void main() {
   testWidgets('Run item opens and protects local active finish controls', (
@@ -276,6 +369,57 @@ void main() {
     expect(find.text('XP & Streak Update'), findsNothing);
     expect(find.text('Good to see you'), findsOneWidget);
   });
+
+  testWidgets(
+    'Run finish uses repository completion result through summary and XP update',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: RunLaunchScreen(
+            repository: _ResultRunRepository(_repositoryCompletionResult),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Start run'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Pause'));
+      await tester.pumpAndSettle();
+      await _finishPausedRun(tester);
+
+      expect(find.text('Cool down'), findsOneWidget);
+      expect(find.text('Repository Result Run'), findsNothing);
+
+      await tester.tap(find.widgetWithText(OutlinedButton, 'Skip to Summary'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Repository Result Run'), findsOneWidget);
+      expect(find.text('Today · 8:10 AM'), findsOneWidget);
+      expect(find.text('Repository Route'), findsOneWidget);
+      expect(find.text('5.40'), findsOneWidget);
+      expect(find.text('36:00'), findsOneWidget);
+      expect(find.text('138 bpm'), findsOneWidget);
+      expect(find.text('Saturday Morning Run'), findsNothing);
+
+      await tester.ensureVisible(
+        find.widgetWithText(FilledButton, 'View XP Update'),
+      );
+      await tester.tap(find.widgetWithText(FilledButton, 'View XP Update'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('XP & Streak Update'), findsOneWidget);
+      expect(find.text('Nice work, Maya!'), findsOneWidget);
+      expect(find.text('+0 XP'), findsOneWidget);
+      expect(find.text('0 XP'), findsOneWidget);
+      expect(find.text('Accepted.'), findsOneWidget);
+      expect(find.text('Nice work, Jinseo!'), findsNothing);
+      expect(
+        find.textContaining(_forbiddenXpUpdateCompetitiveCopy),
+        findsNothing,
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets('View summary static content and actions match design', (
     WidgetTester tester,

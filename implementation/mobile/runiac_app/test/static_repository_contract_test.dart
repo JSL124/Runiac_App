@@ -12,6 +12,7 @@ import 'package:runiac_app/features/leaderboard/domain/repositories/leaderboard_
 import 'package:runiac_app/features/maps/data/static_shared_routes_repository.dart';
 import 'package:runiac_app/features/maps/domain/repositories/shared_routes_repository.dart';
 import 'package:runiac_app/features/run/data/static_run_repository.dart';
+import 'package:runiac_app/features/run/domain/models/local_run_completion_payload.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_repository.dart';
 import 'package:runiac_app/features/you/data/static_activity_history_repository.dart';
 import 'package:runiac_app/features/you/data/static_expert_plans_repository.dart';
@@ -31,7 +32,7 @@ void main() {
       expect(RunRepository, isA<Type>());
     });
 
-    test('repository interfaces expose only exact load methods', () {
+    test('repository interfaces expose only approved methods', () {
       const repositoryContracts = <_RepositoryContract>[
         _RepositoryContract(
           path:
@@ -95,7 +96,9 @@ void main() {
             'Future<RunSummaryReadModel> loadLatestRunSummary();',
             'Future<CompleteRunResult> loadLatestCompletionResult();',
             'Future<RunActivityReadModel> loadLatestRunActivity();',
+            'Future<CompleteRunResult> completeRun(LocalRunCompletionPayload payload);',
           ],
+          allowedCommandMethods: <String>['completeRun'],
         ),
       ];
 
@@ -115,18 +118,23 @@ void main() {
         final methods = declarations.map(_repositoryMethodName).toList();
 
         expect(declarations, contract.declarations, reason: contract.path);
-        expect(
-          methods.every(
-            (method) => method != null && method.startsWith('load'),
-          ),
-          isTrue,
-          reason:
-              '${contract.path} contains a non-load repository member: '
-              '$declarations',
-        );
+        for (final method in methods) {
+          expect(method, isNotNull, reason: contract.path);
+          expect(
+            method!.startsWith('load') ||
+                contract.allowedCommandMethods.contains(method),
+            isTrue,
+            reason:
+                '${contract.path} contains an unapproved repository member: '
+                '$declarations',
+          );
+        }
 
         for (final verb in _trustedMutationVerbs) {
           for (final declaration in declarations) {
+            if (contract.allowedCommandMethods.contains(verb)) {
+              continue;
+            }
             expect(
               declaration,
               isNot(contains(RegExp('\\b$verb\\b'))),
@@ -143,6 +151,7 @@ void main() {
       ).readAsStringSync();
 
       expect(source, isNot(contains('RunCompletedPayload')));
+      expect(source, contains('LocalRunCompletionPayload'));
     });
   });
 
@@ -196,9 +205,22 @@ void main() {
 
     test('return demo-preserving Run values', () async {
       final repository = StaticRunRepository();
+      final payload = LocalRunCompletionPayload(
+        clientRunSessionId: 'local-session-20260614-0700',
+        startedAt: DateTime.utc(2026, 6, 14, 7),
+        completedAt: DateTime.utc(2026, 6, 14, 7, 25),
+        durationSeconds: 1500,
+        distanceMeters: 3200,
+        avgPaceSecondsPerKm: 469,
+        source: 'local_simulation',
+        routePrivacy: 'private',
+        routeLabel: 'Repository Result Route',
+        clientAppVersion: 'm3-test',
+      );
 
       final summary = await repository.loadLatestRunSummary();
       final completion = await repository.loadLatestCompletionResult();
+      final completedRun = await repository.completeRun(payload);
       final activity = await repository.loadLatestRunActivity();
 
       expect(summary.title, 'Saturday Morning Run');
@@ -207,6 +229,27 @@ void main() {
       expect(summary.routeName, 'East Coast Park Loop');
       expect(completion.xpUpdate.earnedXpLabel, '+120 XP');
       expect(completion.xpUpdate.streakChangeLabel, '5 → 6 days');
+      expect(completedRun.activityId, 'static-local-session-20260614-0700');
+      expect(
+        completedRun.summaryId,
+        'static-summary-local-session-20260614-0700',
+      );
+      expect(
+        completedRun.progressionEventId,
+        'static-progression-local-session-20260614-0700',
+      );
+      expect(completedRun.validationStatus, 'validated');
+      expect(completedRun.summary.title, 'Repository Result Route');
+      expect(completedRun.summary.distanceKm, '3.20');
+      expect(completedRun.summary.duration, '25:00');
+      expect(completedRun.summary.avgPace, '7’49”');
+      expect(completedRun.progressionDisplay.xpDelta, 0);
+      expect(completedRun.progressionDisplay.countsTowardLeaderboard, isFalse);
+      expect(completedRun.progressionDisplay.status, 'deferred');
+      expect(
+        completedRun.progressionDisplay.reason,
+        'progression_formula_deferred',
+      );
       expect(activity.title, 'Saturday Morning Run');
       expect(activity.routeLabel, 'East Coast Park Loop');
     });
@@ -281,10 +324,15 @@ const _trustedMutationVerbs = <String>[
 ];
 
 class _RepositoryContract {
-  const _RepositoryContract({required this.path, required this.declarations});
+  const _RepositoryContract({
+    required this.path,
+    required this.declarations,
+    this.allowedCommandMethods = const <String>[],
+  });
 
   final String path;
   final List<String> declarations;
+  final List<String> allowedCommandMethods;
 }
 
 List<String> _repositoryInterfaceDeclarations(String source, String className) {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:runiac_app/core/theme/runiac_colors.dart';
 
+import '../domain/models/complete_run_result.dart';
 import 'cool_down_guide_screen.dart';
 import 'view_summary_screen.dart';
 
@@ -16,7 +17,9 @@ const _rBlue10 = Color(0x1A2F51C8);
 const _rBlue06 = Color(0x0F2F51C8);
 
 class CoolDownScreen extends StatelessWidget {
-  const CoolDownScreen({super.key});
+  const CoolDownScreen({super.key, this.completionResult});
+
+  final CompleteRunResult? completionResult;
 
   @override
   Widget build(BuildContext context) {
@@ -95,8 +98,9 @@ class CoolDownScreen extends StatelessWidget {
                               onPressed: () {
                                 Navigator.of(context).push(
                                   MaterialPageRoute<void>(
-                                    builder: (context) =>
-                                        const ViewSummaryScreen(),
+                                    builder: (context) => ViewSummaryScreen(
+                                      completionResult: completionResult,
+                                    ),
                                   ),
                                 );
                               },

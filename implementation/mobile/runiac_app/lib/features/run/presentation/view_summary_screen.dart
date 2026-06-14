@@ -4,6 +4,7 @@ import 'package:runiac_app/core/theme/runiac_colors.dart';
 import 'package:runiac_app/core/widgets/runiac_back_header.dart';
 
 import 'advanced_analysis_screen.dart';
+import '../domain/models/complete_run_result.dart';
 import '../domain/models/run_summary_snapshot.dart';
 import 'data/run_completion_demo_snapshots.dart';
 import 'widgets/share_achievement_sheet.dart';
@@ -27,10 +28,12 @@ class ViewSummaryScreen extends StatelessWidget {
   const ViewSummaryScreen({
     super.key,
     this.summary = defaultRunSummarySnapshot,
+    this.completionResult,
     this.showXpUpdateAction = true,
   });
 
   final RunSummarySnapshot summary;
+  final CompleteRunResult? completionResult;
   final bool showXpUpdateAction;
 
   void _showSoonMessage(BuildContext context, String message) {
@@ -41,6 +44,8 @@ class ViewSummaryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final displayedSummary = completionResult?.summary ?? summary;
+
     return Scaffold(
       backgroundColor: _rWhite,
       body: Builder(
@@ -49,8 +54,8 @@ class ViewSummaryScreen extends StatelessWidget {
             child: Column(
               children: [
                 RuniacBackHeader(
-                  title: summary.title,
-                  subtitle: summary.dateTimeLabel,
+                  title: displayedSummary.title,
+                  subtitle: displayedSummary.dateTimeLabel,
                   tooltip: 'Back to cool down',
                   onBack: () {
                     if (Navigator.of(context).canPop()) {
@@ -99,9 +104,11 @@ class ViewSummaryScreen extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          _MapPreview(routeName: summary.routeName),
-                          _HeroDistance(distanceKm: summary.distanceKm),
-                          _MetricSummary(summary: summary),
+                          _MapPreview(routeName: displayedSummary.routeName),
+                          _HeroDistance(
+                            distanceKm: displayedSummary.distanceKm,
+                          ),
+                          _MetricSummary(summary: displayedSummary),
                           const _PaceSection(),
                           _AnalysisSection(
                             onMoreDetails: () {
@@ -130,7 +137,11 @@ class ViewSummaryScreen extends StatelessWidget {
                   onXpUpdate: () {
                     Navigator.of(context).push(
                       MaterialPageRoute<void>(
-                        builder: (context) => const XpUpdateScreen(),
+                        builder: (context) => XpUpdateScreen(
+                          model:
+                              completionResult?.xpUpdate ??
+                              defaultXpUpdateDisplayModel,
+                        ),
                       ),
                     );
                   },

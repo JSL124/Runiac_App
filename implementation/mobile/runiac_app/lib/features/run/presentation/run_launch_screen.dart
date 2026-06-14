@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/runiac_bottom_sheet_handle.dart';
+import '../data/static_run_repository.dart';
 import '../domain/models/run_tracking_state.dart';
+import '../domain/repositories/run_repository.dart';
 import 'controllers/run_tracking_controller.dart';
 import 'cool_down_screen.dart';
 import 'data/run_launch_demo_snapshots.dart';
@@ -33,7 +35,12 @@ enum RunSheetMode { preRun, running, paused }
 enum RunLaunchSheetExtent { expanded, collapsed }
 
 class RunLaunchScreen extends StatefulWidget {
-  const RunLaunchScreen({super.key});
+  const RunLaunchScreen({
+    super.key,
+    this.repository = const StaticRunRepository(),
+  });
+
+  final RunRepository repository;
 
   @override
   State<RunLaunchScreen> createState() => _RunLaunchScreenState();
@@ -144,12 +151,18 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
     });
   }
 
-  void _finishRun() {
+  Future<void> _finishRun() async {
     _ticker?.cancel();
     _ticker = null;
-    _controller.finish();
+    final payload = _controller.finish();
+    final result = await widget.repository.completeRun(payload);
+    if (!mounted) {
+      return;
+    }
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute<void>(builder: (context) => const CoolDownScreen()),
+      MaterialPageRoute<void>(
+        builder: (context) => CoolDownScreen(completionResult: result),
+      ),
     );
   }
 
