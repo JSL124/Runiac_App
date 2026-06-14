@@ -13,6 +13,7 @@ checks=(
   "tools/governance-ci/check-sensitive-paths.sh"
   "tools/governance-ci/check-workflow-memory-drift.sh"
   "tools/governance-ci/measure-context-overhead.sh"
+  "tests/governance/backend_functions_scope_test.sh"
 )
 
 failures=0

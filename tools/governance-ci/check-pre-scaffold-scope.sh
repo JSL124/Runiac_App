@@ -8,10 +8,15 @@ check_name="check-pre-scaffold-scope"
 scanned_paths="."
 failures=0
 approved_scaffold_prefix="implementation/mobile/runiac_app/"
+backend_capsule="complete-run-cloud-functions-emulator-skeleton"
 
 fail() {
   failures=$((failures + 1))
   printf 'finding=%s\n' "$1"
+}
+
+is_backend_capsule_active() {
+  grep -Eq "^- Current active capsule: \`implementation/roadmap/capsules/${backend_capsule}\.md\`" implementation/roadmap/CURRENT.md
 }
 
 is_approved_scaffold_path() {
@@ -45,7 +50,16 @@ is_forbidden_config_or_secret() {
     */build/*|build/*|*/.dart_tool/*|*.apk|*.aab|*.ipa|*.xcarchive)
       return 0
       ;;
-    firebase/functions/*|firebase/functions/src/*|functions/*|functions/src/*)
+    firebase/functions/*|firebase/functions/src/*)
+      return 0
+      ;;
+    functions/.gitignore|functions/package-lock.json|functions/package.json|functions/tsconfig.json|functions/src/index.ts|functions/src/run/completeRun.ts|functions/src/run/runCompletionTypes.ts|functions/src/run/validateRunPayload.ts|functions/src/progression/progressionEventWriter.ts|functions/test/completeRun.test.ts|functions/test/completeRunCallableSurface.test.ts)
+      if is_backend_capsule_active; then
+        return 1
+      fi
+      return 0
+      ;;
+    functions/*)
       return 0
       ;;
   esac
@@ -69,6 +83,12 @@ while IFS= read -r path; do
       ;;
     *package.json)
       case "$path" in
+        functions/package.json)
+          if is_backend_capsule_active; then
+            continue
+          fi
+          fail "Forbidden app package marker found: $path"
+          ;;
         implementation/*|firebase/*|functions/*)
           fail "Forbidden app package marker found: $path"
           ;;
