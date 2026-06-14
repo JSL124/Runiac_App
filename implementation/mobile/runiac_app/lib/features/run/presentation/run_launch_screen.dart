@@ -3,8 +3,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/runiac_colors.dart';
-import 'cool_down_screen.dart';
 import 'data/run_launch_demo_snapshots.dart';
+import 'run_active_screen.dart';
 import 'widgets/run_map_placeholder.dart';
 
 const _blueBorder = Color(0xFFDCE6FF);
@@ -18,9 +18,6 @@ const _controlHighlight = Color(0x24FFFFFF);
 const _panelTextBlue = Color(0xFF3151C8);
 const _mutedBlue = Color(0xFF8296E8);
 const _controlPressHold = Duration(milliseconds: 90);
-const _endHoldDuration = Duration(milliseconds: 1500);
-
-enum _RunScreenMode { launch, live, paused }
 
 class RunLaunchScreen extends StatefulWidget {
   const RunLaunchScreen({super.key});
@@ -30,32 +27,10 @@ class RunLaunchScreen extends StatefulWidget {
 }
 
 class _RunLaunchScreenState extends State<RunLaunchScreen> {
-  _RunScreenMode _mode = _RunScreenMode.launch;
-
-  bool get _hasActiveRun => _mode != _RunScreenMode.launch;
-
   void _startRun() {
-    setState(() => _mode = _RunScreenMode.live);
-  }
-
-  void _pauseRun() {
-    setState(() => _mode = _RunScreenMode.paused);
-  }
-
-  void _resumeRun() {
-    setState(() => _mode = _RunScreenMode.live);
-  }
-
-  void _endRun() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) {
-        return;
-      }
-
-      Navigator.of(context).push(
-        MaterialPageRoute<void>(builder: (context) => const CoolDownScreen()),
-      );
-    });
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (context) => const RunActiveScreen()),
+    );
   }
 
   void _showPreviewMessage(String message) {
@@ -84,35 +59,21 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
                 padding: const EdgeInsets.only(top: 12),
                 child: Row(
                   children: [
-                    if (_hasActiveRun)
-                      const SizedBox(width: 58, height: 58)
-                    else
-                      _MapCircleButton(
-                        tooltip: 'Close',
-                        icon: Icons.close,
-                        onPressed: () => Navigator.of(context).pop(),
-                      ),
+                    _MapCircleButton(
+                      tooltip: 'Close',
+                      icon: Icons.close,
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
                     Expanded(
-                      child: Center(
-                        child: _RunStatusPill(
-                          label: switch (_mode) {
-                            _RunScreenMode.launch => 'GPS ready',
-                            _RunScreenMode.live => 'Running · easy',
-                            _RunScreenMode.paused => 'Paused · easy',
-                          },
-                        ),
+                      child: Center(child: _RunStatusPill(label: 'GPS ready')),
+                    ),
+                    _MapCircleButton(
+                      tooltip: 'Run settings',
+                      icon: Icons.settings_outlined,
+                      onPressed: () => _showPreviewMessage(
+                        'Run settings preview is coming soon.',
                       ),
                     ),
-                    if (_hasActiveRun)
-                      const SizedBox(width: 58, height: 58)
-                    else
-                      _MapCircleButton(
-                        tooltip: 'Run settings',
-                        icon: Icons.settings_outlined,
-                        onPressed: () => _showPreviewMessage(
-                          'Run settings preview is coming soon.',
-                        ),
-                      ),
                   ],
                 ),
               ),
@@ -129,21 +90,13 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
                   duration: const Duration(milliseconds: 180),
                   switchInCurve: Curves.easeOutCubic,
                   switchOutCurve: Curves.easeInCubic,
-                  child: _hasActiveRun
-                      ? _LiveTrackingPanel(
-                          key: const ValueKey('live'),
-                          isPaused: _mode == _RunScreenMode.paused,
-                          onPause: _pauseRun,
-                          onResume: _resumeRun,
-                          onEnd: _endRun,
-                        )
-                      : _RunBottomPanel(
-                          key: const ValueKey('launch'),
-                          onStart: _startRun,
-                          onSwitchRoute: () => _showPreviewMessage(
-                            'Route switching preview is coming soon.',
-                          ),
-                        ),
+                  child: _RunBottomPanel(
+                    key: const ValueKey('launch'),
+                    onStart: _startRun,
+                    onSwitchRoute: () => _showPreviewMessage(
+                      'Route switching preview is coming soon.',
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -235,6 +188,7 @@ class _RunStatusPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      constraints: const BoxConstraints(maxWidth: 190),
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
       decoration: BoxDecoration(
         color: _softControlBlue,
@@ -245,13 +199,16 @@ class _RunStatusPill extends StatelessWidget {
         children: [
           const Icon(Icons.circle, color: _sportOrange, size: 14),
           const SizedBox(width: 10),
-          Text(
-            label,
-            style: const TextStyle(
-              color: RuniacColors.white,
-              fontSize: 17,
-              fontWeight: FontWeight.w800,
-              height: 1,
+          Flexible(
+            child: Text(
+              label,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: RuniacColors.white,
+                fontSize: 17,
+                fontWeight: FontWeight.w800,
+                height: 1,
+              ),
             ),
           ),
         ],
@@ -387,480 +344,6 @@ class _RunBottomPanel extends StatelessWidget {
           ),
         );
       },
-    );
-  }
-}
-
-class _LiveTrackingPanel extends StatelessWidget {
-  const _LiveTrackingPanel({
-    super.key,
-    required this.isPaused,
-    required this.onPause,
-    required this.onResume,
-    required this.onEnd,
-  });
-
-  final bool isPaused;
-  final VoidCallback onPause;
-  final VoidCallback onResume;
-  final VoidCallback onEnd;
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final compact = constraints.maxWidth < 360;
-        final panelPadding = compact
-            ? const EdgeInsets.fromLTRB(20, 18, 20, 18)
-            : const EdgeInsets.fromLTRB(24, 20, 24, 22);
-        final pauseHeight = compact ? 50.0 : 56.0;
-
-        return Container(
-          padding: panelPadding,
-          decoration: BoxDecoration(
-            color: RuniacColors.white,
-            borderRadius: BorderRadius.circular(28),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x26172033),
-                blurRadius: 30,
-                offset: Offset(0, 14),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const _ProgressSummaryRow(),
-              const SizedBox(height: 8),
-              _RunProgressBar(progress: runLiveDemoSnapshot.progressValue),
-              SizedBox(height: compact ? 14 : 16),
-              const _DistanceFocus(),
-              SizedBox(height: compact ? 12 : 14),
-              const Divider(height: 1, color: _blueBorder),
-              SizedBox(height: compact ? 10 : 12),
-              const _LiveMetricRow(),
-              SizedBox(height: compact ? 14 : 16),
-              _LiveRunActions(
-                isPaused: isPaused,
-                height: pauseHeight,
-                compact: compact,
-                onPause: onPause,
-                onResume: onResume,
-                onEnd: onEnd,
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _LiveRunActions extends StatelessWidget {
-  const _LiveRunActions({
-    required this.isPaused,
-    required this.height,
-    required this.compact,
-    required this.onPause,
-    required this.onResume,
-    required this.onEnd,
-  });
-
-  final bool isPaused;
-  final double height;
-  final bool compact;
-  final VoidCallback onPause;
-  final VoidCallback onResume;
-  final VoidCallback onEnd;
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedSize(
-      duration: const Duration(milliseconds: 180),
-      curve: Curves.easeOutCubic,
-      alignment: Alignment.center,
-      child: SizedBox(
-        width: double.infinity,
-        height: height,
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 180),
-          switchInCurve: Curves.easeOutCubic,
-          switchOutCurve: Curves.easeInCubic,
-          layoutBuilder: (currentChild, previousChildren) {
-            return currentChild ?? const SizedBox.shrink();
-          },
-          transitionBuilder: (child, animation) {
-            return FadeTransition(
-              opacity: animation,
-              child: SizeTransition(
-                sizeFactor: animation,
-                axis: Axis.horizontal,
-                alignment: Alignment.center,
-                child: child,
-              ),
-            );
-          },
-          child: isPaused
-              ? SizedBox.expand(
-                  key: const ValueKey('paused-actions'),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        flex: 3,
-                        child: SizedBox(
-                          height: height,
-                          child: FilledButton.icon(
-                            onPressed: onResume,
-                            icon: const Icon(
-                              Icons.play_arrow_rounded,
-                              size: 25,
-                            ),
-                            label: const Text('Resume'),
-                            style: FilledButton.styleFrom(
-                              backgroundColor: _panelTextBlue,
-                              foregroundColor: RuniacColors.white,
-                              elevation: 0,
-                              shadowColor: Colors.transparent,
-                              textStyle: TextStyle(
-                                fontSize: compact ? 18 : 20,
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        flex: 2,
-                        child: SizedBox(
-                          height: height,
-                          child: _HoldToEndButton(
-                            compact: compact,
-                            onHoldAnimationCompleted: onEnd,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-              : SizedBox.expand(
-                  key: const ValueKey('live-action'),
-                  child: FilledButton.icon(
-                    onPressed: onPause,
-                    icon: const Icon(Icons.pause_rounded, size: 26),
-                    label: const Text('Pause'),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: _panelTextBlue,
-                      foregroundColor: RuniacColors.white,
-                      elevation: 0,
-                      shadowColor: Colors.transparent,
-                      textStyle: TextStyle(
-                        fontSize: compact ? 20 : 22,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ),
-                ),
-        ),
-      ),
-    );
-  }
-}
-
-class _HoldToEndButton extends StatefulWidget {
-  const _HoldToEndButton({
-    required this.compact,
-    required this.onHoldAnimationCompleted,
-  });
-
-  final bool compact;
-  final VoidCallback onHoldAnimationCompleted;
-
-  @override
-  State<_HoldToEndButton> createState() => _HoldToEndButtonState();
-}
-
-class _HoldToEndButtonState extends State<_HoldToEndButton>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-  bool _holdAnimationCompleted = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(vsync: this, duration: _endHoldDuration)
-      ..addStatusListener(_handleHoldStatus);
-  }
-
-  @override
-  void dispose() {
-    _controller
-      ..removeStatusListener(_handleHoldStatus)
-      ..dispose();
-    super.dispose();
-  }
-
-  void _handleHoldStatus(AnimationStatus status) {
-    if (status != AnimationStatus.completed || _holdAnimationCompleted) {
-      return;
-    }
-
-    _holdAnimationCompleted = true;
-    widget.onHoldAnimationCompleted();
-    if (!mounted) {
-      return;
-    }
-    _controller.reset();
-  }
-
-  void _startHold(PointerDownEvent event) {
-    _holdAnimationCompleted = false;
-    _controller.forward(from: 0);
-  }
-
-  void _cancelHold() {
-    if (_holdAnimationCompleted) {
-      _holdAnimationCompleted = false;
-      return;
-    }
-
-    _controller.reset();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      label: 'Hold to end',
-      child: Listener(
-        key: const Key('run_hold_to_end_button'),
-        behavior: HitTestBehavior.opaque,
-        onPointerDown: _startHold,
-        onPointerUp: (_) => _cancelHold(),
-        onPointerCancel: (_) => _cancelHold(),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(999),
-          child: AnimatedBuilder(
-            animation: _controller,
-            builder: (context, child) {
-              return Stack(
-                fit: StackFit.expand,
-                children: [
-                  DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF8FAFF),
-                      border: Border.all(color: _blueBorder),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                  ),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: FractionallySizedBox(
-                      key: const Key('run_hold_to_end_fill'),
-                      widthFactor: _controller.value,
-                      heightFactor: 1,
-                      child: const DecoratedBox(
-                        decoration: BoxDecoration(color: Color(0x26FF7A1A)),
-                      ),
-                    ),
-                  ),
-                  child!,
-                ],
-              );
-            },
-            child: Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    'End',
-                    style: TextStyle(
-                      color: _panelTextBlue,
-                      fontSize: widget.compact ? 18 : 20,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ProgressSummaryRow extends StatelessWidget {
-  const _ProgressSummaryRow();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            runLiveDemoSnapshot.progressSummaryLabel,
-            style: const TextStyle(
-              color: _mutedBlue,
-              fontSize: 15,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ),
-        Text(
-          runLiveDemoSnapshot.progressPercentLabel,
-          style: const TextStyle(
-            color: _panelTextBlue,
-            fontSize: 16,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _RunProgressBar extends StatelessWidget {
-  const _RunProgressBar({required this.progress});
-
-  final double progress;
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(999),
-      child: LinearProgressIndicator(
-        value: progress,
-        minHeight: 8,
-        backgroundColor: const Color(0xFFE5EAFF),
-        color: _sportOrange,
-      ),
-    );
-  }
-}
-
-class _DistanceFocus extends StatelessWidget {
-  const _DistanceFocus();
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            runLiveDemoSnapshot.distanceLabel,
-            style: const TextStyle(
-              color: _mutedBlue,
-              fontSize: 12,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 0,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                runLiveDemoSnapshot.distanceValue,
-                style: const TextStyle(
-                  color: _panelTextBlue,
-                  fontSize: 48,
-                  fontWeight: FontWeight.w900,
-                  height: 0.92,
-                ),
-              ),
-              const SizedBox(width: 5),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Text(
-                  runLiveDemoSnapshot.distanceUnitLabel,
-                  style: const TextStyle(
-                    color: _mutedBlue,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _LiveMetricRow extends StatelessWidget {
-  const _LiveMetricRow();
-
-  @override
-  Widget build(BuildContext context) {
-    return IntrinsicHeight(
-      child: Row(
-        children: [
-          Expanded(
-            child: _MetricItem(
-              label: runLiveDemoSnapshot.timeLabel,
-              value: runLiveDemoSnapshot.timeValue,
-            ),
-          ),
-          const VerticalDivider(width: 1, thickness: 1, color: _blueBorder),
-          Expanded(
-            child: _MetricItem(
-              label: runLiveDemoSnapshot.avgPaceLabel,
-              value: runLiveDemoSnapshot.avgPaceValue,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MetricItem extends StatelessWidget {
-  const _MetricItem({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: _mutedBlue,
-            fontSize: 11,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 0,
-          ),
-        ),
-        const SizedBox(height: 6),
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                value,
-                style: const TextStyle(
-                  color: _panelTextBlue,
-                  fontSize: 28,
-                  fontWeight: FontWeight.w900,
-                  height: 0.95,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 }
