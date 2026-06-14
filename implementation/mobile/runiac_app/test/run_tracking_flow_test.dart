@@ -174,7 +174,7 @@ void main() {
     expect(find.text('Paused · easy'), findsOneWidget);
 
     final holdGesture = await tester.startGesture(endCenter);
-    await tester.pump(const Duration(milliseconds: 3100));
+    await tester.pump(const Duration(milliseconds: 1600));
     await holdGesture.up();
     await tester.pumpAndSettle();
 
@@ -199,6 +199,220 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('Run pause and resume keep the launch sheet geometry stable', (
+    WidgetTester tester,
+  ) async {
+    _useMobileRunSurface(tester);
+    await _openRunLaunch(tester);
+
+    await tester.tap(find.text('Start run'));
+    await tester.pumpAndSettle();
+
+    final sheet = find.byKey(const Key('runLaunchBottomSheet'));
+    expect(sheet, findsOneWidget);
+    expect(find.byKey(const Key('trackingSheetContent')), findsOneWidget);
+    expect(find.byKey(const Key('runningActions')), findsOneWidget);
+    expect(find.byKey(const Key('pausedActions')), findsNothing);
+    final runningRect = tester.getRect(sheet);
+
+    await tester.tap(find.byKey(const Key('pauseRunButton')));
+    await tester.pump(const Duration(milliseconds: 140));
+    expect(find.byKey(const Key('trackingSheetContent')), findsOneWidget);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('pausedActions')), findsOneWidget);
+    expect(find.byKey(const Key('runningActions')), findsNothing);
+    final pausedRect = tester.getRect(sheet);
+    expect((pausedRect.top - runningRect.top).abs(), lessThanOrEqualTo(1));
+    expect(
+      (pausedRect.bottom - runningRect.bottom).abs(),
+      lessThanOrEqualTo(1),
+    );
+
+    await tester.tap(find.byKey(const Key('resumeRunButton')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('runningActions')), findsOneWidget);
+    expect(find.byKey(const Key('pausedActions')), findsNothing);
+    final resumedRect = tester.getRect(sheet);
+    expect((resumedRect.top - runningRect.top).abs(), lessThanOrEqualTo(1));
+    expect(
+      (resumedRect.bottom - runningRect.bottom).abs(),
+      lessThanOrEqualTo(1),
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Run launch pre-run sheet collapses and expands from handle', (
+    WidgetTester tester,
+  ) async {
+    _useMobileRunSurface(tester);
+    await _openRunLaunch(tester);
+
+    final sheet = find.byKey(const Key('runLaunchBottomSheet'));
+    final handle = find.byKey(const Key('runLaunchSheetHandleArea'));
+    expect(sheet, findsOneWidget);
+    expect(handle, findsOneWidget);
+    expect(find.byKey(const Key('runLaunchSheetHandle')), findsOneWidget);
+    expect(find.byKey(const Key('preRunSheetContent')), findsOneWidget);
+    expect(find.text('TODAY\'S PLAN'), findsOneWidget);
+    expect(find.text('Start run'), findsOneWidget);
+
+    final expandedRect = tester.getRect(sheet);
+    await tester.drag(handle, const Offset(0, 700));
+    await tester.pumpAndSettle();
+
+    final collapsedRect = tester.getRect(sheet);
+    expect(find.byKey(const Key('runLaunchSheetHandle')), findsOneWidget);
+    expect(
+      find.byKey(const Key('runLaunchSheetCollapsedContent')),
+      findsOneWidget,
+    );
+    expect(find.text('TODAY\'S PLAN'), findsNothing);
+    expect(find.text('Start run'), findsNothing);
+    expect(collapsedRect.height, lessThan(expandedRect.height));
+    expect(collapsedRect.height, greaterThan(40));
+
+    await tester.drag(handle, const Offset(0, -700));
+    await tester.pumpAndSettle();
+
+    final reexpandedRect = tester.getRect(sheet);
+    expect(find.byKey(const Key('preRunSheetContent')), findsOneWidget);
+    expect(find.text('TODAY\'S PLAN'), findsOneWidget);
+    expect(find.text('Start run'), findsOneWidget);
+    expect((reexpandedRect.height - expandedRect.height).abs(), lessThan(1));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Run launch running sheet collapses while tracking continues', (
+    WidgetTester tester,
+  ) async {
+    _useMobileRunSurface(tester);
+    await _openRunLaunch(tester);
+
+    await tester.tap(find.text('Start run'));
+    await tester.pumpAndSettle();
+
+    final sheet = find.byKey(const Key('runLaunchBottomSheet'));
+    final handle = find.byKey(const Key('runLaunchSheetHandleArea'));
+    expect(find.text('Running · easy'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, 'Pause'), findsOneWidget);
+    expect(find.text('TIME'), findsOneWidget);
+    expect(find.text('Finish'), findsNothing);
+    expect(find.text('End'), findsNothing);
+    expect(find.text('Resume'), findsNothing);
+
+    final expandedRect = tester.getRect(sheet);
+    await tester.drag(handle, const Offset(0, 700));
+    await tester.pumpAndSettle();
+
+    final collapsedRect = tester.getRect(sheet);
+    expect(find.byKey(const Key('runLaunchSheetHandle')), findsOneWidget);
+    expect(find.text('Running · easy'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, 'Pause'), findsNothing);
+    expect(find.text('TIME'), findsNothing);
+    expect(find.text('DISTANCE'), findsNothing);
+    expect(collapsedRect.height, lessThan(expandedRect.height));
+    expect(collapsedRect.height, greaterThan(40));
+
+    await tester.pump(const Duration(seconds: 2));
+    expect(find.text('Running · easy'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, 'Pause'), findsNothing);
+
+    await tester.drag(handle, const Offset(0, -700));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Running · easy'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, 'Pause'), findsOneWidget);
+    expect(find.text('TIME'), findsOneWidget);
+    expect(find.text('00:00'), findsNothing);
+    expect(find.text('Finish'), findsNothing);
+    expect(find.text('End'), findsNothing);
+    expect(find.text('Resume'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Run launch paused sheet collapses without resuming or ending', (
+    WidgetTester tester,
+  ) async {
+    _useMobileRunSurface(tester);
+    await _openRunLaunch(tester);
+
+    await tester.tap(find.text('Start run'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('pauseRunButton')));
+    await tester.pumpAndSettle();
+
+    final sheet = find.byKey(const Key('runLaunchBottomSheet'));
+    final handle = find.byKey(const Key('runLaunchSheetHandleArea'));
+    expect(find.text('Paused · easy'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, 'Resume'), findsOneWidget);
+    expect(find.byKey(const Key('hold_to_end_button')), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, 'Pause'), findsNothing);
+
+    final expandedRect = tester.getRect(sheet);
+    await tester.drag(handle, const Offset(0, 700));
+    await tester.pumpAndSettle();
+
+    final collapsedRect = tester.getRect(sheet);
+    expect(find.byKey(const Key('runLaunchSheetHandle')), findsOneWidget);
+    expect(find.text('Paused · easy'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, 'Resume'), findsNothing);
+    expect(find.byKey(const Key('hold_to_end_button')), findsNothing);
+    expect(find.widgetWithText(FilledButton, 'Pause'), findsNothing);
+    expect(find.text('Cool down'), findsNothing);
+    expect(collapsedRect.height, lessThan(expandedRect.height));
+    expect(collapsedRect.height, greaterThan(40));
+
+    await tester.drag(handle, const Offset(0, -700));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Paused · easy'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, 'Resume'), findsOneWidget);
+    expect(find.byKey(const Key('hold_to_end_button')), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, 'Pause'), findsNothing);
+    expect(find.text('Cool down'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Run launch collapse and expand do not push routes', (
+    WidgetTester tester,
+  ) async {
+    _useMobileRunSurface(tester);
+    final observer = _RoutePushRecorder();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        navigatorObservers: [observer],
+        home: const RunLaunchScreen(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    observer.pushedRoutes.clear();
+
+    final handle = find.byKey(const Key('runLaunchSheetHandleArea'));
+    await tester.drag(handle, const Offset(0, 700));
+    await tester.pumpAndSettle();
+
+    expect(observer.pushedRoutes, isEmpty);
+    expect(find.byKey(const Key('runLaunchSheetHandle')), findsOneWidget);
+    expect(find.text('TODAY\'S PLAN'), findsNothing);
+
+    await tester.tap(handle);
+    await tester.pumpAndSettle();
+
+    expect(observer.pushedRoutes, isEmpty);
+    expect(find.text('TODAY\'S PLAN'), findsOneWidget);
+
+    await tester.tap(find.text('Start run'));
+    await tester.pumpAndSettle();
+
+    expect(observer.pushedRoutes, isEmpty);
+    expect(find.byType(RunLaunchScreen), findsOneWidget);
+    expect(find.text('Running · easy'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('Paused End exposes accessible long press and hold progress', (
     WidgetTester tester,
   ) async {
@@ -213,17 +427,17 @@ void main() {
 
     final endSemantics = find.bySemanticsLabel('Hold to end run');
     expect(endSemantics, findsOneWidget);
-    expect(find.text('Hold for 3 seconds to finish your run'), findsNothing);
+    expect(find.text('Hold for 1.5 seconds to finish your run'), findsNothing);
     final endNode = tester.getSemantics(endSemantics);
     final endData = endNode.getSemanticsData();
-    expect(endData.hint, 'Hold for 3 seconds to finish your run');
+    expect(endData.hint, 'Hold for 1.5 seconds to finish your run');
     expect(endData.hasAction(SemanticsAction.longPress), isTrue);
     expect(find.byKey(const Key('hold_to_end_progress_gauge')), findsNothing);
 
     final endButton = find.byKey(const Key('hold_to_end_button'));
     final gesture = await tester.startGesture(tester.getCenter(endButton));
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 1200));
+    await tester.pump(const Duration(milliseconds: 900));
 
     final gauge = tester.widget<LinearProgressIndicator>(
       find.byKey(const Key('hold_to_end_progress_gauge')),
@@ -283,7 +497,7 @@ void main() {
     expect(find.text('Paused · easy'), findsOneWidget);
 
     final holdGesture = await tester.startGesture(tester.getCenter(endButton));
-    await tester.pump(const Duration(milliseconds: 3100));
+    await tester.pump(const Duration(milliseconds: 1600));
     await holdGesture.up();
     await tester.pumpAndSettle();
 

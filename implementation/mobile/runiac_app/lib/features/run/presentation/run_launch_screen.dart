@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/runiac_colors.dart';
+import '../../../core/widgets/runiac_bottom_sheet_handle.dart';
 import '../domain/models/run_tracking_state.dart';
 import 'controllers/run_tracking_controller.dart';
 import 'cool_down_screen.dart';
@@ -22,8 +23,14 @@ const _panelTextBlue = Color(0xFF3151C8);
 const _mutedBlue = Color(0xFF8296E8);
 const _controlPressHold = Duration(milliseconds: 90);
 const _sheetAnimationDuration = Duration(milliseconds: 280);
+const _sheetExtentAnimationDuration = Duration(milliseconds: 220);
+const _expandedRunSheetHeight = 405.0;
+const _collapsedRunSheetHeight = 46.0;
+const _sheetCollapseVelocityThreshold = 260.0;
 
 enum RunSheetMode { preRun, running, paused }
+
+enum RunLaunchSheetExtent { expanded, collapsed }
 
 class RunLaunchScreen extends StatefulWidget {
   const RunLaunchScreen({super.key});
@@ -35,6 +42,8 @@ class RunLaunchScreen extends StatefulWidget {
 class _RunLaunchScreenState extends State<RunLaunchScreen> {
   final RunTrackingController _controller = RunTrackingController();
   RunSheetMode _sheetMode = RunSheetMode.preRun;
+  RunLaunchSheetExtent _sheetExtent = RunLaunchSheetExtent.expanded;
+  double _sheetProgress = 1;
   Timer? _ticker;
 
   @override
@@ -59,7 +68,11 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
       (_) => _controller.advanceBy(const Duration(seconds: 1)),
     );
 
-    setState(() => _sheetMode = RunSheetMode.running);
+    setState(() {
+      _sheetExtent = RunLaunchSheetExtent.expanded;
+      _sheetProgress = 1;
+      _sheetMode = RunSheetMode.running;
+    });
   }
 
   void _pauseRun() {
@@ -70,6 +83,65 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
   void _resumeRun() {
     _controller.resume();
     setState(() => _sheetMode = RunSheetMode.running);
+  }
+
+  void _handleSheetDragStart(DragStartDetails details) {}
+
+  void _handleSheetDragUpdate(DragUpdateDetails details) {
+    setState(() {
+      _sheetProgress =
+          (_sheetProgress -
+                  details.delta.dy /
+                      (_expandedRunSheetHeight - _collapsedRunSheetHeight))
+              .clamp(0, 1);
+      _sheetExtent = _sheetProgress <= 0.01
+          ? RunLaunchSheetExtent.collapsed
+          : RunLaunchSheetExtent.expanded;
+    });
+  }
+
+  void _handleSheetDragEnd(DragEndDetails details) {
+    final velocity = details.primaryVelocity ?? 0;
+
+    setState(() {
+      if (velocity > _sheetCollapseVelocityThreshold) {
+        _sheetExtent = RunLaunchSheetExtent.collapsed;
+        _sheetProgress = 0;
+      } else if (velocity < -_sheetCollapseVelocityThreshold) {
+        _sheetExtent = RunLaunchSheetExtent.expanded;
+        _sheetProgress = 1;
+      } else if (_sheetProgress >= 0.5) {
+        _sheetExtent = RunLaunchSheetExtent.expanded;
+        _sheetProgress = 1;
+      } else {
+        _sheetExtent = RunLaunchSheetExtent.collapsed;
+        _sheetProgress = 0;
+      }
+    });
+  }
+
+  void _handleSheetDragCancel() {
+    setState(() {
+      if (_sheetProgress >= 0.5) {
+        _sheetExtent = RunLaunchSheetExtent.expanded;
+        _sheetProgress = 1;
+      } else {
+        _sheetExtent = RunLaunchSheetExtent.collapsed;
+        _sheetProgress = 0;
+      }
+    });
+  }
+
+  void _toggleSheetExtent() {
+    setState(() {
+      if (_sheetExtent == RunLaunchSheetExtent.expanded) {
+        _sheetExtent = RunLaunchSheetExtent.collapsed;
+        _sheetProgress = 0;
+      } else {
+        _sheetExtent = RunLaunchSheetExtent.expanded;
+        _sheetProgress = 1;
+      }
+    });
   }
 
   void _finishRun() {
@@ -176,57 +248,75 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
           Positioned(
             left: 0,
             right: 0,
-            bottom: 0,
+            bottom: _sheetProgress > 0.01 && _sheetProgress < 1
+                ? -((_expandedRunSheetHeight - _collapsedRunSheetHeight) *
+                      (1 - _sheetProgress))
+                : 0,
             child: Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 430),
-                child: AnimatedBuilder(
-                  animation: _controller,
-                  builder: (context, _) {
-                    return AnimatedSize(
-                      duration: _sheetAnimationDuration,
-                      curve: Curves.easeOutCubic,
-                      alignment: Alignment.bottomCenter,
-                      child: _RunBottomSheetShell(
-                        bottomInset: bottomInset,
-                        mode: _sheetMode,
-                        child: AnimatedSwitcher(
-                          duration: _sheetAnimationDuration,
-                          switchInCurve: Curves.easeOutCubic,
-                          switchOutCurve: Curves.easeInCubic,
-                          transitionBuilder: (child, animation) {
-                            final offsetAnimation = Tween<Offset>(
-                              begin: const Offset(0, 0.04),
+                child: AnimatedSize(
+                  duration: _sheetExtentAnimationDuration,
+                  curve: Curves.easeOutCubic,
+                  alignment: Alignment.bottomCenter,
+                  child: _RunBottomSheetShell(
+                    key: const Key('runLaunchBottomSheet'),
+                    bottomInset: bottomInset,
+                    mode: _sheetMode,
+                    extent: _sheetExtent,
+                    sheetProgress: _sheetProgress,
+                    onHandleTap: _toggleSheetExtent,
+                    onVerticalDragStart: _handleSheetDragStart,
+                    onVerticalDragUpdate: _handleSheetDragUpdate,
+                    onVerticalDragEnd: _handleSheetDragEnd,
+                    onVerticalDragCancel: _handleSheetDragCancel,
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 320),
+                      switchInCurve: Curves.easeOutCubic,
+                      switchOutCurve: Curves.easeInCubic,
+                      transitionBuilder: (child, animation) {
+                        final offsetAnimation =
+                            Tween<Offset>(
+                              begin: const Offset(0, 0.025),
                               end: Offset.zero,
-                            ).animate(animation);
-
-                            return FadeTransition(
-                              opacity: animation,
-                              child: SlideTransition(
-                                position: offsetAnimation,
-                                child: child,
+                            ).animate(
+                              CurvedAnimation(
+                                parent: animation,
+                                curve: Curves.easeOutCubic,
+                                reverseCurve: Curves.easeInCubic,
                               ),
                             );
-                          },
-                          child: _sheetMode == RunSheetMode.preRun
-                              ? _PreRunSheetContent(
-                                  key: const ValueKey(RunSheetMode.preRun),
-                                  onStart: _startRun,
-                                  onSwitchRoute: () => _showPreviewMessage(
-                                    'Route switching preview is coming soon.',
-                                  ),
-                                )
-                              : RunTrackingSheetContent(
-                                  key: ValueKey(_sheetMode),
+
+                        return FadeTransition(
+                          opacity: animation,
+                          child: SlideTransition(
+                            position: offsetAnimation,
+                            child: child,
+                          ),
+                        );
+                      },
+                      child: _sheetMode == RunSheetMode.preRun
+                          ? _PreRunSheetContent(
+                              key: const ValueKey('preRunSheetContent'),
+                              onStart: _startRun,
+                              onSwitchRoute: () => _showPreviewMessage(
+                                'Route switching preview is coming soon.',
+                              ),
+                            )
+                          : AnimatedBuilder(
+                              key: const ValueKey('trackingSheetContent'),
+                              animation: _controller,
+                              builder: (context, _) {
+                                return RunTrackingSheetContent(
                                   state: _controller.state,
                                   onPause: _pauseRun,
                                   onResume: _resumeRun,
                                   onEnd: _finishRun,
-                                ),
-                        ),
-                      ),
-                    );
-                  },
+                                );
+                              },
+                            ),
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -350,13 +440,28 @@ class _RunStatusPill extends StatelessWidget {
 
 class _RunBottomSheetShell extends StatelessWidget {
   const _RunBottomSheetShell({
+    super.key,
     required this.bottomInset,
     required this.mode,
+    required this.extent,
+    required this.sheetProgress,
+    required this.onHandleTap,
+    required this.onVerticalDragStart,
+    required this.onVerticalDragUpdate,
+    required this.onVerticalDragEnd,
+    required this.onVerticalDragCancel,
     required this.child,
   });
 
   final double bottomInset;
   final RunSheetMode mode;
+  final RunLaunchSheetExtent extent;
+  final double sheetProgress;
+  final VoidCallback onHandleTap;
+  final GestureDragStartCallback onVerticalDragStart;
+  final GestureDragUpdateCallback onVerticalDragUpdate;
+  final GestureDragEndCallback onVerticalDragEnd;
+  final GestureDragCancelCallback onVerticalDragCancel;
   final Widget child;
 
   @override
@@ -364,15 +469,17 @@ class _RunBottomSheetShell extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final compact = constraints.maxWidth < 360;
+        final collapsed = extent == RunLaunchSheetExtent.collapsed;
+        final contentVisible = sheetProgress > 0.01;
         final horizontalPadding = mode == RunSheetMode.preRun
             ? (compact ? 22.0 : 28.0)
             : 24.0;
-        final topPadding = mode == RunSheetMode.preRun
-            ? (compact ? 20.0 : 24.0)
-            : (compact ? 18.0 : 20.0);
+        const topPadding = 0.0;
         final bottomPadding =
             bottomInset +
-            (mode == RunSheetMode.preRun
+            (collapsed
+                ? 0.0
+                : mode == RunSheetMode.preRun
                 ? (compact ? 18.0 : 22.0)
                 : (compact ? 18.0 : 22.0));
 
@@ -394,7 +501,35 @@ class _RunBottomSheetShell extends StatelessWidget {
               ),
             ],
           ),
-          child: child,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              GestureDetector(
+                key: const Key('runLaunchSheetHandleArea'),
+                behavior: HitTestBehavior.opaque,
+                onTap: onHandleTap,
+                onVerticalDragStart: onVerticalDragStart,
+                onVerticalDragUpdate: onVerticalDragUpdate,
+                onVerticalDragEnd: onVerticalDragEnd,
+                onVerticalDragCancel: onVerticalDragCancel,
+                child: const SizedBox(
+                  height: _collapsedRunSheetHeight,
+                  child: Center(
+                    child: RuniacBottomSheetHandle(
+                      key: Key('runLaunchSheetHandle'),
+                      semanticLabel: 'Run launch sheet handle',
+                    ),
+                  ),
+                ),
+              ),
+              if (collapsed) ...[
+                const SizedBox.shrink(
+                  key: Key('runLaunchSheetCollapsedContent'),
+                ),
+              ],
+              Offstage(offstage: collapsed || !contentVisible, child: child),
+            ],
+          ),
         );
       },
     );

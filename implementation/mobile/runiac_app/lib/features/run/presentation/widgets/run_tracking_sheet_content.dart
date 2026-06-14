@@ -10,6 +10,7 @@ const _panelTextBlue = Color(0xFF3151C8);
 const _sportOrange = Color(0xFFFF7A1A);
 const _mutedBlue = Color(0xFF8296E8);
 const _blueBorder = Color(0xFFDCE6FF);
+const _actionAnimationDuration = Duration(milliseconds: 220);
 
 class RunTrackingSheetContent extends StatelessWidget {
   const RunTrackingSheetContent({
@@ -245,32 +246,94 @@ class _RunActiveActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!isPaused) {
-      return SizedBox(
-        height: 56,
-        child: FilledButton.icon(
-          onPressed: onPause,
-          icon: const Icon(Icons.pause_rounded),
-          label: const Text('Pause'),
-          style: FilledButton.styleFrom(
-            backgroundColor: _panelTextBlue,
-            foregroundColor: RuniacColors.white,
-            textStyle: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-        ),
-      );
-    }
+    return SizedBox(
+      height: 56,
+      child: AnimatedSwitcher(
+        duration: _actionAnimationDuration,
+        switchInCurve: Curves.easeOutCubic,
+        switchOutCurve: Curves.easeInCubic,
+        layoutBuilder: (currentChild, previousChildren) {
+          return Stack(
+            fit: StackFit.expand,
+            alignment: Alignment.center,
+            children: [...previousChildren, ?currentChild],
+          );
+        },
+        transitionBuilder: (child, animation) {
+          final offsetAnimation =
+              Tween<Offset>(
+                begin: const Offset(0, 0.08),
+                end: Offset.zero,
+              ).animate(
+                CurvedAnimation(
+                  parent: animation,
+                  curve: Curves.easeOutCubic,
+                  reverseCurve: Curves.easeInCubic,
+                ),
+              );
 
+          return FadeTransition(
+            opacity: animation,
+            child: SlideTransition(position: offsetAnimation, child: child),
+          );
+        },
+        child: isPaused
+            ? _PausedRunActions(
+                key: const ValueKey('pausedActions'),
+                onResume: onResume,
+                onEnd: onEnd,
+              )
+            : _RunningRunActions(
+                key: const ValueKey('runningActions'),
+                onPause: onPause,
+              ),
+      ),
+    );
+  }
+}
+
+class _RunningRunActions extends StatelessWidget {
+  const _RunningRunActions({super.key, required this.onPause});
+
+  final VoidCallback onPause;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox.expand(
+      child: FilledButton.icon(
+        key: const Key('pauseRunButton'),
+        onPressed: onPause,
+        icon: const Icon(Icons.pause_rounded),
+        label: const Text('Pause'),
+        style: FilledButton.styleFrom(
+          backgroundColor: _panelTextBlue,
+          foregroundColor: RuniacColors.white,
+          textStyle: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+        ),
+      ),
+    );
+  }
+}
+
+class _PausedRunActions extends StatelessWidget {
+  const _PausedRunActions({
+    super.key,
+    required this.onResume,
+    required this.onEnd,
+  });
+
+  final VoidCallback onResume;
+  final VoidCallback onEnd;
+
+  @override
+  Widget build(BuildContext context) {
     return Row(
       children: [
         Expanded(
           flex: 3,
-          child: SizedBox(
-            height: 56,
+          child: SizedBox.expand(
             child: FilledButton.icon(
+              key: const Key('resumeRunButton'),
               onPressed: onResume,
               icon: const Icon(Icons.play_arrow_rounded),
               label: const Text('Resume'),
@@ -286,10 +349,7 @@ class _RunActiveActions extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 12),
-        Expanded(
-          flex: 2,
-          child: SizedBox(height: 56, child: _HoldToEndButton(onEnd: onEnd)),
-        ),
+        Expanded(flex: 2, child: _HoldToEndButton(onEnd: onEnd)),
       ],
     );
   }
@@ -306,7 +366,7 @@ class _HoldToEndButton extends StatefulWidget {
 
 class _HoldToEndButtonState extends State<_HoldToEndButton>
     with SingleTickerProviderStateMixin {
-  static const _holdDuration = Duration(seconds: 3);
+  static const _holdDuration = Duration(milliseconds: 1500);
 
   late final AnimationController _controller;
   Timer? _holdTimer;
@@ -386,7 +446,7 @@ class _HoldToEndButtonState extends State<_HoldToEndButton>
       child: Semantics(
         button: true,
         label: 'Hold to end run',
-        hint: 'Hold for 3 seconds to finish your run',
+        hint: 'Hold for 1.5 seconds to finish your run',
         onLongPress: _completeHold,
         child: AnimatedBuilder(
           animation: _controller,
