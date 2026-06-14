@@ -9,8 +9,8 @@ import 'controllers/run_tracking_controller.dart';
 import 'cool_down_screen.dart';
 import 'widgets/run_map_placeholder.dart';
 
-const _activeBlue = Color(0xFF3151C8);
-const _activeOrange = Color(0xFFFF7A1A);
+const _panelTextBlue = Color(0xFF3151C8);
+const _sportOrange = Color(0xFFFF7A1A);
 const _mutedBlue = Color(0xFF8296E8);
 const _blueBorder = Color(0xFFDCE6FF);
 const _softControlBlue = Color(0x667A91E5);
@@ -62,7 +62,7 @@ class _RunActiveScreenState extends State<RunActiveScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final bottomOffset = MediaQuery.viewPaddingOf(context).bottom + 24;
+    final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
 
     return Scaffold(
       backgroundColor: _screenBackground,
@@ -91,9 +91,9 @@ class _RunActiveScreenState extends State<RunActiveScreen> {
             ),
           ),
           Positioned(
-            left: 20,
-            right: 20,
-            bottom: bottomOffset,
+            left: 0,
+            right: 0,
+            bottom: 0,
             child: Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 430),
@@ -105,6 +105,7 @@ class _RunActiveScreenState extends State<RunActiveScreen> {
                       onPause: _controller.pause,
                       onResume: _controller.resume,
                       onFinish: _finishRun,
+                      bottomInset: bottomInset,
                     );
                   },
                 ),
@@ -135,7 +136,7 @@ class _RunStatusPill extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.circle, color: _activeOrange, size: 14),
+            const Icon(Icons.circle, color: _sportOrange, size: 14),
             const SizedBox(width: 10),
             Flexible(
               child: Text(
@@ -162,12 +163,14 @@ class _RunActivePanel extends StatelessWidget {
     required this.onPause,
     required this.onResume,
     required this.onFinish,
+    required this.bottomInset,
   });
 
   final RunTrackingState state;
   final VoidCallback onPause;
   final VoidCallback onResume;
   final VoidCallback onFinish;
+  final double bottomInset;
 
   @override
   Widget build(BuildContext context) {
@@ -178,10 +181,15 @@ class _RunActivePanel extends StatelessWidget {
         final compact = constraints.maxWidth < 360;
 
         return Container(
-          padding: EdgeInsets.fromLTRB(24, compact ? 20 : 24, 24, 24),
+          padding: EdgeInsets.fromLTRB(
+            24,
+            compact ? 18 : 20,
+            24,
+            bottomInset + (compact ? 18 : 22),
+          ),
           decoration: BoxDecoration(
             color: RuniacColors.white,
-            borderRadius: BorderRadius.circular(28),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
             boxShadow: const [
               BoxShadow(
                 color: Color(0x26172033),
@@ -194,43 +202,16 @@ class _RunActivePanel extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _MetricFocus(
-                label: 'TIME',
-                value: snapshot.elapsedTimeLabel,
-                icon: Icons.timer_rounded,
-              ),
-              SizedBox(height: compact ? 18 : 22),
-              Row(
-                children: [
-                  Expanded(
-                    child: _MetricTile(
-                      label: 'DISTANCE',
-                      value: snapshot.distanceLabel,
-                      icon: Icons.route_rounded,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _MetricTile(
-                      label: 'AVG PACE',
-                      value: snapshot.averagePaceLabel,
-                      icon: Icons.speed_rounded,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Text(
-                snapshot.guidance,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: _activeBlue,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                  height: 1.3,
-                ),
-              ),
-              SizedBox(height: compact ? 16 : 20),
+              _ProgressSummaryRow(snapshot: snapshot),
+              const SizedBox(height: 8),
+              _RunProgressBar(progress: snapshot.planProgressValue),
+              SizedBox(height: compact ? 16 : 18),
+              _DistanceFocus(snapshot: snapshot),
+              SizedBox(height: compact ? 14 : 16),
+              const Divider(height: 1, color: _blueBorder),
+              SizedBox(height: compact ? 12 : 14),
+              _SecondaryMetricRow(snapshot: snapshot),
+              SizedBox(height: compact ? 14 : 18),
               _RunActiveActions(
                 isPaused: state.isPaused,
                 onPause: onPause,
@@ -245,33 +226,31 @@ class _RunActivePanel extends StatelessWidget {
   }
 }
 
-class _MetricFocus extends StatelessWidget {
-  const _MetricFocus({
-    required this.label,
-    required this.value,
-    required this.icon,
-  });
+class _ProgressSummaryRow extends StatelessWidget {
+  const _ProgressSummaryRow({required this.snapshot});
 
-  final String label;
-  final String value;
-  final IconData icon;
+  final RunTrackingSnapshot snapshot;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    return Row(
       children: [
-        _MetricLabel(label: label, icon: icon),
-        const SizedBox(height: 8),
-        FittedBox(
-          fit: BoxFit.scaleDown,
+        Expanded(
           child: Text(
-            value,
+            snapshot.planProgressLabel,
             style: const TextStyle(
-              color: _activeBlue,
-              fontSize: 68,
-              fontWeight: FontWeight.w900,
-              height: 0.95,
+              color: _mutedBlue,
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
             ),
+          ),
+        ),
+        Text(
+          snapshot.planProgressPercentLabel,
+          style: const TextStyle(
+            color: _panelTextBlue,
+            fontSize: 14,
+            fontWeight: FontWeight.w900,
           ),
         ),
       ],
@@ -279,70 +258,137 @@ class _MetricFocus extends StatelessWidget {
   }
 }
 
-class _MetricTile extends StatelessWidget {
-  const _MetricTile({
-    required this.label,
-    required this.value,
-    required this.icon,
-  });
+class _RunProgressBar extends StatelessWidget {
+  const _RunProgressBar({required this.progress});
 
-  final String label;
-  final String value;
-  final IconData icon;
+  final double progress;
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFF),
-        border: Border.all(color: _blueBorder),
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-        child: Column(
-          children: [
-            _MetricLabel(label: label, icon: icon),
-            const SizedBox(height: 8),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                value,
-                style: const TextStyle(
-                  color: _activeBlue,
-                  fontSize: 23,
-                  fontWeight: FontWeight.w900,
-                  height: 1,
-                ),
-              ),
-            ),
-          ],
-        ),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(999),
+      child: LinearProgressIndicator(
+        key: const Key('run_plan_progress_bar'),
+        value: progress,
+        minHeight: 8,
+        backgroundColor: const Color(0xFFE5EAFF),
+        color: _sportOrange,
       ),
     );
   }
 }
 
-class _MetricLabel extends StatelessWidget {
-  const _MetricLabel({required this.label, required this.icon});
+class _DistanceFocus extends StatelessWidget {
+  const _DistanceFocus({required this.snapshot});
 
-  final String label;
-  final IconData icon;
+  final RunTrackingSnapshot snapshot;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text(
+            'DISTANCE',
+            style: TextStyle(
+              color: _mutedBlue,
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                snapshot.distanceValueLabel,
+                style: const TextStyle(
+                  color: _panelTextBlue,
+                  fontSize: 56,
+                  fontWeight: FontWeight.w900,
+                  height: 0.92,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Text(
+                  snapshot.distanceUnitLabel,
+                  style: const TextStyle(
+                    color: _mutedBlue,
+                    fontSize: 21,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SecondaryMetricRow extends StatelessWidget {
+  const _SecondaryMetricRow({required this.snapshot});
+
+  final RunTrackingSnapshot snapshot;
+
+  @override
+  Widget build(BuildContext context) {
+    return IntrinsicHeight(
+      child: Row(
+        children: [
+          Expanded(
+            child: _MetricItem(label: 'TIME', value: snapshot.elapsedTimeLabel),
+          ),
+          const VerticalDivider(width: 1, thickness: 1, color: _blueBorder),
+          Expanded(
+            child: _MetricItem(
+              label: 'AVG PACE',
+              value: snapshot.averagePaceLabel,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MetricItem extends StatelessWidget {
+  const _MetricItem({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, color: _mutedBlue, size: 17),
-        const SizedBox(width: 6),
         Text(
           label,
           style: const TextStyle(
             color: _mutedBlue,
-            fontSize: 12,
+            fontSize: 11,
             fontWeight: FontWeight.w900,
             letterSpacing: 0,
+          ),
+        ),
+        const SizedBox(height: 6),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            value,
+            style: const TextStyle(
+              color: _panelTextBlue,
+              fontSize: 26,
+              fontWeight: FontWeight.w900,
+              height: 0.95,
+            ),
           ),
         ),
       ],
@@ -378,7 +424,7 @@ class _RunActiveActions extends StatelessWidget {
               ),
               label: Text(isPaused ? 'Resume' : 'Pause'),
               style: FilledButton.styleFrom(
-                backgroundColor: _activeBlue,
+                backgroundColor: _panelTextBlue,
                 foregroundColor: RuniacColors.white,
                 textStyle: const TextStyle(
                   fontSize: 20,
@@ -398,7 +444,7 @@ class _RunActiveActions extends StatelessWidget {
               icon: const Icon(Icons.flag_rounded),
               label: const Text('Finish'),
               style: OutlinedButton.styleFrom(
-                foregroundColor: _activeBlue,
+                foregroundColor: _panelTextBlue,
                 side: const BorderSide(color: _blueBorder, width: 1.5),
                 textStyle: const TextStyle(
                   fontSize: 18,

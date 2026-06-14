@@ -30,20 +30,24 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Running · easy'), findsOneWidget);
-    expect(find.text('Easy effort is enough.'), findsOneWidget);
+    expect(find.text('0.00 of 4.50 km'), findsOneWidget);
+    expect(find.text('0%'), findsOneWidget);
+    expect(find.byKey(const Key('run_plan_progress_bar')), findsOneWidget);
     expect(find.text('TIME'), findsOneWidget);
     expect(find.text('DISTANCE'), findsOneWidget);
+    expect(find.text('0.00'), findsOneWidget);
+    expect(find.text('km'), findsOneWidget);
+    expect(find.text('--/km'), findsOneWidget);
     expect(find.text('AVG PACE'), findsOneWidget);
     expect(find.text('00:00'), findsOneWidget);
-    expect(find.text('0.00 km'), findsOneWidget);
-    expect(find.text('--/km'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'Pause'), findsOneWidget);
     expect(find.widgetWithText(OutlinedButton, 'Finish'), findsOneWidget);
 
     await tester.pump(const Duration(seconds: 10));
 
     expect(find.text('00:10'), findsOneWidget);
-    expect(find.text('0.02 km'), findsOneWidget);
+    expect(find.text('0.02 of 4.50 km'), findsOneWidget);
+    expect(find.text('1%'), findsOneWidget);
     expect(find.text('06:56/km'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -62,14 +66,13 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Paused · easy'), findsOneWidget);
-    expect(find.text('You can pause anytime.'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'Resume'), findsOneWidget);
     expect(find.widgetWithText(OutlinedButton, 'Finish'), findsOneWidget);
 
     await tester.pump(const Duration(seconds: 10));
 
     expect(find.text('00:10'), findsOneWidget);
-    expect(find.text('0.02 km'), findsOneWidget);
+    expect(find.text('0.02 of 4.50 km'), findsOneWidget);
 
     await tester.tap(find.widgetWithText(FilledButton, 'Resume'));
     await tester.pumpAndSettle();
@@ -77,7 +80,7 @@ void main() {
 
     expect(find.text('Running · easy'), findsOneWidget);
     expect(find.text('00:10'), findsNothing);
-    expect(find.text('0.02 km'), findsNothing);
+    expect(find.text('0.02 of 4.50 km'), findsNothing);
     expect(find.text('Pause'), findsOneWidget);
 
     await tester.tap(find.widgetWithText(OutlinedButton, 'Finish'));

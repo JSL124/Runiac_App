@@ -131,13 +131,16 @@ void main() {
     expect(find.text('Running · easy'), findsOneWidget);
     expect(find.text('TODAY\'S PLAN'), findsNothing);
     expect(find.text('RUNNING'), findsNothing);
+    expect(find.text('0.00 of 4.50 km'), findsOneWidget);
+    expect(find.text('0%'), findsOneWidget);
+    expect(find.byKey(const Key('run_plan_progress_bar')), findsOneWidget);
     expect(find.text('TIME'), findsOneWidget);
     expect(find.text('00:00'), findsOneWidget);
     expect(find.text('DISTANCE'), findsOneWidget);
-    expect(find.text('0.00 km'), findsOneWidget);
+    expect(find.text('0.00'), findsOneWidget);
+    expect(find.text('km'), findsOneWidget);
     expect(find.text('AVG PACE'), findsOneWidget);
     expect(find.text('--/km'), findsOneWidget);
-    expect(find.text('Easy effort is enough.'), findsOneWidget);
     expect(find.text('HEART'), findsNothing);
     expect(find.text('Pause'), findsOneWidget);
     expect(find.text('Finish'), findsOneWidget);
@@ -148,7 +151,8 @@ void main() {
     await tester.pump(const Duration(seconds: 10));
 
     expect(find.text('00:10'), findsOneWidget);
-    expect(find.text('0.02 km'), findsOneWidget);
+    expect(find.text('0.02 of 4.50 km'), findsOneWidget);
+    expect(find.text('1%'), findsOneWidget);
     expect(find.text('06:56/km'), findsOneWidget);
 
     await tester.tap(find.text('Pause'));
@@ -163,12 +167,11 @@ void main() {
     expect(find.text('Paused · easy'), findsOneWidget);
     expect(find.text('Resume'), findsOneWidget);
     expect(find.text('Finish'), findsOneWidget);
-    expect(find.text('You can pause anytime.'), findsOneWidget);
     expect(find.text('Hold to end'), findsNothing);
     expect(find.text('Keep holding...'), findsNothing);
     expect(find.text('Pause'), findsNothing);
     expect(find.text('DISTANCE'), findsOneWidget);
-    expect(find.text('0.02 km'), findsOneWidget);
+    expect(find.text('0.02 of 4.50 km'), findsOneWidget);
     expect(find.text('TIME'), findsOneWidget);
     expect(find.text('00:10'), findsOneWidget);
     expect(find.text('AVG PACE'), findsOneWidget);
@@ -177,7 +180,7 @@ void main() {
     await tester.pump(const Duration(seconds: 10));
 
     expect(find.text('00:10'), findsOneWidget);
-    expect(find.text('0.02 km'), findsOneWidget);
+    expect(find.text('0.02 of 4.50 km'), findsOneWidget);
     expect(find.text('Run summary'), findsNothing);
     expect(find.textContaining('XP'), findsNothing);
     expect(find.textContaining('streak'), findsNothing);
@@ -194,7 +197,7 @@ void main() {
     expect(find.text('Keep holding...'), findsNothing);
     await tester.pump(const Duration(seconds: 10));
     expect(find.text('00:10'), findsNothing);
-    expect(find.text('0.02 km'), findsNothing);
+    expect(find.text('0.02 of 4.50 km'), findsNothing);
   });
 
   testWidgets('Run finish opens Cool down page with placeholder actions', (
