@@ -41,7 +41,7 @@ is_allowed_path() {
     .gitignore)
       return 0
       ;;
-    firebase.json|firestore.rules|firestore.indexes.json|tests/firebase-rules/.gitignore|tests/firebase-rules/firestore.rules.test.mjs|tests/firebase-rules/package-lock.json|tests/firebase-rules/package.json)
+    firebase/README.md|firebase/emulators/README.md|firebase/messaging/README.md|firebase.json|firestore.rules|firestore.indexes.json|tests/firebase-rules/.gitignore|tests/firebase-rules/firestore.rules.test.mjs|tests/firebase-rules/package-lock.json|tests/firebase-rules/package.json)
       return 0
       ;;
     implementation/mobile/runiac_app/*)
