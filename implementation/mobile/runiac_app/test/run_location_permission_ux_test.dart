@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/features/run/domain/models/run_location_permission_status.dart';
+import 'package:runiac_app/features/run/domain/repositories/run_location_provider.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_location_permission_service.dart';
 import 'package:runiac_app/features/run/presentation/run_launch_screen.dart';
 
@@ -34,8 +35,15 @@ void main() {
       await tester.tap(find.text('Start run'));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('Try again'), findsOneWidget);
-      expect(find.textContaining('GPS'), findsWidgets);
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('runPermissionGuidance')),
+          matching: find.text(
+            'Location helps measure your distance and pace. You can try again when you are ready.',
+          ),
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets('denied forever shows settings guidance', (tester) async {
@@ -52,7 +60,15 @@ void main() {
       await tester.tap(find.text('Start run'));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('settings'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('runPermissionGuidance')),
+          matching: find.text(
+            'Location is blocked for Runiac. Open app settings to allow location for runs.',
+          ),
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets('service disabled shows GPS enable guidance', (tester) async {
@@ -69,7 +85,61 @@ void main() {
       await tester.tap(find.text('Start run'));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('Turn on GPS'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('runPermissionGuidance')),
+          matching: find.text(
+            'Turn on location services to track distance and pace during your run.',
+          ),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('unavailable shows safe demo fallback copy', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RunLaunchScreen(
+            permissionService: _FakePermissionService(
+              RunLocationPermissionStatus.unavailable,
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Start run'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('runPermissionGuidance')),
+          matching: find.text(
+            'GPS is not available right now. You can still use the demo run mode.',
+          ),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('granted location starts the run normally', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RunLaunchScreen(
+            locationProvider: const ConstantSpeedRunLocationProvider(
+              metersPerSecond: 2.4,
+            ),
+            permissionService: _FakePermissionService(
+              RunLocationPermissionStatus.granted,
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Start run'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Pause'), findsOneWidget);
+      expect(find.byKey(const Key('runPermissionGuidance')), findsNothing);
     });
   });
 }

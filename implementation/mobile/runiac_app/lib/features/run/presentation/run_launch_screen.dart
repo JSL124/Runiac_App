@@ -393,12 +393,27 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
                         );
                       },
                       child: _sheetMode == RunSheetMode.preRun
-                          ? _PreRunSheetContent(
+                          ? AnimatedBuilder(
                               key: const ValueKey('preRunSheetContent'),
-                              onStart: _startRun,
-                              onSwitchRoute: () => _showPreviewMessage(
-                                'Route switching preview is coming soon.',
-                              ),
+                              animation: _controller,
+                              builder: (context, _) {
+                                final permissionStatus =
+                                    _controller.locationPermissionStatus;
+                                final permissionMessage =
+                                    permissionStatus.canStartRun ||
+                                        permissionStatus ==
+                                            RunLocationPermissionStatus.checking
+                                    ? null
+                                    : permissionStatus.message;
+
+                                return _PreRunSheetContent(
+                                  permissionMessage: permissionMessage,
+                                  onStart: _startRun,
+                                  onSwitchRoute: () => _showPreviewMessage(
+                                    'Route switching preview is coming soon.',
+                                  ),
+                                );
+                              },
                             )
                           : AnimatedBuilder(
                               key: const ValueKey('trackingSheetContent'),
@@ -636,11 +651,12 @@ class _RunBottomSheetShell extends StatelessWidget {
 
 class _PreRunSheetContent extends StatelessWidget {
   const _PreRunSheetContent({
-    super.key,
+    this.permissionMessage,
     required this.onStart,
     required this.onSwitchRoute,
   });
 
+  final String? permissionMessage;
   final VoidCallback onStart;
   final VoidCallback onSwitchRoute;
 
@@ -721,6 +737,10 @@ class _PreRunSheetContent extends StatelessWidget {
                 fontWeight: FontWeight.w700,
               ),
             ),
+            if (permissionMessage case final message?) ...[
+              SizedBox(height: compact ? 12 : 14),
+              _RunPermissionGuidance(message: message),
+            ],
             SizedBox(height: compact ? 18 : 24),
             SizedBox(
               width: double.infinity,
@@ -744,6 +764,42 @@ class _PreRunSheetContent extends StatelessWidget {
           ],
         );
       },
+    );
+  }
+}
+
+class _RunPermissionGuidance extends StatelessWidget {
+  const _RunPermissionGuidance({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      key: const Key('runPermissionGuidance'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.only(top: 2),
+          child: Icon(
+            Icons.info_outline_rounded,
+            size: 18,
+            color: _sportOrange,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            message,
+            style: const TextStyle(
+              color: _panelTextBlue,
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              height: 1.28,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

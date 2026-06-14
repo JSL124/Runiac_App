@@ -34,18 +34,18 @@ void main() {
     });
 
     test('exposes beginner-friendly guidance copy', () {
-      expect(RunLocationPermissionStatus.denied.message, contains('Try again'));
+      expect(RunLocationPermissionStatus.denied.message, contains('try again'));
       expect(
         RunLocationPermissionStatus.deniedForever.message,
-        contains('settings'),
+        contains('app settings'),
       );
       expect(
         RunLocationPermissionStatus.serviceDisabled.message,
-        contains('GPS'),
+        contains('location services'),
       );
       expect(
         RunLocationPermissionStatus.unavailable.message,
-        contains('not available'),
+        contains('demo run mode'),
       );
     });
 

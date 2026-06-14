@@ -14,13 +14,13 @@ extension RunLocationPermissionStatusCopy on RunLocationPermissionStatus {
         'Checking GPS permission for your run.',
       RunLocationPermissionStatus.granted => 'GPS is ready for your run.',
       RunLocationPermissionStatus.denied =>
-        'GPS helps Runiac measure distance and pace. Try again when you are ready.',
+        'Location helps measure your distance and pace. You can try again when you are ready.',
       RunLocationPermissionStatus.deniedForever =>
-        'Location is blocked. Open settings to allow location while using Runiac.',
+        'Location is blocked for Runiac. Open app settings to allow location for runs.',
       RunLocationPermissionStatus.serviceDisabled =>
-        'Turn on GPS to track distance and pace during your run.',
+        'Turn on location services to track distance and pace during your run.',
       RunLocationPermissionStatus.unavailable =>
-        'GPS tracking is not available on this device right now.',
+        'GPS is not available right now. You can still use the demo run mode.',
     };
   }
 
