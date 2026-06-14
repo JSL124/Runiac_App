@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runiac_app/app.dart';
+import 'package:runiac_app/features/run/presentation/run_launch_screen.dart';
 
 void _useMobileRunSurface(WidgetTester tester) {
   tester.view
@@ -16,7 +17,66 @@ Future<void> _openRunLaunch(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
+class _RoutePushRecorder extends NavigatorObserver {
+  final List<Route<dynamic>> pushedRoutes = <Route<dynamic>>[];
+
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    pushedRoutes.add(route);
+    super.didPush(route, previousRoute);
+  }
+}
+
 void main() {
+  testWidgets('Run launch Start run updates sheet without pushing a route', (
+    WidgetTester tester,
+  ) async {
+    _useMobileRunSurface(tester);
+    final observer = _RoutePushRecorder();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        navigatorObservers: [observer],
+        home: const RunLaunchScreen(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    observer.pushedRoutes.clear();
+
+    expect(find.text('GPS ready'), findsOneWidget);
+    expect(find.byTooltip('Close'), findsOneWidget);
+    expect(find.byTooltip('Run settings'), findsOneWidget);
+    expect(find.text('TODAY\'S PLAN'), findsOneWidget);
+    expect(find.text('Start run'), findsOneWidget);
+    expect(find.text('Running · easy'), findsNothing);
+    expect(find.byKey(const Key('run_plan_progress_bar')), findsNothing);
+    expect(find.text('DISTANCE'), findsNothing);
+    expect(find.text('TIME'), findsNothing);
+    expect(find.text('AVG PACE'), findsNothing);
+    expect(find.text('Pause'), findsNothing);
+    expect(find.text('Finish'), findsNothing);
+
+    await tester.tap(find.text('Start run'));
+    await tester.pumpAndSettle();
+
+    expect(observer.pushedRoutes, isEmpty);
+    expect(find.byType(RunLaunchScreen), findsOneWidget);
+    expect(find.byTooltip('Close'), findsOneWidget);
+    expect(find.byTooltip('Run settings'), findsOneWidget);
+    expect(find.text('Running · easy'), findsOneWidget);
+    expect(find.text('TODAY\'S PLAN'), findsNothing);
+    expect(find.text('Start run'), findsNothing);
+    expect(find.text('0.00 of 4.50 km'), findsOneWidget);
+    expect(find.text('0%'), findsOneWidget);
+    expect(find.byKey(const Key('run_plan_progress_bar')), findsOneWidget);
+    expect(find.text('DISTANCE'), findsOneWidget);
+    expect(find.text('TIME'), findsOneWidget);
+    expect(find.text('AVG PACE'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, 'Pause'), findsOneWidget);
+    expect(find.widgetWithText(OutlinedButton, 'Finish'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('Run launch starts deterministic active local tracking', (
     WidgetTester tester,
   ) async {

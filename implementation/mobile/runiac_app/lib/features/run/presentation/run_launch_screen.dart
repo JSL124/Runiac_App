@@ -1,11 +1,14 @@
-import 'dart:math' as math;
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/runiac_colors.dart';
+import '../domain/models/run_tracking_state.dart';
+import 'controllers/run_tracking_controller.dart';
+import 'cool_down_screen.dart';
 import 'data/run_launch_demo_snapshots.dart';
-import 'run_active_screen.dart';
 import 'widgets/run_map_placeholder.dart';
+import 'widgets/run_tracking_sheet_content.dart';
 
 const _blueBorder = Color(0xFFDCE6FF);
 const _sportOrange = Color(0xFFFF7A1A);
@@ -18,6 +21,9 @@ const _controlHighlight = Color(0x24FFFFFF);
 const _panelTextBlue = Color(0xFF3151C8);
 const _mutedBlue = Color(0xFF8296E8);
 const _controlPressHold = Duration(milliseconds: 90);
+const _sheetAnimationDuration = Duration(milliseconds: 280);
+
+enum RunSheetMode { preRun, running }
 
 class RunLaunchScreen extends StatefulWidget {
   const RunLaunchScreen({super.key});
@@ -27,9 +33,41 @@ class RunLaunchScreen extends StatefulWidget {
 }
 
 class _RunLaunchScreenState extends State<RunLaunchScreen> {
+  final RunTrackingController _controller = RunTrackingController();
+  RunSheetMode _sheetMode = RunSheetMode.preRun;
+  Timer? _ticker;
+
+  @override
+  void dispose() {
+    _ticker?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
   void _startRun() {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (context) => const RunActiveScreen()),
+    if (_sheetMode == RunSheetMode.running) {
+      return;
+    }
+
+    if (_controller.state.phase == RunTrackingPhase.idle ||
+        _controller.state.phase == RunTrackingPhase.finished) {
+      _controller.start(routeLabel: 'Easy local route');
+    }
+
+    _ticker ??= Timer.periodic(
+      const Duration(seconds: 1),
+      (_) => _controller.advanceBy(const Duration(seconds: 1)),
+    );
+
+    setState(() => _sheetMode = RunSheetMode.running);
+  }
+
+  void _finishRun() {
+    _ticker?.cancel();
+    _ticker = null;
+    _controller.finish();
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute<void>(builder: (context) => const CoolDownScreen()),
     );
   }
 
@@ -39,10 +77,17 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
       ..showSnackBar(SnackBar(content: Text(message)));
   }
 
+  String _statusLabel(RunTrackingState state) {
+    if (_sheetMode == RunSheetMode.preRun) {
+      return 'GPS ready';
+    }
+
+    return state.isPaused ? 'Paused · easy' : 'Running · easy';
+  }
+
   @override
   Widget build(BuildContext context) {
-    final viewPadding = MediaQuery.viewPaddingOf(context);
-    final bottomOffset = math.max(viewPadding.bottom + 20.0, 28.0);
+    final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
 
     return Scaffold(
       backgroundColor: _screenBackground,
@@ -65,7 +110,22 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
                       onPressed: () => Navigator.of(context).pop(),
                     ),
                     Expanded(
-                      child: Center(child: _RunStatusPill(label: 'GPS ready')),
+                      child: AnimatedBuilder(
+                        animation: _controller,
+                        builder: (context, _) {
+                          return Center(
+                            child: AnimatedSwitcher(
+                              duration: _sheetAnimationDuration,
+                              switchInCurve: Curves.easeOutCubic,
+                              switchOutCurve: Curves.easeInCubic,
+                              child: _RunStatusPill(
+                                key: ValueKey(_statusLabel(_controller.state)),
+                                label: _statusLabel(_controller.state),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
                     ),
                     _MapCircleButton(
                       tooltip: 'Run settings',
@@ -80,23 +140,59 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
             ),
           ),
           Positioned(
-            left: 20,
-            right: 20,
-            bottom: bottomOffset,
+            left: 0,
+            right: 0,
+            bottom: 0,
             child: Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 430),
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 180),
-                  switchInCurve: Curves.easeOutCubic,
-                  switchOutCurve: Curves.easeInCubic,
-                  child: _RunBottomPanel(
-                    key: const ValueKey('launch'),
-                    onStart: _startRun,
-                    onSwitchRoute: () => _showPreviewMessage(
-                      'Route switching preview is coming soon.',
-                    ),
-                  ),
+                child: AnimatedBuilder(
+                  animation: _controller,
+                  builder: (context, _) {
+                    return AnimatedSize(
+                      duration: _sheetAnimationDuration,
+                      curve: Curves.easeOutCubic,
+                      alignment: Alignment.bottomCenter,
+                      child: _RunBottomSheetShell(
+                        bottomInset: bottomInset,
+                        mode: _sheetMode,
+                        child: AnimatedSwitcher(
+                          duration: _sheetAnimationDuration,
+                          switchInCurve: Curves.easeOutCubic,
+                          switchOutCurve: Curves.easeInCubic,
+                          transitionBuilder: (child, animation) {
+                            final offsetAnimation = Tween<Offset>(
+                              begin: const Offset(0, 0.04),
+                              end: Offset.zero,
+                            ).animate(animation);
+
+                            return FadeTransition(
+                              opacity: animation,
+                              child: SlideTransition(
+                                position: offsetAnimation,
+                                child: child,
+                              ),
+                            );
+                          },
+                          child: _sheetMode == RunSheetMode.preRun
+                              ? _PreRunSheetContent(
+                                  key: const ValueKey(RunSheetMode.preRun),
+                                  onStart: _startRun,
+                                  onSwitchRoute: () => _showPreviewMessage(
+                                    'Route switching preview is coming soon.',
+                                  ),
+                                )
+                              : RunTrackingSheetContent(
+                                  key: const ValueKey(RunSheetMode.running),
+                                  state: _controller.state,
+                                  onPause: _controller.pause,
+                                  onResume: _controller.resume,
+                                  onFinish: _finishRun,
+                                ),
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ),
             ),
@@ -181,7 +277,7 @@ class _MapCircleButtonState extends State<_MapCircleButton> {
 }
 
 class _RunStatusPill extends StatelessWidget {
-  const _RunStatusPill({required this.label});
+  const _RunStatusPill({super.key, required this.label});
 
   final String label;
 
@@ -217,8 +313,61 @@ class _RunStatusPill extends StatelessWidget {
   }
 }
 
-class _RunBottomPanel extends StatelessWidget {
-  const _RunBottomPanel({
+class _RunBottomSheetShell extends StatelessWidget {
+  const _RunBottomSheetShell({
+    required this.bottomInset,
+    required this.mode,
+    required this.child,
+  });
+
+  final double bottomInset;
+  final RunSheetMode mode;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 360;
+        final horizontalPadding = mode == RunSheetMode.preRun
+            ? (compact ? 22.0 : 28.0)
+            : 24.0;
+        final topPadding = mode == RunSheetMode.preRun
+            ? (compact ? 20.0 : 24.0)
+            : (compact ? 18.0 : 20.0);
+        final bottomPadding =
+            bottomInset +
+            (mode == RunSheetMode.preRun
+                ? (compact ? 18.0 : 22.0)
+                : (compact ? 18.0 : 22.0));
+
+        return Container(
+          padding: EdgeInsets.fromLTRB(
+            horizontalPadding,
+            topPadding,
+            horizontalPadding,
+            bottomPadding,
+          ),
+          decoration: BoxDecoration(
+            color: RuniacColors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x26172033),
+                blurRadius: 26,
+                offset: Offset(0, -8),
+              ),
+            ],
+          ),
+          child: child,
+        );
+      },
+    );
+  }
+}
+
+class _PreRunSheetContent extends StatelessWidget {
+  const _PreRunSheetContent({
     super.key,
     required this.onStart,
     required this.onSwitchRoute,
@@ -232,116 +381,99 @@ class _RunBottomPanel extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final compact = constraints.maxWidth < 360;
-        final panelPadding = compact
-            ? const EdgeInsets.fromLTRB(22, 20, 22, 22)
-            : const EdgeInsets.fromLTRB(28, 24, 28, 26);
         final startHeight = compact ? 56.0 : 66.0;
 
-        return Container(
-          padding: panelPadding,
-          decoration: BoxDecoration(
-            color: RuniacColors.white,
-            borderRadius: BorderRadius.circular(28),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x26172033),
-                blurRadius: 30,
-                offset: Offset(0, 14),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      runLaunchDemoSnapshot.planLabel,
-                      style: const TextStyle(
-                        color: _sportOrange,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 0,
-                      ),
-                    ),
-                  ),
-                  OutlinedButton(
-                    onPressed: onSwitchRoute,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: _panelTextBlue,
-                      side: const BorderSide(color: _blueBorder),
-                      minimumSize: const Size(0, 42),
-                      padding: const EdgeInsets.symmetric(horizontal: 18),
-                      textStyle: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    child: Text(runLaunchDemoSnapshot.switchRouteLabel),
-                  ),
-                ],
-              ),
-              SizedBox(height: compact ? 16 : 22),
-              Wrap(
-                crossAxisAlignment: WrapCrossAlignment.end,
-                spacing: 8,
-                runSpacing: 2,
-                children: [
-                  Text(
-                    runLaunchDemoSnapshot.distanceValue,
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    runLaunchDemoSnapshot.planLabel,
                     style: const TextStyle(
-                      color: _panelTextBlue,
-                      fontSize: 46,
+                      color: _sportOrange,
+                      fontSize: 16,
                       fontWeight: FontWeight.w900,
-                      height: 0.95,
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 5),
-                    child: Text(
-                      runLaunchDemoSnapshot.distanceUnitLabel,
-                      style: const TextStyle(
-                        color: _mutedBlue,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                runLaunchDemoSnapshot.paceLabel,
-                style: const TextStyle(
-                  color: _mutedBlue,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              SizedBox(height: compact ? 18 : 24),
-              SizedBox(
-                width: double.infinity,
-                height: startHeight,
-                child: FilledButton.icon(
-                  onPressed: onStart,
-                  icon: const Icon(Icons.play_arrow_rounded, size: 32),
-                  label: Text(runLaunchDemoSnapshot.startLabel),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: _sportOrange,
-                    foregroundColor: RuniacColors.white,
-                    elevation: 8,
-                    shadowColor: _orangeShadow,
-                    textStyle: TextStyle(
-                      fontSize: compact ? 24 : 28,
-                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0,
                     ),
                   ),
                 ),
+                OutlinedButton(
+                  onPressed: onSwitchRoute,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: _panelTextBlue,
+                    side: const BorderSide(color: _blueBorder),
+                    minimumSize: const Size(0, 42),
+                    padding: const EdgeInsets.symmetric(horizontal: 18),
+                    textStyle: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  child: Text(runLaunchDemoSnapshot.switchRouteLabel),
+                ),
+              ],
+            ),
+            SizedBox(height: compact ? 16 : 22),
+            Wrap(
+              crossAxisAlignment: WrapCrossAlignment.end,
+              spacing: 8,
+              runSpacing: 2,
+              children: [
+                Text(
+                  runLaunchDemoSnapshot.distanceValue,
+                  style: const TextStyle(
+                    color: _panelTextBlue,
+                    fontSize: 46,
+                    fontWeight: FontWeight.w900,
+                    height: 0.95,
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 5),
+                  child: Text(
+                    runLaunchDemoSnapshot.distanceUnitLabel,
+                    style: const TextStyle(
+                      color: _mutedBlue,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              runLaunchDemoSnapshot.paceLabel,
+              style: const TextStyle(
+                color: _mutedBlue,
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
               ),
-            ],
-          ),
+            ),
+            SizedBox(height: compact ? 18 : 24),
+            SizedBox(
+              width: double.infinity,
+              height: startHeight,
+              child: FilledButton.icon(
+                onPressed: onStart,
+                icon: const Icon(Icons.play_arrow_rounded, size: 32),
+                label: Text(runLaunchDemoSnapshot.startLabel),
+                style: FilledButton.styleFrom(
+                  backgroundColor: _sportOrange,
+                  foregroundColor: RuniacColors.white,
+                  elevation: 8,
+                  shadowColor: _orangeShadow,
+                  textStyle: TextStyle(
+                    fontSize: compact ? 24 : 28,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ),
+          ],
         );
       },
     );

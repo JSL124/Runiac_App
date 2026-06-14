@@ -107,6 +107,13 @@ void main() {
     expect(find.text('Pace 7:10-7:40 / km · ~32 min'), findsOneWidget);
     expect(find.text('Switch route'), findsOneWidget);
     expect(find.text('Start run'), findsOneWidget);
+    expect(find.text('Running · easy'), findsNothing);
+    expect(find.text('DISTANCE'), findsNothing);
+    expect(find.text('TIME'), findsNothing);
+    expect(find.text('AVG PACE'), findsNothing);
+    expect(find.byKey(const Key('run_plan_progress_bar')), findsNothing);
+    expect(find.text('Pause'), findsNothing);
+    expect(find.text('Finish'), findsNothing);
     expect(find.text('Home'), findsNothing);
     expect(find.text('Maps'), findsNothing);
     expect(find.text('Leaderboard'), findsNothing);
@@ -144,7 +151,8 @@ void main() {
     expect(find.text('HEART'), findsNothing);
     expect(find.text('Pause'), findsOneWidget);
     expect(find.text('Finish'), findsOneWidget);
-    expect(find.byTooltip('Close'), findsNothing);
+    expect(find.byTooltip('Close'), findsOneWidget);
+    expect(find.byTooltip('Run settings'), findsOneWidget);
     expect(find.text('GPS ready'), findsNothing);
     expect(find.text('Start run'), findsNothing);
 
@@ -884,15 +892,30 @@ void main() {
     final activeSource = File(
       'lib/features/run/presentation/run_active_screen.dart',
     ).readAsStringSync();
+    final trackingSheetSource = File(
+      'lib/features/run/presentation/widgets/run_tracking_sheet_content.dart',
+    ).readAsStringSync();
     final snapshotSource = File(
       'lib/features/run/presentation/data/run_launch_demo_snapshots.dart',
     ).readAsStringSync();
 
     expect(source, contains('data/run_launch_demo_snapshots.dart'));
     expect(source, contains('runLaunchDemoSnapshot'));
-    expect(source, contains('RunActiveScreen'));
-    expect(activeSource, contains('RunTrackingSnapshot'));
+    expect(source, contains('RunTrackingController'));
+    expect(source, contains('RunSheetMode'));
+    expect(source, isNot(contains('RunActiveScreen')));
+    expect(
+      source,
+      isNot(
+        contains(
+          'MaterialPageRoute<void>(builder: (context) => const RunActiveScreen())',
+        ),
+      ),
+    );
     expect(activeSource, contains('RunTrackingController'));
+    expect(activeSource, contains('RunTrackingSheetContent'));
+    expect(trackingSheetSource, contains('RunTrackingSnapshot'));
+    expect(trackingSheetSource, contains('run_plan_progress_bar'));
     expect(source, isNot(contains('class _RunLaunchDisplaySnapshot')));
     expect(source, isNot(contains('class _RunLiveDisplaySnapshot')));
     expect(snapshotSource, contains('class RunLaunchDemoSnapshot'));
