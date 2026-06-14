@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 
 import 'app.dart';
+import 'core/firebase/runiac_firebase_bootstrap.dart';
 
-void main() {
-  runApp(const RuniacApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  final bootstrap = await RuniacFirebaseBootstrap.initialize();
+
+  runApp(RuniacApp(runRepository: bootstrap.runRepository));
 }

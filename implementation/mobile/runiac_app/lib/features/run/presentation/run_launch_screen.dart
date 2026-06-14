@@ -4,13 +4,14 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/runiac_bottom_sheet_handle.dart';
-import '../data/static_run_repository.dart';
 import '../domain/models/complete_run_result.dart';
+import '../domain/models/run_completion_error.dart';
 import '../domain/models/run_tracking_state.dart';
 import '../domain/repositories/run_repository.dart';
 import 'controllers/run_tracking_controller.dart';
 import 'cool_down_screen.dart';
 import 'data/run_launch_demo_snapshots.dart';
+import 'run_repository_scope.dart';
 import 'widgets/run_map_placeholder.dart';
 import 'widgets/run_tracking_sheet_content.dart';
 
@@ -36,12 +37,9 @@ enum RunSheetMode { preRun, running, paused }
 enum RunLaunchSheetExtent { expanded, collapsed }
 
 class RunLaunchScreen extends StatefulWidget {
-  const RunLaunchScreen({
-    super.key,
-    this.repository = const StaticRunRepository(),
-  });
+  const RunLaunchScreen({super.key, this.repository});
 
-  final RunRepository repository;
+  final RunRepository? repository;
 
   @override
   State<RunLaunchScreen> createState() => _RunLaunchScreenState();
@@ -170,7 +168,18 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
 
     CompleteRunResult result;
     try {
-      result = await widget.repository.completeRun(payload);
+      result = await _repository.completeRun(payload);
+    } on RunCompletionException catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _isCompletingRun = false);
+      _showPreviewMessage(
+        error.isRetryable
+            ? 'Run completion is unavailable. Please try again.'
+            : 'Run details could not be submitted.',
+      );
+      return;
     } catch (_) {
       if (!mounted) {
         return;
@@ -191,6 +200,10 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
         builder: (context) => CoolDownScreen(completionResult: result),
       ),
     );
+  }
+
+  RunRepository get _repository {
+    return widget.repository ?? RunRepositoryScope.of(context);
   }
 
   void _showPreviewMessage(String message) {
