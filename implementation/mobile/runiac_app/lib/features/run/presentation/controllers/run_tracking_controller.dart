@@ -73,14 +73,14 @@ class RunTrackingController extends ChangeNotifier {
     notifyListeners();
   }
 
-  LocalRunCompletionPayload finish({DateTime? completedAt}) {
+  LocalRunCompletionPayload completionPayload({DateTime? completedAt}) {
     final startedAt = _state.startedAt;
     if (startedAt == null || _state.phase == RunTrackingPhase.idle) {
       throw StateError('Cannot finish a run before it starts.');
     }
 
     final finishedAt = completedAt ?? DateTime.now();
-    final payload = LocalRunCompletionPayload(
+    return LocalRunCompletionPayload(
       clientRunSessionId: _state.clientRunSessionId,
       startedAt: startedAt,
       completedAt: finishedAt,
@@ -91,10 +91,13 @@ class RunTrackingController extends ChangeNotifier {
       routePrivacy: _state.routePrivacy,
       routeLabel: _state.routeLabel,
     );
+  }
 
+  LocalRunCompletionPayload finish({DateTime? completedAt}) {
+    final payload = completionPayload(completedAt: completedAt);
     _state = _state.copyWith(
       phase: RunTrackingPhase.finished,
-      completedAt: finishedAt,
+      completedAt: payload.completedAt,
     );
     notifyListeners();
 

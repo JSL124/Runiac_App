@@ -19,12 +19,14 @@ class RunTrackingSheetContent extends StatelessWidget {
     required this.onPause,
     required this.onResume,
     required this.onEnd,
+    this.isCompletingRun = false,
   });
 
   final RunTrackingState state;
   final VoidCallback onPause;
   final VoidCallback onResume;
   final VoidCallback onEnd;
+  final bool isCompletingRun;
 
   @override
   Widget build(BuildContext context) {
@@ -53,6 +55,7 @@ class RunTrackingSheetContent extends StatelessWidget {
               onPause: onPause,
               onResume: onResume,
               onEnd: onEnd,
+              isCompletingRun: isCompletingRun,
             ),
           ],
         );
@@ -237,12 +240,14 @@ class _RunActiveActions extends StatelessWidget {
     required this.onPause,
     required this.onResume,
     required this.onEnd,
+    required this.isCompletingRun,
   });
 
   final bool isPaused;
   final VoidCallback onPause;
   final VoidCallback onResume;
   final VoidCallback onEnd;
+  final bool isCompletingRun;
 
   @override
   Widget build(BuildContext context) {
@@ -282,6 +287,7 @@ class _RunActiveActions extends StatelessWidget {
                 key: const ValueKey('pausedActions'),
                 onResume: onResume,
                 onEnd: onEnd,
+                isCompletingRun: isCompletingRun,
               )
             : _RunningRunActions(
                 key: const ValueKey('runningActions'),
@@ -320,10 +326,12 @@ class _PausedRunActions extends StatelessWidget {
     super.key,
     required this.onResume,
     required this.onEnd,
+    required this.isCompletingRun,
   });
 
   final VoidCallback onResume;
   final VoidCallback onEnd;
+  final bool isCompletingRun;
 
   @override
   Widget build(BuildContext context) {
@@ -334,7 +342,7 @@ class _PausedRunActions extends StatelessWidget {
           child: SizedBox.expand(
             child: FilledButton.icon(
               key: const Key('resumeRunButton'),
-              onPressed: onResume,
+              onPressed: isCompletingRun ? null : onResume,
               icon: const Icon(Icons.play_arrow_rounded),
               label: const Text('Resume'),
               style: FilledButton.styleFrom(
@@ -349,16 +357,23 @@ class _PausedRunActions extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 12),
-        Expanded(flex: 2, child: _HoldToEndButton(onEnd: onEnd)),
+        Expanded(
+          flex: 2,
+          child: _HoldToEndButton(
+            onEnd: onEnd,
+            isCompletingRun: isCompletingRun,
+          ),
+        ),
       ],
     );
   }
 }
 
 class _HoldToEndButton extends StatefulWidget {
-  const _HoldToEndButton({required this.onEnd});
+  const _HoldToEndButton({required this.onEnd, required this.isCompletingRun});
 
   final VoidCallback onEnd;
+  final bool isCompletingRun;
 
   @override
   State<_HoldToEndButton> createState() => _HoldToEndButtonState();
@@ -378,6 +393,18 @@ class _HoldToEndButtonState extends State<_HoldToEndButton>
     super.initState();
     _controller = AnimationController(vsync: this, duration: _holdDuration)
       ..addStatusListener(_handleStatus);
+  }
+
+  @override
+  void didUpdateWidget(covariant _HoldToEndButton oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.isCompletingRun && !widget.isCompletingRun) {
+      _completed = false;
+      _holding = false;
+      _holdTimer?.cancel();
+      _holdTimer = null;
+      _controller.reset();
+    }
   }
 
   @override
@@ -410,7 +437,7 @@ class _HoldToEndButtonState extends State<_HoldToEndButton>
   }
 
   void _startHold(TapDownDetails _) {
-    if (_completed) {
+    if (_completed || widget.isCompletingRun) {
       return;
     }
     _holdTimer?.cancel();
@@ -420,7 +447,7 @@ class _HoldToEndButtonState extends State<_HoldToEndButton>
   }
 
   void _cancelHold([Object? _]) {
-    if (_completed) {
+    if (_completed || widget.isCompletingRun) {
       return;
     }
 
@@ -439,15 +466,17 @@ class _HoldToEndButtonState extends State<_HoldToEndButton>
   Widget build(BuildContext context) {
     return GestureDetector(
       key: const Key('hold_to_end_button'),
-      onTapDown: _startHold,
-      onTapUp: _cancelHold,
-      onTapCancel: _cancelHold,
+      onTapDown: widget.isCompletingRun ? null : _startHold,
+      onTapUp: widget.isCompletingRun ? null : _cancelHold,
+      onTapCancel: widget.isCompletingRun ? null : _cancelHold,
       behavior: HitTestBehavior.opaque,
       child: Semantics(
         button: true,
-        label: 'Hold to end run',
-        hint: 'Hold for 1.5 seconds to finish your run',
-        onLongPress: _completeHold,
+        label: widget.isCompletingRun ? 'Saving run' : 'Hold to end run',
+        hint: widget.isCompletingRun
+            ? 'Run completion is in progress'
+            : 'Hold for 1.5 seconds to finish your run',
+        onLongPress: widget.isCompletingRun ? null : _completeHold,
         child: AnimatedBuilder(
           animation: _controller,
           builder: (context, _) {
@@ -472,19 +501,21 @@ class _HoldToEndButtonState extends State<_HoldToEndButton>
                             color: const Color(0xFFFFE4D1),
                           ),
                         ),
-                      const Center(
+                      Center(
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
-                              Icons.flag_rounded,
+                              widget.isCompletingRun
+                                  ? Icons.hourglass_top_rounded
+                                  : Icons.flag_rounded,
                               color: _panelTextBlue,
                               size: 23,
                             ),
-                            SizedBox(width: 10),
+                            const SizedBox(width: 10),
                             Text(
-                              'End',
-                              style: TextStyle(
+                              widget.isCompletingRun ? 'Saving' : 'End',
+                              style: const TextStyle(
                                 color: _panelTextBlue,
                                 fontSize: 18,
                                 fontWeight: FontWeight.w900,

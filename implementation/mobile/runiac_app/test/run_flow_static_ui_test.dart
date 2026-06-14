@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -100,14 +101,18 @@ Future<void> _finishPausedRun(WidgetTester tester) async {
 }
 
 class _ResultRunRepository implements RunRepository {
-  const _ResultRunRepository(this.result);
+  _ResultRunRepository(this.result);
 
   final CompleteRunResult result;
+  int completeRunCalls = 0;
+  LocalRunCompletionPayload? lastPayload;
 
   @override
   Future<CompleteRunResult> completeRun(
     LocalRunCompletionPayload payload,
   ) async {
+    completeRunCalls += 1;
+    lastPayload = payload;
     return result;
   }
 
@@ -143,6 +148,32 @@ class _ResultRunRepository implements RunRepository {
       caloriesLabel: '280 kcal',
       routeName: 'Repository Route',
     );
+  }
+}
+
+class _FailingRunRepository extends _ResultRunRepository {
+  _FailingRunRepository(super.result);
+
+  @override
+  Future<CompleteRunResult> completeRun(
+    LocalRunCompletionPayload payload,
+  ) async {
+    completeRunCalls += 1;
+    lastPayload = payload;
+    throw StateError('repository unavailable');
+  }
+}
+
+class _DelayedRunRepository extends _ResultRunRepository {
+  _DelayedRunRepository(super.result);
+
+  final Completer<CompleteRunResult> completer = Completer<CompleteRunResult>();
+
+  @override
+  Future<CompleteRunResult> completeRun(LocalRunCompletionPayload payload) {
+    completeRunCalls += 1;
+    lastPayload = payload;
+    return completer.future;
   }
 }
 
@@ -373,12 +404,10 @@ void main() {
   testWidgets(
     'Run finish uses repository completion result through summary and XP update',
     (WidgetTester tester) async {
+      final repository = _ResultRunRepository(_repositoryCompletionResult);
+
       await tester.pumpWidget(
-        const MaterialApp(
-          home: RunLaunchScreen(
-            repository: _ResultRunRepository(_repositoryCompletionResult),
-          ),
-        ),
+        MaterialApp(home: RunLaunchScreen(repository: repository)),
       );
 
       await tester.tap(find.text('Start run'));
@@ -387,6 +416,12 @@ void main() {
       await tester.pumpAndSettle();
       await _finishPausedRun(tester);
 
+      expect(repository.completeRunCalls, 1);
+      expect(repository.lastPayload, isNotNull);
+      expect(repository.lastPayload!.clientRunSessionId, 'local-run-1');
+      expect(repository.lastPayload!.routePrivacy, 'private');
+      expect(repository.lastPayload!.routeLabel, 'Easy local route');
+      expect(repository.lastPayload!.source, 'local_simulation');
       expect(find.text('Cool down'), findsOneWidget);
       expect(find.text('Repository Result Run'), findsNothing);
 
@@ -420,6 +455,68 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+
+  testWidgets('Run finish keeps retry path when repository completion fails', (
+    WidgetTester tester,
+  ) async {
+    final repository = _FailingRunRepository(_repositoryCompletionResult);
+
+    await tester.pumpWidget(
+      MaterialApp(home: RunLaunchScreen(repository: repository)),
+    );
+
+    await tester.tap(find.text('Start run'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Pause'));
+    await tester.pumpAndSettle();
+    await _finishPausedRun(tester);
+
+    expect(repository.completeRunCalls, 1);
+    expect(repository.lastPayload, isNotNull);
+    expect(find.text('Cool down'), findsNothing);
+    expect(
+      find.text('Run completion is unavailable. Please try again.'),
+      findsOneWidget,
+    );
+    expect(find.text('End'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Run finish guards duplicate completion while repository waits', (
+    WidgetTester tester,
+  ) async {
+    final repository = _DelayedRunRepository(_repositoryCompletionResult);
+
+    await tester.pumpWidget(
+      MaterialApp(home: RunLaunchScreen(repository: repository)),
+    );
+
+    await tester.tap(find.text('Start run'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Pause'));
+    await tester.pumpAndSettle();
+    await _finishPausedRun(tester);
+    await tester.pump();
+
+    expect(repository.completeRunCalls, 1);
+    expect(repository.lastPayload, isNotNull);
+    expect(find.text('Saving'), findsOneWidget);
+    expect(find.text('End'), findsNothing);
+    expect(find.text('Resume'), findsOneWidget);
+
+    await tester.longPress(find.byKey(const Key('hold_to_end_button')));
+    await tester.pump(const Duration(milliseconds: 50));
+
+    expect(repository.completeRunCalls, 1);
+    expect(find.text('Cool down'), findsNothing);
+
+    repository.completer.complete(_repositoryCompletionResult);
+    await tester.pumpAndSettle();
+
+    expect(repository.completeRunCalls, 1);
+    expect(find.text('Cool down'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets('View summary static content and actions match design', (
     WidgetTester tester,

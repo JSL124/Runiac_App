@@ -121,5 +121,26 @@ void main() {
         ),
       );
     });
+
+    test('completionPayload does not mark the local run finished', () {
+      final controller = RunTrackingController(metersPerSecond: 2.5);
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      final completedAt = DateTime.utc(2026, 6, 14, 7, 2);
+
+      controller.start(
+        startedAt: startedAt,
+        clientRunSessionId: 'local-session-5',
+        routeLabel: 'Easy local route',
+      );
+      controller.advanceBy(const Duration(seconds: 120));
+      controller.pause();
+
+      final payload = controller.completionPayload(completedAt: completedAt);
+
+      expect(payload.clientRunSessionId, 'local-session-5');
+      expect(payload.completedAt, completedAt);
+      expect(controller.state.phase, RunTrackingPhase.paused);
+      expect(controller.state.completedAt, isNull);
+    });
   });
 }

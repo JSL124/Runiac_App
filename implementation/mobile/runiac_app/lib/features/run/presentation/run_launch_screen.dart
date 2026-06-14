@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/runiac_bottom_sheet_handle.dart';
 import '../data/static_run_repository.dart';
+import '../domain/models/complete_run_result.dart';
 import '../domain/models/run_tracking_state.dart';
 import '../domain/repositories/run_repository.dart';
 import 'controllers/run_tracking_controller.dart';
@@ -52,6 +53,7 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
   RunLaunchSheetExtent _sheetExtent = RunLaunchSheetExtent.expanded;
   double _sheetProgress = 1;
   Timer? _ticker;
+  bool _isCompletingRun = false;
 
   @override
   void dispose() {
@@ -83,11 +85,17 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
   }
 
   void _pauseRun() {
+    if (_isCompletingRun) {
+      return;
+    }
     _controller.pause();
     setState(() => _sheetMode = RunSheetMode.paused);
   }
 
   void _resumeRun() {
+    if (_isCompletingRun) {
+      return;
+    }
     _controller.resume();
     setState(() => _sheetMode = RunSheetMode.running);
   }
@@ -152,13 +160,32 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
   }
 
   Future<void> _finishRun() async {
-    _ticker?.cancel();
-    _ticker = null;
-    final payload = _controller.finish();
-    final result = await widget.repository.completeRun(payload);
+    if (_isCompletingRun) {
+      return;
+    }
+
+    final completedAt = DateTime.now();
+    final payload = _controller.completionPayload(completedAt: completedAt);
+    setState(() => _isCompletingRun = true);
+
+    CompleteRunResult result;
+    try {
+      result = await widget.repository.completeRun(payload);
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _isCompletingRun = false);
+      _showPreviewMessage('Run completion is unavailable. Please try again.');
+      return;
+    }
+
     if (!mounted) {
       return;
     }
+    _ticker?.cancel();
+    _ticker = null;
+    _controller.finish(completedAt: completedAt);
     Navigator.of(context).pushReplacement(
       MaterialPageRoute<void>(
         builder: (context) => CoolDownScreen(completionResult: result),
@@ -325,6 +352,7 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
                                   onPause: _pauseRun,
                                   onResume: _resumeRun,
                                   onEnd: _finishRun,
+                                  isCompletingRun: _isCompletingRun,
                                 );
                               },
                             ),
