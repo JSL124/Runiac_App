@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/runiac_colors.dart';
@@ -15,13 +17,13 @@ class RunTrackingSheetContent extends StatelessWidget {
     required this.state,
     required this.onPause,
     required this.onResume,
-    required this.onFinish,
+    required this.onEnd,
   });
 
   final RunTrackingState state;
   final VoidCallback onPause;
   final VoidCallback onResume;
-  final VoidCallback onFinish;
+  final VoidCallback onEnd;
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +51,7 @@ class RunTrackingSheetContent extends StatelessWidget {
               isPaused: state.isPaused,
               onPause: onPause,
               onResume: onResume,
-              onFinish: onFinish,
+              onEnd: onEnd,
             ),
           ],
         );
@@ -233,16 +235,35 @@ class _RunActiveActions extends StatelessWidget {
     required this.isPaused,
     required this.onPause,
     required this.onResume,
-    required this.onFinish,
+    required this.onEnd,
   });
 
   final bool isPaused;
   final VoidCallback onPause;
   final VoidCallback onResume;
-  final VoidCallback onFinish;
+  final VoidCallback onEnd;
 
   @override
   Widget build(BuildContext context) {
+    if (!isPaused) {
+      return SizedBox(
+        height: 56,
+        child: FilledButton.icon(
+          onPressed: onPause,
+          icon: const Icon(Icons.pause_rounded),
+          label: const Text('Pause'),
+          style: FilledButton.styleFrom(
+            backgroundColor: _panelTextBlue,
+            foregroundColor: RuniacColors.white,
+            textStyle: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
+      );
+    }
+
     return Row(
       children: [
         Expanded(
@@ -250,11 +271,9 @@ class _RunActiveActions extends StatelessWidget {
           child: SizedBox(
             height: 56,
             child: FilledButton.icon(
-              onPressed: isPaused ? onResume : onPause,
-              icon: Icon(
-                isPaused ? Icons.play_arrow_rounded : Icons.pause_rounded,
-              ),
-              label: Text(isPaused ? 'Resume' : 'Pause'),
+              onPressed: onResume,
+              icon: const Icon(Icons.play_arrow_rounded),
+              label: const Text('Resume'),
               style: FilledButton.styleFrom(
                 backgroundColor: _panelTextBlue,
                 foregroundColor: RuniacColors.white,
@@ -269,24 +288,159 @@ class _RunActiveActions extends StatelessWidget {
         const SizedBox(width: 12),
         Expanded(
           flex: 2,
-          child: SizedBox(
-            height: 56,
-            child: OutlinedButton.icon(
-              onPressed: onFinish,
-              icon: const Icon(Icons.flag_rounded),
-              label: const Text('Finish'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: _panelTextBlue,
-                side: const BorderSide(color: _blueBorder, width: 1.5),
-                textStyle: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ),
-          ),
+          child: SizedBox(height: 56, child: _HoldToEndButton(onEnd: onEnd)),
         ),
       ],
+    );
+  }
+}
+
+class _HoldToEndButton extends StatefulWidget {
+  const _HoldToEndButton({required this.onEnd});
+
+  final VoidCallback onEnd;
+
+  @override
+  State<_HoldToEndButton> createState() => _HoldToEndButtonState();
+}
+
+class _HoldToEndButtonState extends State<_HoldToEndButton>
+    with SingleTickerProviderStateMixin {
+  static const _holdDuration = Duration(seconds: 3);
+
+  late final AnimationController _controller;
+  Timer? _holdTimer;
+  bool _completed = false;
+  bool _holding = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this, duration: _holdDuration)
+      ..addStatusListener(_handleStatus);
+  }
+
+  @override
+  void dispose() {
+    _holdTimer?.cancel();
+    _controller
+      ..removeStatusListener(_handleStatus)
+      ..dispose();
+    super.dispose();
+  }
+
+  void _handleStatus(AnimationStatus status) {
+    if (status != AnimationStatus.completed) {
+      return;
+    }
+
+    _completeHold();
+  }
+
+  void _completeHold() {
+    if (_completed) {
+      return;
+    }
+
+    _completed = true;
+    _holding = false;
+    _holdTimer?.cancel();
+    _holdTimer = null;
+    widget.onEnd();
+  }
+
+  void _startHold(TapDownDetails _) {
+    if (_completed) {
+      return;
+    }
+    _holdTimer?.cancel();
+    setState(() => _holding = true);
+    _holdTimer = Timer(_holdDuration, _completeHold);
+    _controller.forward(from: 0);
+  }
+
+  void _cancelHold([Object? _]) {
+    if (_completed) {
+      return;
+    }
+
+    if (_controller.value >= 0.98) {
+      _completeHold();
+      return;
+    }
+
+    _holdTimer?.cancel();
+    _holdTimer = null;
+    setState(() => _holding = false);
+    _controller.reverse();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      key: const Key('hold_to_end_button'),
+      onTapDown: _startHold,
+      onTapUp: _cancelHold,
+      onTapCancel: _cancelHold,
+      behavior: HitTestBehavior.opaque,
+      child: Semantics(
+        button: true,
+        label: 'Hold to end run',
+        hint: 'Hold for 3 seconds to finish your run',
+        onLongPress: _completeHold,
+        child: AnimatedBuilder(
+          animation: _controller,
+          builder: (context, _) {
+            return ExcludeSemantics(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(999),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: RuniacColors.white,
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: _blueBorder, width: 1.5),
+                  ),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      if (_holding && !_completed)
+                        Positioned.fill(
+                          child: LinearProgressIndicator(
+                            key: const Key('hold_to_end_progress_gauge'),
+                            value: _controller.value.clamp(0, 1),
+                            backgroundColor: Colors.transparent,
+                            color: const Color(0xFFFFE4D1),
+                          ),
+                        ),
+                      const Center(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.flag_rounded,
+                              color: _panelTextBlue,
+                              size: 23,
+                            ),
+                            SizedBox(width: 10),
+                            Text(
+                              'End',
+                              style: TextStyle(
+                                color: _panelTextBlue,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
     );
   }
 }

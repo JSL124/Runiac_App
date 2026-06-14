@@ -23,7 +23,7 @@ const _mutedBlue = Color(0xFF8296E8);
 const _controlPressHold = Duration(milliseconds: 90);
 const _sheetAnimationDuration = Duration(milliseconds: 280);
 
-enum RunSheetMode { preRun, running }
+enum RunSheetMode { preRun, running, paused }
 
 class RunLaunchScreen extends StatefulWidget {
   const RunLaunchScreen({super.key});
@@ -45,7 +45,7 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
   }
 
   void _startRun() {
-    if (_sheetMode == RunSheetMode.running) {
+    if (_sheetMode != RunSheetMode.preRun) {
       return;
     }
 
@@ -59,6 +59,16 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
       (_) => _controller.advanceBy(const Duration(seconds: 1)),
     );
 
+    setState(() => _sheetMode = RunSheetMode.running);
+  }
+
+  void _pauseRun() {
+    _controller.pause();
+    setState(() => _sheetMode = RunSheetMode.paused);
+  }
+
+  void _resumeRun() {
+    _controller.resume();
     setState(() => _sheetMode = RunSheetMode.running);
   }
 
@@ -82,7 +92,11 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
       return 'GPS ready';
     }
 
-    return state.isPaused ? 'Paused · easy' : 'Running · easy';
+    if (_sheetMode == RunSheetMode.paused || state.isPaused) {
+      return 'Paused · easy';
+    }
+
+    return 'Running · easy';
   }
 
   @override
@@ -104,10 +118,20 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
                 padding: const EdgeInsets.only(top: 12),
                 child: Row(
                   children: [
-                    _MapCircleButton(
-                      tooltip: 'Close',
-                      icon: Icons.close,
-                      onPressed: () => Navigator.of(context).pop(),
+                    AnimatedSwitcher(
+                      duration: _sheetAnimationDuration,
+                      child: _sheetMode == RunSheetMode.preRun
+                          ? _MapCircleButton(
+                              key: const ValueKey('close_button'),
+                              tooltip: 'Close',
+                              icon: Icons.close,
+                              onPressed: () => Navigator.of(context).pop(),
+                            )
+                          : const SizedBox(
+                              key: ValueKey('close_button_hidden'),
+                              width: 48,
+                              height: 48,
+                            ),
                     ),
                     Expanded(
                       child: AnimatedBuilder(
@@ -127,12 +151,22 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
                         },
                       ),
                     ),
-                    _MapCircleButton(
-                      tooltip: 'Run settings',
-                      icon: Icons.settings_outlined,
-                      onPressed: () => _showPreviewMessage(
-                        'Run settings preview is coming soon.',
-                      ),
+                    AnimatedSwitcher(
+                      duration: _sheetAnimationDuration,
+                      child: _sheetMode == RunSheetMode.preRun
+                          ? _MapCircleButton(
+                              key: const ValueKey('settings_button'),
+                              tooltip: 'Run settings',
+                              icon: Icons.settings_outlined,
+                              onPressed: () => _showPreviewMessage(
+                                'Run settings preview is coming soon.',
+                              ),
+                            )
+                          : const SizedBox(
+                              key: ValueKey('settings_button_hidden'),
+                              width: 48,
+                              height: 48,
+                            ),
                     ),
                   ],
                 ),
@@ -183,11 +217,11 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
                                   ),
                                 )
                               : RunTrackingSheetContent(
-                                  key: const ValueKey(RunSheetMode.running),
+                                  key: ValueKey(_sheetMode),
                                   state: _controller.state,
-                                  onPause: _controller.pause,
-                                  onResume: _controller.resume,
-                                  onFinish: _finishRun,
+                                  onPause: _pauseRun,
+                                  onResume: _resumeRun,
+                                  onEnd: _finishRun,
                                 ),
                         ),
                       ),
@@ -205,6 +239,7 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
 
 class _MapCircleButton extends StatefulWidget {
   const _MapCircleButton({
+    super.key,
     required this.tooltip,
     required this.icon,
     required this.onPressed,

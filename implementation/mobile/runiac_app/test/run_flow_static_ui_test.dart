@@ -85,7 +85,10 @@ Future<void> _openPausedRun(WidgetTester tester) async {
 }
 
 Future<void> _finishPausedRun(WidgetTester tester) async {
-  await tester.tap(find.widgetWithText(OutlinedButton, 'Finish'));
+  final endButton = find.byKey(const Key('hold_to_end_button'));
+  final holdGesture = await tester.startGesture(tester.getCenter(endButton));
+  await tester.pump(const Duration(milliseconds: 3100));
+  await holdGesture.up();
   await tester.pumpAndSettle();
 }
 
@@ -114,6 +117,8 @@ void main() {
     expect(find.byKey(const Key('run_plan_progress_bar')), findsNothing);
     expect(find.text('Pause'), findsNothing);
     expect(find.text('Finish'), findsNothing);
+    expect(find.text('End'), findsNothing);
+    expect(find.text('Resume'), findsNothing);
     expect(find.text('Home'), findsNothing);
     expect(find.text('Maps'), findsNothing);
     expect(find.text('Leaderboard'), findsNothing);
@@ -150,9 +155,11 @@ void main() {
     expect(find.text('--/km'), findsOneWidget);
     expect(find.text('HEART'), findsNothing);
     expect(find.text('Pause'), findsOneWidget);
-    expect(find.text('Finish'), findsOneWidget);
-    expect(find.byTooltip('Close'), findsOneWidget);
-    expect(find.byTooltip('Run settings'), findsOneWidget);
+    expect(find.text('Finish'), findsNothing);
+    expect(find.text('End'), findsNothing);
+    expect(find.text('Resume'), findsNothing);
+    expect(find.byTooltip('Close'), findsNothing);
+    expect(find.byTooltip('Run settings'), findsNothing);
     expect(find.text('GPS ready'), findsNothing);
     expect(find.text('Start run'), findsNothing);
 
@@ -164,17 +171,12 @@ void main() {
     expect(find.text('06:56/km'), findsOneWidget);
 
     await tester.tap(find.text('Pause'));
-    await tester.pump();
-
-    expect(find.text('Pause'), findsNothing);
-    expect(find.text('Resume'), findsOneWidget);
-    expect(find.text('Finish'), findsOneWidget);
-
     await tester.pumpAndSettle();
 
     expect(find.text('Paused · easy'), findsOneWidget);
     expect(find.text('Resume'), findsOneWidget);
-    expect(find.text('Finish'), findsOneWidget);
+    expect(find.text('End'), findsOneWidget);
+    expect(find.text('Finish'), findsNothing);
     expect(find.text('Hold to end'), findsNothing);
     expect(find.text('Keep holding...'), findsNothing);
     expect(find.text('Pause'), findsNothing);
@@ -200,7 +202,8 @@ void main() {
     expect(find.text('Running · easy'), findsOneWidget);
     expect(find.text('Pause'), findsOneWidget);
     expect(find.text('Resume'), findsNothing);
-    expect(find.text('Finish'), findsOneWidget);
+    expect(find.text('End'), findsNothing);
+    expect(find.text('Finish'), findsNothing);
     expect(find.text('Hold to end'), findsNothing);
     expect(find.text('Keep holding...'), findsNothing);
     await tester.pump(const Duration(seconds: 10));

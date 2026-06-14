@@ -197,7 +197,7 @@ class _RunActivePanel extends StatelessWidget {
             state: state,
             onPause: onPause,
             onResume: onResume,
-            onFinish: onFinish,
+            onEnd: onFinish,
           ),
         );
       },
