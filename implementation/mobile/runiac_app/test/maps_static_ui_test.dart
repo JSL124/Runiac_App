@@ -26,7 +26,9 @@ void main() {
   testWidgets('Maps tab shows static route discovery placeholder', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const RuniacApp(showSplash: false));
+    await tester.pumpWidget(
+      const RuniacApp(showSplash: false, enableForegroundGps: false),
+    );
 
     await tester.tap(find.text('Maps'));
     await tester.pumpAndSettle();
@@ -69,7 +71,9 @@ void main() {
   testWidgets('Maps search field accepts focus and visible typed input', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const RuniacApp(showSplash: false));
+    await tester.pumpWidget(
+      const RuniacApp(showSplash: false, enableForegroundGps: false),
+    );
 
     await tester.tap(find.text('Maps'));
     await tester.pumpAndSettle();
@@ -102,7 +106,9 @@ void main() {
   testWidgets('Maps See all opens scrollable static shared routes state', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const RuniacApp(showSplash: false));
+    await tester.pumpWidget(
+      const RuniacApp(showSplash: false, enableForegroundGps: false),
+    );
 
     await tester.tap(find.text('Maps'));
     await tester.pumpAndSettle();
@@ -174,7 +180,9 @@ void main() {
   testWidgets(
     'Maps manual collapse from expanded routes resets to preview state',
     (WidgetTester tester) async {
-      await tester.pumpWidget(const RuniacApp(showSplash: false));
+      await tester.pumpWidget(
+        const RuniacApp(showSplash: false, enableForegroundGps: false),
+      );
 
       await tester.tap(find.text('Maps'));
       await tester.pumpAndSettle();
@@ -217,7 +225,9 @@ void main() {
   testWidgets('Maps Saved opens static My routes page', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const RuniacApp(showSplash: false));
+    await tester.pumpWidget(
+      const RuniacApp(showSplash: false, enableForegroundGps: false),
+    );
 
     await tester.tap(find.text('Maps'));
     await tester.pumpAndSettle();
@@ -358,7 +368,9 @@ void main() {
   testWidgets('Maps Saved selected route opens static route detail preview', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const RuniacApp(showSplash: false));
+    await tester.pumpWidget(
+      const RuniacApp(showSplash: false, enableForegroundGps: false),
+    );
 
     await tester.tap(find.text('Maps'));
     await tester.pumpAndSettle();
@@ -383,7 +395,9 @@ void main() {
   testWidgets('Maps Saved favourite route opens static route detail preview', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const RuniacApp(showSplash: false));
+    await tester.pumpWidget(
+      const RuniacApp(showSplash: false, enableForegroundGps: false),
+    );
 
     await tester.tap(find.text('Maps'));
     await tester.pumpAndSettle();
@@ -408,7 +422,9 @@ void main() {
   testWidgets('Maps Saved remove dialog can cancel without changing route', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const RuniacApp(showSplash: false));
+    await tester.pumpWidget(
+      const RuniacApp(showSplash: false, enableForegroundGps: false),
+    );
 
     await tester.tap(find.text('Maps'));
     await tester.pumpAndSettle();
@@ -450,7 +466,9 @@ void main() {
   testWidgets(
     'Maps Saved confirm remove shows local empty selected route state',
     (WidgetTester tester) async {
-      await tester.pumpWidget(const RuniacApp(showSplash: false));
+      await tester.pumpWidget(
+        const RuniacApp(showSplash: false, enableForegroundGps: false),
+      );
 
       await tester.tap(find.text('Maps'));
       await tester.pumpAndSettle();
@@ -497,7 +515,9 @@ void main() {
   testWidgets('Maps sheet keeps a non-scrolling Home-style accent layout', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const RuniacApp(showSplash: false));
+    await tester.pumpWidget(
+      const RuniacApp(showSplash: false, enableForegroundGps: false),
+    );
 
     await tester.tap(find.text('Maps'));
     await tester.pumpAndSettle();
@@ -549,7 +569,9 @@ void main() {
   testWidgets('Maps route cards stay compact with bounded text', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const RuniacApp(showSplash: false));
+    await tester.pumpWidget(
+      const RuniacApp(showSplash: false, enableForegroundGps: false),
+    );
 
     await tester.tap(find.text('Maps'));
     await tester.pumpAndSettle();
@@ -576,7 +598,9 @@ void main() {
   testWidgets(
     'Maps shared route list like action toggles without opening detail',
     (WidgetTester tester) async {
-      await tester.pumpWidget(const RuniacApp(showSplash: false));
+      await tester.pumpWidget(
+        const RuniacApp(showSplash: false, enableForegroundGps: false),
+      );
 
       await tester.tap(find.text('Maps'));
       await tester.pumpAndSettle();
@@ -660,7 +684,9 @@ void main() {
   testWidgets(
     'Maps shared route detail opens from first card and renders static route content',
     (WidgetTester tester) async {
-      await tester.pumpWidget(const RuniacApp(showSplash: false));
+      await tester.pumpWidget(
+        const RuniacApp(showSplash: false, enableForegroundGps: false),
+      );
 
       await tester.tap(find.text('Maps'));
       await tester.pumpAndSettle();
@@ -709,7 +735,9 @@ void main() {
   testWidgets(
     'Maps shared route detail like action toggles with stable count',
     (WidgetTester tester) async {
-      await tester.pumpWidget(const RuniacApp(showSplash: false));
+      await tester.pumpWidget(
+        const RuniacApp(showSplash: false, enableForegroundGps: false),
+      );
 
       await tester.tap(find.text('Maps'));
       await tester.pumpAndSettle();
@@ -743,7 +771,9 @@ void main() {
   testWidgets('Maps shared route detail share opens preview-only sheet', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const RuniacApp(showSplash: false));
+    await tester.pumpWidget(
+      const RuniacApp(showSplash: false, enableForegroundGps: false),
+    );
 
     await tester.tap(find.text('Maps'));
     await tester.pumpAndSettle();
@@ -791,7 +821,9 @@ void main() {
   testWidgets(
     'Maps shared route detail report sheet submits static report note',
     (WidgetTester tester) async {
-      await tester.pumpWidget(const RuniacApp(showSplash: false));
+      await tester.pumpWidget(
+        const RuniacApp(showSplash: false, enableForegroundGps: false),
+      );
 
       await tester.tap(find.text('Maps'));
       await tester.pumpAndSettle();
@@ -860,7 +892,9 @@ void main() {
   testWidgets('Maps shared route detail report sheet requires reason and why', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const RuniacApp(showSplash: false));
+    await tester.pumpWidget(
+      const RuniacApp(showSplash: false, enableForegroundGps: false),
+    );
 
     await tester.tap(find.text('Maps'));
     await tester.pumpAndSettle();
@@ -910,7 +944,9 @@ void main() {
   testWidgets(
     'Maps shared route detail keeps share preview after adding report',
     (WidgetTester tester) async {
-      await tester.pumpWidget(const RuniacApp(showSplash: false));
+      await tester.pumpWidget(
+        const RuniacApp(showSplash: false, enableForegroundGps: false),
+      );
 
       await tester.tap(find.text('Maps'));
       await tester.pumpAndSettle();
@@ -952,7 +988,9 @@ void main() {
   testWidgets(
     'Maps shared route detail confirms with saving overlay and stay here disables select',
     (WidgetTester tester) async {
-      await tester.pumpWidget(const RuniacApp(showSplash: false));
+      await tester.pumpWidget(
+        const RuniacApp(showSplash: false, enableForegroundGps: false),
+      );
 
       await tester.tap(find.text('Maps'));
       await tester.pumpAndSettle();
@@ -1001,7 +1039,9 @@ void main() {
   testWidgets(
     'Maps shared route detail remains static and preserves sheet regression boundaries',
     (WidgetTester tester) async {
-      await tester.pumpWidget(const RuniacApp(showSplash: false));
+      await tester.pumpWidget(
+        const RuniacApp(showSplash: false, enableForegroundGps: false),
+      );
 
       await tester.tap(find.text('Maps'));
       await tester.pumpAndSettle();
@@ -1053,7 +1093,9 @@ void main() {
   testWidgets('Maps sheet first landing is the maximum full-content height', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const RuniacApp(showSplash: false));
+    await tester.pumpWidget(
+      const RuniacApp(showSplash: false, enableForegroundGps: false),
+    );
 
     await tester.tap(find.text('Maps'));
     await tester.pumpAndSettle();
@@ -1082,7 +1124,9 @@ void main() {
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
 
-      await tester.pumpWidget(const RuniacApp(showSplash: false));
+      await tester.pumpWidget(
+        const RuniacApp(showSplash: false, enableForegroundGps: false),
+      );
 
       await tester.tap(find.text('Maps'));
       await tester.pumpAndSettle();
@@ -1106,7 +1150,9 @@ void main() {
   testWidgets('Maps sheet collapses without an internal scrollable body', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const RuniacApp(showSplash: false));
+    await tester.pumpWidget(
+      const RuniacApp(showSplash: false, enableForegroundGps: false),
+    );
 
     await tester.tap(find.text('Maps'));
     await tester.pumpAndSettle();
@@ -1151,7 +1197,9 @@ void main() {
   testWidgets('Maps sheet uses progressive Leaderboard-style dragging', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const RuniacApp(showSplash: false));
+    await tester.pumpWidget(
+      const RuniacApp(showSplash: false, enableForegroundGps: false),
+    );
 
     await tester.tap(find.text('Maps'));
     await tester.pumpAndSettle();

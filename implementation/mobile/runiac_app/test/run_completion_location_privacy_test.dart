@@ -23,6 +23,11 @@ void main() {
       expect(request.keys, isNot(contains('samples')));
       expect(request.keys, isNot(contains('routeTrace')));
       expect(request.keys, isNot(contains('polyline')));
+      expect(request.keys, isNot(contains('positions')));
+      expect(request.keys, isNot(contains('gpsSamples')));
+      expect(request.keys, isNot(contains('rawLocationSamples')));
+      expect(request.values.join(' '), isNot(contains('latitude')));
+      expect(request.values.join(' '), isNot(contains('longitude')));
     });
   });
 }

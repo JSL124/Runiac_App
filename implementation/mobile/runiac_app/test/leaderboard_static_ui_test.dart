@@ -25,7 +25,9 @@ void main() {
   testWidgets('Leaderboard tab shows static map-first landing shell', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const RuniacApp(showSplash: false));
+    await tester.pumpWidget(
+      const RuniacApp(showSplash: false, enableForegroundGps: false),
+    );
 
     await tester.tap(find.text('Leaderboard'));
     await tester.pumpAndSettle();
@@ -214,7 +216,9 @@ void main() {
   testWidgets('Leaderboard preview rank rows open runner profiles', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const RuniacApp(showSplash: false));
+    await tester.pumpWidget(
+      const RuniacApp(showSplash: false, enableForegroundGps: false),
+    );
 
     await tester.tap(find.text('Leaderboard'));
     await tester.pumpAndSettle();
@@ -261,7 +265,9 @@ void main() {
       return null;
     });
 
-    await tester.pumpWidget(const RuniacApp(showSplash: false));
+    await tester.pumpWidget(
+      const RuniacApp(showSplash: false, enableForegroundGps: false),
+    );
 
     await tester.tap(find.text('Leaderboard'));
     await tester.pumpAndSettle();
@@ -343,7 +349,9 @@ void main() {
   testWidgets('View More Ranking opens static monthly detail board', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const RuniacApp(showSplash: false));
+    await tester.pumpWidget(
+      const RuniacApp(showSplash: false, enableForegroundGps: false),
+    );
 
     await tester.tap(find.text('Leaderboard'));
     await tester.pumpAndSettle();
@@ -451,7 +459,9 @@ void main() {
   testWidgets('Leaderboard rows open read-only runner achievement profiles', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const RuniacApp(showSplash: false));
+    await tester.pumpWidget(
+      const RuniacApp(showSplash: false, enableForegroundGps: false),
+    );
 
     await tester.tap(find.text('Leaderboard'));
     await tester.pumpAndSettle();
@@ -673,7 +683,9 @@ void main() {
   testWidgets('Leaderboard static labels do not expose owned totals', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const RuniacApp(showSplash: false));
+    await tester.pumpWidget(
+      const RuniacApp(showSplash: false, enableForegroundGps: false),
+    );
 
     await tester.tap(find.text('Leaderboard'));
     await tester.pumpAndSettle();

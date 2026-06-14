@@ -28,7 +28,11 @@ void main() {
 
   testWidgets('Run UI works with StaticRunRepository fallback', (tester) async {
     await tester.pumpWidget(
-      const RuniacApp(showSplash: false, runRepository: StaticRunRepository()),
+      const RuniacApp(
+        showSplash: false,
+        enableForegroundGps: false,
+        runRepository: StaticRunRepository(),
+      ),
     );
 
     await tester.tap(find.text('Run'));

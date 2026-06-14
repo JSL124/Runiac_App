@@ -9,7 +9,9 @@ import 'package:runiac_app/features/you/presentation/widgets/compact_run_activit
 import 'package:runiac_app/features/you/presentation/widgets/monthly_distance_graph.dart';
 
 Future<void> _openYouTab(WidgetTester tester) async {
-  await tester.pumpWidget(const RuniacApp(showSplash: false));
+  await tester.pumpWidget(
+    const RuniacApp(showSplash: false, enableForegroundGps: false),
+  );
   await tester.tap(find.text('You'));
   await tester.pumpAndSettle();
 }
@@ -1478,7 +1480,9 @@ void main() {
     'Goal Plan Detail back returns to Plans without Home entry point',
     (WidgetTester tester) async {
       // Given: Home does not expose the Goal Plan Detail entry point.
-      await tester.pumpWidget(const RuniacApp(showSplash: false));
+      await tester.pumpWidget(
+        const RuniacApp(showSplash: false, enableForegroundGps: false),
+      );
       expect(find.text('View Goal Plan'), findsNothing);
 
       // And: the user opens the detail from the You tab Plans section.

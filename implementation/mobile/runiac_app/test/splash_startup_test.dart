@@ -36,7 +36,9 @@ void main() {
   testWidgets('RuniacApp can bypass the splash deterministically', (
     tester,
   ) async {
-    await tester.pumpWidget(const RuniacApp(showSplash: false));
+    await tester.pumpWidget(
+      const RuniacApp(showSplash: false, enableForegroundGps: false),
+    );
 
     expect(find.byKey(const ValueKey('runiac_splash_screen')), findsNothing);
     expect(find.text('Good to see you'), findsOneWidget);

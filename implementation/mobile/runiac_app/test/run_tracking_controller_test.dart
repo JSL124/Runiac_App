@@ -1,8 +1,55 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runiac_app/features/run/domain/models/local_run_completion_payload.dart';
+import 'package:runiac_app/features/run/domain/models/run_location_permission_status.dart';
 import 'package:runiac_app/features/run/domain/models/run_tracking_state.dart';
+import 'package:runiac_app/features/run/domain/repositories/run_location_permission_service.dart';
+import 'package:runiac_app/features/run/domain/repositories/run_location_provider.dart';
 import 'package:runiac_app/features/run/presentation/controllers/run_tracking_controller.dart';
+
+class _FakePermissionService implements RunLocationPermissionService {
+  _FakePermissionService(this.status);
+
+  RunLocationPermissionStatus status;
+
+  @override
+  Future<RunLocationPermissionStatus> checkStatus() async => status;
+
+  @override
+  Future<RunLocationPermissionStatus> requestPermission() async => status;
+}
+
+class _LifecycleTrackingProvider extends ConstantSpeedRunLocationProvider {
+  _LifecycleTrackingProvider() : super(metersPerSecond: 2.5);
+
+  int startCount = 0;
+  int pauseCount = 0;
+  int resumeCount = 0;
+  int stopCount = 0;
+
+  @override
+  Future<void> start({required DateTime startedAt}) async {
+    startCount += 1;
+  }
+
+  @override
+  Future<void> pause() async {
+    pauseCount += 1;
+  }
+
+  @override
+  Future<void> resume({
+    required DateTime resumedAt,
+    required Duration activeOffset,
+  }) async {
+    resumeCount += 1;
+  }
+
+  @override
+  Future<void> stop() async {
+    stopCount += 1;
+  }
+}
 
 void main() {
   group('RunTrackingController', () {
@@ -141,6 +188,80 @@ void main() {
       expect(payload.completedAt, completedAt);
       expect(controller.state.phase, RunTrackingPhase.paused);
       expect(controller.state.completedAt, isNull);
+    });
+
+    test(
+      'does not start real provider when foreground permission is denied',
+      () async {
+        final provider = _LifecycleTrackingProvider();
+        final controller = RunTrackingController(
+          locationProvider: provider,
+          permissionService: _FakePermissionService(
+            RunLocationPermissionStatus.denied,
+          ),
+        );
+
+        final started = await controller.requestStart(
+          startedAt: DateTime.utc(2026, 6, 14, 7),
+          clientRunSessionId: 'permission-denied-run',
+        );
+
+        expect(started, isFalse);
+        expect(
+          controller.locationPermissionStatus,
+          RunLocationPermissionStatus.denied,
+        );
+        expect(controller.state.phase, RunTrackingPhase.idle);
+        expect(provider.startCount, 0);
+      },
+    );
+
+    test(
+      'starts real provider only when foreground permission is granted',
+      () async {
+        final provider = _LifecycleTrackingProvider();
+        final controller = RunTrackingController(
+          locationProvider: provider,
+          permissionService: _FakePermissionService(
+            RunLocationPermissionStatus.granted,
+          ),
+        );
+
+        final started = await controller.requestStart(
+          startedAt: DateTime.utc(2026, 6, 14, 7),
+          clientRunSessionId: 'permission-granted-run',
+        );
+
+        expect(started, isTrue);
+        expect(
+          controller.locationPermissionStatus,
+          RunLocationPermissionStatus.granted,
+        );
+        expect(controller.state.phase, RunTrackingPhase.active);
+        expect(provider.startCount, 1);
+
+        controller.pause();
+        controller.resume();
+        controller.finish(completedAt: DateTime.utc(2026, 6, 14, 7, 1));
+
+        expect(provider.pauseCount, 1);
+        expect(provider.resumeCount, 1);
+        expect(provider.stopCount, 1);
+      },
+    );
+
+    test('dispose stops the active location provider', () async {
+      final provider = _LifecycleTrackingProvider();
+      final controller = RunTrackingController(locationProvider: provider);
+
+      controller.start(
+        startedAt: DateTime.utc(2026, 6, 14, 7),
+        clientRunSessionId: 'dispose-run',
+      );
+      controller.dispose();
+
+      expect(provider.startCount, 1);
+      expect(provider.stopCount, 1);
     });
   });
 }

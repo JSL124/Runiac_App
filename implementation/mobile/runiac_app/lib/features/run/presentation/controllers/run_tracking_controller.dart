@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 import '../../domain/models/local_run_completion_payload.dart';
+import '../../domain/models/run_location_permission_status.dart';
 import '../../domain/models/run_tracking_state.dart';
+import '../../domain/repositories/run_location_permission_service.dart';
 import '../../domain/repositories/run_location_provider.dart';
 import '../../domain/services/local_run_tracking_session.dart';
 
@@ -9,6 +13,7 @@ class RunTrackingController extends ChangeNotifier {
   RunTrackingController({
     double metersPerSecond = 2.4,
     RunLocationProvider? locationProvider,
+    this.permissionService,
   }) : metersPerSecond = metersPerSecond,
        _locationProvider =
            locationProvider ??
@@ -16,14 +21,78 @@ class RunTrackingController extends ChangeNotifier {
 
   final double metersPerSecond;
   final RunLocationProvider _locationProvider;
+  final RunLocationPermissionService? permissionService;
 
   RunTrackingState _state = const RunTrackingState.idle();
+  RunLocationPermissionStatus _locationPermissionStatus =
+      RunLocationPermissionStatus.checking;
   LocalRunTrackingSession? _trackingSession;
   int _sessionSequence = 0;
 
   RunTrackingState get state => _state;
+  RunLocationPermissionStatus get locationPermissionStatus =>
+      _locationPermissionStatus;
+  String get locationPermissionMessage => _locationPermissionStatus.message;
 
   void start({
+    DateTime? startedAt,
+    String? clientRunSessionId,
+    String routePrivacy = 'private',
+    String? routeLabel,
+  }) {
+    final effectiveStartedAt = _startSession(
+      startedAt: startedAt,
+      clientRunSessionId: clientRunSessionId,
+      routePrivacy: routePrivacy,
+      routeLabel: routeLabel,
+    );
+    unawaited(_locationProvider.start(startedAt: effectiveStartedAt));
+    notifyListeners();
+  }
+
+  Future<bool> requestStart({
+    DateTime? startedAt,
+    String? clientRunSessionId,
+    String routePrivacy = 'private',
+    String? routeLabel,
+  }) async {
+    final service = permissionService;
+    if (service == null) {
+      start(
+        startedAt: startedAt,
+        clientRunSessionId: clientRunSessionId,
+        routePrivacy: routePrivacy,
+        routeLabel: routeLabel,
+      );
+      return true;
+    }
+
+    _locationPermissionStatus = RunLocationPermissionStatus.checking;
+    notifyListeners();
+
+    var permissionStatus = await service.checkStatus();
+    if (permissionStatus == RunLocationPermissionStatus.denied) {
+      permissionStatus = await service.requestPermission();
+    }
+
+    _locationPermissionStatus = permissionStatus;
+    if (!permissionStatus.canStartRun) {
+      notifyListeners();
+      return false;
+    }
+
+    final effectiveStartedAt = _startSession(
+      startedAt: startedAt,
+      clientRunSessionId: clientRunSessionId,
+      routePrivacy: routePrivacy,
+      routeLabel: routeLabel,
+    );
+    await _locationProvider.start(startedAt: effectiveStartedAt);
+    notifyListeners();
+    return true;
+  }
+
+  DateTime _startSession({
     DateTime? startedAt,
     String? clientRunSessionId,
     String routePrivacy = 'private',
@@ -46,7 +115,7 @@ class RunTrackingController extends ChangeNotifier {
       routeLabel: routeLabel,
       source: session.source,
     );
-    notifyListeners();
+    return effectiveStartedAt;
   }
 
   void advanceBy(Duration delta) {
@@ -83,6 +152,7 @@ class RunTrackingController extends ChangeNotifier {
     }
 
     _trackingSession?.pause();
+    unawaited(_locationProvider.pause());
     _state = _state.copyWith(phase: RunTrackingPhase.paused);
     notifyListeners();
   }
@@ -92,7 +162,16 @@ class RunTrackingController extends ChangeNotifier {
       return;
     }
 
+    final activeOffset = Duration(
+      seconds: _trackingSession?.activeDurationSeconds ?? _state.elapsedSeconds,
+    );
     _trackingSession?.resume();
+    unawaited(
+      _locationProvider.resume(
+        resumedAt: DateTime.now(),
+        activeOffset: activeOffset,
+      ),
+    );
     _state = _state.copyWith(phase: RunTrackingPhase.active);
     notifyListeners();
   }
@@ -119,6 +198,7 @@ class RunTrackingController extends ChangeNotifier {
 
   LocalRunCompletionPayload finish({DateTime? completedAt}) {
     final payload = completionPayload(completedAt: completedAt);
+    unawaited(_locationProvider.stop());
     _state = _state.copyWith(
       phase: RunTrackingPhase.finished,
       completedAt: payload.completedAt,
@@ -126,5 +206,11 @@ class RunTrackingController extends ChangeNotifier {
     notifyListeners();
 
     return payload;
+  }
+
+  @override
+  void dispose() {
+    unawaited(_locationProvider.stop());
+    super.dispose();
   }
 }

@@ -82,7 +82,9 @@ Widget _shareSheetHarness() {
 }
 
 Future<void> _openPausedRun(WidgetTester tester) async {
-  await tester.pumpWidget(const RuniacApp(showSplash: false));
+  await tester.pumpWidget(
+    const RuniacApp(showSplash: false, enableForegroundGps: false),
+  );
 
   await tester.tap(find.text('Run'));
   await tester.pumpAndSettle();
@@ -220,7 +222,9 @@ void main() {
   testWidgets('Run item opens and protects local active finish controls', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const RuniacApp(showSplash: false));
+    await tester.pumpWidget(
+      const RuniacApp(showSplash: false, enableForegroundGps: false),
+    );
 
     await tester.tap(find.text('Run'));
     await tester.pumpAndSettle();
@@ -407,7 +411,12 @@ void main() {
       final repository = _ResultRunRepository(_repositoryCompletionResult);
 
       await tester.pumpWidget(
-        MaterialApp(home: RunLaunchScreen(repository: repository)),
+        MaterialApp(
+          home: RunLaunchScreen(
+            repository: repository,
+            enableForegroundGps: false,
+          ),
+        ),
       );
 
       await tester.tap(find.text('Start run'));
@@ -462,7 +471,12 @@ void main() {
     final repository = _FailingRunRepository(_repositoryCompletionResult);
 
     await tester.pumpWidget(
-      MaterialApp(home: RunLaunchScreen(repository: repository)),
+      MaterialApp(
+        home: RunLaunchScreen(
+          repository: repository,
+          enableForegroundGps: false,
+        ),
+      ),
     );
 
     await tester.tap(find.text('Start run'));
@@ -488,7 +502,12 @@ void main() {
     final repository = _DelayedRunRepository(_repositoryCompletionResult);
 
     await tester.pumpWidget(
-      MaterialApp(home: RunLaunchScreen(repository: repository)),
+      MaterialApp(
+        home: RunLaunchScreen(
+          repository: repository,
+          enableForegroundGps: false,
+        ),
+      ),
     );
 
     await tester.tap(find.text('Start run'));
@@ -1176,7 +1195,9 @@ void main() {
   testWidgets('Android back dismisses static Run launch surface', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const RuniacApp(showSplash: false));
+    await tester.pumpWidget(
+      const RuniacApp(showSplash: false, enableForegroundGps: false),
+    );
 
     await tester.tap(find.text('Maps'));
     await tester.pumpAndSettle();

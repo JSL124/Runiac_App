@@ -14,11 +14,13 @@ class RuniacApp extends StatelessWidget {
     this.showSplash = true,
     this.splashDuration = RuniacSplashTokens.minVisibleDuration,
     this.runRepository = const StaticRunRepository(),
+    this.enableForegroundGps = true,
   });
 
   final bool showSplash;
   final Duration splashDuration;
   final RunRepository runRepository;
+  final bool enableForegroundGps;
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +33,7 @@ class RuniacApp extends StatelessWidget {
         child: RuniacStartupGate(
           showSplash: showSplash,
           splashDuration: splashDuration,
-          child: const RuniacShell(),
+          child: RuniacShell(enableForegroundGps: enableForegroundGps),
         ),
       ),
     );

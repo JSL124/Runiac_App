@@ -1,6 +1,17 @@
 import '../models/run_location_sample.dart';
 
 abstract interface class RunLocationProvider {
+  Future<void> start({required DateTime startedAt});
+
+  Future<void> pause();
+
+  Future<void> resume({
+    required DateTime resumedAt,
+    required Duration activeOffset,
+  });
+
+  Future<void> stop();
+
   Iterable<RunLocationSample> samplesBetween({
     required Duration fromActiveOffset,
     required Duration toActiveOffset,
@@ -29,6 +40,21 @@ class ReplayRunLocationProvider implements RunLocationProvider {
   final List<RunLocationReplaySample> _samples;
 
   @override
+  Future<void> start({required DateTime startedAt}) async {}
+
+  @override
+  Future<void> pause() async {}
+
+  @override
+  Future<void> resume({
+    required DateTime resumedAt,
+    required Duration activeOffset,
+  }) async {}
+
+  @override
+  Future<void> stop() async {}
+
+  @override
   Iterable<RunLocationSample> samplesBetween({
     required Duration fromActiveOffset,
     required Duration toActiveOffset,
@@ -55,6 +81,21 @@ class ConstantSpeedRunLocationProvider implements RunLocationProvider {
   static const double _startLongitude = 103.800000;
 
   final double metersPerSecond;
+
+  @override
+  Future<void> start({required DateTime startedAt}) async {}
+
+  @override
+  Future<void> pause() async {}
+
+  @override
+  Future<void> resume({
+    required DateTime resumedAt,
+    required Duration activeOffset,
+  }) async {}
+
+  @override
+  Future<void> stop() async {}
 
   @override
   Iterable<RunLocationSample> samplesBetween({

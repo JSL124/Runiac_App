@@ -77,7 +77,9 @@ void main() {
   testWidgets('Home dashboard keeps a calm primary quick start', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const RuniacApp(showSplash: false));
+    await tester.pumpWidget(
+      const RuniacApp(showSplash: false, enableForegroundGps: false),
+    );
 
     expect(
       RuniacAssets.homeTodayPlanRunner,
@@ -224,7 +226,9 @@ void main() {
   testWidgets('Account profile preview rows stay preview-only', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const RuniacApp(showSplash: false));
+    await tester.pumpWidget(
+      const RuniacApp(showSplash: false, enableForegroundGps: false),
+    );
 
     await tester.tap(find.bySemanticsLabel('Profile'));
     await tester.pumpAndSettle();
@@ -259,7 +263,9 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(const RuniacApp(showSplash: false));
+    await tester.pumpWidget(
+      const RuniacApp(showSplash: false, enableForegroundGps: false),
+    );
 
     await tester.tap(find.bySemanticsLabel('Profile'));
     await tester.pumpAndSettle();
@@ -288,7 +294,9 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(const RuniacApp(showSplash: false));
+    await tester.pumpWidget(
+      const RuniacApp(showSplash: false, enableForegroundGps: false),
+    );
 
     expect(find.text('First 10K Preparation'), findsOneWidget);
     expect(find.text('Readiness'), findsNothing);
@@ -367,7 +375,9 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(const RuniacApp(showSplash: false));
+    await tester.pumpWidget(
+      const RuniacApp(showSplash: false, enableForegroundGps: false),
+    );
 
     expect(find.text('Recommended Routes'), findsNothing);
     expect(find.text('Community routes will appear here.'), findsNothing);
@@ -483,7 +493,9 @@ void main() {
   testWidgets('Home Quick Start opens the existing run launch screen', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const RuniacApp(showSplash: false));
+    await tester.pumpWidget(
+      const RuniacApp(showSplash: false, enableForegroundGps: false),
+    );
 
     await tester.tap(find.text('Quick Start'));
     await tester.pumpAndSettle();
@@ -497,7 +509,9 @@ void main() {
   testWidgets('Home View Plan opens today workout detail without editing', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const RuniacApp(showSplash: false));
+    await tester.pumpWidget(
+      const RuniacApp(showSplash: false, enableForegroundGps: false),
+    );
 
     await tester.tap(find.text('View Plan'));
     await tester.pumpAndSettle();

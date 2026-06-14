@@ -14,7 +14,9 @@ void _useMobileRunSurface(WidgetTester tester) {
 }
 
 Future<void> _openRunLaunch(WidgetTester tester) async {
-  await tester.pumpWidget(const RuniacApp(showSplash: false));
+  await tester.pumpWidget(
+    const RuniacApp(showSplash: false, enableForegroundGps: false),
+  );
   await tester.tap(find.text('Run'));
   await tester.pumpAndSettle();
 }
@@ -39,7 +41,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         navigatorObservers: [observer],
-        home: const RunLaunchScreen(),
+        home: const RunLaunchScreen(enableForegroundGps: false),
       ),
     );
     await tester.pumpAndSettle();
@@ -384,7 +386,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         navigatorObservers: [observer],
-        home: const RunLaunchScreen(),
+        home: const RunLaunchScreen(enableForegroundGps: false),
       ),
     );
     await tester.pumpAndSettle();

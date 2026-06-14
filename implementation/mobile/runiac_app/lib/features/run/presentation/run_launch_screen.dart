@@ -4,9 +4,14 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/runiac_bottom_sheet_handle.dart';
+import '../data/geolocator_run_location_permission_service.dart';
+import '../data/real_foreground_run_location_provider.dart';
 import '../domain/models/complete_run_result.dart';
+import '../domain/models/run_location_permission_status.dart';
 import '../domain/models/run_completion_error.dart';
 import '../domain/models/run_tracking_state.dart';
+import '../domain/repositories/run_location_permission_service.dart';
+import '../domain/repositories/run_location_provider.dart';
 import '../domain/repositories/run_repository.dart';
 import 'controllers/run_tracking_controller.dart';
 import 'cool_down_screen.dart';
@@ -37,21 +42,45 @@ enum RunSheetMode { preRun, running, paused }
 enum RunLaunchSheetExtent { expanded, collapsed }
 
 class RunLaunchScreen extends StatefulWidget {
-  const RunLaunchScreen({super.key, this.repository});
+  const RunLaunchScreen({
+    super.key,
+    this.repository,
+    this.locationProvider,
+    this.permissionService,
+    this.enableForegroundGps = true,
+  });
 
   final RunRepository? repository;
+  final RunLocationProvider? locationProvider;
+  final RunLocationPermissionService? permissionService;
+  final bool enableForegroundGps;
 
   @override
   State<RunLaunchScreen> createState() => _RunLaunchScreenState();
 }
 
 class _RunLaunchScreenState extends State<RunLaunchScreen> {
-  final RunTrackingController _controller = RunTrackingController();
+  late final RunTrackingController _controller;
   RunSheetMode _sheetMode = RunSheetMode.preRun;
   RunLaunchSheetExtent _sheetExtent = RunLaunchSheetExtent.expanded;
   double _sheetProgress = 1;
   Timer? _ticker;
   bool _isCompletingRun = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final useForegroundGps = widget.enableForegroundGps;
+    _controller = RunTrackingController(
+      locationProvider: useForegroundGps
+          ? widget.locationProvider ?? RealForegroundRunLocationProvider()
+          : widget.locationProvider,
+      permissionService: useForegroundGps
+          ? widget.permissionService ??
+                const GeolocatorRunLocationPermissionService()
+          : widget.permissionService,
+    );
+  }
 
   @override
   void dispose() {
@@ -60,14 +89,23 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
     super.dispose();
   }
 
-  void _startRun() {
+  Future<void> _startRun() async {
     if (_sheetMode != RunSheetMode.preRun) {
       return;
     }
 
     if (_controller.state.phase == RunTrackingPhase.idle ||
         _controller.state.phase == RunTrackingPhase.finished) {
-      _controller.start(routeLabel: 'Easy local route');
+      final started = await _controller.requestStart(
+        routeLabel: 'Easy local route',
+      );
+      if (!mounted) {
+        return;
+      }
+      if (!started) {
+        _showPreviewMessage(_controller.locationPermissionMessage);
+        return;
+      }
     }
 
     _ticker ??= Timer.periodic(
@@ -214,6 +252,12 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
 
   String _statusLabel(RunTrackingState state) {
     if (_sheetMode == RunSheetMode.preRun) {
+      if (_controller.locationPermissionStatus !=
+              RunLocationPermissionStatus.checking &&
+          _controller.locationPermissionStatus !=
+              RunLocationPermissionStatus.granted) {
+        return 'GPS needed';
+      }
       return 'GPS ready';
     }
 

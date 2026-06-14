@@ -7,7 +7,9 @@ import '../run/presentation/run_launch_screen.dart';
 import '../you/presentation/you_tab.dart';
 
 class RuniacShell extends StatefulWidget {
-  const RuniacShell({super.key});
+  const RuniacShell({super.key, this.enableForegroundGps = true});
+
+  final bool enableForegroundGps;
 
   @override
   State<RuniacShell> createState() => _RuniacShellState();
@@ -30,7 +32,7 @@ class _RuniacShellState extends State<RuniacShell> {
   PageRouteBuilder<void> _buildRunLaunchRoute() {
     return PageRouteBuilder<void>(
       pageBuilder: (context, animation, secondaryAnimation) {
-        return const RunLaunchScreen();
+        return RunLaunchScreen(enableForegroundGps: widget.enableForegroundGps);
       },
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
         final offsetAnimation =
