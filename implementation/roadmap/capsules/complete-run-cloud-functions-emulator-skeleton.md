@@ -12,7 +12,7 @@ Type: Backend Guarded Lane implementation capsule.
 
 ## Status
 
-Status: Active on 2026-06-14 Asia/Singapore.
+Status: Closed on 2026-06-14 Asia/Singapore.
 
 ## Required Agent Chain
 
@@ -23,6 +23,16 @@ A0_ORCH -> A11_FIREBASE_IMPL -> A13_SECURITY_RULES -> A6_REVIEW -> A12_QA_TEST -
 ## Goal
 
 Implement the first emulator-only Cloud Functions `completeRun` skeleton that accepts raw run completion input, validates it on the backend boundary, writes backend-owned completion artifacts in Firestore emulator, and returns a read-only completion result.
+
+Closure reconciliation:
+
+- M2 backend emulator skeleton is complete at `4fcbf96 feat(functions): add complete run emulator skeleton`.
+- M3 Run Repository Integration is complete at `a45b007 feat(run): add repository completion integration`.
+- M3 async completion hardening is complete at `68bebf6 fix(run): harden async completion flow`.
+- M5 FlutterFire emulator-only wiring is complete at `ff345e3 feat(run): wire complete run emulator repository`.
+- FlutterFire is currently allowed only for emulator-only `completeRun` wiring guarded by `RUNIAC_FIREBASE_EMULATOR=true`.
+- Production Firebase remains forbidden.
+- Real GPS/map tracking, real XP/streak/level formula, and leaderboard aggregation remain not done.
 
 ## Approved Scope
 
@@ -45,7 +55,8 @@ Implement the first emulator-only Cloud Functions `completeRun` skeleton that ac
 
 ## Forbidden Scope
 
-- No FlutterFire client wiring.
+- No FlutterFire production config or production Firebase wiring.
+- No FlutterFire client wiring outside the completed emulator-only `completeRun` path guarded by `RUNIAC_FIREBASE_EMULATOR=true`.
 - No Firebase deploy.
 - No production project config.
 - No `.firebaserc`.
@@ -77,14 +88,15 @@ If dependency installation is required, it must remain local/package-scoped and 
 
 ## Done When
 
-- [ ] `completeRun` callable is implemented as emulator-only Functions code.
-- [ ] Missing auth fails.
-- [ ] Valid minimal payload writes backend-owned activity, summary, and deferred progression event.
-- [ ] Missing required fields fail.
-- [ ] Invalid timestamp ordering fails.
-- [ ] Protected fields are rejected.
-- [ ] Duplicate `clientRunSessionId` is idempotent.
-- [ ] Premium user receives no XP/rank/leaderboard advantage.
-- [ ] Precise GPS/private route traces are rejected or not persisted.
-- [ ] Existing Firestore rules tests still pass or any blocker is explicitly recorded.
-- [ ] No forbidden production config, deploy, FlutterFire, secrets, or backend-owned client mutation is introduced.
+- [x] `completeRun` callable is implemented as emulator-only Functions code.
+- [x] Missing auth fails.
+- [x] Valid minimal payload writes backend-owned activity, summary, and deferred progression event.
+- [x] Missing required fields fail.
+- [x] Invalid timestamp ordering fails.
+- [x] Protected fields are rejected.
+- [x] Duplicate `clientRunSessionId` is idempotent.
+- [x] Premium user receives no XP/rank/leaderboard advantage.
+- [x] Precise GPS/private route traces are rejected or not persisted.
+- [x] Existing Firestore rules tests still pass.
+- [x] No forbidden production config, deploy, secrets, or backend-owned client mutation is introduced.
+- [x] M5 emulator-only FlutterFire repository wiring is complete with static fallback preserved.
