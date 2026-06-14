@@ -27,7 +27,7 @@ is_approved_scaffold_path() {
 
 is_forbidden_config_or_secret() {
   case "$1" in
-    firebase.json)
+    firebase.json|firestore.rules)
       return 1
       ;;
     *.env.example|*.env.*.example)

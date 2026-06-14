@@ -41,7 +41,7 @@ is_allowed_path() {
     .gitignore)
       return 0
       ;;
-    firebase.json)
+    firebase.json|firestore.rules|firestore.indexes.json|tests/firebase-rules/.gitignore|tests/firebase-rules/firestore.rules.test.mjs|tests/firebase-rules/package-lock.json|tests/firebase-rules/package.json)
       return 0
       ;;
     implementation/mobile/runiac_app/*)
@@ -55,7 +55,7 @@ is_allowed_path() {
 
 is_forbidden_path() {
   case "$1" in
-    firebase.json)
+    firebase.json|firestore.rules)
       return 1
       ;;
     *.env.example|*.env.*.example)

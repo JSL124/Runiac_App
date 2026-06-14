@@ -27,16 +27,16 @@ Allowed statuses:
 | Gate-00: Git State Baseline | APPROVED | Clean status, push baseline confirmation, no unrelated untracked/staged files, no failed traceability artifacts, explicit human/project approval evidence | Baseline readiness approved only; not scaffold execution approval. |
 | Flutter Scaffold Gate | EXECUTED FOR STOCK SCAFFOLD BASELINE | Human/project approval to create Flutter scaffold and package metadata | Stock scaffold baseline exists at `implementation/mobile/runiac_app/`; no Firebase setup or feature implementation is authorized. |
 | Firebase Project and Config Gate | PARTIALLY APPROVED FOR EMULATOR-ONLY ROOT FIREBASE.JSON | Human/project approval for Firebase project/config approach | Root `firebase.json` is approved only for the `firebase-emulator-shell` Firestore emulator shell; no production project, `.firebaserc`, mobile config, rules, indexes, or Functions are approved. |
-| Firestore Data Model Gate | Not Started | Approved collection/access model and traceability to requirements | No collections/rules created yet. |
+| Firestore Data Model Gate | PARTIALLY APPROVED FOR EMULATOR-ONLY RULES DRAFT AND SYNTHETIC RULES TESTS | Approved collection/access model and traceability to requirements | Limited first-pass collection/access model for emulator rules only; no production project, deployment, Cloud Functions, Flutter wiring, real Auth integration, backend-owned state logic, or real GPS/private route data. |
 | Cloud Functions Boundary Gate | Not Started | Approved backend ownership boundaries | No functions source, package files, or TypeScript config yet. |
-| Firestore Security Rules Gate | Not Started | Approved rules strategy and emulator test plan | No rules files yet. |
+| Firestore Security Rules Gate | PARTIALLY APPROVED FOR EMULATOR-ONLY RULES DRAFT AND SYNTHETIC RULES TESTS | Approved rules strategy and emulator test plan | Limited to local `firestore.rules`, `firestore.indexes.json`, and synthetic emulator rules tests; no production rules deployment or production Firebase project. |
 | Secret / API Key / Environment Handling Gate | Not Started | Approved secret-handling process and `.gitignore` checks | No `.env*` or service account files. |
 | GPS and Location Privacy Gate | Not Started | Approved privacy masking and test-data policy | No private route fixtures. |
 | XP / Streak / Level / Leaderboard Backend Ownership Gate | Not Started | Approved backend-only write policy and test strategy | No client writes to trusted fields. |
 | Basic/Premium Access-Control Gate | Not Started | Approved `subscriptionStatus` enforcement plan | UI hiding alone is insufficient. |
 | userRole and Expert Plan Governance Gate | Not Started | Approved role/governance transition plan | Platform Administrator remains authority. |
 | AI/LLM Boundary Gate | Not Started | Approved future summary boundary and safety constraints | No LLM scoring/ranking. |
-| Testing and Evidence Gate | Not Started | Approved test/evidence minimum set | No production tests created by this doc. |
+| Testing and Evidence Gate | PARTIALLY APPROVED FOR EMULATOR-ONLY FIRESTORE RULES TESTS | Approved test/evidence minimum set | Limited to synthetic root `tests/firebase-rules` emulator rules tests for this capsule; no production test services, secrets, real Auth, or real GPS/private route fixtures. |
 
 ## 4. Gate-00: Git State Baseline
 
@@ -142,7 +142,14 @@ Approval evidence required:
 
 ## 7. Firestore Data Model Gate
 
-Status: `Not Started`
+Status: `PARTIALLY APPROVED FOR EMULATOR-ONLY RULES DRAFT AND SYNTHETIC RULES TESTS`
+
+Approved exception:
+
+- Root `firestore.rules` and `firestore.indexes.json` are approved only for the `firestore-schema-rules-draft` emulator-only capsule.
+- The initial collection/access model is a first-pass rules draft for local emulator development.
+- Synthetic root `tests/firebase-rules` coverage may exercise owner access, subscription gating, route privacy, enrollment requests, and backend-owned write denial.
+- No production Firebase project, rules deployment, `.firebaserc`, mobile Firebase config, Cloud Functions, Flutter Firebase wiring, real Auth integration, backend-owned state logic implementation, secrets, service accounts, or real GPS/private route fixtures are approved.
 
 Required evidence before approval:
 
@@ -179,13 +186,22 @@ Approval evidence required:
 
 ## 9. Firestore Security Rules Gate
 
-Status: `Not Started`
+Status: `PARTIALLY APPROVED FOR EMULATOR-ONLY RULES DRAFT AND SYNTHETIC RULES TESTS`
 
-Blocked until approved:
+Approved exception:
 
-- No Firestore rules.
+- Root `firestore.rules` is approved as a local emulator-only draft for `firestore-schema-rules-draft`.
+- Emulator tests under `tests/firebase-rules` are approved only with synthetic users, synthetic route metadata, and no private GPS traces.
+- The draft must default deny, use owner checks, deny client writes to backend-owned fields, and enforce Premium-only expert plan access through backend-owned `subscriptionStatus`.
+
+Still blocked until separately approved:
+
 - No Storage rules.
 - No rules deployment.
+- No production Firebase project.
+- No FlutterFire/mobile config.
+- No Cloud Functions or backend-owned state transition logic.
+- No real Auth/Firestore app wiring.
 
 Required evidence before approval:
 
@@ -280,7 +296,12 @@ Approval evidence required:
 
 ## 11. GPS and Location Privacy Gate
 
-Status: `Not Started`
+Status: `PARTIALLY APPROVED FOR EMULATOR-ONLY FIRESTORE RULES TESTS`
+
+Approved exception:
+
+- Synthetic Firestore Emulator Rules Tests under `tests/firebase-rules` are approved for `firestore-schema-rules-draft`.
+- Fixture data must remain synthetic and must not include real GPS traces, private route coordinates, secrets, service accounts, production project IDs, or real user data.
 
 Required evidence before approval:
 
@@ -408,6 +429,7 @@ Still forbidden until relevant gates are approved:
 | 2026-05-24 | Gate-00: Git State Baseline | `Drafted` to `Under Review` | A0_ORCH based on `git status --short` clean output, `git status -sb` showing `main...origin/main`, and latest traceability setup commit `30c55b5 docs(traceability): add phase 1 implementation prep gates` present locally | Historical note from the 2026-05-24 transition. Current Gate-00 approval evidence is recorded below. |
 | 2026-05-24 | Phase 1 traceability docs | Created as `Drafted` | User approved creation of `requirements-map.md` and `setup-gates.md` only | Does not approve scaffolding or implementation. LLM/agent-generated decisions alone are not approval. |
 | 2026-06-14 | Firebase Project and Config Gate | `Not Started` to `PARTIALLY APPROVED FOR EMULATOR-ONLY ROOT FIREBASE.JSON` | Lee Jinseo approved the chat phrase for Firebase Project and Config Gate emulator-only setup; capsule: `firebase-emulator-shell`; commit reference: commit pending | Approval is limited to root `firebase.json` for Firestore emulator only. Validation evidence: transient `npx firebase-tools@14`, Firestore emulator hub check, Governance CI pass, and direct forbidden artifact scan. Latest `firebase-tools` required Java 21; current smoke validation used transient `firebase-tools@14.27.0`. Java 21/tooling upgrade is future work and is not approved by this capsule. |
+| 2026-06-14 | Firestore Data Model Gate / Firestore Security Rules Gate / Testing and Evidence Gate | `Not Started` to `PARTIALLY APPROVED FOR EMULATOR-ONLY RULES DRAFT AND SYNTHETIC RULES TESTS` | Lee Jinseo approved implementation of the `firestore-schema-rules-draft` capsule in chat; commit reference: pending | Approval is limited to local `firestore.rules`, `firestore.indexes.json`, root `tests/firebase-rules` package/tests, and governance allowlist alignment for those files. It does not approve production Firebase, `.firebaserc`, FlutterFire/mobile config, Cloud Functions, Flutter app wiring, real Auth integration, backend-owned state logic implementation, secrets/service accounts, deploys, or real GPS/private route fixtures. |
 
 ### Gate-00 Approval Evidence
 

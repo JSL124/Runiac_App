@@ -1,0 +1,270 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function hasOnlyAllowedKeys(allowedKeys) {
+      return request.resource.data.keys().hasOnly(allowedKeys);
+    }
+
+    function changesOnlyAllowedKeys(allowedKeys) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(allowedKeys);
+    }
+
+    function backendOwnedKeys() {
+      return [
+        'xp',
+        'totalXp',
+        'totalXP',
+        'weeklyXp',
+        'weeklyXP',
+        'monthlyXp',
+        'monthlyXP',
+        'streak',
+        'streakCount',
+        'level',
+        'rank',
+        'leaderboardScore',
+        'scoreXp',
+        'scoreXP',
+        'subscriptionStatus',
+        'subscriptionPrivilegeState',
+        'userRole',
+        'adminPrivilegeState',
+        'expertPrivilegeState',
+        'expertPlanPublicationState',
+        'validationStatus',
+        'validatedActivityContributionState',
+        'countsTowardProgression',
+        'backendSchedulingStatus',
+        'lastScheduledAt',
+        'deliveryState',
+        'serverManagedTokenState',
+        'moderationStatus',
+        'resolutionStatus',
+        'publishedAt',
+        'approvedAt',
+        'reviewedByAdminId',
+        'publishedByAdminId'
+      ];
+    }
+
+    function doesNotTouchBackendOwnedKeys() {
+      return !request.resource.data.keys().hasAny(backendOwnedKeys());
+    }
+
+    function doesNotChangeBackendOwnedKeys() {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(backendOwnedKeys());
+    }
+
+    function isPremiumUser() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.subscriptionStatus == 'premium';
+    }
+
+    function isPublishedExpertPlan(planId) {
+      return exists(/databases/$(database)/documents/expertPlans/$(planId))
+        && get(/databases/$(database)/documents/expertPlans/$(planId)).data.status == 'published';
+    }
+
+    match /users/{uid} {
+      allow read: if isOwner(uid);
+      allow create, update, delete: if false;
+    }
+
+    match /userProfiles/{uid} {
+      allow read: if isOwner(uid);
+      allow create: if isOwner(uid)
+        && hasOnlyAllowedKeys([
+          'displayName',
+          'avatarInitials',
+          'locationLabel',
+          'fitnessLevel',
+          'goals',
+          'availability',
+          'planCautiousness',
+          'healthSafetyReadiness',
+          'updatedAt'
+        ])
+        && doesNotTouchBackendOwnedKeys();
+      allow update: if isOwner(uid)
+        && changesOnlyAllowedKeys([
+          'displayName',
+          'avatarInitials',
+          'locationLabel',
+          'fitnessLevel',
+          'goals',
+          'availability',
+          'planCautiousness',
+          'healthSafetyReadiness',
+          'updatedAt'
+        ])
+        && doesNotChangeBackendOwnedKeys();
+      allow delete: if false;
+    }
+
+    match /activities/{activityId} {
+      allow read: if isSignedIn() && resource.data.ownerUid == request.auth.uid;
+      allow create: if isSignedIn()
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.status == 'pending'
+        && hasOnlyAllowedKeys([
+          'ownerUid',
+          'status',
+          'source',
+          'activityType',
+          'startedAt',
+          'endedAt',
+          'durationSeconds',
+          'distanceMeters',
+          'averagePaceSecondsPerKm',
+          'routePrivacy',
+          'createdAt',
+          'updatedAt'
+        ])
+        && doesNotTouchBackendOwnedKeys();
+      allow update: if isSignedIn()
+        && resource.data.ownerUid == request.auth.uid
+        && request.resource.data.ownerUid == request.auth.uid
+        && resource.data.status == 'pending'
+        && request.resource.data.status == 'pending'
+        && changesOnlyAllowedKeys([
+          'ownerUid',
+          'status',
+          'source',
+          'activityType',
+          'startedAt',
+          'endedAt',
+          'durationSeconds',
+          'distanceMeters',
+          'averagePaceSecondsPerKm',
+          'routePrivacy',
+          'createdAt',
+          'updatedAt'
+        ])
+        && doesNotTouchBackendOwnedKeys()
+        && doesNotChangeBackendOwnedKeys();
+      allow delete: if false;
+    }
+
+    match /runSummaries/{summaryId} {
+      allow read: if isSignedIn() && resource.data.ownerUid == request.auth.uid;
+      allow create, update, delete: if false;
+    }
+
+    match /progressionEvents/{eventId} {
+      allow read: if isSignedIn() && resource.data.ownerUid == request.auth.uid;
+      allow create, update, delete: if false;
+    }
+
+    match /leaderboardSnapshots/{snapshotId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if false;
+    }
+
+    match /sharedRoutes/{routeId} {
+      allow read: if isSignedIn()
+        && (resource.data.ownerUid == request.auth.uid
+          || resource.data.visibilityStatus == 'published');
+      allow create: if isSignedIn()
+        && request.resource.data.ownerUid == request.auth.uid
+        && hasOnlyAllowedKeys([
+          'ownerUid',
+          'title',
+          'description',
+          'distanceMeters',
+          'estimatedDurationSeconds',
+          'difficulty',
+          'regionLabel',
+          'visibilityStatus',
+          'createdAt',
+          'updatedAt'
+        ])
+        && request.resource.data.visibilityStatus in ['private', 'draft']
+        && doesNotTouchBackendOwnedKeys();
+      allow update, delete: if false;
+    }
+
+    match /expertPlans/{planId} {
+      allow read: if isPremiumUser() && resource.data.status == 'published';
+      allow create, update, delete: if false;
+    }
+
+    match /planEnrollments/{enrollmentId} {
+      allow read: if isSignedIn() && resource.data.ownerUid == request.auth.uid;
+      allow create: if isSignedIn()
+        && isPremiumUser()
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.status == 'pending'
+        && isPublishedExpertPlan(request.resource.data.planId)
+        && hasOnlyAllowedKeys([
+          'ownerUid',
+          'planId',
+          'planType',
+          'status',
+          'requestedAt'
+        ])
+        && doesNotTouchBackendOwnedKeys();
+      allow update, delete: if false;
+    }
+
+    match /reports/{reportId} {
+      allow read: if isSignedIn() && resource.data.reporterUid == request.auth.uid;
+      allow create: if isSignedIn()
+        && request.resource.data.reporterUid == request.auth.uid
+        && hasOnlyAllowedKeys([
+          'reporterUid',
+          'targetType',
+          'targetId',
+          'reason',
+          'description',
+          'createdAt'
+        ])
+        && doesNotTouchBackendOwnedKeys();
+      allow update, delete: if false;
+    }
+
+    match /notificationPreferences/{uid} {
+      allow read: if isOwner(uid);
+      allow create: if isOwner(uid)
+        && request.resource.data.ownerUid == uid
+        && hasOnlyAllowedKeys([
+          'ownerUid',
+          'runReminderEnabled',
+          'restReminderEnabled',
+          'streakRiskEnabled',
+          'reminderTime',
+          'quietHoursStart',
+          'quietHoursEnd',
+          'updatedAt'
+        ])
+        && doesNotTouchBackendOwnedKeys();
+      allow update: if isOwner(uid)
+        && request.resource.data.ownerUid == uid
+        && changesOnlyAllowedKeys([
+          'ownerUid',
+          'runReminderEnabled',
+          'restReminderEnabled',
+          'streakRiskEnabled',
+          'reminderTime',
+          'quietHoursStart',
+          'quietHoursEnd',
+          'updatedAt'
+        ])
+        && doesNotChangeBackendOwnedKeys();
+      allow delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
