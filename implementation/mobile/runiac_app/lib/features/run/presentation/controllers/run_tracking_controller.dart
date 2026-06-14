@@ -2,13 +2,23 @@ import 'package:flutter/foundation.dart';
 
 import '../../domain/models/local_run_completion_payload.dart';
 import '../../domain/models/run_tracking_state.dart';
+import '../../domain/repositories/run_location_provider.dart';
+import '../../domain/services/local_run_tracking_session.dart';
 
 class RunTrackingController extends ChangeNotifier {
-  RunTrackingController({this.metersPerSecond = 2.4});
+  RunTrackingController({
+    double metersPerSecond = 2.4,
+    RunLocationProvider? locationProvider,
+  }) : metersPerSecond = metersPerSecond,
+       _locationProvider =
+           locationProvider ??
+           ConstantSpeedRunLocationProvider(metersPerSecond: metersPerSecond);
 
   final double metersPerSecond;
+  final RunLocationProvider _locationProvider;
 
   RunTrackingState _state = const RunTrackingState.idle();
+  LocalRunTrackingSession? _trackingSession;
   int _sessionSequence = 0;
 
   RunTrackingState get state => _state;
@@ -20,18 +30,21 @@ class RunTrackingController extends ChangeNotifier {
     String? routeLabel,
   }) {
     _sessionSequence += 1;
+    final effectiveStartedAt = startedAt ?? DateTime.now();
+    final session = LocalRunTrackingSession(startedAt: effectiveStartedAt);
+    _trackingSession = session;
     _state = RunTrackingState(
       phase: RunTrackingPhase.active,
       clientRunSessionId:
           clientRunSessionId ?? 'local-run-${_sessionSequence.toString()}',
-      startedAt: startedAt ?? DateTime.now(),
+      startedAt: effectiveStartedAt,
       completedAt: null,
       elapsedSeconds: 0,
       distanceMeters: 0,
       averagePaceSecondsPerKm: 0,
       routePrivacy: routePrivacy,
       routeLabel: routeLabel,
-      source: 'local_simulation',
+      source: session.source,
     );
     notifyListeners();
   }
@@ -41,16 +54,25 @@ class RunTrackingController extends ChangeNotifier {
       return;
     }
 
-    final elapsedSeconds = _state.elapsedSeconds + delta.inSeconds;
-    final distanceMeters = (elapsedSeconds * metersPerSecond).round();
-    final averagePaceSecondsPerKm = distanceMeters <= 0
-        ? 0
-        : (elapsedSeconds / (distanceMeters / 1000)).floor();
+    final session = _trackingSession;
+    final startedAt = _state.startedAt;
+    if (session == null || startedAt == null) {
+      return;
+    }
+
+    final fromActiveOffset = Duration(seconds: session.activeDurationSeconds);
+    final toActiveOffset = fromActiveOffset + delta;
+    final samples = _locationProvider.samplesBetween(
+      fromActiveOffset: fromActiveOffset,
+      toActiveOffset: toActiveOffset,
+      startedAt: startedAt,
+    );
+    session.advanceBy(delta, samples: samples);
 
     _state = _state.copyWith(
-      elapsedSeconds: elapsedSeconds,
-      distanceMeters: distanceMeters,
-      averagePaceSecondsPerKm: averagePaceSecondsPerKm,
+      elapsedSeconds: session.activeDurationSeconds,
+      distanceMeters: session.distanceMeters,
+      averagePaceSecondsPerKm: session.averagePaceSecondsPerKm,
     );
     notifyListeners();
   }
@@ -60,6 +82,7 @@ class RunTrackingController extends ChangeNotifier {
       return;
     }
 
+    _trackingSession?.pause();
     _state = _state.copyWith(phase: RunTrackingPhase.paused);
     notifyListeners();
   }
@@ -69,6 +92,7 @@ class RunTrackingController extends ChangeNotifier {
       return;
     }
 
+    _trackingSession?.resume();
     _state = _state.copyWith(phase: RunTrackingPhase.active);
     notifyListeners();
   }
