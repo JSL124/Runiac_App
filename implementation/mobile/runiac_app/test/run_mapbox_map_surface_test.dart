@@ -8,6 +8,7 @@ import 'package:runiac_app/features/run/domain/models/run_location_sample.dart';
 import 'package:runiac_app/features/run/domain/models/run_map_view_state.dart';
 import 'package:runiac_app/features/run/presentation/widgets/run_map_placeholder.dart';
 import 'package:runiac_app/features/run/presentation/widgets/run_mapbox_geometry.dart';
+import 'package:runiac_app/features/run/presentation/widgets/run_mapbox_run_map.dart';
 import 'package:runiac_app/features/run/presentation/widgets/run_mapbox_surface_config.dart';
 import 'package:runiac_app/features/run/presentation/widgets/run_tracking_map_surface.dart';
 
@@ -302,6 +303,123 @@ void main() {
     });
   });
 
+  group('RunMapboxStyleReadySyncController', () {
+    test('defers native sync until the Mapbox style is loaded', () async {
+      final target = _FakeRunMapboxSyncTarget();
+      final controller = RunMapboxStyleReadySyncController(
+        RunMapboxSyncCoordinator(target),
+      );
+
+      await controller.sync(_syncRequest(1.300899));
+
+      expect(target.appliedLatitudes, isEmpty);
+
+      await controller.markStyleLoaded();
+
+      expect(target.appliedLatitudes, <double>[1.300899]);
+    });
+
+    test(
+      'applies only the latest pending state when style becomes ready',
+      () async {
+        final target = _FakeRunMapboxSyncTarget();
+        final controller = RunMapboxStyleReadySyncController(
+          RunMapboxSyncCoordinator(target),
+        );
+
+        await controller.sync(
+          const RunMapboxSyncRequest(
+            mapViewState: RunMapViewState.empty(),
+            isFollowingRunner: true,
+          ),
+        );
+        await controller.sync(_syncRequest(1.301234));
+
+        await controller.markStyleLoaded();
+
+        expect(target.appliedLatitudes, <double>[1.301234]);
+      },
+    );
+
+    test('syncs null-to-non-null currentPosition after style load', () async {
+      final target = _FakeRunMapboxSyncTarget();
+      final controller = RunMapboxStyleReadySyncController(
+        RunMapboxSyncCoordinator(target),
+      );
+
+      await controller.markStyleLoaded();
+      await controller.sync(
+        const RunMapboxSyncRequest(
+          mapViewState: RunMapViewState.empty(),
+          isFollowingRunner: true,
+        ),
+      );
+      await controller.sync(_syncRequest(1.302345));
+
+      expect(target.appliedLatitudes, <double?>[null, 1.302345]);
+    });
+
+    test('syncs marker state even when camera follow is disabled', () async {
+      final target = _FakeRunMapboxSyncTarget();
+      final controller = RunMapboxStyleReadySyncController(
+        RunMapboxSyncCoordinator(target),
+      );
+      await controller.markStyleLoaded();
+
+      await controller.sync(
+        RunMapboxSyncRequest(
+          mapViewState: _viewStateWithCurrentPosition(1.303456),
+          isFollowingRunner: false,
+        ),
+      );
+
+      expect(target.appliedLatitudes, <double>[1.303456]);
+      expect(target.appliedFollowStates, <bool>[false]);
+    });
+  });
+
+  group('RunMapboxRunnerMarkerAnnotation', () {
+    test('does not create a runner marker without currentPosition', () {
+      expect(
+        RunMapboxRunnerMarkerAnnotation.fromViewState(
+          const RunMapViewState.empty(),
+        ),
+        isNull,
+      );
+    });
+
+    test('does not use fallback camera coordinates as runner marker', () {
+      final fallbackCamera = RunMapboxCameraRequest.initialForMapViewState(
+        const RunMapViewState.empty(),
+      );
+
+      expect(fallbackCamera.center, RunMapboxCameraRequest.fallbackCenter);
+      expect(
+        RunMapboxRunnerMarkerAnnotation.fromViewState(
+          const RunMapViewState.empty(),
+        ),
+        isNull,
+      );
+    });
+
+    test('creates a visible runner circle from currentPosition', () {
+      final options = RunMapboxRunnerMarkerAnnotation.fromViewState(
+        _viewStateWithCurrentPosition(1.300899, longitude: 103.812345),
+      );
+
+      expect(options, isNotNull);
+      expect(options!.circleRadius, 12);
+      expect(options.circleStrokeWidth, 4);
+      expect(options.circleSortKey, 1000);
+      expect(options.circleColor, const Color(0xFFFF6818).toARGB32());
+      expect(options.circleStrokeColor, Colors.white.toARGB32());
+      expect(options.geometry.toJson()['coordinates'], <double>[
+        103.812345,
+        1.300899,
+      ]);
+    });
+  });
+
   group('RunMapboxGeometry', () {
     test('initial camera uses current position when GPS is available', () {
       // Given: a run map state with a current GPS sample.
@@ -422,25 +540,34 @@ void main() {
 
 RunMapboxSyncRequest _syncRequest(double latitude) {
   return RunMapboxSyncRequest(
-    mapViewState: RunMapViewState(
-      currentPosition: RunLocationSample(
-        recordedAt: DateTime.utc(2026, 6, 14, 7),
-        latitude: latitude,
-        longitude: 103.8,
-      ),
-    ),
+    mapViewState: _viewStateWithCurrentPosition(latitude),
     isFollowingRunner: true,
   );
 }
 
+RunMapViewState _viewStateWithCurrentPosition(
+  double latitude, {
+  double longitude = 103.8,
+}) {
+  return RunMapViewState(
+    currentPosition: RunLocationSample(
+      recordedAt: DateTime.utc(2026, 6, 14, 7),
+      latitude: latitude,
+      longitude: longitude,
+    ),
+  );
+}
+
 class _FakeRunMapboxSyncTarget implements RunMapboxSyncTarget {
-  final List<double> appliedLatitudes = <double>[];
+  final List<double?> appliedLatitudes = <double?>[];
+  final List<bool> appliedFollowStates = <bool>[];
   Completer<void>? nextBlocker;
   int disposeCalls = 0;
 
   @override
   Future<void> apply(RunMapboxSyncRequest request) async {
-    appliedLatitudes.add(request.mapViewState.currentPosition?.latitude ?? 0);
+    appliedLatitudes.add(request.mapViewState.currentPosition?.latitude);
+    appliedFollowStates.add(request.isFollowingRunner);
     final blocker = nextBlocker;
     nextBlocker = null;
     if (blocker != null) {

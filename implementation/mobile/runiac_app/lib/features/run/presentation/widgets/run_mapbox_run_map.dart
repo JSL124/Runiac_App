@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
+import '../../domain/models/run_location_sample.dart';
 import '../../domain/models/run_map_view_state.dart';
 import 'run_map_placeholder.dart';
 import 'run_mapbox_geometry.dart';
@@ -21,7 +22,8 @@ class RunMapboxRunMap extends StatefulWidget {
 }
 
 class _RunMapboxRunMapState extends State<RunMapboxRunMap> {
-  RunMapboxSyncCoordinator? _syncCoordinator;
+  RunMapboxStyleReadySyncController? _syncController;
+  bool _styleLoaded = false;
   bool _disposed = false;
 
   @override
@@ -46,10 +48,10 @@ class _RunMapboxRunMapState extends State<RunMapboxRunMap> {
   @override
   void dispose() {
     _disposed = true;
-    final coordinator = _syncCoordinator;
-    _syncCoordinator = null;
-    if (coordinator != null) {
-      unawaited(coordinator.dispose().catchError((Object _) {}));
+    final controller = _syncController;
+    _syncController = null;
+    if (controller != null) {
+      unawaited(controller.dispose().catchError((Object _) {}));
     }
     super.dispose();
   }
@@ -61,14 +63,27 @@ class _RunMapboxRunMapState extends State<RunMapboxRunMap> {
     }
 
     final adapter = RunMapboxNativeMapAdapter(mapboxMap);
-    final coordinator = RunMapboxSyncCoordinator(adapter);
+    final controller = RunMapboxStyleReadySyncController(
+      RunMapboxSyncCoordinator(adapter),
+    );
     if (_disposed) {
-      await coordinator.dispose();
+      await controller.dispose();
       return;
     }
 
-    _syncCoordinator = coordinator;
+    _syncController = controller;
+    if (_styleLoaded) {
+      await controller.markStyleLoaded();
+    }
     await _syncCurrentMap();
+  }
+
+  void _handleStyleLoaded(StyleLoadedEventData event) {
+    _styleLoaded = true;
+    final controller = _syncController;
+    if (controller != null) {
+      unawaited(controller.markStyleLoaded());
+    }
   }
 
   Future<void> _configureMapboxOrnaments(MapboxMap mapboxMap) async {
@@ -92,12 +107,12 @@ class _RunMapboxRunMapState extends State<RunMapboxRunMap> {
   }
 
   Future<void> _syncCurrentMap({bool animateCamera = false}) {
-    final coordinator = _syncCoordinator;
-    if (coordinator == null) {
+    final controller = _syncController;
+    if (controller == null) {
       return Future<void>.value();
     }
 
-    return coordinator.sync(
+    return controller.sync(
       RunMapboxSyncRequest(
         mapViewState: widget.config.mapViewState,
         isFollowingRunner: widget.config.isFollowingRunner,
@@ -145,6 +160,7 @@ class _RunMapboxRunMapState extends State<RunMapboxRunMap> {
             styleUri: MapboxStyles.MAPBOX_STREETS,
             viewport: _initialViewport(),
             onMapCreated: _onMapCreated,
+            onStyleLoadedListener: _handleStyleLoaded,
             onScrollListener: _handleManualScroll,
           ),
         ),
@@ -158,6 +174,51 @@ class _RunMapboxRunMapState extends State<RunMapboxRunMap> {
           ),
       ],
     );
+  }
+}
+
+class RunMapboxStyleReadySyncController {
+  RunMapboxStyleReadySyncController(this._coordinator);
+
+  final RunMapboxSyncCoordinator _coordinator;
+  RunMapboxSyncRequest? _latestRequest;
+  bool _styleLoaded = false;
+  bool _disposed = false;
+
+  Future<void> sync(RunMapboxSyncRequest request) {
+    if (_disposed) {
+      return Future<void>.value();
+    }
+
+    _latestRequest = request;
+    if (!_styleLoaded) {
+      return Future<void>.value();
+    }
+    return _flushLatest();
+  }
+
+  Future<void> markStyleLoaded() {
+    if (_disposed) {
+      return Future<void>.value();
+    }
+
+    _styleLoaded = true;
+    return _flushLatest();
+  }
+
+  Future<void> dispose() {
+    _disposed = true;
+    _latestRequest = null;
+    return _coordinator.dispose();
+  }
+
+  Future<void> _flushLatest() {
+    final request = _latestRequest;
+    _latestRequest = null;
+    if (request == null) {
+      return Future<void>.value();
+    }
+    return _coordinator.sync(request);
   }
 }
 
@@ -181,12 +242,12 @@ class RunMapboxNativeMapAdapter implements RunMapboxSyncTarget {
       return;
     }
 
-    await _syncRunnerMarker(request.mapViewState);
+    await _syncRouteSegments(request.mapViewState);
     if (_disposed) {
       return;
     }
 
-    await _syncRouteSegments(request.mapViewState);
+    await _syncRunnerMarker(request.mapViewState);
     if (!_disposed && (request.isFollowingRunner || request.animateCamera)) {
       await _moveCamera(request.mapViewState, animated: request.animateCamera);
     }
@@ -215,10 +276,10 @@ class RunMapboxNativeMapAdapter implements RunMapboxSyncTarget {
   }
 
   Future<void> _ensureAnnotationManagers() async {
-    _runnerManager ??= await _mapboxMap.annotations
-        .createCircleAnnotationManager();
     _routeManager ??= await _mapboxMap.annotations
         .createPolylineAnnotationManager();
+    _runnerManager ??= await _mapboxMap.annotations
+        .createCircleAnnotationManager();
   }
 
   Future<void> _syncRunnerMarker(RunMapViewState mapViewState) async {
@@ -233,17 +294,8 @@ class RunMapboxNativeMapAdapter implements RunMapboxSyncTarget {
       return;
     }
 
-    final coordinate = RunMapboxCoordinate.fromSample(currentPosition);
     await runnerManager.create(
-      CircleAnnotationOptions(
-        geometry: Point(
-          coordinates: Position(coordinate.longitude, coordinate.latitude),
-        ),
-        circleColor: _runnerOrange.toARGB32(),
-        circleRadius: 12,
-        circleStrokeColor: Colors.white.toARGB32(),
-        circleStrokeWidth: 4,
-      ),
+      RunMapboxRunnerMarkerAnnotation.fromSample(currentPosition),
     );
   }
 
@@ -304,5 +356,29 @@ class RunMapboxNativeMapAdapter implements RunMapboxSyncTarget {
       return;
     }
     await _mapboxMap.setCamera(camera);
+  }
+}
+
+class RunMapboxRunnerMarkerAnnotation {
+  static CircleAnnotationOptions? fromViewState(RunMapViewState mapViewState) {
+    final currentPosition = mapViewState.currentPosition;
+    if (currentPosition == null) {
+      return null;
+    }
+    return fromSample(currentPosition);
+  }
+
+  static CircleAnnotationOptions fromSample(RunLocationSample currentPosition) {
+    final coordinate = RunMapboxCoordinate.fromSample(currentPosition);
+    return CircleAnnotationOptions(
+      geometry: Point(
+        coordinates: Position(coordinate.longitude, coordinate.latitude),
+      ),
+      circleSortKey: 1000,
+      circleColor: _runnerOrange.toARGB32(),
+      circleRadius: 12,
+      circleStrokeColor: Colors.white.toARGB32(),
+      circleStrokeWidth: 4,
+    );
   }
 }
