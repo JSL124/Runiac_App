@@ -1,6 +1,5 @@
 import 'run_tracking_state.dart';
-
-const _livePaceDistanceThresholdMeters = 50;
+import 'run_tracking_startup_readiness.dart';
 
 class RunTrackingSnapshot {
   const RunTrackingSnapshot({
@@ -13,19 +12,22 @@ class RunTrackingSnapshot {
     required this.planProgressPercentLabel,
     required this.planProgressValue,
     required this.guidance,
+    required this.startupReadiness,
+    required this.startupReadinessMessage,
   });
 
   factory RunTrackingSnapshot.fromState(RunTrackingState state) {
     const targetDistanceMeters = 4500;
     final planProgressValue = (state.distanceMeters / targetDistanceMeters)
         .clamp(0.0, 1.0);
+    final startupReadiness = startupReadinessForState(state);
 
     return RunTrackingSnapshot(
       elapsedTimeLabel: _formatElapsed(state.elapsedSeconds),
       distanceLabel: _formatDistance(state.distanceMeters),
       distanceValueLabel: _formatDistanceValue(state.distanceMeters),
       distanceUnitLabel: 'km',
-      averagePaceLabel: state.distanceMeters < _livePaceDistanceThresholdMeters
+      averagePaceLabel: state.distanceMeters < livePaceReadinessThresholdMeters
           ? '--:--/km'
           : _formatPace(state.averagePaceSecondsPerKm),
       planProgressLabel:
@@ -37,6 +39,8 @@ class RunTrackingSnapshot {
           : state.elapsedSeconds < 30
           ? 'Easy effort is enough.'
           : 'Keep it comfortable.',
+      startupReadiness: startupReadiness,
+      startupReadinessMessage: startupReadiness.beginnerMessage,
     );
   }
 
@@ -49,6 +53,8 @@ class RunTrackingSnapshot {
   final String planProgressPercentLabel;
   final double planProgressValue;
   final String guidance;
+  final RunTrackingStartupReadiness startupReadiness;
+  final String? startupReadinessMessage;
 }
 
 String _formatElapsed(int seconds) {

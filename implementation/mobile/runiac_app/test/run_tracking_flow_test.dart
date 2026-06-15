@@ -182,6 +182,10 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
 
     expect(find.text('GPS active'), findsOneWidget);
+    expect(
+      find.text('GPS is ready. Start moving to measure distance.'),
+      findsOneWidget,
+    );
     expect(find.text('Demo mode'), findsNothing);
     expect(tester.takeException(), isNull);
   });
@@ -217,6 +221,10 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
 
     expect(find.text('GPS weak'), findsOneWidget);
+    expect(
+      find.text('GPS signal is weak. Keep moving in an open area.'),
+      findsOneWidget,
+    );
     expect(find.text('Demo mode'), findsNothing);
     expect(tester.takeException(), isNull);
   });

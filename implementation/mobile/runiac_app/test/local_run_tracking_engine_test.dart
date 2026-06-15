@@ -1,6 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/features/run/domain/models/run_location_sample.dart';
 import 'package:runiac_app/features/run/domain/models/run_tracking_diagnostics.dart';
+import 'package:runiac_app/features/run/domain/models/run_tracking_snapshot.dart';
+import 'package:runiac_app/features/run/domain/models/run_tracking_startup_readiness.dart';
+import 'package:runiac_app/features/run/domain/models/run_tracking_state.dart';
 import 'package:runiac_app/features/run/domain/services/local_run_tracking_session.dart';
 import 'package:runiac_app/features/run/domain/services/run_distance_calculator.dart';
 
@@ -118,6 +121,131 @@ void main() {
   });
 
   group('LocalRunTrackingSession', () {
+    test('keeps the first accepted GPS sample as a zero-distance anchor', () {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      final session = LocalRunTrackingSession(startedAt: startedAt);
+
+      session.advanceBy(
+        const Duration(seconds: 1),
+        samples: [
+          sampleAt(
+            startedAt,
+            1,
+            latitude: 1.300000,
+            longitude: 103.800000,
+            horizontalAccuracyMeters: 5,
+          ),
+        ],
+      );
+
+      final snapshot = RunTrackingSnapshot.fromState(
+        RunTrackingState(
+          phase: RunTrackingPhase.active,
+          clientRunSessionId: 'anchor-readiness',
+          startedAt: startedAt,
+          completedAt: null,
+          elapsedSeconds: session.activeDurationSeconds,
+          distanceMeters: session.distanceMeters,
+          averagePaceSecondsPerKm: session.averagePaceSecondsPerKm,
+          routePrivacy: 'private',
+          source: session.source,
+          locationStatus: RunTrackingLocationStatus.gpsActive,
+          diagnostics: session.diagnostics,
+        ),
+      );
+
+      expect(session.acceptedSampleCount, 1);
+      expect(session.distanceMeters, 0);
+      expect(session.averagePaceSecondsPerKm, 0);
+      expect(
+        snapshot.startupReadiness,
+        RunTrackingStartupReadiness.anchoredNoMovement,
+      );
+      expect(snapshot.averagePaceLabel, '--:--/km');
+    });
+
+    test('uses one 50m movement threshold for startup pace readiness', () {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      final session = LocalRunTrackingSession(startedAt: startedAt);
+
+      session.advanceBy(
+        const Duration(seconds: 20),
+        samples: [
+          sampleAt(
+            startedAt,
+            0,
+            latitude: 1.300000,
+            longitude: 103.800000,
+            horizontalAccuracyMeters: 5,
+          ),
+          sampleAt(
+            startedAt,
+            20,
+            latitude: 1.300225,
+            longitude: 103.800000,
+            horizontalAccuracyMeters: 5,
+          ),
+        ],
+      );
+
+      var snapshot = RunTrackingSnapshot.fromState(
+        RunTrackingState(
+          phase: RunTrackingPhase.active,
+          clientRunSessionId: 'below-threshold-readiness',
+          startedAt: startedAt,
+          completedAt: null,
+          elapsedSeconds: session.activeDurationSeconds,
+          distanceMeters: session.distanceMeters,
+          averagePaceSecondsPerKm: session.averagePaceSecondsPerKm,
+          routePrivacy: 'private',
+          source: session.source,
+          locationStatus: RunTrackingLocationStatus.gpsActive,
+          diagnostics: session.diagnostics,
+        ),
+      );
+
+      expect(session.distanceMeters, greaterThan(0));
+      expect(session.distanceMeters, lessThan(50));
+      expect(
+        snapshot.startupReadiness,
+        RunTrackingStartupReadiness.movementBelowThreshold,
+      );
+      expect(snapshot.averagePaceLabel, '--:--/km');
+
+      session.advanceBy(
+        const Duration(seconds: 20),
+        samples: [
+          sampleAt(
+            startedAt,
+            40,
+            latitude: 1.300450,
+            longitude: 103.800000,
+            horizontalAccuracyMeters: 5,
+          ),
+        ],
+      );
+
+      snapshot = RunTrackingSnapshot.fromState(
+        RunTrackingState(
+          phase: RunTrackingPhase.active,
+          clientRunSessionId: 'ready-threshold-readiness',
+          startedAt: startedAt,
+          completedAt: null,
+          elapsedSeconds: session.activeDurationSeconds,
+          distanceMeters: session.distanceMeters,
+          averagePaceSecondsPerKm: session.averagePaceSecondsPerKm,
+          routePrivacy: 'private',
+          source: session.source,
+          locationStatus: RunTrackingLocationStatus.gpsActive,
+          diagnostics: session.diagnostics,
+        ),
+      );
+
+      expect(session.distanceMeters, greaterThanOrEqualTo(50));
+      expect(snapshot.startupReadiness, RunTrackingStartupReadiness.ready);
+      expect(snapshot.averagePaceLabel, isNot('--:--/km'));
+    });
+
     test('records accepted sample diagnostics without raw route data', () {
       final startedAt = DateTime.utc(2026, 6, 14, 7);
       final session = LocalRunTrackingSession(startedAt: startedAt);

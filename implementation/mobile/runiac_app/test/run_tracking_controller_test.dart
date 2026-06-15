@@ -7,6 +7,7 @@ import 'package:runiac_app/features/run/domain/models/run_location_sample.dart';
 import 'package:runiac_app/features/run/domain/models/run_location_permission_status.dart';
 import 'package:runiac_app/features/run/domain/models/run_tracking_diagnostics.dart';
 import 'package:runiac_app/features/run/domain/models/run_tracking_snapshot.dart';
+import 'package:runiac_app/features/run/domain/models/run_tracking_startup_readiness.dart';
 import 'package:runiac_app/features/run/domain/models/run_tracking_state.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_location_permission_service.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_location_provider.dart';
@@ -345,6 +346,33 @@ void main() {
       expect(controller.state.diagnostics.acceptedSampleCount, 0);
     });
 
+    test('startup readiness waits before any GPS sample is received', () {
+      final controller = RunTrackingController(
+        locationProvider: ReplayRunLocationProvider(const []),
+        locationStatus: RunTrackingLocationStatus.waitingForGps,
+      );
+
+      controller.start(
+        startedAt: DateTime.utc(2026, 6, 14, 7),
+        clientRunSessionId: 'readiness-waiting-run',
+      );
+      controller.advanceBy(const Duration(seconds: 1));
+
+      final snapshot = RunTrackingSnapshot.fromState(controller.state);
+      expect(
+        snapshot.startupReadiness,
+        RunTrackingStartupReadiness.waitingForFirstSample,
+      );
+      expect(
+        snapshot.startupReadinessMessage,
+        'Getting GPS ready. Keep the app open while we find your signal.',
+      );
+      expect(
+        controller.state.locationStatus,
+        RunTrackingLocationStatus.waitingForGps,
+      );
+    });
+
     test('foreground GPS mode becomes active after an accepted sample', () {
       final startedAt = DateTime.utc(2026, 6, 14, 7);
       final controller = RunTrackingController(
@@ -376,6 +404,41 @@ void main() {
       expect(
         controller.state.diagnostics.latestAccuracyBucket,
         RunLocationAccuracyBucket.good,
+      );
+    });
+
+    test('startup readiness anchors on the first accepted GPS sample', () {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      final controller = RunTrackingController(
+        locationProvider: ReplayRunLocationProvider([
+          RunLocationReplaySample(
+            activeOffset: const Duration(seconds: 1),
+            sample: RunLocationSample(
+              recordedAt: startedAt.add(const Duration(seconds: 1)),
+              latitude: 1.3,
+              longitude: 103.8,
+              horizontalAccuracyMeters: 5,
+            ),
+          ),
+        ]),
+        locationStatus: RunTrackingLocationStatus.waitingForGps,
+      );
+
+      controller.start(
+        startedAt: startedAt,
+        clientRunSessionId: 'readiness-anchor-run',
+      );
+      controller.advanceBy(const Duration(seconds: 1));
+
+      final snapshot = RunTrackingSnapshot.fromState(controller.state);
+      expect(controller.state.distanceMeters, 0);
+      expect(
+        snapshot.startupReadiness,
+        RunTrackingStartupReadiness.anchoredNoMovement,
+      );
+      expect(
+        snapshot.startupReadinessMessage,
+        'GPS is ready. Start moving to measure distance.',
       );
     });
 
@@ -411,6 +474,125 @@ void main() {
         RunLocationRejectionReason.poorAccuracy,
       );
       expect(controller.state.diagnostics.rejectedSampleCount, 1);
+    });
+
+    test('startup readiness reports weak GPS after latest rejected sample', () {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      final controller = RunTrackingController(
+        locationProvider: ReplayRunLocationProvider([
+          RunLocationReplaySample(
+            activeOffset: const Duration(seconds: 1),
+            sample: RunLocationSample(
+              recordedAt: startedAt.add(const Duration(seconds: 1)),
+              latitude: 1.3,
+              longitude: 103.8,
+              horizontalAccuracyMeters: 250,
+            ),
+          ),
+        ]),
+        locationStatus: RunTrackingLocationStatus.waitingForGps,
+      );
+
+      controller.start(
+        startedAt: startedAt,
+        clientRunSessionId: 'readiness-weak-run',
+      );
+      controller.advanceBy(const Duration(seconds: 1));
+
+      final snapshot = RunTrackingSnapshot.fromState(controller.state);
+      expect(snapshot.startupReadiness, RunTrackingStartupReadiness.gpsWeak);
+      expect(
+        snapshot.startupReadinessMessage,
+        'GPS signal is weak. Keep moving in an open area.',
+      );
+    });
+
+    test('startup readiness keeps pace hidden below the 50m threshold', () {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      final controller = RunTrackingController(
+        locationProvider: ReplayRunLocationProvider([
+          RunLocationReplaySample(
+            activeOffset: const Duration(seconds: 1),
+            sample: RunLocationSample(
+              recordedAt: startedAt.add(const Duration(seconds: 1)),
+              latitude: 1.300000,
+              longitude: 103.800000,
+              horizontalAccuracyMeters: 5,
+            ),
+          ),
+          RunLocationReplaySample(
+            activeOffset: const Duration(seconds: 20),
+            sample: RunLocationSample(
+              recordedAt: startedAt.add(const Duration(seconds: 20)),
+              latitude: 1.300225,
+              longitude: 103.800000,
+              horizontalAccuracyMeters: 5,
+            ),
+          ),
+        ]),
+        locationStatus: RunTrackingLocationStatus.waitingForGps,
+      );
+
+      controller.start(
+        startedAt: startedAt,
+        clientRunSessionId: 'readiness-below-threshold-run',
+      );
+      controller.advanceBy(const Duration(seconds: 20));
+
+      final snapshot = RunTrackingSnapshot.fromState(controller.state);
+      expect(controller.state.distanceMeters, greaterThan(0));
+      expect(controller.state.distanceMeters, lessThan(50));
+      expect(
+        snapshot.startupReadiness,
+        RunTrackingStartupReadiness.movementBelowThreshold,
+      );
+      expect(snapshot.averagePaceLabel, '--:--/km');
+      expect(
+        snapshot.startupReadinessMessage,
+        'Keep going. Pace appears after a little more movement.',
+      );
+    });
+
+    test('startup readiness becomes ready at the 50m movement threshold', () {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      final controller = RunTrackingController(
+        locationProvider: ReplayRunLocationProvider([
+          RunLocationReplaySample(
+            activeOffset: const Duration(seconds: 1),
+            sample: RunLocationSample(
+              recordedAt: startedAt.add(const Duration(seconds: 1)),
+              latitude: 1.300000,
+              longitude: 103.800000,
+              horizontalAccuracyMeters: 5,
+            ),
+          ),
+          RunLocationReplaySample(
+            activeOffset: const Duration(seconds: 20),
+            sample: RunLocationSample(
+              recordedAt: startedAt.add(const Duration(seconds: 20)),
+              latitude: 1.300450,
+              longitude: 103.800000,
+              horizontalAccuracyMeters: 5,
+            ),
+          ),
+        ]),
+        locationStatus: RunTrackingLocationStatus.waitingForGps,
+      );
+
+      controller.start(
+        startedAt: startedAt,
+        clientRunSessionId: 'readiness-ready-run',
+      );
+      controller.advanceBy(const Duration(seconds: 20));
+
+      final snapshot = RunTrackingSnapshot.fromState(controller.state);
+      expect(controller.state.distanceMeters, greaterThanOrEqualTo(50));
+      expect(snapshot.startupReadiness, RunTrackingStartupReadiness.ready);
+      expect(snapshot.averagePaceLabel, isNot('--:--/km'));
+      expect(
+        snapshot.startupReadinessMessage,
+        'GPS active. Distance and pace are updating.',
+      );
     });
 
     test('foreground GPS mode follows latest active and weak samples', () {
@@ -508,6 +690,16 @@ void main() {
         expect(
           controller.state.diagnostics.locationAccuracyStatus,
           RunTrackingLocationAccuracyStatus.reduced,
+        );
+
+        final snapshot = RunTrackingSnapshot.fromState(controller.state);
+        expect(
+          snapshot.startupReadiness,
+          RunTrackingStartupReadiness.approximateLocation,
+        );
+        expect(
+          snapshot.startupReadinessMessage,
+          'Approximate location is on. Distance may take longer to settle.',
         );
       },
     );
