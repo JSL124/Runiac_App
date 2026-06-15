@@ -8,6 +8,7 @@ import 'package:runiac_app/features/run/domain/models/run_map_view_state.dart';
 import 'package:runiac_app/features/run/presentation/run_active_screen.dart';
 import 'package:runiac_app/features/run/presentation/run_launch_screen.dart';
 import 'package:runiac_app/features/run/presentation/widgets/run_map_placeholder.dart';
+import 'package:runiac_app/features/run/presentation/widgets/run_mapbox_surface_config.dart';
 
 void _useMobileRunSurface(WidgetTester tester) {
   tester.view
@@ -210,6 +211,56 @@ void main() {
   );
 
   testWidgets(
+    'RunLaunchScreen recenter forwards a Mapbox camera recenter intent',
+    (WidgetTester tester) async {
+      _useMobileRunSurface(tester);
+      final configs = <RunMapboxSurfaceConfig>[];
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RunLaunchScreen(
+            enableForegroundGps: false,
+            mapboxAccessToken: 'demo-public-token',
+            mapboxBuilder: (context, config) {
+              configs.add(config);
+              return GestureDetector(
+                key: const Key('fake_mapbox_pan_layer'),
+                onPanUpdate: (_) => config.onManualPan?.call(),
+                child: const ColoredBox(color: Colors.black),
+              );
+            },
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Start run'));
+      await tester.pumpAndSettle();
+
+      await tester.drag(
+        find.byKey(const Key('fake_mapbox_pan_layer')),
+        const Offset(48, 0),
+      );
+      await tester.pump();
+
+      final recenter = find.byKey(const Key('run_map_recenter_button'));
+      expect(recenter, findsOneWidget);
+
+      await tester.tap(recenter);
+      await tester.pump();
+      await tester.pump();
+
+      expect(
+        configs.map((config) => config.isFollowingRunner),
+        contains(false),
+      );
+      expect(configs.last.isFollowingRunner, isTrue);
+      expect(configs.map((config) => config.recenterRequestId), contains(1));
+      expect(configs.last.recenterRequestId, 1);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
     'RunActiveScreen manual pan shows tappable recenter above active panel',
     (WidgetTester tester) async {
       _useMobileRunSurface(tester);
@@ -237,6 +288,53 @@ void main() {
       await tester.pump();
 
       expect(find.byKey(const Key('run_map_recenter_button')), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'RunActiveScreen recenter forwards a Mapbox camera recenter intent',
+    (WidgetTester tester) async {
+      _useMobileRunSurface(tester);
+      final configs = <RunMapboxSurfaceConfig>[];
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RunActiveScreen(
+            mapboxAccessToken: 'demo-public-token',
+            mapboxBuilder: (context, config) {
+              configs.add(config);
+              return GestureDetector(
+                key: const Key('fake_mapbox_pan_layer'),
+                onPanUpdate: (_) => config.onManualPan?.call(),
+                child: const ColoredBox(color: Colors.black),
+              );
+            },
+          ),
+        ),
+      );
+      await tester.pump();
+
+      await tester.drag(
+        find.byKey(const Key('fake_mapbox_pan_layer')),
+        const Offset(48, 0),
+      );
+      await tester.pump();
+
+      final recenter = find.byKey(const Key('run_map_recenter_button'));
+      expect(recenter, findsOneWidget);
+
+      await tester.tap(recenter);
+      await tester.pump();
+      await tester.pump();
+
+      expect(
+        configs.map((config) => config.isFollowingRunner),
+        contains(false),
+      );
+      expect(configs.last.isFollowingRunner, isTrue);
+      expect(configs.map((config) => config.recenterRequestId), contains(1));
+      expect(configs.last.recenterRequestId, 1);
       expect(tester.takeException(), isNull);
     },
   );

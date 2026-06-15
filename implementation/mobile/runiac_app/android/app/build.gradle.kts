@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.runiac.runiac_app"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {

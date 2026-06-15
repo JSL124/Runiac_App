@@ -6,7 +6,7 @@ cd "$repo_root"
 
 check_name="check-sensitive-paths"
 setup_gates="implementation/traceability/setup-gates.md"
-scanned_paths=".gitignore,.claude/settings.json,tools/agent-review/profiles/runiac/context-policy.yml,$setup_gates"
+scanned_paths=".gitignore,.claude/settings.json,tools/agent-review/profiles/runiac/context-policy.yml,$setup_gates,tracked files,unignored untracked files,ignored .env files"
 failures=0
 
 fail() {
@@ -90,6 +90,53 @@ require_any_regex '(service[-_ ]?account|serviceAccount|credentials?\.json)' "se
 require_any_regex '(key\.properties|local\.properties|\.jks|\.keystore|\.p12|\.cer|\.mobileprovision|\.p8)' "signing material deny pattern" "${policy_files[@]}"
 require_any_regex '(gps-private|private-gps|route-private|private-route|location-private|private-location)' "private GPS/location/route deny pattern" "${policy_files[@]}"
 require_any_regex '(private[-_ ]?evidence|evidence[-_ ]?private|private[-_ ]?screenshot|screenshot[-_ ]?private|test[-_]?evidence|test evidence|test/evidence|Manual Evidence|Screenshot)' "private test evidence deny pattern" "${policy_files[@]}"
+
+check_mapbox_token_leaks() {
+  local path
+  while IFS= read -r path; do
+    if [ ! -f "$path" ]; then
+      continue
+    fi
+
+    case "$path" in
+      tools/governance-ci/check-sensitive-paths.sh)
+        continue
+        ;;
+    esac
+
+    if ! grep -Iq . "$path"; then
+      continue
+    fi
+
+    if grep -Eq '(^|[^A-Za-z0-9_])sk\.[A-Za-z0-9._-]+' "$path"; then
+      fail "Mapbox secret token-looking content present: $path"
+    fi
+
+    if grep -Eq 'MAPBOX_PUBLIC_ACCESS_TOKEN[[:space:]]*=[[:space:]]*pk\.[A-Za-z0-9._-]+' "$path"; then
+      fail "Committed Mapbox public token assignment present: $path"
+    fi
+
+    if grep -Eq 'MBXAccessToken[^A-Za-z0-9]*(pk|sk)\.[A-Za-z0-9._-]+' "$path"; then
+      fail "Native Mapbox token-looking content present: $path"
+    fi
+
+    if grep -Eq 'mapbox_access_token[^A-Za-z0-9]*(pk|sk)\.[A-Za-z0-9._-]+' "$path"; then
+      fail "Android Mapbox resource token-looking content present: $path"
+    fi
+
+    if grep -Eq '(^|[^A-Za-z0-9_])(MAPBOX_DOWNLOADS_TOKEN|DOWNLOADS_TOKEN)([^A-Za-z0-9_]|$)' "$path"; then
+      fail "Mapbox download token reference present: $path"
+    fi
+  done < <(
+    {
+      git ls-files --cached --others --exclude-standard
+      find . -type f \( -name '.env' -o -name '.env.*' \) -print \
+        | sed 's#^\./##'
+    } | sort -u
+  )
+}
+
+check_mapbox_token_leaks
 
 if [ "$secret_gate_status" = "Not Started" ] || [ "$secret_gate_status" = "Blocked" ]; then
   while IFS= read -r path; do

@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/runiac_colors.dart';
 import 'widgets/run_controls.dart';
-import 'widgets/run_map_placeholder.dart';
 import 'widgets/run_plan_card.dart';
+import 'widgets/run_tracking_map_surface.dart';
 
 class RunTab extends StatelessWidget {
   const RunTab({super.key});
@@ -15,7 +15,7 @@ class RunTab extends StatelessWidget {
         color: RuniacColors.background,
         child: Stack(
           children: [
-            const Positioned.fill(child: RunMapPlaceholder()),
+            const Positioned.fill(child: RunTrackingMapSurface()),
             Positioned(
               left: 20,
               right: 20,

@@ -7,6 +7,8 @@ import '../domain/models/run_tracking_state.dart';
 import 'controllers/run_tracking_controller.dart';
 import 'cool_down_screen.dart';
 import 'widgets/run_map_placeholder.dart';
+import 'widgets/run_mapbox_surface_config.dart';
+import 'widgets/run_tracking_map_surface.dart';
 import 'widgets/run_tracking_sheet_content.dart';
 
 const _sportOrange = Color(0xFFFF7A1A);
@@ -15,9 +17,16 @@ const _screenBackground = Color(0xFF3153C9);
 const _activeRecenterButtonBottom = 336.0;
 
 class RunActiveScreen extends StatefulWidget {
-  const RunActiveScreen({super.key, this.controller});
+  const RunActiveScreen({
+    super.key,
+    this.controller,
+    this.mapboxAccessToken,
+    this.mapboxBuilder,
+  });
 
   final RunTrackingController? controller;
+  final String? mapboxAccessToken;
+  final RunMapboxSurfaceBuilder? mapboxBuilder;
 
   @override
   State<RunActiveScreen> createState() => _RunActiveScreenState();
@@ -28,6 +37,7 @@ class _RunActiveScreenState extends State<RunActiveScreen> {
   late final bool _ownsController;
   Timer? _ticker;
   bool _isFollowingRunner = true;
+  int _mapRecenterRequestId = 0;
 
   @override
   void initState() {
@@ -59,6 +69,13 @@ class _RunActiveScreenState extends State<RunActiveScreen> {
     );
   }
 
+  void _recenterRunner() {
+    setState(() {
+      _isFollowingRunner = true;
+      _mapRecenterRequestId++;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
@@ -71,16 +88,17 @@ class _RunActiveScreenState extends State<RunActiveScreen> {
             child: AnimatedBuilder(
               animation: _controller,
               builder: (context, _) {
-                return RunMapPlaceholder(
+                return RunTrackingMapSurface(
                   mapViewState: _controller.mapViewState,
                   isFollowingRunner: _isFollowingRunner,
+                  recenterRequestId: _mapRecenterRequestId,
                   onManualPan: () {
                     setState(() => _isFollowingRunner = false);
                   },
-                  onRecenter: () {
-                    setState(() => _isFollowingRunner = true);
-                  },
+                  onRecenter: _recenterRunner,
                   showRecenterButton: false,
+                  mapboxAccessToken: widget.mapboxAccessToken,
+                  mapboxBuilder: widget.mapboxBuilder,
                 );
               },
             ),
@@ -133,11 +151,7 @@ class _RunActiveScreenState extends State<RunActiveScreen> {
             Positioned(
               right: 24,
               bottom: bottomInset + _activeRecenterButtonBottom,
-              child: RunMapRecenterButton(
-                onPressed: () {
-                  setState(() => _isFollowingRunner = true);
-                },
-              ),
+              child: RunMapRecenterButton(onPressed: _recenterRunner),
             ),
         ],
       ),
