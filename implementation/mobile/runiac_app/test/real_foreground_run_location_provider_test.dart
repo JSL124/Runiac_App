@@ -66,6 +66,98 @@ void main() {
       );
     });
 
+    test('drains a late sample from an already-passed active window', () async {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      final adapter = _FakeForegroundAdapter();
+      final provider = RealForegroundRunLocationProvider(adapter: adapter);
+
+      await provider.start(startedAt: startedAt);
+
+      expect(
+        provider.samplesBetween(
+          fromActiveOffset: Duration.zero,
+          toActiveOffset: const Duration(seconds: 10),
+          startedAt: startedAt,
+        ),
+        isEmpty,
+      );
+
+      adapter.emit(
+        position(
+          timestamp: startedAt.add(const Duration(seconds: 5)),
+          latitude: 1.300100,
+          longitude: 103.800000,
+          accuracy: 6,
+        ),
+      );
+
+      final samples = provider
+          .samplesBetween(
+            fromActiveOffset: const Duration(seconds: 10),
+            toActiveOffset: const Duration(seconds: 11),
+            startedAt: startedAt,
+          )
+          .toList();
+
+      expect(samples, hasLength(1));
+      expect(
+        samples.single.recordedAt,
+        startedAt.add(const Duration(seconds: 5)),
+      );
+      expect(samples.single.latitude, 1.300100);
+    });
+
+    test('drains multiple late samples in order and only once', () async {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      final adapter = _FakeForegroundAdapter();
+      final provider = RealForegroundRunLocationProvider(adapter: adapter);
+
+      await provider.start(startedAt: startedAt);
+      provider
+          .samplesBetween(
+            fromActiveOffset: Duration.zero,
+            toActiveOffset: const Duration(seconds: 10),
+            startedAt: startedAt,
+          )
+          .toList();
+
+      adapter.emit(
+        position(
+          timestamp: startedAt.add(const Duration(seconds: 8)),
+          latitude: 1.300800,
+          longitude: 103.800000,
+        ),
+      );
+      adapter.emit(
+        position(
+          timestamp: startedAt.add(const Duration(seconds: 3)),
+          latitude: 1.300300,
+          longitude: 103.800000,
+        ),
+      );
+
+      final firstDrain = provider
+          .samplesBetween(
+            fromActiveOffset: const Duration(seconds: 10),
+            toActiveOffset: const Duration(seconds: 11),
+            startedAt: startedAt,
+          )
+          .toList();
+      final secondDrain = provider
+          .samplesBetween(
+            fromActiveOffset: const Duration(seconds: 11),
+            toActiveOffset: const Duration(seconds: 12),
+            startedAt: startedAt,
+          )
+          .toList();
+
+      expect(firstDrain.map((sample) => sample.recordedAt).toList(), [
+        startedAt.add(const Duration(seconds: 3)),
+        startedAt.add(const Duration(seconds: 8)),
+      ]);
+      expect(secondDrain, isEmpty);
+    });
+
     test(
       'buffers by active offset and does not emit paused movement',
       () async {

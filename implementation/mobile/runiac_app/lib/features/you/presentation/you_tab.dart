@@ -15,7 +15,9 @@ import 'widgets/you_progress_surface.dart';
 import 'widgets/you_segmented_control.dart';
 
 class YouTab extends StatefulWidget {
-  const YouTab({super.key});
+  const YouTab({super.key, this.enableForegroundGps = true});
+
+  final bool enableForegroundGps;
 
   @override
   State<YouTab> createState() => _YouTabState();
@@ -48,6 +50,7 @@ class _YouTabState extends State<YouTab> {
         onBack: () {
           setState(() => _workoutDetailVisible = false);
         },
+        enableForegroundGps: widget.enableForegroundGps,
       );
     }
 

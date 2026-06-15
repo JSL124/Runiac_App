@@ -11,7 +11,9 @@ import 'widgets/today_plan_card.dart';
 const _homeScreenBackground = Colors.white;
 
 class HomeTab extends StatelessWidget {
-  const HomeTab({super.key});
+  const HomeTab({super.key, this.enableForegroundGps = true});
+
+  final bool enableForegroundGps;
 
   void _showPreviewMessage(BuildContext context, String message) {
     ScaffoldMessenger.of(context)
@@ -26,6 +28,7 @@ class HomeTab extends StatelessWidget {
           return WeeklyWorkoutDetailScreen(
             onBack: () => Navigator.of(context).pop(),
             showEditScheduleAction: false,
+            enableForegroundGps: enableForegroundGps,
           );
         },
       ),
@@ -34,7 +37,10 @@ class HomeTab extends StatelessWidget {
 
   void _openQuickStart(BuildContext context) {
     Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (context) => const RunLaunchScreen()),
+      MaterialPageRoute<void>(
+        builder: (context) =>
+            RunLaunchScreen(enableForegroundGps: enableForegroundGps),
+      ),
     );
   }
 

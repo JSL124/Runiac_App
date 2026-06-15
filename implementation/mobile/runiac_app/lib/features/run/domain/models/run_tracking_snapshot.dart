@@ -1,5 +1,7 @@
 import 'run_tracking_state.dart';
 
+const _livePaceDistanceThresholdMeters = 50;
+
 class RunTrackingSnapshot {
   const RunTrackingSnapshot({
     required this.elapsedTimeLabel,
@@ -23,7 +25,9 @@ class RunTrackingSnapshot {
       distanceLabel: _formatDistance(state.distanceMeters),
       distanceValueLabel: _formatDistanceValue(state.distanceMeters),
       distanceUnitLabel: 'km',
-      averagePaceLabel: _formatPace(state.averagePaceSecondsPerKm),
+      averagePaceLabel: state.distanceMeters < _livePaceDistanceThresholdMeters
+          ? '--:--/km'
+          : _formatPace(state.averagePaceSecondsPerKm),
       planProgressLabel:
           '${_formatDistanceValue(state.distanceMeters)} of 4.50 km',
       planProgressPercentLabel: '${(planProgressValue * 100).round()}%',
@@ -65,7 +69,7 @@ String _formatDistanceValue(int meters) {
 
 String _formatPace(int secondsPerKm) {
   if (secondsPerKm <= 0) {
-    return '--/km';
+    return '--:--/km';
   }
 
   final minutes = secondsPerKm ~/ 60;

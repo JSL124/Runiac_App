@@ -1,5 +1,16 @@
 enum RunTrackingPhase { idle, active, paused, finished }
 
+enum RunTrackingLocationStatus {
+  demo('Demo mode'),
+  waitingForGps('Waiting for GPS'),
+  gpsActive('GPS active'),
+  gpsWeak('GPS weak');
+
+  const RunTrackingLocationStatus(this.label);
+
+  final String label;
+}
+
 class RunTrackingState {
   const RunTrackingState({
     required this.phase,
@@ -11,6 +22,7 @@ class RunTrackingState {
     required this.averagePaceSecondsPerKm,
     required this.routePrivacy,
     required this.source,
+    required this.locationStatus,
     this.routeLabel,
   });
 
@@ -24,6 +36,7 @@ class RunTrackingState {
       averagePaceSecondsPerKm = 0,
       routePrivacy = 'private',
       source = 'local_simulation',
+      locationStatus = RunTrackingLocationStatus.demo,
       routeLabel = null;
 
   final RunTrackingPhase phase;
@@ -35,6 +48,7 @@ class RunTrackingState {
   final int averagePaceSecondsPerKm;
   final String routePrivacy;
   final String source;
+  final RunTrackingLocationStatus locationStatus;
   final String? routeLabel;
 
   bool get isPaused => phase == RunTrackingPhase.paused;
@@ -50,6 +64,7 @@ class RunTrackingState {
     int? averagePaceSecondsPerKm,
     String? routePrivacy,
     String? source,
+    RunTrackingLocationStatus? locationStatus,
     String? routeLabel,
   }) {
     return RunTrackingState(
@@ -63,6 +78,7 @@ class RunTrackingState {
           averagePaceSecondsPerKm ?? this.averagePaceSecondsPerKm,
       routePrivacy: routePrivacy ?? this.routePrivacy,
       source: source ?? this.source,
+      locationStatus: locationStatus ?? this.locationStatus,
       routeLabel: routeLabel ?? this.routeLabel,
     );
   }

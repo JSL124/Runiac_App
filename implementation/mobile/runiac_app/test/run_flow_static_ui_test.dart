@@ -229,7 +229,7 @@ void main() {
     await tester.tap(find.text('Run'));
     await tester.pumpAndSettle();
 
-    expect(find.text('GPS ready'), findsOneWidget);
+    expect(find.text('Demo mode'), findsOneWidget);
     expect(find.byTooltip('Close'), findsOneWidget);
     expect(find.byTooltip('Run settings'), findsOneWidget);
     expect(find.text('TODAY\'S PLAN'), findsOneWidget);
@@ -238,7 +238,7 @@ void main() {
     expect(find.text('Pace 7:10-7:40 / km · ~32 min'), findsOneWidget);
     expect(find.text('Switch route'), findsOneWidget);
     expect(find.text('Start run'), findsOneWidget);
-    expect(find.text('Running · easy'), findsNothing);
+    expect(find.text('Waiting for GPS'), findsNothing);
     expect(find.text('DISTANCE'), findsNothing);
     expect(find.text('TIME'), findsNothing);
     expect(find.text('AVG PACE'), findsNothing);
@@ -268,7 +268,7 @@ void main() {
     await tester.tap(find.text('Start run'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Running · easy'), findsOneWidget);
+    expect(find.text('Demo mode'), findsOneWidget);
     expect(find.text('TODAY\'S PLAN'), findsNothing);
     expect(find.text('RUNNING'), findsNothing);
     expect(find.text('0.00 of 4.50 km'), findsOneWidget);
@@ -280,7 +280,7 @@ void main() {
     expect(find.text('0.00'), findsOneWidget);
     expect(find.text('km'), findsOneWidget);
     expect(find.text('AVG PACE'), findsOneWidget);
-    expect(find.text('--/km'), findsOneWidget);
+    expect(find.text('--:--/km'), findsOneWidget);
     expect(find.text('HEART'), findsNothing);
     expect(find.text('Pause'), findsOneWidget);
     expect(find.text('Finish'), findsNothing);
@@ -288,7 +288,7 @@ void main() {
     expect(find.text('Resume'), findsNothing);
     expect(find.byTooltip('Close'), findsNothing);
     expect(find.byTooltip('Run settings'), findsNothing);
-    expect(find.text('GPS ready'), findsNothing);
+    expect(find.text('Waiting for GPS'), findsNothing);
     expect(find.text('Start run'), findsNothing);
 
     await tester.pump(const Duration(seconds: 10));
@@ -296,7 +296,7 @@ void main() {
     expect(find.text('00:10'), findsOneWidget);
     expect(find.text('0.02 of 4.50 km'), findsOneWidget);
     expect(find.text('1%'), findsOneWidget);
-    expect(find.text('06:56/km'), findsOneWidget);
+    expect(find.text('--:--/km'), findsOneWidget);
 
     await tester.tap(find.text('Pause'));
     await tester.pumpAndSettle();
@@ -313,7 +313,7 @@ void main() {
     expect(find.text('TIME'), findsOneWidget);
     expect(find.text('00:10'), findsOneWidget);
     expect(find.text('AVG PACE'), findsOneWidget);
-    expect(find.text('06:56/km'), findsOneWidget);
+    expect(find.text('--:--/km'), findsOneWidget);
 
     await tester.pump(const Duration(seconds: 10));
 
@@ -327,7 +327,7 @@ void main() {
     await tester.tap(find.text('Resume'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Running · easy'), findsOneWidget);
+    expect(find.text('Demo mode'), findsOneWidget);
     expect(find.text('Pause'), findsOneWidget);
     expect(find.text('Resume'), findsNothing);
     expect(find.text('End'), findsNothing);
@@ -1205,14 +1205,14 @@ void main() {
 
     await tester.tap(find.text('Run'));
     await tester.pumpAndSettle();
-    expect(find.text('GPS ready'), findsOneWidget);
+    expect(find.text('Demo mode'), findsOneWidget);
     expect(find.text('Maps'), findsNothing);
 
     final handled = await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
 
     expect(handled, isTrue);
-    expect(find.text('GPS ready'), findsNothing);
+    expect(find.text('Demo mode'), findsNothing);
     expect(find.text('Shared Routes'), findsOneWidget);
     expect(find.text('Home'), findsOneWidget);
     expect(find.text('Maps'), findsOneWidget);

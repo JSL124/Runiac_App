@@ -87,6 +87,9 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
           ? widget.permissionService ??
                 const GeolocatorRunLocationPermissionService()
           : widget.permissionService,
+      locationStatus: useForegroundGps
+          ? RunTrackingLocationStatus.waitingForGps
+          : RunTrackingLocationStatus.demo,
     );
   }
 
@@ -267,14 +270,16 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
               RunLocationPermissionStatus.granted) {
         return 'GPS needed';
       }
-      return 'GPS ready';
+      return widget.enableForegroundGps
+          ? RunTrackingLocationStatus.waitingForGps.label
+          : RunTrackingLocationStatus.demo.label;
     }
 
     if (_sheetMode == RunSheetMode.paused || state.isPaused) {
       return 'Paused · easy';
     }
 
-    return 'Running · easy';
+    return state.locationStatus.label;
   }
 
   void _recenterRunner() {

@@ -14,7 +14,7 @@ import 'widgets/run_tracking_sheet_content.dart';
 const _sportOrange = Color(0xFFFF7A1A);
 const _softControlBlue = Color(0x667A91E5);
 const _screenBackground = Color(0xFF3153C9);
-const _activeRecenterButtonBottom = 336.0;
+const _activeRecenterButtonBottom = 346.0;
 
 class RunActiveScreen extends StatefulWidget {
   const RunActiveScreen({
@@ -117,7 +117,7 @@ class _RunActiveScreenState extends State<RunActiveScreen> {
                     return _RunStatusPill(
                       label: _controller.state.isPaused
                           ? 'Paused · easy'
-                          : 'Running · easy',
+                          : _controller.state.locationStatus.label,
                     );
                   },
                 ),

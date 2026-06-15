@@ -500,7 +500,8 @@ void main() {
     await tester.tap(find.text('Quick Start'));
     await tester.pumpAndSettle();
 
-    expect(find.text('GPS ready'), findsOneWidget);
+    expect(find.text('Demo mode'), findsOneWidget);
+    expect(find.text('Waiting for GPS'), findsNothing);
     expect(find.text('Start run'), findsOneWidget);
     expect(find.text('Good to see you'), findsNothing);
     expect(find.text('Home'), findsNothing);
@@ -564,7 +565,8 @@ void main() {
     await tester.tap(find.text('Start This Run'));
     await tester.pumpAndSettle();
 
-    expect(find.text('GPS ready'), findsOneWidget);
+    expect(find.text('Demo mode'), findsOneWidget);
+    expect(find.text('Waiting for GPS'), findsNothing);
     expect(find.text('Start run'), findsOneWidget);
   });
 }

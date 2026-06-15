@@ -4,7 +4,10 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runiac_app/app.dart';
 import 'package:runiac_app/features/run/domain/models/run_location_sample.dart';
+import 'package:runiac_app/features/run/domain/models/run_location_permission_status.dart';
 import 'package:runiac_app/features/run/domain/models/run_map_view_state.dart';
+import 'package:runiac_app/features/run/domain/repositories/run_location_permission_service.dart';
+import 'package:runiac_app/features/run/domain/repositories/run_location_provider.dart';
 import 'package:runiac_app/features/run/presentation/run_active_screen.dart';
 import 'package:runiac_app/features/run/presentation/run_launch_screen.dart';
 import 'package:runiac_app/features/run/presentation/widgets/run_map_placeholder.dart';
@@ -25,6 +28,12 @@ Future<void> _openRunLaunch(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
+Future<void> _openDefaultRunLaunch(WidgetTester tester) async {
+  await tester.pumpWidget(const RuniacApp(showSplash: false));
+  await tester.tap(find.text('Run'));
+  await tester.pumpAndSettle();
+}
+
 class _RoutePushRecorder extends NavigatorObserver {
   final List<Route<dynamic>> pushedRoutes = <Route<dynamic>>[];
 
@@ -35,7 +44,34 @@ class _RoutePushRecorder extends NavigatorObserver {
   }
 }
 
+class _GrantedRunLocationPermissionService
+    implements RunLocationPermissionService {
+  const _GrantedRunLocationPermissionService();
+
+  @override
+  Future<RunLocationPermissionStatus> checkStatus() async {
+    return RunLocationPermissionStatus.granted;
+  }
+
+  @override
+  Future<RunLocationPermissionStatus> requestPermission() async {
+    return RunLocationPermissionStatus.granted;
+  }
+}
+
 void main() {
+  testWidgets('default Run tab enters real GPS waiting mode', (
+    WidgetTester tester,
+  ) async {
+    _useMobileRunSurface(tester);
+
+    await _openDefaultRunLaunch(tester);
+
+    expect(find.text('Waiting for GPS'), findsOneWidget);
+    expect(find.text('Demo mode'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('Run launch Start run updates sheet without pushing a route', (
     WidgetTester tester,
   ) async {
@@ -51,12 +87,11 @@ void main() {
     await tester.pumpAndSettle();
     observer.pushedRoutes.clear();
 
-    expect(find.text('GPS ready'), findsOneWidget);
+    expect(find.text('Demo mode'), findsOneWidget);
     expect(find.byTooltip('Close'), findsOneWidget);
     expect(find.byTooltip('Run settings'), findsOneWidget);
     expect(find.text('TODAY\'S PLAN'), findsOneWidget);
     expect(find.text('Start run'), findsOneWidget);
-    expect(find.text('Running · easy'), findsNothing);
     expect(find.byKey(const Key('run_plan_progress_bar')), findsNothing);
     expect(find.text('DISTANCE'), findsNothing);
     expect(find.text('TIME'), findsNothing);
@@ -73,7 +108,7 @@ void main() {
     expect(find.byType(RunLaunchScreen), findsOneWidget);
     expect(find.byTooltip('Close'), findsNothing);
     expect(find.byTooltip('Run settings'), findsNothing);
-    expect(find.text('Running · easy'), findsOneWidget);
+    expect(find.text('Demo mode'), findsOneWidget);
     expect(find.text('TODAY\'S PLAN'), findsNothing);
     expect(find.text('Start run'), findsNothing);
     expect(find.text('0.00 of 4.50 km'), findsOneWidget);
@@ -86,6 +121,103 @@ void main() {
     expect(find.text('Finish'), findsNothing);
     expect(find.text('End'), findsNothing);
     expect(find.text('Resume'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Run launch real GPS path waits without showing demo mode', (
+    WidgetTester tester,
+  ) async {
+    _useMobileRunSurface(tester);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RunLaunchScreen(
+          locationProvider: ReplayRunLocationProvider(const []),
+          permissionService: const _GrantedRunLocationPermissionService(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Waiting for GPS'), findsOneWidget);
+    expect(find.text('Demo mode'), findsNothing);
+
+    await tester.tap(find.text('Start run'));
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(seconds: 1));
+
+    expect(find.text('Waiting for GPS'), findsOneWidget);
+    expect(find.text('Demo mode'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Run launch real GPS path becomes active after accepted sample', (
+    WidgetTester tester,
+  ) async {
+    _useMobileRunSurface(tester);
+    final sampleBase = DateTime.now().add(const Duration(days: 1));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RunLaunchScreen(
+          locationProvider: ReplayRunLocationProvider([
+            RunLocationReplaySample(
+              activeOffset: const Duration(seconds: 1),
+              sample: RunLocationSample(
+                recordedAt: sampleBase.add(const Duration(seconds: 1)),
+                latitude: 1.3,
+                longitude: 103.8,
+                horizontalAccuracyMeters: 5,
+              ),
+            ),
+          ]),
+          permissionService: const _GrantedRunLocationPermissionService(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Start run'));
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(seconds: 1));
+
+    expect(find.text('GPS active'), findsOneWidget);
+    expect(find.text('Demo mode'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Run launch real GPS path shows weak after rejected accuracy', (
+    WidgetTester tester,
+  ) async {
+    _useMobileRunSurface(tester);
+    final sampleBase = DateTime.now().add(const Duration(days: 1));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RunLaunchScreen(
+          locationProvider: ReplayRunLocationProvider([
+            RunLocationReplaySample(
+              activeOffset: const Duration(seconds: 1),
+              sample: RunLocationSample(
+                recordedAt: sampleBase.add(const Duration(seconds: 1)),
+                latitude: 1.3,
+                longitude: 103.8,
+                horizontalAccuracyMeters: 250,
+              ),
+            ),
+          ]),
+          permissionService: const _GrantedRunLocationPermissionService(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Start run'));
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(seconds: 1));
+
+    expect(find.text('GPS weak'), findsOneWidget);
+    expect(find.text('Demo mode'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
@@ -345,13 +477,13 @@ void main() {
     _useMobileRunSurface(tester);
     await _openRunLaunch(tester);
 
-    expect(find.text('GPS ready'), findsOneWidget);
+    expect(find.text('Demo mode'), findsOneWidget);
     expect(find.text('Start run'), findsOneWidget);
 
     await tester.tap(find.text('Start run'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Running · easy'), findsOneWidget);
+    expect(find.text('Demo mode'), findsOneWidget);
     expect(find.text('0.00 of 4.50 km'), findsOneWidget);
     expect(find.text('0%'), findsOneWidget);
     expect(find.byKey(const Key('run_plan_progress_bar')), findsOneWidget);
@@ -359,7 +491,7 @@ void main() {
     expect(find.text('DISTANCE'), findsOneWidget);
     expect(find.text('0.00'), findsOneWidget);
     expect(find.text('km'), findsOneWidget);
-    expect(find.text('--/km'), findsOneWidget);
+    expect(find.text('--:--/km'), findsOneWidget);
     expect(find.text('AVG PACE'), findsOneWidget);
     expect(find.text('00:00'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'Pause'), findsOneWidget);
@@ -372,7 +504,7 @@ void main() {
     expect(find.text('00:10'), findsOneWidget);
     expect(find.text('0.02 of 4.50 km'), findsOneWidget);
     expect(find.text('1%'), findsOneWidget);
-    expect(find.text('06:56/km'), findsOneWidget);
+    expect(find.text('--:--/km'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -403,7 +535,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.pump(const Duration(seconds: 10));
 
-    expect(find.text('Running · easy'), findsOneWidget);
+    expect(find.text('Demo mode'), findsOneWidget);
     expect(find.text('00:10'), findsNothing);
     expect(find.text('0.02 of 4.50 km'), findsNothing);
     expect(find.text('Pause'), findsOneWidget);
@@ -551,7 +683,7 @@ void main() {
 
     final sheet = find.byKey(const Key('runLaunchBottomSheet'));
     final handle = find.byKey(const Key('runLaunchSheetHandleArea'));
-    expect(find.text('Running · easy'), findsOneWidget);
+    expect(find.text('Demo mode'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'Pause'), findsOneWidget);
     expect(find.text('TIME'), findsOneWidget);
     expect(find.text('Finish'), findsNothing);
@@ -564,7 +696,7 @@ void main() {
 
     final collapsedRect = tester.getRect(sheet);
     expect(find.byKey(const Key('runLaunchSheetHandle')), findsOneWidget);
-    expect(find.text('Running · easy'), findsOneWidget);
+    expect(find.text('Demo mode'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'Pause'), findsNothing);
     expect(find.text('TIME'), findsNothing);
     expect(find.text('DISTANCE'), findsNothing);
@@ -572,13 +704,13 @@ void main() {
     expect(collapsedRect.height, greaterThan(40));
 
     await tester.pump(const Duration(seconds: 2));
-    expect(find.text('Running · easy'), findsOneWidget);
+    expect(find.text('Demo mode'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'Pause'), findsNothing);
 
     await tester.drag(handle, const Offset(0, -700));
     await tester.pumpAndSettle();
 
-    expect(find.text('Running · easy'), findsOneWidget);
+    expect(find.text('Demo mode'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'Pause'), findsOneWidget);
     expect(find.text('TIME'), findsOneWidget);
     expect(find.text('00:00'), findsNothing);
@@ -665,7 +797,7 @@ void main() {
 
     expect(observer.pushedRoutes, isEmpty);
     expect(find.byType(RunLaunchScreen), findsOneWidget);
-    expect(find.text('Running · easy'), findsOneWidget);
+    expect(find.text('Demo mode'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -720,7 +852,7 @@ void main() {
     await tester.pumpWidget(const MaterialApp(home: RunActiveScreen()));
     await tester.pumpAndSettle();
 
-    expect(find.text('Running · easy'), findsOneWidget);
+    expect(find.text('Demo mode'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'Pause'), findsOneWidget);
     expect(find.text('Finish'), findsNothing);
     expect(find.text('End'), findsNothing);
@@ -737,7 +869,7 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, 'Resume'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Running · easy'), findsOneWidget);
+    expect(find.text('Demo mode'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'Pause'), findsOneWidget);
     expect(find.text('Resume'), findsNothing);
     expect(find.text('End'), findsNothing);

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import '../../domain/models/local_run_completion_payload.dart';
+import '../../domain/models/run_location_sample.dart';
 import '../../domain/models/run_location_permission_status.dart';
 import '../../domain/models/run_map_view_state.dart';
 import '../../domain/models/run_tracking_state.dart';
@@ -15,14 +16,17 @@ class RunTrackingController extends ChangeNotifier {
     double metersPerSecond = 2.4,
     RunLocationProvider? locationProvider,
     this.permissionService,
+    RunTrackingLocationStatus locationStatus = RunTrackingLocationStatus.demo,
   }) : metersPerSecond = metersPerSecond,
        _locationProvider =
            locationProvider ??
-           ConstantSpeedRunLocationProvider(metersPerSecond: metersPerSecond);
+           ConstantSpeedRunLocationProvider(metersPerSecond: metersPerSecond),
+       _initialLocationStatus = locationStatus;
 
   final double metersPerSecond;
   final RunLocationProvider _locationProvider;
   final RunLocationPermissionService? permissionService;
+  final RunTrackingLocationStatus _initialLocationStatus;
 
   RunTrackingState _state = const RunTrackingState.idle();
   RunLocationPermissionStatus _locationPermissionStatus =
@@ -30,6 +34,8 @@ class RunTrackingController extends ChangeNotifier {
   LocalRunTrackingSession? _trackingSession;
   RunMapViewState _mapViewState = const RunMapViewState.empty();
   int _sessionSequence = 0;
+  RunTrackingLocationStatus _latestLocationStatus =
+      RunTrackingLocationStatus.demo;
 
   RunTrackingState get state => _state;
   RunMapViewState get mapViewState => _mapViewState;
@@ -106,6 +112,7 @@ class RunTrackingController extends ChangeNotifier {
     final session = LocalRunTrackingSession(startedAt: effectiveStartedAt);
     _trackingSession = session;
     _mapViewState = const RunMapViewState.empty();
+    _latestLocationStatus = _initialLocationStatus;
     _state = RunTrackingState(
       phase: RunTrackingPhase.active,
       clientRunSessionId:
@@ -118,6 +125,7 @@ class RunTrackingController extends ChangeNotifier {
       routePrivacy: routePrivacy,
       routeLabel: routeLabel,
       source: session.source,
+      locationStatus: _initialLocationStatus,
     );
     return effectiveStartedAt;
   }
@@ -135,20 +143,57 @@ class RunTrackingController extends ChangeNotifier {
 
     final fromActiveOffset = Duration(seconds: session.activeDurationSeconds);
     final toActiveOffset = fromActiveOffset + delta;
-    final samples = _locationProvider.samplesBetween(
-      fromActiveOffset: fromActiveOffset,
-      toActiveOffset: toActiveOffset,
-      startedAt: startedAt,
+    final samples = _locationProvider
+        .samplesBetween(
+          fromActiveOffset: fromActiveOffset,
+          toActiveOffset: toActiveOffset,
+          startedAt: startedAt,
+        )
+        .toList();
+    var nextLocationStatus = _latestLocationStatus;
+    session.advanceBy(
+      delta,
+      samples: _samplesTrackingLocationStatus(
+        session: session,
+        samples: samples,
+        onLocationStatusChanged: (status) {
+          nextLocationStatus = status;
+        },
+      ),
     );
-    session.advanceBy(delta, samples: samples);
+    _latestLocationStatus = nextLocationStatus;
 
     _state = _state.copyWith(
       elapsedSeconds: session.activeDurationSeconds,
       distanceMeters: session.distanceMeters,
       averagePaceSecondsPerKm: session.averagePaceSecondsPerKm,
+      locationStatus: _latestLocationStatus,
     );
     _mapViewState = session.mapViewState;
     notifyListeners();
+  }
+
+  Iterable<RunLocationSample> _samplesTrackingLocationStatus({
+    required LocalRunTrackingSession session,
+    required List<RunLocationSample> samples,
+    required ValueChanged<RunTrackingLocationStatus> onLocationStatusChanged,
+  }) sync* {
+    if (_initialLocationStatus == RunTrackingLocationStatus.demo) {
+      yield* samples;
+      return;
+    }
+
+    for (final sample in samples) {
+      final previousAcceptedSampleCount = session.acceptedSampleCount;
+      final previousRejectedSampleCount = session.rejectedSampleCount;
+      yield sample;
+
+      if (session.acceptedSampleCount > previousAcceptedSampleCount) {
+        onLocationStatusChanged(RunTrackingLocationStatus.gpsActive);
+      } else if (session.rejectedSampleCount > previousRejectedSampleCount) {
+        onLocationStatusChanged(RunTrackingLocationStatus.gpsWeak);
+      }
+    }
   }
 
   void pause() {

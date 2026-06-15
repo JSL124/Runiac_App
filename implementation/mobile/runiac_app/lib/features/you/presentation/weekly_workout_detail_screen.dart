@@ -13,6 +13,7 @@ class WeeklyWorkoutDetailScreen extends StatelessWidget {
     required this.onBack,
     this.snapshot = weeklyWorkoutDetailSnapshot,
     this.showEditScheduleAction = true,
+    this.enableForegroundGps = true,
     this.onStartRun,
     super.key,
   });
@@ -20,11 +21,15 @@ class WeeklyWorkoutDetailScreen extends StatelessWidget {
   final VoidCallback onBack;
   final WeeklyWorkoutDetailSnapshot snapshot;
   final bool showEditScheduleAction;
+  final bool enableForegroundGps;
   final VoidCallback? onStartRun;
 
   void _openRunLaunch(BuildContext context) {
     Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (context) => const RunLaunchScreen()),
+      MaterialPageRoute<void>(
+        builder: (context) =>
+            RunLaunchScreen(enableForegroundGps: enableForegroundGps),
+      ),
     );
   }
 

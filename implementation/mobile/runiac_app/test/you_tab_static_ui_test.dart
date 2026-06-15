@@ -1349,7 +1349,8 @@ void main() {
     await tester.pumpAndSettle();
 
     // Then: it routes only to the existing frontend run launch screen.
-    expect(find.text('GPS ready'), findsOneWidget);
+    expect(find.text('Demo mode'), findsOneWidget);
+    expect(find.text('Waiting for GPS'), findsNothing);
     expect(find.text('Start run'), findsOneWidget);
     expect(find.text('Start This Run'), findsNothing);
     expect(find.byType(AlertDialog), findsNothing);
@@ -1536,7 +1537,7 @@ void main() {
     await tester.tap(find.text('Run'));
     await tester.pumpAndSettle();
 
-    expect(find.text('GPS ready'), findsOneWidget);
+    expect(find.text('Demo mode'), findsOneWidget);
     expect(find.text('You').hitTestable(), findsNothing);
     expect(find.text('Weekly Distance').hitTestable(), findsNothing);
   });
@@ -1549,7 +1550,7 @@ void main() {
     await tester.tap(find.text('Run'));
     await tester.pumpAndSettle();
 
-    expect(find.text('GPS ready'), findsOneWidget);
+    expect(find.text('Demo mode'), findsOneWidget);
     expect(find.text('You').hitTestable(), findsNothing);
 
     await tester.tap(find.byTooltip('Close'));

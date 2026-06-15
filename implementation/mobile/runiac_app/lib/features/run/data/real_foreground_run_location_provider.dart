@@ -58,6 +58,8 @@ class RealForegroundRunLocationProvider implements RunLocationProvider {
   final LocationSettingsRequest settings;
 
   final List<RunLocationReplaySample> _samples = <RunLocationReplaySample>[];
+  final Set<RunLocationReplaySample> _consumedSamples =
+      <RunLocationReplaySample>{};
   StreamSubscription<ForegroundPosition>? _subscription;
   DateTime? _resumedAt;
   Duration _activeOffsetAtResume = Duration.zero;
@@ -67,6 +69,7 @@ class RealForegroundRunLocationProvider implements RunLocationProvider {
   Future<void> start({required DateTime startedAt}) async {
     await stop();
     _samples.clear();
+    _consumedSamples.clear();
     _resumedAt = startedAt;
     _activeOffsetAtResume = Duration.zero;
     _isActive = true;
@@ -76,6 +79,8 @@ class RealForegroundRunLocationProvider implements RunLocationProvider {
   @override
   Future<void> pause() async {
     _isActive = false;
+    _samples.clear();
+    _consumedSamples.clear();
   }
 
   @override
@@ -95,6 +100,7 @@ class RealForegroundRunLocationProvider implements RunLocationProvider {
     await _subscription?.cancel();
     _subscription = null;
     _samples.clear();
+    _consumedSamples.clear();
   }
 
   @override
@@ -103,20 +109,19 @@ class RealForegroundRunLocationProvider implements RunLocationProvider {
     required Duration toActiveOffset,
     required DateTime startedAt,
   }) {
-    final entries = _samples
-        .where(
-          (entry) =>
-              entry.activeOffset > fromActiveOffset &&
-              entry.activeOffset <= toActiveOffset,
-        )
-        .toList();
-    final lowerBoundEntries = _samples
-        .where((entry) => entry.activeOffset == fromActiveOffset)
-        .toList();
-    if (lowerBoundEntries.isNotEmpty) {
-      entries.insert(0, lowerBoundEntries.last);
+    final entries = <RunLocationReplaySample>[];
+    for (final entry in _samples) {
+      if (_consumedSamples.contains(entry)) {
+        continue;
+      }
+      if (entry.activeOffset > toActiveOffset) {
+        break;
+      }
+
+      entries.add(entry);
+      _consumedSamples.add(entry);
     }
-    return entries.map((entry) => entry.sample);
+    return entries.map((entry) => entry.sample).toList();
   }
 
   void _handlePosition(ForegroundPosition position) {
@@ -130,18 +135,24 @@ class RealForegroundRunLocationProvider implements RunLocationProvider {
       return;
     }
 
-    _samples.add(
-      RunLocationReplaySample(
-        activeOffset: _activeOffsetAtResume + offsetSinceResume,
-        sample: RunLocationSample(
-          recordedAt: position.timestamp,
-          latitude: position.latitude,
-          longitude: position.longitude,
-          horizontalAccuracyMeters: position.accuracy,
-          speedMetersPerSecond: position.speed,
-        ),
+    final entry = RunLocationReplaySample(
+      activeOffset: _activeOffsetAtResume + offsetSinceResume,
+      sample: RunLocationSample(
+        recordedAt: position.timestamp,
+        latitude: position.latitude,
+        longitude: position.longitude,
+        horizontalAccuracyMeters: position.accuracy,
+        speedMetersPerSecond: position.speed,
       ),
     );
+    final insertIndex = _samples.indexWhere(
+      (sample) => sample.activeOffset > entry.activeOffset,
+    );
+    if (insertIndex == -1) {
+      _samples.add(entry);
+    } else {
+      _samples.insert(insertIndex, entry);
+    }
   }
 }
 

@@ -48,11 +48,11 @@ class _RuniacShellState extends State<RuniacShell> {
   @override
   Widget build(BuildContext context) {
     final tabs = [
-      const HomeTab(),
+      HomeTab(enableForegroundGps: widget.enableForegroundGps),
       const MapsTab(),
       const SizedBox.shrink(),
       const LeaderboardTab(),
-      const YouTab(),
+      YouTab(enableForegroundGps: widget.enableForegroundGps),
     ];
 
     return Scaffold(
