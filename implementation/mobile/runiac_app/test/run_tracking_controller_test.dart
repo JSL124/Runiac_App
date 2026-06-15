@@ -70,6 +70,58 @@ void main() {
       expect(controller.state.isPaused, isFalse);
     });
 
+    test('preview current position populates map without trusted metrics', () {
+      final controller = RunTrackingController();
+      final previewSample = RunLocationSample(
+        recordedAt: DateTime.utc(2026, 6, 14, 7),
+        latitude: 1.3009,
+        longitude: 103.8,
+        horizontalAccuracyMeters: 5,
+      );
+
+      controller.setPreviewCurrentPosition(previewSample);
+
+      expect(controller.state.phase, RunTrackingPhase.idle);
+      expect(controller.state.elapsedSeconds, 0);
+      expect(controller.state.distanceMeters, 0);
+      expect(controller.state.averagePaceSecondsPerKm, 0);
+      expect(controller.mapViewState.currentPosition, previewSample);
+      expect(controller.mapViewState.routeSegments, isEmpty);
+      expect(() => controller.completionPayload(), throwsStateError);
+    });
+
+    test(
+      'preview current position does not seed active route metrics',
+      () async {
+        final provider = ReplayRunLocationProvider(const []);
+        final controller = RunTrackingController(locationProvider: provider);
+        final previewSample = RunLocationSample(
+          recordedAt: DateTime.utc(2026, 6, 14, 7),
+          latitude: 1.3009,
+          longitude: 103.8,
+          horizontalAccuracyMeters: 5,
+        );
+
+        controller.setPreviewCurrentPosition(previewSample);
+        controller.start(
+          startedAt: DateTime.utc(2026, 6, 14, 7),
+          clientRunSessionId: 'preview-isolated-run',
+        );
+        controller.advanceBy(const Duration(seconds: 60));
+
+        expect(controller.state.phase, RunTrackingPhase.active);
+        expect(controller.state.elapsedSeconds, 60);
+        expect(controller.state.distanceMeters, 0);
+        expect(controller.state.averagePaceSecondsPerKm, 0);
+        expect(controller.mapViewState.currentPosition, previewSample);
+        expect(controller.mapViewState.routeSegments, isEmpty);
+        expect(
+          controller.completionPayload().toRawClientMap().keys,
+          isNot(contains('routeSamples')),
+        );
+      },
+    );
+
     test('start creates an active local session', () {
       final controller = RunTrackingController();
       final startedAt = DateTime.utc(2026, 6, 14, 7);
@@ -939,9 +991,22 @@ class _FakeForegroundAdapter implements ForegroundLocationAdapter {
   final _controller = StreamController<ForegroundPosition>.broadcast(
     sync: true,
   );
+  _ForegroundPosition? currentPosition;
 
   void emit(_ForegroundPosition position) {
     _controller.add(position);
+  }
+
+  @override
+  Future<ForegroundPosition> getCurrentPosition(
+    LocationSettingsRequest settings,
+  ) async {
+    return currentPosition ??
+        _ForegroundPosition(
+          timestamp: DateTime.utc(2026, 6, 14, 7),
+          latitude: 1.3,
+          longitude: 103.8,
+        );
   }
 
   @override

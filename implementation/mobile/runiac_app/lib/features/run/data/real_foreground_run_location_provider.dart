@@ -4,6 +4,7 @@ import 'package:geolocator/geolocator.dart' as geolocator;
 
 import '../domain/models/run_location_sample.dart';
 import '../domain/models/run_tracking_diagnostics.dart';
+import '../domain/repositories/run_location_preview_provider.dart';
 import '../domain/repositories/run_location_provider.dart';
 
 class LocationSettingsRequest {
@@ -25,6 +26,10 @@ abstract interface class ForegroundPosition {
 }
 
 abstract interface class ForegroundLocationAdapter {
+  Future<ForegroundPosition> getCurrentPosition(
+    LocationSettingsRequest settings,
+  );
+
   Stream<ForegroundPosition> getPositionStream(
     LocationSettingsRequest settings,
   );
@@ -36,17 +41,21 @@ class GeolocatorForegroundLocationAdapter implements ForegroundLocationAdapter {
   const GeolocatorForegroundLocationAdapter();
 
   @override
+  Future<ForegroundPosition> getCurrentPosition(
+    LocationSettingsRequest settings,
+  ) async {
+    final position = await geolocator.Geolocator.getCurrentPosition(
+      locationSettings: _locationSettingsFor(settings),
+    );
+    return _GeolocatorForegroundPosition(position);
+  }
+
+  @override
   Stream<ForegroundPosition> getPositionStream(
     LocationSettingsRequest settings,
   ) {
-    final locationSettings = geolocator.LocationSettings(
-      accuracy: settings.highAccuracy
-          ? geolocator.LocationAccuracy.high
-          : geolocator.LocationAccuracy.medium,
-      distanceFilter: settings.distanceFilterMeters,
-    );
     return geolocator.Geolocator.getPositionStream(
-      locationSettings: locationSettings,
+      locationSettings: _locationSettingsFor(settings),
     ).map(_GeolocatorForegroundPosition.new);
   }
 
@@ -61,6 +70,40 @@ class GeolocatorForegroundLocationAdapter implements ForegroundLocationAdapter {
       geolocator.LocationAccuracyStatus.unknown =>
         RunTrackingLocationAccuracyStatus.unknown,
     };
+  }
+
+  geolocator.LocationSettings _locationSettingsFor(
+    LocationSettingsRequest settings,
+  ) {
+    return geolocator.LocationSettings(
+      accuracy: settings.highAccuracy
+          ? geolocator.LocationAccuracy.high
+          : geolocator.LocationAccuracy.medium,
+      distanceFilter: settings.distanceFilterMeters,
+    );
+  }
+}
+
+class RealForegroundRunLocationPreviewProvider
+    implements RunLocationPreviewProvider {
+  const RealForegroundRunLocationPreviewProvider({
+    this.adapter = const GeolocatorForegroundLocationAdapter(),
+    this.settings = const LocationSettingsRequest(),
+  });
+
+  final ForegroundLocationAdapter adapter;
+  final LocationSettingsRequest settings;
+
+  @override
+  Future<RunLocationSample> currentLocation() async {
+    final position = await adapter.getCurrentPosition(settings);
+    return RunLocationSample(
+      recordedAt: position.timestamp,
+      latitude: position.latitude,
+      longitude: position.longitude,
+      horizontalAccuracyMeters: position.accuracy,
+      speedMetersPerSecond: position.speed,
+    );
   }
 }
 

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import '../../domain/models/local_run_completion_payload.dart';
+import '../../domain/models/run_location_sample.dart';
 import '../../domain/models/run_location_permission_status.dart';
 import '../../domain/models/run_map_view_state.dart';
 import '../../domain/models/run_tracking_diagnostics.dart';
@@ -33,15 +34,32 @@ class RunTrackingController extends ChangeNotifier {
       RunLocationPermissionStatus.checking;
   LocalRunTrackingSession? _trackingSession;
   RunMapViewState _mapViewState = const RunMapViewState.empty();
+  RunLocationSample? _previewCurrentPosition;
   int _sessionSequence = 0;
   RunTrackingLocationStatus _latestLocationStatus =
       RunTrackingLocationStatus.demo;
 
   RunTrackingState get state => _state;
-  RunMapViewState get mapViewState => _mapViewState;
+  RunMapViewState get mapViewState {
+    final activeCurrentPosition = _mapViewState.currentPosition;
+    if (activeCurrentPosition != null || _previewCurrentPosition == null) {
+      return _mapViewState;
+    }
+    return RunMapViewState(
+      currentPosition: _previewCurrentPosition,
+      routeSegments: _mapViewState.routeSegments,
+    );
+  }
+
+  RunLocationSample? get previewCurrentPosition => _previewCurrentPosition;
   RunLocationPermissionStatus get locationPermissionStatus =>
       _locationPermissionStatus;
   String get locationPermissionMessage => _locationPermissionStatus.message;
+
+  void setPreviewCurrentPosition(RunLocationSample sample) {
+    _previewCurrentPosition = sample;
+    notifyListeners();
+  }
 
   void start({
     DateTime? startedAt,
@@ -246,6 +264,7 @@ class RunTrackingController extends ChangeNotifier {
     final payload = completionPayload(completedAt: completedAt);
     unawaited(_locationProvider.stop());
     _mapViewState = const RunMapViewState.empty();
+    _previewCurrentPosition = null;
     _state = _state.copyWith(
       phase: RunTrackingPhase.finished,
       completedAt: payload.completedAt,

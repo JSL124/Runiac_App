@@ -8,6 +8,7 @@ import 'package:runiac_app/features/run/domain/models/run_location_permission_st
 import 'package:runiac_app/features/run/domain/models/run_map_view_state.dart';
 import 'package:runiac_app/features/run/domain/models/run_tracking_diagnostics.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_location_permission_service.dart';
+import 'package:runiac_app/features/run/domain/repositories/run_location_preview_provider.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_location_provider.dart';
 import 'package:runiac_app/features/run/presentation/run_active_screen.dart';
 import 'package:runiac_app/features/run/presentation/run_launch_screen.dart';
@@ -89,23 +90,75 @@ class _GrantedRunLocationPermissionService
   }
 }
 
+class _ConfigurableRunLocationPermissionService
+    implements RunLocationPermissionService {
+  _ConfigurableRunLocationPermissionService({
+    required this.checkedStatus,
+    RunLocationPermissionStatus? requestedStatus,
+  }) : requestedStatus = requestedStatus ?? checkedStatus;
+
+  RunLocationPermissionStatus checkedStatus;
+  RunLocationPermissionStatus requestedStatus;
+  int checkCount = 0;
+  int requestCount = 0;
+
+  @override
+  Future<RunLocationPermissionStatus> checkStatus() async {
+    checkCount += 1;
+    return checkedStatus;
+  }
+
+  @override
+  Future<RunLocationPermissionStatus> requestPermission() async {
+    requestCount += 1;
+    checkedStatus = requestedStatus;
+    return requestedStatus;
+  }
+}
+
+class _FakeRunLocationPreviewProvider implements RunLocationPreviewProvider {
+  _FakeRunLocationPreviewProvider({required this.sample});
+
+  final RunLocationSample sample;
+  int requestCount = 0;
+
+  @override
+  Future<RunLocationSample> currentLocation() async {
+    requestCount += 1;
+    return sample;
+  }
+}
+
+RunLocationSample _previewSample() {
+  return RunLocationSample(
+    recordedAt: DateTime.utc(2026, 6, 14, 7),
+    latitude: 1.3009,
+    longitude: 103.8,
+    horizontalAccuracyMeters: 5,
+  );
+}
+
 void main() {
-  testWidgets('Run launch top GPS pill fits Waiting for GPS on narrow phones', (
+  testWidgets('Run launch top GPS pill fits GPS ready on narrow phones', (
     WidgetTester tester,
   ) async {
     _useNarrowRunSurface(tester);
+    final previewProvider = _FakeRunLocationPreviewProvider(
+      sample: _previewSample(),
+    );
 
     await tester.pumpWidget(
       MaterialApp(
         home: RunLaunchScreen(
           locationProvider: ReplayRunLocationProvider(const []),
+          locationPreviewProvider: previewProvider,
           permissionService: const _GrantedRunLocationPermissionService(),
         ),
       ),
     );
     await tester.pumpAndSettle();
 
-    _expectStatusLabelReadable(tester, 'Waiting for GPS');
+    _expectStatusLabelReadable(tester, 'GPS ready');
     expect(find.byTooltip('Close'), findsOneWidget);
     expect(find.byTooltip('Run settings'), findsOneWidget);
 
@@ -136,6 +189,9 @@ void main() {
               ),
             ),
           ]),
+          locationPreviewProvider: _FakeRunLocationPreviewProvider(
+            sample: _previewSample(),
+          ),
           permissionService: const _GrantedRunLocationPermissionService(),
         ),
       ),
@@ -171,6 +227,9 @@ void main() {
               ),
             ),
           ], locationAccuracyStatus: RunTrackingLocationAccuracyStatus.reduced),
+          locationPreviewProvider: _FakeRunLocationPreviewProvider(
+            sample: _previewSample(),
+          ),
           permissionService: const _GrantedRunLocationPermissionService(),
         ),
       ),
@@ -186,14 +245,14 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('default Run tab enters real GPS waiting mode', (
+  testWidgets('default Run tab enters foreground GPS mode', (
     WidgetTester tester,
   ) async {
     _useMobileRunSurface(tester);
 
     await _openDefaultRunLaunch(tester);
 
-    expect(find.text('Waiting for GPS'), findsOneWidget);
+    expect(find.byType(RunLaunchScreen), findsOneWidget);
     expect(find.text('Demo mode'), findsNothing);
     expect(tester.takeException(), isNull);
   });
@@ -259,13 +318,16 @@ void main() {
       MaterialApp(
         home: RunLaunchScreen(
           locationProvider: ReplayRunLocationProvider(const []),
+          locationPreviewProvider: _FakeRunLocationPreviewProvider(
+            sample: _previewSample(),
+          ),
           permissionService: const _GrantedRunLocationPermissionService(),
         ),
       ),
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Waiting for GPS'), findsOneWidget);
+    expect(find.text('GPS ready'), findsOneWidget);
     expect(find.text('Demo mode'), findsNothing);
 
     await tester.tap(find.text('Start run'));
@@ -297,6 +359,9 @@ void main() {
               ),
             ),
           ]),
+          locationPreviewProvider: _FakeRunLocationPreviewProvider(
+            sample: _previewSample(),
+          ),
           permissionService: const _GrantedRunLocationPermissionService(),
         ),
       ),
@@ -336,6 +401,9 @@ void main() {
               ),
             ),
           ]),
+          locationPreviewProvider: _FakeRunLocationPreviewProvider(
+            sample: _previewSample(),
+          ),
           permissionService: const _GrantedRunLocationPermissionService(),
         ),
       ),
@@ -495,8 +563,15 @@ void main() {
     'RunLaunchScreen recenter is a gentle no-op before current location',
     (WidgetTester tester) async {
       _useMobileRunSurface(tester);
+      final permissionService = _ConfigurableRunLocationPermissionService(
+        checkedStatus: RunLocationPermissionStatus.deniedForever,
+      );
 
-      await tester.pumpWidget(const MaterialApp(home: RunLaunchScreen()));
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RunLaunchScreen(permissionService: permissionService),
+        ),
+      );
       await tester.pump();
 
       final recenter = find.byKey(const Key('run_map_recenter_button'));
@@ -509,6 +584,167 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+
+  testWidgets(
+    'RunLaunchScreen does not request permission on entry when denied',
+    (WidgetTester tester) async {
+      _useMobileRunSurface(tester);
+      final permissionService = _ConfigurableRunLocationPermissionService(
+        checkedStatus: RunLocationPermissionStatus.denied,
+      );
+      final previewProvider = _FakeRunLocationPreviewProvider(
+        sample: _previewSample(),
+      );
+      RunMapboxSurfaceConfig? capturedConfig;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RunLaunchScreen(
+            locationPreviewProvider: previewProvider,
+            permissionService: permissionService,
+            mapboxAccessToken: _demoMapboxPublicToken,
+            mapboxBuilder: (context, config) {
+              capturedConfig = config;
+              return const ColoredBox(color: Colors.black);
+            },
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(permissionService.checkCount, 1);
+      expect(permissionService.requestCount, 0);
+      expect(previewProvider.requestCount, 0);
+      expect(find.text('Tap location'), findsOneWidget);
+      expect(capturedConfig?.mapViewState.currentPosition, isNull);
+      expect(find.byKey(const Key('run_map_recenter_button')), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'RunLaunchScreen granted entry fetches preview current position for map',
+    (WidgetTester tester) async {
+      _useMobileRunSurface(tester);
+      final permissionService = _ConfigurableRunLocationPermissionService(
+        checkedStatus: RunLocationPermissionStatus.granted,
+      );
+      final previewProvider = _FakeRunLocationPreviewProvider(
+        sample: _previewSample(),
+      );
+      RunMapboxSurfaceConfig? capturedConfig;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RunLaunchScreen(
+            locationProvider: ReplayRunLocationProvider(const []),
+            locationPreviewProvider: previewProvider,
+            permissionService: permissionService,
+            mapboxAccessToken: _demoMapboxPublicToken,
+            mapboxBuilder: (context, config) {
+              capturedConfig = config;
+              return const ColoredBox(color: Colors.black);
+            },
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(permissionService.checkCount, 1);
+      expect(permissionService.requestCount, 0);
+      expect(previewProvider.requestCount, 1);
+      expect(find.text('GPS ready'), findsOneWidget);
+      expect(capturedConfig?.mapViewState.currentPosition?.latitude, 1.3009);
+      expect(capturedConfig?.mapViewState.routeSegments, isEmpty);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'RunLaunchScreen recenter requests permission then keeps button visible',
+    (WidgetTester tester) async {
+      _useMobileRunSurface(tester);
+      final permissionService = _ConfigurableRunLocationPermissionService(
+        checkedStatus: RunLocationPermissionStatus.denied,
+        requestedStatus: RunLocationPermissionStatus.granted,
+      );
+      final previewProvider = _FakeRunLocationPreviewProvider(
+        sample: _previewSample(),
+      );
+      final configs = <RunMapboxSurfaceConfig>[];
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RunLaunchScreen(
+            locationProvider: ReplayRunLocationProvider(const []),
+            locationPreviewProvider: previewProvider,
+            permissionService: permissionService,
+            mapboxAccessToken: _demoMapboxPublicToken,
+            mapboxBuilder: (context, config) {
+              configs.add(config);
+              return const ColoredBox(color: Colors.black);
+            },
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('run_map_recenter_button')));
+      await tester.pumpAndSettle();
+
+      expect(permissionService.requestCount, 1);
+      expect(previewProvider.requestCount, 1);
+      expect(find.byKey(const Key('run_map_recenter_button')), findsOneWidget);
+      expect(find.text('GPS ready'), findsOneWidget);
+      expect(configs.last.mapViewState.currentPosition?.latitude, 1.3009);
+      expect(configs.last.isFollowingRunner, isTrue);
+      expect(
+        configs.map((config) => config.recenterRequestId),
+        contains(greaterThanOrEqualTo(1)),
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('RunLaunchScreen preview position does not seed active metrics', (
+    WidgetTester tester,
+  ) async {
+    _useMobileRunSurface(tester);
+    final permissionService = _ConfigurableRunLocationPermissionService(
+      checkedStatus: RunLocationPermissionStatus.granted,
+    );
+    final previewProvider = _FakeRunLocationPreviewProvider(
+      sample: _previewSample(),
+    );
+    final configs = <RunMapboxSurfaceConfig>[];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RunLaunchScreen(
+          locationProvider: ReplayRunLocationProvider(const []),
+          locationPreviewProvider: previewProvider,
+          permissionService: permissionService,
+          mapboxAccessToken: _demoMapboxPublicToken,
+          mapboxBuilder: (context, config) {
+            configs.add(config);
+            return const ColoredBox(color: Colors.black);
+          },
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(configs.last.mapViewState.currentPosition, isNotNull);
+    await tester.tap(find.text('Start run'));
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(seconds: 1));
+
+    expect(find.text('0.00 of 4.50 km'), findsOneWidget);
+    expect(find.text('--:--/km'), findsOneWidget);
+    expect(configs.last.mapViewState.currentPosition?.latitude, 1.3009);
+    expect(configs.last.mapViewState.routeSegments, isEmpty);
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets('RunLaunchScreen selects Mapbox path when token is present', (
     WidgetTester tester,

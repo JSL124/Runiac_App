@@ -11,6 +11,7 @@ import '../domain/models/run_location_permission_status.dart';
 import '../domain/models/run_completion_error.dart';
 import '../domain/models/run_tracking_state.dart';
 import '../domain/repositories/run_location_permission_service.dart';
+import '../domain/repositories/run_location_preview_provider.dart';
 import '../domain/repositories/run_location_provider.dart';
 import '../domain/repositories/run_repository.dart';
 import 'controllers/run_tracking_controller.dart';
@@ -43,11 +44,23 @@ enum RunSheetMode { preRun, running, paused }
 
 enum RunLaunchSheetExtent { expanded, collapsed }
 
+enum _RunPreviewLocationStatus {
+  inactive,
+  checkingPermission,
+  permissionRequired,
+  findingLocation,
+  locationReady,
+  serviceDisabled,
+  permissionBlocked,
+  unavailable,
+}
+
 class RunLaunchScreen extends StatefulWidget {
   const RunLaunchScreen({
     super.key,
     this.repository,
     this.locationProvider,
+    this.locationPreviewProvider,
     this.permissionService,
     this.enableForegroundGps = true,
     this.mapboxAccessToken,
@@ -56,6 +69,7 @@ class RunLaunchScreen extends StatefulWidget {
 
   final RunRepository? repository;
   final RunLocationProvider? locationProvider;
+  final RunLocationPreviewProvider? locationPreviewProvider;
   final RunLocationPermissionService? permissionService;
   final bool enableForegroundGps;
   final String? mapboxAccessToken;
@@ -67,6 +81,8 @@ class RunLaunchScreen extends StatefulWidget {
 
 class _RunLaunchScreenState extends State<RunLaunchScreen> {
   late final RunTrackingController _controller;
+  late final RunLocationPermissionService? _permissionService;
+  late final RunLocationPreviewProvider? _locationPreviewProvider;
   RunSheetMode _sheetMode = RunSheetMode.preRun;
   RunLaunchSheetExtent _sheetExtent = RunLaunchSheetExtent.expanded;
   double _sheetProgress = 1;
@@ -74,23 +90,35 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
   bool _isCompletingRun = false;
   bool _isFollowingRunner = true;
   int _mapRecenterRequestId = 0;
+  int _previewRequestId = 0;
+  _RunPreviewLocationStatus _previewLocationStatus =
+      _RunPreviewLocationStatus.inactive;
 
   @override
   void initState() {
     super.initState();
     final useForegroundGps = widget.enableForegroundGps;
+    _permissionService = useForegroundGps
+        ? widget.permissionService ??
+              const GeolocatorRunLocationPermissionService()
+        : widget.permissionService;
+    _locationPreviewProvider = useForegroundGps
+        ? widget.locationPreviewProvider ??
+              const RealForegroundRunLocationPreviewProvider()
+        : widget.locationPreviewProvider;
     _controller = RunTrackingController(
       locationProvider: useForegroundGps
           ? widget.locationProvider ?? RealForegroundRunLocationProvider()
           : widget.locationProvider,
-      permissionService: useForegroundGps
-          ? widget.permissionService ??
-                const GeolocatorRunLocationPermissionService()
-          : widget.permissionService,
+      permissionService: _permissionService,
       locationStatus: useForegroundGps
           ? RunTrackingLocationStatus.waitingForGps
           : RunTrackingLocationStatus.demo,
     );
+    if (useForegroundGps) {
+      _previewLocationStatus = _RunPreviewLocationStatus.checkingPermission;
+      unawaited(_refreshPreviewLocation(requestPermission: false));
+    }
   }
 
   @override
@@ -262,17 +290,111 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
       ..showSnackBar(SnackBar(content: Text(message)));
   }
 
+  Future<void> _refreshPreviewLocation({
+    required bool requestPermission,
+    bool showFailureMessage = false,
+    bool recenterOnSuccess = false,
+  }) async {
+    final permissionService = _permissionService;
+    final previewProvider = _locationPreviewProvider;
+    if (!widget.enableForegroundGps ||
+        permissionService == null ||
+        previewProvider == null) {
+      return;
+    }
+
+    final requestId = ++_previewRequestId;
+    if (mounted) {
+      setState(() {
+        _previewLocationStatus = requestPermission
+            ? _RunPreviewLocationStatus.findingLocation
+            : _RunPreviewLocationStatus.checkingPermission;
+      });
+    }
+
+    var permissionStatus = await permissionService.checkStatus();
+    if (requestPermission &&
+        permissionStatus == RunLocationPermissionStatus.denied) {
+      permissionStatus = await permissionService.requestPermission();
+    }
+    if (!mounted || requestId != _previewRequestId) {
+      return;
+    }
+
+    if (!permissionStatus.canStartRun) {
+      setState(() {
+        _previewLocationStatus = _previewStatusForPermission(permissionStatus);
+      });
+      if (showFailureMessage) {
+        _showPreviewMessage(permissionStatus.message);
+      }
+      return;
+    }
+
+    setState(() {
+      _previewLocationStatus = _RunPreviewLocationStatus.findingLocation;
+    });
+
+    try {
+      final sample = await previewProvider.currentLocation();
+      if (!mounted || requestId != _previewRequestId) {
+        return;
+      }
+      _controller.setPreviewCurrentPosition(sample);
+      setState(() {
+        _previewLocationStatus = _RunPreviewLocationStatus.locationReady;
+        if (recenterOnSuccess) {
+          _isFollowingRunner = true;
+          _mapRecenterRequestId++;
+        }
+      });
+    } on Object {
+      if (!mounted || requestId != _previewRequestId) {
+        return;
+      }
+      setState(() {
+        _previewLocationStatus = _RunPreviewLocationStatus.unavailable;
+      });
+      if (showFailureMessage) {
+        _showPreviewMessage(RunLocationPermissionStatus.unavailable.message);
+      }
+    }
+  }
+
+  _RunPreviewLocationStatus _previewStatusForPermission(
+    RunLocationPermissionStatus status,
+  ) {
+    return switch (status) {
+      RunLocationPermissionStatus.checking =>
+        _RunPreviewLocationStatus.checkingPermission,
+      RunLocationPermissionStatus.granted =>
+        _RunPreviewLocationStatus.findingLocation,
+      RunLocationPermissionStatus.denied =>
+        _RunPreviewLocationStatus.permissionRequired,
+      RunLocationPermissionStatus.deniedForever =>
+        _RunPreviewLocationStatus.permissionBlocked,
+      RunLocationPermissionStatus.serviceDisabled =>
+        _RunPreviewLocationStatus.serviceDisabled,
+      RunLocationPermissionStatus.unavailable =>
+        _RunPreviewLocationStatus.unavailable,
+    };
+  }
+
   String _statusLabel(RunTrackingState state) {
     if (_sheetMode == RunSheetMode.preRun) {
-      if (_controller.locationPermissionStatus !=
-              RunLocationPermissionStatus.checking &&
-          _controller.locationPermissionStatus !=
-              RunLocationPermissionStatus.granted) {
-        return 'GPS needed';
+      if (!widget.enableForegroundGps) {
+        return RunTrackingLocationStatus.demo.label;
       }
-      return widget.enableForegroundGps
-          ? RunTrackingLocationStatus.waitingForGps.label
-          : RunTrackingLocationStatus.demo.label;
+      return switch (_previewLocationStatus) {
+        _RunPreviewLocationStatus.inactive => 'Checking GPS',
+        _RunPreviewLocationStatus.checkingPermission => 'Checking GPS',
+        _RunPreviewLocationStatus.permissionRequired => 'Tap location',
+        _RunPreviewLocationStatus.findingLocation => 'Finding you',
+        _RunPreviewLocationStatus.locationReady => 'GPS ready',
+        _RunPreviewLocationStatus.serviceDisabled => 'GPS off',
+        _RunPreviewLocationStatus.permissionBlocked => 'GPS blocked',
+        _RunPreviewLocationStatus.unavailable => 'Location unavailable',
+      };
     }
 
     if (_sheetMode == RunSheetMode.paused || state.isPaused) {
@@ -287,6 +409,15 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
       _isFollowingRunner = true;
       _mapRecenterRequestId++;
     });
+    if (!_hasCurrentPosition && _sheetMode == RunSheetMode.preRun) {
+      unawaited(
+        _refreshPreviewLocation(
+          requestPermission: true,
+          showFailureMessage: true,
+          recenterOnSuccess: true,
+        ),
+      );
+    }
   }
 
   @override

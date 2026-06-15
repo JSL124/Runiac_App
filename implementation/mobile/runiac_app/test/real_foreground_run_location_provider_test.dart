@@ -23,6 +23,28 @@ void main() {
   }
 
   group('RealForegroundRunLocationProvider', () {
+    test('maps one-shot current position without starting stream', () async {
+      final adapter = _FakeForegroundAdapter();
+      adapter.currentPosition = position(
+        timestamp: DateTime.utc(2026, 6, 14, 7),
+        latitude: 1.3009,
+        longitude: 103.8,
+        accuracy: 5,
+        speed: 2.4,
+      );
+      final provider = RealForegroundRunLocationPreviewProvider(
+        adapter: adapter,
+      );
+
+      final sample = await provider.currentLocation();
+
+      expect(sample.latitude, 1.3009);
+      expect(sample.longitude, 103.8);
+      expect(sample.horizontalAccuracyMeters, 5);
+      expect(sample.speedMetersPerSecond, 2.4);
+      expect(adapter.streamStartCount, 0);
+    });
+
     test('maps foreground positions into local run samples', () async {
       final startedAt = DateTime.utc(2026, 6, 14, 7);
       final adapter = _FakeForegroundAdapter();
@@ -351,15 +373,30 @@ class _FakeForegroundAdapter implements ForegroundLocationAdapter {
   );
   LocationSettingsRequest? lastSettings;
   final RunTrackingLocationAccuracyStatus locationAccuracyStatus;
+  int streamStartCount = 0;
+  _ForegroundPosition currentPosition = _ForegroundPosition(
+    timestamp: DateTime.utc(2026, 6, 14, 7),
+    latitude: 1.3,
+    longitude: 103.8,
+  );
 
   void emit(_ForegroundPosition position) {
     _controller.add(position);
   }
 
   @override
+  Future<ForegroundPosition> getCurrentPosition(
+    LocationSettingsRequest settings,
+  ) async {
+    lastSettings = settings;
+    return currentPosition;
+  }
+
+  @override
   Stream<ForegroundPosition> getPositionStream(
     LocationSettingsRequest settings,
   ) {
+    streamStartCount += 1;
     lastSettings = settings;
     return _controller.stream;
   }

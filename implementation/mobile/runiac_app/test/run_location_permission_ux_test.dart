@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:runiac_app/features/run/domain/models/run_location_sample.dart';
 import 'package:runiac_app/features/run/domain/models/run_location_permission_status.dart';
+import 'package:runiac_app/features/run/domain/repositories/run_location_preview_provider.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_location_provider.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_location_permission_service.dart';
 import 'package:runiac_app/features/run/presentation/run_launch_screen.dart';
@@ -15,6 +17,18 @@ class _FakePermissionService implements RunLocationPermissionService {
 
   @override
   Future<RunLocationPermissionStatus> requestPermission() async => status;
+}
+
+class _FakePreviewProvider implements RunLocationPreviewProvider {
+  @override
+  Future<RunLocationSample> currentLocation() async {
+    return RunLocationSample(
+      recordedAt: DateTime.utc(2026, 6, 14, 7),
+      latitude: 1.3009,
+      longitude: 103.8,
+      horizontalAccuracyMeters: 5,
+    );
+  }
 }
 
 void main() {
@@ -128,6 +142,7 @@ void main() {
             locationProvider: const ConstantSpeedRunLocationProvider(
               metersPerSecond: 2.4,
             ),
+            locationPreviewProvider: _FakePreviewProvider(),
             permissionService: _FakePermissionService(
               RunLocationPermissionStatus.granted,
             ),
