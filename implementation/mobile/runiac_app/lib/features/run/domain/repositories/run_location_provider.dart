@@ -1,6 +1,9 @@
 import '../models/run_location_sample.dart';
+import '../models/run_tracking_diagnostics.dart';
 
 abstract interface class RunLocationProvider {
+  RunTrackingLocationAccuracyStatus get locationAccuracyStatus;
+
   Future<void> start({required DateTime startedAt});
 
   Future<void> pause();
@@ -30,12 +33,17 @@ class RunLocationReplaySample {
 }
 
 class ReplayRunLocationProvider implements RunLocationProvider {
-  ReplayRunLocationProvider(Iterable<RunLocationReplaySample> samples)
-    : _samples = List<RunLocationReplaySample>.unmodifiable(
-        samples.toList()..sort(
-          (left, right) => left.activeOffset.compareTo(right.activeOffset),
-        ),
-      );
+  ReplayRunLocationProvider(
+    Iterable<RunLocationReplaySample> samples, {
+    this.locationAccuracyStatus = RunTrackingLocationAccuracyStatus.notChecked,
+  }) : _samples = List<RunLocationReplaySample>.unmodifiable(
+         samples.toList()..sort(
+           (left, right) => left.activeOffset.compareTo(right.activeOffset),
+         ),
+       );
+
+  @override
+  final RunTrackingLocationAccuracyStatus locationAccuracyStatus;
 
   final List<RunLocationReplaySample> _samples;
 
@@ -81,6 +89,10 @@ class ConstantSpeedRunLocationProvider implements RunLocationProvider {
   static const double _startLongitude = 103.800000;
 
   final double metersPerSecond;
+
+  @override
+  RunTrackingLocationAccuracyStatus get locationAccuracyStatus =>
+      RunTrackingLocationAccuracyStatus.notChecked;
 
   @override
   Future<void> start({required DateTime startedAt}) async {}

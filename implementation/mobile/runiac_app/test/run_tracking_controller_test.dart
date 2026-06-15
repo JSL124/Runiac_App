@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/features/run/domain/models/local_run_completion_payload.dart';
 import 'package:runiac_app/features/run/domain/models/run_location_sample.dart';
 import 'package:runiac_app/features/run/domain/models/run_location_permission_status.dart';
+import 'package:runiac_app/features/run/domain/models/run_tracking_diagnostics.dart';
 import 'package:runiac_app/features/run/domain/models/run_tracking_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/run_tracking_state.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_location_permission_service.dart';
@@ -340,6 +341,8 @@ void main() {
         controller.state.locationStatus,
         RunTrackingLocationStatus.waitingForGps,
       );
+      expect(controller.state.diagnostics.hasReceivedSample, isFalse);
+      expect(controller.state.diagnostics.acceptedSampleCount, 0);
     });
 
     test('foreground GPS mode becomes active after an accepted sample', () {
@@ -368,6 +371,11 @@ void main() {
       expect(
         controller.state.locationStatus,
         RunTrackingLocationStatus.gpsActive,
+      );
+      expect(controller.state.diagnostics.acceptedSampleCount, 1);
+      expect(
+        controller.state.diagnostics.latestAccuracyBucket,
+        RunLocationAccuracyBucket.good,
       );
     });
 
@@ -398,6 +406,11 @@ void main() {
         controller.state.locationStatus,
         RunTrackingLocationStatus.gpsWeak,
       );
+      expect(
+        controller.state.diagnostics.latestRejectionReason,
+        RunLocationRejectionReason.poorAccuracy,
+      );
+      expect(controller.state.diagnostics.rejectedSampleCount, 1);
     });
 
     test('foreground GPS mode follows latest active and weak samples', () {
@@ -463,6 +476,42 @@ void main() {
       );
     });
 
+    test(
+      'foreground GPS mode shows approximate location only when reduced',
+      () {
+        final startedAt = DateTime.utc(2026, 6, 14, 7);
+        final controller = RunTrackingController(
+          locationProvider: ReplayRunLocationProvider([
+            RunLocationReplaySample(
+              activeOffset: const Duration(seconds: 1),
+              sample: RunLocationSample(
+                recordedAt: startedAt.add(const Duration(seconds: 1)),
+                latitude: 1.3,
+                longitude: 103.8,
+                horizontalAccuracyMeters: 5,
+              ),
+            ),
+          ], locationAccuracyStatus: RunTrackingLocationAccuracyStatus.reduced),
+          locationStatus: RunTrackingLocationStatus.waitingForGps,
+        );
+
+        controller.start(
+          startedAt: startedAt,
+          clientRunSessionId: 'approximate-gps-run',
+        );
+        controller.advanceBy(const Duration(seconds: 1));
+
+        expect(
+          controller.state.locationStatus,
+          RunTrackingLocationStatus.approximateLocation,
+        );
+        expect(
+          controller.state.diagnostics.locationAccuracyStatus,
+          RunTrackingLocationAccuracyStatus.reduced,
+        );
+      },
+    );
+
     test('foreground GPS mode follows latest sample in one advance batch', () {
       final startedAt = DateTime.utc(2026, 6, 14, 7);
       final controller = RunTrackingController(
@@ -500,6 +549,51 @@ void main() {
         RunTrackingLocationStatus.gpsWeak,
       );
     });
+
+    test(
+      'foreground GPS mode shows weak for later duplicate timestamp rejection',
+      () {
+        final startedAt = DateTime.utc(2026, 6, 14, 7);
+        final controller = RunTrackingController(
+          locationProvider: ReplayRunLocationProvider([
+            RunLocationReplaySample(
+              activeOffset: const Duration(seconds: 1),
+              sample: RunLocationSample(
+                recordedAt: startedAt.add(const Duration(seconds: 1)),
+                latitude: 1.3,
+                longitude: 103.8,
+                horizontalAccuracyMeters: 5,
+              ),
+            ),
+            RunLocationReplaySample(
+              activeOffset: const Duration(seconds: 2),
+              sample: RunLocationSample(
+                recordedAt: startedAt.add(const Duration(seconds: 1)),
+                latitude: 1.3001,
+                longitude: 103.8,
+                horizontalAccuracyMeters: 5,
+              ),
+            ),
+          ]),
+          locationStatus: RunTrackingLocationStatus.waitingForGps,
+        );
+
+        controller.start(
+          startedAt: startedAt,
+          clientRunSessionId: 'duplicate-timestamp-quality-run',
+        );
+        controller.advanceBy(const Duration(seconds: 2));
+
+        expect(
+          controller.state.locationStatus,
+          RunTrackingLocationStatus.gpsWeak,
+        );
+        expect(
+          controller.state.diagnostics.latestRejectionReason,
+          RunLocationRejectionReason.duplicateOrOutOfOrderTimestamp,
+        );
+      },
+    );
 
     test('real foreground late accepted samples advance distance', () async {
       final startedAt = DateTime.utc(2026, 6, 14, 7);
@@ -578,6 +672,10 @@ void main() {
         RunTrackingLocationStatus.gpsWeak,
       );
       expect(controller.state.distanceMeters, 0);
+      expect(
+        controller.state.diagnostics.latestRejectionReason,
+        RunLocationRejectionReason.poorAccuracy,
+      );
     });
 
     test(
@@ -659,6 +757,11 @@ class _FakeForegroundAdapter implements ForegroundLocationAdapter {
     LocationSettingsRequest settings,
   ) {
     return _controller.stream;
+  }
+
+  @override
+  Future<RunTrackingLocationAccuracyStatus> getLocationAccuracyStatus() async {
+    return RunTrackingLocationAccuracyStatus.precise;
   }
 }
 

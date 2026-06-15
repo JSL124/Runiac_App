@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/features/run/data/real_foreground_run_location_provider.dart';
+import 'package:runiac_app/features/run/domain/models/run_tracking_diagnostics.dart';
 import 'package:runiac_app/features/run/domain/services/local_run_tracking_session.dart';
 
 void main() {
@@ -63,6 +64,26 @@ void main() {
       expect(
         samples.last.recordedAt,
         startedAt.add(const Duration(seconds: 60)),
+      );
+    });
+
+    test('surfaces foreground location accuracy status from adapter', () async {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      final adapter = _FakeForegroundAdapter(
+        locationAccuracyStatus: RunTrackingLocationAccuracyStatus.reduced,
+      );
+      final provider = RealForegroundRunLocationProvider(adapter: adapter);
+
+      expect(
+        provider.locationAccuracyStatus,
+        RunTrackingLocationAccuracyStatus.notChecked,
+      );
+
+      await provider.start(startedAt: startedAt);
+
+      expect(
+        provider.locationAccuracyStatus,
+        RunTrackingLocationAccuracyStatus.reduced,
       );
     });
 
@@ -321,10 +342,15 @@ void main() {
 }
 
 class _FakeForegroundAdapter implements ForegroundLocationAdapter {
+  _FakeForegroundAdapter({
+    this.locationAccuracyStatus = RunTrackingLocationAccuracyStatus.unknown,
+  });
+
   final _controller = StreamController<ForegroundPosition>.broadcast(
     sync: true,
   );
   LocationSettingsRequest? lastSettings;
+  final RunTrackingLocationAccuracyStatus locationAccuracyStatus;
 
   void emit(_ForegroundPosition position) {
     _controller.add(position);
@@ -336,6 +362,11 @@ class _FakeForegroundAdapter implements ForegroundLocationAdapter {
   ) {
     lastSettings = settings;
     return _controller.stream;
+  }
+
+  @override
+  Future<RunTrackingLocationAccuracyStatus> getLocationAccuracyStatus() async {
+    return locationAccuracyStatus;
   }
 }
 

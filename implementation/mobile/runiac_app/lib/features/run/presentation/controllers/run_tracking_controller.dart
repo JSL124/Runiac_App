@@ -3,9 +3,9 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import '../../domain/models/local_run_completion_payload.dart';
-import '../../domain/models/run_location_sample.dart';
 import '../../domain/models/run_location_permission_status.dart';
 import '../../domain/models/run_map_view_state.dart';
+import '../../domain/models/run_tracking_diagnostics.dart';
 import '../../domain/models/run_tracking_state.dart';
 import '../../domain/repositories/run_location_permission_service.dart';
 import '../../domain/repositories/run_location_provider.dart';
@@ -126,6 +126,7 @@ class RunTrackingController extends ChangeNotifier {
       routeLabel: routeLabel,
       source: session.source,
       locationStatus: _initialLocationStatus,
+      diagnostics: session.diagnostics,
     );
     return effectiveStartedAt;
   }
@@ -150,50 +151,45 @@ class RunTrackingController extends ChangeNotifier {
           startedAt: startedAt,
         )
         .toList();
-    var nextLocationStatus = _latestLocationStatus;
-    session.advanceBy(
-      delta,
-      samples: _samplesTrackingLocationStatus(
-        session: session,
-        samples: samples,
-        onLocationStatusChanged: (status) {
-          nextLocationStatus = status;
-        },
-      ),
+    session.updateLocationAccuracyStatus(
+      _locationProvider.locationAccuracyStatus,
     );
-    _latestLocationStatus = nextLocationStatus;
+    session.advanceBy(delta, samples: samples);
+    _latestLocationStatus = _locationStatusFor(session.diagnostics);
 
     _state = _state.copyWith(
       elapsedSeconds: session.activeDurationSeconds,
       distanceMeters: session.distanceMeters,
       averagePaceSecondsPerKm: session.averagePaceSecondsPerKm,
       locationStatus: _latestLocationStatus,
+      diagnostics: session.diagnostics,
     );
     _mapViewState = session.mapViewState;
     notifyListeners();
   }
 
-  Iterable<RunLocationSample> _samplesTrackingLocationStatus({
-    required LocalRunTrackingSession session,
-    required List<RunLocationSample> samples,
-    required ValueChanged<RunTrackingLocationStatus> onLocationStatusChanged,
-  }) sync* {
+  RunTrackingLocationStatus _locationStatusFor(
+    RunTrackingDiagnostics diagnostics,
+  ) {
     if (_initialLocationStatus == RunTrackingLocationStatus.demo) {
-      yield* samples;
-      return;
+      return RunTrackingLocationStatus.demo;
     }
 
-    for (final sample in samples) {
-      final previousAcceptedSampleCount = session.acceptedSampleCount;
-      final previousRejectedSampleCount = session.rejectedSampleCount;
-      yield sample;
-
-      if (session.acceptedSampleCount > previousAcceptedSampleCount) {
-        onLocationStatusChanged(RunTrackingLocationStatus.gpsActive);
-      } else if (session.rejectedSampleCount > previousRejectedSampleCount) {
-        onLocationStatusChanged(RunTrackingLocationStatus.gpsWeak);
-      }
+    if (diagnostics.locationAccuracyStatus ==
+        RunTrackingLocationAccuracyStatus.reduced) {
+      return RunTrackingLocationStatus.approximateLocation;
     }
+
+    final latestAcceptedAt = diagnostics.lastAcceptedSampleAt;
+    final latestRejectedAt = diagnostics.lastRejectedSampleAt;
+    if (latestAcceptedAt == null && latestRejectedAt == null) {
+      return RunTrackingLocationStatus.waitingForGps;
+    }
+    if (diagnostics.lastRejectedSampleSequence >
+        diagnostics.lastAcceptedSampleSequence) {
+      return RunTrackingLocationStatus.gpsWeak;
+    }
+    return RunTrackingLocationStatus.gpsActive;
   }
 
   void pause() {

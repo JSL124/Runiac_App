@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/features/run/domain/models/run_location_sample.dart';
+import 'package:runiac_app/features/run/domain/models/run_tracking_diagnostics.dart';
 import 'package:runiac_app/features/run/domain/services/local_run_tracking_session.dart';
 import 'package:runiac_app/features/run/domain/services/run_distance_calculator.dart';
 
@@ -83,7 +84,148 @@ void main() {
     });
   });
 
+  group('RunTrackingDiagnostics', () {
+    test('buckets horizontal accuracy at deterministic boundaries', () {
+      expect(
+        RunTrackingDiagnostics.bucketForAccuracy(null),
+        RunLocationAccuracyBucket.unknown,
+      );
+      expect(
+        RunTrackingDiagnostics.bucketForAccuracy(25),
+        RunLocationAccuracyBucket.good,
+      );
+      expect(
+        RunTrackingDiagnostics.bucketForAccuracy(25.1),
+        RunLocationAccuracyBucket.weak,
+      );
+      expect(
+        RunTrackingDiagnostics.bucketForAccuracy(100),
+        RunLocationAccuracyBucket.weak,
+      );
+      expect(
+        RunTrackingDiagnostics.bucketForAccuracy(100.1),
+        RunLocationAccuracyBucket.unusable,
+      );
+      expect(
+        RunTrackingDiagnostics.bucketForAccuracy(-1),
+        RunLocationAccuracyBucket.unusable,
+      );
+      expect(
+        RunTrackingDiagnostics.bucketForAccuracy(double.infinity),
+        RunLocationAccuracyBucket.unusable,
+      );
+    });
+  });
+
   group('LocalRunTrackingSession', () {
+    test('records accepted sample diagnostics without raw route data', () {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      final session = LocalRunTrackingSession(startedAt: startedAt);
+
+      session.advanceBy(
+        const Duration(seconds: 60),
+        samples: [
+          sampleAt(
+            startedAt,
+            0,
+            latitude: 1.300000,
+            longitude: 103.800000,
+            horizontalAccuracyMeters: 5,
+          ),
+          sampleAt(
+            startedAt,
+            60,
+            latitude: 1.300899,
+            longitude: 103.800000,
+            horizontalAccuracyMeters: 5,
+          ),
+        ],
+      );
+
+      final diagnostics = session.diagnostics;
+      expect(diagnostics.acceptedSampleCount, 2);
+      expect(diagnostics.rejectedSampleCount, 0);
+      expect(
+        diagnostics.lastSampleReceivedAt,
+        startedAt.add(const Duration(seconds: 60)),
+      );
+      expect(
+        diagnostics.lastAcceptedSampleAt,
+        startedAt.add(const Duration(seconds: 60)),
+      );
+      expect(diagnostics.lastRejectedSampleAt, isNull);
+      expect(
+        diagnostics.latestRejectionReason,
+        RunLocationRejectionReason.none,
+      );
+      expect(diagnostics.latestHorizontalAccuracyMeters, 5);
+      expect(diagnostics.latestAccuracyBucket, RunLocationAccuracyBucket.good);
+      expect(diagnostics.hasReceivedSample, isTrue);
+      expect(diagnostics.hasAcceptedSample, isTrue);
+    });
+
+    test('records explicit rejection reasons and timestamps', () {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+
+      LocalRunTrackingSession sessionWith(List<RunLocationSample> samples) {
+        final session = LocalRunTrackingSession(startedAt: startedAt);
+        session.advanceBy(const Duration(seconds: 120), samples: samples);
+        return session;
+      }
+
+      expect(
+        sessionWith([
+          sampleAt(startedAt, 0, latitude: 1.3, longitude: 103.8),
+          sampleAt(startedAt, 10, latitude: 91, longitude: 103.8),
+        ]).diagnostics.latestRejectionReason,
+        RunLocationRejectionReason.invalidCoordinate,
+      );
+      expect(
+        sessionWith([
+          sampleAt(startedAt, 0, latitude: 1.3, longitude: 103.8),
+          sampleAt(
+            startedAt,
+            10,
+            latitude: 1.300100,
+            longitude: 103.8,
+            horizontalAccuracyMeters: 250,
+          ),
+        ]).diagnostics.latestRejectionReason,
+        RunLocationRejectionReason.poorAccuracy,
+      );
+      expect(
+        sessionWith([
+          sampleAt(startedAt, 0, latitude: 1.3, longitude: 103.8),
+          sampleAt(startedAt, 10, latitude: 1.300100, longitude: 103.8),
+          sampleAt(startedAt, 10, latitude: 1.300200, longitude: 103.8),
+        ]).diagnostics.latestRejectionReason,
+        RunLocationRejectionReason.duplicateOrOutOfOrderTimestamp,
+      );
+      expect(
+        sessionWith([
+          sampleAt(startedAt, 0, latitude: 1.3, longitude: 103.8),
+          sampleAt(startedAt, 10, latitude: 2.3, longitude: 103.8),
+        ]).diagnostics.latestRejectionReason,
+        RunLocationRejectionReason.impossibleJump,
+      );
+
+      final staleSession = sessionWith([
+        RunLocationSample(
+          recordedAt: startedAt.subtract(const Duration(seconds: 1)),
+          latitude: 1.3,
+          longitude: 103.8,
+        ),
+      ]);
+      expect(
+        staleSession.diagnostics.latestRejectionReason,
+        RunLocationRejectionReason.staleTimestamp,
+      );
+      expect(
+        staleSession.diagnostics.lastRejectedSampleAt,
+        startedAt.subtract(const Duration(seconds: 1)),
+      );
+    });
+
     test('rejects invalid coordinates and keeps distance finite', () {
       final startedAt = DateTime.utc(2026, 6, 14, 7);
       final session = LocalRunTrackingSession(startedAt: startedAt);
@@ -175,6 +317,34 @@ void main() {
       expect(session.distanceMeters, closeTo(100, 2));
       expect(session.acceptedSampleCount, 2);
       expect(session.rejectedSampleCount, 4);
+    });
+
+    test('rejects non-finite segment distance without inflating distance', () {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      final session = LocalRunTrackingSession(
+        startedAt: startedAt,
+        distanceCalculator: const _NonFiniteDistanceCalculator(),
+      );
+
+      session.advanceBy(
+        const Duration(seconds: 60),
+        samples: [
+          sampleAt(startedAt, 0, latitude: 1.300000, longitude: 103.800000),
+          sampleAt(startedAt, 60, latitude: 1.300899, longitude: 103.800000),
+        ],
+      );
+
+      expect(session.distanceMeters, 0);
+      expect(session.acceptedSampleCount, 1);
+      expect(session.rejectedSampleCount, 1);
+      expect(
+        session.diagnostics.latestRejectionReason,
+        RunLocationRejectionReason.nonFiniteDistance,
+      );
+      expect(
+        session.diagnostics.lastRejectedSampleAt,
+        startedAt.add(const Duration(seconds: 60)),
+      );
     });
 
     test('ignores duplicate-time samples', () {
@@ -374,4 +544,13 @@ void main() {
       expect(session.rejectedSampleCount, 1);
     });
   });
+}
+
+class _NonFiniteDistanceCalculator extends RunDistanceCalculator {
+  const _NonFiniteDistanceCalculator();
+
+  @override
+  double distanceMeters(RunLocationSample from, RunLocationSample to) {
+    return double.nan;
+  }
 }

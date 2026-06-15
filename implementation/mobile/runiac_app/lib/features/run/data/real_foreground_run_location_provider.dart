@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:geolocator/geolocator.dart' as geolocator;
 
 import '../domain/models/run_location_sample.dart';
+import '../domain/models/run_tracking_diagnostics.dart';
 import '../domain/repositories/run_location_provider.dart';
 
 class LocationSettingsRequest {
@@ -27,6 +28,8 @@ abstract interface class ForegroundLocationAdapter {
   Stream<ForegroundPosition> getPositionStream(
     LocationSettingsRequest settings,
   );
+
+  Future<RunTrackingLocationAccuracyStatus> getLocationAccuracyStatus();
 }
 
 class GeolocatorForegroundLocationAdapter implements ForegroundLocationAdapter {
@@ -46,6 +49,19 @@ class GeolocatorForegroundLocationAdapter implements ForegroundLocationAdapter {
       locationSettings: locationSettings,
     ).map(_GeolocatorForegroundPosition.new);
   }
+
+  @override
+  Future<RunTrackingLocationAccuracyStatus> getLocationAccuracyStatus() async {
+    final status = await geolocator.Geolocator.getLocationAccuracy();
+    return switch (status) {
+      geolocator.LocationAccuracyStatus.precise =>
+        RunTrackingLocationAccuracyStatus.precise,
+      geolocator.LocationAccuracyStatus.reduced =>
+        RunTrackingLocationAccuracyStatus.reduced,
+      geolocator.LocationAccuracyStatus.unknown =>
+        RunTrackingLocationAccuracyStatus.unknown,
+    };
+  }
 }
 
 class RealForegroundRunLocationProvider implements RunLocationProvider {
@@ -64,6 +80,12 @@ class RealForegroundRunLocationProvider implements RunLocationProvider {
   DateTime? _resumedAt;
   Duration _activeOffsetAtResume = Duration.zero;
   bool _isActive = false;
+  RunTrackingLocationAccuracyStatus _locationAccuracyStatus =
+      RunTrackingLocationAccuracyStatus.notChecked;
+
+  @override
+  RunTrackingLocationAccuracyStatus get locationAccuracyStatus =>
+      _locationAccuracyStatus;
 
   @override
   Future<void> start({required DateTime startedAt}) async {
@@ -73,6 +95,7 @@ class RealForegroundRunLocationProvider implements RunLocationProvider {
     _resumedAt = startedAt;
     _activeOffsetAtResume = Duration.zero;
     _isActive = true;
+    _locationAccuracyStatus = await _readLocationAccuracyStatus();
     _subscription = adapter.getPositionStream(settings).listen(_handlePosition);
   }
 
@@ -97,6 +120,7 @@ class RealForegroundRunLocationProvider implements RunLocationProvider {
   Future<void> stop() async {
     _isActive = false;
     _resumedAt = null;
+    _locationAccuracyStatus = RunTrackingLocationAccuracyStatus.notChecked;
     await _subscription?.cancel();
     _subscription = null;
     _samples.clear();
@@ -152,6 +176,15 @@ class RealForegroundRunLocationProvider implements RunLocationProvider {
       _samples.add(entry);
     } else {
       _samples.insert(insertIndex, entry);
+    }
+  }
+
+  Future<RunTrackingLocationAccuracyStatus>
+  _readLocationAccuracyStatus() async {
+    try {
+      return await adapter.getLocationAccuracyStatus();
+    } on Object {
+      return RunTrackingLocationAccuracyStatus.unknown;
     }
   }
 }

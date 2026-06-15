@@ -1,12 +1,13 @@
 import '../models/run_location_sample.dart';
 import '../models/run_map_view_state.dart';
+import '../models/run_tracking_diagnostics.dart';
 import 'run_distance_calculator.dart';
 
 class LocalRunTrackingSession {
   LocalRunTrackingSession({
     required this.startedAt,
     this.source = 'local_simulation',
-    this._distanceCalculator = const RunDistanceCalculator(),
+    this.distanceCalculator = const RunDistanceCalculator(),
     this.maxAcceptedSpeedMetersPerSecond = 12,
     this.maxAcceptedHorizontalAccuracyMeters = 100,
   });
@@ -15,22 +16,22 @@ class LocalRunTrackingSession {
   final String source;
   final double maxAcceptedSpeedMetersPerSecond;
   final double maxAcceptedHorizontalAccuracyMeters;
-  final RunDistanceCalculator _distanceCalculator;
+  final RunDistanceCalculator distanceCalculator;
 
   bool _isActive = true;
   bool _needsAnchorSample = false;
   int _activeDurationSeconds = 0;
   double _distanceMeters = 0;
-  int _acceptedSampleCount = 0;
-  int _rejectedSampleCount = 0;
+  RunTrackingDiagnostics _diagnostics = const RunTrackingDiagnostics.initial();
   RunLocationSample? _lastAcceptedSample;
   final List<List<RunLocationSample>> _acceptedSampleSegments =
       <List<RunLocationSample>>[];
 
   int get activeDurationSeconds => _activeDurationSeconds;
   int get distanceMeters => _distanceMeters.round();
-  int get acceptedSampleCount => _acceptedSampleCount;
-  int get rejectedSampleCount => _rejectedSampleCount;
+  int get acceptedSampleCount => _diagnostics.acceptedSampleCount;
+  int get rejectedSampleCount => _diagnostics.rejectedSampleCount;
+  RunTrackingDiagnostics get diagnostics => _diagnostics;
   RunMapViewState get mapViewState {
     return RunMapViewState(
       currentPosition: _lastAcceptedSample,
@@ -68,9 +69,20 @@ class LocalRunTrackingSession {
     _needsAnchorSample = true;
   }
 
+  void updateLocationAccuracyStatus(
+    RunTrackingLocationAccuracyStatus locationAccuracyStatus,
+  ) {
+    _diagnostics = _diagnostics.withLocationAccuracyStatus(
+      locationAccuracyStatus,
+    );
+  }
+
   void _acceptSample(RunLocationSample sample) {
-    if (!_isValidSample(sample)) {
-      _rejectedSampleCount += 1;
+    _diagnostics = _diagnostics.recordSampleReceived(sample);
+
+    final rejectionReason = _sampleRejectionReason(sample);
+    if (rejectionReason != RunLocationRejectionReason.none) {
+      _rejectSample(sample, rejectionReason);
       return;
     }
 
@@ -78,7 +90,7 @@ class LocalRunTrackingSession {
     if (previous == null) {
       _acceptedSampleSegments.add(<RunLocationSample>[sample]);
       _lastAcceptedSample = sample;
-      _acceptedSampleCount += 1;
+      _diagnostics = _diagnostics.recordAcceptedSample(sample);
       return;
     }
 
@@ -90,7 +102,7 @@ class LocalRunTrackingSession {
       _acceptedSampleSegments.add(<RunLocationSample>[sample]);
       _lastAcceptedSample = sample;
       _needsAnchorSample = false;
-      _acceptedSampleCount += 1;
+      _diagnostics = _diagnostics.recordAcceptedSample(sample);
       return;
     }
 
@@ -101,22 +113,25 @@ class LocalRunTrackingSession {
     final elapsedSeconds =
         sample.recordedAt.difference(previous.recordedAt).inMilliseconds / 1000;
     if (elapsedSeconds <= 0) {
-      _rejectedSampleCount += 1;
+      _rejectSample(
+        sample,
+        RunLocationRejectionReason.duplicateOrOutOfOrderTimestamp,
+      );
       return false;
     }
 
-    final segmentDistanceMeters = _distanceCalculator.distanceMeters(
+    final segmentDistanceMeters = distanceCalculator.distanceMeters(
       previous,
       sample,
     );
     if (!segmentDistanceMeters.isFinite) {
-      _rejectedSampleCount += 1;
+      _rejectSample(sample, RunLocationRejectionReason.nonFiniteDistance);
       return false;
     }
 
     final speedMetersPerSecond = segmentDistanceMeters / elapsedSeconds;
     if (speedMetersPerSecond > maxAcceptedSpeedMetersPerSecond) {
-      _rejectedSampleCount += 1;
+      _rejectSample(sample, RunLocationRejectionReason.impossibleJump);
       return false;
     }
 
@@ -128,7 +143,7 @@ class LocalRunTrackingSession {
       _acceptedSampleSegments.last.add(sample);
     }
     _lastAcceptedSample = sample;
-    _acceptedSampleCount += 1;
+    _diagnostics = _diagnostics.recordAcceptedSample(sample);
     return true;
   }
 
@@ -139,26 +154,36 @@ class LocalRunTrackingSession {
         left.longitude == right.longitude;
   }
 
-  bool _isValidSample(RunLocationSample sample) {
+  void _rejectSample(
+    RunLocationSample sample,
+    RunLocationRejectionReason reason,
+  ) {
+    _diagnostics = _diagnostics.recordRejectedSample(sample, reason);
+  }
+
+  RunLocationRejectionReason _sampleRejectionReason(RunLocationSample sample) {
     if (sample.recordedAt.isBefore(startedAt)) {
-      return false;
+      return RunLocationRejectionReason.staleTimestamp;
     }
     if (!sample.latitude.isFinite || !sample.longitude.isFinite) {
-      return false;
+      return RunLocationRejectionReason.invalidCoordinate;
     }
     if (sample.latitude < -90 || sample.latitude > 90) {
-      return false;
+      return RunLocationRejectionReason.invalidCoordinate;
     }
     if (sample.longitude < -180 || sample.longitude > 180) {
-      return false;
+      return RunLocationRejectionReason.invalidCoordinate;
     }
 
     final horizontalAccuracyMeters = sample.horizontalAccuracyMeters;
     if (horizontalAccuracyMeters == null) {
-      return true;
+      return RunLocationRejectionReason.none;
     }
-    return horizontalAccuracyMeters.isFinite &&
-        horizontalAccuracyMeters >= 0 &&
-        horizontalAccuracyMeters <= maxAcceptedHorizontalAccuracyMeters;
+    if (!horizontalAccuracyMeters.isFinite ||
+        horizontalAccuracyMeters < 0 ||
+        horizontalAccuracyMeters > maxAcceptedHorizontalAccuracyMeters) {
+      return RunLocationRejectionReason.poorAccuracy;
+    }
+    return RunLocationRejectionReason.none;
   }
 }

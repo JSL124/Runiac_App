@@ -26,6 +26,11 @@ void main() {
       expect(request.keys, isNot(contains('positions')));
       expect(request.keys, isNot(contains('gpsSamples')));
       expect(request.keys, isNot(contains('rawLocationSamples')));
+      expect(request.keys, isNot(contains('diagnostics')));
+      expect(request.keys, isNot(contains('acceptedSampleCount')));
+      expect(request.keys, isNot(contains('rejectedSampleCount')));
+      expect(request.keys, isNot(contains('latestRejectionReason')));
+      expect(request.keys, isNot(contains('latestHorizontalAccuracyMeters')));
       expect(request.values.join(' '), isNot(contains('latitude')));
       expect(request.values.join(' '), isNot(contains('longitude')));
     });
