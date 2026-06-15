@@ -303,6 +303,62 @@ void main() {
   });
 
   group('RunMapboxGeometry', () {
+    test('initial camera uses current position when GPS is available', () {
+      // Given: a run map state with a current GPS sample.
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      final viewState = RunMapViewState(
+        currentPosition: RunLocationSample(
+          recordedAt: startedAt,
+          latitude: 1.301234,
+          longitude: 103.812345,
+        ),
+      );
+
+      // When: Mapbox derives its initial camera.
+      final request = RunMapboxCameraRequest.initialForMapViewState(viewState);
+
+      // Then: the camera starts at the runner location, not the fallback.
+      expect(request.center.latitude, 1.301234);
+      expect(request.center.longitude, 103.812345);
+      expect(request.zoom, 16);
+    });
+
+    test('initial camera uses local fallback while GPS is unavailable', () {
+      // Given: no current GPS sample has arrived yet.
+      const viewState = RunMapViewState.empty();
+
+      // When: Mapbox derives its initial camera.
+      final request = RunMapboxCameraRequest.initialForMapViewState(viewState);
+
+      // Then: it uses the presentation-only local fallback, not a world view.
+      expect(request.center, RunMapboxCameraRequest.fallbackCenter);
+      expect(request.zoom, 14);
+    });
+
+    test('current position camera becomes available after GPS transition', () {
+      // Given: GPS is initially unavailable.
+      const waitingForGps = RunMapViewState.empty();
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      final gpsReady = RunMapViewState(
+        currentPosition: RunLocationSample(
+          recordedAt: startedAt,
+          latitude: 1.300899,
+          longitude: 103.800000,
+        ),
+      );
+
+      // When: the camera request is derived before and after GPS arrives.
+      final beforeGps = RunMapboxCameraRequest.forCurrentPosition(
+        waitingForGps,
+      );
+      final afterGps = RunMapboxCameraRequest.forCurrentPosition(gpsReady);
+
+      // Then: runtime camera movement remains gated on real current position.
+      expect(beforeGps, isNull);
+      expect(afterGps, isNotNull);
+      expect(afterGps!.center.position, <double>[103.800000, 1.300899]);
+    });
+
     test('uses longitude-first Mapbox coordinate ordering', () {
       final coordinate = RunMapboxCoordinate.fromSample(
         RunLocationSample(

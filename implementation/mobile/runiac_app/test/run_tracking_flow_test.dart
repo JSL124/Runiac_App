@@ -41,6 +41,15 @@ void _expectStatusLabelReadable(WidgetTester tester, String label) {
   expect(text.maxLines, 1);
 }
 
+void _expectSheetAdjacentRecenter({
+  required WidgetTester tester,
+  required Finder recenter,
+  required Finder sheet,
+}) {
+  final gap = tester.getRect(sheet).top - tester.getRect(recenter).bottom;
+  expect(gap, inInclusiveRange(8, 12));
+}
+
 Future<void> _openRunLaunch(WidgetTester tester) async {
   await tester.pumpWidget(
     const RuniacApp(showSplash: false, enableForegroundGps: false),
@@ -431,38 +440,72 @@ void main() {
     },
   );
 
+  testWidgets('RunLaunchScreen shows persistent recenter above the sheet', (
+    WidgetTester tester,
+  ) async {
+    _useMobileRunSurface(tester);
+
+    await tester.pumpWidget(
+      const MaterialApp(home: RunLaunchScreen(enableForegroundGps: false)),
+    );
+    await tester.pumpAndSettle();
+
+    var recenter = find.byKey(const Key('run_map_recenter_button'));
+    var sheet = find.byKey(const Key('runLaunchBottomSheet'));
+    final switchRoute = find.text('Switch route');
+    expect(recenter, findsOneWidget);
+    _expectSheetAdjacentRecenter(
+      tester: tester,
+      recenter: recenter,
+      sheet: sheet,
+    );
+    expect(find.text('Switch route'), findsOneWidget);
+    expect(
+      tester.getRect(sheet).right - tester.getRect(recenter).right,
+      closeTo(28, 1),
+    );
+    expect(
+      tester.getRect(recenter).overlaps(tester.getRect(switchRoute)),
+      isFalse,
+    );
+
+    await tester.drag(
+      find.byKey(const Key('run_map_interaction_layer')),
+      const Offset(48, 0),
+    );
+    await tester.pump();
+
+    recenter = find.byKey(const Key('run_map_recenter_button'));
+    sheet = find.byKey(const Key('runLaunchBottomSheet'));
+    expect(recenter, findsOneWidget);
+    _expectSheetAdjacentRecenter(
+      tester: tester,
+      recenter: recenter,
+      sheet: sheet,
+    );
+
+    await tester.tap(recenter);
+    await tester.pump();
+
+    expect(find.byKey(const Key('run_map_recenter_button')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets(
-    'RunLaunchScreen manual pan shows tappable recenter above run sheet',
+    'RunLaunchScreen recenter is a gentle no-op before current location',
     (WidgetTester tester) async {
       _useMobileRunSurface(tester);
 
-      await tester.pumpWidget(
-        const MaterialApp(home: RunLaunchScreen(enableForegroundGps: false)),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Start run'));
-      await tester.pumpAndSettle();
-
-      expect(find.byKey(const Key('run_map_recenter_button')), findsNothing);
-
-      await tester.drag(
-        find.byKey(const Key('run_map_interaction_layer')),
-        const Offset(48, 0),
-      );
+      await tester.pumpWidget(const MaterialApp(home: RunLaunchScreen()));
       await tester.pump();
 
       final recenter = find.byKey(const Key('run_map_recenter_button'));
-      final sheet = find.byKey(const Key('runLaunchBottomSheet'));
       expect(recenter, findsOneWidget);
-      expect(
-        tester.getRect(recenter).bottom,
-        lessThan(tester.getRect(sheet).top),
-      );
 
       await tester.tap(recenter);
       await tester.pump();
 
-      expect(find.byKey(const Key('run_map_recenter_button')), findsNothing);
+      expect(find.byKey(const Key('run_map_recenter_button')), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );
@@ -555,37 +598,48 @@ void main() {
     },
   );
 
-  testWidgets(
-    'RunActiveScreen manual pan shows tappable recenter above active panel',
-    (WidgetTester tester) async {
-      _useMobileRunSurface(tester);
+  testWidgets('RunActiveScreen shows persistent recenter above active panel', (
+    WidgetTester tester,
+  ) async {
+    _useMobileRunSurface(tester);
 
-      await tester.pumpWidget(const MaterialApp(home: RunActiveScreen()));
-      await tester.pump();
+    await tester.pumpWidget(const MaterialApp(home: RunActiveScreen()));
+    await tester.pump();
 
-      expect(find.byKey(const Key('run_map_recenter_button')), findsNothing);
+    var recenter = find.byKey(const Key('run_map_recenter_button'));
+    var panel = find.byKey(const Key('runActivePanel'));
+    expect(recenter, findsOneWidget);
+    _expectSheetAdjacentRecenter(
+      tester: tester,
+      recenter: recenter,
+      sheet: panel,
+    );
+    expect(
+      tester.getRect(panel).right - tester.getRect(recenter).right,
+      closeTo(24, 1),
+    );
 
-      await tester.drag(
-        find.byKey(const Key('run_map_interaction_layer')),
-        const Offset(48, 0),
-      );
-      await tester.pump();
+    await tester.drag(
+      find.byKey(const Key('run_map_interaction_layer')),
+      const Offset(48, 0),
+    );
+    await tester.pump();
 
-      final recenter = find.byKey(const Key('run_map_recenter_button'));
-      final panel = find.byKey(const Key('runActivePanel'));
-      expect(recenter, findsOneWidget);
-      expect(
-        tester.getRect(recenter).bottom,
-        lessThan(tester.getRect(panel).top),
-      );
+    recenter = find.byKey(const Key('run_map_recenter_button'));
+    panel = find.byKey(const Key('runActivePanel'));
+    expect(recenter, findsOneWidget);
+    _expectSheetAdjacentRecenter(
+      tester: tester,
+      recenter: recenter,
+      sheet: panel,
+    );
 
-      await tester.tap(recenter);
-      await tester.pump();
+    await tester.tap(recenter);
+    await tester.pump();
 
-      expect(find.byKey(const Key('run_map_recenter_button')), findsNothing);
-      expect(tester.takeException(), isNull);
-    },
-  );
+    expect(find.byKey(const Key('run_map_recenter_button')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets('RunActiveScreen selects Mapbox path when token is present', (
     WidgetTester tester,

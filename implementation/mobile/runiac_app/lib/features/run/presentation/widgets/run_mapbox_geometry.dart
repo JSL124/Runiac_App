@@ -45,6 +45,11 @@ class RunMapboxCameraRequest {
     this.animationDuration = const Duration(milliseconds: 450),
   });
 
+  static const RunMapboxCoordinate fallbackCenter = RunMapboxCoordinate(
+    latitude: 1.300899,
+    longitude: 103.800000,
+  );
+
   static RunMapboxCameraRequest? forCurrentPosition(RunMapViewState viewState) {
     final currentPosition = viewState.currentPosition;
     if (currentPosition == null) {
@@ -54,6 +59,13 @@ class RunMapboxCameraRequest {
     return RunMapboxCameraRequest(
       center: RunMapboxCoordinate.fromSample(currentPosition),
     );
+  }
+
+  static RunMapboxCameraRequest initialForMapViewState(
+    RunMapViewState viewState,
+  ) {
+    return forCurrentPosition(viewState) ??
+        const RunMapboxCameraRequest(center: fallbackCenter, zoom: 14);
   }
 
   final RunMapboxCoordinate center;

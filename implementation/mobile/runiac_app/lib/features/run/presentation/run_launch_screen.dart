@@ -27,9 +27,6 @@ const _sportOrange = Color(0xFFFF7A1A);
 const _orangeShadow = Color(0x33FF7A1A);
 const _screenBackground = Color(0xFF3153C9);
 const _softControlBlue = Color(0x667A91E5);
-const _pressedControlBlue = Color(0x99A8B8FF);
-const _controlSplash = Color(0x33FFFFFF);
-const _controlHighlight = Color(0x24FFFFFF);
 const _panelTextBlue = Color(0xFF3151C8);
 const _mutedBlue = Color(0xFF8296E8);
 const _controlPressHold = Duration(milliseconds: 90);
@@ -38,6 +35,9 @@ const _sheetExtentAnimationDuration = Duration(milliseconds: 220);
 const _expandedRunSheetHeight = 405.0;
 const _collapsedRunSheetHeight = 46.0;
 const _sheetCollapseVelocityThreshold = 260.0;
+const _recenterButtonSize = 48.0;
+const _sheetAdjacentRecenterGap = 10.0;
+const _launchRecenterRightPadding = 28.0;
 
 enum RunSheetMode { preRun, running, paused }
 
@@ -399,104 +399,120 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
             child: Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 430),
-                child: AnimatedSize(
-                  duration: _sheetExtentAnimationDuration,
-                  curve: Curves.easeOutCubic,
-                  alignment: Alignment.bottomCenter,
-                  child: _RunBottomSheetShell(
-                    key: const Key('runLaunchBottomSheet'),
-                    bottomInset: bottomInset,
-                    mode: _sheetMode,
-                    extent: _sheetExtent,
-                    sheetProgress: _sheetProgress,
-                    onHandleTap: _toggleSheetExtent,
-                    onVerticalDragStart: _handleSheetDragStart,
-                    onVerticalDragUpdate: _handleSheetDragUpdate,
-                    onVerticalDragEnd: _handleSheetDragEnd,
-                    onVerticalDragCancel: _handleSheetDragCancel,
-                    child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 320),
-                      switchInCurve: Curves.easeOutCubic,
-                      switchOutCurve: Curves.easeInCubic,
-                      transitionBuilder: (child, animation) {
-                        final offsetAnimation =
-                            Tween<Offset>(
-                              begin: const Offset(0, 0.025),
-                              end: Offset.zero,
-                            ).animate(
-                              CurvedAnimation(
-                                parent: animation,
-                                curve: Curves.easeOutCubic,
-                                reverseCurve: Curves.easeInCubic,
-                              ),
-                            );
+                child: Stack(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(
+                        top: _recenterButtonSize + _sheetAdjacentRecenterGap,
+                      ),
+                      child: AnimatedSize(
+                        duration: _sheetExtentAnimationDuration,
+                        curve: Curves.easeOutCubic,
+                        alignment: Alignment.bottomCenter,
+                        child: _RunBottomSheetShell(
+                          key: const Key('runLaunchBottomSheet'),
+                          bottomInset: bottomInset,
+                          mode: _sheetMode,
+                          extent: _sheetExtent,
+                          sheetProgress: _sheetProgress,
+                          onHandleTap: _toggleSheetExtent,
+                          onVerticalDragStart: _handleSheetDragStart,
+                          onVerticalDragUpdate: _handleSheetDragUpdate,
+                          onVerticalDragEnd: _handleSheetDragEnd,
+                          onVerticalDragCancel: _handleSheetDragCancel,
+                          child: AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 320),
+                            switchInCurve: Curves.easeOutCubic,
+                            switchOutCurve: Curves.easeInCubic,
+                            transitionBuilder: (child, animation) {
+                              final offsetAnimation =
+                                  Tween<Offset>(
+                                    begin: const Offset(0, 0.025),
+                                    end: Offset.zero,
+                                  ).animate(
+                                    CurvedAnimation(
+                                      parent: animation,
+                                      curve: Curves.easeOutCubic,
+                                      reverseCurve: Curves.easeInCubic,
+                                    ),
+                                  );
 
-                        return FadeTransition(
-                          opacity: animation,
-                          child: SlideTransition(
-                            position: offsetAnimation,
-                            child: child,
+                              return FadeTransition(
+                                opacity: animation,
+                                child: SlideTransition(
+                                  position: offsetAnimation,
+                                  child: child,
+                                ),
+                              );
+                            },
+                            child: _sheetMode == RunSheetMode.preRun
+                                ? AnimatedBuilder(
+                                    key: const ValueKey('preRunSheetContent'),
+                                    animation: _controller,
+                                    builder: (context, _) {
+                                      final permissionStatus =
+                                          _controller.locationPermissionStatus;
+                                      final permissionMessage =
+                                          permissionStatus.canStartRun ||
+                                              permissionStatus ==
+                                                  RunLocationPermissionStatus
+                                                      .checking
+                                          ? null
+                                          : permissionStatus.message;
+
+                                      return _PreRunSheetContent(
+                                        permissionMessage: permissionMessage,
+                                        onStart: _startRun,
+                                        onSwitchRoute: () => _showPreviewMessage(
+                                          'Route switching preview is coming soon.',
+                                        ),
+                                      );
+                                    },
+                                  )
+                                : AnimatedBuilder(
+                                    key: const ValueKey('trackingSheetContent'),
+                                    animation: _controller,
+                                    builder: (context, _) {
+                                      return RunTrackingSheetContent(
+                                        state: _controller.state,
+                                        onPause: _pauseRun,
+                                        onResume: _resumeRun,
+                                        onEnd: _finishRun,
+                                        isCompletingRun: _isCompletingRun,
+                                      );
+                                    },
+                                  ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    AnimatedBuilder(
+                      animation: _controller,
+                      builder: (context, _) {
+                        return Positioned(
+                          top: 0,
+                          right: _launchRecenterRightPadding,
+                          child: Opacity(
+                            opacity: _hasCurrentPosition ? 1 : 0.58,
+                            child: RunMapRecenterButton(
+                              onPressed: _recenterRunner,
+                            ),
                           ),
                         );
                       },
-                      child: _sheetMode == RunSheetMode.preRun
-                          ? AnimatedBuilder(
-                              key: const ValueKey('preRunSheetContent'),
-                              animation: _controller,
-                              builder: (context, _) {
-                                final permissionStatus =
-                                    _controller.locationPermissionStatus;
-                                final permissionMessage =
-                                    permissionStatus.canStartRun ||
-                                        permissionStatus ==
-                                            RunLocationPermissionStatus.checking
-                                    ? null
-                                    : permissionStatus.message;
-
-                                return _PreRunSheetContent(
-                                  permissionMessage: permissionMessage,
-                                  onStart: _startRun,
-                                  onSwitchRoute: () => _showPreviewMessage(
-                                    'Route switching preview is coming soon.',
-                                  ),
-                                );
-                              },
-                            )
-                          : AnimatedBuilder(
-                              key: const ValueKey('trackingSheetContent'),
-                              animation: _controller,
-                              builder: (context, _) {
-                                return RunTrackingSheetContent(
-                                  state: _controller.state,
-                                  onPause: _pauseRun,
-                                  onResume: _resumeRun,
-                                  onEnd: _finishRun,
-                                  isCompletingRun: _isCompletingRun,
-                                );
-                              },
-                            ),
                     ),
-                  ),
+                  ],
                 ),
               ),
             ),
           ),
-          if (!_isFollowingRunner)
-            Positioned(
-              right: 24,
-              bottom: _recenterButtonBottomOffset(bottomInset),
-              child: RunMapRecenterButton(onPressed: _recenterRunner),
-            ),
         ],
       ),
     );
   }
 
-  double _recenterButtonBottomOffset(double bottomInset) {
-    final sheetHeight = _sheetExtent == RunLaunchSheetExtent.collapsed
-        ? _collapsedRunSheetHeight
-        : _expandedRunSheetHeight;
-    return bottomInset + sheetHeight + 16;
+  bool get _hasCurrentPosition {
+    return _controller.mapViewState.currentPosition != null;
   }
 }
 
@@ -551,7 +567,9 @@ class _MapCircleButtonState extends State<_MapCircleButton> {
         duration: const Duration(milliseconds: 90),
         curve: Curves.easeOutCubic,
         child: Material(
-          color: _visuallyPressed ? _pressedControlBlue : _softControlBlue,
+          color: _visuallyPressed ? const Color(0xFFE8EEFF) : Colors.white,
+          elevation: 8,
+          shadowColor: const Color(0x33172033),
           shape: const CircleBorder(),
           clipBehavior: Clip.antiAlias,
           child: InkResponse(
@@ -560,12 +578,12 @@ class _MapCircleButtonState extends State<_MapCircleButton> {
             containedInkWell: true,
             customBorder: const CircleBorder(),
             radius: 34,
-            splashColor: _controlSplash,
-            highlightColor: _controlHighlight,
+            splashColor: const Color(0x1A3151C8),
+            highlightColor: const Color(0x143151C8),
             child: SizedBox(
               width: 58,
               height: 58,
-              child: Icon(widget.icon, color: RuniacColors.white, size: 30),
+              child: Icon(widget.icon, color: _panelTextBlue, size: 30),
             ),
           ),
         ),

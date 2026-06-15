@@ -14,7 +14,9 @@ import 'widgets/run_tracking_sheet_content.dart';
 const _sportOrange = Color(0xFFFF7A1A);
 const _softControlBlue = Color(0x667A91E5);
 const _screenBackground = Color(0xFF3153C9);
-const _activeRecenterButtonBottom = 346.0;
+const _recenterButtonSize = 48.0;
+const _sheetAdjacentRecenterGap = 10.0;
+const _activeRecenterRightPadding = 24.0;
 
 class RunActiveScreen extends StatefulWidget {
   const RunActiveScreen({
@@ -131,31 +133,53 @@ class _RunActiveScreenState extends State<RunActiveScreen> {
             child: Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 430),
-                child: AnimatedBuilder(
-                  animation: _controller,
-                  builder: (context, _) {
-                    return _RunActivePanel(
-                      key: const Key('runActivePanel'),
-                      state: _controller.state,
-                      onPause: _controller.pause,
-                      onResume: _controller.resume,
-                      onFinish: _finishRun,
-                      bottomInset: bottomInset,
-                    );
-                  },
+                child: Stack(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(
+                        top: _recenterButtonSize + _sheetAdjacentRecenterGap,
+                      ),
+                      child: AnimatedBuilder(
+                        animation: _controller,
+                        builder: (context, _) {
+                          return _RunActivePanel(
+                            key: const Key('runActivePanel'),
+                            state: _controller.state,
+                            onPause: _controller.pause,
+                            onResume: _controller.resume,
+                            onFinish: _finishRun,
+                            bottomInset: bottomInset,
+                          );
+                        },
+                      ),
+                    ),
+                    AnimatedBuilder(
+                      animation: _controller,
+                      builder: (context, _) {
+                        return Positioned(
+                          top: 0,
+                          right: _activeRecenterRightPadding,
+                          child: Opacity(
+                            opacity: _hasCurrentPosition ? 1 : 0.58,
+                            child: RunMapRecenterButton(
+                              onPressed: _recenterRunner,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
                 ),
               ),
             ),
           ),
-          if (!_isFollowingRunner)
-            Positioned(
-              right: 24,
-              bottom: bottomInset + _activeRecenterButtonBottom,
-              child: RunMapRecenterButton(onPressed: _recenterRunner),
-            ),
         ],
       ),
     );
+  }
+
+  bool get _hasCurrentPosition {
+    return _controller.mapViewState.currentPosition != null;
   }
 }
 

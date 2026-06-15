@@ -117,6 +117,23 @@ class _RunMapboxRunMapState extends State<RunMapboxRunMap> {
     unawaited(_syncCurrentMap(animateCamera: true));
   }
 
+  CameraViewportState _initialViewport() {
+    final request = RunMapboxCameraRequest.initialForMapViewState(
+      widget.config.mapViewState,
+    );
+    return CameraViewportState(
+      center: Point(
+        coordinates: Position(
+          request.center.longitude,
+          request.center.latitude,
+        ),
+      ),
+      zoom: request.zoom,
+      pitch: 0.0,
+      bearing: 0,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Stack(
@@ -126,6 +143,7 @@ class _RunMapboxRunMapState extends State<RunMapboxRunMap> {
           child: MapWidget(
             key: const Key('run_mapbox_widget'),
             styleUri: MapboxStyles.MAPBOX_STREETS,
+            viewport: _initialViewport(),
             onMapCreated: _onMapCreated,
             onScrollListener: _handleManualScroll,
           ),
