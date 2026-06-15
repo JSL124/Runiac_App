@@ -180,14 +180,18 @@ class _RunStatusPill extends StatelessWidget {
             const Icon(Icons.circle, color: _sportOrange, size: 14),
             const SizedBox(width: 10),
             Flexible(
-              child: Text(
-                label,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: RuniacColors.white,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w800,
-                  height: 1,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  style: const TextStyle(
+                    color: RuniacColors.white,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                    height: 1,
+                  ),
                 ),
               ),
             ),

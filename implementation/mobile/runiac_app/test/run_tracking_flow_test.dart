@@ -6,6 +6,7 @@ import 'package:runiac_app/app.dart';
 import 'package:runiac_app/features/run/domain/models/run_location_sample.dart';
 import 'package:runiac_app/features/run/domain/models/run_location_permission_status.dart';
 import 'package:runiac_app/features/run/domain/models/run_map_view_state.dart';
+import 'package:runiac_app/features/run/domain/models/run_tracking_diagnostics.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_location_permission_service.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_location_provider.dart';
 import 'package:runiac_app/features/run/presentation/run_active_screen.dart';
@@ -18,6 +19,22 @@ void _useMobileRunSurface(WidgetTester tester) {
     ..physicalSize = const Size(390, 844)
     ..devicePixelRatio = 1;
   addTearDown(tester.view.reset);
+}
+
+void _useNarrowRunSurface(WidgetTester tester) {
+  tester.view
+    ..physicalSize = const Size(360, 844)
+    ..devicePixelRatio = 1;
+  addTearDown(tester.view.reset);
+}
+
+void _expectStatusLabelReadable(WidgetTester tester, String label) {
+  final textFinder = find.text(label);
+  expect(textFinder, findsOneWidget);
+
+  final text = tester.widget<Text>(textFinder);
+  expect(text.overflow, isNot(TextOverflow.ellipsis));
+  expect(text.maxLines, 1);
 }
 
 Future<void> _openRunLaunch(WidgetTester tester) async {
@@ -60,6 +77,102 @@ class _GrantedRunLocationPermissionService
 }
 
 void main() {
+  testWidgets('Run launch top GPS pill fits Waiting for GPS on narrow phones', (
+    WidgetTester tester,
+  ) async {
+    _useNarrowRunSurface(tester);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RunLaunchScreen(
+          locationProvider: ReplayRunLocationProvider(const []),
+          permissionService: const _GrantedRunLocationPermissionService(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    _expectStatusLabelReadable(tester, 'Waiting for GPS');
+    expect(find.byTooltip('Close'), findsOneWidget);
+    expect(find.byTooltip('Run settings'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Run settings'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Run settings preview is coming soon.'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Run launch top GPS pill keeps active labels readable', (
+    WidgetTester tester,
+  ) async {
+    _useNarrowRunSurface(tester);
+    final sampleBase = DateTime.now().add(const Duration(days: 1));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RunLaunchScreen(
+          locationProvider: ReplayRunLocationProvider([
+            RunLocationReplaySample(
+              activeOffset: const Duration(seconds: 1),
+              sample: RunLocationSample(
+                recordedAt: sampleBase.add(const Duration(seconds: 1)),
+                latitude: 1.3,
+                longitude: 103.8,
+                horizontalAccuracyMeters: 5,
+              ),
+            ),
+          ]),
+          permissionService: const _GrantedRunLocationPermissionService(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Start run'));
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(seconds: 1));
+
+    _expectStatusLabelReadable(tester, 'GPS active');
+    expect(find.text('Start run'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Run launch top GPS pill handles approximate location label', (
+    WidgetTester tester,
+  ) async {
+    _useNarrowRunSurface(tester);
+    final sampleBase = DateTime.now().add(const Duration(days: 1));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RunLaunchScreen(
+          locationProvider: ReplayRunLocationProvider([
+            RunLocationReplaySample(
+              activeOffset: const Duration(seconds: 1),
+              sample: RunLocationSample(
+                recordedAt: sampleBase.add(const Duration(seconds: 1)),
+                latitude: 1.3,
+                longitude: 103.8,
+                horizontalAccuracyMeters: 5,
+              ),
+            ),
+          ], locationAccuracyStatus: RunTrackingLocationAccuracyStatus.reduced),
+          permissionService: const _GrantedRunLocationPermissionService(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Start run'));
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(seconds: 1));
+
+    _expectStatusLabelReadable(tester, 'Approximate location');
+    expect(find.text('Start run'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('default Run tab enters real GPS waiting mode', (
     WidgetTester tester,
   ) async {
@@ -184,7 +297,7 @@ void main() {
     expect(find.text('GPS active'), findsOneWidget);
     expect(
       find.text('GPS is ready. Start moving to measure distance.'),
-      findsOneWidget,
+      findsNothing,
     );
     expect(find.text('Demo mode'), findsNothing);
     expect(tester.takeException(), isNull);
@@ -223,7 +336,7 @@ void main() {
     expect(find.text('GPS weak'), findsOneWidget);
     expect(
       find.text('GPS signal is weak. Keep moving in an open area.'),
-      findsOneWidget,
+      findsNothing,
     );
     expect(find.text('Demo mode'), findsNothing);
     expect(tester.takeException(), isNull);

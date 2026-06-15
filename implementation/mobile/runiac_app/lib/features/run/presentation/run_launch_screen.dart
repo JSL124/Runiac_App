@@ -326,20 +326,24 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
                 padding: const EdgeInsets.only(top: 12),
                 child: Row(
                   children: [
-                    AnimatedSwitcher(
-                      duration: _sheetAnimationDuration,
-                      child: _sheetMode == RunSheetMode.preRun
-                          ? _MapCircleButton(
-                              key: const ValueKey('close_button'),
-                              tooltip: 'Close',
-                              icon: Icons.close,
-                              onPressed: () => Navigator.of(context).pop(),
-                            )
-                          : const SizedBox(
-                              key: ValueKey('close_button_hidden'),
-                              width: 48,
-                              height: 48,
-                            ),
+                    SizedBox(
+                      width: 48,
+                      height: 48,
+                      child: AnimatedSwitcher(
+                        duration: _sheetAnimationDuration,
+                        child: _sheetMode == RunSheetMode.preRun
+                            ? _MapCircleButton(
+                                key: const ValueKey('close_button'),
+                                tooltip: 'Close',
+                                icon: Icons.close,
+                                onPressed: () => Navigator.of(context).pop(),
+                              )
+                            : const SizedBox(
+                                key: ValueKey('close_button_hidden'),
+                                width: 48,
+                                height: 48,
+                              ),
+                      ),
                     ),
                     Expanded(
                       child: AnimatedBuilder(
@@ -359,22 +363,26 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
                         },
                       ),
                     ),
-                    AnimatedSwitcher(
-                      duration: _sheetAnimationDuration,
-                      child: _sheetMode == RunSheetMode.preRun
-                          ? _MapCircleButton(
-                              key: const ValueKey('settings_button'),
-                              tooltip: 'Run settings',
-                              icon: Icons.settings_outlined,
-                              onPressed: () => _showPreviewMessage(
-                                'Run settings preview is coming soon.',
+                    SizedBox(
+                      width: 48,
+                      height: 48,
+                      child: AnimatedSwitcher(
+                        duration: _sheetAnimationDuration,
+                        child: _sheetMode == RunSheetMode.preRun
+                            ? _MapCircleButton(
+                                key: const ValueKey('settings_button'),
+                                tooltip: 'Run settings',
+                                icon: Icons.settings_outlined,
+                                onPressed: () => _showPreviewMessage(
+                                  'Run settings preview is coming soon.',
+                                ),
+                              )
+                            : const SizedBox(
+                                key: ValueKey('settings_button_hidden'),
+                                width: 48,
+                                height: 48,
                               ),
-                            )
-                          : const SizedBox(
-                              key: ValueKey('settings_button_hidden'),
-                              width: 48,
-                              height: 48,
-                            ),
+                      ),
                     ),
                   ],
                 ),
@@ -586,14 +594,18 @@ class _RunStatusPill extends StatelessWidget {
           const Icon(Icons.circle, color: _sportOrange, size: 14),
           const SizedBox(width: 10),
           Flexible(
-            child: Text(
-              label,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: RuniacColors.white,
-                fontSize: 17,
-                fontWeight: FontWeight.w800,
-                height: 1,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                label,
+                maxLines: 1,
+                style: const TextStyle(
+                  color: RuniacColors.white,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800,
+                  height: 1,
+                ),
               ),
             ),
           ),

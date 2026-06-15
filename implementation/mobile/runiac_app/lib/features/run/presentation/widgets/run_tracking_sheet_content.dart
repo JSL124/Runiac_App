@@ -49,10 +49,6 @@ class RunTrackingSheetContent extends StatelessWidget {
             const Divider(height: 1, color: _blueBorder),
             SizedBox(height: compact ? 12 : 14),
             _SecondaryMetricRow(snapshot: snapshot),
-            if (snapshot.startupReadinessMessage != null) ...[
-              SizedBox(height: compact ? 12 : 14),
-              _StartupReadinessGuidance(snapshot: snapshot),
-            ],
             SizedBox(height: compact ? 14 : 18),
             _RunActiveActions(
               isPaused: state.isPaused,
@@ -234,41 +230,6 @@ class _MetricItem extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _StartupReadinessGuidance extends StatelessWidget {
-  const _StartupReadinessGuidance({required this.snapshot});
-
-  final RunTrackingSnapshot snapshot;
-
-  @override
-  Widget build(BuildContext context) {
-    final message = snapshot.startupReadinessMessage;
-    if (message == null) {
-      return const SizedBox.shrink();
-    }
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF7F0),
-        border: Border.all(color: const Color(0xFFFFD8BD)),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        child: Text(
-          message,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: RuniacColors.textPrimary,
-            fontSize: 13,
-            fontWeight: FontWeight.w800,
-            height: 1.25,
-          ),
-        ),
-      ),
     );
   }
 }
