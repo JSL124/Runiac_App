@@ -3,8 +3,11 @@ import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runiac_app/app.dart';
+import 'package:runiac_app/features/run/domain/models/run_location_sample.dart';
+import 'package:runiac_app/features/run/domain/models/run_map_view_state.dart';
 import 'package:runiac_app/features/run/presentation/run_active_screen.dart';
 import 'package:runiac_app/features/run/presentation/run_launch_screen.dart';
+import 'package:runiac_app/features/run/presentation/widgets/run_map_placeholder.dart';
 
 void _useMobileRunSurface(WidgetTester tester) {
   tester.view
@@ -84,6 +87,159 @@ void main() {
     expect(find.text('Resume'), findsNothing);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets(
+    'RunMapPlaceholder renders local route polyline and runner marker',
+    (WidgetTester tester) async {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: SizedBox.expand(
+            child: RunMapPlaceholder(
+              mapViewState: RunMapViewState(
+                currentPosition: RunLocationSample(
+                  recordedAt: startedAt.add(const Duration(seconds: 60)),
+                  latitude: 1.300899,
+                  longitude: 103.800000,
+                ),
+                routeSegments: [
+                  [
+                    RunLocationSample(
+                      recordedAt: startedAt,
+                      latitude: 1.300000,
+                      longitude: 103.800000,
+                    ),
+                    RunLocationSample(
+                      recordedAt: startedAt.add(const Duration(seconds: 60)),
+                      latitude: 1.300899,
+                      longitude: 103.800000,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.byKey(const Key('run_map_route_polyline')), findsOneWidget);
+      expect(find.byKey(const Key('run_map_runner_marker')), findsOneWidget);
+      expect(find.byKey(const Key('run_map_recenter_button')), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'RunMapPlaceholder manual pan shows recenter and recenter restores follow',
+    (WidgetTester tester) async {
+      var isFollowingRunner = true;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: StatefulBuilder(
+            builder: (context, setState) {
+              return SizedBox.expand(
+                child: RunMapPlaceholder(
+                  isFollowingRunner: isFollowingRunner,
+                  onManualPan: () {
+                    setState(() => isFollowingRunner = false);
+                  },
+                  onRecenter: () {
+                    setState(() => isFollowingRunner = true);
+                  },
+                ),
+              );
+            },
+          ),
+        ),
+      );
+
+      expect(find.byKey(const Key('run_map_recenter_button')), findsNothing);
+
+      await tester.drag(
+        find.byKey(const Key('run_map_interaction_layer')),
+        const Offset(40, 0),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('run_map_recenter_button')), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('run_map_recenter_button')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('run_map_recenter_button')), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'RunLaunchScreen manual pan shows tappable recenter above run sheet',
+    (WidgetTester tester) async {
+      _useMobileRunSurface(tester);
+
+      await tester.pumpWidget(
+        const MaterialApp(home: RunLaunchScreen(enableForegroundGps: false)),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Start run'));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('run_map_recenter_button')), findsNothing);
+
+      await tester.drag(
+        find.byKey(const Key('run_map_interaction_layer')),
+        const Offset(48, 0),
+      );
+      await tester.pump();
+
+      final recenter = find.byKey(const Key('run_map_recenter_button'));
+      final sheet = find.byKey(const Key('runLaunchBottomSheet'));
+      expect(recenter, findsOneWidget);
+      expect(
+        tester.getRect(recenter).bottom,
+        lessThan(tester.getRect(sheet).top),
+      );
+
+      await tester.tap(recenter);
+      await tester.pump();
+
+      expect(find.byKey(const Key('run_map_recenter_button')), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'RunActiveScreen manual pan shows tappable recenter above active panel',
+    (WidgetTester tester) async {
+      _useMobileRunSurface(tester);
+
+      await tester.pumpWidget(const MaterialApp(home: RunActiveScreen()));
+      await tester.pump();
+
+      expect(find.byKey(const Key('run_map_recenter_button')), findsNothing);
+
+      await tester.drag(
+        find.byKey(const Key('run_map_interaction_layer')),
+        const Offset(48, 0),
+      );
+      await tester.pump();
+
+      final recenter = find.byKey(const Key('run_map_recenter_button'));
+      final panel = find.byKey(const Key('runActivePanel'));
+      expect(recenter, findsOneWidget);
+      expect(
+        tester.getRect(recenter).bottom,
+        lessThan(tester.getRect(panel).top),
+      );
+
+      await tester.tap(recenter);
+      await tester.pump();
+
+      expect(find.byKey(const Key('run_map_recenter_button')), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets('Run launch starts deterministic active local tracking', (
     WidgetTester tester,

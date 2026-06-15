@@ -93,7 +93,7 @@ void main() {
       expect(controller.state.averagePaceSecondsPerKm, 400);
     });
 
-    test('pause stops progression and resume continues it', () {
+    test('pause stops progression and resume continues from a new anchor', () {
       final controller = RunTrackingController(metersPerSecond: 2.5);
 
       controller.start(
@@ -113,6 +113,11 @@ void main() {
 
       expect(controller.state.phase, RunTrackingPhase.active);
       expect(controller.state.elapsedSeconds, 120);
+      expect(controller.state.distanceMeters, 150);
+
+      controller.advanceBy(const Duration(seconds: 60));
+
+      expect(controller.state.elapsedSeconds, 180);
       expect(controller.state.distanceMeters, 300);
     });
 

@@ -12,6 +12,7 @@ import 'widgets/run_tracking_sheet_content.dart';
 const _sportOrange = Color(0xFFFF7A1A);
 const _softControlBlue = Color(0x667A91E5);
 const _screenBackground = Color(0xFF3153C9);
+const _activeRecenterButtonBottom = 336.0;
 
 class RunActiveScreen extends StatefulWidget {
   const RunActiveScreen({super.key, this.controller});
@@ -26,6 +27,7 @@ class _RunActiveScreenState extends State<RunActiveScreen> {
   late final RunTrackingController _controller;
   late final bool _ownsController;
   Timer? _ticker;
+  bool _isFollowingRunner = true;
 
   @override
   void initState() {
@@ -65,7 +67,24 @@ class _RunActiveScreenState extends State<RunActiveScreen> {
       backgroundColor: _screenBackground,
       body: Stack(
         children: [
-          const Positioned.fill(child: RunMapPlaceholder()),
+          Positioned.fill(
+            child: AnimatedBuilder(
+              animation: _controller,
+              builder: (context, _) {
+                return RunMapPlaceholder(
+                  mapViewState: _controller.mapViewState,
+                  isFollowingRunner: _isFollowingRunner,
+                  onManualPan: () {
+                    setState(() => _isFollowingRunner = false);
+                  },
+                  onRecenter: () {
+                    setState(() => _isFollowingRunner = true);
+                  },
+                  showRecenterButton: false,
+                );
+              },
+            ),
+          ),
           Positioned(
             top: 0,
             left: 24,
@@ -98,6 +117,7 @@ class _RunActiveScreenState extends State<RunActiveScreen> {
                   animation: _controller,
                   builder: (context, _) {
                     return _RunActivePanel(
+                      key: const Key('runActivePanel'),
                       state: _controller.state,
                       onPause: _controller.pause,
                       onResume: _controller.resume,
@@ -109,6 +129,16 @@ class _RunActiveScreenState extends State<RunActiveScreen> {
               ),
             ),
           ),
+          if (!_isFollowingRunner)
+            Positioned(
+              right: 24,
+              bottom: bottomInset + _activeRecenterButtonBottom,
+              child: RunMapRecenterButton(
+                onPressed: () {
+                  setState(() => _isFollowingRunner = true);
+                },
+              ),
+            ),
         ],
       ),
     );
@@ -156,6 +186,7 @@ class _RunStatusPill extends StatelessWidget {
 
 class _RunActivePanel extends StatelessWidget {
   const _RunActivePanel({
+    super.key,
     required this.state,
     required this.onPause,
     required this.onResume,

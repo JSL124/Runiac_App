@@ -1,4 +1,5 @@
 import '../models/run_location_sample.dart';
+import '../models/run_map_view_state.dart';
 import 'run_distance_calculator.dart';
 
 class LocalRunTrackingSession {
@@ -23,11 +24,19 @@ class LocalRunTrackingSession {
   int _acceptedSampleCount = 0;
   int _rejectedSampleCount = 0;
   RunLocationSample? _lastAcceptedSample;
+  final List<List<RunLocationSample>> _acceptedSampleSegments =
+      <List<RunLocationSample>>[];
 
   int get activeDurationSeconds => _activeDurationSeconds;
   int get distanceMeters => _distanceMeters.round();
   int get acceptedSampleCount => _acceptedSampleCount;
   int get rejectedSampleCount => _rejectedSampleCount;
+  RunMapViewState get mapViewState {
+    return RunMapViewState(
+      currentPosition: _lastAcceptedSample,
+      routeSegments: _acceptedSampleSegments,
+    );
+  }
 
   int get averagePaceSecondsPerKm {
     if (_distanceMeters <= 0) {
@@ -66,18 +75,34 @@ class LocalRunTrackingSession {
     }
 
     final previous = _lastAcceptedSample;
-    if (previous == null || _needsAnchorSample) {
+    if (previous == null) {
+      _acceptedSampleSegments.add(<RunLocationSample>[sample]);
+      _lastAcceptedSample = sample;
+      _acceptedSampleCount += 1;
+      return;
+    }
+
+    if (_needsAnchorSample) {
+      if (_needsAnchorSample && _isSameSample(previous, sample)) {
+        return;
+      }
+
+      _acceptedSampleSegments.add(<RunLocationSample>[sample]);
       _lastAcceptedSample = sample;
       _needsAnchorSample = false;
       _acceptedSampleCount += 1;
       return;
     }
 
+    _acceptSegment(previous, sample);
+  }
+
+  bool _acceptSegment(RunLocationSample previous, RunLocationSample sample) {
     final elapsedSeconds =
         sample.recordedAt.difference(previous.recordedAt).inMilliseconds / 1000;
     if (elapsedSeconds <= 0) {
       _rejectedSampleCount += 1;
-      return;
+      return false;
     }
 
     final segmentDistanceMeters = _distanceCalculator.distanceMeters(
@@ -86,18 +111,32 @@ class LocalRunTrackingSession {
     );
     if (!segmentDistanceMeters.isFinite) {
       _rejectedSampleCount += 1;
-      return;
+      return false;
     }
 
     final speedMetersPerSecond = segmentDistanceMeters / elapsedSeconds;
     if (speedMetersPerSecond > maxAcceptedSpeedMetersPerSecond) {
       _rejectedSampleCount += 1;
-      return;
+      return false;
     }
 
     _distanceMeters += segmentDistanceMeters;
+    if (_acceptedSampleSegments.isEmpty) {
+      _acceptedSampleSegments.add(<RunLocationSample>[previous]);
+      _acceptedSampleSegments.last.add(sample);
+    } else {
+      _acceptedSampleSegments.last.add(sample);
+    }
     _lastAcceptedSample = sample;
     _acceptedSampleCount += 1;
+    return true;
+  }
+
+  bool _isSameSample(RunLocationSample? left, RunLocationSample right) {
+    return left != null &&
+        left.recordedAt == right.recordedAt &&
+        left.latitude == right.latitude &&
+        left.longitude == right.longitude;
   }
 
   bool _isValidSample(RunLocationSample sample) {

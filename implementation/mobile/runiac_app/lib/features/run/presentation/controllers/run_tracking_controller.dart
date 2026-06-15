@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 
 import '../../domain/models/local_run_completion_payload.dart';
 import '../../domain/models/run_location_permission_status.dart';
+import '../../domain/models/run_map_view_state.dart';
 import '../../domain/models/run_tracking_state.dart';
 import '../../domain/repositories/run_location_permission_service.dart';
 import '../../domain/repositories/run_location_provider.dart';
@@ -27,9 +28,11 @@ class RunTrackingController extends ChangeNotifier {
   RunLocationPermissionStatus _locationPermissionStatus =
       RunLocationPermissionStatus.checking;
   LocalRunTrackingSession? _trackingSession;
+  RunMapViewState _mapViewState = const RunMapViewState.empty();
   int _sessionSequence = 0;
 
   RunTrackingState get state => _state;
+  RunMapViewState get mapViewState => _mapViewState;
   RunLocationPermissionStatus get locationPermissionStatus =>
       _locationPermissionStatus;
   String get locationPermissionMessage => _locationPermissionStatus.message;
@@ -102,6 +105,7 @@ class RunTrackingController extends ChangeNotifier {
     final effectiveStartedAt = startedAt ?? DateTime.now();
     final session = LocalRunTrackingSession(startedAt: effectiveStartedAt);
     _trackingSession = session;
+    _mapViewState = const RunMapViewState.empty();
     _state = RunTrackingState(
       phase: RunTrackingPhase.active,
       clientRunSessionId:
@@ -143,6 +147,7 @@ class RunTrackingController extends ChangeNotifier {
       distanceMeters: session.distanceMeters,
       averagePaceSecondsPerKm: session.averagePaceSecondsPerKm,
     );
+    _mapViewState = session.mapViewState;
     notifyListeners();
   }
 
@@ -199,6 +204,7 @@ class RunTrackingController extends ChangeNotifier {
   LocalRunCompletionPayload finish({DateTime? completedAt}) {
     final payload = completionPayload(completedAt: completedAt);
     unawaited(_locationProvider.stop());
+    _mapViewState = const RunMapViewState.empty();
     _state = _state.copyWith(
       phase: RunTrackingPhase.finished,
       completedAt: payload.completedAt,

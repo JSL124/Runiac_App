@@ -66,6 +66,7 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
   double _sheetProgress = 1;
   Timer? _ticker;
   bool _isCompletingRun = false;
+  bool _isFollowingRunner = true;
 
   @override
   void initState() {
@@ -116,6 +117,7 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
     setState(() {
       _sheetExtent = RunLaunchSheetExtent.expanded;
       _sheetProgress = 1;
+      _isFollowingRunner = true;
       _sheetMode = RunSheetMode.running;
     });
   }
@@ -276,7 +278,24 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
       backgroundColor: _screenBackground,
       body: Stack(
         children: [
-          const Positioned.fill(child: RunMapPlaceholder()),
+          Positioned.fill(
+            child: AnimatedBuilder(
+              animation: _controller,
+              builder: (context, _) {
+                return RunMapPlaceholder(
+                  mapViewState: _controller.mapViewState,
+                  isFollowingRunner: _isFollowingRunner,
+                  onManualPan: () {
+                    setState(() => _isFollowingRunner = false);
+                  },
+                  onRecenter: () {
+                    setState(() => _isFollowingRunner = true);
+                  },
+                  showRecenterButton: false,
+                );
+              },
+            ),
+          ),
           Positioned(
             top: 0,
             left: 24,
@@ -434,9 +453,26 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
               ),
             ),
           ),
+          if (!_isFollowingRunner)
+            Positioned(
+              right: 24,
+              bottom: _recenterButtonBottomOffset(bottomInset),
+              child: RunMapRecenterButton(
+                onPressed: () {
+                  setState(() => _isFollowingRunner = true);
+                },
+              ),
+            ),
         ],
       ),
     );
+  }
+
+  double _recenterButtonBottomOffset(double bottomInset) {
+    final sheetHeight = _sheetExtent == RunLaunchSheetExtent.collapsed
+        ? _collapsedRunSheetHeight
+        : _expandedRunSheetHeight;
+    return bottomInset + sheetHeight + 16;
   }
 }
 
