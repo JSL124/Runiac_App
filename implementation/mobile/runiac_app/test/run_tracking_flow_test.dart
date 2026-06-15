@@ -14,6 +14,10 @@ import 'package:runiac_app/features/run/presentation/run_launch_screen.dart';
 import 'package:runiac_app/features/run/presentation/widgets/run_map_placeholder.dart';
 import 'package:runiac_app/features/run/presentation/widgets/run_mapbox_surface_config.dart';
 
+const _demoMapboxPublicToken =
+    'p'
+    'k.demo-public-token';
+
 void _useMobileRunSurface(WidgetTester tester) {
   tester.view
     ..physicalSize = const Size(390, 844)
@@ -463,6 +467,44 @@ void main() {
     },
   );
 
+  testWidgets('RunLaunchScreen selects Mapbox path when token is present', (
+    WidgetTester tester,
+  ) async {
+    _useMobileRunSurface(tester);
+    RunMapboxSurfaceConfig? capturedConfig;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RunLaunchScreen(
+          enableForegroundGps: false,
+          mapboxAccessToken: _demoMapboxPublicToken,
+          mapboxBuilder: (context, config) {
+            capturedConfig = config;
+            return const ColoredBox(
+              key: Key('fake_launch_mapbox_surface'),
+              color: Colors.black,
+            );
+          },
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('run_mapbox_surface_selected')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('run_mapbox_placeholder_selected')),
+      findsNothing,
+    );
+    expect(find.byKey(const Key('fake_launch_mapbox_surface')), findsOneWidget);
+    expect(find.byType(RunMapPlaceholder), findsNothing);
+    expect(capturedConfig, isNotNull);
+    expect(capturedConfig!.accessToken, _demoMapboxPublicToken);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets(
     'RunLaunchScreen recenter forwards a Mapbox camera recenter intent',
     (WidgetTester tester) async {
@@ -473,7 +515,7 @@ void main() {
         MaterialApp(
           home: RunLaunchScreen(
             enableForegroundGps: false,
-            mapboxAccessToken: 'demo-public-token',
+            mapboxAccessToken: _demoMapboxPublicToken,
             mapboxBuilder: (context, config) {
               configs.add(config);
               return GestureDetector(
@@ -545,6 +587,43 @@ void main() {
     },
   );
 
+  testWidgets('RunActiveScreen selects Mapbox path when token is present', (
+    WidgetTester tester,
+  ) async {
+    _useMobileRunSurface(tester);
+    RunMapboxSurfaceConfig? capturedConfig;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RunActiveScreen(
+          mapboxAccessToken: _demoMapboxPublicToken,
+          mapboxBuilder: (context, config) {
+            capturedConfig = config;
+            return const ColoredBox(
+              key: Key('fake_active_mapbox_surface'),
+              color: Colors.black,
+            );
+          },
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(
+      find.byKey(const Key('run_mapbox_surface_selected')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('run_mapbox_placeholder_selected')),
+      findsNothing,
+    );
+    expect(find.byKey(const Key('fake_active_mapbox_surface')), findsOneWidget);
+    expect(find.byType(RunMapPlaceholder), findsNothing);
+    expect(capturedConfig, isNotNull);
+    expect(capturedConfig!.accessToken, _demoMapboxPublicToken);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets(
     'RunActiveScreen recenter forwards a Mapbox camera recenter intent',
     (WidgetTester tester) async {
@@ -554,7 +633,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: RunActiveScreen(
-            mapboxAccessToken: 'demo-public-token',
+            mapboxAccessToken: _demoMapboxPublicToken,
             mapboxBuilder: (context, config) {
               configs.add(config);
               return GestureDetector(

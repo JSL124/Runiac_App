@@ -8,6 +8,8 @@ import 'run_mapbox_surface_config.dart';
 const _mapboxPublicAccessToken = String.fromEnvironment(
   'MAPBOX_PUBLIC_ACCESS_TOKEN',
 );
+const _mapboxSurfaceSelectedKey = Key('run_mapbox_surface_selected');
+const _mapboxPlaceholderSelectedKey = Key('run_mapbox_placeholder_selected');
 
 class RunTrackingMapSurface extends StatelessWidget {
   const RunTrackingMapSurface({
@@ -37,30 +39,60 @@ class RunTrackingMapSurface extends StatelessWidget {
   Widget build(BuildContext context) {
     final accessToken = (mapboxAccessToken ?? _mapboxPublicAccessToken).trim();
     if (accessToken.isEmpty) {
-      return RunMapPlaceholder(
-        mapViewState: mapViewState,
-        isFollowingRunner: isFollowingRunner,
-        onManualPan: onManualPan,
-        onRecenter: onRecenter,
-        showRecenterButton: showRecenterButton,
-        recenterButtonBottom: recenterButtonBottom,
+      _debugLogMapboxBranch('placeholder fallback selected');
+      return KeyedSubtree(
+        key: _mapboxPlaceholderSelectedKey,
+        child: RunMapPlaceholder(
+          mapViewState: mapViewState,
+          isFollowingRunner: isFollowingRunner,
+          onManualPan: onManualPan,
+          onRecenter: onRecenter,
+          showRecenterButton: showRecenterButton,
+          recenterButtonBottom: recenterButtonBottom,
+        ),
       );
     }
 
+    if (!accessToken.startsWith('pk.')) {
+      _debugLogMapboxBranch('invalid token fallback selected');
+      return KeyedSubtree(
+        key: _mapboxPlaceholderSelectedKey,
+        child: RunMapPlaceholder(
+          mapViewState: mapViewState,
+          isFollowingRunner: isFollowingRunner,
+          onManualPan: onManualPan,
+          onRecenter: onRecenter,
+          showRecenterButton: showRecenterButton,
+          recenterButtonBottom: recenterButtonBottom,
+        ),
+      );
+    }
+
+    _debugLogMapboxBranch('mapbox path selected');
     final builder = mapboxBuilder ?? _defaultMapboxBuilder;
-    return builder(
-      context,
-      RunMapboxSurfaceConfig(
-        accessToken: accessToken,
-        mapViewState: mapViewState,
-        isFollowingRunner: isFollowingRunner,
-        recenterRequestId: recenterRequestId,
-        onManualPan: onManualPan,
-        onRecenter: onRecenter,
-        showRecenterButton: showRecenterButton,
-        recenterButtonBottom: recenterButtonBottom,
+    return KeyedSubtree(
+      key: _mapboxSurfaceSelectedKey,
+      child: builder(
+        context,
+        RunMapboxSurfaceConfig(
+          accessToken: accessToken,
+          mapViewState: mapViewState,
+          isFollowingRunner: isFollowingRunner,
+          recenterRequestId: recenterRequestId,
+          onManualPan: onManualPan,
+          onRecenter: onRecenter,
+          showRecenterButton: showRecenterButton,
+          recenterButtonBottom: recenterButtonBottom,
+        ),
       ),
     );
+  }
+
+  void _debugLogMapboxBranch(String branch) {
+    assert(() {
+      debugPrint('Runiac Mapbox QA: $branch');
+      return true;
+    }());
   }
 }
 

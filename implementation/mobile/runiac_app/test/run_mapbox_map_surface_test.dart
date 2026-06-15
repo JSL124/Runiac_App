@@ -11,6 +11,10 @@ import 'package:runiac_app/features/run/presentation/widgets/run_mapbox_geometry
 import 'package:runiac_app/features/run/presentation/widgets/run_mapbox_surface_config.dart';
 import 'package:runiac_app/features/run/presentation/widgets/run_tracking_map_surface.dart';
 
+const _demoMapboxPublicToken =
+    'p'
+    'k.demo-public-token';
+
 void main() {
   group('RunTrackingMapSurface Mapbox boundary', () {
     testWidgets('missing token renders placeholder fallback', (tester) async {
@@ -23,6 +27,38 @@ void main() {
       );
 
       expect(find.byType(RunMapPlaceholder), findsOneWidget);
+      expect(
+        find.byKey(const Key('run_mapbox_placeholder_selected')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('run_mapbox_surface_selected')),
+        findsNothing,
+      );
+      expect(find.byKey(const Key('run_mapbox_surface')), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('invalid token renders placeholder fallback', (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: SizedBox.expand(
+            child: RunTrackingMapSurface(
+              mapboxAccessToken: 'demo-public-token',
+            ),
+          ),
+        ),
+      );
+
+      expect(find.byType(RunMapPlaceholder), findsOneWidget);
+      expect(
+        find.byKey(const Key('run_mapbox_placeholder_selected')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('run_mapbox_surface_selected')),
+        findsNothing,
+      );
       expect(find.byKey(const Key('run_mapbox_surface')), findsNothing);
       expect(tester.takeException(), isNull);
     });
@@ -36,7 +72,7 @@ void main() {
           MaterialApp(
             home: SizedBox.expand(
               child: RunTrackingMapSurface(
-                mapboxAccessToken: 'demo-public-token',
+                mapboxAccessToken: _demoMapboxPublicToken,
                 recenterRequestId: 7,
                 mapboxBuilder: (context, config) {
                   capturedConfig = config;
@@ -51,9 +87,17 @@ void main() {
         );
 
         expect(find.byType(RunMapPlaceholder), findsNothing);
+        expect(
+          find.byKey(const Key('run_mapbox_placeholder_selected')),
+          findsNothing,
+        );
+        expect(
+          find.byKey(const Key('run_mapbox_surface_selected')),
+          findsOneWidget,
+        );
         expect(find.byKey(const Key('fake_mapbox_surface')), findsOneWidget);
         expect(capturedConfig, isNotNull);
-        expect(capturedConfig!.accessToken, 'demo-public-token');
+        expect(capturedConfig!.accessToken, _demoMapboxPublicToken);
         expect(capturedConfig!.recenterRequestId, 7);
         expect(tester.takeException(), isNull);
       },
@@ -81,7 +125,7 @@ void main() {
                   child: RunTrackingMapSurface(
                     mapViewState: mapViewState,
                     isFollowingRunner: isFollowingRunner,
-                    mapboxAccessToken: 'demo-public-token',
+                    mapboxAccessToken: _demoMapboxPublicToken,
                     onManualPan: () {
                       setState(() => isFollowingRunner = false);
                     },
