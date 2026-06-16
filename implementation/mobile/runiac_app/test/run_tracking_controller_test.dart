@@ -1088,6 +1088,78 @@ void main() {
       expect(payloadMap.keys, isNot(contains('validatedActivity')));
     });
 
+    test(
+      'stationary GPS jump while auto paused keeps payload and route protected',
+      () {
+        final startedAt = DateTime.utc(2026, 6, 14, 7);
+        final provider = _LifecycleReplayProvider([
+          RunLocationReplaySample(
+            activeOffset: const Duration(seconds: 1),
+            sample: RunLocationSample(
+              recordedAt: startedAt.add(const Duration(seconds: 1)),
+              latitude: 1.300000,
+              longitude: 103.800000,
+              horizontalAccuracyMeters: 5,
+              speedMetersPerSecond: 0.1,
+            ),
+          ),
+          RunLocationReplaySample(
+            activeOffset: const Duration(seconds: 30),
+            sample: RunLocationSample(
+              recordedAt: startedAt.add(const Duration(seconds: 30)),
+              latitude: 1.300360,
+              longitude: 103.800000,
+              horizontalAccuracyMeters: 5,
+              speedMetersPerSecond: 4,
+            ),
+          ),
+        ]);
+        final controller = RunTrackingController(
+          locationProvider: provider,
+          motionProvider: const _ConstantMotionProvider(
+            RunMotionSignal.stationary,
+          ),
+          locationStatus: RunTrackingLocationStatus.waitingForGps,
+        );
+
+        controller.start(
+          startedAt: startedAt,
+          clientRunSessionId: 'stationary-gps-jump-run',
+        );
+        controller.advanceBy(const Duration(seconds: 1));
+        controller.advanceBy(const Duration(seconds: 5));
+        expect(controller.state.isAutoPaused, isTrue);
+        final routePointCountBeforeJump =
+            controller.mapViewState.routePointCount;
+
+        controller.advanceBy(const Duration(seconds: 24));
+
+        expect(controller.state.isAutoPaused, isTrue);
+        expect(controller.state.isPaused, isFalse);
+        expect(controller.state.elapsedSeconds, 1);
+        expect(controller.state.distanceMeters, 0);
+        expect(controller.state.averagePaceSecondsPerKm, 0);
+        expect(
+          controller.mapViewState.routePointCount,
+          routePointCountBeforeJump,
+        );
+        expect(controller.mapViewState.currentPosition?.latitude, 1.300360);
+        final payload = controller.completionPayload(
+          completedAt: startedAt.add(const Duration(seconds: 30)),
+        );
+        final payloadMap = payload.toRawClientMap();
+        expect(payload.durationSeconds, 1);
+        expect(payload.distanceMeters, 0);
+        expect(payload.avgPaceSecondsPerKm, 0);
+        expect(payloadMap.keys, isNot(contains('gpsSamples')));
+        expect(payloadMap.keys, isNot(contains('routeSamples')));
+        expect(payloadMap.keys, isNot(contains('motionEvidence')));
+        expect(payloadMap.keys, isNot(contains('classifierEvidence')));
+        expect(payloadMap.keys, isNot(contains('leaderboardScore')));
+        expect(payloadMap.keys, isNot(contains('validatedActivity')));
+      },
+    );
+
     test('empty samples before first GPS anchor do not auto pause', () {
       final startedAt = DateTime.utc(2026, 6, 14, 7);
       final controller = RunTrackingController(

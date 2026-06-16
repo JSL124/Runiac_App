@@ -372,14 +372,15 @@ void main() {
 
       controller.advanceBy(const Duration(seconds: 10));
 
-      expect(controller.state.isAutoPaused, isFalse);
-      expect(controller.mapViewState.routeSegments, hasLength(2));
-      expect(controller.mapViewState.routeSegments.last, hasLength(1));
+      expect(controller.state.isAutoPaused, isTrue);
+      expect(controller.mapViewState.routeSegments, hasLength(1));
       expect(controller.state.distanceMeters, distanceBeforeStop);
 
       controller.advanceBy(const Duration(seconds: 10));
 
+      expect(controller.state.isAutoPaused, isFalse);
       expect(controller.state.distanceMeters, greaterThan(distanceBeforeStop));
+      expect(controller.mapViewState.routeSegments, hasLength(2));
       expect(controller.mapViewState.routeSegments.last, hasLength(2));
       expect(
         controller.mapViewState.routeSegments.first.last.latitude,
@@ -462,20 +463,18 @@ void main() {
 
         controller.advanceBy(const Duration(seconds: 9));
 
-        expect(controller.state.isAutoPaused, isFalse);
+        expect(controller.state.isAutoPaused, isTrue);
         expect(controller.state.elapsedSeconds, 0);
         expect(controller.state.distanceMeters, 0);
-        expect(controller.mapViewState.routeSegments, hasLength(2));
-        expect(controller.mapViewState.routeSegments.last, hasLength(1));
-        expect(
-          controller.mapViewState.routeSegments.last.first.latitude,
-          1.300100,
-        );
+        expect(controller.mapViewState.routeSegments, hasLength(1));
+        expect(controller.mapViewState.currentPosition?.latitude, 1.300100);
 
         controller.advanceBy(const Duration(seconds: 10));
 
-        expect(controller.state.elapsedSeconds, 10);
+        expect(controller.state.isAutoPaused, isFalse);
+        expect(controller.state.elapsedSeconds, 0);
         expect(controller.state.distanceMeters, greaterThan(0));
+        expect(controller.mapViewState.routeSegments, hasLength(2));
         expect(controller.mapViewState.routeSegments.last, hasLength(2));
       },
     );

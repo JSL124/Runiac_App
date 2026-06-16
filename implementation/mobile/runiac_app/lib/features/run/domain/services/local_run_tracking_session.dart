@@ -49,6 +49,7 @@ class LocalRunTrackingSession {
   RunLocationSample? _currentPositionSample;
   RunLocationSample? _lastAcceptedSample;
   RunLocationSample? _lastRouteSample;
+  RunLocationSample? _autoResumeCandidateSample;
   DateTime? _stationaryStartedAt;
   double _stationaryCumulativeMovementMeters = 0;
   final List<List<RunLocationSample>> _acceptedSampleSegments =
@@ -114,6 +115,7 @@ class LocalRunTrackingSession {
     _isActive = true;
     _needsAnchorSample = true;
     _movementStatus = RunMovementStatus.moving;
+    _autoResumeCandidateSample = null;
     _stationaryStartedAt = null;
     _stationaryCumulativeMovementMeters = 0;
   }
@@ -143,6 +145,7 @@ class LocalRunTrackingSession {
       _acceptedSampleSegments.add(<RunLocationSample>[sample]);
       _recordAcceptedCurrentSample(sample);
       _lastRouteSample = sample;
+      _autoResumeCandidateSample = null;
       _stationaryCumulativeMovementMeters = 0;
       return;
     }
@@ -155,6 +158,7 @@ class LocalRunTrackingSession {
       _acceptedSampleSegments.add(<RunLocationSample>[sample]);
       _needsAnchorSample = false;
       _lastRouteSample = sample;
+      _autoResumeCandidateSample = null;
       _stationaryCumulativeMovementMeters = 0;
       _recordAcceptedCurrentSample(sample);
       return;
@@ -178,17 +182,28 @@ class LocalRunTrackingSession {
     }
 
     final previousRouteSample = _lastRouteSample ?? previousAccepted;
+    final resumeCandidateSample =
+        _movementStatus == RunMovementStatus.autoPaused
+        ? _autoResumeCandidateSample
+        : null;
+    final movementAnchorSample = resumeCandidateSample ?? previousRouteSample;
     if (previousRouteSample == null) {
       _acceptedSampleSegments.add(<RunLocationSample>[sample]);
       _lastRouteSample = sample;
+      _autoResumeCandidateSample = null;
       _stationaryCumulativeMovementMeters = 0;
       _recordAcceptedCurrentSample(sample);
+      return true;
+    }
+    if (movementAnchorSample == null) {
+      _recordAcceptedCurrentSample(sample);
+      _autoResumeCandidateSample = sample;
       return true;
     }
 
     final elapsedSeconds =
         sample.recordedAt
-            .difference(previousRouteSample.recordedAt)
+            .difference(movementAnchorSample.recordedAt)
             .inMilliseconds /
         1000;
     if (elapsedSeconds <= 0) {
@@ -199,7 +214,7 @@ class LocalRunTrackingSession {
       return false;
     }
     final segmentDistanceMeters = distanceCalculator.distanceMeters(
-      previousRouteSample,
+      movementAnchorSample,
       sample,
     );
     if (!segmentDistanceMeters.isFinite) {
@@ -250,20 +265,34 @@ class LocalRunTrackingSession {
       resumeMovementDistanceMeters: resumeMovementDistanceMeters,
       resumeSpeedMetersPerSecond: resumeSpeedMetersPerSecond,
       stationarySpeedMetersPerSecond: stationarySpeedMetersPerSecond,
+      requiresSustainedGpsMovement:
+          _movementStatus == RunMovementStatus.autoPaused &&
+          resumeCandidateSample == null,
       motionEvidence: motionEvidence,
     );
 
     if (classification.shouldAutoResume) {
       if (_movementStatus == RunMovementStatus.autoPaused) {
-        _acceptedSampleSegments.add(<RunLocationSample>[sample]);
+        final resumeAnchor = resumeCandidateSample ?? sample;
+        _acceptedSampleSegments.add(<RunLocationSample>[resumeAnchor, sample]);
+        _distanceMeters += segmentDistanceMeters;
         _lastRouteSample = sample;
       } else {
         _appendRouteSample(sample, segmentDistanceMeters);
       }
       _movementStatus = RunMovementStatus.moving;
+      _autoResumeCandidateSample = null;
       _stationaryStartedAt = null;
       _stationaryCumulativeMovementMeters = 0;
       _recordAcceptedCurrentSample(sample);
+      return true;
+    }
+
+    if (_movementStatus == RunMovementStatus.autoPaused &&
+        classification.type ==
+            RunMovementClassificationType.gpsResumeCandidate) {
+      _recordAcceptedCurrentSample(sample);
+      _autoResumeCandidateSample = sample;
       return true;
     }
 
@@ -292,6 +321,7 @@ class LocalRunTrackingSession {
       _acceptedSampleSegments.last.add(sample);
     }
     _lastRouteSample = sample;
+    _autoResumeCandidateSample = null;
     _stationaryCumulativeMovementMeters = 0;
   }
 
@@ -309,6 +339,7 @@ class LocalRunTrackingSession {
     _stationaryCumulativeMovementMeters = cumulativeGpsMovementMeters;
     if (classification.shouldAutoPause) {
       _movementStatus = RunMovementStatus.autoPaused;
+      _autoResumeCandidateSample = null;
     }
   }
 
@@ -338,6 +369,7 @@ class LocalRunTrackingSession {
       return;
     }
     _movementStatus = RunMovementStatus.autoPaused;
+    _autoResumeCandidateSample = null;
   }
 
   void _recordAcceptedCurrentSample(RunLocationSample sample) {

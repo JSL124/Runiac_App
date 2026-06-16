@@ -54,6 +54,52 @@ void main() {
       expect(classification.shouldAutoPause, isTrue);
     });
 
+    test('stationary motion blocks a single GPS displacement resume', () {
+      final classification = classifier.classifyGpsSample(
+        sample: _sample(recordedAt),
+        distanceFromRouteAnchorMeters: 40,
+        stationaryDwell: const Duration(seconds: 8),
+        stationaryAutoPauseDwell: const Duration(seconds: 7),
+        stationaryDriftDistanceMeters: 3,
+        resumeMovementDistanceMeters: 6,
+        resumeSpeedMetersPerSecond: 1,
+        stationarySpeedMetersPerSecond: 0.5,
+        requiresSustainedGpsMovement: true,
+        motionEvidence: [_motion(recordedAt, RunMotionSignal.stationary)],
+      );
+
+      expect(
+        classification.type,
+        RunMovementClassificationType.gpsResumeCandidate,
+      );
+      expect(classification.acceptForDistance, isFalse);
+      expect(classification.acceptForRoute, isFalse);
+      expect(classification.shouldAutoResume, isFalse);
+    });
+
+    test('stationary motion blocks a single GPS speed spike resume', () {
+      final classification = classifier.classifyGpsSample(
+        sample: _sample(recordedAt, speedMetersPerSecond: 1.2),
+        distanceFromRouteAnchorMeters: 0.8,
+        stationaryDwell: const Duration(seconds: 8),
+        stationaryAutoPauseDwell: const Duration(seconds: 7),
+        stationaryDriftDistanceMeters: 3,
+        resumeMovementDistanceMeters: 6,
+        resumeSpeedMetersPerSecond: 1,
+        stationarySpeedMetersPerSecond: 0.5,
+        requiresSustainedGpsMovement: true,
+        motionEvidence: [_motion(recordedAt, RunMotionSignal.stationary)],
+      );
+
+      expect(
+        classification.type,
+        RunMovementClassificationType.gpsResumeCandidate,
+      );
+      expect(classification.acceptForDistance, isFalse);
+      expect(classification.acceptForRoute, isFalse);
+      expect(classification.shouldAutoResume, isFalse);
+    });
+
     test('cumulative GPS movement wins over stationary motion evidence', () {
       final classification = classifier.classifyGpsSample(
         sample: _sample(recordedAt, speedMetersPerSecond: 0.7),

@@ -676,11 +676,10 @@ void main() {
         ],
       );
 
-      expect(session.movementStatus, RunMovementStatus.moving);
+      expect(session.movementStatus, RunMovementStatus.autoPaused);
       expect(session.activeDurationSeconds, movingTimeBeforeStop);
       expect(session.distanceMeters, distanceBeforeStop);
-      expect(session.mapViewState.routeSegments, hasLength(2));
-      expect(session.mapViewState.routeSegments.last, hasLength(1));
+      expect(session.mapViewState.routeSegments, hasLength(1));
 
       session.advanceBy(
         const Duration(seconds: 10),
@@ -696,9 +695,12 @@ void main() {
         ],
       );
 
-      expect(session.activeDurationSeconds, movingTimeBeforeStop + 10);
+      expect(session.movementStatus, RunMovementStatus.moving);
+      expect(session.activeDurationSeconds, movingTimeBeforeStop);
       expect(session.distanceMeters, greaterThan(distanceBeforeStop));
+      expect(session.mapViewState.routeSegments, hasLength(2));
       expect(session.mapViewState.routeSegments.last, hasLength(2));
+      expect(session.activeDurationSeconds, movingTimeBeforeStop);
     });
 
     test('no-op movement classifier preserves GPS-only moving behavior', () {
@@ -1151,6 +1153,155 @@ void main() {
       expect(session.mapViewState.currentPosition?.latitude, 1.300009);
     });
 
+    test('single GPS jump with stationary motion stays auto paused', () {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      final session = LocalRunTrackingSession(startedAt: startedAt);
+
+      session.advanceBy(
+        const Duration(seconds: 1),
+        samples: [
+          sampleAt(
+            startedAt,
+            1,
+            latitude: 1.300000,
+            longitude: 103.800000,
+            horizontalAccuracyMeters: 5,
+            speedMetersPerSecond: 0.1,
+          ),
+        ],
+      );
+      session.advanceBy(const Duration(seconds: 5));
+      expect(session.movementStatus, RunMovementStatus.autoPaused);
+      final routePointCountBeforeJump = session.mapViewState.routePointCount;
+
+      session.advanceBy(
+        const Duration(seconds: 24),
+        samples: [
+          sampleAt(
+            startedAt,
+            30,
+            latitude: 1.300360,
+            longitude: 103.800000,
+            horizontalAccuracyMeters: 5,
+            speedMetersPerSecond: 4,
+          ),
+        ],
+        motionEvidence: [motionAt(startedAt, 30, RunMotionSignal.stationary)],
+      );
+
+      expect(session.movementStatus, RunMovementStatus.autoPaused);
+      expect(session.activeDurationSeconds, 1);
+      expect(session.distanceMeters, 0);
+      expect(session.mapViewState.routePointCount, routePointCountBeforeJump);
+      expect(session.mapViewState.currentPosition?.latitude, 1.300360);
+    });
+
+    test('single GPS speed spike with stationary motion stays auto paused', () {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      final session = LocalRunTrackingSession(startedAt: startedAt);
+
+      session.advanceBy(
+        const Duration(seconds: 1),
+        samples: [
+          sampleAt(
+            startedAt,
+            1,
+            latitude: 1.300000,
+            longitude: 103.800000,
+            horizontalAccuracyMeters: 5,
+            speedMetersPerSecond: 0.1,
+          ),
+        ],
+      );
+      session.advanceBy(const Duration(seconds: 5));
+      expect(session.movementStatus, RunMovementStatus.autoPaused);
+      final routePointCountBeforeSpike = session.mapViewState.routePointCount;
+
+      session.advanceBy(
+        const Duration(seconds: 24),
+        samples: [
+          sampleAt(
+            startedAt,
+            30,
+            latitude: 1.300004,
+            longitude: 103.800000,
+            horizontalAccuracyMeters: 5,
+            speedMetersPerSecond: 1.2,
+          ),
+        ],
+        motionEvidence: [motionAt(startedAt, 30, RunMotionSignal.stationary)],
+      );
+
+      expect(session.movementStatus, RunMovementStatus.autoPaused);
+      expect(session.activeDurationSeconds, 1);
+      expect(session.distanceMeters, 0);
+      expect(session.mapViewState.routePointCount, routePointCountBeforeSpike);
+      expect(session.mapViewState.currentPosition?.latitude, 1.300004);
+    });
+
+    test('sustained GPS movement resumes without counting candidate jump', () {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      final session = LocalRunTrackingSession(startedAt: startedAt);
+
+      session.advanceBy(
+        const Duration(seconds: 1),
+        samples: [
+          sampleAt(
+            startedAt,
+            1,
+            latitude: 1.300000,
+            longitude: 103.800000,
+            horizontalAccuracyMeters: 5,
+          ),
+        ],
+      );
+      session.advanceBy(const Duration(seconds: 5));
+      expect(session.movementStatus, RunMovementStatus.autoPaused);
+      final routePointCountBeforeCandidate =
+          session.mapViewState.routePointCount;
+
+      session.advanceBy(
+        const Duration(seconds: 24),
+        samples: [
+          sampleAt(
+            startedAt,
+            30,
+            latitude: 1.300360,
+            longitude: 103.800000,
+            horizontalAccuracyMeters: 5,
+            speedMetersPerSecond: 4,
+          ),
+        ],
+      );
+
+      expect(session.movementStatus, RunMovementStatus.autoPaused);
+      expect(session.distanceMeters, 0);
+      expect(
+        session.mapViewState.routePointCount,
+        routePointCountBeforeCandidate,
+      );
+      expect(session.mapViewState.currentPosition?.latitude, 1.300360);
+
+      session.advanceBy(
+        const Duration(seconds: 10),
+        samples: [
+          sampleAt(
+            startedAt,
+            40,
+            latitude: 1.300450,
+            longitude: 103.800000,
+            horizontalAccuracyMeters: 5,
+            speedMetersPerSecond: 1,
+          ),
+        ],
+      );
+
+      expect(session.movementStatus, RunMovementStatus.moving);
+      expect(session.distanceMeters, closeTo(10, 2));
+      expect(session.mapViewState.routeSegments, hasLength(2));
+      expect(session.mapViewState.routeSegments.last, hasLength(2));
+    });
+
     test('auto pauses when stationary from the start without route drift', () {
       final startedAt = DateTime.utc(2026, 6, 14, 7);
       final session = LocalRunTrackingSession(startedAt: startedAt);
@@ -1217,11 +1368,10 @@ void main() {
         ],
       );
 
-      expect(session.movementStatus, RunMovementStatus.moving);
+      expect(session.movementStatus, RunMovementStatus.autoPaused);
       expect(session.activeDurationSeconds, 1);
       expect(session.distanceMeters, 0);
-      expect(session.mapViewState.routeSegments, hasLength(2));
-      expect(session.mapViewState.routeSegments.last, hasLength(1));
+      expect(session.mapViewState.routeSegments, hasLength(1));
 
       session.advanceBy(
         const Duration(seconds: 10),
@@ -1237,7 +1387,8 @@ void main() {
         ],
       );
 
-      expect(session.activeDurationSeconds, 11);
+      expect(session.movementStatus, RunMovementStatus.moving);
+      expect(session.activeDurationSeconds, 1);
       expect(session.distanceMeters, greaterThan(0));
       expect(session.mapViewState.routeSegments.last, hasLength(2));
     });

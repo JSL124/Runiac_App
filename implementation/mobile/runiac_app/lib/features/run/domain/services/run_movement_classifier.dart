@@ -3,6 +3,7 @@ import '../models/run_motion_evidence.dart';
 
 enum RunMovementClassificationType {
   gpsMeaningfulMovement,
+  gpsResumeCandidate,
   gpsStationaryDrift,
   noSampleStationaryDwell,
   noSampleWaiting,
@@ -43,6 +44,7 @@ class RunMovementClassifier {
     required double resumeMovementDistanceMeters,
     required double resumeSpeedMetersPerSecond,
     required double stationarySpeedMetersPerSecond,
+    bool requiresSustainedGpsMovement = false,
     Iterable<RunMotionEvidence> motionEvidence = const <RunMotionEvidence>[],
   }) {
     if (_hasMeaningfulMovement(
@@ -51,6 +53,16 @@ class RunMovementClassifier {
       resumeMovementDistanceMeters: resumeMovementDistanceMeters,
       resumeSpeedMetersPerSecond: resumeSpeedMetersPerSecond,
     )) {
+      if (requiresSustainedGpsMovement) {
+        return const RunMovementClassification(
+          type: RunMovementClassificationType.gpsResumeCandidate,
+          acceptForDistance: false,
+          acceptForRoute: false,
+          countsAsMovingTime: false,
+          shouldAutoPause: false,
+          shouldAutoResume: false,
+        );
+      }
       return const RunMovementClassification(
         type: RunMovementClassificationType.gpsMeaningfulMovement,
         acceptForDistance: true,
@@ -63,6 +75,16 @@ class RunMovementClassifier {
 
     if (cumulativeGpsMovementMeters >=
         _gpsCumulativeMovementConfirmationMeters) {
+      if (requiresSustainedGpsMovement) {
+        return const RunMovementClassification(
+          type: RunMovementClassificationType.gpsResumeCandidate,
+          acceptForDistance: false,
+          acceptForRoute: false,
+          countsAsMovingTime: false,
+          shouldAutoPause: false,
+          shouldAutoResume: false,
+        );
+      }
       return const RunMovementClassification(
         type: RunMovementClassificationType.gpsMeaningfulMovement,
         acceptForDistance: true,
