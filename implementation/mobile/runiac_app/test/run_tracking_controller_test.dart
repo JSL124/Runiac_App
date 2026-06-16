@@ -58,6 +58,58 @@ class _LifecycleTrackingProvider extends ConstantSpeedRunLocationProvider {
   }
 }
 
+class _LifecycleReplayProvider implements RunLocationProvider {
+  _LifecycleReplayProvider(List<RunLocationReplaySample> samples)
+    : _delegate = ReplayRunLocationProvider(samples);
+
+  final ReplayRunLocationProvider _delegate;
+
+  int startCount = 0;
+  int pauseCount = 0;
+  int resumeCount = 0;
+  int stopCount = 0;
+
+  @override
+  RunTrackingLocationAccuracyStatus get locationAccuracyStatus =>
+      _delegate.locationAccuracyStatus;
+
+  @override
+  Future<void> start({required DateTime startedAt}) async {
+    startCount += 1;
+  }
+
+  @override
+  Future<void> pause() async {
+    pauseCount += 1;
+  }
+
+  @override
+  Future<void> resume({
+    required DateTime resumedAt,
+    required Duration activeOffset,
+  }) async {
+    resumeCount += 1;
+  }
+
+  @override
+  Future<void> stop() async {
+    stopCount += 1;
+  }
+
+  @override
+  Iterable<RunLocationSample> samplesBetween({
+    required Duration fromActiveOffset,
+    required Duration toActiveOffset,
+    required DateTime startedAt,
+  }) {
+    return _delegate.samplesBetween(
+      fromActiveOffset: fromActiveOffset,
+      toActiveOffset: toActiveOffset,
+      startedAt: startedAt,
+    );
+  }
+}
+
 void main() {
   group('RunTrackingController', () {
     test('starts idle with no trusted completion state', () {
@@ -232,6 +284,114 @@ void main() {
       expect(controller.state.elapsedSeconds, 180);
       expect(controller.state.distanceMeters, 300);
     });
+
+    test(
+      'auto pause stays active-local and manual pause remains higher priority',
+      () {
+        final startedAt = DateTime.utc(2026, 6, 14, 7);
+        final provider = _LifecycleReplayProvider([
+          RunLocationReplaySample(
+            activeOffset: Duration.zero,
+            sample: RunLocationSample(
+              recordedAt: startedAt,
+              latitude: 1.300000,
+              longitude: 103.800000,
+              horizontalAccuracyMeters: 5,
+            ),
+          ),
+          RunLocationReplaySample(
+            activeOffset: const Duration(seconds: 60),
+            sample: RunLocationSample(
+              recordedAt: startedAt.add(const Duration(seconds: 60)),
+              latitude: 1.300899,
+              longitude: 103.800000,
+              horizontalAccuracyMeters: 5,
+            ),
+          ),
+          RunLocationReplaySample(
+            activeOffset: const Duration(seconds: 70),
+            sample: RunLocationSample(
+              recordedAt: startedAt.add(const Duration(seconds: 70)),
+              latitude: 1.300908,
+              longitude: 103.800000,
+              horizontalAccuracyMeters: 5,
+              speedMetersPerSecond: 0.1,
+            ),
+          ),
+          RunLocationReplaySample(
+            activeOffset: const Duration(seconds: 80),
+            sample: RunLocationSample(
+              recordedAt: startedAt.add(const Duration(seconds: 80)),
+              latitude: 1.300917,
+              longitude: 103.800000,
+              horizontalAccuracyMeters: 5,
+              speedMetersPerSecond: 0.1,
+            ),
+          ),
+          RunLocationReplaySample(
+            activeOffset: const Duration(seconds: 90),
+            sample: RunLocationSample(
+              recordedAt: startedAt.add(const Duration(seconds: 90)),
+              latitude: 1.301000,
+              longitude: 103.800000,
+              horizontalAccuracyMeters: 5,
+              speedMetersPerSecond: 1.2,
+            ),
+          ),
+        ]);
+        final controller = RunTrackingController(locationProvider: provider);
+
+        controller.start(
+          startedAt: startedAt,
+          clientRunSessionId: 'auto-pause-controller-run',
+        );
+        controller.advanceBy(const Duration(seconds: 60));
+        final movingTimeBeforeStop = controller.state.elapsedSeconds;
+        final distanceBeforeStop = controller.state.distanceMeters;
+        final paceBeforeStop = controller.state.averagePaceSecondsPerKm;
+
+        controller.advanceBy(const Duration(seconds: 20));
+
+        expect(controller.state.isAutoPaused, isTrue);
+        expect(controller.state.isPaused, isFalse);
+        expect(controller.state.phase, RunTrackingPhase.active);
+        expect(
+          RunTrackingSnapshot.fromState(controller.state).guidance,
+          'Standing still. Pace will continue when you move.',
+        );
+        expect(controller.state.elapsedSeconds, movingTimeBeforeStop);
+        expect(controller.state.distanceMeters, distanceBeforeStop);
+        expect(controller.state.averagePaceSecondsPerKm, paceBeforeStop);
+        expect(provider.pauseCount, 0);
+
+        final payload = controller.completionPayload(
+          completedAt: startedAt.add(const Duration(seconds: 80)),
+        );
+        final payloadMap = payload.toRawClientMap();
+        expect(payload.durationSeconds, movingTimeBeforeStop);
+        expect(payload.distanceMeters, distanceBeforeStop);
+        expect(payload.avgPaceSecondsPerKm, paceBeforeStop);
+        expect(payloadMap.keys, isNot(contains('routeSamples')));
+        expect(payloadMap.keys, isNot(contains('gpsSamples')));
+        expect(payloadMap.keys, isNot(contains('leaderboardScore')));
+        expect(payloadMap.keys, isNot(contains('validatedActivity')));
+
+        controller.pause();
+        controller.advanceBy(const Duration(seconds: 10));
+
+        expect(controller.state.isPaused, isTrue);
+        expect(controller.state.isAutoPaused, isFalse);
+        expect(provider.pauseCount, 1);
+        expect(controller.state.elapsedSeconds, movingTimeBeforeStop);
+        expect(controller.state.distanceMeters, distanceBeforeStop);
+
+        controller.resume();
+
+        expect(provider.resumeCount, 1);
+        expect(controller.state.phase, RunTrackingPhase.active);
+        expect(controller.state.isAutoPaused, isFalse);
+      },
+    );
 
     test('finish creates only raw client-observed completion payload', () {
       final controller = RunTrackingController(metersPerSecond: 2.5);

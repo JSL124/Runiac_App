@@ -2,6 +2,8 @@ import 'run_tracking_diagnostics.dart';
 
 enum RunTrackingPhase { idle, active, paused, finished }
 
+enum RunMovementStatus { moving, autoPaused }
+
 enum RunTrackingLocationStatus {
   demo('Demo mode'),
   waitingForGps('Waiting for GPS'),
@@ -27,6 +29,7 @@ class RunTrackingState {
     required this.source,
     required this.locationStatus,
     required this.diagnostics,
+    this.movementStatus = RunMovementStatus.moving,
     this.routeLabel,
   });
 
@@ -42,6 +45,7 @@ class RunTrackingState {
       source = 'local_simulation',
       locationStatus = RunTrackingLocationStatus.demo,
       diagnostics = const RunTrackingDiagnostics.initial(),
+      movementStatus = RunMovementStatus.moving,
       routeLabel = null;
 
   final RunTrackingPhase phase;
@@ -55,10 +59,14 @@ class RunTrackingState {
   final String source;
   final RunTrackingLocationStatus locationStatus;
   final RunTrackingDiagnostics diagnostics;
+  final RunMovementStatus movementStatus;
   final String? routeLabel;
 
   bool get isPaused => phase == RunTrackingPhase.paused;
   bool get isActive => phase == RunTrackingPhase.active;
+  bool get isAutoPaused =>
+      phase == RunTrackingPhase.active &&
+      movementStatus == RunMovementStatus.autoPaused;
 
   RunTrackingState copyWith({
     RunTrackingPhase? phase,
@@ -72,6 +80,7 @@ class RunTrackingState {
     String? source,
     RunTrackingLocationStatus? locationStatus,
     RunTrackingDiagnostics? diagnostics,
+    RunMovementStatus? movementStatus,
     String? routeLabel,
   }) {
     return RunTrackingState(
@@ -87,6 +96,7 @@ class RunTrackingState {
       source: source ?? this.source,
       locationStatus: locationStatus ?? this.locationStatus,
       diagnostics: diagnostics ?? this.diagnostics,
+      movementStatus: movementStatus ?? this.movementStatus,
       routeLabel: routeLabel ?? this.routeLabel,
     );
   }

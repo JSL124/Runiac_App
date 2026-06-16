@@ -14,12 +14,14 @@ void main() {
     required double latitude,
     required double longitude,
     double? horizontalAccuracyMeters,
+    double? speedMetersPerSecond,
   }) {
     return RunLocationSample(
       recordedAt: startedAt.add(Duration(seconds: seconds)),
       latitude: latitude,
       longitude: longitude,
       horizontalAccuracyMeters: horizontalAccuracyMeters,
+      speedMetersPerSecond: speedMetersPerSecond,
     );
   }
 
@@ -587,6 +589,102 @@ void main() {
       expect(session.activeDurationSeconds, 120);
       expect(session.distanceMeters, closeTo(300, 2));
       expect(session.averagePaceSecondsPerKm, closeTo(400, 3));
+    });
+
+    test('auto pause freezes moving time and suppresses stationary drift', () {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      final session = LocalRunTrackingSession(startedAt: startedAt);
+
+      session.advanceBy(
+        const Duration(seconds: 60),
+        samples: [
+          sampleAt(
+            startedAt,
+            0,
+            latitude: 1.300000,
+            longitude: 103.800000,
+            horizontalAccuracyMeters: 5,
+          ),
+          sampleAt(
+            startedAt,
+            60,
+            latitude: 1.300899,
+            longitude: 103.800000,
+            horizontalAccuracyMeters: 5,
+          ),
+        ],
+      );
+      final movingTimeBeforeStop = session.activeDurationSeconds;
+      final distanceBeforeStop = session.distanceMeters;
+      final paceBeforeStop = session.averagePaceSecondsPerKm;
+      final routePointCountBeforeStop = session.mapViewState.routePointCount;
+
+      session.advanceBy(
+        const Duration(seconds: 20),
+        samples: [
+          sampleAt(
+            startedAt,
+            70,
+            latitude: 1.300908,
+            longitude: 103.800000,
+            horizontalAccuracyMeters: 5,
+            speedMetersPerSecond: 0.1,
+          ),
+          sampleAt(
+            startedAt,
+            80,
+            latitude: 1.300917,
+            longitude: 103.800000,
+            horizontalAccuracyMeters: 5,
+            speedMetersPerSecond: 0.1,
+          ),
+        ],
+      );
+
+      expect(session.movementStatus, RunMovementStatus.autoPaused);
+      expect(session.activeDurationSeconds, movingTimeBeforeStop);
+      expect(session.distanceMeters, distanceBeforeStop);
+      expect(session.averagePaceSecondsPerKm, paceBeforeStop);
+      expect(session.mapViewState.routePointCount, routePointCountBeforeStop);
+      expect(session.mapViewState.currentPosition?.latitude, 1.300917);
+
+      session.advanceBy(
+        const Duration(seconds: 10),
+        samples: [
+          sampleAt(
+            startedAt,
+            90,
+            latitude: 1.301000,
+            longitude: 103.800000,
+            horizontalAccuracyMeters: 5,
+            speedMetersPerSecond: 1.2,
+          ),
+        ],
+      );
+
+      expect(session.movementStatus, RunMovementStatus.moving);
+      expect(session.activeDurationSeconds, movingTimeBeforeStop);
+      expect(session.distanceMeters, distanceBeforeStop);
+      expect(session.mapViewState.routeSegments, hasLength(2));
+      expect(session.mapViewState.routeSegments.last, hasLength(1));
+
+      session.advanceBy(
+        const Duration(seconds: 10),
+        samples: [
+          sampleAt(
+            startedAt,
+            100,
+            latitude: 1.301090,
+            longitude: 103.800000,
+            horizontalAccuracyMeters: 5,
+            speedMetersPerSecond: 1.2,
+          ),
+        ],
+      );
+
+      expect(session.activeDurationSeconds, movingTimeBeforeStop + 10);
+      expect(session.distanceMeters, greaterThan(distanceBeforeStop));
+      expect(session.mapViewState.routeSegments.last, hasLength(2));
     });
 
     test('excludes paused time from active duration and pace', () {

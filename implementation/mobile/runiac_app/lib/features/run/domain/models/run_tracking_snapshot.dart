@@ -36,6 +36,8 @@ class RunTrackingSnapshot {
       planProgressValue: planProgressValue,
       guidance: state.isPaused
           ? 'You can pause anytime.'
+          : state.isAutoPaused
+          ? 'Standing still. Pace will continue when you move.'
           : state.elapsedSeconds < 30
           ? 'Easy effort is enough.'
           : 'Keep it comfortable.',

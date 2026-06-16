@@ -289,5 +289,106 @@ void main() {
         );
       },
     );
+
+    test('auto pause updates marker without extending drift route', () {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      final controller = RunTrackingController(
+        locationProvider: ReplayRunLocationProvider([
+          RunLocationReplaySample(
+            activeOffset: Duration.zero,
+            sample: RunLocationSample(
+              recordedAt: startedAt,
+              latitude: 1.300000,
+              longitude: 103.800000,
+              horizontalAccuracyMeters: 5,
+            ),
+          ),
+          RunLocationReplaySample(
+            activeOffset: const Duration(seconds: 60),
+            sample: RunLocationSample(
+              recordedAt: startedAt.add(const Duration(seconds: 60)),
+              latitude: 1.300899,
+              longitude: 103.800000,
+              horizontalAccuracyMeters: 5,
+            ),
+          ),
+          RunLocationReplaySample(
+            activeOffset: const Duration(seconds: 70),
+            sample: RunLocationSample(
+              recordedAt: startedAt.add(const Duration(seconds: 70)),
+              latitude: 1.300908,
+              longitude: 103.800000,
+              horizontalAccuracyMeters: 5,
+              speedMetersPerSecond: 0.1,
+            ),
+          ),
+          RunLocationReplaySample(
+            activeOffset: const Duration(seconds: 80),
+            sample: RunLocationSample(
+              recordedAt: startedAt.add(const Duration(seconds: 80)),
+              latitude: 1.300917,
+              longitude: 103.800000,
+              horizontalAccuracyMeters: 5,
+              speedMetersPerSecond: 0.1,
+            ),
+          ),
+          RunLocationReplaySample(
+            activeOffset: const Duration(seconds: 90),
+            sample: RunLocationSample(
+              recordedAt: startedAt.add(const Duration(seconds: 90)),
+              latitude: 1.301000,
+              longitude: 103.800000,
+              horizontalAccuracyMeters: 5,
+              speedMetersPerSecond: 1.2,
+            ),
+          ),
+          RunLocationReplaySample(
+            activeOffset: const Duration(seconds: 100),
+            sample: RunLocationSample(
+              recordedAt: startedAt.add(const Duration(seconds: 100)),
+              latitude: 1.301090,
+              longitude: 103.800000,
+              horizontalAccuracyMeters: 5,
+              speedMetersPerSecond: 1.2,
+            ),
+          ),
+        ]),
+      );
+
+      controller.start(startedAt: startedAt);
+      controller.advanceBy(const Duration(seconds: 60));
+      final distanceBeforeStop = controller.state.distanceMeters;
+      final routePointCountBeforeStop = controller.mapViewState.routePointCount;
+
+      controller.advanceBy(const Duration(seconds: 20));
+
+      expect(controller.state.isAutoPaused, isTrue);
+      expect(controller.state.distanceMeters, distanceBeforeStop);
+      expect(
+        controller.mapViewState.routePointCount,
+        routePointCountBeforeStop,
+      );
+      expect(controller.mapViewState.currentPosition?.latitude, 1.300917);
+
+      controller.advanceBy(const Duration(seconds: 10));
+
+      expect(controller.state.isAutoPaused, isFalse);
+      expect(controller.mapViewState.routeSegments, hasLength(2));
+      expect(controller.mapViewState.routeSegments.last, hasLength(1));
+      expect(controller.state.distanceMeters, distanceBeforeStop);
+
+      controller.advanceBy(const Duration(seconds: 10));
+
+      expect(controller.state.distanceMeters, greaterThan(distanceBeforeStop));
+      expect(controller.mapViewState.routeSegments.last, hasLength(2));
+      expect(
+        controller.mapViewState.routeSegments.first.last.latitude,
+        1.300899,
+      );
+      expect(
+        controller.mapViewState.routeSegments.last.first.latitude,
+        1.301000,
+      );
+    });
   });
 }

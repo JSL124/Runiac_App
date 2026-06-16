@@ -146,6 +146,8 @@ class _RunActiveScreenState extends State<RunActiveScreen> {
                     return _RunStatusPill(
                       label: _controller.state.isPaused
                           ? 'Paused · easy'
+                          : _controller.state.isAutoPaused
+                          ? 'Auto paused · waiting for movement'
                           : _controller.state.locationStatus.label,
                     );
                   },

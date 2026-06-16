@@ -1129,8 +1129,82 @@ void main() {
 
     expect(find.text('00:10'), findsOneWidget);
     expect(find.text('0.02 of 4.50 km'), findsOneWidget);
-    expect(find.text('1%'), findsOneWidget);
+    expect(find.text('0%'), findsOneWidget);
     expect(find.text('--:--/km'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Run launch shows auto pause without manual pause controls', (
+    WidgetTester tester,
+  ) async {
+    _useNarrowRunSurface(tester);
+    final sampleBase = DateTime.now().add(const Duration(days: 1));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RunLaunchScreen(
+          locationProvider: ReplayRunLocationProvider([
+            RunLocationReplaySample(
+              activeOffset: Duration.zero,
+              sample: RunLocationSample(
+                recordedAt: sampleBase,
+                latitude: 1.300000,
+                longitude: 103.800000,
+                horizontalAccuracyMeters: 5,
+              ),
+            ),
+            RunLocationReplaySample(
+              activeOffset: const Duration(seconds: 60),
+              sample: RunLocationSample(
+                recordedAt: sampleBase.add(const Duration(seconds: 60)),
+                latitude: 1.300899,
+                longitude: 103.800000,
+                horizontalAccuracyMeters: 5,
+              ),
+            ),
+            RunLocationReplaySample(
+              activeOffset: const Duration(seconds: 70),
+              sample: RunLocationSample(
+                recordedAt: sampleBase.add(const Duration(seconds: 70)),
+                latitude: 1.300908,
+                longitude: 103.800000,
+                horizontalAccuracyMeters: 5,
+                speedMetersPerSecond: 0.1,
+              ),
+            ),
+            RunLocationReplaySample(
+              activeOffset: const Duration(seconds: 80),
+              sample: RunLocationSample(
+                recordedAt: sampleBase.add(const Duration(seconds: 80)),
+                latitude: 1.300917,
+                longitude: 103.800000,
+                horizontalAccuracyMeters: 5,
+                speedMetersPerSecond: 0.1,
+              ),
+            ),
+          ]),
+          locationPreviewProvider: _FakeRunLocationPreviewProvider(
+            sample: _previewSample(),
+          ),
+          permissionService: const _GrantedRunLocationPermissionService(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Start run'));
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(seconds: 60));
+
+    expect(find.text('01:00'), findsOneWidget);
+    expect(find.text('10:00/km'), findsOneWidget);
+
+    await tester.pump(const Duration(seconds: 20));
+
+    _expectStatusLabelReadable(tester, 'Auto paused · waiting for movement');
+    expect(find.widgetWithText(FilledButton, 'Pause'), findsOneWidget);
+    expect(find.text('Resume'), findsNothing);
+    expect(find.text('End'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 

@@ -424,6 +424,10 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
       return 'Paused · easy';
     }
 
+    if (state.isAutoPaused) {
+      return 'Auto paused · waiting for movement';
+    }
+
     return state.locationStatus.label;
   }
 

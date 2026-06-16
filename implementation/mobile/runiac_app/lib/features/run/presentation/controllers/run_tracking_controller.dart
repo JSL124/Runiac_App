@@ -160,7 +160,7 @@ class RunTrackingController extends ChangeNotifier {
       return;
     }
 
-    final fromActiveOffset = Duration(seconds: session.activeDurationSeconds);
+    final fromActiveOffset = Duration(seconds: session.trackingDurationSeconds);
     final toActiveOffset = fromActiveOffset + delta;
     final samples = _locationProvider
         .samplesBetween(
@@ -181,6 +181,7 @@ class RunTrackingController extends ChangeNotifier {
       averagePaceSecondsPerKm: session.averagePaceSecondsPerKm,
       locationStatus: _latestLocationStatus,
       diagnostics: session.diagnostics,
+      movementStatus: session.movementStatus,
     );
     _mapViewState = session.mapViewState;
     notifyListeners();
@@ -227,7 +228,8 @@ class RunTrackingController extends ChangeNotifier {
     }
 
     final activeOffset = Duration(
-      seconds: _trackingSession?.activeDurationSeconds ?? _state.elapsedSeconds,
+      seconds:
+          _trackingSession?.trackingDurationSeconds ?? _state.elapsedSeconds,
     );
     _trackingSession?.resume();
     unawaited(
@@ -236,7 +238,10 @@ class RunTrackingController extends ChangeNotifier {
         activeOffset: activeOffset,
       ),
     );
-    _state = _state.copyWith(phase: RunTrackingPhase.active);
+    _state = _state.copyWith(
+      phase: RunTrackingPhase.active,
+      movementStatus: RunMovementStatus.moving,
+    );
     notifyListeners();
   }
 
