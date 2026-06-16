@@ -55,6 +55,32 @@ void main() {
       );
     });
 
+    test(
+      'maps zero pace callable response to unavailable pace label',
+      () async {
+        final response = _minimalCallableResponse();
+        final summary =
+            Map<String, Object?>.from(
+                response['runSummary']! as Map<String, Object?>,
+              )
+              ..['distanceMeters'] = 0
+              ..['durationSeconds'] = 0
+              ..['averagePaceSecondsPerKm'] = 0;
+        final callable = _FakeCompleteRunCallable(
+          response: <String, Object?>{...response, 'runSummary': summary},
+        );
+        final repository = FirebaseRunRepository(callable: callable);
+
+        final result = await repository.completeRun(_payload());
+
+        expect(result.summary.distanceKm, '0.00');
+        expect(result.summary.duration, '0:00');
+        expect(result.summary.avgPace, '--');
+        expect(result.summary.avgHeartRate, '--');
+        expect(result.summary.calories, '--');
+      },
+    );
+
     test('maps transient callable failures to retryable completion errors', () {
       const retryableCodes = <String>[
         'unavailable',

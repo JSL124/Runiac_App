@@ -255,6 +255,44 @@ void main() {
     });
 
     test(
+      'completeRun returns zero summary values for zero run payloads',
+      () async {
+        final repository = StaticRunRepository();
+        final payload = LocalRunCompletionPayload(
+          clientRunSessionId: 'zero-run-session',
+          startedAt: DateTime.utc(2026, 6, 14, 7),
+          completedAt: DateTime.utc(2026, 6, 14, 7),
+          durationSeconds: 0,
+          distanceMeters: 0,
+          avgPaceSecondsPerKm: 0,
+          source: 'local_simulation',
+          routePrivacy: 'private',
+          routeLabel: 'Easy local route',
+          clientAppVersion: 'zero-run-test',
+        );
+
+        final completedRun = await repository.completeRun(payload);
+
+        expect(completedRun.summary.title, 'Easy local route');
+        expect(completedRun.summary.distanceKm, '0.00');
+        expect(completedRun.summary.duration, '0:00');
+        expect(completedRun.summary.avgPace, '--');
+        expect(completedRun.summary.avgHeartRate, '--');
+        expect(completedRun.summary.calories, '--');
+        expect(completedRun.summary.routeName, 'Easy local route');
+        expect(completedRun.summary.title, isNot('Saturday Morning Run'));
+        expect(completedRun.summary.distanceKm, isNot('4.03'));
+        expect(completedRun.summary.avgPace, isNot('6’30”'));
+        expect(completedRun.summary.duration, isNot('30:15'));
+        expect(completedRun.summary.avgHeartRate, isNot('145'));
+        expect(completedRun.summary.calories, isNot('145'));
+        expect(completedRun.summary.routeName, isNot('East Coast Park Loop'));
+        expect(completedRun.xpUpdate.earnedXpLabel, '+0 XP');
+        expect(completedRun.xpUpdate.streakChangeLabel, 'Deferred');
+      },
+    );
+
+    test(
       'return read-only activity history and leaderboard snapshots',
       () async {
         final activityHistoryRepository = StaticActivityHistoryRepository();

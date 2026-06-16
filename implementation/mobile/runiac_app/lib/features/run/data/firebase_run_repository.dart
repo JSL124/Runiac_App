@@ -119,8 +119,8 @@ class _CompleteRunResultMapper {
         totalXpLabel: 'Deferred by backend',
         levelLabel: 'Pending',
         nextLevelLabel: 'Pending',
-        progressTargetLabel: 'Progression deferred',
-        xpRemainingLabel: 'Backend formula pending',
+        progressTargetLabel: 'Pending',
+        xpRemainingLabel: 'Formula pending',
         previousProgressFraction: 0,
         currentProgressFraction: 0,
         streakChangeLabel: 'Deferred',
@@ -226,6 +226,10 @@ class _CompleteRunResultMapper {
   }
 
   static String _formatPace(int paceSecondsPerKm) {
+    if (paceSecondsPerKm <= 0) {
+      return '--';
+    }
+
     final minutes = paceSecondsPerKm ~/ 60;
     final seconds = paceSecondsPerKm % 60;
     return '$minutes’${seconds.toString().padLeft(2, '0')}”';

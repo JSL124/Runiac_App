@@ -45,23 +45,17 @@ class StaticRunRepository implements RunRepository {
     RunCompletionRequestAdapter.toBackendRequest(payload);
 
     final sessionId = payload.clientRunSessionId;
-    final hasDisplayableRunMetrics =
-        payload.durationSeconds > 0 &&
-        payload.distanceMeters > 0 &&
-        payload.avgPaceSecondsPerKm > 0;
-    final summary = hasDisplayableRunMetrics
-        ? RunSummarySnapshot(
-            title: payload.routeLabel ?? 'Completed Run',
-            dateLabel: _formatDate(payload.completedAt),
-            timeLabel: _formatTime(payload.completedAt),
-            distanceKm: _formatDistanceKm(payload.distanceMeters),
-            avgPace: _formatPace(payload.avgPaceSecondsPerKm),
-            duration: _formatDuration(payload.durationSeconds),
-            avgHeartRate: '--',
-            calories: '--',
-            routeName: payload.routeLabel ?? 'Private route',
-          )
-        : defaultRunSummarySnapshot;
+    final summary = RunSummarySnapshot(
+      title: payload.routeLabel ?? 'Completed Run',
+      dateLabel: _formatDate(payload.completedAt),
+      timeLabel: _formatTime(payload.completedAt),
+      distanceKm: _formatDistanceKm(payload.distanceMeters),
+      avgPace: _formatPace(payload.avgPaceSecondsPerKm),
+      duration: _formatDuration(payload.durationSeconds),
+      avgHeartRate: '--',
+      calories: '--',
+      routeName: payload.routeLabel ?? 'Private route',
+    );
 
     return CompleteRunResult(
       activityId: 'static-$sessionId',
@@ -75,22 +69,20 @@ class StaticRunRepository implements RunRepository {
         status: 'deferred',
         reason: 'progression_formula_deferred',
       ),
-      xpUpdate: hasDisplayableRunMetrics
-          ? const XpUpdateDisplayModel(
-              runnerName: 'Runiac Runner',
-              earnedXpLabel: '+0 XP',
-              totalXpLabel: 'Deferred by backend',
-              levelLabel: 'Pending',
-              nextLevelLabel: 'Pending',
-              progressTargetLabel: 'Progression deferred',
-              xpRemainingLabel: 'Backend formula pending',
-              previousProgressFraction: 0,
-              currentProgressFraction: 0,
-              streakChangeLabel: 'Deferred',
-              streakNote: 'Backend validation accepted the run.',
-              didLevelUp: false,
-            )
-          : defaultXpUpdateDisplayModel,
+      xpUpdate: const XpUpdateDisplayModel(
+        runnerName: 'Runiac Runner',
+        earnedXpLabel: '+0 XP',
+        totalXpLabel: 'Deferred by backend',
+        levelLabel: 'Pending',
+        nextLevelLabel: 'Pending',
+        progressTargetLabel: 'Pending',
+        xpRemainingLabel: 'Formula pending',
+        previousProgressFraction: 0,
+        currentProgressFraction: 0,
+        streakChangeLabel: 'Deferred',
+        streakNote: 'Backend validation accepted the run.',
+        didLevelUp: false,
+      ),
       message: 'Static repository completion accepted.',
     );
   }
@@ -121,6 +113,10 @@ class StaticRunRepository implements RunRepository {
   }
 
   String _formatPace(int paceSecondsPerKm) {
+    if (paceSecondsPerKm <= 0) {
+      return '--';
+    }
+
     final minutes = paceSecondsPerKm ~/ 60;
     final seconds = paceSecondsPerKm % 60;
     return '$minutes’${seconds.toString().padLeft(2, '0')}”';

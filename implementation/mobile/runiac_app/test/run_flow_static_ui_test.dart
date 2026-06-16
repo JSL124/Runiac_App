@@ -371,12 +371,16 @@ void main() {
     await tester.tap(find.widgetWithText(OutlinedButton, 'Skip to Summary'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Saturday Morning Run'), findsOneWidget);
-    expect(find.text('Today · 7:06 AM'), findsOneWidget);
-    expect(find.text('4.03'), findsOneWidget);
+    expect(find.text('Easy local route'), findsWidgets);
+    expect(find.text('0.00'), findsOneWidget);
     expect(find.text('km'), findsOneWidget);
-    expect(find.text('6’30”'), findsOneWidget);
-    expect(find.text('30:15'), findsOneWidget);
+    expect(find.text('--'), findsNWidgets(3));
+    expect(find.text('0:00'), findsWidgets);
+    expect(find.text('Saturday Morning Run'), findsNothing);
+    expect(find.text('East Coast Park Loop'), findsNothing);
+    expect(find.text('4.03'), findsNothing);
+    expect(find.text('6’30”'), findsNothing);
+    expect(find.text('30:15'), findsNothing);
     expect(find.text('Pace Over Time'), findsOneWidget);
     expect(find.text('Advanced Analysis'), findsOneWidget);
     expect(find.text('AI Coaching Summary'), findsOneWidget);
@@ -384,25 +388,6 @@ void main() {
     expect(find.widgetWithText(FilledButton, 'View XP Update'), findsOneWidget);
     expect(find.text('XP & Streak Update'), findsNothing);
     expect(find.textContaining(_forbiddenRealActivitySaveCopy), findsNothing);
-
-    await tester.tap(find.widgetWithText(FilledButton, 'View XP Update'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('XP & Streak Update'), findsOneWidget);
-    expect(find.text('Nice work, Jinseo!'), findsOneWidget);
-    expect(find.text('+120 XP'), findsOneWidget);
-    expect(find.text('Total XP'), findsOneWidget);
-    expect(find.text('2,520 XP'), findsOneWidget);
-    expect(find.text('5 \u2192 6 days'), findsOneWidget);
-    expect(find.text('Great consistency!'), findsOneWidget);
-    expect(find.widgetWithText(FilledButton, 'Go Home'), findsOneWidget);
-
-    await tester.ensureVisible(find.widgetWithText(FilledButton, 'Go Home'));
-    await tester.tap(find.widgetWithText(FilledButton, 'Go Home'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('XP & Streak Update'), findsNothing);
-    expect(find.text('Good to see you'), findsOneWidget);
   });
 
   testWidgets(
@@ -461,6 +446,41 @@ void main() {
         find.textContaining(_forbiddenXpUpdateCompetitiveCopy),
         findsNothing,
       );
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'Immediate Run finish shows zero summary instead of demo fallback',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(home: RunLaunchScreen(enableForegroundGps: false)),
+      );
+
+      await tester.tap(find.text('Start run'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Pause'));
+      await tester.pumpAndSettle();
+      await _finishPausedRun(tester);
+
+      expect(find.text('Cool down'), findsOneWidget);
+
+      await tester.tap(find.widgetWithText(OutlinedButton, 'Skip to Summary'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Easy local route'), findsWidgets);
+      expect(find.text('0.00'), findsOneWidget);
+      expect(find.text('0:00'), findsWidgets);
+      expect(find.text('--'), findsNWidgets(3));
+      expect(find.text('-- bpm'), findsNothing);
+      expect(find.text('-- kcal'), findsNothing);
+      expect(find.text('Saturday Morning Run'), findsNothing);
+      expect(find.text('East Coast Park Loop'), findsNothing);
+      expect(find.text('4.03'), findsNothing);
+      expect(find.text('6’30”'), findsNothing);
+      expect(find.text('30:15'), findsNothing);
+      expect(find.text('145 bpm'), findsNothing);
+      expect(find.text('145 kcal'), findsNothing);
       expect(tester.takeException(), isNull);
     },
   );
