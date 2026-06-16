@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/features/run/domain/models/run_location_sample.dart';
+import 'package:runiac_app/features/run/domain/models/run_motion_evidence.dart';
 import 'package:runiac_app/features/run/domain/models/run_tracking_diagnostics.dart';
 import 'package:runiac_app/features/run/domain/models/run_tracking_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/run_tracking_startup_readiness.dart';
@@ -23,6 +24,18 @@ void main() {
       longitude: longitude,
       horizontalAccuracyMeters: horizontalAccuracyMeters,
       speedMetersPerSecond: speedMetersPerSecond,
+    );
+  }
+
+  RunMotionEvidence motionAt(
+    DateTime startedAt,
+    int seconds,
+    RunMotionSignal signal,
+  ) {
+    return RunMotionEvidence(
+      recordedAt: startedAt.add(Duration(seconds: seconds)),
+      signal: signal,
+      confidence: 1,
     );
   }
 
@@ -795,6 +808,171 @@ void main() {
       },
     );
 
+    test(
+      'phone shaking in place cannot block no-sample auto pause forever',
+      () {
+        final startedAt = DateTime.utc(2026, 6, 14, 7);
+        final session = LocalRunTrackingSession(startedAt: startedAt);
+
+        session.advanceBy(
+          const Duration(seconds: 1),
+          samples: [
+            sampleAt(
+              startedAt,
+              1,
+              latitude: 1.300000,
+              longitude: 103.800000,
+              horizontalAccuracyMeters: 5,
+            ),
+          ],
+        );
+        final routePointCountBeforeShake = session.mapViewState.routePointCount;
+        final currentPositionBeforeShake = session.mapViewState.currentPosition;
+
+        session.advanceBy(
+          const Duration(seconds: 7),
+          motionEvidence: [motionAt(startedAt, 8, RunMotionSignal.moving)],
+        );
+
+        expect(session.movementStatus, RunMovementStatus.moving);
+        expect(session.distanceMeters, 0);
+        expect(
+          session.mapViewState.routePointCount,
+          routePointCountBeforeShake,
+        );
+        expect(
+          session.mapViewState.currentPosition,
+          currentPositionBeforeShake,
+        );
+
+        session.advanceBy(
+          const Duration(seconds: 1),
+          motionEvidence: [motionAt(startedAt, 9, RunMotionSignal.moving)],
+        );
+
+        expect(session.movementStatus, RunMovementStatus.autoPaused);
+        expect(session.distanceMeters, 0);
+        expect(
+          session.mapViewState.routePointCount,
+          routePointCountBeforeShake,
+        );
+        expect(
+          session.mapViewState.currentPosition,
+          currentPositionBeforeShake,
+        );
+      },
+    );
+
+    test('steady-phone GPS movement beats stationary motion evidence', () {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      final session = LocalRunTrackingSession(startedAt: startedAt);
+
+      session.advanceBy(
+        const Duration(seconds: 1),
+        samples: [
+          sampleAt(
+            startedAt,
+            1,
+            latitude: 1.300000,
+            longitude: 103.800000,
+            horizontalAccuracyMeters: 5,
+          ),
+        ],
+      );
+
+      session.advanceBy(
+        const Duration(seconds: 8),
+        samples: [
+          sampleAt(
+            startedAt,
+            3,
+            latitude: 1.300027,
+            longitude: 103.800000,
+            horizontalAccuracyMeters: 5,
+            speedMetersPerSecond: 0.7,
+          ),
+          sampleAt(
+            startedAt,
+            6,
+            latitude: 1.300027,
+            longitude: 103.800027,
+            horizontalAccuracyMeters: 5,
+            speedMetersPerSecond: 0.7,
+          ),
+          sampleAt(
+            startedAt,
+            9,
+            latitude: 1.300000,
+            longitude: 103.800027,
+            horizontalAccuracyMeters: 5,
+            speedMetersPerSecond: 0.7,
+          ),
+        ],
+        motionEvidence: [motionAt(startedAt, 9, RunMotionSignal.stationary)],
+      );
+
+      expect(session.movementStatus, RunMovementStatus.moving);
+      expect(session.distanceMeters, greaterThan(0));
+      expect(session.mapViewState.routePointCount, 2);
+      expect(session.mapViewState.currentPosition?.longitude, 103.800027);
+    });
+
+    test('table-still GPS jitter with stationary motion still auto pauses', () {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      final session = LocalRunTrackingSession(startedAt: startedAt);
+
+      session.advanceBy(
+        const Duration(seconds: 1),
+        samples: [
+          sampleAt(
+            startedAt,
+            1,
+            latitude: 1.300000,
+            longitude: 103.800000,
+            horizontalAccuracyMeters: 5,
+            speedMetersPerSecond: 0.1,
+          ),
+        ],
+      );
+      final routePointCountBeforeJitter = session.mapViewState.routePointCount;
+
+      session.advanceBy(
+        const Duration(seconds: 8),
+        samples: [
+          sampleAt(
+            startedAt,
+            4,
+            latitude: 1.300004,
+            longitude: 103.800000,
+            horizontalAccuracyMeters: 5,
+            speedMetersPerSecond: 0.1,
+          ),
+          sampleAt(
+            startedAt,
+            7,
+            latitude: 1.300000,
+            longitude: 103.800004,
+            horizontalAccuracyMeters: 5,
+            speedMetersPerSecond: 0.1,
+          ),
+          sampleAt(
+            startedAt,
+            9,
+            latitude: 1.300004,
+            longitude: 103.800004,
+            horizontalAccuracyMeters: 5,
+            speedMetersPerSecond: 0.1,
+          ),
+        ],
+        motionEvidence: [motionAt(startedAt, 9, RunMotionSignal.stationary)],
+      );
+
+      expect(session.movementStatus, RunMovementStatus.autoPaused);
+      expect(session.distanceMeters, 0);
+      expect(session.mapViewState.routePointCount, routePointCountBeforeJitter);
+      expect(session.mapViewState.currentPosition?.latitude, 1.300004);
+    });
+
     test('empty samples before first GPS anchor do not auto pause', () {
       final startedAt = DateTime.utc(2026, 6, 14, 7);
       final session = LocalRunTrackingSession(startedAt: startedAt);
@@ -930,6 +1108,47 @@ void main() {
       expect(session.activeDurationSeconds, 1);
       expect(session.distanceMeters, 0);
       expect(session.mapViewState.routePointCount, 1);
+    });
+
+    test('moving motion alone does not auto resume from auto paused', () {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      final session = LocalRunTrackingSession(startedAt: startedAt);
+
+      session.advanceBy(
+        const Duration(seconds: 1),
+        samples: [
+          sampleAt(
+            startedAt,
+            1,
+            latitude: 1.300000,
+            longitude: 103.800000,
+            horizontalAccuracyMeters: 5,
+          ),
+        ],
+      );
+      session.advanceBy(const Duration(seconds: 5));
+      expect(session.movementStatus, RunMovementStatus.autoPaused);
+      final routePointCountBeforeMotion = session.mapViewState.routePointCount;
+
+      session.advanceBy(
+        const Duration(seconds: 4),
+        samples: [
+          sampleAt(
+            startedAt,
+            10,
+            latitude: 1.300009,
+            longitude: 103.800000,
+            horizontalAccuracyMeters: 5,
+            speedMetersPerSecond: 0.1,
+          ),
+        ],
+        motionEvidence: [motionAt(startedAt, 10, RunMotionSignal.moving)],
+      );
+
+      expect(session.movementStatus, RunMovementStatus.autoPaused);
+      expect(session.distanceMeters, 0);
+      expect(session.mapViewState.routePointCount, routePointCountBeforeMotion);
+      expect(session.mapViewState.currentPosition?.latitude, 1.300009);
     });
 
     test('auto pauses when stationary from the start without route drift', () {

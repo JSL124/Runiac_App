@@ -29,12 +29,17 @@ class RunMovementClassification {
 class RunMovementClassifier {
   const RunMovementClassifier();
 
+  static const double _motionConfidenceThreshold = 0.6;
+  static const double _gpsCumulativeMovementConfirmationMeters = 8;
+  static const Duration _motionMovingWithoutGpsGrace = Duration(seconds: 3);
+
   RunMovementClassification classifyGpsSample({
     required RunLocationSample sample,
     required double distanceFromRouteAnchorMeters,
     required Duration stationaryDwell,
     required Duration stationaryAutoPauseDwell,
     required double stationaryDriftDistanceMeters,
+    double cumulativeGpsMovementMeters = 0,
     required double resumeMovementDistanceMeters,
     required double resumeSpeedMetersPerSecond,
     required double stationarySpeedMetersPerSecond,
@@ -56,19 +61,41 @@ class RunMovementClassifier {
       );
     }
 
+    if (cumulativeGpsMovementMeters >=
+        _gpsCumulativeMovementConfirmationMeters) {
+      return const RunMovementClassification(
+        type: RunMovementClassificationType.gpsMeaningfulMovement,
+        acceptForDistance: true,
+        acceptForRoute: true,
+        countsAsMovingTime: true,
+        shouldAutoPause: false,
+        shouldAutoResume: true,
+      );
+    }
+
+    final motionSummary = _summarizeMotion(motionEvidence);
+    final motionStationary = motionSummary.isStationary;
+    final motionMoving = motionSummary.isMoving;
     final hasMovingSpeedSignal = _hasMovingSpeedSignal(
       sample,
       stationarySpeedMetersPerSecond,
     );
+    final effectiveHasMovingSpeedSignal =
+        hasMovingSpeedSignal && !motionStationary;
+    final motionMovingStillInGrace =
+        motionMoving &&
+        stationaryDwell <
+            stationaryAutoPauseDwell + _motionMovingWithoutGpsGrace;
     final shouldAutoPause =
-        !hasMovingSpeedSignal &&
+        !effectiveHasMovingSpeedSignal &&
+        !motionMovingStillInGrace &&
         distanceFromRouteAnchorMeters <= stationaryDriftDistanceMeters &&
         stationaryDwell >= stationaryAutoPauseDwell;
     return RunMovementClassification(
       type: RunMovementClassificationType.gpsStationaryDrift,
       acceptForDistance: false,
       acceptForRoute: false,
-      countsAsMovingTime: !shouldAutoPause,
+      countsAsMovingTime: motionMoving || !shouldAutoPause,
       shouldAutoPause: shouldAutoPause,
       shouldAutoResume: false,
     );
@@ -83,10 +110,15 @@ class RunMovementClassifier {
     required bool gpsStatusAllowsDwell,
     Iterable<RunMotionEvidence> motionEvidence = const <RunMotionEvidence>[],
   }) {
+    final motionSummary = _summarizeMotion(motionEvidence);
+    final motionMovingStillInGrace =
+        motionSummary.isMoving &&
+        dwell < noSampleAutoPauseDwell + _motionMovingWithoutGpsGrace;
     final shouldAutoPause =
         hasAcceptedAnchor &&
         gpsStatusAllowsDwell &&
         anchorAge <= maxAnchorAge &&
+        !motionMovingStillInGrace &&
         dwell >= noSampleAutoPauseDwell;
     return RunMovementClassification(
       type: shouldAutoPause
@@ -124,4 +156,39 @@ class RunMovementClassifier {
         reportedSpeed.isFinite &&
         reportedSpeed >= stationarySpeedMetersPerSecond;
   }
+
+  _RunMotionSummary _summarizeMotion(Iterable<RunMotionEvidence> evidence) {
+    RunMotionEvidence? latest;
+    for (final entry in evidence) {
+      if (latest == null || entry.recordedAt.isAfter(latest.recordedAt)) {
+        latest = entry;
+      }
+    }
+    final motion = latest;
+    if (motion == null) {
+      return const _RunMotionSummary(
+        signal: RunMotionSignal.unavailable,
+        confidence: 0,
+      );
+    }
+    return _RunMotionSummary(
+      signal: motion.signal,
+      confidence: motion.confidence.clamp(0, 1).toDouble(),
+    );
+  }
+}
+
+class _RunMotionSummary {
+  const _RunMotionSummary({required this.signal, required this.confidence});
+
+  final RunMotionSignal signal;
+  final double confidence;
+
+  bool get isStationary =>
+      signal == RunMotionSignal.stationary &&
+      confidence >= RunMovementClassifier._motionConfidenceThreshold;
+
+  bool get isMoving =>
+      signal == RunMotionSignal.moving &&
+      confidence >= RunMovementClassifier._motionConfidenceThreshold;
 }

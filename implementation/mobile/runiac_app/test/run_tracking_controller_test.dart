@@ -157,6 +157,30 @@ class _LifecycleMotionProvider extends NoopRunMotionProvider {
   }
 }
 
+class _ConstantMotionProvider extends NoopRunMotionProvider {
+  const _ConstantMotionProvider(this.signal);
+
+  final RunMotionSignal signal;
+
+  @override
+  Iterable<RunMotionEvidence> evidenceBetween({
+    required Duration fromTrackingOffset,
+    required Duration toTrackingOffset,
+    required DateTime startedAt,
+  }) {
+    if (toTrackingOffset <= Duration.zero) {
+      return const <RunMotionEvidence>[];
+    }
+    return [
+      RunMotionEvidence(
+        recordedAt: startedAt.add(toTrackingOffset),
+        signal: signal,
+        confidence: 1,
+      ),
+    ];
+  }
+}
+
 void main() {
   group('RunTrackingController', () {
     test('starts idle with no trusted completion state', () {
@@ -876,11 +900,119 @@ void main() {
         expect(payloadMap.keys, isNot(contains('gpsSamples')));
         expect(payloadMap.keys, isNot(contains('motionEvidence')));
         expect(payloadMap.keys, isNot(contains('motionConfidence')));
+        expect(payloadMap.keys, isNot(contains('accelerometer')));
+        expect(payloadMap.keys, isNot(contains('userAccelerometer')));
+        expect(payloadMap.keys, isNot(contains('routeTrace')));
         expect(payloadMap.keys, isNot(contains('xp')));
         expect(payloadMap.keys, isNot(contains('leaderboardScore')));
         expect(payloadMap.keys, isNot(contains('validatedActivity')));
       },
     );
+
+    test('steady-phone walking stays active from GPS movement', () {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      final controller = RunTrackingController(
+        locationProvider: _LifecycleReplayProvider([
+          RunLocationReplaySample(
+            activeOffset: const Duration(seconds: 1),
+            sample: RunLocationSample(
+              recordedAt: startedAt.add(const Duration(seconds: 1)),
+              latitude: 1.300000,
+              longitude: 103.800000,
+              horizontalAccuracyMeters: 5,
+            ),
+          ),
+          RunLocationReplaySample(
+            activeOffset: const Duration(seconds: 3),
+            sample: RunLocationSample(
+              recordedAt: startedAt.add(const Duration(seconds: 3)),
+              latitude: 1.300027,
+              longitude: 103.800000,
+              horizontalAccuracyMeters: 5,
+              speedMetersPerSecond: 0.7,
+            ),
+          ),
+          RunLocationReplaySample(
+            activeOffset: const Duration(seconds: 6),
+            sample: RunLocationSample(
+              recordedAt: startedAt.add(const Duration(seconds: 6)),
+              latitude: 1.300027,
+              longitude: 103.800027,
+              horizontalAccuracyMeters: 5,
+              speedMetersPerSecond: 0.7,
+            ),
+          ),
+          RunLocationReplaySample(
+            activeOffset: const Duration(seconds: 9),
+            sample: RunLocationSample(
+              recordedAt: startedAt.add(const Duration(seconds: 9)),
+              latitude: 1.300000,
+              longitude: 103.800027,
+              horizontalAccuracyMeters: 5,
+              speedMetersPerSecond: 0.7,
+            ),
+          ),
+        ]),
+        motionProvider: const _ConstantMotionProvider(
+          RunMotionSignal.stationary,
+        ),
+        locationStatus: RunTrackingLocationStatus.gpsActive,
+      );
+
+      controller.start(
+        startedAt: startedAt,
+        clientRunSessionId: 'steady-phone-walk-run',
+      );
+      controller.advanceBy(const Duration(seconds: 9));
+
+      expect(controller.state.isAutoPaused, isFalse);
+      expect(controller.state.movementStatus, RunMovementStatus.moving);
+      expect(controller.state.distanceMeters, greaterThan(0));
+      expect(controller.mapViewState.routePointCount, 2);
+      expect(
+        controller.completionPayload().toRawClientMap().keys,
+        isNot(contains('motionEvidence')),
+      );
+    });
+
+    test('auto pause does not stop the motion provider', () {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      final motionProvider = _LifecycleMotionProvider();
+      final controller = RunTrackingController(
+        locationProvider: _LifecycleReplayProvider([
+          RunLocationReplaySample(
+            activeOffset: const Duration(seconds: 1),
+            sample: RunLocationSample(
+              recordedAt: startedAt.add(const Duration(seconds: 1)),
+              latitude: 1.3,
+              longitude: 103.8,
+              horizontalAccuracyMeters: 5,
+            ),
+          ),
+        ]),
+        motionProvider: motionProvider,
+        locationStatus: RunTrackingLocationStatus.waitingForGps,
+      );
+
+      controller.start(
+        startedAt: startedAt,
+        clientRunSessionId: 'auto-pause-motion-lifecycle-run',
+      );
+      controller.advanceBy(const Duration(seconds: 1));
+      for (var tick = 0; tick < 5; tick += 1) {
+        controller.advanceBy(const Duration(seconds: 1));
+      }
+
+      expect(controller.state.isAutoPaused, isTrue);
+      expect(motionProvider.startCount, 1);
+      expect(motionProvider.pauseCount, 0);
+      expect(motionProvider.stopCount, 0);
+
+      controller.pause();
+
+      expect(controller.state.isPaused, isTrue);
+      expect(motionProvider.pauseCount, 1);
+    });
 
     test('manual resume and finish work from auto-paused active state', () {
       final startedAt = DateTime.utc(2026, 6, 14, 7);

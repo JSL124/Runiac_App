@@ -50,6 +50,7 @@ class LocalRunTrackingSession {
   RunLocationSample? _lastAcceptedSample;
   RunLocationSample? _lastRouteSample;
   DateTime? _stationaryStartedAt;
+  double _stationaryCumulativeMovementMeters = 0;
   final List<List<RunLocationSample>> _acceptedSampleSegments =
       <List<RunLocationSample>>[];
 
@@ -114,6 +115,7 @@ class LocalRunTrackingSession {
     _needsAnchorSample = true;
     _movementStatus = RunMovementStatus.moving;
     _stationaryStartedAt = null;
+    _stationaryCumulativeMovementMeters = 0;
   }
 
   void updateLocationAccuracyStatus(
@@ -141,6 +143,7 @@ class LocalRunTrackingSession {
       _acceptedSampleSegments.add(<RunLocationSample>[sample]);
       _recordAcceptedCurrentSample(sample);
       _lastRouteSample = sample;
+      _stationaryCumulativeMovementMeters = 0;
       return;
     }
 
@@ -152,6 +155,7 @@ class LocalRunTrackingSession {
       _acceptedSampleSegments.add(<RunLocationSample>[sample]);
       _needsAnchorSample = false;
       _lastRouteSample = sample;
+      _stationaryCumulativeMovementMeters = 0;
       _recordAcceptedCurrentSample(sample);
       return;
     }
@@ -177,6 +181,7 @@ class LocalRunTrackingSession {
     if (previousRouteSample == null) {
       _acceptedSampleSegments.add(<RunLocationSample>[sample]);
       _lastRouteSample = sample;
+      _stationaryCumulativeMovementMeters = 0;
       _recordAcceptedCurrentSample(sample);
       return true;
     }
@@ -201,6 +206,25 @@ class LocalRunTrackingSession {
       _rejectSample(sample, RunLocationRejectionReason.nonFiniteDistance);
       return false;
     }
+    final previousAcceptedDistanceMeters = distanceCalculator.distanceMeters(
+      previousAccepted ?? previousRouteSample,
+      sample,
+    );
+    if (!previousAcceptedDistanceMeters.isFinite) {
+      _rejectSample(sample, RunLocationRejectionReason.nonFiniteDistance);
+      return false;
+    }
+    final previousAcceptedElapsedSeconds =
+        sample.recordedAt
+            .difference((previousAccepted ?? previousRouteSample).recordedAt)
+            .inMilliseconds /
+        1000;
+    final usablePreviousAcceptedDistanceMeters =
+        previousAcceptedElapsedSeconds > 0 &&
+            previousAcceptedDistanceMeters / previousAcceptedElapsedSeconds <=
+                maxAcceptedSpeedMetersPerSecond
+        ? previousAcceptedDistanceMeters
+        : 0;
 
     final speedMetersPerSecond = segmentDistanceMeters / elapsedSeconds;
     if (speedMetersPerSecond > maxAcceptedSpeedMetersPerSecond) {
@@ -213,12 +237,16 @@ class LocalRunTrackingSession {
     final autoPauseDwell = _distanceMeters <= 0
         ? preMovementAutoPauseDwell
         : movingToStoppedAutoPauseDwell;
+    final cumulativeGpsMovementMeters =
+        _stationaryCumulativeMovementMeters +
+        usablePreviousAcceptedDistanceMeters;
     final classification = movementClassifier.classifyGpsSample(
       sample: sample,
       distanceFromRouteAnchorMeters: segmentDistanceMeters,
       stationaryDwell: sample.recordedAt.difference(stationaryStartedAt),
       stationaryAutoPauseDwell: autoPauseDwell,
       stationaryDriftDistanceMeters: stationaryDriftDistanceMeters,
+      cumulativeGpsMovementMeters: cumulativeGpsMovementMeters,
       resumeMovementDistanceMeters: resumeMovementDistanceMeters,
       resumeSpeedMetersPerSecond: resumeSpeedMetersPerSecond,
       stationarySpeedMetersPerSecond: stationarySpeedMetersPerSecond,
@@ -234,11 +262,16 @@ class LocalRunTrackingSession {
       }
       _movementStatus = RunMovementStatus.moving;
       _stationaryStartedAt = null;
+      _stationaryCumulativeMovementMeters = 0;
       _recordAcceptedCurrentSample(sample);
       return true;
     }
 
-    _recordStationarySample(sample, classification);
+    _recordStationarySample(
+      sample,
+      classification,
+      cumulativeGpsMovementMeters,
+    );
     return true;
   }
 
@@ -259,11 +292,13 @@ class LocalRunTrackingSession {
       _acceptedSampleSegments.last.add(sample);
     }
     _lastRouteSample = sample;
+    _stationaryCumulativeMovementMeters = 0;
   }
 
   void _recordStationarySample(
     RunLocationSample sample,
     RunMovementClassification classification,
+    double cumulativeGpsMovementMeters,
   ) {
     _recordAcceptedCurrentSample(sample);
     if (_movementStatus == RunMovementStatus.autoPaused) {
@@ -271,6 +306,7 @@ class LocalRunTrackingSession {
     }
 
     _stationaryStartedAt ??= _lastRouteSample?.recordedAt ?? sample.recordedAt;
+    _stationaryCumulativeMovementMeters = cumulativeGpsMovementMeters;
     if (classification.shouldAutoPause) {
       _movementStatus = RunMovementStatus.autoPaused;
     }
