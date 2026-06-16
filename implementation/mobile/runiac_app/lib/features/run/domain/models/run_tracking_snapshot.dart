@@ -34,10 +34,8 @@ class RunTrackingSnapshot {
           '${_formatDistanceValue(state.distanceMeters)} of 4.50 km',
       planProgressPercentLabel: '${(planProgressValue * 100).round()}%',
       planProgressValue: planProgressValue,
-      guidance: state.isPaused
+      guidance: state.isPaused || state.isAutoPaused
           ? 'You can pause anytime.'
-          : state.isAutoPaused
-          ? 'Standing still. Pace will continue when you move.'
           : state.elapsedSeconds < 30
           ? 'Easy effort is enough.'
           : 'Keep it comfortable.',

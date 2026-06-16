@@ -742,10 +742,10 @@ void main() {
         final routePointCountBeforeDwell = session.mapViewState.routePointCount;
         final currentPositionBeforeDwell = session.mapViewState.currentPosition;
 
-        session.advanceBy(const Duration(seconds: 10));
+        session.advanceBy(const Duration(seconds: 5));
 
         expect(session.movementStatus, RunMovementStatus.autoPaused);
-        expect(session.activeDurationSeconds, 0);
+        expect(session.activeDurationSeconds, 1);
         expect(session.distanceMeters, 0);
         expect(
           session.mapViewState.routePointCount,
@@ -760,6 +760,41 @@ void main() {
       },
     );
 
+    test(
+      'empty sample dwell freezes current moving time instead of resetting',
+      () {
+        final startedAt = DateTime.utc(2026, 6, 14, 7);
+        final session = LocalRunTrackingSession(startedAt: startedAt);
+
+        session.advanceBy(
+          const Duration(seconds: 1),
+          samples: [
+            sampleAt(
+              startedAt,
+              1,
+              latitude: 1.300000,
+              longitude: 103.800000,
+              horizontalAccuracyMeters: 5,
+            ),
+          ],
+        );
+        for (var tick = 0; tick < 5; tick += 1) {
+          session.advanceBy(const Duration(seconds: 1));
+        }
+
+        expect(session.movementStatus, RunMovementStatus.autoPaused);
+        expect(session.activeDurationSeconds, 5);
+        expect(session.distanceMeters, 0);
+        expect(session.mapViewState.routePointCount, 1);
+
+        session.advanceBy(const Duration(seconds: 5));
+
+        expect(session.activeDurationSeconds, 5);
+        expect(session.distanceMeters, 0);
+        expect(session.mapViewState.routePointCount, 1);
+      },
+    );
+
     test('empty samples before first GPS anchor do not auto pause', () {
       final startedAt = DateTime.utc(2026, 6, 14, 7);
       final session = LocalRunTrackingSession(startedAt: startedAt);
@@ -771,6 +806,93 @@ void main() {
       expect(session.distanceMeters, 0);
       expect(session.mapViewState.routePointCount, 0);
       expect(session.acceptedSampleCount, 0);
+    });
+
+    test('sparse stationary GPS sample counts dwell from first anchor', () {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      final session = LocalRunTrackingSession(startedAt: startedAt);
+
+      session.advanceBy(
+        const Duration(seconds: 1),
+        samples: [
+          sampleAt(
+            startedAt,
+            1,
+            latitude: 1.300000,
+            longitude: 103.800000,
+            horizontalAccuracyMeters: 5,
+            speedMetersPerSecond: 0.1,
+          ),
+        ],
+      );
+
+      session.advanceBy(
+        const Duration(seconds: 6),
+        samples: [
+          sampleAt(
+            startedAt,
+            7,
+            latitude: 1.300009,
+            longitude: 103.800000,
+            horizontalAccuracyMeters: 5,
+            speedMetersPerSecond: 0.1,
+          ),
+        ],
+      );
+
+      expect(session.movementStatus, RunMovementStatus.autoPaused);
+      expect(session.activeDurationSeconds, 1);
+      expect(session.distanceMeters, 0);
+      expect(session.mapViewState.routePointCount, 1);
+      expect(session.mapViewState.currentPosition?.latitude, 1.300009);
+    });
+
+    test('moving to stopped auto pauses after seven stationary seconds', () {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      final session = LocalRunTrackingSession(startedAt: startedAt);
+
+      session.advanceBy(
+        const Duration(seconds: 60),
+        samples: [
+          sampleAt(
+            startedAt,
+            0,
+            latitude: 1.300000,
+            longitude: 103.800000,
+            horizontalAccuracyMeters: 5,
+          ),
+          sampleAt(
+            startedAt,
+            60,
+            latitude: 1.300899,
+            longitude: 103.800000,
+            horizontalAccuracyMeters: 5,
+          ),
+        ],
+      );
+      final movingTimeBeforeStop = session.activeDurationSeconds;
+      final distanceBeforeStop = session.distanceMeters;
+      final routePointCountBeforeStop = session.mapViewState.routePointCount;
+
+      session.advanceBy(
+        const Duration(seconds: 7),
+        samples: [
+          sampleAt(
+            startedAt,
+            67,
+            latitude: 1.300908,
+            longitude: 103.800000,
+            horizontalAccuracyMeters: 5,
+            speedMetersPerSecond: 0.1,
+          ),
+        ],
+      );
+
+      expect(session.movementStatus, RunMovementStatus.autoPaused);
+      expect(session.activeDurationSeconds, movingTimeBeforeStop);
+      expect(session.distanceMeters, distanceBeforeStop);
+      expect(session.mapViewState.routePointCount, routePointCountBeforeStop);
+      expect(session.mapViewState.currentPosition?.latitude, 1.300908);
     });
 
     test('manual pause blocks no-sample dwell and auto resume', () {
@@ -855,7 +977,7 @@ void main() {
       );
 
       expect(session.movementStatus, RunMovementStatus.autoPaused);
-      expect(session.activeDurationSeconds, 0);
+      expect(session.activeDurationSeconds, 1);
       expect(session.distanceMeters, 0);
       expect(session.averagePaceSecondsPerKm, 0);
       expect(session.mapViewState.routeSegments, hasLength(1));
@@ -877,7 +999,7 @@ void main() {
       );
 
       expect(session.movementStatus, RunMovementStatus.moving);
-      expect(session.activeDurationSeconds, 0);
+      expect(session.activeDurationSeconds, 1);
       expect(session.distanceMeters, 0);
       expect(session.mapViewState.routeSegments, hasLength(2));
       expect(session.mapViewState.routeSegments.last, hasLength(1));
@@ -896,7 +1018,7 @@ void main() {
         ],
       );
 
-      expect(session.activeDurationSeconds, 10);
+      expect(session.activeDurationSeconds, 11);
       expect(session.distanceMeters, greaterThan(0));
       expect(session.mapViewState.routeSegments.last, hasLength(2));
     });

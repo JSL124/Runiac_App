@@ -144,10 +144,10 @@ class _RunActiveScreenState extends State<RunActiveScreen> {
                   animation: _controller,
                   builder: (context, _) {
                     return _RunStatusPill(
-                      label: _controller.state.isPaused
-                          ? 'Paused · easy'
-                          : _controller.state.isAutoPaused
-                          ? 'Auto paused · waiting for movement'
+                      label:
+                          _controller.state.isPaused ||
+                              _controller.state.isAutoPaused
+                          ? 'Paused'
                           : _controller.state.locationStatus.label,
                     );
                   },

@@ -420,12 +420,10 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
       };
     }
 
-    if (_sheetMode == RunSheetMode.paused || state.isPaused) {
-      return 'Paused · easy';
-    }
-
-    if (state.isAutoPaused) {
-      return 'Auto paused · waiting for movement';
+    if (_sheetMode == RunSheetMode.paused ||
+        state.isPaused ||
+        state.isAutoPaused) {
+      return 'Paused';
     }
 
     return state.locationStatus.label;

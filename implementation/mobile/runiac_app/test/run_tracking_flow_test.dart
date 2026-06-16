@@ -1134,7 +1134,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('Run launch shows auto pause without manual pause controls', (
+  testWidgets('Run launch shows auto pause with paused controls', (
     WidgetTester tester,
   ) async {
     _useNarrowRunSurface(tester);
@@ -1155,20 +1155,10 @@ void main() {
               ),
             ),
             RunLocationReplaySample(
-              activeOffset: const Duration(seconds: 10),
+              activeOffset: const Duration(seconds: 7),
               sample: RunLocationSample(
-                recordedAt: sampleBase.add(const Duration(seconds: 10)),
+                recordedAt: sampleBase.add(const Duration(seconds: 7)),
                 latitude: 1.300009,
-                longitude: 103.800000,
-                horizontalAccuracyMeters: 5,
-                speedMetersPerSecond: 0.1,
-              ),
-            ),
-            RunLocationReplaySample(
-              activeOffset: const Duration(seconds: 20),
-              sample: RunLocationSample(
-                recordedAt: sampleBase.add(const Duration(seconds: 20)),
-                latitude: 1.300018,
                 longitude: 103.800000,
                 horizontalAccuracyMeters: 5,
                 speedMetersPerSecond: 0.1,
@@ -1186,15 +1176,24 @@ void main() {
 
     await tester.tap(find.text('Start run'));
     await tester.pumpAndSettle();
-    await tester.pump(const Duration(seconds: 21));
+    for (var tick = 0; tick < 7; tick += 1) {
+      await tester.pump(const Duration(seconds: 1));
+    }
+    await tester.pumpAndSettle();
 
-    _expectStatusLabelReadable(tester, 'Auto paused · waiting for movement');
-    expect(find.text('00:00'), findsOneWidget);
+    _expectStatusLabelReadable(tester, 'Paused');
+    expect(find.text('00:06'), findsOneWidget);
     expect(find.text('0.00 of 4.50 km'), findsOneWidget);
     expect(find.text('--:--/km'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, 'Pause'), findsNothing);
+    expect(find.widgetWithText(FilledButton, 'Resume'), findsOneWidget);
+    expect(find.text('End'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(FilledButton, 'Resume'));
+    await tester.pumpAndSettle();
+
     expect(find.widgetWithText(FilledButton, 'Pause'), findsOneWidget);
-    expect(find.text('Resume'), findsNothing);
-    expect(find.text('End'), findsNothing);
+    expect(find.widgetWithText(FilledButton, 'Resume'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
@@ -1211,7 +1210,7 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, 'Pause'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Paused · easy'), findsOneWidget);
+    expect(find.text('Paused'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'Resume'), findsOneWidget);
     expect(find.byKey(const Key('hold_to_end_button')), findsOneWidget);
     expect(find.text('Pause'), findsNothing);
@@ -1239,7 +1238,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Cool down'), findsNothing);
-    expect(find.text('Paused · easy'), findsOneWidget);
+    expect(find.text('Paused'), findsOneWidget);
 
     final endButton = find.byKey(const Key('hold_to_end_button'));
     final endCenter = tester.getCenter(endButton);
@@ -1249,7 +1248,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Cool down'), findsNothing);
-    expect(find.text('Paused · easy'), findsOneWidget);
+    expect(find.text('Paused'), findsOneWidget);
 
     final holdGesture = await tester.startGesture(endCenter);
     await tester.pump(const Duration(milliseconds: 1600));
@@ -1423,7 +1422,7 @@ void main() {
 
     final sheet = find.byKey(const Key('runLaunchBottomSheet'));
     final handle = find.byKey(const Key('runLaunchSheetHandleArea'));
-    expect(find.text('Paused · easy'), findsOneWidget);
+    expect(find.text('Paused'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'Resume'), findsOneWidget);
     expect(find.byKey(const Key('hold_to_end_button')), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'Pause'), findsNothing);
@@ -1434,7 +1433,7 @@ void main() {
 
     final collapsedRect = tester.getRect(sheet);
     expect(find.byKey(const Key('runLaunchSheetHandle')), findsOneWidget);
-    expect(find.text('Paused · easy'), findsOneWidget);
+    expect(find.text('Paused'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'Resume'), findsNothing);
     expect(find.byKey(const Key('hold_to_end_button')), findsNothing);
     expect(find.widgetWithText(FilledButton, 'Pause'), findsNothing);
@@ -1445,7 +1444,7 @@ void main() {
     await tester.drag(handle, const Offset(0, -700));
     await tester.pumpAndSettle();
 
-    expect(find.text('Paused · easy'), findsOneWidget);
+    expect(find.text('Paused'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'Resume'), findsOneWidget);
     expect(find.byKey(const Key('hold_to_end_button')), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'Pause'), findsNothing);
@@ -1528,7 +1527,7 @@ void main() {
 
     expect(find.byKey(const Key('hold_to_end_progress_gauge')), findsNothing);
     expect(find.text('Cool down'), findsNothing);
-    expect(find.text('Paused · easy'), findsOneWidget);
+    expect(find.text('Paused'), findsOneWidget);
 
     expect(tester.takeException(), isNull);
     semantics.dispose();
@@ -1551,7 +1550,7 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, 'Pause'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Paused · easy'), findsOneWidget);
+    expect(find.text('Paused'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'Resume'), findsOneWidget);
     expect(find.byKey(const Key('hold_to_end_button')), findsOneWidget);
     expect(find.text('Pause'), findsNothing);
@@ -1572,7 +1571,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Cool down'), findsNothing);
-    expect(find.text('Paused · easy'), findsOneWidget);
+    expect(find.text('Paused'), findsOneWidget);
 
     final holdGesture = await tester.startGesture(tester.getCenter(endButton));
     await tester.pump(const Duration(milliseconds: 1600));

@@ -13,7 +13,9 @@ class LocalRunTrackingSession {
     this.distanceCalculator = const RunDistanceCalculator(),
     this.maxAcceptedSpeedMetersPerSecond = 12,
     this.maxAcceptedHorizontalAccuracyMeters = 100,
-    this.autoPauseDwell = const Duration(seconds: 10),
+    this.preMovementAutoPauseDwell = const Duration(seconds: 5),
+    this.noSampleAutoPauseDwell = const Duration(seconds: 5),
+    this.movingToStoppedAutoPauseDwell = const Duration(seconds: 7),
     this.stationaryDriftDistanceMeters = 3,
     this.resumeMovementDistanceMeters = 6,
     this.resumeSpeedMetersPerSecond = 1,
@@ -26,7 +28,9 @@ class LocalRunTrackingSession {
   final String source;
   final double maxAcceptedSpeedMetersPerSecond;
   final double maxAcceptedHorizontalAccuracyMeters;
-  final Duration autoPauseDwell;
+  final Duration preMovementAutoPauseDwell;
+  final Duration noSampleAutoPauseDwell;
+  final Duration movingToStoppedAutoPauseDwell;
   final double stationaryDriftDistanceMeters;
   final double resumeMovementDistanceMeters;
   final double resumeSpeedMetersPerSecond;
@@ -41,7 +45,6 @@ class LocalRunTrackingSession {
   int _trackingDurationSeconds = 0;
   double _distanceMeters = 0;
   RunMovementStatus _movementStatus = RunMovementStatus.moving;
-  bool _hasRecordedMovement = false;
   RunTrackingDiagnostics _diagnostics = const RunTrackingDiagnostics.initial();
   RunLocationSample? _currentPositionSample;
   RunLocationSample? _lastAcceptedSample;
@@ -205,12 +208,16 @@ class LocalRunTrackingSession {
       return false;
     }
 
-    final stationaryStartedAt = _stationaryStartedAt ?? sample.recordedAt;
+    final stationaryStartedAt =
+        _stationaryStartedAt ?? previousRouteSample.recordedAt;
+    final autoPauseDwell = _distanceMeters <= 0
+        ? preMovementAutoPauseDwell
+        : movingToStoppedAutoPauseDwell;
     final classification = movementClassifier.classifyGpsSample(
       sample: sample,
       distanceFromRouteAnchorMeters: segmentDistanceMeters,
       stationaryDwell: sample.recordedAt.difference(stationaryStartedAt),
-      autoPauseDwell: autoPauseDwell,
+      stationaryAutoPauseDwell: autoPauseDwell,
       stationaryDriftDistanceMeters: stationaryDriftDistanceMeters,
       resumeMovementDistanceMeters: resumeMovementDistanceMeters,
       resumeSpeedMetersPerSecond: resumeSpeedMetersPerSecond,
@@ -226,7 +233,6 @@ class LocalRunTrackingSession {
         _appendRouteSample(sample, segmentDistanceMeters);
       }
       _movementStatus = RunMovementStatus.moving;
-      _hasRecordedMovement = true;
       _stationaryStartedAt = null;
       _recordAcceptedCurrentSample(sample);
       return true;
@@ -264,11 +270,8 @@ class LocalRunTrackingSession {
       return;
     }
 
-    _stationaryStartedAt ??= sample.recordedAt;
+    _stationaryStartedAt ??= _lastRouteSample?.recordedAt ?? sample.recordedAt;
     if (classification.shouldAutoPause) {
-      if (!_hasRecordedMovement) {
-        _movingDurationSeconds = 0;
-      }
       _movementStatus = RunMovementStatus.autoPaused;
     }
   }
@@ -286,7 +289,7 @@ class LocalRunTrackingSession {
     _stationaryStartedAt ??= lastAcceptedSample.recordedAt;
     final classification = movementClassifier.classifyNoSampleWindow(
       dwell: currentTrackingAt.difference(_stationaryStartedAt!),
-      autoPauseDwell: autoPauseDwell,
+      noSampleAutoPauseDwell: noSampleAutoPauseDwell,
       anchorAge: currentTrackingAt.difference(lastAcceptedSample.recordedAt),
       maxAnchorAge: maxNoSampleStationaryAnchorAge,
       hasAcceptedAnchor: _diagnostics.hasAcceptedSample,
@@ -297,9 +300,6 @@ class LocalRunTrackingSession {
     );
     if (!classification.shouldAutoPause) {
       return;
-    }
-    if (!_hasRecordedMovement) {
-      _movingDurationSeconds = 0;
     }
     _movementStatus = RunMovementStatus.autoPaused;
   }

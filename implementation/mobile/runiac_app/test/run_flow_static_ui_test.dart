@@ -301,7 +301,7 @@ void main() {
     await tester.tap(find.text('Pause'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Paused · easy'), findsOneWidget);
+    expect(find.text('Paused'), findsOneWidget);
     expect(find.text('Resume'), findsOneWidget);
     expect(find.text('End'), findsOneWidget);
     expect(find.text('Finish'), findsNothing);

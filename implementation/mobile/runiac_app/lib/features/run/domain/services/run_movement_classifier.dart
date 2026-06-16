@@ -33,7 +33,7 @@ class RunMovementClassifier {
     required RunLocationSample sample,
     required double distanceFromRouteAnchorMeters,
     required Duration stationaryDwell,
-    required Duration autoPauseDwell,
+    required Duration stationaryAutoPauseDwell,
     required double stationaryDriftDistanceMeters,
     required double resumeMovementDistanceMeters,
     required double resumeSpeedMetersPerSecond,
@@ -63,7 +63,7 @@ class RunMovementClassifier {
     final shouldAutoPause =
         !hasMovingSpeedSignal &&
         distanceFromRouteAnchorMeters <= stationaryDriftDistanceMeters &&
-        stationaryDwell >= autoPauseDwell;
+        stationaryDwell >= stationaryAutoPauseDwell;
     return RunMovementClassification(
       type: RunMovementClassificationType.gpsStationaryDrift,
       acceptForDistance: false,
@@ -76,7 +76,7 @@ class RunMovementClassifier {
 
   RunMovementClassification classifyNoSampleWindow({
     required Duration dwell,
-    required Duration autoPauseDwell,
+    required Duration noSampleAutoPauseDwell,
     required Duration anchorAge,
     required Duration maxAnchorAge,
     required bool hasAcceptedAnchor,
@@ -87,7 +87,7 @@ class RunMovementClassifier {
         hasAcceptedAnchor &&
         gpsStatusAllowsDwell &&
         anchorAge <= maxAnchorAge &&
-        dwell >= autoPauseDwell;
+        dwell >= noSampleAutoPauseDwell;
     return RunMovementClassification(
       type: shouldAutoPause
           ? RunMovementClassificationType.noSampleStationaryDwell

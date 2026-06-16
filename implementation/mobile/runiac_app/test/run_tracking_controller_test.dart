@@ -435,7 +435,7 @@ void main() {
         expect(controller.state.phase, RunTrackingPhase.active);
         expect(
           RunTrackingSnapshot.fromState(controller.state).guidance,
-          'Standing still. Pace will continue when you move.',
+          'You can pause anytime.',
         );
         expect(controller.state.elapsedSeconds, movingTimeBeforeStop);
         expect(controller.state.distanceMeters, distanceBeforeStop);
@@ -534,10 +534,7 @@ void main() {
         expect(controller.mapViewState.routePointCount, 1);
         expect(controller.mapViewState.currentPosition?.latitude, 1.300018);
         expect(snapshot.averagePaceLabel, '--:--/km');
-        expect(
-          snapshot.guidance,
-          'Standing still. Pace will continue when you move.',
-        );
+        expect(snapshot.guidance, 'You can pause anytime.');
         expect(provider.pauseCount, 0);
 
         final payload = controller.completionPayload(
@@ -854,15 +851,17 @@ void main() {
         final currentPositionBeforeDwell =
             controller.mapViewState.currentPosition;
 
-        controller.advanceBy(const Duration(seconds: 10));
+        for (var tick = 0; tick < 5; tick += 1) {
+          controller.advanceBy(const Duration(seconds: 1));
+        }
 
         final payload = controller.completionPayload(
-          completedAt: startedAt.add(const Duration(seconds: 11)),
+          completedAt: startedAt.add(const Duration(seconds: 6)),
         );
         final payloadMap = payload.toRawClientMap();
         expect(controller.state.isAutoPaused, isTrue);
         expect(controller.state.isPaused, isFalse);
-        expect(controller.state.elapsedSeconds, 0);
+        expect(controller.state.elapsedSeconds, 5);
         expect(controller.state.distanceMeters, 0);
         expect(
           controller.mapViewState.routePointCount,
@@ -872,13 +871,90 @@ void main() {
           controller.mapViewState.currentPosition,
           currentPositionBeforeDwell,
         );
-        expect(payload.durationSeconds, 0);
+        expect(payload.durationSeconds, 5);
         expect(payload.distanceMeters, 0);
         expect(payloadMap.keys, isNot(contains('gpsSamples')));
         expect(payloadMap.keys, isNot(contains('motionEvidence')));
         expect(payloadMap.keys, isNot(contains('motionConfidence')));
+        expect(payloadMap.keys, isNot(contains('xp')));
+        expect(payloadMap.keys, isNot(contains('leaderboardScore')));
+        expect(payloadMap.keys, isNot(contains('validatedActivity')));
       },
     );
+
+    test('manual resume and finish work from auto-paused active state', () {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      final provider = _LifecycleReplayProvider([
+        RunLocationReplaySample(
+          activeOffset: const Duration(seconds: 1),
+          sample: RunLocationSample(
+            recordedAt: startedAt.add(const Duration(seconds: 1)),
+            latitude: 1.300000,
+            longitude: 103.800000,
+            horizontalAccuracyMeters: 5,
+          ),
+        ),
+        RunLocationReplaySample(
+          activeOffset: const Duration(seconds: 20),
+          sample: RunLocationSample(
+            recordedAt: startedAt.add(const Duration(seconds: 20)),
+            latitude: 1.300090,
+            longitude: 103.800000,
+            horizontalAccuracyMeters: 5,
+            speedMetersPerSecond: 1.2,
+          ),
+        ),
+        RunLocationReplaySample(
+          activeOffset: const Duration(seconds: 21),
+          sample: RunLocationSample(
+            recordedAt: startedAt.add(const Duration(seconds: 21)),
+            latitude: 1.300180,
+            longitude: 103.800000,
+            horizontalAccuracyMeters: 5,
+            speedMetersPerSecond: 1.2,
+          ),
+        ),
+      ]);
+      final controller = RunTrackingController(
+        locationProvider: provider,
+        locationStatus: RunTrackingLocationStatus.waitingForGps,
+      );
+
+      controller.start(
+        startedAt: startedAt,
+        clientRunSessionId: 'auto-paused-resume-finish-run',
+      );
+      controller.advanceBy(const Duration(seconds: 1));
+      for (var tick = 0; tick < 5; tick += 1) {
+        controller.advanceBy(const Duration(seconds: 1));
+      }
+
+      expect(controller.state.isAutoPaused, isTrue);
+      expect(controller.state.phase, RunTrackingPhase.active);
+      expect(controller.state.elapsedSeconds, 5);
+
+      controller.resume();
+
+      expect(provider.resumeCount, 1);
+      expect(controller.state.phase, RunTrackingPhase.active);
+      expect(controller.state.isAutoPaused, isFalse);
+      expect(controller.state.movementStatus, RunMovementStatus.moving);
+
+      controller.advanceBy(const Duration(seconds: 15));
+      expect(controller.state.distanceMeters, greaterThan(0));
+
+      final payload = controller.finish(
+        completedAt: startedAt.add(const Duration(seconds: 21)),
+      );
+      final payloadMap = payload.toRawClientMap();
+
+      expect(payload.clientRunSessionId, 'auto-paused-resume-finish-run');
+      expect(payload.distanceMeters, greaterThan(0));
+      expect(payloadMap.keys, isNot(contains('gpsSamples')));
+      expect(payloadMap.keys, isNot(contains('motionEvidence')));
+      expect(payloadMap.keys, isNot(contains('leaderboardScore')));
+      expect(payloadMap.keys, isNot(contains('validatedActivity')));
+    });
 
     test('empty samples before first GPS anchor do not auto pause', () {
       final startedAt = DateTime.utc(2026, 6, 14, 7);
