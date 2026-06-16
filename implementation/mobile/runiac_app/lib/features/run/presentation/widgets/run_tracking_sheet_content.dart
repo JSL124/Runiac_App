@@ -398,12 +398,8 @@ class _HoldToEndButtonState extends State<_HoldToEndButton>
   @override
   void didUpdateWidget(covariant _HoldToEndButton oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.isCompletingRun && !widget.isCompletingRun) {
-      _completed = false;
-      _holding = false;
-      _holdTimer?.cancel();
-      _holdTimer = null;
-      _controller.reset();
+    if (_completed && !widget.isCompletingRun) {
+      _resetHold();
     }
   }
 
@@ -426,7 +422,10 @@ class _HoldToEndButtonState extends State<_HoldToEndButton>
 
   void _completeHold() {
     if (_completed) {
-      return;
+      if (widget.isCompletingRun) {
+        return;
+      }
+      _resetHold();
     }
 
     _completed = true;
@@ -437,13 +436,24 @@ class _HoldToEndButtonState extends State<_HoldToEndButton>
   }
 
   void _startHold(TapDownDetails _) {
-    if (_completed || widget.isCompletingRun) {
+    if (widget.isCompletingRun) {
       return;
+    }
+    if (_completed) {
+      _resetHold();
     }
     _holdTimer?.cancel();
     setState(() => _holding = true);
     _holdTimer = Timer(_holdDuration, _completeHold);
     _controller.forward(from: 0);
+  }
+
+  void _resetHold() {
+    _completed = false;
+    _holding = false;
+    _holdTimer?.cancel();
+    _holdTimer = null;
+    _controller.reset();
   }
 
   void _cancelHold([Object? _]) {
@@ -502,26 +512,29 @@ class _HoldToEndButtonState extends State<_HoldToEndButton>
                           ),
                         ),
                       Center(
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              widget.isCompletingRun
-                                  ? Icons.hourglass_top_rounded
-                                  : Icons.flag_rounded,
-                              color: _panelTextBlue,
-                              size: 23,
-                            ),
-                            const SizedBox(width: 10),
-                            Text(
-                              widget.isCompletingRun ? 'Saving' : 'End',
-                              style: const TextStyle(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                widget.isCompletingRun
+                                    ? Icons.hourglass_top_rounded
+                                    : Icons.flag_rounded,
                                 color: _panelTextBlue,
-                                fontSize: 18,
-                                fontWeight: FontWeight.w900,
+                                size: 23,
                               ),
-                            ),
-                          ],
+                              const SizedBox(width: 10),
+                              Text(
+                                widget.isCompletingRun ? 'Saving' : 'End',
+                                style: const TextStyle(
+                                  color: _panelTextBlue,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ],

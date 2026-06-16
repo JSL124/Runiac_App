@@ -202,37 +202,47 @@ class _MapPreview extends StatelessWidget {
               Positioned(
                 left: 12,
                 bottom: 12,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 7,
-                  ),
-                  decoration: BoxDecoration(
-                    color: _rWhite,
-                    borderRadius: BorderRadius.circular(99),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x242F51C8),
-                        blurRadius: 14,
-                        offset: Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.location_pin, color: _rOrange, size: 14),
-                      const SizedBox(width: 6),
-                      Text(
-                        routeName,
-                        style: const TextStyle(
-                          color: _rBlue,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: -0.1,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 230),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 7,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _rWhite,
+                      borderRadius: BorderRadius.circular(99),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x242F51C8),
+                          blurRadius: 14,
+                          offset: Offset(0, 4),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.location_pin,
+                          color: _rOrange,
+                          size: 14,
+                        ),
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: Text(
+                            routeName,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: _rBlue,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: -0.1,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -270,53 +280,35 @@ class _HeroDistance extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 22, 20, 6),
-      child: Column(
-        children: [
-          const Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.check_rounded, color: _rOrange, size: 15),
-              SizedBox(width: 6),
-              Text(
-                'Run complete',
-                style: TextStyle(
-                  color: _rOrange,
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0.4,
-                ),
+      padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            Text(
+              distanceKm,
+              style: const TextStyle(
+                color: _rBlue,
+                fontSize: 72,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -2.8,
+                height: 0.95,
               ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Text(
-                distanceKm,
-                style: const TextStyle(
-                  color: _rBlue,
-                  fontSize: 72,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -2.8,
-                  height: 0.95,
-                ),
+            ),
+            const SizedBox(width: 8),
+            const Text(
+              'km',
+              style: TextStyle(
+                color: _rBlue75,
+                fontSize: 24,
+                fontWeight: FontWeight.w700,
               ),
-              const SizedBox(width: 8),
-              const Text(
-                'km',
-                style: TextStyle(
-                  color: _rBlue75,
-                  fontSize: 24,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -355,13 +347,13 @@ class _MetricSummary extends StatelessWidget {
                 children: [
                   Expanded(
                     child: _MetricText(
-                      value: '${summary.avgHeartRate} bpm',
+                      value: _metricValueWithUnit(summary.avgHeartRate, 'bpm'),
                       label: 'Avg Heart Rate',
                     ),
                   ),
                   Expanded(
                     child: _MetricText(
-                      value: '${summary.calories} kcal',
+                      value: _metricValueWithUnit(summary.calories, 'kcal'),
                       label: 'Calories',
                     ),
                   ),
@@ -373,6 +365,14 @@ class _MetricSummary extends StatelessWidget {
       ),
     );
   }
+}
+
+String _metricValueWithUnit(String value, String unit) {
+  final normalized = value.trim();
+  if (normalized.isEmpty || normalized == '--') {
+    return '--';
+  }
+  return '$normalized $unit';
 }
 
 class _MetricText extends StatelessWidget {
@@ -470,16 +470,20 @@ class _PaceChart extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        const Padding(
-          padding: EdgeInsets.only(left: 38),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _AxisLabel('0:00'),
-              _AxisLabel('5:00'),
-              _AxisLabel('10:00'),
-              _AxisLabel('15:02'),
-            ],
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: const Padding(
+            padding: EdgeInsets.only(left: 38),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _AxisLabel('0:00'),
+                _AxisLabel('5:00'),
+                _AxisLabel('10:00'),
+                _AxisLabel('15:02'),
+              ],
+            ),
           ),
         ),
       ],
@@ -675,13 +679,16 @@ class _CoachingSection extends StatelessWidget {
               children: [
                 _SparkBadge(),
                 SizedBox(width: 11),
-                Text(
-                  'AI Coaching Summary',
-                  style: TextStyle(
-                    color: _rBlue,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -0.2,
+                Expanded(
+                  child: Text(
+                    'AI Coaching Summary',
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: _rBlue,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.2,
+                    ),
                   ),
                 ),
               ],

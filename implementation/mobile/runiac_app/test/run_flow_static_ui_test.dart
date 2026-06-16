@@ -550,7 +550,7 @@ void main() {
     expect(find.byTooltip('Back to cool down'), findsOneWidget);
     expect(find.byTooltip('Share summary'), findsOneWidget);
     expect(find.text('East Coast Park Loop'), findsOneWidget);
-    expect(find.text('Run complete'), findsOneWidget);
+    expect(find.text('Run complete'), findsNothing);
     expect(find.text('4.03'), findsOneWidget);
     expect(find.text('km'), findsOneWidget);
     expect(find.text('6’30”'), findsOneWidget);
@@ -672,6 +672,68 @@ void main() {
     expect(find.widgetWithText(OutlinedButton, 'Share Route'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'View XP Update'), findsOneWidget);
   });
+
+  testWidgets(
+    'View summary shows unavailable completion metrics without fake units',
+    (WidgetTester tester) async {
+      _useTallSummarySurface(tester);
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: ViewSummaryScreen(
+            completionResult: CompleteRunResult(
+              activityId: 'unavailable-metrics-activity',
+              summaryId: 'unavailable-metrics-summary',
+              progressionEventId: 'unavailable-metrics-progression',
+              validationStatus: 'validated',
+              summary: RunSummarySnapshot(
+                title: 'Tracked Completion Run',
+                dateLabel: 'Today',
+                timeLabel: '8:10 AM',
+                distanceKm: '3.20',
+                avgPace: '7’49”',
+                duration: '25:00',
+                avgHeartRate: '--',
+                calories: '--',
+                routeName: 'Tracked Private Route',
+              ),
+              progressionDisplay: ProgressionDisplayModel(
+                xpDelta: 0,
+                countsTowardLeaderboard: false,
+                status: 'deferred',
+                reason: 'progression_formula_deferred',
+              ),
+              xpUpdate: XpUpdateDisplayModel(
+                runnerName: 'Runiac Runner',
+                earnedXpLabel: '+0 XP',
+                totalXpLabel: 'Deferred by backend',
+                levelLabel: 'Pending',
+                nextLevelLabel: 'Pending',
+                progressTargetLabel: 'Progression deferred',
+                xpRemainingLabel: 'Backend formula pending',
+                previousProgressFraction: 0,
+                currentProgressFraction: 0,
+                streakChangeLabel: 'Deferred',
+                streakNote: 'Backend validation accepted the run.',
+                didLevelUp: false,
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Tracked Completion Run'), findsOneWidget);
+      expect(find.text('Tracked Private Route'), findsOneWidget);
+      expect(find.text('3.20'), findsOneWidget);
+      expect(find.text('7’49”'), findsOneWidget);
+      expect(find.text('25:00'), findsOneWidget);
+      expect(find.text('--'), findsNWidgets(2));
+      expect(find.text('-- bpm'), findsNothing);
+      expect(find.text('-- kcal'), findsNothing);
+      expect(find.text('145 bpm'), findsNothing);
+      expect(find.text('145 kcal'), findsNothing);
+    },
+  );
 
   testWidgets(
     'View summary share icon opens Share Your Achievement bottom sheet',
@@ -815,6 +877,24 @@ void main() {
     );
     expect(find.textContaining(_forbiddenRealActivitySaveCopy), findsNothing);
   });
+
+  testWidgets(
+    'View summary removes run complete banner while keeping summary content visible',
+    (WidgetTester tester) async {
+      tester.view
+        ..physicalSize = const Size(390, 844)
+        ..devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(const MaterialApp(home: ViewSummaryScreen()));
+
+      expect(find.text('Run complete'), findsNothing);
+      expect(find.text('4.03'), findsOneWidget);
+      expect(find.text('Pace Over Time'), findsOneWidget);
+      expect(find.text('East Coast Park Loop'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets('View XP Update opens reward screen and Go Home exits it', (
     WidgetTester tester,

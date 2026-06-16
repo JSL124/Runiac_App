@@ -3,9 +3,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/runiac_colors.dart';
+import '../domain/models/complete_run_result.dart';
+import '../domain/models/run_completion_error.dart';
 import '../domain/models/run_tracking_state.dart';
+import '../domain/repositories/run_repository.dart';
 import 'controllers/run_tracking_controller.dart';
 import 'cool_down_screen.dart';
+import 'run_repository_scope.dart';
 import 'widgets/run_map_placeholder.dart';
 import 'widgets/run_mapbox_follow_qa_overlay.dart';
 import 'widgets/run_mapbox_surface_config.dart';
@@ -23,12 +27,14 @@ class RunActiveScreen extends StatefulWidget {
   const RunActiveScreen({
     super.key,
     this.controller,
+    this.repository,
     this.mapboxAccessToken,
     this.mapboxBuilder,
     this.enableMapboxFollowQa = runMapboxFollowQaEnabled,
   });
 
   final RunTrackingController? controller;
+  final RunRepository? repository;
   final String? mapboxAccessToken;
   final RunMapboxSurfaceBuilder? mapboxBuilder;
   final bool enableMapboxFollowQa;
@@ -42,6 +48,7 @@ class _RunActiveScreenState extends State<RunActiveScreen> {
   late final bool _ownsController;
   Timer? _ticker;
   bool _isFollowingRunner = true;
+  bool _isCompletingRun = false;
   int _mapRecenterRequestId = 0;
   late final RunMapboxFollowQaDiagnostics? _followQaDiagnostics =
       widget.enableMapboxFollowQa
@@ -71,11 +78,61 @@ class _RunActiveScreenState extends State<RunActiveScreen> {
     super.dispose();
   }
 
-  void _finishRun() {
-    _controller.finish();
+  Future<void> _finishRun() async {
+    if (_isCompletingRun) {
+      return;
+    }
+
+    final completedAt = DateTime.now();
+    final payload = _controller.completionPayload(completedAt: completedAt);
+    setState(() => _isCompletingRun = true);
+
+    CompleteRunResult result;
+    try {
+      result = await _repository.completeRun(payload);
+    } on RunCompletionException catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _isCompletingRun = false);
+      _showCompletionFailureMessage(
+        error.isRetryable
+            ? 'Run completion is unavailable. Please try again.'
+            : 'Run details could not be submitted.',
+      );
+      return;
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _isCompletingRun = false);
+      _showCompletionFailureMessage(
+        'Run completion is unavailable. Please try again.',
+      );
+      return;
+    }
+
+    if (!mounted) {
+      return;
+    }
+    _ticker?.cancel();
+    _ticker = null;
+    _controller.finish(completedAt: completedAt);
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute<void>(builder: (context) => const CoolDownScreen()),
+      MaterialPageRoute<void>(
+        builder: (context) => CoolDownScreen(completionResult: result),
+      ),
     );
+  }
+
+  RunRepository get _repository {
+    return widget.repository ?? RunRepositoryScope.of(context);
+  }
+
+  void _showCompletionFailureMessage(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
   }
 
   void _updateFollowQaMapState() {
@@ -177,6 +234,7 @@ class _RunActiveScreenState extends State<RunActiveScreen> {
                             onPause: _controller.pause,
                             onResume: _resumeRun,
                             onFinish: _finishRun,
+                            isCompletingRun: _isCompletingRun,
                             bottomInset: bottomInset,
                           );
                         },
@@ -262,6 +320,7 @@ class _RunActivePanel extends StatelessWidget {
     required this.onPause,
     required this.onResume,
     required this.onFinish,
+    required this.isCompletingRun,
     required this.bottomInset,
   });
 
@@ -269,6 +328,7 @@ class _RunActivePanel extends StatelessWidget {
   final VoidCallback onPause;
   final VoidCallback onResume;
   final VoidCallback onFinish;
+  final bool isCompletingRun;
   final double bottomInset;
 
   @override
@@ -300,6 +360,7 @@ class _RunActivePanel extends StatelessWidget {
             onPause: onPause,
             onResume: onResume,
             onEnd: onFinish,
+            isCompletingRun: isCompletingRun,
           ),
         );
       },
