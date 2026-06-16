@@ -242,8 +242,7 @@ class LocalRunTrackingSession {
     double distanceFromRouteAnchorMeters,
   ) {
     _recordAcceptedCurrentSample(sample);
-    if (!_hasRecordedMovement ||
-        _movementStatus == RunMovementStatus.autoPaused) {
+    if (_movementStatus == RunMovementStatus.autoPaused) {
       return;
     }
 
@@ -257,6 +256,9 @@ class LocalRunTrackingSession {
     if (!hasMovingSpeedSignal &&
         distanceFromRouteAnchorMeters <= stationaryDriftDistanceMeters &&
         stationaryDwell >= autoPauseDwell) {
+      if (!_hasRecordedMovement) {
+        _movingDurationSeconds = 0;
+      }
       _movementStatus = RunMovementStatus.autoPaused;
     }
   }

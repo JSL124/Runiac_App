@@ -1145,38 +1145,30 @@ void main() {
         home: RunLaunchScreen(
           locationProvider: ReplayRunLocationProvider([
             RunLocationReplaySample(
-              activeOffset: Duration.zero,
+              activeOffset: const Duration(seconds: 1),
               sample: RunLocationSample(
-                recordedAt: sampleBase,
+                recordedAt: sampleBase.add(const Duration(seconds: 1)),
                 latitude: 1.300000,
-                longitude: 103.800000,
-                horizontalAccuracyMeters: 5,
-              ),
-            ),
-            RunLocationReplaySample(
-              activeOffset: const Duration(seconds: 60),
-              sample: RunLocationSample(
-                recordedAt: sampleBase.add(const Duration(seconds: 60)),
-                latitude: 1.300899,
-                longitude: 103.800000,
-                horizontalAccuracyMeters: 5,
-              ),
-            ),
-            RunLocationReplaySample(
-              activeOffset: const Duration(seconds: 70),
-              sample: RunLocationSample(
-                recordedAt: sampleBase.add(const Duration(seconds: 70)),
-                latitude: 1.300908,
                 longitude: 103.800000,
                 horizontalAccuracyMeters: 5,
                 speedMetersPerSecond: 0.1,
               ),
             ),
             RunLocationReplaySample(
-              activeOffset: const Duration(seconds: 80),
+              activeOffset: const Duration(seconds: 10),
               sample: RunLocationSample(
-                recordedAt: sampleBase.add(const Duration(seconds: 80)),
-                latitude: 1.300917,
+                recordedAt: sampleBase.add(const Duration(seconds: 10)),
+                latitude: 1.300009,
+                longitude: 103.800000,
+                horizontalAccuracyMeters: 5,
+                speedMetersPerSecond: 0.1,
+              ),
+            ),
+            RunLocationReplaySample(
+              activeOffset: const Duration(seconds: 20),
+              sample: RunLocationSample(
+                recordedAt: sampleBase.add(const Duration(seconds: 20)),
+                latitude: 1.300018,
                 longitude: 103.800000,
                 horizontalAccuracyMeters: 5,
                 speedMetersPerSecond: 0.1,
@@ -1194,14 +1186,12 @@ void main() {
 
     await tester.tap(find.text('Start run'));
     await tester.pumpAndSettle();
-    await tester.pump(const Duration(seconds: 60));
-
-    expect(find.text('01:00'), findsOneWidget);
-    expect(find.text('10:00/km'), findsOneWidget);
-
-    await tester.pump(const Duration(seconds: 20));
+    await tester.pump(const Duration(seconds: 21));
 
     _expectStatusLabelReadable(tester, 'Auto paused · waiting for movement');
+    expect(find.text('00:00'), findsOneWidget);
+    expect(find.text('0.00 of 4.50 km'), findsOneWidget);
+    expect(find.text('--:--/km'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'Pause'), findsOneWidget);
     expect(find.text('Resume'), findsNothing);
     expect(find.text('End'), findsNothing);

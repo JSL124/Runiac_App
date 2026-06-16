@@ -393,6 +393,98 @@ void main() {
       },
     );
 
+    test(
+      'stationary from start auto pauses without distance and manual pause wins',
+      () {
+        final startedAt = DateTime.utc(2026, 6, 14, 7);
+        final provider = _LifecycleReplayProvider([
+          RunLocationReplaySample(
+            activeOffset: const Duration(seconds: 1),
+            sample: RunLocationSample(
+              recordedAt: startedAt.add(const Duration(seconds: 1)),
+              latitude: 1.300000,
+              longitude: 103.800000,
+              horizontalAccuracyMeters: 5,
+              speedMetersPerSecond: 0.1,
+            ),
+          ),
+          RunLocationReplaySample(
+            activeOffset: const Duration(seconds: 10),
+            sample: RunLocationSample(
+              recordedAt: startedAt.add(const Duration(seconds: 10)),
+              latitude: 1.300009,
+              longitude: 103.800000,
+              horizontalAccuracyMeters: 5,
+              speedMetersPerSecond: 0.1,
+            ),
+          ),
+          RunLocationReplaySample(
+            activeOffset: const Duration(seconds: 20),
+            sample: RunLocationSample(
+              recordedAt: startedAt.add(const Duration(seconds: 20)),
+              latitude: 1.300018,
+              longitude: 103.800000,
+              horizontalAccuracyMeters: 5,
+              speedMetersPerSecond: 0.1,
+            ),
+          ),
+          RunLocationReplaySample(
+            activeOffset: const Duration(seconds: 30),
+            sample: RunLocationSample(
+              recordedAt: startedAt.add(const Duration(seconds: 30)),
+              latitude: 1.300100,
+              longitude: 103.800000,
+              horizontalAccuracyMeters: 5,
+              speedMetersPerSecond: 1.2,
+            ),
+          ),
+        ]);
+        final controller = RunTrackingController(locationProvider: provider);
+
+        controller.start(
+          startedAt: startedAt,
+          clientRunSessionId: 'start-stationary-controller-run',
+        );
+        controller.advanceBy(const Duration(seconds: 21));
+
+        final snapshot = RunTrackingSnapshot.fromState(controller.state);
+        expect(controller.state.isAutoPaused, isTrue);
+        expect(controller.state.isPaused, isFalse);
+        expect(controller.state.elapsedSeconds, 0);
+        expect(controller.state.distanceMeters, 0);
+        expect(controller.state.averagePaceSecondsPerKm, 0);
+        expect(controller.mapViewState.routePointCount, 1);
+        expect(controller.mapViewState.currentPosition?.latitude, 1.300018);
+        expect(snapshot.averagePaceLabel, '--:--/km');
+        expect(
+          snapshot.guidance,
+          'Standing still. Pace will continue when you move.',
+        );
+        expect(provider.pauseCount, 0);
+
+        final payload = controller.completionPayload(
+          completedAt: startedAt.add(const Duration(seconds: 21)),
+        );
+        final payloadMap = payload.toRawClientMap();
+        expect(payload.durationSeconds, 0);
+        expect(payload.distanceMeters, 0);
+        expect(payload.avgPaceSecondsPerKm, 0);
+        expect(payloadMap.keys, isNot(contains('routeSamples')));
+        expect(payloadMap.keys, isNot(contains('gpsSamples')));
+        expect(payloadMap.keys, isNot(contains('leaderboardScore')));
+        expect(payloadMap.keys, isNot(contains('validatedActivity')));
+
+        controller.pause();
+        controller.advanceBy(const Duration(seconds: 10));
+
+        expect(controller.state.isPaused, isTrue);
+        expect(controller.state.isAutoPaused, isFalse);
+        expect(controller.state.elapsedSeconds, 0);
+        expect(controller.state.distanceMeters, 0);
+        expect(provider.pauseCount, 1);
+      },
+    );
+
     test('finish creates only raw client-observed completion payload', () {
       final controller = RunTrackingController(metersPerSecond: 2.5);
       final startedAt = DateTime.utc(2026, 6, 14, 7);
