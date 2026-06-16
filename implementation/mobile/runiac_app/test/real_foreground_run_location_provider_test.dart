@@ -23,6 +23,27 @@ void main() {
   }
 
   group('RealForegroundRunLocationProvider', () {
+    test('preview defaults keep one meter distance filter', () async {
+      final adapter = _FakeForegroundAdapter();
+      final provider = RealForegroundRunLocationPreviewProvider(
+        adapter: adapter,
+      );
+
+      await provider.currentLocation();
+
+      expect(adapter.lastSettings?.distanceFilterMeters, 1);
+    });
+
+    test('active foreground tracking requests every GPS update', () async {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      final adapter = _FakeForegroundAdapter();
+      final provider = RealForegroundRunLocationProvider(adapter: adapter);
+
+      await provider.start(startedAt: startedAt);
+
+      expect(adapter.lastSettings?.distanceFilterMeters, 0);
+    });
+
     test('maps one-shot current position without starting stream', () async {
       final adapter = _FakeForegroundAdapter();
       adapter.currentPosition = position(

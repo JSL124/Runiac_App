@@ -6,6 +6,7 @@ import 'package:runiac_app/features/run/domain/models/run_tracking_startup_readi
 import 'package:runiac_app/features/run/domain/models/run_tracking_state.dart';
 import 'package:runiac_app/features/run/domain/services/local_run_tracking_session.dart';
 import 'package:runiac_app/features/run/domain/services/run_distance_calculator.dart';
+import 'package:runiac_app/features/run/domain/services/run_movement_classifier.dart';
 
 void main() {
   RunLocationSample sampleAt(
@@ -685,6 +686,128 @@ void main() {
       expect(session.activeDurationSeconds, movingTimeBeforeStop + 10);
       expect(session.distanceMeters, greaterThan(distanceBeforeStop));
       expect(session.mapViewState.routeSegments.last, hasLength(2));
+    });
+
+    test('no-op movement classifier preserves GPS-only moving behavior', () {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      final session = LocalRunTrackingSession(
+        startedAt: startedAt,
+        movementClassifier: const RunMovementClassifier(),
+      );
+
+      session.advanceBy(
+        const Duration(seconds: 60),
+        samples: [
+          sampleAt(
+            startedAt,
+            0,
+            latitude: 1.300000,
+            longitude: 103.800000,
+            horizontalAccuracyMeters: 5,
+          ),
+          sampleAt(
+            startedAt,
+            60,
+            latitude: 1.300899,
+            longitude: 103.800000,
+            horizontalAccuracyMeters: 5,
+          ),
+        ],
+      );
+
+      expect(session.movementStatus, RunMovementStatus.moving);
+      expect(session.activeDurationSeconds, 60);
+      expect(session.distanceMeters, closeTo(100, 2));
+      expect(session.mapViewState.routePointCount, 2);
+    });
+
+    test(
+      'empty sample dwell after first GPS anchor auto pauses without movement artifacts',
+      () {
+        final startedAt = DateTime.utc(2026, 6, 14, 7);
+        final session = LocalRunTrackingSession(startedAt: startedAt);
+
+        session.advanceBy(
+          const Duration(seconds: 1),
+          samples: [
+            sampleAt(
+              startedAt,
+              1,
+              latitude: 1.300000,
+              longitude: 103.800000,
+              horizontalAccuracyMeters: 5,
+            ),
+          ],
+        );
+        final routePointCountBeforeDwell = session.mapViewState.routePointCount;
+        final currentPositionBeforeDwell = session.mapViewState.currentPosition;
+
+        session.advanceBy(const Duration(seconds: 10));
+
+        expect(session.movementStatus, RunMovementStatus.autoPaused);
+        expect(session.activeDurationSeconds, 0);
+        expect(session.distanceMeters, 0);
+        expect(
+          session.mapViewState.routePointCount,
+          routePointCountBeforeDwell,
+        );
+        expect(
+          session.mapViewState.currentPosition,
+          currentPositionBeforeDwell,
+        );
+        expect(session.acceptedSampleCount, 1);
+        expect(session.rejectedSampleCount, 0);
+      },
+    );
+
+    test('empty samples before first GPS anchor do not auto pause', () {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      final session = LocalRunTrackingSession(startedAt: startedAt);
+
+      session.advanceBy(const Duration(seconds: 20));
+
+      expect(session.movementStatus, RunMovementStatus.moving);
+      expect(session.activeDurationSeconds, 20);
+      expect(session.distanceMeters, 0);
+      expect(session.mapViewState.routePointCount, 0);
+      expect(session.acceptedSampleCount, 0);
+    });
+
+    test('manual pause blocks no-sample dwell and auto resume', () {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      final session = LocalRunTrackingSession(startedAt: startedAt);
+
+      session.advanceBy(
+        const Duration(seconds: 1),
+        samples: [
+          sampleAt(
+            startedAt,
+            1,
+            latitude: 1.300000,
+            longitude: 103.800000,
+            horizontalAccuracyMeters: 5,
+          ),
+        ],
+      );
+      session.pause();
+      session.advanceBy(const Duration(seconds: 20));
+      session.advanceBy(
+        const Duration(seconds: 10),
+        samples: [
+          sampleAt(
+            startedAt,
+            30,
+            latitude: 1.300899,
+            longitude: 103.800000,
+            horizontalAccuracyMeters: 5,
+          ),
+        ],
+      );
+
+      expect(session.movementStatus, RunMovementStatus.moving);
+      expect(session.activeDurationSeconds, 1);
+      expect(session.distanceMeters, 0);
+      expect(session.mapViewState.routePointCount, 1);
     });
 
     test('auto pauses when stationary from the start without route drift', () {

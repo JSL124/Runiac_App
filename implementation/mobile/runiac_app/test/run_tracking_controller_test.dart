@@ -5,12 +5,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/features/run/domain/models/local_run_completion_payload.dart';
 import 'package:runiac_app/features/run/domain/models/run_location_sample.dart';
 import 'package:runiac_app/features/run/domain/models/run_location_permission_status.dart';
+import 'package:runiac_app/features/run/domain/models/run_motion_evidence.dart';
 import 'package:runiac_app/features/run/domain/models/run_tracking_diagnostics.dart';
 import 'package:runiac_app/features/run/domain/models/run_tracking_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/run_tracking_startup_readiness.dart';
 import 'package:runiac_app/features/run/domain/models/run_tracking_state.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_location_permission_service.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_location_provider.dart';
+import 'package:runiac_app/features/run/domain/repositories/run_motion_provider.dart';
 import 'package:runiac_app/features/run/data/real_foreground_run_location_provider.dart';
 import 'package:runiac_app/features/run/presentation/controllers/run_tracking_controller.dart';
 
@@ -63,6 +65,7 @@ class _LifecycleReplayProvider implements RunLocationProvider {
     : _delegate = ReplayRunLocationProvider(samples);
 
   final ReplayRunLocationProvider _delegate;
+  final Set<DateTime> _consumedSampleTimes = <DateTime>{};
 
   int startCount = 0;
   int pauseCount = 0;
@@ -102,11 +105,55 @@ class _LifecycleReplayProvider implements RunLocationProvider {
     required Duration toActiveOffset,
     required DateTime startedAt,
   }) {
-    return _delegate.samplesBetween(
-      fromActiveOffset: fromActiveOffset,
-      toActiveOffset: toActiveOffset,
-      startedAt: startedAt,
-    );
+    final samples = _delegate
+        .samplesBetween(
+          fromActiveOffset: fromActiveOffset,
+          toActiveOffset: toActiveOffset,
+          startedAt: startedAt,
+        )
+        .where((sample) => _consumedSampleTimes.add(sample.recordedAt));
+    return samples.toList();
+  }
+}
+
+class _LifecycleMotionProvider extends NoopRunMotionProvider {
+  int startCount = 0;
+  int pauseCount = 0;
+  int resumeCount = 0;
+  int stopCount = 0;
+  int evidenceReadCount = 0;
+
+  @override
+  Future<void> start({required DateTime startedAt}) async {
+    startCount += 1;
+  }
+
+  @override
+  Future<void> pause() async {
+    pauseCount += 1;
+  }
+
+  @override
+  Future<void> resume({
+    required DateTime resumedAt,
+    required Duration trackingOffset,
+  }) async {
+    resumeCount += 1;
+  }
+
+  @override
+  Future<void> stop() async {
+    stopCount += 1;
+  }
+
+  @override
+  Iterable<RunMotionEvidence> evidenceBetween({
+    required Duration fromTrackingOffset,
+    required Duration toTrackingOffset,
+    required DateTime startedAt,
+  }) {
+    evidenceReadCount += 1;
+    return const <RunMotionEvidence>[];
   }
 }
 
@@ -203,6 +250,37 @@ void main() {
       expect(controller.state.distanceMeters, 300);
       expect(controller.state.averagePaceSecondsPerKm, 400);
     });
+
+    test(
+      'no-op motion provider lifecycle is safe and preserves GPS behavior',
+      () {
+        final motionProvider = _LifecycleMotionProvider();
+        final controller = RunTrackingController(
+          metersPerSecond: 2.5,
+          motionProvider: motionProvider,
+        );
+
+        controller.start(
+          startedAt: DateTime.utc(2026, 6, 14, 7),
+          clientRunSessionId: 'motion-noop-run',
+        );
+        controller.advanceBy(const Duration(seconds: 60));
+
+        expect(controller.state.elapsedSeconds, 60);
+        expect(controller.state.distanceMeters, 150);
+        expect(controller.state.averagePaceSecondsPerKm, 399);
+        expect(motionProvider.startCount, 1);
+        expect(motionProvider.evidenceReadCount, 1);
+
+        controller.pause();
+        controller.resume();
+        controller.finish(completedAt: DateTime.utc(2026, 6, 14, 7, 2));
+
+        expect(motionProvider.pauseCount, 1);
+        expect(motionProvider.resumeCount, 1);
+        expect(motionProvider.stopCount, 1);
+      },
+    );
 
     test('live pace is hidden below 50 meters while time keeps running', () {
       final controller = RunTrackingController(metersPerSecond: 2.5);
@@ -744,6 +822,127 @@ void main() {
         snapshot.startupReadinessMessage,
         'GPS is ready. Start moving to measure distance.',
       );
+    });
+
+    test(
+      'empty samples after first GPS anchor auto pause without route or payload growth',
+      () {
+        final startedAt = DateTime.utc(2026, 6, 14, 7);
+        final anchor = RunLocationSample(
+          recordedAt: startedAt.add(const Duration(seconds: 1)),
+          latitude: 1.3,
+          longitude: 103.8,
+          horizontalAccuracyMeters: 5,
+        );
+        final controller = RunTrackingController(
+          locationProvider: _LifecycleReplayProvider([
+            RunLocationReplaySample(
+              activeOffset: const Duration(seconds: 1),
+              sample: anchor,
+            ),
+          ]),
+          locationStatus: RunTrackingLocationStatus.waitingForGps,
+        );
+
+        controller.start(
+          startedAt: startedAt,
+          clientRunSessionId: 'empty-dwell-run',
+        );
+        controller.advanceBy(const Duration(seconds: 1));
+        final routePointCountBeforeDwell =
+            controller.mapViewState.routePointCount;
+        final currentPositionBeforeDwell =
+            controller.mapViewState.currentPosition;
+
+        controller.advanceBy(const Duration(seconds: 10));
+
+        final payload = controller.completionPayload(
+          completedAt: startedAt.add(const Duration(seconds: 11)),
+        );
+        final payloadMap = payload.toRawClientMap();
+        expect(controller.state.isAutoPaused, isTrue);
+        expect(controller.state.isPaused, isFalse);
+        expect(controller.state.elapsedSeconds, 0);
+        expect(controller.state.distanceMeters, 0);
+        expect(
+          controller.mapViewState.routePointCount,
+          routePointCountBeforeDwell,
+        );
+        expect(
+          controller.mapViewState.currentPosition,
+          currentPositionBeforeDwell,
+        );
+        expect(payload.durationSeconds, 0);
+        expect(payload.distanceMeters, 0);
+        expect(payloadMap.keys, isNot(contains('gpsSamples')));
+        expect(payloadMap.keys, isNot(contains('motionEvidence')));
+        expect(payloadMap.keys, isNot(contains('motionConfidence')));
+      },
+    );
+
+    test('empty samples before first GPS anchor do not auto pause', () {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      final controller = RunTrackingController(
+        locationProvider: ReplayRunLocationProvider(const []),
+        locationStatus: RunTrackingLocationStatus.waitingForGps,
+      );
+
+      controller.start(
+        startedAt: startedAt,
+        clientRunSessionId: 'no-anchor-empty-dwell-run',
+      );
+      controller.advanceBy(const Duration(seconds: 20));
+
+      expect(controller.state.isAutoPaused, isFalse);
+      expect(controller.state.elapsedSeconds, 20);
+      expect(controller.state.distanceMeters, 0);
+      expect(controller.mapViewState.routePointCount, 0);
+      expect(
+        controller.state.locationStatus,
+        RunTrackingLocationStatus.waitingForGps,
+      );
+    });
+
+    test('manual pause blocks no-sample dwell auto-pause and auto-resume', () {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      final provider = _LifecycleReplayProvider([
+        RunLocationReplaySample(
+          activeOffset: const Duration(seconds: 1),
+          sample: RunLocationSample(
+            recordedAt: startedAt.add(const Duration(seconds: 1)),
+            latitude: 1.300000,
+            longitude: 103.800000,
+            horizontalAccuracyMeters: 5,
+          ),
+        ),
+        RunLocationReplaySample(
+          activeOffset: const Duration(seconds: 30),
+          sample: RunLocationSample(
+            recordedAt: startedAt.add(const Duration(seconds: 30)),
+            latitude: 1.300899,
+            longitude: 103.800000,
+            horizontalAccuracyMeters: 5,
+          ),
+        ),
+      ]);
+      final controller = RunTrackingController(
+        locationProvider: provider,
+        locationStatus: RunTrackingLocationStatus.waitingForGps,
+      );
+
+      controller.start(
+        startedAt: startedAt,
+        clientRunSessionId: 'manual-pause-empty-dwell-run',
+      );
+      controller.advanceBy(const Duration(seconds: 1));
+      controller.pause();
+      controller.advanceBy(const Duration(seconds: 29));
+
+      expect(controller.state.isPaused, isTrue);
+      expect(controller.state.isAutoPaused, isFalse);
+      expect(controller.state.elapsedSeconds, 1);
+      expect(controller.state.distanceMeters, 0);
+      expect(controller.mapViewState.routePointCount, 1);
     });
 
     test('foreground GPS mode becomes weak after rejected accuracy', () {

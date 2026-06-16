@@ -1,8 +1,10 @@
 import '../models/run_location_sample.dart';
 import '../models/run_map_view_state.dart';
+import '../models/run_motion_evidence.dart';
 import '../models/run_tracking_diagnostics.dart';
 import '../models/run_tracking_state.dart';
 import 'run_distance_calculator.dart';
+import 'run_movement_classifier.dart';
 
 class LocalRunTrackingSession {
   LocalRunTrackingSession({
@@ -16,6 +18,8 @@ class LocalRunTrackingSession {
     this.resumeMovementDistanceMeters = 6,
     this.resumeSpeedMetersPerSecond = 1,
     this.stationarySpeedMetersPerSecond = 0.5,
+    this.maxNoSampleStationaryAnchorAge = const Duration(seconds: 30),
+    this.movementClassifier = const RunMovementClassifier(),
   });
 
   final DateTime startedAt;
@@ -27,7 +31,9 @@ class LocalRunTrackingSession {
   final double resumeMovementDistanceMeters;
   final double resumeSpeedMetersPerSecond;
   final double stationarySpeedMetersPerSecond;
+  final Duration maxNoSampleStationaryAnchorAge;
   final RunDistanceCalculator distanceCalculator;
+  final RunMovementClassifier movementClassifier;
 
   bool _isActive = true;
   bool _needsAnchorSample = false;
@@ -68,6 +74,7 @@ class LocalRunTrackingSession {
   void advanceBy(
     Duration delta, {
     Iterable<RunLocationSample> samples = const <RunLocationSample>[],
+    Iterable<RunMotionEvidence> motionEvidence = const <RunMotionEvidence>[],
   }) {
     if (!_isActive || delta <= Duration.zero) {
       return;
@@ -75,9 +82,14 @@ class LocalRunTrackingSession {
 
     final movementStatusBeforeAdvance = _movementStatus;
     final distanceBeforeAdvance = _distanceMeters;
+    final sampleList = samples.toList();
+    final motionEvidenceList = motionEvidence.toList();
     _trackingDurationSeconds += delta.inSeconds;
-    for (final sample in samples) {
-      _acceptSample(sample);
+    for (final sample in sampleList) {
+      _acceptSample(sample, motionEvidenceList);
+    }
+    if (sampleList.isEmpty) {
+      _recordNoSampleDwell(motionEvidenceList);
     }
 
     final becameAutoPausedWithoutDistance =
@@ -109,7 +121,10 @@ class LocalRunTrackingSession {
     );
   }
 
-  void _acceptSample(RunLocationSample sample) {
+  void _acceptSample(
+    RunLocationSample sample,
+    Iterable<RunMotionEvidence> motionEvidence,
+  ) {
     _diagnostics = _diagnostics.recordSampleReceived(sample);
 
     final rejectionReason = _sampleRejectionReason(sample);
@@ -138,10 +153,13 @@ class LocalRunTrackingSession {
       return;
     }
 
-    _acceptMovementSample(sample);
+    _acceptMovementSample(sample, motionEvidence);
   }
 
-  bool _acceptMovementSample(RunLocationSample sample) {
+  bool _acceptMovementSample(
+    RunLocationSample sample,
+    Iterable<RunMotionEvidence> motionEvidence,
+  ) {
     final previousAccepted = _lastAcceptedSample;
     if (previousAccepted != null &&
         !sample.recordedAt.isAfter(previousAccepted.recordedAt)) {
@@ -187,7 +205,20 @@ class LocalRunTrackingSession {
       return false;
     }
 
-    if (_hasMeaningfulMovement(sample, segmentDistanceMeters)) {
+    final stationaryStartedAt = _stationaryStartedAt ?? sample.recordedAt;
+    final classification = movementClassifier.classifyGpsSample(
+      sample: sample,
+      distanceFromRouteAnchorMeters: segmentDistanceMeters,
+      stationaryDwell: sample.recordedAt.difference(stationaryStartedAt),
+      autoPauseDwell: autoPauseDwell,
+      stationaryDriftDistanceMeters: stationaryDriftDistanceMeters,
+      resumeMovementDistanceMeters: resumeMovementDistanceMeters,
+      resumeSpeedMetersPerSecond: resumeSpeedMetersPerSecond,
+      stationarySpeedMetersPerSecond: stationarySpeedMetersPerSecond,
+      motionEvidence: motionEvidence,
+    );
+
+    if (classification.shouldAutoResume) {
       if (_movementStatus == RunMovementStatus.autoPaused) {
         _acceptedSampleSegments.add(<RunLocationSample>[sample]);
         _lastRouteSample = sample;
@@ -201,7 +232,7 @@ class LocalRunTrackingSession {
       return true;
     }
 
-    _recordStationarySample(sample, segmentDistanceMeters);
+    _recordStationarySample(sample, classification);
     return true;
   }
 
@@ -224,22 +255,9 @@ class LocalRunTrackingSession {
     _lastRouteSample = sample;
   }
 
-  bool _hasMeaningfulMovement(
-    RunLocationSample sample,
-    double distanceFromRouteAnchorMeters,
-  ) {
-    final reportedSpeed = sample.speedMetersPerSecond;
-    final hasSpeedSignal =
-        reportedSpeed != null &&
-        reportedSpeed.isFinite &&
-        reportedSpeed >= resumeSpeedMetersPerSecond;
-    return distanceFromRouteAnchorMeters >= resumeMovementDistanceMeters ||
-        hasSpeedSignal;
-  }
-
   void _recordStationarySample(
     RunLocationSample sample,
-    double distanceFromRouteAnchorMeters,
+    RunMovementClassification classification,
   ) {
     _recordAcceptedCurrentSample(sample);
     if (_movementStatus == RunMovementStatus.autoPaused) {
@@ -247,20 +265,43 @@ class LocalRunTrackingSession {
     }
 
     _stationaryStartedAt ??= sample.recordedAt;
-    final reportedSpeed = sample.speedMetersPerSecond;
-    final hasMovingSpeedSignal =
-        reportedSpeed != null &&
-        reportedSpeed.isFinite &&
-        reportedSpeed >= stationarySpeedMetersPerSecond;
-    final stationaryDwell = sample.recordedAt.difference(_stationaryStartedAt!);
-    if (!hasMovingSpeedSignal &&
-        distanceFromRouteAnchorMeters <= stationaryDriftDistanceMeters &&
-        stationaryDwell >= autoPauseDwell) {
+    if (classification.shouldAutoPause) {
       if (!_hasRecordedMovement) {
         _movingDurationSeconds = 0;
       }
       _movementStatus = RunMovementStatus.autoPaused;
     }
+  }
+
+  void _recordNoSampleDwell(Iterable<RunMotionEvidence> motionEvidence) {
+    final lastAcceptedSample = _lastAcceptedSample;
+    if (_movementStatus == RunMovementStatus.autoPaused ||
+        lastAcceptedSample == null) {
+      return;
+    }
+
+    final currentTrackingAt = startedAt.add(
+      Duration(seconds: _trackingDurationSeconds),
+    );
+    _stationaryStartedAt ??= lastAcceptedSample.recordedAt;
+    final classification = movementClassifier.classifyNoSampleWindow(
+      dwell: currentTrackingAt.difference(_stationaryStartedAt!),
+      autoPauseDwell: autoPauseDwell,
+      anchorAge: currentTrackingAt.difference(lastAcceptedSample.recordedAt),
+      maxAnchorAge: maxNoSampleStationaryAnchorAge,
+      hasAcceptedAnchor: _diagnostics.hasAcceptedSample,
+      gpsStatusAllowsDwell:
+          _diagnostics.lastRejectedSampleSequence <=
+          _diagnostics.lastAcceptedSampleSequence,
+      motionEvidence: motionEvidence,
+    );
+    if (!classification.shouldAutoPause) {
+      return;
+    }
+    if (!_hasRecordedMovement) {
+      _movingDurationSeconds = 0;
+    }
+    _movementStatus = RunMovementStatus.autoPaused;
   }
 
   void _recordAcceptedCurrentSample(RunLocationSample sample) {

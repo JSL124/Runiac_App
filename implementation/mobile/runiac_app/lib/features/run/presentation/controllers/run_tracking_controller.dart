@@ -10,22 +10,26 @@ import '../../domain/models/run_tracking_diagnostics.dart';
 import '../../domain/models/run_tracking_state.dart';
 import '../../domain/repositories/run_location_permission_service.dart';
 import '../../domain/repositories/run_location_provider.dart';
+import '../../domain/repositories/run_motion_provider.dart';
 import '../../domain/services/local_run_tracking_session.dart';
 
 class RunTrackingController extends ChangeNotifier {
   RunTrackingController({
     double metersPerSecond = 2.4,
     RunLocationProvider? locationProvider,
+    RunMotionProvider? motionProvider,
     this.permissionService,
     RunTrackingLocationStatus locationStatus = RunTrackingLocationStatus.demo,
   }) : metersPerSecond = metersPerSecond,
        _locationProvider =
            locationProvider ??
            ConstantSpeedRunLocationProvider(metersPerSecond: metersPerSecond),
+       _motionProvider = motionProvider ?? const NoopRunMotionProvider(),
        _initialLocationStatus = locationStatus;
 
   final double metersPerSecond;
   final RunLocationProvider _locationProvider;
+  final RunMotionProvider _motionProvider;
   final RunLocationPermissionService? permissionService;
   final RunTrackingLocationStatus _initialLocationStatus;
 
@@ -74,6 +78,7 @@ class RunTrackingController extends ChangeNotifier {
       routeLabel: routeLabel,
     );
     unawaited(_locationProvider.start(startedAt: effectiveStartedAt));
+    unawaited(_motionProvider.start(startedAt: effectiveStartedAt));
     notifyListeners();
   }
 
@@ -115,6 +120,7 @@ class RunTrackingController extends ChangeNotifier {
       routeLabel: routeLabel,
     );
     await _locationProvider.start(startedAt: effectiveStartedAt);
+    await _motionProvider.start(startedAt: effectiveStartedAt);
     notifyListeners();
     return true;
   }
@@ -169,10 +175,17 @@ class RunTrackingController extends ChangeNotifier {
           startedAt: startedAt,
         )
         .toList();
+    final motionEvidence = _motionProvider
+        .evidenceBetween(
+          fromTrackingOffset: fromActiveOffset,
+          toTrackingOffset: toActiveOffset,
+          startedAt: startedAt,
+        )
+        .toList();
     session.updateLocationAccuracyStatus(
       _locationProvider.locationAccuracyStatus,
     );
-    session.advanceBy(delta, samples: samples);
+    session.advanceBy(delta, samples: samples, motionEvidence: motionEvidence);
     _latestLocationStatus = _locationStatusFor(session.diagnostics);
 
     _state = _state.copyWith(
@@ -218,6 +231,7 @@ class RunTrackingController extends ChangeNotifier {
 
     _trackingSession?.pause();
     unawaited(_locationProvider.pause());
+    unawaited(_motionProvider.pause());
     _state = _state.copyWith(phase: RunTrackingPhase.paused);
     notifyListeners();
   }
@@ -236,6 +250,12 @@ class RunTrackingController extends ChangeNotifier {
       _locationProvider.resume(
         resumedAt: DateTime.now(),
         activeOffset: activeOffset,
+      ),
+    );
+    unawaited(
+      _motionProvider.resume(
+        resumedAt: DateTime.now(),
+        trackingOffset: activeOffset,
       ),
     );
     _state = _state.copyWith(
@@ -268,6 +288,7 @@ class RunTrackingController extends ChangeNotifier {
   LocalRunCompletionPayload finish({DateTime? completedAt}) {
     final payload = completionPayload(completedAt: completedAt);
     unawaited(_locationProvider.stop());
+    unawaited(_motionProvider.stop());
     _mapViewState = const RunMapViewState.empty();
     _previewCurrentPosition = null;
     _state = _state.copyWith(
@@ -282,6 +303,7 @@ class RunTrackingController extends ChangeNotifier {
   @override
   void dispose() {
     unawaited(_locationProvider.stop());
+    unawaited(_motionProvider.stop());
     super.dispose();
   }
 }

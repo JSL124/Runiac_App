@@ -110,7 +110,7 @@ class RealForegroundRunLocationPreviewProvider
 class RealForegroundRunLocationProvider implements RunLocationProvider {
   RealForegroundRunLocationProvider({
     this.adapter = const GeolocatorForegroundLocationAdapter(),
-    this.settings = const LocationSettingsRequest(),
+    this.settings = const LocationSettingsRequest(distanceFilterMeters: 0),
   });
 
   final ForegroundLocationAdapter adapter;
