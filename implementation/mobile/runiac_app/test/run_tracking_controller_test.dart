@@ -214,6 +214,29 @@ void main() {
     });
 
     test(
+      'seeded preview current position populates map without trusted metrics',
+      () {
+        final previewSample = RunLocationSample(
+          recordedAt: DateTime.utc(2026, 6, 16, 7),
+          latitude: 1.3009,
+          longitude: 103.8,
+          horizontalAccuracyMeters: 5,
+        );
+        final controller = RunTrackingController(
+          initialPreviewCurrentPosition: previewSample,
+        );
+
+        expect(controller.state.phase, RunTrackingPhase.idle);
+        expect(controller.state.elapsedSeconds, 0);
+        expect(controller.state.distanceMeters, 0);
+        expect(controller.state.averagePaceSecondsPerKm, 0);
+        expect(controller.mapViewState.currentPosition, previewSample);
+        expect(controller.mapViewState.routeSegments, isEmpty);
+        expect(() => controller.completionPayload(), throwsStateError);
+      },
+    );
+
+    test(
       'preview current position does not seed active route metrics',
       () async {
         final provider = ReplayRunLocationProvider(const []);
@@ -229,6 +252,40 @@ void main() {
         controller.start(
           startedAt: DateTime.utc(2026, 6, 14, 7),
           clientRunSessionId: 'preview-isolated-run',
+        );
+        controller.advanceBy(const Duration(seconds: 60));
+
+        expect(controller.state.phase, RunTrackingPhase.active);
+        expect(controller.state.elapsedSeconds, 60);
+        expect(controller.state.distanceMeters, 0);
+        expect(controller.state.averagePaceSecondsPerKm, 0);
+        expect(controller.mapViewState.currentPosition, previewSample);
+        expect(controller.mapViewState.routeSegments, isEmpty);
+        expect(
+          controller.completionPayload().toRawClientMap().keys,
+          isNot(contains('routeSamples')),
+        );
+      },
+    );
+
+    test(
+      'seeded preview current position does not seed active route metrics',
+      () async {
+        final provider = ReplayRunLocationProvider(const []);
+        final previewSample = RunLocationSample(
+          recordedAt: DateTime.utc(2026, 6, 16, 7),
+          latitude: 1.3009,
+          longitude: 103.8,
+          horizontalAccuracyMeters: 5,
+        );
+        final controller = RunTrackingController(
+          locationProvider: provider,
+          initialPreviewCurrentPosition: previewSample,
+        );
+
+        controller.start(
+          startedAt: DateTime.utc(2026, 6, 16, 7),
+          clientRunSessionId: 'seeded-preview-isolated-run',
         );
         controller.advanceBy(const Duration(seconds: 60));
 

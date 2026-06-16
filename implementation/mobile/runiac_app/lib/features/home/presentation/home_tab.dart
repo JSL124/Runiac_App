@@ -35,11 +35,20 @@ class HomeTab extends StatelessWidget {
     );
   }
 
-  void _openQuickStart(BuildContext context) {
+  Future<void> _openQuickStart(BuildContext context) async {
+    final initialPreviewCurrentPosition =
+        await prewarmRunLaunchPreviewCurrentPosition(
+          enableForegroundGps: enableForegroundGps,
+        );
+    if (!context.mounted) {
+      return;
+    }
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (context) =>
-            RunLaunchScreen(enableForegroundGps: enableForegroundGps),
+        builder: (context) => RunLaunchScreen(
+          enableForegroundGps: enableForegroundGps,
+          initialPreviewCurrentPosition: initialPreviewCurrentPosition,
+        ),
       ),
     );
   }

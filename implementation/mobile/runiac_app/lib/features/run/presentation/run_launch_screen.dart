@@ -9,6 +9,7 @@ import '../data/real_foreground_run_location_provider.dart';
 import '../data/sensors_plus_run_motion_provider.dart';
 import '../domain/models/complete_run_result.dart';
 import '../domain/models/run_location_permission_status.dart';
+import '../domain/models/run_location_sample.dart';
 import '../domain/models/run_completion_error.dart';
 import '../domain/models/run_tracking_state.dart';
 import '../domain/repositories/run_location_permission_service.dart';
@@ -58,6 +59,55 @@ enum _RunPreviewLocationStatus {
   unavailable,
 }
 
+RunLocationPermissionService? _resolveRunLaunchPermissionService({
+  required bool enableForegroundGps,
+  required RunLocationPermissionService? permissionService,
+}) {
+  if (!enableForegroundGps) {
+    return permissionService;
+  }
+  return permissionService ?? const GeolocatorRunLocationPermissionService();
+}
+
+RunLocationPreviewProvider? _resolveRunLaunchPreviewProvider({
+  required bool enableForegroundGps,
+  required RunLocationPreviewProvider? locationPreviewProvider,
+}) {
+  if (!enableForegroundGps) {
+    return locationPreviewProvider;
+  }
+  return locationPreviewProvider ??
+      const RealForegroundRunLocationPreviewProvider();
+}
+
+Future<RunLocationSample?> prewarmRunLaunchPreviewCurrentPosition({
+  required bool enableForegroundGps,
+  RunLocationPermissionService? permissionService,
+  RunLocationPreviewProvider? locationPreviewProvider,
+}) async {
+  final effectivePermissionService = _resolveRunLaunchPermissionService(
+    enableForegroundGps: enableForegroundGps,
+    permissionService: permissionService,
+  );
+  final effectivePreviewProvider = _resolveRunLaunchPreviewProvider(
+    enableForegroundGps: enableForegroundGps,
+    locationPreviewProvider: locationPreviewProvider,
+  );
+  if (effectivePermissionService == null || effectivePreviewProvider == null) {
+    return null;
+  }
+
+  try {
+    final permissionStatus = await effectivePermissionService.checkStatus();
+    if (permissionStatus != RunLocationPermissionStatus.granted) {
+      return null;
+    }
+    return await effectivePreviewProvider.currentLocation();
+  } on Object {
+    return null;
+  }
+}
+
 class RunLaunchScreen extends StatefulWidget {
   const RunLaunchScreen({
     super.key,
@@ -70,6 +120,7 @@ class RunLaunchScreen extends StatefulWidget {
     this.mapboxAccessToken,
     this.mapboxBuilder,
     this.enableMapboxFollowQa = runMapboxFollowQaEnabled,
+    this.initialPreviewCurrentPosition,
   });
 
   final RunRepository? repository;
@@ -81,6 +132,7 @@ class RunLaunchScreen extends StatefulWidget {
   final String? mapboxAccessToken;
   final RunMapboxSurfaceBuilder? mapboxBuilder;
   final bool enableMapboxFollowQa;
+  final RunLocationSample? initialPreviewCurrentPosition;
 
   @override
   State<RunLaunchScreen> createState() => _RunLaunchScreenState();
@@ -109,14 +161,14 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
   void initState() {
     super.initState();
     final useForegroundGps = widget.enableForegroundGps;
-    _permissionService = useForegroundGps
-        ? widget.permissionService ??
-              const GeolocatorRunLocationPermissionService()
-        : widget.permissionService;
-    _locationPreviewProvider = useForegroundGps
-        ? widget.locationPreviewProvider ??
-              const RealForegroundRunLocationPreviewProvider()
-        : widget.locationPreviewProvider;
+    _permissionService = _resolveRunLaunchPermissionService(
+      enableForegroundGps: useForegroundGps,
+      permissionService: widget.permissionService,
+    );
+    _locationPreviewProvider = _resolveRunLaunchPreviewProvider(
+      enableForegroundGps: useForegroundGps,
+      locationPreviewProvider: widget.locationPreviewProvider,
+    );
     _controller = RunTrackingController(
       locationProvider: useForegroundGps
           ? widget.locationProvider ?? RealForegroundRunLocationProvider()
@@ -128,9 +180,12 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
       locationStatus: useForegroundGps
           ? RunTrackingLocationStatus.waitingForGps
           : RunTrackingLocationStatus.demo,
+      initialPreviewCurrentPosition: widget.initialPreviewCurrentPosition,
     );
     if (useForegroundGps) {
-      _previewLocationStatus = _RunPreviewLocationStatus.checkingPermission;
+      _previewLocationStatus = widget.initialPreviewCurrentPosition == null
+          ? _RunPreviewLocationStatus.checkingPermission
+          : _RunPreviewLocationStatus.locationReady;
       unawaited(_refreshPreviewLocation(requestPermission: false));
     }
   }
@@ -336,10 +391,13 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
     }
 
     final requestId = ++_previewRequestId;
+    final hasSeededPreview = _controller.previewCurrentPosition != null;
     if (mounted) {
       setState(() {
         _previewLocationStatus = requestPermission
             ? _RunPreviewLocationStatus.findingLocation
+            : hasSeededPreview
+            ? _RunPreviewLocationStatus.locationReady
             : _RunPreviewLocationStatus.checkingPermission;
       });
     }
@@ -363,9 +421,11 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
       return;
     }
 
-    setState(() {
-      _previewLocationStatus = _RunPreviewLocationStatus.findingLocation;
-    });
+    if (!hasSeededPreview || requestPermission) {
+      setState(() {
+        _previewLocationStatus = _RunPreviewLocationStatus.findingLocation;
+      });
+    }
 
     try {
       final sample = await previewProvider.currentLocation();

@@ -20,12 +20,14 @@ class RunTrackingController extends ChangeNotifier {
     RunMotionProvider? motionProvider,
     this.permissionService,
     RunTrackingLocationStatus locationStatus = RunTrackingLocationStatus.demo,
+    RunLocationSample? initialPreviewCurrentPosition,
   }) : metersPerSecond = metersPerSecond,
        _locationProvider =
            locationProvider ??
            ConstantSpeedRunLocationProvider(metersPerSecond: metersPerSecond),
        _motionProvider = motionProvider ?? const NoopRunMotionProvider(),
-       _initialLocationStatus = locationStatus;
+       _initialLocationStatus = locationStatus,
+       _previewCurrentPosition = initialPreviewCurrentPosition;
 
   final double metersPerSecond;
   final RunLocationProvider _locationProvider;

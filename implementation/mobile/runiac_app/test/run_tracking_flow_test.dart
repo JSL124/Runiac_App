@@ -61,12 +61,6 @@ Future<void> _openRunLaunch(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-Future<void> _openDefaultRunLaunch(WidgetTester tester) async {
-  await tester.pumpWidget(const RuniacApp(showSplash: false));
-  await tester.tap(find.text('Run'));
-  await tester.pumpAndSettle();
-}
-
 class _RoutePushRecorder extends NavigatorObserver {
   final List<Route<dynamic>> pushedRoutes = <Route<dynamic>>[];
 
@@ -155,6 +149,53 @@ RunLocationSample _previewSample() {
 }
 
 void main() {
+  test(
+    'prewarmRunLaunchPreviewCurrentPosition returns a sample when permission is granted',
+    () async {
+      final permissionService = _ConfigurableRunLocationPermissionService(
+        checkedStatus: RunLocationPermissionStatus.granted,
+      );
+      final previewProvider = _FakeRunLocationPreviewProvider(
+        sample: _previewSample(),
+      );
+
+      final previewSample = await prewarmRunLaunchPreviewCurrentPosition(
+        enableForegroundGps: true,
+        permissionService: permissionService,
+        locationPreviewProvider: previewProvider,
+      );
+
+      expect(previewSample?.latitude, 1.3009);
+      expect(previewSample?.longitude, 103.8);
+      expect(permissionService.checkCount, 1);
+      expect(permissionService.requestCount, 0);
+      expect(previewProvider.requestCount, 1);
+    },
+  );
+
+  test(
+    'prewarmRunLaunchPreviewCurrentPosition does not prompt when permission is not granted',
+    () async {
+      final permissionService = _ConfigurableRunLocationPermissionService(
+        checkedStatus: RunLocationPermissionStatus.denied,
+      );
+      final previewProvider = _FakeRunLocationPreviewProvider(
+        sample: _previewSample(),
+      );
+
+      final previewSample = await prewarmRunLaunchPreviewCurrentPosition(
+        enableForegroundGps: true,
+        permissionService: permissionService,
+        locationPreviewProvider: previewProvider,
+      );
+
+      expect(previewSample, isNull);
+      expect(permissionService.checkCount, 1);
+      expect(permissionService.requestCount, 0);
+      expect(previewProvider.requestCount, 0);
+    },
+  );
+
   testWidgets('Run launch top GPS pill fits GPS ready on narrow phones', (
     WidgetTester tester,
   ) async {
@@ -266,10 +307,11 @@ void main() {
   ) async {
     _useMobileRunSurface(tester);
 
-    await _openDefaultRunLaunch(tester);
+    await tester.pumpWidget(const MaterialApp(home: RunLaunchScreen()));
+    await tester.pumpAndSettle();
 
-    expect(find.byType(RunLaunchScreen), findsOneWidget);
     expect(find.text('Demo mode'), findsNothing);
+    expect(find.text('Start run'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -597,6 +639,41 @@ void main() {
       await tester.pump();
 
       expect(find.byKey(const Key('run_map_recenter_button')), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'RunLaunchScreen seeded preview current position reaches the map on first build',
+    (WidgetTester tester) async {
+      _useMobileRunSurface(tester);
+      final permissionService = _ConfigurableRunLocationPermissionService(
+        checkedStatus: RunLocationPermissionStatus.granted,
+      );
+      final previewProvider = _CompletingRunLocationPreviewProvider();
+      RunMapboxSurfaceConfig? firstConfig;
+      final seededPreviewSample = _previewSample();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RunLaunchScreen(
+            locationProvider: ReplayRunLocationProvider(const []),
+            locationPreviewProvider: previewProvider,
+            permissionService: permissionService,
+            initialPreviewCurrentPosition: seededPreviewSample,
+            mapboxAccessToken: _demoMapboxPublicToken,
+            mapboxBuilder: (context, config) {
+              firstConfig ??= config;
+              return const ColoredBox(color: Colors.black);
+            },
+          ),
+        ),
+      );
+
+      expect(firstConfig?.mapViewState.currentPosition, seededPreviewSample);
+      expect(firstConfig?.mapViewState.routeSegments, isEmpty);
+      expect(firstConfig?.isFollowingRunner, isTrue);
+      expect(find.text('Start run'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );

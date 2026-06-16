@@ -24,11 +24,20 @@ class WeeklyWorkoutDetailScreen extends StatelessWidget {
   final bool enableForegroundGps;
   final VoidCallback? onStartRun;
 
-  void _openRunLaunch(BuildContext context) {
+  Future<void> _openRunLaunch(BuildContext context) async {
+    final initialPreviewCurrentPosition =
+        await prewarmRunLaunchPreviewCurrentPosition(
+          enableForegroundGps: enableForegroundGps,
+        );
+    if (!context.mounted) {
+      return;
+    }
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (context) =>
-            RunLaunchScreen(enableForegroundGps: enableForegroundGps),
+        builder: (context) => RunLaunchScreen(
+          enableForegroundGps: enableForegroundGps,
+          initialPreviewCurrentPosition: initialPreviewCurrentPosition,
+        ),
       ),
     );
   }

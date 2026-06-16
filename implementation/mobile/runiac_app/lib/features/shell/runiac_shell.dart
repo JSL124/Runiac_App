@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../home/presentation/home_tab.dart';
 import '../leaderboard/presentation/leaderboard_tab.dart';
 import '../maps/presentation/maps_tab.dart';
+import '../run/domain/models/run_location_sample.dart';
 import '../run/presentation/run_launch_screen.dart';
 import '../you/presentation/you_tab.dart';
 
@@ -18,9 +19,20 @@ class RuniacShell extends StatefulWidget {
 class _RuniacShellState extends State<RuniacShell> {
   int _selectedIndex = 0;
 
-  void _handleNavigationTap(int index) {
+  Future<void> _handleNavigationTap(int index) async {
     if (index == 2) {
-      Navigator.of(context).push(_buildRunLaunchRoute());
+      final initialPreviewCurrentPosition =
+          await prewarmRunLaunchPreviewCurrentPosition(
+            enableForegroundGps: widget.enableForegroundGps,
+          );
+      if (!mounted) {
+        return;
+      }
+      Navigator.of(context).push(
+        _buildRunLaunchRoute(
+          initialPreviewCurrentPosition: initialPreviewCurrentPosition,
+        ),
+      );
       return;
     }
 
@@ -29,10 +41,15 @@ class _RuniacShellState extends State<RuniacShell> {
     });
   }
 
-  PageRouteBuilder<void> _buildRunLaunchRoute() {
+  PageRouteBuilder<void> _buildRunLaunchRoute({
+    RunLocationSample? initialPreviewCurrentPosition,
+  }) {
     return PageRouteBuilder<void>(
       pageBuilder: (context, animation, secondaryAnimation) {
-        return RunLaunchScreen(enableForegroundGps: widget.enableForegroundGps);
+        return RunLaunchScreen(
+          enableForegroundGps: widget.enableForegroundGps,
+          initialPreviewCurrentPosition: initialPreviewCurrentPosition,
+        );
       },
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
         final offsetAnimation =
