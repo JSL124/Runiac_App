@@ -41,7 +41,7 @@ void main() {
       expect(result.summaryId, 'summary_123');
       expect(result.progressionEventId, 'progression_123');
       expect(result.validationStatus, 'validated');
-      expect(result.summary.title, 'Repository Result Route');
+      expect(result.summary.title, 'Sunday Morning Run');
       expect(result.summary.distanceKm, '3.20');
       expect(result.summary.duration, '25:00');
       expect(result.summary.avgPace, '7’49”');

@@ -7,6 +7,7 @@ import '../domain/models/run_summary_read_model.dart';
 import '../domain/models/run_summary_snapshot.dart';
 import '../domain/models/xp_update_display_model.dart';
 import '../domain/repositories/run_repository.dart';
+import '../domain/services/completed_run_title_formatter.dart';
 import '../domain/services/run_calories_estimator.dart';
 import '../presentation/data/run_completion_demo_snapshots.dart';
 
@@ -53,7 +54,9 @@ class StaticRunRepository implements RunRepository {
       averagePaceSecondsPerKm: payload.avgPaceSecondsPerKm,
     );
     final summary = RunSummarySnapshot(
-      title: payload.routeLabel ?? 'Completed Run',
+      title: const CompletedRunTitleFormatter().format(
+        completedAt: payload.completedAt,
+      ),
       dateLabel: _formatDate(payload.completedAt),
       timeLabel: _formatTime(payload.completedAt),
       distanceKm: _formatDistanceKm(payload.distanceMeters),

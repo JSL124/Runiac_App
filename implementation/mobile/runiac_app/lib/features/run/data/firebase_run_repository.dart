@@ -8,6 +8,7 @@ import '../domain/models/run_summary_read_model.dart';
 import '../domain/models/run_summary_snapshot.dart';
 import '../domain/models/xp_update_display_model.dart';
 import '../domain/repositories/run_repository.dart';
+import '../domain/services/completed_run_title_formatter.dart';
 import '../domain/services/run_calories_estimator.dart';
 import 'static_run_repository.dart';
 
@@ -89,6 +90,7 @@ class _CompleteRunResultMapper {
     final paceSeconds = _readInt(summary, 'averagePaceSecondsPerKm');
     final distanceMeters = _readInt(summary, 'distanceMeters');
     final durationSeconds = _readInt(summary, 'durationSeconds');
+    final endedAt = _readDate(summary, 'endedAt');
     final calories = const RunCaloriesEstimator().estimate(
       bodyWeightKg: demoBodyWeightKgForCalories,
       movingSeconds: durationSeconds,
@@ -102,9 +104,9 @@ class _CompleteRunResultMapper {
       progressionEventId: _readString(response, 'progressionEventId'),
       validationStatus: _readString(response, 'validationStatus'),
       summary: RunSummarySnapshot(
-        title: _readString(summary, 'title'),
-        dateLabel: _formatDate(_readDate(summary, 'endedAt')),
-        timeLabel: _formatTime(_readDate(summary, 'endedAt')),
+        title: const CompletedRunTitleFormatter().format(completedAt: endedAt),
+        dateLabel: _formatDate(endedAt),
+        timeLabel: _formatTime(endedAt),
         distanceKm: _formatDistanceKm(distanceMeters),
         avgPace: _formatPace(paceSeconds),
         duration: _formatDuration(durationSeconds),

@@ -17,6 +17,7 @@ import 'package:runiac_app/features/run/domain/models/run_summary_read_model.dar
 import 'package:runiac_app/features/run/domain/models/run_summary_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/xp_update_display_model.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_repository.dart';
+import 'package:runiac_app/features/run/domain/services/completed_run_title_formatter.dart';
 import 'package:runiac_app/features/run/presentation/run_launch_screen.dart';
 import 'package:runiac_app/features/run/presentation/view_summary_screen.dart';
 import 'package:runiac_app/features/run/presentation/widgets/share_achievement_sheet.dart';
@@ -176,6 +177,44 @@ class _DelayedRunRepository extends _ResultRunRepository {
     completeRunCalls += 1;
     lastPayload = payload;
     return completer.future;
+  }
+}
+
+class _GeneratedTitleRunRepository extends _ResultRunRepository {
+  _GeneratedTitleRunRepository() : super(_repositoryCompletionResult);
+
+  String? generatedTitle;
+
+  @override
+  Future<CompleteRunResult> completeRun(LocalRunCompletionPayload payload) {
+    completeRunCalls += 1;
+    lastPayload = payload;
+    final title = const CompletedRunTitleFormatter().format(
+      completedAt: payload.completedAt,
+    );
+    generatedTitle = title;
+    return Future<CompleteRunResult>.value(
+      CompleteRunResult(
+        activityId: result.activityId,
+        summaryId: result.summaryId,
+        progressionEventId: result.progressionEventId,
+        validationStatus: result.validationStatus,
+        summary: RunSummarySnapshot(
+          title: title,
+          dateLabel: result.summary.dateLabel,
+          timeLabel: result.summary.timeLabel,
+          distanceKm: result.summary.distanceKm,
+          avgPace: result.summary.avgPace,
+          duration: result.summary.duration,
+          avgHeartRate: result.summary.avgHeartRate,
+          calories: result.summary.calories,
+          routeName: result.summary.routeName,
+        ),
+        progressionDisplay: result.progressionDisplay,
+        xpUpdate: result.xpUpdate,
+        message: result.message,
+      ),
+    );
   }
 }
 
@@ -449,6 +488,41 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+
+  testWidgets('Run finish displays generated completion title in summary', (
+    WidgetTester tester,
+  ) async {
+    final repository = _GeneratedTitleRunRepository();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RunLaunchScreen(
+          repository: repository,
+          enableForegroundGps: false,
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Start run'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Pause'));
+    await tester.pumpAndSettle();
+    await _finishPausedRun(tester);
+
+    expect(repository.completeRunCalls, 1);
+    expect(repository.lastPayload, isNotNull);
+    expect(repository.generatedTitle, isNotNull);
+    final generatedTitle = repository.generatedTitle!;
+    expect(find.text(generatedTitle), findsNothing);
+
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Skip to Summary'));
+    await tester.pumpAndSettle();
+
+    expect(find.text(generatedTitle), findsOneWidget);
+    expect(find.text('Repository Route'), findsOneWidget);
+    expect(find.text('Saturday Morning Run'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets(
     'Immediate Run finish shows zero summary instead of demo fallback',

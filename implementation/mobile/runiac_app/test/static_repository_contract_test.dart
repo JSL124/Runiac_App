@@ -239,7 +239,7 @@ void main() {
         'static-progression-local-session-20260614-0700',
       );
       expect(completedRun.validationStatus, 'validated');
-      expect(completedRun.summary.title, 'Repository Result Route');
+      expect(completedRun.summary.title, 'Sunday Morning Run');
       expect(completedRun.summary.distanceKm, '3.20');
       expect(completedRun.summary.duration, '25:00');
       expect(completedRun.summary.avgPace, '7’49”');
@@ -274,14 +274,14 @@ void main() {
 
         final completedRun = await repository.completeRun(payload);
 
-        expect(completedRun.summary.title, 'Easy local route');
+        expect(completedRun.summary.title, 'Sunday Morning Run');
         expect(completedRun.summary.distanceKm, '0.00');
         expect(completedRun.summary.duration, '0:00');
         expect(completedRun.summary.avgPace, '--');
         expect(completedRun.summary.avgHeartRate, '--');
         expect(completedRun.summary.calories, '--');
         expect(completedRun.summary.routeName, 'Easy local route');
-        expect(completedRun.summary.title, isNot('Saturday Morning Run'));
+        expect(completedRun.summary.title, isNot('Easy local route'));
         expect(completedRun.summary.distanceKm, isNot('4.03'));
         expect(completedRun.summary.avgPace, isNot('6’30”'));
         expect(completedRun.summary.duration, isNot('30:15'));
