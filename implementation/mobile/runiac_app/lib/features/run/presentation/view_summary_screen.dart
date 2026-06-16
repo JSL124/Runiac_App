@@ -354,7 +354,7 @@ class _MetricSummary extends StatelessWidget {
                   Expanded(
                     child: _MetricText(
                       value: _metricValueWithUnit(summary.calories, 'kcal'),
-                      label: 'Calories',
+                      label: 'Est. calories',
                     ),
                   ),
                 ],

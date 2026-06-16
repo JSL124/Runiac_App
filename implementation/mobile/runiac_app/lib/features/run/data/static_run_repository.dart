@@ -7,6 +7,7 @@ import '../domain/models/run_summary_read_model.dart';
 import '../domain/models/run_summary_snapshot.dart';
 import '../domain/models/xp_update_display_model.dart';
 import '../domain/repositories/run_repository.dart';
+import '../domain/services/run_calories_estimator.dart';
 import '../presentation/data/run_completion_demo_snapshots.dart';
 
 class StaticRunRepository implements RunRepository {
@@ -45,6 +46,12 @@ class StaticRunRepository implements RunRepository {
     RunCompletionRequestAdapter.toBackendRequest(payload);
 
     final sessionId = payload.clientRunSessionId;
+    final calories = const RunCaloriesEstimator().estimate(
+      bodyWeightKg: demoBodyWeightKgForCalories,
+      movingSeconds: payload.durationSeconds,
+      distanceMeters: payload.distanceMeters,
+      averagePaceSecondsPerKm: payload.avgPaceSecondsPerKm,
+    );
     final summary = RunSummarySnapshot(
       title: payload.routeLabel ?? 'Completed Run',
       dateLabel: _formatDate(payload.completedAt),
@@ -53,7 +60,7 @@ class StaticRunRepository implements RunRepository {
       avgPace: _formatPace(payload.avgPaceSecondsPerKm),
       duration: _formatDuration(payload.durationSeconds),
       avgHeartRate: '--',
-      calories: '--',
+      calories: _formatCalories(calories),
       routeName: payload.routeLabel ?? 'Private route',
     );
 
@@ -120,6 +127,10 @@ class StaticRunRepository implements RunRepository {
     final minutes = paceSecondsPerKm ~/ 60;
     final seconds = paceSecondsPerKm % 60;
     return '$minutes’${seconds.toString().padLeft(2, '0')}”';
+  }
+
+  String _formatCalories(int? calories) {
+    return calories == null ? '--' : calories.toString();
   }
 
   String _formatDate(DateTime value) {

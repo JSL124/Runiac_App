@@ -8,6 +8,7 @@ import '../domain/models/run_summary_read_model.dart';
 import '../domain/models/run_summary_snapshot.dart';
 import '../domain/models/xp_update_display_model.dart';
 import '../domain/repositories/run_repository.dart';
+import '../domain/services/run_calories_estimator.dart';
 import 'static_run_repository.dart';
 
 abstract interface class CompleteRunCallable {
@@ -86,6 +87,14 @@ class _CompleteRunResultMapper {
     final summary = _readMap(response, 'runSummary');
     final progression = _readMap(response, 'progressionDisplay');
     final paceSeconds = _readInt(summary, 'averagePaceSecondsPerKm');
+    final distanceMeters = _readInt(summary, 'distanceMeters');
+    final durationSeconds = _readInt(summary, 'durationSeconds');
+    final calories = const RunCaloriesEstimator().estimate(
+      bodyWeightKg: demoBodyWeightKgForCalories,
+      movingSeconds: durationSeconds,
+      distanceMeters: distanceMeters,
+      averagePaceSecondsPerKm: paceSeconds,
+    );
 
     return CompleteRunResult(
       activityId: _readString(response, 'activityId'),
@@ -96,11 +105,11 @@ class _CompleteRunResultMapper {
         title: _readString(summary, 'title'),
         dateLabel: _formatDate(_readDate(summary, 'endedAt')),
         timeLabel: _formatTime(_readDate(summary, 'endedAt')),
-        distanceKm: _formatDistanceKm(_readInt(summary, 'distanceMeters')),
+        distanceKm: _formatDistanceKm(distanceMeters),
         avgPace: _formatPace(paceSeconds),
-        duration: _formatDuration(_readInt(summary, 'durationSeconds')),
+        duration: _formatDuration(durationSeconds),
         avgHeartRate: '--',
-        calories: '--',
+        calories: _formatCalories(calories),
         routeName:
             _readOptionalString(summary, 'routeLabel') ?? 'Private route',
       ),
@@ -233,6 +242,10 @@ class _CompleteRunResultMapper {
     final minutes = paceSecondsPerKm ~/ 60;
     final seconds = paceSecondsPerKm % 60;
     return '$minutes’${seconds.toString().padLeft(2, '0')}”';
+  }
+
+  static String _formatCalories(int? calories) {
+    return calories == null ? '--' : calories.toString();
   }
 
   static String _formatDate(DateTime value) {

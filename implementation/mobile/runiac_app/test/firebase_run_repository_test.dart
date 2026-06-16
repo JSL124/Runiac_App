@@ -45,6 +45,7 @@ void main() {
       expect(result.summary.distanceKm, '3.20');
       expect(result.summary.duration, '25:00');
       expect(result.summary.avgPace, '7’49”');
+      expect(result.summary.calories, '270');
       expect(result.progressionDisplay.xpDelta, 0);
       expect(result.progressionDisplay.countsTowardLeaderboard, isFalse);
       expect(result.progressionDisplay.status, 'deferred');
@@ -130,6 +131,7 @@ void main() {
         await repository.completeRun(_payload());
 
         const protectedFragments = <String>[
+          'calorie',
           'xp',
           'streak',
           'level',

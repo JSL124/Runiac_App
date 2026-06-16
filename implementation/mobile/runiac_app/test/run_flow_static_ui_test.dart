@@ -580,7 +580,7 @@ void main() {
     expect(find.text('145 bpm'), findsOneWidget);
     expect(find.text('145 kcal'), findsOneWidget);
     expect(find.text('Avg Heart Rate'), findsOneWidget);
-    expect(find.text('Calories'), findsOneWidget);
+    expect(find.text('Est. calories'), findsOneWidget);
     expect(find.byType(GridView), findsNothing);
     expect(find.byIcon(Icons.speed_rounded), findsNothing);
     expect(find.byIcon(Icons.schedule_rounded), findsNothing);
@@ -747,6 +747,7 @@ void main() {
       expect(find.text('3.20'), findsOneWidget);
       expect(find.text('7’49”'), findsOneWidget);
       expect(find.text('25:00'), findsOneWidget);
+      expect(find.text('Est. calories'), findsOneWidget);
       expect(find.text('--'), findsNWidgets(2));
       expect(find.text('-- bpm'), findsNothing);
       expect(find.text('-- kcal'), findsNothing);

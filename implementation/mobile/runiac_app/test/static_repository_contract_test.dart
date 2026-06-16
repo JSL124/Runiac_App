@@ -243,6 +243,7 @@ void main() {
       expect(completedRun.summary.distanceKm, '3.20');
       expect(completedRun.summary.duration, '25:00');
       expect(completedRun.summary.avgPace, '7’49”');
+      expect(completedRun.summary.calories, '270');
       expect(completedRun.progressionDisplay.xpDelta, 0);
       expect(completedRun.progressionDisplay.countsTowardLeaderboard, isFalse);
       expect(completedRun.progressionDisplay.status, 'deferred');

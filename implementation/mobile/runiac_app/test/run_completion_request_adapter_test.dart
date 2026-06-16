@@ -46,6 +46,7 @@ void main() {
 
       final request = RunCompletionRequestAdapter.toBackendRequest(payload);
       const forbiddenFragments = <String>[
+        'calorie',
         'xp',
         'streak',
         'level',
