@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
 import 'package:runiac_app/features/run/domain/models/run_location_sample.dart';
 import 'package:runiac_app/features/run/domain/models/run_map_view_state.dart';
@@ -770,6 +771,140 @@ void main() {
     });
   });
 
+  group('RunMapboxRunnerMarkerSyncController', () {
+    test(
+      'first non-null currentPosition creates one styled runner marker',
+      () async {
+        final operations = _FakeRunnerMarkerOperations();
+        final controller =
+            RunMapboxRunnerMarkerSyncController<_FakeRunnerMarker>();
+
+        await controller.sync(
+          mapViewState: _viewStateWithCurrentPosition(
+            1.300899,
+            longitude: 103.812345,
+          ),
+          operations: operations,
+        );
+
+        expect(operations.createCalls, 1);
+        expect(operations.updateCalls, 0);
+        expect(operations.deleteCalls, 0);
+        expect(operations.lastPoint, <double>[103.812345, 1.300899]);
+        expect(operations.createdOptions.single.circleRadius, 12);
+        expect(operations.createdOptions.single.circleStrokeWidth, 4);
+        expect(operations.createdOptions.single.circleSortKey, 1000);
+        expect(
+          operations.createdOptions.single.circleColor,
+          const Color(0xFFFF6818).toARGB32(),
+        );
+        expect(
+          operations.createdOptions.single.circleStrokeColor,
+          Colors.white.toARGB32(),
+        );
+        expect(controller.hasMarker, isTrue);
+      },
+    );
+
+    test('second non-null currentPosition updates existing marker', () async {
+      final operations = _FakeRunnerMarkerOperations();
+      final controller =
+          RunMapboxRunnerMarkerSyncController<_FakeRunnerMarker>();
+
+      await controller.sync(
+        mapViewState: _viewStateWithCurrentPosition(1.300000),
+        operations: operations,
+      );
+      await controller.sync(
+        mapViewState: _viewStateWithCurrentPosition(
+          1.301000,
+          longitude: 103.801000,
+        ),
+        operations: operations,
+      );
+
+      expect(operations.createCalls, 1);
+      expect(operations.updateCalls, 1);
+      expect(operations.deleteCalls, 0);
+      expect(operations.lastPoint, <double>[103.801000, 1.301000]);
+      expect(
+        operations.updatedMarkers.single,
+        same(operations.createdMarkers.single),
+      );
+      expect(controller.hasMarker, isTrue);
+    });
+
+    test('null currentPosition deletes existing marker once', () async {
+      final operations = _FakeRunnerMarkerOperations();
+      final controller =
+          RunMapboxRunnerMarkerSyncController<_FakeRunnerMarker>();
+
+      await controller.sync(
+        mapViewState: _viewStateWithCurrentPosition(1.300000),
+        operations: operations,
+      );
+      await controller.sync(
+        mapViewState: const RunMapViewState.empty(),
+        operations: operations,
+      );
+      await controller.sync(
+        mapViewState: const RunMapViewState.empty(),
+        operations: operations,
+      );
+
+      expect(operations.createCalls, 1);
+      expect(operations.updateCalls, 0);
+      expect(operations.deleteCalls, 1);
+      expect(
+        operations.deletedMarkers.single,
+        same(operations.createdMarkers.single),
+      );
+      expect(controller.hasMarker, isFalse);
+    });
+
+    test('route-only sync does not delete existing runner marker', () async {
+      final operations = _FakeRunnerMarkerOperations();
+      final controller =
+          RunMapboxRunnerMarkerSyncController<_FakeRunnerMarker>();
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+
+      await controller.sync(
+        mapViewState: _viewStateWithCurrentPosition(1.300000),
+        operations: operations,
+      );
+      await controller.sync(
+        mapViewState: RunMapViewState(
+          currentPosition: RunLocationSample(
+            recordedAt: startedAt.add(const Duration(seconds: 60)),
+            latitude: 1.300500,
+            longitude: 103.800500,
+          ),
+          routeSegments: [
+            [
+              RunLocationSample(
+                recordedAt: startedAt,
+                latitude: 1.300000,
+                longitude: 103.800000,
+              ),
+              RunLocationSample(
+                recordedAt: startedAt.add(const Duration(seconds: 60)),
+                latitude: 1.300500,
+                longitude: 103.800500,
+              ),
+            ],
+          ],
+        ),
+        operations: operations,
+      );
+
+      expect(operations.createCalls, 1);
+      expect(operations.updateCalls, 1);
+      expect(operations.deleteCalls, 0);
+      expect(operations.lastPoint, <double>[103.800500, 1.300500]);
+      expect(controller.hasMarker, isTrue);
+    });
+  });
+
   group('RunMapboxRunnerMarkerAnnotation', () {
     test('does not create a runner marker without currentPosition', () {
       expect(
@@ -993,5 +1128,54 @@ class _FakeRunMapboxSyncTarget implements RunMapboxSyncTarget {
   @override
   Future<void> cancelCameraAnimation() async {
     cancelCameraAnimationCalls++;
+  }
+}
+
+class _FakeRunnerMarker {
+  _FakeRunnerMarker(this.options);
+
+  CircleAnnotationOptions options;
+}
+
+class _FakeRunnerMarkerOperations
+    implements RunMapboxRunnerMarkerOperations<_FakeRunnerMarker> {
+  final List<CircleAnnotationOptions> createdOptions =
+      <CircleAnnotationOptions>[];
+  final List<_FakeRunnerMarker> createdMarkers = <_FakeRunnerMarker>[];
+  final List<_FakeRunnerMarker> updatedMarkers = <_FakeRunnerMarker>[];
+  final List<_FakeRunnerMarker> deletedMarkers = <_FakeRunnerMarker>[];
+  List<double>? lastPoint;
+
+  int get createCalls => createdMarkers.length;
+  int get updateCalls => updatedMarkers.length;
+  int get deleteCalls => deletedMarkers.length;
+
+  @override
+  Future<_FakeRunnerMarker> create(CircleAnnotationOptions options) async {
+    createdOptions.add(options);
+    lastPoint = _coordinatesFor(options);
+    final marker = _FakeRunnerMarker(options);
+    createdMarkers.add(marker);
+    return marker;
+  }
+
+  @override
+  Future<void> update(
+    _FakeRunnerMarker marker,
+    CircleAnnotationOptions options,
+  ) async {
+    marker.options = options;
+    updatedMarkers.add(marker);
+    lastPoint = _coordinatesFor(options);
+  }
+
+  @override
+  Future<void> delete(_FakeRunnerMarker marker) async {
+    deletedMarkers.add(marker);
+  }
+
+  List<double> _coordinatesFor(CircleAnnotationOptions options) {
+    return (options.geometry.toJson()['coordinates'] as List<Object?>)
+        .cast<double>();
   }
 }

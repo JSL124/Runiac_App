@@ -326,6 +326,76 @@ class RunMapboxStyleReadySyncController {
   }
 }
 
+@visibleForTesting
+abstract class RunMapboxRunnerMarkerOperations<T extends Object> {
+  Future<T> create(CircleAnnotationOptions options);
+
+  Future<void> update(T marker, CircleAnnotationOptions options);
+
+  Future<void> delete(T marker);
+}
+
+@visibleForTesting
+class RunMapboxRunnerMarkerSyncController<T extends Object> {
+  T? _marker;
+
+  bool get hasMarker => _marker != null;
+
+  Future<void> sync({
+    required RunMapViewState mapViewState,
+    required RunMapboxRunnerMarkerOperations<T> operations,
+  }) async {
+    final markerOptions = RunMapboxRunnerMarkerAnnotation.fromViewState(
+      mapViewState,
+    );
+    final existingMarker = _marker;
+    if (markerOptions == null) {
+      if (existingMarker != null) {
+        await operations.delete(existingMarker);
+        _marker = null;
+      }
+      return;
+    }
+
+    if (existingMarker == null) {
+      _marker = await operations.create(markerOptions);
+      return;
+    }
+
+    await operations.update(existingMarker, markerOptions);
+  }
+
+  void clearReference() {
+    _marker = null;
+  }
+}
+
+class _MapboxRunnerMarkerOperations
+    implements RunMapboxRunnerMarkerOperations<CircleAnnotation> {
+  const _MapboxRunnerMarkerOperations(this._manager);
+
+  final CircleAnnotationManager _manager;
+
+  @override
+  Future<CircleAnnotation> create(CircleAnnotationOptions options) {
+    return _manager.create(options);
+  }
+
+  @override
+  Future<void> update(
+    CircleAnnotation marker,
+    CircleAnnotationOptions options,
+  ) {
+    marker.geometry = options.geometry;
+    return _manager.update(marker);
+  }
+
+  @override
+  Future<void> delete(CircleAnnotation marker) {
+    return _manager.delete(marker);
+  }
+}
+
 class RunMapboxNativeMapAdapter implements RunMapboxSyncTarget {
   RunMapboxNativeMapAdapter(this._mapboxMap, {this._followQaDiagnostics});
 
@@ -333,6 +403,8 @@ class RunMapboxNativeMapAdapter implements RunMapboxSyncTarget {
   final RunMapboxFollowQaDiagnostics? _followQaDiagnostics;
   final RunMapboxCameraInterruptGate _cameraInterruptGate =
       RunMapboxCameraInterruptGate();
+  final RunMapboxRunnerMarkerSyncController<CircleAnnotation>
+  _runnerMarkerSync = RunMapboxRunnerMarkerSyncController<CircleAnnotation>();
   CircleAnnotationManager? _runnerManager;
   PolylineAnnotationManager? _routeManager;
   Future<void>? _disposeFuture;
@@ -405,6 +477,7 @@ class RunMapboxNativeMapAdapter implements RunMapboxSyncTarget {
     _disposed = true;
     final runnerManager = _runnerManager;
     final routeManager = _routeManager;
+    _runnerMarkerSync.clearReference();
     _runnerManager = null;
     _routeManager = null;
 
@@ -427,18 +500,13 @@ class RunMapboxNativeMapAdapter implements RunMapboxSyncTarget {
 
   Future<void> _syncRunnerMarker(RunMapViewState mapViewState) async {
     final runnerManager = _runnerManager;
-    final currentPosition = mapViewState.currentPosition;
     if (runnerManager == null) {
       return;
     }
 
-    await runnerManager.deleteAll();
-    if (currentPosition == null) {
-      return;
-    }
-
-    await runnerManager.create(
-      RunMapboxRunnerMarkerAnnotation.fromSample(currentPosition),
+    await _runnerMarkerSync.sync(
+      mapViewState: mapViewState,
+      operations: _MapboxRunnerMarkerOperations(runnerManager),
     );
   }
 
