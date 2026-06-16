@@ -15,6 +15,7 @@ import 'package:runiac_app/features/run/domain/models/run_map_view_state.dart';
 import 'package:runiac_app/features/run/domain/models/run_summary_read_model.dart';
 import 'package:runiac_app/features/run/domain/models/run_summary_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/run_tracking_diagnostics.dart';
+import 'package:runiac_app/features/run/domain/models/run_tracking_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/xp_update_display_model.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_location_permission_service.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_location_preview_provider.dart';
@@ -510,6 +511,57 @@ void main() {
     expect(find.text('Resume'), findsNothing);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets(
+    'Run launch abnormal pause keeps Pause primary with English warning',
+    (WidgetTester tester) async {
+      _useMobileRunSurface(tester);
+      final sampleBase = DateTime.now().add(const Duration(days: 1));
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RunLaunchScreen(
+            enableForegroundGps: false,
+            locationProvider: ReplayRunLocationProvider([
+              RunLocationReplaySample(
+                activeOffset: Duration.zero,
+                sample: RunLocationSample(
+                  recordedAt: sampleBase,
+                  latitude: 1.300000,
+                  longitude: 103.800000,
+                  horizontalAccuracyMeters: 5,
+                ),
+              ),
+              for (final seconds in [1, 2, 3])
+                RunLocationReplaySample(
+                  activeOffset: Duration(seconds: seconds),
+                  sample: RunLocationSample(
+                    recordedAt: sampleBase.add(Duration(seconds: seconds)),
+                    latitude: 1.300000 + (0.000063 * seconds),
+                    longitude: 103.800000,
+                    horizontalAccuracyMeters: 5,
+                    speedMetersPerSecond: 7,
+                  ),
+                ),
+            ]),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Start run'));
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(seconds: 3));
+
+      expect(find.text('Tracking paused'), findsOneWidget);
+      expect(find.text(abnormalMovementGuidance), findsOneWidget);
+      expect(find.widgetWithText(FilledButton, 'Pause'), findsOneWidget);
+      expect(find.widgetWithText(FilledButton, 'Resume'), findsNothing);
+      expect(find.byKey(const Key('hold_to_end_button')), findsNothing);
+      expect(find.text('End'), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets('Run launch real GPS path waits without showing demo mode', (
     WidgetTester tester,

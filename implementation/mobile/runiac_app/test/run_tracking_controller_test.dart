@@ -552,6 +552,71 @@ void main() {
       },
     );
 
+    test('abnormal pause suppresses summary and keeps providers running', () {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      final provider = _LifecycleReplayProvider([
+        RunLocationReplaySample(
+          activeOffset: Duration.zero,
+          sample: RunLocationSample(
+            recordedAt: startedAt,
+            latitude: 1.300000,
+            longitude: 103.800000,
+            horizontalAccuracyMeters: 5,
+          ),
+        ),
+        for (final seconds in [1, 2, 3])
+          RunLocationReplaySample(
+            activeOffset: Duration(seconds: seconds),
+            sample: RunLocationSample(
+              recordedAt: startedAt.add(Duration(seconds: seconds)),
+              latitude: 1.300000 + (0.000063 * seconds),
+              longitude: 103.800000,
+              horizontalAccuracyMeters: 5,
+              speedMetersPerSecond: 7,
+            ),
+          ),
+      ]);
+      final motionProvider = _LifecycleMotionProvider();
+      final controller = RunTrackingController(
+        locationProvider: provider,
+        motionProvider: motionProvider,
+      );
+
+      controller.start(
+        startedAt: startedAt,
+        clientRunSessionId: 'abnormal-controller-run',
+      );
+      controller.advanceBy(const Duration(seconds: 3));
+
+      expect(controller.state.isAbnormalPaused, isTrue);
+      expect(controller.state.isPaused, isFalse);
+      expect(controller.state.isAutoPaused, isFalse);
+      expect(controller.state.phase, RunTrackingPhase.active);
+      expect(
+        RunTrackingSnapshot.fromState(controller.state).guidance,
+        abnormalMovementGuidance,
+      );
+      expect(controller.state.distanceMeters, 0);
+      expect(controller.state.averagePaceSecondsPerKm, 0);
+      expect(controller.mapViewState.routePointCount, 1);
+      expect(provider.pauseCount, 0);
+      expect(motionProvider.pauseCount, 0);
+
+      final payload = controller.completionPayload(
+        completedAt: startedAt.add(const Duration(seconds: 3)),
+      );
+      final payloadMap = payload.toRawClientMap();
+      expect(payload.distanceMeters, 0);
+      expect(payload.avgPaceSecondsPerKm, 0);
+      expect(payloadMap.keys, isNot(contains('routeSamples')));
+      expect(payloadMap.keys, isNot(contains('gpsSamples')));
+      expect(payloadMap.keys, isNot(contains('rawMotion')));
+      expect(payloadMap.keys, isNot(contains('classifierEvidence')));
+      expect(payloadMap.keys, isNot(contains('abnormalMovement')));
+      expect(payloadMap.keys, isNot(contains('leaderboardScore')));
+      expect(payloadMap.keys, isNot(contains('validatedActivity')));
+    });
+
     test(
       'stationary from start auto pauses without distance and manual pause wins',
       () {
@@ -1656,7 +1721,7 @@ void main() {
       adapter.emit(
         _ForegroundPosition(
           timestamp: startedAt.add(const Duration(seconds: 10)),
-          latitude: 1.300899,
+          latitude: 1.300270,
           longitude: 103.800000,
           accuracy: 5,
         ),
@@ -1668,7 +1733,7 @@ void main() {
         controller.state.locationStatus,
         RunTrackingLocationStatus.gpsActive,
       );
-      expect(controller.state.distanceMeters, closeTo(100, 2));
+      expect(controller.state.distanceMeters, closeTo(30, 2));
     });
 
     test('real foreground late rejected sample surfaces GPS weak', () async {

@@ -493,6 +493,10 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
       };
     }
 
+    if (state.isAbnormalPaused) {
+      return 'Tracking paused';
+    }
+
     if (_sheetMode == RunSheetMode.paused ||
         state.isPaused ||
         state.isAutoPaused) {

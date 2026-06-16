@@ -49,6 +49,10 @@ class RunTrackingSheetContent extends StatelessWidget {
             const Divider(height: 1, color: _blueBorder),
             SizedBox(height: compact ? 12 : 14),
             _SecondaryMetricRow(snapshot: snapshot),
+            if (state.isAbnormalPaused) ...[
+              SizedBox(height: compact ? 12 : 14),
+              _AbnormalMovementWarning(message: snapshot.guidance),
+            ],
             SizedBox(height: compact ? 14 : 18),
             _RunActiveActions(
               isPaused: state.isPaused || state.isAutoPaused,
@@ -230,6 +234,27 @@ class _MetricItem extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _AbnormalMovementWarning extends StatelessWidget {
+  const _AbnormalMovementWarning({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      message,
+      textAlign: TextAlign.center,
+      style: const TextStyle(
+        color: _panelTextBlue,
+        fontSize: 13,
+        fontWeight: FontWeight.w800,
+        height: 1.25,
+        letterSpacing: 0,
+      ),
     );
   }
 }

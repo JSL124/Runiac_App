@@ -35,6 +35,23 @@ void main() {
       expect(request.keys, isNot(contains('latestHorizontalAccuracyMeters')));
       expect(request.keys, isNot(contains('horizontalAccuracy')));
       expect(request.keys, isNot(contains('accuracyBucket')));
+      expect(request.keys, isNot(contains('routeSamples')));
+      expect(request.keys, isNot(contains('rawMotion')));
+      expect(request.keys, isNot(contains('motionSamples')));
+      expect(request.keys, isNot(contains('classifierEvidence')));
+      expect(request.keys, isNot(contains('abnormalMovement')));
+      expect(request.keys, isNot(contains('abnormalFlags')));
+      expect(request.keys, isNot(contains('xp')));
+      expect(request.keys, isNot(contains('leaderboardScore')));
+      expect(request.keys, isNot(contains('streak')));
+      expect(request.keys, isNot(contains('rank')));
+      expect(request.keys, isNot(contains('level')));
+      expect(request.keys, isNot(contains('weeklyXp')));
+      expect(request.keys, isNot(contains('monthlyXp')));
+      expect(
+        request.keys,
+        isNot(contains('validatedActivityContributionState')),
+      );
       expect(request.values.join(' '), isNot(contains('latitude')));
       expect(request.values.join(' '), isNot(contains('longitude')));
     });

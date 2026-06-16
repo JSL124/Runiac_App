@@ -5,6 +5,45 @@ import 'package:runiac_app/features/run/domain/models/run_motion_evidence.dart';
 import 'package:runiac_app/features/run/domain/services/run_movement_classifier.dart';
 
 void main() {
+  group('RunMovementClassifier speed policy', () {
+    const classifier = RunMovementClassifier();
+
+    test('classifies threshold boundaries for transport detection', () {
+      expect(
+        classifier.classifyMovementSpeed(speedMetersPerSecond: 0.79),
+        RunMovementSpeedBand.belowNormalResume,
+      );
+      expect(
+        classifier.classifyMovementSpeed(speedMetersPerSecond: 0.8),
+        RunMovementSpeedBand.normalResume,
+      );
+      expect(
+        classifier.classifyMovementSpeed(speedMetersPerSecond: 4.0),
+        RunMovementSpeedBand.normalResume,
+      );
+      expect(
+        classifier.classifyMovementSpeed(speedMetersPerSecond: 4.01),
+        RunMovementSpeedBand.normal,
+      );
+      expect(
+        classifier.classifyMovementSpeed(speedMetersPerSecond: 4.5),
+        RunMovementSpeedBand.suspiciousCandidate,
+      );
+      expect(
+        classifier.classifyMovementSpeed(speedMetersPerSecond: 6.5),
+        RunMovementSpeedBand.abnormalCandidate,
+      );
+      expect(
+        classifier.classifyMovementSpeed(speedMetersPerSecond: 12),
+        RunMovementSpeedBand.abnormalCandidate,
+      );
+      expect(
+        classifier.classifyMovementSpeed(speedMetersPerSecond: 12.01),
+        RunMovementSpeedBand.impossibleJump,
+      );
+    });
+  });
+
   group('RunMovementClassifier motion fusion', () {
     const classifier = RunMovementClassifier();
     final recordedAt = DateTime.utc(2026, 6, 14, 7);

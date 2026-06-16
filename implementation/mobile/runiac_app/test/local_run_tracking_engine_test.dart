@@ -308,6 +308,215 @@ void main() {
       expect(diagnostics.hasAcceptedSample, isTrue);
     });
 
+    test('suspicious speed spike updates marker without metrics or route', () {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      final session = LocalRunTrackingSession(startedAt: startedAt);
+
+      session.advanceBy(
+        const Duration(seconds: 1),
+        samples: [
+          sampleAt(
+            startedAt,
+            0,
+            latitude: 1.300000,
+            longitude: 103.800000,
+            horizontalAccuracyMeters: 5,
+          ),
+        ],
+      );
+      final movingTimeBeforeSpike = session.activeDurationSeconds;
+      final routePointCountBeforeSpike = session.mapViewState.routePointCount;
+
+      session.advanceBy(
+        const Duration(seconds: 1),
+        samples: [
+          sampleAt(
+            startedAt,
+            1,
+            latitude: 1.300045,
+            longitude: 103.800000,
+            horizontalAccuracyMeters: 5,
+            speedMetersPerSecond: 5,
+          ),
+        ],
+      );
+
+      expect(session.movementStatus, RunMovementStatus.moving);
+      expect(session.activeDurationSeconds, movingTimeBeforeSpike);
+      expect(session.distanceMeters, 0);
+      expect(session.averagePaceSecondsPerKm, 0);
+      expect(session.mapViewState.routePointCount, routePointCountBeforeSpike);
+      expect(session.mapViewState.currentPosition?.latitude, 1.300045);
+      expect(session.acceptedSampleCount, 2);
+      expect(session.rejectedSampleCount, 0);
+    });
+
+    test('sustained abnormal speed enters abnormal pause by sample count', () {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      final session = LocalRunTrackingSession(startedAt: startedAt);
+
+      session.advanceBy(
+        const Duration(seconds: 1),
+        samples: [
+          sampleAt(
+            startedAt,
+            0,
+            latitude: 1.300000,
+            longitude: 103.800000,
+            horizontalAccuracyMeters: 5,
+          ),
+        ],
+      );
+      final routePointCountBeforeAbnormal =
+          session.mapViewState.routePointCount;
+
+      for (final seconds in [1, 2, 3]) {
+        session.advanceBy(
+          const Duration(seconds: 1),
+          samples: [
+            sampleAt(
+              startedAt,
+              seconds,
+              latitude: 1.300000 + (0.000063 * seconds),
+              longitude: 103.800000,
+              horizontalAccuracyMeters: 5,
+              speedMetersPerSecond: 7,
+            ),
+          ],
+        );
+      }
+
+      expect(session.movementStatus, RunMovementStatus.abnormalPaused);
+      expect(session.distanceMeters, 0);
+      expect(session.averagePaceSecondsPerKm, 0);
+      expect(
+        session.mapViewState.routePointCount,
+        routePointCountBeforeAbnormal,
+      );
+      expect(
+        session.mapViewState.currentPosition?.latitude,
+        closeTo(1.300189, 0.000001),
+      );
+      expect(session.acceptedSampleCount, 4);
+      expect(session.rejectedSampleCount, 0);
+    });
+
+    test('hard reject over twelve meters per second stays impossible jump', () {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      final session = LocalRunTrackingSession(startedAt: startedAt);
+
+      session.advanceBy(
+        const Duration(seconds: 1),
+        samples: [
+          sampleAt(
+            startedAt,
+            0,
+            latitude: 1.300000,
+            longitude: 103.800000,
+            horizontalAccuracyMeters: 5,
+          ),
+        ],
+      );
+      session.advanceBy(
+        const Duration(seconds: 1),
+        samples: [
+          sampleAt(
+            startedAt,
+            1,
+            latitude: 1.300010,
+            longitude: 103.800000,
+            horizontalAccuracyMeters: 5,
+            speedMetersPerSecond: 13,
+          ),
+        ],
+      );
+
+      expect(session.movementStatus, RunMovementStatus.moving);
+      expect(session.distanceMeters, 0);
+      expect(session.mapViewState.currentPosition?.latitude, 1.300000);
+      expect(session.acceptedSampleCount, 1);
+      expect(session.rejectedSampleCount, 1);
+      expect(
+        session.diagnostics.latestRejectionReason,
+        RunLocationRejectionReason.impossibleJump,
+      );
+    });
+
+    test('abnormal resume starts a safe segment without a bridge line', () {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      final session = LocalRunTrackingSession(startedAt: startedAt);
+
+      session.advanceBy(
+        const Duration(seconds: 1),
+        samples: [
+          sampleAt(
+            startedAt,
+            0,
+            latitude: 1.300000,
+            longitude: 103.800000,
+            horizontalAccuracyMeters: 5,
+          ),
+        ],
+      );
+      for (final seconds in [1, 2, 3]) {
+        session.advanceBy(
+          const Duration(seconds: 1),
+          samples: [
+            sampleAt(
+              startedAt,
+              seconds,
+              latitude: 1.300000 + (0.000063 * seconds),
+              longitude: 103.800000,
+              horizontalAccuracyMeters: 5,
+              speedMetersPerSecond: 7,
+            ),
+          ],
+        );
+      }
+      expect(session.movementStatus, RunMovementStatus.abnormalPaused);
+
+      session.advanceBy(
+        const Duration(seconds: 1),
+        samples: [
+          sampleAt(
+            startedAt,
+            4,
+            latitude: 1.300030,
+            longitude: 103.800000,
+            horizontalAccuracyMeters: 5,
+            speedMetersPerSecond: 2,
+          ),
+        ],
+      );
+      expect(session.movementStatus, RunMovementStatus.abnormalPaused);
+      expect(session.distanceMeters, 0);
+      expect(session.mapViewState.routeSegments, hasLength(1));
+
+      session.advanceBy(
+        const Duration(seconds: 3),
+        samples: [
+          sampleAt(
+            startedAt,
+            7,
+            latitude: 1.300100,
+            longitude: 103.800000,
+            horizontalAccuracyMeters: 5,
+            speedMetersPerSecond: 2,
+          ),
+        ],
+      );
+
+      expect(session.movementStatus, RunMovementStatus.moving);
+      expect(session.mapViewState.routeSegments, hasLength(2));
+      expect(
+        session.mapViewState.routeSegments.map((segment) => segment.length),
+        [1, 2],
+      );
+      expect(session.mapViewState.routeSegments.first.last.latitude, 1.300000);
+      expect(session.mapViewState.routeSegments.last.first.latitude, 1.300030);
+      expect(session.distanceMeters, closeTo(8, 2));
+    });
+
     test('records explicit rejection reasons and timestamps', () {
       final startedAt = DateTime.utc(2026, 6, 14, 7);
 

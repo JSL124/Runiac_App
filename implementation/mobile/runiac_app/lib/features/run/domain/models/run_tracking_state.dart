@@ -2,7 +2,7 @@ import 'run_tracking_diagnostics.dart';
 
 enum RunTrackingPhase { idle, active, paused, finished }
 
-enum RunMovementStatus { moving, autoPaused }
+enum RunMovementStatus { moving, autoPaused, abnormalPaused }
 
 enum RunTrackingLocationStatus {
   demo('Demo mode'),
@@ -67,6 +67,9 @@ class RunTrackingState {
   bool get isAutoPaused =>
       phase == RunTrackingPhase.active &&
       movementStatus == RunMovementStatus.autoPaused;
+  bool get isAbnormalPaused =>
+      phase == RunTrackingPhase.active &&
+      movementStatus == RunMovementStatus.abnormalPaused;
 
   RunTrackingState copyWith({
     RunTrackingPhase? phase,

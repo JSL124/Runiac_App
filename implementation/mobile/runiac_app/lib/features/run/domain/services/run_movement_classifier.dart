@@ -9,6 +9,15 @@ enum RunMovementClassificationType {
   noSampleWaiting,
 }
 
+enum RunMovementSpeedBand {
+  belowNormalResume,
+  normalResume,
+  normal,
+  suspiciousCandidate,
+  abnormalCandidate,
+  impossibleJump,
+}
+
 class RunMovementClassification {
   const RunMovementClassification({
     required this.type,
@@ -33,6 +42,36 @@ class RunMovementClassifier {
   static const double _motionConfidenceThreshold = 0.6;
   static const double _gpsCumulativeMovementConfirmationMeters = 8;
   static const Duration _motionMovingWithoutGpsGrace = Duration(seconds: 3);
+
+  RunMovementSpeedBand classifyMovementSpeed({
+    required double speedMetersPerSecond,
+    double suspiciousSpeedMetersPerSecond = 4.5,
+    double abnormalSpeedMetersPerSecond = 6.5,
+    double hardRejectSpeedMetersPerSecond = 12,
+    double normalResumeMinSpeedMetersPerSecond = 0.8,
+    double normalResumeMaxSpeedMetersPerSecond = 4.0,
+  }) {
+    if (!speedMetersPerSecond.isFinite || speedMetersPerSecond < 0) {
+      return RunMovementSpeedBand.belowNormalResume;
+    }
+    if (speedMetersPerSecond > hardRejectSpeedMetersPerSecond) {
+      return RunMovementSpeedBand.impossibleJump;
+    }
+    if (speedMetersPerSecond < normalResumeMinSpeedMetersPerSecond) {
+      return RunMovementSpeedBand.belowNormalResume;
+    }
+    if (speedMetersPerSecond >= abnormalSpeedMetersPerSecond) {
+      return RunMovementSpeedBand.abnormalCandidate;
+    }
+    if (speedMetersPerSecond >= suspiciousSpeedMetersPerSecond) {
+      return RunMovementSpeedBand.suspiciousCandidate;
+    }
+    if (speedMetersPerSecond >= normalResumeMinSpeedMetersPerSecond &&
+        speedMetersPerSecond <= normalResumeMaxSpeedMetersPerSecond) {
+      return RunMovementSpeedBand.normalResume;
+    }
+    return RunMovementSpeedBand.normal;
+  }
 
   RunMovementClassification classifyGpsSample({
     required RunLocationSample sample,

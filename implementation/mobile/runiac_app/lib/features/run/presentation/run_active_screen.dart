@@ -201,9 +201,10 @@ class _RunActiveScreenState extends State<RunActiveScreen> {
                   animation: _controller,
                   builder: (context, _) {
                     return _RunStatusPill(
-                      label:
-                          _controller.state.isPaused ||
-                              _controller.state.isAutoPaused
+                      label: _controller.state.isAbnormalPaused
+                          ? 'Tracking paused'
+                          : _controller.state.isPaused ||
+                                _controller.state.isAutoPaused
                           ? 'Paused'
                           : _controller.state.locationStatus.label,
                     );

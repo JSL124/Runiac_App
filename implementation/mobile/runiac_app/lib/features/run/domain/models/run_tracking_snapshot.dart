@@ -1,6 +1,9 @@
 import 'run_tracking_state.dart';
 import 'run_tracking_startup_readiness.dart';
 
+const abnormalMovementGuidance =
+    'Unusual movement detected. We’ll resume when you’re walking or running again.';
+
 class RunTrackingSnapshot {
   const RunTrackingSnapshot({
     required this.elapsedTimeLabel,
@@ -34,7 +37,9 @@ class RunTrackingSnapshot {
           '${_formatDistanceValue(state.distanceMeters)} of 4.50 km',
       planProgressPercentLabel: '${(planProgressValue * 100).round()}%',
       planProgressValue: planProgressValue,
-      guidance: state.isPaused || state.isAutoPaused
+      guidance: state.isAbnormalPaused
+          ? abnormalMovementGuidance
+          : state.isPaused || state.isAutoPaused
           ? 'You can pause anytime.'
           : state.elapsedSeconds < 30
           ? 'Easy effort is enough.'

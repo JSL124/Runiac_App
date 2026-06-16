@@ -20,6 +20,12 @@ class LocalRunTrackingSession {
     this.resumeMovementDistanceMeters = 6,
     this.resumeSpeedMetersPerSecond = 1,
     this.stationarySpeedMetersPerSecond = 0.5,
+    this.suspiciousSpeedMetersPerSecond = 4.5,
+    this.abnormalTransportSpeedMetersPerSecond = 6.5,
+    this.abnormalSustainedWindow = const Duration(seconds: 10),
+    this.abnormalSustainedSampleCount = 3,
+    this.normalResumeMinSpeedMetersPerSecond = 0.8,
+    this.normalResumeMaxSpeedMetersPerSecond = 4.0,
     this.maxNoSampleStationaryAnchorAge = const Duration(seconds: 30),
     this.movementClassifier = const RunMovementClassifier(),
   });
@@ -35,12 +41,19 @@ class LocalRunTrackingSession {
   final double resumeMovementDistanceMeters;
   final double resumeSpeedMetersPerSecond;
   final double stationarySpeedMetersPerSecond;
+  final double suspiciousSpeedMetersPerSecond;
+  final double abnormalTransportSpeedMetersPerSecond;
+  final Duration abnormalSustainedWindow;
+  final int abnormalSustainedSampleCount;
+  final double normalResumeMinSpeedMetersPerSecond;
+  final double normalResumeMaxSpeedMetersPerSecond;
   final Duration maxNoSampleStationaryAnchorAge;
   final RunDistanceCalculator distanceCalculator;
   final RunMovementClassifier movementClassifier;
 
   bool _isActive = true;
   bool _needsAnchorSample = false;
+  bool _suppressedMovementNeedsAnchor = false;
   int _movingDurationSeconds = 0;
   int _trackingDurationSeconds = 0;
   double _distanceMeters = 0;
@@ -50,8 +63,13 @@ class LocalRunTrackingSession {
   RunLocationSample? _lastAcceptedSample;
   RunLocationSample? _lastRouteSample;
   RunLocationSample? _autoResumeCandidateSample;
+  RunLocationSample? _abnormalCandidateStartedSample;
+  int _abnormalCandidateCount = 0;
+  RunLocationSample? _abnormalResumeAnchorSample;
+  int _abnormalResumeCandidateCount = 0;
   DateTime? _stationaryStartedAt;
   double _stationaryCumulativeMovementMeters = 0;
+  bool _suppressedMovingTimeInCurrentAdvance = false;
   final List<List<RunLocationSample>> _acceptedSampleSegments =
       <List<RunLocationSample>>[];
 
@@ -89,6 +107,7 @@ class LocalRunTrackingSession {
     final distanceBeforeAdvance = _distanceMeters;
     final sampleList = samples.toList();
     final motionEvidenceList = motionEvidence.toList();
+    _suppressedMovingTimeInCurrentAdvance = false;
     _trackingDurationSeconds += delta.inSeconds;
     for (final sample in sampleList) {
       _acceptSample(sample, motionEvidenceList);
@@ -102,7 +121,9 @@ class LocalRunTrackingSession {
         _movementStatus == RunMovementStatus.autoPaused &&
         _distanceMeters == distanceBeforeAdvance;
     if (movementStatusBeforeAdvance == RunMovementStatus.moving &&
-        !becameAutoPausedWithoutDistance) {
+        _movementStatus == RunMovementStatus.moving &&
+        !becameAutoPausedWithoutDistance &&
+        !_suppressedMovingTimeInCurrentAdvance) {
       _movingDurationSeconds += delta.inSeconds;
     }
   }
@@ -114,8 +135,11 @@ class LocalRunTrackingSession {
   void resume() {
     _isActive = true;
     _needsAnchorSample = true;
+    _suppressedMovementNeedsAnchor = false;
     _movementStatus = RunMovementStatus.moving;
     _autoResumeCandidateSample = null;
+    _resetAbnormalCandidate();
+    _resetAbnormalResumeCandidate();
     _stationaryStartedAt = null;
     _stationaryCumulativeMovementMeters = 0;
   }
@@ -146,7 +170,29 @@ class LocalRunTrackingSession {
       _recordAcceptedCurrentSample(sample);
       _lastRouteSample = sample;
       _autoResumeCandidateSample = null;
+      _resetAbnormalCandidate();
+      _resetAbnormalResumeCandidate();
       _stationaryCumulativeMovementMeters = 0;
+      return;
+    }
+
+    if (_suppressedMovementNeedsAnchor) {
+      if (_isSameSample(previous, sample)) {
+        return;
+      }
+      if (_isSuppressedCandidateFromPrevious(previous, sample)) {
+        _acceptMovementSample(sample, motionEvidence);
+        return;
+      }
+
+      _acceptedSampleSegments.add(<RunLocationSample>[sample]);
+      _suppressedMovementNeedsAnchor = false;
+      _lastRouteSample = sample;
+      _autoResumeCandidateSample = null;
+      _resetAbnormalCandidate();
+      _resetAbnormalResumeCandidate();
+      _stationaryCumulativeMovementMeters = 0;
+      _recordAcceptedCurrentSample(sample);
       return;
     }
 
@@ -159,6 +205,8 @@ class LocalRunTrackingSession {
       _needsAnchorSample = false;
       _lastRouteSample = sample;
       _autoResumeCandidateSample = null;
+      _resetAbnormalCandidate();
+      _resetAbnormalResumeCandidate();
       _stationaryCumulativeMovementMeters = 0;
       _recordAcceptedCurrentSample(sample);
       return;
@@ -191,6 +239,8 @@ class LocalRunTrackingSession {
       _acceptedSampleSegments.add(<RunLocationSample>[sample]);
       _lastRouteSample = sample;
       _autoResumeCandidateSample = null;
+      _resetAbnormalCandidate();
+      _resetAbnormalResumeCandidate();
       _stationaryCumulativeMovementMeters = 0;
       _recordAcceptedCurrentSample(sample);
       return true;
@@ -241,10 +291,38 @@ class LocalRunTrackingSession {
         ? previousAcceptedDistanceMeters
         : 0;
 
-    final speedMetersPerSecond = segmentDistanceMeters / elapsedSeconds;
-    if (speedMetersPerSecond > maxAcceptedSpeedMetersPerSecond) {
+    final calculatedSpeedMetersPerSecond =
+        segmentDistanceMeters / elapsedSeconds;
+    final hardRejectSpeedMetersPerSecond = _hardRejectSpeedMetersPerSecond(
+      sample: sample,
+      calculatedSpeedMetersPerSecond: calculatedSpeedMetersPerSecond,
+    );
+    if (hardRejectSpeedMetersPerSecond > maxAcceptedSpeedMetersPerSecond) {
       _rejectSample(sample, RunLocationRejectionReason.impossibleJump);
       return false;
+    }
+    final speedMetersPerSecond = _classificationSpeedMetersPerSecond(
+      sample: sample,
+      calculatedSpeedMetersPerSecond: calculatedSpeedMetersPerSecond,
+    );
+
+    final speedBand = movementClassifier.classifyMovementSpeed(
+      speedMetersPerSecond: speedMetersPerSecond,
+      suspiciousSpeedMetersPerSecond: suspiciousSpeedMetersPerSecond,
+      abnormalSpeedMetersPerSecond: abnormalTransportSpeedMetersPerSecond,
+      hardRejectSpeedMetersPerSecond: maxAcceptedSpeedMetersPerSecond,
+      normalResumeMinSpeedMetersPerSecond: normalResumeMinSpeedMetersPerSecond,
+      normalResumeMaxSpeedMetersPerSecond: normalResumeMaxSpeedMetersPerSecond,
+    );
+    if (speedBand == RunMovementSpeedBand.suspiciousCandidate ||
+        speedBand == RunMovementSpeedBand.abnormalCandidate ||
+        _movementStatus == RunMovementStatus.abnormalPaused) {
+      _handleSuppressedMovementSample(
+        sample: sample,
+        speedBand: speedBand,
+        segmentDistanceMeters: segmentDistanceMeters,
+      );
+      return true;
     }
 
     final stationaryStartedAt =
@@ -282,6 +360,8 @@ class LocalRunTrackingSession {
       }
       _movementStatus = RunMovementStatus.moving;
       _autoResumeCandidateSample = null;
+      _resetAbnormalCandidate();
+      _resetAbnormalResumeCandidate();
       _stationaryStartedAt = null;
       _stationaryCumulativeMovementMeters = 0;
       _recordAcceptedCurrentSample(sample);
@@ -322,7 +402,89 @@ class LocalRunTrackingSession {
     }
     _lastRouteSample = sample;
     _autoResumeCandidateSample = null;
+    _resetAbnormalCandidate();
+    _resetAbnormalResumeCandidate();
     _stationaryCumulativeMovementMeters = 0;
+  }
+
+  void _handleSuppressedMovementSample({
+    required RunLocationSample sample,
+    required RunMovementSpeedBand speedBand,
+    required double segmentDistanceMeters,
+  }) {
+    _suppressedMovingTimeInCurrentAdvance = true;
+    _recordAcceptedCurrentSample(sample);
+    _autoResumeCandidateSample = null;
+    _stationaryStartedAt = null;
+    _stationaryCumulativeMovementMeters = 0;
+
+    if (_movementStatus == RunMovementStatus.abnormalPaused) {
+      _handleAbnormalResumeCandidate(sample: sample, speedBand: speedBand);
+      return;
+    }
+
+    _suppressedMovementNeedsAnchor = true;
+    if (speedBand != RunMovementSpeedBand.abnormalCandidate) {
+      _resetAbnormalCandidate();
+      return;
+    }
+
+    _abnormalCandidateStartedSample ??= sample;
+    _abnormalCandidateCount += 1;
+    final startedAt = _abnormalCandidateStartedSample!.recordedAt;
+    final sustainedByTime =
+        sample.recordedAt.difference(startedAt) >= abnormalSustainedWindow;
+    final sustainedBySamples =
+        _abnormalCandidateCount >= abnormalSustainedSampleCount;
+    if (sustainedByTime || sustainedBySamples) {
+      _movementStatus = RunMovementStatus.abnormalPaused;
+      _suppressedMovementNeedsAnchor = false;
+      _resetAbnormalResumeCandidate();
+    }
+  }
+
+  void _handleAbnormalResumeCandidate({
+    required RunLocationSample sample,
+    required RunMovementSpeedBand speedBand,
+  }) {
+    if (speedBand != RunMovementSpeedBand.normalResume) {
+      _resetAbnormalResumeCandidate();
+      if (speedBand != RunMovementSpeedBand.abnormalCandidate) {
+        _resetAbnormalCandidate();
+      }
+      return;
+    }
+
+    final resumeAnchor = _abnormalResumeAnchorSample;
+    if (resumeAnchor == null) {
+      _abnormalResumeAnchorSample = sample;
+      _abnormalResumeCandidateCount = 1;
+      return;
+    }
+
+    final resumeDistanceMeters = distanceCalculator.distanceMeters(
+      resumeAnchor,
+      sample,
+    );
+    if (!resumeDistanceMeters.isFinite) {
+      _rejectSample(sample, RunLocationRejectionReason.nonFiniteDistance);
+      return;
+    }
+
+    _abnormalResumeCandidateCount += 1;
+    if (_abnormalResumeCandidateCount < 2 ||
+        resumeDistanceMeters < resumeMovementDistanceMeters) {
+      return;
+    }
+
+    _acceptedSampleSegments.add(<RunLocationSample>[resumeAnchor, sample]);
+    _distanceMeters += resumeDistanceMeters;
+    _lastRouteSample = sample;
+    _movementStatus = RunMovementStatus.moving;
+    _suppressedMovingTimeInCurrentAdvance = false;
+    _suppressedMovementNeedsAnchor = false;
+    _resetAbnormalCandidate();
+    _resetAbnormalResumeCandidate();
   }
 
   void _recordStationarySample(
@@ -340,6 +502,8 @@ class LocalRunTrackingSession {
     if (classification.shouldAutoPause) {
       _movementStatus = RunMovementStatus.autoPaused;
       _autoResumeCandidateSample = null;
+      _resetAbnormalCandidate();
+      _resetAbnormalResumeCandidate();
     }
   }
 
@@ -370,6 +534,8 @@ class LocalRunTrackingSession {
     }
     _movementStatus = RunMovementStatus.autoPaused;
     _autoResumeCandidateSample = null;
+    _resetAbnormalCandidate();
+    _resetAbnormalResumeCandidate();
   }
 
   void _recordAcceptedCurrentSample(RunLocationSample sample) {
@@ -383,6 +549,27 @@ class LocalRunTrackingSession {
         left.recordedAt == right.recordedAt &&
         left.latitude == right.latitude &&
         left.longitude == right.longitude;
+  }
+
+  bool _isSuppressedCandidateFromPrevious(
+    RunLocationSample previous,
+    RunLocationSample sample,
+  ) {
+    final elapsedSeconds =
+        sample.recordedAt.difference(previous.recordedAt).inMilliseconds / 1000;
+    if (elapsedSeconds <= 0) {
+      return false;
+    }
+    final distanceMeters = distanceCalculator.distanceMeters(previous, sample);
+    if (!distanceMeters.isFinite) {
+      return false;
+    }
+    final speedMetersPerSecond = _hardRejectSpeedMetersPerSecond(
+      sample: sample,
+      calculatedSpeedMetersPerSecond: distanceMeters / elapsedSeconds,
+    );
+    return speedMetersPerSecond >= suspiciousSpeedMetersPerSecond &&
+        speedMetersPerSecond <= maxAcceptedSpeedMetersPerSecond;
   }
 
   void _rejectSample(
@@ -416,5 +603,43 @@ class LocalRunTrackingSession {
       return RunLocationRejectionReason.poorAccuracy;
     }
     return RunLocationRejectionReason.none;
+  }
+
+  double _classificationSpeedMetersPerSecond({
+    required RunLocationSample sample,
+    required double calculatedSpeedMetersPerSecond,
+  }) {
+    final reportedSpeed = sample.speedMetersPerSecond;
+    if (reportedSpeed != null && reportedSpeed.isFinite && reportedSpeed >= 0) {
+      return reportedSpeed;
+    }
+    return calculatedSpeedMetersPerSecond;
+  }
+
+  double _hardRejectSpeedMetersPerSecond({
+    required RunLocationSample sample,
+    required double calculatedSpeedMetersPerSecond,
+  }) {
+    final reportedSpeed = sample.speedMetersPerSecond;
+    if (reportedSpeed == null || !reportedSpeed.isFinite || reportedSpeed < 0) {
+      return calculatedSpeedMetersPerSecond;
+    }
+    if (!calculatedSpeedMetersPerSecond.isFinite ||
+        calculatedSpeedMetersPerSecond < 0) {
+      return reportedSpeed;
+    }
+    return reportedSpeed > calculatedSpeedMetersPerSecond
+        ? reportedSpeed
+        : calculatedSpeedMetersPerSecond;
+  }
+
+  void _resetAbnormalCandidate() {
+    _abnormalCandidateStartedSample = null;
+    _abnormalCandidateCount = 0;
+  }
+
+  void _resetAbnormalResumeCandidate() {
+    _abnormalResumeAnchorSample = null;
+    _abnormalResumeCandidateCount = 0;
   }
 }
