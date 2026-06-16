@@ -7,6 +7,7 @@ import '../domain/models/run_tracking_state.dart';
 import 'controllers/run_tracking_controller.dart';
 import 'cool_down_screen.dart';
 import 'widgets/run_map_placeholder.dart';
+import 'widgets/run_mapbox_follow_qa_overlay.dart';
 import 'widgets/run_mapbox_surface_config.dart';
 import 'widgets/run_tracking_map_surface.dart';
 import 'widgets/run_tracking_sheet_content.dart';
@@ -24,11 +25,13 @@ class RunActiveScreen extends StatefulWidget {
     this.controller,
     this.mapboxAccessToken,
     this.mapboxBuilder,
+    this.enableMapboxFollowQa = runMapboxFollowQaEnabled,
   });
 
   final RunTrackingController? controller;
   final String? mapboxAccessToken;
   final RunMapboxSurfaceBuilder? mapboxBuilder;
+  final bool enableMapboxFollowQa;
 
   @override
   State<RunActiveScreen> createState() => _RunActiveScreenState();
@@ -40,6 +43,10 @@ class _RunActiveScreenState extends State<RunActiveScreen> {
   Timer? _ticker;
   bool _isFollowingRunner = true;
   int _mapRecenterRequestId = 0;
+  late final RunMapboxFollowQaDiagnostics? _followQaDiagnostics =
+      widget.enableMapboxFollowQa
+      ? RunMapboxFollowQaDiagnostics(enabled: true, screenPath: 'active')
+      : null;
 
   @override
   void initState() {
@@ -71,11 +78,28 @@ class _RunActiveScreenState extends State<RunActiveScreen> {
     );
   }
 
+  void _updateFollowQaMapState() {
+    final diagnostics = _followQaDiagnostics;
+    diagnostics?.updateMapState(
+      mapPath: diagnostics.mapPath,
+      isFollowingRunner: _isFollowingRunner,
+      recenterRequestId: _mapRecenterRequestId,
+    );
+  }
+
   void _recenterRunner() {
     setState(() {
       _isFollowingRunner = true;
       _mapRecenterRequestId++;
     });
+    _followQaDiagnostics?.recordRecenterRequest(_mapRecenterRequestId);
+    _updateFollowQaMapState();
+  }
+
+  void _resumeRun() {
+    _controller.resume();
+    _followQaDiagnostics?.recordResume();
+    _updateFollowQaMapState();
   }
 
   @override
@@ -95,12 +119,15 @@ class _RunActiveScreenState extends State<RunActiveScreen> {
                   isFollowingRunner: _isFollowingRunner,
                   recenterRequestId: _mapRecenterRequestId,
                   onManualPan: () {
+                    _followQaDiagnostics?.recordOnManualPan();
                     setState(() => _isFollowingRunner = false);
+                    _updateFollowQaMapState();
                   },
                   onRecenter: _recenterRunner,
                   showRecenterButton: false,
                   mapboxAccessToken: widget.mapboxAccessToken,
                   mapboxBuilder: widget.mapboxBuilder,
+                  followQaDiagnostics: _followQaDiagnostics,
                 );
               },
             ),
@@ -146,7 +173,7 @@ class _RunActiveScreenState extends State<RunActiveScreen> {
                             key: const Key('runActivePanel'),
                             state: _controller.state,
                             onPause: _controller.pause,
-                            onResume: _controller.resume,
+                            onResume: _resumeRun,
                             onFinish: _finishRun,
                             bottomInset: bottomInset,
                           );

@@ -19,6 +19,7 @@ import 'cool_down_screen.dart';
 import 'data/run_launch_demo_snapshots.dart';
 import 'run_repository_scope.dart';
 import 'widgets/run_map_placeholder.dart';
+import 'widgets/run_mapbox_follow_qa_overlay.dart';
 import 'widgets/run_mapbox_surface_config.dart';
 import 'widgets/run_tracking_map_surface.dart';
 import 'widgets/run_tracking_sheet_content.dart';
@@ -65,6 +66,7 @@ class RunLaunchScreen extends StatefulWidget {
     this.enableForegroundGps = true,
     this.mapboxAccessToken,
     this.mapboxBuilder,
+    this.enableMapboxFollowQa = runMapboxFollowQaEnabled,
   });
 
   final RunRepository? repository;
@@ -74,6 +76,7 @@ class RunLaunchScreen extends StatefulWidget {
   final bool enableForegroundGps;
   final String? mapboxAccessToken;
   final RunMapboxSurfaceBuilder? mapboxBuilder;
+  final bool enableMapboxFollowQa;
 
   @override
   State<RunLaunchScreen> createState() => _RunLaunchScreenState();
@@ -91,6 +94,10 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
   bool _isFollowingRunner = true;
   int _mapRecenterRequestId = 0;
   int _previewRequestId = 0;
+  late final RunMapboxFollowQaDiagnostics? _followQaDiagnostics =
+      widget.enableMapboxFollowQa
+      ? RunMapboxFollowQaDiagnostics(enabled: true, screenPath: 'launch')
+      : null;
   _RunPreviewLocationStatus _previewLocationStatus =
       _RunPreviewLocationStatus.inactive;
 
@@ -128,6 +135,15 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
     super.dispose();
   }
 
+  void _updateFollowQaMapState() {
+    final diagnostics = _followQaDiagnostics;
+    diagnostics?.updateMapState(
+      mapPath: diagnostics.mapPath,
+      isFollowingRunner: _isFollowingRunner,
+      recenterRequestId: _mapRecenterRequestId,
+    );
+  }
+
   Future<void> _startRun() async {
     if (_sheetMode != RunSheetMode.preRun) {
       return;
@@ -158,6 +174,7 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
       _isFollowingRunner = true;
       _sheetMode = RunSheetMode.running;
     });
+    _updateFollowQaMapState();
   }
 
   void _pauseRun() {
@@ -174,6 +191,8 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
     }
     _controller.resume();
     setState(() => _sheetMode = RunSheetMode.running);
+    _followQaDiagnostics?.recordResume();
+    _updateFollowQaMapState();
   }
 
   void _handleSheetDragStart(DragStartDetails details) {}
@@ -348,6 +367,10 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
           _mapRecenterRequestId++;
         }
       });
+      if (recenterOnSuccess) {
+        _followQaDiagnostics?.recordRecenterRequest(_mapRecenterRequestId);
+        _updateFollowQaMapState();
+      }
     } on Object {
       if (!mounted || requestId != _previewRequestId) {
         return;
@@ -409,6 +432,8 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
       _isFollowingRunner = true;
       _mapRecenterRequestId++;
     });
+    _followQaDiagnostics?.recordRecenterRequest(_mapRecenterRequestId);
+    _updateFollowQaMapState();
     if (!_hasCurrentPosition && _sheetMode == RunSheetMode.preRun) {
       unawaited(
         _refreshPreviewLocation(
@@ -437,12 +462,15 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
                   isFollowingRunner: _isFollowingRunner,
                   recenterRequestId: _mapRecenterRequestId,
                   onManualPan: () {
+                    _followQaDiagnostics?.recordOnManualPan();
                     setState(() => _isFollowingRunner = false);
+                    _updateFollowQaMapState();
                   },
                   onRecenter: _recenterRunner,
                   showRecenterButton: false,
                   mapboxAccessToken: widget.mapboxAccessToken,
                   mapboxBuilder: widget.mapboxBuilder,
+                  followQaDiagnostics: _followQaDiagnostics,
                 );
               },
             ),

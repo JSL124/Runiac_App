@@ -6,6 +6,7 @@ import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import '../../domain/models/run_location_sample.dart';
 import '../../domain/models/run_map_view_state.dart';
 import 'run_map_placeholder.dart';
+import 'run_mapbox_follow_qa_overlay.dart';
 import 'run_mapbox_geometry.dart';
 import 'run_mapbox_surface_config.dart';
 
@@ -22,9 +23,11 @@ class RunMapboxRunMap extends StatefulWidget {
 }
 
 class _RunMapboxRunMapState extends State<RunMapboxRunMap> {
+  late final CameraViewportState _initialViewport = _buildInitialViewport();
   RunMapboxStyleReadySyncController? _syncController;
   bool _styleLoaded = false;
   bool _disposed = false;
+  bool _mapboxCameraObserversEnabled = false;
 
   @override
   void initState() {
@@ -62,7 +65,12 @@ class _RunMapboxRunMapState extends State<RunMapboxRunMap> {
       return;
     }
 
-    final adapter = RunMapboxNativeMapAdapter(mapboxMap);
+    final adapter = RunMapboxNativeMapAdapter(
+      mapboxMap,
+      followQaDiagnostics: widget.config.followQaDiagnostics,
+    );
+    _mapboxCameraObserversEnabled =
+        widget.config.followQaDiagnostics?.enabled ?? false;
     final controller = RunMapboxStyleReadySyncController(
       RunMapboxSyncCoordinator(adapter),
     );
@@ -112,19 +120,50 @@ class _RunMapboxRunMapState extends State<RunMapboxRunMap> {
       return Future<void>.value();
     }
 
-    return controller.sync(
-      RunMapboxSyncRequest(
-        mapViewState: widget.config.mapViewState,
-        isFollowingRunner: widget.config.isFollowingRunner,
-        animateCamera: animateCamera,
-      ),
+    final request = RunMapboxSyncRequest(
+      mapViewState: widget.config.mapViewState,
+      isFollowingRunner: widget.config.isFollowingRunner,
+      animateCamera: animateCamera,
+    );
+    widget.config.followQaDiagnostics?.recordCameraMoveRequest(
+      shouldMoveCamera: request.shouldMoveCamera,
+      reason: request.cameraMoveReason,
+      generation: 0,
+    );
+    return controller.sync(request);
+  }
+
+  void _handleManualGesture(MapContentGestureContext context) {
+    widget.config.followQaDiagnostics?.recordMapboxGestureCallback();
+    _handleManualMapInteraction();
+  }
+
+  void _handleManualMapInteraction() {
+    if (widget.config.isFollowingRunner) {
+      widget.config.followQaDiagnostics?.recordManualGesture();
+      widget.config.onManualPan?.call();
+      unawaited(_cancelCameraAnimation().catchError((Object _) {}));
+    }
+  }
+
+  void _handleCameraChanged(CameraChangedEventData event) {
+    if (!_mapboxCameraObserversEnabled) {
+      return;
+    }
+    final center = event.cameraState.center.coordinates;
+    widget.config.followQaDiagnostics?.recordCameraStateSample(
+      latitude: center.lat.toDouble(),
+      longitude: center.lng.toDouble(),
+      isFollowingRunner: widget.config.isFollowingRunner,
     );
   }
 
-  void _handleManualScroll(MapContentGestureContext context) {
-    if (widget.config.isFollowingRunner) {
-      widget.config.onManualPan?.call();
+  Future<void> _cancelCameraAnimation() {
+    final controller = _syncController;
+    if (controller == null) {
+      return Future<void>.value();
     }
+    return controller.cancelCameraAnimation();
   }
 
   void _handleRecenter() {
@@ -132,7 +171,7 @@ class _RunMapboxRunMapState extends State<RunMapboxRunMap> {
     unawaited(_syncCurrentMap(animateCamera: true));
   }
 
-  CameraViewportState _initialViewport() {
+  CameraViewportState _buildInitialViewport() {
     final request = RunMapboxCameraRequest.initialForMapViewState(
       widget.config.mapViewState,
     );
@@ -155,13 +194,21 @@ class _RunMapboxRunMapState extends State<RunMapboxRunMap> {
       key: const Key('run_mapbox_surface'),
       children: [
         Positioned.fill(
-          child: MapWidget(
-            key: const Key('run_mapbox_widget'),
-            styleUri: MapboxStyles.MAPBOX_STREETS,
-            viewport: _initialViewport(),
-            onMapCreated: _onMapCreated,
-            onStyleLoadedListener: _handleStyleLoaded,
-            onScrollListener: _handleManualScroll,
+          child: RunMapboxManualGestureObserver(
+            key: const Key('run_mapbox_pointer_observer'),
+            isFollowingRunner: widget.config.isFollowingRunner,
+            followQaDiagnostics: widget.config.followQaDiagnostics,
+            onManualMapInteraction: _handleManualMapInteraction,
+            child: MapWidget(
+              key: const Key('run_mapbox_widget'),
+              styleUri: MapboxStyles.MAPBOX_STREETS,
+              viewport: _initialViewport,
+              onMapCreated: _onMapCreated,
+              onStyleLoadedListener: _handleStyleLoaded,
+              onCameraChangeListener: _handleCameraChanged,
+              onScrollListener: _handleManualGesture,
+              onZoomListener: _handleManualGesture,
+            ),
           ),
         ),
         if (widget.config.showRecenterButton &&
@@ -173,6 +220,38 @@ class _RunMapboxRunMapState extends State<RunMapboxRunMap> {
             child: RunMapRecenterButton(onPressed: _handleRecenter),
           ),
       ],
+    );
+  }
+}
+
+@visibleForTesting
+class RunMapboxManualGestureObserver extends StatelessWidget {
+  const RunMapboxManualGestureObserver({
+    super.key,
+    required this.isFollowingRunner,
+    required this.followQaDiagnostics,
+    required this.onManualMapInteraction,
+    required this.child,
+  });
+
+  final bool isFollowingRunner;
+  final RunMapboxFollowQaDiagnostics? followQaDiagnostics;
+  final VoidCallback onManualMapInteraction;
+  final Widget child;
+
+  void _handlePointerMove(PointerMoveEvent event) {
+    followQaDiagnostics?.recordPointerObserverMove();
+    if (isFollowingRunner) {
+      onManualMapInteraction();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Listener(
+      behavior: HitTestBehavior.translucent,
+      onPointerMove: _handlePointerMove,
+      child: child,
     );
   }
 }
@@ -206,6 +285,13 @@ class RunMapboxStyleReadySyncController {
     return _flushLatest();
   }
 
+  Future<void> cancelCameraAnimation() {
+    if (_disposed) {
+      return Future<void>.value();
+    }
+    return _coordinator.cancelCameraAnimation();
+  }
+
   Future<void> dispose() {
     _disposed = true;
     _latestRequest = null;
@@ -223,9 +309,12 @@ class RunMapboxStyleReadySyncController {
 }
 
 class RunMapboxNativeMapAdapter implements RunMapboxSyncTarget {
-  RunMapboxNativeMapAdapter(this._mapboxMap);
+  RunMapboxNativeMapAdapter(this._mapboxMap, {this._followQaDiagnostics});
 
   final MapboxMap _mapboxMap;
+  final RunMapboxFollowQaDiagnostics? _followQaDiagnostics;
+  final RunMapboxCameraInterruptGate _cameraInterruptGate =
+      RunMapboxCameraInterruptGate();
   CircleAnnotationManager? _runnerManager;
   PolylineAnnotationManager? _routeManager;
   Future<void>? _disposeFuture;
@@ -237,20 +326,56 @@ class RunMapboxNativeMapAdapter implements RunMapboxSyncTarget {
       return;
     }
 
+    final cameraGeneration = _cameraInterruptGate.capture();
+    _followQaDiagnostics?.recordCameraMoveRequest(
+      shouldMoveCamera: request.shouldMoveCamera,
+      reason: request.cameraMoveReason,
+      generation: cameraGeneration,
+    );
     await _ensureAnnotationManagers();
     if (_disposed) {
       return;
     }
 
     await _syncRouteSegments(request.mapViewState);
+    _followQaDiagnostics?.recordRouteSync(
+      isFollowingRunner: request.isFollowingRunner,
+    );
     if (_disposed) {
       return;
     }
 
     await _syncRunnerMarker(request.mapViewState);
-    if (!_disposed && (request.isFollowingRunner || request.animateCamera)) {
+    _followQaDiagnostics?.recordMarkerSync(
+      isFollowingRunner: request.isFollowingRunner,
+    );
+    if (!_disposed &&
+        request.shouldMoveCamera &&
+        _cameraInterruptGate.allows(cameraGeneration)) {
+      _followQaDiagnostics?.recordCameraMove(
+        shouldMoveCamera: request.shouldMoveCamera,
+        generation: cameraGeneration,
+      );
       await _moveCamera(request.mapViewState, animated: request.animateCamera);
+      return;
     }
+    _followQaDiagnostics?.recordCameraMoveSkipped(
+      shouldMoveCamera: request.shouldMoveCamera,
+      generation: cameraGeneration,
+      isFollowingRunner: request.isFollowingRunner,
+    );
+  }
+
+  @override
+  Future<void> cancelCameraAnimation() async {
+    if (_disposed) {
+      return Future<void>.value();
+    }
+    final interruptGeneration = _cameraInterruptGate.interrupt();
+    await _mapboxMap.cancelCameraAnimation();
+    _followQaDiagnostics?.recordCameraCancel(
+      interruptGeneration: interruptGeneration,
+    );
   }
 
   @override

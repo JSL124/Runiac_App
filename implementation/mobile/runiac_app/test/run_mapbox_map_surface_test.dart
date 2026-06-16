@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/features/run/domain/models/run_location_sample.dart';
 import 'package:runiac_app/features/run/domain/models/run_map_view_state.dart';
 import 'package:runiac_app/features/run/presentation/widgets/run_map_placeholder.dart';
+import 'package:runiac_app/features/run/presentation/widgets/run_mapbox_follow_qa_overlay.dart';
 import 'package:runiac_app/features/run/presentation/widgets/run_mapbox_geometry.dart';
 import 'package:runiac_app/features/run/presentation/widgets/run_mapbox_run_map.dart';
 import 'package:runiac_app/features/run/presentation/widgets/run_mapbox_surface_config.dart';
@@ -104,6 +105,159 @@ void main() {
       },
     );
 
+    testWidgets('follow QA overlay is hidden by default', (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: SizedBox.expand(
+            child: RunTrackingMapSurface(mapboxAccessToken: ''),
+          ),
+        ),
+      );
+
+      expect(
+        find.byKey(const Key('run_mapbox_follow_qa_overlay')),
+        findsNothing,
+      );
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets(
+      'follow QA overlay shows non-sensitive diagnostics when enabled',
+      (tester) async {
+        final diagnostics = RunMapboxFollowQaDiagnostics(
+          enabled: true,
+          screenPath: 'launch',
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: SizedBox.expand(
+              child: RunTrackingMapSurface(
+                mapboxAccessToken: _demoMapboxPublicToken,
+                isFollowingRunner: false,
+                recenterRequestId: 3,
+                followQaDiagnostics: diagnostics,
+                mapboxBuilder: (context, config) {
+                  return const ColoredBox(
+                    key: Key('fake_mapbox_surface'),
+                    color: Colors.black,
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+        await tester.pump();
+
+        diagnostics
+          ..recordMapboxGestureCallback()
+          ..recordPointerObserverMove()
+          ..recordManualGesture()
+          ..recordOnManualPan()
+          ..recordCameraMoveRequest(
+            shouldMoveCamera: false,
+            reason: 'skipped',
+            generation: 2,
+          )
+          ..recordRouteSync(isFollowingRunner: false)
+          ..recordMarkerSync(isFollowingRunner: false)
+          ..recordCameraMoveSkipped(
+            shouldMoveCamera: false,
+            generation: 2,
+            isFollowingRunner: false,
+          )
+          ..recordCameraMove(shouldMoveCamera: true, generation: 3)
+          ..recordCameraCancel(interruptGeneration: 4)
+          ..recordCameraStateSample(
+            latitude: 1.300899,
+            longitude: 103.800000,
+            isFollowingRunner: false,
+          )
+          ..recordCameraStateSample(
+            latitude: 1.300999,
+            longitude: 103.800000,
+            isFollowingRunner: false,
+          )
+          ..recordResume();
+        await tester.pump();
+
+        expect(
+          find.byKey(const Key('run_mapbox_follow_qa_overlay')),
+          findsOneWidget,
+        );
+        expect(find.text('map: mapbox'), findsOneWidget);
+        expect(find.text('screen: launch'), findsOneWidget);
+        expect(find.text('follow: OFF'), findsOneWidget);
+        expect(find.text('manual gesture: 1'), findsOneWidget);
+        expect(find.text('mapbox cb: 1'), findsOneWidget);
+        expect(find.text('pointer move: 1'), findsOneWidget);
+        expect(find.text('onManualPan: 1'), findsOneWidget);
+        expect(find.text('shouldMoveCamera: false'), findsOneWidget);
+        expect(find.text('camera move: 1 should: true'), findsOneWidget);
+        expect(find.text('camera cancel: 1'), findsOneWidget);
+        expect(find.text('camera sample: 2'), findsOneWidget);
+        expect(find.text('center changed: yes'), findsOneWidget);
+        expect(find.text('center change count: 1'), findsOneWidget);
+        expect(find.text('camera source: unknown/native'), findsOneWidget);
+        expect(find.text('camera reason: skipped'), findsOneWidget);
+        expect(find.text('unknown/native: 1'), findsOneWidget);
+        expect(find.text('route sync: 1'), findsOneWidget);
+        expect(find.text('marker sync: 1'), findsOneWidget);
+        expect(find.text('camera skipped: 1'), findsOneWidget);
+        expect(find.text('follow-off route sync: 1'), findsOneWidget);
+        expect(find.text('follow-off marker sync: 1'), findsOneWidget);
+        expect(find.text('follow-off skipped: 1'), findsOneWidget);
+        expect(find.text('camera gen: 3'), findsOneWidget);
+        expect(find.text('interrupt gen: 4'), findsOneWidget);
+        expect(find.text('follow-off gen: 1'), findsOneWidget);
+        expect(find.text('recenter id: 3'), findsOneWidget);
+        expect(find.text('resume: 1'), findsOneWidget);
+
+        final visibleText = tester
+            .widgetList<Text>(find.byType(Text))
+            .map((widget) => widget.data ?? '')
+            .join('\n');
+        expect(visibleText, isNot(contains(_demoMapboxPublicToken)));
+        expect(visibleText, isNot(contains('http')));
+        expect(visibleText, isNot(contains('103.')));
+        expect(visibleText, isNot(contains('1.300')));
+        expect(tester.takeException(), isNull);
+      },
+    );
+
+    testWidgets('Mapbox pointer fallback invokes manual interaction callback', (
+      tester,
+    ) async {
+      var manualInteractions = 0;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RunMapboxManualGestureObserver(
+            isFollowingRunner: true,
+            followQaDiagnostics: null,
+            onManualMapInteraction: () {
+              manualInteractions++;
+            },
+            child: const SizedBox.expand(
+              child: ColoredBox(
+                key: Key('fake_mapbox_pointer_layer'),
+                color: Colors.black,
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.drag(
+        find.byKey(const Key('fake_mapbox_pointer_layer')),
+        const Offset(48, 0),
+      );
+      await tester.pump();
+
+      expect(manualInteractions, greaterThan(0));
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets(
       'manual pan disables follow and recenter restores camera intent',
       (tester) async {
@@ -183,6 +337,44 @@ void main() {
         expect(find.byKey(const Key('run_map_recenter_button')), findsNothing);
         expect(recenterCameraRequests, 1);
         expect(tester.takeException(), isNull);
+      },
+    );
+
+    test(
+      'real Mapbox surface wires move and zoom gestures to follow disable',
+      () {
+        final source = File(
+          'lib/features/run/presentation/widgets/run_mapbox_run_map.dart',
+        ).readAsStringSync();
+
+        expect(source, contains('onScrollListener: _handleManualGesture'));
+        expect(source, contains('onZoomListener: _handleManualGesture'));
+        expect(
+          source,
+          contains('onCameraChangeListener: _handleCameraChanged'),
+        );
+
+        expect(source, contains('RunMapboxManualGestureObserver('));
+        expect(
+          source,
+          contains('onManualMapInteraction: _handleManualMapInteraction'),
+        );
+      },
+    );
+
+    test(
+      'real Mapbox surface keeps viewport initial-only instead of rebuild-driven',
+      () {
+        final source = File(
+          'lib/features/run/presentation/widgets/run_mapbox_run_map.dart',
+        ).readAsStringSync();
+
+        expect(
+          source,
+          contains('late final CameraViewportState _initialViewport'),
+        );
+        expect(source, contains('viewport: _initialViewport'));
+        expect(source, isNot(contains('viewport: _initialViewport()')));
       },
     );
   });
@@ -265,6 +457,27 @@ void main() {
 
       expect(target.disposeCalls, 1);
     });
+
+    test(
+      'cancels camera animation without waiting for in-flight sync',
+      () async {
+        final target = _FakeRunMapboxSyncTarget();
+        final coordinator = RunMapboxSyncCoordinator(target);
+        final blocker = Completer<void>();
+        target.nextBlocker = blocker;
+
+        final syncFuture = coordinator.sync(_syncRequest(1.300000));
+        await Future<void>.delayed(Duration.zero);
+
+        await coordinator.cancelCameraAnimation();
+
+        expect(target.appliedLatitudes, <double>[1.300000]);
+        expect(target.cancelCameraAnimationCalls, 1);
+
+        blocker.complete();
+        await syncFuture;
+      },
+    );
 
     test(
       'dispose clears pending sync replay while apply is in flight',
@@ -375,6 +588,115 @@ void main() {
 
       expect(target.appliedLatitudes, <double>[1.303456]);
       expect(target.appliedFollowStates, <bool>[false]);
+      expect(target.appliedCameraMoveIntents, <bool>[false]);
+    });
+
+    test(
+      'forwards manual gesture camera cancellation to the native seam',
+      () async {
+        final target = _FakeRunMapboxSyncTarget();
+        final controller = RunMapboxStyleReadySyncController(
+          RunMapboxSyncCoordinator(target),
+        );
+
+        await controller.cancelCameraAnimation();
+
+        expect(target.cancelCameraAnimationCalls, 1);
+        expect(target.appliedLatitudes, isEmpty);
+      },
+    );
+
+    test('allows camera movement only for follow or explicit recenter', () {
+      expect(
+        RunMapboxSyncRequest(
+          mapViewState: _viewStateWithCurrentPosition(1.300899),
+          isFollowingRunner: true,
+        ).shouldMoveCamera,
+        isTrue,
+      );
+      expect(
+        RunMapboxSyncRequest(
+          mapViewState: _viewStateWithCurrentPosition(1.300899),
+          isFollowingRunner: false,
+        ).shouldMoveCamera,
+        isFalse,
+      );
+      expect(
+        RunMapboxSyncRequest(
+          mapViewState: _viewStateWithCurrentPosition(1.300899),
+          isFollowingRunner: false,
+          animateCamera: true,
+        ).shouldMoveCamera,
+        isTrue,
+      );
+    });
+
+    test('reports camera request reason without exposing coordinates', () {
+      expect(
+        RunMapboxSyncRequest(
+          mapViewState: _viewStateWithCurrentPosition(1.300899),
+          isFollowingRunner: true,
+        ).cameraMoveReason,
+        'follow',
+      );
+      expect(
+        RunMapboxSyncRequest(
+          mapViewState: _viewStateWithCurrentPosition(1.300899),
+          isFollowingRunner: false,
+        ).cameraMoveReason,
+        'skipped',
+      );
+      expect(
+        RunMapboxSyncRequest(
+          mapViewState: _viewStateWithCurrentPosition(1.300899),
+          isFollowingRunner: false,
+          animateCamera: true,
+        ).cameraMoveReason,
+        'recenter',
+      );
+    });
+
+    test(
+      'camera diagnostics mark unknown native movement while follow is off',
+      () {
+        final diagnostics = RunMapboxFollowQaDiagnostics(
+          enabled: true,
+          screenPath: 'active',
+        );
+
+        diagnostics
+          ..updateMapState(
+            mapPath: 'mapbox',
+            isFollowingRunner: false,
+            recenterRequestId: 0,
+          )
+          ..recordCameraStateSample(
+            latitude: 1.300899,
+            longitude: 103.800000,
+            isFollowingRunner: false,
+          )
+          ..recordCameraStateSample(
+            latitude: 1.300999,
+            longitude: 103.800000,
+            isFollowingRunner: false,
+          );
+
+        expect(diagnostics.cameraStateSampleCount, 2);
+        expect(diagnostics.cameraCenterChangedCount, 1);
+        expect(diagnostics.cameraCenterChanged, isTrue);
+        expect(diagnostics.unknownNativeCameraChangeCount, 1);
+        expect(diagnostics.lastCameraMovementSource, 'unknown/native');
+      },
+    );
+
+    test('camera interrupt gate rejects stale in-flight camera moves', () {
+      final gate = RunMapboxCameraInterruptGate();
+      final beforeManualGesture = gate.capture();
+
+      gate.interrupt();
+
+      expect(gate.allows(beforeManualGesture), isFalse);
+      expect(gate.allows(gate.capture()), isTrue);
     });
   });
 
@@ -561,13 +883,16 @@ RunMapViewState _viewStateWithCurrentPosition(
 class _FakeRunMapboxSyncTarget implements RunMapboxSyncTarget {
   final List<double?> appliedLatitudes = <double?>[];
   final List<bool> appliedFollowStates = <bool>[];
+  final List<bool> appliedCameraMoveIntents = <bool>[];
   Completer<void>? nextBlocker;
+  int cancelCameraAnimationCalls = 0;
   int disposeCalls = 0;
 
   @override
   Future<void> apply(RunMapboxSyncRequest request) async {
     appliedLatitudes.add(request.mapViewState.currentPosition?.latitude);
     appliedFollowStates.add(request.isFollowingRunner);
+    appliedCameraMoveIntents.add(request.shouldMoveCamera);
     final blocker = nextBlocker;
     nextBlocker = null;
     if (blocker != null) {
@@ -578,5 +903,10 @@ class _FakeRunMapboxSyncTarget implements RunMapboxSyncTarget {
   @override
   Future<void> dispose() async {
     disposeCalls++;
+  }
+
+  @override
+  Future<void> cancelCameraAnimation() async {
+    cancelCameraAnimationCalls++;
   }
 }

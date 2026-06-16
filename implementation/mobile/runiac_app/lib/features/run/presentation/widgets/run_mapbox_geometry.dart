@@ -83,10 +83,37 @@ class RunMapboxSyncRequest {
   final RunMapViewState mapViewState;
   final bool isFollowingRunner;
   final bool animateCamera;
+
+  bool get shouldMoveCamera => isFollowingRunner || animateCamera;
+
+  String get cameraMoveReason {
+    if (animateCamera) {
+      return 'recenter';
+    }
+    if (isFollowingRunner) {
+      return 'follow';
+    }
+    return 'skipped';
+  }
+}
+
+class RunMapboxCameraInterruptGate {
+  int _generation = 0;
+
+  int capture() => _generation;
+
+  int interrupt() {
+    _generation++;
+    return _generation;
+  }
+
+  bool allows(int generation) => generation == _generation;
 }
 
 abstract class RunMapboxSyncTarget {
   Future<void> apply(RunMapboxSyncRequest request);
+
+  Future<void> cancelCameraAnimation();
 
   Future<void> dispose();
 }
@@ -107,6 +134,13 @@ class RunMapboxSyncCoordinator {
 
     _latestRequest = request;
     return _drainFuture ??= _drain();
+  }
+
+  Future<void> cancelCameraAnimation() {
+    if (_disposed) {
+      return Future<void>.value();
+    }
+    return _target.cancelCameraAnimation();
   }
 
   Future<void> dispose() {

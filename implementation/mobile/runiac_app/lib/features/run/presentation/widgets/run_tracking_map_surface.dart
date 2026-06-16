@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../domain/models/run_map_view_state.dart';
 import 'run_map_placeholder.dart';
+import 'run_mapbox_follow_qa_overlay.dart';
 import 'run_mapbox_run_map.dart';
 import 'run_mapbox_surface_config.dart';
 
@@ -23,6 +24,7 @@ class RunTrackingMapSurface extends StatelessWidget {
     this.recenterRequestId = 0,
     this.mapboxAccessToken,
     this.mapboxBuilder,
+    this.followQaDiagnostics,
   });
 
   final RunMapViewState mapViewState;
@@ -34,58 +36,84 @@ class RunTrackingMapSurface extends StatelessWidget {
   final int recenterRequestId;
   final String? mapboxAccessToken;
   final RunMapboxSurfaceBuilder? mapboxBuilder;
+  final RunMapboxFollowQaDiagnostics? followQaDiagnostics;
 
   @override
   Widget build(BuildContext context) {
     final accessToken = (mapboxAccessToken ?? _mapboxPublicAccessToken).trim();
     if (accessToken.isEmpty) {
       _debugLogMapboxBranch('placeholder fallback selected');
+      _updateDiagnostics(mapPath: 'placeholder');
       return KeyedSubtree(
         key: _mapboxPlaceholderSelectedKey,
-        child: RunMapPlaceholder(
-          mapViewState: mapViewState,
-          isFollowingRunner: isFollowingRunner,
-          onManualPan: onManualPan,
-          onRecenter: onRecenter,
-          showRecenterButton: showRecenterButton,
-          recenterButtonBottom: recenterButtonBottom,
+        child: RunMapboxFollowQaOverlay(
+          diagnostics: followQaDiagnostics,
+          child: RunMapPlaceholder(
+            mapViewState: mapViewState,
+            isFollowingRunner: isFollowingRunner,
+            onManualPan: onManualPan,
+            onRecenter: onRecenter,
+            showRecenterButton: showRecenterButton,
+            recenterButtonBottom: recenterButtonBottom,
+          ),
         ),
       );
     }
 
     if (!accessToken.startsWith('pk.')) {
       _debugLogMapboxBranch('invalid token fallback selected');
+      _updateDiagnostics(mapPath: 'placeholder');
       return KeyedSubtree(
         key: _mapboxPlaceholderSelectedKey,
-        child: RunMapPlaceholder(
-          mapViewState: mapViewState,
-          isFollowingRunner: isFollowingRunner,
-          onManualPan: onManualPan,
-          onRecenter: onRecenter,
-          showRecenterButton: showRecenterButton,
-          recenterButtonBottom: recenterButtonBottom,
+        child: RunMapboxFollowQaOverlay(
+          diagnostics: followQaDiagnostics,
+          child: RunMapPlaceholder(
+            mapViewState: mapViewState,
+            isFollowingRunner: isFollowingRunner,
+            onManualPan: onManualPan,
+            onRecenter: onRecenter,
+            showRecenterButton: showRecenterButton,
+            recenterButtonBottom: recenterButtonBottom,
+          ),
         ),
       );
     }
 
     _debugLogMapboxBranch('mapbox path selected');
+    _updateDiagnostics(mapPath: 'mapbox');
     final builder = mapboxBuilder ?? _defaultMapboxBuilder;
+    final config = RunMapboxSurfaceConfig(
+      accessToken: accessToken,
+      mapViewState: mapViewState,
+      isFollowingRunner: isFollowingRunner,
+      recenterRequestId: recenterRequestId,
+      onManualPan: onManualPan,
+      onRecenter: onRecenter,
+      followQaDiagnostics: followQaDiagnostics,
+      showRecenterButton: showRecenterButton,
+      recenterButtonBottom: recenterButtonBottom,
+    );
     return KeyedSubtree(
       key: _mapboxSurfaceSelectedKey,
-      child: builder(
-        context,
-        RunMapboxSurfaceConfig(
-          accessToken: accessToken,
-          mapViewState: mapViewState,
-          isFollowingRunner: isFollowingRunner,
-          recenterRequestId: recenterRequestId,
-          onManualPan: onManualPan,
-          onRecenter: onRecenter,
-          showRecenterButton: showRecenterButton,
-          recenterButtonBottom: recenterButtonBottom,
-        ),
+      child: RunMapboxFollowQaOverlay(
+        diagnostics: followQaDiagnostics,
+        child: builder(context, config),
       ),
     );
+  }
+
+  void _updateDiagnostics({required String mapPath}) {
+    final diagnostics = followQaDiagnostics;
+    if (diagnostics == null || !diagnostics.enabled) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      diagnostics.updateMapState(
+        mapPath: mapPath,
+        isFollowingRunner: isFollowingRunner,
+        recenterRequestId: recenterRequestId,
+      );
+    });
   }
 
   void _debugLogMapboxBranch(String branch) {

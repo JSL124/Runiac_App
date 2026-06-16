@@ -784,6 +784,47 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('RunLaunchScreen follow QA overlay reports screen and resume', (
+    WidgetTester tester,
+  ) async {
+    _useMobileRunSurface(tester);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RunLaunchScreen(
+          enableForegroundGps: false,
+          enableMapboxFollowQa: true,
+          mapboxAccessToken: _demoMapboxPublicToken,
+          mapboxBuilder: (context, config) {
+            return const ColoredBox(
+              key: Key('fake_launch_mapbox_surface'),
+              color: Colors.black,
+            );
+          },
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.pump();
+
+    expect(
+      find.byKey(const Key('run_mapbox_follow_qa_overlay')),
+      findsOneWidget,
+    );
+    expect(find.text('map: mapbox'), findsOneWidget);
+    expect(find.text('screen: launch'), findsOneWidget);
+
+    await tester.tap(find.text('Start run'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Pause'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Resume'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('resume: 1'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets(
     'RunLaunchScreen recenter forwards a Mapbox camera recenter intent',
     (WidgetTester tester) async {
@@ -819,6 +860,10 @@ void main() {
       final recenter = find.byKey(const Key('run_map_recenter_button'));
       expect(recenter, findsOneWidget);
 
+      await tester.pump(const Duration(seconds: 1));
+
+      expect(configs.last.isFollowingRunner, isFalse);
+
       await tester.tap(recenter);
       await tester.pump();
       await tester.pump();
@@ -833,6 +878,44 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+
+  testWidgets('RunLaunchScreen sheet drag does not disable Mapbox follow', (
+    WidgetTester tester,
+  ) async {
+    _useMobileRunSurface(tester);
+    final configs = <RunMapboxSurfaceConfig>[];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RunLaunchScreen(
+          enableForegroundGps: false,
+          mapboxAccessToken: _demoMapboxPublicToken,
+          mapboxBuilder: (context, config) {
+            configs.add(config);
+            return GestureDetector(
+              key: const Key('fake_mapbox_pan_layer'),
+              onPanUpdate: (_) => config.onManualPan?.call(),
+              child: const ColoredBox(color: Colors.black),
+            );
+          },
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Start run'));
+    await tester.pumpAndSettle();
+
+    expect(configs.last.isFollowingRunner, isTrue);
+
+    await tester.drag(
+      find.byKey(const Key('runLaunchBottomSheet')),
+      const Offset(0, 80),
+    );
+    await tester.pump();
+
+    expect(configs.last.isFollowingRunner, isTrue);
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets('RunActiveScreen shows persistent recenter above active panel', (
     WidgetTester tester,
@@ -946,6 +1029,10 @@ void main() {
       final recenter = find.byKey(const Key('run_map_recenter_button'));
       expect(recenter, findsOneWidget);
 
+      await tester.pump(const Duration(seconds: 1));
+
+      expect(configs.last.isFollowingRunner, isFalse);
+
       await tester.tap(recenter);
       await tester.pump();
       await tester.pump();
@@ -956,6 +1043,55 @@ void main() {
       );
       expect(configs.last.isFollowingRunner, isTrue);
       expect(configs.map((config) => config.recenterRequestId), contains(1));
+      expect(configs.last.recenterRequestId, 1);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'RunLaunchScreen keeps Mapbox follow disabled after resume tick',
+    (WidgetTester tester) async {
+      _useMobileRunSurface(tester);
+      final configs = <RunMapboxSurfaceConfig>[];
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RunLaunchScreen(
+            enableForegroundGps: false,
+            mapboxAccessToken: _demoMapboxPublicToken,
+            mapboxBuilder: (context, config) {
+              configs.add(config);
+              return GestureDetector(
+                key: const Key('fake_mapbox_pan_layer'),
+                onPanUpdate: (_) => config.onManualPan?.call(),
+                child: const ColoredBox(color: Colors.black),
+              );
+            },
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Start run'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Pause'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Resume'));
+      await tester.pumpAndSettle();
+
+      await tester.drag(
+        find.byKey(const Key('fake_mapbox_pan_layer')),
+        const Offset(48, 0),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+
+      expect(configs.last.isFollowingRunner, isFalse);
+
+      await tester.tap(find.byKey(const Key('run_map_recenter_button')));
+      await tester.pump();
+
+      expect(configs.last.isFollowingRunner, isTrue);
       expect(configs.last.recenterRequestId, 1);
       expect(tester.takeException(), isNull);
     },
