@@ -28,6 +28,8 @@
 	<true/>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Runiac uses your location during a run to measure distance and pace while the app is open.</string>
+	<key>NSMotionUsageDescription</key>
+	<string>Runiac uses phone motion during a run to help detect when you are stopped. Distance and route still come from GPS.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

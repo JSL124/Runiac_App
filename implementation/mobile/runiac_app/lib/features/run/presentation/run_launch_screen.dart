@@ -6,6 +6,7 @@ import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/runiac_bottom_sheet_handle.dart';
 import '../data/geolocator_run_location_permission_service.dart';
 import '../data/real_foreground_run_location_provider.dart';
+import '../data/sensors_plus_run_motion_provider.dart';
 import '../domain/models/complete_run_result.dart';
 import '../domain/models/run_location_permission_status.dart';
 import '../domain/models/run_completion_error.dart';
@@ -13,6 +14,7 @@ import '../domain/models/run_tracking_state.dart';
 import '../domain/repositories/run_location_permission_service.dart';
 import '../domain/repositories/run_location_preview_provider.dart';
 import '../domain/repositories/run_location_provider.dart';
+import '../domain/repositories/run_motion_provider.dart';
 import '../domain/repositories/run_repository.dart';
 import 'controllers/run_tracking_controller.dart';
 import 'cool_down_screen.dart';
@@ -61,6 +63,7 @@ class RunLaunchScreen extends StatefulWidget {
     super.key,
     this.repository,
     this.locationProvider,
+    this.motionProvider,
     this.locationPreviewProvider,
     this.permissionService,
     this.enableForegroundGps = true,
@@ -71,6 +74,7 @@ class RunLaunchScreen extends StatefulWidget {
 
   final RunRepository? repository;
   final RunLocationProvider? locationProvider;
+  final RunMotionProvider? motionProvider;
   final RunLocationPreviewProvider? locationPreviewProvider;
   final RunLocationPermissionService? permissionService;
   final bool enableForegroundGps;
@@ -117,6 +121,9 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
       locationProvider: useForegroundGps
           ? widget.locationProvider ?? RealForegroundRunLocationProvider()
           : widget.locationProvider,
+      motionProvider: useForegroundGps
+          ? widget.motionProvider ?? SensorsPlusRunMotionProvider()
+          : widget.motionProvider,
       permissionService: _permissionService,
       locationStatus: useForegroundGps
           ? RunTrackingLocationStatus.waitingForGps
