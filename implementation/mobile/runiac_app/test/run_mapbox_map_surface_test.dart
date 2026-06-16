@@ -377,6 +377,76 @@ void main() {
         expect(source, isNot(contains('viewport: _initialViewport()')));
       },
     );
+
+    test('null-to-current-position transition animates while following', () {
+      final oldConfig = _surfaceConfig(
+        mapViewState: const RunMapViewState.empty(),
+        isFollowingRunner: true,
+      );
+      final newConfig = _surfaceConfig(
+        mapViewState: _viewStateWithCurrentPosition(1.300899),
+        isFollowingRunner: true,
+      );
+
+      expect(
+        shouldAnimateRunMapboxCameraSync(
+          oldConfig: oldConfig,
+          newConfig: newConfig,
+        ),
+        isTrue,
+      );
+    });
+
+    test('null-to-current-position transition does not animate off follow', () {
+      final oldConfig = _surfaceConfig(
+        mapViewState: const RunMapViewState.empty(),
+        isFollowingRunner: false,
+      );
+      final newConfig = _surfaceConfig(
+        mapViewState: _viewStateWithCurrentPosition(1.300899),
+        isFollowingRunner: false,
+      );
+
+      expect(
+        shouldAnimateRunMapboxCameraSync(
+          oldConfig: oldConfig,
+          newConfig: newConfig,
+        ),
+        isFalse,
+      );
+    });
+
+    test('explicit recenter and restored follow still animate camera sync', () {
+      final currentPosition = _viewStateWithCurrentPosition(1.300899);
+
+      expect(
+        shouldAnimateRunMapboxCameraSync(
+          oldConfig: _surfaceConfig(
+            mapViewState: currentPosition,
+            isFollowingRunner: true,
+          ),
+          newConfig: _surfaceConfig(
+            mapViewState: currentPosition,
+            isFollowingRunner: true,
+            recenterRequestId: 1,
+          ),
+        ),
+        isTrue,
+      );
+      expect(
+        shouldAnimateRunMapboxCameraSync(
+          oldConfig: _surfaceConfig(
+            mapViewState: currentPosition,
+            isFollowingRunner: false,
+          ),
+          newConfig: _surfaceConfig(
+            mapViewState: currentPosition,
+            isFollowingRunner: true,
+          ),
+        ),
+        isTrue,
+      );
+    });
   });
 
   group('RunMapboxSyncCoordinator', () {
@@ -864,6 +934,21 @@ RunMapboxSyncRequest _syncRequest(double latitude) {
   return RunMapboxSyncRequest(
     mapViewState: _viewStateWithCurrentPosition(latitude),
     isFollowingRunner: true,
+  );
+}
+
+RunMapboxSurfaceConfig _surfaceConfig({
+  required RunMapViewState mapViewState,
+  required bool isFollowingRunner,
+  int recenterRequestId = 0,
+}) {
+  return RunMapboxSurfaceConfig(
+    accessToken: _demoMapboxPublicToken,
+    mapViewState: mapViewState,
+    isFollowingRunner: isFollowingRunner,
+    recenterRequestId: recenterRequestId,
+    showRecenterButton: true,
+    recenterButtonBottom: 176,
   );
 }
 

@@ -175,12 +175,18 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
       (_) => _controller.advanceBy(const Duration(seconds: 1)),
     );
 
+    final shouldAlignCameraOnStart = _isFollowingRunner && _hasCurrentPosition;
     setState(() {
       _sheetExtent = RunLaunchSheetExtent.expanded;
       _sheetProgress = 1;
-      _isFollowingRunner = true;
+      if (shouldAlignCameraOnStart) {
+        _mapRecenterRequestId++;
+      }
       _sheetMode = RunSheetMode.running;
     });
+    if (shouldAlignCameraOnStart) {
+      _followQaDiagnostics?.recordRecenterRequest(_mapRecenterRequestId);
+    }
     _updateFollowQaMapState();
   }
 

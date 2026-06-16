@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -126,6 +128,20 @@ class _FakeRunLocationPreviewProvider implements RunLocationPreviewProvider {
   Future<RunLocationSample> currentLocation() async {
     requestCount += 1;
     return sample;
+  }
+}
+
+class _CompletingRunLocationPreviewProvider
+    implements RunLocationPreviewProvider {
+  _CompletingRunLocationPreviewProvider();
+
+  final Completer<RunLocationSample> completer = Completer<RunLocationSample>();
+  int requestCount = 0;
+
+  @override
+  Future<RunLocationSample> currentLocation() async {
+    requestCount += 1;
+    return completer.future;
   }
 }
 
@@ -743,8 +759,68 @@ void main() {
     expect(find.text('--:--/km'), findsOneWidget);
     expect(configs.last.mapViewState.currentPosition?.latitude, 1.3009);
     expect(configs.last.mapViewState.routeSegments, isEmpty);
+    expect(configs.map((config) => config.recenterRequestId), contains(1));
+    expect(configs.last.recenterRequestId, 1);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets(
+    'RunLaunchScreen manual pan before GPS ready prevents auto camera recenter',
+    (WidgetTester tester) async {
+      _useMobileRunSurface(tester);
+      final permissionService = _ConfigurableRunLocationPermissionService(
+        checkedStatus: RunLocationPermissionStatus.granted,
+      );
+      final previewProvider = _CompletingRunLocationPreviewProvider();
+      final configs = <RunMapboxSurfaceConfig>[];
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RunLaunchScreen(
+            locationProvider: ReplayRunLocationProvider(const []),
+            locationPreviewProvider: previewProvider,
+            permissionService: permissionService,
+            mapboxAccessToken: _demoMapboxPublicToken,
+            mapboxBuilder: (context, config) {
+              configs.add(config);
+              return GestureDetector(
+                key: const Key('fake_mapbox_pan_layer'),
+                onPanUpdate: (_) => config.onManualPan?.call(),
+                child: const ColoredBox(color: Colors.black),
+              );
+            },
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      expect(previewProvider.requestCount, 1);
+      expect(configs.last.mapViewState.currentPosition, isNull);
+      expect(configs.last.isFollowingRunner, isTrue);
+
+      await tester.drag(
+        find.byKey(const Key('fake_mapbox_pan_layer')),
+        const Offset(48, 0),
+      );
+      await tester.pump();
+
+      expect(configs.last.isFollowingRunner, isFalse);
+
+      previewProvider.completer.complete(_previewSample());
+      await tester.pumpAndSettle();
+
+      expect(find.text('GPS ready'), findsOneWidget);
+      expect(configs.last.mapViewState.currentPosition?.latitude, 1.3009);
+      expect(configs.last.isFollowingRunner, isFalse);
+      expect(
+        configs.map((config) => config.recenterRequestId),
+        isNot(contains(1)),
+      );
+      expect(configs.last.recenterRequestId, 0);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets('RunLaunchScreen selects Mapbox path when token is present', (
     WidgetTester tester,

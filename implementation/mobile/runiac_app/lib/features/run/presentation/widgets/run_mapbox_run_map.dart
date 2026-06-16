@@ -41,10 +41,10 @@ class _RunMapboxRunMapState extends State<RunMapboxRunMap> {
     if (oldWidget.config.accessToken != widget.config.accessToken) {
       MapboxOptions.setAccessToken(widget.config.accessToken);
     }
-    final shouldAnimateCamera =
-        oldWidget.config.recenterRequestId != widget.config.recenterRequestId ||
-        (!oldWidget.config.isFollowingRunner &&
-            widget.config.isFollowingRunner);
+    final shouldAnimateCamera = shouldAnimateRunMapboxCameraSync(
+      oldConfig: oldWidget.config,
+      newConfig: widget.config,
+    );
     unawaited(_syncCurrentMap(animateCamera: shouldAnimateCamera));
   }
 
@@ -222,6 +222,24 @@ class _RunMapboxRunMapState extends State<RunMapboxRunMap> {
       ],
     );
   }
+}
+
+@visibleForTesting
+bool shouldAnimateRunMapboxCameraSync({
+  required RunMapboxSurfaceConfig oldConfig,
+  required RunMapboxSurfaceConfig newConfig,
+}) {
+  final explicitRecenterRequested =
+      oldConfig.recenterRequestId != newConfig.recenterRequestId;
+  final followRestored =
+      !oldConfig.isFollowingRunner && newConfig.isFollowingRunner;
+  final currentPositionBecameAvailable =
+      oldConfig.mapViewState.currentPosition == null &&
+      newConfig.mapViewState.currentPosition != null;
+
+  return explicitRecenterRequested ||
+      followRestored ||
+      (currentPositionBecameAvailable && newConfig.isFollowingRunner);
 }
 
 @visibleForTesting
