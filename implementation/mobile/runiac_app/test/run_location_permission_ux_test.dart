@@ -5,6 +5,7 @@ import 'package:runiac_app/features/run/domain/models/run_location_permission_st
 import 'package:runiac_app/features/run/domain/repositories/run_location_preview_provider.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_location_provider.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_location_permission_service.dart';
+import 'package:runiac_app/features/run/domain/repositories/run_notification_permission_service.dart';
 import 'package:runiac_app/features/run/presentation/run_launch_screen.dart';
 
 class _FakePermissionService implements RunLocationPermissionService {
@@ -29,6 +30,16 @@ class _FakePreviewProvider implements RunLocationPreviewProvider {
       horizontalAccuracyMeters: 5,
     );
   }
+}
+
+class _FakeNotificationPermissionService
+    implements RunNotificationPermissionService {
+  const _FakeNotificationPermissionService(this.status);
+
+  final RunNotificationPermissionStatus status;
+
+  @override
+  Future<RunNotificationPermissionStatus> requestPermission() async => status;
 }
 
 void main() {
@@ -146,6 +157,10 @@ void main() {
             permissionService: _FakePermissionService(
               RunLocationPermissionStatus.granted,
             ),
+            notificationPermissionService:
+                const _FakeNotificationPermissionService(
+                  RunNotificationPermissionStatus.granted,
+                ),
           ),
         ),
       );
@@ -155,6 +170,42 @@ void main() {
 
       expect(find.text('Pause'), findsOneWidget);
       expect(find.byKey(const Key('runPermissionGuidance')), findsNothing);
+    });
+
+    testWidgets('denied notification permission explains background tracking', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RunLaunchScreen(
+            locationProvider: const ConstantSpeedRunLocationProvider(
+              metersPerSecond: 2.4,
+            ),
+            locationPreviewProvider: _FakePreviewProvider(),
+            permissionService: _FakePermissionService(
+              RunLocationPermissionStatus.granted,
+            ),
+            notificationPermissionService:
+                const _FakeNotificationPermissionService(
+                  RunNotificationPermissionStatus.denied,
+                ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Start run'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('runPermissionGuidance')),
+          matching: find.text(
+            'Notifications are needed to keep tracking visible while Runiac is in the background.',
+          ),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Pause'), findsNothing);
     });
   });
 }

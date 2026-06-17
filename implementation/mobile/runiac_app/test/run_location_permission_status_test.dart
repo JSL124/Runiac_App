@@ -28,6 +28,7 @@ void main() {
         RunLocationPermissionStatus.granted,
         RunLocationPermissionStatus.denied,
         RunLocationPermissionStatus.deniedForever,
+        RunLocationPermissionStatus.notificationDenied,
         RunLocationPermissionStatus.serviceDisabled,
         RunLocationPermissionStatus.unavailable,
       ]);
@@ -38,6 +39,10 @@ void main() {
       expect(
         RunLocationPermissionStatus.deniedForever.message,
         contains('app settings'),
+      );
+      expect(
+        RunLocationPermissionStatus.notificationDenied.message,
+        contains('tracking visible'),
       );
       expect(
         RunLocationPermissionStatus.serviceDisabled.message,

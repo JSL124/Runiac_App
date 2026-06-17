@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/runiac_bottom_sheet_handle.dart';
+import '../data/android_run_notification_permission_service.dart';
 import '../data/geolocator_run_location_permission_service.dart';
 import '../data/real_foreground_run_location_provider.dart';
 import '../data/sensors_plus_run_motion_provider.dart';
@@ -16,6 +17,7 @@ import '../domain/repositories/run_location_permission_service.dart';
 import '../domain/repositories/run_location_preview_provider.dart';
 import '../domain/repositories/run_location_provider.dart';
 import '../domain/repositories/run_motion_provider.dart';
+import '../domain/repositories/run_notification_permission_service.dart';
 import '../domain/repositories/run_repository.dart';
 import 'active_run_session_coordinator.dart';
 import 'controllers/run_tracking_controller.dart';
@@ -81,6 +83,18 @@ RunLocationPreviewProvider? _resolveRunLaunchPreviewProvider({
       const RealForegroundRunLocationPreviewProvider();
 }
 
+RunNotificationPermissionService?
+_resolveRunLaunchNotificationPermissionService({
+  required bool enableForegroundGps,
+  required RunNotificationPermissionService? notificationPermissionService,
+}) {
+  if (!enableForegroundGps) {
+    return notificationPermissionService;
+  }
+  return notificationPermissionService ??
+      const AndroidRunNotificationPermissionService();
+}
+
 Future<RunLocationSample?> prewarmRunLaunchPreviewCurrentPosition({
   required bool enableForegroundGps,
   RunLocationPermissionService? permissionService,
@@ -117,6 +131,7 @@ class RunLaunchScreen extends StatefulWidget {
     this.motionProvider,
     this.locationPreviewProvider,
     this.permissionService,
+    this.notificationPermissionService,
     this.enableForegroundGps = true,
     this.mapboxAccessToken,
     this.mapboxBuilder,
@@ -130,6 +145,7 @@ class RunLaunchScreen extends StatefulWidget {
   final RunMotionProvider? motionProvider;
   final RunLocationPreviewProvider? locationPreviewProvider;
   final RunLocationPermissionService? permissionService;
+  final RunNotificationPermissionService? notificationPermissionService;
   final bool enableForegroundGps;
   final String? mapboxAccessToken;
   final RunMapboxSurfaceBuilder? mapboxBuilder;
@@ -186,6 +202,12 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
             ? widget.motionProvider ?? SensorsPlusRunMotionProvider()
             : widget.motionProvider,
         permissionService: _permissionService,
+        notificationPermissionService:
+            _resolveRunLaunchNotificationPermissionService(
+              enableForegroundGps: useForegroundGps,
+              notificationPermissionService:
+                  widget.notificationPermissionService,
+            ),
         locationStatus: useForegroundGps
             ? RunTrackingLocationStatus.waitingForGps
             : RunTrackingLocationStatus.demo,
@@ -495,6 +517,8 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
       RunLocationPermissionStatus.denied =>
         _RunPreviewLocationStatus.permissionRequired,
       RunLocationPermissionStatus.deniedForever =>
+        _RunPreviewLocationStatus.permissionBlocked,
+      RunLocationPermissionStatus.notificationDenied =>
         _RunPreviewLocationStatus.permissionBlocked,
       RunLocationPermissionStatus.serviceDisabled =>
         _RunPreviewLocationStatus.serviceDisabled,

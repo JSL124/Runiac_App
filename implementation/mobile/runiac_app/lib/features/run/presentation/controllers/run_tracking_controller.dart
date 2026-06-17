@@ -11,6 +11,7 @@ import '../../domain/models/run_tracking_state.dart';
 import '../../domain/repositories/run_location_permission_service.dart';
 import '../../domain/repositories/run_location_provider.dart';
 import '../../domain/repositories/run_motion_provider.dart';
+import '../../domain/repositories/run_notification_permission_service.dart';
 import '../../domain/services/local_run_tracking_session.dart';
 import '../widgets/display_route_smoother.dart';
 
@@ -20,6 +21,7 @@ class RunTrackingController extends ChangeNotifier {
     RunLocationProvider? locationProvider,
     RunMotionProvider? motionProvider,
     this.permissionService,
+    this.notificationPermissionService,
     RunTrackingLocationStatus locationStatus = RunTrackingLocationStatus.demo,
     RunLocationSample? initialPreviewCurrentPosition,
   }) : metersPerSecond = metersPerSecond,
@@ -34,6 +36,7 @@ class RunTrackingController extends ChangeNotifier {
   final RunLocationProvider _locationProvider;
   final RunMotionProvider _motionProvider;
   final RunLocationPermissionService? permissionService;
+  final RunNotificationPermissionService? notificationPermissionService;
   final RunTrackingLocationStatus _initialLocationStatus;
 
   RunTrackingState _state = const RunTrackingState.idle();
@@ -117,6 +120,17 @@ class RunTrackingController extends ChangeNotifier {
     if (!permissionStatus.canStartRun) {
       notifyListeners();
       return false;
+    }
+
+    final notificationService = notificationPermissionService;
+    if (notificationService != null) {
+      final notificationStatus = await notificationService.requestPermission();
+      if (notificationStatus == RunNotificationPermissionStatus.denied) {
+        _locationPermissionStatus =
+            RunLocationPermissionStatus.notificationDenied;
+        notifyListeners();
+        return false;
+      }
     }
 
     final effectiveStartedAt = _startSession(

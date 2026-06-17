@@ -13,6 +13,7 @@ import 'package:runiac_app/features/run/domain/models/run_tracking_state.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_location_permission_service.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_location_provider.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_motion_provider.dart';
+import 'package:runiac_app/features/run/domain/repositories/run_notification_permission_service.dart';
 import 'package:runiac_app/features/run/data/real_foreground_run_location_provider.dart';
 import 'package:runiac_app/features/run/presentation/controllers/run_tracking_controller.dart';
 
@@ -26,6 +27,20 @@ class _FakePermissionService implements RunLocationPermissionService {
 
   @override
   Future<RunLocationPermissionStatus> requestPermission() async => status;
+}
+
+class _FakeNotificationPermissionService
+    implements RunNotificationPermissionService {
+  _FakeNotificationPermissionService(this.status);
+
+  RunNotificationPermissionStatus status;
+  int requestCount = 0;
+
+  @override
+  Future<RunNotificationPermissionStatus> requestPermission() async {
+    requestCount += 1;
+    return status;
+  }
 }
 
 class _LifecycleTrackingProvider extends ConstantSpeedRunLocationProvider {
@@ -904,6 +919,70 @@ void main() {
         expect(provider.pauseCount, 1);
         expect(provider.resumeCount, 1);
         expect(provider.stopCount, 1);
+      },
+    );
+
+    test(
+      'requests notification permission before starting real provider',
+      () async {
+        final provider = _LifecycleTrackingProvider();
+        final notificationPermissionService =
+            _FakeNotificationPermissionService(
+              RunNotificationPermissionStatus.granted,
+            );
+        final controller = RunTrackingController(
+          locationProvider: provider,
+          permissionService: _FakePermissionService(
+            RunLocationPermissionStatus.granted,
+          ),
+          notificationPermissionService: notificationPermissionService,
+        );
+
+        final started = await controller.requestStart(
+          startedAt: DateTime.utc(2026, 6, 14, 7),
+          clientRunSessionId: 'notification-permission-granted-run',
+        );
+
+        expect(started, isTrue);
+        expect(notificationPermissionService.requestCount, 1);
+        expect(controller.state.phase, RunTrackingPhase.active);
+        expect(provider.startCount, 1);
+      },
+    );
+
+    test(
+      'does not start real provider when notification permission is denied',
+      () async {
+        final provider = _LifecycleTrackingProvider();
+        final notificationPermissionService =
+            _FakeNotificationPermissionService(
+              RunNotificationPermissionStatus.denied,
+            );
+        final controller = RunTrackingController(
+          locationProvider: provider,
+          permissionService: _FakePermissionService(
+            RunLocationPermissionStatus.granted,
+          ),
+          notificationPermissionService: notificationPermissionService,
+        );
+
+        final started = await controller.requestStart(
+          startedAt: DateTime.utc(2026, 6, 14, 7),
+          clientRunSessionId: 'notification-permission-denied-run',
+        );
+
+        expect(started, isFalse);
+        expect(notificationPermissionService.requestCount, 1);
+        expect(
+          controller.locationPermissionStatus,
+          RunLocationPermissionStatus.notificationDenied,
+        );
+        expect(
+          controller.locationPermissionMessage,
+          'Notifications are needed to keep tracking visible while Runiac is in the background.',
+        );
+        expect(controller.state.phase, RunTrackingPhase.idle);
+        expect(provider.startCount, 0);
       },
     );
 
