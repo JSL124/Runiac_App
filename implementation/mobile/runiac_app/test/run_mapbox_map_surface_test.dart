@@ -379,6 +379,35 @@ void main() {
       },
     );
 
+    test('real Mapbox surface clusters required ornaments top-left', () {
+      final scaleBarSettings = runMapboxScaleBarSettings();
+      final logoSettings = runMapboxLogoSettings();
+      final attributionSettings = runMapboxAttributionSettings();
+
+      expect(scaleBarSettings.enabled, isTrue);
+      expect(scaleBarSettings.position, OrnamentPosition.TOP_LEFT);
+      expect(scaleBarSettings.marginLeft, 16);
+      expect(scaleBarSettings.marginTop, 80);
+
+      expect(logoSettings.enabled, isTrue);
+      expect(logoSettings.position, OrnamentPosition.TOP_LEFT);
+      expect(logoSettings.marginLeft, scaleBarSettings.marginLeft);
+      expect(logoSettings.marginTop, greaterThan(scaleBarSettings.marginTop!));
+      expect(
+        logoSettings.marginTop! - scaleBarSettings.marginTop!,
+        lessThan(40),
+      );
+
+      expect(attributionSettings.enabled, isTrue);
+      expect(attributionSettings.clickable, isTrue);
+      expect(attributionSettings.position, OrnamentPosition.TOP_LEFT);
+      expect(attributionSettings.marginTop, logoSettings.marginTop);
+      expect(
+        attributionSettings.marginLeft,
+        greaterThan(logoSettings.marginLeft!),
+      );
+    });
+
     test('null-to-current-position transition animates while following', () {
       final oldConfig = _surfaceConfig(
         mapViewState: const RunMapViewState.empty(),

@@ -12,6 +12,10 @@ import 'run_mapbox_surface_config.dart';
 
 const _runnerOrange = Color(0xFFFF6818);
 const _routeOrange = Color(0xFFFF7A1A);
+const _ornamentLeftMargin = 16.0;
+const _ornamentTopMargin = 80.0;
+const _logoBelowScaleBarTopMargin = 112.0;
+const _attributionBesideLogoLeftMargin = 112.0;
 
 class RunMapboxRunMap extends StatefulWidget {
   const RunMapboxRunMap({super.key, required this.config});
@@ -95,23 +99,9 @@ class _RunMapboxRunMapState extends State<RunMapboxRunMap> {
   }
 
   Future<void> _configureMapboxOrnaments(MapboxMap mapboxMap) async {
-    await mapboxMap.logo.updateSettings(
-      LogoSettings(
-        enabled: true,
-        position: OrnamentPosition.TOP_LEFT,
-        marginLeft: 16,
-        marginTop: 80,
-      ),
-    );
-    await mapboxMap.attribution.updateSettings(
-      AttributionSettings(
-        enabled: true,
-        clickable: true,
-        position: OrnamentPosition.TOP_RIGHT,
-        marginTop: 80,
-        marginRight: 16,
-      ),
-    );
+    await mapboxMap.scaleBar.updateSettings(runMapboxScaleBarSettings());
+    await mapboxMap.logo.updateSettings(runMapboxLogoSettings());
+    await mapboxMap.attribution.updateSettings(runMapboxAttributionSettings());
   }
 
   Future<void> _syncCurrentMap({bool animateCamera = false}) {
@@ -394,6 +384,37 @@ class _MapboxRunnerMarkerOperations
   Future<void> delete(CircleAnnotation marker) {
     return _manager.delete(marker);
   }
+}
+
+@visibleForTesting
+ScaleBarSettings runMapboxScaleBarSettings() {
+  return ScaleBarSettings(
+    enabled: true,
+    position: OrnamentPosition.TOP_LEFT,
+    marginLeft: _ornamentLeftMargin,
+    marginTop: _ornamentTopMargin,
+  );
+}
+
+@visibleForTesting
+LogoSettings runMapboxLogoSettings() {
+  return LogoSettings(
+    enabled: true,
+    position: OrnamentPosition.TOP_LEFT,
+    marginLeft: _ornamentLeftMargin,
+    marginTop: _logoBelowScaleBarTopMargin,
+  );
+}
+
+@visibleForTesting
+AttributionSettings runMapboxAttributionSettings() {
+  return AttributionSettings(
+    enabled: true,
+    clickable: true,
+    position: OrnamentPosition.TOP_LEFT,
+    marginLeft: _attributionBesideLogoLeftMargin,
+    marginTop: _logoBelowScaleBarTopMargin,
+  );
 }
 
 class RunMapboxNativeMapAdapter implements RunMapboxSyncTarget {
