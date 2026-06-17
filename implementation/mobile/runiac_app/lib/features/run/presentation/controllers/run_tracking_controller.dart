@@ -7,7 +7,9 @@ import '../../domain/models/run_location_sample.dart';
 import '../../domain/models/run_location_permission_status.dart';
 import '../../domain/models/run_map_view_state.dart';
 import '../../domain/models/run_tracking_diagnostics.dart';
+import '../../domain/models/run_tracking_notification_copy.dart';
 import '../../domain/models/run_tracking_state.dart';
+import '../../domain/repositories/run_foreground_service.dart';
 import '../../domain/repositories/run_location_permission_service.dart';
 import '../../domain/repositories/run_location_provider.dart';
 import '../../domain/repositories/run_motion_provider.dart';
@@ -20,6 +22,7 @@ class RunTrackingController extends ChangeNotifier {
     double metersPerSecond = 2.4,
     RunLocationProvider? locationProvider,
     RunMotionProvider? motionProvider,
+    RunForegroundService? foregroundService,
     this.permissionService,
     this.notificationPermissionService,
     RunTrackingLocationStatus locationStatus = RunTrackingLocationStatus.demo,
@@ -29,12 +32,15 @@ class RunTrackingController extends ChangeNotifier {
            locationProvider ??
            ConstantSpeedRunLocationProvider(metersPerSecond: metersPerSecond),
        _motionProvider = motionProvider ?? const NoopRunMotionProvider(),
+       _foregroundService =
+           foregroundService ?? const NoopRunForegroundService(),
        _initialLocationStatus = locationStatus,
        _previewCurrentPosition = initialPreviewCurrentPosition;
 
   final double metersPerSecond;
   final RunLocationProvider _locationProvider;
   final RunMotionProvider _motionProvider;
+  final RunForegroundService _foregroundService;
   final RunLocationPermissionService? permissionService;
   final RunNotificationPermissionService? notificationPermissionService;
   final RunTrackingLocationStatus _initialLocationStatus;
@@ -46,6 +52,11 @@ class RunTrackingController extends ChangeNotifier {
   RunMapViewState _mapViewState = const RunMapViewState.empty();
   RunLocationSample? _previewCurrentPosition;
   DateTime? _lastAdvancedAt;
+  RunTrackingNotificationCopy? _lastForegroundCopy;
+  bool _foregroundServiceStarted = false;
+  bool _foregroundServiceStarting = false;
+  bool _foregroundServiceStopRequested = false;
+  bool _disposed = false;
   int _sessionSequence = 0;
   RunTrackingLocationStatus _latestLocationStatus =
       RunTrackingLocationStatus.demo;
@@ -86,6 +97,7 @@ class RunTrackingController extends ChangeNotifier {
       routePrivacy: routePrivacy,
       routeLabel: routeLabel,
     );
+    unawaited(_startForegroundService());
     unawaited(_locationProvider.start(startedAt: effectiveStartedAt));
     unawaited(_motionProvider.start(startedAt: effectiveStartedAt));
     notifyListeners();
@@ -139,8 +151,16 @@ class RunTrackingController extends ChangeNotifier {
       routePrivacy: routePrivacy,
       routeLabel: routeLabel,
     );
-    await _locationProvider.start(startedAt: effectiveStartedAt);
-    await _motionProvider.start(startedAt: effectiveStartedAt);
+    final startedProviders = await _startRunProviders(
+      startedAt: effectiveStartedAt,
+    );
+    if (!startedProviders) {
+      if (!_disposed) {
+        _locationPermissionStatus = RunLocationPermissionStatus.unavailable;
+        notifyListeners();
+      }
+      return false;
+    }
     notifyListeners();
     return true;
   }
@@ -157,6 +177,10 @@ class RunTrackingController extends ChangeNotifier {
     _trackingSession = session;
     _mapViewState = const RunMapViewState.empty();
     _lastAdvancedAt = effectiveStartedAt;
+    _lastForegroundCopy = null;
+    _foregroundServiceStarted = false;
+    _foregroundServiceStarting = false;
+    _foregroundServiceStopRequested = false;
     _latestLocationStatus = _initialLocationStatus;
     _state = RunTrackingState(
       phase: RunTrackingPhase.active,
@@ -238,6 +262,7 @@ class RunTrackingController extends ChangeNotifier {
       movementStatus: session.movementStatus,
     );
     _mapViewState = _withSmoothedDisplayRoute(session.mapViewState);
+    _updateForegroundService();
     notifyListeners();
   }
 
@@ -286,6 +311,7 @@ class RunTrackingController extends ChangeNotifier {
     unawaited(_locationProvider.pause());
     unawaited(_motionProvider.pause());
     _state = _state.copyWith(phase: RunTrackingPhase.paused);
+    unawaited(_updateForegroundService());
     notifyListeners();
   }
 
@@ -317,6 +343,7 @@ class RunTrackingController extends ChangeNotifier {
       phase: RunTrackingPhase.active,
       movementStatus: RunMovementStatus.moving,
     );
+    unawaited(_updateForegroundService());
     notifyListeners();
   }
 
@@ -344,6 +371,7 @@ class RunTrackingController extends ChangeNotifier {
     final payload = completionPayload(completedAt: completedAt);
     unawaited(_locationProvider.stop());
     unawaited(_motionProvider.stop());
+    unawaited(_stopForegroundService());
     _mapViewState = const RunMapViewState.empty();
     _previewCurrentPosition = null;
     _lastAdvancedAt = null;
@@ -358,8 +386,103 @@ class RunTrackingController extends ChangeNotifier {
 
   @override
   void dispose() {
+    _disposed = true;
     unawaited(_locationProvider.stop());
     unawaited(_motionProvider.stop());
+    unawaited(_stopForegroundService());
     super.dispose();
+  }
+
+  Future<bool> _startRunProviders({required DateTime startedAt}) async {
+    try {
+      await _startForegroundService();
+      if (_disposed) {
+        return false;
+      }
+
+      await _locationProvider.start(startedAt: startedAt);
+      if (_disposed) {
+        await _locationProvider.stop();
+        return false;
+      }
+
+      await _motionProvider.start(startedAt: startedAt);
+      if (_disposed) {
+        await _locationProvider.stop();
+        await _motionProvider.stop();
+        return false;
+      }
+
+      return true;
+    } catch (_) {
+      await _locationProvider.stop();
+      await _motionProvider.stop();
+      await _stopForegroundService();
+      if (!_disposed) {
+        _resetAfterFailedStart();
+      }
+      return false;
+    }
+  }
+
+  void _resetAfterFailedStart() {
+    _trackingSession = null;
+    _mapViewState = const RunMapViewState.empty();
+    _lastAdvancedAt = null;
+    _previewCurrentPosition = null;
+    _state = const RunTrackingState.idle();
+  }
+
+  Future<void> _startForegroundService() async {
+    if (_foregroundServiceStarted || _foregroundServiceStarting) {
+      return;
+    }
+
+    final copy = RunTrackingNotificationCopy.fromState(_state);
+    _lastForegroundCopy = copy;
+    _foregroundServiceStarting = true;
+    _foregroundServiceStopRequested = false;
+    try {
+      await _foregroundService.start(copy);
+      _foregroundServiceStarted = true;
+    } finally {
+      _foregroundServiceStarting = false;
+    }
+
+    if (_foregroundServiceStopRequested) {
+      await _stopForegroundService();
+    }
+  }
+
+  Future<void> _updateForegroundService() async {
+    if (!_foregroundServiceStarted) {
+      return;
+    }
+    if (_state.phase == RunTrackingPhase.idle ||
+        _state.phase == RunTrackingPhase.finished) {
+      return;
+    }
+
+    final copy = RunTrackingNotificationCopy.fromState(_state);
+    if (_lastForegroundCopy == copy) {
+      return;
+    }
+
+    _lastForegroundCopy = copy;
+    await _foregroundService.update(copy);
+  }
+
+  Future<void> _stopForegroundService() async {
+    if (_foregroundServiceStarting) {
+      _foregroundServiceStopRequested = true;
+      return;
+    }
+    if (!_foregroundServiceStarted) {
+      return;
+    }
+    _foregroundServiceStarted = false;
+    _foregroundServiceStopRequested = false;
+    _lastForegroundCopy = null;
+    await _foregroundService.stop();
   }
 }

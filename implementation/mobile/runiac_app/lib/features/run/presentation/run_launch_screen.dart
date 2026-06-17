@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/runiac_bottom_sheet_handle.dart';
 import '../data/android_run_notification_permission_service.dart';
+import '../data/android_run_foreground_service.dart';
 import '../data/geolocator_run_location_permission_service.dart';
 import '../data/real_foreground_run_location_provider.dart';
 import '../data/sensors_plus_run_motion_provider.dart';
@@ -13,6 +14,7 @@ import '../domain/models/run_location_permission_status.dart';
 import '../domain/models/run_location_sample.dart';
 import '../domain/models/run_completion_error.dart';
 import '../domain/models/run_tracking_state.dart';
+import '../domain/repositories/run_foreground_service.dart';
 import '../domain/repositories/run_location_permission_service.dart';
 import '../domain/repositories/run_location_preview_provider.dart';
 import '../domain/repositories/run_location_provider.dart';
@@ -132,6 +134,7 @@ class RunLaunchScreen extends StatefulWidget {
     this.locationPreviewProvider,
     this.permissionService,
     this.notificationPermissionService,
+    this.foregroundService,
     this.enableForegroundGps = true,
     this.mapboxAccessToken,
     this.mapboxBuilder,
@@ -146,6 +149,7 @@ class RunLaunchScreen extends StatefulWidget {
   final RunLocationPreviewProvider? locationPreviewProvider;
   final RunLocationPermissionService? permissionService;
   final RunNotificationPermissionService? notificationPermissionService;
+  final RunForegroundService? foregroundService;
   final bool enableForegroundGps;
   final String? mapboxAccessToken;
   final RunMapboxSurfaceBuilder? mapboxBuilder;
@@ -201,6 +205,9 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
         motionProvider: useForegroundGps
             ? widget.motionProvider ?? SensorsPlusRunMotionProvider()
             : widget.motionProvider,
+        foregroundService: useForegroundGps
+            ? widget.foregroundService ?? const AndroidRunForegroundService()
+            : null,
         permissionService: _permissionService,
         notificationPermissionService:
             _resolveRunLaunchNotificationPermissionService(

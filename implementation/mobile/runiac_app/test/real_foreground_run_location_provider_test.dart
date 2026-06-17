@@ -78,7 +78,7 @@ void main() {
     });
 
     test(
-      'active foreground tracking requests an ongoing Android notification',
+      'active foreground tracking uses Runiac-owned Android foreground mode',
       () async {
         final startedAt = DateTime.utc(2026, 6, 14, 7);
         final adapter = _FakeForegroundAdapter();
@@ -91,6 +91,36 @@ void main() {
         expect(notification?.title, 'Getting GPS ready');
         expect(notification?.body, 'Keep moving in an open area');
         expect(notification?.setOngoing, isTrue);
+        expect(
+          adapter.lastSettings?.runiacOwnsAndroidForegroundService,
+          isTrue,
+        );
+      },
+    );
+
+    test(
+      'Runiac-owned foreground mode disables Geolocator notification config',
+      () {
+        const adapter = GeolocatorForegroundLocationAdapter(
+          platformOverride: TargetPlatform.android,
+        );
+
+        final settings = adapter.locationSettingsFor(
+          const LocationSettingsRequest(
+            distanceFilterMeters: 0,
+            runiacOwnsAndroidForegroundService: true,
+            androidForegroundNotification:
+                AndroidForegroundNotificationSettings(
+                  title: 'Runiac is tracking your run',
+                  body: 'GPS active • 00:01 • 0.00 km',
+                ),
+          ),
+        );
+
+        expect(settings, isA<geolocator.AndroidSettings>());
+        final androidSettings = settings as geolocator.AndroidSettings;
+        expect(androidSettings.foregroundNotificationConfig, isNull);
+        expect(androidSettings.distanceFilter, 0);
       },
     );
 

@@ -7,9 +7,11 @@ import 'package:runiac_app/features/run/domain/models/run_location_sample.dart';
 import 'package:runiac_app/features/run/domain/models/run_location_permission_status.dart';
 import 'package:runiac_app/features/run/domain/models/run_motion_evidence.dart';
 import 'package:runiac_app/features/run/domain/models/run_tracking_diagnostics.dart';
+import 'package:runiac_app/features/run/domain/models/run_tracking_notification_copy.dart';
 import 'package:runiac_app/features/run/domain/models/run_tracking_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/run_tracking_startup_readiness.dart';
 import 'package:runiac_app/features/run/domain/models/run_tracking_state.dart';
+import 'package:runiac_app/features/run/domain/repositories/run_foreground_service.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_location_permission_service.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_location_provider.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_motion_provider.dart';
@@ -43,6 +45,43 @@ class _FakeNotificationPermissionService
   }
 }
 
+class _FakeRunForegroundService implements RunForegroundService {
+  final calls = <String>[];
+  final titles = <String>[];
+  final bodies = <String>[];
+
+  @override
+  Future<void> start(RunTrackingNotificationCopy copy) async {
+    calls.add('start');
+    titles.add(copy.title);
+    bodies.add(copy.body);
+  }
+
+  @override
+  Future<void> update(RunTrackingNotificationCopy copy) async {
+    calls.add('update');
+    titles.add(copy.title);
+    bodies.add(copy.body);
+  }
+
+  @override
+  Future<void> stop() async {
+    calls.add('stop');
+  }
+}
+
+class _DelayedRunForegroundService extends _FakeRunForegroundService {
+  final startCompleter = Completer<void>();
+
+  @override
+  Future<void> start(RunTrackingNotificationCopy copy) async {
+    calls.add('start');
+    titles.add(copy.title);
+    bodies.add(copy.body);
+    await startCompleter.future;
+  }
+}
+
 class _LifecycleTrackingProvider extends ConstantSpeedRunLocationProvider {
   _LifecycleTrackingProvider() : super(metersPerSecond: 2.5);
 
@@ -72,6 +111,14 @@ class _LifecycleTrackingProvider extends ConstantSpeedRunLocationProvider {
   @override
   Future<void> stop() async {
     stopCount += 1;
+  }
+}
+
+class _ThrowingStartLocationProvider extends _LifecycleTrackingProvider {
+  @override
+  Future<void> start({required DateTime startedAt}) async {
+    startCount += 1;
+    throw StateError('GPS provider failed to start');
   }
 }
 
@@ -983,6 +1030,128 @@ void main() {
         );
         expect(controller.state.phase, RunTrackingPhase.idle);
         expect(provider.startCount, 0);
+      },
+    );
+
+    test(
+      'starts updates and stops Runiac foreground service without changing math',
+      () async {
+        final provider = _LifecycleTrackingProvider();
+        final foregroundService = _FakeRunForegroundService();
+        final controller = RunTrackingController(
+          locationProvider: provider,
+          foregroundService: foregroundService,
+          permissionService: _FakePermissionService(
+            RunLocationPermissionStatus.granted,
+          ),
+          notificationPermissionService: _FakeNotificationPermissionService(
+            RunNotificationPermissionStatus.granted,
+          ),
+          locationStatus: RunTrackingLocationStatus.waitingForGps,
+        );
+
+        final started = await controller.requestStart(
+          startedAt: DateTime.utc(2026, 6, 14, 7),
+          clientRunSessionId: 'runiac-foreground-service-run',
+        );
+
+        expect(started, isTrue);
+        expect(provider.startCount, 1);
+        expect(foregroundService.calls, ['start']);
+        expect(foregroundService.titles.single, 'Getting GPS ready');
+        expect(foregroundService.bodies.single, 'Keep moving in an open area');
+
+        controller.advanceBy(const Duration(seconds: 1));
+        controller.pause(pausedAt: DateTime.utc(2026, 6, 14, 7, 0, 1));
+        controller.resume(resumedAt: DateTime.utc(2026, 6, 14, 7, 0, 2));
+        final payload = controller.finish(
+          completedAt: DateTime.utc(2026, 6, 14, 7, 0, 3),
+        );
+        await Future<void>.delayed(Duration.zero);
+
+        expect(payload.clientRunSessionId, 'runiac-foreground-service-run');
+        expect(payload.durationSeconds, 1);
+        expect(payload.distanceMeters, 3);
+        expect(foregroundService.calls, [
+          'start',
+          'update',
+          'update',
+          'update',
+          'stop',
+        ]);
+        expect(foregroundService.titles, [
+          'Getting GPS ready',
+          'Runiac is tracking your run',
+          'Run paused',
+          'Runiac is tracking your run',
+        ]);
+      },
+    );
+
+    test(
+      'stops Runiac foreground service when provider startup fails',
+      () async {
+        final provider = _ThrowingStartLocationProvider();
+        final foregroundService = _FakeRunForegroundService();
+        final controller = RunTrackingController(
+          locationProvider: provider,
+          foregroundService: foregroundService,
+          permissionService: _FakePermissionService(
+            RunLocationPermissionStatus.granted,
+          ),
+          notificationPermissionService: _FakeNotificationPermissionService(
+            RunNotificationPermissionStatus.granted,
+          ),
+          locationStatus: RunTrackingLocationStatus.waitingForGps,
+        );
+
+        final started = await controller.requestStart(
+          startedAt: DateTime.utc(2026, 6, 14, 7),
+          clientRunSessionId: 'provider-start-failure-run',
+        );
+
+        expect(started, isFalse);
+        expect(controller.state.phase, RunTrackingPhase.idle);
+        expect(
+          controller.locationPermissionStatus,
+          RunLocationPermissionStatus.unavailable,
+        );
+        expect(provider.startCount, 1);
+        expect(provider.stopCount, 1);
+        expect(foregroundService.calls, ['start', 'stop']);
+      },
+    );
+
+    test(
+      'stops Runiac foreground service after dispose during startup',
+      () async {
+        final provider = _LifecycleTrackingProvider();
+        final foregroundService = _DelayedRunForegroundService();
+        final controller = RunTrackingController(
+          locationProvider: provider,
+          foregroundService: foregroundService,
+          permissionService: _FakePermissionService(
+            RunLocationPermissionStatus.granted,
+          ),
+          notificationPermissionService: _FakeNotificationPermissionService(
+            RunNotificationPermissionStatus.granted,
+          ),
+          locationStatus: RunTrackingLocationStatus.waitingForGps,
+        );
+
+        final startFuture = controller.requestStart(
+          startedAt: DateTime.utc(2026, 6, 14, 7),
+          clientRunSessionId: 'disposed-during-foreground-start-run',
+        );
+        await Future<void>.delayed(Duration.zero);
+
+        controller.dispose();
+        foregroundService.startCompleter.complete();
+        final started = await startFuture;
+
+        expect(started, isFalse);
+        expect(provider.startCount, 0);
+        expect(foregroundService.calls, ['start', 'stop']);
       },
     );
 

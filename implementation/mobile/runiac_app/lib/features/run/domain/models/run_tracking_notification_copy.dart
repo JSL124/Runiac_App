@@ -60,6 +60,17 @@ class RunTrackingNotificationCopy {
 
   final String title;
   final String body;
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        other is RunTrackingNotificationCopy &&
+            other.title == title &&
+            other.body == body;
+  }
+
+  @override
+  int get hashCode => Object.hash(title, body);
 }
 
 String _formatElapsed(int seconds) {

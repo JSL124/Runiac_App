@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/features/run/domain/models/run_location_sample.dart';
 import 'package:runiac_app/features/run/domain/models/run_location_permission_status.dart';
+import 'package:runiac_app/features/run/domain/repositories/run_foreground_service.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_location_preview_provider.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_location_provider.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_location_permission_service.dart';
@@ -161,6 +162,7 @@ void main() {
                 const _FakeNotificationPermissionService(
                   RunNotificationPermissionStatus.granted,
                 ),
+            foregroundService: const NoopRunForegroundService(),
           ),
         ),
       );

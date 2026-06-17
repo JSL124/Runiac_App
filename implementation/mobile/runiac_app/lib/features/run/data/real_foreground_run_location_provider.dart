@@ -14,11 +14,13 @@ class LocationSettingsRequest {
     this.highAccuracy = true,
     this.distanceFilterMeters = 1,
     this.androidForegroundNotification,
+    this.runiacOwnsAndroidForegroundService = false,
   });
 
   final bool highAccuracy;
   final int distanceFilterMeters;
   final AndroidForegroundNotificationSettings? androidForegroundNotification;
+  final bool runiacOwnsAndroidForegroundService;
 }
 
 class AndroidForegroundNotificationSettings {
@@ -104,23 +106,25 @@ class GeolocatorForegroundLocationAdapter implements ForegroundLocationAdapter {
     LocationSettingsRequest settings,
   ) {
     final notification = settings.androidForegroundNotification;
-    if ((platformOverride ?? defaultTargetPlatform) == TargetPlatform.android &&
-        notification != null) {
+    if ((platformOverride ?? defaultTargetPlatform) == TargetPlatform.android) {
       return geolocator.AndroidSettings(
         accuracy: settings.highAccuracy
             ? geolocator.LocationAccuracy.high
             : geolocator.LocationAccuracy.medium,
         distanceFilter: settings.distanceFilterMeters,
-        foregroundNotificationConfig: geolocator.ForegroundNotificationConfig(
-          notificationTitle: notification.title,
-          notificationText: notification.body,
-          notificationChannelName: 'Runiac Run Tracking',
-          notificationIcon: const geolocator.AndroidResource(
-            name: 'ic_launcher',
-            defType: 'mipmap',
-          ),
-          setOngoing: notification.setOngoing,
-        ),
+        foregroundNotificationConfig:
+            settings.runiacOwnsAndroidForegroundService || notification == null
+            ? null
+            : geolocator.ForegroundNotificationConfig(
+                notificationTitle: notification.title,
+                notificationText: notification.body,
+                notificationChannelName: 'Runiac Run Tracking',
+                notificationIcon: const geolocator.AndroidResource(
+                  name: 'ic_launcher',
+                  defType: 'mipmap',
+                ),
+                setOngoing: notification.setOngoing,
+              ),
       );
     }
 
@@ -167,6 +171,7 @@ class RealForegroundRunLocationProvider implements RunLocationProvider {
     this.adapter = const GeolocatorForegroundLocationAdapter(),
     this.settings = const LocationSettingsRequest(
       distanceFilterMeters: 0,
+      runiacOwnsAndroidForegroundService: true,
       androidForegroundNotification: AndroidForegroundNotificationSettings(
         title: 'Getting GPS ready',
         body: 'Keep moving in an open area',

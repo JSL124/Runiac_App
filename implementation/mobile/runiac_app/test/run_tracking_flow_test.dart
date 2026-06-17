@@ -20,6 +20,7 @@ import 'package:runiac_app/features/run/domain/models/xp_update_display_model.da
 import 'package:runiac_app/features/run/domain/repositories/run_location_permission_service.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_location_preview_provider.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_location_provider.dart';
+import 'package:runiac_app/features/run/domain/repositories/run_foreground_service.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_notification_permission_service.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_repository.dart';
 import 'package:runiac_app/features/run/presentation/active_run_session_coordinator.dart';
@@ -389,6 +390,7 @@ void main() {
           permissionService: const _GrantedRunLocationPermissionService(),
           notificationPermissionService:
               const _GrantedRunNotificationPermissionService(),
+          foregroundService: const NoopRunForegroundService(),
         ),
       ),
     );
@@ -431,6 +433,7 @@ void main() {
           permissionService: const _GrantedRunLocationPermissionService(),
           notificationPermissionService:
               const _GrantedRunNotificationPermissionService(),
+          foregroundService: const NoopRunForegroundService(),
           activeRunSessionCoordinator: _testActiveRunSessionCoordinator(tester),
         ),
       ),
@@ -472,6 +475,7 @@ void main() {
           permissionService: const _GrantedRunLocationPermissionService(),
           notificationPermissionService:
               const _GrantedRunNotificationPermissionService(),
+          foregroundService: const NoopRunForegroundService(),
           activeRunSessionCoordinator: _testActiveRunSessionCoordinator(tester),
         ),
       ),
@@ -637,6 +641,7 @@ void main() {
           permissionService: const _GrantedRunLocationPermissionService(),
           notificationPermissionService:
               const _GrantedRunNotificationPermissionService(),
+          foregroundService: const NoopRunForegroundService(),
           activeRunSessionCoordinator: _testActiveRunSessionCoordinator(tester),
         ),
       ),
@@ -681,6 +686,7 @@ void main() {
           permissionService: const _GrantedRunLocationPermissionService(),
           notificationPermissionService:
               const _GrantedRunNotificationPermissionService(),
+          foregroundService: const NoopRunForegroundService(),
           activeRunSessionCoordinator: _testActiveRunSessionCoordinator(tester),
         ),
       ),
@@ -726,6 +732,7 @@ void main() {
           permissionService: const _GrantedRunLocationPermissionService(),
           notificationPermissionService:
               const _GrantedRunNotificationPermissionService(),
+          foregroundService: const NoopRunForegroundService(),
           activeRunSessionCoordinator: _testActiveRunSessionCoordinator(tester),
         ),
       ),
@@ -1089,6 +1096,7 @@ void main() {
           permissionService: permissionService,
           notificationPermissionService:
               const _GrantedRunNotificationPermissionService(),
+          foregroundService: const NoopRunForegroundService(),
           mapboxAccessToken: _demoMapboxPublicToken,
           mapboxBuilder: (context, config) {
             configs.add(config);
@@ -1604,6 +1612,7 @@ void main() {
           permissionService: const _GrantedRunLocationPermissionService(),
           notificationPermissionService:
               const _GrantedRunNotificationPermissionService(),
+          foregroundService: const NoopRunForegroundService(),
           activeRunSessionCoordinator: _testActiveRunSessionCoordinator(tester),
         ),
       ),

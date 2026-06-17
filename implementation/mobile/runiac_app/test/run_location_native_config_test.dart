@@ -32,6 +32,16 @@ void main() {
       },
     );
 
+    test('Android declares Runiac-owned location foreground service', () {
+      final manifest = File(
+        'android/app/src/main/AndroidManifest.xml',
+      ).readAsStringSync();
+
+      expect(manifest, contains('.RuniacRunTrackingService'));
+      expect(manifest, contains('android:exported="false"'));
+      expect(manifest, contains('android:foregroundServiceType="location"'));
+    });
+
     test(
       'Android requests notification runtime permission through MainActivity',
       () {
@@ -43,6 +53,33 @@ void main() {
         expect(activity, contains('requestPostNotificationsPermission'));
         expect(activity, contains('requestPermissions('));
         expect(activity, contains('Build.VERSION_CODES.TIRAMISU'));
+      },
+    );
+
+    test('Android foreground service bridge avoids Geolocator private IDs', () {
+      final activity = File(
+        'android/app/src/main/kotlin/com/runiac/runiac_app/MainActivity.kt',
+      ).readAsStringSync();
+      final service = File(
+        'android/app/src/main/kotlin/com/runiac/runiac_app/RuniacRunTrackingService.kt',
+      ).readAsStringSync();
+
+      expect(activity, contains('runiac/run_foreground_service'));
+      expect(activity, contains('RuniacRunTrackingService::class.java'));
+      expect(service, contains('runiac_run_tracking'));
+      expect(service, contains('Runiac Run Tracking'));
+      expect(service, contains('runiac_run_open_intent'));
+      expect(service, contains('RUN_OPEN_INTENT_NOTIFICATION'));
+      expect(service, isNot(contains('75415')));
+      expect(service, isNot(contains('geolocator_channel_01')));
+    });
+
+    test(
+      'Android app module explicitly declares NotificationCompat support',
+      () {
+        final gradle = File('android/app/build.gradle.kts').readAsStringSync();
+
+        expect(gradle, contains('androidx.core:core:1.16.0'));
       },
     );
 
