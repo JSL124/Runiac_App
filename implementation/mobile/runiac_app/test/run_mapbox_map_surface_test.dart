@@ -65,6 +65,60 @@ void main() {
       expect(viewState.routeSegments, acceptedRouteSegments);
     });
 
+    test('displayRouteSegments defaults to accepted route segments', () {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      final acceptedRouteSegments = [
+        [
+          _sample(startedAt, latitude: 1.300000),
+          _sample(startedAt.add(const Duration(seconds: 60)), latitude: 1.301),
+        ],
+      ];
+
+      final viewState = RunMapViewState(
+        acceptedRouteSegments: acceptedRouteSegments,
+      );
+
+      expect(viewState.displayRouteSegments, viewState.acceptedRouteSegments);
+      expect(viewState.displayRouteSegments, acceptedRouteSegments);
+    });
+
+    test(
+      'explicit displayRouteSegments override drawing while routeSegments remains accepted',
+      () {
+        final startedAt = DateTime.utc(2026, 6, 14, 7);
+        RunLocationSample sample(int seconds, double latitude) {
+          return _sample(
+            startedAt.add(Duration(seconds: seconds)),
+            latitude: latitude,
+            longitude: 103.800000,
+          );
+        }
+
+        final acceptedRouteSegments = [
+          [sample(0, 1.300000), sample(60, 1.300500)],
+        ];
+        final displayRouteSegments = [
+          [sample(0, 1.400000), sample(60, 1.400500)],
+        ];
+
+        final viewState = RunMapViewState(
+          acceptedRouteSegments: acceptedRouteSegments,
+          displayRouteSegments: displayRouteSegments,
+        );
+        final geometry = RunMapboxRouteGeometry.fromViewState(viewState);
+
+        expect(viewState.routeSegments, viewState.acceptedRouteSegments);
+        expect(viewState.routeSegments, acceptedRouteSegments);
+        expect(viewState.displayRouteSegments, displayRouteSegments);
+        expect(viewState.routePointCount, 2);
+        expect(viewState.hasRoutePolyline, isTrue);
+        expect(geometry.segments.single.map((point) => point.position), [
+          <double>[103.800000, 1.400000],
+          <double>[103.800000, 1.400500],
+        ]);
+      },
+    );
+
     test('route metrics derive only from accepted route segments', () {
       final startedAt = DateTime.utc(2026, 6, 14, 7);
       final preview = _sample(startedAt, latitude: 1.299000);
@@ -1066,6 +1120,42 @@ void main() {
                   latitude: 1.300899,
                 ),
                 acceptedRouteSegments: [
+                  [
+                    _sample(startedAt, latitude: 1.300000),
+                    _sample(
+                      startedAt.add(const Duration(seconds: 60)),
+                      latitude: 1.300899,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.byKey(const Key('run_map_route_polyline')), findsOneWidget);
+      expect(find.byKey(const Key('run_map_runner_marker')), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('renders route geometry from display route segments', (
+      tester,
+    ) async {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: SizedBox(
+            width: 320,
+            height: 320,
+            child: RunMapPlaceholder(
+              mapViewState: RunMapViewState(
+                currentPosition: _sample(
+                  startedAt.add(const Duration(seconds: 60)),
+                  latitude: 1.300899,
+                ),
+                displayRouteSegments: [
                   [
                     _sample(startedAt, latitude: 1.300000),
                     _sample(

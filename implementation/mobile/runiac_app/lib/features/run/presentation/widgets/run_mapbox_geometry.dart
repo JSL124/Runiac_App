@@ -22,7 +22,7 @@ class RunMapboxRouteGeometry {
 
   factory RunMapboxRouteGeometry.fromViewState(RunMapViewState viewState) {
     return RunMapboxRouteGeometry(
-      segments: viewState.acceptedRouteSegments
+      segments: viewState.displayRouteSegments
           .where((segment) => segment.length > 1)
           .map(
             (segment) => segment
