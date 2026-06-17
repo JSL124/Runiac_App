@@ -14,7 +14,7 @@ const _runnerOrange = Color(0xFFFF6818);
 const _routeOrange = Color(0xFFFF7A1A);
 const _ornamentLeftMargin = 16.0;
 const _ornamentTopMargin = 80.0;
-const _logoBelowScaleBarTopMargin = 112.0;
+const _logoBelowScaleBarTopMargin = 104.0;
 const _attributionRightMargin = 24.0;
 
 class RunMapboxRunMap extends StatefulWidget {
