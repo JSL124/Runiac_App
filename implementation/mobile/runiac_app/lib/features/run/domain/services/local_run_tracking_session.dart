@@ -54,6 +54,10 @@ class LocalRunTrackingSession {
   final RunMovementClassifier movementClassifier;
 
   static const double _preMovementJitterCandidateMaxMeters = 25;
+  static const String _autoPauseQaLogPrefix = 'RUNIAC_AUTOPAUSE_QA';
+  static const bool _autoPauseQaLogsEnabled = bool.fromEnvironment(
+    'RUNIAC_AUTOPAUSE_QA_LOGS',
+  );
   static const String _gpsAcceptanceQaLogPrefix = 'RUNIAC_GPS_ACCEPTANCE_QA';
   static const bool runiacGpsAcceptanceQaLogsEnabled = bool.fromEnvironment(
     'RUNIAC_GPS_ACCEPTANCE_QA_LOGS',
@@ -136,6 +140,7 @@ class LocalRunTrackingSession {
         !_suppressedMovingTimeInCurrentAdvance) {
       _movingDuration += delta;
     }
+    _logAdvance(delta, sampleList.isEmpty);
   }
 
   void pause() {
@@ -146,7 +151,7 @@ class LocalRunTrackingSession {
     _isActive = true;
     _needsAnchorSample = true;
     _suppressedMovementNeedsAnchor = false;
-    _movementStatus = RunMovementStatus.moving;
+    _setMovementStatus(RunMovementStatus.moving, 'sessionResume');
     _autoResumeCandidateSample = null;
     _preMovementCandidateSample = null;
     _resetAbnormalCandidate();
@@ -199,6 +204,11 @@ class LocalRunTrackingSession {
           sample: sample,
           reason: 'duplicateSuppressedAnchorSample',
         );
+        _logLocationSample(
+          sample: sample,
+          acceptedSample: false,
+          reason: 'duplicateSuppressedAnchorSample',
+        );
         return;
       }
       if (_isSuppressedCandidateFromPrevious(previous, sample)) {
@@ -226,6 +236,11 @@ class LocalRunTrackingSession {
       if (_isSameSample(previous, sample)) {
         _logGpsAcceptanceRejected(
           sample: sample,
+          reason: 'duplicateResumeAnchorSample',
+        );
+        _logLocationSample(
+          sample: sample,
+          acceptedSample: false,
           reason: 'duplicateResumeAnchorSample',
         );
         return;
@@ -361,6 +376,16 @@ class LocalRunTrackingSession {
     if (speedBand == RunMovementSpeedBand.suspiciousCandidate ||
         speedBand == RunMovementSpeedBand.abnormalCandidate ||
         _movementStatus == RunMovementStatus.abnormalPaused) {
+      _logClassifierResult(
+        previousMovementStatus: _movementStatus,
+        nextMovementStatus: _movementStatus,
+        movingEvidence: false,
+        stationaryEvidence: false,
+        abnormalEvidence:
+            speedBand == RunMovementSpeedBand.abnormalCandidate ||
+            _movementStatus == RunMovementStatus.abnormalPaused,
+        reason: 'speedBand.${speedBand.name}',
+      );
       _handleSuppressedMovementSample(
         sample: sample,
         speedBand: speedBand,
@@ -389,13 +414,15 @@ class LocalRunTrackingSession {
     final autoPauseDwell = _distanceMeters <= 0
         ? preMovementAutoPauseDwell
         : movingToStoppedAutoPauseDwell;
+    final stationaryDwell = sample.recordedAt.difference(stationaryStartedAt);
     final cumulativeGpsMovementMeters =
         _stationaryCumulativeMovementMeters +
         usablePreviousAcceptedDistanceMeters;
+    final previousMovementStatus = _movementStatus;
     final classification = movementClassifier.classifyGpsSample(
       sample: sample,
       distanceFromRouteAnchorMeters: segmentDistanceMeters,
-      stationaryDwell: sample.recordedAt.difference(stationaryStartedAt),
+      stationaryDwell: stationaryDwell,
       stationaryAutoPauseDwell: autoPauseDwell,
       stationaryDriftDistanceMeters: stationaryDriftDistanceMeters,
       cumulativeGpsMovementMeters: cumulativeGpsMovementMeters,
@@ -408,6 +435,36 @@ class LocalRunTrackingSession {
           resumeCandidateSample == null,
       motionEvidence: motionEvidence,
     );
+    _logClassifierResult(
+      previousMovementStatus: previousMovementStatus,
+      nextMovementStatus: _nextMovementStatusForClassification(
+        previousMovementStatus,
+        classification,
+      ),
+      movingEvidence:
+          classification.shouldAutoResume ||
+          classification.type ==
+              RunMovementClassificationType.gpsMeaningfulMovement ||
+          classification.type ==
+              RunMovementClassificationType.gpsResumeCandidate,
+      stationaryEvidence:
+          classification.shouldAutoPause ||
+          classification.type ==
+              RunMovementClassificationType.gpsStationaryDrift,
+      abnormalEvidence: false,
+      reason: classification.type.name,
+    );
+    _logAutoPauseDecision(
+      candidate: classification.shouldAutoPause,
+      dwell: stationaryDwell,
+      threshold: autoPauseDwell,
+      blockedBy: _gpsAutoPauseBlockedBy(
+        classification: classification,
+        dwell: stationaryDwell,
+        threshold: autoPauseDwell,
+      ),
+      reason: classification.type.name,
+    );
 
     if (classification.shouldAutoResume) {
       if (_movementStatus == RunMovementStatus.autoPaused) {
@@ -418,7 +475,10 @@ class LocalRunTrackingSession {
       } else {
         _appendRouteSample(sample, segmentDistanceMeters);
       }
-      _movementStatus = RunMovementStatus.moving;
+      _setMovementStatus(
+        RunMovementStatus.moving,
+        'gps.${classification.type.name}',
+      );
       _autoResumeCandidateSample = null;
       _preMovementCandidateSample = null;
       _resetAbnormalCandidate();
@@ -512,7 +572,10 @@ class LocalRunTrackingSession {
     final sustainedBySamples =
         _abnormalCandidateCount >= abnormalSustainedSampleCount;
     if (sustainedByTime || sustainedBySamples) {
-      _movementStatus = RunMovementStatus.abnormalPaused;
+      _setMovementStatus(
+        RunMovementStatus.abnormalPaused,
+        'abnormalSustainedMovement',
+      );
       _suppressedMovementNeedsAnchor = false;
       _resetAbnormalResumeCandidate();
     }
@@ -555,7 +618,7 @@ class LocalRunTrackingSession {
     _acceptedSampleSegments.add(<RunLocationSample>[resumeAnchor, sample]);
     _distanceMeters += resumeDistanceMeters;
     _lastRouteSample = sample;
-    _movementStatus = RunMovementStatus.moving;
+    _setMovementStatus(RunMovementStatus.moving, 'abnormalResumeConfirmed');
     _logGpsAcceptanceDecision(
       sample: sample,
       acceptedSample: true,
@@ -652,9 +715,22 @@ class LocalRunTrackingSession {
     _stationaryCumulativeMovementMeters = 0;
 
     final dwell = sample.recordedAt.difference(_stationaryStartedAt!);
-    if (dwell >= preMovementAutoPauseDwell &&
-        !_hasMovingMotionEvidence(motionEvidence)) {
-      _movementStatus = RunMovementStatus.autoPaused;
+    final hasMovingMotionEvidence = _hasMovingMotionEvidence(motionEvidence);
+    final shouldAutoPause =
+        dwell >= preMovementAutoPauseDwell && !hasMovingMotionEvidence;
+    _logAutoPauseDecision(
+      candidate: shouldAutoPause,
+      dwell: dwell,
+      threshold: preMovementAutoPauseDwell,
+      blockedBy: _preMovementAutoPauseBlockedBy(
+        dwell: dwell,
+        threshold: preMovementAutoPauseDwell,
+        hasMovingMotionEvidence: hasMovingMotionEvidence,
+      ),
+      reason: 'preMovementCandidate',
+    );
+    if (shouldAutoPause) {
+      _setMovementStatus(RunMovementStatus.autoPaused, 'preMovementDwell');
       _preMovementCandidateSample = null;
       _resetAbnormalCandidate();
       _resetAbnormalResumeCandidate();
@@ -680,7 +756,10 @@ class LocalRunTrackingSession {
     _stationaryStartedAt ??= _lastRouteSample?.recordedAt ?? sample.recordedAt;
     _stationaryCumulativeMovementMeters = cumulativeGpsMovementMeters;
     if (classification.shouldAutoPause) {
-      _movementStatus = RunMovementStatus.autoPaused;
+      _setMovementStatus(
+        RunMovementStatus.autoPaused,
+        'gps.${classification.type.name}',
+      );
       _autoResumeCandidateSample = null;
       _preMovementCandidateSample = null;
       _resetAbnormalCandidate();
@@ -692,26 +771,68 @@ class LocalRunTrackingSession {
     final lastAcceptedSample = _lastAcceptedSample;
     if (_movementStatus == RunMovementStatus.autoPaused ||
         lastAcceptedSample == null) {
+      _logAutoPauseDecision(
+        candidate: false,
+        dwell: null,
+        threshold: noSampleAutoPauseDwell,
+        blockedBy: lastAcceptedSample == null
+            ? 'noAcceptedAnchor'
+            : 'alreadyAutoPaused',
+        reason: 'noSampleSkipped',
+      );
       return;
     }
 
     final currentTrackingAt = startedAt.add(_trackingDuration);
     _stationaryStartedAt ??= lastAcceptedSample.recordedAt;
+    final dwell = currentTrackingAt.difference(_stationaryStartedAt!);
+    final anchorAge = currentTrackingAt.difference(
+      lastAcceptedSample.recordedAt,
+    );
+    final gpsStatusAllowsDwell =
+        _diagnostics.lastRejectedSampleSequence <=
+        _diagnostics.lastAcceptedSampleSequence;
+    final previousMovementStatus = _movementStatus;
     final classification = movementClassifier.classifyNoSampleWindow(
-      dwell: currentTrackingAt.difference(_stationaryStartedAt!),
+      dwell: dwell,
       noSampleAutoPauseDwell: noSampleAutoPauseDwell,
-      anchorAge: currentTrackingAt.difference(lastAcceptedSample.recordedAt),
+      anchorAge: anchorAge,
       maxAnchorAge: maxNoSampleStationaryAnchorAge,
       hasAcceptedAnchor: _diagnostics.hasAcceptedSample,
-      gpsStatusAllowsDwell:
-          _diagnostics.lastRejectedSampleSequence <=
-          _diagnostics.lastAcceptedSampleSequence,
+      gpsStatusAllowsDwell: gpsStatusAllowsDwell,
       motionEvidence: motionEvidence,
+    );
+    _logClassifierResult(
+      previousMovementStatus: previousMovementStatus,
+      nextMovementStatus: _nextMovementStatusForClassification(
+        previousMovementStatus,
+        classification,
+      ),
+      movingEvidence: classification.countsAsMovingTime,
+      stationaryEvidence: classification.shouldAutoPause,
+      abnormalEvidence: false,
+      reason: classification.type.name,
+    );
+    _logAutoPauseDecision(
+      candidate: classification.shouldAutoPause,
+      dwell: dwell,
+      threshold: noSampleAutoPauseDwell,
+      blockedBy: _noSampleAutoPauseBlockedBy(
+        classification: classification,
+        dwell: dwell,
+        threshold: noSampleAutoPauseDwell,
+        anchorAge: anchorAge,
+        gpsStatusAllowsDwell: gpsStatusAllowsDwell,
+      ),
+      reason: classification.type.name,
     );
     if (!classification.shouldAutoPause) {
       return;
     }
-    _movementStatus = RunMovementStatus.autoPaused;
+    _setMovementStatus(
+      RunMovementStatus.autoPaused,
+      'noSample.${classification.type.name}',
+    );
     _autoResumeCandidateSample = null;
     _preMovementCandidateSample = null;
     _resetAbnormalCandidate();
@@ -724,6 +845,9 @@ class LocalRunTrackingSession {
     required bool acceptedForDistanceOrRoute,
   }) {
     final previousAccepted = _lastAcceptedSample;
+    final distanceDeltaMeters = _autoPauseQaLogsEnabled
+        ? _distanceDeltaFromLastAccepted(sample)
+        : null;
     final gpsAcceptanceDistanceDeltaMeters = runiacGpsAcceptanceQaLogsEnabled
         ? _distanceDeltaFromSample(previousAccepted, sample)
         : null;
@@ -743,6 +867,12 @@ class LocalRunTrackingSession {
     if (acceptedForDistanceOrRoute) {
       _logGpsAcceptanceRoute(reason: reason);
     }
+    _logLocationSample(
+      sample: sample,
+      acceptedSample: true,
+      reason: reason,
+      distanceDeltaMeters: distanceDeltaMeters,
+    );
   }
 
   bool _isSameSample(RunLocationSample? left, RunLocationSample right) {
@@ -779,6 +909,11 @@ class LocalRunTrackingSession {
   ) {
     _diagnostics = _diagnostics.recordRejectedSample(sample, reason);
     _logGpsAcceptanceRejected(sample: sample, reason: reason.name);
+    _logLocationSample(
+      sample: sample,
+      acceptedSample: false,
+      reason: reason.name,
+    );
   }
 
   RunLocationRejectionReason _sampleRejectionReason(RunLocationSample sample) {
@@ -857,6 +992,38 @@ class LocalRunTrackingSession {
     }
     return latest?.signal == RunMotionSignal.stationary &&
         (latest?.confidence ?? 0) >= 0.6;
+  }
+
+  void _resetAbnormalCandidate() {
+    _abnormalCandidateStartedSample = null;
+    _abnormalCandidateCount = 0;
+  }
+
+  void _resetAbnormalResumeCandidate() {
+    _abnormalResumeAnchorSample = null;
+    _abnormalResumeCandidateCount = 0;
+  }
+
+  void _setMovementStatus(RunMovementStatus next, String reason) {
+    final previous = _movementStatus;
+    if (previous == next) {
+      return;
+    }
+    _movementStatus = next;
+    _logStateTransition(from: previous, to: next, reason: reason);
+  }
+
+  RunMovementStatus _nextMovementStatusForClassification(
+    RunMovementStatus previous,
+    RunMovementClassification classification,
+  ) {
+    if (classification.shouldAutoResume) {
+      return RunMovementStatus.moving;
+    }
+    if (classification.shouldAutoPause) {
+      return RunMovementStatus.autoPaused;
+    }
+    return previous;
   }
 
   void _logGpsAcceptanceSample(RunLocationSample sample) {
@@ -954,18 +1121,113 @@ class LocalRunTrackingSession {
     debugPrint('$_gpsAcceptanceQaLogPrefix $message');
   }
 
-  String _qaDouble(double? value) {
-    if (value == null || !value.isFinite) {
-      return 'null';
+  void _logLocationSample({
+    required RunLocationSample sample,
+    required bool acceptedSample,
+    required String reason,
+    double? distanceDeltaMeters,
+  }) {
+    if (!_autoPauseQaLogsEnabled) {
+      return;
     }
-    return value.toStringAsFixed(2);
+    final resolvedDistanceDeltaMeters =
+        distanceDeltaMeters ??
+        (acceptedSample ? null : _distanceDeltaFromLastAccepted(sample));
+    _logAutoPauseQa(
+      'phase=sample '
+      'accuracyM=${_qaDouble(sample.horizontalAccuracyMeters)} '
+      'speedMps=${_qaDouble(sample.speedMetersPerSecond)} '
+      'distanceDeltaM=${_qaDouble(resolvedDistanceDeltaMeters)} '
+      'acceptedSample=$acceptedSample '
+      'reason=$reason '
+      'movementStatus=${_movementStatus.name}',
+    );
   }
 
-  String _qaDurationMs(Duration? duration) {
-    if (duration == null) {
-      return 'null';
+  void _logClassifierResult({
+    required RunMovementStatus previousMovementStatus,
+    required RunMovementStatus nextMovementStatus,
+    required bool movingEvidence,
+    required bool stationaryEvidence,
+    required bool abnormalEvidence,
+    required String reason,
+  }) {
+    if (!_autoPauseQaLogsEnabled) {
+      return;
     }
-    return duration.inMilliseconds.toString();
+    _logAutoPauseQa(
+      'phase=classify '
+      'previousMovementStatus=${previousMovementStatus.name} '
+      'nextMovementStatus=${nextMovementStatus.name} '
+      'movingEvidence=$movingEvidence '
+      'stationaryEvidence=$stationaryEvidence '
+      'abnormalEvidence=$abnormalEvidence '
+      'reason=$reason',
+    );
+  }
+
+  void _logAdvance(Duration delta, bool noSampleWindow) {
+    if (!_autoPauseQaLogsEnabled) {
+      return;
+    }
+    final trackingAt = startedAt.add(_trackingDuration);
+    _logAutoPauseQa(
+      'phase=advance '
+      'dtMs=${delta.inMilliseconds} '
+      'movementStatus=${_movementStatus.name} '
+      'manualPaused=${!_isActive} '
+      'autoPaused=${_movementStatus == RunMovementStatus.autoPaused} '
+      'abnormalPaused=${_movementStatus == RunMovementStatus.abnormalPaused} '
+      'movingDurationMs=${_movingDuration.inMilliseconds} '
+      'trackingDurationMs=${_trackingDuration.inMilliseconds} '
+      'stationaryDwellMs=${_qaDurationMs(_stationaryDwellAt(trackingAt))} '
+      'noSampleDwellMs=${_qaDurationMs(noSampleWindow ? _noSampleDwellAt(trackingAt) : null)}',
+    );
+  }
+
+  void _logAutoPauseDecision({
+    required bool candidate,
+    required Duration? dwell,
+    required Duration threshold,
+    required String blockedBy,
+    required String reason,
+  }) {
+    if (!_autoPauseQaLogsEnabled) {
+      return;
+    }
+    _logAutoPauseQa(
+      'phase=decision '
+      'candidate=$candidate '
+      'dwellMs=${_qaDurationMs(dwell)} '
+      'thresholdMs=${threshold.inMilliseconds} '
+      'blockedBy=$blockedBy '
+      'reason=$reason',
+    );
+  }
+
+  void _logStateTransition({
+    required RunMovementStatus from,
+    required RunMovementStatus to,
+    required String reason,
+  }) {
+    if (!_autoPauseQaLogsEnabled) {
+      return;
+    }
+    _logAutoPauseQa(
+      'phase=transition from=${from.name} to=${to.name} reason=$reason',
+    );
+  }
+
+  void _logAutoPauseQa(String message) {
+    if (!_autoPauseQaLogsEnabled) {
+      return;
+    }
+    debugPrint('$_autoPauseQaLogPrefix $message');
+  }
+
+  double? _distanceDeltaFromLastAccepted(RunLocationSample sample) {
+    final previous = _lastAcceptedSample;
+    return _distanceDeltaFromSample(previous, sample);
   }
 
   double? _distanceDeltaFromSample(
@@ -986,22 +1248,23 @@ class LocalRunTrackingSession {
     if (previous == null) {
       return null;
     }
-    return sample.recordedAt.difference(previous.recordedAt);
+    final delta = sample.recordedAt.difference(previous.recordedAt);
+    return delta.isNegative ? Duration.zero : delta;
   }
 
   double? _impliedSpeedMetersPerSecond(
-    double? distanceDeltaMeters,
+    double? distanceMeters,
     Duration? timeDelta,
   ) {
-    if (distanceDeltaMeters == null || timeDelta == null) {
+    if (distanceMeters == null || timeDelta == null) {
       return null;
     }
-    final seconds = timeDelta.inMilliseconds / 1000;
-    if (seconds <= 0) {
+    final elapsedSeconds = timeDelta.inMilliseconds / 1000;
+    if (elapsedSeconds <= 0) {
       return null;
     }
-    final speed = distanceDeltaMeters / seconds;
-    return speed.isFinite ? speed : null;
+    final impliedSpeed = distanceMeters / elapsedSeconds;
+    return impliedSpeed.isFinite ? impliedSpeed : null;
   }
 
   int _routePointCount() {
@@ -1012,13 +1275,97 @@ class LocalRunTrackingSession {
     return count;
   }
 
-  void _resetAbnormalCandidate() {
-    _abnormalCandidateStartedSample = null;
-    _abnormalCandidateCount = 0;
+  Duration? _stationaryDwellAt(DateTime trackingAt) {
+    final stationaryStartedAt = _stationaryStartedAt;
+    if (stationaryStartedAt == null) {
+      return null;
+    }
+    final dwell = trackingAt.difference(stationaryStartedAt);
+    return dwell.isNegative ? Duration.zero : dwell;
   }
 
-  void _resetAbnormalResumeCandidate() {
-    _abnormalResumeAnchorSample = null;
-    _abnormalResumeCandidateCount = 0;
+  Duration? _noSampleDwellAt(DateTime trackingAt) {
+    final lastAcceptedSample = _lastAcceptedSample;
+    if (lastAcceptedSample == null) {
+      return null;
+    }
+    final dwell = trackingAt.difference(lastAcceptedSample.recordedAt);
+    return dwell.isNegative ? Duration.zero : dwell;
+  }
+
+  String _gpsAutoPauseBlockedBy({
+    required RunMovementClassification classification,
+    required Duration dwell,
+    required Duration threshold,
+  }) {
+    if (classification.shouldAutoPause) {
+      return 'none';
+    }
+    if (classification.shouldAutoResume) {
+      return 'movingEvidence';
+    }
+    if (classification.countsAsMovingTime) {
+      return 'movingTimeEvidence';
+    }
+    if (dwell < threshold) {
+      return 'dwellBelowThreshold';
+    }
+    return 'classification.${classification.type.name}';
+  }
+
+  String _noSampleAutoPauseBlockedBy({
+    required RunMovementClassification classification,
+    required Duration dwell,
+    required Duration threshold,
+    required Duration anchorAge,
+    required bool gpsStatusAllowsDwell,
+  }) {
+    if (classification.shouldAutoPause) {
+      return 'none';
+    }
+    if (dwell < threshold) {
+      return 'dwellBelowThreshold';
+    }
+    if (anchorAge > maxNoSampleStationaryAnchorAge) {
+      return 'anchorTooOld';
+    }
+    if (!gpsStatusAllowsDwell) {
+      return 'latestSampleRejected';
+    }
+    if (classification.countsAsMovingTime) {
+      return 'movingTimeEvidence';
+    }
+    return 'classification.${classification.type.name}';
+  }
+
+  String _preMovementAutoPauseBlockedBy({
+    required Duration dwell,
+    required Duration threshold,
+    required bool hasMovingMotionEvidence,
+  }) {
+    if (dwell < threshold) {
+      return 'dwellBelowThreshold';
+    }
+    if (hasMovingMotionEvidence) {
+      return 'movingMotionEvidence';
+    }
+    return 'none';
+  }
+
+  String _qaDouble(double? value) {
+    if (value == null) {
+      return 'null';
+    }
+    if (!value.isFinite) {
+      return value.toString();
+    }
+    return value.toStringAsFixed(2);
+  }
+
+  String _qaDurationMs(Duration? duration) {
+    if (duration == null) {
+      return 'null';
+    }
+    return duration.inMilliseconds.toString();
   }
 }

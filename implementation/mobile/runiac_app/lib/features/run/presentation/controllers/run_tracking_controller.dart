@@ -61,6 +61,11 @@ class RunTrackingController extends ChangeNotifier {
   RunTrackingLocationStatus _latestLocationStatus =
       RunTrackingLocationStatus.demo;
 
+  static const String _autoPauseQaLogPrefix = 'RUNIAC_AUTOPAUSE_QA';
+  static const bool _autoPauseQaLogsEnabled = bool.fromEnvironment(
+    'RUNIAC_AUTOPAUSE_QA_LOGS',
+  );
+
   RunTrackingState get state => _state;
   RunMapViewState get mapViewState {
     final activeCurrentPosition = _mapViewState.currentPosition;
@@ -197,6 +202,11 @@ class RunTrackingController extends ChangeNotifier {
       locationStatus: _initialLocationStatus,
       diagnostics: session.diagnostics,
     );
+    _logPhaseTransition(
+      from: RunTrackingPhase.idle,
+      to: RunTrackingPhase.active,
+      reason: 'start',
+    );
     return effectiveStartedAt;
   }
 
@@ -306,11 +316,17 @@ class RunTrackingController extends ChangeNotifier {
       return;
     }
 
+    final previousPhase = _state.phase;
     _lastAdvancedAt = pausedAt ?? DateTime.now();
     _trackingSession?.pause();
     unawaited(_locationProvider.pause());
     unawaited(_motionProvider.pause());
     _state = _state.copyWith(phase: RunTrackingPhase.paused);
+    _logPhaseTransition(
+      from: previousPhase,
+      to: RunTrackingPhase.paused,
+      reason: 'manualPause',
+    );
     unawaited(_updateForegroundService());
     notifyListeners();
   }
@@ -324,6 +340,8 @@ class RunTrackingController extends ChangeNotifier {
     final activeOffset =
         _trackingSession?.trackingDuration ??
         Duration(seconds: _state.elapsedSeconds);
+    final previousPhase = _state.phase;
+    final previousMovementStatus = _state.movementStatus;
     _lastAdvancedAt = effectiveResumedAt;
     _trackingSession?.resume();
     unawaited(
@@ -341,6 +359,16 @@ class RunTrackingController extends ChangeNotifier {
     _state = _state.copyWith(
       phase: RunTrackingPhase.active,
       movementStatus: RunMovementStatus.moving,
+    );
+    _logPhaseTransition(
+      from: previousPhase,
+      to: RunTrackingPhase.active,
+      reason: 'manualResume',
+    );
+    _logMovementTransition(
+      from: previousMovementStatus,
+      to: RunMovementStatus.moving,
+      reason: 'manualResume',
     );
     unawaited(_updateForegroundService());
     notifyListeners();
@@ -368,6 +396,7 @@ class RunTrackingController extends ChangeNotifier {
 
   LocalRunCompletionPayload finish({DateTime? completedAt}) {
     final payload = completionPayload(completedAt: completedAt);
+    final previousPhase = _state.phase;
     unawaited(_locationProvider.stop());
     unawaited(_motionProvider.stop());
     unawaited(_stopForegroundService());
@@ -377,6 +406,11 @@ class RunTrackingController extends ChangeNotifier {
     _state = _state.copyWith(
       phase: RunTrackingPhase.finished,
       completedAt: payload.completedAt,
+    );
+    _logPhaseTransition(
+      from: previousPhase,
+      to: RunTrackingPhase.finished,
+      reason: 'finish',
     );
     notifyListeners();
 
@@ -483,5 +517,41 @@ class RunTrackingController extends ChangeNotifier {
     _foregroundServiceStopRequested = false;
     _lastForegroundCopy = null;
     await _foregroundService.stop();
+  }
+
+  void _logPhaseTransition({
+    required RunTrackingPhase from,
+    required RunTrackingPhase to,
+    required String reason,
+  }) {
+    if (!_autoPauseQaLogsEnabled) {
+      return;
+    }
+    _logAutoPauseQa(
+      'phase=transition from=${from.name} to=${to.name} reason=$reason',
+    );
+  }
+
+  void _logMovementTransition({
+    required RunMovementStatus from,
+    required RunMovementStatus to,
+    required String reason,
+  }) {
+    if (!_autoPauseQaLogsEnabled) {
+      return;
+    }
+    if (from == to) {
+      return;
+    }
+    _logAutoPauseQa(
+      'phase=transition from=${from.name} to=${to.name} reason=$reason',
+    );
+  }
+
+  void _logAutoPauseQa(String message) {
+    if (!_autoPauseQaLogsEnabled) {
+      return;
+    }
+    debugPrint('$_autoPauseQaLogPrefix $message');
   }
 }
