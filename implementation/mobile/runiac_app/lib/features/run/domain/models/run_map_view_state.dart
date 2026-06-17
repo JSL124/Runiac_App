@@ -2,28 +2,40 @@ import 'run_location_sample.dart';
 
 class RunMapViewState {
   RunMapViewState({
+    this.previewPosition,
     this.currentPosition,
     List<List<RunLocationSample>> routeSegments =
         const <List<RunLocationSample>>[],
-  }) : routeSegments = List<List<RunLocationSample>>.unmodifiable(
-         routeSegments.map(List<RunLocationSample>.unmodifiable),
+    List<List<RunLocationSample>>? acceptedRouteSegments,
+  }) : acceptedRouteSegments = List<List<RunLocationSample>>.unmodifiable(
+         (acceptedRouteSegments ?? routeSegments).map(
+           List<RunLocationSample>.unmodifiable,
+         ),
        );
 
   const RunMapViewState.empty()
-    : currentPosition = null,
-      routeSegments = const <List<RunLocationSample>>[];
+    : previewPosition = null,
+      currentPosition = null,
+      acceptedRouteSegments = const <List<RunLocationSample>>[];
 
+  final RunLocationSample? previewPosition;
   final RunLocationSample? currentPosition;
-  final List<List<RunLocationSample>> routeSegments;
+  final List<List<RunLocationSample>> acceptedRouteSegments;
+
+  List<List<RunLocationSample>> get routeSegments => acceptedRouteSegments;
+
+  RunLocationSample? get displayPosition {
+    return currentPosition ?? previewPosition;
+  }
 
   int get routePointCount {
-    return routeSegments.fold<int>(
+    return acceptedRouteSegments.fold<int>(
       0,
       (total, segment) => total + segment.length,
     );
   }
 
   bool get hasRoutePolyline {
-    return routeSegments.any((segment) => segment.length > 1);
+    return acceptedRouteSegments.any((segment) => segment.length > 1);
   }
 }

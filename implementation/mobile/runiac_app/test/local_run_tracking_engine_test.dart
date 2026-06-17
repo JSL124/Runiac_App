@@ -490,6 +490,14 @@ void main() {
       );
       expect(session.movementStatus, RunMovementStatus.abnormalPaused);
       expect(session.distanceMeters, 0);
+      expect(session.mapViewState.previewPosition, isNull);
+      expect(session.mapViewState.displayPosition?.latitude, 1.300030);
+      expect(
+        session.mapViewState.acceptedRouteSegments.map(
+          (segment) => segment.length,
+        ),
+        [1],
+      );
       expect(session.mapViewState.routeSegments, hasLength(1));
 
       session.advanceBy(
@@ -507,6 +515,14 @@ void main() {
       );
 
       expect(session.movementStatus, RunMovementStatus.moving);
+      expect(session.mapViewState.previewPosition, isNull);
+      expect(session.mapViewState.displayPosition?.latitude, 1.300100);
+      expect(
+        session.mapViewState.acceptedRouteSegments.map(
+          (segment) => segment.length,
+        ),
+        [1, 2],
+      );
       expect(session.mapViewState.routeSegments, hasLength(2));
       expect(
         session.mapViewState.routeSegments.map((segment) => segment.length),
@@ -769,6 +785,21 @@ void main() {
       expect(session.distanceMeters, closeTo(200, 3));
       expect(session.acceptedSampleCount, 4);
       expect(session.rejectedSampleCount, 0);
+      expect(session.mapViewState.acceptedRouteSegments, hasLength(2));
+      expect(
+        session.mapViewState.acceptedRouteSegments.map(
+          (segment) => segment.length,
+        ),
+        [2, 2],
+      );
+      expect(
+        session.mapViewState.acceptedRouteSegments.first.last.latitude,
+        1.300899,
+      );
+      expect(
+        session.mapViewState.acceptedRouteSegments.last.first.latitude,
+        1.400000,
+      );
     });
 
     test('ignores impossible jumps without corrupting later valid samples', () {

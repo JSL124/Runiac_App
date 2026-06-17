@@ -22,7 +22,7 @@ class RunMapboxRouteGeometry {
 
   factory RunMapboxRouteGeometry.fromViewState(RunMapViewState viewState) {
     return RunMapboxRouteGeometry(
-      segments: viewState.routeSegments
+      segments: viewState.acceptedRouteSegments
           .where((segment) => segment.length > 1)
           .map(
             (segment) => segment
@@ -51,7 +51,7 @@ class RunMapboxCameraRequest {
   );
 
   static RunMapboxCameraRequest? forCurrentPosition(RunMapViewState viewState) {
-    final currentPosition = viewState.currentPosition;
+    final currentPosition = viewState.displayPosition;
     if (currentPosition == null) {
       return null;
     }

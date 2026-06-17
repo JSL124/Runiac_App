@@ -86,7 +86,7 @@ class LocalRunTrackingSession {
   RunMapViewState get mapViewState {
     return RunMapViewState(
       currentPosition: _currentPositionSample,
-      routeSegments: _acceptedSampleSegments,
+      acceptedRouteSegments: _acceptedSampleSegments,
     );
   }
 

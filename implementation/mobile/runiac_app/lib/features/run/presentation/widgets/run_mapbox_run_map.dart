@@ -224,8 +224,8 @@ bool shouldAnimateRunMapboxCameraSync({
   final followRestored =
       !oldConfig.isFollowingRunner && newConfig.isFollowingRunner;
   final currentPositionBecameAvailable =
-      oldConfig.mapViewState.currentPosition == null &&
-      newConfig.mapViewState.currentPosition != null;
+      oldConfig.mapViewState.displayPosition == null &&
+      newConfig.mapViewState.displayPosition != null;
 
   return explicitRecenterRequested ||
       followRestored ||
@@ -513,8 +513,13 @@ class RunMapboxNativeMapAdapter implements RunMapboxSyncTarget {
   }
 
   Future<void> _ensureAnnotationManagers() async {
-    _routeManager ??= await _mapboxMap.annotations
-        .createPolylineAnnotationManager();
+    if (_routeManager == null) {
+      final routeManager = await _mapboxMap.annotations
+          .createPolylineAnnotationManager();
+      await routeManager.setLineCap(LineCap.ROUND);
+      await routeManager.setLineJoin(LineJoin.ROUND);
+      _routeManager = routeManager;
+    }
     _runnerManager ??= await _mapboxMap.annotations
         .createCircleAnnotationManager();
   }
@@ -593,7 +598,7 @@ class RunMapboxNativeMapAdapter implements RunMapboxSyncTarget {
 
 class RunMapboxRunnerMarkerAnnotation {
   static CircleAnnotationOptions? fromViewState(RunMapViewState mapViewState) {
-    final currentPosition = mapViewState.currentPosition;
+    final currentPosition = mapViewState.displayPosition;
     if (currentPosition == null) {
       return null;
     }

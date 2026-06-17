@@ -882,7 +882,9 @@ void main() {
         ),
       );
 
-      expect(firstConfig?.mapViewState.currentPosition, seededPreviewSample);
+      expect(firstConfig?.mapViewState.previewPosition, seededPreviewSample);
+      expect(firstConfig?.mapViewState.currentPosition, isNull);
+      expect(firstConfig?.mapViewState.displayPosition, seededPreviewSample);
       expect(firstConfig?.mapViewState.routeSegments, isEmpty);
       expect(firstConfig?.isFollowingRunner, isTrue);
       expect(find.text('Start run'), findsOneWidget);
@@ -959,7 +961,9 @@ void main() {
       expect(permissionService.requestCount, 0);
       expect(previewProvider.requestCount, 1);
       expect(find.text('GPS ready'), findsOneWidget);
-      expect(capturedConfig?.mapViewState.currentPosition?.latitude, 1.3009);
+      expect(capturedConfig?.mapViewState.previewPosition?.latitude, 1.3009);
+      expect(capturedConfig?.mapViewState.currentPosition, isNull);
+      expect(capturedConfig?.mapViewState.displayPosition?.latitude, 1.3009);
       expect(capturedConfig?.mapViewState.routeSegments, isEmpty);
       expect(tester.takeException(), isNull);
     },
@@ -1001,7 +1005,9 @@ void main() {
       expect(previewProvider.requestCount, 1);
       expect(find.byKey(const Key('run_map_recenter_button')), findsOneWidget);
       expect(find.text('GPS ready'), findsOneWidget);
-      expect(configs.last.mapViewState.currentPosition?.latitude, 1.3009);
+      expect(configs.last.mapViewState.previewPosition?.latitude, 1.3009);
+      expect(configs.last.mapViewState.currentPosition, isNull);
+      expect(configs.last.mapViewState.displayPosition?.latitude, 1.3009);
       expect(configs.last.isFollowingRunner, isTrue);
       expect(
         configs.map((config) => config.recenterRequestId),
@@ -1039,17 +1045,23 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(configs.last.mapViewState.currentPosition, isNotNull);
+    expect(configs.last.mapViewState.previewPosition, isNotNull);
+    expect(configs.last.mapViewState.currentPosition, isNull);
     await tester.tap(find.text('Start run'));
     await tester.pumpAndSettle();
     await tester.pump(const Duration(seconds: 1));
 
     expect(find.text('0.00 of 4.50 km'), findsOneWidget);
     expect(find.text('--:--/km'), findsOneWidget);
-    expect(configs.last.mapViewState.currentPosition?.latitude, 1.3009);
+    expect(configs.last.mapViewState.previewPosition?.latitude, 1.3009);
+    expect(configs.last.mapViewState.currentPosition, isNull);
+    expect(configs.last.mapViewState.displayPosition?.latitude, 1.3009);
     expect(configs.last.mapViewState.routeSegments, isEmpty);
-    expect(configs.map((config) => config.recenterRequestId), contains(1));
-    expect(configs.last.recenterRequestId, 1);
+    expect(
+      configs.map((config) => config.recenterRequestId),
+      isNot(contains(1)),
+    );
+    expect(configs.last.recenterRequestId, 0);
     expect(tester.takeException(), isNull);
   });
 
@@ -1100,7 +1112,9 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('GPS ready'), findsOneWidget);
-      expect(configs.last.mapViewState.currentPosition?.latitude, 1.3009);
+      expect(configs.last.mapViewState.previewPosition?.latitude, 1.3009);
+      expect(configs.last.mapViewState.currentPosition, isNull);
+      expect(configs.last.mapViewState.displayPosition?.latitude, 1.3009);
       expect(configs.last.isFollowingRunner, isFalse);
       expect(
         configs.map((config) => config.recenterRequestId),

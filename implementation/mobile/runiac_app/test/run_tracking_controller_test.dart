@@ -208,7 +208,10 @@ void main() {
       expect(controller.state.elapsedSeconds, 0);
       expect(controller.state.distanceMeters, 0);
       expect(controller.state.averagePaceSecondsPerKm, 0);
-      expect(controller.mapViewState.currentPosition, previewSample);
+      expect(controller.mapViewState.previewPosition, previewSample);
+      expect(controller.mapViewState.currentPosition, isNull);
+      expect(controller.mapViewState.displayPosition, previewSample);
+      expect(controller.mapViewState.acceptedRouteSegments, isEmpty);
       expect(controller.mapViewState.routeSegments, isEmpty);
       expect(() => controller.completionPayload(), throwsStateError);
     });
@@ -230,7 +233,10 @@ void main() {
         expect(controller.state.elapsedSeconds, 0);
         expect(controller.state.distanceMeters, 0);
         expect(controller.state.averagePaceSecondsPerKm, 0);
-        expect(controller.mapViewState.currentPosition, previewSample);
+        expect(controller.mapViewState.previewPosition, previewSample);
+        expect(controller.mapViewState.currentPosition, isNull);
+        expect(controller.mapViewState.displayPosition, previewSample);
+        expect(controller.mapViewState.acceptedRouteSegments, isEmpty);
         expect(controller.mapViewState.routeSegments, isEmpty);
         expect(() => controller.completionPayload(), throwsStateError);
       },
@@ -259,7 +265,10 @@ void main() {
         expect(controller.state.elapsedSeconds, 60);
         expect(controller.state.distanceMeters, 0);
         expect(controller.state.averagePaceSecondsPerKm, 0);
-        expect(controller.mapViewState.currentPosition, previewSample);
+        expect(controller.mapViewState.previewPosition, previewSample);
+        expect(controller.mapViewState.currentPosition, isNull);
+        expect(controller.mapViewState.displayPosition, previewSample);
+        expect(controller.mapViewState.acceptedRouteSegments, isEmpty);
         expect(controller.mapViewState.routeSegments, isEmpty);
         expect(
           controller.completionPayload().toRawClientMap().keys,
@@ -293,7 +302,10 @@ void main() {
         expect(controller.state.elapsedSeconds, 60);
         expect(controller.state.distanceMeters, 0);
         expect(controller.state.averagePaceSecondsPerKm, 0);
-        expect(controller.mapViewState.currentPosition, previewSample);
+        expect(controller.mapViewState.previewPosition, previewSample);
+        expect(controller.mapViewState.currentPosition, isNull);
+        expect(controller.mapViewState.displayPosition, previewSample);
+        expect(controller.mapViewState.acceptedRouteSegments, isEmpty);
         expect(controller.mapViewState.routeSegments, isEmpty);
         expect(
           controller.completionPayload().toRawClientMap().keys,
@@ -1275,6 +1287,13 @@ void main() {
           controller.mapViewState.routePointCount,
           routePointCountBeforeJump,
         );
+        expect(
+          controller.mapViewState.acceptedRouteSegments
+              .expand((segment) => segment)
+              .map((sample) => sample.latitude),
+          isNot(contains(1.300360)),
+        );
+        expect(controller.mapViewState.displayPosition?.latitude, 1.300360);
         expect(controller.mapViewState.currentPosition?.latitude, 1.300360);
         final payload = controller.completionPayload(
           completedAt: startedAt.add(const Duration(seconds: 30)),
@@ -1283,6 +1302,10 @@ void main() {
         expect(payload.durationSeconds, 1);
         expect(payload.distanceMeters, 0);
         expect(payload.avgPaceSecondsPerKm, 0);
+        expect(payloadMap.keys, isNot(contains('gpsSamples')));
+        expect(payloadMap.keys, isNot(contains('routeSegments')));
+        expect(payloadMap.keys, isNot(contains('acceptedRouteSegments')));
+        expect(payloadMap.keys, isNot(contains('motionEvidence')));
         expect(payloadMap.keys, isNot(contains('gpsSamples')));
         expect(payloadMap.keys, isNot(contains('routeSamples')));
         expect(payloadMap.keys, isNot(contains('motionEvidence')));

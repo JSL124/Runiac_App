@@ -40,9 +40,9 @@ class RunMapPlaceholder extends StatelessWidget {
               child: CustomPaint(
                 key: const Key('run_map_route_polyline'),
                 painter: _RunRoutePainter(
-                  mapViewState.routeSegments,
+                  mapViewState.acceptedRouteSegments,
                   followPosition: isFollowingRunner
-                      ? mapViewState.currentPosition
+                      ? mapViewState.displayPosition
                       : null,
                 ),
               ),
@@ -286,8 +286,11 @@ class _RunRoutePainter extends CustomPainter {
 }
 
 Alignment _alignmentForCurrentPosition(RunMapViewState state, Size size) {
-  final currentPosition = state.currentPosition;
-  final transform = _RouteTransform.fromSegments(state.routeSegments, size);
+  final currentPosition = state.displayPosition;
+  final transform = _RouteTransform.fromSegments(
+    state.acceptedRouteSegments,
+    size,
+  );
   if (currentPosition == null || transform == null) {
     return Alignment.center;
   }

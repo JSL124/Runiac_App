@@ -19,6 +19,93 @@ const _demoMapboxPublicToken =
     'k.demo-public-token';
 
 void main() {
+  group('RunMapViewState', () {
+    test('displayPosition prefers active current position over preview', () {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      final preview = _sample(startedAt, latitude: 1.300000);
+      final current = _sample(
+        startedAt.add(const Duration(seconds: 30)),
+        latitude: 1.300500,
+      );
+
+      final viewState = RunMapViewState(
+        previewPosition: preview,
+        currentPosition: current,
+      );
+
+      expect(viewState.displayPosition, same(current));
+    });
+
+    test('displayPosition falls back to preview before active GPS', () {
+      final preview = _sample(DateTime.utc(2026, 6, 14, 7));
+
+      final viewState = RunMapViewState(previewPosition: preview);
+
+      expect(viewState.displayPosition, same(preview));
+    });
+
+    test('displayPosition is null without preview or current position', () {
+      expect(const RunMapViewState.empty().displayPosition, isNull);
+    });
+
+    test('routeSegments remains a compatibility alias for accepted route', () {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      final acceptedRouteSegments = [
+        [
+          _sample(startedAt, latitude: 1.300000),
+          _sample(startedAt.add(const Duration(seconds: 60)), latitude: 1.301),
+        ],
+      ];
+
+      final viewState = RunMapViewState(
+        acceptedRouteSegments: acceptedRouteSegments,
+      );
+
+      expect(viewState.routeSegments, viewState.acceptedRouteSegments);
+      expect(viewState.routeSegments, acceptedRouteSegments);
+    });
+
+    test('route metrics derive only from accepted route segments', () {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      final preview = _sample(startedAt, latitude: 1.299000);
+      final current = _sample(
+        startedAt.add(const Duration(seconds: 30)),
+        latitude: 1.399000,
+      );
+
+      final viewState = RunMapViewState(
+        previewPosition: preview,
+        currentPosition: current,
+        acceptedRouteSegments: [
+          [
+            _sample(startedAt.add(const Duration(seconds: 60))),
+            _sample(startedAt.add(const Duration(seconds: 120))),
+          ],
+          [_sample(startedAt.add(const Duration(seconds: 180)))],
+        ],
+      );
+
+      expect(viewState.routePointCount, 3);
+      expect(viewState.hasRoutePolyline, isTrue);
+    });
+
+    test('preview and current positions alone do not create route metrics', () {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+
+      final viewState = RunMapViewState(
+        previewPosition: _sample(startedAt, latitude: 1.299000),
+        currentPosition: _sample(
+          startedAt.add(const Duration(seconds: 30)),
+          latitude: 1.399000,
+        ),
+      );
+
+      expect(viewState.routePointCount, 0);
+      expect(viewState.hasRoutePolyline, isFalse);
+      expect(viewState.routeSegments, isEmpty);
+    });
+  });
+
   group('RunTrackingMapSurface Mapbox boundary', () {
     testWidgets('missing token renders placeholder fallback', (tester) async {
       await tester.pumpWidget(
@@ -932,6 +1019,116 @@ void main() {
     });
   });
 
+  group('RunMapPlaceholder', () {
+    testWidgets(
+      'does not render route geometry from preview or current positions only',
+      (tester) async {
+        final startedAt = DateTime.utc(2026, 6, 14, 7);
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: SizedBox(
+              width: 320,
+              height: 320,
+              child: RunMapPlaceholder(
+                mapViewState: RunMapViewState(
+                  previewPosition: _sample(startedAt, latitude: 1.300000),
+                  currentPosition: _sample(
+                    startedAt.add(const Duration(seconds: 30)),
+                    latitude: 1.301000,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+
+        expect(find.byKey(const Key('run_map_route_polyline')), findsNothing);
+        expect(find.byKey(const Key('run_map_runner_marker')), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      },
+    );
+
+    testWidgets('renders route geometry from accepted route segments', (
+      tester,
+    ) async {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: SizedBox(
+            width: 320,
+            height: 320,
+            child: RunMapPlaceholder(
+              mapViewState: RunMapViewState(
+                currentPosition: _sample(
+                  startedAt.add(const Duration(seconds: 60)),
+                  latitude: 1.300899,
+                ),
+                acceptedRouteSegments: [
+                  [
+                    _sample(startedAt, latitude: 1.300000),
+                    _sample(
+                      startedAt.add(const Duration(seconds: 60)),
+                      latitude: 1.300899,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.byKey(const Key('run_map_route_polyline')), findsOneWidget);
+      expect(find.byKey(const Key('run_map_runner_marker')), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('unfollowed marker alignment uses display position fallback', (
+      tester,
+    ) async {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: SizedBox(
+            width: 320,
+            height: 320,
+            child: RunMapPlaceholder(
+              isFollowingRunner: false,
+              mapViewState: RunMapViewState(
+                previewPosition: _sample(
+                  startedAt.add(const Duration(seconds: 60)),
+                  latitude: 1.301000,
+                ),
+                acceptedRouteSegments: [
+                  [
+                    _sample(startedAt, latitude: 1.300000),
+                    _sample(
+                      startedAt.add(const Duration(seconds: 60)),
+                      latitude: 1.301000,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final markerAlign = tester.widget<Align>(
+        find.ancestor(
+          of: find.byKey(const Key('run_map_runner_marker')),
+          matching: find.byType(Align),
+        ),
+      );
+
+      expect(markerAlign.alignment, isNot(Alignment.center));
+      expect(tester.takeException(), isNull);
+    });
+  });
+
   group('RunMapboxRunnerMarkerAnnotation', () {
     test('does not create a runner marker without currentPosition', () {
       expect(
@@ -972,6 +1169,23 @@ void main() {
         1.300899,
       ]);
     });
+
+    test('creates a visible runner circle from preview display position', () {
+      final preview = RunLocationSample(
+        recordedAt: DateTime.utc(2026, 6, 14, 7),
+        latitude: 1.300555,
+        longitude: 103.812555,
+      );
+      final options = RunMapboxRunnerMarkerAnnotation.fromViewState(
+        RunMapViewState(previewPosition: preview),
+      );
+
+      expect(options, isNotNull);
+      expect(options!.geometry.toJson()['coordinates'], <double>[
+        103.812555,
+        1.300555,
+      ]);
+    });
   });
 
   group('RunMapboxGeometry', () {
@@ -1005,6 +1219,20 @@ void main() {
       // Then: it uses the presentation-only local fallback, not a world view.
       expect(request.center, RunMapboxCameraRequest.fallbackCenter);
       expect(request.zoom, 14);
+    });
+
+    test('initial camera uses preview display position before active GPS', () {
+      final preview = RunLocationSample(
+        recordedAt: DateTime.utc(2026, 6, 14, 7),
+        latitude: 1.301111,
+        longitude: 103.811111,
+      );
+      final viewState = RunMapViewState(previewPosition: preview);
+
+      final request = RunMapboxCameraRequest.initialForMapViewState(viewState);
+
+      expect(request.center.position, <double>[103.811111, 1.301111]);
+      expect(request.zoom, 16);
     });
 
     test('current position camera becomes available after GPS transition', () {
@@ -1072,6 +1300,42 @@ void main() {
         <double>[103.800000, 1.301500],
       ]);
     });
+
+    test('uses accepted route segments without preview or current points', () {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      RunLocationSample sample(int seconds, double latitude) {
+        return RunLocationSample(
+          recordedAt: startedAt.add(Duration(seconds: seconds)),
+          latitude: latitude,
+          longitude: 103.800000,
+        );
+      }
+
+      final geometry = RunMapboxRouteGeometry.fromViewState(
+        RunMapViewState(
+          previewPosition: sample(0, 1.299000),
+          currentPosition: sample(30, 1.399000),
+          acceptedRouteSegments: [
+            [sample(60, 1.300000), sample(120, 1.300899)],
+          ],
+        ),
+      );
+
+      expect(geometry.segments, hasLength(1));
+      expect(geometry.segments.single.map((point) => point.position), [
+        <double>[103.800000, 1.300000],
+        <double>[103.800000, 1.300899],
+      ]);
+    });
+
+    test('real Mapbox route manager configures round line rendering', () {
+      final source = File(
+        'lib/features/run/presentation/widgets/run_mapbox_run_map.dart',
+      ).readAsStringSync();
+
+      expect(source, contains('setLineCap(LineCap.ROUND)'));
+      expect(source, contains('setLineJoin(LineJoin.ROUND)'));
+    });
   });
 
   test('Mapbox surface and adapter do not import each other cyclically', () {
@@ -1114,6 +1378,18 @@ RunMapboxSurfaceConfig _surfaceConfig({
   );
 }
 
+RunLocationSample _sample(
+  DateTime recordedAt, {
+  double latitude = 1.300000,
+  double longitude = 103.800000,
+}) {
+  return RunLocationSample(
+    recordedAt: recordedAt,
+    latitude: latitude,
+    longitude: longitude,
+  );
+}
+
 RunMapViewState _viewStateWithCurrentPosition(
   double latitude, {
   double longitude = 103.8,
@@ -1137,7 +1413,7 @@ class _FakeRunMapboxSyncTarget implements RunMapboxSyncTarget {
 
   @override
   Future<void> apply(RunMapboxSyncRequest request) async {
-    appliedLatitudes.add(request.mapViewState.currentPosition?.latitude);
+    appliedLatitudes.add(request.mapViewState.displayPosition?.latitude);
     appliedFollowStates.add(request.isFollowingRunner);
     appliedCameraMoveIntents.add(request.shouldMoveCamera);
     final blocker = nextBlocker;

@@ -52,8 +52,9 @@ class RunTrackingController extends ChangeNotifier {
       return _mapViewState;
     }
     return RunMapViewState(
-      currentPosition: _previewCurrentPosition,
-      routeSegments: _mapViewState.routeSegments,
+      previewPosition: _previewCurrentPosition,
+      currentPosition: _mapViewState.currentPosition,
+      acceptedRouteSegments: _mapViewState.acceptedRouteSegments,
     );
   }
 
