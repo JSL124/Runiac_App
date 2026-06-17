@@ -334,7 +334,7 @@ void main() {
 
     expect(find.text('00:10'), findsOneWidget);
     expect(find.text('0.02 of 4.50 km'), findsOneWidget);
-    expect(find.text('0%'), findsOneWidget);
+    expect(find.text('1%'), findsOneWidget);
     expect(find.text('--:--/km'), findsOneWidget);
 
     await tester.tap(find.text('Pause'));

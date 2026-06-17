@@ -80,6 +80,7 @@ class RunMovementClassifier {
     required Duration stationaryAutoPauseDwell,
     required double stationaryDriftDistanceMeters,
     double cumulativeGpsMovementMeters = 0,
+    double? movementSpeedMetersPerSecond,
     required double resumeMovementDistanceMeters,
     required double resumeSpeedMetersPerSecond,
     required double stationarySpeedMetersPerSecond,
@@ -89,6 +90,7 @@ class RunMovementClassifier {
     if (_hasMeaningfulMovement(
       sample: sample,
       distanceFromRouteAnchorMeters: distanceFromRouteAnchorMeters,
+      movementSpeedMetersPerSecond: movementSpeedMetersPerSecond,
       resumeMovementDistanceMeters: resumeMovementDistanceMeters,
       resumeSpeedMetersPerSecond: resumeSpeedMetersPerSecond,
     )) {
@@ -113,7 +115,12 @@ class RunMovementClassifier {
     }
 
     if (cumulativeGpsMovementMeters >=
-        _gpsCumulativeMovementConfirmationMeters) {
+            _gpsCumulativeMovementConfirmationMeters &&
+        _hasStationaryExitSpeedSignal(
+          sample: sample,
+          movementSpeedMetersPerSecond: movementSpeedMetersPerSecond,
+          stationarySpeedMetersPerSecond: stationarySpeedMetersPerSecond,
+        )) {
       if (requiresSustainedGpsMovement) {
         return const RunMovementClassification(
           type: RunMovementClassificationType.gpsResumeCandidate,
@@ -150,7 +157,6 @@ class RunMovementClassifier {
     final shouldAutoPause =
         !effectiveHasMovingSpeedSignal &&
         !motionMovingStillInGrace &&
-        distanceFromRouteAnchorMeters <= stationaryDriftDistanceMeters &&
         stationaryDwell >= stationaryAutoPauseDwell;
     return RunMovementClassification(
       type: RunMovementClassificationType.gpsStationaryDrift,
@@ -196,16 +202,32 @@ class RunMovementClassifier {
   bool _hasMeaningfulMovement({
     required RunLocationSample sample,
     required double distanceFromRouteAnchorMeters,
+    required double? movementSpeedMetersPerSecond,
     required double resumeMovementDistanceMeters,
     required double resumeSpeedMetersPerSecond,
   }) {
-    final reportedSpeed = sample.speedMetersPerSecond;
+    final reportedSpeed =
+        movementSpeedMetersPerSecond ?? sample.speedMetersPerSecond;
     final hasSpeedSignal =
         reportedSpeed != null &&
         reportedSpeed.isFinite &&
         reportedSpeed >= resumeSpeedMetersPerSecond;
-    return distanceFromRouteAnchorMeters >= resumeMovementDistanceMeters ||
-        hasSpeedSignal;
+    final hasDistanceSignal =
+        movementSpeedMetersPerSecond == null &&
+        distanceFromRouteAnchorMeters >= resumeMovementDistanceMeters;
+    return hasDistanceSignal || hasSpeedSignal;
+  }
+
+  bool _hasStationaryExitSpeedSignal({
+    required RunLocationSample sample,
+    required double? movementSpeedMetersPerSecond,
+    required double stationarySpeedMetersPerSecond,
+  }) {
+    final speedMetersPerSecond =
+        movementSpeedMetersPerSecond ?? sample.speedMetersPerSecond;
+    return speedMetersPerSecond == null ||
+        speedMetersPerSecond.isFinite &&
+            speedMetersPerSecond >= stationarySpeedMetersPerSecond;
   }
 
   bool _hasMovingSpeedSignal(

@@ -51,6 +51,8 @@ class LocalRunTrackingSession {
   final RunDistanceCalculator distanceCalculator;
   final RunMovementClassifier movementClassifier;
 
+  static const double _preMovementJitterCandidateMaxMeters = 25;
+
   bool _isActive = true;
   bool _needsAnchorSample = false;
   bool _suppressedMovementNeedsAnchor = false;
@@ -63,6 +65,7 @@ class LocalRunTrackingSession {
   RunLocationSample? _lastAcceptedSample;
   RunLocationSample? _lastRouteSample;
   RunLocationSample? _autoResumeCandidateSample;
+  RunLocationSample? _preMovementCandidateSample;
   RunLocationSample? _abnormalCandidateStartedSample;
   int _abnormalCandidateCount = 0;
   RunLocationSample? _abnormalResumeAnchorSample;
@@ -138,6 +141,7 @@ class LocalRunTrackingSession {
     _suppressedMovementNeedsAnchor = false;
     _movementStatus = RunMovementStatus.moving;
     _autoResumeCandidateSample = null;
+    _preMovementCandidateSample = null;
     _resetAbnormalCandidate();
     _resetAbnormalResumeCandidate();
     _stationaryStartedAt = null;
@@ -170,6 +174,7 @@ class LocalRunTrackingSession {
       _recordAcceptedCurrentSample(sample);
       _lastRouteSample = sample;
       _autoResumeCandidateSample = null;
+      _preMovementCandidateSample = null;
       _resetAbnormalCandidate();
       _resetAbnormalResumeCandidate();
       _stationaryCumulativeMovementMeters = 0;
@@ -189,6 +194,7 @@ class LocalRunTrackingSession {
       _suppressedMovementNeedsAnchor = false;
       _lastRouteSample = sample;
       _autoResumeCandidateSample = null;
+      _preMovementCandidateSample = null;
       _resetAbnormalCandidate();
       _resetAbnormalResumeCandidate();
       _stationaryCumulativeMovementMeters = 0;
@@ -205,6 +211,7 @@ class LocalRunTrackingSession {
       _needsAnchorSample = false;
       _lastRouteSample = sample;
       _autoResumeCandidateSample = null;
+      _preMovementCandidateSample = null;
       _resetAbnormalCandidate();
       _resetAbnormalResumeCandidate();
       _stationaryCumulativeMovementMeters = 0;
@@ -239,6 +246,7 @@ class LocalRunTrackingSession {
       _acceptedSampleSegments.add(<RunLocationSample>[sample]);
       _lastRouteSample = sample;
       _autoResumeCandidateSample = null;
+      _preMovementCandidateSample = null;
       _resetAbnormalCandidate();
       _resetAbnormalResumeCandidate();
       _stationaryCumulativeMovementMeters = 0;
@@ -325,6 +333,21 @@ class LocalRunTrackingSession {
       return true;
     }
 
+    if (_shouldHoldPreMovementCandidate(
+      sample: sample,
+      segmentDistanceMeters: segmentDistanceMeters,
+      speedMetersPerSecond: speedMetersPerSecond,
+      motionEvidence: motionEvidence,
+    )) {
+      _handlePreMovementCandidate(
+        sample: sample,
+        routeAnchorSample: previousRouteSample,
+        segmentDistanceMeters: segmentDistanceMeters,
+        motionEvidence: motionEvidence,
+      );
+      return true;
+    }
+
     final stationaryStartedAt =
         _stationaryStartedAt ?? previousRouteSample.recordedAt;
     final autoPauseDwell = _distanceMeters <= 0
@@ -340,6 +363,7 @@ class LocalRunTrackingSession {
       stationaryAutoPauseDwell: autoPauseDwell,
       stationaryDriftDistanceMeters: stationaryDriftDistanceMeters,
       cumulativeGpsMovementMeters: cumulativeGpsMovementMeters,
+      movementSpeedMetersPerSecond: speedMetersPerSecond,
       resumeMovementDistanceMeters: resumeMovementDistanceMeters,
       resumeSpeedMetersPerSecond: resumeSpeedMetersPerSecond,
       stationarySpeedMetersPerSecond: stationarySpeedMetersPerSecond,
@@ -360,6 +384,7 @@ class LocalRunTrackingSession {
       }
       _movementStatus = RunMovementStatus.moving;
       _autoResumeCandidateSample = null;
+      _preMovementCandidateSample = null;
       _resetAbnormalCandidate();
       _resetAbnormalResumeCandidate();
       _stationaryStartedAt = null;
@@ -402,6 +427,7 @@ class LocalRunTrackingSession {
     }
     _lastRouteSample = sample;
     _autoResumeCandidateSample = null;
+    _preMovementCandidateSample = null;
     _resetAbnormalCandidate();
     _resetAbnormalResumeCandidate();
     _stationaryCumulativeMovementMeters = 0;
@@ -415,6 +441,7 @@ class LocalRunTrackingSession {
     _suppressedMovingTimeInCurrentAdvance = true;
     _recordAcceptedCurrentSample(sample);
     _autoResumeCandidateSample = null;
+    _preMovementCandidateSample = null;
     _stationaryStartedAt = null;
     _stationaryCumulativeMovementMeters = 0;
 
@@ -483,8 +510,91 @@ class LocalRunTrackingSession {
     _movementStatus = RunMovementStatus.moving;
     _suppressedMovingTimeInCurrentAdvance = false;
     _suppressedMovementNeedsAnchor = false;
+    _preMovementCandidateSample = null;
     _resetAbnormalCandidate();
     _resetAbnormalResumeCandidate();
+  }
+
+  bool _shouldHoldPreMovementCandidate({
+    required RunLocationSample sample,
+    required double segmentDistanceMeters,
+    required double speedMetersPerSecond,
+    required Iterable<RunMotionEvidence> motionEvidence,
+  }) {
+    if (_distanceMeters > 0 || _movementStatus != RunMovementStatus.moving) {
+      return false;
+    }
+    if (segmentDistanceMeters <= stationaryDriftDistanceMeters ||
+        segmentDistanceMeters > _preMovementJitterCandidateMaxMeters) {
+      return false;
+    }
+    if (speedMetersPerSecond.isFinite &&
+        speedMetersPerSecond >= resumeSpeedMetersPerSecond) {
+      return false;
+    }
+    final reportedSpeed = sample.speedMetersPerSecond;
+    if (reportedSpeed != null && reportedSpeed.isFinite && reportedSpeed >= 0) {
+      return reportedSpeed < resumeSpeedMetersPerSecond;
+    }
+    return _hasStationaryMotionEvidence(motionEvidence);
+  }
+
+  void _handlePreMovementCandidate({
+    required RunLocationSample sample,
+    required RunLocationSample routeAnchorSample,
+    required double segmentDistanceMeters,
+    required Iterable<RunMotionEvidence> motionEvidence,
+  }) {
+    _suppressedMovingTimeInCurrentAdvance = true;
+    final candidate = _preMovementCandidateSample;
+    if (candidate != null) {
+      final candidateDistanceMeters = distanceCalculator.distanceMeters(
+        candidate,
+        sample,
+      );
+      final anchorToCandidateMeters = distanceCalculator.distanceMeters(
+        routeAnchorSample,
+        candidate,
+      );
+      if (!candidateDistanceMeters.isFinite ||
+          !anchorToCandidateMeters.isFinite) {
+        _rejectSample(sample, RunLocationRejectionReason.nonFiniteDistance);
+        return;
+      }
+
+      final hasConsistentDisplacement =
+          candidateDistanceMeters >= resumeMovementDistanceMeters &&
+          segmentDistanceMeters >=
+              anchorToCandidateMeters + resumeMovementDistanceMeters;
+      if (hasConsistentDisplacement) {
+        _acceptedSampleSegments.add(<RunLocationSample>[candidate, sample]);
+        _distanceMeters += candidateDistanceMeters;
+        _lastRouteSample = sample;
+        _autoResumeCandidateSample = null;
+        _preMovementCandidateSample = null;
+        _resetAbnormalCandidate();
+        _resetAbnormalResumeCandidate();
+        _stationaryStartedAt = null;
+        _stationaryCumulativeMovementMeters = 0;
+        _recordAcceptedCurrentSample(sample);
+        return;
+      }
+    }
+
+    _preMovementCandidateSample = sample;
+    _autoResumeCandidateSample = null;
+    _recordAcceptedCurrentSample(sample);
+    _stationaryStartedAt ??= routeAnchorSample.recordedAt;
+    _stationaryCumulativeMovementMeters = 0;
+
+    final dwell = sample.recordedAt.difference(_stationaryStartedAt!);
+    if (dwell >= preMovementAutoPauseDwell &&
+        !_hasMovingMotionEvidence(motionEvidence)) {
+      _movementStatus = RunMovementStatus.autoPaused;
+      _preMovementCandidateSample = null;
+      _resetAbnormalCandidate();
+      _resetAbnormalResumeCandidate();
+    }
   }
 
   void _recordStationarySample(
@@ -502,6 +612,7 @@ class LocalRunTrackingSession {
     if (classification.shouldAutoPause) {
       _movementStatus = RunMovementStatus.autoPaused;
       _autoResumeCandidateSample = null;
+      _preMovementCandidateSample = null;
       _resetAbnormalCandidate();
       _resetAbnormalResumeCandidate();
     }
@@ -534,6 +645,7 @@ class LocalRunTrackingSession {
     }
     _movementStatus = RunMovementStatus.autoPaused;
     _autoResumeCandidateSample = null;
+    _preMovementCandidateSample = null;
     _resetAbnormalCandidate();
     _resetAbnormalResumeCandidate();
   }
@@ -631,6 +743,30 @@ class LocalRunTrackingSession {
     return reportedSpeed > calculatedSpeedMetersPerSecond
         ? reportedSpeed
         : calculatedSpeedMetersPerSecond;
+  }
+
+  bool _hasMovingMotionEvidence(Iterable<RunMotionEvidence> motionEvidence) {
+    RunMotionEvidence? latest;
+    for (final evidence in motionEvidence) {
+      if (latest == null || evidence.recordedAt.isAfter(latest.recordedAt)) {
+        latest = evidence;
+      }
+    }
+    return latest?.signal == RunMotionSignal.moving &&
+        (latest?.confidence ?? 0) >= 0.6;
+  }
+
+  bool _hasStationaryMotionEvidence(
+    Iterable<RunMotionEvidence> motionEvidence,
+  ) {
+    RunMotionEvidence? latest;
+    for (final evidence in motionEvidence) {
+      if (latest == null || evidence.recordedAt.isAfter(latest.recordedAt)) {
+        latest = evidence;
+      }
+    }
+    return latest?.signal == RunMotionSignal.stationary &&
+        (latest?.confidence ?? 0) >= 0.6;
   }
 
   void _resetAbnormalCandidate() {

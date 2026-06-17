@@ -1031,7 +1031,7 @@ void main() {
       },
     );
 
-    test('steady-phone walking stays active from GPS movement', () {
+    test('steady-phone GPS drift stays distance-free with GPS active', () {
       final startedAt = DateTime.utc(2026, 6, 14, 7);
       final controller = RunTrackingController(
         locationProvider: _LifecycleReplayProvider([
@@ -1083,14 +1083,16 @@ void main() {
 
       controller.start(
         startedAt: startedAt,
-        clientRunSessionId: 'steady-phone-walk-run',
+        clientRunSessionId: 'steady-phone-drift-run',
       );
       controller.advanceBy(const Duration(seconds: 9));
 
-      expect(controller.state.isAutoPaused, isFalse);
-      expect(controller.state.movementStatus, RunMovementStatus.moving);
-      expect(controller.state.distanceMeters, greaterThan(0));
-      expect(controller.mapViewState.routePointCount, 2);
+      expect(controller.state.isAutoPaused, isTrue);
+      expect(controller.state.movementStatus, RunMovementStatus.autoPaused);
+      expect(controller.state.distanceMeters, 0);
+      expect(controller.state.averagePaceSecondsPerKm, 0);
+      expect(controller.mapViewState.routePointCount, 1);
+      expect(controller.mapViewState.currentPosition?.longitude, 103.800027);
       expect(
         controller.completionPayload().toRawClientMap().keys,
         isNot(contains('motionEvidence')),

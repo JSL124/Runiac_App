@@ -1074,59 +1074,131 @@ void main() {
       },
     );
 
-    test('steady-phone GPS movement beats stationary motion evidence', () {
-      final startedAt = DateTime.utc(2026, 6, 14, 7);
-      final session = LocalRunTrackingSession(startedAt: startedAt);
+    test(
+      'steady-phone GPS drift with stationary motion does not draw route',
+      () {
+        final startedAt = DateTime.utc(2026, 6, 14, 7);
+        final session = LocalRunTrackingSession(startedAt: startedAt);
 
-      session.advanceBy(
-        const Duration(seconds: 1),
-        samples: [
-          sampleAt(
-            startedAt,
-            1,
-            latitude: 1.300000,
-            longitude: 103.800000,
-            horizontalAccuracyMeters: 5,
-          ),
-        ],
-      );
+        session.advanceBy(
+          const Duration(seconds: 1),
+          samples: [
+            sampleAt(
+              startedAt,
+              1,
+              latitude: 1.300000,
+              longitude: 103.800000,
+              horizontalAccuracyMeters: 5,
+            ),
+          ],
+        );
 
-      session.advanceBy(
-        const Duration(seconds: 8),
-        samples: [
-          sampleAt(
-            startedAt,
-            3,
-            latitude: 1.300027,
-            longitude: 103.800000,
-            horizontalAccuracyMeters: 5,
-            speedMetersPerSecond: 0.7,
-          ),
-          sampleAt(
-            startedAt,
-            6,
-            latitude: 1.300027,
-            longitude: 103.800027,
-            horizontalAccuracyMeters: 5,
-            speedMetersPerSecond: 0.7,
-          ),
-          sampleAt(
-            startedAt,
-            9,
-            latitude: 1.300000,
-            longitude: 103.800027,
-            horizontalAccuracyMeters: 5,
-            speedMetersPerSecond: 0.7,
-          ),
-        ],
-        motionEvidence: [motionAt(startedAt, 9, RunMotionSignal.stationary)],
-      );
+        session.advanceBy(
+          const Duration(seconds: 8),
+          samples: [
+            sampleAt(
+              startedAt,
+              3,
+              latitude: 1.300027,
+              longitude: 103.800000,
+              horizontalAccuracyMeters: 5,
+              speedMetersPerSecond: 0.7,
+            ),
+            sampleAt(
+              startedAt,
+              6,
+              latitude: 1.300027,
+              longitude: 103.800027,
+              horizontalAccuracyMeters: 5,
+              speedMetersPerSecond: 0.7,
+            ),
+            sampleAt(
+              startedAt,
+              9,
+              latitude: 1.300000,
+              longitude: 103.800027,
+              horizontalAccuracyMeters: 5,
+              speedMetersPerSecond: 0.7,
+            ),
+          ],
+          motionEvidence: [motionAt(startedAt, 9, RunMotionSignal.stationary)],
+        );
 
-      expect(session.movementStatus, RunMovementStatus.moving);
-      expect(session.distanceMeters, greaterThan(0));
-      expect(session.mapViewState.routePointCount, 2);
-      expect(session.mapViewState.currentPosition?.longitude, 103.800027);
-    });
+        expect(session.movementStatus, RunMovementStatus.autoPaused);
+        expect(session.distanceMeters, 0);
+        expect(session.averagePaceSecondsPerKm, 0);
+        expect(session.mapViewState.routePointCount, 1);
+        expect(session.mapViewState.currentPosition?.longitude, 103.800027);
+      },
+    );
+
+    test(
+      'standing-still outdoor GPS jumps do not add distance or zigzag route',
+      () {
+        final startedAt = DateTime.utc(2026, 6, 14, 7);
+        final session = LocalRunTrackingSession(startedAt: startedAt);
+
+        session.advanceBy(
+          const Duration(seconds: 1),
+          samples: [
+            sampleAt(
+              startedAt,
+              1,
+              latitude: 1.300000,
+              longitude: 103.800000,
+              horizontalAccuracyMeters: 5,
+              speedMetersPerSecond: 0.1,
+            ),
+          ],
+        );
+
+        session.advanceBy(
+          const Duration(seconds: 12),
+          samples: [
+            sampleAt(
+              startedAt,
+              4,
+              latitude: 1.300090,
+              longitude: 103.800000,
+              horizontalAccuracyMeters: 5,
+              speedMetersPerSecond: 0.2,
+            ),
+            sampleAt(
+              startedAt,
+              7,
+              latitude: 1.299955,
+              longitude: 103.800072,
+              horizontalAccuracyMeters: 5,
+              speedMetersPerSecond: 0.1,
+            ),
+            sampleAt(
+              startedAt,
+              10,
+              latitude: 1.300117,
+              longitude: 103.799955,
+              horizontalAccuracyMeters: 5,
+              speedMetersPerSecond: 0.2,
+            ),
+            sampleAt(
+              startedAt,
+              13,
+              latitude: 1.299910,
+              longitude: 103.800036,
+              horizontalAccuracyMeters: 5,
+            ),
+          ],
+          motionEvidence: [motionAt(startedAt, 13, RunMotionSignal.stationary)],
+        );
+
+        expect(session.movementStatus, RunMovementStatus.autoPaused);
+        expect(session.distanceMeters, 0);
+        expect(session.averagePaceSecondsPerKm, 0);
+        expect(session.mapViewState.routeSegments, hasLength(1));
+        expect(session.mapViewState.routePointCount, 1);
+        expect(session.mapViewState.currentPosition?.latitude, 1.299910);
+        expect(session.acceptedSampleCount, 5);
+      },
+    );
 
     test('table-still GPS jitter with stationary motion still auto pauses', () {
       final startedAt = DateTime.utc(2026, 6, 14, 7);
@@ -1235,6 +1307,89 @@ void main() {
       expect(session.mapViewState.routePointCount, 1);
       expect(session.mapViewState.currentPosition?.latitude, 1.300009);
     });
+
+    test(
+      'stationary outdoor GPS jitter does not add distance or zigzag route',
+      () {
+        final startedAt = DateTime.utc(2026, 6, 14, 7);
+        final session = LocalRunTrackingSession(startedAt: startedAt);
+
+        session.advanceBy(
+          const Duration(seconds: 1),
+          samples: [
+            sampleAt(
+              startedAt,
+              1,
+              latitude: 1.300000,
+              longitude: 103.800000,
+              horizontalAccuracyMeters: 5,
+              speedMetersPerSecond: 0.1,
+            ),
+          ],
+        );
+        final routePointCountBeforeJitter =
+            session.mapViewState.routePointCount;
+
+        session.advanceBy(
+          const Duration(seconds: 64),
+          samples: [
+            sampleAt(
+              startedAt,
+              16,
+              latitude: 1.300090,
+              longitude: 103.800000,
+              horizontalAccuracyMeters: 5,
+              speedMetersPerSecond: 0.1,
+            ),
+            sampleAt(
+              startedAt,
+              31,
+              latitude: 1.299920,
+              longitude: 103.800050,
+              horizontalAccuracyMeters: 5,
+            ),
+            sampleAt(
+              startedAt,
+              47,
+              latitude: 1.300030,
+              longitude: 103.799860,
+              horizontalAccuracyMeters: 5,
+              speedMetersPerSecond: 0.2,
+            ),
+            sampleAt(
+              startedAt,
+              65,
+              latitude: 1.299970,
+              longitude: 103.800120,
+              horizontalAccuracyMeters: 5,
+            ),
+          ],
+        );
+
+        expect(session.movementStatus, RunMovementStatus.autoPaused);
+        expect(session.activeDurationSeconds, 1);
+        expect(session.distanceMeters, 0);
+        expect(session.averagePaceSecondsPerKm, 0);
+        expect(session.mapViewState.routeSegments, hasLength(1));
+        expect(
+          session.mapViewState.routePointCount,
+          routePointCountBeforeJitter,
+        );
+        expect(session.mapViewState.currentPosition?.latitude, 1.299970);
+        expect(session.mapViewState.currentPosition?.longitude, 103.800120);
+        expect(
+          session.diagnostics.lastAcceptedSampleAt,
+          startedAt.add(const Duration(seconds: 65)),
+        );
+        expect(session.diagnostics.latestHorizontalAccuracyMeters, 5);
+        expect(
+          session.diagnostics.latestAccuracyBucket,
+          RunLocationAccuracyBucket.good,
+        );
+        expect(session.acceptedSampleCount, 5);
+        expect(session.rejectedSampleCount, 0);
+      },
+    );
 
     test('moving to stopped auto pauses after seven stationary seconds', () {
       final startedAt = DateTime.utc(2026, 6, 14, 7);
