@@ -32,6 +32,8 @@
 	<string>Runiac uses your location to track your run while you are using the app.</string>
 	<key>NSMotionUsageDescription</key>
 	<string>Runiac uses phone motion during a run to help detect when you are stopped. Distance and route still come from GPS.</string>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>location</string>

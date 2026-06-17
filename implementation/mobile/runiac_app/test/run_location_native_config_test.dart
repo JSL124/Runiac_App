@@ -108,18 +108,50 @@ void main() {
       expect(plist, isNot(contains('NSLocationAlwaysUsageDescription')));
     });
 
-    test('iOS Live Activity and Widget Extension remain out of scope', () {
+    test('iOS-B declares display-only Live Activity support', () {
       final plist = File('ios/Runner/Info.plist').readAsStringSync();
       final project = File(
         'ios/Runner.xcodeproj/project.pbxproj',
       ).readAsStringSync();
+      final attributes = File(
+        'ios/RunnerLiveActivity/RuniacRunActivityAttributes.swift',
+      ).readAsStringSync();
+      final widget = File(
+        'ios/RunnerLiveActivity/RuniacRunLiveActivityWidget.swift',
+      ).readAsStringSync();
 
-      expect(plist, isNot(contains('NSSupportsLiveActivities')));
-      expect(plist, isNot(contains('ActivityKit')));
-      expect(plist, isNot(contains('WidgetKit')));
-      expect(project, isNot(contains('ActivityKit')));
-      expect(project, isNot(contains('WidgetKit')));
-      expect(project, isNot(contains('com.apple.product-type.app-extension')));
+      expect(plist, contains('NSSupportsLiveActivities'));
+      expect(project, contains('RunnerLiveActivity.appex'));
+      expect(project, contains('com.apple.product-type.app-extension'));
+      expect(
+        project,
+        contains(
+          '97C147051CF9000F007C117D /* Build configuration list '
+          'for PBXNativeTarget "Runner" */',
+        ),
+      );
+      expect(project, contains('IPHONEOS_DEPLOYMENT_TARGET = 15.0'));
+      expect(project, contains('IPHONEOS_DEPLOYMENT_TARGET = 16.1'));
+      expect(attributes, contains('ActivityAttributes'));
+      expect(attributes, contains('title: String'));
+      expect(attributes, contains('statusLabel: String'));
+      expect(attributes, contains('elapsedTimeLabel: String'));
+      expect(attributes, contains('averagePaceLabel: String'));
+      expect(attributes, contains('distanceLabel: String'));
+      expect(attributes, contains('supportCopy: String'));
+      expect(widget, contains('ActivityConfiguration'));
+      expect(widget, contains('DynamicIsland'));
+      expect(widget, isNot(contains('latitude')));
+      expect(widget, isNot(contains('longitude')));
+      expect(widget, isNot(contains('routeGeometry')));
+      expect(widget, isNot(contains('elapsedSeconds')));
+      expect(widget, isNot(contains('distanceMeters')));
+      expect(widget, isNot(contains('averagePaceSecondsPerKm')));
+      expect(widget, isNot(contains('clientRunSessionId')));
+      expect(widget, isNot(contains('userId')));
+      expect(widget, isNot(contains('xpLabel')));
+      expect(widget, isNot(contains('XP')));
+      expect(widget, isNot(contains('leaderboardScore')));
     });
   });
 }

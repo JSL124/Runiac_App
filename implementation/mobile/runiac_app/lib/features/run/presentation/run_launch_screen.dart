@@ -5,8 +5,8 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/runiac_bottom_sheet_handle.dart';
 import '../data/android_run_notification_permission_service.dart';
-import '../data/android_run_foreground_service.dart';
 import '../data/geolocator_run_location_permission_service.dart';
+import '../data/platform_run_foreground_service.dart';
 import '../data/real_foreground_run_location_provider.dart';
 import '../data/sensors_plus_run_motion_provider.dart';
 import '../domain/models/complete_run_result.dart';
@@ -206,7 +206,7 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
             ? widget.motionProvider ?? SensorsPlusRunMotionProvider()
             : widget.motionProvider,
         foregroundService: useForegroundGps
-            ? widget.foregroundService ?? const AndroidRunForegroundService()
+            ? widget.foregroundService ?? platformRunForegroundService()
             : null,
         permissionService: _permissionService,
         notificationPermissionService:
