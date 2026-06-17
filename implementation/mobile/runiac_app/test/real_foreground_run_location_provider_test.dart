@@ -124,6 +124,28 @@ void main() {
       },
     );
 
+    test('iOS settings use active-run background location configuration', () {
+      const adapter = GeolocatorForegroundLocationAdapter(
+        platformOverride: TargetPlatform.iOS,
+      );
+
+      final settings = adapter.locationSettingsFor(
+        const LocationSettingsRequest(
+          highAccuracy: false,
+          distanceFilterMeters: 7,
+        ),
+      );
+
+      expect(settings, isA<geolocator.AppleSettings>());
+      final appleSettings = settings as geolocator.AppleSettings;
+      expect(appleSettings.accuracy, geolocator.LocationAccuracy.medium);
+      expect(appleSettings.activityType, geolocator.ActivityType.fitness);
+      expect(appleSettings.allowBackgroundLocationUpdates, isTrue);
+      expect(appleSettings.pauseLocationUpdatesAutomatically, isFalse);
+      expect(appleSettings.showBackgroundLocationIndicator, isTrue);
+      expect(appleSettings.distanceFilter, 7);
+    });
+
     test('maps one-shot current position without starting stream', () async {
       final adapter = _FakeForegroundAdapter();
       adapter.currentPosition = position(

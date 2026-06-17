@@ -26,10 +26,16 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Runiac uses your location during an active run, including when the screen is locked or the app is in the background, to keep your distance and route accurate.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Runiac uses your location during a run to measure distance and pace while the app is open.</string>
+	<string>Runiac uses your location to track your run while you are using the app.</string>
 	<key>NSMotionUsageDescription</key>
 	<string>Runiac uses phone motion during a run to help detect when you are stopped. Distance and route still come from GPS.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

@@ -83,16 +83,43 @@ void main() {
       },
     );
 
-    test('iOS declares when-in-use location usage only', () {
+    test('iOS declares active-run scoped background location mode', () {
       final plist = File('ios/Runner/Info.plist').readAsStringSync();
 
       expect(plist, contains('NSLocationWhenInUseUsageDescription'));
+      expect(plist, contains('while you are using the app'));
       expect(
         plist,
-        isNot(contains('NSLocationAlwaysAndWhenInUseUsageDescription')),
+        contains(
+          RegExp(
+            r'<key>UIBackgroundModes</key>\s*<array>\s*<string>location</string>',
+          ),
+        ),
       );
-      expect(plist, isNot(contains('UIBackgroundModes')));
-      expect(plist, isNot(contains('location</string>')));
+      expect(plist, isNot(contains('while the app is open')));
+    });
+
+    test('iOS background foundation declares Always usage copy', () {
+      final plist = File('ios/Runner/Info.plist').readAsStringSync();
+
+      expect(plist, contains('NSLocationAlwaysAndWhenInUseUsageDescription'));
+      expect(plist, contains('including when the screen is locked'));
+      expect(plist, contains('app is in the background'));
+      expect(plist, isNot(contains('NSLocationAlwaysUsageDescription')));
+    });
+
+    test('iOS Live Activity and Widget Extension remain out of scope', () {
+      final plist = File('ios/Runner/Info.plist').readAsStringSync();
+      final project = File(
+        'ios/Runner.xcodeproj/project.pbxproj',
+      ).readAsStringSync();
+
+      expect(plist, isNot(contains('NSSupportsLiveActivities')));
+      expect(plist, isNot(contains('ActivityKit')));
+      expect(plist, isNot(contains('WidgetKit')));
+      expect(project, isNot(contains('ActivityKit')));
+      expect(project, isNot(contains('WidgetKit')));
+      expect(project, isNot(contains('com.apple.product-type.app-extension')));
     });
   });
 }

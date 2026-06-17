@@ -128,6 +128,19 @@ class GeolocatorForegroundLocationAdapter implements ForegroundLocationAdapter {
       );
     }
 
+    if ((platformOverride ?? defaultTargetPlatform) == TargetPlatform.iOS) {
+      return geolocator.AppleSettings(
+        accuracy: settings.highAccuracy
+            ? geolocator.LocationAccuracy.high
+            : geolocator.LocationAccuracy.medium,
+        distanceFilter: settings.distanceFilterMeters,
+        activityType: geolocator.ActivityType.fitness,
+        allowBackgroundLocationUpdates: true,
+        pauseLocationUpdatesAutomatically: false,
+        showBackgroundLocationIndicator: true,
+      );
+    }
+
     return geolocator.LocationSettings(
       accuracy: settings.highAccuracy
           ? geolocator.LocationAccuracy.high
