@@ -96,6 +96,21 @@ void main() {
       expect(controller.mapViewState.routeSegments, hasLength(1));
       expect(controller.mapViewState.routeSegments.single, hasLength(3));
       expect(controller.mapViewState.routePointCount, 3);
+      expect(controller.mapViewState.hasRoutePolyline, isTrue);
+      expect(
+        controller.mapViewState.displayRouteSegments.single,
+        hasLength(
+          greaterThan(controller.mapViewState.routeSegments.single.length),
+        ),
+      );
+      expect(
+        controller.mapViewState.displayRouteSegments.single.first,
+        same(controller.mapViewState.routeSegments.single.first),
+      );
+      expect(
+        controller.mapViewState.displayRouteSegments.single.last,
+        same(controller.mapViewState.routeSegments.single.last),
+      );
 
       final payloadMap = controller.completionPayload().toRawClientMap();
       expect(payloadMap.keys, isNot(contains('latitude')));
@@ -106,6 +121,8 @@ void main() {
       expect(payloadMap.keys, isNot(contains('positions')));
       expect(payloadMap.keys, isNot(contains('gpsSamples')));
       expect(payloadMap.keys, isNot(contains('rawLocationSamples')));
+      expect(payloadMap.keys, isNot(contains('displayRouteSegments')));
+      expect(payloadMap.keys, isNot(contains('acceptedRouteSegments')));
     });
 
     test('pause does not extend local map route polyline', () {

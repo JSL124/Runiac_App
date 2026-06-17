@@ -7,6 +7,7 @@ import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
 import 'package:runiac_app/features/run/domain/models/run_location_sample.dart';
 import 'package:runiac_app/features/run/domain/models/run_map_view_state.dart';
+import 'package:runiac_app/features/run/presentation/widgets/display_route_smoother.dart';
 import 'package:runiac_app/features/run/presentation/widgets/run_map_placeholder.dart';
 import 'package:runiac_app/features/run/presentation/widgets/run_mapbox_follow_qa_overlay.dart';
 import 'package:runiac_app/features/run/presentation/widgets/run_mapbox_geometry.dart';
@@ -157,6 +158,108 @@ void main() {
       expect(viewState.routePointCount, 0);
       expect(viewState.hasRoutePolyline, isFalse);
       expect(viewState.routeSegments, isEmpty);
+    });
+  });
+
+  group('DisplayRouteSmoother', () {
+    test('empty segment list stays empty', () {
+      expect(DisplayRouteSmoother.smoothSegments([]), isEmpty);
+    });
+
+    test('empty one-point and two-point segments stay unchanged', () {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      final onePoint = [_sample(startedAt, latitude: 1.300000)];
+      final twoPoint = [
+        _sample(startedAt, latitude: 1.300000),
+        _sample(startedAt.add(const Duration(seconds: 60)), latitude: 1.301),
+      ];
+
+      final smoothed = DisplayRouteSmoother.smoothSegments([
+        <RunLocationSample>[],
+        onePoint,
+        twoPoint,
+      ]);
+
+      expect(smoothed, hasLength(3));
+      expect(smoothed[0], isEmpty);
+      expect(smoothed[1], onePoint);
+      expect(smoothed[2], twoPoint);
+    });
+
+    test('three-plus-point segment adds display-only points', () {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      final segment = [
+        _sample(startedAt, latitude: 1.300000, longitude: 103.800000),
+        _sample(
+          startedAt.add(const Duration(seconds: 60)),
+          latitude: 1.300500,
+          longitude: 103.800500,
+        ),
+        _sample(
+          startedAt.add(const Duration(seconds: 120)),
+          latitude: 1.301000,
+          longitude: 103.800000,
+        ),
+      ];
+
+      final smoothed = DisplayRouteSmoother.smoothSegments([segment]);
+
+      expect(smoothed.single, hasLength(greaterThan(segment.length)));
+      expect(smoothed.single.first, same(segment.first));
+      expect(smoothed.single.last, same(segment.last));
+      expect(smoothed.single[1].latitude, closeTo(1.300375, 0.000001));
+      expect(smoothed.single[1].longitude, closeTo(103.800375, 0.000001));
+      expect(smoothed.single[2].latitude, closeTo(1.300625, 0.000001));
+      expect(smoothed.single[2].longitude, closeTo(103.800375, 0.000001));
+    });
+
+    test('multi-segment input preserves segment boundaries and order', () {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      RunLocationSample sample(int seconds, double latitude) {
+        return _sample(
+          startedAt.add(Duration(seconds: seconds)),
+          latitude: latitude,
+          longitude: 103.800000,
+        );
+      }
+
+      final firstSegment = [sample(0, 1.300000), sample(60, 1.300500)];
+      final secondSegment = [
+        sample(180, 1.301000),
+        sample(240, 1.301500),
+        sample(300, 1.302000),
+      ];
+
+      final smoothed = DisplayRouteSmoother.smoothSegments([
+        firstSegment,
+        secondSegment,
+      ]);
+
+      expect(smoothed, hasLength(2));
+      expect(smoothed.first, firstSegment);
+      expect(smoothed.last.first, same(secondSegment.first));
+      expect(smoothed.last.last, same(secondSegment.last));
+      expect(smoothed.last, hasLength(greaterThan(secondSegment.length)));
+    });
+
+    test('does not mutate input segment lists', () {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      final segment = [
+        _sample(startedAt, latitude: 1.300000),
+        _sample(startedAt.add(const Duration(seconds: 60)), latitude: 1.300500),
+        _sample(startedAt.add(const Duration(seconds: 120)), latitude: 1.301),
+      ];
+      final originalPoints = segment.toList();
+
+      final smoothed = DisplayRouteSmoother.smoothSegments([segment]);
+      segment.add(
+        _sample(startedAt.add(const Duration(seconds: 180)), latitude: 1.3015),
+      );
+
+      expect(originalPoints, hasLength(3));
+      expect(smoothed.single, hasLength(4));
+      expect(smoothed.single.first, same(originalPoints.first));
+      expect(smoothed.single.last, same(originalPoints.last));
     });
   });
 

@@ -12,6 +12,7 @@ import '../../domain/repositories/run_location_permission_service.dart';
 import '../../domain/repositories/run_location_provider.dart';
 import '../../domain/repositories/run_motion_provider.dart';
 import '../../domain/services/local_run_tracking_session.dart';
+import '../widgets/display_route_smoother.dart';
 
 class RunTrackingController extends ChangeNotifier {
   RunTrackingController({
@@ -55,6 +56,7 @@ class RunTrackingController extends ChangeNotifier {
       previewPosition: _previewCurrentPosition,
       currentPosition: _mapViewState.currentPosition,
       acceptedRouteSegments: _mapViewState.acceptedRouteSegments,
+      displayRouteSegments: _mapViewState.displayRouteSegments,
     );
   }
 
@@ -199,8 +201,19 @@ class RunTrackingController extends ChangeNotifier {
       diagnostics: session.diagnostics,
       movementStatus: session.movementStatus,
     );
-    _mapViewState = session.mapViewState;
+    _mapViewState = _withSmoothedDisplayRoute(session.mapViewState);
     notifyListeners();
+  }
+
+  RunMapViewState _withSmoothedDisplayRoute(RunMapViewState viewState) {
+    return RunMapViewState(
+      previewPosition: viewState.previewPosition,
+      currentPosition: viewState.currentPosition,
+      acceptedRouteSegments: viewState.acceptedRouteSegments,
+      displayRouteSegments: DisplayRouteSmoother.smoothSegments(
+        viewState.acceptedRouteSegments,
+      ),
+    );
   }
 
   RunTrackingLocationStatus _locationStatusFor(
