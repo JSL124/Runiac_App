@@ -1,6 +1,8 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:geolocator/geolocator.dart' as geolocator;
 import 'package:runiac_app/features/run/data/real_foreground_run_location_provider.dart';
 import 'package:runiac_app/features/run/domain/models/run_tracking_diagnostics.dart';
 import 'package:runiac_app/features/run/domain/services/local_run_tracking_session.dart';
@@ -23,6 +25,37 @@ void main() {
   }
 
   group('RealForegroundRunLocationProvider', () {
+    test(
+      'geolocator Android settings include foreground notification config',
+      () {
+        const adapter = GeolocatorForegroundLocationAdapter(
+          platformOverride: TargetPlatform.android,
+        );
+
+        final settings = adapter.locationSettingsFor(
+          const LocationSettingsRequest(
+            distanceFilterMeters: 0,
+            androidForegroundNotification:
+                AndroidForegroundNotificationSettings(
+                  title: 'Runiac is tracking your run',
+                  body: 'GPS active • 12:03 • 1.25 km',
+                ),
+          ),
+        );
+
+        expect(settings, isA<geolocator.AndroidSettings>());
+        final androidSettings = settings as geolocator.AndroidSettings;
+        final notification = androidSettings.foregroundNotificationConfig;
+        expect(notification?.notificationTitle, 'Runiac is tracking your run');
+        expect(notification?.notificationText, 'GPS active • 12:03 • 1.25 km');
+        expect(notification?.notificationChannelName, 'Runiac Run Tracking');
+        expect(notification?.notificationIcon.name, 'ic_launcher');
+        expect(notification?.notificationIcon.defType, 'mipmap');
+        expect(notification?.setOngoing, isTrue);
+        expect(androidSettings.distanceFilter, 0);
+      },
+    );
+
     test('preview defaults keep one meter distance filter', () async {
       final adapter = _FakeForegroundAdapter();
       final provider = RealForegroundRunLocationPreviewProvider(
@@ -43,6 +76,23 @@ void main() {
 
       expect(adapter.lastSettings?.distanceFilterMeters, 0);
     });
+
+    test(
+      'active foreground tracking requests an ongoing Android notification',
+      () async {
+        final startedAt = DateTime.utc(2026, 6, 14, 7);
+        final adapter = _FakeForegroundAdapter();
+        final provider = RealForegroundRunLocationProvider(adapter: adapter);
+
+        await provider.start(startedAt: startedAt);
+
+        final notification =
+            adapter.lastSettings?.androidForegroundNotification;
+        expect(notification?.title, 'Getting GPS ready');
+        expect(notification?.body, 'Keep moving in an open area');
+        expect(notification?.setOngoing, isTrue);
+      },
+    );
 
     test('maps one-shot current position without starting stream', () async {
       final adapter = _FakeForegroundAdapter();

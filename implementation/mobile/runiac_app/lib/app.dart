@@ -4,10 +4,13 @@ import 'core/theme/runiac_theme.dart';
 import 'features/run/data/static_run_repository.dart';
 import 'features/run/domain/repositories/run_repository.dart';
 import 'features/run/presentation/active_run_session_coordinator.dart';
+import 'features/run/presentation/run_open_intent.dart';
 import 'features/run/presentation/run_repository_scope.dart';
 import 'features/shell/runiac_shell.dart';
 import 'features/splash/presentation/runiac_splash_tokens.dart';
 import 'features/splash/presentation/runiac_startup_gate.dart';
+
+export 'features/run/presentation/run_open_intent.dart';
 
 class RuniacApp extends StatelessWidget {
   const RuniacApp({
@@ -17,6 +20,7 @@ class RuniacApp extends StatelessWidget {
     this.runRepository = const StaticRunRepository(),
     this.enableForegroundGps = true,
     this.activeRunSessionCoordinator,
+    this.initialRunOpenIntent,
   });
 
   final bool showSplash;
@@ -24,6 +28,7 @@ class RuniacApp extends StatelessWidget {
   final RunRepository runRepository;
   final bool enableForegroundGps;
   final ActiveRunSessionCoordinator? activeRunSessionCoordinator;
+  final RunOpenIntent? initialRunOpenIntent;
 
   @override
   Widget build(BuildContext context) {
@@ -39,6 +44,7 @@ class RuniacApp extends StatelessWidget {
           child: RuniacShell(
             enableForegroundGps: enableForegroundGps,
             activeRunSessionCoordinator: activeRunSessionCoordinator,
+            initialRunOpenIntent: initialRunOpenIntent,
           ),
         ),
       ),

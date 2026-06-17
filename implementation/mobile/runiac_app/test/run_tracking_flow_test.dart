@@ -20,6 +20,7 @@ import 'package:runiac_app/features/run/domain/models/xp_update_display_model.da
 import 'package:runiac_app/features/run/domain/repositories/run_location_permission_service.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_location_preview_provider.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_location_provider.dart';
+import 'package:runiac_app/features/run/domain/repositories/run_notification_permission_service.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_repository.dart';
 import 'package:runiac_app/features/run/presentation/active_run_session_coordinator.dart';
 import 'package:runiac_app/features/run/presentation/run_active_screen.dart';
@@ -140,6 +141,16 @@ class _ConfigurableRunLocationPermissionService
     requestCount += 1;
     checkedStatus = requestedStatus;
     return requestedStatus;
+  }
+}
+
+class _GrantedRunNotificationPermissionService
+    implements RunNotificationPermissionService {
+  const _GrantedRunNotificationPermissionService();
+
+  @override
+  Future<RunNotificationPermissionStatus> requestPermission() async {
+    return RunNotificationPermissionStatus.granted;
   }
 }
 
@@ -376,6 +387,8 @@ void main() {
           locationProvider: ReplayRunLocationProvider(const []),
           locationPreviewProvider: previewProvider,
           permissionService: const _GrantedRunLocationPermissionService(),
+          notificationPermissionService:
+              const _GrantedRunNotificationPermissionService(),
         ),
       ),
     );
@@ -416,6 +429,8 @@ void main() {
             sample: _previewSample(),
           ),
           permissionService: const _GrantedRunLocationPermissionService(),
+          notificationPermissionService:
+              const _GrantedRunNotificationPermissionService(),
           activeRunSessionCoordinator: _testActiveRunSessionCoordinator(tester),
         ),
       ),
@@ -455,6 +470,8 @@ void main() {
             sample: _previewSample(),
           ),
           permissionService: const _GrantedRunLocationPermissionService(),
+          notificationPermissionService:
+              const _GrantedRunNotificationPermissionService(),
           activeRunSessionCoordinator: _testActiveRunSessionCoordinator(tester),
         ),
       ),
@@ -618,6 +635,8 @@ void main() {
             sample: _previewSample(),
           ),
           permissionService: const _GrantedRunLocationPermissionService(),
+          notificationPermissionService:
+              const _GrantedRunNotificationPermissionService(),
           activeRunSessionCoordinator: _testActiveRunSessionCoordinator(tester),
         ),
       ),
@@ -660,6 +679,8 @@ void main() {
             sample: _previewSample(),
           ),
           permissionService: const _GrantedRunLocationPermissionService(),
+          notificationPermissionService:
+              const _GrantedRunNotificationPermissionService(),
           activeRunSessionCoordinator: _testActiveRunSessionCoordinator(tester),
         ),
       ),
@@ -703,6 +724,8 @@ void main() {
             sample: _previewSample(),
           ),
           permissionService: const _GrantedRunLocationPermissionService(),
+          notificationPermissionService:
+              const _GrantedRunNotificationPermissionService(),
           activeRunSessionCoordinator: _testActiveRunSessionCoordinator(tester),
         ),
       ),
@@ -1064,6 +1087,8 @@ void main() {
           locationProvider: ReplayRunLocationProvider(const []),
           locationPreviewProvider: previewProvider,
           permissionService: permissionService,
+          notificationPermissionService:
+              const _GrantedRunNotificationPermissionService(),
           mapboxAccessToken: _demoMapboxPublicToken,
           mapboxBuilder: (context, config) {
             configs.add(config);
@@ -1577,6 +1602,8 @@ void main() {
             sample: _previewSample(),
           ),
           permissionService: const _GrantedRunLocationPermissionService(),
+          notificationPermissionService:
+              const _GrantedRunNotificationPermissionService(),
           activeRunSessionCoordinator: _testActiveRunSessionCoordinator(tester),
         ),
       ),
@@ -1852,6 +1879,90 @@ void main() {
     expect(find.widgetWithText(FilledButton, 'Pause'), findsOneWidget);
     expect(find.text('TIME'), findsOneWidget);
     expect(find.text('00:08'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+    'notification reopen restores the app-level active session as running',
+    (WidgetTester tester) async {
+      _useMobileRunSurface(tester);
+      var now = DateTime(2026, 6, 17, 8);
+      final activeRunSessionCoordinator = ActiveRunSessionCoordinator(
+        clock: () => now,
+        foregroundTickStep: const Duration(seconds: 1),
+      );
+      addTearDown(activeRunSessionCoordinator.dispose);
+      await _openRunLaunch(
+        tester,
+        activeRunSessionCoordinator: activeRunSessionCoordinator,
+      );
+
+      await tester.tap(find.text('Start run'));
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(seconds: 3));
+
+      expect(find.widgetWithText(FilledButton, 'Pause'), findsOneWidget);
+
+      final handled = await tester.binding.handlePopRoute();
+      expect(handled, isTrue);
+      await tester.pumpAndSettle();
+      now = now.add(const Duration(seconds: 10));
+
+      await tester.pumpWidget(
+        RuniacApp(
+          showSplash: false,
+          enableForegroundGps: false,
+          activeRunSessionCoordinator: activeRunSessionCoordinator,
+          initialRunOpenIntent: const RunOpenIntent.notification(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(RunLaunchScreen), findsOneWidget);
+      expect(find.text('Start run'), findsNothing);
+      expect(find.widgetWithText(FilledButton, 'Pause'), findsOneWidget);
+      expect(find.text('TIME'), findsOneWidget);
+      expect(find.text('00:10'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('system resume reopens an app-level active run from the shell', (
+    WidgetTester tester,
+  ) async {
+    _useMobileRunSurface(tester);
+    var now = DateTime(2026, 6, 17, 8);
+    final activeRunSessionCoordinator = ActiveRunSessionCoordinator(
+      clock: () => now,
+      foregroundTickStep: const Duration(seconds: 1),
+    );
+    addTearDown(activeRunSessionCoordinator.dispose);
+    await _openRunLaunch(
+      tester,
+      activeRunSessionCoordinator: activeRunSessionCoordinator,
+    );
+
+    await tester.tap(find.text('Start run'));
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(seconds: 3));
+
+    expect(find.widgetWithText(FilledButton, 'Pause'), findsOneWidget);
+
+    final handled = await tester.binding.handlePopRoute();
+    expect(handled, isTrue);
+    await tester.pumpAndSettle();
+    expect(find.byType(RunLaunchScreen), findsNothing);
+    now = now.add(const Duration(seconds: 12));
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(RunLaunchScreen), findsOneWidget);
+    expect(find.text('Start run'), findsNothing);
+    expect(find.widgetWithText(FilledButton, 'Pause'), findsOneWidget);
+    expect(find.text('TIME'), findsOneWidget);
+    expect(find.text('00:12'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

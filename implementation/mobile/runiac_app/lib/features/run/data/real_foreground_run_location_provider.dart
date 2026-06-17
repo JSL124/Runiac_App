@@ -1,9 +1,11 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart' as geolocator;
 
 import '../domain/models/run_location_sample.dart';
 import '../domain/models/run_tracking_diagnostics.dart';
+import '../domain/models/run_tracking_notification_copy.dart';
 import '../domain/repositories/run_location_preview_provider.dart';
 import '../domain/repositories/run_location_provider.dart';
 
@@ -11,10 +13,33 @@ class LocationSettingsRequest {
   const LocationSettingsRequest({
     this.highAccuracy = true,
     this.distanceFilterMeters = 1,
+    this.androidForegroundNotification,
   });
 
   final bool highAccuracy;
   final int distanceFilterMeters;
+  final AndroidForegroundNotificationSettings? androidForegroundNotification;
+}
+
+class AndroidForegroundNotificationSettings {
+  const AndroidForegroundNotificationSettings({
+    required this.title,
+    required this.body,
+    this.setOngoing = true,
+  });
+
+  factory AndroidForegroundNotificationSettings.fromCopy(
+    RunTrackingNotificationCopy copy,
+  ) {
+    return AndroidForegroundNotificationSettings(
+      title: copy.title,
+      body: copy.body,
+    );
+  }
+
+  final String title;
+  final String body;
+  final bool setOngoing;
 }
 
 abstract interface class ForegroundPosition {
@@ -38,7 +63,9 @@ abstract interface class ForegroundLocationAdapter {
 }
 
 class GeolocatorForegroundLocationAdapter implements ForegroundLocationAdapter {
-  const GeolocatorForegroundLocationAdapter();
+  const GeolocatorForegroundLocationAdapter({this.platformOverride});
+
+  final TargetPlatform? platformOverride;
 
   @override
   Future<ForegroundPosition> getCurrentPosition(
@@ -72,15 +99,43 @@ class GeolocatorForegroundLocationAdapter implements ForegroundLocationAdapter {
     };
   }
 
-  geolocator.LocationSettings _locationSettingsFor(
+  @visibleForTesting
+  geolocator.LocationSettings locationSettingsFor(
     LocationSettingsRequest settings,
   ) {
+    final notification = settings.androidForegroundNotification;
+    if ((platformOverride ?? defaultTargetPlatform) == TargetPlatform.android &&
+        notification != null) {
+      return geolocator.AndroidSettings(
+        accuracy: settings.highAccuracy
+            ? geolocator.LocationAccuracy.high
+            : geolocator.LocationAccuracy.medium,
+        distanceFilter: settings.distanceFilterMeters,
+        foregroundNotificationConfig: geolocator.ForegroundNotificationConfig(
+          notificationTitle: notification.title,
+          notificationText: notification.body,
+          notificationChannelName: 'Runiac Run Tracking',
+          notificationIcon: const geolocator.AndroidResource(
+            name: 'ic_launcher',
+            defType: 'mipmap',
+          ),
+          setOngoing: notification.setOngoing,
+        ),
+      );
+    }
+
     return geolocator.LocationSettings(
       accuracy: settings.highAccuracy
           ? geolocator.LocationAccuracy.high
           : geolocator.LocationAccuracy.medium,
       distanceFilter: settings.distanceFilterMeters,
     );
+  }
+
+  geolocator.LocationSettings _locationSettingsFor(
+    LocationSettingsRequest settings,
+  ) {
+    return locationSettingsFor(settings);
   }
 }
 
@@ -110,7 +165,13 @@ class RealForegroundRunLocationPreviewProvider
 class RealForegroundRunLocationProvider implements RunLocationProvider {
   RealForegroundRunLocationProvider({
     this.adapter = const GeolocatorForegroundLocationAdapter(),
-    this.settings = const LocationSettingsRequest(distanceFilterMeters: 0),
+    this.settings = const LocationSettingsRequest(
+      distanceFilterMeters: 0,
+      androidForegroundNotification: AndroidForegroundNotificationSettings(
+        title: 'Getting GPS ready',
+        body: 'Keep moving in an open area',
+      ),
+    ),
   });
 
   final ForegroundLocationAdapter adapter;

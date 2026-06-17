@@ -52,6 +52,11 @@ class ActiveRunSessionCoordinator {
 
   DateTime now() => _clock();
 
+  bool get hasOpenRun {
+    final phase = _controller?.state.phase;
+    return phase == RunTrackingPhase.active || phase == RunTrackingPhase.paused;
+  }
+
   void syncNow() {
     syncTo(_clock());
   }

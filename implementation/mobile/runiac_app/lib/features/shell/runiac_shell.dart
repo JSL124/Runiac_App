@@ -6,6 +6,7 @@ import '../maps/presentation/maps_tab.dart';
 import '../run/domain/models/run_location_sample.dart';
 import '../run/presentation/active_run_session_coordinator.dart';
 import '../run/presentation/run_launch_screen.dart';
+import '../run/presentation/run_open_intent.dart';
 import '../you/presentation/you_tab.dart';
 
 class RuniacShell extends StatefulWidget {
@@ -13,28 +14,64 @@ class RuniacShell extends StatefulWidget {
     super.key,
     this.enableForegroundGps = true,
     this.activeRunSessionCoordinator,
+    this.initialRunOpenIntent,
   });
 
   final bool enableForegroundGps;
   final ActiveRunSessionCoordinator? activeRunSessionCoordinator;
+  final RunOpenIntent? initialRunOpenIntent;
 
   @override
   State<RuniacShell> createState() => _RuniacShellState();
 }
 
-class _RuniacShellState extends State<RuniacShell> {
+class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
   int _selectedIndex = 0;
   late final bool _ownsActiveRunSessionCoordinator =
       widget.activeRunSessionCoordinator == null;
   late final ActiveRunSessionCoordinator _activeRunSessionCoordinator =
       widget.activeRunSessionCoordinator ?? ActiveRunSessionCoordinator();
+  bool _handledInitialRunOpenIntent = false;
+  bool _runLaunchRouteOpen = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _scheduleInitialRunOpenIntent();
+  }
+
+  @override
+  void didUpdateWidget(covariant RuniacShell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialRunOpenIntent != widget.initialRunOpenIntent) {
+      _handledInitialRunOpenIntent = false;
+      _scheduleInitialRunOpenIntent();
+    }
+  }
+
+  void _scheduleInitialRunOpenIntent() {
+    if (widget.initialRunOpenIntent != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _openInitialRunIntent();
+      });
+    }
+  }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     if (_ownsActiveRunSessionCoordinator) {
       _activeRunSessionCoordinator.dispose();
     }
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _openActiveRunFromSystemReturn();
+    }
   }
 
   Future<void> _handleNavigationTap(int index) async {
@@ -46,10 +83,8 @@ class _RuniacShellState extends State<RuniacShell> {
       if (!mounted) {
         return;
       }
-      Navigator.of(context).push(
-        _buildRunLaunchRoute(
-          initialPreviewCurrentPosition: initialPreviewCurrentPosition,
-        ),
+      _pushRunLaunchRoute(
+        initialPreviewCurrentPosition: initialPreviewCurrentPosition,
       );
       return;
     }
@@ -57,6 +92,49 @@ class _RuniacShellState extends State<RuniacShell> {
     setState(() {
       _selectedIndex = index;
     });
+  }
+
+  void _openInitialRunIntent() {
+    if (!mounted ||
+        _handledInitialRunOpenIntent ||
+        !_activeRunSessionCoordinator.hasOpenRun) {
+      return;
+    }
+
+    _handledInitialRunOpenIntent = true;
+    _activeRunSessionCoordinator.syncNow();
+    _pushRunLaunchRoute();
+  }
+
+  void _openActiveRunFromSystemReturn() {
+    if (!mounted ||
+        _runLaunchRouteOpen ||
+        !_activeRunSessionCoordinator.hasOpenRun) {
+      return;
+    }
+
+    _activeRunSessionCoordinator.syncNow();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted ||
+          _runLaunchRouteOpen ||
+          !_activeRunSessionCoordinator.hasOpenRun) {
+        return;
+      }
+      _pushRunLaunchRoute();
+    });
+  }
+
+  void _pushRunLaunchRoute({RunLocationSample? initialPreviewCurrentPosition}) {
+    _runLaunchRouteOpen = true;
+    Navigator.of(context)
+        .push(
+          _buildRunLaunchRoute(
+            initialPreviewCurrentPosition: initialPreviewCurrentPosition,
+          ),
+        )
+        .whenComplete(() {
+          _runLaunchRouteOpen = false;
+        });
   }
 
   PageRouteBuilder<void> _buildRunLaunchRoute({
