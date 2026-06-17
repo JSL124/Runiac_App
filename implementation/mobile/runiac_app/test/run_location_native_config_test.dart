@@ -113,6 +113,9 @@ void main() {
       final project = File(
         'ios/Runner.xcodeproj/project.pbxproj',
       ).readAsStringSync();
+      final liveActivityPlist = File(
+        'ios/RunnerLiveActivity/Info.plist',
+      ).readAsStringSync();
       final attributes = File(
         'ios/RunnerLiveActivity/RuniacRunActivityAttributes.swift',
       ).readAsStringSync();
@@ -121,6 +124,12 @@ void main() {
       ).readAsStringSync();
 
       expect(plist, contains('NSSupportsLiveActivities'));
+      expect(plist, contains('FLUTTER_BUILD_NAME'));
+      expect(plist, contains('FLUTTER_BUILD_NUMBER'));
+      expect(liveActivityPlist, contains('FLUTTER_BUILD_NAME'));
+      expect(liveActivityPlist, contains('FLUTTER_BUILD_NUMBER'));
+      expect(liveActivityPlist, isNot(contains('MARKETING_VERSION')));
+      expect(liveActivityPlist, isNot(contains('CURRENT_PROJECT_VERSION')));
       expect(project, contains('RunnerLiveActivity.appex'));
       expect(project, contains('com.apple.product-type.app-extension'));
       expect(
