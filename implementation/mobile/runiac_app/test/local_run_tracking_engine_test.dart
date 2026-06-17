@@ -137,6 +137,112 @@ void main() {
   });
 
   group('LocalRunTrackingSession', () {
+    test('moving duration accumulates jittered subsecond advances', () {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      final session = LocalRunTrackingSession(startedAt: startedAt);
+
+      session.advanceBy(const Duration(milliseconds: 999));
+      expect(session.activeDurationSeconds, 0);
+
+      session.advanceBy(const Duration(milliseconds: 1001));
+      expect(session.activeDurationSeconds, 2);
+
+      final halfSecondSession = LocalRunTrackingSession(startedAt: startedAt);
+      for (var tick = 0; tick < 4; tick += 1) {
+        halfSecondSession.advanceBy(const Duration(milliseconds: 500));
+      }
+      expect(halfSecondSession.activeDurationSeconds, 2);
+
+      final jitteredSession = LocalRunTrackingSession(startedAt: startedAt);
+      for (var tick = 0; tick < 5; tick += 1) {
+        jitteredSession.advanceBy(const Duration(milliseconds: 980));
+        jitteredSession.advanceBy(const Duration(milliseconds: 1020));
+      }
+      expect(jitteredSession.activeDurationSeconds, 10);
+    });
+
+    test('manual pause suppresses jittered moving duration accumulation', () {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      final session = LocalRunTrackingSession(startedAt: startedAt);
+
+      session.advanceBy(const Duration(milliseconds: 999));
+      session.advanceBy(const Duration(milliseconds: 1001));
+      session.pause();
+      session.advanceBy(const Duration(minutes: 3, milliseconds: 999));
+
+      expect(session.activeDurationSeconds, 2);
+    });
+
+    test(
+      'auto pause suppresses later jittered moving duration accumulation',
+      () {
+        final startedAt = DateTime.utc(2026, 6, 14, 7);
+        final session = LocalRunTrackingSession(startedAt: startedAt);
+
+        session.advanceBy(
+          const Duration(seconds: 1),
+          samples: [
+            sampleAt(
+              startedAt,
+              1,
+              latitude: 1.300000,
+              longitude: 103.800000,
+              horizontalAccuracyMeters: 5,
+            ),
+          ],
+        );
+        for (var tick = 0; tick < 10; tick += 1) {
+          session.advanceBy(const Duration(milliseconds: 500));
+        }
+
+        expect(session.movementStatus, RunMovementStatus.autoPaused);
+        expect(session.activeDurationSeconds, 5);
+
+        session.advanceBy(const Duration(milliseconds: 999));
+        session.advanceBy(const Duration(milliseconds: 1001));
+
+        expect(session.activeDurationSeconds, 5);
+      },
+    );
+
+    test(
+      'abnormal pause suppresses later jittered moving duration accumulation',
+      () {
+        final startedAt = DateTime.utc(2026, 6, 14, 7);
+        final session = LocalRunTrackingSession(startedAt: startedAt);
+
+        session.advanceBy(
+          const Duration(seconds: 3),
+          samples: [
+            sampleAt(
+              startedAt,
+              0,
+              latitude: 1.300000,
+              longitude: 103.800000,
+              horizontalAccuracyMeters: 5,
+            ),
+            for (final seconds in [1, 2, 3])
+              sampleAt(
+                startedAt,
+                seconds,
+                latitude: 1.300000 + (0.000063 * seconds),
+                longitude: 103.800000,
+                horizontalAccuracyMeters: 5,
+                speedMetersPerSecond: 7,
+              ),
+          ],
+        );
+
+        expect(session.movementStatus, RunMovementStatus.abnormalPaused);
+        final activeDurationBeforeJitter = session.activeDurationSeconds;
+
+        session.advanceBy(const Duration(milliseconds: 999));
+        session.advanceBy(const Duration(milliseconds: 1001));
+
+        expect(session.activeDurationSeconds, activeDurationBeforeJitter);
+      },
+    );
+
     test('keeps the first accepted GPS sample as a zero-distance anchor', () {
       final startedAt = DateTime.utc(2026, 6, 14, 7);
       final session = LocalRunTrackingSession(startedAt: startedAt);

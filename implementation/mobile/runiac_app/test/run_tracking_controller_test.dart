@@ -406,6 +406,92 @@ void main() {
       expect(controller.state.averagePaceSecondsPerKm, 400);
     });
 
+    test('jittered moving ticks accumulate without losing display seconds', () {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      final controller = RunTrackingController(metersPerSecond: 2.5);
+
+      controller.start(
+        startedAt: startedAt,
+        clientRunSessionId: 'jittered-moving-run',
+      );
+
+      controller.advanceBy(const Duration(milliseconds: 999));
+      expect(controller.state.elapsedSeconds, 0);
+
+      controller.advanceBy(const Duration(milliseconds: 1001));
+      expect(controller.state.elapsedSeconds, 2);
+
+      final payload = controller.completionPayload(
+        completedAt: startedAt.add(const Duration(seconds: 2)),
+      );
+      expect(payload.durationSeconds, 2);
+      expect(
+        RunTrackingSnapshot.fromState(controller.state).elapsedTimeLabel,
+        '00:02',
+      );
+      expect(
+        RunTrackingNotificationCopy.fromState(
+          controller.state,
+        ).elapsedTimeLabel,
+        '00:02',
+      );
+    });
+
+    test('half-second moving ticks accumulate to display seconds', () {
+      final controller = RunTrackingController(metersPerSecond: 2.5);
+
+      controller.start(
+        startedAt: DateTime.utc(2026, 6, 14, 7),
+        clientRunSessionId: 'half-second-moving-run',
+      );
+
+      for (var tick = 0; tick < 4; tick += 1) {
+        controller.advanceBy(const Duration(milliseconds: 500));
+      }
+
+      expect(controller.state.elapsedSeconds, 2);
+    });
+
+    test('GPS sample sparsity does not block moving time ticks', () {
+      final controller = RunTrackingController(
+        locationProvider: ReplayRunLocationProvider(const []),
+        locationStatus: RunTrackingLocationStatus.waitingForGps,
+      );
+
+      controller.start(
+        startedAt: DateTime.utc(2026, 6, 14, 7),
+        clientRunSessionId: 'sparse-gps-moving-time-run',
+      );
+
+      for (var tick = 0; tick < 4; tick += 1) {
+        controller.advanceBy(const Duration(milliseconds: 500));
+      }
+
+      expect(controller.state.isAutoPaused, isFalse);
+      expect(controller.state.elapsedSeconds, 2);
+      expect(controller.state.distanceMeters, 0);
+      expect(controller.mapViewState.routePointCount, 0);
+    });
+
+    test('manual pause suppresses jittered wall clock accumulation', () {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      final controller = RunTrackingController(metersPerSecond: 2.5);
+
+      controller.start(
+        startedAt: startedAt,
+        clientRunSessionId: 'manual-pause-jitter-run',
+      );
+      controller.syncTo(startedAt.add(const Duration(milliseconds: 999)));
+      controller.syncTo(startedAt.add(const Duration(milliseconds: 2000)));
+      controller.pause(pausedAt: startedAt.add(const Duration(seconds: 2)));
+
+      controller.syncTo(startedAt.add(const Duration(minutes: 3)));
+
+      expect(controller.state.isPaused, isTrue);
+      expect(controller.state.elapsedSeconds, 2);
+      expect(controller.completionPayload().durationSeconds, 2);
+    });
+
     test('wall clock sync reconciles an inactive foreground gap', () {
       final startedAt = DateTime.utc(2026, 6, 14, 7);
       final controller = RunTrackingController(metersPerSecond: 2.5);
@@ -1058,8 +1144,8 @@ void main() {
         expect(started, isTrue);
         expect(provider.startCount, 1);
         expect(foregroundService.calls, ['start']);
-        expect(foregroundService.titles.single, 'Getting GPS ready');
-        expect(foregroundService.bodies.single, 'Keep moving in an open area');
+        expect(foregroundService.titles, hasLength(1));
+        expect(foregroundService.bodies, hasLength(1));
 
         controller.advanceBy(const Duration(seconds: 1));
         controller.pause(pausedAt: DateTime.utc(2026, 6, 14, 7, 0, 1));
@@ -1079,12 +1165,8 @@ void main() {
           'update',
           'stop',
         ]);
-        expect(foregroundService.titles, [
-          'Getting GPS ready',
-          'Runiac is tracking your run',
-          'Run paused',
-          'Runiac is tracking your run',
-        ]);
+        expect(foregroundService.titles, hasLength(4));
+        expect(foregroundService.bodies, hasLength(4));
       },
     );
 

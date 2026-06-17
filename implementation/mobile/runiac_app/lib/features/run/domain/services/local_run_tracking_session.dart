@@ -56,8 +56,8 @@ class LocalRunTrackingSession {
   bool _isActive = true;
   bool _needsAnchorSample = false;
   bool _suppressedMovementNeedsAnchor = false;
-  int _movingDurationSeconds = 0;
-  int _trackingDurationSeconds = 0;
+  Duration _movingDuration = Duration.zero;
+  Duration _trackingDuration = Duration.zero;
   double _distanceMeters = 0;
   RunMovementStatus _movementStatus = RunMovementStatus.moving;
   RunTrackingDiagnostics _diagnostics = const RunTrackingDiagnostics.initial();
@@ -76,8 +76,9 @@ class LocalRunTrackingSession {
   final List<List<RunLocationSample>> _acceptedSampleSegments =
       <List<RunLocationSample>>[];
 
-  int get activeDurationSeconds => _movingDurationSeconds;
-  int get trackingDurationSeconds => _trackingDurationSeconds;
+  Duration get trackingDuration => _trackingDuration;
+  int get activeDurationSeconds => _movingDuration.inSeconds;
+  int get trackingDurationSeconds => _trackingDuration.inSeconds;
   int get distanceMeters => _distanceMeters.round();
   int get acceptedSampleCount => _diagnostics.acceptedSampleCount;
   int get rejectedSampleCount => _diagnostics.rejectedSampleCount;
@@ -94,7 +95,7 @@ class LocalRunTrackingSession {
     if (_distanceMeters <= 0) {
       return 0;
     }
-    return (_movingDurationSeconds / (_distanceMeters / 1000)).floor();
+    return (activeDurationSeconds / (_distanceMeters / 1000)).floor();
   }
 
   void advanceBy(
@@ -111,7 +112,7 @@ class LocalRunTrackingSession {
     final sampleList = samples.toList();
     final motionEvidenceList = motionEvidence.toList();
     _suppressedMovingTimeInCurrentAdvance = false;
-    _trackingDurationSeconds += delta.inSeconds;
+    _trackingDuration += delta;
     for (final sample in sampleList) {
       _acceptSample(sample, motionEvidenceList);
     }
@@ -127,7 +128,7 @@ class LocalRunTrackingSession {
         _movementStatus == RunMovementStatus.moving &&
         !becameAutoPausedWithoutDistance &&
         !_suppressedMovingTimeInCurrentAdvance) {
-      _movingDurationSeconds += delta.inSeconds;
+      _movingDuration += delta;
     }
   }
 
@@ -625,9 +626,7 @@ class LocalRunTrackingSession {
       return;
     }
 
-    final currentTrackingAt = startedAt.add(
-      Duration(seconds: _trackingDurationSeconds),
-    );
+    final currentTrackingAt = startedAt.add(_trackingDuration);
     _stationaryStartedAt ??= lastAcceptedSample.recordedAt;
     final classification = movementClassifier.classifyNoSampleWindow(
       dwell: currentTrackingAt.difference(_stationaryStartedAt!),

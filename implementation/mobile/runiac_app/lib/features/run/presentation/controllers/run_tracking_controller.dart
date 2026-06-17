@@ -231,7 +231,7 @@ class RunTrackingController extends ChangeNotifier {
       return;
     }
 
-    final fromActiveOffset = Duration(seconds: session.trackingDurationSeconds);
+    final fromActiveOffset = session.trackingDuration;
     final toActiveOffset = fromActiveOffset + delta;
     final samples = _locationProvider
         .samplesBetween(
@@ -321,10 +321,9 @@ class RunTrackingController extends ChangeNotifier {
     }
 
     final effectiveResumedAt = resumedAt ?? DateTime.now();
-    final activeOffset = Duration(
-      seconds:
-          _trackingSession?.trackingDurationSeconds ?? _state.elapsedSeconds,
-    );
+    final activeOffset =
+        _trackingSession?.trackingDuration ??
+        Duration(seconds: _state.elapsedSeconds);
     _lastAdvancedAt = effectiveResumedAt;
     _trackingSession?.resume();
     unawaited(
