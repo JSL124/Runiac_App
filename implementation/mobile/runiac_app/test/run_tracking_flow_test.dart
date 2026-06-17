@@ -513,14 +513,16 @@ void main() {
   });
 
   testWidgets(
-    'Run launch abnormal pause keeps Pause primary with English warning',
+    'Run launch abnormal pause shows Resume and End with English warning',
     (WidgetTester tester) async {
       _useMobileRunSurface(tester);
       final sampleBase = DateTime.now().add(const Duration(days: 1));
+      final repository = _ResultRunRepository(_activeCompletionResult);
 
       await tester.pumpWidget(
         MaterialApp(
           home: RunLaunchScreen(
+            repository: repository,
             enableForegroundGps: false,
             locationProvider: ReplayRunLocationProvider([
               RunLocationReplaySample(
@@ -552,13 +554,27 @@ void main() {
       await tester.tap(find.text('Start run'));
       await tester.pumpAndSettle();
       await tester.pump(const Duration(seconds: 3));
+      await tester.pumpAndSettle();
 
       expect(find.text('Tracking paused'), findsOneWidget);
       expect(find.text(abnormalMovementGuidance), findsOneWidget);
-      expect(find.widgetWithText(FilledButton, 'Pause'), findsOneWidget);
-      expect(find.widgetWithText(FilledButton, 'Resume'), findsNothing);
-      expect(find.byKey(const Key('hold_to_end_button')), findsNothing);
-      expect(find.text('End'), findsNothing);
+      expect(find.widgetWithText(FilledButton, 'Pause'), findsNothing);
+      expect(find.widgetWithText(FilledButton, 'Resume'), findsOneWidget);
+      expect(find.byKey(const Key('hold_to_end_button')), findsOneWidget);
+      expect(find.text('End'), findsOneWidget);
+
+      final endButton = find.byKey(const Key('hold_to_end_button'));
+      final holdGesture = await tester.startGesture(
+        tester.getCenter(endButton),
+      );
+      await tester.pump(const Duration(milliseconds: 1600));
+      await holdGesture.up();
+      await tester.pumpAndSettle();
+
+      expect(repository.completeRunCalls, 1);
+      expect(repository.lastPayload, isNotNull);
+      expect(repository.lastPayload!.distanceMeters, 0);
+      expect(find.text('Cool down'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );

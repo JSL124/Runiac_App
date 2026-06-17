@@ -615,6 +615,14 @@ void main() {
       expect(payloadMap.keys, isNot(contains('abnormalMovement')));
       expect(payloadMap.keys, isNot(contains('leaderboardScore')));
       expect(payloadMap.keys, isNot(contains('validatedActivity')));
+
+      controller.resume();
+
+      expect(provider.resumeCount, 1);
+      expect(motionProvider.resumeCount, 1);
+      expect(controller.state.phase, RunTrackingPhase.active);
+      expect(controller.state.movementStatus, RunMovementStatus.moving);
+      expect(controller.state.isAbnormalPaused, isFalse);
     });
 
     test(

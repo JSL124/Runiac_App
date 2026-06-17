@@ -2,7 +2,7 @@ import 'run_tracking_state.dart';
 import 'run_tracking_startup_readiness.dart';
 
 const abnormalMovementGuidance =
-    'Unusual movement detected. We’ll resume when you’re walking or running again.';
+    'Unusual movement detected. Tracking is paused. Resume when you are running again, or end this run.';
 
 class RunTrackingSnapshot {
   const RunTrackingSnapshot({

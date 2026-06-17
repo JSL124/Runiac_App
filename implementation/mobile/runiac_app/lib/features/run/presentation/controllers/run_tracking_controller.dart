@@ -239,7 +239,7 @@ class RunTrackingController extends ChangeNotifier {
   }
 
   void resume() {
-    if (!_state.isPaused && !_state.isAutoPaused) {
+    if (!_state.isPaused && !_state.isAutoPaused && !_state.isAbnormalPaused) {
       return;
     }
 

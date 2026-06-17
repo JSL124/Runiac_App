@@ -55,7 +55,10 @@ class RunTrackingSheetContent extends StatelessWidget {
             ],
             SizedBox(height: compact ? 14 : 18),
             _RunActiveActions(
-              isPaused: state.isPaused || state.isAutoPaused,
+              isPaused:
+                  state.isPaused ||
+                  state.isAutoPaused ||
+                  state.isAbnormalPaused,
               onPause: onPause,
               onResume: onResume,
               onEnd: onEnd,
