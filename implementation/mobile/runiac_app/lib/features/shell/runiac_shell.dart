@@ -4,13 +4,19 @@ import '../home/presentation/home_tab.dart';
 import '../leaderboard/presentation/leaderboard_tab.dart';
 import '../maps/presentation/maps_tab.dart';
 import '../run/domain/models/run_location_sample.dart';
+import '../run/presentation/active_run_session_coordinator.dart';
 import '../run/presentation/run_launch_screen.dart';
 import '../you/presentation/you_tab.dart';
 
 class RuniacShell extends StatefulWidget {
-  const RuniacShell({super.key, this.enableForegroundGps = true});
+  const RuniacShell({
+    super.key,
+    this.enableForegroundGps = true,
+    this.activeRunSessionCoordinator,
+  });
 
   final bool enableForegroundGps;
+  final ActiveRunSessionCoordinator? activeRunSessionCoordinator;
 
   @override
   State<RuniacShell> createState() => _RuniacShellState();
@@ -18,6 +24,18 @@ class RuniacShell extends StatefulWidget {
 
 class _RuniacShellState extends State<RuniacShell> {
   int _selectedIndex = 0;
+  late final bool _ownsActiveRunSessionCoordinator =
+      widget.activeRunSessionCoordinator == null;
+  late final ActiveRunSessionCoordinator _activeRunSessionCoordinator =
+      widget.activeRunSessionCoordinator ?? ActiveRunSessionCoordinator();
+
+  @override
+  void dispose() {
+    if (_ownsActiveRunSessionCoordinator) {
+      _activeRunSessionCoordinator.dispose();
+    }
+    super.dispose();
+  }
 
   Future<void> _handleNavigationTap(int index) async {
     if (index == 2) {
@@ -49,6 +67,7 @@ class _RuniacShellState extends State<RuniacShell> {
         return RunLaunchScreen(
           enableForegroundGps: widget.enableForegroundGps,
           initialPreviewCurrentPosition: initialPreviewCurrentPosition,
+          activeRunSessionCoordinator: _activeRunSessionCoordinator,
         );
       },
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
@@ -65,11 +84,17 @@ class _RuniacShellState extends State<RuniacShell> {
   @override
   Widget build(BuildContext context) {
     final tabs = [
-      HomeTab(enableForegroundGps: widget.enableForegroundGps),
+      HomeTab(
+        enableForegroundGps: widget.enableForegroundGps,
+        activeRunSessionCoordinator: _activeRunSessionCoordinator,
+      ),
       const MapsTab(),
       const SizedBox.shrink(),
       const LeaderboardTab(),
-      YouTab(enableForegroundGps: widget.enableForegroundGps),
+      YouTab(
+        enableForegroundGps: widget.enableForegroundGps,
+        activeRunSessionCoordinator: _activeRunSessionCoordinator,
+      ),
     ];
 
     return Scaffold(

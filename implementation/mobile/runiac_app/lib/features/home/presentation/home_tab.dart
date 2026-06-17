@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../account/presentation/account_profile_screen.dart';
+import '../../run/presentation/active_run_session_coordinator.dart';
 import '../../run/presentation/run_launch_screen.dart';
 import '../../you/presentation/weekly_workout_detail_screen.dart';
 import 'widgets/home_header.dart';
@@ -11,9 +12,14 @@ import 'widgets/today_plan_card.dart';
 const _homeScreenBackground = Colors.white;
 
 class HomeTab extends StatelessWidget {
-  const HomeTab({super.key, this.enableForegroundGps = true});
+  const HomeTab({
+    super.key,
+    this.enableForegroundGps = true,
+    this.activeRunSessionCoordinator,
+  });
 
   final bool enableForegroundGps;
+  final ActiveRunSessionCoordinator? activeRunSessionCoordinator;
 
   void _showPreviewMessage(BuildContext context, String message) {
     ScaffoldMessenger.of(context)
@@ -29,6 +35,7 @@ class HomeTab extends StatelessWidget {
             onBack: () => Navigator.of(context).pop(),
             showEditScheduleAction: false,
             enableForegroundGps: enableForegroundGps,
+            activeRunSessionCoordinator: activeRunSessionCoordinator,
           );
         },
       ),
@@ -48,6 +55,7 @@ class HomeTab extends StatelessWidget {
         builder: (context) => RunLaunchScreen(
           enableForegroundGps: enableForegroundGps,
           initialPreviewCurrentPosition: initialPreviewCurrentPosition,
+          activeRunSessionCoordinator: activeRunSessionCoordinator,
         ),
       ),
     );

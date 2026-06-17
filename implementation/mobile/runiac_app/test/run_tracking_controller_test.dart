@@ -344,6 +344,53 @@ void main() {
       expect(controller.state.averagePaceSecondsPerKm, 400);
     });
 
+    test('wall clock sync reconciles an inactive foreground gap', () {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      final controller = RunTrackingController(metersPerSecond: 2.5);
+
+      controller.start(
+        startedAt: startedAt,
+        clientRunSessionId: 'wall-clock-gap-run',
+      );
+
+      controller.syncTo(startedAt.add(const Duration(seconds: 120)));
+
+      final payload = controller.completionPayload(
+        completedAt: startedAt.add(const Duration(seconds: 120)),
+      );
+      expect(controller.state.elapsedSeconds, 120);
+      expect(controller.state.distanceMeters, 300);
+      expect(controller.state.averagePaceSecondsPerKm, 400);
+      expect(payload.durationSeconds, 120);
+      expect(payload.distanceMeters, 300);
+      expect(payload.avgPaceSecondsPerKm, 400);
+    });
+
+    test('manual pause blocks wall clock sync during an inactive gap', () {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      final controller = RunTrackingController(metersPerSecond: 2.5);
+
+      controller.start(
+        startedAt: startedAt,
+        clientRunSessionId: 'manual-pause-gap-run',
+      );
+      controller.syncTo(startedAt.add(const Duration(seconds: 30)));
+      controller.pause(pausedAt: startedAt.add(const Duration(seconds: 30)));
+
+      controller.syncTo(startedAt.add(const Duration(minutes: 10)));
+
+      final payload = controller.completionPayload(
+        completedAt: startedAt.add(const Duration(minutes: 10)),
+      );
+      expect(controller.state.phase, RunTrackingPhase.paused);
+      expect(controller.state.elapsedSeconds, 30);
+      expect(controller.state.distanceMeters, 75);
+      expect(controller.state.averagePaceSecondsPerKm, 400);
+      expect(payload.durationSeconds, 30);
+      expect(payload.distanceMeters, 75);
+      expect(payload.avgPaceSecondsPerKm, 400);
+    });
+
     test(
       'no-op motion provider lifecycle is safe and preserves GPS behavior',
       () {

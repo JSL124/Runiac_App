@@ -42,6 +42,7 @@ class RunTrackingController extends ChangeNotifier {
   LocalRunTrackingSession? _trackingSession;
   RunMapViewState _mapViewState = const RunMapViewState.empty();
   RunLocationSample? _previewCurrentPosition;
+  DateTime? _lastAdvancedAt;
   int _sessionSequence = 0;
   RunTrackingLocationStatus _latestLocationStatus =
       RunTrackingLocationStatus.demo;
@@ -141,6 +142,7 @@ class RunTrackingController extends ChangeNotifier {
     final session = LocalRunTrackingSession(startedAt: effectiveStartedAt);
     _trackingSession = session;
     _mapViewState = const RunMapViewState.empty();
+    _lastAdvancedAt = effectiveStartedAt;
     _latestLocationStatus = _initialLocationStatus;
     _state = RunTrackingState(
       phase: RunTrackingPhase.active,
@@ -158,6 +160,26 @@ class RunTrackingController extends ChangeNotifier {
       diagnostics: session.diagnostics,
     );
     return effectiveStartedAt;
+  }
+
+  void syncTo(DateTime now) {
+    final lastAdvancedAt = _lastAdvancedAt;
+    if (lastAdvancedAt == null) {
+      return;
+    }
+
+    if (_state.isPaused) {
+      _lastAdvancedAt = now;
+      return;
+    }
+
+    final delta = now.difference(lastAdvancedAt);
+    if (delta <= Duration.zero) {
+      return;
+    }
+
+    advanceBy(delta);
+    _lastAdvancedAt = now;
   }
 
   void advanceBy(Duration delta) {
@@ -240,11 +262,12 @@ class RunTrackingController extends ChangeNotifier {
     return RunTrackingLocationStatus.gpsActive;
   }
 
-  void pause() {
+  void pause({DateTime? pausedAt}) {
     if (!_state.isActive) {
       return;
     }
 
+    _lastAdvancedAt = pausedAt ?? DateTime.now();
     _trackingSession?.pause();
     unawaited(_locationProvider.pause());
     unawaited(_motionProvider.pause());
@@ -252,25 +275,27 @@ class RunTrackingController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void resume() {
+  void resume({DateTime? resumedAt}) {
     if (!_state.isPaused && !_state.isAutoPaused && !_state.isAbnormalPaused) {
       return;
     }
 
+    final effectiveResumedAt = resumedAt ?? DateTime.now();
     final activeOffset = Duration(
       seconds:
           _trackingSession?.trackingDurationSeconds ?? _state.elapsedSeconds,
     );
+    _lastAdvancedAt = effectiveResumedAt;
     _trackingSession?.resume();
     unawaited(
       _locationProvider.resume(
-        resumedAt: DateTime.now(),
+        resumedAt: effectiveResumedAt,
         activeOffset: activeOffset,
       ),
     );
     unawaited(
       _motionProvider.resume(
-        resumedAt: DateTime.now(),
+        resumedAt: effectiveResumedAt,
         trackingOffset: activeOffset,
       ),
     );
@@ -307,6 +332,7 @@ class RunTrackingController extends ChangeNotifier {
     unawaited(_motionProvider.stop());
     _mapViewState = const RunMapViewState.empty();
     _previewCurrentPosition = null;
+    _lastAdvancedAt = null;
     _state = _state.copyWith(
       phase: RunTrackingPhase.finished,
       completedAt: payload.completedAt,

@@ -4,16 +4,35 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runiac_app/app.dart';
+import 'package:runiac_app/features/run/presentation/active_run_session_coordinator.dart';
 import 'package:runiac_app/features/you/presentation/data/you_overview_demo_snapshots.dart';
 import 'package:runiac_app/features/you/presentation/widgets/compact_run_activity_card.dart';
 import 'package:runiac_app/features/you/presentation/widgets/monthly_distance_graph.dart';
 
-Future<void> _openYouTab(WidgetTester tester) async {
+Future<void> _openYouTab(
+  WidgetTester tester, {
+  ActiveRunSessionCoordinator? activeRunSessionCoordinator,
+}) async {
   await tester.pumpWidget(
-    const RuniacApp(showSplash: false, enableForegroundGps: false),
+    RuniacApp(
+      showSplash: false,
+      enableForegroundGps: false,
+      activeRunSessionCoordinator: activeRunSessionCoordinator,
+    ),
   );
   await tester.tap(find.text('You'));
   await tester.pumpAndSettle();
+}
+
+ActiveRunSessionCoordinator _testActiveRunSessionCoordinator(
+  WidgetTester tester,
+) {
+  final activeRunSessionCoordinator = ActiveRunSessionCoordinator(
+    clock: tester.binding.clock.now,
+    foregroundTickStep: const Duration(seconds: 1),
+  );
+  addTearDown(activeRunSessionCoordinator.dispose);
+  return activeRunSessionCoordinator;
 }
 
 void main() {
@@ -1373,6 +1392,50 @@ void main() {
         findsNothing,
       );
     }
+  });
+
+  testWidgets('Workout detail run uses app-level active session coordinator', (
+    WidgetTester tester,
+  ) async {
+    final activeRunSessionCoordinator = _testActiveRunSessionCoordinator(
+      tester,
+    );
+    await _openYouTab(
+      tester,
+      activeRunSessionCoordinator: activeRunSessionCoordinator,
+    );
+    await tester.tap(find.text('Plans'));
+    await tester.pumpAndSettle();
+    await Scrollable.ensureVisible(
+      tester.element(find.text('Upcoming · 7:30 AM')),
+      alignment: 0.45,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Upcoming · 7:30 AM'));
+    await tester.pumpAndSettle();
+    await tester.drag(find.byType(ListView), const Offset(0, -700));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Start This Run'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Start run'));
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(seconds: 2));
+
+    expect(find.text('Start run'), findsNothing);
+    expect(find.widgetWithText(FilledButton, 'Pause'), findsOneWidget);
+
+    final handled = await tester.binding.handlePopRoute();
+    expect(handled, isTrue);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Run'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Start run'), findsNothing);
+    expect(find.widgetWithText(FilledButton, 'Pause'), findsOneWidget);
+    expect(find.text('TIME'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets(

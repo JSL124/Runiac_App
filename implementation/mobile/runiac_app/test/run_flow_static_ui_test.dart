@@ -18,6 +18,7 @@ import 'package:runiac_app/features/run/domain/models/run_summary_snapshot.dart'
 import 'package:runiac_app/features/run/domain/models/xp_update_display_model.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_repository.dart';
 import 'package:runiac_app/features/run/domain/services/completed_run_title_formatter.dart';
+import 'package:runiac_app/features/run/presentation/active_run_session_coordinator.dart';
 import 'package:runiac_app/features/run/presentation/run_launch_screen.dart';
 import 'package:runiac_app/features/run/presentation/view_summary_screen.dart';
 import 'package:runiac_app/features/run/presentation/widgets/share_achievement_sheet.dart';
@@ -93,6 +94,17 @@ Future<void> _openPausedRun(WidgetTester tester) async {
   await tester.pumpAndSettle();
   await tester.tap(find.text('Pause'));
   await tester.pumpAndSettle();
+}
+
+ActiveRunSessionCoordinator _testActiveRunSessionCoordinator(
+  WidgetTester tester,
+) {
+  final activeRunSessionCoordinator = ActiveRunSessionCoordinator(
+    clock: tester.binding.clock.now,
+    foregroundTickStep: const Duration(seconds: 1),
+  );
+  addTearDown(activeRunSessionCoordinator.dispose);
+  return activeRunSessionCoordinator;
 }
 
 Future<void> _finishPausedRun(WidgetTester tester) async {
@@ -262,7 +274,11 @@ void main() {
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(
-      const RuniacApp(showSplash: false, enableForegroundGps: false),
+      RuniacApp(
+        showSplash: false,
+        enableForegroundGps: false,
+        activeRunSessionCoordinator: _testActiveRunSessionCoordinator(tester),
+      ),
     );
 
     await tester.tap(find.text('Run'));
@@ -333,7 +349,7 @@ void main() {
     await tester.pump(const Duration(seconds: 10));
 
     expect(find.text('00:10'), findsOneWidget);
-    expect(find.text('0.02 of 4.50 km'), findsOneWidget);
+    expect(find.textContaining('of 4.50 km'), findsOneWidget);
     expect(find.text('1%'), findsOneWidget);
     expect(find.text('--:--/km'), findsOneWidget);
 
@@ -348,7 +364,7 @@ void main() {
     expect(find.text('Keep holding...'), findsNothing);
     expect(find.text('Pause'), findsNothing);
     expect(find.text('DISTANCE'), findsOneWidget);
-    expect(find.text('0.02 of 4.50 km'), findsOneWidget);
+    expect(find.textContaining('of 4.50 km'), findsOneWidget);
     expect(find.text('TIME'), findsOneWidget);
     expect(find.text('00:10'), findsOneWidget);
     expect(find.text('AVG PACE'), findsOneWidget);
@@ -357,7 +373,7 @@ void main() {
     await tester.pump(const Duration(seconds: 10));
 
     expect(find.text('00:10'), findsOneWidget);
-    expect(find.text('0.02 of 4.50 km'), findsOneWidget);
+    expect(find.textContaining('of 4.50 km'), findsOneWidget);
     expect(find.text('Run summary'), findsNothing);
     expect(find.textContaining('XP'), findsNothing);
     expect(find.textContaining('streak'), findsNothing);

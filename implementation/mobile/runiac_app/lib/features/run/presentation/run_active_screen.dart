@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/runiac_colors.dart';
@@ -7,6 +5,7 @@ import '../domain/models/complete_run_result.dart';
 import '../domain/models/run_completion_error.dart';
 import '../domain/models/run_tracking_state.dart';
 import '../domain/repositories/run_repository.dart';
+import 'active_run_session_coordinator.dart';
 import 'controllers/run_tracking_controller.dart';
 import 'cool_down_screen.dart';
 import 'run_repository_scope.dart';
@@ -31,6 +30,7 @@ class RunActiveScreen extends StatefulWidget {
     this.mapboxAccessToken,
     this.mapboxBuilder,
     this.enableMapboxFollowQa = runMapboxFollowQaEnabled,
+    this.activeRunSessionCoordinator,
   });
 
   final RunTrackingController? controller;
@@ -38,6 +38,7 @@ class RunActiveScreen extends StatefulWidget {
   final String? mapboxAccessToken;
   final RunMapboxSurfaceBuilder? mapboxBuilder;
   final bool enableMapboxFollowQa;
+  final ActiveRunSessionCoordinator? activeRunSessionCoordinator;
 
   @override
   State<RunActiveScreen> createState() => _RunActiveScreenState();
@@ -45,8 +46,8 @@ class RunActiveScreen extends StatefulWidget {
 
 class _RunActiveScreenState extends State<RunActiveScreen> {
   late final RunTrackingController _controller;
-  late final bool _ownsController;
-  Timer? _ticker;
+  late final ActiveRunSessionCoordinator _activeRunSessionCoordinator;
+  late final bool _ownsActiveRunSessionCoordinator;
   bool _isFollowingRunner = true;
   bool _isCompletingRun = false;
   int _mapRecenterRequestId = 0;
@@ -58,22 +59,31 @@ class _RunActiveScreenState extends State<RunActiveScreen> {
   @override
   void initState() {
     super.initState();
-    _ownsController = widget.controller == null;
-    _controller = widget.controller ?? RunTrackingController();
-    if (_controller.state.phase == RunTrackingPhase.idle) {
-      _controller.start(routeLabel: 'Easy local route');
-    }
-    _ticker = Timer.periodic(
-      const Duration(seconds: 1),
-      (_) => _controller.advanceBy(const Duration(seconds: 1)),
+    _ownsActiveRunSessionCoordinator =
+        widget.activeRunSessionCoordinator == null;
+    _activeRunSessionCoordinator =
+        widget.activeRunSessionCoordinator ??
+        ActiveRunSessionCoordinator(
+          controller: widget.controller,
+          disposeController: widget.controller == null,
+        );
+    _controller = _activeRunSessionCoordinator.controllerFor(
+      () => RunTrackingController(),
     );
+    if (_controller.state.phase == RunTrackingPhase.idle) {
+      _controller.start(
+        startedAt: _activeRunSessionCoordinator.now(),
+        routeLabel: 'Easy local route',
+      );
+    }
+    _activeRunSessionCoordinator.startForegroundTicker();
   }
 
   @override
   void dispose() {
-    _ticker?.cancel();
-    if (_ownsController) {
-      _controller.dispose();
+    _activeRunSessionCoordinator.stopForegroundTicker();
+    if (_ownsActiveRunSessionCoordinator) {
+      _activeRunSessionCoordinator.dispose();
     }
     super.dispose();
   }
@@ -83,7 +93,8 @@ class _RunActiveScreenState extends State<RunActiveScreen> {
       return;
     }
 
-    final completedAt = DateTime.now();
+    final completedAt = _activeRunSessionCoordinator.now();
+    _activeRunSessionCoordinator.syncTo(completedAt);
     final payload = _controller.completionPayload(completedAt: completedAt);
     setState(() => _isCompletingRun = true);
 
@@ -115,8 +126,7 @@ class _RunActiveScreenState extends State<RunActiveScreen> {
     if (!mounted) {
       return;
     }
-    _ticker?.cancel();
-    _ticker = null;
+    _activeRunSessionCoordinator.stopForegroundTicker();
     _controller.finish(completedAt: completedAt);
     Navigator.of(context).pushReplacement(
       MaterialPageRoute<void>(
@@ -154,9 +164,15 @@ class _RunActiveScreenState extends State<RunActiveScreen> {
   }
 
   void _resumeRun() {
-    _controller.resume();
+    _controller.resume(resumedAt: _activeRunSessionCoordinator.now());
     _followQaDiagnostics?.recordResume();
     _updateFollowQaMapState();
+  }
+
+  void _pauseRun() {
+    final pausedAt = _activeRunSessionCoordinator.now();
+    _activeRunSessionCoordinator.syncTo(pausedAt);
+    _controller.pause(pausedAt: pausedAt);
   }
 
   @override
@@ -232,7 +248,7 @@ class _RunActiveScreenState extends State<RunActiveScreen> {
                           return _RunActivePanel(
                             key: const Key('runActivePanel'),
                             state: _controller.state,
-                            onPause: _controller.pause,
+                            onPause: _pauseRun,
                             onResume: _resumeRun,
                             onFinish: _finishRun,
                             isCompletingRun: _isCompletingRun,

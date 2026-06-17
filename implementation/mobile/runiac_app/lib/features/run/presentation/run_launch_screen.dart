@@ -17,6 +17,7 @@ import '../domain/repositories/run_location_preview_provider.dart';
 import '../domain/repositories/run_location_provider.dart';
 import '../domain/repositories/run_motion_provider.dart';
 import '../domain/repositories/run_repository.dart';
+import 'active_run_session_coordinator.dart';
 import 'controllers/run_tracking_controller.dart';
 import 'cool_down_screen.dart';
 import 'data/run_launch_demo_snapshots.dart';
@@ -121,6 +122,7 @@ class RunLaunchScreen extends StatefulWidget {
     this.mapboxBuilder,
     this.enableMapboxFollowQa = runMapboxFollowQaEnabled,
     this.initialPreviewCurrentPosition,
+    this.activeRunSessionCoordinator,
   });
 
   final RunRepository? repository;
@@ -133,6 +135,7 @@ class RunLaunchScreen extends StatefulWidget {
   final RunMapboxSurfaceBuilder? mapboxBuilder;
   final bool enableMapboxFollowQa;
   final RunLocationSample? initialPreviewCurrentPosition;
+  final ActiveRunSessionCoordinator? activeRunSessionCoordinator;
 
   @override
   State<RunLaunchScreen> createState() => _RunLaunchScreenState();
@@ -140,12 +143,13 @@ class RunLaunchScreen extends StatefulWidget {
 
 class _RunLaunchScreenState extends State<RunLaunchScreen> {
   late final RunTrackingController _controller;
+  late final ActiveRunSessionCoordinator _activeRunSessionCoordinator;
+  late final bool _ownsActiveRunSessionCoordinator;
   late final RunLocationPermissionService? _permissionService;
   late final RunLocationPreviewProvider? _locationPreviewProvider;
   RunSheetMode _sheetMode = RunSheetMode.preRun;
   RunLaunchSheetExtent _sheetExtent = RunLaunchSheetExtent.expanded;
   double _sheetProgress = 1;
-  Timer? _ticker;
   bool _isCompletingRun = false;
   bool _isFollowingRunner = true;
   int _mapRecenterRequestId = 0;
@@ -169,19 +173,26 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
       enableForegroundGps: useForegroundGps,
       locationPreviewProvider: widget.locationPreviewProvider,
     );
-    _controller = RunTrackingController(
-      locationProvider: useForegroundGps
-          ? widget.locationProvider ?? RealForegroundRunLocationProvider()
-          : widget.locationProvider,
-      motionProvider: useForegroundGps
-          ? widget.motionProvider ?? SensorsPlusRunMotionProvider()
-          : widget.motionProvider,
-      permissionService: _permissionService,
-      locationStatus: useForegroundGps
-          ? RunTrackingLocationStatus.waitingForGps
-          : RunTrackingLocationStatus.demo,
-      initialPreviewCurrentPosition: widget.initialPreviewCurrentPosition,
+    _ownsActiveRunSessionCoordinator =
+        widget.activeRunSessionCoordinator == null;
+    _activeRunSessionCoordinator =
+        widget.activeRunSessionCoordinator ?? ActiveRunSessionCoordinator();
+    _controller = _activeRunSessionCoordinator.controllerFor(
+      () => RunTrackingController(
+        locationProvider: useForegroundGps
+            ? widget.locationProvider ?? RealForegroundRunLocationProvider()
+            : widget.locationProvider,
+        motionProvider: useForegroundGps
+            ? widget.motionProvider ?? SensorsPlusRunMotionProvider()
+            : widget.motionProvider,
+        permissionService: _permissionService,
+        locationStatus: useForegroundGps
+            ? RunTrackingLocationStatus.waitingForGps
+            : RunTrackingLocationStatus.demo,
+        initialPreviewCurrentPosition: widget.initialPreviewCurrentPosition,
+      ),
     );
+    _restoreSheetModeForActiveController();
     if (useForegroundGps) {
       _previewLocationStatus = widget.initialPreviewCurrentPosition == null
           ? _RunPreviewLocationStatus.checkingPermission
@@ -190,10 +201,26 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
     }
   }
 
+  void _restoreSheetModeForActiveController() {
+    final state = _controller.state;
+    if (state.phase == RunTrackingPhase.idle ||
+        state.phase == RunTrackingPhase.finished) {
+      return;
+    }
+
+    _sheetMode = state.isPaused || state.isAutoPaused || state.isAbnormalPaused
+        ? RunSheetMode.paused
+        : RunSheetMode.running;
+    _activeRunSessionCoordinator.startForegroundTicker();
+    _activeRunSessionCoordinator.syncNow();
+  }
+
   @override
   void dispose() {
-    _ticker?.cancel();
-    _controller.dispose();
+    _activeRunSessionCoordinator.stopForegroundTicker();
+    if (_ownsActiveRunSessionCoordinator) {
+      _activeRunSessionCoordinator.dispose();
+    }
     super.dispose();
   }
 
@@ -214,6 +241,7 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
     if (_controller.state.phase == RunTrackingPhase.idle ||
         _controller.state.phase == RunTrackingPhase.finished) {
       final started = await _controller.requestStart(
+        startedAt: _activeRunSessionCoordinator.now(),
         routeLabel: 'Easy local route',
       );
       if (!mounted) {
@@ -225,10 +253,7 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
       }
     }
 
-    _ticker ??= Timer.periodic(
-      const Duration(seconds: 1),
-      (_) => _controller.advanceBy(const Duration(seconds: 1)),
-    );
+    _activeRunSessionCoordinator.startForegroundTicker();
 
     final shouldAlignCameraOnStart = _isFollowingRunner && _hasCurrentPosition;
     setState(() {
@@ -249,7 +274,9 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
     if (_isCompletingRun) {
       return;
     }
-    _controller.pause();
+    final pausedAt = _activeRunSessionCoordinator.now();
+    _activeRunSessionCoordinator.syncTo(pausedAt);
+    _controller.pause(pausedAt: pausedAt);
     setState(() => _sheetMode = RunSheetMode.paused);
   }
 
@@ -257,7 +284,7 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
     if (_isCompletingRun) {
       return;
     }
-    _controller.resume();
+    _controller.resume(resumedAt: _activeRunSessionCoordinator.now());
     setState(() => _sheetMode = RunSheetMode.running);
     _followQaDiagnostics?.recordResume();
     _updateFollowQaMapState();
@@ -327,7 +354,8 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
       return;
     }
 
-    final completedAt = DateTime.now();
+    final completedAt = _activeRunSessionCoordinator.now();
+    _activeRunSessionCoordinator.syncTo(completedAt);
     final payload = _controller.completionPayload(completedAt: completedAt);
     setState(() => _isCompletingRun = true);
 
@@ -357,8 +385,7 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
     if (!mounted) {
       return;
     }
-    _ticker?.cancel();
-    _ticker = null;
+    _activeRunSessionCoordinator.stopForegroundTicker();
     _controller.finish(completedAt: completedAt);
     Navigator.of(context).pushReplacement(
       MaterialPageRoute<void>(

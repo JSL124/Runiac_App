@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/runiac_colors.dart';
 import '../../run/domain/models/run_activity_display_model.dart';
+import '../../run/presentation/active_run_session_coordinator.dart';
 import '../../run/presentation/view_summary_screen.dart';
 import 'activity_history_screen.dart';
 import 'data/weekly_workout_demo_snapshots.dart';
@@ -15,9 +16,14 @@ import 'widgets/you_progress_surface.dart';
 import 'widgets/you_segmented_control.dart';
 
 class YouTab extends StatefulWidget {
-  const YouTab({super.key, this.enableForegroundGps = true});
+  const YouTab({
+    super.key,
+    this.enableForegroundGps = true,
+    this.activeRunSessionCoordinator,
+  });
 
   final bool enableForegroundGps;
+  final ActiveRunSessionCoordinator? activeRunSessionCoordinator;
 
   @override
   State<YouTab> createState() => _YouTabState();
@@ -51,6 +57,7 @@ class _YouTabState extends State<YouTab> {
           setState(() => _workoutDetailVisible = false);
         },
         enableForegroundGps: widget.enableForegroundGps,
+        activeRunSessionCoordinator: widget.activeRunSessionCoordinator,
       );
     }
 

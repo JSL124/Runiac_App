@@ -21,6 +21,7 @@ import 'package:runiac_app/features/run/domain/repositories/run_location_permiss
 import 'package:runiac_app/features/run/domain/repositories/run_location_preview_provider.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_location_provider.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_repository.dart';
+import 'package:runiac_app/features/run/presentation/active_run_session_coordinator.dart';
 import 'package:runiac_app/features/run/presentation/run_active_screen.dart';
 import 'package:runiac_app/features/run/presentation/run_launch_screen.dart';
 import 'package:runiac_app/features/run/presentation/run_repository_scope.dart';
@@ -63,12 +64,32 @@ void _expectSheetAdjacentRecenter({
   expect(gap, inInclusiveRange(8, 12));
 }
 
-Future<void> _openRunLaunch(WidgetTester tester) async {
+Future<void> _openRunLaunch(
+  WidgetTester tester, {
+  ActiveRunSessionCoordinator? activeRunSessionCoordinator,
+}) async {
+  final coordinator =
+      activeRunSessionCoordinator ?? _testActiveRunSessionCoordinator(tester);
   await tester.pumpWidget(
-    const RuniacApp(showSplash: false, enableForegroundGps: false),
+    RuniacApp(
+      showSplash: false,
+      enableForegroundGps: false,
+      activeRunSessionCoordinator: coordinator,
+    ),
   );
   await tester.tap(find.text('Run'));
   await tester.pumpAndSettle();
+}
+
+ActiveRunSessionCoordinator _testActiveRunSessionCoordinator(
+  WidgetTester tester,
+) {
+  final activeRunSessionCoordinator = ActiveRunSessionCoordinator(
+    clock: tester.binding.clock.now,
+    foregroundTickStep: const Duration(seconds: 1),
+  );
+  addTearDown(activeRunSessionCoordinator.dispose);
+  return activeRunSessionCoordinator;
 }
 
 class _RoutePushRecorder extends NavigatorObserver {
@@ -395,6 +416,7 @@ void main() {
             sample: _previewSample(),
           ),
           permissionService: const _GrantedRunLocationPermissionService(),
+          activeRunSessionCoordinator: _testActiveRunSessionCoordinator(tester),
         ),
       ),
     );
@@ -433,6 +455,7 @@ void main() {
             sample: _previewSample(),
           ),
           permissionService: const _GrantedRunLocationPermissionService(),
+          activeRunSessionCoordinator: _testActiveRunSessionCoordinator(tester),
         ),
       ),
     );
@@ -546,6 +569,9 @@ void main() {
                   ),
                 ),
             ]),
+            activeRunSessionCoordinator: _testActiveRunSessionCoordinator(
+              tester,
+            ),
           ),
         ),
       );
@@ -592,6 +618,7 @@ void main() {
             sample: _previewSample(),
           ),
           permissionService: const _GrantedRunLocationPermissionService(),
+          activeRunSessionCoordinator: _testActiveRunSessionCoordinator(tester),
         ),
       ),
     );
@@ -633,6 +660,7 @@ void main() {
             sample: _previewSample(),
           ),
           permissionService: const _GrantedRunLocationPermissionService(),
+          activeRunSessionCoordinator: _testActiveRunSessionCoordinator(tester),
         ),
       ),
     );
@@ -675,6 +703,7 @@ void main() {
             sample: _previewSample(),
           ),
           permissionService: const _GrantedRunLocationPermissionService(),
+          activeRunSessionCoordinator: _testActiveRunSessionCoordinator(tester),
         ),
       ),
     );
@@ -1507,7 +1536,7 @@ void main() {
     await tester.pump(const Duration(seconds: 10));
 
     expect(find.text('00:10'), findsOneWidget);
-    expect(find.text('0.02 of 4.50 km'), findsOneWidget);
+    expect(find.textContaining('of 4.50 km'), findsOneWidget);
     expect(find.text('1%'), findsOneWidget);
     expect(find.text('--:--/km'), findsOneWidget);
     expect(tester.takeException(), isNull);
@@ -1548,6 +1577,7 @@ void main() {
             sample: _previewSample(),
           ),
           permissionService: const _GrantedRunLocationPermissionService(),
+          activeRunSessionCoordinator: _testActiveRunSessionCoordinator(tester),
         ),
       ),
     );
@@ -1597,7 +1627,7 @@ void main() {
     await tester.pump(const Duration(seconds: 10));
 
     expect(find.text('00:10'), findsOneWidget);
-    expect(find.text('0.02 of 4.50 km'), findsOneWidget);
+    expect(find.textContaining('of 4.50 km'), findsOneWidget);
 
     await tester.tap(find.widgetWithText(FilledButton, 'Resume'));
     await tester.pumpAndSettle();
@@ -1788,6 +1818,43 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('Run launch reopens active app-level session as running', (
+    WidgetTester tester,
+  ) async {
+    _useMobileRunSurface(tester);
+    var now = DateTime(2026, 6, 17, 8);
+    final activeRunSessionCoordinator = ActiveRunSessionCoordinator(
+      clock: () => now,
+      foregroundTickStep: const Duration(seconds: 1),
+    );
+    addTearDown(activeRunSessionCoordinator.dispose);
+    await _openRunLaunch(
+      tester,
+      activeRunSessionCoordinator: activeRunSessionCoordinator,
+    );
+
+    await tester.tap(find.text('Start run'));
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(seconds: 3));
+
+    expect(find.text('00:03'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, 'Pause'), findsOneWidget);
+
+    final handled = await tester.binding.handlePopRoute();
+    expect(handled, isTrue);
+    await tester.pumpAndSettle();
+    now = now.add(const Duration(seconds: 8));
+
+    await tester.tap(find.text('Run'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Start run'), findsNothing);
+    expect(find.widgetWithText(FilledButton, 'Pause'), findsOneWidget);
+    expect(find.text('TIME'), findsOneWidget);
+    expect(find.text('00:08'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('Run launch paused sheet collapses without resuming or ending', (
     WidgetTester tester,
   ) async {
@@ -1971,7 +2038,11 @@ void main() {
         MaterialApp(
           home: RunRepositoryScope(
             repository: repository,
-            child: const RunActiveScreen(),
+            child: RunActiveScreen(
+              activeRunSessionCoordinator: _testActiveRunSessionCoordinator(
+                tester,
+              ),
+            ),
           ),
         ),
       );

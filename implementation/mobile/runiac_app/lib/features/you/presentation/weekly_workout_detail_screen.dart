@@ -5,6 +5,7 @@ import '../../../core/widgets/dashboard_card.dart';
 import '../../../core/widgets/runiac_back_header.dart';
 import '../../../core/widgets/runiac_bottom_sheet_handle.dart';
 import '../../../core/widgets/runiac_buttons.dart';
+import '../../run/presentation/active_run_session_coordinator.dart';
 import '../../run/presentation/run_launch_screen.dart';
 import 'data/weekly_workout_demo_snapshots.dart';
 
@@ -15,6 +16,7 @@ class WeeklyWorkoutDetailScreen extends StatelessWidget {
     this.showEditScheduleAction = true,
     this.enableForegroundGps = true,
     this.onStartRun,
+    this.activeRunSessionCoordinator,
     super.key,
   });
 
@@ -23,6 +25,7 @@ class WeeklyWorkoutDetailScreen extends StatelessWidget {
   final bool showEditScheduleAction;
   final bool enableForegroundGps;
   final VoidCallback? onStartRun;
+  final ActiveRunSessionCoordinator? activeRunSessionCoordinator;
 
   Future<void> _openRunLaunch(BuildContext context) async {
     final initialPreviewCurrentPosition =
@@ -37,6 +40,7 @@ class WeeklyWorkoutDetailScreen extends StatelessWidget {
         builder: (context) => RunLaunchScreen(
           enableForegroundGps: enableForegroundGps,
           initialPreviewCurrentPosition: initialPreviewCurrentPosition,
+          activeRunSessionCoordinator: activeRunSessionCoordinator,
         ),
       ),
     );
