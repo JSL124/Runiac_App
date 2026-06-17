@@ -379,7 +379,7 @@ void main() {
       },
     );
 
-    test('real Mapbox surface clusters required ornaments top-left', () {
+    test('real Mapbox surface keeps attribution on right at scale height', () {
       final scaleBarSettings = runMapboxScaleBarSettings();
       final logoSettings = runMapboxLogoSettings();
       final attributionSettings = runMapboxAttributionSettings();
@@ -400,12 +400,9 @@ void main() {
 
       expect(attributionSettings.enabled, isTrue);
       expect(attributionSettings.clickable, isTrue);
-      expect(attributionSettings.position, OrnamentPosition.TOP_LEFT);
-      expect(attributionSettings.marginTop, logoSettings.marginTop);
-      expect(
-        attributionSettings.marginLeft,
-        greaterThan(logoSettings.marginLeft!),
-      );
+      expect(attributionSettings.position, OrnamentPosition.TOP_RIGHT);
+      expect(attributionSettings.marginTop, scaleBarSettings.marginTop);
+      expect(attributionSettings.marginRight, 24);
     });
 
     test('null-to-current-position transition animates while following', () {

@@ -15,7 +15,7 @@ const _routeOrange = Color(0xFFFF7A1A);
 const _ornamentLeftMargin = 16.0;
 const _ornamentTopMargin = 80.0;
 const _logoBelowScaleBarTopMargin = 112.0;
-const _attributionBesideLogoLeftMargin = 112.0;
+const _attributionRightMargin = 24.0;
 
 class RunMapboxRunMap extends StatefulWidget {
   const RunMapboxRunMap({super.key, required this.config});
@@ -411,9 +411,9 @@ AttributionSettings runMapboxAttributionSettings() {
   return AttributionSettings(
     enabled: true,
     clickable: true,
-    position: OrnamentPosition.TOP_LEFT,
-    marginLeft: _attributionBesideLogoLeftMargin,
-    marginTop: _logoBelowScaleBarTopMargin,
+    position: OrnamentPosition.TOP_RIGHT,
+    marginTop: _ornamentTopMargin,
+    marginRight: _attributionRightMargin,
   );
 }
 
