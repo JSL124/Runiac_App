@@ -10,7 +10,7 @@ struct RuniacRunLiveActivityWidget: Widget {
         HStack {
           Text(context.attributes.brandName)
             .font(.caption.weight(.bold))
-            .foregroundStyle(.orange)
+            .foregroundStyle(runiacBlue)
           Spacer()
           Text(context.state.statusLabel)
             .font(.caption.weight(.semibold))
@@ -59,9 +59,13 @@ struct RuniacRunLiveActivityWidget: Widget {
       } minimal: {
         Text("R")
           .font(.caption2.weight(.bold))
-          .foregroundStyle(.orange)
+          .foregroundStyle(runiacBlue)
       }
     }
+  }
+
+  private var runiacBlue: Color {
+    Color(red: 47.0 / 255.0, green: 80.0 / 255.0, blue: 199.0 / 255.0)
   }
 
   private func metric(label: String, value: String) -> some View {
