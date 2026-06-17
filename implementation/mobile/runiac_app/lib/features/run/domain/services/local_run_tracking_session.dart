@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import '../models/run_location_sample.dart';
 import '../models/run_map_view_state.dart';
 import '../models/run_motion_evidence.dart';
@@ -52,6 +54,10 @@ class LocalRunTrackingSession {
   final RunMovementClassifier movementClassifier;
 
   static const double _preMovementJitterCandidateMaxMeters = 25;
+  static const String _gpsAcceptanceQaLogPrefix = 'RUNIAC_GPS_ACCEPTANCE_QA';
+  static const bool runiacGpsAcceptanceQaLogsEnabled = bool.fromEnvironment(
+    'RUNIAC_GPS_ACCEPTANCE_QA_LOGS',
+  );
 
   bool _isActive = true;
   bool _needsAnchorSample = false;
@@ -161,6 +167,7 @@ class LocalRunTrackingSession {
     RunLocationSample sample,
     Iterable<RunMotionEvidence> motionEvidence,
   ) {
+    _logGpsAcceptanceSample(sample);
     _diagnostics = _diagnostics.recordSampleReceived(sample);
 
     final rejectionReason = _sampleRejectionReason(sample);
@@ -172,7 +179,11 @@ class LocalRunTrackingSession {
     final previous = _lastAcceptedSample;
     if (previous == null) {
       _acceptedSampleSegments.add(<RunLocationSample>[sample]);
-      _recordAcceptedCurrentSample(sample);
+      _recordAcceptedCurrentSample(
+        sample,
+        reason: 'firstAcceptedSample',
+        acceptedForDistanceOrRoute: true,
+      );
       _lastRouteSample = sample;
       _autoResumeCandidateSample = null;
       _preMovementCandidateSample = null;
@@ -184,6 +195,10 @@ class LocalRunTrackingSession {
 
     if (_suppressedMovementNeedsAnchor) {
       if (_isSameSample(previous, sample)) {
+        _logGpsAcceptanceRejected(
+          sample: sample,
+          reason: 'duplicateSuppressedAnchorSample',
+        );
         return;
       }
       if (_isSuppressedCandidateFromPrevious(previous, sample)) {
@@ -199,12 +214,20 @@ class LocalRunTrackingSession {
       _resetAbnormalCandidate();
       _resetAbnormalResumeCandidate();
       _stationaryCumulativeMovementMeters = 0;
-      _recordAcceptedCurrentSample(sample);
+      _recordAcceptedCurrentSample(
+        sample,
+        reason: 'suppressedAnchorReset',
+        acceptedForDistanceOrRoute: true,
+      );
       return;
     }
 
     if (_needsAnchorSample) {
       if (_isSameSample(previous, sample)) {
+        _logGpsAcceptanceRejected(
+          sample: sample,
+          reason: 'duplicateResumeAnchorSample',
+        );
         return;
       }
 
@@ -216,7 +239,11 @@ class LocalRunTrackingSession {
       _resetAbnormalCandidate();
       _resetAbnormalResumeCandidate();
       _stationaryCumulativeMovementMeters = 0;
-      _recordAcceptedCurrentSample(sample);
+      _recordAcceptedCurrentSample(
+        sample,
+        reason: 'resumeAnchorSample',
+        acceptedForDistanceOrRoute: true,
+      );
       return;
     }
 
@@ -251,11 +278,19 @@ class LocalRunTrackingSession {
       _resetAbnormalCandidate();
       _resetAbnormalResumeCandidate();
       _stationaryCumulativeMovementMeters = 0;
-      _recordAcceptedCurrentSample(sample);
+      _recordAcceptedCurrentSample(
+        sample,
+        reason: 'noRouteAnchor',
+        acceptedForDistanceOrRoute: true,
+      );
       return true;
     }
     if (movementAnchorSample == null) {
-      _recordAcceptedCurrentSample(sample);
+      _recordAcceptedCurrentSample(
+        sample,
+        reason: 'resumeCandidateAnchor',
+        acceptedForDistanceOrRoute: false,
+      );
       _autoResumeCandidateSample = sample;
       return true;
     }
@@ -390,14 +425,22 @@ class LocalRunTrackingSession {
       _resetAbnormalResumeCandidate();
       _stationaryStartedAt = null;
       _stationaryCumulativeMovementMeters = 0;
-      _recordAcceptedCurrentSample(sample);
+      _recordAcceptedCurrentSample(
+        sample,
+        reason: 'autoResumeAccepted',
+        acceptedForDistanceOrRoute: true,
+      );
       return true;
     }
 
     if (_movementStatus == RunMovementStatus.autoPaused &&
         classification.type ==
             RunMovementClassificationType.gpsResumeCandidate) {
-      _recordAcceptedCurrentSample(sample);
+      _recordAcceptedCurrentSample(
+        sample,
+        reason: 'gpsResumeCandidate',
+        acceptedForDistanceOrRoute: false,
+      );
       _autoResumeCandidateSample = sample;
       return true;
     }
@@ -440,7 +483,11 @@ class LocalRunTrackingSession {
     required double segmentDistanceMeters,
   }) {
     _suppressedMovingTimeInCurrentAdvance = true;
-    _recordAcceptedCurrentSample(sample);
+    _recordAcceptedCurrentSample(
+      sample,
+      reason: 'suppressedMovementSample',
+      acceptedForDistanceOrRoute: false,
+    );
     _autoResumeCandidateSample = null;
     _preMovementCandidateSample = null;
     _stationaryStartedAt = null;
@@ -509,6 +556,14 @@ class LocalRunTrackingSession {
     _distanceMeters += resumeDistanceMeters;
     _lastRouteSample = sample;
     _movementStatus = RunMovementStatus.moving;
+    _logGpsAcceptanceDecision(
+      sample: sample,
+      acceptedSample: true,
+      reason: 'abnormalResumeConfirmed',
+      distanceDeltaMeters: resumeDistanceMeters,
+      timeDelta: _timeDeltaFromSample(resumeAnchor, sample),
+    );
+    _logGpsAcceptanceRoute(reason: 'abnormalResumeConfirmed');
     _suppressedMovingTimeInCurrentAdvance = false;
     _suppressedMovementNeedsAnchor = false;
     _preMovementCandidateSample = null;
@@ -577,14 +632,22 @@ class LocalRunTrackingSession {
         _resetAbnormalResumeCandidate();
         _stationaryStartedAt = null;
         _stationaryCumulativeMovementMeters = 0;
-        _recordAcceptedCurrentSample(sample);
+        _recordAcceptedCurrentSample(
+          sample,
+          reason: 'preMovementConfirmed',
+          acceptedForDistanceOrRoute: true,
+        );
         return;
       }
     }
 
     _preMovementCandidateSample = sample;
     _autoResumeCandidateSample = null;
-    _recordAcceptedCurrentSample(sample);
+    _recordAcceptedCurrentSample(
+      sample,
+      reason: 'preMovementCandidate',
+      acceptedForDistanceOrRoute: false,
+    );
     _stationaryStartedAt ??= routeAnchorSample.recordedAt;
     _stationaryCumulativeMovementMeters = 0;
 
@@ -603,7 +666,13 @@ class LocalRunTrackingSession {
     RunMovementClassification classification,
     double cumulativeGpsMovementMeters,
   ) {
-    _recordAcceptedCurrentSample(sample);
+    _recordAcceptedCurrentSample(
+      sample,
+      reason: classification.type.name,
+      acceptedForDistanceOrRoute:
+          classification.type ==
+          RunMovementClassificationType.gpsMeaningfulMovement,
+    );
     if (_movementStatus == RunMovementStatus.autoPaused) {
       return;
     }
@@ -649,10 +718,31 @@ class LocalRunTrackingSession {
     _resetAbnormalResumeCandidate();
   }
 
-  void _recordAcceptedCurrentSample(RunLocationSample sample) {
+  void _recordAcceptedCurrentSample(
+    RunLocationSample sample, {
+    required String reason,
+    required bool acceptedForDistanceOrRoute,
+  }) {
+    final previousAccepted = _lastAcceptedSample;
+    final gpsAcceptanceDistanceDeltaMeters = runiacGpsAcceptanceQaLogsEnabled
+        ? _distanceDeltaFromSample(previousAccepted, sample)
+        : null;
+    final gpsAcceptanceTimeDelta = runiacGpsAcceptanceQaLogsEnabled
+        ? _timeDeltaFromSample(previousAccepted, sample)
+        : null;
     _currentPositionSample = sample;
     _lastAcceptedSample = sample;
     _diagnostics = _diagnostics.recordAcceptedSample(sample);
+    _logGpsAcceptanceDecision(
+      sample: sample,
+      acceptedSample: acceptedForDistanceOrRoute,
+      reason: reason,
+      distanceDeltaMeters: gpsAcceptanceDistanceDeltaMeters,
+      timeDelta: gpsAcceptanceTimeDelta,
+    );
+    if (acceptedForDistanceOrRoute) {
+      _logGpsAcceptanceRoute(reason: reason);
+    }
   }
 
   bool _isSameSample(RunLocationSample? left, RunLocationSample right) {
@@ -688,6 +778,7 @@ class LocalRunTrackingSession {
     RunLocationRejectionReason reason,
   ) {
     _diagnostics = _diagnostics.recordRejectedSample(sample, reason);
+    _logGpsAcceptanceRejected(sample: sample, reason: reason.name);
   }
 
   RunLocationRejectionReason _sampleRejectionReason(RunLocationSample sample) {
@@ -766,6 +857,159 @@ class LocalRunTrackingSession {
     }
     return latest?.signal == RunMotionSignal.stationary &&
         (latest?.confidence ?? 0) >= 0.6;
+  }
+
+  void _logGpsAcceptanceSample(RunLocationSample sample) {
+    if (!runiacGpsAcceptanceQaLogsEnabled) {
+      return;
+    }
+    _logGpsAcceptanceQa(
+      'phase=sample '
+      'accuracyM=${_qaDouble(sample.horizontalAccuracyMeters)} '
+      'speedMps=${_qaDouble(sample.speedMetersPerSecond)} '
+      'movementStatus=${_movementStatus.name} '
+      'autoPaused=${_movementStatus == RunMovementStatus.autoPaused} '
+      'abnormalPaused=${_movementStatus == RunMovementStatus.abnormalPaused}',
+    );
+  }
+
+  void _logGpsAcceptanceDecision({
+    required RunLocationSample sample,
+    required bool acceptedSample,
+    required String reason,
+    required double? distanceDeltaMeters,
+    required Duration? timeDelta,
+  }) {
+    if (!runiacGpsAcceptanceQaLogsEnabled) {
+      return;
+    }
+    final reasonKey = acceptedSample ? 'acceptReason' : 'rejectReason';
+    _logGpsAcceptanceQa(
+      'phase=decision '
+      'acceptedSample=$acceptedSample '
+      '$reasonKey=$reason '
+      'distanceDeltaM=${_qaDouble(distanceDeltaMeters)} '
+      'timeDeltaMs=${_qaDurationMs(timeDelta)} '
+      'impliedSpeedMps=${_qaDouble(_impliedSpeedMetersPerSecond(distanceDeltaMeters, timeDelta))} '
+      'accuracyM=${_qaDouble(sample.horizontalAccuracyMeters)} '
+      'speedMps=${_qaDouble(sample.speedMetersPerSecond)} '
+      'movementStatus=${_movementStatus.name} '
+      'autoPaused=${_movementStatus == RunMovementStatus.autoPaused} '
+      'abnormalPaused=${_movementStatus == RunMovementStatus.abnormalPaused}',
+    );
+  }
+
+  void _logGpsAcceptanceRejected({
+    required RunLocationSample sample,
+    required String reason,
+  }) {
+    if (!runiacGpsAcceptanceQaLogsEnabled) {
+      return;
+    }
+    final previousAccepted = _lastAcceptedSample;
+    final distanceDeltaMeters = _distanceDeltaFromSample(
+      previousAccepted,
+      sample,
+    );
+    final timeDelta = _timeDeltaFromSample(previousAccepted, sample);
+    _logGpsAcceptanceDecision(
+      sample: sample,
+      acceptedSample: false,
+      reason: reason,
+      distanceDeltaMeters: distanceDeltaMeters,
+      timeDelta: timeDelta,
+    );
+    _logGpsAcceptanceQa(
+      'phase=rejected '
+      'acceptedSample=false '
+      'rejectReason=$reason '
+      'distanceDeltaM=${_qaDouble(distanceDeltaMeters)} '
+      'timeDeltaMs=${_qaDurationMs(timeDelta)} '
+      'impliedSpeedMps=${_qaDouble(_impliedSpeedMetersPerSecond(distanceDeltaMeters, timeDelta))} '
+      'accuracyM=${_qaDouble(sample.horizontalAccuracyMeters)} '
+      'speedMps=${_qaDouble(sample.speedMetersPerSecond)} '
+      'movementStatus=${_movementStatus.name}',
+    );
+  }
+
+  void _logGpsAcceptanceRoute({required String reason}) {
+    if (!runiacGpsAcceptanceQaLogsEnabled) {
+      return;
+    }
+    _logGpsAcceptanceQa(
+      'phase=route '
+      'acceptedSample=true '
+      'acceptReason=$reason '
+      'acceptedDistanceM=${_qaDouble(_distanceMeters)} '
+      'routePointCount=${_routePointCount()} '
+      'segmentCount=${_acceptedSampleSegments.length} '
+      'movementStatus=${_movementStatus.name}',
+    );
+  }
+
+  void _logGpsAcceptanceQa(String message) {
+    if (!runiacGpsAcceptanceQaLogsEnabled) {
+      return;
+    }
+    debugPrint('$_gpsAcceptanceQaLogPrefix $message');
+  }
+
+  String _qaDouble(double? value) {
+    if (value == null || !value.isFinite) {
+      return 'null';
+    }
+    return value.toStringAsFixed(2);
+  }
+
+  String _qaDurationMs(Duration? duration) {
+    if (duration == null) {
+      return 'null';
+    }
+    return duration.inMilliseconds.toString();
+  }
+
+  double? _distanceDeltaFromSample(
+    RunLocationSample? previous,
+    RunLocationSample sample,
+  ) {
+    if (previous == null) {
+      return null;
+    }
+    final distanceMeters = distanceCalculator.distanceMeters(previous, sample);
+    return distanceMeters.isFinite ? distanceMeters : null;
+  }
+
+  Duration? _timeDeltaFromSample(
+    RunLocationSample? previous,
+    RunLocationSample sample,
+  ) {
+    if (previous == null) {
+      return null;
+    }
+    return sample.recordedAt.difference(previous.recordedAt);
+  }
+
+  double? _impliedSpeedMetersPerSecond(
+    double? distanceDeltaMeters,
+    Duration? timeDelta,
+  ) {
+    if (distanceDeltaMeters == null || timeDelta == null) {
+      return null;
+    }
+    final seconds = timeDelta.inMilliseconds / 1000;
+    if (seconds <= 0) {
+      return null;
+    }
+    final speed = distanceDeltaMeters / seconds;
+    return speed.isFinite ? speed : null;
+  }
+
+  int _routePointCount() {
+    var count = 0;
+    for (final segment in _acceptedSampleSegments) {
+      count += segment.length;
+    }
+    return count;
   }
 
   void _resetAbnormalCandidate() {
