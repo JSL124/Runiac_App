@@ -41,6 +41,14 @@ class AndroidRunForegroundService implements RunForegroundService {
   }
 
   Map<String, String> _argumentsFor(RunTrackingNotificationCopy copy) {
-    return <String, String>{'title': copy.title, 'body': copy.body};
+    return <String, String>{
+      'title': copy.title,
+      'body': copy.body,
+      'statusLabel': copy.statusLabel,
+      'elapsedTimeLabel': copy.elapsedTimeLabel,
+      'averagePaceLabel': copy.averagePaceLabel,
+      'distanceLabel': copy.distanceLabel,
+      'supportCopy': copy.supportCopy ?? '',
+    };
   }
 }

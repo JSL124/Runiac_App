@@ -31,28 +31,37 @@ void main() {
             });
         const service = AndroidRunForegroundService(channel: channel);
 
-        await service.start(
-          const RunTrackingNotificationCopy(
-            title: 'Getting GPS ready',
-            body: 'Keep moving in an open area',
-          ),
-        );
+        await service.start(RunTrackingNotificationCopy.gettingGpsReady);
         await service.update(
           const RunTrackingNotificationCopy(
             title: 'Runiac is tracking your run',
-            body: 'GPS active • 00:01 • 0.00 km',
+            body: '00:01 • --:-- /km • 0.00 km',
+            statusLabel: 'GPS active',
+            elapsedTimeLabel: '00:01',
+            averagePaceLabel: '--:-- /km',
+            distanceLabel: '0.00 km',
           ),
         );
         await service.stop();
 
         expect(calls.map((call) => call.method), ['start', 'update', 'stop']);
         expect(calls[0].arguments, {
-          'title': 'Getting GPS ready',
-          'body': 'Keep moving in an open area',
+          'title': 'Runiac is tracking your run',
+          'body': '00:00 • --:-- /km • 0.00 km',
+          'statusLabel': 'Getting GPS ready',
+          'elapsedTimeLabel': '00:00',
+          'averagePaceLabel': '--:-- /km',
+          'distanceLabel': '0.00 km',
+          'supportCopy': 'Keep moving in an open area.',
         });
         expect(calls[1].arguments, {
           'title': 'Runiac is tracking your run',
-          'body': 'GPS active • 00:01 • 0.00 km',
+          'body': '00:01 • --:-- /km • 0.00 km',
+          'statusLabel': 'GPS active',
+          'elapsedTimeLabel': '00:01',
+          'averagePaceLabel': '--:-- /km',
+          'distanceLabel': '0.00 km',
+          'supportCopy': '',
         });
         expect(calls[2].arguments, isNull);
       },

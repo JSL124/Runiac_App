@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/features/run/domain/models/run_tracking_diagnostics.dart';
+import 'package:runiac_app/features/run/domain/models/run_notification_display_model.dart';
 import 'package:runiac_app/features/run/domain/models/run_tracking_notification_copy.dart';
 import 'package:runiac_app/features/run/domain/models/run_tracking_state.dart';
 
@@ -10,15 +11,18 @@ void main() {
       RunMovementStatus movementStatus = RunMovementStatus.moving,
       RunTrackingLocationStatus locationStatus =
           RunTrackingLocationStatus.gpsActive,
+      int elapsedSeconds = 125,
+      int distanceMeters = 620,
+      int averagePaceSecondsPerKm = 432,
     }) {
       return RunTrackingState(
         phase: phase,
         clientRunSessionId: 'notification-copy-run',
         startedAt: DateTime.utc(2026, 6, 17, 8),
         completedAt: null,
-        elapsedSeconds: 125,
-        distanceMeters: 620,
-        averagePaceSecondsPerKm: 0,
+        elapsedSeconds: elapsedSeconds,
+        distanceMeters: distanceMeters,
+        averagePaceSecondsPerKm: averagePaceSecondsPerKm,
         routePrivacy: 'private',
         source: 'local_gps',
         locationStatus: locationStatus,
@@ -31,7 +35,7 @@ void main() {
       final copy = RunTrackingNotificationCopy.fromState(state());
 
       expect(copy.title, 'Runiac is tracking your run');
-      expect(copy.body, 'GPS active • 02:05 • 0.62 km');
+      expect(copy.body, '02:05 • 7:12 /km • 0.62 km');
     });
 
     test('formats waiting and weak GPS copy without shaming language', () {
@@ -42,10 +46,10 @@ void main() {
         state(locationStatus: RunTrackingLocationStatus.gpsWeak),
       );
 
-      expect(waiting.title, 'Getting GPS ready');
-      expect(waiting.body, 'Keep moving in an open area');
+      expect(waiting.title, 'Runiac is tracking your run');
+      expect(waiting.body, '02:05 • 7:12 /km • 0.62 km');
       expect(weak.title, 'Runiac is tracking your run');
-      expect(weak.body, 'GPS signal weak • Keep the app nearby');
+      expect(weak.body, '02:05 • 7:12 /km • 0.62 km');
     });
 
     test('formats manual auto and abnormal paused states', () {
@@ -60,14 +64,11 @@ void main() {
       );
 
       expect(manual.title, 'Run paused');
-      expect(manual.body, 'Tracking is paused until you resume');
-      expect(autoPaused.title, 'Run auto-paused');
-      expect(autoPaused.body, 'Move again to continue tracking');
+      expect(manual.body, '02:05 • 7:12 /km • 0.62 km');
+      expect(autoPaused.title, 'Tracking paused');
+      expect(autoPaused.body, '02:05 • 7:12 /km • 0.62 km');
       expect(abnormalPaused.title, 'Tracking paused');
-      expect(
-        abnormalPaused.body,
-        'Unusual movement detected. Resume when ready',
-      );
+      expect(abnormalPaused.body, '02:05 • 7:12 /km • 0.62 km');
     });
 
     test('formats approximate location copy', () {
@@ -76,7 +77,117 @@ void main() {
       );
 
       expect(copy.title, 'Runiac is tracking your run');
-      expect(copy.body, 'Approximate location • Distance may be less precise');
+      expect(copy.body, '02:05 • 7:12 /km • 0.62 km');
+    });
+  });
+
+  group('RunNotificationDisplayModel', () {
+    RunNotificationDisplayModel model({
+      RunTrackingPhase phase = RunTrackingPhase.active,
+      RunMovementStatus movementStatus = RunMovementStatus.moving,
+      RunTrackingLocationStatus locationStatus =
+          RunTrackingLocationStatus.gpsActive,
+      int elapsedSeconds = 754,
+      int distanceMeters = 1250,
+      int averagePaceSecondsPerKm = 432,
+    }) {
+      return RunNotificationDisplayModel.fromState(
+        RunTrackingState(
+          phase: phase,
+          clientRunSessionId: 'notification-display-run',
+          startedAt: DateTime.utc(2026, 6, 17, 8),
+          completedAt: null,
+          elapsedSeconds: elapsedSeconds,
+          distanceMeters: distanceMeters,
+          averagePaceSecondsPerKm: averagePaceSecondsPerKm,
+          routePrivacy: 'private',
+          source: 'local_gps',
+          locationStatus: locationStatus,
+          diagnostics: const RunTrackingDiagnostics.initial(),
+          movementStatus: movementStatus,
+        ),
+      );
+    }
+
+    test(
+      'formats tracking metrics for collapsed and expanded notification',
+      () {
+        final display = model();
+
+        expect(display.title, 'Runiac is tracking your run');
+        expect(display.collapsedBody, '12:34 • 7:12 /km • 1.25 km');
+        expect(display.statusLabel, 'GPS active');
+        expect(display.elapsedTimeLabel, '12:34');
+        expect(display.averagePaceLabel, '7:12 /km');
+        expect(display.distanceLabel, '1.25 km');
+        expect(display.supportCopy, isNull);
+      },
+    );
+
+    test('uses unavailable pace until enough distance is available', () {
+      final display = model(distanceMeters: 20, averagePaceSecondsPerKm: 0);
+
+      expect(display.collapsedBody, '12:34 • --:-- /km • 0.02 km');
+      expect(display.averagePaceLabel, '--:-- /km');
+    });
+
+    test(
+      'covers getting GPS ready with metrics and state-safe support copy',
+      () {
+        final display = model(
+          locationStatus: RunTrackingLocationStatus.waitingForGps,
+          elapsedSeconds: 25,
+          distanceMeters: 0,
+          averagePaceSecondsPerKm: 0,
+        );
+
+        expect(display.title, 'Runiac is tracking your run');
+        expect(display.collapsedBody, '00:25 • --:-- /km • 0.00 km');
+        expect(display.statusLabel, 'Getting GPS ready');
+        expect(display.supportCopy, 'Keep moving in an open area.');
+      },
+    );
+
+    test('covers GPS weak support copy without shaming language', () {
+      final display = model(locationStatus: RunTrackingLocationStatus.gpsWeak);
+
+      expect(display.title, 'Runiac is tracking your run');
+      expect(display.statusLabel, 'GPS weak');
+      expect(display.supportCopy, 'GPS signal weak. Keep the app nearby.');
+    });
+
+    test('covers approximate location support copy', () {
+      final display = model(
+        locationStatus: RunTrackingLocationStatus.approximateLocation,
+      );
+
+      expect(display.title, 'Runiac is tracking your run');
+      expect(display.statusLabel, 'Approximate location');
+      expect(
+        display.supportCopy,
+        'Approximate location. Distance may be less precise.',
+      );
+    });
+
+    test('covers manual auto and abnormal paused states', () {
+      final manual = model(phase: RunTrackingPhase.paused);
+      final autoPaused = model(movementStatus: RunMovementStatus.autoPaused);
+      final abnormalPaused = model(
+        movementStatus: RunMovementStatus.abnormalPaused,
+      );
+
+      expect(manual.title, 'Run paused');
+      expect(manual.statusLabel, 'Paused');
+      expect(manual.supportCopy, 'Tracking is paused until you resume.');
+      expect(autoPaused.title, 'Tracking paused');
+      expect(autoPaused.statusLabel, 'Auto-paused');
+      expect(autoPaused.supportCopy, 'Move again to continue tracking.');
+      expect(abnormalPaused.title, 'Tracking paused');
+      expect(abnormalPaused.statusLabel, 'Tracking paused');
+      expect(
+        abnormalPaused.supportCopy,
+        'Unusual movement detected. Resume when ready.',
+      );
     });
   });
 }

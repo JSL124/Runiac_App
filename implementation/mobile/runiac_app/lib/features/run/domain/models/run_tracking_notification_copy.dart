@@ -1,86 +1,75 @@
+import 'run_notification_display_model.dart';
 import 'run_tracking_state.dart';
 
 class RunTrackingNotificationCopy {
-  const RunTrackingNotificationCopy({required this.title, required this.body});
+  const RunTrackingNotificationCopy({
+    required this.title,
+    required this.body,
+    this.statusLabel = 'Getting GPS ready',
+    this.elapsedTimeLabel = '00:00',
+    this.averagePaceLabel = '--:-- /km',
+    this.distanceLabel = '0.00 km',
+    this.supportCopy,
+  });
 
   factory RunTrackingNotificationCopy.fromState(RunTrackingState state) {
-    if (state.isAbnormalPaused) {
-      return const RunTrackingNotificationCopy(
-        title: 'Tracking paused',
-        body: 'Unusual movement detected. Resume when ready',
-      );
-    }
+    final display = RunNotificationDisplayModel.fromState(state);
+    return RunTrackingNotificationCopy.fromDisplayModel(display);
+  }
 
-    if (state.isPaused) {
-      return const RunTrackingNotificationCopy(
-        title: 'Run paused',
-        body: 'Tracking is paused until you resume',
-      );
-    }
-
-    if (state.isAutoPaused) {
-      return const RunTrackingNotificationCopy(
-        title: 'Run auto-paused',
-        body: 'Move again to continue tracking',
-      );
-    }
-
-    return switch (state.locationStatus) {
-      RunTrackingLocationStatus.waitingForGps =>
-        const RunTrackingNotificationCopy(
-          title: 'Getting GPS ready',
-          body: 'Keep moving in an open area',
-        ),
-      RunTrackingLocationStatus.gpsWeak => const RunTrackingNotificationCopy(
-        title: 'Runiac is tracking your run',
-        body: 'GPS signal weak • Keep the app nearby',
-      ),
-      RunTrackingLocationStatus.approximateLocation =>
-        const RunTrackingNotificationCopy(
-          title: 'Runiac is tracking your run',
-          body: 'Approximate location • Distance may be less precise',
-        ),
-      RunTrackingLocationStatus.gpsActive => RunTrackingNotificationCopy(
-        title: 'Runiac is tracking your run',
-        body:
-            'GPS active • ${_formatElapsed(state.elapsedSeconds)} • '
-            '${_formatDistance(state.distanceMeters)}',
-      ),
-      RunTrackingLocationStatus.demo => const RunTrackingNotificationCopy(
-        title: 'Runiac demo run',
-        body: 'Demo mode is active',
-      ),
-    };
+  factory RunTrackingNotificationCopy.fromDisplayModel(
+    RunNotificationDisplayModel display,
+  ) {
+    return RunTrackingNotificationCopy(
+      title: display.title,
+      body: display.collapsedBody,
+      statusLabel: display.statusLabel,
+      elapsedTimeLabel: display.elapsedTimeLabel,
+      averagePaceLabel: display.averagePaceLabel,
+      distanceLabel: display.distanceLabel,
+      supportCopy: display.supportCopy,
+    );
   }
 
   static const gettingGpsReady = RunTrackingNotificationCopy(
-    title: 'Getting GPS ready',
-    body: 'Keep moving in an open area',
+    title: 'Runiac is tracking your run',
+    body: '00:00 • --:-- /km • 0.00 km',
+    statusLabel: 'Getting GPS ready',
+    elapsedTimeLabel: '00:00',
+    averagePaceLabel: '--:-- /km',
+    distanceLabel: '0.00 km',
+    supportCopy: 'Keep moving in an open area.',
   );
 
   final String title;
   final String body;
+  final String statusLabel;
+  final String elapsedTimeLabel;
+  final String averagePaceLabel;
+  final String distanceLabel;
+  final String? supportCopy;
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
         other is RunTrackingNotificationCopy &&
             other.title == title &&
-            other.body == body;
+            other.body == body &&
+            other.statusLabel == statusLabel &&
+            other.elapsedTimeLabel == elapsedTimeLabel &&
+            other.averagePaceLabel == averagePaceLabel &&
+            other.distanceLabel == distanceLabel &&
+            other.supportCopy == supportCopy;
   }
 
   @override
-  int get hashCode => Object.hash(title, body);
-}
-
-String _formatElapsed(int seconds) {
-  final minutes = seconds ~/ 60;
-  final remainder = seconds % 60;
-  return '${minutes.toString().padLeft(2, '0')}:'
-      '${remainder.toString().padLeft(2, '0')}';
-}
-
-String _formatDistance(int meters) {
-  final kilometers = meters / 1000;
-  return '${kilometers.toStringAsFixed(2)} km';
+  int get hashCode => Object.hash(
+    title,
+    body,
+    statusLabel,
+    elapsedTimeLabel,
+    averagePaceLabel,
+    distanceLabel,
+    supportCopy,
+  );
 }
