@@ -490,6 +490,9 @@ class _PaceChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final renderedGraph = graph.isAvailable ? graph : _lockedPaceGraphPreview;
+    final isLockedPreview = !graph.isAvailable;
+
     return Column(
       children: [
         SizedBox(
@@ -509,7 +512,10 @@ class _PaceChart extends StatelessWidget {
               const SizedBox(width: _paceChartAxisGap),
               Expanded(
                 child: CustomPaint(
-                  painter: _PaceChartPainter(graph: graph),
+                  painter: _PaceChartPainter(
+                    graph: renderedGraph,
+                    isLockedPreview: isLockedPreview,
+                  ),
                   child: const SizedBox.expand(),
                 ),
               ),
@@ -528,6 +534,41 @@ class _PaceChart extends StatelessWidget {
     );
   }
 }
+
+const _lockedPaceGraphPreview = PaceGraphSnapshot(
+  isAvailable: true,
+  points: [
+    PaceGraphPoint(
+      elapsedSeconds: 0,
+      progressFraction: 0,
+      paceSecondsPerKm: 500,
+    ),
+    PaceGraphPoint(
+      elapsedSeconds: 300,
+      progressFraction: 0.24,
+      paceSecondsPerKm: 472,
+    ),
+    PaceGraphPoint(
+      elapsedSeconds: 600,
+      progressFraction: 0.5,
+      paceSecondsPerKm: 486,
+    ),
+    PaceGraphPoint(
+      elapsedSeconds: 900,
+      progressFraction: 0.76,
+      paceSecondsPerKm: 448,
+    ),
+    PaceGraphPoint(
+      elapsedSeconds: 1200,
+      progressFraction: 1,
+      paceSecondsPerKm: 460,
+    ),
+  ],
+  yAxisLabels: [],
+  xAxisLabels: [],
+  paceRangeMinSecondsPerKm: 420,
+  paceRangeMaxSecondsPerKm: 520,
+);
 
 class _PaceXAxisLabels extends StatelessWidget {
   const _PaceXAxisLabels({required this.labels});
@@ -1111,9 +1152,10 @@ class _MapPreviewPainter extends CustomPainter {
 }
 
 class _PaceChartPainter extends CustomPainter {
-  const _PaceChartPainter({required this.graph});
+  const _PaceChartPainter({required this.graph, required this.isLockedPreview});
 
   final PaceGraphSnapshot graph;
+  final bool isLockedPreview;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1168,7 +1210,8 @@ class _PaceChartPainter extends CustomPainter {
     }
 
     final averagePace = graph.averagePaceSecondsPerKm;
-    if (averagePace != null &&
+    if (!isLockedPreview &&
+        averagePace != null &&
         averagePace >= rangeMin &&
         averagePace <= rangeMax) {
       _drawDashedLine(
@@ -1211,31 +1254,39 @@ class _PaceChartPainter extends CustomPainter {
       ..lineTo(lastPoint.dx, size.height)
       ..lineTo(firstPoint.dx, size.height)
       ..close();
-    canvas.drawPath(area, Paint()..color = const Color(0x14FB6414));
+    canvas.drawPath(
+      area,
+      Paint()
+        ..color = isLockedPreview
+            ? const Color(0x0FFB6414)
+            : const Color(0x14FB6414),
+    );
     canvas.drawPath(
       line,
       Paint()
-        ..color = _rOrange
+        ..color = isLockedPreview ? const Color(0x4DFB6414) : _rOrange
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.5
+        ..strokeWidth = isLockedPreview ? 2 : 2.5
         ..strokeCap = StrokeCap.round
         ..strokeJoin = StrokeJoin.round,
     );
 
-    _drawMarker(
-      canvas,
-      point: graph.slowestPacePoint,
-      offsets: offsets,
-      fillColor: _rWhite,
-      strokeColor: _rBlue45,
-    );
-    _drawMarker(
-      canvas,
-      point: graph.bestPacePoint,
-      offsets: offsets,
-      fillColor: _rOrange,
-      strokeColor: _rWhite,
-    );
+    if (!isLockedPreview) {
+      _drawMarker(
+        canvas,
+        point: graph.slowestPacePoint,
+        offsets: offsets,
+        fillColor: _rWhite,
+        strokeColor: _rBlue45,
+      );
+      _drawMarker(
+        canvas,
+        point: graph.bestPacePoint,
+        offsets: offsets,
+        fillColor: _rOrange,
+        strokeColor: _rWhite,
+      );
+    }
   }
 
   void _drawDashedLine(Canvas canvas, Offset start, Offset end, Paint paint) {
@@ -1292,7 +1343,8 @@ class _PaceChartPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _PaceChartPainter oldDelegate) {
-    return oldDelegate.graph != graph;
+    return oldDelegate.graph != graph ||
+        oldDelegate.isLockedPreview != isLockedPreview;
   }
 }
 
