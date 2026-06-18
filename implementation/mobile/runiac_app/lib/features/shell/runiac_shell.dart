@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
@@ -14,6 +15,9 @@ import '../you/presentation/you_tab.dart';
 
 const _floatingBottomNavigationKey = ValueKey(
   'runiac-floating-bottom-navigation',
+);
+const _floatingBottomNavigationActivePillKey = ValueKey(
+  'runiac-floating-bottom-navigation-active-pill',
 );
 
 const _bottomNavigationItems = [
@@ -220,60 +224,69 @@ class _FloatingIslandBottomNavigation extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final horizontalInset = constraints.maxWidth < 380 ? 12.0 : 20.0;
-        final islandWidth = math.min(
-          math.max(0.0, constraints.maxWidth - (horizontalInset * 2)),
-          430.0,
+        final metrics = _FloatingIslandNavigationMetrics.fromWidth(
+          constraints.maxWidth,
         );
 
         return SafeArea(
           top: false,
-          minimum: const EdgeInsets.only(bottom: 14),
+          minimum: EdgeInsets.only(bottom: metrics.bottomGap),
           child: Align(
             alignment: Alignment.bottomCenter,
             heightFactor: 1,
             child: SizedBox(
               key: _floatingBottomNavigationKey,
-              width: islandWidth,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: RuniacColors.white,
-                  borderRadius: BorderRadius.circular(34),
-                  border: Border.all(
-                    color: RuniacColors.border.withValues(alpha: 0.78),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: RuniacColors.primaryBlue.withValues(alpha: 0.12),
-                      blurRadius: 28,
-                      offset: const Offset(0, 12),
-                    ),
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.06),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 6,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      for (
-                        var index = 0;
-                        index < _bottomNavigationItems.length;
-                        index += 1
-                      )
-                        _FloatingIslandNavigationButton(
-                          item: _bottomNavigationItems[index],
-                          selected: index == selectedIndex,
-                          onPressed: () => onTap(index),
+              width: metrics.islandWidth,
+              height: metrics.islandHeight,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(metrics.islandRadius),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: RuniacColors.textPrimary.withValues(alpha: 0.72),
+                      borderRadius: BorderRadius.circular(metrics.islandRadius),
+                      border: Border.all(
+                        color: RuniacColors.white.withValues(alpha: 0.18),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: RuniacColors.primaryBlue.withValues(
+                            alpha: 0.18,
+                          ),
+                          blurRadius: 30,
+                          offset: const Offset(0, 14),
                         ),
-                    ],
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.18),
+                          blurRadius: 14,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: metrics.outerPadding,
+                        vertical: metrics.outerPadding,
+                      ),
+                      child: Row(
+                        children: [
+                          for (
+                            var index = 0;
+                            index < _bottomNavigationItems.length;
+                            index += 1
+                          )
+                            Expanded(
+                              child: _FloatingIslandNavigationButton(
+                                item: _bottomNavigationItems[index],
+                                selected: index == selectedIndex,
+                                metrics: metrics,
+                                onPressed: () => onTap(index),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -289,20 +302,22 @@ class _FloatingIslandNavigationButton extends StatelessWidget {
   const _FloatingIslandNavigationButton({
     required this.item,
     required this.selected,
+    required this.metrics,
     required this.onPressed,
   });
 
   final _BottomNavigationItem item;
   final bool selected;
+  final _FloatingIslandNavigationMetrics metrics;
   final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
     final iconColor = selected
         ? RuniacColors.white
-        : RuniacColors.textSecondary;
+        : RuniacColors.white.withValues(alpha: 0.72);
     final segmentColor = selected
-        ? RuniacColors.primaryBlue
+        ? RuniacColors.primaryBlue.withValues(alpha: 0.78)
         : Colors.transparent;
 
     return Tooltip(
@@ -312,17 +327,21 @@ class _FloatingIslandNavigationButton extends StatelessWidget {
         button: true,
         selected: selected,
         child: AnimatedContainer(
+          key: selected ? _floatingBottomNavigationActivePillKey : null,
           duration: const Duration(milliseconds: 180),
           curve: Curves.easeOutCubic,
-          width: selected ? 84 : 48,
-          height: 52,
+          width: selected ? metrics.selectedPillWidth : metrics.inactiveWidth,
+          height: metrics.buttonHeight,
           decoration: BoxDecoration(
             color: segmentColor,
-            borderRadius: BorderRadius.circular(28),
+            borderRadius: BorderRadius.circular(metrics.pillRadius),
+            border: selected
+                ? Border.all(color: RuniacColors.white.withValues(alpha: 0.2))
+                : null,
             boxShadow: selected
                 ? [
                     BoxShadow(
-                      color: RuniacColors.primaryBlue.withValues(alpha: 0.24),
+                      color: RuniacColors.primaryBlue.withValues(alpha: 0.32),
                       blurRadius: 16,
                       offset: const Offset(0, 8),
                     ),
@@ -332,12 +351,67 @@ class _FloatingIslandNavigationButton extends StatelessWidget {
           child: IconButton(
             onPressed: onPressed,
             color: iconColor,
+            iconSize: metrics.iconSize,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints.expand(),
             icon: Icon(item.icon),
           ),
         ),
       ),
     );
   }
+}
+
+class _FloatingIslandNavigationMetrics {
+  const _FloatingIslandNavigationMetrics({
+    required this.islandWidth,
+    required this.islandHeight,
+    required this.bottomGap,
+    required this.outerPadding,
+    required this.iconSize,
+    required this.buttonHeight,
+    required this.selectedPillWidth,
+    required this.inactiveWidth,
+  });
+
+  factory _FloatingIslandNavigationMetrics.fromWidth(double availableWidth) {
+    final safeWidth = availableWidth.isFinite && availableWidth > 0
+        ? availableWidth
+        : 360.0;
+    final horizontalInset = safeWidth < 380 ? 14.0 : 22.0;
+    final maxIslandWidth = math.min(430.0, safeWidth - (horizontalInset * 2));
+    final preferredWidth = safeWidth * (safeWidth < 380 ? 0.92 : 0.9);
+    final islandWidth = math.min(
+      math.max(0.0, maxIslandWidth),
+      math.max(280.0, preferredWidth),
+    );
+    final islandHeight = (islandWidth * 0.18).clamp(64.0, 76.0);
+    final outerPadding = (islandHeight * 0.1).clamp(6.0, 8.0);
+    final buttonHeight = islandHeight - (outerPadding * 2);
+
+    return _FloatingIslandNavigationMetrics(
+      islandWidth: islandWidth,
+      islandHeight: islandHeight,
+      bottomGap: (islandHeight * 0.22).clamp(14.0, 18.0),
+      outerPadding: outerPadding,
+      iconSize: (islandHeight * 0.4).clamp(24.0, 30.0),
+      buttonHeight: buttonHeight,
+      selectedPillWidth: (islandHeight * 1.42).clamp(82.0, 104.0),
+      inactiveWidth: (islandHeight * 0.72).clamp(46.0, 54.0),
+    );
+  }
+
+  final double islandWidth;
+  final double islandHeight;
+  final double bottomGap;
+  final double outerPadding;
+  final double iconSize;
+  final double buttonHeight;
+  final double selectedPillWidth;
+  final double inactiveWidth;
+
+  double get islandRadius => islandHeight / 2;
+  double get pillRadius => buttonHeight / 2;
 }
 
 class _BottomNavigationItem {

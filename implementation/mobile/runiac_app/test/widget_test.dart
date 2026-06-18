@@ -31,6 +31,12 @@ void main() {
         find.byKey(const ValueKey('runiac-floating-bottom-navigation')),
         findsOneWidget,
       );
+      expect(
+        find.byKey(
+          const ValueKey('runiac-floating-bottom-navigation-active-pill'),
+        ),
+        findsOneWidget,
+      );
 
       for (final label in ['Home', 'Maps', 'Run', 'Leaderboard', 'You']) {
         expect(find.text(label), findsNothing);
@@ -69,6 +75,8 @@ void main() {
       expect(islandRect.center.dx, closeTo(screenCenter, 0.5));
       expect(islandRect.left, greaterThan(0));
       expect(islandRect.right, lessThan(360));
+      expect(islandRect.height, greaterThanOrEqualTo(64));
+      expect(islandRect.height, lessThanOrEqualTo(76));
     },
   );
 }
