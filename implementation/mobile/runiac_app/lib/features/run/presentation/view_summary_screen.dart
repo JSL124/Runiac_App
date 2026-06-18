@@ -26,9 +26,9 @@ const _rBlue10 = Color(0x1A2F51C8);
 const _rBlue06 = Color(0x0F2F51C8);
 const _cardRadius = 20.0;
 const _paceChartYAxisWidth = 30.0;
-const _paceChartAxisGap = 8.0;
-const _paceChartHorizontalPlotInset = 24.0;
-const _paceChartXAxisLabelWidth = 48.0;
+const _paceChartAxisGap = 4.0;
+const _paceChartHorizontalPlotInset = 16.0;
+const _paceChartXAxisLabelWidth = 32.0;
 
 @visibleForTesting
 double paceChartDisplayProgressForPoint({
