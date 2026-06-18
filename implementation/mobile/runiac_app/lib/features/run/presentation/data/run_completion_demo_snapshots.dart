@@ -1,5 +1,6 @@
 import '../../domain/models/run_summary_snapshot.dart';
 import '../../domain/models/xp_update_display_model.dart';
+import 'pace_graph_demo_snapshots.dart';
 
 /// Display-only run summary snapshot for the static run completion surface.
 const defaultRunSummarySnapshot = RunSummarySnapshot(
@@ -12,6 +13,7 @@ const defaultRunSummarySnapshot = RunSummarySnapshot(
   avgHeartRate: '145',
   calories: '145',
   routeName: 'East Coast Park Loop',
+  paceGraph: normalEasyRunPaceGraph,
 );
 
 /// Display-only result labels for the static run completion surface.

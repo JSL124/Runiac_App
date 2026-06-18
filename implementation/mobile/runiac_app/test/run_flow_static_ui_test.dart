@@ -19,6 +19,8 @@ import 'package:runiac_app/features/run/domain/models/xp_update_display_model.da
 import 'package:runiac_app/features/run/domain/repositories/run_repository.dart';
 import 'package:runiac_app/features/run/domain/services/completed_run_title_formatter.dart';
 import 'package:runiac_app/features/run/presentation/active_run_session_coordinator.dart';
+import 'package:runiac_app/features/run/presentation/data/pace_graph_demo_snapshots.dart';
+import 'package:runiac_app/features/run/presentation/data/run_completion_demo_snapshots.dart';
 import 'package:runiac_app/features/run/presentation/run_launch_screen.dart';
 import 'package:runiac_app/features/run/presentation/view_summary_screen.dart';
 import 'package:runiac_app/features/run/presentation/widgets/share_achievement_sheet.dart';
@@ -684,9 +686,14 @@ void main() {
     expect(find.byIcon(Icons.favorite_border_rounded), findsNothing);
     expect(find.byIcon(Icons.local_fire_department_outlined), findsNothing);
     expect(find.text('Pace Over Time'), findsOneWidget);
-    expect(find.text('4:00'), findsOneWidget);
-    expect(find.text('10:00'), findsNWidgets(2));
-    expect(find.text('15:02'), findsOneWidget);
+    expect(find.text('4:00'), findsNothing);
+    expect(find.text('0:00'), findsOneWidget);
+    expect(find.text('6:30'), findsOneWidget);
+    expect(find.text('13:00'), findsOneWidget);
+    expect(find.text('7:20'), findsOneWidget);
+    expect(find.text('8:00'), findsOneWidget);
+    expect(find.text('8:40'), findsOneWidget);
+    expect(find.text('More run data needed'), findsNothing);
     expect(find.text('Advanced Analysis'), findsOneWidget);
     expect(find.text('Heart rate zones, cadence & elevation'), findsOneWidget);
     expect(find.text('Easy'), findsOneWidget);
@@ -992,6 +999,31 @@ void main() {
     expect(find.text('Performance Overview'), findsNothing);
     expect(find.byType(AdvancedAnalysisScreen), findsNothing);
   });
+
+  testWidgets(
+    'fixture-backed pace graph can render filtered spike run labels',
+    (WidgetTester tester) async {
+      _useTallSummarySurface(tester);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ViewSummaryScreen(
+            summary: defaultRunSummarySnapshot.copyWith(
+              paceGraph: gpsSpikeRunPaceGraph,
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Pace Over Time'), findsOneWidget);
+      expect(find.text('0:00'), findsOneWidget);
+      expect(find.text('7:00'), findsOneWidget);
+      expect(find.text('14:00'), findsOneWidget);
+      expect(find.text('1:20'), findsNothing);
+      expect(find.text('45:00'), findsNothing);
+      expect(find.text('More run data needed'), findsNothing);
+    },
+  );
 
   testWidgets(
     'View summary share icon opens Share Your Achievement bottom sheet',

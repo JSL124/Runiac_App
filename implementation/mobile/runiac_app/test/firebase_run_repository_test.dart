@@ -47,6 +47,8 @@ void main() {
       expect(result.summary.avgPace, '7’49”');
       expect(result.summary.calories, '270');
       expect(result.summary.hasSufficientData, isTrue);
+      expect(result.summary.paceGraph.isAvailable, isFalse);
+      expect(result.summary.paceGraph.points, isEmpty);
       expect(result.progressionDisplay.xpDelta, 0);
       expect(result.progressionDisplay.countsTowardLeaderboard, isFalse);
       expect(result.progressionDisplay.status, 'deferred');

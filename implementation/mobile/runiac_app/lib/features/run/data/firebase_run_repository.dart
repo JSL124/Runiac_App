@@ -1,5 +1,6 @@
 import '../domain/models/complete_run_result.dart';
 import '../domain/models/local_run_completion_payload.dart';
+import '../domain/models/pace_graph_snapshot.dart';
 import '../domain/models/progression_display_model.dart';
 import '../domain/models/run_activity_read_model.dart';
 import '../domain/models/run_completion_error.dart';
@@ -123,6 +124,9 @@ class _CompleteRunResultMapper {
           distanceMeters: distanceMeters,
           durationSeconds: durationSeconds,
           avgPace: avgPace,
+        ),
+        paceGraph: const PaceGraphSnapshot.unavailable(
+          unavailableReason: 'backend_graph_data_unavailable',
         ),
       ),
       progressionDisplay: ProgressionDisplayModel(

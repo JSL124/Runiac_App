@@ -7,6 +7,7 @@ import 'package:runiac_app/core/widgets/runiac_back_header.dart';
 
 import 'advanced_analysis_screen.dart';
 import '../domain/models/complete_run_result.dart';
+import '../domain/models/pace_graph_snapshot.dart';
 import '../domain/models/run_summary_snapshot.dart';
 import 'data/run_completion_demo_snapshots.dart';
 import 'widgets/share_achievement_sheet.dart';
@@ -111,7 +112,10 @@ class ViewSummaryScreen extends StatelessWidget {
                             distanceKm: displayedSummary.distanceKm,
                           ),
                           _MetricSummary(summary: displayedSummary),
-                          _PaceSection(hasSufficientData: hasSufficientData),
+                          _PaceSection(
+                            hasSufficientData: hasSufficientData,
+                            paceGraph: displayedSummary.paceGraph,
+                          ),
                           _AnalysisSection(
                             hasSufficientData: hasSufficientData,
                             onMoreDetails: () {
@@ -429,12 +433,18 @@ class _MetricText extends StatelessWidget {
 }
 
 class _PaceSection extends StatelessWidget {
-  const _PaceSection({required this.hasSufficientData});
+  const _PaceSection({
+    required this.hasSufficientData,
+    required this.paceGraph,
+  });
 
   final bool hasSufficientData;
+  final PaceGraphSnapshot paceGraph;
 
   @override
   Widget build(BuildContext context) {
+    final showGuard = !hasSufficientData || !paceGraph.isAvailable;
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 22, 16, 0),
       child: Column(
@@ -444,8 +454,8 @@ class _PaceSection extends StatelessWidget {
           _CardSurface(
             padding: const EdgeInsets.fromLTRB(14, 16, 14, 12),
             child: _GuardedAnalysisPreview(
-              showGuard: !hasSufficientData,
-              child: const _PaceChart(),
+              showGuard: showGuard,
+              child: _PaceChart(graph: paceGraph),
             ),
           ),
         ],
@@ -455,13 +465,15 @@ class _PaceSection extends StatelessWidget {
 }
 
 class _PaceChart extends StatelessWidget {
-  const _PaceChart();
+  const _PaceChart({required this.graph});
+
+  final PaceGraphSnapshot graph;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        const SizedBox(
+        SizedBox(
           height: 96,
           child: Row(
             children: [
@@ -470,19 +482,16 @@ class _PaceChart extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    _AxisLabel('4:00'),
-                    _AxisLabel('6:00'),
-                    _AxisLabel('8:00'),
-                    _AxisLabel('10:00'),
-                  ],
+                  children: graph.yAxisLabels
+                      .map((label) => _AxisLabel(label))
+                      .toList(),
                 ),
               ),
-              SizedBox(width: 8),
+              const SizedBox(width: 8),
               Expanded(
                 child: CustomPaint(
-                  painter: _PaceChartPainter(),
-                  child: SizedBox.expand(),
+                  painter: _PaceChartPainter(graph: graph),
+                  child: const SizedBox.expand(),
                 ),
               ),
             ],
@@ -492,16 +501,18 @@ class _PaceChart extends StatelessWidget {
         FittedBox(
           fit: BoxFit.scaleDown,
           alignment: Alignment.centerLeft,
-          child: const Padding(
-            padding: EdgeInsets.only(left: 38),
+          child: Padding(
+            padding: const EdgeInsets.only(left: 38),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _AxisLabel('0:00'),
-                _AxisLabel('5:00'),
-                _AxisLabel('10:00'),
-                _AxisLabel('15:02'),
-              ],
+              children: graph.xAxisLabels
+                  .map(
+                    (label) => Padding(
+                      padding: const EdgeInsets.only(right: 26),
+                      child: _AxisLabel(label),
+                    ),
+                  )
+                  .toList(),
             ),
           ),
         ),
@@ -1033,7 +1044,9 @@ class _MapPreviewPainter extends CustomPainter {
 }
 
 class _PaceChartPainter extends CustomPainter {
-  const _PaceChartPainter();
+  const _PaceChartPainter({required this.graph});
+
+  final PaceGraphSnapshot graph;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1045,11 +1058,33 @@ class _PaceChartPainter extends CustomPainter {
       _drawDashedLine(canvas, Offset(0, y), Offset(size.width, y), guidePaint);
     }
 
-    final points = [60, 56, 64, 58, 52, 60, 55, 50, 57, 54, 49, 56, 52, 58, 54];
-    final step = size.width / (points.length - 1);
+    if (!graph.isAvailable || graph.points.length < 2) {
+      return;
+    }
+
+    final paceValues = graph.points
+        .map((point) => point.paceSecondsPerKm)
+        .toList();
+    final minPace = paceValues.reduce((a, b) => a < b ? a : b);
+    final maxPace = paceValues.reduce((a, b) => a > b ? a : b);
+    final paddedMin = minPace - 20;
+    final paddedMax = maxPace + 20;
+    final paceRange = paddedMax - paddedMin;
+
+    double yFor(PaceGraphPoint point) {
+      if (paceRange <= 0) {
+        return size.height / 2;
+      }
+      return ((point.paceSecondsPerKm - paddedMin) / paceRange) * size.height;
+    }
+
     final line = Path();
-    for (var i = 0; i < points.length; i += 1) {
-      final point = Offset(i * step, points[i].toDouble());
+    for (var i = 0; i < graph.points.length; i += 1) {
+      final graphPoint = graph.points[i];
+      final point = Offset(
+        graphPoint.progressFraction * size.width,
+        yFor(graphPoint),
+      );
       if (i == 0) {
         line.moveTo(point.dx, point.dy);
       } else {
@@ -1087,5 +1122,7 @@ class _PaceChartPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _PaceChartPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _PaceChartPainter oldDelegate) {
+    return oldDelegate.graph != graph;
+  }
 }

@@ -9,6 +9,7 @@ import '../domain/models/xp_update_display_model.dart';
 import '../domain/repositories/run_repository.dart';
 import '../domain/services/completed_run_title_formatter.dart';
 import '../domain/services/run_calories_estimator.dart';
+import '../presentation/data/pace_graph_demo_snapshots.dart';
 import '../presentation/data/run_completion_demo_snapshots.dart';
 
 class StaticRunRepository implements RunRepository {
@@ -58,6 +59,11 @@ class StaticRunRepository implements RunRepository {
       durationSeconds: payload.durationSeconds,
       paceSecondsPerKm: payload.avgPaceSecondsPerKm,
     );
+    final hasSufficientData = _hasSufficientSummaryData(
+      distanceMeters: payload.distanceMeters,
+      durationSeconds: payload.durationSeconds,
+      avgPace: avgPace,
+    );
     final summary = RunSummarySnapshot(
       title: const CompletedRunTitleFormatter().format(
         completedAt: payload.completedAt,
@@ -70,11 +76,10 @@ class StaticRunRepository implements RunRepository {
       avgHeartRate: '--',
       calories: _formatCalories(calories),
       routeName: payload.routeLabel ?? 'Private route',
-      hasSufficientData: _hasSufficientSummaryData(
-        distanceMeters: payload.distanceMeters,
-        durationSeconds: payload.durationSeconds,
-        avgPace: avgPace,
-      ),
+      hasSufficientData: hasSufficientData,
+      paceGraph: hasSufficientData
+          ? normalEasyRunPaceGraph
+          : unavailablePaceGraph,
     );
 
     return CompleteRunResult(

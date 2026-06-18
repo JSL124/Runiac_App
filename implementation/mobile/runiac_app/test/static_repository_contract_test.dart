@@ -360,6 +360,40 @@ void main() {
     });
 
     test(
+      'completeRun attaches fixture pace graph only for sufficient data',
+      () async {
+        final repository = StaticRunRepository();
+
+        final normalRun = await repository.completeRun(
+          _localRunCompletionPayload(
+            sessionId: 'summary-pace-graph-normal',
+            distanceMeters: 1000,
+            durationSeconds: 450,
+            paceSecondsPerKm: 450,
+          ),
+        );
+        final lowDataRun = await repository.completeRun(
+          _localRunCompletionPayload(
+            sessionId: 'summary-pace-graph-low-data',
+            distanceMeters: 20,
+            durationSeconds: 35,
+            paceSecondsPerKm: 0,
+          ),
+        );
+
+        expect(normalRun.summary.hasSufficientData, isTrue);
+        expect(normalRun.summary.paceGraph.isAvailable, isTrue);
+        expect(
+          normalRun.summary.paceGraph.points.length,
+          greaterThanOrEqualTo(3),
+        );
+        expect(lowDataRun.summary.hasSufficientData, isFalse);
+        expect(lowDataRun.summary.paceGraph.isAvailable, isFalse);
+        expect(lowDataRun.summary.paceGraph.points, isEmpty);
+      },
+    );
+
+    test(
       'return read-only activity history and leaderboard snapshots',
       () async {
         final activityHistoryRepository = StaticActivityHistoryRepository();
