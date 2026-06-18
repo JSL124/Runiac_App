@@ -498,22 +498,25 @@ class _PaceChart extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          alignment: Alignment.centerLeft,
-          child: Padding(
-            padding: const EdgeInsets.only(left: 38),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: graph.xAxisLabels
-                  .map(
-                    (label) => Padding(
-                      padding: const EdgeInsets.only(right: 26),
-                      child: _AxisLabel(label),
+        Padding(
+          padding: const EdgeInsets.only(left: 38),
+          child: Row(
+            children: [
+              for (var index = 0; index < graph.xAxisLabels.length; index += 1)
+                Expanded(
+                  child: Align(
+                    alignment: index == 0
+                        ? Alignment.centerLeft
+                        : index == graph.xAxisLabels.length - 1
+                        ? Alignment.centerRight
+                        : Alignment.center,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: _AxisLabel(graph.xAxisLabels[index]),
                     ),
-                  )
-                  .toList(),
-            ),
+                  ),
+                ),
+            ],
           ),
         ),
       ],
@@ -1062,20 +1065,33 @@ class _PaceChartPainter extends CustomPainter {
       return;
     }
 
-    final paceValues = graph.points
-        .map((point) => point.paceSecondsPerKm)
-        .toList();
-    final minPace = paceValues.reduce((a, b) => a < b ? a : b);
-    final maxPace = paceValues.reduce((a, b) => a > b ? a : b);
-    final paddedMin = minPace - 20;
-    final paddedMax = maxPace + 20;
-    final paceRange = paddedMax - paddedMin;
+    final rangeMin = graph.paceRangeMinSecondsPerKm;
+    final rangeMax = graph.paceRangeMaxSecondsPerKm;
+    if (rangeMin == null || rangeMax == null) {
+      return;
+    }
+    final paceRange = rangeMax - rangeMin;
 
-    double yFor(PaceGraphPoint point) {
+    double yForSeconds(int paceSecondsPerKm) {
       if (paceRange <= 0) {
         return size.height / 2;
       }
-      return ((point.paceSecondsPerKm - paddedMin) / paceRange) * size.height;
+      return ((paceSecondsPerKm - rangeMin) / paceRange) * size.height;
+    }
+
+    final averagePace = graph.averagePaceSecondsPerKm;
+    if (averagePace != null &&
+        averagePace >= rangeMin &&
+        averagePace <= rangeMax) {
+      _drawDashedLine(
+        canvas,
+        Offset(0, yForSeconds(averagePace)),
+        Offset(size.width, yForSeconds(averagePace)),
+        Paint()
+          ..color = _rBlue30
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.3,
+      );
     }
 
     final line = Path();
@@ -1083,7 +1099,7 @@ class _PaceChartPainter extends CustomPainter {
       final graphPoint = graph.points[i];
       final point = Offset(
         graphPoint.progressFraction * size.width,
-        yFor(graphPoint),
+        yForSeconds(graphPoint.paceSecondsPerKm),
       );
       if (i == 0) {
         line.moveTo(point.dx, point.dy);
@@ -1105,6 +1121,23 @@ class _PaceChartPainter extends CustomPainter {
         ..strokeCap = StrokeCap.round
         ..strokeJoin = StrokeJoin.round,
     );
+
+    _drawMarker(
+      canvas,
+      size,
+      point: graph.slowestPacePoint,
+      yForSeconds: yForSeconds,
+      fillColor: _rWhite,
+      strokeColor: _rBlue45,
+    );
+    _drawMarker(
+      canvas,
+      size,
+      point: graph.bestPacePoint,
+      yForSeconds: yForSeconds,
+      fillColor: _rOrange,
+      strokeColor: _rWhite,
+    );
   }
 
   void _drawDashedLine(Canvas canvas, Offset start, Offset end, Paint paint) {
@@ -1119,6 +1152,33 @@ class _PaceChartPainter extends CustomPainter {
       );
       x += dashWidth + dashSpace;
     }
+  }
+
+  void _drawMarker(
+    Canvas canvas,
+    Size size, {
+    required PaceGraphPoint? point,
+    required double Function(int paceSecondsPerKm) yForSeconds,
+    required Color fillColor,
+    required Color strokeColor,
+  }) {
+    if (point == null) {
+      return;
+    }
+
+    final center = Offset(
+      point.progressFraction * size.width,
+      yForSeconds(point.paceSecondsPerKm),
+    );
+    canvas.drawCircle(center, 4.5, Paint()..color = fillColor);
+    canvas.drawCircle(
+      center,
+      4.5,
+      Paint()
+        ..color = strokeColor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2,
+    );
   }
 
   @override

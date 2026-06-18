@@ -19,7 +19,7 @@ final recentRunningDisplayData = [
       avgHeartRate: '145',
       calories: '145',
       routeName: 'East Coast Park Night Loop',
-      paceGraph: normalEasyRunPaceGraph,
+      paceGraph: saturdayNightRecentPaceGraph,
     ),
   ),
   RunActivityDisplayModel(
@@ -38,7 +38,7 @@ final recentRunningDisplayData = [
       avgHeartRate: '138',
       calories: '212',
       routeName: 'Neighbourhood Easy Loop',
-      paceGraph: gpsSpikeRunPaceGraph,
+      paceGraph: morningEasyRecentPaceGraph,
     ),
   ),
   RunActivityDisplayModel(
@@ -57,7 +57,7 @@ final recentRunningDisplayData = [
       avgHeartRate: '132',
       calories: '286',
       routeName: 'Park Connector Recovery Loop',
-      paceGraph: normalEasyRunPaceGraph,
+      paceGraph: recoveryJogPaceGraph,
     ),
   ),
 ];

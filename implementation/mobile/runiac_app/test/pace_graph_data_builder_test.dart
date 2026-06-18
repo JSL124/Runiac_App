@@ -11,14 +11,15 @@ void main() {
       () {
         final graph = builder.build(
           samples: normalEasyRunPaceSamples,
-          durationSeconds: 780,
-          distanceMeters: 1600,
+          durationSeconds: 1815,
+          distanceMeters: 4030,
+          averagePaceSecondsPerKm: 390,
         );
 
         expect(graph.isAvailable, isTrue);
         expect(graph.points.length, greaterThanOrEqualTo(3));
         expect(graph.points.first.progressFraction, 0);
-        expect(graph.points.last.progressFraction, 1);
+        expect(graph.points.last.progressFraction, closeTo(1770 / 1815, 0.001));
         expect(
           graph.points.every(
             (point) =>
@@ -26,19 +27,50 @@ void main() {
           ),
           isTrue,
         );
+        expect(graph.totalDurationSeconds, 1815);
+        expect(graph.averagePaceSecondsPerKm, 390);
+        expect(graph.bestPacePoint?.paceSecondsPerKm, 382);
+        expect(graph.slowestPacePoint?.paceSecondsPerKm, 405);
+        expect(graph.paceRangeMinSecondsPerKm, 360);
+        expect(graph.paceRangeMaxSecondsPerKm, 440);
       },
     );
 
     test('normal easy fixture graph matches builder output', () {
       final graph = builder.build(
         samples: normalEasyRunPaceSamples,
-        durationSeconds: 780,
-        distanceMeters: 1600,
+        durationSeconds: 1815,
+        distanceMeters: 4030,
+        averagePaceSecondsPerKm: 390,
       );
 
       expect(graph.isAvailable, normalEasyRunPaceGraph.isAvailable);
       expect(graph.xAxisLabels, normalEasyRunPaceGraph.xAxisLabels);
       expect(graph.yAxisLabels, normalEasyRunPaceGraph.yAxisLabels);
+      expect(
+        graph.totalDurationSeconds,
+        normalEasyRunPaceGraph.totalDurationSeconds,
+      );
+      expect(
+        graph.averagePaceSecondsPerKm,
+        normalEasyRunPaceGraph.averagePaceSecondsPerKm,
+      );
+      expect(
+        graph.bestPacePoint?.paceSecondsPerKm,
+        normalEasyRunPaceGraph.bestPacePoint?.paceSecondsPerKm,
+      );
+      expect(
+        graph.slowestPacePoint?.paceSecondsPerKm,
+        normalEasyRunPaceGraph.slowestPacePoint?.paceSecondsPerKm,
+      );
+      expect(
+        graph.paceRangeMinSecondsPerKm,
+        normalEasyRunPaceGraph.paceRangeMinSecondsPerKm,
+      );
+      expect(
+        graph.paceRangeMaxSecondsPerKm,
+        normalEasyRunPaceGraph.paceRangeMaxSecondsPerKm,
+      );
       expect(
         graph.points.map((point) => point.elapsedSeconds),
         normalEasyRunPaceGraph.points.map((point) => point.elapsedSeconds),
@@ -56,12 +88,17 @@ void main() {
     test('gps spike run filters unrealistic fast and slow pace values', () {
       final graph = builder.build(
         samples: gpsSpikeRunPaceSamples,
-        durationSeconds: 840,
-        distanceMeters: 1700,
+        durationSeconds: 1450,
+        distanceMeters: 3200,
+        averagePaceSecondsPerKm: 425,
       );
 
       expect(graph.isAvailable, isTrue);
       expect(graph.points.length, greaterThanOrEqualTo(3));
+      expect(graph.xAxisLabels, ['0:00', '8:00', '16:00', '24:10']);
+      expect(graph.averagePaceSecondsPerKm, 425);
+      expect(graph.bestPacePoint?.paceSecondsPerKm, 410);
+      expect(graph.slowestPacePoint?.paceSecondsPerKm, 440);
       expect(
         graph.points.any((point) => point.paceSecondsPerKm == 80),
         isFalse,
@@ -70,6 +107,27 @@ void main() {
         graph.points.any((point) => point.paceSecondsPerKm == 2700),
         isFalse,
       );
+    });
+
+    test('duration-based x axis uses total run time', () {
+      final thirtyMinuteGraph = builder.build(
+        samples: normalEasyRunPaceSamples,
+        durationSeconds: 1815,
+        distanceMeters: 4030,
+      );
+      final twelveMinuteGraph = builder.build(
+        samples: normalEasyRunPaceSamples,
+        durationSeconds: 720,
+        distanceMeters: 1600,
+      );
+
+      expect(thirtyMinuteGraph.xAxisLabels, [
+        '0:00',
+        '10:00',
+        '20:00',
+        '30:15',
+      ]);
+      expect(twelveMinuteGraph.xAxisLabels, ['0:00', '6:00', '12:00']);
     });
 
     test('low-data run returns unavailable graph', () {
@@ -81,6 +139,9 @@ void main() {
 
       expect(graph.isAvailable, isFalse);
       expect(graph.points, isEmpty);
+      expect(graph.averagePaceSecondsPerKm, isNull);
+      expect(graph.bestPacePoint, isNull);
+      expect(graph.slowestPacePoint, isNull);
     });
 
     test('too few valid points run returns unavailable graph', () {

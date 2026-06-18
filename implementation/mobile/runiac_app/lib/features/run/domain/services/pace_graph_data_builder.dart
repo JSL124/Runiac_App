@@ -20,6 +20,7 @@ class PaceGraphDataBuilder {
     required List<PaceGraphSample> samples,
     required int durationSeconds,
     required int distanceMeters,
+    int? averagePaceSecondsPerKm,
   }) {
     final validSamples = _validIncreasingSamples(samples);
     if (durationSeconds < 60 ||
@@ -28,35 +29,39 @@ class PaceGraphDataBuilder {
       return const PaceGraphSnapshot.unavailable();
     }
 
-    final firstElapsed = validSamples.first.elapsedSeconds;
-    final lastElapsed = validSamples.last.elapsedSeconds;
-    final elapsedRange = lastElapsed - firstElapsed;
-    if (elapsedRange <= 0) {
-      return const PaceGraphSnapshot.unavailable();
-    }
-
     final paceValues = validSamples
         .map((sample) => sample.paceSecondsPerKm)
         .toList();
     final minPace = paceValues.reduce((a, b) => a < b ? a : b);
     final maxPace = paceValues.reduce((a, b) => a > b ? a : b);
+    final paceRange = _paceAxisRange(minPace: minPace, maxPace: maxPace);
+    final points = validSamples.map((sample) {
+      final progress = sample.elapsedSeconds / durationSeconds;
+      return PaceGraphPoint(
+        elapsedSeconds: sample.elapsedSeconds,
+        progressFraction: progress.clamp(0, 1).toDouble(),
+        paceSecondsPerKm: sample.paceSecondsPerKm,
+        displayLabel: _formatPace(sample.paceSecondsPerKm),
+      );
+    }).toList();
+    final bestPacePoint = points.reduce(
+      (a, b) => a.paceSecondsPerKm <= b.paceSecondsPerKm ? a : b,
+    );
+    final slowestPacePoint = points.reduce(
+      (a, b) => a.paceSecondsPerKm >= b.paceSecondsPerKm ? a : b,
+    );
 
     return PaceGraphSnapshot(
       isAvailable: true,
-      points: validSamples.map((sample) {
-        final progress = (sample.elapsedSeconds - firstElapsed) / elapsedRange;
-        return PaceGraphPoint(
-          elapsedSeconds: sample.elapsedSeconds,
-          progressFraction: progress.clamp(0, 1).toDouble(),
-          paceSecondsPerKm: sample.paceSecondsPerKm,
-          displayLabel: _formatPace(sample.paceSecondsPerKm),
-        );
-      }).toList(),
-      yAxisLabels: _paceAxisLabels(minPace: minPace, maxPace: maxPace),
-      xAxisLabels: _timeAxisLabels(
-        firstElapsed: firstElapsed,
-        lastElapsed: lastElapsed,
-      ),
+      points: points,
+      yAxisLabels: _paceAxisLabels(paceRange),
+      xAxisLabels: _timeAxisLabels(durationSeconds),
+      totalDurationSeconds: durationSeconds,
+      averagePaceSecondsPerKm: averagePaceSecondsPerKm,
+      bestPacePoint: bestPacePoint,
+      slowestPacePoint: slowestPacePoint,
+      paceRangeMinSecondsPerKm: paceRange.minSecondsPerKm,
+      paceRangeMaxSecondsPerKm: paceRange.maxSecondsPerKm,
     );
   }
 
@@ -81,9 +86,18 @@ class PaceGraphDataBuilder {
     return validSamples;
   }
 
-  List<String> _paceAxisLabels({required int minPace, required int maxPace}) {
+  _PaceAxisRange _paceAxisRange({required int minPace, required int maxPace}) {
     final paddedMin = _roundDownToTwentySeconds(minPace - 20);
     final paddedMax = _roundUpToTwentySeconds(maxPace + 20);
+    return _PaceAxisRange(
+      minSecondsPerKm: paddedMin,
+      maxSecondsPerKm: paddedMax,
+    );
+  }
+
+  List<String> _paceAxisLabels(_PaceAxisRange paceRange) {
+    final paddedMin = paceRange.minSecondsPerKm;
+    final paddedMax = paceRange.maxSecondsPerKm;
     final midpoint = ((paddedMin + paddedMax) / 2).round();
 
     return [
@@ -93,15 +107,20 @@ class PaceGraphDataBuilder {
     ];
   }
 
-  List<String> _timeAxisLabels({
-    required int firstElapsed,
-    required int lastElapsed,
-  }) {
-    final midpoint = firstElapsed + ((lastElapsed - firstElapsed) / 2).round();
+  List<String> _timeAxisLabels(int durationSeconds) {
+    if (durationSeconds < 900) {
+      return [
+        _formatTime(0),
+        _formatTime(_roundDownToMinute(durationSeconds ~/ 2)),
+        _formatTime(durationSeconds),
+      ];
+    }
+
     return [
-      _formatTime(firstElapsed),
-      _formatTime(midpoint),
-      _formatTime(lastElapsed),
+      _formatTime(0),
+      _formatTime(_roundDownToMinute(durationSeconds ~/ 3)),
+      _formatTime(_roundDownToMinute((durationSeconds * 2) ~/ 3)),
+      _formatTime(durationSeconds),
     ];
   }
 
@@ -120,6 +139,10 @@ class PaceGraphDataBuilder {
     return remainder == 0 ? safeValue : safeValue + (20 - remainder);
   }
 
+  int _roundDownToMinute(int value) {
+    return value - (value % 60);
+  }
+
   String _formatPace(int paceSecondsPerKm) {
     return _formatTime(paceSecondsPerKm);
   }
@@ -129,4 +152,14 @@ class PaceGraphDataBuilder {
     final seconds = totalSeconds % 60;
     return '$minutes:${seconds.toString().padLeft(2, '0')}';
   }
+}
+
+class _PaceAxisRange {
+  const _PaceAxisRange({
+    required this.minSecondsPerKm,
+    required this.maxSecondsPerKm,
+  });
+
+  final int minSecondsPerKm;
+  final int maxSecondsPerKm;
 }

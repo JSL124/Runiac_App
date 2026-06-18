@@ -23,7 +23,7 @@ final activityHistoryDisplayData = [
           avgHeartRate: '145',
           calories: '312',
           routeName: 'East Coast Park Night Loop',
-          paceGraph: normalEasyRunPaceGraph,
+          paceGraph: saturdayNightHistoryPaceGraph,
         ),
       ),
       RunActivityDisplayModel(
@@ -42,7 +42,7 @@ final activityHistoryDisplayData = [
           avgHeartRate: '138',
           calories: '242',
           routeName: 'Neighbourhood Easy Loop',
-          paceGraph: gpsSpikeRunPaceGraph,
+          paceGraph: easyMorningHistoryPaceGraph,
         ),
       ),
       RunActivityDisplayModel(

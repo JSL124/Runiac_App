@@ -268,6 +268,8 @@ void main() {
         duration: '30:15',
         route: 'East Coast Park Night Loop',
         hasSpikeFilteredGraph: false,
+        expectedAxisLabels: ['0:00', '10:00', '20:00', '30:15'],
+        forbiddenAxisLabels: ['13:00'],
       ),
       (
         title: 'Morning Easy Run',
@@ -277,6 +279,8 @@ void main() {
         duration: '24:10',
         route: 'Neighbourhood Easy Loop',
         hasSpikeFilteredGraph: true,
+        expectedAxisLabels: ['0:00', '8:00', '16:00', '24:10'],
+        forbiddenAxisLabels: <String>[],
       ),
       (
         title: 'Recovery Jog',
@@ -286,6 +290,8 @@ void main() {
         duration: '39:38',
         route: 'Park Connector Recovery Loop',
         hasSpikeFilteredGraph: false,
+        expectedAxisLabels: ['0:00', '13:00', '26:00', '39:38'],
+        forbiddenAxisLabels: <String>[],
       ),
     ];
 
@@ -309,8 +315,14 @@ void main() {
       expect(find.text(run.route), findsOneWidget);
       expect(find.text(run.distance), findsOneWidget);
       expect(find.text(run.pace), findsOneWidget);
-      expect(find.text(run.duration), findsOneWidget);
+      expect(find.text(run.duration), findsWidgets);
       expect(find.text('Pace Over Time'), findsOneWidget);
+      for (final label in run.expectedAxisLabels) {
+        expect(find.text(label), findsWidgets);
+      }
+      for (final label in run.forbiddenAxisLabels) {
+        expect(find.text(label), findsNothing);
+      }
       expect(find.text('More run data needed'), findsNothing);
       expect(
         find.text('Pace insights will appear after a longer run.'),
@@ -424,8 +436,11 @@ void main() {
       expect(find.text('6 Jun 2026 · 9:18 PM'), findsOneWidget);
       expect(find.text('5.12'), findsOneWidget);
       expect(find.text('6\'45"'), findsOneWidget);
-      expect(find.text('34:32'), findsOneWidget);
+      expect(find.text('34:32'), findsWidgets);
       expect(find.text('Pace Over Time'), findsOneWidget);
+      expect(find.text('11:00'), findsOneWidget);
+      expect(find.text('23:00'), findsOneWidget);
+      expect(find.text('13:00'), findsNothing);
       expect(find.text('More run data needed'), findsNothing);
       expect(
         find.text('Pace insights will appear after a longer run.'),
@@ -441,6 +456,9 @@ void main() {
       expect(find.text('Easy Morning Jog'), findsOneWidget);
       expect(find.text('4 Jun 2026 · 6:45 AM'), findsOneWidget);
       expect(find.text('Pace Over Time'), findsOneWidget);
+      expect(find.text('10:00'), findsOneWidget);
+      expect(find.text('20:00'), findsOneWidget);
+      expect(find.text('30:15'), findsWidgets);
       expect(find.text('More run data needed'), findsNothing);
       expect(find.text('1:20'), findsNothing);
       expect(find.text('45:00'), findsNothing);

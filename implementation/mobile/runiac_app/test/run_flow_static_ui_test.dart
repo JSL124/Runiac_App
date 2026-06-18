@@ -674,7 +674,7 @@ void main() {
     expect(find.text('km'), findsOneWidget);
     expect(find.text('6’30”'), findsOneWidget);
     expect(find.text('Avg Pace'), findsOneWidget);
-    expect(find.text('30:15'), findsOneWidget);
+    expect(find.text('30:15'), findsWidgets);
     expect(find.text('Time'), findsOneWidget);
     expect(find.text('145 bpm'), findsOneWidget);
     expect(find.text('145 kcal'), findsOneWidget);
@@ -688,11 +688,12 @@ void main() {
     expect(find.text('Pace Over Time'), findsOneWidget);
     expect(find.text('4:00'), findsNothing);
     expect(find.text('0:00'), findsOneWidget);
-    expect(find.text('6:30'), findsOneWidget);
-    expect(find.text('13:00'), findsOneWidget);
+    expect(find.text('10:00'), findsOneWidget);
+    expect(find.text('20:00'), findsOneWidget);
+    expect(find.text('13:00'), findsNothing);
+    expect(find.text('6:00'), findsOneWidget);
+    expect(find.text('6:40'), findsOneWidget);
     expect(find.text('7:20'), findsOneWidget);
-    expect(find.text('8:00'), findsOneWidget);
-    expect(find.text('8:40'), findsOneWidget);
     expect(find.text('More run data needed'), findsNothing);
     expect(find.text('Advanced Analysis'), findsOneWidget);
     expect(find.text('Heart rate zones, cadence & elevation'), findsOneWidget);
@@ -1017,8 +1018,9 @@ void main() {
 
       expect(find.text('Pace Over Time'), findsOneWidget);
       expect(find.text('0:00'), findsOneWidget);
-      expect(find.text('7:00'), findsOneWidget);
-      expect(find.text('14:00'), findsOneWidget);
+      expect(find.text('8:00'), findsOneWidget);
+      expect(find.text('16:00'), findsOneWidget);
+      expect(find.text('24:10'), findsOneWidget);
       expect(find.text('1:20'), findsNothing);
       expect(find.text('45:00'), findsNothing);
       expect(find.text('More run data needed'), findsNothing);

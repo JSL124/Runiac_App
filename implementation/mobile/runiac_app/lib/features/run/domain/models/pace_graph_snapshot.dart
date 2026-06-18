@@ -5,6 +5,12 @@ class PaceGraphSnapshot {
     required this.yAxisLabels,
     required this.xAxisLabels,
     this.unavailableReason,
+    this.totalDurationSeconds,
+    this.averagePaceSecondsPerKm,
+    this.bestPacePoint,
+    this.slowestPacePoint,
+    this.paceRangeMinSecondsPerKm,
+    this.paceRangeMaxSecondsPerKm,
   });
 
   const PaceGraphSnapshot.unavailable({
@@ -12,13 +18,25 @@ class PaceGraphSnapshot {
   }) : isAvailable = false,
        points = const [],
        yAxisLabels = const [],
-       xAxisLabels = const [];
+       xAxisLabels = const [],
+       totalDurationSeconds = null,
+       averagePaceSecondsPerKm = null,
+       bestPacePoint = null,
+       slowestPacePoint = null,
+       paceRangeMinSecondsPerKm = null,
+       paceRangeMaxSecondsPerKm = null;
 
   final bool isAvailable;
   final List<PaceGraphPoint> points;
   final List<String> yAxisLabels;
   final List<String> xAxisLabels;
   final String? unavailableReason;
+  final int? totalDurationSeconds;
+  final int? averagePaceSecondsPerKm;
+  final PaceGraphPoint? bestPacePoint;
+  final PaceGraphPoint? slowestPacePoint;
+  final int? paceRangeMinSecondsPerKm;
+  final int? paceRangeMaxSecondsPerKm;
 }
 
 class PaceGraphPoint {

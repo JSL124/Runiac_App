@@ -78,7 +78,12 @@ class StaticRunRepository implements RunRepository {
       routeName: payload.routeLabel ?? 'Private route',
       hasSufficientData: hasSufficientData,
       paceGraph: hasSufficientData
-          ? normalEasyRunPaceGraph
+          ? buildDemoPaceGraph(
+              samples: normalEasyRunPaceSamples,
+              durationSeconds: payload.durationSeconds,
+              distanceMeters: payload.distanceMeters,
+              averagePaceSecondsPerKm: payload.avgPaceSecondsPerKm,
+            )
           : unavailablePaceGraph,
     );
 
