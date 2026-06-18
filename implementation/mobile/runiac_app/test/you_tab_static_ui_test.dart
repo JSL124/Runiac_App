@@ -35,6 +35,14 @@ ActiveRunSessionCoordinator _testActiveRunSessionCoordinator(
   return activeRunSessionCoordinator;
 }
 
+Future<void> _openActivityHistoryFromYou(WidgetTester tester) async {
+  await _openYouTab(tester);
+  await tester.ensureVisible(find.text('More Activities'));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('More Activities'));
+  await tester.pumpAndSettle();
+}
+
 void main() {
   void expectFixedDistanceGraph(WidgetTester tester) {
     final graphFinder = find.byKey(
@@ -380,31 +388,70 @@ void main() {
     expect(find.byType(VerticalDivider), findsNWidgets(16));
   });
 
-  testWidgets('Activity History opens run summary without XP update action', (
-    WidgetTester tester,
-  ) async {
-    await _openYouTab(tester);
+  testWidgets(
+    'Activity History summaries cover normal, spike-filtered, and low-data pace graph states',
+    (WidgetTester tester) async {
+      await _openActivityHistoryFromYou(tester);
 
-    await tester.ensureVisible(find.text('More Activities'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('More Activities'));
-    await tester.pumpAndSettle();
+      expect(find.byType(CompactRunActivityCard), findsNWidgets(8));
 
-    final saturdayCard = find.byKey(
-      const ValueKey('activity_history_card_Saturday Night Run'),
-    );
-    expect(saturdayCard, findsOneWidget);
+      Future<void> openHistorySummary(String title) async {
+        final card = find.byKey(ValueKey('activity_history_card_$title'));
+        expect(card, findsOneWidget);
 
-    await tester.tap(saturdayCard);
-    await tester.pumpAndSettle();
+        await Scrollable.ensureVisible(tester.element(card), alignment: 0.55);
+        await tester.pumpAndSettle();
+        await tester.tap(card);
+        await tester.pumpAndSettle();
+      }
 
-    expect(find.text('Saturday Night Run'), findsOneWidget);
-    expect(find.text('6 Jun 2026 · 9:18 PM'), findsOneWidget);
-    expect(find.text('5.12'), findsOneWidget);
-    expect(find.text('6\'45"'), findsOneWidget);
-    expect(find.text('34:32'), findsOneWidget);
-    expect(find.widgetWithText(FilledButton, 'View XP Update'), findsNothing);
-  });
+      await openHistorySummary('Saturday Night Run');
+
+      expect(find.text('Saturday Night Run'), findsOneWidget);
+      expect(find.text('6 Jun 2026 · 9:18 PM'), findsOneWidget);
+      expect(find.text('5.12'), findsOneWidget);
+      expect(find.text('6\'45"'), findsOneWidget);
+      expect(find.text('34:32'), findsOneWidget);
+      expect(find.text('Pace Over Time'), findsOneWidget);
+      expect(find.text('More run data needed'), findsNothing);
+      expect(
+        find.text('Pace insights will appear after a longer run.'),
+        findsNothing,
+      );
+      expect(find.widgetWithText(FilledButton, 'View XP Update'), findsNothing);
+
+      await tester.tap(find.byTooltip('Back to cool down'));
+      await tester.pumpAndSettle();
+
+      await openHistorySummary('Easy Morning Jog');
+
+      expect(find.text('Easy Morning Jog'), findsOneWidget);
+      expect(find.text('4 Jun 2026 · 6:45 AM'), findsOneWidget);
+      expect(find.text('Pace Over Time'), findsOneWidget);
+      expect(find.text('More run data needed'), findsNothing);
+      expect(find.text('1:20'), findsNothing);
+      expect(find.text('45:00'), findsNothing);
+      expect(find.widgetWithText(FilledButton, 'View XP Update'), findsNothing);
+
+      await tester.tap(find.byTooltip('Back to cool down'));
+      await tester.pumpAndSettle();
+
+      await openHistorySummary('Riverside Recovery');
+
+      expect(find.text('Riverside Recovery'), findsOneWidget);
+      expect(find.text('1 Jun 2026 · 7:05 PM'), findsOneWidget);
+      expect(find.text('0.06'), findsOneWidget);
+      expect(find.text('--'), findsWidgets);
+      expect(find.text('00:38'), findsOneWidget);
+      expect(find.text('Pace Over Time'), findsOneWidget);
+      expect(find.text('More run data needed'), findsWidgets);
+      expect(
+        find.text('Pace insights will appear after a longer run.'),
+        findsWidgets,
+      );
+      expect(find.widgetWithText(FilledButton, 'View XP Update'), findsNothing);
+    },
+  );
 
   testWidgets('You page shows static plans overview when Plans is selected', (
     WidgetTester tester,

@@ -1,8 +1,9 @@
 import '../../../run/domain/models/run_activity_display_model.dart';
 import '../../../run/domain/models/run_summary_snapshot.dart';
+import '../../../run/presentation/data/pace_graph_demo_snapshots.dart';
 
 // Display-only activity history for the static You prototype.
-const activityHistoryDisplayData = [
+final activityHistoryDisplayData = [
   ActivityHistoryMonth(
     label: 'June 2026',
     activities: [
@@ -22,6 +23,7 @@ const activityHistoryDisplayData = [
           avgHeartRate: '145',
           calories: '312',
           routeName: 'East Coast Park Night Loop',
+          paceGraph: normalEasyRunPaceGraph,
         ),
       ),
       RunActivityDisplayModel(
@@ -40,24 +42,27 @@ const activityHistoryDisplayData = [
           avgHeartRate: '138',
           calories: '242',
           routeName: 'Neighbourhood Easy Loop',
+          paceGraph: gpsSpikeRunPaceGraph,
         ),
       ),
       RunActivityDisplayModel(
         title: 'Riverside Recovery',
         timeAgoLabel: '1 Jun 2026',
-        distanceLabel: '3.20 km',
-        paceLabel: '7\'05"',
-        durationLabel: '22:40',
+        distanceLabel: '0.06 km',
+        paceLabel: '--',
+        durationLabel: '00:38',
         summary: RunSummarySnapshot(
           title: 'Riverside Recovery',
           dateLabel: '1 Jun 2026',
           timeLabel: '7:05 PM',
-          distanceKm: '3.20',
-          avgPace: '7\'05"',
-          duration: '22:40',
-          avgHeartRate: '132',
-          calories: '190',
-          routeName: 'Riverside Recovery Loop',
+          distanceKm: '0.06',
+          avgPace: '--',
+          duration: '00:38',
+          avgHeartRate: '--',
+          calories: '--',
+          routeName: 'Riverside Start Check',
+          hasSufficientData: false,
+          paceGraph: unavailablePaceGraph,
         ),
       ),
     ],
