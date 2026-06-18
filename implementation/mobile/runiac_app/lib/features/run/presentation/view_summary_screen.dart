@@ -474,6 +474,7 @@ class _PaceSection extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(12, 16, 12, 12),
             child: _GuardedAnalysisPreview(
               showGuard: showGuard,
+              clipContent: false,
               child: _PaceChart(graph: paceGraph),
             ),
           ),
@@ -721,28 +722,31 @@ class _GuardedAnalysisPreview extends StatelessWidget {
   const _GuardedAnalysisPreview({
     required this.showGuard,
     required this.child,
+    this.clipContent = true,
     this.minHeight = 0,
   });
 
   final bool showGuard;
   final Widget child;
+  final bool clipContent;
   final double minHeight;
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(14),
-      child: ConstrainedBox(
-        constraints: BoxConstraints(minHeight: minHeight),
-        child: Stack(
-          fit: StackFit.passthrough,
-          children: [
-            child,
-            if (showGuard) const Positioned.fill(child: _LowDataGraphGuard()),
-          ],
-        ),
+    final preview = ConstrainedBox(
+      constraints: BoxConstraints(minHeight: minHeight),
+      child: Stack(
+        fit: StackFit.passthrough,
+        children: [
+          child,
+          if (showGuard) const Positioned.fill(child: _LowDataGraphGuard()),
+        ],
       ),
     );
+    if (!clipContent) {
+      return preview;
+    }
+    return ClipRRect(borderRadius: BorderRadius.circular(14), child: preview);
   }
 }
 
