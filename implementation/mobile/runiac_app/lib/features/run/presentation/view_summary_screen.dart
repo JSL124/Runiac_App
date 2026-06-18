@@ -492,6 +492,12 @@ class _PaceChart extends StatelessWidget {
   Widget build(BuildContext context) {
     final renderedGraph = graph.isAvailable ? graph : _lockedPaceGraphPreview;
     final isLockedPreview = !graph.isAvailable;
+    final yAxisLabels = isLockedPreview
+        ? _lockedPaceGraphPreview.yAxisLabels
+        : graph.yAxisLabels;
+    final xAxisLabels = isLockedPreview
+        ? _lockedPaceGraphPreview.xAxisLabels
+        : graph.xAxisLabels;
 
     return Column(
       children: [
@@ -504,7 +510,7 @@ class _PaceChart extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.end,
-                  children: graph.yAxisLabels
+                  children: yAxisLabels
                       .map((label) => _AxisLabel(label))
                       .toList(),
                 ),
@@ -527,7 +533,7 @@ class _PaceChart extends StatelessWidget {
           children: [
             const SizedBox(width: _paceChartYAxisWidth),
             const SizedBox(width: _paceChartAxisGap),
-            Expanded(child: _PaceXAxisLabels(labels: graph.xAxisLabels)),
+            Expanded(child: _PaceXAxisLabels(labels: xAxisLabels)),
           ],
         ),
       ],
@@ -564,8 +570,8 @@ const _lockedPaceGraphPreview = PaceGraphSnapshot(
       paceSecondsPerKm: 460,
     ),
   ],
-  yAxisLabels: [],
-  xAxisLabels: [],
+  yAxisLabels: ['6:00', '7:00', '8:00'],
+  xAxisLabels: ['0:00', '5:00', '10:00'],
   paceRangeMinSecondsPerKm: 420,
   paceRangeMaxSecondsPerKm: 520,
 );
@@ -747,9 +753,9 @@ class _LowDataGraphGuard extends StatelessWidget {
   Widget build(BuildContext context) {
     return ClipRect(
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 2.4, sigmaY: 2.4),
+        filter: ImageFilter.blur(sigmaX: 3.2, sigmaY: 3.2),
         child: DecoratedBox(
-          decoration: BoxDecoration(color: _rWhite.withValues(alpha: 0.56)),
+          decoration: BoxDecoration(color: _rWhite.withValues(alpha: 0.5)),
           child: Center(
             child: const Padding(
               padding: EdgeInsets.symmetric(horizontal: 18, vertical: 10),
