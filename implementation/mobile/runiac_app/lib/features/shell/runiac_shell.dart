@@ -9,6 +9,11 @@ import '../run/presentation/run_launch_screen.dart';
 import '../run/presentation/run_open_intent.dart';
 import '../you/presentation/you_tab.dart';
 
+const _bottomNavLabels = ['Home', 'Maps', 'Run', 'Leaderboard', 'You'];
+const _bottomNavSelectedFontSize = 14.0;
+const _bottomNavUnselectedFontSize = 12.0;
+const _bottomNavMinFontSize = 10.5;
+
 class RuniacShell extends StatefulWidget {
   const RuniacShell({
     super.key,
@@ -184,24 +189,83 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
           ? null
           : AppBar(title: const Text('Runiac')),
       body: tabs[_selectedIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        type: BottomNavigationBarType.fixed,
-        onTap: _handleNavigationTap,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.map), label: 'Maps'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.directions_run),
-            label: 'Run',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.leaderboard),
+      bottomNavigationBar: LayoutBuilder(
+        builder: (context, constraints) {
+          final tabWidth = constraints.maxWidth / _bottomNavLabels.length;
+          final selectedFontSize = _bottomNavFontSizeForWidth(
+            context: context,
             label: 'Leaderboard',
-          ),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'You'),
-        ],
+            availableWidth: tabWidth,
+            baseFontSize: _bottomNavSelectedFontSize,
+          );
+          final unselectedFontSize = _bottomNavFontSizeForWidth(
+            context: context,
+            label: 'Leaderboard',
+            availableWidth: tabWidth,
+            baseFontSize: _bottomNavUnselectedFontSize,
+          );
+
+          return BottomNavigationBar(
+            currentIndex: _selectedIndex,
+            type: BottomNavigationBarType.fixed,
+            selectedFontSize: selectedFontSize,
+            unselectedFontSize: unselectedFontSize,
+            selectedLabelStyle: TextStyle(
+              fontSize: selectedFontSize,
+              overflow: TextOverflow.visible,
+            ),
+            unselectedLabelStyle: TextStyle(
+              fontSize: unselectedFontSize,
+              overflow: TextOverflow.visible,
+            ),
+            onTap: _handleNavigationTap,
+            items: const [
+              BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+              BottomNavigationBarItem(icon: Icon(Icons.map), label: 'Maps'),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.directions_run),
+                label: 'Run',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.leaderboard),
+                label: 'Leaderboard',
+              ),
+              BottomNavigationBarItem(icon: Icon(Icons.person), label: 'You'),
+            ],
+          );
+        },
       ),
     );
   }
+}
+
+double _bottomNavFontSizeForWidth({
+  required BuildContext context,
+  required String label,
+  required double availableWidth,
+  required double baseFontSize,
+}) {
+  if (!availableWidth.isFinite || availableWidth <= 0) {
+    return baseFontSize;
+  }
+
+  final textPainter = TextPainter(
+    maxLines: 1,
+    text: TextSpan(
+      text: label,
+      style: TextStyle(fontSize: baseFontSize),
+    ),
+    textDirection: Directionality.of(context),
+    textScaler: MediaQuery.textScalerOf(context),
+  )..layout();
+
+  final measuredWidth = textPainter.width;
+  if (measuredWidth <= availableWidth) {
+    return baseFontSize;
+  }
+
+  return (baseFontSize * (availableWidth / measuredWidth)).clamp(
+    _bottomNavMinFontSize,
+    baseFontSize,
+  );
 }
