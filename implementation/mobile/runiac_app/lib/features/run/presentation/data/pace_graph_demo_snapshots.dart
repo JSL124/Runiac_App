@@ -46,11 +46,12 @@ const slowWalkOrPauseRunPaceSamples = [
 
 const progressiveRunPaceSamples = [
   PaceGraphSample(elapsedSeconds: 0, paceSecondsPerKm: 520),
-  PaceGraphSample(elapsedSeconds: 150, paceSecondsPerKm: 508),
-  PaceGraphSample(elapsedSeconds: 300, paceSecondsPerKm: 496),
-  PaceGraphSample(elapsedSeconds: 450, paceSecondsPerKm: 484),
-  PaceGraphSample(elapsedSeconds: 600, paceSecondsPerKm: 472),
-  PaceGraphSample(elapsedSeconds: 750, paceSecondsPerKm: 460),
+  PaceGraphSample(elapsedSeconds: 360, paceSecondsPerKm: 508),
+  PaceGraphSample(elapsedSeconds: 720, paceSecondsPerKm: 496),
+  PaceGraphSample(elapsedSeconds: 1080, paceSecondsPerKm: 484),
+  PaceGraphSample(elapsedSeconds: 1440, paceSecondsPerKm: 472),
+  PaceGraphSample(elapsedSeconds: 1800, paceSecondsPerKm: 466),
+  PaceGraphSample(elapsedSeconds: 2370, paceSecondsPerKm: 460),
 ];
 
 const normalEasyRunPaceGraph = PaceGraphSnapshot(

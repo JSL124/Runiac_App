@@ -499,7 +499,7 @@ class _PaceChart extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Padding(
-          padding: const EdgeInsets.only(left: 38),
+          padding: const EdgeInsets.fromLTRB(38, 0, 8, 0),
           child: Row(
             children: [
               for (var index = 0; index < graph.xAxisLabels.length; index += 1)
@@ -1061,7 +1061,7 @@ class _PaceChartPainter extends CustomPainter {
       _drawDashedLine(canvas, Offset(0, y), Offset(size.width, y), guidePaint);
     }
 
-    if (!graph.isAvailable || graph.points.length < 2) {
+    if (!graph.isAvailable || graph.points.length < 3) {
       return;
     }
 
@@ -1094,22 +1094,31 @@ class _PaceChartPainter extends CustomPainter {
       );
     }
 
-    final line = Path();
+    final offsets = <Offset>[];
     for (var i = 0; i < graph.points.length; i += 1) {
       final graphPoint = graph.points[i];
-      final point = Offset(
-        graphPoint.progressFraction * size.width,
-        yForSeconds(graphPoint.paceSecondsPerKm),
+      offsets.add(
+        Offset(
+          graphPoint.progressFraction * size.width,
+          yForSeconds(graphPoint.paceSecondsPerKm),
+        ),
       );
+    }
+
+    final line = Path();
+    for (var i = 0; i < offsets.length; i += 1) {
+      final point = offsets[i];
       if (i == 0) {
         line.moveTo(point.dx, point.dy);
       } else {
         line.lineTo(point.dx, point.dy);
       }
     }
+    final firstPoint = offsets.first;
+    final lastPoint = offsets.last;
     final area = Path.from(line)
-      ..lineTo(size.width, size.height)
-      ..lineTo(0, size.height)
+      ..lineTo(lastPoint.dx, size.height)
+      ..lineTo(firstPoint.dx, size.height)
       ..close();
     canvas.drawPath(area, Paint()..color = const Color(0x14FB6414));
     canvas.drawPath(

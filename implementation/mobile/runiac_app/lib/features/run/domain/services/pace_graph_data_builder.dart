@@ -2,6 +2,7 @@ import '../models/pace_graph_snapshot.dart';
 
 const minGraphPaceSecondsPerKm = 150;
 const maxGraphPaceSecondsPerKm = 1800;
+const minVisiblePaceRangeSeconds = 80;
 
 class PaceGraphSample {
   const PaceGraphSample({
@@ -87,8 +88,24 @@ class PaceGraphDataBuilder {
   }
 
   _PaceAxisRange _paceAxisRange({required int minPace, required int maxPace}) {
-    final paddedMin = _roundDownToTwentySeconds(minPace - 20);
-    final paddedMax = _roundUpToTwentySeconds(maxPace + 20);
+    var paddedMin = _roundDownToTwentySeconds(minPace - 20);
+    var paddedMax = _roundUpToTwentySeconds(maxPace + 20);
+
+    if (paddedMax - paddedMin < minVisiblePaceRangeSeconds) {
+      final midpoint = ((paddedMin + paddedMax) / 2).round();
+      paddedMin = _roundDownToTwentySeconds(
+        midpoint - (minVisiblePaceRangeSeconds ~/ 2),
+      );
+      paddedMax = _roundUpToTwentySeconds(
+        paddedMin + minVisiblePaceRangeSeconds,
+      );
+      if (paddedMax - paddedMin < minVisiblePaceRangeSeconds) {
+        paddedMin = _roundDownToTwentySeconds(
+          paddedMax - minVisiblePaceRangeSeconds,
+        );
+      }
+    }
+
     return _PaceAxisRange(
       minSecondsPerKm: paddedMin,
       maxSecondsPerKm: paddedMax,

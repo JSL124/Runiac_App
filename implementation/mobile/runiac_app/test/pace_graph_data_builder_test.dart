@@ -130,6 +130,22 @@ void main() {
       expect(twelveMinuteGraph.xAxisLabels, ['0:00', '6:00', '12:00']);
     });
 
+    test('recovery fixture covers the long summary duration', () {
+      expect(recoveryJogPaceGraph.isAvailable, isTrue);
+      expect(recoveryJogPaceGraph.xAxisLabels, [
+        '0:00',
+        '13:00',
+        '26:00',
+        '39:38',
+      ]);
+      expect(recoveryJogPaceGraph.points.length, greaterThanOrEqualTo(3));
+      expect(recoveryJogPaceGraph.points.last.elapsedSeconds, 2370);
+      expect(
+        recoveryJogPaceGraph.points.last.progressFraction,
+        greaterThan(0.95),
+      );
+    });
+
     test('low-data run returns unavailable graph', () {
       final graph = builder.build(
         samples: lowDataRunPaceSamples,
@@ -177,6 +193,39 @@ void main() {
         490,
       ]);
       expect(graph.points.map((point) => point.elapsedSeconds), [30, 90, 120]);
+    });
+
+    test('pace axis range keeps a minimum visible spread', () {
+      final graph = builder.build(
+        samples: const [
+          PaceGraphSample(elapsedSeconds: 0, paceSecondsPerKm: 390),
+          PaceGraphSample(elapsedSeconds: 120, paceSecondsPerKm: 392),
+          PaceGraphSample(elapsedSeconds: 240, paceSecondsPerKm: 394),
+        ],
+        durationSeconds: 300,
+        distanceMeters: 1000,
+      );
+
+      expect(graph.isAvailable, isTrue);
+      expect(
+        graph.paceRangeMaxSecondsPerKm! - graph.paceRangeMinSecondsPerKm!,
+        greaterThanOrEqualTo(minVisiblePaceRangeSeconds),
+      );
+
+      final nearMaxGraph = builder.build(
+        samples: const [
+          PaceGraphSample(elapsedSeconds: 0, paceSecondsPerKm: 1788),
+          PaceGraphSample(elapsedSeconds: 120, paceSecondsPerKm: 1792),
+          PaceGraphSample(elapsedSeconds: 240, paceSecondsPerKm: 1796),
+        ],
+        durationSeconds: 300,
+        distanceMeters: 1000,
+      );
+      expect(
+        nearMaxGraph.paceRangeMaxSecondsPerKm! -
+            nearMaxGraph.paceRangeMinSecondsPerKm!,
+        greaterThanOrEqualTo(minVisiblePaceRangeSeconds),
+      );
     });
 
     test('slow walk or pause run filters over-threshold slow values', () {
