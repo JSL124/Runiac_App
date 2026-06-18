@@ -25,7 +25,7 @@ const _rBlue18 = Color(0x2E2F51C8);
 const _rBlue10 = Color(0x1A2F51C8);
 const _rBlue06 = Color(0x0F2F51C8);
 const _cardRadius = 20.0;
-const _paceChartYAxisWidth = 30.0;
+const _paceChartYAxisWidth = 24.0;
 const _paceChartAxisGap = 4.0;
 const _paceChartHorizontalPlotInset = 16.0;
 const _paceChartXAxisLabelWidth = 32.0;
@@ -471,7 +471,7 @@ class _PaceSection extends StatelessWidget {
         children: [
           const _SectionLabel(title: 'Pace Over Time'),
           _CardSurface(
-            padding: const EdgeInsets.fromLTRB(14, 16, 14, 12),
+            padding: const EdgeInsets.fromLTRB(12, 16, 12, 12),
             child: _GuardedAnalysisPreview(
               showGuard: showGuard,
               child: _PaceChart(graph: paceGraph),
@@ -755,7 +755,7 @@ class _LowDataGraphGuard extends StatelessWidget {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 3.2, sigmaY: 3.2),
         child: DecoratedBox(
-          decoration: BoxDecoration(color: _rWhite.withValues(alpha: 0.5)),
+          decoration: BoxDecoration(color: _rWhite.withValues(alpha: 0.44)),
           child: Center(
             child: const Padding(
               padding: EdgeInsets.symmetric(horizontal: 18, vertical: 10),
@@ -1215,22 +1215,6 @@ class _PaceChartPainter extends CustomPainter {
       return ((paceSecondsPerKm - rangeMin) / paceRange) * size.height;
     }
 
-    final averagePace = graph.averagePaceSecondsPerKm;
-    if (!isLockedPreview &&
-        averagePace != null &&
-        averagePace >= rangeMin &&
-        averagePace <= rangeMax) {
-      _drawDashedLine(
-        canvas,
-        Offset(plotLeft, yForSeconds(averagePace)),
-        Offset(plotRight, yForSeconds(averagePace)),
-        Paint()
-          ..color = _rBlue60
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.5,
-      );
-    }
-
     final offsets = <_PaceChartPointOffset>[];
     for (var i = 0; i < graph.points.length; i += 1) {
       final graphPoint = graph.points[i];
@@ -1264,13 +1248,28 @@ class _PaceChartPainter extends CustomPainter {
       area,
       Paint()
         ..color = isLockedPreview
-            ? const Color(0x0FFB6414)
+            ? const Color(0x12FB6414)
             : const Color(0x14FB6414),
     );
+    final averagePace = graph.averagePaceSecondsPerKm;
+    if (!isLockedPreview &&
+        averagePace != null &&
+        averagePace >= rangeMin &&
+        averagePace <= rangeMax) {
+      _drawDashedLine(
+        canvas,
+        Offset(plotLeft, yForSeconds(averagePace)),
+        Offset(plotRight, yForSeconds(averagePace)),
+        Paint()
+          ..color = _rBlue60
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.75,
+      );
+    }
     canvas.drawPath(
       line,
       Paint()
-        ..color = isLockedPreview ? const Color(0x4DFB6414) : _rOrange
+        ..color = isLockedPreview ? const Color(0x66FB6414) : _rOrange
         ..style = PaintingStyle.stroke
         ..strokeWidth = isLockedPreview ? 2 : 2.5
         ..strokeCap = StrokeCap.round
