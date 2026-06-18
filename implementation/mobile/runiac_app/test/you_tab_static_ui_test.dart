@@ -5,6 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runiac_app/app.dart';
 import 'package:runiac_app/features/run/presentation/active_run_session_coordinator.dart';
+import 'package:runiac_app/features/run/presentation/data/pace_graph_demo_snapshots.dart';
+import 'package:runiac_app/features/run/presentation/view_summary_screen.dart';
 import 'package:runiac_app/features/you/presentation/data/you_overview_demo_snapshots.dart';
 import 'package:runiac_app/features/you/presentation/widgets/compact_run_activity_card.dart';
 import 'package:runiac_app/features/you/presentation/widgets/monthly_distance_graph.dart';
@@ -62,6 +64,44 @@ void main() {
       findsOneWidget,
     );
   }
+
+  test(
+    'pace chart display anchors sufficient graph endpoints to final slot',
+    () {
+      for (final graph in [
+        normalEasyRunPaceGraph,
+        gpsSpikeRunPaceGraph,
+        recoveryJogPaceGraph,
+      ]) {
+        expect(graph.isAvailable, isTrue);
+        expect(graph.points.length, greaterThanOrEqualTo(3));
+        expect(
+          paceChartDisplayProgressForPoint(
+            index: 0,
+            pointCount: graph.points.length,
+            rawProgressFraction: graph.points.first.progressFraction,
+          ),
+          0,
+        );
+        expect(
+          paceChartDisplayProgressForPoint(
+            index: graph.points.length - 1,
+            pointCount: graph.points.length,
+            rawProgressFraction: graph.points.last.progressFraction,
+          ),
+          1,
+        );
+        expect(
+          paceChartDisplayProgressForPoint(
+            index: 1,
+            pointCount: graph.points.length,
+            rawProgressFraction: graph.points[1].progressFraction,
+          ),
+          graph.points[1].progressFraction,
+        );
+      }
+    },
+  );
 
   test('You static demo snapshots live outside presentation widgets', () {
     // Given: the You feature keeps demo/read-only data behind a data boundary.

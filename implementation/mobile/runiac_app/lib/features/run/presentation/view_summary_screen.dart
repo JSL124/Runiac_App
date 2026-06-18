@@ -30,6 +30,21 @@ const _paceChartAxisGap = 8.0;
 const _paceChartHorizontalPlotInset = 24.0;
 const _paceChartXAxisLabelWidth = 48.0;
 
+@visibleForTesting
+double paceChartDisplayProgressForPoint({
+  required int index,
+  required int pointCount,
+  required double rawProgressFraction,
+}) {
+  if (pointCount <= 1 || index <= 0) {
+    return 0;
+  }
+  if (index >= pointCount - 1) {
+    return 1;
+  }
+  return rawProgressFraction.clamp(0.0, 1.0);
+}
+
 class ViewSummaryScreen extends StatelessWidget {
   const ViewSummaryScreen({
     super.key,
@@ -1109,8 +1124,16 @@ class _PaceChartPainter extends CustomPainter {
     final plotRight = size.width - horizontalInset;
     final plotWidth = (plotRight - plotLeft).clamp(1.0, double.infinity);
 
-    double xForProgress(double progressFraction) {
+    double xForDisplayProgress(double progressFraction) {
       return plotLeft + (progressFraction.clamp(0.0, 1.0) * plotWidth);
+    }
+
+    double displayProgressForPoint(int index) {
+      return paceChartDisplayProgressForPoint(
+        index: index,
+        pointCount: graph.points.length,
+        rawProgressFraction: graph.points[index].progressFraction,
+      );
     }
 
     final guidePaint = Paint()
@@ -1159,28 +1182,31 @@ class _PaceChartPainter extends CustomPainter {
       );
     }
 
-    final offsets = <Offset>[];
+    final offsets = <_PaceChartPointOffset>[];
     for (var i = 0; i < graph.points.length; i += 1) {
       final graphPoint = graph.points[i];
       offsets.add(
-        Offset(
-          xForProgress(graphPoint.progressFraction),
-          yForSeconds(graphPoint.paceSecondsPerKm),
+        _PaceChartPointOffset(
+          point: graphPoint,
+          offset: Offset(
+            xForDisplayProgress(displayProgressForPoint(i)),
+            yForSeconds(graphPoint.paceSecondsPerKm),
+          ),
         ),
       );
     }
 
     final line = Path();
     for (var i = 0; i < offsets.length; i += 1) {
-      final point = offsets[i];
+      final point = offsets[i].offset;
       if (i == 0) {
         line.moveTo(point.dx, point.dy);
       } else {
         line.lineTo(point.dx, point.dy);
       }
     }
-    final firstPoint = offsets.first;
-    final lastPoint = offsets.last;
+    final firstPoint = offsets.first.offset;
+    final lastPoint = offsets.last.offset;
     final area = Path.from(line)
       ..lineTo(lastPoint.dx, size.height)
       ..lineTo(firstPoint.dx, size.height)
@@ -1198,19 +1224,15 @@ class _PaceChartPainter extends CustomPainter {
 
     _drawMarker(
       canvas,
-      size,
       point: graph.slowestPacePoint,
-      xForProgress: xForProgress,
-      yForSeconds: yForSeconds,
+      offsets: offsets,
       fillColor: _rWhite,
       strokeColor: _rBlue45,
     );
     _drawMarker(
       canvas,
-      size,
       point: graph.bestPacePoint,
-      xForProgress: xForProgress,
-      yForSeconds: yForSeconds,
+      offsets: offsets,
       fillColor: _rOrange,
       strokeColor: _rWhite,
     );
@@ -1231,11 +1253,9 @@ class _PaceChartPainter extends CustomPainter {
   }
 
   void _drawMarker(
-    Canvas canvas,
-    Size size, {
+    Canvas canvas, {
     required PaceGraphPoint? point,
-    required double Function(double progressFraction) xForProgress,
-    required double Function(int paceSecondsPerKm) yForSeconds,
+    required List<_PaceChartPointOffset> offsets,
     required Color fillColor,
     required Color strokeColor,
   }) {
@@ -1243,10 +1263,10 @@ class _PaceChartPainter extends CustomPainter {
       return;
     }
 
-    final center = Offset(
-      xForProgress(point.progressFraction),
-      yForSeconds(point.paceSecondsPerKm),
-    );
+    final center = _offsetForPoint(offsets, point);
+    if (center == null) {
+      return;
+    }
     canvas.drawCircle(center, 4.5, Paint()..color = fillColor);
     canvas.drawCircle(
       center,
@@ -1258,8 +1278,27 @@ class _PaceChartPainter extends CustomPainter {
     );
   }
 
+  Offset? _offsetForPoint(
+    List<_PaceChartPointOffset> offsets,
+    PaceGraphPoint point,
+  ) {
+    for (final candidate in offsets) {
+      if (identical(candidate.point, point)) {
+        return candidate.offset;
+      }
+    }
+    return null;
+  }
+
   @override
   bool shouldRepaint(covariant _PaceChartPainter oldDelegate) {
     return oldDelegate.graph != graph;
   }
+}
+
+class _PaceChartPointOffset {
+  const _PaceChartPointOffset({required this.point, required this.offset});
+
+  final PaceGraphPoint point;
+  final Offset offset;
 }
