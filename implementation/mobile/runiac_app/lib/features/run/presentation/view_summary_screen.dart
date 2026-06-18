@@ -654,57 +654,56 @@ class _LowDataGraphGuard extends StatelessWidget {
   Widget build(BuildContext context) {
     return ClipRect(
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+        filter: ImageFilter.blur(sigmaX: 2.4, sigmaY: 2.4),
         child: DecoratedBox(
-          decoration: BoxDecoration(color: _rWhite.withValues(alpha: 0.78)),
+          decoration: BoxDecoration(color: _rWhite.withValues(alpha: 0.56)),
           child: Center(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: _rWhite.withValues(alpha: 0.92),
-                  border: Border.all(color: _rBlue18),
-                  borderRadius: BorderRadius.circular(14),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: _rBlue10,
-                      blurRadius: 16,
-                      offset: Offset(0, 6),
+            child: const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'More run data needed',
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: _rOrange,
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w800,
+                      shadows: [
+                        Shadow(color: _rWhite, blurRadius: 10),
+                        Shadow(
+                          color: _rWhite,
+                          blurRadius: 2,
+                          offset: Offset(0, 1),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'More run data needed',
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: _rBlue,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      SizedBox(height: 3),
-                      Text(
-                        'Pace insights will appear after a longer run.',
-                        textAlign: TextAlign.center,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: _rBlue75,
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w600,
-                          height: 1.25,
-                        ),
-                      ),
-                    ],
                   ),
-                ),
+                  SizedBox(height: 3),
+                  Text(
+                    'Pace insights will appear after a longer run.',
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: _rOrange,
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w600,
+                      height: 1.25,
+                      shadows: [
+                        Shadow(color: _rWhite, blurRadius: 10),
+                        Shadow(
+                          color: _rWhite,
+                          blurRadius: 2,
+                          offset: Offset(0, 1),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
