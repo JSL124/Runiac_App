@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/theme/runiac_colors.dart';
 import '../home/presentation/home_tab.dart';
 import '../leaderboard/presentation/leaderboard_tab.dart';
 import '../maps/presentation/maps_tab.dart';
@@ -188,30 +189,41 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
         currentIndex: _selectedIndex,
         type: BottomNavigationBarType.fixed,
         onTap: _handleNavigationTap,
+        backgroundColor: RuniacColors.white,
+        selectedItemColor: RuniacColors.primaryBlue,
+        unselectedItemColor: RuniacColors.textSecondary,
+        showSelectedLabels: false,
+        showUnselectedLabels: false,
+        selectedFontSize: 0,
+        unselectedFontSize: 0,
+        selectedIconTheme: const IconThemeData(size: 32),
+        unselectedIconTheme: const IconThemeData(size: 30),
+        selectedLabelStyle: const TextStyle(fontSize: 0, height: 0),
+        unselectedLabelStyle: const TextStyle(fontSize: 0, height: 0),
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
-            label: 'Home',
+            label: '',
             tooltip: 'Home',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.map),
-            label: 'Maps',
+            label: '',
             tooltip: 'Maps',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.directions_run),
-            label: 'Run',
+            label: '',
             tooltip: 'Run',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.leaderboard),
-            label: 'Leaderboard',
+            label: '',
             tooltip: 'Leaderboard',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person),
-            label: 'You',
+            label: '',
             tooltip: 'You',
           ),
         ],

@@ -19,26 +19,42 @@ void main() {
     expect(find.byTooltip('You'), findsOneWidget);
   });
 
-  testWidgets(
-    'bottom navigation shows screenshot-style labeled tabs and preserves routing',
-    (WidgetTester tester) async {
-      await tester.pumpWidget(
-        const RuniacApp(showSplash: false, enableForegroundGps: false),
+  testWidgets('bottom navigation uses icon-only tabs and preserves routing', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      const RuniacApp(showSplash: false, enableForegroundGps: false),
+    );
+
+    final bottomNavigation = find.byType(BottomNavigationBar);
+    expect(bottomNavigation, findsOneWidget);
+
+    final bottomNavigationBar = tester.widget<BottomNavigationBar>(
+      bottomNavigation,
+    );
+
+    expect(bottomNavigationBar.showSelectedLabels, isFalse);
+    expect(bottomNavigationBar.showUnselectedLabels, isFalse);
+    expect(bottomNavigationBar.selectedIconTheme?.size, 32);
+    expect(bottomNavigationBar.unselectedIconTheme?.size, 30);
+    expect(
+      bottomNavigationBar.items.map((item) => item.label),
+      everyElement(isEmpty),
+    );
+
+    for (final label in ['Home', 'Maps', 'Run', 'Leaderboard', 'You']) {
+      expect(
+        find.descendant(of: bottomNavigation, matching: find.text(label)),
+        findsNothing,
       );
+      expect(find.byTooltip(label), findsOneWidget);
+    }
 
-      expect(find.byType(BottomNavigationBar), findsOneWidget);
+    await tester.tap(find.byTooltip('Leaderboard'));
+    await tester.pumpAndSettle();
 
-      for (final label in ['Home', 'Maps', 'Run', 'Leaderboard', 'You']) {
-        expect(find.text(label), findsOneWidget);
-        expect(find.byTooltip(label), findsOneWidget);
-      }
-
-      await tester.tap(find.byTooltip('Leaderboard'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Your ranked area'), findsOneWidget);
-    },
-  );
+    expect(find.text('Your ranked area'), findsOneWidget);
+  });
 
   testWidgets(
     'bottom navigation remains full width with evenly spaced tabs on narrow width',
@@ -64,6 +80,7 @@ void main() {
       expect(navRect.height, greaterThanOrEqualTo(56));
       expect(firstItemRect.width, closeTo(lastItemRect.width, 0.5));
       expect(firstItemRect.center.dy, closeTo(lastItemRect.center.dy, 0.5));
+      expect(firstItemRect.center.dy, closeTo(navRect.center.dy, 4));
     },
   );
 }

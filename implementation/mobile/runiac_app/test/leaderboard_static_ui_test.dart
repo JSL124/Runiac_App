@@ -440,7 +440,7 @@ void main() {
           find.byKey(const Key('leaderboard_current_user_floating_bar')),
         )
         .dy;
-    final bottomNavTop = tester.getTopLeft(find.text('Home')).dy;
+    final bottomNavTop = tester.getTopLeft(find.byType(BottomNavigationBar)).dy;
     expect(floatingBarBottom, lessThan(bottomNavTop));
     expect(find.byTooltip('Home'), findsOneWidget);
     expect(find.byTooltip('Maps'), findsOneWidget);
