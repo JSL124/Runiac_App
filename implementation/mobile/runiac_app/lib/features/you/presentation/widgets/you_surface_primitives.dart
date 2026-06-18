@@ -155,7 +155,10 @@ class StaticPlanAction extends StatelessWidget {
       borderRadius: BorderRadius.circular(youInnerRadius),
       height: 44,
       alignment: Alignment.center,
-      decoration: youCardLikeDecoration,
+      decoration: BoxDecoration(
+        color: RuniacColors.primaryBlue,
+        borderRadius: BorderRadius.circular(youInnerRadius),
+      ),
       child: Text(label, style: YouTextStyles.button),
     );
   }
@@ -166,7 +169,7 @@ Widget planBadge(String label) {
     height: 30,
     alignment: Alignment.center,
     padding: const EdgeInsets.symmetric(horizontal: 10),
-    decoration: youPillDecoration(const Color(0xFFF7FAFF)),
+    decoration: youPillDecoration(RuniacColors.innerTileSurface),
     child: Text(label, style: YouTextStyles.smallStrong),
   );
 }
@@ -221,7 +224,7 @@ abstract final class YouTextStyles {
   );
 
   static const seeAll = TextStyle(
-    color: Color(0xFF8EA2EA),
+    color: RuniacColors.primaryBlue,
     fontSize: 15,
     fontWeight: FontWeight.w800,
   );
@@ -246,7 +249,7 @@ abstract final class YouTextStyles {
   );
 
   static const button = TextStyle(
-    color: RuniacColors.textPrimary,
+    color: RuniacColors.white,
     fontSize: 13,
     fontWeight: FontWeight.w900,
   );
@@ -298,9 +301,8 @@ abstract final class YouTextStyles {
   );
 
   static const weeklyPlanProgressLabel = TextStyle(
-    color: Color(0xBF2F51C8),
+    color: RuniacColors.primaryBlue,
     fontSize: 12,
     fontWeight: FontWeight.w700,
-    letterSpacing: -0.1,
   );
 }

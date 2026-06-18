@@ -58,7 +58,7 @@ class CurrentGoalPlanCard extends StatelessWidget {
             child: LinearProgressIndicator(
               value: youPlansSnapshot.completionProgress,
               minHeight: 7,
-              backgroundColor: const Color(0xFFE8EEF8),
+              backgroundColor: RuniacColors.sectionSurfaceStrong,
               valueColor: const AlwaysStoppedAnimation(
                 RuniacColors.primaryBlue,
               ),
