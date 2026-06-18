@@ -244,6 +244,7 @@ void main() {
       expect(completedRun.summary.duration, '25:00');
       expect(completedRun.summary.avgPace, '7’49”');
       expect(completedRun.summary.calories, '270');
+      expect(completedRun.summary.hasSufficientData, isTrue);
       expect(completedRun.progressionDisplay.xpDelta, 0);
       expect(completedRun.progressionDisplay.countsTowardLeaderboard, isFalse);
       expect(completedRun.progressionDisplay.status, 'deferred');
@@ -280,6 +281,7 @@ void main() {
         expect(completedRun.summary.avgPace, '--');
         expect(completedRun.summary.avgHeartRate, '--');
         expect(completedRun.summary.calories, '--');
+        expect(completedRun.summary.hasSufficientData, isFalse);
         expect(completedRun.summary.routeName, 'Easy local route');
         expect(completedRun.summary.title, isNot('Easy local route'));
         expect(completedRun.summary.distanceKm, isNot('4.03'));
@@ -347,6 +349,11 @@ void main() {
         expect(
           completedRun.summary.avgPace,
           testCase.expectedPace,
+          reason: testCase.label,
+        );
+        expect(
+          completedRun.summary.hasSufficientData,
+          testCase.expectedPace != '--',
           reason: testCase.label,
         );
       }

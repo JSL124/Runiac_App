@@ -53,6 +53,11 @@ class StaticRunRepository implements RunRepository {
       distanceMeters: payload.distanceMeters,
       averagePaceSecondsPerKm: payload.avgPaceSecondsPerKm,
     );
+    final avgPace = _formatPace(
+      distanceMeters: payload.distanceMeters,
+      durationSeconds: payload.durationSeconds,
+      paceSecondsPerKm: payload.avgPaceSecondsPerKm,
+    );
     final summary = RunSummarySnapshot(
       title: const CompletedRunTitleFormatter().format(
         completedAt: payload.completedAt,
@@ -60,15 +65,16 @@ class StaticRunRepository implements RunRepository {
       dateLabel: _formatDate(payload.completedAt),
       timeLabel: _formatTime(payload.completedAt),
       distanceKm: _formatDistanceKm(payload.distanceMeters),
-      avgPace: _formatPace(
-        distanceMeters: payload.distanceMeters,
-        durationSeconds: payload.durationSeconds,
-        paceSecondsPerKm: payload.avgPaceSecondsPerKm,
-      ),
+      avgPace: avgPace,
       duration: _formatDuration(payload.durationSeconds),
       avgHeartRate: '--',
       calories: _formatCalories(calories),
       routeName: payload.routeLabel ?? 'Private route',
+      hasSufficientData: _hasSufficientSummaryData(
+        distanceMeters: payload.distanceMeters,
+        durationSeconds: payload.durationSeconds,
+        avgPace: avgPace,
+      ),
     );
 
     return CompleteRunResult(
@@ -142,6 +148,14 @@ class StaticRunRepository implements RunRepository {
     final minutes = paceSecondsPerKm ~/ 60;
     final seconds = paceSecondsPerKm % 60;
     return '$minutes’${seconds.toString().padLeft(2, '0')}”';
+  }
+
+  bool _hasSufficientSummaryData({
+    required int distanceMeters,
+    required int durationSeconds,
+    required String avgPace,
+  }) {
+    return distanceMeters >= 50 && durationSeconds >= 60 && avgPace != '--';
   }
 
   String _formatCalories(int? calories) {

@@ -97,6 +97,11 @@ class _CompleteRunResultMapper {
       distanceMeters: distanceMeters,
       averagePaceSecondsPerKm: paceSeconds,
     );
+    final avgPace = _formatPace(
+      distanceMeters: distanceMeters,
+      durationSeconds: durationSeconds,
+      paceSecondsPerKm: paceSeconds,
+    );
 
     return CompleteRunResult(
       activityId: _readString(response, 'activityId'),
@@ -108,16 +113,17 @@ class _CompleteRunResultMapper {
         dateLabel: _formatDate(endedAt),
         timeLabel: _formatTime(endedAt),
         distanceKm: _formatDistanceKm(distanceMeters),
-        avgPace: _formatPace(
-          distanceMeters: distanceMeters,
-          durationSeconds: durationSeconds,
-          paceSecondsPerKm: paceSeconds,
-        ),
+        avgPace: avgPace,
         duration: _formatDuration(durationSeconds),
         avgHeartRate: '--',
         calories: _formatCalories(calories),
         routeName:
             _readOptionalString(summary, 'routeLabel') ?? 'Private route',
+        hasSufficientData: _hasSufficientSummaryData(
+          distanceMeters: distanceMeters,
+          durationSeconds: durationSeconds,
+          avgPace: avgPace,
+        ),
       ),
       progressionDisplay: ProgressionDisplayModel(
         xpDelta: _readInt(progression, 'xpDelta'),
@@ -256,6 +262,14 @@ class _CompleteRunResultMapper {
     final minutes = paceSecondsPerKm ~/ 60;
     final seconds = paceSecondsPerKm % 60;
     return '$minutes’${seconds.toString().padLeft(2, '0')}”';
+  }
+
+  static bool _hasSufficientSummaryData({
+    required int distanceMeters,
+    required int durationSeconds,
+    required String avgPace,
+  }) {
+    return distanceMeters >= 50 && durationSeconds >= 60 && avgPace != '--';
   }
 
   static String _formatCalories(int? calories) {

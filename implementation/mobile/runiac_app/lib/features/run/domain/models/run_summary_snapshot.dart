@@ -9,6 +9,7 @@ class RunSummarySnapshot {
     required this.avgHeartRate,
     required this.calories,
     required this.routeName,
+    this.hasSufficientData = true,
   });
 
   final String title;
@@ -20,6 +21,7 @@ class RunSummarySnapshot {
   final String avgHeartRate;
   final String calories;
   final String routeName;
+  final bool hasSufficientData;
 
   String get dateTimeLabel => '$dateLabel · $timeLabel';
 }

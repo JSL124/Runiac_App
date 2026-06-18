@@ -439,8 +439,15 @@ void main() {
     expect(find.text('Pace Over Time'), findsOneWidget);
     expect(find.text('Advanced Analysis'), findsOneWidget);
     expect(find.text('AI Coaching Summary'), findsOneWidget);
-    expect(find.widgetWithText(OutlinedButton, 'Share Route'), findsOneWidget);
-    expect(find.widgetWithText(FilledButton, 'View XP Update'), findsOneWidget);
+    expect(
+      find.text(
+        'You started your run today — that still counts. We need a little more movement data to estimate your effort accurately.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.textContaining('steady pace'), findsNothing);
+    expect(find.widgetWithText(OutlinedButton, 'Share Route'), findsNothing);
+    expect(find.widgetWithText(FilledButton, 'View XP Update'), findsNothing);
     expect(find.text('XP & Streak Update'), findsNothing);
     expect(find.textContaining(_forbiddenRealActivitySaveCopy), findsNothing);
   });
@@ -845,6 +852,72 @@ void main() {
       expect(find.text('145 kcal'), findsNothing);
     },
   );
+
+  testWidgets('Low-data view summary softens copy and hides bottom actions', (
+    WidgetTester tester,
+  ) async {
+    _useTallSummarySurface(tester);
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: ViewSummaryScreen(
+          completionResult: CompleteRunResult(
+            activityId: 'low-data-activity',
+            summaryId: 'low-data-summary',
+            progressionEventId: 'low-data-progression',
+            validationStatus: 'validated',
+            summary: RunSummarySnapshot(
+              title: 'Short Start',
+              dateLabel: 'Today',
+              timeLabel: '8:10 AM',
+              distanceKm: '0.02',
+              avgPace: '--',
+              duration: '0:35',
+              avgHeartRate: '--',
+              calories: '--',
+              routeName: 'Easy local route',
+              hasSufficientData: false,
+            ),
+            progressionDisplay: ProgressionDisplayModel(
+              xpDelta: 0,
+              countsTowardLeaderboard: false,
+              status: 'deferred',
+              reason: 'progression_formula_deferred',
+            ),
+            xpUpdate: XpUpdateDisplayModel(
+              runnerName: 'Runiac Runner',
+              earnedXpLabel: '+0 XP',
+              totalXpLabel: 'Deferred by backend',
+              levelLabel: 'Pending',
+              nextLevelLabel: 'Pending',
+              progressTargetLabel: 'Progression deferred',
+              xpRemainingLabel: 'Backend formula pending',
+              previousProgressFraction: 0,
+              currentProgressFraction: 0,
+              streakChangeLabel: 'Deferred',
+              streakNote: 'Backend validation accepted the run.',
+              didLevelUp: false,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Short Start'), findsOneWidget);
+    expect(find.text('0.02'), findsOneWidget);
+    expect(find.text('0:35'), findsOneWidget);
+    expect(find.text('--'), findsNWidgets(3));
+    expect(find.text('AI Coaching Summary'), findsOneWidget);
+    expect(
+      find.text(
+        'You started your run today — that still counts. We need a little more movement data to estimate your effort accurately.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.textContaining('steady pace'), findsNothing);
+    expect(find.widgetWithText(OutlinedButton, 'Share Route'), findsNothing);
+    expect(find.widgetWithText(FilledButton, 'View XP Update'), findsNothing);
+  });
 
   testWidgets(
     'View summary share icon opens Share Your Achievement bottom sheet',

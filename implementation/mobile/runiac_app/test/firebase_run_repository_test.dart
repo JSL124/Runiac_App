@@ -46,6 +46,7 @@ void main() {
       expect(result.summary.duration, '25:00');
       expect(result.summary.avgPace, '7’49”');
       expect(result.summary.calories, '270');
+      expect(result.summary.hasSufficientData, isTrue);
       expect(result.progressionDisplay.xpDelta, 0);
       expect(result.progressionDisplay.countsTowardLeaderboard, isFalse);
       expect(result.progressionDisplay.status, 'deferred');
@@ -79,6 +80,7 @@ void main() {
         expect(result.summary.avgPace, '--');
         expect(result.summary.avgHeartRate, '--');
         expect(result.summary.calories, '--');
+        expect(result.summary.hasSufficientData, isFalse);
       },
     );
 
@@ -138,6 +140,11 @@ void main() {
           expect(
             result.summary.avgPace,
             testCase.expectedPace,
+            reason: testCase.label,
+          );
+          expect(
+            result.summary.hasSufficientData,
+            testCase.expectedPace != '--',
             reason: testCase.label,
           );
         }

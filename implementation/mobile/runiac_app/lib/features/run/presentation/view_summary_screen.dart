@@ -45,6 +45,7 @@ class ViewSummaryScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final displayedSummary = completionResult?.summary ?? summary;
+    final hasSufficientData = displayedSummary.hasSufficientData;
 
     return Scaffold(
       backgroundColor: _rWhite,
@@ -120,13 +121,16 @@ class ViewSummaryScreen extends StatelessWidget {
                               );
                             },
                           ),
-                          const _CoachingSection(),
+                          _CoachingSection(
+                            hasSufficientData: hasSufficientData,
+                          ),
                         ],
                       ),
                     ),
                   ),
                 ),
                 _BottomActions(
+                  hasSufficientData: hasSufficientData,
                   showXpUpdateAction: showXpUpdateAction,
                   onShareRoute: () {
                     _showSoonMessage(
@@ -663,23 +667,29 @@ class _ZoneRow extends StatelessWidget {
 }
 
 class _CoachingSection extends StatelessWidget {
-  const _CoachingSection();
+  const _CoachingSection({required this.hasSufficientData});
+
+  final bool hasSufficientData;
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.fromLTRB(16, 22, 16, 0),
+    final coachingCopy = hasSufficientData
+        ? 'Great job completing today\'s planned run! You maintained a steady pace and finished feeling in control. Consistency like this builds a strong foundation.'
+        : 'You started your run today — that still counts. We need a little more movement data to estimate your effort accurately.';
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 22, 16, 0),
       child: _CardSurface(
         color: _rBlue06,
-        padding: EdgeInsets.all(18),
+        padding: const EdgeInsets.all(18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                _SparkBadge(),
-                SizedBox(width: 11),
-                Expanded(
+                const _SparkBadge(),
+                const SizedBox(width: 11),
+                const Expanded(
                   child: Text(
                     'AI Coaching Summary',
                     overflow: TextOverflow.ellipsis,
@@ -693,10 +703,10 @@ class _CoachingSection extends StatelessWidget {
                 ),
               ],
             ),
-            SizedBox(height: 12),
+            const SizedBox(height: 12),
             Text(
-              'Great job completing today\'s planned run! You maintained a steady pace and finished feeling in control. Consistency like this builds a strong foundation.',
-              style: TextStyle(
+              coachingCopy,
+              style: const TextStyle(
                 color: _rBlue90,
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
@@ -704,8 +714,8 @@ class _CoachingSection extends StatelessWidget {
                 letterSpacing: -0.1,
               ),
             ),
-            SizedBox(height: 14),
-            _NextTipCard(),
+            const SizedBox(height: 14),
+            const _NextTipCard(),
           ],
         ),
       ),
@@ -764,17 +774,23 @@ class _NextTipCard extends StatelessWidget {
 
 class _BottomActions extends StatelessWidget {
   const _BottomActions({
+    required this.hasSufficientData,
     required this.showXpUpdateAction,
     required this.onShareRoute,
     required this.onXpUpdate,
   });
 
+  final bool hasSufficientData;
   final bool showXpUpdateAction;
   final VoidCallback onShareRoute;
   final VoidCallback onXpUpdate;
 
   @override
   Widget build(BuildContext context) {
+    if (!hasSufficientData) {
+      return const SizedBox.shrink();
+    }
+
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 26),
       decoration: const BoxDecoration(
