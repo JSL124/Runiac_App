@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/features/run/domain/models/local_run_completion_payload.dart';
 import 'package:runiac_app/features/run/domain/models/run_completion_request_adapter.dart';
+import 'package:runiac_app/features/run/domain/services/pace_graph_data_builder.dart';
 
 void main() {
   group('RunCompletionRequestAdapter', () {
@@ -66,6 +67,39 @@ void main() {
           );
         }
       }
+    });
+
+    test('excludes local-only pace graph samples from backend request', () {
+      final payload = LocalRunCompletionPayload(
+        clientRunSessionId: 'local-session-graph-request-boundary',
+        startedAt: DateTime.utc(2026, 6, 14, 7),
+        completedAt: DateTime.utc(2026, 6, 14, 7, 3),
+        durationSeconds: 180,
+        distanceMeters: 450,
+        avgPaceSecondsPerKm: 400,
+        source: 'local_simulation',
+        routePrivacy: 'private',
+        paceGraphSamples: const [
+          PaceGraphSample(elapsedSeconds: 60, paceSecondsPerKm: 400),
+          PaceGraphSample(elapsedSeconds: 120, paceSecondsPerKm: 402),
+          PaceGraphSample(elapsedSeconds: 180, paceSecondsPerKm: 398),
+        ],
+      );
+
+      final request = RunCompletionRequestAdapter.toBackendRequest(payload);
+      const forbiddenKeys = <String>[
+        'paceGraphSamples',
+        'graphSamples',
+        'paceGraph',
+        'paceGraphPoints',
+        'samples',
+      ];
+
+      for (final key in forbiddenKeys) {
+        expect(request.keys, isNot(contains(key)));
+      }
+      expect(request.values.join(' '), isNot(contains('paceGraphSamples')));
+      expect(request.values.join(' '), isNot(contains('paceGraph')));
     });
   });
 }

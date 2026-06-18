@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:runiac_app/features/run/data/static_run_repository.dart';
 import 'package:runiac_app/features/run/domain/models/local_run_completion_payload.dart';
 import 'package:runiac_app/features/run/domain/models/run_location_sample.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_location_provider.dart';
@@ -56,6 +57,133 @@ void main() {
         expect(payloadMap.keys, isNot(contains('samples')));
         expect(payloadMap.keys, isNot(contains('routeTrace')));
         expect(payloadMap.keys, isNot(contains('polyline')));
+      },
+    );
+
+    test('completed local run builds payload-derived pace graph', () async {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      final controller = RunTrackingController(
+        locationProvider: ReplayRunLocationProvider([
+          RunLocationReplaySample(
+            activeOffset: Duration.zero,
+            sample: RunLocationSample(
+              recordedAt: startedAt,
+              latitude: 1.300000,
+              longitude: 103.800000,
+            ),
+          ),
+          RunLocationReplaySample(
+            activeOffset: const Duration(seconds: 60),
+            sample: RunLocationSample(
+              recordedAt: startedAt.add(const Duration(seconds: 60)),
+              latitude: 1.301349,
+              longitude: 103.800000,
+            ),
+          ),
+          RunLocationReplaySample(
+            activeOffset: const Duration(seconds: 120),
+            sample: RunLocationSample(
+              recordedAt: startedAt.add(const Duration(seconds: 120)),
+              latitude: 1.302698,
+              longitude: 103.800000,
+            ),
+          ),
+          RunLocationReplaySample(
+            activeOffset: const Duration(seconds: 180),
+            sample: RunLocationSample(
+              recordedAt: startedAt.add(const Duration(seconds: 180)),
+              latitude: 1.304047,
+              longitude: 103.800000,
+            ),
+          ),
+        ]),
+      );
+
+      controller.start(
+        startedAt: startedAt,
+        clientRunSessionId: 'local-completion-graph-flow',
+        routeLabel: 'Payload Derived Route',
+      );
+      controller.advanceBy(const Duration(seconds: 180));
+
+      final payload = controller.completionPayload(
+        completedAt: startedAt.add(const Duration(seconds: 180)),
+      );
+      final expectedGraph = const PaceGraphDataBuilder().build(
+        samples: payload.paceGraphSamples,
+        durationSeconds: payload.durationSeconds,
+        distanceMeters: payload.distanceMeters,
+        averagePaceSecondsPerKm: payload.avgPaceSecondsPerKm,
+      );
+      final completedRun = await const StaticRunRepository().completeRun(
+        payload,
+      );
+      final graph = completedRun.summary.paceGraph;
+
+      expect(payload.paceGraphSamples.length, greaterThanOrEqualTo(3));
+      expect(completedRun.summary.hasSufficientData, isTrue);
+      expect(completedRun.summary.distanceKm, '0.45');
+      expect(completedRun.summary.duration, '3:00');
+      expect(completedRun.summary.avgPace, '6’39”');
+      expect(completedRun.summary.routeName, 'Payload Derived Route');
+      expect(completedRun.summary.routeName, isNot('East Coast Park Loop'));
+      expect(graph.isAvailable, isTrue);
+      expect(graph.points, hasLength(expectedGraph.points.length));
+      expect(
+        graph.points.map((point) => point.elapsedSeconds),
+        expectedGraph.points.map((point) => point.elapsedSeconds),
+      );
+      expect(
+        graph.points.map((point) => point.paceSecondsPerKm),
+        expectedGraph.points.map((point) => point.paceSecondsPerKm),
+      );
+      expect(graph.totalDurationSeconds, payload.durationSeconds);
+      expect(graph.averagePaceSecondsPerKm, payload.avgPaceSecondsPerKm);
+    });
+
+    test(
+      'completed low-data local run returns unavailable pace graph',
+      () async {
+        final startedAt = DateTime.utc(2026, 6, 14, 7);
+        final controller = RunTrackingController(
+          locationProvider: ReplayRunLocationProvider([
+            RunLocationReplaySample(
+              activeOffset: Duration.zero,
+              sample: RunLocationSample(
+                recordedAt: startedAt,
+                latitude: 1.300000,
+                longitude: 103.800000,
+              ),
+            ),
+            RunLocationReplaySample(
+              activeOffset: const Duration(seconds: 120),
+              sample: RunLocationSample(
+                recordedAt: startedAt.add(const Duration(seconds: 120)),
+                latitude: 1.302698,
+                longitude: 103.800000,
+              ),
+            ),
+          ]),
+        );
+
+        controller.start(
+          startedAt: startedAt,
+          clientRunSessionId: 'local-completion-low-data-graph-flow',
+          routeLabel: 'Low data local route',
+        );
+        controller.advanceBy(const Duration(seconds: 120));
+
+        final payload = controller.completionPayload(
+          completedAt: startedAt.add(const Duration(seconds: 120)),
+        );
+        final completedRun = await const StaticRunRepository().completeRun(
+          payload,
+        );
+
+        expect(payload.paceGraphSamples.length, lessThan(3));
+        expect(completedRun.summary.hasSufficientData, isTrue);
+        expect(completedRun.summary.paceGraph.isAvailable, isFalse);
+        expect(completedRun.summary.paceGraph.points, isEmpty);
       },
     );
 
