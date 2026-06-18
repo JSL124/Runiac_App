@@ -18,13 +18,20 @@ class ExpertPlansEntryCard extends StatelessWidget {
           YouCardHeader(Icons.school_outlined, youPlansSnapshot.expertTitle),
           const SizedBox(height: 8),
           Text(youPlansSnapshot.expertCopy, style: YouTextStyles.body),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
+          const SizedBox(height: 14),
+          Row(
             children: [
-              for (final option in youPlansSnapshot.expertOptions)
-                _ExpertPlanOption(option),
+              _ExpertPlanOption(youPlansSnapshot.expertOptions[0]),
+              const SizedBox(width: 10),
+              _ExpertPlanOption(youPlansSnapshot.expertOptions[1]),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              _ExpertPlanOption(youPlansSnapshot.expertOptions[2]),
+              const SizedBox(width: 10),
+              _ExpertPlanOption(youPlansSnapshot.expertOptions[3]),
             ],
           ),
           const SizedBox(height: 12),
@@ -47,25 +54,39 @@ class _ExpertPlanOption extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: display.featured
-            ? RuniacColors.innerTileSurface
-            : RuniacColors.white,
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(
+    return Expanded(
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 74),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
           color: display.featured
-              ? RuniacColors.primaryBlue
-              : RuniacColors.border,
+              ? const Color(0xFFF7FAFF)
+              : RuniacColors.white,
+          borderRadius: BorderRadius.circular(youInnerRadius),
+          border: Border.all(
+            color: display.featured
+                ? RuniacColors.primaryBlue
+                : RuniacColors.border,
+          ),
         ),
-      ),
-      child: Text(
-        display.label,
-        textAlign: TextAlign.center,
-        style: display.featured
-            ? YouTextStyles.planAccentLabel
-            : YouTextStyles.smallStrong,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              display.icon,
+              color: display.featured
+                  ? RuniacColors.primaryBlue
+                  : RuniacColors.textSecondary,
+              size: 24,
+            ),
+            const SizedBox(height: 7),
+            Text(
+              display.label,
+              textAlign: TextAlign.center,
+              style: YouTextStyles.bodyStrong,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -79,7 +100,7 @@ class _CoachCreatedBadge extends StatelessWidget {
     return Container(
       height: 26,
       padding: const EdgeInsets.symmetric(horizontal: 10),
-      decoration: youPillDecoration(RuniacColors.innerTileSurface),
+      decoration: youPillDecoration(const Color(0xFFF7FAFF)),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [

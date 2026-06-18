@@ -105,12 +105,12 @@ class _WeeklyPlanDayRow extends StatelessWidget {
         ? RuniacColors.primaryBlue.withValues(alpha: 0.06)
         : null;
     final dayColor = next
-        ? RuniacColors.accentOrange
+        ? const Color(0xFFE8550A)
         : (completed || upcoming)
         ? RuniacColors.primaryBlue
         : RuniacColors.primaryBlue.withValues(alpha: 0.45);
     final subtitleColor = next
-        ? RuniacColors.accentOrange
+        ? const Color(0xFFE8550A)
         : RuniacColors.primaryBlue.withValues(alpha: 0.60);
     final status = display.status;
     final row = Container(
@@ -125,7 +125,7 @@ class _WeeklyPlanDayRow extends StatelessWidget {
                 ),
               )
             : null,
-        borderRadius: BorderRadius.circular(youInnerRadius),
+        borderRadius: BorderRadius.circular(14),
       ),
       child: Padding(
         padding: EdgeInsets.zero,
@@ -208,7 +208,7 @@ class _WeeklyPlanDayRow extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(youInnerRadius),
+          borderRadius: BorderRadius.circular(14),
           onTap: onTap,
           child: row,
         ),
@@ -239,6 +239,13 @@ class _WeeklyPlanStatusNode extends StatelessWidget {
         decoration: BoxDecoration(
           color: RuniacColors.primaryBlue,
           borderRadius: BorderRadius.circular(999),
+          boxShadow: [
+            BoxShadow(
+              color: RuniacColors.primaryBlue.withValues(alpha: 0.24),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: const Icon(
           Icons.check_rounded,
