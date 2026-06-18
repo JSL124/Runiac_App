@@ -391,6 +391,7 @@ class RunTrackingController extends ChangeNotifier {
       source: _state.source,
       routePrivacy: _state.routePrivacy,
       routeLabel: _state.routeLabel,
+      paceGraphSamples: _trackingSession?.paceGraphSamples() ?? const [],
     );
   }
 

@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:runiac_app/features/run/domain/models/local_run_completion_payload.dart';
 import 'package:runiac_app/features/run/domain/models/run_location_sample.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_location_provider.dart';
+import 'package:runiac_app/features/run/domain/services/pace_graph_data_builder.dart';
 import 'package:runiac_app/features/run/domain/models/run_tracking_state.dart';
 import 'package:runiac_app/features/run/presentation/controllers/run_tracking_controller.dart';
 
@@ -56,6 +58,113 @@ void main() {
         expect(payloadMap.keys, isNot(contains('polyline')));
       },
     );
+
+    test(
+      'completion payload carries local-only graph samples from accepted route segments',
+      () {
+        final startedAt = DateTime.utc(2026, 6, 14, 7);
+        final controller = RunTrackingController(
+          locationProvider: ReplayRunLocationProvider([
+            RunLocationReplaySample(
+              activeOffset: Duration.zero,
+              sample: RunLocationSample(
+                recordedAt: startedAt,
+                latitude: 1.300000,
+                longitude: 103.800000,
+              ),
+            ),
+            RunLocationReplaySample(
+              activeOffset: const Duration(seconds: 60),
+              sample: RunLocationSample(
+                recordedAt: startedAt.add(const Duration(seconds: 60)),
+                latitude: 1.301349,
+                longitude: 103.800000,
+              ),
+            ),
+            RunLocationReplaySample(
+              activeOffset: const Duration(seconds: 120),
+              sample: RunLocationSample(
+                recordedAt: startedAt.add(const Duration(seconds: 120)),
+                latitude: 1.302698,
+                longitude: 103.800000,
+              ),
+            ),
+            RunLocationReplaySample(
+              activeOffset: const Duration(seconds: 180),
+              sample: RunLocationSample(
+                recordedAt: startedAt.add(const Duration(seconds: 180)),
+                latitude: 1.304047,
+                longitude: 103.800000,
+              ),
+            ),
+          ]),
+        );
+
+        controller.start(
+          startedAt: startedAt,
+          clientRunSessionId: 'local-graph-samples-run',
+        );
+        controller.advanceBy(const Duration(seconds: 180));
+
+        final payload = controller.completionPayload(
+          completedAt: startedAt.add(const Duration(seconds: 180)),
+        );
+
+        expect(payload.paceGraphSamples.length, greaterThanOrEqualTo(3));
+        expect(
+          payload.paceGraphSamples.map((sample) => sample.elapsedSeconds),
+          [60, 120, 180],
+        );
+        expect(
+          payload.paceGraphSamples.every(
+            (sample) =>
+                sample.paceSecondsPerKm >= minGraphPaceSecondsPerKm &&
+                sample.paceSecondsPerKm <= maxGraphPaceSecondsPerKm,
+          ),
+          isTrue,
+        );
+      },
+    );
+
+    test('completion payload raw map excludes local graph and route data', () {
+      final payload = LocalRunCompletionPayload(
+        clientRunSessionId: 'local-graph-raw-map-run',
+        startedAt: DateTime.utc(2026, 6, 14, 7),
+        completedAt: DateTime.utc(2026, 6, 14, 7, 3),
+        durationSeconds: 180,
+        distanceMeters: 450,
+        avgPaceSecondsPerKm: 400,
+        source: 'local_simulation',
+        routePrivacy: 'private',
+        paceGraphSamples: const [
+          PaceGraphSample(elapsedSeconds: 60, paceSecondsPerKm: 400),
+          PaceGraphSample(elapsedSeconds: 120, paceSecondsPerKm: 402),
+          PaceGraphSample(elapsedSeconds: 180, paceSecondsPerKm: 398),
+        ],
+      );
+
+      final payloadMap = payload.toRawClientMap();
+      const forbiddenKeys = [
+        'paceGraphSamples',
+        'graphSamples',
+        'paceGraph',
+        'samples',
+        'latitude',
+        'longitude',
+        'routeTrace',
+        'polyline',
+        'positions',
+        'gpsSamples',
+        'rawLocationSamples',
+        'displayRouteSegments',
+        'acceptedRouteSegments',
+        'motionEvidence',
+      ];
+
+      for (final key in forbiddenKeys) {
+        expect(payloadMap.keys, isNot(contains(key)));
+      }
+    });
 
     test('exposes accepted samples as local-only map route state', () {
       final startedAt = DateTime.utc(2026, 6, 14, 7);

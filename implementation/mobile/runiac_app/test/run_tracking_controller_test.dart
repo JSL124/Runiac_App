@@ -990,7 +990,14 @@ void main() {
       final payload = controller.completionPayload(completedAt: completedAt);
 
       expect(payload.clientRunSessionId, 'local-session-5');
+      expect(payload.startedAt, startedAt);
       expect(payload.completedAt, completedAt);
+      expect(payload.durationSeconds, 120);
+      expect(payload.distanceMeters, 300);
+      expect(payload.avgPaceSecondsPerKm, 400);
+      expect(payload.source, 'local_simulation');
+      expect(payload.routePrivacy, 'private');
+      expect(payload.routeLabel, 'Easy local route');
       expect(controller.state.phase, RunTrackingPhase.paused);
       expect(controller.state.completedAt, isNull);
     });

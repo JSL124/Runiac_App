@@ -5,6 +5,8 @@ import '../models/run_map_view_state.dart';
 import '../models/run_motion_evidence.dart';
 import '../models/run_tracking_diagnostics.dart';
 import '../models/run_tracking_state.dart';
+import 'local_pace_graph_sample_deriver.dart';
+import 'pace_graph_data_builder.dart';
 import 'run_distance_calculator.dart';
 import 'run_movement_classifier.dart';
 
@@ -94,6 +96,17 @@ class LocalRunTrackingSession {
   int get rejectedSampleCount => _diagnostics.rejectedSampleCount;
   RunMovementStatus get movementStatus => _movementStatus;
   RunTrackingDiagnostics get diagnostics => _diagnostics;
+  List<PaceGraphSample> paceGraphSamples() {
+    final graphSamples =
+        LocalPaceGraphSampleDeriver(
+          distanceCalculator: distanceCalculator,
+        ).derive(
+          startedAt: startedAt,
+          acceptedSampleSegments: _acceptedSampleSegments,
+        );
+    return List<PaceGraphSample>.unmodifiable(graphSamples);
+  }
+
   RunMapViewState get mapViewState {
     return RunMapViewState(
       currentPosition: _currentPositionSample,

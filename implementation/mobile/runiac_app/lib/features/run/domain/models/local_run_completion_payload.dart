@@ -1,3 +1,5 @@
+import '../services/pace_graph_data_builder.dart';
+
 class LocalRunCompletionPayload {
   const LocalRunCompletionPayload({
     required this.clientRunSessionId,
@@ -10,6 +12,7 @@ class LocalRunCompletionPayload {
     required this.routePrivacy,
     this.routeLabel,
     this.clientAppVersion,
+    this.paceGraphSamples = const <PaceGraphSample>[],
   });
 
   final String clientRunSessionId;
@@ -22,6 +25,7 @@ class LocalRunCompletionPayload {
   final String routePrivacy;
   final String? routeLabel;
   final String? clientAppVersion;
+  final List<PaceGraphSample> paceGraphSamples;
 
   Map<String, Object?> toRawClientMap() {
     return <String, Object?>{
