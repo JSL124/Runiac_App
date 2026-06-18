@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/runiac_colors.dart';
 import '../domain/models/complete_run_result.dart';
 import '../domain/models/run_completion_error.dart';
+import '../domain/models/run_route_snapshot.dart';
 import '../domain/models/run_tracking_state.dart';
 import '../domain/repositories/run_repository.dart';
 import 'active_run_session_coordinator.dart';
@@ -96,6 +97,7 @@ class _RunActiveScreenState extends State<RunActiveScreen> {
     final completedAt = _activeRunSessionCoordinator.now();
     _activeRunSessionCoordinator.syncTo(completedAt);
     final payload = _controller.completionPayload(completedAt: completedAt);
+    final route = RunRouteSnapshot.fromMapViewState(_controller.mapViewState);
     setState(() => _isCompletingRun = true);
 
     CompleteRunResult result;
@@ -126,6 +128,7 @@ class _RunActiveScreenState extends State<RunActiveScreen> {
     if (!mounted) {
       return;
     }
+    result = result.copyWith(summary: result.summary.copyWith(route: route));
     _activeRunSessionCoordinator.stopForegroundTicker();
     _controller.finish(completedAt: completedAt);
     Navigator.of(context).pushReplacement(

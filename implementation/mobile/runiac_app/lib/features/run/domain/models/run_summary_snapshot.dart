@@ -1,4 +1,5 @@
 import 'pace_graph_snapshot.dart';
+import 'run_route_snapshot.dart';
 
 class RunSummarySnapshot {
   const RunSummarySnapshot({
@@ -13,6 +14,7 @@ class RunSummarySnapshot {
     required this.routeName,
     this.hasSufficientData = true,
     this.paceGraph = const PaceGraphSnapshot.unavailable(),
+    this.route = RunRouteSnapshot.empty,
   });
 
   final String title;
@@ -26,10 +28,14 @@ class RunSummarySnapshot {
   final String routeName;
   final bool hasSufficientData;
   final PaceGraphSnapshot paceGraph;
+  final RunRouteSnapshot route;
 
   String get dateTimeLabel => '$dateLabel · $timeLabel';
 
-  RunSummarySnapshot copyWith({PaceGraphSnapshot? paceGraph}) {
+  RunSummarySnapshot copyWith({
+    PaceGraphSnapshot? paceGraph,
+    RunRouteSnapshot? route,
+  }) {
     return RunSummarySnapshot(
       title: title,
       dateLabel: dateLabel,
@@ -42,6 +48,7 @@ class RunSummarySnapshot {
       routeName: routeName,
       hasSufficientData: hasSufficientData,
       paceGraph: paceGraph ?? this.paceGraph,
+      route: route ?? this.route,
     );
   }
 }

@@ -13,6 +13,7 @@ import '../domain/models/complete_run_result.dart';
 import '../domain/models/run_location_permission_status.dart';
 import '../domain/models/run_location_sample.dart';
 import '../domain/models/run_completion_error.dart';
+import '../domain/models/run_route_snapshot.dart';
 import '../domain/models/run_tracking_state.dart';
 import '../domain/repositories/run_foreground_service.dart';
 import '../domain/repositories/run_location_permission_service.dart';
@@ -386,6 +387,7 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
     final completedAt = _activeRunSessionCoordinator.now();
     _activeRunSessionCoordinator.syncTo(completedAt);
     final payload = _controller.completionPayload(completedAt: completedAt);
+    final route = RunRouteSnapshot.fromMapViewState(_controller.mapViewState);
     setState(() => _isCompletingRun = true);
 
     CompleteRunResult result;
@@ -414,6 +416,7 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
     if (!mounted) {
       return;
     }
+    result = result.copyWith(summary: result.summary.copyWith(route: route));
     _activeRunSessionCoordinator.stopForegroundTicker();
     _controller.finish(completedAt: completedAt);
     Navigator.of(context).pushReplacement(

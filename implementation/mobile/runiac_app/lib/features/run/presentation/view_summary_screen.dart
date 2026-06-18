@@ -8,6 +8,8 @@ import 'package:runiac_app/core/widgets/runiac_back_header.dart';
 import 'advanced_analysis_screen.dart';
 import '../domain/models/complete_run_result.dart';
 import '../domain/models/pace_graph_snapshot.dart';
+import '../domain/models/run_location_sample.dart';
+import '../domain/models/run_route_snapshot.dart';
 import '../domain/models/run_summary_snapshot.dart';
 import 'data/run_completion_demo_snapshots.dart';
 import 'widgets/share_achievement_sheet.dart';
@@ -126,7 +128,10 @@ class ViewSummaryScreen extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          _MapPreview(routeName: displayedSummary.routeName),
+                          _MapPreview(
+                            routeName: displayedSummary.routeName,
+                            route: displayedSummary.route,
+                          ),
                           _HeroDistance(
                             distanceKm: displayedSummary.distanceKm,
                           ),
@@ -211,9 +216,10 @@ class _NoOverscrollBehavior extends ScrollBehavior {
 }
 
 class _MapPreview extends StatelessWidget {
-  const _MapPreview({required this.routeName});
+  const _MapPreview({required this.routeName, required this.route});
 
   final String routeName;
+  final RunRouteSnapshot route;
 
   @override
   Widget build(BuildContext context) {
@@ -228,10 +234,11 @@ class _MapPreview extends StatelessWidget {
           ),
           child: Stack(
             children: [
-              const SizedBox(
+              SizedBox(
                 height: 184,
                 child: CustomPaint(
-                  painter: _MapPreviewPainter(),
+                  key: Key(_mapPreviewKeyFor(route)),
+                  painter: _MapPreviewPainter(route: route),
                   child: SizedBox.expand(),
                 ),
               ),
@@ -289,6 +296,16 @@ class _MapPreview extends StatelessWidget {
       ),
     );
   }
+}
+
+String _mapPreviewKeyFor(RunRouteSnapshot route) {
+  if (route.hasRoute) {
+    return 'summary_route_preview_route';
+  }
+  if (route.hasLocation) {
+    return 'summary_route_preview_dot';
+  }
+  return 'summary_route_preview_placeholder';
 }
 
 class _MapFade extends StatelessWidget {
@@ -1089,7 +1106,9 @@ class _CardSurface extends StatelessWidget {
 }
 
 class _MapPreviewPainter extends CustomPainter {
-  const _MapPreviewPainter();
+  const _MapPreviewPainter({required this.route});
+
+  final RunRouteSnapshot route;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1129,36 +1148,144 @@ class _MapPreviewPainter extends CustomPainter {
         ..strokeWidth = 22,
     );
 
-    final routePath = Path()
-      ..moveTo(70, 180)
-      ..cubicTo(100, 120, 150, 150, 180, 110)
-      ..cubicTo(210, 70, 260, 80, 290, 130);
-    canvas.drawPath(
-      routePath,
-      Paint()
-        ..color = _rBlue
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 3.5
-        ..strokeCap = StrokeCap.round,
-    );
-    canvas.drawCircle(const Offset(70, 180), 7, Paint()..color = _rBlue);
-    canvas.drawCircle(const Offset(70, 180), 3, Paint()..color = _rWhite);
-    canvas.drawCircle(const Offset(290, 130), 7, Paint()..color = _rOrange);
-    canvas.drawCircle(const Offset(180, 110), 8, Paint()..color = _rOrange);
+    if (route.hasRoute) {
+      _drawCompletedRoute(canvas, const Size(360, 240));
+    } else if (route.hasLocation) {
+      _drawLocationDot(canvas, const Offset(180, 120));
+    }
+
+    canvas.restore();
+  }
+
+  void _drawCompletedRoute(Canvas canvas, Size size) {
+    final transform = _SummaryRouteTransform.fromSegments(route.segments, size);
+    if (transform == null) {
+      return;
+    }
+
+    final shadowPaint = Paint()
+      ..color = const Color(0x66304BB7)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 10
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    final routePaint = Paint()
+      ..color = _rOrange
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 4.5
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+
+    Offset? startPoint;
+    Offset? endPoint;
+    for (final segment in route.segments.where(
+      (segment) => segment.length > 1,
+    )) {
+      final path = Path();
+      for (var index = 0; index < segment.length; index += 1) {
+        final point = transform.offsetFor(segment[index]);
+        startPoint ??= point;
+        endPoint = point;
+        if (index == 0) {
+          path.moveTo(point.dx, point.dy);
+        } else {
+          path.lineTo(point.dx, point.dy);
+        }
+      }
+      canvas.drawPath(path, shadowPaint);
+      canvas.drawPath(path, routePaint);
+    }
+
+    if (startPoint != null) {
+      canvas.drawCircle(startPoint, 7, Paint()..color = _rBlue);
+      canvas.drawCircle(startPoint, 3, Paint()..color = _rWhite);
+    }
+    if (endPoint != null) {
+      _drawLocationDot(canvas, endPoint);
+    }
+  }
+
+  void _drawLocationDot(Canvas canvas, Offset center) {
+    canvas.drawCircle(center, 15, Paint()..color = const Color(0x33FB6414));
+    canvas.drawCircle(center, 8, Paint()..color = _rOrange);
     canvas.drawCircle(
-      const Offset(180, 110),
+      center,
       8,
       Paint()
         ..color = _rWhite
         ..style = PaintingStyle.stroke
         ..strokeWidth = 3,
     );
-
-    canvas.restore();
   }
 
   @override
-  bool shouldRepaint(covariant _MapPreviewPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _MapPreviewPainter oldDelegate) {
+    return oldDelegate.route != route;
+  }
+}
+
+class _SummaryRouteTransform {
+  const _SummaryRouteTransform({
+    required this.minLatitude,
+    required this.maxLatitude,
+    required this.minLongitude,
+    required this.maxLongitude,
+    required this.size,
+  });
+
+  final double minLatitude;
+  final double maxLatitude;
+  final double minLongitude;
+  final double maxLongitude;
+  final Size size;
+
+  static _SummaryRouteTransform? fromSegments(
+    List<List<RunLocationSample>> segments,
+    Size size,
+  ) {
+    final points = segments.expand((segment) => segment).toList();
+    if (points.isEmpty) {
+      return null;
+    }
+
+    var minLatitude = points.first.latitude;
+    var maxLatitude = points.first.latitude;
+    var minLongitude = points.first.longitude;
+    var maxLongitude = points.first.longitude;
+    for (final point in points.skip(1)) {
+      minLatitude = point.latitude < minLatitude ? point.latitude : minLatitude;
+      maxLatitude = point.latitude > maxLatitude ? point.latitude : maxLatitude;
+      minLongitude = point.longitude < minLongitude
+          ? point.longitude
+          : minLongitude;
+      maxLongitude = point.longitude > maxLongitude
+          ? point.longitude
+          : maxLongitude;
+    }
+
+    return _SummaryRouteTransform(
+      minLatitude: minLatitude,
+      maxLatitude: maxLatitude,
+      minLongitude: minLongitude,
+      maxLongitude: maxLongitude,
+      size: size,
+    );
+  }
+
+  Offset offsetFor(RunLocationSample sample) {
+    final longitudeRange = maxLongitude - minLongitude;
+    final latitudeRange = maxLatitude - minLatitude;
+    final x = longitudeRange == 0
+        ? 0.5
+        : ((sample.longitude - minLongitude) / longitudeRange).clamp(0.0, 1.0);
+    final y = latitudeRange == 0
+        ? 0.5
+        : (1 - (sample.latitude - minLatitude) / latitudeRange).clamp(0.0, 1.0);
+    final padding = size.shortestSide * 0.18;
+    final drawableWidth = (size.width - padding * 2).clamp(1.0, size.width);
+    final drawableHeight = (size.height - padding * 2).clamp(1.0, size.height);
+    return Offset(padding + drawableWidth * x, padding + drawableHeight * y);
+  }
 }
 
 class _PaceChartPainter extends CustomPainter {

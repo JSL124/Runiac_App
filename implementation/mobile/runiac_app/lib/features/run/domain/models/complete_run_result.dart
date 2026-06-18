@@ -31,4 +31,17 @@ class CompleteRunResult {
   final ProgressionDisplayModel progressionDisplay;
   final XpUpdateDisplayModel xpUpdate;
   final String message;
+
+  CompleteRunResult copyWith({RunSummarySnapshot? summary}) {
+    return CompleteRunResult(
+      activityId: activityId,
+      summaryId: summaryId,
+      progressionEventId: progressionEventId,
+      validationStatus: validationStatus,
+      summary: summary ?? this.summary,
+      progressionDisplay: progressionDisplay,
+      xpUpdate: xpUpdate,
+      message: message,
+    );
+  }
 }

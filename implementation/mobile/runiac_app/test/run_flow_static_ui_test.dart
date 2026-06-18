@@ -10,6 +10,8 @@ import 'package:runiac_app/features/run/domain/models/complete_run_result.dart';
 import 'package:runiac_app/features/run/domain/models/local_run_completion_payload.dart';
 import 'package:runiac_app/features/run/domain/models/progression_display_model.dart';
 import 'package:runiac_app/features/run/domain/models/run_activity_read_model.dart';
+import 'package:runiac_app/features/run/domain/models/run_location_sample.dart';
+import 'package:runiac_app/features/run/domain/models/run_route_snapshot.dart';
 import 'package:runiac_app/features/run/presentation/advanced_analysis_screen.dart';
 import 'package:runiac_app/features/run/presentation/cool_down_guide_screen.dart';
 import 'package:runiac_app/features/run/presentation/cool_down_screen.dart';
@@ -798,6 +800,144 @@ void main() {
     expect(find.widgetWithText(OutlinedButton, 'Share Route'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'View XP Update'), findsOneWidget);
   });
+
+  testWidgets(
+    'View summary renders completed route preview when route exists',
+    (WidgetTester tester) async {
+      _useTallSummarySurface(tester);
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ViewSummaryScreen(
+            summary: RunSummarySnapshot(
+              title: 'Completed Route Run',
+              dateLabel: 'Today',
+              timeLabel: '8:10 AM',
+              distanceKm: '0.30',
+              avgPace: '6’40”',
+              duration: '2:00',
+              avgHeartRate: '--',
+              calories: '27',
+              routeName: 'Actual Local Route',
+              route: RunRouteSnapshot(
+                segments: [
+                  [
+                    RunLocationSample(
+                      recordedAt: startedAt,
+                      latitude: 1.300000,
+                      longitude: 103.800000,
+                    ),
+                    RunLocationSample(
+                      recordedAt: startedAt.add(const Duration(seconds: 60)),
+                      latitude: 1.300899,
+                      longitude: 103.800000,
+                    ),
+                  ],
+                ],
+                lastKnownLocation: RunLocationSample(
+                  recordedAt: startedAt.add(const Duration(seconds: 60)),
+                  latitude: 1.300899,
+                  longitude: 103.800000,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(
+        find.byKey(const Key('summary_route_preview_route')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const Key('summary_route_preview_dot')), findsNothing);
+      expect(
+        find.byKey(const Key('summary_route_preview_placeholder')),
+        findsNothing,
+      );
+    },
+  );
+
+  testWidgets(
+    'View summary renders last-location dot when completed route is unavailable',
+    (WidgetTester tester) async {
+      _useTallSummarySurface(tester);
+      final recordedAt = DateTime.utc(2026, 6, 14, 7, 1);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ViewSummaryScreen(
+            summary: RunSummarySnapshot(
+              title: 'Location Only Run',
+              dateLabel: 'Today',
+              timeLabel: '8:11 AM',
+              distanceKm: '0.00',
+              avgPace: '--',
+              duration: '0:30',
+              avgHeartRate: '--',
+              calories: '--',
+              routeName: 'Private route',
+              route: RunRouteSnapshot(
+                lastKnownLocation: RunLocationSample(
+                  recordedAt: recordedAt,
+                  latitude: 1.300100,
+                  longitude: 103.800000,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(
+        find.byKey(const Key('summary_route_preview_dot')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('summary_route_preview_route')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const Key('summary_route_preview_placeholder')),
+        findsNothing,
+      );
+    },
+  );
+
+  testWidgets(
+    'View summary keeps neutral placeholder when no route or location exists',
+    (WidgetTester tester) async {
+      _useTallSummarySurface(tester);
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: ViewSummaryScreen(
+            summary: RunSummarySnapshot(
+              title: 'No Location Run',
+              dateLabel: 'Today',
+              timeLabel: '8:12 AM',
+              distanceKm: '0.00',
+              avgPace: '--',
+              duration: '0:00',
+              avgHeartRate: '--',
+              calories: '--',
+              routeName: 'Private route',
+            ),
+          ),
+        ),
+      );
+
+      expect(
+        find.byKey(const Key('summary_route_preview_placeholder')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('summary_route_preview_route')),
+        findsNothing,
+      );
+      expect(find.byKey(const Key('summary_route_preview_dot')), findsNothing);
+    },
+  );
 
   testWidgets(
     'View summary shows unavailable completion metrics without fake units',
