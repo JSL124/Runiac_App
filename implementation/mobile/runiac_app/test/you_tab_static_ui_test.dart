@@ -320,6 +320,17 @@ void main() {
       for (final label in run.expectedAxisLabels) {
         expect(find.text(label), findsWidgets);
       }
+      final axisLabelCenters = [
+        for (var index = 0; index < run.expectedAxisLabels.length; index += 1)
+          tester.getCenter(find.byKey(ValueKey('pace_x_axis_label_$index'))).dx,
+      ];
+      final axisGaps = [
+        for (var index = 1; index < axisLabelCenters.length; index += 1)
+          axisLabelCenters[index] - axisLabelCenters[index - 1],
+      ];
+      for (final gap in axisGaps.skip(1)) {
+        expect((gap - axisGaps.first).abs(), lessThanOrEqualTo(1));
+      }
       for (final label in run.forbiddenAxisLabels) {
         expect(find.text(label), findsNothing);
       }

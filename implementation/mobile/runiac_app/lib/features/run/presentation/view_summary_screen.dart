@@ -25,6 +25,10 @@ const _rBlue18 = Color(0x2E2F51C8);
 const _rBlue10 = Color(0x1A2F51C8);
 const _rBlue06 = Color(0x0F2F51C8);
 const _cardRadius = 20.0;
+const _paceChartYAxisWidth = 30.0;
+const _paceChartAxisGap = 8.0;
+const _paceChartHorizontalPlotInset = 24.0;
+const _paceChartXAxisLabelWidth = 48.0;
 
 class ViewSummaryScreen extends StatelessWidget {
   const ViewSummaryScreen({
@@ -478,7 +482,7 @@ class _PaceChart extends StatelessWidget {
           child: Row(
             children: [
               SizedBox(
-                width: 30,
+                width: _paceChartYAxisWidth,
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.end,
@@ -487,7 +491,7 @@ class _PaceChart extends StatelessWidget {
                       .toList(),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: _paceChartAxisGap),
               Expanded(
                 child: CustomPaint(
                   painter: _PaceChartPainter(graph: graph),
@@ -498,28 +502,73 @@ class _PaceChart extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(38, 0, 8, 0),
-          child: Row(
+        Row(
+          children: [
+            const SizedBox(width: _paceChartYAxisWidth),
+            const SizedBox(width: _paceChartAxisGap),
+            Expanded(child: _PaceXAxisLabels(labels: graph.xAxisLabels)),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _PaceXAxisLabels extends StatelessWidget {
+  const _PaceXAxisLabels({required this.labels});
+
+  final List<String> labels;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 12,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          if (labels.isEmpty) {
+            return const SizedBox.shrink();
+          }
+
+          final availableWidth = constraints.maxWidth;
+          final horizontalInset =
+              availableWidth > (_paceChartHorizontalPlotInset * 2)
+              ? _paceChartHorizontalPlotInset
+              : 0.0;
+          final plotLeft = horizontalInset;
+          final plotRight = availableWidth - horizontalInset;
+          final plotWidth = (plotRight - plotLeft).clamp(0.0, double.infinity);
+          final divisor = labels.length == 1 ? 1 : labels.length - 1;
+
+          return Stack(
+            clipBehavior: Clip.none,
             children: [
-              for (var index = 0; index < graph.xAxisLabels.length; index += 1)
-                Expanded(
-                  child: Align(
-                    alignment: index == 0
-                        ? Alignment.centerLeft
-                        : index == graph.xAxisLabels.length - 1
-                        ? Alignment.centerRight
-                        : Alignment.center,
+              for (var index = 0; index < labels.length; index += 1)
+                Positioned(
+                  key: ValueKey('pace_x_axis_label_$index'),
+                  left:
+                      (plotLeft +
+                              (plotWidth * (index / divisor)) -
+                              (_paceChartXAxisLabelWidth / 2))
+                          .clamp(
+                            0.0,
+                            (availableWidth - _paceChartXAxisLabelWidth).clamp(
+                              0.0,
+                              double.infinity,
+                            ),
+                          )
+                          .toDouble(),
+                  width: _paceChartXAxisLabelWidth,
+                  child: Center(
                     child: FittedBox(
                       fit: BoxFit.scaleDown,
-                      child: _AxisLabel(graph.xAxisLabels[index]),
+                      child: _AxisLabel(labels[index]),
                     ),
                   ),
                 ),
             ],
-          ),
-        ),
-      ],
+          );
+        },
+      ),
     );
   }
 }
@@ -1053,12 +1102,28 @@ class _PaceChartPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    final horizontalInset = size.width > (_paceChartHorizontalPlotInset * 2)
+        ? _paceChartHorizontalPlotInset
+        : 0.0;
+    final plotLeft = horizontalInset;
+    final plotRight = size.width - horizontalInset;
+    final plotWidth = (plotRight - plotLeft).clamp(1.0, double.infinity);
+
+    double xForProgress(double progressFraction) {
+      return plotLeft + (progressFraction.clamp(0.0, 1.0) * plotWidth);
+    }
+
     final guidePaint = Paint()
       ..color = _rBlue10
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1;
     for (final y in [8.0, 36.0, 64.0, 92.0]) {
-      _drawDashedLine(canvas, Offset(0, y), Offset(size.width, y), guidePaint);
+      _drawDashedLine(
+        canvas,
+        Offset(plotLeft, y),
+        Offset(plotRight, y),
+        guidePaint,
+      );
     }
 
     if (!graph.isAvailable || graph.points.length < 3) {
@@ -1085,12 +1150,12 @@ class _PaceChartPainter extends CustomPainter {
         averagePace <= rangeMax) {
       _drawDashedLine(
         canvas,
-        Offset(0, yForSeconds(averagePace)),
-        Offset(size.width, yForSeconds(averagePace)),
+        Offset(plotLeft, yForSeconds(averagePace)),
+        Offset(plotRight, yForSeconds(averagePace)),
         Paint()
-          ..color = _rBlue30
+          ..color = _rBlue60
           ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.3,
+          ..strokeWidth = 1.5,
       );
     }
 
@@ -1099,7 +1164,7 @@ class _PaceChartPainter extends CustomPainter {
       final graphPoint = graph.points[i];
       offsets.add(
         Offset(
-          graphPoint.progressFraction * size.width,
+          xForProgress(graphPoint.progressFraction),
           yForSeconds(graphPoint.paceSecondsPerKm),
         ),
       );
@@ -1135,6 +1200,7 @@ class _PaceChartPainter extends CustomPainter {
       canvas,
       size,
       point: graph.slowestPacePoint,
+      xForProgress: xForProgress,
       yForSeconds: yForSeconds,
       fillColor: _rWhite,
       strokeColor: _rBlue45,
@@ -1143,6 +1209,7 @@ class _PaceChartPainter extends CustomPainter {
       canvas,
       size,
       point: graph.bestPacePoint,
+      xForProgress: xForProgress,
       yForSeconds: yForSeconds,
       fillColor: _rOrange,
       strokeColor: _rWhite,
@@ -1167,6 +1234,7 @@ class _PaceChartPainter extends CustomPainter {
     Canvas canvas,
     Size size, {
     required PaceGraphPoint? point,
+    required double Function(double progressFraction) xForProgress,
     required double Function(int paceSecondsPerKm) yForSeconds,
     required Color fillColor,
     required Color strokeColor,
@@ -1176,7 +1244,7 @@ class _PaceChartPainter extends CustomPainter {
     }
 
     final center = Offset(
-      point.progressFraction * size.width,
+      xForProgress(point.progressFraction),
       yForSeconds(point.paceSecondsPerKm),
     );
     canvas.drawCircle(center, 4.5, Paint()..color = fillColor);
