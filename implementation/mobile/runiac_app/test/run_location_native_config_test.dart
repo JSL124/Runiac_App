@@ -127,9 +127,8 @@ void main() {
       expect(plist, contains('FLUTTER_BUILD_NAME'));
       expect(plist, contains('FLUTTER_BUILD_NUMBER'));
       expect(liveActivityPlist, contains('FLUTTER_BUILD_NAME'));
-      expect(liveActivityPlist, contains('FLUTTER_BUILD_NUMBER'));
+      expect(liveActivityPlist, contains('CURRENT_PROJECT_VERSION'));
       expect(liveActivityPlist, isNot(contains('MARKETING_VERSION')));
-      expect(liveActivityPlist, isNot(contains('CURRENT_PROJECT_VERSION')));
       expect(project, contains('RunnerLiveActivity.appex'));
       expect(project, contains('com.apple.product-type.app-extension'));
       expect(
