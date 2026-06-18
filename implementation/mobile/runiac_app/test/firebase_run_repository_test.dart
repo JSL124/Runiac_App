@@ -82,6 +82,68 @@ void main() {
       },
     );
 
+    test(
+      'maps unreliable callable pace values to unavailable pace label',
+      () async {
+        const cases = <_SummaryPaceCase>[
+          _SummaryPaceCase(
+            label: 'short distance',
+            distanceMeters: 49,
+            durationSeconds: 300,
+            paceSecondsPerKm: 360,
+            expectedPace: '--',
+          ),
+          _SummaryPaceCase(
+            label: 'short duration',
+            distanceMeters: 1000,
+            durationSeconds: 59,
+            paceSecondsPerKm: 360,
+            expectedPace: '--',
+          ),
+          _SummaryPaceCase(
+            label: 'too fast',
+            distanceMeters: 1000,
+            durationSeconds: 180,
+            paceSecondsPerKm: 149,
+            expectedPace: '--',
+          ),
+          _SummaryPaceCase(
+            label: 'too slow',
+            distanceMeters: 1000,
+            durationSeconds: 1900,
+            paceSecondsPerKm: 1801,
+            expectedPace: '--',
+          ),
+          _SummaryPaceCase(
+            label: 'normal pace',
+            distanceMeters: 1000,
+            durationSeconds: 450,
+            paceSecondsPerKm: 450,
+            expectedPace: '7’30”',
+          ),
+        ];
+
+        for (final testCase in cases) {
+          final callable = _FakeCompleteRunCallable(
+            response: _callableResponseWithSummary(
+              distanceMeters: testCase.distanceMeters,
+              durationSeconds: testCase.durationSeconds,
+              paceSecondsPerKm: testCase.paceSecondsPerKm,
+            ),
+          );
+          final repository = FirebaseRunRepository(callable: callable);
+
+          final result = await repository.completeRun(_payload());
+
+          expect(
+            result.summary.avgPace,
+            testCase.expectedPace,
+            reason: testCase.label,
+          );
+        }
+      },
+    );
+
     test('maps transient callable failures to retryable completion errors', () {
       const retryableCodes = <String>[
         'unavailable',
@@ -195,6 +257,36 @@ Map<String, Object?> _minimalCallableResponse() {
     },
     'message': 'Accepted.',
   };
+}
+
+Map<String, Object?> _callableResponseWithSummary({
+  required int distanceMeters,
+  required int durationSeconds,
+  required int paceSecondsPerKm,
+}) {
+  final response = _minimalCallableResponse();
+  final summary =
+      Map<String, Object?>.from(response['runSummary']! as Map<String, Object?>)
+        ..['distanceMeters'] = distanceMeters
+        ..['durationSeconds'] = durationSeconds
+        ..['averagePaceSecondsPerKm'] = paceSecondsPerKm;
+  return <String, Object?>{...response, 'runSummary': summary};
+}
+
+class _SummaryPaceCase {
+  const _SummaryPaceCase({
+    required this.label,
+    required this.distanceMeters,
+    required this.durationSeconds,
+    required this.paceSecondsPerKm,
+    required this.expectedPace,
+  });
+
+  final String label;
+  final int distanceMeters;
+  final int durationSeconds;
+  final int paceSecondsPerKm;
+  final String expectedPace;
 }
 
 class _FakeCompleteRunCallable implements CompleteRunCallable {

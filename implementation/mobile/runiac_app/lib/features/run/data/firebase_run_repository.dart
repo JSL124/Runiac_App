@@ -108,7 +108,11 @@ class _CompleteRunResultMapper {
         dateLabel: _formatDate(endedAt),
         timeLabel: _formatTime(endedAt),
         distanceKm: _formatDistanceKm(distanceMeters),
-        avgPace: _formatPace(paceSeconds),
+        avgPace: _formatPace(
+          distanceMeters: distanceMeters,
+          durationSeconds: durationSeconds,
+          paceSecondsPerKm: paceSeconds,
+        ),
         duration: _formatDuration(durationSeconds),
         avgHeartRate: '--',
         calories: _formatCalories(calories),
@@ -236,8 +240,16 @@ class _CompleteRunResultMapper {
     return '$minutes:${seconds.toString().padLeft(2, '0')}';
   }
 
-  static String _formatPace(int paceSecondsPerKm) {
-    if (paceSecondsPerKm <= 0) {
+  static String _formatPace({
+    required int distanceMeters,
+    required int durationSeconds,
+    required int paceSecondsPerKm,
+  }) {
+    if (distanceMeters < 50 ||
+        durationSeconds < 60 ||
+        paceSecondsPerKm <= 0 ||
+        paceSecondsPerKm < 150 ||
+        paceSecondsPerKm > 1800) {
       return '--';
     }
 

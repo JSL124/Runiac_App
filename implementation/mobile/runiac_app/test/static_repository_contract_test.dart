@@ -293,6 +293,65 @@ void main() {
       },
     );
 
+    test('completeRun hides unreliable summary pace values', () async {
+      final repository = StaticRunRepository();
+
+      const cases = <_SummaryPaceCase>[
+        _SummaryPaceCase(
+          label: 'short distance',
+          distanceMeters: 49,
+          durationSeconds: 300,
+          paceSecondsPerKm: 360,
+          expectedPace: '--',
+        ),
+        _SummaryPaceCase(
+          label: 'short duration',
+          distanceMeters: 1000,
+          durationSeconds: 59,
+          paceSecondsPerKm: 360,
+          expectedPace: '--',
+        ),
+        _SummaryPaceCase(
+          label: 'too fast',
+          distanceMeters: 1000,
+          durationSeconds: 180,
+          paceSecondsPerKm: 149,
+          expectedPace: '--',
+        ),
+        _SummaryPaceCase(
+          label: 'too slow',
+          distanceMeters: 1000,
+          durationSeconds: 1900,
+          paceSecondsPerKm: 1801,
+          expectedPace: '--',
+        ),
+        _SummaryPaceCase(
+          label: 'normal pace',
+          distanceMeters: 1000,
+          durationSeconds: 450,
+          paceSecondsPerKm: 450,
+          expectedPace: '7’30”',
+        ),
+      ];
+
+      for (final testCase in cases) {
+        final completedRun = await repository.completeRun(
+          _localRunCompletionPayload(
+            sessionId: 'summary-pace-${testCase.label.replaceAll(' ', '-')}',
+            distanceMeters: testCase.distanceMeters,
+            durationSeconds: testCase.durationSeconds,
+            paceSecondsPerKm: testCase.paceSecondsPerKm,
+          ),
+        );
+
+        expect(
+          completedRun.summary.avgPace,
+          testCase.expectedPace,
+          reason: testCase.label,
+        );
+      }
+    });
+
     test(
       'return read-only activity history and leaderboard snapshots',
       () async {
@@ -337,6 +396,47 @@ void main() {
       }
     });
   });
+}
+
+LocalRunCompletionPayload _localRunCompletionPayload({
+  required String sessionId,
+  required int distanceMeters,
+  required int durationSeconds,
+  required int paceSecondsPerKm,
+}) {
+  return LocalRunCompletionPayload(
+    clientRunSessionId: sessionId,
+    startedAt: DateTime.utc(2026, 6, 14, 7),
+    completedAt: DateTime.utc(
+      2026,
+      6,
+      14,
+      7,
+    ).add(Duration(seconds: durationSeconds)),
+    durationSeconds: durationSeconds,
+    distanceMeters: distanceMeters,
+    avgPaceSecondsPerKm: paceSecondsPerKm,
+    source: 'local_simulation',
+    routePrivacy: 'private',
+    routeLabel: 'Easy local route',
+    clientAppVersion: 'summary-pace-test',
+  );
+}
+
+class _SummaryPaceCase {
+  const _SummaryPaceCase({
+    required this.label,
+    required this.distanceMeters,
+    required this.durationSeconds,
+    required this.paceSecondsPerKm,
+    required this.expectedPace,
+  });
+
+  final String label;
+  final int distanceMeters;
+  final int durationSeconds;
+  final int paceSecondsPerKm;
+  final String expectedPace;
 }
 
 const _trustedMutationVerbs = <String>[

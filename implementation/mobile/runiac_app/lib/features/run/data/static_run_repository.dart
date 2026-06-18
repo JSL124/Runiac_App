@@ -60,7 +60,11 @@ class StaticRunRepository implements RunRepository {
       dateLabel: _formatDate(payload.completedAt),
       timeLabel: _formatTime(payload.completedAt),
       distanceKm: _formatDistanceKm(payload.distanceMeters),
-      avgPace: _formatPace(payload.avgPaceSecondsPerKm),
+      avgPace: _formatPace(
+        distanceMeters: payload.distanceMeters,
+        durationSeconds: payload.durationSeconds,
+        paceSecondsPerKm: payload.avgPaceSecondsPerKm,
+      ),
       duration: _formatDuration(payload.durationSeconds),
       avgHeartRate: '--',
       calories: _formatCalories(calories),
@@ -122,8 +126,16 @@ class StaticRunRepository implements RunRepository {
     return '$minutes:${seconds.toString().padLeft(2, '0')}';
   }
 
-  String _formatPace(int paceSecondsPerKm) {
-    if (paceSecondsPerKm <= 0) {
+  String _formatPace({
+    required int distanceMeters,
+    required int durationSeconds,
+    required int paceSecondsPerKm,
+  }) {
+    if (distanceMeters < 50 ||
+        durationSeconds < 60 ||
+        paceSecondsPerKm <= 0 ||
+        paceSecondsPerKm < 150 ||
+        paceSecondsPerKm > 1800) {
       return '--';
     }
 
