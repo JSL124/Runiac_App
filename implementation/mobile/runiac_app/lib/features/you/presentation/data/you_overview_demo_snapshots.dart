@@ -22,7 +22,7 @@ const pastTwelveWeeksDistanceGraphValues = [
   0.0,
 ];
 
-const youProgressSnapshot = YouProgressSnapshot(
+final youProgressSnapshot = YouProgressSnapshot(
   distancePeriodSummaries: [
     YouDistancePeriodSummary('Week', 'Weekly Distance', '12.4', 'km'),
     YouDistancePeriodSummary('Month', 'Monthly Distance', '48.6', 'km'),

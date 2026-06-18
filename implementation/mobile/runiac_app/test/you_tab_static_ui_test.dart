@@ -267,6 +267,7 @@ void main() {
         pace: '6’30”',
         duration: '30:15',
         route: 'East Coast Park Night Loop',
+        hasSpikeFilteredGraph: false,
       ),
       (
         title: 'Morning Easy Run',
@@ -275,6 +276,7 @@ void main() {
         pace: '7’05”',
         duration: '24:10',
         route: 'Neighbourhood Easy Loop',
+        hasSpikeFilteredGraph: true,
       ),
       (
         title: 'Recovery Jog',
@@ -283,6 +285,7 @@ void main() {
         pace: '7’40”',
         duration: '39:38',
         route: 'Park Connector Recovery Loop',
+        hasSpikeFilteredGraph: false,
       ),
     ];
 
@@ -307,6 +310,16 @@ void main() {
       expect(find.text(run.distance), findsOneWidget);
       expect(find.text(run.pace), findsOneWidget);
       expect(find.text(run.duration), findsOneWidget);
+      expect(find.text('Pace Over Time'), findsOneWidget);
+      expect(find.text('More run data needed'), findsNothing);
+      expect(
+        find.text('Pace insights will appear after a longer run.'),
+        findsNothing,
+      );
+      if (run.hasSpikeFilteredGraph) {
+        expect(find.text('1:20'), findsNothing);
+        expect(find.text('45:00'), findsNothing);
+      }
       expect(
         find.widgetWithText(OutlinedButton, 'Share Route'),
         findsOneWidget,
