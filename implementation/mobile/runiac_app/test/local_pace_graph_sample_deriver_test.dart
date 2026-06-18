@@ -28,6 +28,54 @@ void main() {
       );
     });
 
+    test('derives graph elapsed from active sample metadata', () {
+      final startedAt = DateTime.utc(2026, 6, 18, 8);
+      final resumedAt = startedAt.add(const Duration(minutes: 15));
+      final samples = deriver.deriveFromActiveElapsedSegments(
+        acceptedSampleSegments: [
+          [
+            (
+              sample: _sampleAt(startedAt, 0, latitude: 1.300000),
+              activeElapsedSeconds: 0,
+            ),
+            (
+              sample: _sampleAt(startedAt, 60, latitude: 1.301349),
+              activeElapsedSeconds: 60,
+            ),
+            (
+              sample: _sampleAt(startedAt, 120, latitude: 1.302698),
+              activeElapsedSeconds: 120,
+            ),
+          ],
+          [
+            (
+              sample: _sampleAt(resumedAt, 0, latitude: 1.400000),
+              activeElapsedSeconds: 180,
+            ),
+            (
+              sample: _sampleAt(resumedAt, 60, latitude: 1.401349),
+              activeElapsedSeconds: 240,
+            ),
+            (
+              sample: _sampleAt(resumedAt, 120, latitude: 1.402698),
+              activeElapsedSeconds: 300,
+            ),
+          ],
+        ],
+      );
+
+      expect(samples.map((sample) => sample.elapsedSeconds), [
+        60,
+        120,
+        240,
+        300,
+      ]);
+      expect(
+        samples.map((sample) => sample.paceSecondsPerKm),
+        everyElement(closeTo(400, 2)),
+      );
+    });
+
     test('does not bridge separate accepted route segments', () {
       final startedAt = DateTime.utc(2026, 6, 18, 8);
       final samples = deriver.derive(

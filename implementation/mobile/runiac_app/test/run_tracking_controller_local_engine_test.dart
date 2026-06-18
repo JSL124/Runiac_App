@@ -254,6 +254,110 @@ void main() {
       },
     );
 
+    test(
+      'paused local run pace graph uses active elapsed instead of wall-clock elapsed',
+      () {
+        final startedAt = DateTime.utc(2026, 6, 14, 7);
+        final resumedAt = startedAt.add(const Duration(minutes: 15));
+        final controller = RunTrackingController(
+          locationProvider: ReplayRunLocationProvider([
+            RunLocationReplaySample(
+              activeOffset: Duration.zero,
+              sample: RunLocationSample(
+                recordedAt: startedAt,
+                latitude: 1.300000,
+                longitude: 103.800000,
+              ),
+            ),
+            RunLocationReplaySample(
+              activeOffset: const Duration(seconds: 60),
+              sample: RunLocationSample(
+                recordedAt: startedAt.add(const Duration(seconds: 60)),
+                latitude: 1.301349,
+                longitude: 103.800000,
+              ),
+            ),
+            RunLocationReplaySample(
+              activeOffset: const Duration(seconds: 120),
+              sample: RunLocationSample(
+                recordedAt: startedAt.add(const Duration(seconds: 120)),
+                latitude: 1.302698,
+                longitude: 103.800000,
+              ),
+            ),
+            RunLocationReplaySample(
+              activeOffset: const Duration(seconds: 180),
+              sample: RunLocationSample(
+                recordedAt: resumedAt.add(const Duration(seconds: 60)),
+                latitude: 1.400000,
+                longitude: 103.800000,
+              ),
+            ),
+            RunLocationReplaySample(
+              activeOffset: const Duration(seconds: 240),
+              sample: RunLocationSample(
+                recordedAt: resumedAt.add(const Duration(seconds: 120)),
+                latitude: 1.401349,
+                longitude: 103.800000,
+              ),
+            ),
+            RunLocationReplaySample(
+              activeOffset: const Duration(seconds: 300),
+              sample: RunLocationSample(
+                recordedAt: resumedAt.add(const Duration(seconds: 180)),
+                latitude: 1.402698,
+                longitude: 103.800000,
+              ),
+            ),
+          ]),
+        );
+
+        controller.start(
+          startedAt: startedAt,
+          clientRunSessionId: 'paused-local-active-graph-run',
+        );
+        controller.advanceBy(const Duration(seconds: 120));
+        controller.pause(pausedAt: startedAt.add(const Duration(minutes: 5)));
+        controller.resume(resumedAt: resumedAt);
+        controller.advanceBy(const Duration(seconds: 180));
+
+        final payload = controller.completionPayload(
+          completedAt: resumedAt.add(const Duration(minutes: 5)),
+        );
+        final graph = const PaceGraphDataBuilder().build(
+          samples: payload.paceGraphSamples,
+          durationSeconds: payload.durationSeconds,
+          distanceMeters: payload.distanceMeters,
+          averagePaceSecondsPerKm: payload.avgPaceSecondsPerKm,
+        );
+
+        expect(payload.durationSeconds, 300);
+        expect(
+          payload.paceGraphSamples.map((sample) => sample.elapsedSeconds),
+          [60, 120, 240, 300],
+        );
+        expect(
+          payload.paceGraphSamples.every(
+            (sample) => sample.elapsedSeconds <= payload.durationSeconds,
+          ),
+          isTrue,
+        );
+        expect(controller.mapViewState.routeSegments, hasLength(2));
+        expect(
+          controller.mapViewState.routeSegments.map(
+            (segment) => segment.length,
+          ),
+          [3, 3],
+        );
+        expect(graph.isAvailable, isTrue);
+        expect(
+          graph.points.map((point) => point.progressFraction),
+          everyElement(lessThanOrEqualTo(1)),
+        );
+        expect(graph.points.last.progressFraction, 1);
+      },
+    );
+
     test('completion payload raw map excludes local graph and route data', () {
       final payload = LocalRunCompletionPayload(
         clientRunSessionId: 'local-graph-raw-map-run',

@@ -343,7 +343,10 @@ class RunTrackingController extends ChangeNotifier {
     final previousPhase = _state.phase;
     final previousMovementStatus = _state.movementStatus;
     _lastAdvancedAt = effectiveResumedAt;
-    _trackingSession?.resume();
+    _trackingSession?.resume(
+      resumedAt: effectiveResumedAt,
+      activeOffset: activeOffset,
+    );
     unawaited(
       _locationProvider.resume(
         resumedAt: effectiveResumedAt,

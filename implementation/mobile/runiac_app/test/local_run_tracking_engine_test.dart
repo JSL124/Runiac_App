@@ -878,7 +878,10 @@ void main() {
           sampleAt(startedAt, 120, latitude: 1.400000, longitude: 103.800000),
         ],
       );
-      session.resume();
+      session.resume(
+        resumedAt: startedAt.add(const Duration(seconds: 120)),
+        activeOffset: const Duration(seconds: 60),
+      );
       session.advanceBy(
         const Duration(seconds: 60),
         samples: [
@@ -905,6 +908,16 @@ void main() {
       expect(
         session.mapViewState.acceptedRouteSegments.last.first.latitude,
         1.400000,
+      );
+      expect(
+        session
+            .paceGraphSamples()
+            .map((sample) => sample.elapsedSeconds)
+            .every(
+              (elapsedSeconds) =>
+                  elapsedSeconds <= session.activeDurationSeconds,
+            ),
+        isTrue,
       );
     });
 
@@ -1924,7 +1937,10 @@ void main() {
           ),
         ],
       );
-      session.resume();
+      session.resume(
+        resumedAt: startedAt.add(const Duration(seconds: 120)),
+        activeOffset: const Duration(seconds: 60),
+      );
       session.advanceBy(
         const Duration(seconds: 60),
         samples: [

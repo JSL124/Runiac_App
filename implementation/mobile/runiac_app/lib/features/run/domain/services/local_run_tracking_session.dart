@@ -32,7 +32,7 @@ class LocalRunTrackingSession {
     this.normalResumeMaxSpeedMetersPerSecond = 4.0,
     this.maxNoSampleStationaryAnchorAge = const Duration(seconds: 30),
     this.movementClassifier = const RunMovementClassifier(),
-  });
+  }) : _activeTimelineStartedAt = startedAt;
 
   final DateTime startedAt;
   final String source;
@@ -85,8 +85,12 @@ class LocalRunTrackingSession {
   DateTime? _stationaryStartedAt;
   double _stationaryCumulativeMovementMeters = 0;
   bool _suppressedMovingTimeInCurrentAdvance = false;
+  DateTime _activeTimelineStartedAt;
+  Duration _activeTimelineOffsetAtStart = Duration.zero;
   final List<List<RunLocationSample>> _acceptedSampleSegments =
       <List<RunLocationSample>>[];
+  final List<List<LocalPaceGraphSamplePoint>> _acceptedGraphSampleSegments =
+      <List<LocalPaceGraphSamplePoint>>[];
 
   Duration get trackingDuration => _trackingDuration;
   int get activeDurationSeconds => _movingDuration.inSeconds;
@@ -100,9 +104,8 @@ class LocalRunTrackingSession {
     final graphSamples =
         LocalPaceGraphSampleDeriver(
           distanceCalculator: distanceCalculator,
-        ).derive(
-          startedAt: startedAt,
-          acceptedSampleSegments: _acceptedSampleSegments,
+        ).deriveFromActiveElapsedSegments(
+          acceptedSampleSegments: _acceptedGraphSampleSegments,
         );
     return List<PaceGraphSample>.unmodifiable(graphSamples);
   }
@@ -160,8 +163,10 @@ class LocalRunTrackingSession {
     _isActive = false;
   }
 
-  void resume() {
+  void resume({required DateTime resumedAt, required Duration activeOffset}) {
     _isActive = true;
+    _activeTimelineStartedAt = resumedAt;
+    _activeTimelineOffsetAtStart = activeOffset;
     _needsAnchorSample = true;
     _suppressedMovementNeedsAnchor = false;
     _setMovementStatus(RunMovementStatus.moving, 'sessionResume');
@@ -196,7 +201,7 @@ class LocalRunTrackingSession {
 
     final previous = _lastAcceptedSample;
     if (previous == null) {
-      _acceptedSampleSegments.add(<RunLocationSample>[sample]);
+      _addAcceptedSampleSegment(<RunLocationSample>[sample]);
       _recordAcceptedCurrentSample(
         sample,
         reason: 'firstAcceptedSample',
@@ -229,7 +234,7 @@ class LocalRunTrackingSession {
         return;
       }
 
-      _acceptedSampleSegments.add(<RunLocationSample>[sample]);
+      _addAcceptedSampleSegment(<RunLocationSample>[sample]);
       _suppressedMovementNeedsAnchor = false;
       _lastRouteSample = sample;
       _autoResumeCandidateSample = null;
@@ -259,7 +264,7 @@ class LocalRunTrackingSession {
         return;
       }
 
-      _acceptedSampleSegments.add(<RunLocationSample>[sample]);
+      _addAcceptedSampleSegment(<RunLocationSample>[sample]);
       _needsAnchorSample = false;
       _lastRouteSample = sample;
       _autoResumeCandidateSample = null;
@@ -299,7 +304,7 @@ class LocalRunTrackingSession {
         : null;
     final movementAnchorSample = resumeCandidateSample ?? previousRouteSample;
     if (previousRouteSample == null) {
-      _acceptedSampleSegments.add(<RunLocationSample>[sample]);
+      _addAcceptedSampleSegment(<RunLocationSample>[sample]);
       _lastRouteSample = sample;
       _autoResumeCandidateSample = null;
       _preMovementCandidateSample = null;
@@ -482,7 +487,7 @@ class LocalRunTrackingSession {
     if (classification.shouldAutoResume) {
       if (_movementStatus == RunMovementStatus.autoPaused) {
         final resumeAnchor = resumeCandidateSample ?? sample;
-        _acceptedSampleSegments.add(<RunLocationSample>[resumeAnchor, sample]);
+        _addAcceptedSampleSegment(<RunLocationSample>[resumeAnchor, sample]);
         _distanceMeters += segmentDistanceMeters;
         _lastRouteSample = sample;
       } else {
@@ -534,13 +539,13 @@ class LocalRunTrackingSession {
     if (_acceptedSampleSegments.isEmpty) {
       final previousRouteSample = _lastRouteSample;
       if (previousRouteSample != null) {
-        _acceptedSampleSegments.add(<RunLocationSample>[previousRouteSample]);
+        _addAcceptedSampleSegment(<RunLocationSample>[previousRouteSample]);
       } else {
-        _acceptedSampleSegments.add(<RunLocationSample>[]);
+        _addAcceptedSampleSegment(<RunLocationSample>[]);
       }
-      _acceptedSampleSegments.last.add(sample);
+      _appendAcceptedSample(sample);
     } else {
-      _acceptedSampleSegments.last.add(sample);
+      _appendAcceptedSample(sample);
     }
     _lastRouteSample = sample;
     _autoResumeCandidateSample = null;
@@ -548,6 +553,39 @@ class LocalRunTrackingSession {
     _resetAbnormalCandidate();
     _resetAbnormalResumeCandidate();
     _stationaryCumulativeMovementMeters = 0;
+  }
+
+  void _addAcceptedSampleSegment(List<RunLocationSample> samples) {
+    _acceptedSampleSegments.add(List<RunLocationSample>.of(samples));
+    _acceptedGraphSampleSegments.add(
+      samples.map(_graphPointFor).toList(growable: true),
+    );
+  }
+
+  void _appendAcceptedSample(RunLocationSample sample) {
+    if (_acceptedSampleSegments.isEmpty) {
+      _addAcceptedSampleSegment(<RunLocationSample>[sample]);
+      return;
+    }
+    _acceptedSampleSegments.last.add(sample);
+    _acceptedGraphSampleSegments.last.add(_graphPointFor(sample));
+  }
+
+  LocalPaceGraphSamplePoint _graphPointFor(RunLocationSample sample) {
+    return (
+      sample: sample,
+      activeElapsedSeconds: _activeElapsedSecondsFor(sample),
+    );
+  }
+
+  int _activeElapsedSecondsFor(RunLocationSample sample) {
+    final elapsed =
+        _activeTimelineOffsetAtStart +
+        sample.recordedAt.difference(_activeTimelineStartedAt);
+    if (elapsed.isNegative) {
+      return _activeTimelineOffsetAtStart.inSeconds;
+    }
+    return elapsed.inSeconds;
   }
 
   void _handleSuppressedMovementSample({
@@ -628,7 +666,7 @@ class LocalRunTrackingSession {
       return;
     }
 
-    _acceptedSampleSegments.add(<RunLocationSample>[resumeAnchor, sample]);
+    _addAcceptedSampleSegment(<RunLocationSample>[resumeAnchor, sample]);
     _distanceMeters += resumeDistanceMeters;
     _lastRouteSample = sample;
     _setMovementStatus(RunMovementStatus.moving, 'abnormalResumeConfirmed');
@@ -699,7 +737,7 @@ class LocalRunTrackingSession {
           segmentDistanceMeters >=
               anchorToCandidateMeters + resumeMovementDistanceMeters;
       if (hasConsistentDisplacement) {
-        _acceptedSampleSegments.add(<RunLocationSample>[candidate, sample]);
+        _addAcceptedSampleSegment(<RunLocationSample>[candidate, sample]);
         _distanceMeters += candidateDistanceMeters;
         _lastRouteSample = sample;
         _autoResumeCandidateSample = null;

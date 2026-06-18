@@ -360,7 +360,10 @@ void main() {
             longitude: 103.8,
           ),
         );
-        session.resume();
+        session.resume(
+          resumedAt: startedAt.add(const Duration(seconds: 180)),
+          activeOffset: const Duration(seconds: 60),
+        );
         await provider.resume(
           resumedAt: startedAt.add(const Duration(seconds: 180)),
           activeOffset: const Duration(seconds: 60),
