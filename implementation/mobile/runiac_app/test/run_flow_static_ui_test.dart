@@ -90,7 +90,7 @@ Future<void> _openPausedRun(WidgetTester tester) async {
     const RuniacApp(showSplash: false, enableForegroundGps: false),
   );
 
-  await tester.tap(find.text('Run'));
+  await tester.tap(find.byTooltip('Run'));
   await tester.pumpAndSettle();
   await tester.tap(find.text('Start run'));
   await tester.pumpAndSettle();
@@ -283,7 +283,7 @@ void main() {
       ),
     );
 
-    await tester.tap(find.text('Run'));
+    await tester.tap(find.byTooltip('Run'));
     await tester.pumpAndSettle();
 
     expect(find.text('Demo mode'), findsOneWidget);
@@ -1571,11 +1571,11 @@ void main() {
       const RuniacApp(showSplash: false, enableForegroundGps: false),
     );
 
-    await tester.tap(find.text('Maps'));
+    await tester.tap(find.byTooltip('Maps'));
     await tester.pumpAndSettle();
     expect(find.text('Shared Routes'), findsOneWidget);
 
-    await tester.tap(find.text('Run'));
+    await tester.tap(find.byTooltip('Run'));
     await tester.pumpAndSettle();
     expect(find.text('Demo mode'), findsOneWidget);
     expect(find.text('Maps'), findsNothing);
@@ -1586,10 +1586,10 @@ void main() {
     expect(handled, isTrue);
     expect(find.text('Demo mode'), findsNothing);
     expect(find.text('Shared Routes'), findsOneWidget);
-    expect(find.text('Home'), findsOneWidget);
-    expect(find.text('Maps'), findsOneWidget);
-    expect(find.text('Run'), findsOneWidget);
-    expect(find.text('Leaderboard'), findsOneWidget);
-    expect(find.text('You'), findsOneWidget);
+    expect(find.byTooltip('Home'), findsOneWidget);
+    expect(find.byTooltip('Maps'), findsOneWidget);
+    expect(find.byTooltip('Run'), findsOneWidget);
+    expect(find.byTooltip('Leaderboard'), findsOneWidget);
+    expect(find.byTooltip('You'), findsOneWidget);
   });
 }

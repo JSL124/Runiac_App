@@ -79,7 +79,7 @@ Future<void> _openRunLaunch(
       activeRunSessionCoordinator: coordinator,
     ),
   );
-  await tester.tap(find.text('Run'));
+  await tester.tap(find.byTooltip('Run'));
   await tester.pumpAndSettle();
 }
 
@@ -1881,7 +1881,7 @@ void main() {
     await tester.pumpAndSettle();
     now = now.add(const Duration(seconds: 8));
 
-    await tester.tap(find.text('Run'));
+    await tester.tap(find.byTooltip('Run'));
     await tester.pumpAndSettle();
 
     expect(find.text('Start run'), findsNothing);

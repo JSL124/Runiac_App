@@ -22,7 +22,7 @@ Future<void> _openYouTab(
       activeRunSessionCoordinator: activeRunSessionCoordinator,
     ),
   );
-  await tester.tap(find.text('You'));
+  await tester.tap(find.byTooltip('You'));
   await tester.pumpAndSettle();
 }
 
@@ -428,7 +428,7 @@ void main() {
       expect(find.text('Showing your recent activities'), findsOneWidget);
 
       for (final label in const ['Home', 'Maps', 'Run', 'Leaderboard', 'You']) {
-        expect(find.text(label), findsWidgets);
+        expect(find.byTooltip(label), findsOneWidget);
       }
     },
   );
@@ -1558,7 +1558,7 @@ void main() {
     expect(handled, isTrue);
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Run'));
+    await tester.tap(find.byTooltip('Run'));
     await tester.pumpAndSettle();
 
     expect(find.text('Start run'), findsNothing);
@@ -1586,11 +1586,11 @@ void main() {
       expect(find.text('43% completed'), findsOneWidget);
       expect(find.text('Current Phase'), findsOneWidget);
       expect(find.text('Base Endurance'), findsWidgets);
-      expect(find.text('Home'), findsOneWidget);
-      expect(find.text('Maps'), findsOneWidget);
-      expect(find.text('Run'), findsOneWidget);
-      expect(find.text('Leaderboard'), findsOneWidget);
-      expect(find.text('You'), findsOneWidget);
+      expect(find.byTooltip('Home'), findsOneWidget);
+      expect(find.byTooltip('Maps'), findsOneWidget);
+      expect(find.byTooltip('Run'), findsOneWidget);
+      expect(find.byTooltip('Leaderboard'), findsOneWidget);
+      expect(find.byTooltip('You'), findsOneWidget);
     },
   );
 
@@ -1679,7 +1679,7 @@ void main() {
       expect(find.text('View Goal Plan'), findsNothing);
 
       // And: the user opens the detail from the You tab Plans section.
-      await tester.tap(find.text('You'));
+      await tester.tap(find.byTooltip('You'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Plans'));
       await tester.pumpAndSettle();
@@ -1703,14 +1703,15 @@ void main() {
   ) async {
     await _openYouTab(tester);
 
-    expect(find.text('Home'), findsOneWidget);
-    expect(find.text('Maps'), findsOneWidget);
-    expect(find.text('Run'), findsOneWidget);
-    expect(find.text('Leaderboard'), findsOneWidget);
+    expect(find.byTooltip('Home'), findsOneWidget);
+    expect(find.byTooltip('Maps'), findsOneWidget);
+    expect(find.byTooltip('Run'), findsOneWidget);
+    expect(find.byTooltip('Leaderboard'), findsOneWidget);
+    expect(find.byTooltip('You'), findsOneWidget);
     expect(find.text('You'), findsWidgets);
     expect(find.text('Weekly Distance'), findsOneWidget);
 
-    await tester.tap(find.text('Home'));
+    await tester.tap(find.byTooltip('Home'));
     await tester.pumpAndSettle();
 
     expect(find.text('Good to see you'), findsOneWidget);
@@ -1726,7 +1727,7 @@ void main() {
     expect(find.text('You'), findsWidgets);
     expect(find.text('Weekly Distance'), findsOneWidget);
 
-    await tester.tap(find.text('Run'));
+    await tester.tap(find.byTooltip('Run'));
     await tester.pumpAndSettle();
 
     expect(find.text('Demo mode'), findsOneWidget);
@@ -1739,7 +1740,7 @@ void main() {
   ) async {
     await _openYouTab(tester);
 
-    await tester.tap(find.text('Run'));
+    await tester.tap(find.byTooltip('Run'));
     await tester.pumpAndSettle();
 
     expect(find.text('Demo mode'), findsOneWidget);

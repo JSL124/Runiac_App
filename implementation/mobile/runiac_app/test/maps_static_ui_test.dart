@@ -30,7 +30,7 @@ void main() {
       const RuniacApp(showSplash: false, enableForegroundGps: false),
     );
 
-    await tester.tap(find.text('Maps'));
+    await tester.tap(find.byTooltip('Maps'));
     await tester.pumpAndSettle();
 
     expect(find.text('Search routes or parks'), findsOneWidget);
@@ -75,7 +75,7 @@ void main() {
       const RuniacApp(showSplash: false, enableForegroundGps: false),
     );
 
-    await tester.tap(find.text('Maps'));
+    await tester.tap(find.byTooltip('Maps'));
     await tester.pumpAndSettle();
 
     final sheetSurface = find.byKey(const Key('maps_sheet_surface'));
@@ -110,7 +110,7 @@ void main() {
       const RuniacApp(showSplash: false, enableForegroundGps: false),
     );
 
-    await tester.tap(find.text('Maps'));
+    await tester.tap(find.byTooltip('Maps'));
     await tester.pumpAndSettle();
 
     final sheetSurface = find.byKey(const Key('maps_sheet_surface'));
@@ -184,7 +184,7 @@ void main() {
         const RuniacApp(showSplash: false, enableForegroundGps: false),
       );
 
-      await tester.tap(find.text('Maps'));
+      await tester.tap(find.byTooltip('Maps'));
       await tester.pumpAndSettle();
 
       final sheetSurface = find.byKey(const Key('maps_sheet_surface'));
@@ -229,7 +229,7 @@ void main() {
       const RuniacApp(showSplash: false, enableForegroundGps: false),
     );
 
-    await tester.tap(find.text('Maps'));
+    await tester.tap(find.byTooltip('Maps'));
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Saved'));
@@ -372,7 +372,7 @@ void main() {
       const RuniacApp(showSplash: false, enableForegroundGps: false),
     );
 
-    await tester.tap(find.text('Maps'));
+    await tester.tap(find.byTooltip('Maps'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Saved'));
     await tester.pumpAndSettle();
@@ -399,7 +399,7 @@ void main() {
       const RuniacApp(showSplash: false, enableForegroundGps: false),
     );
 
-    await tester.tap(find.text('Maps'));
+    await tester.tap(find.byTooltip('Maps'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Saved'));
     await tester.pumpAndSettle();
@@ -426,7 +426,7 @@ void main() {
       const RuniacApp(showSplash: false, enableForegroundGps: false),
     );
 
-    await tester.tap(find.text('Maps'));
+    await tester.tap(find.byTooltip('Maps'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Saved'));
     await tester.pumpAndSettle();
@@ -470,7 +470,7 @@ void main() {
         const RuniacApp(showSplash: false, enableForegroundGps: false),
       );
 
-      await tester.tap(find.text('Maps'));
+      await tester.tap(find.byTooltip('Maps'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Saved'));
       await tester.pumpAndSettle();
@@ -519,7 +519,7 @@ void main() {
       const RuniacApp(showSplash: false, enableForegroundGps: false),
     );
 
-    await tester.tap(find.text('Maps'));
+    await tester.tap(find.byTooltip('Maps'));
     await tester.pumpAndSettle();
 
     final sheetBody = find.byKey(const Key('maps_sheet_body'));
@@ -573,7 +573,7 @@ void main() {
       const RuniacApp(showSplash: false, enableForegroundGps: false),
     );
 
-    await tester.tap(find.text('Maps'));
+    await tester.tap(find.byTooltip('Maps'));
     await tester.pumpAndSettle();
 
     for (final key in const [
@@ -602,7 +602,7 @@ void main() {
         const RuniacApp(showSplash: false, enableForegroundGps: false),
       );
 
-      await tester.tap(find.text('Maps'));
+      await tester.tap(find.byTooltip('Maps'));
       await tester.pumpAndSettle();
 
       final routeCard = find.byKey(
@@ -688,7 +688,7 @@ void main() {
         const RuniacApp(showSplash: false, enableForegroundGps: false),
       );
 
-      await tester.tap(find.text('Maps'));
+      await tester.tap(find.byTooltip('Maps'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Marina Bay easy loop'));
       await tester.pumpAndSettle();
@@ -739,7 +739,7 @@ void main() {
         const RuniacApp(showSplash: false, enableForegroundGps: false),
       );
 
-      await tester.tap(find.text('Maps'));
+      await tester.tap(find.byTooltip('Maps'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Marina Bay easy loop'));
       await tester.pumpAndSettle();
@@ -775,7 +775,7 @@ void main() {
       const RuniacApp(showSplash: false, enableForegroundGps: false),
     );
 
-    await tester.tap(find.text('Maps'));
+    await tester.tap(find.byTooltip('Maps'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Marina Bay easy loop'));
     await tester.pumpAndSettle();
@@ -825,7 +825,7 @@ void main() {
         const RuniacApp(showSplash: false, enableForegroundGps: false),
       );
 
-      await tester.tap(find.text('Maps'));
+      await tester.tap(find.byTooltip('Maps'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Marina Bay easy loop'));
       await tester.pumpAndSettle();
@@ -896,7 +896,7 @@ void main() {
       const RuniacApp(showSplash: false, enableForegroundGps: false),
     );
 
-    await tester.tap(find.text('Maps'));
+    await tester.tap(find.byTooltip('Maps'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Marina Bay easy loop'));
     await tester.pumpAndSettle();
@@ -948,7 +948,7 @@ void main() {
         const RuniacApp(showSplash: false, enableForegroundGps: false),
       );
 
-      await tester.tap(find.text('Maps'));
+      await tester.tap(find.byTooltip('Maps'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Marina Bay easy loop'));
       await tester.pumpAndSettle();
@@ -992,7 +992,7 @@ void main() {
         const RuniacApp(showSplash: false, enableForegroundGps: false),
       );
 
-      await tester.tap(find.text('Maps'));
+      await tester.tap(find.byTooltip('Maps'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Marina Bay easy loop'));
       await tester.pumpAndSettle();
@@ -1043,7 +1043,7 @@ void main() {
         const RuniacApp(showSplash: false, enableForegroundGps: false),
       );
 
-      await tester.tap(find.text('Maps'));
+      await tester.tap(find.byTooltip('Maps'));
       await tester.pumpAndSettle();
 
       expect(find.text('Shared Routes'), findsOneWidget);
@@ -1097,7 +1097,7 @@ void main() {
       const RuniacApp(showSplash: false, enableForegroundGps: false),
     );
 
-    await tester.tap(find.text('Maps'));
+    await tester.tap(find.byTooltip('Maps'));
     await tester.pumpAndSettle();
 
     final sheetSurface = find.byKey(const Key('maps_sheet_surface'));
@@ -1128,7 +1128,7 @@ void main() {
         const RuniacApp(showSplash: false, enableForegroundGps: false),
       );
 
-      await tester.tap(find.text('Maps'));
+      await tester.tap(find.byTooltip('Maps'));
       await tester.pumpAndSettle();
 
       final sheetSurface = find.byKey(const Key('maps_sheet_surface'));
@@ -1154,7 +1154,7 @@ void main() {
       const RuniacApp(showSplash: false, enableForegroundGps: false),
     );
 
-    await tester.tap(find.text('Maps'));
+    await tester.tap(find.byTooltip('Maps'));
     await tester.pumpAndSettle();
 
     final sheetBody = find.byKey(const Key('maps_sheet_body'));
@@ -1168,7 +1168,11 @@ void main() {
     final collapsedSheetTop = tester.getTopLeft(sheetSurface).dy;
     final handleTop = tester.getTopLeft(handle).dy;
     final handleBottom = tester.getBottomLeft(handle).dy;
-    final bottomNavTop = tester.getTopLeft(find.byType(BottomNavigationBar)).dy;
+    final bottomNavTop = tester
+        .getTopLeft(
+          find.byKey(const ValueKey('runiac-floating-bottom-navigation')),
+        )
+        .dy;
 
     expect(tester.getTopLeft(sheetBody).dy, greaterThan(initialTop + 200));
     expect(handle, findsOneWidget);
@@ -1201,7 +1205,7 @@ void main() {
       const RuniacApp(showSplash: false, enableForegroundGps: false),
     );
 
-    await tester.tap(find.text('Maps'));
+    await tester.tap(find.byTooltip('Maps'));
     await tester.pumpAndSettle();
 
     final sheetSurface = find.byKey(const Key('maps_sheet_surface'));

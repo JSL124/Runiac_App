@@ -30,7 +30,7 @@ void main() {
 
     expect(find.byKey(const ValueKey('runiac_splash_screen')), findsNothing);
     expect(find.text('Good to see you'), findsOneWidget);
-    expect(find.text('Home'), findsWidgets);
+    expect(find.byTooltip('Home'), findsOneWidget);
   });
 
   testWidgets('RuniacApp can bypass the splash deterministically', (
@@ -42,7 +42,7 @@ void main() {
 
     expect(find.byKey(const ValueKey('runiac_splash_screen')), findsNothing);
     expect(find.text('Good to see you'), findsOneWidget);
-    expect(find.text('Home'), findsWidgets);
+    expect(find.byTooltip('Home'), findsOneWidget);
   });
 
   testWidgets('splash exposes one loading semantic label', (tester) async {

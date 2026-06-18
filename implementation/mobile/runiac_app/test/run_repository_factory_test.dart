@@ -35,7 +35,7 @@ void main() {
       ),
     );
 
-    await tester.tap(find.text('Run'));
+    await tester.tap(find.byTooltip('Run'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Start run'));
     await tester.pumpAndSettle();

@@ -29,7 +29,7 @@ void main() {
       const RuniacApp(showSplash: false, enableForegroundGps: false),
     );
 
-    await tester.tap(find.text('Leaderboard'));
+    await tester.tap(find.byTooltip('Leaderboard'));
     await tester.pumpAndSettle();
 
     expect(find.text('Runiac'), findsNothing);
@@ -38,11 +38,11 @@ void main() {
     expect(find.text('Rising Runner Division'), findsOneWidget);
     expect(find.text('Lv.11 - Lv.20'), findsOneWidget);
     expect(find.text('Your ranked area'), findsOneWidget);
-    expect(find.text('Home'), findsOneWidget);
-    expect(find.text('Maps'), findsOneWidget);
-    expect(find.text('Run'), findsOneWidget);
-    expect(find.text('Leaderboard'), findsOneWidget);
-    expect(find.text('You'), findsOneWidget);
+    expect(find.byTooltip('Home'), findsOneWidget);
+    expect(find.byTooltip('Maps'), findsOneWidget);
+    expect(find.byTooltip('Run'), findsOneWidget);
+    expect(find.byTooltip('Leaderboard'), findsOneWidget);
+    expect(find.byTooltip('You'), findsOneWidget);
     expect(find.text('Jurong East'), findsOneWidget);
     expect(find.text('Weekly XP · Rising Runner Division'), findsNothing);
     expect(
@@ -190,11 +190,11 @@ void main() {
     expect(find.text('Pacebreaker League (Lv.21 - Lv.30)'), findsOneWidget);
     expect(find.text('Strideforge League (Lv.11 - Lv.20)'), findsOneWidget);
     expect(find.text('Trailborn League (Lv.1 - Lv.10)'), findsOneWidget);
-    expect(find.text('Home'), findsOneWidget);
-    expect(find.text('Maps'), findsOneWidget);
-    expect(find.text('Run'), findsOneWidget);
-    expect(find.text('Leaderboard'), findsOneWidget);
-    expect(find.text('You'), findsOneWidget);
+    expect(find.byTooltip('Home'), findsOneWidget);
+    expect(find.byTooltip('Maps'), findsOneWidget);
+    expect(find.byTooltip('Run'), findsOneWidget);
+    expect(find.byTooltip('Leaderboard'), findsOneWidget);
+    expect(find.byTooltip('You'), findsOneWidget);
     expect(find.textContaining('Current'), findsNothing);
     expect(find.textContaining('current'), findsNothing);
     expect(find.textContaining('Selected'), findsNothing);
@@ -220,7 +220,7 @@ void main() {
       const RuniacApp(showSplash: false, enableForegroundGps: false),
     );
 
-    await tester.tap(find.text('Leaderboard'));
+    await tester.tap(find.byTooltip('Leaderboard'));
     await tester.pumpAndSettle();
 
     await tester.tap(
@@ -269,7 +269,7 @@ void main() {
       const RuniacApp(showSplash: false, enableForegroundGps: false),
     );
 
-    await tester.tap(find.text('Leaderboard'));
+    await tester.tap(find.byTooltip('Leaderboard'));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('leaderboard_share_my_rank_button')));
     await tester.pumpAndSettle();
@@ -353,7 +353,7 @@ void main() {
       const RuniacApp(showSplash: false, enableForegroundGps: false),
     );
 
-    await tester.tap(find.text('Leaderboard'));
+    await tester.tap(find.byTooltip('Leaderboard'));
     await tester.pumpAndSettle();
     await tester.tap(
       find.byKey(const Key('leaderboard_view_more_ranking_button')),
@@ -440,13 +440,17 @@ void main() {
           find.byKey(const Key('leaderboard_current_user_floating_bar')),
         )
         .dy;
-    final bottomNavTop = tester.getTopLeft(find.text('Home')).dy;
+    final bottomNavTop = tester
+        .getTopLeft(
+          find.byKey(const ValueKey('runiac-floating-bottom-navigation')),
+        )
+        .dy;
     expect(floatingBarBottom, lessThan(bottomNavTop));
-    expect(find.text('Home'), findsOneWidget);
-    expect(find.text('Maps'), findsOneWidget);
-    expect(find.text('Run'), findsOneWidget);
-    expect(find.text('Leaderboard'), findsOneWidget);
-    expect(find.text('You'), findsOneWidget);
+    expect(find.byTooltip('Home'), findsOneWidget);
+    expect(find.byTooltip('Maps'), findsOneWidget);
+    expect(find.byTooltip('Run'), findsOneWidget);
+    expect(find.byTooltip('Leaderboard'), findsOneWidget);
+    expect(find.byTooltip('You'), findsOneWidget);
 
     await tester.tap(find.byTooltip('Back to Leaderboard'));
     await tester.pumpAndSettle();
@@ -463,7 +467,7 @@ void main() {
       const RuniacApp(showSplash: false, enableForegroundGps: false),
     );
 
-    await tester.tap(find.text('Leaderboard'));
+    await tester.tap(find.byTooltip('Leaderboard'));
     await tester.pumpAndSettle();
     await tester.tap(
       find.byKey(const Key('leaderboard_view_more_ranking_button')),
@@ -547,7 +551,7 @@ void main() {
     expect(find.text('Jinseo'), findsOneWidget);
     expect(find.text('Jurong East · Rank #18'), findsOneWidget);
     expect(find.text('520 XP'), findsNothing);
-    expect(find.text('You'), findsOneWidget);
+    expect(find.byTooltip('You'), findsOneWidget);
 
     await tester.tap(find.byTooltip('Back to Rankings'));
     await tester.pumpAndSettle();
@@ -687,7 +691,7 @@ void main() {
       const RuniacApp(showSplash: false, enableForegroundGps: false),
     );
 
-    await tester.tap(find.text('Leaderboard'));
+    await tester.tap(find.byTooltip('Leaderboard'));
     await tester.pumpAndSettle();
 
     expect(find.text('Weekly XP'), findsNothing);

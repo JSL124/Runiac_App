@@ -1,5 +1,8 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
+import '../../core/theme/runiac_colors.dart';
 import '../home/presentation/home_tab.dart';
 import '../leaderboard/presentation/leaderboard_tab.dart';
 import '../maps/presentation/maps_tab.dart';
@@ -9,10 +12,17 @@ import '../run/presentation/run_launch_screen.dart';
 import '../run/presentation/run_open_intent.dart';
 import '../you/presentation/you_tab.dart';
 
-const _bottomNavLabels = ['Home', 'Maps', 'Run', 'Leaderboard', 'You'];
-const _bottomNavSelectedFontSize = 14.0;
-const _bottomNavUnselectedFontSize = 12.0;
-const _bottomNavMinFontSize = 10.5;
+const _floatingBottomNavigationKey = ValueKey(
+  'runiac-floating-bottom-navigation',
+);
+
+const _bottomNavigationItems = [
+  _BottomNavigationItem(label: 'Home', icon: Icons.home),
+  _BottomNavigationItem(label: 'Maps', icon: Icons.map),
+  _BottomNavigationItem(label: 'Run', icon: Icons.directions_run),
+  _BottomNavigationItem(label: 'Leaderboard', icon: Icons.leaderboard),
+  _BottomNavigationItem(label: 'You', icon: Icons.person),
+];
 
 class RuniacShell extends StatefulWidget {
   const RuniacShell({
@@ -189,83 +199,150 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
           ? null
           : AppBar(title: const Text('Runiac')),
       body: tabs[_selectedIndex],
-      bottomNavigationBar: LayoutBuilder(
-        builder: (context, constraints) {
-          final tabWidth = constraints.maxWidth / _bottomNavLabels.length;
-          final selectedFontSize = _bottomNavFontSizeForWidth(
-            context: context,
-            label: 'Leaderboard',
-            availableWidth: tabWidth,
-            baseFontSize: _bottomNavSelectedFontSize,
-          );
-          final unselectedFontSize = _bottomNavFontSizeForWidth(
-            context: context,
-            label: 'Leaderboard',
-            availableWidth: tabWidth,
-            baseFontSize: _bottomNavUnselectedFontSize,
-          );
-
-          return BottomNavigationBar(
-            currentIndex: _selectedIndex,
-            type: BottomNavigationBarType.fixed,
-            selectedFontSize: selectedFontSize,
-            unselectedFontSize: unselectedFontSize,
-            selectedLabelStyle: TextStyle(
-              fontSize: selectedFontSize,
-              overflow: TextOverflow.visible,
-            ),
-            unselectedLabelStyle: TextStyle(
-              fontSize: unselectedFontSize,
-              overflow: TextOverflow.visible,
-            ),
-            onTap: _handleNavigationTap,
-            items: const [
-              BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-              BottomNavigationBarItem(icon: Icon(Icons.map), label: 'Maps'),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.directions_run),
-                label: 'Run',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.leaderboard),
-                label: 'Leaderboard',
-              ),
-              BottomNavigationBarItem(icon: Icon(Icons.person), label: 'You'),
-            ],
-          );
-        },
+      bottomNavigationBar: _FloatingIslandBottomNavigation(
+        selectedIndex: _selectedIndex,
+        onTap: _handleNavigationTap,
       ),
     );
   }
 }
 
-double _bottomNavFontSizeForWidth({
-  required BuildContext context,
-  required String label,
-  required double availableWidth,
-  required double baseFontSize,
-}) {
-  if (!availableWidth.isFinite || availableWidth <= 0) {
-    return baseFontSize;
+class _FloatingIslandBottomNavigation extends StatelessWidget {
+  const _FloatingIslandBottomNavigation({
+    required this.selectedIndex,
+    required this.onTap,
+  });
+
+  final int selectedIndex;
+  final ValueChanged<int> onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final horizontalInset = constraints.maxWidth < 380 ? 12.0 : 20.0;
+        final islandWidth = math.min(
+          math.max(0.0, constraints.maxWidth - (horizontalInset * 2)),
+          430.0,
+        );
+
+        return SafeArea(
+          top: false,
+          minimum: const EdgeInsets.only(bottom: 14),
+          child: Align(
+            alignment: Alignment.bottomCenter,
+            heightFactor: 1,
+            child: SizedBox(
+              key: _floatingBottomNavigationKey,
+              width: islandWidth,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: RuniacColors.white,
+                  borderRadius: BorderRadius.circular(34),
+                  border: Border.all(
+                    color: RuniacColors.border.withValues(alpha: 0.78),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: RuniacColors.primaryBlue.withValues(alpha: 0.12),
+                      blurRadius: 28,
+                      offset: const Offset(0, 12),
+                    ),
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.06),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 6,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      for (
+                        var index = 0;
+                        index < _bottomNavigationItems.length;
+                        index += 1
+                      )
+                        _FloatingIslandNavigationButton(
+                          item: _bottomNavigationItems[index],
+                          selected: index == selectedIndex,
+                          onPressed: () => onTap(index),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
+}
 
-  final textPainter = TextPainter(
-    maxLines: 1,
-    text: TextSpan(
-      text: label,
-      style: TextStyle(fontSize: baseFontSize),
-    ),
-    textDirection: Directionality.of(context),
-    textScaler: MediaQuery.textScalerOf(context),
-  )..layout();
+class _FloatingIslandNavigationButton extends StatelessWidget {
+  const _FloatingIslandNavigationButton({
+    required this.item,
+    required this.selected,
+    required this.onPressed,
+  });
 
-  final measuredWidth = textPainter.width;
-  if (measuredWidth <= availableWidth) {
-    return baseFontSize;
+  final _BottomNavigationItem item;
+  final bool selected;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final iconColor = selected
+        ? RuniacColors.white
+        : RuniacColors.textSecondary;
+    final segmentColor = selected
+        ? RuniacColors.primaryBlue
+        : Colors.transparent;
+
+    return Tooltip(
+      message: item.label,
+      child: Semantics(
+        label: '${item.label} tab',
+        button: true,
+        selected: selected,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutCubic,
+          width: selected ? 84 : 48,
+          height: 52,
+          decoration: BoxDecoration(
+            color: segmentColor,
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: selected
+                ? [
+                    BoxShadow(
+                      color: RuniacColors.primaryBlue.withValues(alpha: 0.24),
+                      blurRadius: 16,
+                      offset: const Offset(0, 8),
+                    ),
+                  ]
+                : null,
+          ),
+          child: IconButton(
+            onPressed: onPressed,
+            color: iconColor,
+            icon: Icon(item.icon),
+          ),
+        ),
+      ),
+    );
   }
+}
 
-  return (baseFontSize * (availableWidth / measuredWidth)).clamp(
-    _bottomNavMinFontSize,
-    baseFontSize,
-  );
+class _BottomNavigationItem {
+  const _BottomNavigationItem({required this.label, required this.icon});
+
+  final String label;
+  final IconData icon;
 }
