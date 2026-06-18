@@ -696,6 +696,7 @@ void main() {
     expect(find.text('Hard'), findsOneWidget);
     expect(find.text('6%'), findsOneWidget);
     expect(find.text('More Details'), findsOneWidget);
+    expect(find.byIcon(Icons.chevron_right_rounded), findsNothing);
     expect(find.text('AI Coaching Summary'), findsOneWidget);
     expect(
       find.text(

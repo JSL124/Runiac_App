@@ -23,7 +23,6 @@ const _rBlue30 = Color(0x4D2F51C8);
 const _rBlue18 = Color(0x2E2F51C8);
 const _rBlue10 = Color(0x1A2F51C8);
 const _rBlue06 = Color(0x0F2F51C8);
-const _rOrange12 = Color(0x1FFB6414);
 const _cardRadius = 20.0;
 
 class ViewSummaryScreen extends StatelessWidget {
@@ -543,76 +542,51 @@ class _AnalysisSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 22, 16, 0),
-      child: _CardSurface(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          children: [
-            const Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const _SectionLabel(title: 'Advanced Analysis'),
+          _CardSurface(
+            padding: const EdgeInsets.fromLTRB(14, 16, 14, 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _IconBadge(icon: Icons.auto_awesome_rounded, size: 40),
-                SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Advanced Analysis',
-                        style: TextStyle(
-                          color: _rBlue,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: -0.2,
-                        ),
-                      ),
-                      SizedBox(height: 1),
-                      Text(
-                        'Heart rate zones, cadence & elevation',
-                        style: TextStyle(
-                          color: _rBlue60,
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
+                const Text(
+                  'Heart rate zones, cadence & elevation',
+                  style: TextStyle(
+                    color: _rBlue60,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
                   ),
+                ),
+                const SizedBox(height: 14),
+                _GuardedAnalysisPreview(
+                  showGuard: !hasSufficientData,
+                  minHeight: hasSufficientData ? 0 : 116,
+                  child: const _ZoneBars(),
+                ),
+                const SizedBox(height: 16),
+                OutlinedButton(
+                  onPressed: onMoreDetails,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: _rBlue,
+                    side: const BorderSide(color: _rBlue18, width: 1.5),
+                    minimumSize: const Size.fromHeight(46),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    textStyle: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                  child: const Text('More Details'),
                 ),
               ],
             ),
-            const SizedBox(height: 14),
-            _GuardedAnalysisPreview(
-              showGuard: !hasSufficientData,
-              minHeight: hasSufficientData ? 0 : 116,
-              child: const _ZoneBars(),
-            ),
-            const SizedBox(height: 16),
-            OutlinedButton.icon(
-              onPressed: onMoreDetails,
-              icon: const SizedBox.shrink(),
-              label: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text('More Details'),
-                  SizedBox(width: 6),
-                  Icon(Icons.chevron_right_rounded, size: 16),
-                ],
-              ),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: _rBlue,
-                side: const BorderSide(color: _rBlue18, width: 1.5),
-                minimumSize: const Size.fromHeight(46),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                textStyle: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -0.2,
-                ),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -798,95 +772,66 @@ class _CoachingSection extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 22, 16, 0),
-      child: _CardSurface(
-        color: _rBlue06,
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const _SparkBadge(),
-                const SizedBox(width: 11),
-                const Expanded(
-                  child: Text(
-                    'AI Coaching Summary',
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: _rBlue,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -0.2,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              coachingCopy,
-              style: const TextStyle(
-                color: _rBlue90,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                height: 1.55,
-                letterSpacing: -0.1,
-              ),
-            ),
-            const SizedBox(height: 14),
-            const _NextTipCard(),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _NextTipCard extends StatelessWidget {
-  const _NextTipCard();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: _rWhite,
-        border: Border.all(color: _rBlue10),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: const Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _WarmupBadge(),
-          SizedBox(width: 12),
-          Expanded(
+          const _SectionLabel(title: 'AI Coaching Summary'),
+          _CardSurface(
+            padding: const EdgeInsets.fromLTRB(14, 16, 14, 14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Next Run Tip',
-                  style: TextStyle(
-                    color: _rBlue,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
+                  coachingCopy,
+                  style: const TextStyle(
+                    color: _rBlue90,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    height: 1.55,
                     letterSpacing: -0.1,
                   ),
                 ),
-                SizedBox(height: 3),
-                Text(
-                  'Try a 5-minute dynamic warmup before your next run to help your body move more easily.',
-                  style: TextStyle(
-                    color: _rBlue75,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    height: 1.5,
-                  ),
-                ),
+                const SizedBox(height: 16),
+                const Divider(height: 1, thickness: 1, color: _rBlue10),
+                const SizedBox(height: 14),
+                const _NextTipBlock(),
               ],
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _NextTipBlock extends StatelessWidget {
+  const _NextTipBlock();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Next Run Tip',
+          style: TextStyle(
+            color: _rBlue,
+            fontSize: 13,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.1,
+          ),
+        ),
+        SizedBox(height: 3),
+        Text(
+          'Try a 5-minute dynamic warmup before your next run to help your body move more easily.',
+          style: TextStyle(
+            color: _rBlue75,
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            height: 1.5,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -992,84 +937,21 @@ class _SectionLabel extends StatelessWidget {
 class _CardSurface extends StatelessWidget {
   const _CardSurface({
     required this.child,
-    this.color = _rWhite,
     this.padding = const EdgeInsets.all(16),
   });
 
   final Widget child;
-  final Color color;
   final EdgeInsets padding;
 
   @override
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: color,
+        color: _rWhite,
         border: Border.all(color: RuniacColors.cardBorder),
         borderRadius: BorderRadius.circular(_cardRadius),
       ),
       child: Padding(padding: padding, child: child),
-    );
-  }
-}
-
-class _IconBadge extends StatelessWidget {
-  const _IconBadge({required this.icon, this.size = 34});
-
-  final IconData icon;
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        color: _rBlue06,
-        borderRadius: BorderRadius.circular(size == 40 ? 13 : 11),
-      ),
-      child: Icon(icon, color: _rBlue, size: size == 40 ? 20 : 18),
-    );
-  }
-}
-
-class _SparkBadge extends StatelessWidget {
-  const _SparkBadge();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 38,
-      height: 38,
-      decoration: BoxDecoration(
-        color: _rBlue,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x472F51C8),
-            blurRadius: 16,
-            offset: Offset(0, 6),
-          ),
-        ],
-      ),
-      child: const Icon(Icons.auto_awesome_rounded, color: _rWhite, size: 19),
-    );
-  }
-}
-
-class _WarmupBadge extends StatelessWidget {
-  const _WarmupBadge();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 32,
-      height: 32,
-      decoration: BoxDecoration(
-        color: _rOrange12,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: const Icon(Icons.star_border_rounded, color: _rOrange, size: 18),
     );
   }
 }
