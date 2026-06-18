@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/features/run/data/firebase_run_repository.dart';
 import 'package:runiac_app/features/run/domain/models/local_run_completion_payload.dart';
 import 'package:runiac_app/features/run/domain/models/run_completion_error.dart';
+import 'package:runiac_app/features/run/domain/services/pace_graph_data_builder.dart';
 
 void main() {
   group('FirebaseRunRepository', () {
@@ -223,10 +224,79 @@ void main() {
         }
       },
     );
+
+    test(
+      'does not send local pace graph samples or route data to Firebase callable',
+      () async {
+        final callable = _FakeCompleteRunCallable(
+          response: _minimalCallableResponse(),
+        );
+        final repository = FirebaseRunRepository(callable: callable);
+
+        final result = await repository.completeRun(
+          _payload(
+            paceGraphSamples: const <PaceGraphSample>[
+              PaceGraphSample(elapsedSeconds: 60, paceSecondsPerKm: 410),
+              PaceGraphSample(elapsedSeconds: 120, paceSecondsPerKm: 405),
+              PaceGraphSample(elapsedSeconds: 180, paceSecondsPerKm: 408),
+            ],
+          ),
+        );
+
+        expect(callable.lastRequest['durationSeconds'], 1500);
+        expect(callable.lastRequest['distanceMeters'], 3200);
+        expect(callable.lastRequest['avgPaceSecondsPerKm'], 469);
+        expect(callable.lastRequest['source'], 'mobile');
+        expect(callable.lastRequest['routePrivacy'], 'private');
+        expect(callable.lastRequest['routeLabel'], 'Repository Result Route');
+        expect(callable.lastRequest['clientAppVersion'], 'm5-test');
+        expect(result.summary.paceGraph.isAvailable, isFalse);
+        expect(result.summary.paceGraph.points, isEmpty);
+
+        const forbiddenFragments = <String>[
+          'paceGraphSamples',
+          'graphSamples',
+          'PaceGraphSample',
+          'paceGraph',
+          'samples',
+          'latitude',
+          'longitude',
+          'routeTrace',
+          'polyline',
+          'positions',
+          'gpsSamples',
+          'rawLocationSamples',
+          'displayRouteSegments',
+          'acceptedRouteSegments',
+          'motionEvidence',
+          'xp',
+          'streak',
+          'level',
+          'rank',
+          'leaderboard',
+          'weeklyXp',
+          'monthlyXp',
+          'subscription',
+          'expertPlan',
+        ];
+        final serializedRequest = callable.lastRequest.entries
+            .map((entry) => '${entry.key}:${entry.value}')
+            .join('|');
+        for (final fragment in forbiddenFragments) {
+          expect(
+            serializedRequest.toLowerCase(),
+            isNot(contains(fragment.toLowerCase())),
+            reason: 'callable request leaked forbidden fragment $fragment',
+          );
+        }
+      },
+    );
   });
 }
 
-LocalRunCompletionPayload _payload() {
+LocalRunCompletionPayload _payload({
+  List<PaceGraphSample> paceGraphSamples = const <PaceGraphSample>[],
+}) {
   return LocalRunCompletionPayload(
     clientRunSessionId: 'local-session-20260614-0700',
     startedAt: DateTime.utc(2026, 6, 14, 7),
@@ -238,6 +308,7 @@ LocalRunCompletionPayload _payload() {
     routePrivacy: 'private',
     routeLabel: 'Repository Result Route',
     clientAppVersion: 'm5-test',
+    paceGraphSamples: paceGraphSamples,
   );
 }
 
