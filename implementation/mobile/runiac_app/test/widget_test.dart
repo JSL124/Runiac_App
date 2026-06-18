@@ -20,28 +20,17 @@ void main() {
   });
 
   testWidgets(
-    'floating island bottom navigation removes visible labels and preserves semantic tabs',
+    'bottom navigation shows screenshot-style labeled tabs and preserves routing',
     (WidgetTester tester) async {
       await tester.pumpWidget(
         const RuniacApp(showSplash: false, enableForegroundGps: false),
       );
 
-      expect(find.byType(BottomNavigationBar), findsNothing);
-      expect(
-        find.byKey(const ValueKey('runiac-floating-bottom-navigation')),
-        findsOneWidget,
-      );
-      expect(
-        find.byKey(
-          const ValueKey('runiac-floating-bottom-navigation-active-pill'),
-        ),
-        findsOneWidget,
-      );
+      expect(find.byType(BottomNavigationBar), findsOneWidget);
 
       for (final label in ['Home', 'Maps', 'Run', 'Leaderboard', 'You']) {
-        expect(find.text(label), findsNothing);
+        expect(find.text(label), findsOneWidget);
         expect(find.byTooltip(label), findsOneWidget);
-        expect(find.bySemanticsLabel('$label tab'), findsOneWidget);
       }
 
       await tester.tap(find.byTooltip('Leaderboard'));
@@ -52,7 +41,7 @@ void main() {
   );
 
   testWidgets(
-    'floating island bottom navigation stays centered on narrow width',
+    'bottom navigation remains full width with evenly spaced tabs on narrow width',
     (WidgetTester tester) async {
       tester.view
         ..physicalSize = const Size(360, 760)
@@ -63,20 +52,18 @@ void main() {
         const RuniacApp(showSplash: false, enableForegroundGps: false),
       );
 
-      final island = find.byKey(
-        const ValueKey('runiac-floating-bottom-navigation'),
-      );
-      expect(island, findsOneWidget);
+      final bottomNavigation = find.byType(BottomNavigationBar);
+      expect(bottomNavigation, findsOneWidget);
 
-      final islandRect = tester.getRect(island);
-      final screenCenter =
-          tester.view.physicalSize.width / tester.view.devicePixelRatio / 2;
+      final navRect = tester.getRect(bottomNavigation);
+      final firstItemRect = tester.getRect(find.byTooltip('Home'));
+      final lastItemRect = tester.getRect(find.byTooltip('You'));
 
-      expect(islandRect.center.dx, closeTo(screenCenter, 0.5));
-      expect(islandRect.left, greaterThan(0));
-      expect(islandRect.right, lessThan(360));
-      expect(islandRect.height, greaterThanOrEqualTo(64));
-      expect(islandRect.height, lessThanOrEqualTo(76));
+      expect(navRect.left, closeTo(0, 0.5));
+      expect(navRect.right, closeTo(360, 0.5));
+      expect(navRect.height, greaterThanOrEqualTo(56));
+      expect(firstItemRect.width, closeTo(lastItemRect.width, 0.5));
+      expect(firstItemRect.center.dy, closeTo(lastItemRect.center.dy, 0.5));
     },
   );
 }

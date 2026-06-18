@@ -1168,11 +1168,7 @@ void main() {
     final collapsedSheetTop = tester.getTopLeft(sheetSurface).dy;
     final handleTop = tester.getTopLeft(handle).dy;
     final handleBottom = tester.getBottomLeft(handle).dy;
-    final bottomNavTop = tester
-        .getTopLeft(
-          find.byKey(const ValueKey('runiac-floating-bottom-navigation')),
-        )
-        .dy;
+    final bottomNavTop = tester.getTopLeft(find.byType(BottomNavigationBar)).dy;
 
     expect(tester.getTopLeft(sheetBody).dy, greaterThan(initialTop + 200));
     expect(handle, findsOneWidget);
