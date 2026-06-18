@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 
 import 'package:runiac_app/core/theme/runiac_colors.dart';
@@ -110,9 +112,18 @@ class ViewSummaryScreen extends StatelessWidget {
                             distanceKm: displayedSummary.distanceKm,
                           ),
                           _MetricSummary(summary: displayedSummary),
-                          const _PaceSection(),
+                          _PaceSection(hasSufficientData: hasSufficientData),
                           _AnalysisSection(
+                            hasSufficientData: hasSufficientData,
                             onMoreDetails: () {
+                              if (!hasSufficientData) {
+                                _showSoonMessage(
+                                  context,
+                                  'Run a little longer to unlock analysis.',
+                                );
+                                return;
+                              }
+
                               Navigator.of(context).push(
                                 MaterialPageRoute<void>(
                                   builder: (context) =>
@@ -419,19 +430,24 @@ class _MetricText extends StatelessWidget {
 }
 
 class _PaceSection extends StatelessWidget {
-  const _PaceSection();
+  const _PaceSection({required this.hasSufficientData});
+
+  final bool hasSufficientData;
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.fromLTRB(16, 22, 16, 0),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 22, 16, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _SectionLabel(title: 'Pace Over Time'),
+          const _SectionLabel(title: 'Pace Over Time'),
           _CardSurface(
-            padding: EdgeInsets.fromLTRB(14, 16, 14, 12),
-            child: _PaceChart(),
+            padding: const EdgeInsets.fromLTRB(14, 16, 14, 12),
+            child: _GuardedAnalysisPreview(
+              showGuard: !hasSufficientData,
+              child: const _PaceChart(),
+            ),
           ),
         ],
       ),
@@ -515,8 +531,12 @@ class _AxisLabel extends StatelessWidget {
 }
 
 class _AnalysisSection extends StatelessWidget {
-  const _AnalysisSection({required this.onMoreDetails});
+  const _AnalysisSection({
+    required this.hasSufficientData,
+    required this.onMoreDetails,
+  });
 
+  final bool hasSufficientData;
   final VoidCallback onMoreDetails;
 
   @override
@@ -559,7 +579,11 @@ class _AnalysisSection extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 14),
-            const _ZoneBars(),
+            _GuardedAnalysisPreview(
+              showGuard: !hasSufficientData,
+              minHeight: hasSufficientData ? 0 : 116,
+              child: const _ZoneBars(),
+            ),
             const SizedBox(height: 16),
             OutlinedButton.icon(
               onPressed: onMoreDetails,
@@ -588,6 +612,102 @@ class _AnalysisSection extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _GuardedAnalysisPreview extends StatelessWidget {
+  const _GuardedAnalysisPreview({
+    required this.showGuard,
+    required this.child,
+    this.minHeight = 0,
+  });
+
+  final bool showGuard;
+  final Widget child;
+  final double minHeight;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(14),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(minHeight: minHeight),
+        child: Stack(
+          fit: StackFit.passthrough,
+          children: [
+            child,
+            if (showGuard) const Positioned.fill(child: _LowDataGraphGuard()),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LowDataGraphGuard extends StatelessWidget {
+  const _LowDataGraphGuard();
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+        child: DecoratedBox(
+          decoration: BoxDecoration(color: _rWhite.withValues(alpha: 0.78)),
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: _rWhite.withValues(alpha: 0.92),
+                  border: Border.all(color: _rBlue18),
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: _rBlue10,
+                      blurRadius: 16,
+                      offset: Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'More run data needed',
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: _rBlue,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      SizedBox(height: 3),
+                      Text(
+                        'Pace insights will appear after a longer run.',
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: _rBlue75,
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                          height: 1.25,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );

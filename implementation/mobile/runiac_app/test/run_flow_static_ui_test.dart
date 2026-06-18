@@ -919,6 +919,79 @@ void main() {
     expect(find.widgetWithText(FilledButton, 'View XP Update'), findsNothing);
   });
 
+  testWidgets('low-data Summary guards hardcoded analysis graphs', (
+    WidgetTester tester,
+  ) async {
+    _useTallSummarySurface(tester);
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: ViewSummaryScreen(
+          completionResult: CompleteRunResult(
+            activityId: 'low-data-analysis-activity',
+            summaryId: 'low-data-analysis-summary',
+            progressionEventId: 'low-data-analysis-progression',
+            validationStatus: 'validated',
+            summary: RunSummarySnapshot(
+              title: 'Short Start',
+              dateLabel: 'Today',
+              timeLabel: '8:10 AM',
+              distanceKm: '0.02',
+              avgPace: '--',
+              duration: '0:35',
+              avgHeartRate: '--',
+              calories: '--',
+              routeName: 'Easy local route',
+              hasSufficientData: false,
+            ),
+            progressionDisplay: ProgressionDisplayModel(
+              xpDelta: 0,
+              countsTowardLeaderboard: false,
+              status: 'deferred',
+              reason: 'progression_formula_deferred',
+            ),
+            xpUpdate: XpUpdateDisplayModel(
+              runnerName: 'Runiac Runner',
+              earnedXpLabel: '+0 XP',
+              totalXpLabel: 'Deferred by backend',
+              levelLabel: 'Pending',
+              nextLevelLabel: 'Pending',
+              progressTargetLabel: 'Progression deferred',
+              xpRemainingLabel: 'Backend formula pending',
+              previousProgressFraction: 0,
+              currentProgressFraction: 0,
+              streakChangeLabel: 'Deferred',
+              streakNote: 'Backend validation accepted the run.',
+              didLevelUp: false,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Pace Over Time'), findsOneWidget);
+    expect(find.text('Advanced Analysis'), findsOneWidget);
+    expect(find.text('More run data needed'), findsNWidgets(2));
+    expect(
+      find.text('Pace insights will appear after a longer run.'),
+      findsNWidgets(2),
+    );
+    expect(find.text('Performance Overview'), findsNothing);
+
+    await tester.ensureVisible(
+      find.widgetWithText(OutlinedButton, 'More Details'),
+    );
+    await tester.tap(find.widgetWithText(OutlinedButton, 'More Details'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Run a little longer to unlock analysis.'),
+      findsOneWidget,
+    );
+    expect(find.text('Performance Overview'), findsNothing);
+    expect(find.byType(AdvancedAnalysisScreen), findsNothing);
+  });
+
   testWidgets(
     'View summary share icon opens Share Your Achievement bottom sheet',
     (WidgetTester tester) async {
