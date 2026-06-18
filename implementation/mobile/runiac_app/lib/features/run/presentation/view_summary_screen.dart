@@ -559,10 +559,10 @@ class _AnalysisSection extends StatelessWidget {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 12),
                 _GuardedAnalysisPreview(
                   showGuard: !hasSufficientData,
-                  minHeight: hasSufficientData ? 0 : 116,
+                  minHeight: hasSufficientData ? 0 : 96,
                   child: const _ZoneBars(),
                 ),
                 const SizedBox(height: 8),
