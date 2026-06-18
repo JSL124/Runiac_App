@@ -565,7 +565,7 @@ class _AnalysisSection extends StatelessWidget {
                   minHeight: hasSufficientData ? 0 : 116,
                   child: const _ZoneBars(),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 8),
                 OutlinedButton(
                   onPressed: onMoreDetails,
                   style: OutlinedButton.styleFrom(
