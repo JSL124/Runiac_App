@@ -692,14 +692,17 @@ class _ZoneBars extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Column(
-      children: [
-        _ZoneRow(label: 'Easy', percent: 72, color: _rBlue30),
-        SizedBox(height: 9),
-        _ZoneRow(label: 'Steady', percent: 22, color: _rBlue60),
-        SizedBox(height: 9),
-        _ZoneRow(label: 'Hard', percent: 6, color: _rOrange),
-      ],
+    return const Padding(
+      padding: EdgeInsets.all(8),
+      child: Column(
+        children: [
+          _ZoneRow(label: 'Easy', percent: 72, color: _rBlue30),
+          SizedBox(height: 9),
+          _ZoneRow(label: 'Steady', percent: 22, color: _rBlue60),
+          SizedBox(height: 9),
+          _ZoneRow(label: 'Hard', percent: 6, color: _rOrange),
+        ],
+      ),
     );
   }
 }
