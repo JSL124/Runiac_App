@@ -1,5 +1,6 @@
 import '../domain/models/complete_run_result.dart';
 import '../domain/models/local_run_completion_payload.dart';
+import '../domain/models/pace_graph_snapshot.dart';
 import '../domain/models/progression_display_model.dart';
 import '../domain/models/run_completion_request_adapter.dart';
 import '../domain/models/run_activity_read_model.dart';
@@ -8,8 +9,8 @@ import '../domain/models/run_summary_snapshot.dart';
 import '../domain/models/xp_update_display_model.dart';
 import '../domain/repositories/run_repository.dart';
 import '../domain/services/completed_run_title_formatter.dart';
+import '../domain/services/pace_graph_data_builder.dart';
 import '../domain/services/run_calories_estimator.dart';
-import '../presentation/data/pace_graph_demo_snapshots.dart';
 import '../presentation/data/run_completion_demo_snapshots.dart';
 
 class StaticRunRepository implements RunRepository {
@@ -78,13 +79,13 @@ class StaticRunRepository implements RunRepository {
       routeName: payload.routeLabel ?? 'Private route',
       hasSufficientData: hasSufficientData,
       paceGraph: hasSufficientData
-          ? buildDemoPaceGraph(
-              samples: normalEasyRunPaceSamples,
+          ? const PaceGraphDataBuilder().build(
+              samples: payload.paceGraphSamples,
               durationSeconds: payload.durationSeconds,
               distanceMeters: payload.distanceMeters,
               averagePaceSecondsPerKm: payload.avgPaceSecondsPerKm,
             )
-          : unavailablePaceGraph,
+          : const PaceGraphSnapshot.unavailable(),
     );
 
     return CompleteRunResult(

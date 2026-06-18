@@ -14,6 +14,7 @@ import 'package:runiac_app/features/maps/domain/repositories/shared_routes_repos
 import 'package:runiac_app/features/run/data/static_run_repository.dart';
 import 'package:runiac_app/features/run/domain/models/local_run_completion_payload.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_repository.dart';
+import 'package:runiac_app/features/run/domain/services/pace_graph_data_builder.dart';
 import 'package:runiac_app/features/you/data/static_activity_history_repository.dart';
 import 'package:runiac_app/features/you/data/static_expert_plans_repository.dart';
 import 'package:runiac_app/features/you/domain/repositories/activity_history_repository.dart';
@@ -359,37 +360,108 @@ void main() {
       }
     });
 
+    test('completeRun builds local pace graph from payload samples', () async {
+      final repository = StaticRunRepository();
+      const samples = <PaceGraphSample>[
+        PaceGraphSample(elapsedSeconds: 60, paceSecondsPerKm: 400),
+        PaceGraphSample(elapsedSeconds: 180, paceSecondsPerKm: 410),
+        PaceGraphSample(elapsedSeconds: 300, paceSecondsPerKm: 420),
+      ];
+
+      final completedRun = await repository.completeRun(
+        _localRunCompletionPayload(
+          sessionId: 'summary-pace-graph-local-samples',
+          distanceMeters: 1000,
+          durationSeconds: 450,
+          paceSecondsPerKm: 450,
+          paceGraphSamples: samples,
+        ),
+      );
+
+      final graph = completedRun.summary.paceGraph;
+
+      expect(completedRun.summary.hasSufficientData, isTrue);
+      expect(graph.isAvailable, isTrue);
+      expect(graph.points.map((point) => point.elapsedSeconds), <int>[
+        60,
+        180,
+        300,
+      ]);
+      expect(graph.points.map((point) => point.paceSecondsPerKm), <int>[
+        400,
+        410,
+        420,
+      ]);
+      expect(graph.totalDurationSeconds, 450);
+      expect(graph.averagePaceSecondsPerKm, 450);
+    });
+
     test(
-      'completeRun attaches fixture pace graph only for sufficient data',
+      'completeRun does not attach fixture graph when local samples are absent',
       () async {
         final repository = StaticRunRepository();
 
-        final normalRun = await repository.completeRun(
+        final completedRun = await repository.completeRun(
           _localRunCompletionPayload(
-            sessionId: 'summary-pace-graph-normal',
+            sessionId: 'summary-pace-graph-no-local-samples',
             distanceMeters: 1000,
             durationSeconds: 450,
             paceSecondsPerKm: 450,
           ),
         );
-        final lowDataRun = await repository.completeRun(
+
+        expect(completedRun.summary.hasSufficientData, isTrue);
+        expect(completedRun.summary.paceGraph.isAvailable, isFalse);
+        expect(completedRun.summary.paceGraph.points, isEmpty);
+      },
+    );
+
+    test(
+      'completeRun returns unavailable graph when local graph samples are insufficient',
+      () async {
+        final repository = StaticRunRepository();
+
+        final completedRun = await repository.completeRun(
           _localRunCompletionPayload(
-            sessionId: 'summary-pace-graph-low-data',
-            distanceMeters: 20,
-            durationSeconds: 35,
-            paceSecondsPerKm: 0,
+            sessionId: 'summary-pace-graph-insufficient-local-samples',
+            distanceMeters: 1000,
+            durationSeconds: 450,
+            paceSecondsPerKm: 450,
+            paceGraphSamples: const <PaceGraphSample>[
+              PaceGraphSample(elapsedSeconds: 60, paceSecondsPerKm: 400),
+              PaceGraphSample(elapsedSeconds: 180, paceSecondsPerKm: 410),
+            ],
           ),
         );
 
-        expect(normalRun.summary.hasSufficientData, isTrue);
-        expect(normalRun.summary.paceGraph.isAvailable, isTrue);
-        expect(
-          normalRun.summary.paceGraph.points.length,
-          greaterThanOrEqualTo(3),
+        expect(completedRun.summary.hasSufficientData, isTrue);
+        expect(completedRun.summary.paceGraph.isAvailable, isFalse);
+        expect(completedRun.summary.paceGraph.points, isEmpty);
+      },
+    );
+
+    test(
+      'completeRun returns unavailable graph when summary pace is unreliable',
+      () async {
+        final repository = StaticRunRepository();
+
+        final completedRun = await repository.completeRun(
+          _localRunCompletionPayload(
+            sessionId: 'summary-pace-graph-unreliable-summary-pace',
+            distanceMeters: 1000,
+            durationSeconds: 450,
+            paceSecondsPerKm: 149,
+            paceGraphSamples: const <PaceGraphSample>[
+              PaceGraphSample(elapsedSeconds: 60, paceSecondsPerKm: 400),
+              PaceGraphSample(elapsedSeconds: 180, paceSecondsPerKm: 410),
+              PaceGraphSample(elapsedSeconds: 300, paceSecondsPerKm: 420),
+            ],
+          ),
         );
-        expect(lowDataRun.summary.hasSufficientData, isFalse);
-        expect(lowDataRun.summary.paceGraph.isAvailable, isFalse);
-        expect(lowDataRun.summary.paceGraph.points, isEmpty);
+
+        expect(completedRun.summary.hasSufficientData, isFalse);
+        expect(completedRun.summary.paceGraph.isAvailable, isFalse);
+        expect(completedRun.summary.paceGraph.points, isEmpty);
       },
     );
 
@@ -444,6 +516,7 @@ LocalRunCompletionPayload _localRunCompletionPayload({
   required int distanceMeters,
   required int durationSeconds,
   required int paceSecondsPerKm,
+  List<PaceGraphSample> paceGraphSamples = const <PaceGraphSample>[],
 }) {
   return LocalRunCompletionPayload(
     clientRunSessionId: sessionId,
@@ -461,6 +534,7 @@ LocalRunCompletionPayload _localRunCompletionPayload({
     routePrivacy: 'private',
     routeLabel: 'Easy local route',
     clientAppVersion: 'summary-pace-test',
+    paceGraphSamples: paceGraphSamples,
   );
 }
 
