@@ -135,7 +135,7 @@ class PaceGraphDataBuilder {
       first: samples.first,
       last: samples.last,
     );
-    return _capDisplaySamples(anchoredSamples);
+    return _stabilizeIsolatedPaces(_capDisplaySamples(anchoredSamples));
   }
 
   int _bucketSecondsFor(int durationSeconds) {
@@ -203,6 +203,79 @@ class PaceGraphDataBuilder {
       capped[capped.length - 1] = samples.last;
     }
     return capped;
+  }
+
+  List<PaceGraphSample> _stabilizeIsolatedPaces(List<PaceGraphSample> samples) {
+    if (samples.length < 5) {
+      return samples;
+    }
+
+    final sortedPaces =
+        samples.map((sample) => sample.paceSecondsPerKm).toList()..sort();
+    final q1 = _lowerQuartile(sortedPaces);
+    final q3 = _upperQuartile(sortedPaces);
+    final iqr = q3 - q1;
+    final lowerFence = q1 - (iqr * 1.5);
+    final upperFence = q3 + (iqr * 1.5);
+
+    return List<PaceGraphSample>.generate(samples.length, (index) {
+      final sample = samples[index];
+      if (!_isOutsideFence(sample.paceSecondsPerKm, lowerFence, upperFence)) {
+        return sample;
+      }
+
+      return PaceGraphSample(
+        elapsedSeconds: sample.elapsedSeconds,
+        paceSecondsPerKm: _nearestStablePace(
+          samples: samples,
+          outlierIndex: index,
+          lowerFence: lowerFence,
+          upperFence: upperFence,
+        ),
+      );
+    });
+  }
+
+  int _lowerQuartile(List<int> sortedValues) {
+    return _median(sortedValues.take(sortedValues.length ~/ 2));
+  }
+
+  int _upperQuartile(List<int> sortedValues) {
+    return _median(sortedValues.skip((sortedValues.length + 1) ~/ 2));
+  }
+
+  bool _isOutsideFence(int value, double lowerFence, double upperFence) {
+    return value < lowerFence || value > upperFence;
+  }
+
+  int _nearestStablePace({
+    required List<PaceGraphSample> samples,
+    required int outlierIndex,
+    required double lowerFence,
+    required double upperFence,
+  }) {
+    final outlierElapsed = samples[outlierIndex].elapsedSeconds;
+    PaceGraphSample? nearest;
+    int? nearestDistance;
+
+    for (var index = 0; index < samples.length; index += 1) {
+      if (index == outlierIndex) {
+        continue;
+      }
+
+      final sample = samples[index];
+      if (_isOutsideFence(sample.paceSecondsPerKm, lowerFence, upperFence)) {
+        continue;
+      }
+
+      final distance = (sample.elapsedSeconds - outlierElapsed).abs();
+      if (nearestDistance == null || distance < nearestDistance) {
+        nearest = sample;
+        nearestDistance = distance;
+      }
+    }
+
+    return nearest?.paceSecondsPerKm ?? samples[outlierIndex].paceSecondsPerKm;
   }
 
   _PaceAxisRange _paceAxisRange({required int minPace, required int maxPace}) {

@@ -192,6 +192,115 @@ void main() {
       },
     );
 
+    test(
+      'build prevents first endpoint fast spike from dominating display',
+      () {
+        final graph = builder.build(
+          samples: const [
+            PaceGraphSample(elapsedSeconds: 0, paceSecondsPerKm: 240),
+            PaceGraphSample(elapsedSeconds: 22, paceSecondsPerKm: 430),
+            PaceGraphSample(elapsedSeconds: 42, paceSecondsPerKm: 432),
+            PaceGraphSample(elapsedSeconds: 62, paceSecondsPerKm: 434),
+            PaceGraphSample(elapsedSeconds: 82, paceSecondsPerKm: 436),
+            PaceGraphSample(elapsedSeconds: 102, paceSecondsPerKm: 438),
+            PaceGraphSample(elapsedSeconds: 122, paceSecondsPerKm: 440),
+          ],
+          durationSeconds: 140,
+          distanceMeters: 310,
+          averagePaceSecondsPerKm: 452,
+        );
+
+        expect(graph.isAvailable, isTrue);
+        expect(graph.points.first.elapsedSeconds, 0);
+        expect(graph.bestPacePoint?.paceSecondsPerKm, isNot(240));
+        expect(
+          graph.points.map((point) => point.paceSecondsPerKm),
+          isNot(contains(240)),
+        );
+        expect(graph.paceRangeMinSecondsPerKm, greaterThanOrEqualTo(380));
+      },
+    );
+
+    test('build prevents last endpoint slow spike from dominating display', () {
+      final graph = builder.build(
+        samples: const [
+          PaceGraphSample(elapsedSeconds: 0, paceSecondsPerKm: 430),
+          PaceGraphSample(elapsedSeconds: 22, paceSecondsPerKm: 432),
+          PaceGraphSample(elapsedSeconds: 42, paceSecondsPerKm: 434),
+          PaceGraphSample(elapsedSeconds: 62, paceSecondsPerKm: 436),
+          PaceGraphSample(elapsedSeconds: 82, paceSecondsPerKm: 438),
+          PaceGraphSample(elapsedSeconds: 102, paceSecondsPerKm: 440),
+          PaceGraphSample(elapsedSeconds: 122, paceSecondsPerKm: 900),
+        ],
+        durationSeconds: 140,
+        distanceMeters: 310,
+        averagePaceSecondsPerKm: 452,
+      );
+
+      expect(graph.isAvailable, isTrue);
+      expect(graph.points.last.elapsedSeconds, 122);
+      expect(graph.slowestPacePoint?.paceSecondsPerKm, isNot(900));
+      expect(
+        graph.points.map((point) => point.paceSecondsPerKm),
+        isNot(contains(900)),
+      );
+      expect(graph.paceRangeMaxSecondsPerKm, lessThanOrEqualTo(480));
+    });
+
+    test(
+      'build prevents singleton bucket fast spike from dominating display',
+      () {
+        final graph = builder.build(
+          samples: const [
+            PaceGraphSample(elapsedSeconds: 0, paceSecondsPerKm: 430),
+            PaceGraphSample(elapsedSeconds: 22, paceSecondsPerKm: 432),
+            PaceGraphSample(elapsedSeconds: 45, paceSecondsPerKm: 240),
+            PaceGraphSample(elapsedSeconds: 82, paceSecondsPerKm: 434),
+            PaceGraphSample(elapsedSeconds: 102, paceSecondsPerKm: 436),
+            PaceGraphSample(elapsedSeconds: 122, paceSecondsPerKm: 438),
+          ],
+          durationSeconds: 140,
+          distanceMeters: 310,
+          averagePaceSecondsPerKm: 452,
+        );
+
+        expect(graph.isAvailable, isTrue);
+        expect(graph.bestPacePoint?.paceSecondsPerKm, isNot(240));
+        expect(
+          graph.points.map((point) => point.paceSecondsPerKm),
+          isNot(contains(240)),
+        );
+        expect(graph.paceRangeMinSecondsPerKm, greaterThanOrEqualTo(380));
+      },
+    );
+
+    test(
+      'build prevents singleton bucket slow spike from dominating display range',
+      () {
+        final graph = builder.build(
+          samples: const [
+            PaceGraphSample(elapsedSeconds: 0, paceSecondsPerKm: 430),
+            PaceGraphSample(elapsedSeconds: 22, paceSecondsPerKm: 432),
+            PaceGraphSample(elapsedSeconds: 45, paceSecondsPerKm: 900),
+            PaceGraphSample(elapsedSeconds: 82, paceSecondsPerKm: 434),
+            PaceGraphSample(elapsedSeconds: 102, paceSecondsPerKm: 436),
+            PaceGraphSample(elapsedSeconds: 122, paceSecondsPerKm: 438),
+          ],
+          durationSeconds: 140,
+          distanceMeters: 310,
+          averagePaceSecondsPerKm: 452,
+        );
+
+        expect(graph.isAvailable, isTrue);
+        expect(graph.slowestPacePoint?.paceSecondsPerKm, isNot(900));
+        expect(
+          graph.points.map((point) => point.paceSecondsPerKm),
+          isNot(contains(900)),
+        );
+        expect(graph.paceRangeMaxSecondsPerKm, lessThanOrEqualTo(480));
+      },
+    );
+
     test('build preserves broad pace trend after smoothing', () {
       final graph = builder.build(
         samples: const [
