@@ -184,15 +184,14 @@ void main() {
     expect(find.text('Settings'), findsOneWidget);
     expect(find.text('Privacy & Safety'), findsOneWidget);
     expect(find.text('Notifications'), findsOneWidget);
+    expect(find.text('Watch & Health Apps'), findsOneWidget);
+    expect(find.text('Connect watch runs and health apps'), findsOneWidget);
     expect(find.text('About Runiac'), findsOneWidget);
-    expect(find.text('Watch & Health Apps'), findsNothing);
     expect(find.text('Connect watch runs later'), findsNothing);
     expect(find.text('Profile settings preview is coming soon.'), findsNothing);
     for (final forbiddenCopy in <String>[
       'Synced',
       'HealthKit',
-      'Health Connect',
-      'Garmin',
       'Connected',
       'logout',
       'delete account',
@@ -269,6 +268,79 @@ void main() {
       expect(find.text(row.$2), findsOneWidget);
       expect(find.text('Account'), findsOneWidget);
     }
+  });
+
+  testWidgets('Account opens Watch and Health Apps preview from Manage', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      const RuniacApp(showSplash: false, enableForegroundGps: false),
+    );
+
+    await tester.tap(find.bySemanticsLabel('Profile'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Account'), findsOneWidget);
+    expect(find.text('Watch & Health Apps'), findsOneWidget);
+    expect(find.text('Connect watch runs and health apps'), findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.text('Watch & Health Apps'),
+      180,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Watch & Health Apps'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Watch & Health Apps'), findsOneWidget);
+    expect(find.text('Connect your watch runs'), findsOneWidget);
+    expect(
+      find.text(
+        'Bring in completed runs from Apple Health, Garmin, or Health Connect.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Apple Health'), findsWidgets);
+    expect(find.text('Health Connect'), findsWidgets);
+    expect(find.text('Garmin via Health'), findsWidgets);
+    expect(find.text('Preview ready'), findsWidgets);
+    expect(find.text('Available through health sync'), findsOneWidget);
+    expect(find.text('Runs found from your health apps'), findsOneWidget);
+    expect(find.textContaining('5.00 km'), findsOneWidget);
+    expect(find.textContaining('35 min'), findsOneWidget);
+    expect(find.textContaining('7:00 /km'), findsOneWidget);
+    expect(find.textContaining('154 bpm'), findsOneWidget);
+    expect(find.text('Avg HR --'), findsOneWidget);
+    expect(find.text('Heart rate was not shared'), findsOneWidget);
+
+    for (final forbiddenCopy in <String>[
+      'Connected',
+      'Synced',
+      'Permission granted',
+      'Live',
+      'HealthKit connected',
+      'Garmin connected',
+      'XP',
+      'leaderboard',
+      'rank',
+      'Level',
+    ]) {
+      expect(find.textContaining(forbiddenCopy), findsNothing);
+    }
+
+    await tester.tap(find.text('Apple Health').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Adding watch runs comes next.'), findsOneWidget);
+    expect(find.text('Activity History'), findsNothing);
+
+    await tester.tap(find.bySemanticsLabel('Back to Account'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Account'), findsOneWidget);
+    expect(find.text('Runiac Runner'), findsOneWidget);
+    expect(find.text('Lv. 12'), findsOneWidget);
   });
 
   testWidgets('Account profile preview fits a narrow mobile surface', (

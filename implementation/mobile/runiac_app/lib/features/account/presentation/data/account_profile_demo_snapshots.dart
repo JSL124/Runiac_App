@@ -54,6 +54,13 @@ const accountProfileDemoSnapshot = AccountProfileDemoSnapshot(
       snackBarMessage: 'Notification preferences preview is coming soon.',
     ),
     AccountProfileManageRow(
+      icon: Icons.watch_outlined,
+      title: 'Watch & Health Apps',
+      subtitle: 'Connect watch runs and health apps',
+      snackBarMessage: 'Adding watch runs comes next.',
+      opensWatchHealthApps: true,
+    ),
+    AccountProfileManageRow(
       icon: Icons.info_outline,
       title: 'About Runiac',
       subtitle: 'App version and project information',
@@ -104,10 +111,12 @@ class AccountProfileManageRow {
     required this.title,
     required this.subtitle,
     required this.snackBarMessage,
+    this.opensWatchHealthApps = false,
   });
 
   final IconData icon;
   final String title;
   final String subtitle;
   final String snackBarMessage;
+  final bool opensWatchHealthApps;
 }

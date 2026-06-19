@@ -3,17 +3,23 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/runiac_back_header.dart';
 import '../../../core/widgets/runiac_buttons.dart';
+import '../../run/data/mock_health_workout_import_repository.dart';
+import '../../run/domain/repositories/health_workout_import_repository.dart';
 import 'data/account_profile_demo_snapshots.dart';
+import 'watch_health_apps_screen.dart';
 
 class AccountProfileScreen extends StatelessWidget {
   const AccountProfileScreen({
     required this.onBack,
     this.snapshot = accountProfileDemoSnapshot,
+    this.healthWorkoutImportRepository =
+        const MockHealthWorkoutImportRepository(),
     super.key,
   });
 
   final VoidCallback onBack;
   final AccountProfileDemoSnapshot snapshot;
+  final HealthWorkoutImportRepository healthWorkoutImportRepository;
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +55,11 @@ class AccountProfileScreen extends StatelessWidget {
                       const SizedBox(height: 22),
                       _SectionLabel(snapshot.manageSectionLabel),
                       const SizedBox(height: 8),
-                      _ManageSection(rows: snapshot.manageRows),
+                      _ManageSection(
+                        rows: snapshot.manageRows,
+                        healthWorkoutImportRepository:
+                            healthWorkoutImportRepository,
+                      ),
                       const SizedBox(height: 22),
                       Text(
                         snapshot.footerCaption,
@@ -391,16 +401,23 @@ class _SetupRow extends StatelessWidget {
 }
 
 class _ManageSection extends StatelessWidget {
-  const _ManageSection({required this.rows});
+  const _ManageSection({
+    required this.rows,
+    required this.healthWorkoutImportRepository,
+  });
 
   final List<AccountProfileManageRow> rows;
+  final HealthWorkoutImportRepository healthWorkoutImportRepository;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
         for (var index = 0; index < rows.length; index++) ...[
-          _ManageRow(row: rows[index]),
+          _ManageRow(
+            row: rows[index],
+            healthWorkoutImportRepository: healthWorkoutImportRepository,
+          ),
           if (index != rows.length - 1) const SizedBox(height: 8),
         ],
       ],
@@ -409,9 +426,13 @@ class _ManageSection extends StatelessWidget {
 }
 
 class _ManageRow extends StatelessWidget {
-  const _ManageRow({required this.row});
+  const _ManageRow({
+    required this.row,
+    required this.healthWorkoutImportRepository,
+  });
 
   final AccountProfileManageRow row;
+  final HealthWorkoutImportRepository healthWorkoutImportRepository;
 
   @override
   Widget build(BuildContext context) {
@@ -425,6 +446,16 @@ class _ManageRow extends StatelessWidget {
         border: Border.all(color: RuniacColors.border),
       ),
       onTap: () {
+        if (row.opensWatchHealthApps) {
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => WatchHealthAppsScreen(
+                repository: healthWorkoutImportRepository,
+              ),
+            ),
+          );
+          return;
+        }
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
           ..showSnackBar(SnackBar(content: Text(row.snackBarMessage)));
