@@ -550,7 +550,6 @@ class _MetricSummary extends StatelessWidget {
                     child: _MetricText(
                       value: _metricValueWithUnit(summary.avgHeartRate, 'bpm'),
                       label: 'Avg Heart Rate',
-                      helper: summary.heartRateHelperText,
                     ),
                   ),
                   Expanded(
@@ -578,11 +577,10 @@ String _metricValueWithUnit(String value, String unit) {
 }
 
 class _MetricText extends StatelessWidget {
-  const _MetricText({required this.value, required this.label, this.helper});
+  const _MetricText({required this.value, required this.label});
 
   final String value;
   final String label;
-  final String? helper;
 
   @override
   Widget build(BuildContext context) {
@@ -612,19 +610,6 @@ class _MetricText extends StatelessWidget {
             height: 1.2,
           ),
         ),
-        if (helper != null) ...[
-          const SizedBox(height: 4),
-          Text(
-            helper!,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: _rBlue60,
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              height: 1.1,
-            ),
-          ),
-        ],
       ],
     );
   }

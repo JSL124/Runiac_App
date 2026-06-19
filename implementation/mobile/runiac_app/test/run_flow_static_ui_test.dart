@@ -1294,11 +1294,18 @@ void main() {
 
     expect(find.text('Runiac GPS'), findsOneWidget);
     expect(find.text('Avg Heart Rate'), findsOneWidget);
+    expect(find.text('--'), findsOneWidget);
     expect(find.text('-- bpm'), findsNothing);
     expect(
       find.text('Heart rate unavailable for Runiac GPS runs.'),
-      findsOneWidget,
+      findsNothing,
     );
+    expect(
+      find.text('Heart rate was not shared by this source.'),
+      findsNothing,
+    );
+    expect(find.text('Pace Over Time'), findsOneWidget);
+    expect(find.text('Advanced Analysis'), findsOneWidget);
 
     await tester.pumpWidget(
       const MaterialApp(
@@ -1352,10 +1359,16 @@ void main() {
     );
 
     expect(find.text('Health Connect'), findsOneWidget);
+    expect(find.text('Avg Heart Rate'), findsOneWidget);
+    expect(find.text('--'), findsOneWidget);
     expect(find.text('-- bpm'), findsNothing);
     expect(
       find.text('Heart rate was not shared by this source.'),
-      findsOneWidget,
+      findsNothing,
+    );
+    expect(
+      find.text('Heart rate unavailable for Runiac GPS runs.'),
+      findsNothing,
     );
   });
 
