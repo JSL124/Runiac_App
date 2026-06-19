@@ -3,30 +3,46 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/runiac_back_header.dart';
 import '../../../core/widgets/runiac_buttons.dart';
-import '../../run/data/mock_health_workout_import_repository.dart';
-import '../../run/domain/models/imported_workout_candidate.dart';
-import '../../run/domain/repositories/health_workout_import_repository.dart';
 
-class WatchHealthAppsScreen extends StatefulWidget {
-  const WatchHealthAppsScreen({
-    this.repository = const MockHealthWorkoutImportRepository(),
-    super.key,
-  });
+class WatchHealthAppsScreen extends StatelessWidget {
+  const WatchHealthAppsScreen({super.key});
 
-  final HealthWorkoutImportRepository repository;
+  static const _manageDeviceRows = <_WatchHealthRowData>[
+    _WatchHealthRowData(
+      icon: Icons.add_circle_outline_rounded,
+      title: 'Connect a new device to Runiac',
+      description:
+          'Use your watch or health app to bring in completed runs later.',
+    ),
+    _WatchHealthRowData(
+      icon: Icons.watch_outlined,
+      title: 'Apple Watch',
+      description: 'Set up Apple Health permissions later.',
+    ),
+    _WatchHealthRowData(
+      icon: Icons.watch_outlined,
+      title: 'Garmin',
+      description: 'Available later through health app sync.',
+    ),
+  ];
 
-  @override
-  State<WatchHealthAppsScreen> createState() => _WatchHealthAppsScreenState();
-}
-
-class _WatchHealthAppsScreenState extends State<WatchHealthAppsScreen> {
-  late final Future<List<ImportedWorkoutCandidate>> _candidatesFuture;
-
-  @override
-  void initState() {
-    super.initState();
-    _candidatesFuture = widget.repository.listRecentRunningWorkouts();
-  }
+  static const _serviceRows = <_WatchHealthRowData>[
+    _WatchHealthRowData(
+      icon: Icons.favorite_border_rounded,
+      title: 'Apple Health',
+      description: 'Bring in completed runs from Apple Health later.',
+    ),
+    _WatchHealthRowData(
+      icon: Icons.health_and_safety_outlined,
+      title: 'Health Connect',
+      description: 'Bring in completed runs from Health Connect later.',
+    ),
+    _WatchHealthRowData(
+      icon: Icons.watch_outlined,
+      title: 'Garmin via Health',
+      description: 'Use health app sync for Garmin runs later.',
+    ),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -51,14 +67,16 @@ class _WatchHealthAppsScreenState extends State<WatchHealthAppsScreen> {
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const _IntroCard(),
-                      const SizedBox(height: 18),
-                      const _ConnectionSection(),
-                      const SizedBox(height: 22),
-                      const _SectionLabel('Runs found from your health apps'),
-                      const SizedBox(height: 8),
-                      _CandidateSection(candidatesFuture: _candidatesFuture),
+                    children: const [
+                      _WatchHealthSection(
+                        label: 'MANAGE DEVICES',
+                        rows: _manageDeviceRows,
+                      ),
+                      SizedBox(height: 22),
+                      _WatchHealthSection(
+                        label: 'SERVICES',
+                        rows: _serviceRows,
+                      ),
                     ],
                   ),
                 ),
@@ -71,110 +89,63 @@ class _WatchHealthAppsScreenState extends State<WatchHealthAppsScreen> {
   }
 }
 
-class _IntroCard extends StatelessWidget {
-  const _IntroCard();
+class _WatchHealthSection extends StatelessWidget {
+  const _WatchHealthSection({required this.label, required this.rows});
+
+  final String label;
+  final List<_WatchHealthRowData> rows;
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: RuniacColors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: RuniacColors.border),
-      ),
-      child: const Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Connect your watch runs',
-              style: TextStyle(
-                color: RuniacColors.textPrimary,
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-                height: 1.15,
-              ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _SectionLabel(label),
+        const SizedBox(height: 8),
+        for (var index = 0; index < rows.length; index++) ...[
+          _WatchHealthRow(row: rows[index]),
+          if (index != rows.length - 1)
+            const Divider(
+              height: 1,
+              thickness: 1,
+              indent: 46,
+              color: RuniacColors.border,
             ),
-            SizedBox(height: 8),
-            Text(
-              'Bring in completed runs from Apple Health, Garmin, or Health Connect.',
-              style: TextStyle(
-                color: RuniacColors.textSecondary,
-                fontSize: 13.5,
-                fontWeight: FontWeight.w700,
-                height: 1.3,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ConnectionSection extends StatelessWidget {
-  const _ConnectionSection();
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: RuniacColors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: RuniacColors.border),
-      ),
-      child: const Column(
-        children: [
-          _ConnectionRow(
-            icon: Icons.favorite_border_rounded,
-            title: 'Apple Health',
-            subtitle: 'Preview ready',
-          ),
-          Divider(height: 1, thickness: 1, color: RuniacColors.border),
-          _ConnectionRow(
-            icon: Icons.health_and_safety_outlined,
-            title: 'Health Connect',
-            subtitle: 'Preview ready',
-          ),
-          Divider(height: 1, thickness: 1, color: RuniacColors.border),
-          _ConnectionRow(
-            icon: Icons.watch_outlined,
-            title: 'Garmin via Health',
-            subtitle: 'Available through health sync',
-          ),
         ],
-      ),
+      ],
     );
   }
 }
 
-class _ConnectionRow extends StatelessWidget {
-  const _ConnectionRow({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-  });
+class _WatchHealthRow extends StatelessWidget {
+  const _WatchHealthRow({required this.row});
 
-  final IconData icon;
-  final String title;
-  final String subtitle;
+  final _WatchHealthRowData row;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+    return RuniacTappableSurface(
+      semanticLabel: row.title,
+      borderRadius: BorderRadius.circular(12),
+      padding: const EdgeInsets.symmetric(vertical: 13),
+      onTap: () {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            const SnackBar(content: Text('Health connections come next.')),
+          );
+      },
       child: Row(
         children: [
-          _IconTile(icon: icon),
+          _IconTile(icon: row.icon),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  title,
-                  maxLines: 1,
+                  row.title,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: RuniacColors.textPrimary,
@@ -185,7 +156,7 @@ class _ConnectionRow extends StatelessWidget {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  subtitle,
+                  row.description,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
@@ -198,199 +169,13 @@ class _ConnectionRow extends StatelessWidget {
               ],
             ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CandidateSection extends StatelessWidget {
-  const _CandidateSection({required this.candidatesFuture});
-
-  final Future<List<ImportedWorkoutCandidate>> candidatesFuture;
-
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<List<ImportedWorkoutCandidate>>(
-      future: candidatesFuture,
-      builder: (context, snapshot) {
-        final candidates = snapshot.data;
-        if (candidates == null) {
-          return const _LoadingCard();
-        }
-
-        return Column(
-          children: [
-            for (var index = 0; index < candidates.length; index++) ...[
-              _CandidateCard(candidate: candidates[index]),
-              if (index != candidates.length - 1) const SizedBox(height: 8),
-            ],
-          ],
-        );
-      },
-    );
-  }
-}
-
-class _LoadingCard extends StatelessWidget {
-  const _LoadingCard();
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: RuniacColors.innerTileSurface,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: RuniacColors.border),
-      ),
-      child: const Padding(
-        padding: EdgeInsets.all(14),
-        child: Text(
-          'Finding recent watch runs...',
-          style: TextStyle(
+          const SizedBox(width: 10),
+          const Icon(
+            Icons.chevron_right_rounded,
             color: RuniacColors.textSecondary,
-            fontSize: 13.5,
-            fontWeight: FontWeight.w700,
-            height: 1.25,
+            size: 22,
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _CandidateCard extends StatelessWidget {
-  const _CandidateCard({required this.candidate});
-
-  final ImportedWorkoutCandidate candidate;
-
-  @override
-  Widget build(BuildContext context) {
-    final helperText = candidate.heartRateHelperText == null
-        ? null
-        : 'Heart rate was not shared';
-
-    return RuniacTappableSurface(
-      semanticLabel: '${candidate.sourceLabel} watch run preview',
-      borderRadius: BorderRadius.circular(18),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: RuniacColors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: RuniacColors.border),
-      ),
-      onTap: () {
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(
-            const SnackBar(content: Text('Adding watch runs comes next.')),
-          );
-      },
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _IconTile(icon: _sourceIcon(candidate)),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      candidate.sourceLabel,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: RuniacColors.textPrimary,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w900,
-                        height: 1.2,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      _friendlyStartedAt(candidate.startedAt),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: RuniacColors.textSecondary,
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w700,
-                        height: 1.25,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 10),
-              const Icon(
-                Icons.chevron_right_rounded,
-                color: RuniacColors.textSecondary,
-                size: 22,
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _MetricPill(label: 'Distance', value: _distance(candidate)),
-              _MetricPill(label: 'Duration', value: _duration(candidate)),
-              _MetricPill(label: 'Avg pace', value: _pace(candidate)),
-              _MetricPill(
-                label: 'Avg HR',
-                value: candidate.avgHeartRateDisplay,
-              ),
-            ],
-          ),
-          if (helperText != null) ...[
-            const SizedBox(height: 10),
-            Text(
-              helperText,
-              style: const TextStyle(
-                color: RuniacColors.textSecondary,
-                fontSize: 12.5,
-                fontWeight: FontWeight.w700,
-                height: 1.25,
-              ),
-            ),
-          ],
         ],
-      ),
-    );
-  }
-}
-
-class _MetricPill extends StatelessWidget {
-  const _MetricPill({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    final displayText = '$label $value';
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: RuniacColors.innerTileSurface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: RuniacColors.cardBorder),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-        child: Text(
-          displayText,
-          style: const TextStyle(
-            color: RuniacColors.textPrimary,
-            fontSize: 12.5,
-            fontWeight: FontWeight.w800,
-            height: 1.15,
-          ),
-        ),
       ),
     );
   }
@@ -435,46 +220,14 @@ class _SectionLabel extends StatelessWidget {
   }
 }
 
-IconData _sourceIcon(ImportedWorkoutCandidate candidate) {
-  return switch (candidate.sourceLabel) {
-    'Apple Health' => Icons.favorite_border_rounded,
-    'Health Connect' => Icons.health_and_safety_outlined,
-    _ => Icons.watch_outlined,
-  };
-}
+class _WatchHealthRowData {
+  const _WatchHealthRowData({
+    required this.icon,
+    required this.title,
+    required this.description,
+  });
 
-String _distance(ImportedWorkoutCandidate candidate) {
-  return '${(candidate.distanceMeters / 1000).toStringAsFixed(2)} km';
-}
-
-String _duration(ImportedWorkoutCandidate candidate) {
-  final minutes = (candidate.durationSeconds / 60).round();
-  return '$minutes min';
-}
-
-String _pace(ImportedWorkoutCandidate candidate) {
-  final minutes = candidate.avgPaceSecondsPerKm ~/ 60;
-  final seconds = candidate.avgPaceSecondsPerKm % 60;
-  return '$minutes:${seconds.toString().padLeft(2, '0')} /km';
-}
-
-String _friendlyStartedAt(DateTime startedAt) {
-  const monthLabels = <int, String>{
-    1: 'Jan',
-    2: 'Feb',
-    3: 'Mar',
-    4: 'Apr',
-    5: 'May',
-    6: 'Jun',
-    7: 'Jul',
-    8: 'Aug',
-    9: 'Sep',
-    10: 'Oct',
-    11: 'Nov',
-    12: 'Dec',
-  };
-  final hour = startedAt.hour % 12 == 0 ? 12 : startedAt.hour % 12;
-  final minute = startedAt.minute.toString().padLeft(2, '0');
-  final suffix = startedAt.hour >= 12 ? 'PM' : 'AM';
-  return '${startedAt.day} ${monthLabels[startedAt.month]} · $hour:$minute $suffix';
+  final IconData icon;
+  final String title;
+  final String description;
 }
