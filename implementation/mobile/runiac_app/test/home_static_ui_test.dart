@@ -3,9 +3,13 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runiac_app/app.dart';
 import 'package:runiac_app/core/assets/runiac_assets.dart';
+import 'package:runiac_app/features/account/presentation/watch_health_apps_screen.dart';
 import 'package:runiac_app/features/home/presentation/data/home_dashboard_demo_snapshots.dart';
 import 'package:runiac_app/features/home/presentation/widgets/home_progress_insight_section.dart';
 import 'package:runiac_app/features/home/presentation/widgets/today_plan_card.dart';
+import 'package:runiac_app/features/run/domain/models/imported_workout_candidate.dart';
+import 'package:runiac_app/features/run/domain/models/run_source_display.dart';
+import 'package:runiac_app/features/run/domain/repositories/health_workout_import_repository.dart';
 
 const _todayPlanHeroAssetPath = RuniacAssets.homeTodayPlanRunner;
 
@@ -27,6 +31,66 @@ Finder _nearestDecoratedBoxContaining(String text) {
   return find
       .ancestor(of: find.text(text), matching: find.byType(DecoratedBox))
       .last;
+}
+
+Future<void> _pumpWatchHealthAppsScreen(
+  WidgetTester tester, {
+  required HealthWorkoutImportRepository appleHealthRepository,
+}) async {
+  await tester.pumpWidget(
+    MaterialApp(
+      home: WatchHealthAppsScreen(appleHealthRepository: appleHealthRepository),
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
+ImportedWorkoutCandidate _appleHealthCandidate(String externalId) {
+  return ImportedWorkoutCandidate(
+    externalId: externalId,
+    sourceType: RunSourceType.appleHealth,
+    activityType: ImportedWorkoutActivityType.running,
+    startedAt: DateTime.utc(2026, 6, 18, 6),
+    endedAt: DateTime.utc(2026, 6, 18, 6, 30),
+    durationSeconds: 1800,
+    distanceMeters: 4200,
+    avgPaceSecondsPerKm: 429,
+    calories: 260,
+    heartRateAvailability: HeartRateAvailability.unavailableNotShared,
+    importedAt: DateTime.utc(2026, 6, 18, 7),
+  );
+}
+
+class _FakeHealthWorkoutImportRepository
+    implements HealthWorkoutImportRepository {
+  _FakeHealthWorkoutImportRepository({
+    this.candidates = const <ImportedWorkoutCandidate>[],
+    this.error,
+  });
+
+  final List<ImportedWorkoutCandidate> candidates;
+  final Object? error;
+  int listCalls = 0;
+
+  @override
+  Future<List<ImportedWorkoutCandidate>> listRecentRunningWorkouts() async {
+    listCalls += 1;
+    if (error != null) {
+      throw error!;
+    }
+    return List<ImportedWorkoutCandidate>.unmodifiable(candidates);
+  }
+
+  @override
+  Future<ImportedWorkoutCandidate?> findByExternalId(String externalId) async {
+    final candidates = await listRecentRunningWorkouts();
+    for (final candidate in candidates) {
+      if (candidate.externalId == externalId) {
+        return candidate;
+      }
+    }
+    return null;
+  }
 }
 
 const _longXpHomeSnapshot = HomeDashboardDemoSnapshot(
@@ -355,7 +419,6 @@ void main() {
       'Connect a new device to Runiac',
       'Apple Watch',
       'Garmin',
-      'Apple Health',
       'Health Connect',
       'Garmin via Health',
     ]) {
@@ -378,6 +441,70 @@ void main() {
     expect(find.text('Account'), findsOneWidget);
     expect(find.text('Runiac Runner'), findsOneWidget);
     expect(find.text('Lv. 12'), findsOneWidget);
+  });
+
+  testWidgets('Apple Health row checks repository and reports found runs', (
+    WidgetTester tester,
+  ) async {
+    final repository = _FakeHealthWorkoutImportRepository(
+      candidates: [
+        _appleHealthCandidate('apple-health-1'),
+        _appleHealthCandidate('apple-health-2'),
+      ],
+    );
+    await _pumpWatchHealthAppsScreen(tester, appleHealthRepository: repository);
+
+    await tester.tap(find.text('Apple Health'));
+    await tester.pumpAndSettle();
+
+    expect(repository.listCalls, 1);
+    expect(find.text('Found 2 Apple Health runs.'), findsOneWidget);
+  });
+
+  testWidgets('Apple Health row reports empty runtime result safely', (
+    WidgetTester tester,
+  ) async {
+    final repository = _FakeHealthWorkoutImportRepository();
+    await _pumpWatchHealthAppsScreen(tester, appleHealthRepository: repository);
+
+    await tester.tap(find.text('Apple Health'));
+    await tester.pumpAndSettle();
+
+    expect(repository.listCalls, 1);
+    expect(find.text('No Apple Health runs found yet.'), findsOneWidget);
+  });
+
+  testWidgets('Apple Health row reports unavailable runtime errors safely', (
+    WidgetTester tester,
+  ) async {
+    final repository = _FakeHealthWorkoutImportRepository(
+      error: StateError('HealthKit unavailable'),
+    );
+    await _pumpWatchHealthAppsScreen(tester, appleHealthRepository: repository);
+
+    await tester.tap(find.text('Apple Health'));
+    await tester.pumpAndSettle();
+
+    expect(repository.listCalls, 1);
+    expect(
+      find.text('Apple Health is not available right now.'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('Non Apple Health rows remain preview-only', (
+    WidgetTester tester,
+  ) async {
+    final repository = _FakeHealthWorkoutImportRepository(
+      candidates: [_appleHealthCandidate('apple-health-1')],
+    );
+    await _pumpWatchHealthAppsScreen(tester, appleHealthRepository: repository);
+
+    await tester.tap(find.text('Health Connect'));
+    await tester.pumpAndSettle();
+
+    expect(repository.listCalls, 0);
+    expect(find.text('Health connections come next.'), findsOneWidget);
   });
 
   testWidgets('Watch and Health Apps rows align to one list rhythm', (
