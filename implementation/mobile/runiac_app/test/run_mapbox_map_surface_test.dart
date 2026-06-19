@@ -7,6 +7,7 @@ import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
 import 'package:runiac_app/features/run/domain/models/run_location_sample.dart';
 import 'package:runiac_app/features/run/domain/models/run_map_view_state.dart';
+import 'package:runiac_app/features/run/presentation/widgets/completed_route_map_surface.dart';
 import 'package:runiac_app/features/run/presentation/widgets/display_route_smoother.dart';
 import 'package:runiac_app/features/run/presentation/widgets/run_map_placeholder.dart';
 import 'package:runiac_app/features/run/presentation/widgets/run_mapbox_follow_qa_overlay.dart';
@@ -1319,6 +1320,36 @@ void main() {
 
       expect(markerAlign.alignment, isNot(Alignment.center));
       expect(tester.takeException(), isNull);
+    });
+  });
+
+  group('CompletedRouteMapSurface ornaments', () {
+    test('preview keeps Mapbox controls near the top of the clipped map', () {
+      final scaleBar = completedRouteScaleBarSettings(isExpanded: false);
+      final logo = completedRouteLogoSettings(isExpanded: false);
+      final attribution = completedRouteAttributionSettings(isExpanded: false);
+
+      expect(scaleBar.enabled, isTrue);
+      expect(scaleBar.position, OrnamentPosition.TOP_LEFT);
+      expect(scaleBar.marginTop, 10);
+      expect(logo.enabled, isTrue);
+      expect(logo.position, OrnamentPosition.TOP_LEFT);
+      expect(logo.marginTop, 32);
+      expect(attribution.enabled, isTrue);
+      expect(attribution.clickable, isTrue);
+      expect(attribution.position, OrnamentPosition.TOP_RIGHT);
+      expect(attribution.marginTop, 10);
+    });
+
+    test('fullscreen keeps roomier Mapbox control spacing', () {
+      final scaleBar = completedRouteScaleBarSettings(isExpanded: true);
+      final logo = completedRouteLogoSettings(isExpanded: true);
+      final attribution = completedRouteAttributionSettings(isExpanded: true);
+
+      expect(scaleBar.marginTop, 80);
+      expect(logo.marginTop, 104);
+      expect(attribution.marginTop, 80);
+      expect(attribution.marginRight, 24);
     });
   });
 

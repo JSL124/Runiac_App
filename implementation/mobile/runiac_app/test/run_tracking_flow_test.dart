@@ -2195,7 +2195,7 @@ void main() {
 
       expect(find.text('Active Repository Run'), findsOneWidget);
       expect(find.text('Today · 8:10 AM'), findsOneWidget);
-      expect(find.text('Active Repository Route'), findsOneWidget);
+      expect(find.text('Active Repository Route'), findsNothing);
       expect(find.text('0.08'), findsOneWidget);
       expect(find.text('00:30'), findsOneWidget);
       expect(find.text('6’15”'), findsOneWidget);
