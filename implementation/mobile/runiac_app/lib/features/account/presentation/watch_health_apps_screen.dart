@@ -7,6 +7,8 @@ import '../../../core/widgets/runiac_buttons.dart';
 class WatchHealthAppsScreen extends StatelessWidget {
   const WatchHealthAppsScreen({super.key});
 
+  static const _rowHeight = 96.0;
+
   static const _manageDeviceRows = <_WatchHealthRowData>[
     _WatchHealthRowData(
       icon: Icons.add_circle_outline_rounded,
@@ -105,12 +107,7 @@ class _WatchHealthSection extends StatelessWidget {
         for (var index = 0; index < rows.length; index++) ...[
           _WatchHealthRow(row: rows[index]),
           if (index != rows.length - 1)
-            const Divider(
-              height: 1,
-              thickness: 1,
-              indent: 46,
-              color: RuniacColors.border,
-            ),
+            const Divider(height: 1, thickness: 1, color: RuniacColors.border),
         ],
       ],
     );
@@ -127,7 +124,8 @@ class _WatchHealthRow extends StatelessWidget {
     return RuniacTappableSurface(
       semanticLabel: row.title,
       borderRadius: BorderRadius.circular(12),
-      padding: const EdgeInsets.symmetric(vertical: 13),
+      height: WatchHealthAppsScreen._rowHeight,
+      alignment: Alignment.center,
       onTap: () {
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()

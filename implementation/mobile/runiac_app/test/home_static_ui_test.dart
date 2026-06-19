@@ -380,6 +380,73 @@ void main() {
     expect(find.text('Lv. 12'), findsOneWidget);
   });
 
+  testWidgets('Watch and Health Apps rows align to one list rhythm', (
+    WidgetTester tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      const RuniacApp(showSplash: false, enableForegroundGps: false),
+    );
+
+    await tester.tap(find.bySemanticsLabel('Profile'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Watch & Health Apps'),
+      180,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Watch & Health Apps'));
+    await tester.pumpAndSettle();
+
+    final rowTitles = <String>[
+      'Connect a new device to Runiac',
+      'Apple Watch',
+      'Garmin',
+      'Apple Health',
+      'Health Connect',
+      'Garmin via Health',
+    ];
+
+    for (final rowTitle in rowTitles) {
+      await tester.scrollUntilVisible(
+        find.text(rowTitle),
+        120,
+        scrollable: find.byType(Scrollable).last,
+      );
+      await tester.pumpAndSettle();
+    }
+
+    final rowHeights = rowTitles.map((rowTitle) {
+      final rowSurface = find.byWidgetPredicate((widget) {
+        return widget is Semantics && widget.properties.label == rowTitle;
+      });
+      return tester.getSize(rowSurface).height;
+    }).toSet();
+
+    expect(rowHeights, hasLength(1));
+
+    const pageGutter = 16.0;
+    final pageRight =
+        tester.view.physicalSize.width / tester.view.devicePixelRatio -
+        pageGutter;
+    final dividerFinder = find.byType(Divider);
+    final dividerRects = List<Rect>.generate(
+      dividerFinder.evaluate().length,
+      (index) => tester.getRect(dividerFinder.at(index)),
+    );
+
+    expect(dividerRects, hasLength(4));
+    for (final dividerRect in dividerRects) {
+      expect(dividerRect.left, pageGutter);
+      expect(dividerRect.right, pageRight);
+    }
+  });
+
   testWidgets('Account profile preview fits a narrow mobile surface', (
     WidgetTester tester,
   ) async {
