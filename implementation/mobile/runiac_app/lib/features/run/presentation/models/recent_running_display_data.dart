@@ -1,4 +1,5 @@
 import '../../domain/models/run_activity_display_model.dart';
+import '../../domain/models/run_source_display.dart';
 import '../../domain/models/run_summary_snapshot.dart';
 import '../data/pace_graph_demo_snapshots.dart';
 
@@ -19,6 +20,8 @@ final recentRunningDisplayData = [
       avgHeartRate: '145',
       calories: '145',
       routeName: 'East Coast Park Night Loop',
+      sourceType: RunSourceType.appleHealth,
+      heartRateAvailability: HeartRateAvailability.available,
       paceGraph: saturdayNightRecentPaceGraph,
     ),
   ),
@@ -38,6 +41,8 @@ final recentRunningDisplayData = [
       avgHeartRate: '138',
       calories: '212',
       routeName: 'Neighbourhood Easy Loop',
+      sourceType: RunSourceType.garminViaHealth,
+      heartRateAvailability: HeartRateAvailability.available,
       paceGraph: morningEasyRecentPaceGraph,
     ),
   ),
@@ -57,6 +62,8 @@ final recentRunningDisplayData = [
       avgHeartRate: '132',
       calories: '286',
       routeName: 'Park Connector Recovery Loop',
+      sourceType: RunSourceType.demoImport,
+      heartRateAvailability: HeartRateAvailability.available,
       paceGraph: recoveryJogPaceGraph,
     ),
   ),

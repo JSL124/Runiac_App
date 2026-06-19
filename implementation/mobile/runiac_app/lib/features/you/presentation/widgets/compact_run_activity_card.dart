@@ -139,7 +139,15 @@ class _ActivityCardContent extends StatelessWidget {
           style: _cardTitleStyle,
         ),
         const SizedBox(height: 4),
-        Text(activity.timeAgoLabel, style: _cardDateStyle),
+        Wrap(
+          spacing: 8,
+          runSpacing: 2,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            Text(activity.timeAgoLabel, style: _cardDateStyle),
+            Text(activity.sourceLabel, style: _cardSourceStyle),
+          ],
+        ),
         const SizedBox(height: 8),
         Row(
           children: [
@@ -234,6 +242,11 @@ const _cardDateStyle = TextStyle(
   color: Color(0xFF7D93E1),
   fontSize: 13,
   fontWeight: FontWeight.w700,
+);
+const _cardSourceStyle = TextStyle(
+  color: RuniacColors.primaryBlue,
+  fontSize: 12,
+  fontWeight: FontWeight.w800,
 );
 const _metricValueStyle = TextStyle(
   color: RuniacColors.textPrimary,

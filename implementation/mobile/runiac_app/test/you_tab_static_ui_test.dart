@@ -352,7 +352,7 @@ void main() {
 
       expect(find.text(run.title), findsOneWidget);
       expect(find.text(run.dateTime), findsOneWidget);
-      expect(find.text(run.route), findsOneWidget);
+      expect(find.text(run.route), findsNothing);
       expect(find.text(run.distance), findsOneWidget);
       expect(find.text(run.pace), findsOneWidget);
       expect(find.text(run.duration), findsWidgets);
@@ -462,6 +462,23 @@ void main() {
 
     expect(find.byType(CompactRunActivityCard), findsNWidgets(8));
     expect(find.byType(VerticalDivider), findsNWidgets(16));
+  });
+
+  testWidgets('Activity History shows source labels', (
+    WidgetTester tester,
+  ) async {
+    await _openActivityHistoryFromYou(tester);
+
+    expect(find.text('Saturday Night Run'), findsOneWidget);
+    expect(find.text('Apple Health'), findsOneWidget);
+    expect(find.text('Easy Morning Jog'), findsOneWidget);
+    expect(find.text('Garmin via Health'), findsOneWidget);
+
+    await tester.ensureVisible(find.text('Riverside Recovery'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Riverside Recovery'), findsOneWidget);
+    expect(find.text('Health Connect'), findsOneWidget);
   });
 
   testWidgets(

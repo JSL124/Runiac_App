@@ -12,6 +12,7 @@ import 'package:runiac_app/features/run/domain/models/progression_display_model.
 import 'package:runiac_app/features/run/domain/models/run_activity_read_model.dart';
 import 'package:runiac_app/features/run/domain/models/run_location_sample.dart';
 import 'package:runiac_app/features/run/domain/models/run_route_snapshot.dart';
+import 'package:runiac_app/features/run/domain/models/run_source_display.dart';
 import 'package:runiac_app/features/run/presentation/advanced_analysis_screen.dart';
 import 'package:runiac_app/features/run/presentation/cool_down_guide_screen.dart';
 import 'package:runiac_app/features/run/presentation/cool_down_screen.dart';
@@ -25,6 +26,7 @@ import 'package:runiac_app/features/run/presentation/data/pace_graph_demo_snapsh
 import 'package:runiac_app/features/run/presentation/data/run_completion_demo_snapshots.dart';
 import 'package:runiac_app/features/run/presentation/run_launch_screen.dart';
 import 'package:runiac_app/features/run/presentation/view_summary_screen.dart';
+import 'package:runiac_app/features/run/presentation/widgets/completed_route_map_surface.dart';
 import 'package:runiac_app/features/run/presentation/widgets/share_achievement_sheet.dart';
 import 'package:runiac_app/features/run/presentation/xp_update_screen.dart';
 
@@ -430,7 +432,7 @@ void main() {
     await tester.tap(find.widgetWithText(OutlinedButton, 'Skip to Summary'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Easy local route'), findsWidgets);
+    expect(find.text('Easy local route'), findsNothing);
     expect(find.text('0.00'), findsOneWidget);
     expect(find.text('km'), findsOneWidget);
     expect(find.text('--'), findsNWidgets(3));
@@ -490,7 +492,7 @@ void main() {
 
       expect(find.text('Repository Result Run'), findsOneWidget);
       expect(find.text('Today · 8:10 AM'), findsOneWidget);
-      expect(find.text('Repository Route'), findsOneWidget);
+      expect(find.text('Repository Route'), findsNothing);
       expect(find.text('5.40'), findsOneWidget);
       expect(find.text('36:00'), findsOneWidget);
       expect(find.text('138 bpm'), findsOneWidget);
@@ -546,7 +548,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text(generatedTitle), findsOneWidget);
-    expect(find.text('Repository Route'), findsOneWidget);
+    expect(find.text('Repository Route'), findsNothing);
     expect(find.text('Saturday Morning Run'), findsNothing);
     expect(tester.takeException(), isNull);
   });
@@ -569,7 +571,7 @@ void main() {
       await tester.tap(find.widgetWithText(OutlinedButton, 'Skip to Summary'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Easy local route'), findsWidgets);
+      expect(find.text('Easy local route'), findsNothing);
       expect(find.text('0.00'), findsOneWidget);
       expect(find.text('0:00'), findsWidgets);
       expect(find.text('--'), findsNWidgets(3));
@@ -670,7 +672,7 @@ void main() {
     expect(find.text('Today · 7:06 AM'), findsOneWidget);
     expect(find.byTooltip('Back to cool down'), findsOneWidget);
     expect(find.byTooltip('Share summary'), findsOneWidget);
-    expect(find.text('East Coast Park Loop'), findsOneWidget);
+    expect(find.text('East Coast Park Loop'), findsNothing);
     expect(find.text('Run complete'), findsNothing);
     expect(find.text('4.03'), findsOneWidget);
     expect(find.text('km'), findsOneWidget);
@@ -790,7 +792,7 @@ void main() {
 
     expect(find.text('Recovery Jog'), findsOneWidget);
     expect(find.text('4/11/26 · 8:10 PM'), findsOneWidget);
-    expect(find.text('Park Connector Recovery Loop'), findsOneWidget);
+    expect(find.text('Park Connector Recovery Loop'), findsNothing);
     expect(find.text('5.17'), findsOneWidget);
     expect(find.text('7’40”'), findsOneWidget);
     expect(find.text('39:38'), findsOneWidget);
@@ -855,6 +857,128 @@ void main() {
         find.byKey(const Key('summary_route_preview_placeholder')),
         findsNothing,
       );
+      expect(find.text('Actual Local Route'), findsNothing);
+    },
+  );
+
+  testWidgets('View summary map preview removes route label pill overlay', (
+    WidgetTester tester,
+  ) async {
+    _useTallSummarySurface(tester);
+    final startedAt = DateTime.utc(2026, 6, 14, 7);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ViewSummaryScreen(
+          summary: RunSummarySnapshot(
+            title: 'Completed Route Run',
+            dateLabel: 'Today',
+            timeLabel: '8:10 AM',
+            distanceKm: '0.30',
+            avgPace: '6’40”',
+            duration: '2:00',
+            avgHeartRate: '--',
+            calories: '27',
+            routeName: 'Easy local route',
+            route: RunRouteSnapshot(
+              segments: [
+                [
+                  RunLocationSample(
+                    recordedAt: startedAt,
+                    latitude: 1.300000,
+                    longitude: 103.800000,
+                  ),
+                  RunLocationSample(
+                    recordedAt: startedAt.add(const Duration(seconds: 60)),
+                    latitude: 1.300899,
+                    longitude: 103.800000,
+                  ),
+                ],
+              ],
+              lastKnownLocation: RunLocationSample(
+                recordedAt: startedAt.add(const Duration(seconds: 60)),
+                latitude: 1.300899,
+                longitude: 103.800000,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Easy local route'), findsNothing);
+  });
+
+  testWidgets(
+    'View summary uses Mapbox completed route preview when token is available',
+    (WidgetTester tester) async {
+      _useTallSummarySurface(tester);
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      CompletedRouteMapboxSurfaceConfig? capturedConfig;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ViewSummaryScreen(
+            mapboxAccessToken: 'pk.summary-test-token',
+            mapboxBuilder: (context, config) {
+              capturedConfig = config;
+              return const ColoredBox(
+                key: Key('fake_summary_mapbox_preview'),
+                color: Colors.black,
+              );
+            },
+            summary: RunSummarySnapshot(
+              title: 'Mapbox Route Run',
+              dateLabel: 'Today',
+              timeLabel: '8:10 AM',
+              distanceKm: '0.30',
+              avgPace: '6’40”',
+              duration: '2:00',
+              avgHeartRate: '--',
+              calories: '27',
+              routeName: 'Actual Local Route',
+              route: RunRouteSnapshot(
+                segments: [
+                  [
+                    RunLocationSample(
+                      recordedAt: startedAt,
+                      latitude: 1.300000,
+                      longitude: 103.800000,
+                    ),
+                    RunLocationSample(
+                      recordedAt: startedAt.add(const Duration(seconds: 60)),
+                      latitude: 1.300899,
+                      longitude: 103.800000,
+                    ),
+                  ],
+                ],
+                lastKnownLocation: RunLocationSample(
+                  recordedAt: startedAt.add(const Duration(seconds: 60)),
+                  latitude: 1.300899,
+                  longitude: 103.800000,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(
+        find.byKey(const Key('summary_route_mapbox_preview_selected')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('fake_summary_mapbox_preview')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('summary_route_preview_route')),
+        findsNothing,
+      );
+      expect(capturedConfig, isNotNull);
+      expect(capturedConfig!.isExpanded, isFalse);
+      expect(capturedConfig!.route.hasRoute, isTrue);
+      expect(capturedConfig!.accessToken, 'pk.summary-test-token');
     },
   );
 
@@ -939,6 +1063,87 @@ void main() {
     },
   );
 
+  testWidgets('Tapping route preview opens and closes expanded map', (
+    WidgetTester tester,
+  ) async {
+    _useTallSummarySurface(tester);
+    final startedAt = DateTime.utc(2026, 6, 14, 7);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ViewSummaryScreen(
+          mapboxAccessToken: 'pk.summary-test-token',
+          mapboxBuilder: (context, config) {
+            return ColoredBox(
+              key: Key(
+                config.isExpanded
+                    ? 'fake_summary_mapbox_expanded'
+                    : 'fake_summary_mapbox_preview',
+              ),
+              color: Colors.black,
+            );
+          },
+          summary: RunSummarySnapshot(
+            title: 'Expanded Route Run',
+            dateLabel: 'Today',
+            timeLabel: '8:10 AM',
+            distanceKm: '0.30',
+            avgPace: '6’40”',
+            duration: '2:00',
+            avgHeartRate: '--',
+            calories: '27',
+            routeName: 'Actual Local Route',
+            route: RunRouteSnapshot(
+              segments: [
+                [
+                  RunLocationSample(
+                    recordedAt: startedAt,
+                    latitude: 1.300000,
+                    longitude: 103.800000,
+                  ),
+                  RunLocationSample(
+                    recordedAt: startedAt.add(const Duration(seconds: 60)),
+                    latitude: 1.300899,
+                    longitude: 103.800000,
+                  ),
+                ],
+              ],
+              lastKnownLocation: RunLocationSample(
+                recordedAt: startedAt.add(const Duration(seconds: 60)),
+                latitude: 1.300899,
+                longitude: 103.800000,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const Key('summary_route_preview_tap_target')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('summary_route_expanded_screen')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('fake_summary_mapbox_expanded')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const Key('summary_route_expanded_close')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('summary_route_expanded_screen')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const Key('fake_summary_mapbox_preview')),
+      findsOneWidget,
+    );
+  });
+
   testWidgets(
     'View summary shows unavailable completion metrics without fake units',
     (WidgetTester tester) async {
@@ -989,7 +1194,7 @@ void main() {
       );
 
       expect(find.text('Tracked Completion Run'), findsOneWidget);
-      expect(find.text('Tracked Private Route'), findsOneWidget);
+      expect(find.text('Tracked Private Route'), findsNothing);
       expect(find.text('3.20'), findsOneWidget);
       expect(find.text('7’49”'), findsOneWidget);
       expect(find.text('25:00'), findsOneWidget);
@@ -1001,6 +1206,96 @@ void main() {
       expect(find.text('145 kcal'), findsNothing);
     },
   );
+
+  testWidgets('Summary shows truthful heart rate source states', (
+    WidgetTester tester,
+  ) async {
+    _useTallSummarySurface(tester);
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: ViewSummaryScreen(
+          summary: RunSummarySnapshot(
+            title: 'Local GPS Run',
+            dateLabel: 'Today',
+            timeLabel: '8:10 AM',
+            distanceKm: '3.20',
+            avgPace: '7’49”',
+            duration: '25:00',
+            avgHeartRate: '--',
+            calories: '270',
+            routeName: 'Private route',
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Runiac GPS'), findsOneWidget);
+    expect(find.text('Avg Heart Rate'), findsOneWidget);
+    expect(find.text('-- bpm'), findsNothing);
+    expect(
+      find.text('Heart rate unavailable for Runiac GPS runs.'),
+      findsOneWidget,
+    );
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: ViewSummaryScreen(
+          summary: RunSummarySnapshot(
+            title: 'Imported Watch Run',
+            dateLabel: 'Today',
+            timeLabel: '8:10 AM',
+            distanceKm: '5.12',
+            avgPace: '6’45”',
+            duration: '34:32',
+            avgHeartRate: '145',
+            calories: '312',
+            routeName: 'Imported route',
+            sourceType: RunSourceType.appleHealth,
+            heartRateAvailability: HeartRateAvailability.available,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Apple Health'), findsOneWidget);
+    expect(find.text('145 bpm'), findsOneWidget);
+    expect(
+      find.text('Heart rate unavailable for Runiac GPS runs.'),
+      findsNothing,
+    );
+    expect(
+      find.text('Heart rate was not shared by this source.'),
+      findsNothing,
+    );
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: ViewSummaryScreen(
+          summary: RunSummarySnapshot(
+            title: 'Imported No HR Run',
+            dateLabel: 'Today',
+            timeLabel: '8:10 AM',
+            distanceKm: '4.03',
+            avgPace: '6’30”',
+            duration: '30:15',
+            avgHeartRate: '--',
+            calories: '242',
+            routeName: 'Imported route',
+            sourceType: RunSourceType.healthConnect,
+            heartRateAvailability: HeartRateAvailability.unavailableNotShared,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Health Connect'), findsOneWidget);
+    expect(find.text('-- bpm'), findsNothing);
+    expect(
+      find.text('Heart rate was not shared by this source.'),
+      findsOneWidget,
+    );
+  });
 
   testWidgets('Low-data view summary softens copy and hides bottom actions', (
     WidgetTester tester,
@@ -1323,7 +1618,7 @@ void main() {
       expect(find.text('Run complete'), findsNothing);
       expect(find.text('4.03'), findsOneWidget);
       expect(find.text('Pace Over Time'), findsOneWidget);
-      expect(find.text('East Coast Park Loop'), findsOneWidget);
+      expect(find.text('East Coast Park Loop'), findsNothing);
       expect(tester.takeException(), isNull);
     },
   );

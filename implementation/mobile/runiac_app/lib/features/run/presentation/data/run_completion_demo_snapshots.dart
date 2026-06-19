@@ -1,4 +1,5 @@
 import '../../domain/models/run_summary_snapshot.dart';
+import '../../domain/models/run_source_display.dart';
 import '../../domain/models/xp_update_display_model.dart';
 import 'pace_graph_demo_snapshots.dart';
 
@@ -13,6 +14,8 @@ const defaultRunSummarySnapshot = RunSummarySnapshot(
   avgHeartRate: '145',
   calories: '145',
   routeName: 'East Coast Park Loop',
+  sourceType: RunSourceType.demoImport,
+  heartRateAvailability: HeartRateAvailability.available,
   paceGraph: normalEasyRunPaceGraph,
 );
 

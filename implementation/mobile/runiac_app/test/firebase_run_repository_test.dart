@@ -61,6 +61,25 @@ void main() {
     });
 
     test(
+      'callable summary defaults to Runiac GPS without heart rate',
+      () async {
+        final callable = _FakeCompleteRunCallable(
+          response: _minimalCallableResponse(),
+        );
+        final repository = FirebaseRunRepository(callable: callable);
+
+        final result = await repository.completeRun(_payload());
+
+        expect(result.summary.sourceLabel, 'Runiac GPS');
+        expect(result.summary.avgHeartRate, '--');
+        expect(
+          result.summary.heartRateHelperText,
+          'Heart rate unavailable for Runiac GPS runs.',
+        );
+      },
+    );
+
+    test(
       'maps zero pace callable response to unavailable pace label',
       () async {
         final response = _minimalCallableResponse();

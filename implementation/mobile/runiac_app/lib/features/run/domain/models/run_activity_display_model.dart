@@ -17,4 +17,6 @@ class RunActivityDisplayModel {
   final String paceLabel;
   final String durationLabel;
   final RunSummarySnapshot summary;
+
+  String get sourceLabel => summary.sourceLabel;
 }

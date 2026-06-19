@@ -257,6 +257,31 @@ void main() {
       expect(activity.routeLabel, 'East Coast Park Loop');
     });
 
+    test('completed local run stays Runiac GPS without heart rate', () async {
+      final repository = StaticRunRepository();
+      final payload = LocalRunCompletionPayload(
+        clientRunSessionId: 'local-source-hr-session',
+        startedAt: DateTime.utc(2026, 6, 14, 7),
+        completedAt: DateTime.utc(2026, 6, 14, 7, 25),
+        durationSeconds: 1500,
+        distanceMeters: 3200,
+        avgPaceSecondsPerKm: 469,
+        source: 'local_simulation',
+        routePrivacy: 'private',
+        routeLabel: 'Repository Result Route',
+        clientAppVersion: 'hwi-v1-a-test',
+      );
+
+      final completedRun = await repository.completeRun(payload);
+
+      expect(completedRun.summary.sourceLabel, 'Runiac GPS');
+      expect(completedRun.summary.avgHeartRate, '--');
+      expect(
+        completedRun.summary.heartRateHelperText,
+        'Heart rate unavailable for Runiac GPS runs.',
+      );
+    });
+
     test(
       'completeRun returns zero summary values for zero run payloads',
       () async {

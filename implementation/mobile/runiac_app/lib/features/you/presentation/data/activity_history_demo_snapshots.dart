@@ -1,4 +1,5 @@
 import '../../../run/domain/models/run_activity_display_model.dart';
+import '../../../run/domain/models/run_source_display.dart';
 import '../../../run/domain/models/run_summary_snapshot.dart';
 import '../../../run/presentation/data/pace_graph_demo_snapshots.dart';
 
@@ -23,6 +24,8 @@ final activityHistoryDisplayData = [
           avgHeartRate: '145',
           calories: '312',
           routeName: 'East Coast Park Night Loop',
+          sourceType: RunSourceType.appleHealth,
+          heartRateAvailability: HeartRateAvailability.available,
           paceGraph: saturdayNightHistoryPaceGraph,
         ),
       ),
@@ -42,6 +45,8 @@ final activityHistoryDisplayData = [
           avgHeartRate: '138',
           calories: '242',
           routeName: 'Neighbourhood Easy Loop',
+          sourceType: RunSourceType.garminViaHealth,
+          heartRateAvailability: HeartRateAvailability.available,
           paceGraph: easyMorningHistoryPaceGraph,
         ),
       ),
@@ -62,6 +67,8 @@ final activityHistoryDisplayData = [
           calories: '--',
           routeName: 'Riverside Start Check',
           hasSufficientData: false,
+          sourceType: RunSourceType.healthConnect,
+          heartRateAvailability: HeartRateAvailability.unavailableNotShared,
           paceGraph: unavailablePaceGraph,
         ),
       ),
@@ -86,6 +93,8 @@ final activityHistoryDisplayData = [
           avgHeartRate: '140',
           calories: '270',
           routeName: 'Sunset Park Loop',
+          sourceType: RunSourceType.demoImport,
+          heartRateAvailability: HeartRateAvailability.available,
         ),
       ),
       RunActivityDisplayModel(
@@ -104,6 +113,8 @@ final activityHistoryDisplayData = [
           avgHeartRate: '148',
           calories: '310',
           routeName: 'Tempo Training Loop',
+          sourceType: RunSourceType.demoImport,
+          heartRateAvailability: HeartRateAvailability.available,
         ),
       ),
       RunActivityDisplayModel(
@@ -122,6 +133,8 @@ final activityHistoryDisplayData = [
           avgHeartRate: '134',
           calories: '220',
           routeName: 'Neighbourhood Park Loop',
+          sourceType: RunSourceType.demoImport,
+          heartRateAvailability: HeartRateAvailability.available,
         ),
       ),
     ],
@@ -145,6 +158,8 @@ final activityHistoryDisplayData = [
           avgHeartRate: '142',
           calories: '298',
           routeName: 'First 5K Practice Loop',
+          sourceType: RunSourceType.demoImport,
+          heartRateAvailability: HeartRateAvailability.available,
         ),
       ),
       RunActivityDisplayModel(
@@ -163,6 +178,8 @@ final activityHistoryDisplayData = [
           avgHeartRate: '128',
           calories: '150',
           routeName: 'Gentle Starter Loop',
+          sourceType: RunSourceType.demoImport,
+          heartRateAvailability: HeartRateAvailability.available,
         ),
       ),
     ],
