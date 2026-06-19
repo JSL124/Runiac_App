@@ -7,7 +7,7 @@ import '../../../core/widgets/runiac_buttons.dart';
 class WatchHealthAppsScreen extends StatelessWidget {
   const WatchHealthAppsScreen({super.key});
 
-  static const _rowHeight = 96.0;
+  static const _rowHeight = 88.0;
 
   static const _manageDeviceRows = <_WatchHealthRowData>[
     _WatchHealthRowData(
@@ -74,7 +74,7 @@ class WatchHealthAppsScreen extends StatelessWidget {
                         label: 'MANAGE DEVICES',
                         rows: _manageDeviceRows,
                       ),
-                      SizedBox(height: 22),
+                      SizedBox(height: 16),
                       _WatchHealthSection(
                         label: 'SERVICES',
                         rows: _serviceRows,
@@ -103,7 +103,7 @@ class _WatchHealthSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _SectionLabel(label),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         for (var index = 0; index < rows.length; index++) ...[
           _WatchHealthRow(row: rows[index]),
           if (index != rows.length - 1)

@@ -429,6 +429,7 @@ void main() {
     }).toSet();
 
     expect(rowHeights, hasLength(1));
+    expect(rowHeights.single, 88);
 
     const pageGutter = 16.0;
     final pageRight =
