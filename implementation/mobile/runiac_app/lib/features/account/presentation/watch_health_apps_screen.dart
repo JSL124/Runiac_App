@@ -6,7 +6,7 @@ import '../../../core/widgets/runiac_buttons.dart';
 import '../../run/data/apple_health_workout_import_repository.dart';
 import '../../run/domain/repositories/health_workout_import_repository.dart';
 
-class WatchHealthAppsScreen extends StatelessWidget {
+class WatchHealthAppsScreen extends StatefulWidget {
   const WatchHealthAppsScreen({
     super.key,
     this.appleHealthRepository = const AppleHealthWorkoutImportRepository(),
@@ -57,6 +57,13 @@ class WatchHealthAppsScreen extends StatelessWidget {
   ];
 
   @override
+  State<WatchHealthAppsScreen> createState() => _WatchHealthAppsScreenState();
+}
+
+class _WatchHealthAppsScreenState extends State<WatchHealthAppsScreen> {
+  bool _isCheckingAppleHealth = false;
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: RuniacColors.background,
@@ -82,12 +89,12 @@ class WatchHealthAppsScreen extends StatelessWidget {
                     children: [
                       const _WatchHealthSection(
                         label: 'MANAGE DEVICES',
-                        rows: _manageDeviceRows,
+                        rows: WatchHealthAppsScreen._manageDeviceRows,
                       ),
                       const SizedBox(height: 16),
                       _WatchHealthSection(
                         label: 'SERVICES',
-                        rows: _serviceRows,
+                        rows: WatchHealthAppsScreen._serviceRows,
                         onAppleHealthTap: _checkAppleHealth,
                       ),
                     ],
@@ -102,8 +109,12 @@ class WatchHealthAppsScreen extends StatelessWidget {
   }
 
   Future<void> _checkAppleHealth(BuildContext context) async {
+    if (_isCheckingAppleHealth) {
+      return;
+    }
+    _isCheckingAppleHealth = true;
     try {
-      final candidates = await appleHealthRepository
+      final candidates = await widget.appleHealthRepository
           .listRecentRunningWorkouts();
       if (!context.mounted) {
         return;
@@ -117,6 +128,8 @@ class WatchHealthAppsScreen extends StatelessWidget {
         return;
       }
       _showSnackBar(context, 'Apple Health is not available right now.');
+    } finally {
+      _isCheckingAppleHealth = false;
     }
   }
 }

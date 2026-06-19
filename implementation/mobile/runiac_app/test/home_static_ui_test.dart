@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -66,19 +68,60 @@ class _FakeHealthWorkoutImportRepository
   _FakeHealthWorkoutImportRepository({
     this.candidates = const <ImportedWorkoutCandidate>[],
     this.error,
+    this.resultSequence,
+    this.errorSequence,
   });
 
   final List<ImportedWorkoutCandidate> candidates;
   final Object? error;
+  final List<List<ImportedWorkoutCandidate>>? resultSequence;
+  final List<Object?>? errorSequence;
   int listCalls = 0;
 
   @override
   Future<List<ImportedWorkoutCandidate>> listRecentRunningWorkouts() async {
     listCalls += 1;
+    final errorIndex = listCalls - 1;
+    if (errorSequence != null && errorIndex < errorSequence!.length) {
+      final sequenceError = errorSequence![errorIndex];
+      if (sequenceError != null) {
+        throw sequenceError;
+      }
+    }
+    final resultIndex = listCalls - 1;
+    if (resultSequence != null && resultIndex < resultSequence!.length) {
+      return List<ImportedWorkoutCandidate>.unmodifiable(
+        resultSequence![resultIndex],
+      );
+    }
     if (error != null) {
       throw error!;
     }
     return List<ImportedWorkoutCandidate>.unmodifiable(candidates);
+  }
+
+  @override
+  Future<ImportedWorkoutCandidate?> findByExternalId(String externalId) async {
+    final candidates = await listRecentRunningWorkouts();
+    for (final candidate in candidates) {
+      if (candidate.externalId == externalId) {
+        return candidate;
+      }
+    }
+    return null;
+  }
+}
+
+class _CompleterHealthWorkoutImportRepository
+    implements HealthWorkoutImportRepository {
+  final Completer<List<ImportedWorkoutCandidate>> completer =
+      Completer<List<ImportedWorkoutCandidate>>();
+  int listCalls = 0;
+
+  @override
+  Future<List<ImportedWorkoutCandidate>> listRecentRunningWorkouts() {
+    listCalls += 1;
+    return completer.future;
   }
 
   @override
@@ -474,6 +517,26 @@ void main() {
     expect(find.text('No Apple Health runs found yet.'), findsOneWidget);
   });
 
+  testWidgets('Apple Health row checks again after an empty result', (
+    WidgetTester tester,
+  ) async {
+    final repository = _FakeHealthWorkoutImportRepository(
+      resultSequence: [
+        const <ImportedWorkoutCandidate>[],
+        [_appleHealthCandidate('apple-health-1')],
+      ],
+    );
+    await _pumpWatchHealthAppsScreen(tester, appleHealthRepository: repository);
+
+    await tester.tap(find.text('Apple Health'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Apple Health'));
+    await tester.pumpAndSettle();
+
+    expect(repository.listCalls, 2);
+    expect(find.text('Found 1 Apple Health runs.'), findsOneWidget);
+  });
+
   testWidgets('Apple Health row reports unavailable runtime errors safely', (
     WidgetTester tester,
   ) async {
@@ -492,6 +555,46 @@ void main() {
     );
   });
 
+  testWidgets('Apple Health row checks again after a runtime error', (
+    WidgetTester tester,
+  ) async {
+    final repository = _FakeHealthWorkoutImportRepository(
+      resultSequence: [
+        const <ImportedWorkoutCandidate>[],
+        [_appleHealthCandidate('apple-health-1')],
+      ],
+      errorSequence: [StateError('HealthKit unavailable'), null],
+    );
+    await _pumpWatchHealthAppsScreen(tester, appleHealthRepository: repository);
+
+    await tester.tap(find.text('Apple Health'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Apple Health'));
+    await tester.pumpAndSettle();
+
+    expect(repository.listCalls, 2);
+    expect(find.text('Found 1 Apple Health runs.'), findsOneWidget);
+  });
+
+  testWidgets('Apple Health row ignores overlapping runtime checks safely', (
+    WidgetTester tester,
+  ) async {
+    final repository = _CompleterHealthWorkoutImportRepository();
+    await _pumpWatchHealthAppsScreen(tester, appleHealthRepository: repository);
+
+    await tester.tap(find.text('Apple Health'));
+    await tester.pump();
+    await tester.tap(find.text('Apple Health'));
+    await tester.pump();
+
+    expect(repository.listCalls, 1);
+
+    repository.completer.complete([_appleHealthCandidate('apple-health-1')]);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Found 1 Apple Health runs.'), findsOneWidget);
+  });
+
   testWidgets('Non Apple Health rows remain preview-only', (
     WidgetTester tester,
   ) async {
@@ -505,6 +608,16 @@ void main() {
 
     expect(repository.listCalls, 0);
     expect(find.text('Health connections come next.'), findsOneWidget);
+    for (final forbiddenCopy in <String>[
+      'Connected',
+      'Synced',
+      'Permission granted',
+      'Live',
+      'Imported',
+      'Added',
+    ]) {
+      expect(find.textContaining(forbiddenCopy), findsNothing);
+    }
   });
 
   testWidgets('Watch and Health Apps rows align to one list rhythm', (
