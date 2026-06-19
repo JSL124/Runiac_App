@@ -109,6 +109,168 @@ void main() {
       );
     });
 
+    test('build smooths noisy short-run samples for display', () {
+      const rawSamples = <PaceGraphSample>[
+        PaceGraphSample(elapsedSeconds: 12, paceSecondsPerKm: 380),
+        PaceGraphSample(elapsedSeconds: 24, paceSecondsPerKm: 620),
+        PaceGraphSample(elapsedSeconds: 36, paceSecondsPerKm: 410),
+        PaceGraphSample(elapsedSeconds: 48, paceSecondsPerKm: 590),
+        PaceGraphSample(elapsedSeconds: 66, paceSecondsPerKm: 430),
+        PaceGraphSample(elapsedSeconds: 82, paceSecondsPerKm: 560),
+        PaceGraphSample(elapsedSeconds: 101, paceSecondsPerKm: 445),
+        PaceGraphSample(elapsedSeconds: 123, paceSecondsPerKm: 540),
+        PaceGraphSample(elapsedSeconds: 144, paceSecondsPerKm: 460),
+        PaceGraphSample(elapsedSeconds: 166, paceSecondsPerKm: 520),
+        PaceGraphSample(elapsedSeconds: 188, paceSecondsPerKm: 475),
+        PaceGraphSample(elapsedSeconds: 210, paceSecondsPerKm: 505),
+      ];
+
+      final graph = builder.build(
+        samples: rawSamples,
+        durationSeconds: 214,
+        distanceMeters: 350,
+        averagePaceSecondsPerKm: 611,
+      );
+
+      final rawRange = _paceRange(
+        rawSamples.map((sample) {
+          return sample.paceSecondsPerKm;
+        }),
+      );
+      final displayRange = _paceRange(
+        graph.points.map((point) {
+          return point.paceSecondsPerKm;
+        }),
+      );
+
+      expect(graph.isAvailable, isTrue);
+      expect(graph.points.length, lessThan(rawSamples.length));
+      expect(
+        graph.points.first.elapsedSeconds,
+        rawSamples.first.elapsedSeconds,
+      );
+      expect(graph.points.last.elapsedSeconds, rawSamples.last.elapsedSeconds);
+      expect(
+        _isStrictlyIncreasing(
+          graph.points.map((point) {
+            return point.elapsedSeconds;
+          }),
+        ),
+        isTrue,
+      );
+      expect(displayRange, lessThan(rawRange));
+    });
+
+    test(
+      'build prevents single-sample spike from dominating display range',
+      () {
+        final graph = builder.build(
+          samples: const [
+            PaceGraphSample(elapsedSeconds: 0, paceSecondsPerKm: 430),
+            PaceGraphSample(elapsedSeconds: 10, paceSecondsPerKm: 300),
+            PaceGraphSample(elapsedSeconds: 18, paceSecondsPerKm: 432),
+            PaceGraphSample(elapsedSeconds: 40, paceSecondsPerKm: 434),
+            PaceGraphSample(elapsedSeconds: 60, paceSecondsPerKm: 436),
+            PaceGraphSample(elapsedSeconds: 80, paceSecondsPerKm: 438),
+            PaceGraphSample(elapsedSeconds: 100, paceSecondsPerKm: 440),
+          ],
+          durationSeconds: 120,
+          distanceMeters: 260,
+          averagePaceSecondsPerKm: 462,
+        );
+
+        expect(graph.isAvailable, isTrue);
+        expect(graph.bestPacePoint?.paceSecondsPerKm, isNot(300));
+        expect(
+          graph.points.map((point) => point.paceSecondsPerKm),
+          isNot(contains(300)),
+        );
+        expect(
+          graph.paceRangeMaxSecondsPerKm! - graph.paceRangeMinSecondsPerKm!,
+          lessThanOrEqualTo(100),
+        );
+      },
+    );
+
+    test('build preserves broad pace trend after smoothing', () {
+      final graph = builder.build(
+        samples: const [
+          PaceGraphSample(elapsedSeconds: 20, paceSecondsPerKm: 560),
+          PaceGraphSample(elapsedSeconds: 45, paceSecondsPerKm: 525),
+          PaceGraphSample(elapsedSeconds: 70, paceSecondsPerKm: 555),
+          PaceGraphSample(elapsedSeconds: 95, paceSecondsPerKm: 520),
+          PaceGraphSample(elapsedSeconds: 130, paceSecondsPerKm: 545),
+          PaceGraphSample(elapsedSeconds: 170, paceSecondsPerKm: 510),
+          PaceGraphSample(elapsedSeconds: 210, paceSecondsPerKm: 485),
+          PaceGraphSample(elapsedSeconds: 250, paceSecondsPerKm: 455),
+          PaceGraphSample(elapsedSeconds: 290, paceSecondsPerKm: 475),
+          PaceGraphSample(elapsedSeconds: 330, paceSecondsPerKm: 445),
+          PaceGraphSample(elapsedSeconds: 370, paceSecondsPerKm: 465),
+          PaceGraphSample(elapsedSeconds: 410, paceSecondsPerKm: 435),
+        ],
+        durationSeconds: 430,
+        distanceMeters: 900,
+        averagePaceSecondsPerKm: 478,
+      );
+
+      final midpoint = graph.points.length ~/ 2;
+      final firstHalfAverage = _averagePace(
+        graph.points.take(midpoint).map((point) => point.paceSecondsPerKm),
+      );
+      final secondHalfAverage = _averagePace(
+        graph.points.skip(midpoint).map((point) => point.paceSecondsPerKm),
+      );
+
+      expect(graph.isAvailable, isTrue);
+      expect(firstHalfAverage, greaterThan(secondHalfAverage));
+      expect(firstHalfAverage - secondHalfAverage, greaterThan(25));
+    });
+
+    test('build caps long-run display points deterministically', () {
+      final rawSamples = List<PaceGraphSample>.generate(361, (index) {
+        return PaceGraphSample(
+          elapsedSeconds: index * 10,
+          paceSecondsPerKm: 480 + (index % 9) - 4,
+        );
+      });
+
+      final firstGraph = builder.build(
+        samples: rawSamples,
+        durationSeconds: 3600,
+        distanceMeters: 8000,
+        averagePaceSecondsPerKm: 450,
+      );
+      final secondGraph = builder.build(
+        samples: rawSamples,
+        durationSeconds: 3600,
+        distanceMeters: 8000,
+        averagePaceSecondsPerKm: 450,
+      );
+
+      expect(firstGraph.isAvailable, isTrue);
+      expect(firstGraph.points.length, lessThanOrEqualTo(60));
+      expect(
+        firstGraph.points.first.elapsedSeconds,
+        rawSamples.first.elapsedSeconds,
+      );
+      expect(
+        firstGraph.points.last.elapsedSeconds,
+        rawSamples.last.elapsedSeconds,
+      );
+      expect(
+        _isStrictlyIncreasing(
+          firstGraph.points.map((point) {
+            return point.elapsedSeconds;
+          }),
+        ),
+        isTrue,
+      );
+      expect(
+        firstGraph.points.map((point) => point.elapsedSeconds),
+        secondGraph.points.map((point) => point.elapsedSeconds),
+      );
+    });
+
     test('duration-based x axis uses total run time', () {
       final thirtyMinuteGraph = builder.build(
         samples: normalEasyRunPaceSamples,
@@ -242,4 +404,27 @@ void main() {
       );
     });
   });
+}
+
+int _paceRange(Iterable<int> values) {
+  final list = values.toList();
+  final min = list.reduce((a, b) => a < b ? a : b);
+  final max = list.reduce((a, b) => a > b ? a : b);
+  return max - min;
+}
+
+double _averagePace(Iterable<int> values) {
+  final list = values.toList();
+  return list.reduce((a, b) => a + b) / list.length;
+}
+
+bool _isStrictlyIncreasing(Iterable<int> values) {
+  int? previous;
+  for (final value in values) {
+    if (previous != null && value <= previous) {
+      return false;
+    }
+    previous = value;
+  }
+  return true;
 }

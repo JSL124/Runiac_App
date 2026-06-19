@@ -3,6 +3,10 @@ import '../models/pace_graph_snapshot.dart';
 const minGraphPaceSecondsPerKm = 150;
 const maxGraphPaceSecondsPerKm = 1800;
 const minVisiblePaceRangeSeconds = 80;
+const maxPaceGraphDisplayPoints = 60;
+const _shortRunBucketSeconds = 20;
+const _mediumRunBucketSeconds = 30;
+const _longRunBucketSeconds = 60;
 
 class PaceGraphSample {
   const PaceGraphSample({
@@ -30,13 +34,21 @@ class PaceGraphDataBuilder {
       return const PaceGraphSnapshot.unavailable();
     }
 
-    final paceValues = validSamples
+    final displaySamples = _displaySamples(
+      samples: validSamples,
+      durationSeconds: durationSeconds,
+    );
+    if (displaySamples.length < 3) {
+      return const PaceGraphSnapshot.unavailable();
+    }
+
+    final paceValues = displaySamples
         .map((sample) => sample.paceSecondsPerKm)
         .toList();
     final minPace = paceValues.reduce((a, b) => a < b ? a : b);
     final maxPace = paceValues.reduce((a, b) => a > b ? a : b);
     final paceRange = _paceAxisRange(minPace: minPace, maxPace: maxPace);
-    final points = validSamples.map((sample) {
+    final points = displaySamples.map((sample) {
       final progress = sample.elapsedSeconds / durationSeconds;
       return PaceGraphPoint(
         elapsedSeconds: sample.elapsedSeconds,
@@ -85,6 +97,112 @@ class PaceGraphDataBuilder {
     }
 
     return validSamples;
+  }
+
+  List<PaceGraphSample> _displaySamples({
+    required List<PaceGraphSample> samples,
+    required int durationSeconds,
+  }) {
+    if (samples.length < 3) {
+      return samples;
+    }
+
+    final bucketSeconds = _bucketSecondsFor(durationSeconds);
+    final buckets = <int, List<PaceGraphSample>>{};
+    for (final sample in samples) {
+      final bucket = sample.elapsedSeconds ~/ bucketSeconds;
+      buckets.putIfAbsent(bucket, () => <PaceGraphSample>[]).add(sample);
+    }
+
+    final displaySamples = buckets.entries.map((entry) {
+      final bucketSamples = entry.value;
+      return PaceGraphSample(
+        elapsedSeconds: _median(
+          bucketSamples.map((sample) {
+            return sample.elapsedSeconds;
+          }),
+        ),
+        paceSecondsPerKm: _median(
+          bucketSamples.map((sample) {
+            return sample.paceSecondsPerKm;
+          }),
+        ),
+      );
+    }).toList()..sort((a, b) => a.elapsedSeconds.compareTo(b.elapsedSeconds));
+
+    final anchoredSamples = _withAnchoredEndpoints(
+      displaySamples: displaySamples,
+      first: samples.first,
+      last: samples.last,
+    );
+    return _capDisplaySamples(anchoredSamples);
+  }
+
+  int _bucketSecondsFor(int durationSeconds) {
+    if (durationSeconds < 300) {
+      return _shortRunBucketSeconds;
+    }
+    if (durationSeconds < 900) {
+      return _mediumRunBucketSeconds;
+    }
+    return _longRunBucketSeconds;
+  }
+
+  int _median(Iterable<int> values) {
+    final sorted = values.toList()..sort();
+    final middle = sorted.length ~/ 2;
+    if (sorted.length.isOdd) {
+      return sorted[middle];
+    }
+    return ((sorted[middle - 1] + sorted[middle]) / 2).round();
+  }
+
+  List<PaceGraphSample> _withAnchoredEndpoints({
+    required List<PaceGraphSample> displaySamples,
+    required PaceGraphSample first,
+    required PaceGraphSample last,
+  }) {
+    final anchored = <PaceGraphSample>[
+      if (displaySamples.isEmpty ||
+          displaySamples.first.elapsedSeconds != first.elapsedSeconds)
+        first,
+      ...displaySamples,
+      if (displaySamples.isEmpty ||
+          displaySamples.last.elapsedSeconds != last.elapsedSeconds)
+        last,
+    ]..sort((a, b) => a.elapsedSeconds.compareTo(b.elapsedSeconds));
+
+    final deduplicated = <PaceGraphSample>[];
+    for (final sample in anchored) {
+      if (deduplicated.isEmpty ||
+          deduplicated.last.elapsedSeconds != sample.elapsedSeconds) {
+        deduplicated.add(sample);
+      }
+    }
+    return deduplicated;
+  }
+
+  List<PaceGraphSample> _capDisplaySamples(List<PaceGraphSample> samples) {
+    if (samples.length <= maxPaceGraphDisplayPoints) {
+      return samples;
+    }
+
+    final capped = <PaceGraphSample>[];
+    final lastIndex = samples.length - 1;
+    final lastSlot = maxPaceGraphDisplayPoints - 1;
+    for (var slot = 0; slot < maxPaceGraphDisplayPoints; slot += 1) {
+      final index = (slot * lastIndex) ~/ lastSlot;
+      final sample = samples[index];
+      if (capped.isEmpty ||
+          capped.last.elapsedSeconds != sample.elapsedSeconds) {
+        capped.add(sample);
+      }
+    }
+
+    if (capped.last.elapsedSeconds != samples.last.elapsedSeconds) {
+      capped[capped.length - 1] = samples.last;
+    }
+    return capped;
   }
 
   _PaceAxisRange _paceAxisRange({required int minPace, required int maxPace}) {
