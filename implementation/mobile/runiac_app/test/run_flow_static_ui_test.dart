@@ -50,6 +50,19 @@ final _forbiddenXpUpdateCompetitiveCopy = RegExp(
   caseSensitive: false,
 );
 
+const _defaultDemoCoachingHeadline = 'Imported run with steady rhythm';
+const _defaultDemoCoachingMessage =
+    'This demo run gives you enough pace detail for a simple rhythm note. The data suggests a steady run, which is useful for building consistency without chasing speed. Because this is demo/import data, the summary treats it as a learning note rather than a recording made by the app, and it does not judge effort from heart rate.';
+const _defaultDemoNextFocus =
+    'Keep the next easy run calm and repeatable, then compare the rhythm.';
+
+final _forbiddenDemoCoachingCopy = RegExp(
+  r'live GPS|tracked live|heart-rate zone|heart rate zone|zone|fatigue|'
+  r'medical|exhaustion|overtraining|danger|threshold|max-effort|'
+  r'max effort|XP|leaderboard|subscription|Premium',
+  caseSensitive: false,
+);
+
 void _useCompactShareSheetSurface(WidgetTester tester) {
   tester.view
     ..physicalSize = const Size(390, 900)
@@ -713,18 +726,13 @@ void main() {
     expect(find.byIcon(Icons.chevron_right_rounded), findsNothing);
     expect(find.text('Coaching Summary'), findsOneWidget);
     expect(find.text('AI Coaching Summary'), findsNothing);
-    expect(
-      find.text(
-        'This run has enough distance, time, and pace data for a simple beginner summary. The safest takeaway is that you completed a measurable run and now have a starting point to repeat. Keep the next step calm and consistent rather than trying to prove anything with speed.',
-      ),
-      findsOneWidget,
-    );
-    expect(find.text('Good work finishing the run'), findsOneWidget);
+    expect(find.text(_defaultDemoCoachingMessage), findsOneWidget);
+    expect(find.text(_defaultDemoCoachingHeadline), findsOneWidget);
     expect(find.text('Next Run Tip'), findsNothing);
     expect(find.text('Next Focus'), findsOneWidget);
     expect(find.text('Next Action'), findsNothing);
     expect(find.text('Next Run Tip:'), findsNothing);
-    expect(find.text('Keep the next run easy and repeatable.'), findsOneWidget);
+    expect(find.text(_defaultDemoNextFocus), findsOneWidget);
     expect(find.widgetWithText(OutlinedButton, 'Share Route'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'View XP Update'), findsOneWidget);
     expect(find.textContaining(_forbiddenRealActivitySaveCopy), findsNothing);
@@ -813,18 +821,22 @@ void main() {
 
       expect(find.text('Coaching Summary'), findsOneWidget);
       expect(find.text('AI Coaching Summary'), findsNothing);
-      expect(find.text('Good work finishing the run'), findsOneWidget);
-      expect(
-        find.text(
-          'This run has enough distance, time, and pace data for a simple beginner summary. The safest takeaway is that you completed a measurable run and now have a starting point to repeat. Keep the next step calm and consistent rather than trying to prove anything with speed.',
-        ),
-        findsOneWidget,
-      );
+      expect(find.text(_defaultDemoCoachingHeadline), findsOneWidget);
+      expect(find.text(_defaultDemoCoachingMessage), findsOneWidget);
       expect(find.text('Next Focus'), findsOneWidget);
       expect(find.text('Next Action'), findsNothing);
+      expect(find.text(_defaultDemoNextFocus), findsOneWidget);
       expect(
-        find.text('Keep the next run easy and repeatable.'),
-        findsOneWidget,
+        _defaultDemoCoachingMessage.split(RegExp(r'\s+')),
+        hasLength(inInclusiveRange(35, 80)),
+      );
+      expect(
+        RegExp(r'[.!?]').allMatches(_defaultDemoCoachingMessage),
+        hasLength(inInclusiveRange(2, 4)),
+      );
+      expect(
+        _defaultDemoCoachingMessage,
+        isNot(contains(_forbiddenDemoCoachingCopy)),
       );
     },
   );

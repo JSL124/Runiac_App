@@ -21,6 +21,19 @@ import 'package:runiac_app/features/you/data/static_expert_plans_repository.dart
 import 'package:runiac_app/features/you/domain/repositories/activity_history_repository.dart';
 import 'package:runiac_app/features/you/domain/repositories/expert_plans_repository.dart';
 
+const _defaultDemoCoachingHeadline = 'Imported run with steady rhythm';
+const _defaultDemoCoachingMessage =
+    'This demo run gives you enough pace detail for a simple rhythm note. The data suggests a steady run, which is useful for building consistency without chasing speed. Because this is demo/import data, the summary treats it as a learning note rather than a recording made by the app, and it does not judge effort from heart rate.';
+const _defaultDemoNextFocus =
+    'Keep the next easy run calm and repeatable, then compare the rhythm.';
+
+final _forbiddenDefaultDemoCoachingCopy = RegExp(
+  r'live GPS|tracked live|heart-rate zone|heart rate zone|zone|fatigue|'
+  r'medical|exhaustion|overtraining|danger|threshold|max-effort|'
+  r'max effort|XP|leaderboard|subscription|Premium',
+  caseSensitive: false,
+);
+
 void main() {
   group('Repository contracts', () {
     test('interfaces expose read-only load methods', () {
@@ -231,6 +244,40 @@ void main() {
       expect(summary.routeName, 'East Coast Park Loop');
       expect(completion.xpUpdate.earnedXpLabel, '+120 XP');
       expect(completion.xpUpdate.streakChangeLabel, '5 → 6 days');
+      expect(completion.summary.sourceLabel, 'Demo import');
+      expect(
+        completion.summary.coachingSummary.source,
+        CoachingSummarySource.ruleBased,
+      );
+      expect(
+        completion.summary.coachingSummary.interpretationId,
+        CoachingInterpretationId.steadyEffortInterpretation,
+      );
+      expect(
+        completion.summary.coachingSummary.headline,
+        _defaultDemoCoachingHeadline,
+      );
+      expect(
+        completion.summary.coachingSummary.message,
+        _defaultDemoCoachingMessage,
+      );
+      expect(
+        completion.summary.coachingSummary.nextAction,
+        _defaultDemoNextFocus,
+      );
+      expect(completion.summary.coachingSummary.bullets, isEmpty);
+      expect(
+        completion.summary.coachingSummary.message.split(RegExp(r'\s+')),
+        hasLength(inInclusiveRange(35, 80)),
+      );
+      expect(
+        RegExp(r'[.!?]').allMatches(completion.summary.coachingSummary.message),
+        hasLength(inInclusiveRange(2, 4)),
+      );
+      expect(
+        completion.summary.coachingSummary.message,
+        isNot(contains(_forbiddenDefaultDemoCoachingCopy)),
+      );
       expect(completedRun.activityId, 'static-local-session-20260614-0700');
       expect(
         completedRun.summaryId,
