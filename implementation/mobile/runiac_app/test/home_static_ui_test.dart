@@ -429,23 +429,9 @@ void main() {
     }).toSet();
 
     expect(rowHeights, hasLength(1));
-    expect(rowHeights.single, 88);
+    expect(rowHeights.single, 80);
 
-    const pageGutter = 16.0;
-    final pageRight =
-        tester.view.physicalSize.width / tester.view.devicePixelRatio -
-        pageGutter;
-    final dividerFinder = find.byType(Divider);
-    final dividerRects = List<Rect>.generate(
-      dividerFinder.evaluate().length,
-      (index) => tester.getRect(dividerFinder.at(index)),
-    );
-
-    expect(dividerRects, hasLength(4));
-    for (final dividerRect in dividerRects) {
-      expect(dividerRect.left, pageGutter);
-      expect(dividerRect.right, pageRight);
-    }
+    expect(find.byType(Divider), findsNothing);
   });
 
   testWidgets('Account profile preview fits a narrow mobile surface', (

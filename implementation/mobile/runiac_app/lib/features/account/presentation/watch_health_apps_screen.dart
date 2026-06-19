@@ -7,7 +7,9 @@ import '../../../core/widgets/runiac_buttons.dart';
 class WatchHealthAppsScreen extends StatelessWidget {
   const WatchHealthAppsScreen({super.key});
 
-  static const _rowHeight = 88.0;
+  static const _rowHeight = 80.0;
+  static const _horizontalInset = 16.0;
+  static const _titleDescriptionGap = 3.0;
 
   static const _manageDeviceRows = <_WatchHealthRowData>[
     _WatchHealthRowData(
@@ -66,7 +68,7 @@ class WatchHealthAppsScreen extends StatelessWidget {
                 ).copyWith(overscroll: false),
                 child: SingleChildScrollView(
                   physics: const ClampingScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+                  padding: const EdgeInsets.fromLTRB(0, 8, 0, 28),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: const [
@@ -102,12 +104,15 @@ class _WatchHealthSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _SectionLabel(label),
+        Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: WatchHealthAppsScreen._horizontalInset,
+          ),
+          child: _SectionLabel(label),
+        ),
         const SizedBox(height: 6),
         for (var index = 0; index < rows.length; index++) ...[
           _WatchHealthRow(row: rows[index]),
-          if (index != rows.length - 1)
-            const Divider(height: 1, thickness: 1, color: RuniacColors.border),
         ],
       ],
     );
@@ -123,9 +128,12 @@ class _WatchHealthRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return RuniacTappableSurface(
       semanticLabel: row.title,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.zero,
       height: WatchHealthAppsScreen._rowHeight,
       alignment: Alignment.center,
+      padding: const EdgeInsets.symmetric(
+        horizontal: WatchHealthAppsScreen._horizontalInset,
+      ),
       onTap: () {
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
@@ -134,16 +142,18 @@ class _WatchHealthRow extends StatelessWidget {
           );
       },
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           _IconTile(icon: row.icon),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   row.title,
-                  maxLines: 2,
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: RuniacColors.textPrimary,
@@ -152,7 +162,9 @@ class _WatchHealthRow extends StatelessWidget {
                     height: 1.2,
                   ),
                 ),
-                const SizedBox(height: 3),
+                const SizedBox(
+                  height: WatchHealthAppsScreen._titleDescriptionGap,
+                ),
                 Text(
                   row.description,
                   maxLines: 2,
