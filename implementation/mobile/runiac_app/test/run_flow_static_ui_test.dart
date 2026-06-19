@@ -449,7 +449,7 @@ void main() {
     expect(find.text('AI Coaching Summary'), findsNothing);
     expect(
       find.text(
-        'This run has limited run data, so the summary stays simple. Your effort still counts.',
+        'This run has limited data, so the summary stays careful and simple. Completion still matters because it gives you a check-in point. Heart-rate data was not available, and the pace graph is not usable, so this note avoids effort or pacing claims.',
       ),
       findsOneWidget,
     );
@@ -715,13 +715,14 @@ void main() {
     expect(find.text('AI Coaching Summary'), findsNothing);
     expect(
       find.text(
-        'This was a completed beginner running effort with enough data for a simple summary.',
+        'This run has enough distance, time, and pace data for a simple beginner summary. The safest takeaway is that you completed a measurable run and now have a starting point to repeat. Keep the next step calm and consistent rather than trying to prove anything with speed.',
       ),
       findsOneWidget,
     );
     expect(find.text('Good work finishing the run'), findsOneWidget);
     expect(find.text('Next Run Tip'), findsNothing);
-    expect(find.text('Next Action'), findsOneWidget);
+    expect(find.text('Next Focus'), findsOneWidget);
+    expect(find.text('Next Action'), findsNothing);
     expect(find.text('Next Run Tip:'), findsNothing);
     expect(find.text('Keep the next run easy and repeatable.'), findsOneWidget);
     expect(find.widgetWithText(OutlinedButton, 'Share Route'), findsOneWidget);
@@ -815,17 +816,64 @@ void main() {
       expect(find.text('Good work finishing the run'), findsOneWidget);
       expect(
         find.text(
-          'This was a completed beginner running effort with enough data for a simple summary.',
+          'This run has enough distance, time, and pace data for a simple beginner summary. The safest takeaway is that you completed a measurable run and now have a starting point to repeat. Keep the next step calm and consistent rather than trying to prove anything with speed.',
         ),
         findsOneWidget,
       );
-      expect(find.text('Next Action'), findsOneWidget);
+      expect(find.text('Next Focus'), findsOneWidget);
+      expect(find.text('Next Action'), findsNothing);
       expect(
         find.text('Keep the next run easy and repeatable.'),
         findsOneWidget,
       );
     },
   );
+
+  testWidgets('ui_renders_multisentence_coaching_message', (
+    WidgetTester tester,
+  ) async {
+    _useTallSummarySurface(tester);
+
+    const message =
+        'This was a short but useful run. The available pace points suggest a steady rhythm, which is a good sign for building consistency. Since heart-rate data was not available, the safest takeaway is your pacing rhythm rather than how hard it felt.';
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: ViewSummaryScreen(
+          summary: RunSummarySnapshot(
+            title: 'Short Steady Run',
+            dateLabel: 'Today',
+            timeLabel: '7:10 AM',
+            distanceKm: '0.72',
+            avgPace: '7’20”',
+            duration: '5:45',
+            avgHeartRate: '--',
+            calories: '43',
+            routeName: 'Private route',
+            coachingSummary: CoachingSummarySnapshot(
+              source: CoachingSummarySource.ruleBased,
+              headline: 'A short, steady start',
+              message: message,
+              nextAction:
+                  'Next time, add a few easy minutes while keeping the same calm start.',
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Coaching Summary'), findsOneWidget);
+    expect(find.text('A short, steady start'), findsOneWidget);
+    expect(find.text(message), findsOneWidget);
+    expect(find.text('Next Focus'), findsOneWidget);
+    expect(find.text('Next Action'), findsNothing);
+    expect(
+      find.text(
+        'Next time, add a few easy minutes while keeping the same calm start.',
+      ),
+      findsOneWidget,
+    );
+  });
 
   testWidgets(
     'View summary maps AI source to AI Coaching Summary only when explicitly returned',
@@ -1399,13 +1447,9 @@ void main() {
               hasSufficientData: false,
               coachingSummary: CoachingSummarySnapshot(
                 source: CoachingSummarySource.ruleBased,
-                headline: 'Thanks for getting out there',
+                headline: 'A simple check-in run',
                 message:
-                    'This run has limited run data, so the summary stays simple. Your effort still counts.',
-                bullets: [
-                  'What went well: You started and created a check-in point.',
-                  'What to improve: Aim for a little more time or distance with GPS ready.',
-                ],
+                    'This run has limited data, so the summary stays careful and simple. Completion still matters because it gives you a check-in point. Heart-rate data was not available, and the pace graph is not usable, so this note avoids effort or pacing claims.',
                 nextAction: 'Try one short easy run with GPS ready.',
               ),
             ),
@@ -1442,7 +1486,7 @@ void main() {
     expect(find.text('AI Coaching Summary'), findsNothing);
     expect(
       find.text(
-        'This run has limited run data, so the summary stays simple. Your effort still counts.',
+        'This run has limited data, so the summary stays careful and simple. Completion still matters because it gives you a check-in point. Heart-rate data was not available, and the pace graph is not usable, so this note avoids effort or pacing claims.',
       ),
       findsOneWidget,
     );

@@ -24,11 +24,7 @@ class RunSummarySnapshot {
       interpretationId: CoachingInterpretationId.basicCompletionInterpretation,
       headline: 'Good work finishing the run',
       message:
-          'This was a completed beginner running effort with enough data for a simple summary.',
-      bullets: [
-        'What went well: You finished a measurable run.',
-        'What to improve: Build consistency by repeating an easy effort.',
-      ],
+          'This run has enough distance, time, and pace data for a simple beginner summary. The safest takeaway is that you completed a measurable run and now have a starting point to repeat. Keep the next step calm and consistent rather than trying to prove anything with speed.',
       nextAction: 'Keep the next run easy and repeatable.',
     ),
   });

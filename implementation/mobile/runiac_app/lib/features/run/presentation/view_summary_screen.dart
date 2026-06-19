@@ -1163,7 +1163,7 @@ class _NextActionBlock extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Next Action',
+          'Next Focus',
           style: TextStyle(
             color: _rBlue,
             fontSize: 13,

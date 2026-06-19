@@ -311,14 +311,10 @@ void main() {
         );
         expect(completedRun.summary.coachingSummary.headline, isNotEmpty);
         expect(completedRun.summary.coachingSummary.message, isNotEmpty);
-        expect(completedRun.summary.coachingSummary.bullets, hasLength(2));
+        expect(completedRun.summary.coachingSummary.bullets, isEmpty);
         expect(
-          completedRun.summary.coachingSummary.bullets.first,
-          startsWith('What went well: '),
-        );
-        expect(
-          completedRun.summary.coachingSummary.bullets.last,
-          startsWith('What to improve: '),
+          completedRun.summary.coachingSummary.message.split(RegExp(r'\s+')),
+          hasLength(greaterThanOrEqualTo(35)),
         );
         expect(completedRun.summary.coachingSummary.nextAction, isNotEmpty);
       },
