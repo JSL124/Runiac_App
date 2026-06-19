@@ -37,5 +37,38 @@ void main() {
         isNot(contains('RunnerLiveActivity/Runner.entitlements')),
       );
     });
+
+    test('registers read-only HealthKit workout import channel', () {
+      final appDelegate = File(
+        'ios/Runner/AppDelegate.swift',
+      ).readAsStringSync();
+      final runnerSwiftSources = Directory('ios/Runner')
+          .listSync()
+          .whereType<File>()
+          .where((file) => file.path.endsWith('.swift'))
+          .map((file) => file.readAsStringSync())
+          .join('\n');
+
+      expect(appDelegate, contains('RuniacHealthKitImportChannel.register'));
+      expect(runnerSwiftSources, contains('runiac/healthkit_import'));
+      expect(runnerSwiftSources, contains('listRunningWorkouts'));
+      expect(
+        runnerSwiftSources,
+        contains('HKHealthStore.isHealthDataAvailable()'),
+      );
+      expect(runnerSwiftSources, contains('HKObjectType.workoutType()'));
+      expect(runnerSwiftSources, contains('.heartRate'));
+      expect(runnerSwiftSources, contains('requestAuthorization(toShare: []'));
+      expect(runnerSwiftSources, contains('HKSampleQuery'));
+      expect(
+        runnerSwiftSources,
+        contains('workout.workoutActivityType == .running'),
+      );
+      expect(runnerSwiftSources, contains('averageHeartRateBpm'));
+      expect(runnerSwiftSources, contains('maxHeartRateBpm'));
+      expect(runnerSwiftSources, isNot(contains('HKWorkoutRoute')));
+      expect(runnerSwiftSources, isNot(contains('WatchConnectivity')));
+      expect(runnerSwiftSources, isNot(contains('heartRateSamples')));
+    });
   });
 }
