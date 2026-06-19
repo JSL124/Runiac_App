@@ -1,0 +1,514 @@
+import '../models/coaching_summary_snapshot.dart';
+import '../models/pace_graph_snapshot.dart';
+import '../models/run_source_display.dart';
+import '../models/run_summary_snapshot.dart';
+
+const int _veryShortRunDurationSeconds = 2 * 60;
+const double _veryShortRunDistanceKm = 0.25;
+const int _shortRunDurationSeconds = 6 * 60;
+const double _shortRunDistanceKm = 0.8;
+const int _longerRunDurationSeconds = 35 * 60;
+const double _longerRunDistanceKm = 5.0;
+const int _minimumUsableGraphPoints = 3;
+const int _minimumUsablePaceSecondsPerKm = 150;
+const int _maximumUsablePaceSecondsPerKm = 1800;
+const int _unevenPaceSpreadSeconds = 60;
+const int _steadyPaceSpreadSeconds = 35;
+const int _fastStartFadeSeconds = 55;
+const int _strongFinishSeconds = 35;
+
+class RuleBasedCoachingSummaryEngine {
+  const RuleBasedCoachingSummaryEngine();
+
+  CoachingSummarySnapshot build(RunSummarySnapshot summary) {
+    final signals = _CoachingSignals.fromSummary(summary);
+
+    if (signals.dataConfidence == _CoachingDataConfidence.low) {
+      return _lowDataInterpretation;
+    }
+
+    if (signals.runScale == _CoachingRunScale.veryShort) {
+      return _veryShortInterpretation;
+    }
+
+    if (signals.pacePattern == _CoachingPacePattern.graphUnavailable) {
+      return signals.hasDisplayAveragePace
+          ? _scalarOnlyInterpretation
+          : _basicCompletionInterpretation;
+    }
+
+    if (signals.pacePattern == _CoachingPacePattern.dataQualityFallback) {
+      return _dataQualityFallbackInterpretation;
+    }
+
+    if (signals.sourceSignal == _CoachingSourceSignal.importedOrDemo) {
+      return _importedGraphInterpretation;
+    }
+
+    if (signals.runScale == _CoachingRunScale.shortValid) {
+      return switch (signals.pacePattern) {
+        _CoachingPacePattern.steady => _shortSteadyNoHrInterpretation,
+        _CoachingPacePattern.uneven ||
+        _CoachingPacePattern.fastStartFade => _shortUnevenNoHrInterpretation,
+        _ => _shortValidInterpretation,
+      };
+    }
+
+    if (signals.runScale == _CoachingRunScale.longerBeginner &&
+        signals.pacePattern == _CoachingPacePattern.fastStartFade) {
+      return signals.heartRateSignal == _CoachingHeartRateSignal.available
+          ? _longerFadeHrAvailableInterpretation
+          : _longerFadeNoHrInterpretation;
+    }
+
+    return switch (signals.pacePattern) {
+      _CoachingPacePattern.fastStartFade =>
+        signals.heartRateSignal == _CoachingHeartRateSignal.available
+            ? _fastStartFadeHrAvailableInterpretation
+            : _fastStartFadeNoHrInterpretation,
+      _CoachingPacePattern.strongFinish =>
+        signals.heartRateSignal == _CoachingHeartRateSignal.available
+            ? _strongFinishHrAvailableInterpretation
+            : _strongFinishNoHrInterpretation,
+      _CoachingPacePattern.uneven =>
+        signals.heartRateSignal == _CoachingHeartRateSignal.available
+            ? _unevenHrAvailableInterpretation
+            : _unevenNoHrInterpretation,
+      _CoachingPacePattern.steady =>
+        signals.heartRateSignal == _CoachingHeartRateSignal.available
+            ? _normalSteadyHrAvailableInterpretation
+            : _normalSteadyHrUnavailableInterpretation,
+      _ => _gpsGraphInterpretation,
+    };
+  }
+}
+
+enum _CoachingDataConfidence { low, usable }
+
+enum _CoachingRunScale { veryShort, shortValid, normalBeginner, longerBeginner }
+
+enum _CoachingPacePattern {
+  graphUnavailable,
+  dataQualityFallback,
+  steady,
+  uneven,
+  fastStartFade,
+  strongFinish,
+  generalGraph,
+}
+
+enum _CoachingHeartRateSignal { available, unavailable }
+
+enum _CoachingSourceSignal { liveGps, importedOrDemo }
+
+class _CoachingSignals {
+  const _CoachingSignals({
+    required this.dataConfidence,
+    required this.runScale,
+    required this.pacePattern,
+    required this.heartRateSignal,
+    required this.sourceSignal,
+    required this.hasDisplayAveragePace,
+  });
+
+  final _CoachingDataConfidence dataConfidence;
+  final _CoachingRunScale runScale;
+  final _CoachingPacePattern pacePattern;
+  final _CoachingHeartRateSignal heartRateSignal;
+  final _CoachingSourceSignal sourceSignal;
+  final bool hasDisplayAveragePace;
+
+  factory _CoachingSignals.fromSummary(RunSummarySnapshot summary) {
+    final distanceKm = _parseDistanceKm(summary.distanceKm);
+    final durationSeconds = _parseDurationSeconds(summary.duration);
+    final graphPoints = _usableGraphPoints(summary.paceGraph);
+
+    return _CoachingSignals(
+      dataConfidence: summary.hasSufficientData
+          ? _CoachingDataConfidence.usable
+          : _CoachingDataConfidence.low,
+      runScale: _classifyRunScale(
+        distanceKm: distanceKm,
+        durationSeconds: durationSeconds,
+      ),
+      pacePattern: _classifyPacePattern(
+        graph: summary.paceGraph,
+        graphPoints: graphPoints,
+      ),
+      heartRateSignal:
+          summary.heartRateAvailability.isAvailable &&
+              _hasRecordedHeartRate(summary.avgHeartRate)
+          ? _CoachingHeartRateSignal.available
+          : _CoachingHeartRateSignal.unavailable,
+      sourceSignal: _classifySource(summary.sourceType),
+      hasDisplayAveragePace: _hasDisplayAveragePace(summary.avgPace),
+    );
+  }
+}
+
+_CoachingRunScale _classifyRunScale({
+  required double? distanceKm,
+  required int? durationSeconds,
+}) {
+  if ((distanceKm != null && distanceKm < _veryShortRunDistanceKm) ||
+      (durationSeconds != null &&
+          durationSeconds < _veryShortRunDurationSeconds)) {
+    return _CoachingRunScale.veryShort;
+  }
+
+  if ((distanceKm != null && distanceKm < _shortRunDistanceKm) ||
+      (durationSeconds != null && durationSeconds < _shortRunDurationSeconds)) {
+    return _CoachingRunScale.shortValid;
+  }
+
+  if ((distanceKm != null && distanceKm >= _longerRunDistanceKm) ||
+      (durationSeconds != null &&
+          durationSeconds >= _longerRunDurationSeconds)) {
+    return _CoachingRunScale.longerBeginner;
+  }
+
+  return _CoachingRunScale.normalBeginner;
+}
+
+_CoachingPacePattern _classifyPacePattern({
+  required PaceGraphSnapshot graph,
+  required List<PaceGraphPoint> graphPoints,
+}) {
+  if (!graph.isAvailable) {
+    return _CoachingPacePattern.graphUnavailable;
+  }
+
+  if (graphPoints.length < _minimumUsableGraphPoints) {
+    return _CoachingPacePattern.dataQualityFallback;
+  }
+
+  final spread = _paceSpreadSeconds(graphPoints);
+  if (_isFastStartFade(graphPoints)) {
+    return _CoachingPacePattern.fastStartFade;
+  }
+  if (_isStrongFinish(graphPoints)) {
+    return _CoachingPacePattern.strongFinish;
+  }
+  if (spread <= _steadyPaceSpreadSeconds) {
+    return _CoachingPacePattern.steady;
+  }
+  if (spread >= _unevenPaceSpreadSeconds) {
+    return _CoachingPacePattern.uneven;
+  }
+
+  return _CoachingPacePattern.generalGraph;
+}
+
+_CoachingSourceSignal _classifySource(RunSourceType sourceType) {
+  return switch (sourceType) {
+    RunSourceType.runiacGps => _CoachingSourceSignal.liveGps,
+    RunSourceType.appleHealth ||
+    RunSourceType.healthConnect ||
+    RunSourceType.garminViaHealth ||
+    RunSourceType.demoImport => _CoachingSourceSignal.importedOrDemo,
+  };
+}
+
+List<PaceGraphPoint> _usableGraphPoints(PaceGraphSnapshot graph) {
+  final points =
+      graph.points
+          .where(
+            (point) =>
+                point.progressFraction.isFinite &&
+                point.progressFraction >= 0 &&
+                point.progressFraction <= 1 &&
+                point.paceSecondsPerKm >= _minimumUsablePaceSecondsPerKm &&
+                point.paceSecondsPerKm <= _maximumUsablePaceSecondsPerKm,
+          )
+          .toList()
+        ..sort((a, b) => a.elapsedSeconds.compareTo(b.elapsedSeconds));
+
+  if (!_hasIncreasingGraphOrder(points)) {
+    return const [];
+  }
+
+  return points;
+}
+
+bool _hasIncreasingGraphOrder(List<PaceGraphPoint> points) {
+  for (var index = 1; index < points.length; index += 1) {
+    final previous = points[index - 1];
+    final current = points[index];
+
+    if (current.elapsedSeconds <= previous.elapsedSeconds ||
+        current.progressFraction <= previous.progressFraction) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+bool _isFastStartFade(List<PaceGraphPoint> points) {
+  if (points.length < 4) {
+    return false;
+  }
+
+  final firstPace = points.first.paceSecondsPerKm;
+  final finalPace = points.last.paceSecondsPerKm;
+  final laterAverage = _averagePace(points.skip(points.length ~/ 2));
+
+  return finalPace - firstPace >= _fastStartFadeSeconds &&
+      laterAverage - firstPace > _fastStartFadeSeconds;
+}
+
+bool _isStrongFinish(List<PaceGraphPoint> points) {
+  if (points.length < 4) {
+    return false;
+  }
+
+  final firstAverage = _averagePace(points.take((points.length / 2).ceil()));
+  final finalPace = points.last.paceSecondsPerKm;
+
+  return firstAverage - finalPace >= _strongFinishSeconds;
+}
+
+int _averagePace(Iterable<PaceGraphPoint> points) {
+  final values = points.map((point) => point.paceSecondsPerKm).toList();
+  if (values.isEmpty) {
+    return 0;
+  }
+  return (values.reduce((a, b) => a + b) / values.length).round();
+}
+
+int _paceSpreadSeconds(List<PaceGraphPoint> points) {
+  var minimumPace = points.first.paceSecondsPerKm;
+  var maximumPace = points.first.paceSecondsPerKm;
+
+  for (final point in points.skip(1)) {
+    if (point.paceSecondsPerKm < minimumPace) {
+      minimumPace = point.paceSecondsPerKm;
+    }
+    if (point.paceSecondsPerKm > maximumPace) {
+      maximumPace = point.paceSecondsPerKm;
+    }
+  }
+
+  return maximumPace - minimumPace;
+}
+
+double? _parseDistanceKm(String label) {
+  final normalized = label.toLowerCase().replaceAll('km', '').trim();
+  return double.tryParse(normalized);
+}
+
+int? _parseDurationSeconds(String label) {
+  final parts = label.split(':');
+  if (parts.length < 2 || parts.length > 3) {
+    return null;
+  }
+
+  final values = <int>[];
+  for (final part in parts) {
+    final value = int.tryParse(part);
+    if (value == null || value < 0) {
+      return null;
+    }
+    values.add(value);
+  }
+
+  if (values.length == 2) {
+    return values[0] * 60 + values[1];
+  }
+
+  return values[0] * 3600 + values[1] * 60 + values[2];
+}
+
+bool _hasDisplayAveragePace(String label) {
+  final normalized = label.trim();
+  return normalized.isNotEmpty && normalized != '--';
+}
+
+bool _hasRecordedHeartRate(String label) {
+  final normalized = label.trim();
+  return normalized.isNotEmpty && normalized != '--';
+}
+
+const _lowDataInterpretation = CoachingSummarySnapshot(
+  source: CoachingSummarySource.ruleBased,
+  interpretationId: CoachingInterpretationId.lowDataInterpretation,
+  headline: 'A simple check-in run',
+  message:
+      'This run has limited data, so the summary stays careful and simple. Completion still matters because it gives you a check-in point. Heart-rate data was not available, and the pace graph is not usable, so this note avoids effort or pacing claims.',
+  nextAction: 'Try one short easy run with GPS ready.',
+);
+
+const _veryShortInterpretation = CoachingSummarySnapshot(
+  source: CoachingSummarySource.ruleBased,
+  interpretationId: CoachingInterpretationId.shortValidInterpretation,
+  headline: 'A small check-in',
+  message:
+      'This was a very short check-in, so it is better treated as a start than a full pacing review. The available numbers can mark that you got moving, but they are too small for confident trend coaching. Keep the takeaway simple and useful.',
+  nextAction: 'Add a few easy minutes before thinking about pace.',
+);
+
+const _shortSteadyNoHrInterpretation = CoachingSummarySnapshot(
+  source: CoachingSummarySource.ruleBased,
+  interpretationId: CoachingInterpretationId.steadyEffortInterpretation,
+  headline: 'A short, steady start',
+  message:
+      'This was a short but useful run. The available pace points suggest a steady rhythm, which is a good sign for building consistency. Since heart-rate data was not available, the safest takeaway is your pacing rhythm rather than how hard it felt.',
+  nextAction:
+      'Next time, add a few easy minutes while keeping the same calm start.',
+);
+
+const _shortUnevenNoHrInterpretation = CoachingSummarySnapshot(
+  source: CoachingSummarySource.ruleBased,
+  interpretationId: CoachingInterpretationId.paceControlInterpretation,
+  headline: 'A short rhythm practice',
+  message:
+      'This short run still counts as useful practice. The pace moved around, which is normal while you are building rhythm and learning how the first minutes feel. Heart-rate data was not available, so this note only talks about rhythm, not effort.',
+  nextAction: 'Make the first few minutes almost too easy.',
+);
+
+const _normalSteadyHrAvailableInterpretation = CoachingSummarySnapshot(
+  source: CoachingSummarySource.ruleBased,
+  interpretationId: CoachingInterpretationId.steadyEffortInterpretation,
+  headline: 'A steady rhythm run',
+  message:
+      'You kept a controlled rhythm in the available pace data. Heart-rate data was recorded, but this summary does not turn it into detailed effort labels. The main takeaway is steady pacing, which is useful for beginner consistency.',
+  nextAction: 'Repeat the same calm start on your next easy run.',
+);
+
+const _normalSteadyHrUnavailableInterpretation = CoachingSummarySnapshot(
+  source: CoachingSummarySource.ruleBased,
+  interpretationId: CoachingInterpretationId.steadyEffortInterpretation,
+  headline: 'A steady rhythm run',
+  message:
+      'The available pace data supports a steady rhythm today. That is a useful beginner signal because repeatable pacing is easier to build on than a single quick split. Heart-rate data was not available, so this note avoids guessing how hard it felt.',
+  nextAction: 'Repeat the easy rhythm and keep the start relaxed.',
+);
+
+const _fastStartFadeNoHrInterpretation = CoachingSummarySnapshot(
+  source: CoachingSummarySource.ruleBased,
+  interpretationId: CoachingInterpretationId.paceControlInterpretation,
+  headline: 'A quick start that settled',
+  message:
+      'The available pace data appears quicker early and slower later. That can happen while you are finding a rhythm, especially when the first minutes start a little sharp. Heart-rate data was not available, so this note keeps the focus on pacing only.',
+  nextAction: 'Start the first 5 minutes easier next time.',
+);
+
+const _fastStartFadeHrAvailableInterpretation = CoachingSummarySnapshot(
+  source: CoachingSummarySource.ruleBased,
+  interpretationId: CoachingInterpretationId.paceControlInterpretation,
+  headline: 'A quick start that settled',
+  message:
+      'The pace pattern appears quicker early and slower later, so pacing is the main signal to learn from. Heart-rate data was recorded, but it is not enough for detailed effort labels here. A calmer opening can make the rest of the run easier to read.',
+  nextAction: 'Use calmer first few minutes before settling in.',
+);
+
+const _longerFadeNoHrInterpretation = CoachingSummarySnapshot(
+  source: CoachingSummarySource.ruleBased,
+  interpretationId: CoachingInterpretationId.paceControlInterpretation,
+  headline: 'A longer run with patience',
+  message:
+      'This was a longer beginner run, so the first positive is the amount of time you kept going. The later pace eased, which makes the next lesson about patience at the start. Heart-rate data was not available, so this stays with pacing rather than effort.',
+  nextAction: 'Keep the opening third easier on the next longer run.',
+);
+
+const _longerFadeHrAvailableInterpretation = CoachingSummarySnapshot(
+  source: CoachingSummarySource.ruleBased,
+  interpretationId: CoachingInterpretationId.paceControlInterpretation,
+  headline: 'A longer run with pacing notes',
+  message:
+      'This was a solid amount of beginner running, and that is the first thing to keep. The later pace eased, so the useful lesson is to protect the opening part. Heart-rate data was recorded, but this summary still avoids certainty about effort.',
+  nextAction:
+      'Keep longer runs conversational and start the opening third easy.',
+);
+
+const _strongFinishNoHrInterpretation = CoachingSummarySnapshot(
+  source: CoachingSummarySource.ruleBased,
+  interpretationId: CoachingInterpretationId.pacingAwarenessInterpretation,
+  headline: 'A controlled finish',
+  message:
+      'The available pace data suggests you finished a little stronger. That is a useful pacing note, not a reason to turn every run into a push. Heart-rate data was not available, so this summary does not guess how hard the finish felt.',
+  nextAction: 'Keep the early part relaxed so the finish can stay controlled.',
+);
+
+const _strongFinishHrAvailableInterpretation = CoachingSummarySnapshot(
+  source: CoachingSummarySource.ruleBased,
+  interpretationId: CoachingInterpretationId.pacingAwarenessInterpretation,
+  headline: 'A controlled finish',
+  message:
+      'The available pace data suggests the run finished a little stronger. Heart-rate data was recorded, but it is not enough for intensity labels. The useful takeaway is that a controlled first half can leave room for a steadier finish.',
+  nextAction:
+      'Keep the first half controlled before letting the rhythm settle.',
+);
+
+const _unevenNoHrInterpretation = CoachingSummarySnapshot(
+  source: CoachingSummarySource.ruleBased,
+  interpretationId: CoachingInterpretationId.paceControlInterpretation,
+  headline: 'Rhythm practice for next time',
+  message:
+      'Your rhythm changed across the available pace data. That is common while you are learning how to start and settle into a run. Heart-rate data was not available, so the fairest coaching point is pacing rhythm, not how hard it felt.',
+  nextAction: 'Start almost too easy, then try to hold the rhythm.',
+);
+
+const _unevenHrAvailableInterpretation = CoachingSummarySnapshot(
+  source: CoachingSummarySource.ruleBased,
+  interpretationId: CoachingInterpretationId.paceControlInterpretation,
+  headline: 'Rhythm practice for next time',
+  message:
+      'Your rhythm changed across the available pace data, which gives you something practical to learn from. Heart-rate data was recorded, but it should not be over-read from one average number. The useful next step is a calmer start and steadier breathing.',
+  nextAction:
+      'Start slower and let your breathing settle before changing pace.',
+);
+
+const _importedGraphInterpretation = CoachingSummarySnapshot(
+  source: CoachingSummarySource.ruleBased,
+  interpretationId: CoachingInterpretationId.steadyEffortInterpretation,
+  headline: 'Imported run with useful rhythm data',
+  message:
+      'This imported summary includes enough graph detail to review rhythm without pretending Runiac tracked the run live. The available data can still help you notice whether the run stayed steady. Treat it as a learning note, not an official progression judgement.',
+  nextAction: 'Compare the rhythm and keep the next run easy to repeat.',
+);
+
+const _gpsGraphInterpretation = CoachingSummarySnapshot(
+  source: CoachingSummarySource.ruleBased,
+  interpretationId: CoachingInterpretationId.pacingAwarenessInterpretation,
+  headline: 'Useful pacing detail',
+  message:
+      'This Runiac GPS run has usable pacing detail, so the graph can support a simple rhythm review. It does not prove GPS accuracy or how hard the run felt by itself. The best beginner takeaway is to keep learning how the first few minutes shape the rest.',
+  nextAction: 'Repeat a relaxed start and watch how the rhythm settles.',
+);
+
+const _scalarOnlyInterpretation = CoachingSummarySnapshot(
+  source: CoachingSummarySource.ruleBased,
+  interpretationId: CoachingInterpretationId.scalarOnlyInterpretation,
+  headline: 'A solid summary from core numbers',
+  message:
+      'Your distance, time, and average pace are usable, so this summary can stay focused on the overall run. The pace graph is not available, which means it should not claim a trend or finish pattern. The useful takeaway is completion and repeatability.',
+  nextAction: 'Keep the next run simple and easy to repeat.',
+);
+
+const _dataQualityFallbackInterpretation = CoachingSummarySnapshot(
+  source: CoachingSummarySource.ruleBased,
+  interpretationId: CoachingInterpretationId.dataQualityFallbackInterpretation,
+  headline: 'A careful summary from limited graph detail',
+  message:
+      'The run summary is available, but the graph detail is too limited for a reliable pacing trend. Distance and time can still give you a useful check-in point. This note avoids reading too much into the graph and keeps the next step simple.',
+  nextAction: 'Run easy with GPS ready and let the data settle.',
+);
+
+const _shortValidInterpretation = CoachingSummarySnapshot(
+  source: CoachingSummarySource.ruleBased,
+  interpretationId: CoachingInterpretationId.shortValidInterpretation,
+  headline: 'A useful short start',
+  message:
+      'This was a short but valid run, and that is useful for building the habit. The available data is enough for a simple note, but not a heavy performance judgement. Keep the focus on repeating calm starts before adding much more.',
+  nextAction: 'Repeat a short easy run and keep it relaxed.',
+);
+
+const _basicCompletionInterpretation = CoachingSummarySnapshot(
+  source: CoachingSummarySource.ruleBased,
+  interpretationId: CoachingInterpretationId.basicCompletionInterpretation,
+  headline: 'Good work finishing the run',
+  message:
+      'This run has enough distance, time, and pace data for a simple beginner summary. The safest takeaway is that you completed a measurable run and now have a starting point to repeat. Keep the next step calm and consistent rather than trying to prove anything with speed.',
+  nextAction: 'Keep the next run easy and repeatable.',
+);

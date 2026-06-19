@@ -26,6 +26,8 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSHealthShareUsageDescription</key>
+	<string>Runiac reads Apple Health workouts you choose to share so imported runs can be reviewed before any future save flow.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>Runiac uses your location during an active run, including when the screen is locked or the app is in the background, to keep your distance and route accurate.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>

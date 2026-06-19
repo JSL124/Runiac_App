@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runiac_app/app.dart';
 import 'package:runiac_app/core/theme/runiac_colors.dart';
+import 'package:runiac_app/features/run/domain/models/coaching_summary_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/complete_run_result.dart';
 import 'package:runiac_app/features/run/domain/models/local_run_completion_payload.dart';
 import 'package:runiac_app/features/run/domain/models/progression_display_model.dart';
@@ -46,6 +47,19 @@ final _forbiddenRealActivitySaveCopy = RegExp(
 
 final _forbiddenXpUpdateCompetitiveCopy = RegExp(
   r'leaderboard|rank|ranking|percentile|beat others|division',
+  caseSensitive: false,
+);
+
+const _defaultDemoCoachingHeadline = 'Imported run with steady rhythm';
+const _defaultDemoCoachingMessage =
+    'This demo run gives you enough pace detail for a simple rhythm note. The data suggests a steady run, which is useful for building consistency without chasing speed. Because this is demo/import data, the summary treats it as a learning note rather than a recording made by the app, and it does not judge effort from heart rate.';
+const _defaultDemoNextFocus =
+    'Keep the next easy run calm and repeatable, then compare the rhythm.';
+
+final _forbiddenDemoCoachingCopy = RegExp(
+  r'live GPS|tracked live|heart-rate zone|heart rate zone|zone|fatigue|'
+  r'medical|exhaustion|overtraining|danger|threshold|max-effort|'
+  r'max effort|XP|leaderboard|subscription|Premium',
   caseSensitive: false,
 );
 
@@ -444,10 +458,11 @@ void main() {
     expect(find.text('30:15'), findsNothing);
     expect(find.text('Pace Over Time'), findsOneWidget);
     expect(find.text('Advanced Analysis'), findsOneWidget);
-    expect(find.text('AI Coaching Summary'), findsOneWidget);
+    expect(find.text('Coaching Summary'), findsOneWidget);
+    expect(find.text('AI Coaching Summary'), findsNothing);
     expect(
       find.text(
-        'You started your run today — that still counts. We need a little more movement data to estimate your effort accurately.',
+        'This run has limited data, so the summary stays careful and simple. Completion still matters because it gives you a check-in point. Heart-rate data was not available, and the pace graph is not usable, so this note avoids effort or pacing claims.',
       ),
       findsOneWidget,
     );
@@ -709,21 +724,15 @@ void main() {
     expect(find.text('6%'), findsOneWidget);
     expect(find.text('More Details'), findsOneWidget);
     expect(find.byIcon(Icons.chevron_right_rounded), findsNothing);
-    expect(find.text('AI Coaching Summary'), findsOneWidget);
-    expect(
-      find.text(
-        'Great job completing today\'s planned run! You maintained a steady pace and finished feeling in control. Consistency like this builds a strong foundation.',
-      ),
-      findsOneWidget,
-    );
-    expect(find.text('Next Run Tip'), findsOneWidget);
+    expect(find.text('Coaching Summary'), findsOneWidget);
+    expect(find.text('AI Coaching Summary'), findsNothing);
+    expect(find.text(_defaultDemoCoachingMessage), findsOneWidget);
+    expect(find.text(_defaultDemoCoachingHeadline), findsOneWidget);
+    expect(find.text('Next Run Tip'), findsNothing);
+    expect(find.text('Next Focus'), findsOneWidget);
+    expect(find.text('Next Action'), findsNothing);
     expect(find.text('Next Run Tip:'), findsNothing);
-    expect(
-      find.text(
-        'Try a 5-minute dynamic warmup before your next run to help your body move more easily.',
-      ),
-      findsOneWidget,
-    );
+    expect(find.text(_defaultDemoNextFocus), findsOneWidget);
     expect(find.widgetWithText(OutlinedButton, 'Share Route'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'View XP Update'), findsOneWidget);
     expect(find.textContaining(_forbiddenRealActivitySaveCopy), findsNothing);
@@ -802,6 +811,120 @@ void main() {
     expect(find.widgetWithText(OutlinedButton, 'Share Route'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'View XP Update'), findsOneWidget);
   });
+
+  testWidgets(
+    'View summary renders deterministic coaching summary without AI label by default',
+    (WidgetTester tester) async {
+      _useTallSummarySurface(tester);
+
+      await tester.pumpWidget(const MaterialApp(home: ViewSummaryScreen()));
+
+      expect(find.text('Coaching Summary'), findsOneWidget);
+      expect(find.text('AI Coaching Summary'), findsNothing);
+      expect(find.text(_defaultDemoCoachingHeadline), findsOneWidget);
+      expect(find.text(_defaultDemoCoachingMessage), findsOneWidget);
+      expect(find.text('Next Focus'), findsOneWidget);
+      expect(find.text('Next Action'), findsNothing);
+      expect(find.text(_defaultDemoNextFocus), findsOneWidget);
+      expect(
+        _defaultDemoCoachingMessage.split(RegExp(r'\s+')),
+        hasLength(inInclusiveRange(35, 80)),
+      );
+      expect(
+        RegExp(r'[.!?]').allMatches(_defaultDemoCoachingMessage),
+        hasLength(inInclusiveRange(2, 4)),
+      );
+      expect(
+        _defaultDemoCoachingMessage,
+        isNot(contains(_forbiddenDemoCoachingCopy)),
+      );
+    },
+  );
+
+  testWidgets('ui_renders_multisentence_coaching_message', (
+    WidgetTester tester,
+  ) async {
+    _useTallSummarySurface(tester);
+
+    const message =
+        'This was a short but useful run. The available pace points suggest a steady rhythm, which is a good sign for building consistency. Since heart-rate data was not available, the safest takeaway is your pacing rhythm rather than how hard it felt.';
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: ViewSummaryScreen(
+          summary: RunSummarySnapshot(
+            title: 'Short Steady Run',
+            dateLabel: 'Today',
+            timeLabel: '7:10 AM',
+            distanceKm: '0.72',
+            avgPace: '7’20”',
+            duration: '5:45',
+            avgHeartRate: '--',
+            calories: '43',
+            routeName: 'Private route',
+            coachingSummary: CoachingSummarySnapshot(
+              source: CoachingSummarySource.ruleBased,
+              headline: 'A short, steady start',
+              message: message,
+              nextAction:
+                  'Next time, add a few easy minutes while keeping the same calm start.',
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Coaching Summary'), findsOneWidget);
+    expect(find.text('A short, steady start'), findsOneWidget);
+    expect(find.text(message), findsOneWidget);
+    expect(find.text('Next Focus'), findsOneWidget);
+    expect(find.text('Next Action'), findsNothing);
+    expect(
+      find.text(
+        'Next time, add a few easy minutes while keeping the same calm start.',
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets(
+    'View summary maps AI source to AI Coaching Summary only when explicitly returned',
+    (WidgetTester tester) async {
+      _useTallSummarySurface(tester);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ViewSummaryScreen(
+            summary: defaultRunSummarySnapshot.copyWith(
+              coachingSummary: const CoachingSummarySnapshot(
+                source: CoachingSummarySource.aiGenerated,
+                headline: 'AI source summary headline',
+                message:
+                    'This synthetic summary is supplied only by an explicit AI source.',
+                bullets: ['Synthetic AI bullet from returned model.'],
+                nextAction: 'Use returned model copy only.',
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('AI Coaching Summary'), findsOneWidget);
+      expect(find.text('Coaching Summary'), findsNothing);
+      expect(find.text('AI source summary headline'), findsOneWidget);
+      expect(
+        find.text(
+          'This synthetic summary is supplied only by an explicit AI source.',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.text('Synthetic AI bullet from returned model.'),
+        findsOneWidget,
+      );
+      expect(find.text('Use returned model copy only.'), findsOneWidget);
+    },
+  );
 
   testWidgets(
     'View summary renders completed route preview when route exists',
@@ -1232,11 +1355,18 @@ void main() {
 
     expect(find.text('Runiac GPS'), findsOneWidget);
     expect(find.text('Avg Heart Rate'), findsOneWidget);
+    expect(find.text('--'), findsOneWidget);
     expect(find.text('-- bpm'), findsNothing);
     expect(
       find.text('Heart rate unavailable for Runiac GPS runs.'),
-      findsOneWidget,
+      findsNothing,
     );
+    expect(
+      find.text('Heart rate was not shared by this source.'),
+      findsNothing,
+    );
+    expect(find.text('Pace Over Time'), findsOneWidget);
+    expect(find.text('Advanced Analysis'), findsOneWidget);
 
     await tester.pumpWidget(
       const MaterialApp(
@@ -1290,10 +1420,16 @@ void main() {
     );
 
     expect(find.text('Health Connect'), findsOneWidget);
+    expect(find.text('Avg Heart Rate'), findsOneWidget);
+    expect(find.text('--'), findsOneWidget);
     expect(find.text('-- bpm'), findsNothing);
     expect(
       find.text('Heart rate was not shared by this source.'),
-      findsOneWidget,
+      findsNothing,
+    );
+    expect(
+      find.text('Heart rate unavailable for Runiac GPS runs.'),
+      findsNothing,
     );
   });
 
@@ -1321,6 +1457,13 @@ void main() {
               calories: '--',
               routeName: 'Easy local route',
               hasSufficientData: false,
+              coachingSummary: CoachingSummarySnapshot(
+                source: CoachingSummarySource.ruleBased,
+                headline: 'A simple check-in run',
+                message:
+                    'This run has limited data, so the summary stays careful and simple. Completion still matters because it gives you a check-in point. Heart-rate data was not available, and the pace graph is not usable, so this note avoids effort or pacing claims.',
+                nextAction: 'Try one short easy run with GPS ready.',
+              ),
             ),
             progressionDisplay: ProgressionDisplayModel(
               xpDelta: 0,
@@ -1351,10 +1494,11 @@ void main() {
     expect(find.text('0.02'), findsOneWidget);
     expect(find.text('0:35'), findsOneWidget);
     expect(find.text('--'), findsNWidgets(3));
-    expect(find.text('AI Coaching Summary'), findsOneWidget);
+    expect(find.text('Coaching Summary'), findsOneWidget);
+    expect(find.text('AI Coaching Summary'), findsNothing);
     expect(
       find.text(
-        'You started your run today — that still counts. We need a little more movement data to estimate your effort accurately.',
+        'This run has limited data, so the summary stays careful and simple. Completion still matters because it gives you a check-in point. Heart-rate data was not available, and the pace graph is not usable, so this note avoids effort or pacing claims.',
       ),
       findsOneWidget,
     );

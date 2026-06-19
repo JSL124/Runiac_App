@@ -1,3 +1,4 @@
+import 'coaching_summary_snapshot.dart';
 import 'pace_graph_snapshot.dart';
 import 'run_route_snapshot.dart';
 import 'run_source_display.dart';
@@ -18,6 +19,14 @@ class RunSummarySnapshot {
     this.route = RunRouteSnapshot.empty,
     this.sourceType = RunSourceType.runiacGps,
     this.heartRateAvailability = HeartRateAvailability.unavailableNoSensor,
+    this.coachingSummary = const CoachingSummarySnapshot(
+      source: CoachingSummarySource.ruleBased,
+      interpretationId: CoachingInterpretationId.basicCompletionInterpretation,
+      headline: 'Good work finishing the run',
+      message:
+          'This run has enough distance, time, and pace data for a simple beginner summary. The safest takeaway is that you completed a measurable run and now have a starting point to repeat. Keep the next step calm and consistent rather than trying to prove anything with speed.',
+      nextAction: 'Keep the next run easy and repeatable.',
+    ),
   });
 
   final String title;
@@ -34,6 +43,7 @@ class RunSummarySnapshot {
   final RunRouteSnapshot route;
   final RunSourceType sourceType;
   final HeartRateAvailability heartRateAvailability;
+  final CoachingSummarySnapshot coachingSummary;
 
   String get dateTimeLabel => '$dateLabel · $timeLabel';
   String get sourceLabel => sourceType.label;
@@ -44,6 +54,7 @@ class RunSummarySnapshot {
     RunRouteSnapshot? route,
     RunSourceType? sourceType,
     HeartRateAvailability? heartRateAvailability,
+    CoachingSummarySnapshot? coachingSummary,
   }) {
     return RunSummarySnapshot(
       title: title,
@@ -61,6 +72,7 @@ class RunSummarySnapshot {
       sourceType: sourceType ?? this.sourceType,
       heartRateAvailability:
           heartRateAvailability ?? this.heartRateAvailability,
+      coachingSummary: coachingSummary ?? this.coachingSummary,
     );
   }
 }

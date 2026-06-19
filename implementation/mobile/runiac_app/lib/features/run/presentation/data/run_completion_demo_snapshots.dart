@@ -1,3 +1,4 @@
+import '../../domain/models/coaching_summary_snapshot.dart';
 import '../../domain/models/run_summary_snapshot.dart';
 import '../../domain/models/run_source_display.dart';
 import '../../domain/models/xp_update_display_model.dart';
@@ -17,6 +18,15 @@ const defaultRunSummarySnapshot = RunSummarySnapshot(
   sourceType: RunSourceType.demoImport,
   heartRateAvailability: HeartRateAvailability.available,
   paceGraph: normalEasyRunPaceGraph,
+  coachingSummary: CoachingSummarySnapshot(
+    source: CoachingSummarySource.ruleBased,
+    interpretationId: CoachingInterpretationId.steadyEffortInterpretation,
+    headline: 'Imported run with steady rhythm',
+    message:
+        'This demo run gives you enough pace detail for a simple rhythm note. The data suggests a steady run, which is useful for building consistency without chasing speed. Because this is demo/import data, the summary treats it as a learning note rather than a recording made by the app, and it does not judge effort from heart rate.',
+    nextAction:
+        'Keep the next easy run calm and repeatable, then compare the rhythm.',
+  ),
 );
 
 /// Display-only result labels for the static run completion surface.

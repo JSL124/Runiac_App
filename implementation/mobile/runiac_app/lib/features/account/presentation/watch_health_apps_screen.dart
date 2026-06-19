@@ -3,9 +3,16 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/runiac_back_header.dart';
 import '../../../core/widgets/runiac_buttons.dart';
+import '../../run/data/apple_health_workout_import_repository.dart';
+import '../../run/domain/repositories/health_workout_import_repository.dart';
 
-class WatchHealthAppsScreen extends StatelessWidget {
-  const WatchHealthAppsScreen({super.key});
+class WatchHealthAppsScreen extends StatefulWidget {
+  const WatchHealthAppsScreen({
+    super.key,
+    this.appleHealthRepository = const AppleHealthWorkoutImportRepository(),
+  });
+
+  final HealthWorkoutImportRepository appleHealthRepository;
 
   static const _rowHeight = 80.0;
   static const _horizontalInset = 16.0;
@@ -35,6 +42,7 @@ class WatchHealthAppsScreen extends StatelessWidget {
       icon: Icons.favorite_border_rounded,
       title: 'Apple Health',
       description: 'Bring in completed runs from Apple Health later.',
+      checksAppleHealth: true,
     ),
     _WatchHealthRowData(
       icon: Icons.health_and_safety_outlined,
@@ -47,6 +55,13 @@ class WatchHealthAppsScreen extends StatelessWidget {
       description: 'Use health app sync for Garmin runs later.',
     ),
   ];
+
+  @override
+  State<WatchHealthAppsScreen> createState() => _WatchHealthAppsScreenState();
+}
+
+class _WatchHealthAppsScreenState extends State<WatchHealthAppsScreen> {
+  bool _isCheckingAppleHealth = false;
 
   @override
   Widget build(BuildContext context) {
@@ -71,15 +86,16 @@ class WatchHealthAppsScreen extends StatelessWidget {
                   padding: const EdgeInsets.fromLTRB(0, 8, 0, 28),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: const [
-                      _WatchHealthSection(
+                    children: [
+                      const _WatchHealthSection(
                         label: 'MANAGE DEVICES',
-                        rows: _manageDeviceRows,
+                        rows: WatchHealthAppsScreen._manageDeviceRows,
                       ),
-                      SizedBox(height: 16),
+                      const SizedBox(height: 16),
                       _WatchHealthSection(
                         label: 'SERVICES',
-                        rows: _serviceRows,
+                        rows: WatchHealthAppsScreen._serviceRows,
+                        onAppleHealthTap: _checkAppleHealth,
                       ),
                     ],
                   ),
@@ -91,13 +107,43 @@ class WatchHealthAppsScreen extends StatelessWidget {
       ),
     );
   }
+
+  Future<void> _checkAppleHealth(BuildContext context) async {
+    if (_isCheckingAppleHealth) {
+      return;
+    }
+    _isCheckingAppleHealth = true;
+    try {
+      final candidates = await widget.appleHealthRepository
+          .listRecentRunningWorkouts();
+      if (!context.mounted) {
+        return;
+      }
+      final message = candidates.isEmpty
+          ? 'No Apple Health runs found yet.'
+          : 'Found ${candidates.length} Apple Health runs.';
+      _showSnackBar(context, message);
+    } catch (_) {
+      if (!context.mounted) {
+        return;
+      }
+      _showSnackBar(context, 'Apple Health is not available right now.');
+    } finally {
+      _isCheckingAppleHealth = false;
+    }
+  }
 }
 
 class _WatchHealthSection extends StatelessWidget {
-  const _WatchHealthSection({required this.label, required this.rows});
+  const _WatchHealthSection({
+    required this.label,
+    required this.rows,
+    this.onAppleHealthTap,
+  });
 
   final String label;
   final List<_WatchHealthRowData> rows;
+  final Future<void> Function(BuildContext context)? onAppleHealthTap;
 
   @override
   Widget build(BuildContext context) {
@@ -112,7 +158,7 @@ class _WatchHealthSection extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         for (var index = 0; index < rows.length; index++) ...[
-          _WatchHealthRow(row: rows[index]),
+          _WatchHealthRow(row: rows[index], onAppleHealthTap: onAppleHealthTap),
         ],
       ],
     );
@@ -120,9 +166,10 @@ class _WatchHealthSection extends StatelessWidget {
 }
 
 class _WatchHealthRow extends StatelessWidget {
-  const _WatchHealthRow({required this.row});
+  const _WatchHealthRow({required this.row, this.onAppleHealthTap});
 
   final _WatchHealthRowData row;
+  final Future<void> Function(BuildContext context)? onAppleHealthTap;
 
   @override
   Widget build(BuildContext context) {
@@ -135,11 +182,11 @@ class _WatchHealthRow extends StatelessWidget {
         horizontal: WatchHealthAppsScreen._horizontalInset,
       ),
       onTap: () {
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(
-            const SnackBar(content: Text('Health connections come next.')),
-          );
+        if (row.checksAppleHealth && onAppleHealthTap != null) {
+          onAppleHealthTap!(context);
+          return;
+        }
+        _showSnackBar(context, 'Health connections come next.');
       },
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -235,9 +282,17 @@ class _WatchHealthRowData {
     required this.icon,
     required this.title,
     required this.description,
+    this.checksAppleHealth = false,
   });
 
   final IconData icon;
   final String title;
   final String description;
+  final bool checksAppleHealth;
+}
+
+void _showSnackBar(BuildContext context, String message) {
+  ScaffoldMessenger.of(context)
+    ..hideCurrentSnackBar()
+    ..showSnackBar(SnackBar(content: Text(message)));
 }

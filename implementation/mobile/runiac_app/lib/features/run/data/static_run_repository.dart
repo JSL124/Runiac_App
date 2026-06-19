@@ -10,6 +10,7 @@ import '../domain/models/xp_update_display_model.dart';
 import '../domain/repositories/run_repository.dart';
 import '../domain/services/completed_run_title_formatter.dart';
 import '../domain/services/pace_graph_data_builder.dart';
+import '../domain/services/rule_based_coaching_summary_engine.dart';
 import '../domain/services/run_calories_estimator.dart';
 import '../presentation/data/run_completion_demo_snapshots.dart';
 
@@ -65,7 +66,7 @@ class StaticRunRepository implements RunRepository {
       durationSeconds: payload.durationSeconds,
       avgPace: avgPace,
     );
-    final summary = RunSummarySnapshot(
+    final baseSummary = RunSummarySnapshot(
       title: const CompletedRunTitleFormatter().format(
         completedAt: payload.completedAt,
       ),
@@ -86,6 +87,11 @@ class StaticRunRepository implements RunRepository {
               averagePaceSecondsPerKm: payload.avgPaceSecondsPerKm,
             )
           : const PaceGraphSnapshot.unavailable(),
+    );
+    final summary = baseSummary.copyWith(
+      coachingSummary: const RuleBasedCoachingSummaryEngine().build(
+        baseSummary,
+      ),
     );
 
     return CompleteRunResult(

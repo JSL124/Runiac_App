@@ -12,6 +12,7 @@ import 'package:runiac_app/features/leaderboard/domain/repositories/leaderboard_
 import 'package:runiac_app/features/maps/data/static_shared_routes_repository.dart';
 import 'package:runiac_app/features/maps/domain/repositories/shared_routes_repository.dart';
 import 'package:runiac_app/features/run/data/static_run_repository.dart';
+import 'package:runiac_app/features/run/domain/models/coaching_summary_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/local_run_completion_payload.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_repository.dart';
 import 'package:runiac_app/features/run/domain/services/pace_graph_data_builder.dart';
@@ -19,6 +20,19 @@ import 'package:runiac_app/features/you/data/static_activity_history_repository.
 import 'package:runiac_app/features/you/data/static_expert_plans_repository.dart';
 import 'package:runiac_app/features/you/domain/repositories/activity_history_repository.dart';
 import 'package:runiac_app/features/you/domain/repositories/expert_plans_repository.dart';
+
+const _defaultDemoCoachingHeadline = 'Imported run with steady rhythm';
+const _defaultDemoCoachingMessage =
+    'This demo run gives you enough pace detail for a simple rhythm note. The data suggests a steady run, which is useful for building consistency without chasing speed. Because this is demo/import data, the summary treats it as a learning note rather than a recording made by the app, and it does not judge effort from heart rate.';
+const _defaultDemoNextFocus =
+    'Keep the next easy run calm and repeatable, then compare the rhythm.';
+
+final _forbiddenDefaultDemoCoachingCopy = RegExp(
+  r'live GPS|tracked live|heart-rate zone|heart rate zone|zone|fatigue|'
+  r'medical|exhaustion|overtraining|danger|threshold|max-effort|'
+  r'max effort|XP|leaderboard|subscription|Premium',
+  caseSensitive: false,
+);
 
 void main() {
   group('Repository contracts', () {
@@ -230,6 +244,40 @@ void main() {
       expect(summary.routeName, 'East Coast Park Loop');
       expect(completion.xpUpdate.earnedXpLabel, '+120 XP');
       expect(completion.xpUpdate.streakChangeLabel, '5 → 6 days');
+      expect(completion.summary.sourceLabel, 'Demo import');
+      expect(
+        completion.summary.coachingSummary.source,
+        CoachingSummarySource.ruleBased,
+      );
+      expect(
+        completion.summary.coachingSummary.interpretationId,
+        CoachingInterpretationId.steadyEffortInterpretation,
+      );
+      expect(
+        completion.summary.coachingSummary.headline,
+        _defaultDemoCoachingHeadline,
+      );
+      expect(
+        completion.summary.coachingSummary.message,
+        _defaultDemoCoachingMessage,
+      );
+      expect(
+        completion.summary.coachingSummary.nextAction,
+        _defaultDemoNextFocus,
+      );
+      expect(completion.summary.coachingSummary.bullets, isEmpty);
+      expect(
+        completion.summary.coachingSummary.message.split(RegExp(r'\s+')),
+        hasLength(inInclusiveRange(35, 80)),
+      );
+      expect(
+        RegExp(r'[.!?]').allMatches(completion.summary.coachingSummary.message),
+        hasLength(inInclusiveRange(2, 4)),
+      );
+      expect(
+        completion.summary.coachingSummary.message,
+        isNot(contains(_forbiddenDefaultDemoCoachingCopy)),
+      );
       expect(completedRun.activityId, 'static-local-session-20260614-0700');
       expect(
         completedRun.summaryId,
@@ -281,6 +329,43 @@ void main() {
         'Heart rate unavailable for Runiac GPS runs.',
       );
     });
+
+    test(
+      'completeRun returns deterministic rule-based coaching summary',
+      () async {
+        final repository = StaticRunRepository();
+
+        final completedRun = await repository.completeRun(
+          _localRunCompletionPayload(
+            sessionId: 'rule-based-coaching-session',
+            distanceMeters: 3200,
+            durationSeconds: 1500,
+            paceSecondsPerKm: 469,
+          ),
+        );
+
+        expect(
+          completedRun.summary.coachingSummary.source,
+          CoachingSummarySource.ruleBased,
+        );
+        expect(
+          completedRun.summary.coachingSummary.sectionTitle,
+          'Coaching Summary',
+        );
+        expect(
+          completedRun.summary.coachingSummary.interpretationId,
+          CoachingInterpretationId.scalarOnlyInterpretation,
+        );
+        expect(completedRun.summary.coachingSummary.headline, isNotEmpty);
+        expect(completedRun.summary.coachingSummary.message, isNotEmpty);
+        expect(completedRun.summary.coachingSummary.bullets, isEmpty);
+        expect(
+          completedRun.summary.coachingSummary.message.split(RegExp(r'\s+')),
+          hasLength(greaterThanOrEqualTo(35)),
+        );
+        expect(completedRun.summary.coachingSummary.nextAction, isNotEmpty);
+      },
+    );
 
     test(
       'completeRun returns zero summary values for zero run payloads',

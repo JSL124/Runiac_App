@@ -16,5 +16,6 @@ import UIKit
       forPlugin: "RuniacLiveActivityChannel"
     ) else { return }
     RuniacLiveActivityChannel.register(with: registrar.messenger())
+    RuniacHealthKitImportChannel.register(with: registrar.messenger())
   }
 }
