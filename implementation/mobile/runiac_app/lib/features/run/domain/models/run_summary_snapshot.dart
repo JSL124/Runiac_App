@@ -21,9 +21,15 @@ class RunSummarySnapshot {
     this.heartRateAvailability = HeartRateAvailability.unavailableNoSensor,
     this.coachingSummary = const CoachingSummarySnapshot(
       source: CoachingSummarySource.ruleBased,
-      headline: 'Good work finishing this run',
-      message: 'This summary uses the run data available on this device.',
-      nextAction: 'Keep your next run easy and comfortable.',
+      interpretationId: CoachingInterpretationId.basicCompletionInterpretation,
+      headline: 'Good work finishing the run',
+      message:
+          'This was a completed beginner running effort with enough data for a simple summary.',
+      bullets: [
+        'What went well: You finished a measurable run.',
+        'What to improve: Build consistency by repeating an easy effort.',
+      ],
+      nextAction: 'Keep the next run easy and repeatable.',
     ),
   });
 

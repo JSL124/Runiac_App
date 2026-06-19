@@ -305,8 +305,21 @@ void main() {
           completedRun.summary.coachingSummary.sectionTitle,
           'Coaching Summary',
         );
+        expect(
+          completedRun.summary.coachingSummary.interpretationId,
+          CoachingInterpretationId.scalarOnlyInterpretation,
+        );
         expect(completedRun.summary.coachingSummary.headline, isNotEmpty);
         expect(completedRun.summary.coachingSummary.message, isNotEmpty);
+        expect(completedRun.summary.coachingSummary.bullets, hasLength(2));
+        expect(
+          completedRun.summary.coachingSummary.bullets.first,
+          startsWith('What went well: '),
+        );
+        expect(
+          completedRun.summary.coachingSummary.bullets.last,
+          startsWith('What to improve: '),
+        );
         expect(completedRun.summary.coachingSummary.nextAction, isNotEmpty);
       },
     );

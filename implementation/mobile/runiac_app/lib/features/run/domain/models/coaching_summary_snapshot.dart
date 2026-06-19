@@ -10,15 +10,29 @@ enum CoachingSummarySource {
   }
 }
 
+enum CoachingInterpretationId {
+  lowDataInterpretation,
+  shortValidInterpretation,
+  basicCompletionInterpretation,
+  pacingAwarenessInterpretation,
+  paceControlInterpretation,
+  steadyEffortInterpretation,
+  scalarOnlyInterpretation,
+  dataQualityFallbackInterpretation,
+}
+
 class CoachingSummarySnapshot {
   const CoachingSummarySnapshot({
     required CoachingSummarySource source,
+    CoachingInterpretationId interpretationId =
+        CoachingInterpretationId.basicCompletionInterpretation,
     required String headline,
     required String message,
     required String nextAction,
     List<String> bullets = const [],
   }) : this._(
          source: source,
+         interpretationId: interpretationId,
          headline: headline,
          message: message,
          nextAction: nextAction,
@@ -27,6 +41,7 @@ class CoachingSummarySnapshot {
 
   const CoachingSummarySnapshot._({
     required this.source,
+    required this.interpretationId,
     required this.headline,
     required this.message,
     required this.nextAction,
@@ -34,6 +49,7 @@ class CoachingSummarySnapshot {
   });
 
   final CoachingSummarySource source;
+  final CoachingInterpretationId interpretationId;
   final String headline;
   final String message;
   final List<String> _bullets;

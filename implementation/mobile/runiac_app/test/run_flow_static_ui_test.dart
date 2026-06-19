@@ -714,17 +714,16 @@ void main() {
     expect(find.text('Coaching Summary'), findsOneWidget);
     expect(find.text('AI Coaching Summary'), findsNothing);
     expect(
-      find.text('This summary uses the run data available on this device.'),
+      find.text(
+        'This was a completed beginner running effort with enough data for a simple summary.',
+      ),
       findsOneWidget,
     );
-    expect(find.text('Good work finishing this run'), findsOneWidget);
+    expect(find.text('Good work finishing the run'), findsOneWidget);
     expect(find.text('Next Run Tip'), findsNothing);
     expect(find.text('Next Action'), findsOneWidget);
     expect(find.text('Next Run Tip:'), findsNothing);
-    expect(
-      find.text('Keep your next run easy and comfortable.'),
-      findsOneWidget,
-    );
+    expect(find.text('Keep the next run easy and repeatable.'), findsOneWidget);
     expect(find.widgetWithText(OutlinedButton, 'Share Route'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'View XP Update'), findsOneWidget);
     expect(find.textContaining(_forbiddenRealActivitySaveCopy), findsNothing);
@@ -813,14 +812,16 @@ void main() {
 
       expect(find.text('Coaching Summary'), findsOneWidget);
       expect(find.text('AI Coaching Summary'), findsNothing);
-      expect(find.text('Good work finishing this run'), findsOneWidget);
+      expect(find.text('Good work finishing the run'), findsOneWidget);
       expect(
-        find.text('This summary uses the run data available on this device.'),
+        find.text(
+          'This was a completed beginner running effort with enough data for a simple summary.',
+        ),
         findsOneWidget,
       );
       expect(find.text('Next Action'), findsOneWidget);
       expect(
-        find.text('Keep your next run easy and comfortable.'),
+        find.text('Keep the next run easy and repeatable.'),
         findsOneWidget,
       );
     },
@@ -1402,7 +1403,8 @@ void main() {
                 message:
                     'This run has limited run data, so the summary stays simple. Your effort still counts.',
                 bullets: [
-                  'Use it as a gentle check-in, not a full run analysis.',
+                  'What went well: You started and created a check-in point.',
+                  'What to improve: Aim for a little more time or distance with GPS ready.',
                 ],
                 nextAction: 'Try one short easy run with GPS ready.',
               ),

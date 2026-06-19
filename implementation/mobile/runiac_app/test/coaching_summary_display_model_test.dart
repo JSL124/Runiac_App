@@ -3,69 +3,56 @@ import 'package:runiac_app/features/run/domain/models/coaching_summary_snapshot.
 
 void main() {
   group('CoachingSummarySnapshot', () {
-    test('maps coaching summary source to safe section titles', () {
-      const ruleBasedSummary = CoachingSummarySnapshot(
+    test('keeps rule-based label while exposing interpretation metadata', () {
+      const summary = CoachingSummarySnapshot(
         source: CoachingSummarySource.ruleBased,
-        headline: 'Nice steady effort',
-        message: 'You kept this run simple and complete.',
-        nextAction: 'Keep the next run easy.',
+        interpretationId: CoachingInterpretationId.steadyEffortInterpretation,
+        headline: 'You kept a controlled rhythm',
+        message: 'The available pace data stayed fairly steady.',
+        bullets: [
+          'What went well: Your rhythm looked consistent.',
+          'What to improve: Repeat the easy consistency.',
+        ],
+        nextAction: 'Repeat an easy run with the same relaxed rhythm.',
       );
 
-      const aiGeneratedSummary = CoachingSummarySnapshot(
-        source: CoachingSummarySource.aiGenerated,
-        headline: 'Detailed coaching insight',
-        message: 'A trusted backend returned this AI-backed summary.',
-        nextAction: 'Review the next planned run.',
+      expect(summary.sectionTitle, 'Coaching Summary');
+      expect(
+        summary.interpretationId,
+        CoachingInterpretationId.steadyEffortInterpretation,
       );
-
-      expect(ruleBasedSummary.sectionTitle, 'Coaching Summary');
-      expect(aiGeneratedSummary.sectionTitle, 'AI Coaching Summary');
     });
 
-    test('keeps source metadata separate from entitlement authority', () {
+    test('maps AI source label only from explicit source metadata', () {
       const summary = CoachingSummarySnapshot(
         source: CoachingSummarySource.aiGenerated,
-        headline: 'Backend supplied summary',
-        message: 'The source describes display metadata already returned.',
-        nextAction: 'Render the returned copy.',
+        interpretationId:
+            CoachingInterpretationId.basicCompletionInterpretation,
+        headline: 'Returned AI headline',
+        message: 'Returned AI message.',
+        nextAction: 'Use returned copy only.',
       );
 
-      expect(summary.source, CoachingSummarySource.aiGenerated);
       expect(summary.sectionTitle, 'AI Coaching Summary');
-      expect(
-        CoachingSummarySource.values.map((source) => source.name),
-        isNot(contains('premium')),
-      );
-      expect(
-        CoachingSummarySource.values.map((source) => source.name),
-        isNot(contains('subscription')),
-      );
-      expect(
-        CoachingSummarySource.values.map((source) => source.name),
-        isNot(contains('userRole')),
-      );
-      expect(
-        CoachingSummarySource.values.map((source) => source.name),
-        isNot(contains('openAi')),
-      );
     });
 
-    test('exposes optional bullets as an unmodifiable display list', () {
-      final bullets = ['Start easy', 'Keep the next run relaxed'];
-      final summary = CoachingSummarySnapshot(
+    test('returns immutable bullets from the display model', () {
+      const summary = CoachingSummarySnapshot(
         source: CoachingSummarySource.ruleBased,
-        headline: 'Good finish',
-        message: 'This summary can carry a few concise coaching points.',
-        bullets: bullets,
-        nextAction: 'Repeat one comfortable run.',
+        headline: 'Good work finishing the run',
+        message: 'This was a completed beginner running effort.',
+        bullets: [
+          'What went well: You finished a measurable run.',
+          'What to improve: Build consistency with easy efforts.',
+        ],
+        nextAction: 'Keep the next run easy and repeatable.',
       );
 
-      expect(summary.bullets, ['Start easy', 'Keep the next run relaxed']);
       expect(
-        () => summary.bullets.add('Mutated bullet'),
+        () => summary.bullets.add('Unexpected mutation.'),
         throwsUnsupportedError,
       );
-      expect(summary.sectionTitle, 'Coaching Summary');
+      expect(summary.bullets, hasLength(2));
     });
   });
 }

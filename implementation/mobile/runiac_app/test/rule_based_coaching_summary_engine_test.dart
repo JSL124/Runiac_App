@@ -6,7 +6,108 @@ import 'package:runiac_app/features/run/domain/services/rule_based_coaching_summ
 
 void main() {
   group('RuleBasedCoachingSummaryEngine', () {
-    test('builds supportive rule-based coaching for sufficient pace data', () {
+    test('returns low-data interpretation before all other rules', () {
+      final coaching = const RuleBasedCoachingSummaryEngine().build(
+        _summary(
+          distanceKm: '0.03',
+          avgPace: '--',
+          duration: '0:25',
+          calories: '--',
+          hasSufficientData: false,
+          paceGraph: _variablePaceGraph(),
+        ),
+      );
+
+      expect(
+        coaching.interpretationId,
+        CoachingInterpretationId.lowDataInterpretation,
+      );
+      expect(coaching.headline, 'Thanks for getting out there');
+      expect(coaching.message, contains('limited run data'));
+      _expectInterpretationShape(coaching);
+    });
+
+    test('returns short-valid interpretation for sufficient short runs', () {
+      final coaching = const RuleBasedCoachingSummaryEngine().build(
+        _summary(
+          distanceKm: '0.72',
+          duration: '5:45',
+          paceGraph: _variablePaceGraph(),
+        ),
+      );
+
+      expect(
+        coaching.interpretationId,
+        CoachingInterpretationId.shortValidInterpretation,
+      );
+      expect(coaching.headline, 'A solid short start');
+      expect(coaching.message, contains('real but short'));
+      _expectInterpretationShape(coaching);
+    });
+
+    test('returns scalar-only interpretation without graph trend claims', () {
+      final coaching = const RuleBasedCoachingSummaryEngine().build(
+        _summary(paceGraph: const PaceGraphSnapshot.unavailable()),
+      );
+
+      expect(
+        coaching.interpretationId,
+        CoachingInterpretationId.scalarOnlyInterpretation,
+      );
+      expect(coaching.message, contains('distance, time, and average pace'));
+      expect(coaching.message, isNot(contains('graph')));
+      _expectInterpretationShape(coaching);
+    });
+
+    test('returns data-quality fallback for unusable graph data', () {
+      final coaching = const RuleBasedCoachingSummaryEngine().build(
+        _summary(
+          paceGraph: const PaceGraphSnapshot(
+            isAvailable: true,
+            points: [
+              PaceGraphPoint(
+                elapsedSeconds: 0,
+                progressFraction: 0,
+                paceSecondsPerKm: 120,
+              ),
+              PaceGraphPoint(
+                elapsedSeconds: 0,
+                progressFraction: 0.5,
+                paceSecondsPerKm: 1900,
+              ),
+            ],
+            yAxisLabels: ['6:00'],
+            xAxisLabels: ['0'],
+          ),
+        ),
+      );
+
+      expect(
+        coaching.interpretationId,
+        CoachingInterpretationId.dataQualityFallbackInterpretation,
+      );
+      expect(coaching.message, contains('graph detail is too limited'));
+      _expectInterpretationShape(coaching);
+    });
+
+    test('returns pace-control interpretation for wider pace changes', () {
+      final coaching = const RuleBasedCoachingSummaryEngine().build(
+        _summary(paceGraph: _variablePaceGraph()),
+      );
+
+      expect(
+        coaching.interpretationId,
+        CoachingInterpretationId.paceControlInterpretation,
+      );
+      expect(coaching.headline, 'Your pace moved around today');
+      expect(
+        coaching.nextAction,
+        'Begin the next run slower for the first few minutes.',
+      );
+      _expectInterpretationShape(coaching);
+    });
+
+    test('returns steady-effort interpretation for controlled pace spread', () {
       final coaching = const RuleBasedCoachingSummaryEngine().build(
         _summary(
           paceGraph: const PaceGraphSnapshot(
@@ -20,12 +121,12 @@ void main() {
               PaceGraphPoint(
                 elapsedSeconds: 900,
                 progressFraction: 0.5,
-                paceSecondsPerKm: 378,
+                paceSecondsPerKm: 386,
               ),
               PaceGraphPoint(
                 elapsedSeconds: 1800,
                 progressFraction: 1,
-                paceSecondsPerKm: 368,
+                paceSecondsPerKm: 365,
               ),
             ],
             yAxisLabels: ['6:00', '6:30', '7:00'],
@@ -34,133 +135,91 @@ void main() {
         ),
       );
 
-      expect(coaching.source, CoachingSummarySource.ruleBased);
-      expect(coaching.sectionTitle, 'Coaching Summary');
-      expect(coaching.headline, isNotEmpty);
-      expect(coaching.message, contains('pace graph'));
-      expect(coaching.nextAction, 'Keep your next run easy and comfortable.');
-      expect(coaching.bullets, hasLength(1));
-      expect(_allCopy(coaching), isNot(contains(_aiTitle())));
-      expect(_allCopy(coaching), isNot(contains(_blockedCopyTerms())));
-    });
-
-    test('keeps scalar-only coaching away from pace graph claims', () {
-      final coaching = const RuleBasedCoachingSummaryEngine().build(
-        _summary(paceGraph: const PaceGraphSnapshot.unavailable()),
+      expect(
+        coaching.interpretationId,
+        CoachingInterpretationId.steadyEffortInterpretation,
       );
-
-      expect(coaching.source, CoachingSummarySource.ruleBased);
-      expect(coaching.sectionTitle, 'Coaching Summary');
-      expect(_allCopy(coaching), isNot(contains('pace graph')));
-      expect(_allCopy(coaching), contains('distance, time, and average pace'));
+      expect(coaching.headline, 'You kept a controlled rhythm');
+      _expectInterpretationShape(coaching);
     });
 
-    test('keeps low-data coaching honest and non-shaming', () {
+    test(
+      'returns pacing-awareness interpretation for moderate pace spread',
+      () {
+        final coaching = const RuleBasedCoachingSummaryEngine().build(
+          _summary(
+            paceGraph: const PaceGraphSnapshot(
+              isAvailable: true,
+              points: [
+                PaceGraphPoint(
+                  elapsedSeconds: 0,
+                  progressFraction: 0,
+                  paceSecondsPerKm: 372,
+                ),
+                PaceGraphPoint(
+                  elapsedSeconds: 900,
+                  progressFraction: 0.5,
+                  paceSecondsPerKm: 410,
+                ),
+                PaceGraphPoint(
+                  elapsedSeconds: 1800,
+                  progressFraction: 1,
+                  paceSecondsPerKm: 392,
+                ),
+              ],
+              yAxisLabels: ['6:00', '6:30', '7:00'],
+              xAxisLabels: ['0', '15', '30'],
+            ),
+          ),
+        );
+
+        expect(
+          coaching.interpretationId,
+          CoachingInterpretationId.pacingAwarenessInterpretation,
+        );
+        expect(coaching.headline, 'You have pacing data to learn from');
+        _expectInterpretationShape(coaching);
+      },
+    );
+
+    test('returns basic completion interpretation as defensive fallback', () {
       final coaching = const RuleBasedCoachingSummaryEngine().build(
         _summary(
-          distanceKm: '0.03',
           avgPace: '--',
-          duration: '0:25',
-          calories: '--',
-          hasSufficientData: false,
           paceGraph: const PaceGraphSnapshot.unavailable(),
         ),
       );
 
-      final copy = _allCopy(coaching);
-
-      expect(coaching.source, CoachingSummarySource.ruleBased);
-      expect(coaching.sectionTitle, 'Coaching Summary');
-      expect(copy, contains('limited run data'));
-      expect(copy, contains('still counts'));
-      expect(coaching.nextAction, 'Try one short easy run with GPS ready.');
-      expect(copy, isNot(contains(_blockedCopyTerms())));
-      expect(copy, isNot(contains(_unavailableMetricTerms())));
-    });
-
-    test('avoids shame guilt and aggressive pressure claims', () {
-      final outputs = [
-        const RuleBasedCoachingSummaryEngine().build(_summary()),
-        const RuleBasedCoachingSummaryEngine().build(
-          _summary(paceGraph: PaceGraphSnapshot.unavailable()),
-        ),
-        const RuleBasedCoachingSummaryEngine().build(
-          _summary(hasSufficientData: false, avgPace: '--'),
-        ),
-      ];
-
-      for (final coaching in outputs) {
-        expect(_allCopy(coaching), isNot(contains(_blockedCopyTerms())));
-      }
-    });
-
-    test('always returns rule-based source in v1', () {
-      final summaries = [
-        _summary(),
-        _summary(paceGraph: const PaceGraphSnapshot.unavailable()),
-        _summary(hasSufficientData: false, avgPace: '--'),
-      ];
-
-      for (final summary in summaries) {
-        expect(
-          const RuleBasedCoachingSummaryEngine().build(summary).source,
-          CoachingSummarySource.ruleBased,
-        );
-      }
-    });
-
-    test('avoids forbidden copy and unavailable metric claims', () {
-      final outputs = [
-        const RuleBasedCoachingSummaryEngine().build(_summary()),
-        const RuleBasedCoachingSummaryEngine().build(
-          _summary(paceGraph: PaceGraphSnapshot.unavailable()),
-        ),
-        const RuleBasedCoachingSummaryEngine().build(
-          _summary(hasSufficientData: false, avgPace: '--'),
-        ),
-      ];
-      final forbidden = RegExp(
-        [
-          _aiTitle(),
-          'sha'
-              'me',
-          'gu'
-              'ilt',
-          'cru'
-              'sh',
-          'des'
-              'troy',
-          'eli'
-              'te',
-          'guaran'
-              'teed',
-          'fitness'
-              ' improved',
-          'heart'
-              ' rate',
-          'cad'
-              'ence',
-          'elev'
-              'ation',
-          'fati'
-              'gue',
-          'injury'
-              ' risk',
-          'VO'
-              '2',
-          'training'
-              ' load',
-          'race'
-              ' prediction',
-          'med'
-              'ical',
-        ].map(RegExp.escape).join('|'),
-        caseSensitive: false,
+      expect(
+        coaching.interpretationId,
+        CoachingInterpretationId.basicCompletionInterpretation,
       );
+      expect(coaching.headline, 'Good work finishing the run');
+      _expectInterpretationShape(coaching);
+    });
+
+    test('keeps all rulebook copy local-data-only and beginner-safe', () {
+      final outputs = [
+        const RuleBasedCoachingSummaryEngine().build(
+          _summary(hasSufficientData: false, avgPace: '--'),
+        ),
+        const RuleBasedCoachingSummaryEngine().build(
+          _summary(distanceKm: '0.72', duration: '5:45'),
+        ),
+        const RuleBasedCoachingSummaryEngine().build(
+          _summary(paceGraph: PaceGraphSnapshot.unavailable()),
+        ),
+        const RuleBasedCoachingSummaryEngine().build(
+          _summary(paceGraph: _variablePaceGraph()),
+        ),
+      ];
 
       for (final coaching in outputs) {
+        expect(coaching.source, CoachingSummarySource.ruleBased);
         expect(coaching.sectionTitle, 'Coaching Summary');
-        expect(_allCopy(coaching), isNot(contains(forbidden)));
+        expect(_allCopy(coaching), isNot(contains(_blockedCopyTerms())));
+        expect(_allCopy(coaching), isNot(contains(_unavailableMetricTerms())));
+        expect(_allCopy(coaching), isNot(contains(_futureServiceTerms())));
       }
     });
   });
@@ -179,6 +238,16 @@ RunSummarySnapshot _summary({
         elapsedSeconds: 0,
         progressFraction: 0,
         paceSecondsPerKm: 372,
+      ),
+      PaceGraphPoint(
+        elapsedSeconds: 900,
+        progressFraction: 0.5,
+        paceSecondsPerKm: 398,
+      ),
+      PaceGraphPoint(
+        elapsedSeconds: 1800,
+        progressFraction: 1,
+        paceSecondsPerKm: 410,
       ),
     ],
     yAxisLabels: ['6:00', '6:30'],
@@ -200,6 +269,38 @@ RunSummarySnapshot _summary({
   );
 }
 
+PaceGraphSnapshot _variablePaceGraph() {
+  return const PaceGraphSnapshot(
+    isAvailable: true,
+    points: [
+      PaceGraphPoint(
+        elapsedSeconds: 0,
+        progressFraction: 0,
+        paceSecondsPerKm: 360,
+      ),
+      PaceGraphPoint(
+        elapsedSeconds: 900,
+        progressFraction: 0.5,
+        paceSecondsPerKm: 455,
+      ),
+      PaceGraphPoint(
+        elapsedSeconds: 1800,
+        progressFraction: 1,
+        paceSecondsPerKm: 420,
+      ),
+    ],
+    yAxisLabels: ['6:00', '7:00', '8:00'],
+    xAxisLabels: ['0', '15', '30'],
+  );
+}
+
+void _expectInterpretationShape(CoachingSummarySnapshot coaching) {
+  expect(coaching.bullets, hasLength(2));
+  expect(coaching.bullets.first, startsWith('What went well: '));
+  expect(coaching.bullets.last, startsWith('What to improve: '));
+  expect(coaching.nextAction, isNotEmpty);
+}
+
 String _allCopy(CoachingSummarySnapshot coaching) {
   return [
     coaching.sectionTitle,
@@ -210,10 +311,6 @@ String _allCopy(CoachingSummarySnapshot coaching) {
   ].join('\n');
 }
 
-String _aiTitle() =>
-    'AI Coaching'
-    ' Summary';
-
 RegExp _blockedCopyTerms() {
   return RegExp(
     [
@@ -223,18 +320,26 @@ RegExp _blockedCopyTerms() {
           'ilt',
       'fail'
           'ed',
-      'bad pace',
+      'bad'
+          ' pace',
       'po'
           'or',
-      'poor performance',
-      'too slow',
-      'you should have',
-      'not good enough',
+      'poor'
+          ' performance',
+      'too'
+          ' slow',
+      'you should'
+          ' have',
+      'not good'
+          ' enough',
       'we'
           'ak',
-      'push harder',
-      'no excuses',
-      'must improve',
+      'push'
+          ' harder',
+      'no'
+          ' excuses',
+      'must'
+          ' improve',
     ].map(RegExp.escape).join('|'),
     caseSensitive: false,
   );
@@ -243,12 +348,51 @@ RegExp _blockedCopyTerms() {
 RegExp _unavailableMetricTerms() {
   return RegExp(
     [
-      'heart',
+      'heart'
+          ' rate',
       'cad'
           'ence',
       'elev'
           'ation',
-      'injury',
+      'fati'
+          'gue',
+      'injury'
+          ' risk',
+      'VO'
+          '2',
+      'training'
+          ' load',
+      'race'
+          ' prediction',
+      'med'
+          'ical',
+    ].map(RegExp.escape).join('|'),
+    caseSensitive: false,
+  );
+}
+
+RegExp _futureServiceTerms() {
+  return RegExp(
+    [
+      'Open'
+          'AI',
+      'API'
+          ' key',
+      'Bear'
+          'er',
+      'Prem'
+          'ium',
+      'subscrip'
+          'tion',
+      'XP',
+      'leader'
+          'board',
+      'str'
+          'eak',
+      'ra'
+          'nk',
+      'lev'
+          'el',
     ].map(RegExp.escape).join('|'),
     caseSensitive: false,
   );
