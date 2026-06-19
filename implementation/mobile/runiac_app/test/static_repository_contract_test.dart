@@ -12,6 +12,7 @@ import 'package:runiac_app/features/leaderboard/domain/repositories/leaderboard_
 import 'package:runiac_app/features/maps/data/static_shared_routes_repository.dart';
 import 'package:runiac_app/features/maps/domain/repositories/shared_routes_repository.dart';
 import 'package:runiac_app/features/run/data/static_run_repository.dart';
+import 'package:runiac_app/features/run/domain/models/coaching_summary_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/local_run_completion_payload.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_repository.dart';
 import 'package:runiac_app/features/run/domain/services/pace_graph_data_builder.dart';
@@ -281,6 +282,34 @@ void main() {
         'Heart rate unavailable for Runiac GPS runs.',
       );
     });
+
+    test(
+      'completeRun returns deterministic rule-based coaching summary',
+      () async {
+        final repository = StaticRunRepository();
+
+        final completedRun = await repository.completeRun(
+          _localRunCompletionPayload(
+            sessionId: 'rule-based-coaching-session',
+            distanceMeters: 3200,
+            durationSeconds: 1500,
+            paceSecondsPerKm: 469,
+          ),
+        );
+
+        expect(
+          completedRun.summary.coachingSummary.source,
+          CoachingSummarySource.ruleBased,
+        );
+        expect(
+          completedRun.summary.coachingSummary.sectionTitle,
+          'Coaching Summary',
+        );
+        expect(completedRun.summary.coachingSummary.headline, isNotEmpty);
+        expect(completedRun.summary.coachingSummary.message, isNotEmpty);
+        expect(completedRun.summary.coachingSummary.nextAction, isNotEmpty);
+      },
+    );
 
     test(
       'completeRun returns zero summary values for zero run payloads',

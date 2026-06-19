@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runiac_app/app.dart';
 import 'package:runiac_app/core/theme/runiac_colors.dart';
+import 'package:runiac_app/features/run/domain/models/coaching_summary_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/complete_run_result.dart';
 import 'package:runiac_app/features/run/domain/models/local_run_completion_payload.dart';
 import 'package:runiac_app/features/run/domain/models/progression_display_model.dart';
@@ -444,10 +445,11 @@ void main() {
     expect(find.text('30:15'), findsNothing);
     expect(find.text('Pace Over Time'), findsOneWidget);
     expect(find.text('Advanced Analysis'), findsOneWidget);
-    expect(find.text('AI Coaching Summary'), findsOneWidget);
+    expect(find.text('Coaching Summary'), findsOneWidget);
+    expect(find.text('AI Coaching Summary'), findsNothing);
     expect(
       find.text(
-        'You started your run today — that still counts. We need a little more movement data to estimate your effort accurately.',
+        'This run has limited run data, so the summary stays simple. Your effort still counts.',
       ),
       findsOneWidget,
     );
@@ -709,19 +711,18 @@ void main() {
     expect(find.text('6%'), findsOneWidget);
     expect(find.text('More Details'), findsOneWidget);
     expect(find.byIcon(Icons.chevron_right_rounded), findsNothing);
-    expect(find.text('AI Coaching Summary'), findsOneWidget);
+    expect(find.text('Coaching Summary'), findsOneWidget);
+    expect(find.text('AI Coaching Summary'), findsNothing);
     expect(
-      find.text(
-        'Great job completing today\'s planned run! You maintained a steady pace and finished feeling in control. Consistency like this builds a strong foundation.',
-      ),
+      find.text('This summary uses the run data available on this device.'),
       findsOneWidget,
     );
-    expect(find.text('Next Run Tip'), findsOneWidget);
+    expect(find.text('Good work finishing this run'), findsOneWidget);
+    expect(find.text('Next Run Tip'), findsNothing);
+    expect(find.text('Next Action'), findsOneWidget);
     expect(find.text('Next Run Tip:'), findsNothing);
     expect(
-      find.text(
-        'Try a 5-minute dynamic warmup before your next run to help your body move more easily.',
-      ),
+      find.text('Keep your next run easy and comfortable.'),
       findsOneWidget,
     );
     expect(find.widgetWithText(OutlinedButton, 'Share Route'), findsOneWidget);
@@ -802,6 +803,67 @@ void main() {
     expect(find.widgetWithText(OutlinedButton, 'Share Route'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'View XP Update'), findsOneWidget);
   });
+
+  testWidgets(
+    'View summary renders deterministic coaching summary without AI label by default',
+    (WidgetTester tester) async {
+      _useTallSummarySurface(tester);
+
+      await tester.pumpWidget(const MaterialApp(home: ViewSummaryScreen()));
+
+      expect(find.text('Coaching Summary'), findsOneWidget);
+      expect(find.text('AI Coaching Summary'), findsNothing);
+      expect(find.text('Good work finishing this run'), findsOneWidget);
+      expect(
+        find.text('This summary uses the run data available on this device.'),
+        findsOneWidget,
+      );
+      expect(find.text('Next Action'), findsOneWidget);
+      expect(
+        find.text('Keep your next run easy and comfortable.'),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
+    'View summary maps AI source to AI Coaching Summary only when explicitly returned',
+    (WidgetTester tester) async {
+      _useTallSummarySurface(tester);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ViewSummaryScreen(
+            summary: defaultRunSummarySnapshot.copyWith(
+              coachingSummary: const CoachingSummarySnapshot(
+                source: CoachingSummarySource.aiGenerated,
+                headline: 'AI source summary headline',
+                message:
+                    'This synthetic summary is supplied only by an explicit AI source.',
+                bullets: ['Synthetic AI bullet from returned model.'],
+                nextAction: 'Use returned model copy only.',
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('AI Coaching Summary'), findsOneWidget);
+      expect(find.text('Coaching Summary'), findsNothing);
+      expect(find.text('AI source summary headline'), findsOneWidget);
+      expect(
+        find.text(
+          'This synthetic summary is supplied only by an explicit AI source.',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.text('Synthetic AI bullet from returned model.'),
+        findsOneWidget,
+      );
+      expect(find.text('Use returned model copy only.'), findsOneWidget);
+    },
+  );
 
   testWidgets(
     'View summary renders completed route preview when route exists',
@@ -1321,6 +1383,16 @@ void main() {
               calories: '--',
               routeName: 'Easy local route',
               hasSufficientData: false,
+              coachingSummary: CoachingSummarySnapshot(
+                source: CoachingSummarySource.ruleBased,
+                headline: 'Thanks for getting out there',
+                message:
+                    'This run has limited run data, so the summary stays simple. Your effort still counts.',
+                bullets: [
+                  'Use it as a gentle check-in, not a full run analysis.',
+                ],
+                nextAction: 'Try one short easy run with GPS ready.',
+              ),
             ),
             progressionDisplay: ProgressionDisplayModel(
               xpDelta: 0,
@@ -1351,10 +1423,11 @@ void main() {
     expect(find.text('0.02'), findsOneWidget);
     expect(find.text('0:35'), findsOneWidget);
     expect(find.text('--'), findsNWidgets(3));
-    expect(find.text('AI Coaching Summary'), findsOneWidget);
+    expect(find.text('Coaching Summary'), findsOneWidget);
+    expect(find.text('AI Coaching Summary'), findsNothing);
     expect(
       find.text(
-        'You started your run today — that still counts. We need a little more movement data to estimate your effort accurately.',
+        'This run has limited run data, so the summary stays simple. Your effort still counts.',
       ),
       findsOneWidget,
     );

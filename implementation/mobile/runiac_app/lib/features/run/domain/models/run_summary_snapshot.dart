@@ -1,3 +1,4 @@
+import 'coaching_summary_snapshot.dart';
 import 'pace_graph_snapshot.dart';
 import 'run_route_snapshot.dart';
 import 'run_source_display.dart';
@@ -18,6 +19,12 @@ class RunSummarySnapshot {
     this.route = RunRouteSnapshot.empty,
     this.sourceType = RunSourceType.runiacGps,
     this.heartRateAvailability = HeartRateAvailability.unavailableNoSensor,
+    this.coachingSummary = const CoachingSummarySnapshot(
+      source: CoachingSummarySource.ruleBased,
+      headline: 'Good work finishing this run',
+      message: 'This summary uses the run data available on this device.',
+      nextAction: 'Keep your next run easy and comfortable.',
+    ),
   });
 
   final String title;
@@ -34,6 +41,7 @@ class RunSummarySnapshot {
   final RunRouteSnapshot route;
   final RunSourceType sourceType;
   final HeartRateAvailability heartRateAvailability;
+  final CoachingSummarySnapshot coachingSummary;
 
   String get dateTimeLabel => '$dateLabel · $timeLabel';
   String get sourceLabel => sourceType.label;
@@ -44,6 +52,7 @@ class RunSummarySnapshot {
     RunRouteSnapshot? route,
     RunSourceType? sourceType,
     HeartRateAvailability? heartRateAvailability,
+    CoachingSummarySnapshot? coachingSummary,
   }) {
     return RunSummarySnapshot(
       title: title,
@@ -61,6 +70,7 @@ class RunSummarySnapshot {
       sourceType: sourceType ?? this.sourceType,
       heartRateAvailability:
           heartRateAvailability ?? this.heartRateAvailability,
+      coachingSummary: coachingSummary ?? this.coachingSummary,
     );
   }
 }
