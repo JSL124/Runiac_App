@@ -173,16 +173,32 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('RUNNING SETUP'), findsOneWidget);
+    expect(find.text('Current goal'), findsOneWidget);
+    expect(find.text('Build a consistent 10K habit'), findsOneWidget);
+    expect(find.text('Preferred unit'), findsOneWidget);
+    expect(find.text('Kilometers'), findsOneWidget);
+    expect(find.text('Weekly rhythm'), findsOneWidget);
+    expect(find.text('3 gentle sessions / week'), findsOneWidget);
+    expect(find.text('Experience'), findsOneWidget);
+    expect(find.text('Beginner runner'), findsOneWidget);
     expect(find.text('Settings'), findsOneWidget);
     expect(find.text('Privacy & Safety'), findsOneWidget);
     expect(find.text('Notifications'), findsOneWidget);
     expect(find.text('About Runiac'), findsOneWidget);
+    expect(find.text('Watch & Health Apps'), findsNothing);
+    expect(find.text('Connect watch runs later'), findsNothing);
     expect(find.text('Profile settings preview is coming soon.'), findsNothing);
     for (final forbiddenCopy in <String>[
+      'Synced',
+      'HealthKit',
+      'Health Connect',
+      'Garmin',
+      'Connected',
       'logout',
       'delete account',
       'Firebase',
       'Auth',
+      'Signed in',
       'signed in',
       'verified account',
       'location permission',
