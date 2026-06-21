@@ -10,17 +10,11 @@ class AdvancedAnalysisPaceSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const AdvancedAnalysisCard(
+    return const AdvancedAnalysisSection(
+      title: 'Pace Analysis',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          AdvancedAnalysisSectionHeader(
-            title: 'Pace Analysis',
-            icon: Icons.speed_rounded,
-            badge: '86% stable',
-            hotBadge: true,
-          ),
-          SizedBox(height: 16),
           AdvancedAnalysisStatGrid(stats: advancedAnalysisPaceStats),
           SizedBox(height: 16),
           AdvancedAnalysisChartPanel(

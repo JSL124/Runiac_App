@@ -9,16 +9,11 @@ class AdvancedAnalysisElevationSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const AdvancedAnalysisCard(
+    return const AdvancedAnalysisSection(
+      title: 'Elevation Analysis',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          AdvancedAnalysisSectionHeader(
-            title: 'Elevation Analysis',
-            icon: Icons.terrain_rounded,
-            badge: 'Mostly flat',
-          ),
-          SizedBox(height: 16),
           AdvancedAnalysisChartPanel(
             height: 150,
             painter: AdvancedAnalysisElevationChartPainter(),
@@ -40,17 +35,11 @@ class AdvancedAnalysisCadenceSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const AdvancedAnalysisCard(
+    return const AdvancedAnalysisSection(
+      title: 'Running Form / Cadence',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          AdvancedAnalysisSectionHeader(
-            title: 'Running Form / Cadence',
-            icon: Icons.access_time_rounded,
-            badge: 'Good',
-            hotBadge: true,
-          ),
-          SizedBox(height: 16),
           AdvancedAnalysisStatGrid(stats: advancedAnalysisCadenceStats),
           SizedBox(height: 16),
           AdvancedAnalysisChartPanel(

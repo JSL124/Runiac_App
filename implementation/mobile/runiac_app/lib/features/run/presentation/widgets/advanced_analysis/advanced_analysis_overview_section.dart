@@ -9,15 +9,12 @@ class AdvancedAnalysisOverviewSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const AdvancedAnalysisCard(
+    return const AdvancedAnalysisSection(
+      title: 'Performance Overview',
+      useDividers: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          AdvancedAnalysisSectionHeader(
-            title: 'Performance Overview',
-            icon: Icons.wb_sunny_outlined,
-          ),
-          SizedBox(height: 16),
           Row(
             children: [
               AdvancedAnalysisScoreRing(

@@ -11,15 +11,11 @@ class AdvancedAnalysisRecoverySection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AdvancedAnalysisCard(
+    return AdvancedAnalysisSection(
+      title: 'Recovery Recommendation',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const AdvancedAnalysisSectionHeader(
-            title: 'Recovery Recommendation',
-            icon: Icons.access_time_rounded,
-          ),
-          const SizedBox(height: 16),
           const _AdvancedAnalysisRecoveryGrid(),
           const SizedBox(height: 16),
           const _AdvancedAnalysisRecoveryCallout(),

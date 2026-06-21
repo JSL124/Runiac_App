@@ -9,15 +9,11 @@ class AdvancedAnalysisEffortSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const AdvancedAnalysisCard(
+    return const AdvancedAnalysisSection(
+      title: 'Effort & Intensity',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          AdvancedAnalysisSectionHeader(
-            title: 'Effort & Intensity',
-            icon: Icons.show_chart_rounded,
-          ),
-          SizedBox(height: 16),
           Row(
             children: [
               Expanded(

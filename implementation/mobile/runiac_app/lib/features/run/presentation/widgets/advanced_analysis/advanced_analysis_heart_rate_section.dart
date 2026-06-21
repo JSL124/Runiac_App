@@ -9,17 +9,11 @@ class AdvancedAnalysisHeartRateSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const AdvancedAnalysisCard(
+    return const AdvancedAnalysisSection(
+      title: 'Heart Rate Analysis',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          AdvancedAnalysisSectionHeader(
-            title: 'Heart Rate Analysis',
-            icon: Icons.favorite_border_rounded,
-            badge: '72% in zone',
-            hotBadge: true,
-          ),
-          SizedBox(height: 16),
           AdvancedAnalysisStatGrid(stats: advancedAnalysisHeartRateStats),
           SizedBox(height: 18),
           AdvancedAnalysisSubhead('Zone Distribution'),
