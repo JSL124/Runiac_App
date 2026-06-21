@@ -86,6 +86,7 @@ Finder _advancedAnalysisSplitDistanceText(String text) {
         widget.data == text &&
         widget.style?.fontSize == 12 &&
         widget.style?.fontWeight == FontWeight.w800 &&
+        widget.textAlign == null &&
         widget.maxLines == 1 &&
         widget.overflow == TextOverflow.ellipsis;
   });
@@ -856,7 +857,7 @@ void main() {
     expect(find.text('5’58”'), findsNothing);
     expect(find.text('7’05”'), findsNothing);
     expect(find.text('86'), findsNothing);
-    expect(find.text('--'), findsAtLeastNWidgets(14));
+    expect(find.text('--'), findsAtLeastNWidgets(8));
     expect(
       find.byKey(const ValueKey('advanced_analysis_pace_graph_unavailable')),
       findsOneWidget,
@@ -866,11 +867,12 @@ void main() {
     expect(find.text('Pace'), findsOneWidget);
     expect(find.text('Elev'), findsOneWidget);
     expect(find.text('HR'), findsOneWidget);
-    expect(_advancedAnalysisSplitDistanceText('1'), findsOneWidget);
-    expect(_advancedAnalysisSplitDistanceText('2'), findsOneWidget);
-    expect(_advancedAnalysisSplitDistanceText('3'), findsOneWidget);
-    expect(_advancedAnalysisSplitDistanceText('4'), findsOneWidget);
-    expect(_advancedAnalysisSplitDistanceText('0.03'), findsOneWidget);
+    expect(_advancedAnalysisSplitDistanceText('--'), findsOneWidget);
+    expect(_advancedAnalysisSplitDistanceText('1'), findsNothing);
+    expect(_advancedAnalysisSplitDistanceText('2'), findsNothing);
+    expect(_advancedAnalysisSplitDistanceText('3'), findsNothing);
+    expect(_advancedAnalysisSplitDistanceText('4'), findsNothing);
+    expect(_advancedAnalysisSplitDistanceText('0.03'), findsNothing);
     expect(find.text('1 km'), findsNothing);
     expect(find.text('2 km'), findsNothing);
     expect(find.text('3 km'), findsNothing);
@@ -878,12 +880,12 @@ void main() {
     expect(find.text('0.03 km'), findsNothing);
     expect(find.text('4.03 km'), findsNothing);
     expect(find.text('4.03 ...'), findsNothing);
-    expect(find.text('6’24”'), findsOneWidget);
-    expect(find.text('6’33”'), findsOneWidget);
-    expect(find.text('6’41”'), findsOneWidget);
-    expect(find.text('6’21”'), findsOneWidget);
-    expect(find.text('0’16”'), findsOneWidget);
-    expect(find.text('--'), findsAtLeastNWidgets(10));
+    expect(find.text('6’24”'), findsNothing);
+    expect(find.text('6’33”'), findsNothing);
+    expect(find.text('6’41”'), findsNothing);
+    expect(find.text('6’21”'), findsNothing);
+    expect(find.text('0’16”'), findsNothing);
+    expect(find.text('--'), findsAtLeastNWidgets(8));
     expect(
       find.text(
         'Your pace slowed slightly in the middle section but recovered well in the final part.',
@@ -991,11 +993,12 @@ void main() {
     expect(find.text('Pace'), findsOneWidget);
     expect(find.text('Elev'), findsOneWidget);
     expect(find.text('HR'), findsOneWidget);
-    expect(_advancedAnalysisSplitDistanceText('1'), findsOneWidget);
-    expect(_advancedAnalysisSplitDistanceText('2'), findsOneWidget);
-    expect(_advancedAnalysisSplitDistanceText('3'), findsOneWidget);
-    expect(_advancedAnalysisSplitDistanceText('4'), findsOneWidget);
-    expect(_advancedAnalysisSplitDistanceText('0.03'), findsOneWidget);
+    expect(_advancedAnalysisSplitDistanceText('--'), findsOneWidget);
+    expect(_advancedAnalysisSplitDistanceText('1'), findsNothing);
+    expect(_advancedAnalysisSplitDistanceText('2'), findsNothing);
+    expect(_advancedAnalysisSplitDistanceText('3'), findsNothing);
+    expect(_advancedAnalysisSplitDistanceText('4'), findsNothing);
+    expect(_advancedAnalysisSplitDistanceText('0.03'), findsNothing);
     expect(find.text('1 km'), findsNothing);
     expect(find.text('2 km'), findsNothing);
     expect(find.text('3 km'), findsNothing);
@@ -1003,11 +1006,108 @@ void main() {
     expect(find.text('0.03 km'), findsNothing);
     expect(find.text('4.03 km'), findsNothing);
     expect(find.text('4.03 ...'), findsNothing);
-    expect(find.text('6’24”'), findsOneWidget);
-    expect(find.text('6’33”'), findsOneWidget);
-    expect(find.text('6’41”'), findsOneWidget);
-    expect(find.text('6’21”'), findsOneWidget);
-    expect(find.text('0’16”'), findsOneWidget);
+    expect(find.text('6’24”'), findsNothing);
+    expect(find.text('6’33”'), findsNothing);
+    expect(find.text('6’41”'), findsNothing);
+    expect(find.text('6’21”'), findsNothing);
+    expect(find.text('0’16”'), findsNothing);
+    expect(find.text('--'), findsAtLeastNWidgets(7));
+    expect(
+      find.text(
+        'Your pace slowed slightly in the middle section but recovered well in the final part.',
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('View summary renders snapshot-backed split rows', (
+    WidgetTester tester,
+  ) async {
+    _useTallSummarySurface(tester);
+    const snapshotGraph = PaceGraphSnapshot(
+      isAvailable: true,
+      points: [
+        PaceGraphPoint(
+          elapsedSeconds: 0,
+          progressFraction: 0,
+          paceSecondsPerKm: 390,
+          distanceProgressFraction: 0,
+        ),
+        PaceGraphPoint(
+          elapsedSeconds: 360,
+          progressFraction: 0.25,
+          paceSecondsPerKm: 360,
+          distanceProgressFraction: 1 / 4.03,
+        ),
+        PaceGraphPoint(
+          elapsedSeconds: 750,
+          progressFraction: 0.5,
+          paceSecondsPerKm: 390,
+          distanceProgressFraction: 2 / 4.03,
+        ),
+        PaceGraphPoint(
+          elapsedSeconds: 1170,
+          progressFraction: 0.75,
+          paceSecondsPerKm: 420,
+          distanceProgressFraction: 3 / 4.03,
+        ),
+        PaceGraphPoint(
+          elapsedSeconds: 1560,
+          progressFraction: 0.98,
+          paceSecondsPerKm: 390,
+          distanceProgressFraction: 4 / 4.03,
+        ),
+      ],
+      yAxisLabels: ['6:00', '6:30', '7:00'],
+      xAxisLabels: ['0:00', '13:13', '26:26'],
+      distanceAxisLabels: ['0 km', '2 km', '4.03 km'],
+      totalDurationSeconds: 1586,
+    );
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: ViewSummaryScreen(
+          summary: RunSummarySnapshot(
+            title: 'Local Split Run',
+            dateLabel: '4/11/26',
+            timeLabel: '8:10 PM',
+            distanceKm: '4.03 km',
+            avgPace: '6’30” / km',
+            duration: '26:26',
+            avgHeartRate: '--',
+            calories: '212',
+            routeName: 'Private route',
+            paceGraph: snapshotGraph,
+          ),
+        ),
+      ),
+    );
+
+    await tester.ensureVisible(
+      find.widgetWithText(OutlinedButton, 'More Details'),
+    );
+    await tester.tap(find.widgetWithText(OutlinedButton, 'More Details'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Pace Analysis'), findsOneWidget);
+    expect(find.text('Km'), findsOneWidget);
+    expect(find.text('Pace'), findsOneWidget);
+    expect(find.text('Elev'), findsOneWidget);
+    expect(find.text('HR'), findsOneWidget);
+    expect(_advancedAnalysisSplitDistanceText('1'), findsOneWidget);
+    expect(_advancedAnalysisSplitDistanceText('2'), findsOneWidget);
+    expect(_advancedAnalysisSplitDistanceText('3'), findsOneWidget);
+    expect(_advancedAnalysisSplitDistanceText('4'), findsOneWidget);
+    expect(_advancedAnalysisSplitDistanceText('0.03'), findsOneWidget);
+    expect(find.text('6’00”'), findsOneWidget);
+    expect(find.text('6’30”'), findsWidgets);
+    expect(find.text('7’00”'), findsOneWidget);
+    expect(find.text('0’26”'), findsOneWidget);
+    expect(find.text('6’24”'), findsNothing);
+    expect(find.text('6’33”'), findsNothing);
+    expect(find.text('6’41”'), findsNothing);
+    expect(find.text('6’21”'), findsNothing);
+    expect(find.text('0’16”'), findsNothing);
     expect(find.text('--'), findsAtLeastNWidgets(10));
     expect(
       find.text(

@@ -27,7 +27,7 @@ class AdvancedAnalysisPaceSection extends StatelessWidget {
           const SizedBox(height: 16),
           const _AdvancedAnalysisSplitsTitle(),
           const SizedBox(height: 10),
-          const _AdvancedAnalysisSplitTable(),
+          _AdvancedAnalysisSplitTable(analysis: analysis),
           const AdvancedAnalysisInterpretationRow(
             text:
                 'Your pace slowed slightly in the middle section but recovered well in the final part.',
@@ -174,16 +174,19 @@ class _AdvancedAnalysisSplitsTitle extends StatelessWidget {
 }
 
 class _AdvancedAnalysisSplitTable extends StatelessWidget {
-  const _AdvancedAnalysisSplitTable();
+  const _AdvancedAnalysisSplitTable({required this.analysis});
 
   static const double _minFill = 0.32;
   static const double _partialFill = 0.4;
 
+  final AdvancedAnalysisPaceAnalysis? analysis;
+
   @override
   Widget build(BuildContext context) {
+    final rows = _rows;
     final fullSplitPaces = [
-      for (final split in advancedAnalysisSplits)
-        if (!split.partial) _paceSeconds(split.pace),
+      for (final row in rows)
+        if (!row.isPartial) row.barScalePaceSecondsPerKm,
     ].whereType<int>().toList();
     final fastest = fullSplitPaces.isEmpty
         ? null
@@ -196,17 +199,13 @@ class _AdvancedAnalysisSplitTable extends StatelessWidget {
       children: [
         const _AdvancedAnalysisSplitHeader(),
         const Divider(color: advancedAnalysisBlue12, height: 17, thickness: 1),
-        for (var i = 0; i < advancedAnalysisSplits.length; i++) ...[
+        for (var i = 0; i < rows.length; i++) ...[
           _AdvancedAnalysisSplitTableRow(
-            split: advancedAnalysisSplits[i],
-            displayDistance: _displayDistance(advancedAnalysisSplits[i]),
-            fillFraction: _fillFor(
-              advancedAnalysisSplits[i],
-              fastest: fastest,
-              slowest: slowest,
-            ),
+            row: rows[i],
+            displayDistance: _displayDistance(rows[i]),
+            fillFraction: _fillFor(rows[i], fastest: fastest, slowest: slowest),
           ),
-          if (i != advancedAnalysisSplits.length - 1)
+          if (i != rows.length - 1)
             const Divider(
               color: advancedAnalysisBlue07,
               height: 15,
@@ -217,23 +216,77 @@ class _AdvancedAnalysisSplitTable extends StatelessWidget {
     );
   }
 
-  static String _displayDistance(AdvancedAnalysisSplitData split) {
-    if (!split.partial) {
-      return _distanceLabelWithoutUnit(split.km);
+  List<_AdvancedAnalysisSplitRowData> get _rows {
+    final analysis = this.analysis;
+    if (analysis == null) {
+      return [
+        for (final split in advancedAnalysisSplits)
+          _AdvancedAnalysisSplitRowData(
+            distanceLabel: split.km,
+            paceLabel: split.pace,
+            isFastest: split.fastest,
+            isPartial: split.partial,
+            barScalePaceSecondsPerKm: _paceSeconds(split.pace),
+          ),
+      ];
     }
 
-    final totalDistance = _distanceKm(split.km);
-    if (totalDistance == null) {
-      return _distanceLabelWithoutUnit(split.km);
+    final splits = analysis.splits.value;
+    final canRenderSnapshotRows =
+        (analysis.splits.isAvailable ||
+            analysis.splits.availability ==
+                AdvancedAnalysisMetricAvailability.demoOnly) &&
+        splits != null &&
+        splits.isNotEmpty;
+    if (!canRenderSnapshotRows) {
+      return const [_AdvancedAnalysisSplitRowData.unavailable()];
     }
 
-    final completedWholeKm = totalDistance.floorToDouble();
-    final remainingKm = totalDistance - completedWholeKm;
-    if (remainingKm <= 0) {
-      return _distanceLabelWithoutUnit(split.km);
-    }
+    final fastestSeconds = splits
+        .where((split) => !split.isPartial)
+        .map(
+          (split) => split.barScalePaceSecondsPerKm ?? split.paceSecondsPerKm,
+        )
+        .fold<int?>(null, (current, seconds) {
+          if (current == null || seconds < current) {
+            return seconds;
+          }
+          return current;
+        });
+    return [
+      for (final split in splits)
+        _AdvancedAnalysisSplitRowData(
+          distanceLabel: split.distanceLabel,
+          paceLabel: split.paceLabel,
+          elevationLabel: split.elevationLabel,
+          heartRateLabel: split.heartRateLabel,
+          isFastest:
+              !split.isPartial &&
+              fastestSeconds != null &&
+              (split.barScalePaceSecondsPerKm ?? split.paceSecondsPerKm) ==
+                  fastestSeconds,
+          isPartial: split.isPartial,
+          barScalePaceSecondsPerKm:
+              split.barScalePaceSecondsPerKm ?? split.paceSecondsPerKm,
+        ),
+    ];
+  }
 
-    return remainingKm.toStringAsFixed(2);
+  static String _displayDistance(_AdvancedAnalysisSplitRowData row) {
+    final label = row.distanceLabel;
+    if (label.trim() == '--') {
+      return '--';
+    }
+    if (row.isPartial) {
+      final distance = _distanceKm(label);
+      if (distance != null && distance >= 1) {
+        final remainingDistance = distance - distance.floorToDouble();
+        if (remainingDistance > 0) {
+          return remainingDistance.toStringAsFixed(2);
+        }
+      }
+    }
+    return label.trim().replaceFirst(RegExp(r'\s*km$'), '');
   }
 
   static double? _distanceKm(String label) {
@@ -241,24 +294,22 @@ class _AdvancedAnalysisSplitTable extends StatelessWidget {
     if (match == null) {
       return null;
     }
-
     return double.tryParse(match.group(1)!);
   }
 
-  static String _distanceLabelWithoutUnit(String label) {
-    return label.trim().replaceFirst(RegExp(r'\s*km$'), '');
-  }
-
   static double _fillFor(
-    AdvancedAnalysisSplitData split, {
+    _AdvancedAnalysisSplitRowData row, {
     required int? fastest,
     required int? slowest,
   }) {
-    if (split.partial) {
+    if (row.isUnavailable) {
+      return 0;
+    }
+    if (row.isPartial) {
       return _partialFill;
     }
 
-    final seconds = _paceSeconds(split.pace);
+    final seconds = row.barScalePaceSecondsPerKm;
     if (seconds == null || fastest == null || slowest == null) {
       return _minFill;
     }
@@ -333,18 +384,18 @@ class _AdvancedAnalysisSplitHeaderText extends StatelessWidget {
 
 class _AdvancedAnalysisSplitTableRow extends StatelessWidget {
   const _AdvancedAnalysisSplitTableRow({
-    required this.split,
+    required this.row,
     required this.displayDistance,
     required this.fillFraction,
   });
 
-  final AdvancedAnalysisSplitData split;
+  final _AdvancedAnalysisSplitRowData row;
   final String displayDistance;
   final double fillFraction;
 
   @override
   Widget build(BuildContext context) {
-    final paceColor = split.fastest
+    final paceColor = row.isFastest
         ? advancedAnalysisOrange
         : advancedAnalysisInk;
 
@@ -366,7 +417,7 @@ class _AdvancedAnalysisSplitTableRow extends StatelessWidget {
         SizedBox(
           width: 64,
           child: Text(
-            split.pace,
+            row.paceLabel,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
@@ -380,17 +431,17 @@ class _AdvancedAnalysisSplitTableRow extends StatelessWidget {
         Expanded(
           child: _AdvancedAnalysisSplitBar(
             fillFraction: fillFraction,
-            highlighted: split.fastest,
-            partial: split.partial,
+            highlighted: row.isFastest,
+            partial: row.isPartial,
           ),
         ),
-        const SizedBox(
+        SizedBox(
           width: 46,
-          child: _AdvancedAnalysisUnavailableSplitValue(),
+          child: _AdvancedAnalysisUnavailableSplitValue(row.elevationLabel),
         ),
-        const SizedBox(
+        SizedBox(
           width: 38,
-          child: _AdvancedAnalysisUnavailableSplitValue(),
+          child: _AdvancedAnalysisUnavailableSplitValue(row.heartRateLabel),
         ),
       ],
     );
@@ -441,19 +492,56 @@ class _AdvancedAnalysisSplitBar extends StatelessWidget {
 }
 
 class _AdvancedAnalysisUnavailableSplitValue extends StatelessWidget {
-  const _AdvancedAnalysisUnavailableSplitValue();
+  const _AdvancedAnalysisUnavailableSplitValue(this.value);
+
+  final String value;
 
   @override
   Widget build(BuildContext context) {
-    return const Text(
-      '--',
+    return Text(
+      value,
       textAlign: TextAlign.right,
-      style: TextStyle(
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: const TextStyle(
         color: advancedAnalysisBlue45,
         fontSize: 12,
         fontWeight: FontWeight.w800,
         letterSpacing: 0.1,
       ),
     );
+  }
+}
+
+class _AdvancedAnalysisSplitRowData {
+  const _AdvancedAnalysisSplitRowData({
+    required this.distanceLabel,
+    required this.paceLabel,
+    required this.isFastest,
+    required this.isPartial,
+    this.elevationLabel = '--',
+    this.heartRateLabel = '--',
+    this.barScalePaceSecondsPerKm,
+  });
+
+  const _AdvancedAnalysisSplitRowData.unavailable()
+    : distanceLabel = '--',
+      paceLabel = '--',
+      elevationLabel = '--',
+      heartRateLabel = '--',
+      isFastest = false,
+      isPartial = false,
+      barScalePaceSecondsPerKm = null;
+
+  final String distanceLabel;
+  final String paceLabel;
+  final String elevationLabel;
+  final String heartRateLabel;
+  final bool isFastest;
+  final bool isPartial;
+  final int? barScalePaceSecondsPerKm;
+
+  bool get isUnavailable {
+    return distanceLabel == '--' && paceLabel == '--';
   }
 }

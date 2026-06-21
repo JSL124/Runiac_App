@@ -186,6 +186,145 @@ void main() {
       expect(snapshot.pace.paceGraph.isTrustedProduction, isFalse);
     });
 
+    test('derives local GPS split rows from distance-backed pace graph', () {
+      const summary = RunSummarySnapshot(
+        title: 'Local Split Run',
+        dateLabel: 'Today',
+        timeLabel: '7:06 AM',
+        distanceKm: '4.03 km',
+        avgPace: '6’30” / km',
+        duration: '26:26',
+        avgHeartRate: '--',
+        calories: '212 kcal',
+        routeName: 'East Coast Park Loop',
+        paceGraph: PaceGraphSnapshot(
+          isAvailable: true,
+          points: <PaceGraphPoint>[
+            PaceGraphPoint(
+              elapsedSeconds: 0,
+              progressFraction: 0,
+              paceSecondsPerKm: 390,
+              distanceProgressFraction: 0,
+            ),
+            PaceGraphPoint(
+              elapsedSeconds: 360,
+              progressFraction: 0.25,
+              paceSecondsPerKm: 360,
+              distanceProgressFraction: 1 / 4.03,
+            ),
+            PaceGraphPoint(
+              elapsedSeconds: 750,
+              progressFraction: 0.5,
+              paceSecondsPerKm: 390,
+              distanceProgressFraction: 2 / 4.03,
+            ),
+            PaceGraphPoint(
+              elapsedSeconds: 1170,
+              progressFraction: 0.75,
+              paceSecondsPerKm: 420,
+              distanceProgressFraction: 3 / 4.03,
+            ),
+            PaceGraphPoint(
+              elapsedSeconds: 1560,
+              progressFraction: 0.98,
+              paceSecondsPerKm: 390,
+              distanceProgressFraction: 4 / 4.03,
+            ),
+          ],
+          yAxisLabels: <String>['6:00', '6:30', '7:00'],
+          xAxisLabels: <String>['0:00', '13:13', '26:26'],
+          distanceAxisLabels: <String>['0 km', '2 km', '4.03 km'],
+          totalDurationSeconds: 1586,
+        ),
+      );
+
+      final snapshot = builder.fromRunSummary(summary);
+      final splits = snapshot.pace.splits.value!;
+
+      expect(
+        snapshot.pace.splits.availability,
+        AdvancedAnalysisMetricAvailability.available,
+      );
+      expect(
+        snapshot.pace.splits.source,
+        AdvancedAnalysisMetricSource.localGpsDerived,
+      );
+      expect(
+        snapshot.pace.splits.confidence,
+        AdvancedAnalysisMetricConfidence.derived,
+      );
+      expect(splits.map((split) => split.distanceLabel), <String>[
+        '1 km',
+        '2 km',
+        '3 km',
+        '4 km',
+        '0.03 km',
+      ]);
+      expect(splits.map((split) => split.paceLabel), <String>[
+        '6’00”',
+        '6’30”',
+        '7’00”',
+        '6’30”',
+        '0’26”',
+      ]);
+      expect(splits.map((split) => split.paceSecondsPerKm), <int>[
+        360,
+        390,
+        420,
+        390,
+        26,
+      ]);
+      expect(splits.last.isPartial, isTrue);
+      expect(splits.last.elevationLabel, '--');
+      expect(splits.last.heartRateLabel, '--');
+    });
+
+    test('keeps splits unavailable without distance-axis graph metadata', () {
+      const summary = RunSummarySnapshot(
+        title: 'No Distance Axis Run',
+        dateLabel: 'Today',
+        timeLabel: '7:06 AM',
+        distanceKm: '4.03 km',
+        avgPace: '6’30” / km',
+        duration: '26:26',
+        avgHeartRate: '--',
+        calories: '212 kcal',
+        routeName: 'East Coast Park Loop',
+        paceGraph: PaceGraphSnapshot(
+          isAvailable: true,
+          points: <PaceGraphPoint>[
+            PaceGraphPoint(
+              elapsedSeconds: 0,
+              progressFraction: 0,
+              paceSecondsPerKm: 390,
+            ),
+            PaceGraphPoint(
+              elapsedSeconds: 780,
+              progressFraction: 0.5,
+              paceSecondsPerKm: 390,
+            ),
+            PaceGraphPoint(
+              elapsedSeconds: 1560,
+              progressFraction: 1,
+              paceSecondsPerKm: 390,
+            ),
+          ],
+          yAxisLabels: <String>['6:00', '6:30', '7:00'],
+          xAxisLabels: <String>['0:00', '13:00', '26:00'],
+          totalDurationSeconds: 1560,
+        ),
+      );
+
+      final snapshot = builder.fromRunSummary(summary);
+
+      expect(snapshot.pace.splits.isAvailable, isFalse);
+      expect(
+        snapshot.pace.splits.reason,
+        AdvancedAnalysisMetricReason.insufficientPaceSamples,
+      );
+      expect(snapshot.pace.splits.value, isNull);
+    });
+
     test('preserves Health Connect heart rate source identity', () {
       const summary = RunSummarySnapshot(
         title: 'Imported Run',

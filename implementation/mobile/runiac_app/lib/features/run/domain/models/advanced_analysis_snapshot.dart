@@ -148,7 +148,27 @@ class AdvancedAnalysisPaceAnalysis {
   final AdvancedAnalysisMetric<String> slowestPace;
   final AdvancedAnalysisMetric<String> paceStability;
   final AdvancedAnalysisMetric<PaceGraphSnapshot> paceGraph;
-  final AdvancedAnalysisMetric<List<String>> splits;
+  final AdvancedAnalysisMetric<List<AdvancedAnalysisSplitSnapshot>> splits;
+}
+
+class AdvancedAnalysisSplitSnapshot {
+  const AdvancedAnalysisSplitSnapshot({
+    required this.distanceLabel,
+    required this.paceLabel,
+    required this.paceSecondsPerKm,
+    required this.isPartial,
+    this.elevationLabel = '--',
+    this.heartRateLabel = '--',
+    this.barScalePaceSecondsPerKm,
+  });
+
+  final String distanceLabel;
+  final String paceLabel;
+  final int paceSecondsPerKm;
+  final bool isPartial;
+  final String elevationLabel;
+  final String heartRateLabel;
+  final int? barScalePaceSecondsPerKm;
 }
 
 class AdvancedAnalysisHeartRateAnalysis {

@@ -27,9 +27,7 @@ class AdvancedAnalysisSnapshotBuilder {
           reason: AdvancedAnalysisMetricReason.insufficientPaceSamples,
         ),
         paceGraph: _paceGraphMetric(summary),
-        splits: const AdvancedAnalysisMetric<List<String>>.unavailable(
-          reason: AdvancedAnalysisMetricReason.insufficientPaceSamples,
-        ),
+        splits: _splitMetric(summary),
       ),
       heartRate: AdvancedAnalysisHeartRateAnalysis(
         averageHeartRate: _heartRateAverageMetric(summary),
@@ -131,6 +129,189 @@ class AdvancedAnalysisSnapshotBuilder {
     );
   }
 
+  AdvancedAnalysisMetric<List<AdvancedAnalysisSplitSnapshot>> _splitMetric(
+    RunSummarySnapshot summary,
+  ) {
+    final splits = _deriveSplits(summary);
+    if (splits.isEmpty) {
+      return const AdvancedAnalysisMetric<
+        List<AdvancedAnalysisSplitSnapshot>
+      >.unavailable(
+        reason: AdvancedAnalysisMetricReason.insufficientPaceSamples,
+      );
+    }
+    if (summary.sourceType == RunSourceType.demoImport) {
+      return AdvancedAnalysisMetric<List<AdvancedAnalysisSplitSnapshot>>(
+        availability: AdvancedAnalysisMetricAvailability.demoOnly,
+        source: AdvancedAnalysisMetricSource.staticDemo,
+        confidence: AdvancedAnalysisMetricConfidence.demo,
+        value: splits,
+        reason: AdvancedAnalysisMetricReason.demoFixtureOnly,
+      );
+    }
+    return AdvancedAnalysisMetric<
+      List<AdvancedAnalysisSplitSnapshot>
+    >.available(
+      value: splits,
+      source: AdvancedAnalysisMetricSource.localGpsDerived,
+      confidence: AdvancedAnalysisMetricConfidence.derived,
+    );
+  }
+
+  List<AdvancedAnalysisSplitSnapshot> _deriveSplits(
+    RunSummarySnapshot summary,
+  ) {
+    final graph = summary.paceGraph;
+    final totalDurationSeconds = graph.totalDurationSeconds;
+    final totalDistanceKm = _distanceKm(summary.distanceKm);
+    if (!graph.isAvailable ||
+        !graph.hasDistanceAxis ||
+        totalDurationSeconds == null ||
+        totalDistanceKm == null ||
+        totalDistanceKm <= 0) {
+      return const [];
+    }
+
+    final anchors = _splitAnchors(
+      graph: graph,
+      totalDistanceKm: totalDistanceKm,
+      totalDurationSeconds: totalDurationSeconds,
+    );
+    if (anchors.length < 2 || !_isMonotonicDistance(anchors)) {
+      return const [];
+    }
+
+    final splits = <AdvancedAnalysisSplitSnapshot>[];
+    var previousDistanceKm = 0.0;
+    var previousElapsedSeconds = 0;
+    final fullKilometres = totalDistanceKm.floor();
+
+    for (var kilometre = 1; kilometre <= fullKilometres; kilometre += 1) {
+      final elapsedSeconds = _elapsedAtDistance(anchors, kilometre.toDouble());
+      if (elapsedSeconds == null || elapsedSeconds <= previousElapsedSeconds) {
+        return const [];
+      }
+      final segmentSeconds = elapsedSeconds - previousElapsedSeconds;
+      splits.add(
+        AdvancedAnalysisSplitSnapshot(
+          distanceLabel: '$kilometre km',
+          paceLabel: _formatDuration(segmentSeconds),
+          paceSecondsPerKm: segmentSeconds,
+          isPartial: false,
+        ),
+      );
+      previousDistanceKm = kilometre.toDouble();
+      previousElapsedSeconds = elapsedSeconds;
+    }
+
+    final remainingDistanceKm = totalDistanceKm - previousDistanceKm;
+    if (remainingDistanceKm >= 0.01) {
+      final segmentSeconds = totalDurationSeconds - previousElapsedSeconds;
+      if (segmentSeconds <= 0) {
+        return const [];
+      }
+      splits.add(
+        AdvancedAnalysisSplitSnapshot(
+          distanceLabel: '${remainingDistanceKm.toStringAsFixed(2)} km',
+          paceLabel: _formatDuration(segmentSeconds),
+          paceSecondsPerKm: segmentSeconds,
+          isPartial: true,
+        ),
+      );
+    }
+
+    return splits;
+  }
+
+  List<_SplitAnchor> _splitAnchors({
+    required PaceGraphSnapshot graph,
+    required double totalDistanceKm,
+    required int totalDurationSeconds,
+  }) {
+    final anchors = <_SplitAnchor>[
+      const _SplitAnchor(distanceKm: 0, elapsedSeconds: 0),
+    ];
+
+    for (final point in graph.points) {
+      final distanceProgress = point.distanceProgressFraction;
+      if (distanceProgress == null ||
+          distanceProgress < 0 ||
+          distanceProgress > 1 ||
+          point.elapsedSeconds < 0 ||
+          point.elapsedSeconds > totalDurationSeconds) {
+        continue;
+      }
+      anchors.add(
+        _SplitAnchor(
+          distanceKm: distanceProgress * totalDistanceKm,
+          elapsedSeconds: point.elapsedSeconds,
+        ),
+      );
+    }
+
+    anchors.add(
+      _SplitAnchor(
+        distanceKm: totalDistanceKm,
+        elapsedSeconds: totalDurationSeconds,
+      ),
+    );
+    anchors.sort((a, b) {
+      final distanceOrder = a.distanceKm.compareTo(b.distanceKm);
+      if (distanceOrder != 0) {
+        return distanceOrder;
+      }
+      return a.elapsedSeconds.compareTo(b.elapsedSeconds);
+    });
+    return anchors;
+  }
+
+  bool _isMonotonicDistance(List<_SplitAnchor> anchors) {
+    var lastDistanceKm = -1.0;
+    var lastElapsedSeconds = -1;
+    for (final anchor in anchors) {
+      if (anchor.distanceKm < lastDistanceKm ||
+          anchor.elapsedSeconds < lastElapsedSeconds) {
+        return false;
+      }
+      lastDistanceKm = anchor.distanceKm;
+      lastElapsedSeconds = anchor.elapsedSeconds;
+    }
+    return true;
+  }
+
+  int? _elapsedAtDistance(List<_SplitAnchor> anchors, double distanceKm) {
+    for (var index = 1; index < anchors.length; index += 1) {
+      final before = anchors[index - 1];
+      final after = anchors[index];
+      if (distanceKm < before.distanceKm || distanceKm > after.distanceKm) {
+        continue;
+      }
+      final distanceDelta = after.distanceKm - before.distanceKm;
+      if (distanceDelta <= 0) {
+        return after.elapsedSeconds;
+      }
+      final ratio = (distanceKm - before.distanceKm) / distanceDelta;
+      return (before.elapsedSeconds +
+              ratio * (after.elapsedSeconds - before.elapsedSeconds))
+          .round();
+    }
+    return null;
+  }
+
+  double? _distanceKm(String label) {
+    final match = RegExp(r'(\d+(?:\.\d+)?)').firstMatch(label.trim());
+    if (match == null) {
+      return null;
+    }
+    return double.tryParse(match.group(1)!);
+  }
+
+  String _formatDuration(int seconds) {
+    final minutes = seconds ~/ 60;
+    final remainingSeconds = seconds % 60;
+    return '$minutes’${remainingSeconds.toString().padLeft(2, '0')}”';
+  }
+
   AdvancedAnalysisMetric<String> _heartRateAverageMetric(
     RunSummarySnapshot summary,
   ) {
@@ -176,4 +357,11 @@ class AdvancedAnalysisSnapshotBuilder {
     final normalized = valueLabel.trim();
     return normalized.isNotEmpty && normalized != '--';
   }
+}
+
+class _SplitAnchor {
+  const _SplitAnchor({required this.distanceKm, required this.elapsedSeconds});
+
+  final double distanceKm;
+  final int elapsedSeconds;
 }
