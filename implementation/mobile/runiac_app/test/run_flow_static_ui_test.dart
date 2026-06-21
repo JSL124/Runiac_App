@@ -80,6 +80,17 @@ void _useTallSummarySurface(WidgetTester tester) {
   addTearDown(tester.view.reset);
 }
 
+Finder _advancedAnalysisSplitDistanceText(String text) {
+  return find.byWidgetPredicate((widget) {
+    return widget is Text &&
+        widget.data == text &&
+        widget.style?.fontSize == 12 &&
+        widget.style?.fontWeight == FontWeight.w800 &&
+        widget.maxLines == 1 &&
+        widget.overflow == TextOverflow.ellipsis;
+  });
+}
+
 Widget _shareSheetHarness() {
   return MaterialApp(
     home: Scaffold(
@@ -845,14 +856,34 @@ void main() {
     expect(find.text('5’58”'), findsNothing);
     expect(find.text('7’05”'), findsNothing);
     expect(find.text('86'), findsNothing);
-    expect(find.text('--'), findsNWidgets(4));
+    expect(find.text('--'), findsAtLeastNWidgets(14));
     expect(
       find.byKey(const ValueKey('advanced_analysis_pace_graph_unavailable')),
       findsOneWidget,
     );
     expect(find.text('Pace Over Distance'), findsOneWidget);
-    expect(find.text('1 km'), findsOneWidget);
-    expect(find.text('4.03 km'), findsOneWidget);
+    expect(find.text('Km'), findsOneWidget);
+    expect(find.text('Pace'), findsOneWidget);
+    expect(find.text('Elev'), findsOneWidget);
+    expect(find.text('HR'), findsOneWidget);
+    expect(_advancedAnalysisSplitDistanceText('1'), findsOneWidget);
+    expect(_advancedAnalysisSplitDistanceText('2'), findsOneWidget);
+    expect(_advancedAnalysisSplitDistanceText('3'), findsOneWidget);
+    expect(_advancedAnalysisSplitDistanceText('4'), findsOneWidget);
+    expect(_advancedAnalysisSplitDistanceText('0.03'), findsOneWidget);
+    expect(find.text('1 km'), findsNothing);
+    expect(find.text('2 km'), findsNothing);
+    expect(find.text('3 km'), findsNothing);
+    expect(find.text('4 km'), findsNothing);
+    expect(find.text('0.03 km'), findsNothing);
+    expect(find.text('4.03 km'), findsNothing);
+    expect(find.text('4.03 ...'), findsNothing);
+    expect(find.text('6’24”'), findsOneWidget);
+    expect(find.text('6’33”'), findsOneWidget);
+    expect(find.text('6’41”'), findsOneWidget);
+    expect(find.text('6’21”'), findsOneWidget);
+    expect(find.text('0’16”'), findsOneWidget);
+    expect(find.text('--'), findsAtLeastNWidgets(10));
     expect(
       find.text(
         'Your pace slowed slightly in the middle section but recovered well in the final part.',
@@ -956,8 +987,28 @@ void main() {
         ),
       ),
     );
-    expect(find.text('1 km'), findsOneWidget);
-    expect(find.text('4.03 km'), findsOneWidget);
+    expect(find.text('Km'), findsOneWidget);
+    expect(find.text('Pace'), findsOneWidget);
+    expect(find.text('Elev'), findsOneWidget);
+    expect(find.text('HR'), findsOneWidget);
+    expect(_advancedAnalysisSplitDistanceText('1'), findsOneWidget);
+    expect(_advancedAnalysisSplitDistanceText('2'), findsOneWidget);
+    expect(_advancedAnalysisSplitDistanceText('3'), findsOneWidget);
+    expect(_advancedAnalysisSplitDistanceText('4'), findsOneWidget);
+    expect(_advancedAnalysisSplitDistanceText('0.03'), findsOneWidget);
+    expect(find.text('1 km'), findsNothing);
+    expect(find.text('2 km'), findsNothing);
+    expect(find.text('3 km'), findsNothing);
+    expect(find.text('4 km'), findsNothing);
+    expect(find.text('0.03 km'), findsNothing);
+    expect(find.text('4.03 km'), findsNothing);
+    expect(find.text('4.03 ...'), findsNothing);
+    expect(find.text('6’24”'), findsOneWidget);
+    expect(find.text('6’33”'), findsOneWidget);
+    expect(find.text('6’41”'), findsOneWidget);
+    expect(find.text('6’21”'), findsOneWidget);
+    expect(find.text('0’16”'), findsOneWidget);
+    expect(find.text('--'), findsAtLeastNWidgets(10));
     expect(
       find.text(
         'Your pace slowed slightly in the middle section but recovered well in the final part.',
@@ -1926,8 +1977,12 @@ void main() {
     expect(find.text('5’58”'), findsOneWidget);
     expect(find.text('7’05”'), findsOneWidget);
     expect(find.text('86'), findsOneWidget);
-    expect(find.text('1 km'), findsOneWidget);
-    expect(find.text('4.03 km'), findsOneWidget);
+    expect(_advancedAnalysisSplitDistanceText('1'), findsOneWidget);
+    expect(_advancedAnalysisSplitDistanceText('0.03'), findsOneWidget);
+    expect(find.text('1 km'), findsNothing);
+    expect(find.text('0.03 km'), findsNothing);
+    expect(find.text('4.03 km'), findsNothing);
+    expect(find.text('4.03 ...'), findsNothing);
     final demoPacePainters = tester
         .widgetList<CustomPaint>(find.byType(CustomPaint))
         .map((paint) => paint.painter)
