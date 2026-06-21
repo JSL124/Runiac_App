@@ -27,10 +27,15 @@ class PaceGraphDataBuilder {
     required int distanceMeters,
     int? averagePaceSecondsPerKm,
   }) {
-    final validSamples = _validIncreasingSamples(samples);
-    if (durationSeconds < 60 ||
-        distanceMeters < 50 ||
-        validSamples.length < 3) {
+    if (durationSeconds < 60 || distanceMeters < 50) {
+      return const PaceGraphSnapshot.unavailable();
+    }
+
+    final validSamples = _validIncreasingSamples(
+      samples,
+      durationSeconds: durationSeconds,
+    );
+    if (validSamples.length < 3) {
       return const PaceGraphSnapshot.unavailable();
     }
 
@@ -38,17 +43,21 @@ class PaceGraphDataBuilder {
       samples: validSamples,
       durationSeconds: durationSeconds,
     );
-    if (displaySamples.length < 3) {
+    final lineSamples = _validLineSamples(
+      displaySamples,
+      durationSeconds: durationSeconds,
+    );
+    if (lineSamples.length < 3) {
       return const PaceGraphSnapshot.unavailable();
     }
 
-    final paceValues = displaySamples
+    final paceValues = lineSamples
         .map((sample) => sample.paceSecondsPerKm)
         .toList();
     final minPace = paceValues.reduce((a, b) => a < b ? a : b);
     final maxPace = paceValues.reduce((a, b) => a > b ? a : b);
     final paceRange = _paceAxisRange(minPace: minPace, maxPace: maxPace);
-    final points = displaySamples.map((sample) {
+    final points = lineSamples.map((sample) {
       final progress = sample.elapsedSeconds / durationSeconds;
       return PaceGraphPoint(
         elapsedSeconds: sample.elapsedSeconds,
@@ -78,21 +87,28 @@ class PaceGraphDataBuilder {
     );
   }
 
-  List<PaceGraphSample> _validIncreasingSamples(List<PaceGraphSample> samples) {
+  List<PaceGraphSample> _validIncreasingSamples(
+    List<PaceGraphSample> samples, {
+    required int durationSeconds,
+  }) {
     final validSamples = <PaceGraphSample>[];
     int? lastElapsed;
 
     for (final sample in samples) {
       final elapsed = sample.elapsedSeconds;
-      if (elapsed < 0 || (lastElapsed != null && elapsed <= lastElapsed)) {
+      if (elapsed < 0 || elapsed > durationSeconds) {
         continue;
       }
-      lastElapsed = elapsed;
 
       final pace = sample.paceSecondsPerKm;
       if (pace < minGraphPaceSecondsPerKm || pace > maxGraphPaceSecondsPerKm) {
         continue;
       }
+      if (lastElapsed != null && elapsed <= lastElapsed) {
+        continue;
+      }
+
+      lastElapsed = elapsed;
       validSamples.add(sample);
     }
 
@@ -136,6 +152,35 @@ class PaceGraphDataBuilder {
       last: samples.last,
     );
     return _stabilizeIsolatedPaces(_capDisplaySamples(anchoredSamples));
+  }
+
+  List<PaceGraphSample> _validLineSamples(
+    List<PaceGraphSample> samples, {
+    required int durationSeconds,
+  }) {
+    final lineSamples = <PaceGraphSample>[];
+    int? lastElapsed;
+    double? lastRenderedProgress;
+
+    for (final sample in samples) {
+      final elapsed = sample.elapsedSeconds;
+      if (elapsed < 0 ||
+          elapsed > durationSeconds ||
+          (lastElapsed != null && elapsed <= lastElapsed)) {
+        continue;
+      }
+
+      final progress = (elapsed / durationSeconds).clamp(0.0, 1.0).toDouble();
+      if (lastRenderedProgress != null && progress <= lastRenderedProgress) {
+        continue;
+      }
+
+      lineSamples.add(sample);
+      lastElapsed = elapsed;
+      lastRenderedProgress = progress;
+    }
+
+    return lineSamples;
   }
 
   int _bucketSecondsFor(int durationSeconds) {

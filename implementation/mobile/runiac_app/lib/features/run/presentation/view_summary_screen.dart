@@ -29,7 +29,7 @@ const _rBlue18 = Color(0x2E2F51C8);
 const _rBlue10 = Color(0x1A2F51C8);
 const _rBlue06 = Color(0x0F2F51C8);
 const _cardRadius = 20.0;
-const _paceChartYAxisWidth = 24.0;
+const _paceChartYAxisWidth = 38.0;
 const _paceChartAxisGap = 4.0;
 const _paceChartHorizontalPlotInset = 16.0;
 const _paceChartXAxisLabelWidth = 32.0;
@@ -676,7 +676,7 @@ class _PaceChart extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: yAxisLabels
-                      .map((label) => _AxisLabel(label))
+                      .map((label) => _YAxisLabel(label))
                       .toList(),
                 ),
               ),
@@ -809,11 +809,34 @@ class _AxisLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
+      maxLines: 1,
+      softWrap: false,
       style: const TextStyle(
         color: _rBlue45,
         fontSize: 9,
         fontWeight: FontWeight.w600,
         height: 0.95,
+      ),
+    );
+  }
+}
+
+class _YAxisLabel extends StatelessWidget {
+  const _YAxisLabel(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: _paceChartYAxisWidth,
+      child: Align(
+        alignment: Alignment.centerRight,
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerRight,
+          child: _AxisLabel(text),
+        ),
       ),
     );
   }

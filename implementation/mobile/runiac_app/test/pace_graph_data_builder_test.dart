@@ -301,6 +301,101 @@ void main() {
       },
     );
 
+    test(
+      'build ignores beyond-duration samples before they collapse at right edge',
+      () {
+        final graph = builder.build(
+          samples: const [
+            PaceGraphSample(elapsedSeconds: 0, paceSecondsPerKm: 710),
+            PaceGraphSample(elapsedSeconds: 160, paceSecondsPerKm: 720),
+            PaceGraphSample(elapsedSeconds: 320, paceSecondsPerKm: 730),
+            PaceGraphSample(elapsedSeconds: 452, paceSecondsPerKm: 740),
+            PaceGraphSample(elapsedSeconds: 453, paceSecondsPerKm: 780),
+            PaceGraphSample(elapsedSeconds: 470, paceSecondsPerKm: 840),
+          ],
+          durationSeconds: 452,
+          distanceMeters: 620,
+          averagePaceSecondsPerKm: 729,
+        );
+
+        expect(graph.isAvailable, isTrue);
+        expect(
+          graph.points.every((point) => point.elapsedSeconds <= 452),
+          isTrue,
+        );
+        expect(
+          _hasUniqueRenderedProgress(
+            graph.points.map((point) => point.elapsedSeconds),
+            durationSeconds: 452,
+          ),
+          isTrue,
+        );
+      },
+    );
+
+    test(
+      'build returns unavailable when fewer than three rendered x positions remain',
+      () {
+        final graph = builder.build(
+          samples: const [
+            PaceGraphSample(elapsedSeconds: 0, paceSecondsPerKm: 710),
+            PaceGraphSample(elapsedSeconds: 452, paceSecondsPerKm: 720),
+            PaceGraphSample(elapsedSeconds: 453, paceSecondsPerKm: 760),
+            PaceGraphSample(elapsedSeconds: 470, paceSecondsPerKm: 840),
+          ],
+          durationSeconds: 452,
+          distanceMeters: 620,
+          averagePaceSecondsPerKm: 729,
+        );
+
+        expect(graph.isAvailable, isFalse);
+        expect(graph.points, isEmpty);
+      },
+    );
+
+    test(
+      'invalid same-second samples do not block later valid graph samples',
+      () {
+        final graph = builder.build(
+          samples: const [
+            PaceGraphSample(elapsedSeconds: 30, paceSecondsPerKm: 90),
+            PaceGraphSample(elapsedSeconds: 30, paceSecondsPerKm: 720),
+            PaceGraphSample(elapsedSeconds: 60, paceSecondsPerKm: 730),
+            PaceGraphSample(elapsedSeconds: 90, paceSecondsPerKm: 740),
+          ],
+          durationSeconds: 120,
+          distanceMeters: 260,
+          averagePaceSecondsPerKm: 729,
+        );
+
+        expect(graph.isAvailable, isTrue);
+        expect(graph.points.map((point) => point.elapsedSeconds), [30, 60, 90]);
+        expect(graph.points.map((point) => point.paceSecondsPerKm), [
+          720,
+          730,
+          740,
+        ]);
+      },
+    );
+
+    test('endpoint anchoring does not restore beyond-duration line points', () {
+      final graph = builder.build(
+        samples: const [
+          PaceGraphSample(elapsedSeconds: 0, paceSecondsPerKm: 710),
+          PaceGraphSample(elapsedSeconds: 160, paceSecondsPerKm: 720),
+          PaceGraphSample(elapsedSeconds: 320, paceSecondsPerKm: 730),
+          PaceGraphSample(elapsedSeconds: 470, paceSecondsPerKm: 840),
+        ],
+        durationSeconds: 452,
+        distanceMeters: 620,
+        averagePaceSecondsPerKm: 729,
+      );
+
+      expect(graph.isAvailable, isTrue);
+      expect(graph.points.last.elapsedSeconds, 320);
+      expect(graph.points.every((point) => point.progressFraction < 1), isTrue);
+    });
+
     test('build preserves broad pace trend after smoothing', () {
       final graph = builder.build(
         samples: const [
@@ -534,6 +629,21 @@ bool _isStrictlyIncreasing(Iterable<int> values) {
       return false;
     }
     previous = value;
+  }
+  return true;
+}
+
+bool _hasUniqueRenderedProgress(
+  Iterable<int> elapsedSeconds, {
+  required int durationSeconds,
+}) {
+  final renderedPositions = <double>{};
+  for (final elapsedSecond in elapsedSeconds) {
+    final progress = elapsedSecond / durationSeconds;
+    final renderedProgress = progress.clamp(0.0, 1.0).toDouble();
+    if (!renderedPositions.add(renderedProgress)) {
+      return false;
+    }
   }
   return true;
 }

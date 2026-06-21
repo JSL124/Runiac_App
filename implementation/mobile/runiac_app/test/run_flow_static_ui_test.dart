@@ -9,6 +9,7 @@ import 'package:runiac_app/core/theme/runiac_colors.dart';
 import 'package:runiac_app/features/run/domain/models/coaching_summary_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/complete_run_result.dart';
 import 'package:runiac_app/features/run/domain/models/local_run_completion_payload.dart';
+import 'package:runiac_app/features/run/domain/models/pace_graph_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/progression_display_model.dart';
 import 'package:runiac_app/features/run/domain/models/run_activity_read_model.dart';
 import 'package:runiac_app/features/run/domain/models/run_location_sample.dart';
@@ -1605,6 +1606,57 @@ void main() {
       expect(find.text('More run data needed'), findsNothing);
     },
   );
+
+  testWidgets('View summary keeps slow pace y-axis labels on one line', (
+    WidgetTester tester,
+  ) async {
+    _useTallSummarySurface(tester);
+
+    const slowLabelGraph = PaceGraphSnapshot(
+      isAvailable: true,
+      points: [
+        PaceGraphPoint(
+          elapsedSeconds: 0,
+          progressFraction: 0,
+          paceSecondsPerKm: 710,
+        ),
+        PaceGraphPoint(
+          elapsedSeconds: 226,
+          progressFraction: 0.5,
+          paceSecondsPerKm: 780,
+        ),
+        PaceGraphPoint(
+          elapsedSeconds: 452,
+          progressFraction: 1,
+          paceSecondsPerKm: 860,
+        ),
+      ],
+      yAxisLabels: ['11:50', '15:05', '18:20'],
+      xAxisLabels: ['0:00', '3:00', '7:32'],
+      totalDurationSeconds: 452,
+      averagePaceSecondsPerKm: 729,
+      paceRangeMinSecondsPerKm: 710,
+      paceRangeMaxSecondsPerKm: 1100,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ViewSummaryScreen(
+          summary: defaultRunSummarySnapshot.copyWith(
+            paceGraph: slowLabelGraph,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Pace Over Time'), findsOneWidget);
+    for (final label in ['11:50', '15:05', '18:20']) {
+      final labelFinder = find.text(label);
+      expect(labelFinder, findsOneWidget);
+      expect(tester.getSize(labelFinder).height, lessThanOrEqualTo(11));
+    }
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets(
     'View summary share icon opens Share Your Achievement bottom sheet',
