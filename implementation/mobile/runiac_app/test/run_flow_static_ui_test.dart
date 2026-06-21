@@ -839,6 +839,28 @@ void main() {
     expect(snapshot.performance.duration.isTrustedProduction, isTrue);
     expect(snapshot.performance.score.isTrustedProduction, isFalse);
     expect(snapshot.pace.fastestPace.isTrustedProduction, isFalse);
+    expect(find.text('Pace Analysis'), findsOneWidget);
+    expect(find.text('7’40”'), findsOneWidget);
+    expect(find.text('5’58”'), findsNothing);
+    expect(find.text('7’05”'), findsNothing);
+    expect(find.text('86'), findsNothing);
+    expect(find.text('--'), findsNWidgets(3));
+    expect(find.text('Pace Over Distance'), findsOneWidget);
+    expect(find.text('1 km'), findsOneWidget);
+    expect(find.text('4.03 km'), findsOneWidget);
+    expect(
+      find.text(
+        'Your pace slowed slightly in the middle section but recovered well in the final part.',
+      ),
+      findsOneWidget,
+    );
+
+    await tester.ensureVisible(find.text('Heart Rate Analysis'));
+
+    expect(find.text('145'), findsOneWidget);
+    expect(find.text('158'), findsOneWidget);
+    expect(find.text('130–150'), findsOneWidget);
+    expect(find.text('72'), findsOneWidget);
   });
 
   testWidgets(

@@ -78,7 +78,9 @@ class AdvancedAnalysisScreen extends StatelessWidget {
                     children: [
                       const AdvancedAnalysisOverviewSection(),
                       const SizedBox(height: 14),
-                      const AdvancedAnalysisPaceSection(),
+                      AdvancedAnalysisPaceSection(
+                        analysis: analysisSnapshot?.pace,
+                      ),
                       const SizedBox(height: 14),
                       const AdvancedAnalysisHeartRateSection(),
                       const SizedBox(height: 14),
