@@ -58,13 +58,19 @@ void drawAdvancedAnalysisGrid(
       Offset(x, plot.bottom),
       gridPaint..color = const Color(0x002F51C8),
     );
-    drawAdvancedAnalysisText(
-      canvas,
+    final labelPainter = _createAdvancedAnalysisTextPainter(
       xLabels[i],
-      Offset(x - 10, plot.bottom + 7),
       advancedAnalysisBlue45,
       10,
     );
+    final minLabelX = plot.left;
+    final maxLabelX = math.max(minLabelX, plot.right - labelPainter.width);
+    final labelX = switch (i) {
+      0 => minLabelX,
+      _ when i == xLabels.length - 1 => maxLabelX,
+      _ => (x - labelPainter.width / 2).clamp(minLabelX, maxLabelX).toDouble(),
+    };
+    labelPainter.paint(canvas, Offset(labelX, plot.bottom + 7));
   }
 }
 
@@ -149,7 +155,16 @@ void drawAdvancedAnalysisText(
   Color color,
   double size,
 ) {
-  final painter = TextPainter(
+  final painter = _createAdvancedAnalysisTextPainter(text, color, size);
+  painter.paint(canvas, offset);
+}
+
+TextPainter _createAdvancedAnalysisTextPainter(
+  String text,
+  Color color,
+  double size,
+) {
+  return TextPainter(
     text: TextSpan(
       text: text,
       style: TextStyle(
@@ -160,5 +175,4 @@ void drawAdvancedAnalysisText(
     ),
     textDirection: TextDirection.ltr,
   )..layout();
-  painter.paint(canvas, offset);
 }

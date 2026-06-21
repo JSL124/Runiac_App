@@ -17,9 +17,13 @@ class AdvancedAnalysisElevationSection extends StatelessWidget {
           AdvancedAnalysisChartPanel(
             height: 150,
             painter: AdvancedAnalysisElevationChartPainter(),
+            plain: true,
           ),
           SizedBox(height: 16),
-          AdvancedAnalysisStatGrid(stats: advancedAnalysisElevationStats),
+          AdvancedAnalysisStatGrid(
+            stats: advancedAnalysisElevationStats,
+            plain: true,
+          ),
           AdvancedAnalysisInterpretationRow(
             text:
                 'The route was mostly flat, which helped you maintain a stable pace and steady heart rate.',
@@ -40,11 +44,15 @@ class AdvancedAnalysisCadenceSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          AdvancedAnalysisStatGrid(stats: advancedAnalysisCadenceStats),
+          AdvancedAnalysisStatGrid(
+            stats: advancedAnalysisCadenceStats,
+            plain: true,
+          ),
           SizedBox(height: 16),
           AdvancedAnalysisChartPanel(
             height: 150,
             painter: AdvancedAnalysisCadenceChartPainter(),
+            plain: true,
           ),
           AdvancedAnalysisInterpretationRow(
             text:

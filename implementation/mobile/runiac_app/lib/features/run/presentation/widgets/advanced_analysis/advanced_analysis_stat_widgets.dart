@@ -81,13 +81,22 @@ class AdvancedAnalysisChartPanel extends StatelessWidget {
     super.key,
     required this.height,
     required this.painter,
+    this.plain = false,
   });
 
   final double height;
   final CustomPainter painter;
+  final bool plain;
 
   @override
   Widget build(BuildContext context) {
+    if (plain) {
+      return SizedBox(
+        height: height,
+        child: CustomPaint(painter: painter, child: const SizedBox.expand()),
+      );
+    }
+
     return Container(
       height: height,
       padding: const EdgeInsets.all(12),

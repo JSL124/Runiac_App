@@ -19,28 +19,6 @@ class AdvancedAnalysisRecoverySection extends StatelessWidget {
           const _AdvancedAnalysisRecoveryGrid(),
           const SizedBox(height: 16),
           const _AdvancedAnalysisRecoveryCallout(),
-          const SizedBox(height: 14),
-          FilledButton.icon(
-            onPressed: onStretches,
-            icon: const Icon(Icons.chevron_right_rounded, size: 24),
-            iconAlignment: IconAlignment.end,
-            label: const Text('View Recommended Stretches'),
-            style: FilledButton.styleFrom(
-              backgroundColor: advancedAnalysisOrange,
-              foregroundColor: advancedAnalysisCard,
-              minimumSize: const Size.fromHeight(58),
-              elevation: 8,
-              shadowColor: const Color(0x4DFB6414),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(18),
-              ),
-              textStyle: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.3,
-              ),
-            ),
-          ),
         ],
       ),
     );
@@ -52,18 +30,30 @@ class _AdvancedAnalysisRecoveryGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GridView(
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 1.5,
-        crossAxisSpacing: 9,
-        mainAxisSpacing: 9,
-      ),
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
+    return Column(
       children: [
-        for (final fact in advancedAnalysisRecoveryFacts)
-          _AdvancedAnalysisRecoveryFact(fact: fact),
+        for (var i = 0; i < advancedAnalysisRecoveryFacts.length; i += 2) ...[
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _AdvancedAnalysisRecoveryFact(
+                  fact: advancedAnalysisRecoveryFacts[i],
+                ),
+              ),
+              const SizedBox(width: 18),
+              Expanded(
+                child: i + 1 < advancedAnalysisRecoveryFacts.length
+                    ? _AdvancedAnalysisRecoveryFact(
+                        fact: advancedAnalysisRecoveryFacts[i + 1],
+                      )
+                    : const SizedBox.shrink(),
+              ),
+            ],
+          ),
+          if (i + 2 < advancedAnalysisRecoveryFacts.length)
+            const SizedBox(height: 18),
+        ],
       ],
     );
   }
@@ -76,52 +66,32 @@ class _AdvancedAnalysisRecoveryFact extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: advancedAnalysisSurface,
-        border: Border.all(color: advancedAnalysisBlue10),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Row(
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 4, 4, 6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: const Color(0x0A2F51C8),
-              borderRadius: BorderRadius.circular(13),
+          Text(
+            fact.label.toUpperCase(),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: advancedAnalysisBlue45,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.4,
             ),
-            child: Icon(fact.icon, color: advancedAnalysisBlue, size: 22),
           ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  fact.label.toUpperCase(),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: advancedAnalysisBlue45,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  fact.value,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: advancedAnalysisInk,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ],
+          const SizedBox(height: 6),
+          Text(
+            fact.value,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: advancedAnalysisInk,
+              fontSize: 25,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.7,
             ),
           ),
         ],

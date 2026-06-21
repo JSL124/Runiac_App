@@ -4,7 +4,6 @@ import 'package:runiac_app/core/widgets/runiac_back_header.dart';
 
 import 'widgets/advanced_analysis/advanced_analysis_metric_sections.dart';
 import 'widgets/advanced_analysis/advanced_analysis_overview_section.dart';
-import 'widgets/advanced_analysis/advanced_analysis_recovery_section.dart';
 import 'widgets/advanced_analysis/advanced_analysis_theme.dart';
 import 'widgets/share_achievement_sheet.dart';
 
@@ -27,12 +26,6 @@ class AdvancedAnalysisScreen extends StatelessWidget {
       barrierColor: Colors.black.withValues(alpha: 0.48),
       builder: (context) => const ShareAchievementSheet(),
     );
-  }
-
-  void _showSoon(BuildContext context, String message) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -86,18 +79,9 @@ class AdvancedAnalysisScreen extends StatelessWidget {
                       const SizedBox(height: 14),
                       const AdvancedAnalysisHeartRateSection(),
                       const SizedBox(height: 14),
-                      const AdvancedAnalysisEffortSection(),
-                      const SizedBox(height: 14),
                       const AdvancedAnalysisElevationSection(),
                       const SizedBox(height: 14),
                       const AdvancedAnalysisCadenceSection(),
-                      const SizedBox(height: 14),
-                      AdvancedAnalysisRecoverySection(
-                        onStretches: () => _showSoon(
-                          context,
-                          'Recommended stretches will be available soon.',
-                        ),
-                      ),
                     ],
                   ),
                 ),

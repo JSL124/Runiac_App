@@ -25,6 +25,7 @@ class AdvancedAnalysisPaceSection extends StatelessWidget {
           AdvancedAnalysisChartPanel(
             height: 170,
             painter: AdvancedAnalysisPaceChartPainter(),
+            plain: true,
           ),
           SizedBox(height: 16),
           AdvancedAnalysisSubhead('Splits'),

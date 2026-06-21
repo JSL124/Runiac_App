@@ -1796,10 +1796,8 @@ void main() {
     expect(find.text('Zone 2'), findsOneWidget);
     expect(find.text('Zone 5'), findsOneWidget);
 
-    await tester.ensureVisible(find.text('Recovery Recommendation'));
+    await tester.ensureVisible(find.text('Running Form / Cadence'));
 
-    expect(find.text('Effort & Intensity'), findsOneWidget);
-    expect(find.text('88% · Good'), findsOneWidget);
     expect(find.text('Elevation Analysis'), findsOneWidget);
     expect(find.text('+12'), findsOneWidget);
     expect(find.text('11'), findsOneWidget);
@@ -1807,15 +1805,10 @@ void main() {
     expect(find.text('Running Form / Cadence'), findsOneWidget);
     expect(find.text('164'), findsOneWidget);
     expect(find.text('160–175'), findsOneWidget);
-    expect(find.text('Recovery Recommendation'), findsOneWidget);
-    expect(find.text('Light'), findsOneWidget);
-    expect(find.text('5–8 min'), findsOneWidget);
-    expect(find.text('Drink water'), findsOneWidget);
-    expect(find.text('Ready in 24 hours'), findsOneWidget);
-    expect(
-      find.widgetWithText(FilledButton, 'View Recommended Stretches'),
-      findsOneWidget,
-    );
+    expect(find.text('Recovery Recommendation'), findsNothing);
+    expect(find.text('5–8 min'), findsNothing);
+    expect(find.text('Drink water'), findsNothing);
+    expect(find.text('Ready in 24 hours'), findsNothing);
     expect(find.textContaining(_forbiddenRealActivitySaveCopy), findsNothing);
   });
 
