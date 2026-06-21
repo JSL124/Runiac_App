@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runiac_app/app.dart';
 import 'package:runiac_app/core/theme/runiac_colors.dart';
+import 'package:runiac_app/features/run/domain/models/advanced_analysis_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/coaching_summary_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/complete_run_result.dart';
 import 'package:runiac_app/features/run/domain/models/local_run_completion_payload.dart';
@@ -821,6 +822,23 @@ void main() {
     expect(find.text('Recovery Jog'), findsOneWidget);
     expect(find.text('4/11/26 · 8:10 PM'), findsOneWidget);
     expect(find.text('Saturday Morning Run'), findsNothing);
+
+    final advancedAnalysis = tester.widget<AdvancedAnalysisScreen>(
+      find.byType(AdvancedAnalysisScreen),
+    );
+    final snapshot = advancedAnalysis.analysisSnapshot;
+
+    expect(snapshot, isNotNull);
+    expect(snapshot!.performance.duration.valueLabel, '39:38');
+    expect(snapshot.performance.distance.valueLabel, '5.17');
+    expect(snapshot.pace.averagePace.valueLabel, '7’40”');
+    expect(
+      snapshot.performance.duration.availability,
+      AdvancedAnalysisMetricAvailability.available,
+    );
+    expect(snapshot.performance.duration.isTrustedProduction, isTrue);
+    expect(snapshot.performance.score.isTrustedProduction, isFalse);
+    expect(snapshot.pace.fastestPace.isTrustedProduction, isFalse);
   });
 
   testWidgets(

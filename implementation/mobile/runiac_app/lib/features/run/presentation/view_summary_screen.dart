@@ -12,6 +12,7 @@ import '../domain/models/pace_graph_snapshot.dart';
 import '../domain/models/run_location_sample.dart';
 import '../domain/models/run_route_snapshot.dart';
 import '../domain/models/run_summary_snapshot.dart';
+import '../domain/services/advanced_analysis_snapshot_builder.dart';
 import 'data/run_completion_demo_snapshots.dart';
 import 'widgets/completed_route_map_surface.dart';
 import 'widgets/share_achievement_sheet.dart';
@@ -167,6 +168,9 @@ class ViewSummaryScreen extends StatelessWidget {
                                   builder: (context) => AdvancedAnalysisScreen(
                                     title: displayedSummary.title,
                                     subtitle: displayedSummary.dateTimeLabel,
+                                    analysisSnapshot:
+                                        const AdvancedAnalysisSnapshotBuilder()
+                                            .fromRunSummary(displayedSummary),
                                   ),
                                 ),
                               );

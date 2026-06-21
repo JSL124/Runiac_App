@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:runiac_app/core/theme/runiac_colors.dart';
 import 'package:runiac_app/core/widgets/runiac_back_header.dart';
+import 'package:runiac_app/features/run/domain/models/advanced_analysis_snapshot.dart';
 
 import 'widgets/advanced_analysis/advanced_analysis_metric_sections.dart';
 import 'widgets/advanced_analysis/advanced_analysis_overview_section.dart';
@@ -12,10 +13,12 @@ class AdvancedAnalysisScreen extends StatelessWidget {
     super.key,
     required this.title,
     required this.subtitle,
+    this.analysisSnapshot,
   });
 
   final String title;
   final String subtitle;
+  final AdvancedAnalysisSnapshot? analysisSnapshot;
 
   void _showShareSheet(BuildContext context) {
     showModalBottomSheet<void>(
