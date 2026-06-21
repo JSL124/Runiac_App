@@ -164,8 +164,10 @@ class ViewSummaryScreen extends StatelessWidget {
 
                               Navigator.of(context).push(
                                 MaterialPageRoute<void>(
-                                  builder: (context) =>
-                                      const AdvancedAnalysisScreen(),
+                                  builder: (context) => AdvancedAnalysisScreen(
+                                    title: displayedSummary.title,
+                                    subtitle: displayedSummary.dateTimeLabel,
+                                  ),
                                 ),
                               );
                             },

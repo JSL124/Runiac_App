@@ -811,6 +811,16 @@ void main() {
     expect(find.text('Saturday Morning Run'), findsNothing);
     expect(find.widgetWithText(OutlinedButton, 'Share Route'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'View XP Update'), findsOneWidget);
+
+    await tester.ensureVisible(
+      find.widgetWithText(OutlinedButton, 'More Details'),
+    );
+    await tester.tap(find.widgetWithText(OutlinedButton, 'More Details'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Recovery Jog'), findsOneWidget);
+    expect(find.text('4/11/26 · 8:10 PM'), findsOneWidget);
+    expect(find.text('Saturday Morning Run'), findsNothing);
   });
 
   testWidgets(
@@ -1746,7 +1756,14 @@ void main() {
   testWidgets('Advanced Analysis renders handoff sections and sample values', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const MaterialApp(home: AdvancedAnalysisScreen()));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AdvancedAnalysisScreen(
+          title: defaultRunSummarySnapshot.title,
+          subtitle: defaultRunSummarySnapshot.dateTimeLabel,
+        ),
+      ),
+    );
 
     final scaffold = tester.widget<Scaffold>(find.byType(Scaffold));
     expect(scaffold.backgroundColor, RuniacColors.background);

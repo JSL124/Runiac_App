@@ -6,9 +6,28 @@ import 'widgets/advanced_analysis/advanced_analysis_metric_sections.dart';
 import 'widgets/advanced_analysis/advanced_analysis_overview_section.dart';
 import 'widgets/advanced_analysis/advanced_analysis_recovery_section.dart';
 import 'widgets/advanced_analysis/advanced_analysis_theme.dart';
+import 'widgets/share_achievement_sheet.dart';
 
 class AdvancedAnalysisScreen extends StatelessWidget {
-  const AdvancedAnalysisScreen({super.key});
+  const AdvancedAnalysisScreen({
+    super.key,
+    required this.title,
+    required this.subtitle,
+  });
+
+  final String title;
+  final String subtitle;
+
+  void _showShareSheet(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.48),
+      builder: (context) => const ShareAchievementSheet(),
+    );
+  }
 
   void _showSoon(BuildContext context, String message) {
     ScaffoldMessenger.of(context)
@@ -24,8 +43,8 @@ class AdvancedAnalysisScreen extends StatelessWidget {
         child: Column(
           children: [
             RuniacBackHeader(
-              title: 'Saturday Morning Run',
-              subtitle: 'Today · 7:06 AM',
+              title: title,
+              subtitle: subtitle,
               tooltip: 'Back to summary',
               onBack: () => Navigator.of(context).maybePop(),
               titleStyle: const TextStyle(
@@ -43,10 +62,7 @@ class AdvancedAnalysisScreen extends StatelessWidget {
               ),
               trailing: IconButton(
                 tooltip: 'Share advanced analysis',
-                onPressed: () => _showSoon(
-                  context,
-                  'Advanced analysis sharing will be available soon.',
-                ),
+                onPressed: () => _showShareSheet(context),
                 style: IconButton.styleFrom(
                   foregroundColor: advancedAnalysisBlue,
                   minimumSize: const Size(40, 40),
