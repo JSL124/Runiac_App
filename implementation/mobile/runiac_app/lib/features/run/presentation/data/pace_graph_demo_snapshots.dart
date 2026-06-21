@@ -127,6 +127,51 @@ final gpsSpikeRunPaceGraph = const PaceGraphDataBuilder().build(
   averagePaceSecondsPerKm: 425,
 );
 
+// Manual QA fixture for observed Pace Over Time right-edge spike/y-axis label
+// regression. The points model the fixed rendered output shape: strict elapsed
+// ordering, one final endpoint, and long MM:SS y-axis labels.
+const paceGraphManualQaRegressionGraph = PaceGraphSnapshot(
+  isAvailable: true,
+  points: [
+    PaceGraphPoint(
+      elapsedSeconds: 0,
+      progressFraction: 0,
+      paceSecondsPerKm: 710,
+      displayLabel: '11:50',
+    ),
+    PaceGraphPoint(
+      elapsedSeconds: 226,
+      progressFraction: 0.5,
+      paceSecondsPerKm: 780,
+      displayLabel: '13:00',
+    ),
+    PaceGraphPoint(
+      elapsedSeconds: 452,
+      progressFraction: 1,
+      paceSecondsPerKm: 860,
+      displayLabel: '14:20',
+    ),
+  ],
+  yAxisLabels: ['11:50', '15:05', '18:20'],
+  xAxisLabels: ['0:00', '3:00', '7:32'],
+  totalDurationSeconds: 452,
+  averagePaceSecondsPerKm: 730,
+  bestPacePoint: PaceGraphPoint(
+    elapsedSeconds: 0,
+    progressFraction: 0,
+    paceSecondsPerKm: 710,
+    displayLabel: '11:50',
+  ),
+  slowestPacePoint: PaceGraphPoint(
+    elapsedSeconds: 452,
+    progressFraction: 1,
+    paceSecondsPerKm: 860,
+    displayLabel: '14:20',
+  ),
+  paceRangeMinSecondsPerKm: 710,
+  paceRangeMaxSecondsPerKm: 1100,
+);
+
 PaceGraphSnapshot buildDemoPaceGraph({
   required List<PaceGraphSample> samples,
   required int durationSeconds,

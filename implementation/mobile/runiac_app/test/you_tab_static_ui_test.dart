@@ -448,7 +448,7 @@ void main() {
     expect(find.text('April 2026'), findsOneWidget);
 
     for (final title in const [
-      'Saturday Night Run',
+      'Pace Graph QA Run',
       'Easy Morning Jog',
       'Riverside Recovery',
       'Sunset Loop',
@@ -469,8 +469,16 @@ void main() {
   ) async {
     await _openActivityHistoryFromYou(tester);
 
-    expect(find.text('Saturday Night Run'), findsOneWidget);
-    expect(find.text('Apple Health'), findsOneWidget);
+    expect(find.text('Pace Graph QA Run'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(
+          const ValueKey('activity_history_card_Pace Graph QA Run'),
+        ),
+        matching: find.text('Demo import'),
+      ),
+      findsOneWidget,
+    );
     expect(find.text('Easy Morning Jog'), findsOneWidget);
     expect(find.text('Garmin via Health'), findsOneWidget);
 
@@ -498,17 +506,17 @@ void main() {
         await tester.pumpAndSettle();
       }
 
-      await openHistorySummary('Saturday Night Run');
+      await openHistorySummary('Pace Graph QA Run');
 
-      expect(find.text('Saturday Night Run'), findsOneWidget);
-      expect(find.text('6 Jun 2026 · 9:18 PM'), findsOneWidget);
-      expect(find.text('5.12'), findsOneWidget);
-      expect(find.text('6\'45"'), findsOneWidget);
-      expect(find.text('34:32'), findsWidgets);
+      expect(find.text('Pace Graph QA Run'), findsOneWidget);
+      expect(find.text('Today · Manual QA'), findsOneWidget);
+      expect(find.text('0.62'), findsOneWidget);
+      expect(find.text('12\'10"'), findsOneWidget);
+      expect(find.text('7:32'), findsWidgets);
       expect(find.text('Pace Over Time'), findsOneWidget);
-      expect(find.text('11:00'), findsOneWidget);
-      expect(find.text('23:00'), findsOneWidget);
-      expect(find.text('13:00'), findsNothing);
+      expect(find.text('11:50'), findsOneWidget);
+      expect(find.text('15:05'), findsOneWidget);
+      expect(find.text('18:20'), findsOneWidget);
       expect(find.text('More run data needed'), findsNothing);
       expect(
         find.text('Pace insights will appear after a longer run.'),
