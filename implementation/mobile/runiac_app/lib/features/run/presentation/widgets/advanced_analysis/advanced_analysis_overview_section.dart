@@ -11,7 +11,6 @@ class AdvancedAnalysisOverviewSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return const AdvancedAnalysisSection(
       title: 'Performance Overview',
-      useDividers: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

@@ -1793,7 +1793,8 @@ void main() {
     expect(find.text('158'), findsOneWidget);
     expect(find.text('130–150'), findsOneWidget);
     expect(find.text('72'), findsOneWidget);
-    expect(find.text('Zone 2 Aerobic'), findsOneWidget);
+    expect(find.text('Zone 2'), findsOneWidget);
+    expect(find.text('Zone 5'), findsOneWidget);
 
     await tester.ensureVisible(find.text('Recovery Recommendation'));
 

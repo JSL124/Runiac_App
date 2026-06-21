@@ -14,7 +14,10 @@ class AdvancedAnalysisHeartRateSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          AdvancedAnalysisStatGrid(stats: advancedAnalysisHeartRateStats),
+          AdvancedAnalysisStatGrid(
+            stats: advancedAnalysisHeartRateStats,
+            plain: true,
+          ),
           SizedBox(height: 18),
           AdvancedAnalysisSubhead('Zone Distribution'),
           SizedBox(height: 10),
@@ -37,30 +40,37 @@ class _AdvancedAnalysisZoneBars extends StatelessWidget {
     return const Column(
       children: [
         _AdvancedAnalysisZoneRow(
-          label: 'Zone 1 Easy',
+          label: 'Zone 1',
           percent: 18,
           color: advancedAnalysisBlue22,
           max: 54,
         ),
         SizedBox(height: 10),
         _AdvancedAnalysisZoneRow(
-          label: 'Zone 2 Aerobic',
+          label: 'Zone 2',
           percent: 54,
           color: advancedAnalysisBlue,
           max: 54,
         ),
         SizedBox(height: 10),
         _AdvancedAnalysisZoneRow(
-          label: 'Zone 3 Tempo',
+          label: 'Zone 3',
           percent: 22,
           color: advancedAnalysisBlue60,
           max: 54,
         ),
         SizedBox(height: 10),
         _AdvancedAnalysisZoneRow(
-          label: 'Zone 4 Hard',
+          label: 'Zone 4',
           percent: 6,
           color: advancedAnalysisOrange,
+          max: 54,
+        ),
+        SizedBox(height: 10),
+        _AdvancedAnalysisZoneRow(
+          label: 'Zone 5',
+          percent: 0,
+          color: advancedAnalysisOrange16,
           max: 54,
         ),
       ],

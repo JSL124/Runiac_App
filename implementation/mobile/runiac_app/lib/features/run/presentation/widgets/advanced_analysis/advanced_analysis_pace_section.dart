@@ -15,8 +15,13 @@ class AdvancedAnalysisPaceSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          AdvancedAnalysisStatGrid(stats: advancedAnalysisPaceStats),
-          SizedBox(height: 16),
+          AdvancedAnalysisStatGrid(
+            stats: advancedAnalysisPaceStats,
+            plain: true,
+          ),
+          SizedBox(height: 18),
+          _AdvancedAnalysisPaceGraphTitle(),
+          SizedBox(height: 8),
           AdvancedAnalysisChartPanel(
             height: 170,
             painter: AdvancedAnalysisPaceChartPainter(),
@@ -30,6 +35,23 @@ class AdvancedAnalysisPaceSection extends StatelessWidget {
                 'Your pace slowed slightly in the middle section but recovered well in the final part.',
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _AdvancedAnalysisPaceGraphTitle extends StatelessWidget {
+  const _AdvancedAnalysisPaceGraphTitle();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Text(
+      'Pace Over Distance',
+      style: TextStyle(
+        color: advancedAnalysisBlue60,
+        fontSize: 12,
+        fontWeight: FontWeight.w800,
+        letterSpacing: 0.2,
       ),
     );
   }

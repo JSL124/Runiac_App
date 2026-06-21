@@ -4,12 +4,44 @@ import '../../data/advanced_analysis_demo_snapshots.dart';
 import 'advanced_analysis_theme.dart';
 
 class AdvancedAnalysisStatGrid extends StatelessWidget {
-  const AdvancedAnalysisStatGrid({super.key, required this.stats});
+  const AdvancedAnalysisStatGrid({
+    super.key,
+    required this.stats,
+    this.plain = false,
+  });
 
   final List<AdvancedAnalysisStatData> stats;
+  final bool plain;
 
   @override
   Widget build(BuildContext context) {
+    if (plain) {
+      return Column(
+        children: [
+          for (var i = 0; i < stats.length; i += 2) ...[
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: _AdvancedAnalysisStatTile(stat: stats[i], plain: true),
+                ),
+                const SizedBox(width: 18),
+                Expanded(
+                  child: i + 1 < stats.length
+                      ? _AdvancedAnalysisStatTile(
+                          stat: stats[i + 1],
+                          plain: true,
+                        )
+                      : const SizedBox.shrink(),
+                ),
+              ],
+            ),
+            if (i + 2 < stats.length) const SizedBox(height: 18),
+          ],
+        ],
+      );
+    }
+
     return GridView.count(
       crossAxisCount: 2,
       shrinkWrap: true,
@@ -18,7 +50,8 @@ class AdvancedAnalysisStatGrid extends StatelessWidget {
       crossAxisSpacing: 9,
       mainAxisSpacing: 9,
       children: [
-        for (final stat in stats) _AdvancedAnalysisStatTile(stat: stat),
+        for (final stat in stats)
+          _AdvancedAnalysisStatTile(stat: stat, plain: plain),
       ],
     );
   }
@@ -108,13 +141,72 @@ class AdvancedAnalysisInterpretationRow extends StatelessWidget {
 }
 
 class _AdvancedAnalysisStatTile extends StatelessWidget {
-  const _AdvancedAnalysisStatTile({required this.stat});
+  const _AdvancedAnalysisStatTile({required this.stat, required this.plain});
 
   final AdvancedAnalysisStatData stat;
+  final bool plain;
 
   @override
   Widget build(BuildContext context) {
     final color = stat.hot ? advancedAnalysisOrange : advancedAnalysisInk;
+
+    final content = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          stat.label.toUpperCase(),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: advancedAnalysisBlue45,
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.4,
+          ),
+        ),
+        const SizedBox(height: 6),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Text(
+                stat.value,
+                style: TextStyle(
+                  color: color,
+                  fontSize: stat.value.length > 8 ? 18 : 25,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.7,
+                ),
+              ),
+              if (stat.unit.isNotEmpty) ...[
+                const SizedBox(width: 3),
+                Text(
+                  stat.unit,
+                  style: TextStyle(
+                    color: stat.hot
+                        ? advancedAnalysisOrange
+                        : advancedAnalysisBlue45,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+
+    if (plain) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(4, 4, 4, 6),
+        child: content,
+      );
+    }
 
     return Container(
       padding: const EdgeInsets.fromLTRB(13, 11, 10, 10),
@@ -126,56 +218,7 @@ class _AdvancedAnalysisStatTile extends StatelessWidget {
         ),
         borderRadius: BorderRadius.circular(14),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            stat.label.toUpperCase(),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: advancedAnalysisBlue45,
-              fontSize: 11,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.4,
-            ),
-          ),
-          const SizedBox(height: 6),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.baseline,
-              textBaseline: TextBaseline.alphabetic,
-              children: [
-                Text(
-                  stat.value,
-                  style: TextStyle(
-                    color: color,
-                    fontSize: stat.value.length > 8 ? 18 : 25,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.7,
-                  ),
-                ),
-                if (stat.unit.isNotEmpty) ...[
-                  const SizedBox(width: 3),
-                  Text(
-                    stat.unit,
-                    style: TextStyle(
-                      color: stat.hot
-                          ? advancedAnalysisOrange
-                          : advancedAnalysisBlue45,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ],
-      ),
+      child: content,
     );
   }
 }
