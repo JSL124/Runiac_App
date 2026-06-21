@@ -302,16 +302,16 @@ void main() {
     );
 
     test(
-      'build ignores beyond-duration samples before they collapse at right edge',
+      'filters samples beyond duration before returning pace graph points',
       () {
         final graph = builder.build(
           samples: const [
-            PaceGraphSample(elapsedSeconds: 0, paceSecondsPerKm: 710),
-            PaceGraphSample(elapsedSeconds: 160, paceSecondsPerKm: 720),
-            PaceGraphSample(elapsedSeconds: 320, paceSecondsPerKm: 730),
-            PaceGraphSample(elapsedSeconds: 452, paceSecondsPerKm: 740),
-            PaceGraphSample(elapsedSeconds: 453, paceSecondsPerKm: 780),
-            PaceGraphSample(elapsedSeconds: 470, paceSecondsPerKm: 840),
+            PaceGraphSample(elapsedSeconds: 0, paceSecondsPerKm: 1100),
+            PaceGraphSample(elapsedSeconds: 120, paceSecondsPerKm: 480),
+            PaceGraphSample(elapsedSeconds: 180, paceSecondsPerKm: 720),
+            PaceGraphSample(elapsedSeconds: 452, paceSecondsPerKm: 1100),
+            PaceGraphSample(elapsedSeconds: 453, paceSecondsPerKm: 320),
+            PaceGraphSample(elapsedSeconds: 470, paceSecondsPerKm: 1080),
           ],
           durationSeconds: 452,
           distanceMeters: 620,
@@ -321,6 +321,14 @@ void main() {
         expect(graph.isAvailable, isTrue);
         expect(
           graph.points.every((point) => point.elapsedSeconds <= 452),
+          isTrue,
+        );
+        expect(
+          _isStrictlyIncreasing(
+            graph.points.map((point) {
+              return point.elapsedSeconds;
+            }),
+          ),
           isTrue,
         );
         expect(
