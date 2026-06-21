@@ -4,9 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runiac_app/app.dart';
+import 'package:runiac_app/features/run/domain/models/advanced_analysis_snapshot.dart';
+import 'package:runiac_app/features/run/presentation/advanced_analysis_screen.dart';
 import 'package:runiac_app/features/run/presentation/active_run_session_coordinator.dart';
 import 'package:runiac_app/features/run/presentation/data/pace_graph_demo_snapshots.dart';
 import 'package:runiac_app/features/run/presentation/view_summary_screen.dart';
+import 'package:runiac_app/features/run/presentation/widgets/advanced_analysis/advanced_analysis_charts.dart';
 import 'package:runiac_app/features/you/presentation/data/you_overview_demo_snapshots.dart';
 import 'package:runiac_app/features/you/presentation/widgets/compact_run_activity_card.dart';
 import 'package:runiac_app/features/you/presentation/widgets/monthly_distance_graph.dart';
@@ -475,7 +478,7 @@ void main() {
         of: find.byKey(
           const ValueKey('activity_history_card_Pace Graph QA Run'),
         ),
-        matching: find.text('Demo import'),
+        matching: find.text('Runiac GPS'),
       ),
       findsOneWidget,
     );
@@ -510,13 +513,13 @@ void main() {
 
       expect(find.text('Pace Graph QA Run'), findsOneWidget);
       expect(find.text('Today · Manual QA'), findsOneWidget);
-      expect(find.text('0.62'), findsOneWidget);
-      expect(find.text('12\'10"'), findsOneWidget);
-      expect(find.text('7:32'), findsWidgets);
+      expect(find.text('1.10'), findsOneWidget);
+      expect(find.text('7\'16"'), findsOneWidget);
+      expect(find.text('8:00'), findsWidgets);
       expect(find.text('Pace Over Time'), findsOneWidget);
-      expect(find.text('11:50'), findsOneWidget);
-      expect(find.text('15:05'), findsOneWidget);
-      expect(find.text('18:20'), findsOneWidget);
+      expect(find.text('7:00'), findsOneWidget);
+      expect(find.text('7:30'), findsOneWidget);
+      expect(find.text('8:00'), findsWidgets);
       expect(find.text('More run data needed'), findsNothing);
       expect(
         find.text('Pace insights will appear after a longer run.'),
@@ -557,6 +560,91 @@ void main() {
         findsWidgets,
       );
       expect(find.widgetWithText(FilledButton, 'View XP Update'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'Pace Graph QA run opens Advanced Analysis with local GPS pace graph',
+    (WidgetTester tester) async {
+      await _openActivityHistoryFromYou(tester);
+
+      final card = find.byKey(
+        const ValueKey('activity_history_card_Pace Graph QA Run'),
+      );
+      expect(card, findsOneWidget);
+
+      await tester.tap(card);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Pace Graph QA Run'), findsOneWidget);
+      expect(find.text('Runiac GPS'), findsOneWidget);
+
+      await tester.ensureVisible(
+        find.widgetWithText(OutlinedButton, 'More Details'),
+      );
+      await tester.tap(find.widgetWithText(OutlinedButton, 'More Details'));
+      await tester.pumpAndSettle();
+
+      final advancedAnalysis = tester.widget<AdvancedAnalysisScreen>(
+        find.byType(AdvancedAnalysisScreen),
+      );
+      final snapshot = advancedAnalysis.analysisSnapshot;
+      final paceGraph = snapshot!.pace.paceGraph;
+
+      expect(snapshot, isNotNull);
+      expect(
+        paceGraph.availability,
+        AdvancedAnalysisMetricAvailability.available,
+      );
+      expect(paceGraph.source, AdvancedAnalysisMetricSource.localGpsDerived);
+      expect(paceGraph.value, isNotNull);
+      expect(paceGraph.value!.isAvailable, isTrue);
+      expect(paceGraph.value!.points.length, greaterThanOrEqualTo(8));
+      expect(paceGraph.value!.distanceAxisLabels, ['0 km', '0.5 km', '1.1 km']);
+      expect(paceGraph.value!.xAxisLabels, contains('0:00'));
+      expect(
+        find.byKey(const ValueKey('advanced_analysis_pace_graph_unavailable')),
+        findsNothing,
+      );
+      expect(find.text('Pace Over Distance'), findsOneWidget);
+
+      final pacePainters = tester
+          .widgetList<CustomPaint>(find.byType(CustomPaint))
+          .map((paint) => paint.painter)
+          .whereType<AdvancedAnalysisPaceChartPainter>();
+
+      expect(
+        pacePainters.any(
+          (painter) => identical(painter.graph, paceGraph.value),
+        ),
+        isTrue,
+      );
+      final pacePainter = pacePainters.singleWhere(
+        (painter) => identical(painter.graph, paceGraph.value),
+      );
+      expect(pacePainters.any((painter) => painter.graph == null), isFalse);
+      expect(pacePainter.snapshotXAxisLabels, ['0 km', '0.5 km', '1.1 km']);
+      for (final elapsedLabel in const [
+        '0:00',
+        '2:00',
+        '4:00',
+        '6:00',
+        '8:00',
+      ]) {
+        expect(pacePainter.snapshotXAxisLabels, isNot(contains(elapsedLabel)));
+      }
+      expect(pacePainter.snapshotXProgressFractions.first, 0);
+      expect(pacePainter.snapshotXProgressFractions.last, 1);
+      expect(
+        pacePainter.snapshotXProgressFractions,
+        isNot(
+          equals(
+            paceGraph.value!.points
+                .map((point) => point.progressFraction)
+                .toList(),
+          ),
+        ),
+      );
     },
   );
 

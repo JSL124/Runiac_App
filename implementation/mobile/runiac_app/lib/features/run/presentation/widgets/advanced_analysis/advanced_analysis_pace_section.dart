@@ -82,7 +82,7 @@ class AdvancedAnalysisPaceSection extends StatelessWidget {
     if (analysis.paceGraph.isAvailable &&
         graph != null &&
         graph.isAvailable &&
-        graph.points.length >= 3) {
+        graph.hasDistanceAxis) {
       return AdvancedAnalysisChartPanel(
         height: 170,
         painter: AdvancedAnalysisPaceChartPainter(graph: graph),

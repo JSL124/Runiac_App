@@ -12,10 +12,12 @@ class PaceGraphSample {
   const PaceGraphSample({
     required this.elapsedSeconds,
     required this.paceSecondsPerKm,
+    this.cumulativeDistanceMeters,
   });
 
   final int elapsedSeconds;
   final int paceSecondsPerKm;
+  final int? cumulativeDistanceMeters;
 }
 
 class PaceGraphDataBuilder {
@@ -31,9 +33,8 @@ class PaceGraphDataBuilder {
       return const PaceGraphSnapshot.unavailable();
     }
 
-    final validSamples = _validIncreasingSamples(
-      samples,
-      durationSeconds: durationSeconds,
+    final validSamples = _withDistanceProgress(
+      _validIncreasingSamples(samples, durationSeconds: durationSeconds),
     );
     if (validSamples.length < 3) {
       return const PaceGraphSnapshot.unavailable();
@@ -63,6 +64,10 @@ class PaceGraphDataBuilder {
         elapsedSeconds: sample.elapsedSeconds,
         progressFraction: progress.clamp(0, 1).toDouble(),
         paceSecondsPerKm: sample.paceSecondsPerKm,
+        distanceProgressFraction: _distanceProgressFraction(
+          sample,
+          distanceMeters,
+        ),
         displayLabel: _formatPace(sample.paceSecondsPerKm),
       );
     }).toList();
@@ -78,6 +83,7 @@ class PaceGraphDataBuilder {
       points: points,
       yAxisLabels: _paceAxisLabels(paceRange),
       xAxisLabels: _timeAxisLabels(durationSeconds),
+      distanceAxisLabels: _distanceAxisLabels(distanceMeters),
       totalDurationSeconds: durationSeconds,
       averagePaceSecondsPerKm: averagePaceSecondsPerKm,
       bestPacePoint: bestPacePoint,
@@ -115,6 +121,31 @@ class PaceGraphDataBuilder {
     return validSamples;
   }
 
+  List<PaceGraphSample> _withDistanceProgress(List<PaceGraphSample> samples) {
+    if (samples.isEmpty) {
+      return samples;
+    }
+    if (samples.every((sample) => sample.cumulativeDistanceMeters != null)) {
+      return samples;
+    }
+
+    var lastElapsedSeconds = 0;
+    var cumulativeDistanceMeters = 0.0;
+    return samples.map((sample) {
+      final elapsedDelta = sample.elapsedSeconds - lastElapsedSeconds;
+      if (elapsedDelta > 0) {
+        cumulativeDistanceMeters +=
+            (elapsedDelta / sample.paceSecondsPerKm) * 1000;
+      }
+      lastElapsedSeconds = sample.elapsedSeconds;
+      return PaceGraphSample(
+        elapsedSeconds: sample.elapsedSeconds,
+        paceSecondsPerKm: sample.paceSecondsPerKm,
+        cumulativeDistanceMeters: cumulativeDistanceMeters.round(),
+      );
+    }).toList();
+  }
+
   List<PaceGraphSample> _displaySamples({
     required List<PaceGraphSample> samples,
     required int durationSeconds,
@@ -141,6 +172,11 @@ class PaceGraphDataBuilder {
         paceSecondsPerKm: _median(
           bucketSamples.map((sample) {
             return sample.paceSecondsPerKm;
+          }),
+        ),
+        cumulativeDistanceMeters: _nullableMedian(
+          bucketSamples.map((sample) {
+            return sample.cumulativeDistanceMeters;
           }),
         ),
       );
@@ -200,6 +236,27 @@ class PaceGraphDataBuilder {
       return sorted[middle];
     }
     return ((sorted[middle - 1] + sorted[middle]) / 2).round();
+  }
+
+  int? _nullableMedian(Iterable<int?> values) {
+    final presentValues = values.whereType<int>().toList();
+    if (presentValues.isEmpty) {
+      return null;
+    }
+    return _median(presentValues);
+  }
+
+  double? _distanceProgressFraction(
+    PaceGraphSample sample,
+    int distanceMeters,
+  ) {
+    final cumulativeDistanceMeters = sample.cumulativeDistanceMeters;
+    if (cumulativeDistanceMeters == null || distanceMeters <= 0) {
+      return null;
+    }
+    return (cumulativeDistanceMeters / distanceMeters)
+        .clamp(0.0, 1.0)
+        .toDouble();
   }
 
   List<PaceGraphSample> _withAnchoredEndpoints({
@@ -277,6 +334,7 @@ class PaceGraphDataBuilder {
           lowerFence: lowerFence,
           upperFence: upperFence,
         ),
+        cumulativeDistanceMeters: sample.cumulativeDistanceMeters,
       );
     });
   }
@@ -377,6 +435,24 @@ class PaceGraphDataBuilder {
     ];
   }
 
+  List<String> _distanceAxisLabels(int distanceMeters) {
+    final finalLabel = _formatDistance(distanceMeters);
+    if (distanceMeters < 2000) {
+      return [
+        '0 km',
+        _formatDistance(_roundDownToHundredMeters(distanceMeters ~/ 2)),
+        finalLabel,
+      ];
+    }
+
+    return [
+      '0 km',
+      _formatDistance(_roundDownToHundredMeters(distanceMeters ~/ 3)),
+      _formatDistance(_roundDownToHundredMeters((distanceMeters * 2) ~/ 3)),
+      finalLabel,
+    ];
+  }
+
   int _roundDownToTwentySeconds(int value) {
     final safeValue = value < minGraphPaceSecondsPerKm
         ? minGraphPaceSecondsPerKm
@@ -396,6 +472,10 @@ class PaceGraphDataBuilder {
     return value - (value % 60);
   }
 
+  int _roundDownToHundredMeters(int value) {
+    return value - (value % 100);
+  }
+
   String _formatPace(int paceSecondsPerKm) {
     return _formatTime(paceSecondsPerKm);
   }
@@ -404,6 +484,17 @@ class PaceGraphDataBuilder {
     final minutes = totalSeconds ~/ 60;
     final seconds = totalSeconds % 60;
     return '$minutes:${seconds.toString().padLeft(2, '0')}';
+  }
+
+  String _formatDistance(int meters) {
+    final kilometers = meters / 1000;
+    if (meters % 1000 == 0) {
+      return '${kilometers.toStringAsFixed(0)} km';
+    }
+    if (meters % 100 == 0) {
+      return '${kilometers.toStringAsFixed(1)} km';
+    }
+    return '${kilometers.toStringAsFixed(2)} km';
   }
 }
 

@@ -37,6 +37,7 @@ class LocalPaceGraphSampleDeriver {
   }) {
     final samples = <PaceGraphSample>[];
     int? lastElapsedSeconds;
+    var cumulativeDistanceMeters = 0.0;
 
     for (final segment in acceptedSampleSegments) {
       if (segment.length < 2) {
@@ -67,6 +68,7 @@ class LocalPaceGraphSampleDeriver {
         if (!segmentMeters.isFinite || segmentMeters <= 0) {
           continue;
         }
+        cumulativeDistanceMeters += segmentMeters;
 
         final paceSecondsPerKm = (segmentSeconds / (segmentMeters / 1000))
             .round();
@@ -79,6 +81,7 @@ class LocalPaceGraphSampleDeriver {
           PaceGraphSample(
             elapsedSeconds: elapsedSeconds,
             paceSecondsPerKm: paceSecondsPerKm,
+            cumulativeDistanceMeters: cumulativeDistanceMeters.round(),
           ),
         );
         lastElapsedSeconds = elapsedSeconds;

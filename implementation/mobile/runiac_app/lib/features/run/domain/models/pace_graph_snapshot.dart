@@ -4,6 +4,7 @@ class PaceGraphSnapshot {
     required this.points,
     required this.yAxisLabels,
     required this.xAxisLabels,
+    this.distanceAxisLabels = const [],
     this.unavailableReason,
     this.totalDurationSeconds,
     this.averagePaceSecondsPerKm,
@@ -19,6 +20,7 @@ class PaceGraphSnapshot {
        points = const [],
        yAxisLabels = const [],
        xAxisLabels = const [],
+       distanceAxisLabels = const [],
        totalDurationSeconds = null,
        averagePaceSecondsPerKm = null,
        bestPacePoint = null,
@@ -30,6 +32,7 @@ class PaceGraphSnapshot {
   final List<PaceGraphPoint> points;
   final List<String> yAxisLabels;
   final List<String> xAxisLabels;
+  final List<String> distanceAxisLabels;
   final String? unavailableReason;
   final int? totalDurationSeconds;
   final int? averagePaceSecondsPerKm;
@@ -37,6 +40,12 @@ class PaceGraphSnapshot {
   final PaceGraphPoint? slowestPacePoint;
   final int? paceRangeMinSecondsPerKm;
   final int? paceRangeMaxSecondsPerKm;
+
+  bool get hasDistanceAxis {
+    return distanceAxisLabels.isNotEmpty &&
+        points.length >= 3 &&
+        points.every((point) => point.distanceProgressFraction != null);
+  }
 }
 
 class PaceGraphPoint {
@@ -44,11 +53,13 @@ class PaceGraphPoint {
     required this.elapsedSeconds,
     required this.progressFraction,
     required this.paceSecondsPerKm,
+    this.distanceProgressFraction,
     this.displayLabel,
   });
 
   final int elapsedSeconds;
   final double progressFraction;
   final int paceSecondsPerKm;
+  final double? distanceProgressFraction;
   final String? displayLabel;
 }

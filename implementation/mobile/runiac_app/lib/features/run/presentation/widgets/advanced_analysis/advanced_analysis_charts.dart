@@ -16,12 +16,32 @@ class AdvancedAnalysisPaceChartPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final graph = this.graph;
-    if (graph != null && graph.isAvailable && graph.points.length >= 3) {
+    if (graph != null && graph.isAvailable && graph.hasDistanceAxis) {
       _paintSnapshotGraph(canvas, size, graph);
       return;
     }
 
-    _paintDemoGraph(canvas, size);
+    if (graph == null) {
+      _paintDemoGraph(canvas, size);
+    }
+  }
+
+  List<String> get snapshotXAxisLabels {
+    final graph = this.graph;
+    if (graph == null || !graph.hasDistanceAxis) {
+      return const [];
+    }
+    return graph.distanceAxisLabels;
+  }
+
+  List<double> get snapshotXProgressFractions {
+    final graph = this.graph;
+    if (graph == null || !graph.hasDistanceAxis) {
+      return const [];
+    }
+    return graph.points.map((point) {
+      return point.distanceProgressFraction!.clamp(0.0, 1.0).toDouble();
+    }).toList();
   }
 
   void _paintDemoGraph(Canvas canvas, Size size) {
@@ -124,11 +144,14 @@ class AdvancedAnalysisPaceChartPainter extends CustomPainter {
       canvas,
       plot,
       graph.yAxisLabels,
-      graph.xAxisLabels,
+      graph.distanceAxisLabels,
     );
 
     final offsets = graph.points.map((point) {
-      return Offset(xFor(point.progressFraction), yFor(point.paceSecondsPerKm));
+      return Offset(
+        xFor(point.distanceProgressFraction!),
+        yFor(point.paceSecondsPerKm),
+      );
     }).toList();
     drawAdvancedAnalysisLineArea(
       canvas,

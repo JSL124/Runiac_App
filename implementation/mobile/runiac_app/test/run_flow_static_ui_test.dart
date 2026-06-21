@@ -879,20 +879,24 @@ void main() {
           elapsedSeconds: 0,
           progressFraction: 0,
           paceSecondsPerKm: 500,
+          distanceProgressFraction: 0,
         ),
         PaceGraphPoint(
           elapsedSeconds: 120,
           progressFraction: 0.5,
           paceSecondsPerKm: 470,
+          distanceProgressFraction: 0.2,
         ),
         PaceGraphPoint(
           elapsedSeconds: 240,
           progressFraction: 1,
           paceSecondsPerKm: 490,
+          distanceProgressFraction: 1,
         ),
       ],
       yAxisLabels: ['7:40', '8:00', '8:20'],
       xAxisLabels: ['0:00', '2:00', '4:00'],
+      distanceAxisLabels: ['0 km', '0.2 km', '0.5 km'],
       paceRangeMinSecondsPerKm: 460,
       paceRangeMaxSecondsPerKm: 520,
     );
@@ -926,6 +930,9 @@ void main() {
         .widgetList<CustomPaint>(find.byType(CustomPaint))
         .map((paint) => paint.painter)
         .whereType<AdvancedAnalysisPaceChartPainter>();
+    final pacePainter = pacePainters.singleWhere(
+      (painter) => identical(painter.graph, snapshotGraph),
+    );
 
     expect(
       pacePainters.any((painter) => identical(painter.graph, snapshotGraph)),
@@ -934,6 +941,20 @@ void main() {
     expect(
       find.byKey(const ValueKey('advanced_analysis_pace_graph_unavailable')),
       findsNothing,
+    );
+    expect(find.text('Pace Over Distance'), findsOneWidget);
+    expect(pacePainter.snapshotXAxisLabels, ['0 km', '0.2 km', '0.5 km']);
+    expect(pacePainter.snapshotXAxisLabels, isNot(contains('0:00')));
+    expect(pacePainter.snapshotXAxisLabels, isNot(contains('2:00')));
+    expect(pacePainter.snapshotXAxisLabels, isNot(contains('4:00')));
+    expect(pacePainter.snapshotXProgressFractions, [0, 0.2, 1]);
+    expect(
+      pacePainter.snapshotXProgressFractions,
+      isNot(
+        equals(
+          snapshotGraph.points.map((point) => point.progressFraction).toList(),
+        ),
+      ),
     );
     expect(find.text('1 km'), findsOneWidget);
     expect(find.text('4.03 km'), findsOneWidget);

@@ -85,6 +85,55 @@ void main() {
       );
     });
 
+    test('build keeps time labels separate from distance axis data', () {
+      final graph = builder.build(
+        samples: const [
+          PaceGraphSample(
+            elapsedSeconds: 0,
+            paceSecondsPerKm: 430,
+            cumulativeDistanceMeters: 0,
+          ),
+          PaceGraphSample(
+            elapsedSeconds: 120,
+            paceSecondsPerKm: 432,
+            cumulativeDistanceMeters: 250,
+          ),
+          PaceGraphSample(
+            elapsedSeconds: 240,
+            paceSecondsPerKm: 456,
+            cumulativeDistanceMeters: 700,
+          ),
+          PaceGraphSample(
+            elapsedSeconds: 480,
+            paceSecondsPerKm: 425,
+            cumulativeDistanceMeters: 1100,
+          ),
+        ],
+        durationSeconds: 480,
+        distanceMeters: 1100,
+        averagePaceSecondsPerKm: 436,
+      );
+
+      expect(graph.isAvailable, isTrue);
+      expect(graph.xAxisLabels, ['0:00', '4:00', '8:00']);
+      expect(graph.distanceAxisLabels, ['0 km', '0.5 km', '1.1 km']);
+      expect(
+        graph.distanceAxisLabels,
+        isNot(contains(anyOf('0:00', '4:00', '8:00'))),
+      );
+      expect(
+        graph.points.map((point) => point.distanceProgressFraction).toList(),
+        [0, closeTo(250 / 1100, 0.001), closeTo(700 / 1100, 0.001), 1],
+      );
+      expect(
+        graph.points.map((point) => point.distanceProgressFraction).toList(),
+        isNot(
+          equals(graph.points.map((point) => point.progressFraction).toList()),
+        ),
+      );
+      expect(graph.hasDistanceAxis, isTrue);
+    });
+
     test('gps spike run filters unrealistic fast and slow pace values', () {
       final graph = builder.build(
         samples: gpsSpikeRunPaceSamples,
