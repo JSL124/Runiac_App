@@ -2,15 +2,29 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import 'package:runiac_app/features/run/domain/models/pace_graph_snapshot.dart';
+
 import '../../data/advanced_analysis_demo_snapshots.dart';
 import 'advanced_analysis_chart_helpers.dart';
 import 'advanced_analysis_theme.dart';
 
 class AdvancedAnalysisPaceChartPainter extends CustomPainter {
-  const AdvancedAnalysisPaceChartPainter();
+  const AdvancedAnalysisPaceChartPainter({this.graph});
+
+  final PaceGraphSnapshot? graph;
 
   @override
   void paint(Canvas canvas, Size size) {
+    final graph = this.graph;
+    if (graph != null && graph.isAvailable && graph.points.length >= 3) {
+      _paintSnapshotGraph(canvas, size, graph);
+      return;
+    }
+
+    _paintDemoGraph(canvas, size);
+  }
+
+  void _paintDemoGraph(Canvas canvas, Size size) {
     final plot = AdvancedAnalysisChartGeometry(
       size,
       left: 34,
@@ -83,8 +97,104 @@ class AdvancedAnalysisPaceChartPainter extends CustomPainter {
       );
   }
 
+  void _paintSnapshotGraph(Canvas canvas, Size size, PaceGraphSnapshot graph) {
+    final plot = AdvancedAnalysisChartGeometry(
+      size,
+      left: 34,
+      top: 12,
+      right: 8,
+      bottom: 24,
+    );
+    final rangeMin = graph.paceRangeMinSecondsPerKm;
+    final rangeMax = graph.paceRangeMaxSecondsPerKm;
+    if (rangeMin == null || rangeMax == null || rangeMax <= rangeMin) {
+      return;
+    }
+
+    double xFor(double progress) {
+      return plot.left + progress.clamp(0.0, 1.0) * plot.width;
+    }
+
+    double yFor(int paceSecondsPerKm) {
+      return plot.top +
+          ((paceSecondsPerKm - rangeMin) / (rangeMax - rangeMin)) * plot.height;
+    }
+
+    drawAdvancedAnalysisGrid(
+      canvas,
+      plot,
+      graph.yAxisLabels,
+      graph.xAxisLabels,
+    );
+
+    final offsets = graph.points.map((point) {
+      return Offset(xFor(point.progressFraction), yFor(point.paceSecondsPerKm));
+    }).toList();
+    drawAdvancedAnalysisLineArea(
+      canvas,
+      offsets,
+      plot.bottom,
+      advancedAnalysisOrange08,
+      advancedAnalysisBlue,
+    );
+    _drawSnapshotMarker(
+      canvas,
+      graph.points,
+      offsets,
+      graph.slowestPacePoint,
+      fillColor: advancedAnalysisCard,
+      strokeColor: advancedAnalysisBlue30,
+      radius: 5,
+      strokeWidth: 2,
+    );
+    _drawSnapshotMarker(
+      canvas,
+      graph.points,
+      offsets,
+      graph.bestPacePoint,
+      fillColor: advancedAnalysisCard,
+      strokeColor: advancedAnalysisOrange,
+      radius: 6,
+      strokeWidth: 3,
+    );
+  }
+
+  void _drawSnapshotMarker(
+    Canvas canvas,
+    List<PaceGraphPoint> points,
+    List<Offset> offsets,
+    PaceGraphPoint? marker, {
+    required Color fillColor,
+    required Color strokeColor,
+    required double radius,
+    required double strokeWidth,
+  }) {
+    if (marker == null) {
+      return;
+    }
+
+    for (var i = 0; i < points.length; i++) {
+      if (identical(points[i], marker)) {
+        final center = offsets[i];
+        canvas
+          ..drawCircle(center, radius + 1, Paint()..color = fillColor)
+          ..drawCircle(
+            center,
+            radius,
+            Paint()
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = strokeWidth
+              ..color = strokeColor,
+          );
+        return;
+      }
+    }
+  }
+
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant AdvancedAnalysisPaceChartPainter oldDelegate) {
+    return oldDelegate.graph != graph;
+  }
 }
 
 class AdvancedAnalysisElevationChartPainter extends CustomPainter {

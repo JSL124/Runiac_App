@@ -23,11 +23,7 @@ class AdvancedAnalysisPaceSection extends StatelessWidget {
           const SizedBox(height: 18),
           const _AdvancedAnalysisPaceGraphTitle(),
           const SizedBox(height: 8),
-          const AdvancedAnalysisChartPanel(
-            height: 170,
-            painter: AdvancedAnalysisPaceChartPainter(),
-            plain: true,
-          ),
+          _paceGraph,
           const SizedBox(height: 16),
           const AdvancedAnalysisSubhead('Splits'),
           const SizedBox(height: 8),
@@ -72,6 +68,31 @@ class AdvancedAnalysisPaceSection extends StatelessWidget {
     ];
   }
 
+  Widget get _paceGraph {
+    final analysis = this.analysis;
+    if (analysis == null) {
+      return const AdvancedAnalysisChartPanel(
+        height: 170,
+        painter: AdvancedAnalysisPaceChartPainter(),
+        plain: true,
+      );
+    }
+
+    final graph = analysis.paceGraph.value;
+    if (analysis.paceGraph.isAvailable &&
+        graph != null &&
+        graph.isAvailable &&
+        graph.points.length >= 3) {
+      return AdvancedAnalysisChartPanel(
+        height: 170,
+        painter: AdvancedAnalysisPaceChartPainter(graph: graph),
+        plain: true,
+      );
+    }
+
+    return const _AdvancedAnalysisUnavailablePaceGraph();
+  }
+
   String _metricValue(
     AdvancedAnalysisMetric<String> metric, {
     bool stripPaceUnit = false,
@@ -92,6 +113,29 @@ class AdvancedAnalysisPaceSection extends StatelessWidget {
     return value
         .replaceAll(RegExp(r'\s*/\s*km$', caseSensitive: false), '')
         .trim();
+  }
+}
+
+class _AdvancedAnalysisUnavailablePaceGraph extends StatelessWidget {
+  const _AdvancedAnalysisUnavailablePaceGraph();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SizedBox(
+      key: ValueKey('advanced_analysis_pace_graph_unavailable'),
+      height: 170,
+      child: Center(
+        child: Text(
+          '--',
+          style: TextStyle(
+            color: advancedAnalysisInk,
+            fontSize: 25,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.7,
+          ),
+        ),
+      ),
+    );
   }
 }
 

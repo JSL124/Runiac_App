@@ -29,6 +29,7 @@ import 'package:runiac_app/features/run/presentation/data/pace_graph_demo_snapsh
 import 'package:runiac_app/features/run/presentation/data/run_completion_demo_snapshots.dart';
 import 'package:runiac_app/features/run/presentation/run_launch_screen.dart';
 import 'package:runiac_app/features/run/presentation/view_summary_screen.dart';
+import 'package:runiac_app/features/run/presentation/widgets/advanced_analysis/advanced_analysis_charts.dart';
 import 'package:runiac_app/features/run/presentation/widgets/completed_route_map_surface.dart';
 import 'package:runiac_app/features/run/presentation/widgets/share_achievement_sheet.dart';
 import 'package:runiac_app/features/run/presentation/xp_update_screen.dart';
@@ -844,7 +845,11 @@ void main() {
     expect(find.text('5’58”'), findsNothing);
     expect(find.text('7’05”'), findsNothing);
     expect(find.text('86'), findsNothing);
-    expect(find.text('--'), findsNWidgets(3));
+    expect(find.text('--'), findsNWidgets(4));
+    expect(
+      find.byKey(const ValueKey('advanced_analysis_pace_graph_unavailable')),
+      findsOneWidget,
+    );
     expect(find.text('Pace Over Distance'), findsOneWidget);
     expect(find.text('1 km'), findsOneWidget);
     expect(find.text('4.03 km'), findsOneWidget);
@@ -861,6 +866,83 @@ void main() {
     expect(find.text('158'), findsOneWidget);
     expect(find.text('130–150'), findsOneWidget);
     expect(find.text('72'), findsOneWidget);
+  });
+
+  testWidgets('View summary passes available pace graph into Advanced Analysis', (
+    WidgetTester tester,
+  ) async {
+    _useTallSummarySurface(tester);
+    const snapshotGraph = PaceGraphSnapshot(
+      isAvailable: true,
+      points: [
+        PaceGraphPoint(
+          elapsedSeconds: 0,
+          progressFraction: 0,
+          paceSecondsPerKm: 500,
+        ),
+        PaceGraphPoint(
+          elapsedSeconds: 120,
+          progressFraction: 0.5,
+          paceSecondsPerKm: 470,
+        ),
+        PaceGraphPoint(
+          elapsedSeconds: 240,
+          progressFraction: 1,
+          paceSecondsPerKm: 490,
+        ),
+      ],
+      yAxisLabels: ['7:40', '8:00', '8:20'],
+      xAxisLabels: ['0:00', '2:00', '4:00'],
+      paceRangeMinSecondsPerKm: 460,
+      paceRangeMaxSecondsPerKm: 520,
+    );
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: ViewSummaryScreen(
+          summary: RunSummarySnapshot(
+            title: 'Local Graph Run',
+            dateLabel: '4/11/26',
+            timeLabel: '8:10 PM',
+            distanceKm: '0.50',
+            avgPace: '8’00”',
+            duration: '4:00',
+            avgHeartRate: '--',
+            calories: '32',
+            routeName: 'Private route',
+            paceGraph: snapshotGraph,
+          ),
+        ),
+      ),
+    );
+
+    await tester.ensureVisible(
+      find.widgetWithText(OutlinedButton, 'More Details'),
+    );
+    await tester.tap(find.widgetWithText(OutlinedButton, 'More Details'));
+    await tester.pumpAndSettle();
+
+    final pacePainters = tester
+        .widgetList<CustomPaint>(find.byType(CustomPaint))
+        .map((paint) => paint.painter)
+        .whereType<AdvancedAnalysisPaceChartPainter>();
+
+    expect(
+      pacePainters.any((painter) => identical(painter.graph, snapshotGraph)),
+      isTrue,
+    );
+    expect(
+      find.byKey(const ValueKey('advanced_analysis_pace_graph_unavailable')),
+      findsNothing,
+    );
+    expect(find.text('1 km'), findsOneWidget);
+    expect(find.text('4.03 km'), findsOneWidget);
+    expect(
+      find.text(
+        'Your pace slowed slightly in the middle section but recovered well in the final part.',
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets(
@@ -1825,6 +1907,11 @@ void main() {
     expect(find.text('86'), findsOneWidget);
     expect(find.text('1 km'), findsOneWidget);
     expect(find.text('4.03 km'), findsOneWidget);
+    final demoPacePainters = tester
+        .widgetList<CustomPaint>(find.byType(CustomPaint))
+        .map((paint) => paint.painter)
+        .whereType<AdvancedAnalysisPaceChartPainter>();
+    expect(demoPacePainters.any((painter) => painter.graph == null), isTrue);
 
     await tester.ensureVisible(find.text('Heart Rate Analysis'));
 
