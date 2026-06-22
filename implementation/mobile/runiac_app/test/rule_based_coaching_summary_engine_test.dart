@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:runiac_app/features/run/domain/models/cadence_analysis_series.dart';
 import 'package:runiac_app/features/run/domain/models/coaching_summary_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/pace_graph_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/run_source_display.dart';
@@ -115,6 +116,20 @@ void main() {
       _expectSafeCopy(coaching);
     });
 
+    test('steady_pace_stable_cadence_uses_neutral_rhythm_copy', () {
+      final coaching = _build(
+        paceGraph: _steadyGraph(),
+        cadenceAnalysisSeries: _stableCadenceSeries(),
+      );
+
+      expect(coaching.message, contains('step rhythm stayed steady'));
+      expect(coaching.message, contains('controlled'));
+      expect(coaching.nextAction, contains('short, light steps'));
+      _expectDiaryShape(coaching);
+      _expectSafeCopy(coaching);
+      _expectCadenceSafeCopy(coaching);
+    });
+
     test('fast_start_fade_no_hr_gentle_start_focus', () {
       final coaching = _build(paceGraph: _fastStartFadeGraph());
 
@@ -131,6 +146,24 @@ void main() {
       _expectSafeCopy(coaching);
     });
 
+    test('pace_fade_cadence_drop_uses_careful_late_rhythm_copy', () {
+      final coaching = _build(
+        paceGraph: _fastStartFadeGraph(),
+        cadenceAnalysisSeries: _droppingCadenceSeries(),
+      );
+
+      expect(
+        coaching.message,
+        contains('pace and step rhythm eased off later'),
+      );
+      expect(coaching.nextAction, contains('start a little more relaxed'));
+      expect(coaching.nextAction, contains('short, light steps'));
+      expect(coaching.message, isNot(contains('fatigue')));
+      _expectDiaryShape(coaching);
+      _expectSafeCopy(coaching);
+      _expectCadenceSafeCopy(coaching);
+    });
+
     test('fast_start_fade_hr_available_no_fatigue_claim', () {
       final coaching = _build(
         avgHeartRate: '150',
@@ -142,6 +175,43 @@ void main() {
       expect(coaching.message, contains('Heart-rate data was recorded'));
       expect(coaching.message, isNot(contains('fatigue')));
       expect(coaching.nextAction, contains('calmer first few minutes'));
+      _expectDiaryShape(coaching);
+      _expectSafeCopy(coaching);
+    });
+
+    test('unavailable_cadence_does_not_create_fake_rhythm_coaching', () {
+      final coaching = _build(
+        paceGraph: _steadyGraph(),
+        cadenceAnalysisSeries: CadenceAnalysisSeries.unavailable(),
+      );
+
+      expect(coaching.message, isNot(contains('step rhythm')));
+      expect(coaching.nextAction, isNot(contains('short, light steps')));
+      expect(coaching.message, contains('steady rhythm'));
+      _expectDiaryShape(coaching);
+      _expectSafeCopy(coaching);
+    });
+
+    test('static_demo_cadence_does_not_create_fake_rhythm_coaching', () {
+      final coaching = _build(
+        paceGraph: _steadyGraph(),
+        cadenceAnalysisSeries: CadenceAnalysisSeries.staticDemo(
+          samples: const <CadenceAnalysisSample>[
+            CadenceAnalysisSample.accepted(elapsedSeconds: 60, cadenceSpm: 164),
+            CadenceAnalysisSample.accepted(
+              elapsedSeconds: 120,
+              cadenceSpm: 166,
+            ),
+            CadenceAnalysisSample.accepted(
+              elapsedSeconds: 180,
+              cadenceSpm: 168,
+            ),
+          ],
+        ),
+      );
+
+      expect(coaching.message, isNot(contains('step rhythm')));
+      expect(coaching.nextAction, isNot(contains('short, light steps')));
       _expectDiaryShape(coaching);
       _expectSafeCopy(coaching);
     });
@@ -268,6 +338,7 @@ CoachingSummarySnapshot _build({
   RunSourceType sourceType = RunSourceType.runiacGps,
   HeartRateAvailability heartRateAvailability =
       HeartRateAvailability.unavailableNoSensor,
+  CadenceAnalysisSeries? cadenceAnalysisSeries,
   PaceGraphSnapshot paceGraph = const PaceGraphSnapshot(
     isAvailable: true,
     points: [
@@ -305,6 +376,7 @@ CoachingSummarySnapshot _build({
       hasSufficientData: hasSufficientData,
       sourceType: sourceType,
       heartRateAvailability: heartRateAvailability,
+      cadenceAnalysisSeries: cadenceAnalysisSeries,
       paceGraph: paceGraph,
     ),
   );
@@ -425,6 +497,28 @@ PaceGraphSnapshot _strongFinishGraph() {
   );
 }
 
+CadenceAnalysisSeries _stableCadenceSeries() {
+  return CadenceAnalysisSeries.localAccepted(
+    samples: const <CadenceAnalysisSample>[
+      CadenceAnalysisSample.accepted(elapsedSeconds: 60, cadenceSpm: 164),
+      CadenceAnalysisSample.accepted(elapsedSeconds: 120, cadenceSpm: 166),
+      CadenceAnalysisSample.accepted(elapsedSeconds: 180, cadenceSpm: 168),
+      CadenceAnalysisSample.accepted(elapsedSeconds: 240, cadenceSpm: 166),
+    ],
+  );
+}
+
+CadenceAnalysisSeries _droppingCadenceSeries() {
+  return CadenceAnalysisSeries.localAccepted(
+    samples: const <CadenceAnalysisSample>[
+      CadenceAnalysisSample.accepted(elapsedSeconds: 60, cadenceSpm: 172),
+      CadenceAnalysisSample.accepted(elapsedSeconds: 120, cadenceSpm: 170),
+      CadenceAnalysisSample.accepted(elapsedSeconds: 180, cadenceSpm: 158),
+      CadenceAnalysisSample.accepted(elapsedSeconds: 240, cadenceSpm: 156),
+    ],
+  );
+}
+
 void _expectDiaryShape(CoachingSummarySnapshot coaching) {
   final wordCount = coaching.message
       .split(RegExp(r'\s+'))
@@ -447,6 +541,11 @@ void _expectSafeCopy(CoachingSummarySnapshot coaching) {
   expect(copy, isNot(contains(_medicalOrIntensityTerms())));
 }
 
+void _expectCadenceSafeCopy(CoachingSummarySnapshot coaching) {
+  final copy = _allCopy(coaching);
+  expect(copy, isNot(contains(_cadenceForbiddenTerms())));
+}
+
 String _allCopy(CoachingSummarySnapshot coaching) {
   return [
     coaching.sectionTitle,
@@ -455,6 +554,27 @@ String _allCopy(CoachingSummarySnapshot coaching) {
     ...coaching.bullets,
     coaching.nextAction,
   ].join('\n');
+}
+
+RegExp _cadenceForbiddenTerms() {
+  return RegExp(
+    [
+      'good',
+      'bad',
+      'ideal',
+      'target',
+      'optimal',
+      'injury',
+      'overstride',
+      'fatigue',
+      'guarantee',
+      'must',
+      'wrong',
+      'correct',
+      '180 spm',
+    ].map(RegExp.escape).join('|'),
+    caseSensitive: false,
+  );
 }
 
 RegExp _blockedCopyTerms() {

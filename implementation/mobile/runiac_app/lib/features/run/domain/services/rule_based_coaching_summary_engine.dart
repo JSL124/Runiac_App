@@ -1,7 +1,9 @@
+import '../models/cadence_analysis_derivation.dart';
 import '../models/coaching_summary_snapshot.dart';
 import '../models/pace_graph_snapshot.dart';
 import '../models/run_source_display.dart';
 import '../models/run_summary_snapshot.dart';
+import 'cadence_analysis_deriver.dart';
 
 const int _veryShortRunDurationSeconds = 2 * 60;
 const double _veryShortRunDistanceKm = 0.25;
@@ -54,6 +56,16 @@ class RuleBasedCoachingSummaryEngine {
       };
     }
 
+    if (signals.cadencePattern == _CoachingCadencePattern.stable &&
+        signals.pacePattern == _CoachingPacePattern.steady) {
+      return _steadyPaceStableCadenceInterpretation;
+    }
+
+    if (signals.cadencePattern == _CoachingCadencePattern.dropping &&
+        signals.pacePattern == _CoachingPacePattern.fastStartFade) {
+      return _paceFadeCadenceDropInterpretation;
+    }
+
     if (signals.runScale == _CoachingRunScale.longerBeginner &&
         signals.pacePattern == _CoachingPacePattern.fastStartFade) {
       return signals.heartRateSignal == _CoachingHeartRateSignal.available
@@ -101,6 +113,8 @@ enum _CoachingHeartRateSignal { available, unavailable }
 
 enum _CoachingSourceSignal { liveGps, importedOrDemo }
 
+enum _CoachingCadencePattern { unavailable, stable, dropping, otherAvailable }
+
 class _CoachingSignals {
   const _CoachingSignals({
     required this.dataConfidence,
@@ -109,6 +123,7 @@ class _CoachingSignals {
     required this.heartRateSignal,
     required this.sourceSignal,
     required this.hasDisplayAveragePace,
+    required this.cadencePattern,
   });
 
   final _CoachingDataConfidence dataConfidence;
@@ -117,6 +132,7 @@ class _CoachingSignals {
   final _CoachingHeartRateSignal heartRateSignal;
   final _CoachingSourceSignal sourceSignal;
   final bool hasDisplayAveragePace;
+  final _CoachingCadencePattern cadencePattern;
 
   factory _CoachingSignals.fromSummary(RunSummarySnapshot summary) {
     final distanceKm = _parseDistanceKm(summary.distanceKm);
@@ -142,6 +158,7 @@ class _CoachingSignals {
           : _CoachingHeartRateSignal.unavailable,
       sourceSignal: _classifySource(summary.sourceType),
       hasDisplayAveragePace: _hasDisplayAveragePace(summary.avgPace),
+      cadencePattern: _classifyCadencePattern(summary),
     );
   }
 }
@@ -207,6 +224,29 @@ _CoachingSourceSignal _classifySource(RunSourceType sourceType) {
     RunSourceType.garminViaHealth ||
     RunSourceType.demoImport => _CoachingSourceSignal.importedOrDemo,
   };
+}
+
+_CoachingCadencePattern _classifyCadencePattern(RunSummarySnapshot summary) {
+  final cadenceSeries = summary.cadenceAnalysisSeries;
+  if (cadenceSeries == null) {
+    return _CoachingCadencePattern.unavailable;
+  }
+
+  final cadenceAnalysis = const CadenceAnalysisDeriver().derive(cadenceSeries);
+  if (!cadenceAnalysis.isAvailable) {
+    return _CoachingCadencePattern.unavailable;
+  }
+
+  if (cadenceAnalysis.stability == CadenceStability.stable &&
+      cadenceAnalysis.trend == CadenceTrend.stable) {
+    return _CoachingCadencePattern.stable;
+  }
+
+  if (cadenceAnalysis.trend == CadenceTrend.dropping) {
+    return _CoachingCadencePattern.dropping;
+  }
+
+  return _CoachingCadencePattern.otherAvailable;
 }
 
 List<PaceGraphPoint> _usableGraphPoints(PaceGraphSnapshot graph) {
@@ -352,7 +392,7 @@ const _shortSteadyNoHrInterpretation = CoachingSummarySnapshot(
   interpretationId: CoachingInterpretationId.steadyEffortInterpretation,
   headline: 'A short, steady start',
   message:
-      'This was a short but useful run. The available pace points suggest a steady rhythm, which is a good sign for building consistency. Since heart-rate data was not available, the safest takeaway is your pacing rhythm rather than how hard it felt.',
+      'This was a short but useful run. The available pace points suggest a steady rhythm, which is a useful sign for building consistency. Since heart-rate data was not available, the safest takeaway is your pacing rhythm rather than how hard it felt.',
   nextAction:
       'Next time, add a few easy minutes while keeping the same calm start.',
 );
@@ -384,6 +424,15 @@ const _normalSteadyHrUnavailableInterpretation = CoachingSummarySnapshot(
   nextAction: 'Repeat the easy rhythm and keep the start relaxed.',
 );
 
+const _steadyPaceStableCadenceInterpretation = CoachingSummarySnapshot(
+  source: CoachingSummarySource.ruleBased,
+  interpretationId: CoachingInterpretationId.steadyEffortInterpretation,
+  headline: 'A steady rhythm run',
+  message:
+      'Your step rhythm stayed steady, which can help the run feel more controlled. The available pace data also stayed steady, so this is a simple rhythm note today rather than an effort or performance judgement.',
+  nextAction: 'Try the same relaxed start and focus on short, light steps.',
+);
+
 const _fastStartFadeNoHrInterpretation = CoachingSummarySnapshot(
   source: CoachingSummarySource.ruleBased,
   interpretationId: CoachingInterpretationId.paceControlInterpretation,
@@ -400,6 +449,16 @@ const _fastStartFadeHrAvailableInterpretation = CoachingSummarySnapshot(
   message:
       'The pace pattern appears quicker early and slower later, so pacing is the main signal to learn from. Heart-rate data was recorded, but it is not enough for detailed effort labels here. A calmer opening can make the rest of the run easier to read.',
   nextAction: 'Use calmer first few minutes before settling in.',
+);
+
+const _paceFadeCadenceDropInterpretation = CoachingSummarySnapshot(
+  source: CoachingSummarySource.ruleBased,
+  interpretationId: CoachingInterpretationId.paceControlInterpretation,
+  headline: 'A later rhythm check',
+  message:
+      'Your pace and step rhythm eased off later in the run. That may suggest the opening rhythm was a little sharp, so the useful takeaway is to keep the start relaxed and notice the final minutes.',
+  nextAction:
+      'Next time, start a little more relaxed and focus on short, light steps near the end.',
 );
 
 const _longerFadeNoHrInterpretation = CoachingSummarySnapshot(
@@ -507,7 +566,7 @@ const _shortValidInterpretation = CoachingSummarySnapshot(
 const _basicCompletionInterpretation = CoachingSummarySnapshot(
   source: CoachingSummarySource.ruleBased,
   interpretationId: CoachingInterpretationId.basicCompletionInterpretation,
-  headline: 'Good work finishing the run',
+  headline: 'Run completed',
   message:
       'This run has enough distance, time, and pace data for a simple beginner summary. The safest takeaway is that you completed a measurable run and now have a starting point to repeat. Keep the next step calm and consistent rather than trying to prove anything with speed.',
   nextAction: 'Keep the next run easy and repeatable.',

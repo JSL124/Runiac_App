@@ -1256,7 +1256,7 @@ void main() {
     _useTallSummarySurface(tester);
 
     const message =
-        'This was a short but useful run. The available pace points suggest a steady rhythm, which is a good sign for building consistency. Since heart-rate data was not available, the safest takeaway is your pacing rhythm rather than how hard it felt.';
+        'This was a short but useful run. The available pace points suggest a steady rhythm, which is a useful sign for building consistency. Since heart-rate data was not available, the safest takeaway is your pacing rhythm rather than how hard it felt.';
 
     await tester.pumpWidget(
       const MaterialApp(

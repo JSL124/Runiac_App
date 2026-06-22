@@ -39,7 +39,7 @@ void main() {
     test('returns immutable bullets from the display model', () {
       const summary = CoachingSummarySnapshot(
         source: CoachingSummarySource.ruleBased,
-        headline: 'Good work finishing the run',
+        headline: 'Run completed',
         message: 'This was a completed beginner running effort.',
         bullets: [
           'What went well: You finished a measurable run.',
