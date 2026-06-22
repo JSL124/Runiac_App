@@ -83,6 +83,9 @@ class AdvancedAnalysisSnapshotBuilder {
   }
 
   PaceAnalysisDerivation? _derivePaceAnalysis(RunSummarySnapshot summary) {
+    if (summary.sourceType != RunSourceType.runiacGps) {
+      return null;
+    }
     final series = summary.paceAnalysisSeries;
     if (series == null) {
       return null;
@@ -161,7 +164,7 @@ class AdvancedAnalysisSnapshotBuilder {
     }
     return AdvancedAnalysisMetric<PaceGraphSnapshot>.available(
       value: graph,
-      source: AdvancedAnalysisMetricSource.localGpsDerived,
+      source: _paceSource(summary),
       confidence: AdvancedAnalysisMetricConfidence.derived,
     );
   }
@@ -190,9 +193,21 @@ class AdvancedAnalysisSnapshotBuilder {
       List<AdvancedAnalysisSplitSnapshot>
     >.available(
       value: splits,
-      source: AdvancedAnalysisMetricSource.localGpsDerived,
+      source: _paceSource(summary),
       confidence: AdvancedAnalysisMetricConfidence.derived,
     );
+  }
+
+  AdvancedAnalysisMetricSource _paceSource(RunSummarySnapshot summary) {
+    return switch (summary.sourceType) {
+      RunSourceType.runiacGps => AdvancedAnalysisMetricSource.localGpsDerived,
+      RunSourceType.appleHealth =>
+        AdvancedAnalysisMetricSource.healthKitAppleWatch,
+      RunSourceType.healthConnect => AdvancedAnalysisMetricSource.healthConnect,
+      RunSourceType.garminViaHealth =>
+        AdvancedAnalysisMetricSource.garminWearable,
+      RunSourceType.demoImport => AdvancedAnalysisMetricSource.staticDemo,
+    };
   }
 
   List<AdvancedAnalysisSplitSnapshot> _deriveSplits(

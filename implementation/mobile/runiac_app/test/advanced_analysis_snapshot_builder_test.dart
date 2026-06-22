@@ -222,6 +222,49 @@ void main() {
     });
 
     test(
+      'does not trust local accepted pace series attached to demo source',
+      () {
+        final summary = RunSummarySnapshot(
+          title: 'Demo Local Series Run',
+          dateLabel: 'Today',
+          timeLabel: '7:06 AM',
+          distanceKm: '4.03 km',
+          avgPace: '6’30” / km',
+          duration: '30:15',
+          avgHeartRate: '--',
+          calories: '212 kcal',
+          routeName: 'East Coast Park Loop',
+          sourceType: RunSourceType.demoImport,
+          paceAnalysisSeries: PaceAnalysisSeries.localAccepted(
+            samples: const <PaceAnalysisSample>[
+              PaceAnalysisSample.accepted(
+                elapsedSeconds: 60,
+                cumulativeDistanceMeters: 250,
+                paceSecondsPerKm: 420,
+              ),
+              PaceAnalysisSample.accepted(
+                elapsedSeconds: 120,
+                cumulativeDistanceMeters: 500,
+                paceSecondsPerKm: 360,
+              ),
+              PaceAnalysisSample.accepted(
+                elapsedSeconds: 180,
+                cumulativeDistanceMeters: 750,
+                paceSecondsPerKm: 480,
+              ),
+            ],
+          ),
+        );
+
+        final snapshot = builder.fromRunSummary(summary);
+
+        expect(snapshot.pace.fastestPace.isAvailable, isFalse);
+        expect(snapshot.pace.slowestPace.isAvailable, isFalse);
+        expect(snapshot.pace.paceStability.isAvailable, isFalse);
+      },
+    );
+
+    test(
       'does not classify demo/static metrics as trusted production data',
       () {
         const metric = AdvancedAnalysisMetric<String>.demoOnly('82');
@@ -415,6 +458,68 @@ void main() {
       expect(splits.last.isPartial, isTrue);
       expect(splits.last.elevationLabel, '--');
       expect(splits.last.heartRateLabel, '--');
+    });
+
+    test('preserves imported pace graph source identity', () {
+      const summary = RunSummarySnapshot(
+        title: 'Apple Health Graph Run',
+        dateLabel: 'Today',
+        timeLabel: '7:06 AM',
+        distanceKm: '4.03 km',
+        avgPace: '6’30” / km',
+        duration: '26:26',
+        avgHeartRate: '151 bpm',
+        calories: '212 kcal',
+        routeName: 'East Coast Park Loop',
+        sourceType: RunSourceType.appleHealth,
+        paceGraph: PaceGraphSnapshot(
+          isAvailable: true,
+          points: <PaceGraphPoint>[
+            PaceGraphPoint(
+              elapsedSeconds: 0,
+              progressFraction: 0,
+              paceSecondsPerKm: 390,
+              distanceProgressFraction: 0,
+            ),
+            PaceGraphPoint(
+              elapsedSeconds: 120,
+              progressFraction: 0.5,
+              paceSecondsPerKm: 392,
+              distanceProgressFraction: 0.5,
+            ),
+            PaceGraphPoint(
+              elapsedSeconds: 240,
+              progressFraction: 1,
+              paceSecondsPerKm: 388,
+              distanceProgressFraction: 1,
+            ),
+          ],
+          yAxisLabels: <String>['6:00', '6:30', '7:00'],
+          xAxisLabels: <String>['0:00', '2:00', '4:00'],
+          distanceAxisLabels: <String>['0 km', '2 km', '4.03 km'],
+          totalDurationSeconds: 1586,
+        ),
+      );
+
+      final snapshot = builder.fromRunSummary(summary);
+
+      expect(
+        snapshot.pace.paceGraph.availability,
+        AdvancedAnalysisMetricAvailability.available,
+      );
+      expect(
+        snapshot.pace.paceGraph.source,
+        AdvancedAnalysisMetricSource.healthKitAppleWatch,
+      );
+      expect(
+        snapshot.pace.paceGraph.source,
+        isNot(AdvancedAnalysisMetricSource.localGpsDerived),
+      );
+      expect(
+        snapshot.pace.splits.source,
+        AdvancedAnalysisMetricSource.healthKitAppleWatch,
+      );
+      expect(snapshot.pace.splits.value, isNotEmpty);
     });
 
     test('keeps splits unavailable without distance-axis graph metadata', () {
