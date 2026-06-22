@@ -14,11 +14,11 @@ class AdvancedAnalysisSnapshotBuilder {
         score: const AdvancedAnalysisMetric<int>.unavailable(
           reason: AdvancedAnalysisMetricReason.undefinedPerformanceFormula,
         ),
-        duration: _trustedLocalSummaryMetric(summary.duration, summary),
-        distance: _trustedLocalSummaryMetric(summary.distanceKm, summary),
+        duration: _sourceAwareSummaryMetric(summary.duration, summary),
+        distance: _sourceAwareSummaryMetric(summary.distanceKm, summary),
       ),
       pace: AdvancedAnalysisPaceAnalysis(
-        averagePace: _trustedLocalSummaryMetric(summary.avgPace, summary),
+        averagePace: _sourceAwareSummaryMetric(summary.avgPace, summary),
         fastestPace: _derivedPaceMetric(paceAnalysis?.fastestPaceSecondsPerKm),
         slowestPace: _derivedPaceMetric(paceAnalysis?.slowestPaceSecondsPerKm),
         paceStability: _derivedStabilityMetric(
@@ -124,7 +124,7 @@ class AdvancedAnalysisSnapshotBuilder {
     );
   }
 
-  AdvancedAnalysisMetric<String> _trustedLocalSummaryMetric(
+  AdvancedAnalysisMetric<String> _sourceAwareSummaryMetric(
     String valueLabel,
     RunSummarySnapshot summary,
   ) {
@@ -139,9 +139,33 @@ class AdvancedAnalysisSnapshotBuilder {
     return AdvancedAnalysisMetric<String>.available(
       value: valueLabel,
       valueLabel: valueLabel,
-      source: AdvancedAnalysisMetricSource.localRunSummary,
-      confidence: AdvancedAnalysisMetricConfidence.trusted,
+      source: _summarySource(summary.sourceType),
+      confidence: _summaryConfidence(summary.sourceType),
     );
+  }
+
+  AdvancedAnalysisMetricSource _summarySource(RunSourceType sourceType) {
+    return switch (sourceType) {
+      RunSourceType.runiacGps => AdvancedAnalysisMetricSource.localRunSummary,
+      RunSourceType.appleHealth =>
+        AdvancedAnalysisMetricSource.healthKitAppleWatch,
+      RunSourceType.healthConnect => AdvancedAnalysisMetricSource.healthConnect,
+      RunSourceType.garminViaHealth =>
+        AdvancedAnalysisMetricSource.garminWearable,
+      RunSourceType.demoImport => AdvancedAnalysisMetricSource.staticDemo,
+    };
+  }
+
+  AdvancedAnalysisMetricConfidence _summaryConfidence(
+    RunSourceType sourceType,
+  ) {
+    return switch (sourceType) {
+      RunSourceType.runiacGps => AdvancedAnalysisMetricConfidence.trusted,
+      RunSourceType.appleHealth ||
+      RunSourceType.healthConnect ||
+      RunSourceType.garminViaHealth => AdvancedAnalysisMetricConfidence.derived,
+      RunSourceType.demoImport => AdvancedAnalysisMetricConfidence.demo,
+    };
   }
 
   AdvancedAnalysisMetric<PaceGraphSnapshot> _paceGraphMetric(

@@ -48,6 +48,97 @@ void main() {
       expect(snapshot.pace.averagePace.valueLabel, '6’30” / km');
     });
 
+    test(
+      'maps average pace provenance from run source without changing label',
+      () {
+        const cases = <_AveragePaceSourceCase>[
+          _AveragePaceSourceCase(
+            name: 'Runiac GPS',
+            sourceType: RunSourceType.runiacGps,
+            expectedAvailability: AdvancedAnalysisMetricAvailability.available,
+            expectedSource: AdvancedAnalysisMetricSource.localRunSummary,
+            expectedConfidence: AdvancedAnalysisMetricConfidence.trusted,
+            expectedLabel: '6’30” / km',
+          ),
+          _AveragePaceSourceCase(
+            name: 'demo import',
+            sourceType: RunSourceType.demoImport,
+            expectedAvailability: AdvancedAnalysisMetricAvailability.demoOnly,
+            expectedSource: AdvancedAnalysisMetricSource.staticDemo,
+            expectedConfidence: AdvancedAnalysisMetricConfidence.demo,
+            expectedLabel: '6’30” / km',
+          ),
+          _AveragePaceSourceCase(
+            name: 'Apple Health',
+            sourceType: RunSourceType.appleHealth,
+            expectedAvailability: AdvancedAnalysisMetricAvailability.available,
+            expectedSource: AdvancedAnalysisMetricSource.healthKitAppleWatch,
+            expectedConfidence: AdvancedAnalysisMetricConfidence.derived,
+            expectedLabel: '6’30” / km',
+          ),
+          _AveragePaceSourceCase(
+            name: 'Health Connect',
+            sourceType: RunSourceType.healthConnect,
+            expectedAvailability: AdvancedAnalysisMetricAvailability.available,
+            expectedSource: AdvancedAnalysisMetricSource.healthConnect,
+            expectedConfidence: AdvancedAnalysisMetricConfidence.derived,
+            expectedLabel: '6’30” / km',
+          ),
+          _AveragePaceSourceCase(
+            name: 'Garmin via Health',
+            sourceType: RunSourceType.garminViaHealth,
+            expectedAvailability: AdvancedAnalysisMetricAvailability.available,
+            expectedSource: AdvancedAnalysisMetricSource.garminWearable,
+            expectedConfidence: AdvancedAnalysisMetricConfidence.derived,
+            expectedLabel: '6’30” / km',
+          ),
+          _AveragePaceSourceCase(
+            name: 'missing pace',
+            sourceType: RunSourceType.runiacGps,
+            avgPace: '--',
+            expectedAvailability:
+                AdvancedAnalysisMetricAvailability.unavailable,
+            expectedSource: AdvancedAnalysisMetricSource.unavailable,
+            expectedConfidence: AdvancedAnalysisMetricConfidence.unavailable,
+          ),
+        ];
+
+        for (final testCase in cases) {
+          final summary = RunSummarySnapshot(
+            title: '${testCase.name} Run',
+            dateLabel: 'Today',
+            timeLabel: '7:06 AM',
+            distanceKm: '4.03 km',
+            avgPace: testCase.avgPace,
+            duration: '30:15',
+            avgHeartRate: '--',
+            calories: '212 kcal',
+            routeName: 'East Coast Park Loop',
+            sourceType: testCase.sourceType,
+          );
+
+          final metric = builder.fromRunSummary(summary).pace.averagePace;
+
+          expect(
+            metric.availability,
+            testCase.expectedAvailability,
+            reason: testCase.name,
+          );
+          expect(metric.source, testCase.expectedSource, reason: testCase.name);
+          expect(
+            metric.confidence,
+            testCase.expectedConfidence,
+            reason: testCase.name,
+          );
+          expect(
+            metric.valueLabel,
+            testCase.expectedLabel,
+            reason: testCase.name,
+          );
+        }
+      },
+    );
+
     test('keeps unsupported analysis metrics unavailable by default', () {
       const summary = RunSummarySnapshot(
         title: 'Easy Run',
@@ -674,4 +765,24 @@ void main() {
       );
     });
   });
+}
+
+class _AveragePaceSourceCase {
+  const _AveragePaceSourceCase({
+    required this.name,
+    required this.sourceType,
+    required this.expectedAvailability,
+    required this.expectedSource,
+    required this.expectedConfidence,
+    this.avgPace = '6’30” / km',
+    this.expectedLabel,
+  });
+
+  final String name;
+  final RunSourceType sourceType;
+  final String avgPace;
+  final AdvancedAnalysisMetricAvailability expectedAvailability;
+  final AdvancedAnalysisMetricSource expectedSource;
+  final AdvancedAnalysisMetricConfidence expectedConfidence;
+  final String? expectedLabel;
 }
