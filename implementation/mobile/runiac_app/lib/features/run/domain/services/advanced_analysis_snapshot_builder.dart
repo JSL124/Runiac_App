@@ -1,7 +1,9 @@
 import '../models/advanced_analysis_snapshot.dart';
+import '../models/cadence_analysis_derivation.dart';
 import '../models/pace_graph_snapshot.dart';
 import '../models/run_source_display.dart';
 import '../models/run_summary_snapshot.dart';
+import 'cadence_analysis_deriver.dart';
 import 'pace_analysis_deriver.dart';
 
 class AdvancedAnalysisSnapshotBuilder {
@@ -9,6 +11,7 @@ class AdvancedAnalysisSnapshotBuilder {
 
   AdvancedAnalysisSnapshot fromRunSummary(RunSummarySnapshot summary) {
     final paceAnalysis = _derivePaceAnalysis(summary);
+    final cadenceAnalysis = _deriveCadenceAnalysis(summary);
     return AdvancedAnalysisSnapshot(
       performance: AdvancedAnalysisPerformanceOverview(
         score: const AdvancedAnalysisMetric<int>.unavailable(
@@ -59,26 +62,7 @@ class AdvancedAnalysisSnapshotBuilder {
           reason: AdvancedAnalysisMetricReason.missingElevationSource,
         ),
       ),
-      formCadence: const AdvancedAnalysisFormCadenceAnalysis(
-        averageCadence: AdvancedAnalysisMetric<String>.unavailable(
-          reason: AdvancedAnalysisMetricReason.missingCadenceSource,
-        ),
-        targetRange: AdvancedAnalysisMetric<String>.unavailable(
-          reason: AdvancedAnalysisMetricReason.missingCadenceSource,
-        ),
-        strideConsistency: AdvancedAnalysisMetric<String>.unavailable(
-          reason: AdvancedAnalysisMetricReason.missingCadenceSource,
-        ),
-        cadenceStatus: AdvancedAnalysisMetric<String>.unavailable(
-          reason: AdvancedAnalysisMetricReason.missingCadenceSource,
-        ),
-        strideLength: AdvancedAnalysisMetric<String>.unavailable(
-          reason: AdvancedAnalysisMetricReason.missingStrideSource,
-        ),
-        cadenceGraph: AdvancedAnalysisMetric<List<String>>.unavailable(
-          reason: AdvancedAnalysisMetricReason.missingCadenceSource,
-        ),
-      ),
+      formCadence: _formCadenceAnalysis(cadenceAnalysis),
     );
   }
 
@@ -92,6 +76,111 @@ class AdvancedAnalysisSnapshotBuilder {
     }
     final derivation = const PaceAnalysisDeriver().derive(series);
     return derivation.isAvailable ? derivation : null;
+  }
+
+  CadenceAnalysisDerivation? _deriveCadenceAnalysis(
+    RunSummarySnapshot summary,
+  ) {
+    if (summary.sourceType != RunSourceType.runiacGps) {
+      return null;
+    }
+    final series = summary.cadenceAnalysisSeries;
+    if (series == null) {
+      return null;
+    }
+    final derivation = const CadenceAnalysisDeriver().derive(series);
+    return derivation.isAvailable ? derivation : null;
+  }
+
+  AdvancedAnalysisFormCadenceAnalysis _formCadenceAnalysis(
+    CadenceAnalysisDerivation? derivation,
+  ) {
+    return AdvancedAnalysisFormCadenceAnalysis(
+      averageCadence: _cadenceValueMetric(derivation?.averageCadenceSpm),
+      targetRange: const AdvancedAnalysisMetric<String>.unavailable(
+        reason: AdvancedAnalysisMetricReason.missingCadenceSource,
+      ),
+      strideConsistency: _cadenceTextMetric(_stabilityLabel(derivation)),
+      cadenceStatus: _cadenceTextMetric(_trendLabel(derivation)),
+      strideLength: const AdvancedAnalysisMetric<String>.unavailable(
+        reason: AdvancedAnalysisMetricReason.missingStrideSource,
+      ),
+      cadenceGraph: _cadenceGraphMetric(derivation),
+    );
+  }
+
+  AdvancedAnalysisMetric<String> _cadenceValueMetric(int? cadenceSpm) {
+    if (cadenceSpm == null) {
+      return _unavailableCadenceMetric();
+    }
+    final valueLabel = '$cadenceSpm spm';
+    return AdvancedAnalysisMetric<String>.available(
+      value: valueLabel,
+      valueLabel: valueLabel,
+      source: AdvancedAnalysisMetricSource.localGpsDerived,
+      confidence: AdvancedAnalysisMetricConfidence.derived,
+    );
+  }
+
+  AdvancedAnalysisMetric<String> _cadenceTextMetric(String? valueLabel) {
+    if (valueLabel == null) {
+      return _unavailableCadenceMetric();
+    }
+    return AdvancedAnalysisMetric<String>.available(
+      value: valueLabel,
+      valueLabel: valueLabel,
+      source: AdvancedAnalysisMetricSource.localGpsDerived,
+      confidence: AdvancedAnalysisMetricConfidence.derived,
+    );
+  }
+
+  AdvancedAnalysisMetric<List<String>> _cadenceGraphMetric(
+    CadenceAnalysisDerivation? derivation,
+  ) {
+    final lowestCadence = derivation?.lowestCadenceSpm;
+    final averageCadence = derivation?.averageCadenceSpm;
+    final highestCadence = derivation?.highestCadenceSpm;
+    if (lowestCadence == null ||
+        averageCadence == null ||
+        highestCadence == null) {
+      return const AdvancedAnalysisMetric<List<String>>.unavailable(
+        reason: AdvancedAnalysisMetricReason.missingCadenceSource,
+      );
+    }
+    return AdvancedAnalysisMetric<List<String>>.available(
+      value: <String>[
+        '$lowestCadence spm',
+        '$averageCadence spm',
+        '$highestCadence spm',
+      ],
+      source: AdvancedAnalysisMetricSource.localGpsDerived,
+      confidence: AdvancedAnalysisMetricConfidence.derived,
+    );
+  }
+
+  AdvancedAnalysisMetric<String> _unavailableCadenceMetric() {
+    return const AdvancedAnalysisMetric<String>.unavailable(
+      reason: AdvancedAnalysisMetricReason.missingCadenceSource,
+    );
+  }
+
+  String? _stabilityLabel(CadenceAnalysisDerivation? derivation) {
+    return switch (derivation?.stability) {
+      CadenceStability.stable => 'stable',
+      CadenceStability.variable => 'variable',
+      CadenceStability.insufficientData ||
+      CadenceStability.unavailable ||
+      null => null,
+    };
+  }
+
+  String? _trendLabel(CadenceAnalysisDerivation? derivation) {
+    return switch (derivation?.trend) {
+      CadenceTrend.stable => 'stable',
+      CadenceTrend.dropping => 'dropping',
+      CadenceTrend.rising => 'rising',
+      CadenceTrend.insufficientData || CadenceTrend.unavailable || null => null,
+    };
   }
 
   AdvancedAnalysisMetric<String> _derivedPaceMetric(int? secondsPerKm) {

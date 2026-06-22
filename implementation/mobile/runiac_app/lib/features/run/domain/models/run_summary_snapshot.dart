@@ -1,3 +1,4 @@
+import 'cadence_analysis_series.dart';
 import 'coaching_summary_snapshot.dart';
 import 'pace_analysis_series.dart';
 import 'pace_graph_snapshot.dart';
@@ -17,6 +18,7 @@ class RunSummarySnapshot {
     required this.routeName,
     this.hasSufficientData = true,
     this.paceAnalysisSeries,
+    this.cadenceAnalysisSeries,
     this.paceGraph = const PaceGraphSnapshot.unavailable(),
     this.route = RunRouteSnapshot.empty,
     this.sourceType = RunSourceType.runiacGps,
@@ -42,6 +44,7 @@ class RunSummarySnapshot {
   final String routeName;
   final bool hasSufficientData;
   final PaceAnalysisSeries? paceAnalysisSeries;
+  final CadenceAnalysisSeries? cadenceAnalysisSeries;
   final PaceGraphSnapshot paceGraph;
   final RunRouteSnapshot route;
   final RunSourceType sourceType;
@@ -54,6 +57,7 @@ class RunSummarySnapshot {
 
   RunSummarySnapshot copyWith({
     PaceAnalysisSeries? paceAnalysisSeries,
+    CadenceAnalysisSeries? cadenceAnalysisSeries,
     PaceGraphSnapshot? paceGraph,
     RunRouteSnapshot? route,
     RunSourceType? sourceType,
@@ -72,6 +76,8 @@ class RunSummarySnapshot {
       routeName: routeName,
       hasSufficientData: hasSufficientData,
       paceAnalysisSeries: paceAnalysisSeries ?? this.paceAnalysisSeries,
+      cadenceAnalysisSeries:
+          cadenceAnalysisSeries ?? this.cadenceAnalysisSeries,
       paceGraph: paceGraph ?? this.paceGraph,
       route: route ?? this.route,
       sourceType: sourceType ?? this.sourceType,

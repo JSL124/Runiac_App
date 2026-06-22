@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/features/run/domain/models/advanced_analysis_snapshot.dart';
+import 'package:runiac_app/features/run/domain/models/cadence_analysis_series.dart';
 import 'package:runiac_app/features/run/domain/models/pace_analysis_series.dart';
 import 'package:runiac_app/features/run/domain/models/pace_graph_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/run_source_display.dart';
@@ -354,6 +355,205 @@ void main() {
         expect(snapshot.pace.paceStability.isAvailable, isFalse);
       },
     );
+
+    test('derives cadence metrics from accountable local series', () {
+      final summary = RunSummarySnapshot(
+        title: 'Local Cadence Run',
+        dateLabel: 'Today',
+        timeLabel: '7:06 AM',
+        distanceKm: '4.03 km',
+        avgPace: '6’30” / km',
+        duration: '30:15',
+        avgHeartRate: '--',
+        calories: '212 kcal',
+        routeName: 'East Coast Park Loop',
+        cadenceAnalysisSeries: CadenceAnalysisSeries.localAccepted(
+          samples: const <CadenceAnalysisSample>[
+            CadenceAnalysisSample.accepted(elapsedSeconds: 60, cadenceSpm: 168),
+            CadenceAnalysisSample.accepted(
+              elapsedSeconds: 120,
+              cadenceSpm: 172,
+            ),
+            CadenceAnalysisSample.accepted(
+              elapsedSeconds: 180,
+              cadenceSpm: 176,
+            ),
+          ],
+        ),
+      );
+
+      final cadence = builder.fromRunSummary(summary).formCadence;
+
+      expect(cadence.averageCadence.valueLabel, '172 spm');
+      expect(cadence.strideConsistency.valueLabel, 'stable');
+      expect(cadence.cadenceStatus.valueLabel, 'stable');
+      expect(cadence.cadenceGraph.value, <String>[
+        '168 spm',
+        '172 spm',
+        '176 spm',
+      ]);
+      for (final metric in <AdvancedAnalysisMetric<String>>[
+        cadence.averageCadence,
+        cadence.strideConsistency,
+        cadence.cadenceStatus,
+      ]) {
+        expect(
+          metric.availability,
+          AdvancedAnalysisMetricAvailability.available,
+        );
+        expect(metric.source, AdvancedAnalysisMetricSource.localGpsDerived);
+        expect(metric.confidence, AdvancedAnalysisMetricConfidence.derived);
+        expect(metric.isTrustedProduction, isFalse);
+      }
+      expect(
+        cadence.cadenceGraph.availability,
+        AdvancedAnalysisMetricAvailability.available,
+      );
+      expect(cadence.targetRange.isAvailable, isFalse);
+      expect(
+        cadence.targetRange.reason,
+        AdvancedAnalysisMetricReason.missingCadenceSource,
+      );
+      expect(cadence.strideLength.isAvailable, isFalse);
+      expect(
+        cadence.strideLength.reason,
+        AdvancedAnalysisMetricReason.missingStrideSource,
+      );
+    });
+
+    test('keeps cadence unavailable without accountable cadence series', () {
+      const summary = RunSummarySnapshot(
+        title: 'No Cadence Run',
+        dateLabel: 'Today',
+        timeLabel: '7:06 AM',
+        distanceKm: '4.03 km',
+        avgPace: '6’30” / km',
+        duration: '30:15',
+        avgHeartRate: '--',
+        calories: '212 kcal',
+        routeName: 'East Coast Park Loop',
+      );
+
+      final cadence = builder.fromRunSummary(summary).formCadence;
+
+      expect(cadence.averageCadence.isAvailable, isFalse);
+      expect(
+        cadence.averageCadence.reason,
+        AdvancedAnalysisMetricReason.missingCadenceSource,
+      );
+      expect(cadence.strideConsistency.isAvailable, isFalse);
+      expect(cadence.cadenceStatus.isAvailable, isFalse);
+      expect(cadence.cadenceGraph.isAvailable, isFalse);
+      expect(cadence.targetRange.isAvailable, isFalse);
+      expect(cadence.strideLength.isAvailable, isFalse);
+    });
+
+    test('keeps static and insufficient cadence series unavailable', () {
+      final cases = <_CadenceUnavailableCase>[
+        _CadenceUnavailableCase(
+          name: 'static demo',
+          series: CadenceAnalysisSeries.staticDemo(
+            samples: const <CadenceAnalysisSample>[
+              CadenceAnalysisSample.accepted(
+                elapsedSeconds: 60,
+                cadenceSpm: 168,
+              ),
+              CadenceAnalysisSample.accepted(
+                elapsedSeconds: 120,
+                cadenceSpm: 172,
+              ),
+              CadenceAnalysisSample.accepted(
+                elapsedSeconds: 180,
+                cadenceSpm: 176,
+              ),
+            ],
+          ),
+        ),
+        _CadenceUnavailableCase(
+          name: 'insufficient samples',
+          series: CadenceAnalysisSeries.localAccepted(
+            samples: const <CadenceAnalysisSample>[
+              CadenceAnalysisSample.accepted(
+                elapsedSeconds: 60,
+                cadenceSpm: 168,
+              ),
+              CadenceAnalysisSample.accepted(
+                elapsedSeconds: 120,
+                cadenceSpm: 172,
+              ),
+            ],
+          ),
+        ),
+        _CadenceUnavailableCase(
+          name: 'unavailable source',
+          series: CadenceAnalysisSeries.unavailable(),
+        ),
+        _CadenceUnavailableCase(
+          name: 'local series attached to demo source',
+          sourceType: RunSourceType.demoImport,
+          series: CadenceAnalysisSeries.localAccepted(
+            samples: const <CadenceAnalysisSample>[
+              CadenceAnalysisSample.accepted(
+                elapsedSeconds: 60,
+                cadenceSpm: 168,
+              ),
+              CadenceAnalysisSample.accepted(
+                elapsedSeconds: 120,
+                cadenceSpm: 172,
+              ),
+              CadenceAnalysisSample.accepted(
+                elapsedSeconds: 180,
+                cadenceSpm: 176,
+              ),
+            ],
+          ),
+        ),
+        _CadenceUnavailableCase(
+          name: 'non-monotonic local series',
+          series: CadenceAnalysisSeries.localAccepted(
+            samples: const <CadenceAnalysisSample>[
+              CadenceAnalysisSample.accepted(
+                elapsedSeconds: 120,
+                cadenceSpm: 168,
+              ),
+              CadenceAnalysisSample.accepted(
+                elapsedSeconds: 60,
+                cadenceSpm: 172,
+              ),
+              CadenceAnalysisSample.accepted(
+                elapsedSeconds: 180,
+                cadenceSpm: 176,
+              ),
+            ],
+          ),
+        ),
+      ];
+
+      for (final testCase in cases) {
+        final summary = RunSummarySnapshot(
+          title: '${testCase.name} Cadence Run',
+          dateLabel: 'Today',
+          timeLabel: '7:06 AM',
+          distanceKm: '4.03 km',
+          avgPace: '6’30” / km',
+          duration: '30:15',
+          avgHeartRate: '--',
+          calories: '212 kcal',
+          routeName: 'East Coast Park Loop',
+          sourceType: testCase.sourceType,
+          cadenceAnalysisSeries: testCase.series,
+        );
+
+        final cadence = builder.fromRunSummary(summary).formCadence;
+
+        expect(cadence.averageCadence.isAvailable, isFalse);
+        expect(cadence.strideConsistency.isAvailable, isFalse);
+        expect(cadence.cadenceStatus.isAvailable, isFalse);
+        expect(cadence.cadenceGraph.isAvailable, isFalse);
+        expect(cadence.targetRange.isAvailable, isFalse);
+        expect(cadence.strideLength.isAvailable, isFalse);
+      }
+    });
 
     test(
       'does not classify demo/static metrics as trusted production data',
@@ -785,4 +985,16 @@ class _AveragePaceSourceCase {
   final AdvancedAnalysisMetricSource expectedSource;
   final AdvancedAnalysisMetricConfidence expectedConfidence;
   final String? expectedLabel;
+}
+
+class _CadenceUnavailableCase {
+  const _CadenceUnavailableCase({
+    required this.name,
+    required this.series,
+    this.sourceType = RunSourceType.runiacGps,
+  });
+
+  final String name;
+  final CadenceAnalysisSeries series;
+  final RunSourceType sourceType;
 }
