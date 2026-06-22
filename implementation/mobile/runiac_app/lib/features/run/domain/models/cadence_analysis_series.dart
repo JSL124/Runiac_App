@@ -2,9 +2,18 @@ const minCadenceAnalysisSpm = 40;
 const maxCadenceAnalysisSpm = 300;
 const defaultMinimumCadenceAnalysisSamples = 3;
 
-enum CadenceAnalysisSource { localAccepted, staticDemo, unavailableUnknown }
+enum CadenceAnalysisSource {
+  runiacLocalAccepted,
+  healthKitAppleWatch,
+  healthConnect,
+  garminWearable,
+  phoneSensorEstimated,
+  backendDerived,
+  staticDemo,
+  unavailableUnknown,
+}
 
-enum CadenceAnalysisConfidence { derived, demo, unavailable }
+enum CadenceAnalysisConfidence { high, medium, low, demo, unavailable }
 
 enum CadenceAnalysisSampleStatus { accepted, rejected }
 
@@ -28,8 +37,8 @@ class CadenceAnalysisSeries {
   CadenceAnalysisSeries.localAccepted({
     required List<CadenceAnalysisSample> samples,
   }) : this(
-         source: CadenceAnalysisSource.localAccepted,
-         confidence: CadenceAnalysisConfidence.derived,
+         source: CadenceAnalysisSource.runiacLocalAccepted,
+         confidence: CadenceAnalysisConfidence.medium,
          samples: samples,
        );
 
@@ -52,10 +61,30 @@ class CadenceAnalysisSeries {
   final CadenceAnalysisConfidence confidence;
   final List<CadenceAnalysisSample> samples;
 
-  bool get isLocalAcceptedSource =>
-      source == CadenceAnalysisSource.localAccepted;
+  bool get isRuniacLocalAcceptedSource =>
+      source == CadenceAnalysisSource.runiacLocalAccepted;
+  bool get isLocalAcceptedSource => isRuniacLocalAcceptedSource;
   bool get isStaticDemoSource => source == CadenceAnalysisSource.staticDemo;
   bool get isUnavailable => source == CadenceAnalysisSource.unavailableUnknown;
+  bool get isProductionAnalysisEligible {
+    return switch ((source, confidence)) {
+      (
+        CadenceAnalysisSource.runiacLocalAccepted,
+        CadenceAnalysisConfidence.medium,
+      ) ||
+      (
+        CadenceAnalysisSource.healthKitAppleWatch ||
+            CadenceAnalysisSource.healthConnect ||
+            CadenceAnalysisSource.garminWearable,
+        CadenceAnalysisConfidence.high,
+      ) ||
+      (
+        CadenceAnalysisSource.backendDerived,
+        CadenceAnalysisConfidence.medium,
+      ) => true,
+      _ => false,
+    };
+  }
 
   List<CadenceAnalysisSample> get validAcceptedSamples {
     return List<CadenceAnalysisSample>.unmodifiable(
@@ -89,7 +118,14 @@ class CadenceAnalysisSeries {
     List<CadenceAnalysisSample> samples,
   ) {
     final expectedConfidence = switch (source) {
-      CadenceAnalysisSource.localAccepted => CadenceAnalysisConfidence.derived,
+      CadenceAnalysisSource.runiacLocalAccepted =>
+        CadenceAnalysisConfidence.medium,
+      CadenceAnalysisSource.healthKitAppleWatch ||
+      CadenceAnalysisSource.healthConnect ||
+      CadenceAnalysisSource.garminWearable => CadenceAnalysisConfidence.high,
+      CadenceAnalysisSource.phoneSensorEstimated =>
+        CadenceAnalysisConfidence.low,
+      CadenceAnalysisSource.backendDerived => CadenceAnalysisConfidence.medium,
       CadenceAnalysisSource.staticDemo => CadenceAnalysisConfidence.demo,
       CadenceAnalysisSource.unavailableUnknown =>
         CadenceAnalysisConfidence.unavailable,
@@ -98,7 +134,7 @@ class CadenceAnalysisSeries {
       throw ArgumentError.value(
         confidence,
         'confidence',
-        'must be $expectedConfidence for $source',
+        'expected $expectedConfidence for $source',
       );
     }
     if (source == CadenceAnalysisSource.unavailableUnknown &&
@@ -106,7 +142,7 @@ class CadenceAnalysisSeries {
       throw ArgumentError.value(
         samples,
         'samples',
-        'must be empty when the cadence analysis source is unavailable',
+        'expected empty samples when the cadence analysis source is unavailable',
       );
     }
   }
@@ -200,7 +236,7 @@ class CadenceAnalysisSample {
       throw ArgumentError.value(
         rejectionReason,
         'rejectionReason',
-        'must be none for an accepted cadence analysis sample',
+        'expected none for an accepted cadence analysis sample',
       );
     }
     if (status == CadenceAnalysisSampleStatus.rejected &&
@@ -208,7 +244,7 @@ class CadenceAnalysisSample {
       throw ArgumentError.value(
         rejectionReason,
         'rejectionReason',
-        'must explain why a rejected cadence analysis sample was rejected',
+        'expected a rejection reason for a rejected cadence analysis sample',
       );
     }
   }

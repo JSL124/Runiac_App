@@ -60,8 +60,7 @@ class CadenceAnalysisDeriver {
     if (series.isUnavailable) {
       return CadenceAnalysisUnavailableReason.unavailableSource;
     }
-    if (!series.isLocalAcceptedSource ||
-        series.confidence != CadenceAnalysisConfidence.derived) {
+    if (!series.isProductionAnalysisEligible) {
       return CadenceAnalysisUnavailableReason.invalidSource;
     }
     return CadenceAnalysisUnavailableReason.none;

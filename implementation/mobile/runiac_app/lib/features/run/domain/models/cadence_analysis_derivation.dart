@@ -107,12 +107,11 @@ class CadenceAnalysisDerivation {
     required CadenceStability stability,
     required CadenceTrend trend,
   }) {
-    if (source != CadenceAnalysisSource.localAccepted ||
-        confidence != CadenceAnalysisConfidence.derived) {
+    if (!_isProductionAnalysisEligible(source, confidence)) {
       throw ArgumentError.value(
         '$source/$confidence',
         'source/confidence',
-        'available cadence analysis derivations must be local accepted and derived',
+        'available cadence analysis derivations require eligible source confidence',
       );
     }
     if (stability == CadenceStability.insufficientData ||
@@ -137,7 +136,7 @@ class CadenceAnalysisDerivation {
       throw ArgumentError.value(
         '$lowestCadenceSpm/$averageCadenceSpm/$highestCadenceSpm',
         'cadenceSpm',
-        'available cadence analysis values must be within cadence range',
+        'available cadence analysis values require cadence range',
       );
     }
     if (lowestCadenceSpm > averageCadenceSpm ||
@@ -145,7 +144,7 @@ class CadenceAnalysisDerivation {
       throw ArgumentError.value(
         '$lowestCadenceSpm/$averageCadenceSpm/$highestCadenceSpm',
         'cadenceSpm',
-        'average cadence must be between lowest and highest cadence',
+        'average cadence expected between lowest and highest cadence',
       );
     }
     final expectedStability =
@@ -156,7 +155,7 @@ class CadenceAnalysisDerivation {
       throw ArgumentError.value(
         stability,
         'stability',
-        'stability must match the cadence spread',
+        'stability expected to match the cadence spread',
       );
     }
   }
@@ -170,14 +169,14 @@ class CadenceAnalysisDerivation {
       throw ArgumentError.value(
         reason,
         'reason',
-        'must explain why the cadence analysis derivation is unavailable',
+        'expected a reason for unavailable cadence analysis derivation',
       );
     }
     if (!_isUnavailableSourceConsistent(reason, source, confidence)) {
       throw ArgumentError.value(
         '$reason/$source/$confidence',
         'reason/source/confidence',
-        'unavailable cadence analysis source must match its reason',
+        'unavailable cadence analysis source expected to match its reason',
       );
     }
   }
@@ -201,13 +200,34 @@ class CadenceAnalysisDerivation {
             confidence == CadenceAnalysisConfidence.unavailable,
       CadenceAnalysisUnavailableReason.insufficientSamples ||
       CadenceAnalysisUnavailableReason.nonMonotonicSeries =>
-        source == CadenceAnalysisSource.localAccepted &&
-            confidence == CadenceAnalysisConfidence.derived,
+        _isProductionAnalysisEligible(source, confidence),
       CadenceAnalysisUnavailableReason.invalidSource =>
         !_isCanonicalStaticDemoSource(source, confidence) &&
             !_isCanonicalUnavailableSource(source, confidence) &&
-            (source != CadenceAnalysisSource.localAccepted ||
-                confidence != CadenceAnalysisConfidence.derived),
+            !_isProductionAnalysisEligible(source, confidence),
+    };
+  }
+
+  static bool _isProductionAnalysisEligible(
+    CadenceAnalysisSource source,
+    CadenceAnalysisConfidence confidence,
+  ) {
+    return switch ((source, confidence)) {
+      (
+        CadenceAnalysisSource.runiacLocalAccepted,
+        CadenceAnalysisConfidence.medium,
+      ) ||
+      (
+        CadenceAnalysisSource.healthKitAppleWatch ||
+            CadenceAnalysisSource.healthConnect ||
+            CadenceAnalysisSource.garminWearable,
+        CadenceAnalysisConfidence.high,
+      ) ||
+      (
+        CadenceAnalysisSource.backendDerived,
+        CadenceAnalysisConfidence.medium,
+      ) => true,
+      _ => false,
     };
   }
 

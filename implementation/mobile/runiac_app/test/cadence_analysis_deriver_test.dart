@@ -17,7 +17,7 @@ void main() {
               cadenceSpm: 164,
             ),
             CadenceAnalysisSample.accepted(
-              elapsedSeconds: 180,
+              elapsedSeconds: 190,
               cadenceSpm: 166,
             ),
             CadenceAnalysisSample.accepted(
@@ -47,7 +47,7 @@ void main() {
               cadenceSpm: 158,
             ),
             CadenceAnalysisSample.accepted(
-              elapsedSeconds: 180,
+              elapsedSeconds: 190,
               cadenceSpm: 174,
             ),
             CadenceAnalysisSample.accepted(
@@ -74,7 +74,7 @@ void main() {
               cadenceSpm: 164,
             ),
             CadenceAnalysisSample.accepted(
-              elapsedSeconds: 180,
+              elapsedSeconds: 190,
               cadenceSpm: 168,
             ),
           ],
@@ -97,7 +97,7 @@ void main() {
               cadenceSpm: 165,
             ),
             CadenceAnalysisSample.accepted(
-              elapsedSeconds: 180,
+              elapsedSeconds: 190,
               cadenceSpm: 169,
             ),
           ],
@@ -120,7 +120,7 @@ void main() {
               cadenceSpm: 170,
             ),
             CadenceAnalysisSample.accepted(
-              elapsedSeconds: 180,
+              elapsedSeconds: 190,
               cadenceSpm: 158,
             ),
             CadenceAnalysisSample.accepted(
@@ -139,7 +139,7 @@ void main() {
               cadenceSpm: 156,
             ),
             CadenceAnalysisSample.accepted(
-              elapsedSeconds: 180,
+              elapsedSeconds: 190,
               cadenceSpm: 168,
             ),
             CadenceAnalysisSample.accepted(
@@ -164,7 +164,7 @@ void main() {
               cadenceSpm: 168,
             ),
             CadenceAnalysisSample.accepted(
-              elapsedSeconds: 180,
+              elapsedSeconds: 190,
               cadenceSpm: 160,
             ),
             CadenceAnalysisSample.accepted(
@@ -183,7 +183,7 @@ void main() {
               cadenceSpm: 160,
             ),
             CadenceAnalysisSample.accepted(
-              elapsedSeconds: 180,
+              elapsedSeconds: 190,
               cadenceSpm: 168,
             ),
             CadenceAnalysisSample.accepted(
@@ -208,7 +208,7 @@ void main() {
               cadenceSpm: 167,
             ),
             CadenceAnalysisSample.accepted(
-              elapsedSeconds: 180,
+              elapsedSeconds: 190,
               cadenceSpm: 160,
             ),
             CadenceAnalysisSample.accepted(
@@ -227,7 +227,7 @@ void main() {
               cadenceSpm: 160,
             ),
             CadenceAnalysisSample.accepted(
-              elapsedSeconds: 180,
+              elapsedSeconds: 190,
               cadenceSpm: 167,
             ),
             CadenceAnalysisSample.accepted(
@@ -256,7 +256,7 @@ void main() {
               rejectionReason:
                   CadenceAnalysisSampleRejectionReason.outOfRangeCadence,
             ),
-            CadenceAnalysisSample.accepted(elapsedSeconds: 180, cadenceSpm: 0),
+            CadenceAnalysisSample.accepted(elapsedSeconds: 190, cadenceSpm: 0),
             CadenceAnalysisSample.accepted(
               elapsedSeconds: 240,
               cadenceSpm: 321,
@@ -330,7 +330,7 @@ void main() {
                 cadenceSpm: 164,
               ),
               CadenceAnalysisSample.accepted(
-                elapsedSeconds: 180,
+                elapsedSeconds: 190,
                 cadenceSpm: 166,
               ),
             ],
@@ -386,9 +386,9 @@ void main() {
       );
       expect(
         () => CadenceAnalysisDerivation.available(
-          source: CadenceAnalysisSource.localAccepted,
-          confidence: CadenceAnalysisConfidence.derived,
-          averageCadenceSpm: 180,
+          source: CadenceAnalysisSource.runiacLocalAccepted,
+          confidence: CadenceAnalysisConfidence.medium,
+          averageCadenceSpm: 181,
           lowestCadenceSpm: 170,
           highestCadenceSpm: 176,
           stability: CadenceStability.stable,
@@ -398,11 +398,11 @@ void main() {
       );
       expect(
         () => CadenceAnalysisDerivation.available(
-          source: CadenceAnalysisSource.localAccepted,
-          confidence: CadenceAnalysisConfidence.derived,
+          source: CadenceAnalysisSource.runiacLocalAccepted,
+          confidence: CadenceAnalysisConfidence.medium,
           averageCadenceSpm: 164,
           lowestCadenceSpm: 120,
-          highestCadenceSpm: 180,
+          highestCadenceSpm: 181,
           stability: CadenceStability.stable,
           trend: CadenceTrend.stable,
         ),
@@ -411,8 +411,8 @@ void main() {
       expect(
         () => CadenceAnalysisDerivation.unavailable(
           reason: CadenceAnalysisUnavailableReason.staticDemoSource,
-          source: CadenceAnalysisSource.localAccepted,
-          confidence: CadenceAnalysisConfidence.derived,
+          source: CadenceAnalysisSource.runiacLocalAccepted,
+          confidence: CadenceAnalysisConfidence.medium,
         ),
         throwsA(isA<ArgumentError>()),
       );
@@ -434,7 +434,7 @@ void main() {
       );
       final invalidSource = CadenceAnalysisDerivation.unavailable(
         reason: CadenceAnalysisUnavailableReason.invalidSource,
-        source: CadenceAnalysisSource.localAccepted,
+        source: CadenceAnalysisSource.phoneSensorEstimated,
         confidence: CadenceAnalysisConfidence.demo,
       );
 

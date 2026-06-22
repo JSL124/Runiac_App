@@ -11,12 +11,12 @@ void main() {
             cadenceSpm: 162,
           ),
           CadenceAnalysisSample.accepted(elapsedSeconds: 120, cadenceSpm: 164),
-          CadenceAnalysisSample.accepted(elapsedSeconds: 180, cadenceSpm: 166),
+          CadenceAnalysisSample.accepted(elapsedSeconds: 190, cadenceSpm: 166),
         ],
       );
 
-      expect(series.source, CadenceAnalysisSource.localAccepted);
-      expect(series.confidence, CadenceAnalysisConfidence.derived);
+      expect(series.source, CadenceAnalysisSource.runiacLocalAccepted);
+      expect(series.confidence, CadenceAnalysisConfidence.medium);
       expect(series.validAcceptedSamples, hasLength(3));
       expect(
         series.validAcceptedSamples.map((sample) => sample.cadenceSpm),
@@ -37,7 +37,7 @@ void main() {
           cadenceSpm: 164,
         ),
         const CadenceAnalysisSample.accepted(
-          elapsedSeconds: 180,
+          elapsedSeconds: 190,
           cadenceSpm: 166,
         ),
       ];
@@ -65,7 +65,7 @@ void main() {
             cadenceSpm: 162,
           ),
           CadenceAnalysisSample.accepted(elapsedSeconds: 120, cadenceSpm: 0),
-          CadenceAnalysisSample.accepted(elapsedSeconds: 180, cadenceSpm: -4),
+          CadenceAnalysisSample.accepted(elapsedSeconds: 190, cadenceSpm: -4),
           CadenceAnalysisSample.accepted(elapsedSeconds: 240, cadenceSpm: 321),
           CadenceAnalysisSample.accepted(elapsedSeconds: -1, cadenceSpm: 166),
           CadenceAnalysisSample.accepted(elapsedSeconds: 300, cadenceSpm: 164),
@@ -92,7 +92,7 @@ void main() {
             status: CadenceAnalysisSampleStatus.accepted,
           ),
           CadenceAnalysisSample(
-            elapsedSeconds: 180,
+            elapsedSeconds: 190,
             cadenceSpm: double.infinity,
             status: CadenceAnalysisSampleStatus.accepted,
           ),
@@ -123,7 +123,7 @@ void main() {
               cadenceSpm: 164,
             ),
             CadenceAnalysisSample.accepted(
-              elapsedSeconds: 180,
+              elapsedSeconds: 190,
               cadenceSpm: 166,
             ),
           ],
@@ -133,7 +133,7 @@ void main() {
             CadenceAnalysisSample.accepted(elapsedSeconds: 60, cadenceSpm: 162),
             CadenceAnalysisSample.accepted(elapsedSeconds: 60, cadenceSpm: 164),
             CadenceAnalysisSample.accepted(
-              elapsedSeconds: 180,
+              elapsedSeconds: 190,
               cadenceSpm: 166,
             ),
           ],
@@ -142,7 +142,7 @@ void main() {
           samples: const <CadenceAnalysisSample>[
             CadenceAnalysisSample.accepted(elapsedSeconds: 60, cadenceSpm: 162),
             CadenceAnalysisSample.accepted(
-              elapsedSeconds: 180,
+              elapsedSeconds: 190,
               cadenceSpm: 164,
             ),
             CadenceAnalysisSample.accepted(
@@ -172,7 +172,7 @@ void main() {
                 CadenceAnalysisSampleRejectionReason.outOfRangeCadence,
           ),
           const CadenceAnalysisSample.accepted(
-            elapsedSeconds: 180,
+            elapsedSeconds: 190,
             cadenceSpm: 166,
           ),
         ],
@@ -219,10 +219,59 @@ void main() {
       expect(unavailable.samples, isEmpty);
     });
 
+    test('source confidence policy keeps cadence origins distinct', () {
+      final samples = const <CadenceAnalysisSample>[
+        CadenceAnalysisSample.accepted(elapsedSeconds: 60, cadenceSpm: 162),
+        CadenceAnalysisSample.accepted(elapsedSeconds: 120, cadenceSpm: 164),
+        CadenceAnalysisSample.accepted(elapsedSeconds: 240, cadenceSpm: 166),
+      ];
+      final local = CadenceAnalysisSeries.localAccepted(samples: samples);
+      final healthKit = CadenceAnalysisSeries(
+        source: CadenceAnalysisSource.healthKitAppleWatch,
+        confidence: CadenceAnalysisConfidence.high,
+        samples: samples,
+      );
+      final healthConnect = CadenceAnalysisSeries(
+        source: CadenceAnalysisSource.healthConnect,
+        confidence: CadenceAnalysisConfidence.high,
+        samples: samples,
+      );
+      final garmin = CadenceAnalysisSeries(
+        source: CadenceAnalysisSource.garminWearable,
+        confidence: CadenceAnalysisConfidence.high,
+        samples: samples,
+      );
+      final phone = CadenceAnalysisSeries(
+        source: CadenceAnalysisSource.phoneSensorEstimated,
+        confidence: CadenceAnalysisConfidence.low,
+        samples: samples,
+      );
+
+      expect(local.isLocalAcceptedSource, isTrue);
+      expect(healthKit.isLocalAcceptedSource, isFalse);
+      expect(healthConnect.isLocalAcceptedSource, isFalse);
+      expect(garmin.isLocalAcceptedSource, isFalse);
+      expect(phone.isProductionAnalysisEligible, isFalse);
+      expect(healthKit.confidence, CadenceAnalysisConfidence.high);
+      expect(healthConnect.confidence, CadenceAnalysisConfidence.high);
+      expect(garmin.confidence, CadenceAnalysisConfidence.high);
+      expect(phone.confidence, CadenceAnalysisConfidence.low);
+      expect(
+        CadenceAnalysisSeries.staticDemo(
+          samples: samples,
+        ).isProductionAnalysisEligible,
+        isFalse,
+      );
+      expect(
+        CadenceAnalysisSeries.unavailable().isProductionAnalysisEligible,
+        isFalse,
+      );
+    });
+
     test('invalid source and confidence combinations are rejected', () {
       expect(
         () => CadenceAnalysisSeries(
-          source: CadenceAnalysisSource.localAccepted,
+          source: CadenceAnalysisSource.runiacLocalAccepted,
           confidence: CadenceAnalysisConfidence.demo,
           samples: const <CadenceAnalysisSample>[],
         ),
