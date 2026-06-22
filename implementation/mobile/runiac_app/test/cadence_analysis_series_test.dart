@@ -189,6 +189,19 @@ void main() {
       );
     });
 
+    test('accepted samples reject a rejection reason', () {
+      expect(
+        () => CadenceAnalysisSample(
+          elapsedSeconds: 120,
+          cadenceSpm: 164,
+          status: CadenceAnalysisSampleStatus.accepted,
+          rejectionReason:
+              CadenceAnalysisSampleRejectionReason.outOfRangeCadence,
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+
     test('empty and unavailable series stay distinguishable', () {
       final emptyLocal = CadenceAnalysisSeries.localAccepted(
         samples: const <CadenceAnalysisSample>[],

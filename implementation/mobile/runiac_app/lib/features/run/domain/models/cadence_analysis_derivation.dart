@@ -204,8 +204,26 @@ class CadenceAnalysisDerivation {
         source == CadenceAnalysisSource.localAccepted &&
             confidence == CadenceAnalysisConfidence.derived,
       CadenceAnalysisUnavailableReason.invalidSource =>
-        source != CadenceAnalysisSource.localAccepted ||
-            confidence != CadenceAnalysisConfidence.derived,
+        !_isCanonicalStaticDemoSource(source, confidence) &&
+            !_isCanonicalUnavailableSource(source, confidence) &&
+            (source != CadenceAnalysisSource.localAccepted ||
+                confidence != CadenceAnalysisConfidence.derived),
     };
+  }
+
+  static bool _isCanonicalStaticDemoSource(
+    CadenceAnalysisSource source,
+    CadenceAnalysisConfidence confidence,
+  ) {
+    return source == CadenceAnalysisSource.staticDemo &&
+        confidence == CadenceAnalysisConfidence.demo;
+  }
+
+  static bool _isCanonicalUnavailableSource(
+    CadenceAnalysisSource source,
+    CadenceAnalysisConfidence confidence,
+  ) {
+    return source == CadenceAnalysisSource.unavailableUnknown &&
+        confidence == CadenceAnalysisConfidence.unavailable;
   }
 }

@@ -64,6 +64,52 @@ void main() {
       expect(result.lowestCadenceSpm, 142);
     });
 
+    test('keeps rhythm stable when cadence spread is exactly eight spm', () {
+      final result = deriver.derive(
+        CadenceAnalysisSeries.localAccepted(
+          samples: const <CadenceAnalysisSample>[
+            CadenceAnalysisSample.accepted(elapsedSeconds: 60, cadenceSpm: 160),
+            CadenceAnalysisSample.accepted(
+              elapsedSeconds: 120,
+              cadenceSpm: 164,
+            ),
+            CadenceAnalysisSample.accepted(
+              elapsedSeconds: 180,
+              cadenceSpm: 168,
+            ),
+          ],
+        ),
+      );
+
+      expect(result.isAvailable, isTrue);
+      expect(result.lowestCadenceSpm, 160);
+      expect(result.highestCadenceSpm, 168);
+      expect(result.stability, CadenceStability.stable);
+    });
+
+    test('marks rhythm variable when cadence spread is nine spm', () {
+      final result = deriver.derive(
+        CadenceAnalysisSeries.localAccepted(
+          samples: const <CadenceAnalysisSample>[
+            CadenceAnalysisSample.accepted(elapsedSeconds: 60, cadenceSpm: 160),
+            CadenceAnalysisSample.accepted(
+              elapsedSeconds: 120,
+              cadenceSpm: 165,
+            ),
+            CadenceAnalysisSample.accepted(
+              elapsedSeconds: 180,
+              cadenceSpm: 169,
+            ),
+          ],
+        ),
+      );
+
+      expect(result.isAvailable, isTrue);
+      expect(result.lowestCadenceSpm, 160);
+      expect(result.highestCadenceSpm, 169);
+      expect(result.stability, CadenceStability.variable);
+    });
+
     test('detects cadence drop and rise using first and second halves', () {
       final dropping = deriver.derive(
         CadenceAnalysisSeries.localAccepted(
@@ -106,6 +152,144 @@ void main() {
 
       expect(dropping.trend, CadenceTrend.dropping);
       expect(rising.trend, CadenceTrend.rising);
+    });
+
+    test('uses directional trend when delta reaches exact threshold', () {
+      final dropping = deriver.derive(
+        CadenceAnalysisSeries.localAccepted(
+          samples: const <CadenceAnalysisSample>[
+            CadenceAnalysisSample.accepted(elapsedSeconds: 60, cadenceSpm: 168),
+            CadenceAnalysisSample.accepted(
+              elapsedSeconds: 120,
+              cadenceSpm: 168,
+            ),
+            CadenceAnalysisSample.accepted(
+              elapsedSeconds: 180,
+              cadenceSpm: 160,
+            ),
+            CadenceAnalysisSample.accepted(
+              elapsedSeconds: 240,
+              cadenceSpm: 160,
+            ),
+          ],
+        ),
+      );
+      final rising = deriver.derive(
+        CadenceAnalysisSeries.localAccepted(
+          samples: const <CadenceAnalysisSample>[
+            CadenceAnalysisSample.accepted(elapsedSeconds: 60, cadenceSpm: 160),
+            CadenceAnalysisSample.accepted(
+              elapsedSeconds: 120,
+              cadenceSpm: 160,
+            ),
+            CadenceAnalysisSample.accepted(
+              elapsedSeconds: 180,
+              cadenceSpm: 168,
+            ),
+            CadenceAnalysisSample.accepted(
+              elapsedSeconds: 240,
+              cadenceSpm: 168,
+            ),
+          ],
+        ),
+      );
+
+      expect(dropping.trend, CadenceTrend.dropping);
+      expect(rising.trend, CadenceTrend.rising);
+    });
+
+    test('keeps trend stable when delta stays inside threshold', () {
+      final droppingInside = deriver.derive(
+        CadenceAnalysisSeries.localAccepted(
+          samples: const <CadenceAnalysisSample>[
+            CadenceAnalysisSample.accepted(elapsedSeconds: 60, cadenceSpm: 167),
+            CadenceAnalysisSample.accepted(
+              elapsedSeconds: 120,
+              cadenceSpm: 167,
+            ),
+            CadenceAnalysisSample.accepted(
+              elapsedSeconds: 180,
+              cadenceSpm: 160,
+            ),
+            CadenceAnalysisSample.accepted(
+              elapsedSeconds: 240,
+              cadenceSpm: 160,
+            ),
+          ],
+        ),
+      );
+      final risingInside = deriver.derive(
+        CadenceAnalysisSeries.localAccepted(
+          samples: const <CadenceAnalysisSample>[
+            CadenceAnalysisSample.accepted(elapsedSeconds: 60, cadenceSpm: 160),
+            CadenceAnalysisSample.accepted(
+              elapsedSeconds: 120,
+              cadenceSpm: 160,
+            ),
+            CadenceAnalysisSample.accepted(
+              elapsedSeconds: 180,
+              cadenceSpm: 167,
+            ),
+            CadenceAnalysisSample.accepted(
+              elapsedSeconds: 240,
+              cadenceSpm: 167,
+            ),
+          ],
+        ),
+      );
+
+      expect(droppingInside.trend, CadenceTrend.stable);
+      expect(risingInside.trend, CadenceTrend.stable);
+    });
+
+    test('derives from valid accepted samples only', () {
+      final result = deriver.derive(
+        CadenceAnalysisSeries.localAccepted(
+          samples: <CadenceAnalysisSample>[
+            const CadenceAnalysisSample.accepted(
+              elapsedSeconds: 60,
+              cadenceSpm: 162,
+            ),
+            CadenceAnalysisSample.rejected(
+              elapsedSeconds: 120,
+              cadenceSpm: 280,
+              rejectionReason:
+                  CadenceAnalysisSampleRejectionReason.outOfRangeCadence,
+            ),
+            CadenceAnalysisSample.accepted(elapsedSeconds: 180, cadenceSpm: 0),
+            CadenceAnalysisSample.accepted(
+              elapsedSeconds: 240,
+              cadenceSpm: 321,
+            ),
+            CadenceAnalysisSample(
+              elapsedSeconds: 260,
+              cadenceSpm: double.nan,
+              status: CadenceAnalysisSampleStatus.accepted,
+            ),
+            CadenceAnalysisSample(
+              elapsedSeconds: 280,
+              cadenceSpm: double.infinity,
+              status: CadenceAnalysisSampleStatus.accepted,
+            ),
+            CadenceAnalysisSample.accepted(elapsedSeconds: -1, cadenceSpm: 174),
+            const CadenceAnalysisSample.accepted(
+              elapsedSeconds: 300,
+              cadenceSpm: 166,
+            ),
+            const CadenceAnalysisSample.accepted(
+              elapsedSeconds: 360,
+              cadenceSpm: 170,
+            ),
+          ],
+        ),
+      );
+
+      expect(result.isAvailable, isTrue);
+      expect(result.averageCadenceSpm, 166);
+      expect(result.lowestCadenceSpm, 162);
+      expect(result.highestCadenceSpm, 170);
+      expect(result.stability, CadenceStability.stable);
+      expect(result.trend, CadenceTrend.stable);
     });
 
     test('returns unavailable for insufficient samples', () {
@@ -231,6 +415,32 @@ void main() {
           confidence: CadenceAnalysisConfidence.derived,
         ),
         throwsA(isA<ArgumentError>()),
+      );
+      expect(
+        () => CadenceAnalysisDerivation.unavailable(
+          reason: CadenceAnalysisUnavailableReason.invalidSource,
+          source: CadenceAnalysisSource.staticDemo,
+          confidence: CadenceAnalysisConfidence.demo,
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+      expect(
+        () => CadenceAnalysisDerivation.unavailable(
+          reason: CadenceAnalysisUnavailableReason.invalidSource,
+          source: CadenceAnalysisSource.unavailableUnknown,
+          confidence: CadenceAnalysisConfidence.unavailable,
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+      final invalidSource = CadenceAnalysisDerivation.unavailable(
+        reason: CadenceAnalysisUnavailableReason.invalidSource,
+        source: CadenceAnalysisSource.localAccepted,
+        confidence: CadenceAnalysisConfidence.demo,
+      );
+
+      expect(
+        invalidSource.unavailableReason,
+        CadenceAnalysisUnavailableReason.invalidSource,
       );
     });
   });
