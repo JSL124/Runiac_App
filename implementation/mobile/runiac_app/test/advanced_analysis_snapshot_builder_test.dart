@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/features/run/domain/models/advanced_analysis_snapshot.dart';
+import 'package:runiac_app/features/run/domain/models/pace_analysis_series.dart';
 import 'package:runiac_app/features/run/domain/models/pace_graph_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/run_source_display.dart';
 import 'package:runiac_app/features/run/domain/models/run_summary_snapshot.dart';
@@ -81,6 +82,143 @@ void main() {
         snapshot.elevation.routeDifficulty.reason,
         AdvancedAnalysisMetricReason.undefinedRouteDifficultySource,
       );
+      expect(snapshot.pace.fastestPace.isAvailable, isFalse);
+      expect(snapshot.pace.slowestPace.isAvailable, isFalse);
+      expect(snapshot.pace.paceStability.isAvailable, isFalse);
+    });
+
+    test('derives pace analysis metrics from accountable local series', () {
+      final summary = RunSummarySnapshot(
+        title: 'Local Pace Run',
+        dateLabel: 'Today',
+        timeLabel: '7:06 AM',
+        distanceKm: '4.03 km',
+        avgPace: '6’30” / km',
+        duration: '30:15',
+        avgHeartRate: '--',
+        calories: '212 kcal',
+        routeName: 'East Coast Park Loop',
+        paceAnalysisSeries: PaceAnalysisSeries.localAccepted(
+          samples: const <PaceAnalysisSample>[
+            PaceAnalysisSample.accepted(
+              elapsedSeconds: 60,
+              cumulativeDistanceMeters: 250,
+              paceSecondsPerKm: 420,
+            ),
+            PaceAnalysisSample.accepted(
+              elapsedSeconds: 120,
+              cumulativeDistanceMeters: 500,
+              paceSecondsPerKm: 360,
+            ),
+            PaceAnalysisSample.accepted(
+              elapsedSeconds: 180,
+              cumulativeDistanceMeters: 750,
+              paceSecondsPerKm: 480,
+            ),
+          ],
+        ),
+      );
+
+      final snapshot = builder.fromRunSummary(summary);
+
+      expect(snapshot.pace.fastestPace.valueLabel, '6’00”');
+      expect(snapshot.pace.slowestPace.valueLabel, '8’00”');
+      expect(snapshot.pace.paceStability.valueLabel, '33');
+      for (final metric in <AdvancedAnalysisMetric<String>>[
+        snapshot.pace.fastestPace,
+        snapshot.pace.slowestPace,
+        snapshot.pace.paceStability,
+      ]) {
+        expect(
+          metric.availability,
+          AdvancedAnalysisMetricAvailability.available,
+        );
+        expect(metric.source, AdvancedAnalysisMetricSource.localGpsDerived);
+        expect(metric.confidence, AdvancedAnalysisMetricConfidence.derived);
+        expect(
+          metric.source,
+          isNot(AdvancedAnalysisMetricSource.backendDerived),
+        );
+        expect(metric.isTrustedProduction, isFalse);
+      }
+    });
+
+    test('keeps pace analysis metrics unavailable for insufficient series', () {
+      final summary = RunSummarySnapshot(
+        title: 'Short Pace Run',
+        dateLabel: 'Today',
+        timeLabel: '7:06 AM',
+        distanceKm: '4.03 km',
+        avgPace: '6’30” / km',
+        duration: '30:15',
+        avgHeartRate: '--',
+        calories: '212 kcal',
+        routeName: 'East Coast Park Loop',
+        paceAnalysisSeries: PaceAnalysisSeries.localAccepted(
+          samples: const <PaceAnalysisSample>[
+            PaceAnalysisSample.accepted(
+              elapsedSeconds: 60,
+              cumulativeDistanceMeters: 250,
+              paceSecondsPerKm: 420,
+            ),
+            PaceAnalysisSample.accepted(
+              elapsedSeconds: 120,
+              cumulativeDistanceMeters: 500,
+              paceSecondsPerKm: 360,
+            ),
+          ],
+        ),
+      );
+
+      final snapshot = builder.fromRunSummary(summary);
+
+      expect(snapshot.pace.fastestPace.isAvailable, isFalse);
+      expect(snapshot.pace.slowestPace.isAvailable, isFalse);
+      expect(snapshot.pace.paceStability.isAvailable, isFalse);
+      expect(
+        snapshot.pace.fastestPace.reason,
+        AdvancedAnalysisMetricReason.insufficientPaceSamples,
+      );
+    });
+
+    test('does not trust demo pace analysis series as local derivation', () {
+      final summary = RunSummarySnapshot(
+        title: 'Demo Pace Run',
+        dateLabel: 'Today',
+        timeLabel: '7:06 AM',
+        distanceKm: '4.03 km',
+        avgPace: '6’30” / km',
+        duration: '30:15',
+        avgHeartRate: '--',
+        calories: '212 kcal',
+        routeName: 'East Coast Park Loop',
+        sourceType: RunSourceType.demoImport,
+        paceAnalysisSeries: PaceAnalysisSeries.staticDemo(
+          samples: const <PaceAnalysisSample>[
+            PaceAnalysisSample.accepted(
+              elapsedSeconds: 60,
+              cumulativeDistanceMeters: 250,
+              paceSecondsPerKm: 420,
+            ),
+            PaceAnalysisSample.accepted(
+              elapsedSeconds: 120,
+              cumulativeDistanceMeters: 500,
+              paceSecondsPerKm: 360,
+            ),
+            PaceAnalysisSample.accepted(
+              elapsedSeconds: 180,
+              cumulativeDistanceMeters: 750,
+              paceSecondsPerKm: 480,
+            ),
+          ],
+        ),
+      );
+
+      final snapshot = builder.fromRunSummary(summary);
+
+      expect(snapshot.pace.fastestPace.isAvailable, isFalse);
+      expect(snapshot.pace.slowestPace.isAvailable, isFalse);
+      expect(snapshot.pace.paceStability.isAvailable, isFalse);
     });
 
     test(

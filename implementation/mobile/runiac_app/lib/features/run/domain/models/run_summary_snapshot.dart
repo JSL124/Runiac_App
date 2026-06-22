@@ -1,4 +1,5 @@
 import 'coaching_summary_snapshot.dart';
+import 'pace_analysis_series.dart';
 import 'pace_graph_snapshot.dart';
 import 'run_route_snapshot.dart';
 import 'run_source_display.dart';
@@ -15,6 +16,7 @@ class RunSummarySnapshot {
     required this.calories,
     required this.routeName,
     this.hasSufficientData = true,
+    this.paceAnalysisSeries,
     this.paceGraph = const PaceGraphSnapshot.unavailable(),
     this.route = RunRouteSnapshot.empty,
     this.sourceType = RunSourceType.runiacGps,
@@ -39,6 +41,7 @@ class RunSummarySnapshot {
   final String calories;
   final String routeName;
   final bool hasSufficientData;
+  final PaceAnalysisSeries? paceAnalysisSeries;
   final PaceGraphSnapshot paceGraph;
   final RunRouteSnapshot route;
   final RunSourceType sourceType;
@@ -50,6 +53,7 @@ class RunSummarySnapshot {
   String? get heartRateHelperText => heartRateAvailability.helperText;
 
   RunSummarySnapshot copyWith({
+    PaceAnalysisSeries? paceAnalysisSeries,
     PaceGraphSnapshot? paceGraph,
     RunRouteSnapshot? route,
     RunSourceType? sourceType,
@@ -67,6 +71,7 @@ class RunSummarySnapshot {
       calories: calories,
       routeName: routeName,
       hasSufficientData: hasSufficientData,
+      paceAnalysisSeries: paceAnalysisSeries ?? this.paceAnalysisSeries,
       paceGraph: paceGraph ?? this.paceGraph,
       route: route ?? this.route,
       sourceType: sourceType ?? this.sourceType,

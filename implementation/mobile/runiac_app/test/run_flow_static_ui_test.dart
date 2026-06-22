@@ -10,6 +10,7 @@ import 'package:runiac_app/features/run/domain/models/advanced_analysis_snapshot
 import 'package:runiac_app/features/run/domain/models/coaching_summary_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/complete_run_result.dart';
 import 'package:runiac_app/features/run/domain/models/local_run_completion_payload.dart';
+import 'package:runiac_app/features/run/domain/models/pace_analysis_series.dart';
 import 'package:runiac_app/features/run/domain/models/pace_graph_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/progression_display_model.dart';
 import 'package:runiac_app/features/run/domain/models/run_activity_read_model.dart';
@@ -935,7 +936,7 @@ void main() {
     );
 
     await tester.pumpWidget(
-      const MaterialApp(
+      MaterialApp(
         home: ViewSummaryScreen(
           summary: RunSummarySnapshot(
             title: 'Local Graph Run',
@@ -947,6 +948,25 @@ void main() {
             avgHeartRate: '--',
             calories: '32',
             routeName: 'Private route',
+            paceAnalysisSeries: PaceAnalysisSeries.localAccepted(
+              samples: <PaceAnalysisSample>[
+                PaceAnalysisSample.accepted(
+                  elapsedSeconds: 60,
+                  cumulativeDistanceMeters: 125,
+                  paceSecondsPerKm: 500,
+                ),
+                PaceAnalysisSample.accepted(
+                  elapsedSeconds: 120,
+                  cumulativeDistanceMeters: 250,
+                  paceSecondsPerKm: 470,
+                ),
+                PaceAnalysisSample.accepted(
+                  elapsedSeconds: 240,
+                  cumulativeDistanceMeters: 500,
+                  paceSecondsPerKm: 490,
+                ),
+              ],
+            ),
             paceGraph: snapshotGraph,
           ),
         ),
@@ -976,6 +996,9 @@ void main() {
       findsNothing,
     );
     expect(find.text('Pace Over Distance'), findsOneWidget);
+    expect(find.text('7’50”'), findsOneWidget);
+    expect(find.text('8’20”'), findsOneWidget);
+    expect(find.text('81'), findsOneWidget);
     expect(pacePainter.snapshotXAxisLabels, ['0 km', '0.2 km', '0.5 km']);
     expect(pacePainter.snapshotXAxisLabels, isNot(contains('0:00')));
     expect(pacePainter.snapshotXAxisLabels, isNot(contains('2:00')));
@@ -1011,7 +1034,7 @@ void main() {
     expect(find.text('6’41”'), findsNothing);
     expect(find.text('6’21”'), findsNothing);
     expect(find.text('0’16”'), findsNothing);
-    expect(find.text('--'), findsAtLeastNWidgets(7));
+    expect(find.text('--'), findsAtLeastNWidgets(4));
     expect(
       find.text(
         'Your pace slowed slightly in the middle section but recovered well in the final part.',

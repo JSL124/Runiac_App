@@ -2,11 +2,13 @@ import '../models/advanced_analysis_snapshot.dart';
 import '../models/pace_graph_snapshot.dart';
 import '../models/run_source_display.dart';
 import '../models/run_summary_snapshot.dart';
+import 'pace_analysis_deriver.dart';
 
 class AdvancedAnalysisSnapshotBuilder {
   const AdvancedAnalysisSnapshotBuilder();
 
   AdvancedAnalysisSnapshot fromRunSummary(RunSummarySnapshot summary) {
+    final paceAnalysis = _derivePaceAnalysis(summary);
     return AdvancedAnalysisSnapshot(
       performance: AdvancedAnalysisPerformanceOverview(
         score: const AdvancedAnalysisMetric<int>.unavailable(
@@ -17,14 +19,10 @@ class AdvancedAnalysisSnapshotBuilder {
       ),
       pace: AdvancedAnalysisPaceAnalysis(
         averagePace: _trustedLocalSummaryMetric(summary.avgPace, summary),
-        fastestPace: const AdvancedAnalysisMetric<String>.unavailable(
-          reason: AdvancedAnalysisMetricReason.insufficientPaceSamples,
-        ),
-        slowestPace: const AdvancedAnalysisMetric<String>.unavailable(
-          reason: AdvancedAnalysisMetricReason.insufficientPaceSamples,
-        ),
-        paceStability: const AdvancedAnalysisMetric<String>.unavailable(
-          reason: AdvancedAnalysisMetricReason.insufficientPaceSamples,
+        fastestPace: _derivedPaceMetric(paceAnalysis?.fastestPaceSecondsPerKm),
+        slowestPace: _derivedPaceMetric(paceAnalysis?.slowestPaceSecondsPerKm),
+        paceStability: _derivedStabilityMetric(
+          paceAnalysis?.paceStabilityScore,
         ),
         paceGraph: _paceGraphMetric(summary),
         splits: _splitMetric(summary),
@@ -81,6 +79,45 @@ class AdvancedAnalysisSnapshotBuilder {
           reason: AdvancedAnalysisMetricReason.missingCadenceSource,
         ),
       ),
+    );
+  }
+
+  PaceAnalysisDerivation? _derivePaceAnalysis(RunSummarySnapshot summary) {
+    final series = summary.paceAnalysisSeries;
+    if (series == null) {
+      return null;
+    }
+    final derivation = const PaceAnalysisDeriver().derive(series);
+    return derivation.isAvailable ? derivation : null;
+  }
+
+  AdvancedAnalysisMetric<String> _derivedPaceMetric(int? secondsPerKm) {
+    if (secondsPerKm == null) {
+      return const AdvancedAnalysisMetric<String>.unavailable(
+        reason: AdvancedAnalysisMetricReason.insufficientPaceSamples,
+      );
+    }
+    final valueLabel = _formatDuration(secondsPerKm);
+    return AdvancedAnalysisMetric<String>.available(
+      value: valueLabel,
+      valueLabel: valueLabel,
+      source: AdvancedAnalysisMetricSource.localGpsDerived,
+      confidence: AdvancedAnalysisMetricConfidence.derived,
+    );
+  }
+
+  AdvancedAnalysisMetric<String> _derivedStabilityMetric(int? stabilityScore) {
+    if (stabilityScore == null) {
+      return const AdvancedAnalysisMetric<String>.unavailable(
+        reason: AdvancedAnalysisMetricReason.insufficientPaceSamples,
+      );
+    }
+    final valueLabel = stabilityScore.toString();
+    return AdvancedAnalysisMetric<String>.available(
+      value: valueLabel,
+      valueLabel: valueLabel,
+      source: AdvancedAnalysisMetricSource.localGpsDerived,
+      confidence: AdvancedAnalysisMetricConfidence.derived,
     );
   }
 

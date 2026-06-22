@@ -1,5 +1,6 @@
 import '../domain/models/complete_run_result.dart';
 import '../domain/models/local_run_completion_payload.dart';
+import '../domain/models/pace_analysis_series.dart';
 import '../domain/models/pace_graph_snapshot.dart';
 import '../domain/models/progression_display_model.dart';
 import '../domain/models/run_completion_request_adapter.dart';
@@ -79,6 +80,9 @@ class StaticRunRepository implements RunRepository {
       calories: _formatCalories(calories),
       routeName: payload.routeLabel ?? 'Private route',
       hasSufficientData: hasSufficientData,
+      paceAnalysisSeries: hasSufficientData
+          ? _paceAnalysisSeries(payload.paceGraphSamples)
+          : null,
       paceGraph: hasSufficientData
           ? const PaceGraphDataBuilder().build(
               samples: payload.paceGraphSamples,
@@ -177,6 +181,28 @@ class StaticRunRepository implements RunRepository {
 
   String _formatCalories(int? calories) {
     return calories == null ? '--' : calories.toString();
+  }
+
+  PaceAnalysisSeries? _paceAnalysisSeries(List<PaceGraphSample> samples) {
+    final acceptedSamples = <PaceAnalysisSample>[];
+    for (final sample in samples) {
+      final cumulativeDistanceMeters = sample.cumulativeDistanceMeters;
+      if (cumulativeDistanceMeters == null) {
+        continue;
+      }
+      acceptedSamples.add(
+        PaceAnalysisSample.accepted(
+          elapsedSeconds: sample.elapsedSeconds,
+          cumulativeDistanceMeters: cumulativeDistanceMeters.toDouble(),
+          paceSecondsPerKm: sample.paceSecondsPerKm,
+        ),
+      );
+    }
+
+    if (acceptedSamples.isEmpty) {
+      return null;
+    }
+    return PaceAnalysisSeries.localAccepted(samples: acceptedSamples);
   }
 
   String _formatDate(DateTime value) {

@@ -15,6 +15,7 @@ import 'package:runiac_app/features/run/data/static_run_repository.dart';
 import 'package:runiac_app/features/run/domain/models/coaching_summary_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/local_run_completion_payload.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_repository.dart';
+import 'package:runiac_app/features/run/domain/services/advanced_analysis_snapshot_builder.dart';
 import 'package:runiac_app/features/run/domain/services/pace_graph_data_builder.dart';
 import 'package:runiac_app/features/you/data/static_activity_history_repository.dart';
 import 'package:runiac_app/features/you/data/static_expert_plans_repository.dart';
@@ -547,6 +548,54 @@ void main() {
         expect(completedRun.summary.hasSufficientData, isTrue);
         expect(completedRun.summary.paceGraph.isAvailable, isFalse);
         expect(completedRun.summary.paceGraph.points, isEmpty);
+      },
+    );
+
+    test(
+      'completeRun carries accountable local pace samples into analysis',
+      () async {
+        final repository = StaticRunRepository();
+
+        final completedRun = await repository.completeRun(
+          _localRunCompletionPayload(
+            sessionId: 'summary-accountable-pace-analysis',
+            distanceMeters: 1000,
+            durationSeconds: 450,
+            paceSecondsPerKm: 450,
+            paceGraphSamples: const <PaceGraphSample>[
+              PaceGraphSample(
+                elapsedSeconds: 60,
+                paceSecondsPerKm: 500,
+                cumulativeDistanceMeters: 125,
+              ),
+              PaceGraphSample(
+                elapsedSeconds: 120,
+                paceSecondsPerKm: 470,
+                cumulativeDistanceMeters: 250,
+              ),
+              PaceGraphSample(
+                elapsedSeconds: 240,
+                paceSecondsPerKm: 490,
+                cumulativeDistanceMeters: 500,
+              ),
+            ],
+          ),
+        );
+
+        final series = completedRun.summary.paceAnalysisSeries;
+        final analysis = const AdvancedAnalysisSnapshotBuilder().fromRunSummary(
+          completedRun.summary,
+        );
+
+        expect(series, isNotNull);
+        expect(series!.isLocalAcceptedSource, isTrue);
+        expect(
+          series.validAcceptedSamples.map((sample) => sample.paceSecondsPerKm),
+          <int>[500, 470, 490],
+        );
+        expect(analysis.pace.fastestPace.valueLabel, '7’50”');
+        expect(analysis.pace.slowestPace.valueLabel, '8’20”');
+        expect(analysis.pace.paceStability.valueLabel, '81');
       },
     );
 
