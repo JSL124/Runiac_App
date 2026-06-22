@@ -1,4 +1,5 @@
 import '../../../run/domain/models/run_activity_display_model.dart';
+import '../../../run/domain/models/cadence_analysis_series.dart';
 import '../../../run/domain/models/pace_analysis_series.dart';
 import '../../../run/domain/models/run_source_display.dart';
 import '../../../run/domain/models/run_summary_snapshot.dart';
@@ -68,6 +69,26 @@ final activityHistoryDisplayData = [
                 elapsedSeconds: 480,
                 cumulativeDistanceMeters: 1100,
                 paceSecondsPerKm: 425,
+              ),
+            ],
+          ),
+          cadenceAnalysisSeries: CadenceAnalysisSeries.localAccepted(
+            samples: const [
+              CadenceAnalysisSample.accepted(
+                elapsedSeconds: 120,
+                cadenceSpm: 170,
+              ),
+              CadenceAnalysisSample.accepted(
+                elapsedSeconds: 240,
+                cadenceSpm: 172,
+              ),
+              CadenceAnalysisSample.accepted(
+                elapsedSeconds: 360,
+                cadenceSpm: 174,
+              ),
+              CadenceAnalysisSample.accepted(
+                elapsedSeconds: 480,
+                cadenceSpm: 176,
               ),
             ],
           ),

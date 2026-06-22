@@ -5,11 +5,13 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runiac_app/app.dart';
 import 'package:runiac_app/features/run/domain/models/advanced_analysis_snapshot.dart';
+import 'package:runiac_app/features/run/domain/services/advanced_analysis_snapshot_builder.dart';
 import 'package:runiac_app/features/run/presentation/advanced_analysis_screen.dart';
 import 'package:runiac_app/features/run/presentation/active_run_session_coordinator.dart';
 import 'package:runiac_app/features/run/presentation/data/pace_graph_demo_snapshots.dart';
 import 'package:runiac_app/features/run/presentation/view_summary_screen.dart';
 import 'package:runiac_app/features/run/presentation/widgets/advanced_analysis/advanced_analysis_charts.dart';
+import 'package:runiac_app/features/you/presentation/data/activity_history_demo_snapshots.dart';
 import 'package:runiac_app/features/you/presentation/data/you_overview_demo_snapshots.dart';
 import 'package:runiac_app/features/you/presentation/widgets/compact_run_activity_card.dart';
 import 'package:runiac_app/features/you/presentation/widgets/monthly_distance_graph.dart';
@@ -162,6 +164,28 @@ void main() {
       }
     }
   });
+
+  test(
+    'Activity History cadence QA fixture carries local cadence analysis',
+    () {
+      final qaRun = activityHistoryDisplayData
+          .expand((month) => month.activities)
+          .singleWhere((activity) => activity.title == 'Pace Graph QA Run');
+
+      final cadence = const AdvancedAnalysisSnapshotBuilder()
+          .fromRunSummary(qaRun.summary)
+          .formCadence;
+
+      expect(cadence.averageCadence.valueLabel, '173 spm');
+      expect(cadence.cadenceGraph.value, ['170 spm', '173 spm', '176 spm']);
+      expect(cadence.strideConsistency.valueLabel, 'stable');
+      expect(cadence.cadenceStatus.valueLabel, 'stable');
+      expect(
+        cadence.averageCadence.source,
+        AdvancedAnalysisMetricSource.localGpsDerived,
+      );
+    },
+  );
 
   testWidgets('You page shows progress overview sections when selected', (
     WidgetTester tester,
@@ -590,6 +614,7 @@ void main() {
       );
       final snapshot = advancedAnalysis.analysisSnapshot;
       final paceGraph = snapshot!.pace.paceGraph;
+      final cadence = snapshot.formCadence;
 
       expect(snapshot, isNotNull);
       expect(
@@ -645,6 +670,20 @@ void main() {
           ),
         ),
       );
+
+      expect(cadence.averageCadence.valueLabel, '173 spm');
+      expect(cadence.cadenceGraph.value, ['170 spm', '173 spm', '176 spm']);
+      expect(cadence.strideConsistency.valueLabel, 'stable');
+      expect(cadence.cadenceStatus.valueLabel, 'stable');
+      await tester.ensureVisible(find.text('Running Form / Cadence'));
+      expect(find.text('AVERAGE CADENCE'), findsOneWidget);
+      expect(find.text('LOWEST'), findsOneWidget);
+      expect(find.text('HIGHEST'), findsOneWidget);
+      expect(find.text('TREND'), findsOneWidget);
+      expect(find.text('173'), findsOneWidget);
+      expect(find.text('170'), findsOneWidget);
+      expect(find.text('176'), findsOneWidget);
+      expect(find.text('Stable'), findsWidgets);
     },
   );
 
