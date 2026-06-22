@@ -1,4 +1,5 @@
 import '../../../run/domain/models/run_activity_display_model.dart';
+import '../../../run/domain/models/pace_analysis_series.dart';
 import '../../../run/domain/models/run_source_display.dart';
 import '../../../run/domain/models/run_summary_snapshot.dart';
 import '../../../run/presentation/data/pace_graph_demo_snapshots.dart';
@@ -26,6 +27,50 @@ final activityHistoryDisplayData = [
           routeName: 'Manual Pace Graph Check',
           sourceType: RunSourceType.runiacGps,
           heartRateAvailability: HeartRateAvailability.unavailableNotShared,
+          paceAnalysisSeries: PaceAnalysisSeries.localAccepted(
+            samples: [
+              PaceAnalysisSample.accepted(
+                elapsedSeconds: 60,
+                cumulativeDistanceMeters: 100,
+                paceSecondsPerKm: 428,
+              ),
+              PaceAnalysisSample.accepted(
+                elapsedSeconds: 120,
+                cumulativeDistanceMeters: 250,
+                paceSecondsPerKm: 432,
+              ),
+              PaceAnalysisSample.accepted(
+                elapsedSeconds: 180,
+                cumulativeDistanceMeters: 450,
+                paceSecondsPerKm: 444,
+              ),
+              PaceAnalysisSample.accepted(
+                elapsedSeconds: 240,
+                cumulativeDistanceMeters: 700,
+                paceSecondsPerKm: 456,
+              ),
+              PaceAnalysisSample.accepted(
+                elapsedSeconds: 300,
+                cumulativeDistanceMeters: 780,
+                paceSecondsPerKm: 448,
+              ),
+              PaceAnalysisSample.accepted(
+                elapsedSeconds: 360,
+                cumulativeDistanceMeters: 850,
+                paceSecondsPerKm: 438,
+              ),
+              PaceAnalysisSample.accepted(
+                elapsedSeconds: 420,
+                cumulativeDistanceMeters: 980,
+                paceSecondsPerKm: 430,
+              ),
+              PaceAnalysisSample.accepted(
+                elapsedSeconds: 480,
+                cumulativeDistanceMeters: 1100,
+                paceSecondsPerKm: 425,
+              ),
+            ],
+          ),
           paceGraph: paceGraphManualQaAvailableGraph,
         ),
       ),

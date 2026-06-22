@@ -34,6 +34,7 @@ import 'package:runiac_app/features/run/presentation/widgets/advanced_analysis/a
 import 'package:runiac_app/features/run/presentation/widgets/completed_route_map_surface.dart';
 import 'package:runiac_app/features/run/presentation/widgets/share_achievement_sheet.dart';
 import 'package:runiac_app/features/run/presentation/xp_update_screen.dart';
+import 'package:runiac_app/features/you/presentation/data/activity_history_demo_snapshots.dart';
 
 final _forbiddenRunCompletionCopy = RegExp(
   r'XP|streak|Leaderboard|Activity saved|Saved activity|activity saved|'
@@ -91,6 +92,14 @@ Finder _advancedAnalysisSplitDistanceText(String text) {
         widget.maxLines == 1 &&
         widget.overflow == TextOverflow.ellipsis;
   });
+}
+
+int _paceSeconds(String pace) {
+  final match = RegExp(r"^(\d+)[’'](\d{1,2})").firstMatch(pace.trim());
+  if (match == null) {
+    throw FormatException('Invalid pace label', pace);
+  }
+  return int.parse(match.group(1)!) * 60 + int.parse(match.group(2)!);
 }
 
 Widget _shareSheetHarness() {
@@ -1042,6 +1051,78 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets(
+    'Activity History Pace Graph QA run renders accountable pace metrics',
+    (WidgetTester tester) async {
+      _useTallSummarySurface(tester);
+      final qaActivity = activityHistoryDisplayData.first.activities.first;
+      final qaSummary = qaActivity.summary;
+
+      expect(qaActivity.title, 'Pace Graph QA Run');
+      expect(qaSummary.sourceType, RunSourceType.runiacGps);
+      expect(qaSummary.paceGraph.isAvailable, isTrue);
+      expect(qaSummary.paceAnalysisSeries, isNotNull);
+      expect(qaSummary.paceAnalysisSeries!.isLocalAcceptedSource, isTrue);
+      expect(
+        qaSummary.paceAnalysisSeries!.validAcceptedSamples,
+        hasLength(greaterThanOrEqualTo(3)),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(home: ViewSummaryScreen(summary: qaSummary)),
+      );
+
+      await tester.ensureVisible(
+        find.widgetWithText(OutlinedButton, 'More Details'),
+      );
+      await tester.tap(find.widgetWithText(OutlinedButton, 'More Details'));
+      await tester.pumpAndSettle();
+
+      final advancedAnalysis = tester.widget<AdvancedAnalysisScreen>(
+        find.byType(AdvancedAnalysisScreen),
+      );
+      final snapshot = advancedAnalysis.analysisSnapshot;
+      final pace = snapshot?.pace;
+
+      expect(snapshot, isNotNull);
+      expect(pace, isNotNull);
+      expect(pace!.fastestPace.valueLabel, isNot('--'));
+      expect(pace.slowestPace.valueLabel, isNot('--'));
+      expect(pace.paceStability.valueLabel, isNot('--'));
+      expect(
+        _paceSeconds(pace.fastestPace.valueLabel!),
+        lessThan(_paceSeconds(pace.slowestPace.valueLabel!)),
+      );
+
+      final pacePainters = tester
+          .widgetList<CustomPaint>(find.byType(CustomPaint))
+          .map((paint) => paint.painter)
+          .whereType<AdvancedAnalysisPaceChartPainter>();
+      expect(
+        pacePainters.any(
+          (painter) => identical(painter.graph, qaSummary.paceGraph),
+        ),
+        isTrue,
+      );
+      expect(
+        find.byKey(const ValueKey('advanced_analysis_pace_graph_unavailable')),
+        findsNothing,
+      );
+      expect(find.text('Pace Analysis'), findsOneWidget);
+      expect(find.text(pace.fastestPace.valueLabel!), findsOneWidget);
+      expect(find.text(pace.slowestPace.valueLabel!), findsOneWidget);
+      expect(find.text(pace.paceStability.valueLabel!), findsOneWidget);
+      expect(_advancedAnalysisSplitDistanceText('1'), findsOneWidget);
+      expect(_advancedAnalysisSplitDistanceText('0.10'), findsOneWidget);
+      expect(
+        find.text(
+          'Your pace slowed slightly in the middle section but recovered well in the final part.',
+        ),
+        findsOneWidget,
+      );
+    },
+  );
 
   testWidgets('View summary renders snapshot-backed split rows', (
     WidgetTester tester,
