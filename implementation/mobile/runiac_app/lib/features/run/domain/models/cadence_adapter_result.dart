@@ -7,7 +7,9 @@ class CadenceAdapterResult {
     required List<CadenceAnalysisSample> samples,
     this.summaryCadenceSpm,
     this.unavailableReason,
-  }) : samples = List<CadenceAnalysisSample>.unmodifiable(samples);
+  }) : samples = List<CadenceAnalysisSample>.unmodifiable(samples) {
+    _validate();
+  }
 
   final CadenceAnalysisSource source;
   final CadenceAnalysisConfidence confidence;
@@ -43,5 +45,15 @@ class CadenceAdapterResult {
       confidence: confidence,
       samples: samples,
     );
+  }
+
+  void _validate() {
+    if (summaryCadenceSpm != null && samples.isNotEmpty) {
+      throw ArgumentError.value(summaryCadenceSpm, 'summaryCadenceSpm');
+    }
+    if (unavailableReason != null &&
+        (samples.isNotEmpty || summaryCadenceSpm != null)) {
+      throw ArgumentError.value(unavailableReason, 'unavailableReason');
+    }
   }
 }

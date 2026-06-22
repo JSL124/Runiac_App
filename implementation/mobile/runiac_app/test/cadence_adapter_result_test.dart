@@ -90,5 +90,43 @@ void main() {
         CadenceAnalysisUnavailableReason.staticDemoSource,
       );
     });
+
+    test('rejects summary-only cadence mixed with samples', () {
+      expect(
+        () => CadenceAdapterResult(
+          source: CadenceAnalysisSource.healthConnect,
+          confidence: CadenceAnalysisConfidence.high,
+          samples: const <CadenceAnalysisSample>[
+            CadenceAnalysisSample.accepted(elapsedSeconds: 60, cadenceSpm: 162),
+          ],
+          summaryCadenceSpm: 166,
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+
+    test('rejects unavailable cadence mixed with data', () {
+      expect(
+        () => CadenceAdapterResult(
+          source: CadenceAnalysisSource.healthConnect,
+          confidence: CadenceAnalysisConfidence.high,
+          samples: const <CadenceAnalysisSample>[
+            CadenceAnalysisSample.accepted(elapsedSeconds: 60, cadenceSpm: 162),
+          ],
+          unavailableReason: 'not shared',
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+      expect(
+        () => CadenceAdapterResult(
+          source: CadenceAnalysisSource.healthConnect,
+          confidence: CadenceAnalysisConfidence.high,
+          samples: const <CadenceAnalysisSample>[],
+          summaryCadenceSpm: 166,
+          unavailableReason: 'not shared',
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
   });
 }

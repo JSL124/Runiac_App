@@ -33,47 +33,26 @@ void main() {
         ],
       );
 
-      expect(WorkoutMetricKind.values, contains(WorkoutMetricKind.distance));
       expect(
         WorkoutMetricKind.values,
-        contains(WorkoutMetricKind.elapsedDuration),
+        containsAll(<WorkoutMetricKind>[
+          WorkoutMetricKind.distance,
+          WorkoutMetricKind.elapsedDuration,
+          WorkoutMetricKind.movingDuration,
+          WorkoutMetricKind.pauseDuration,
+          WorkoutMetricKind.averagePace,
+          WorkoutMetricKind.paceSamples,
+          WorkoutMetricKind.routeSamples,
+          WorkoutMetricKind.gpsQuality,
+          WorkoutMetricKind.heartRateSummary,
+          WorkoutMetricKind.maxHeartRateSummary,
+          WorkoutMetricKind.heartRateSamples,
+          WorkoutMetricKind.cadenceSummary,
+          WorkoutMetricKind.cadenceSamples,
+          WorkoutMetricKind.strideLength,
+          WorkoutMetricKind.calories,
+        ]),
       );
-      expect(
-        WorkoutMetricKind.values,
-        contains(WorkoutMetricKind.movingDuration),
-      );
-      expect(
-        WorkoutMetricKind.values,
-        contains(WorkoutMetricKind.pauseDuration),
-      );
-      expect(WorkoutMetricKind.values, contains(WorkoutMetricKind.averagePace));
-      expect(WorkoutMetricKind.values, contains(WorkoutMetricKind.paceSamples));
-      expect(
-        WorkoutMetricKind.values,
-        contains(WorkoutMetricKind.routeSamples),
-      );
-      expect(WorkoutMetricKind.values, contains(WorkoutMetricKind.gpsQuality));
-      expect(
-        WorkoutMetricKind.values,
-        contains(WorkoutMetricKind.heartRateSummary),
-      );
-      expect(
-        WorkoutMetricKind.values,
-        contains(WorkoutMetricKind.heartRateSamples),
-      );
-      expect(
-        WorkoutMetricKind.values,
-        contains(WorkoutMetricKind.cadenceSummary),
-      );
-      expect(
-        WorkoutMetricKind.values,
-        contains(WorkoutMetricKind.cadenceSamples),
-      );
-      expect(
-        WorkoutMetricKind.values,
-        contains(WorkoutMetricKind.strideLength),
-      );
-      expect(WorkoutMetricKind.values, contains(WorkoutMetricKind.calories));
       expect(contract.provenance.sourceAppName, 'Apple Health');
       expect(contract.provenance.sourceDeviceName, 'Apple Watch');
       expect(contract.provenance.adapterVersion, 'healthkit-import-v1');

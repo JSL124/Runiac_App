@@ -8,6 +8,7 @@ enum WorkoutMetricKind {
   routeSamples,
   gpsQuality,
   heartRateSummary,
+  maxHeartRateSummary,
   heartRateSamples,
   cadenceSummary,
   cadenceSamples,
@@ -76,6 +77,8 @@ class WorkoutMetricProvenance {
     required this.evidenceKind,
     this.sourceAppName,
     this.sourceDeviceName,
+    this.sourceExternalId,
+    this.importedAt,
     this.adapterVersion,
     this.derivedLocally = false,
   });
@@ -85,6 +88,8 @@ class WorkoutMetricProvenance {
   final WorkoutMetricEvidenceKind evidenceKind;
   final String? sourceAppName;
   final String? sourceDeviceName;
+  final String? sourceExternalId;
+  final DateTime? importedAt;
   final String? adapterVersion;
   final bool derivedLocally;
 
@@ -123,6 +128,8 @@ class WorkoutMetricProvenance {
     WorkoutMetricEvidenceKind? evidenceKind,
     String? sourceAppName,
     String? sourceDeviceName,
+    String? sourceExternalId,
+    DateTime? importedAt,
     String? adapterVersion,
     bool? derivedLocally,
   }) {
@@ -132,6 +139,8 @@ class WorkoutMetricProvenance {
       evidenceKind: evidenceKind ?? this.evidenceKind,
       sourceAppName: sourceAppName ?? this.sourceAppName,
       sourceDeviceName: sourceDeviceName ?? this.sourceDeviceName,
+      sourceExternalId: sourceExternalId ?? this.sourceExternalId,
+      importedAt: importedAt ?? this.importedAt,
       adapterVersion: adapterVersion ?? this.adapterVersion,
       derivedLocally: derivedLocally ?? this.derivedLocally,
     );
