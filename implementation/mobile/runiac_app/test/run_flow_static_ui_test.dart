@@ -2212,7 +2212,8 @@ void main() {
     expect(find.text('Running Form / Cadence'), findsOneWidget);
     expect(find.text('164'), findsNothing);
     expect(find.text('160–175'), findsNothing);
-    expect(find.text('Unavailable'), findsWidgets);
+    expect(find.text('Unavailable'), findsNothing);
+    expect(find.text('--'), findsWidgets);
     expect(find.text('Cadence is unavailable for this run.'), findsOneWidget);
     expect(find.text('Recovery Recommendation'), findsNothing);
     expect(find.text('5–8 min'), findsNothing);

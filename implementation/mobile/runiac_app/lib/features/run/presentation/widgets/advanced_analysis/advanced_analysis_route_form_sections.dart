@@ -92,7 +92,7 @@ class AdvancedAnalysisCadenceSection extends StatelessWidget {
   String _cadenceValue(AdvancedAnalysisMetric<String>? metric) {
     final valueLabel = metric?.valueLabel;
     if (valueLabel == null) {
-      return 'Unavailable';
+      return '--';
     }
     return valueLabel.split(' ').first;
   }
@@ -112,7 +112,7 @@ class AdvancedAnalysisCadenceSection extends StatelessWidget {
   ) {
     final label = _cadenceGraphLabel(analysis, index);
     if (label == null) {
-      return 'Unavailable';
+      return '--';
     }
     return label.split(' ').first;
   }
@@ -142,16 +142,16 @@ class AdvancedAnalysisCadenceSection extends StatelessWidget {
 
   String _displayLabel(String? valueLabel) {
     if (valueLabel == null || valueLabel.isEmpty) {
-      return 'Unavailable';
+      return '--';
     }
     return '${valueLabel[0].toUpperCase()}${valueLabel.substring(1)}';
   }
 
   String _cadenceInterpretation(AdvancedAnalysisFormCadenceAnalysis? analysis) {
-    final consistency = _displayLabel(analysis?.strideConsistency.valueLabel);
-    if (consistency == 'Unavailable') {
+    final consistency = analysis?.strideConsistency.valueLabel;
+    if (consistency == null || consistency.isEmpty) {
       return 'Cadence is unavailable for this run.';
     }
-    return 'Cadence consistency is $consistency for this run.';
+    return 'Cadence consistency is ${_displayLabel(consistency)} for this run.';
   }
 }
