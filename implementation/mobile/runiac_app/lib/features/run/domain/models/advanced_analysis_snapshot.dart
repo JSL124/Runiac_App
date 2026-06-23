@@ -1,3 +1,4 @@
+import 'cadence_graph_snapshot.dart';
 import 'pace_graph_snapshot.dart';
 
 enum AdvancedAnalysisMetricAvailability {
@@ -218,5 +219,5 @@ class AdvancedAnalysisFormCadenceAnalysis {
   final AdvancedAnalysisMetric<String> strideConsistency;
   final AdvancedAnalysisMetric<String> cadenceStatus;
   final AdvancedAnalysisMetric<String> strideLength;
-  final AdvancedAnalysisMetric<List<String>> cadenceGraph;
+  final AdvancedAnalysisMetric<CadenceGraphSnapshot> cadenceGraph;
 }

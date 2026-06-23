@@ -1,9 +1,12 @@
 import '../models/advanced_analysis_snapshot.dart';
 import '../models/cadence_analysis_derivation.dart';
+import '../models/cadence_analysis_series.dart';
+import '../models/cadence_graph_snapshot.dart';
 import '../models/pace_graph_snapshot.dart';
 import '../models/run_source_display.dart';
 import '../models/run_summary_snapshot.dart';
 import 'cadence_analysis_deriver.dart';
+import 'cadence_graph_data_builder.dart';
 import 'pace_analysis_deriver.dart';
 
 class AdvancedAnalysisSnapshotBuilder {
@@ -62,7 +65,7 @@ class AdvancedAnalysisSnapshotBuilder {
           reason: AdvancedAnalysisMetricReason.missingElevationSource,
         ),
       ),
-      formCadence: _formCadenceAnalysis(cadenceAnalysis),
+      formCadence: _formCadenceAnalysis(summary, cadenceAnalysis),
     );
   }
 
@@ -93,6 +96,7 @@ class AdvancedAnalysisSnapshotBuilder {
   }
 
   AdvancedAnalysisFormCadenceAnalysis _formCadenceAnalysis(
+    RunSummarySnapshot summary,
     CadenceAnalysisDerivation? derivation,
   ) {
     return AdvancedAnalysisFormCadenceAnalysis(
@@ -105,7 +109,7 @@ class AdvancedAnalysisSnapshotBuilder {
       strideLength: const AdvancedAnalysisMetric<String>.unavailable(
         reason: AdvancedAnalysisMetricReason.missingStrideSource,
       ),
-      cadenceGraph: _cadenceGraphMetric(derivation),
+      cadenceGraph: _cadenceGraphMetric(summary),
     );
   }
 
@@ -134,28 +138,105 @@ class AdvancedAnalysisSnapshotBuilder {
     );
   }
 
-  AdvancedAnalysisMetric<List<String>> _cadenceGraphMetric(
-    CadenceAnalysisDerivation? derivation,
+  AdvancedAnalysisMetric<CadenceGraphSnapshot> _cadenceGraphMetric(
+    RunSummarySnapshot summary,
   ) {
-    final lowestCadence = derivation?.lowestCadenceSpm;
-    final averageCadence = derivation?.averageCadenceSpm;
-    final highestCadence = derivation?.highestCadenceSpm;
-    if (lowestCadence == null ||
-        averageCadence == null ||
-        highestCadence == null) {
-      return const AdvancedAnalysisMetric<List<String>>.unavailable(
+    final series = summary.cadenceAnalysisSeries;
+    final durationSeconds = _durationSeconds(summary.duration);
+    if (series == null ||
+        durationSeconds == null ||
+        !_hasCompatibleCadenceSource(summary.sourceType, series.source)) {
+      return const AdvancedAnalysisMetric<CadenceGraphSnapshot>.unavailable(
         reason: AdvancedAnalysisMetricReason.missingCadenceSource,
       );
     }
-    return AdvancedAnalysisMetric<List<String>>.available(
-      value: <String>[
-        '$lowestCadence spm',
-        '$averageCadence spm',
-        '$highestCadence spm',
-      ],
-      source: AdvancedAnalysisMetricSource.localGpsDerived,
+
+    final graph = const CadenceGraphDataBuilder().build(
+      series: series,
+      durationSeconds: durationSeconds,
+    );
+    if (!graph.isAvailable) {
+      return const AdvancedAnalysisMetric<CadenceGraphSnapshot>.unavailable(
+        reason: AdvancedAnalysisMetricReason.missingCadenceSource,
+      );
+    }
+
+    return AdvancedAnalysisMetric<CadenceGraphSnapshot>.available(
+      value: graph,
+      source: _cadenceGraphSource(series.source),
       confidence: AdvancedAnalysisMetricConfidence.derived,
     );
+  }
+
+  bool _hasCompatibleCadenceSource(
+    RunSourceType sourceType,
+    CadenceAnalysisSource cadenceSource,
+  ) {
+    return switch (sourceType) {
+      RunSourceType.runiacGps =>
+        cadenceSource == CadenceAnalysisSource.runiacLocalAccepted ||
+            cadenceSource == CadenceAnalysisSource.backendDerived,
+      RunSourceType.appleHealth =>
+        cadenceSource == CadenceAnalysisSource.healthKitAppleWatch ||
+            cadenceSource == CadenceAnalysisSource.backendDerived,
+      RunSourceType.healthConnect =>
+        cadenceSource == CadenceAnalysisSource.healthConnect ||
+            cadenceSource == CadenceAnalysisSource.backendDerived,
+      RunSourceType.garminViaHealth =>
+        cadenceSource == CadenceAnalysisSource.garminWearable ||
+            cadenceSource == CadenceAnalysisSource.backendDerived,
+      RunSourceType.demoImport => false,
+    };
+  }
+
+  AdvancedAnalysisMetricSource _cadenceGraphSource(
+    CadenceAnalysisSource source,
+  ) {
+    return switch (source) {
+      CadenceAnalysisSource.runiacLocalAccepted =>
+        AdvancedAnalysisMetricSource.localGpsDerived,
+      CadenceAnalysisSource.healthKitAppleWatch =>
+        AdvancedAnalysisMetricSource.healthKitAppleWatch,
+      CadenceAnalysisSource.healthConnect =>
+        AdvancedAnalysisMetricSource.healthConnect,
+      CadenceAnalysisSource.garminWearable =>
+        AdvancedAnalysisMetricSource.garminWearable,
+      CadenceAnalysisSource.backendDerived =>
+        AdvancedAnalysisMetricSource.backendDerived,
+      CadenceAnalysisSource.staticDemo ||
+      CadenceAnalysisSource.unavailableUnknown ||
+      CadenceAnalysisSource.phoneSensorEstimated =>
+        AdvancedAnalysisMetricSource.unavailable,
+    };
+  }
+
+  int? _durationSeconds(String durationLabel) {
+    final normalized = durationLabel.trim();
+    if (normalized.isEmpty || normalized == '--') {
+      return null;
+    }
+
+    final minuteSecondMatch = RegExp(
+      r'^(\d+):([0-5]\d)$',
+    ).firstMatch(normalized);
+    if (minuteSecondMatch != null) {
+      final minutes = int.parse(minuteSecondMatch.group(1)!);
+      final seconds = int.parse(minuteSecondMatch.group(2)!);
+      final totalSeconds = minutes * 60 + seconds;
+      return totalSeconds > 0 ? totalSeconds : null;
+    }
+
+    final hourMinuteSecondMatch = RegExp(
+      r'^(\d+):([0-5]\d):([0-5]\d)$',
+    ).firstMatch(normalized);
+    if (hourMinuteSecondMatch == null) {
+      return null;
+    }
+    final hours = int.parse(hourMinuteSecondMatch.group(1)!);
+    final minutes = int.parse(hourMinuteSecondMatch.group(2)!);
+    final seconds = int.parse(hourMinuteSecondMatch.group(3)!);
+    final totalSeconds = hours * 3600 + minutes * 60 + seconds;
+    return totalSeconds > 0 ? totalSeconds : null;
   }
 
   AdvancedAnalysisMetric<String> _unavailableCadenceMetric() {

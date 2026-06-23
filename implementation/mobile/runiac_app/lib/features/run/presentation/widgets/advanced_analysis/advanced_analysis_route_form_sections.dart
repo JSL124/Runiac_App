@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../domain/models/advanced_analysis_snapshot.dart';
+import '../../../domain/models/cadence_graph_snapshot.dart';
 import '../../data/advanced_analysis_demo_snapshots.dart';
 import 'advanced_analysis_charts.dart';
 import 'advanced_analysis_shared_widgets.dart';
@@ -49,9 +50,14 @@ class AdvancedAnalysisCadenceSection extends StatelessWidget {
         children: [
           AdvancedAnalysisStatGrid(stats: _cadenceStats(analysis), plain: true),
           const SizedBox(height: 16),
-          const AdvancedAnalysisChartPanel(
+          AdvancedAnalysisChartPanel(
             height: 150,
-            painter: AdvancedAnalysisCadenceChartPainter(),
+            painter: AdvancedAnalysisCadenceChartPainter(
+              graph: analysis?.cadenceGraph.value,
+              showDemoFallback: _showDemoCadenceFallback(
+                analysis?.cadenceGraph,
+              ),
+            ),
             plain: true,
           ),
           AdvancedAnalysisInterpretationRow(
@@ -73,13 +79,13 @@ class AdvancedAnalysisCadenceSection extends StatelessWidget {
       ),
       AdvancedAnalysisStatData(
         'Lowest',
-        _cadenceGraphValue(analysis, 0),
-        _cadenceGraphUnit(analysis, 0),
+        _cadencePointValue(analysis?.cadenceGraph.value?.lowestCadencePoint),
+        _cadencePointUnit(analysis?.cadenceGraph.value?.lowestCadencePoint),
       ),
       AdvancedAnalysisStatData(
         'Highest',
-        _cadenceGraphValue(analysis, 2),
-        _cadenceGraphUnit(analysis, 2),
+        _cadencePointValue(analysis?.cadenceGraph.value?.highestCadencePoint),
+        _cadencePointUnit(analysis?.cadenceGraph.value?.highestCadencePoint),
       ),
       AdvancedAnalysisStatData(
         'Trend',
@@ -106,38 +112,31 @@ class AdvancedAnalysisCadenceSection extends StatelessWidget {
     return parts.length > 1 ? parts.last : '';
   }
 
-  String _cadenceGraphValue(
-    AdvancedAnalysisFormCadenceAnalysis? analysis,
-    int index,
-  ) {
-    final label = _cadenceGraphLabel(analysis, index);
-    if (label == null) {
+  String _cadencePointValue(CadenceGraphPoint? point) {
+    final label = point?.displayLabel;
+    if (label == null || label.isEmpty) {
       return '--';
     }
     return label.split(' ').first;
   }
 
-  String _cadenceGraphUnit(
-    AdvancedAnalysisFormCadenceAnalysis? analysis,
-    int index,
-  ) {
-    final label = _cadenceGraphLabel(analysis, index);
-    if (label == null) {
+  String _cadencePointUnit(CadenceGraphPoint? point) {
+    final label = point?.displayLabel;
+    if (label == null || label.isEmpty) {
       return '';
     }
     final parts = label.split(' ');
     return parts.length > 1 ? parts.last : '';
   }
 
-  String? _cadenceGraphLabel(
-    AdvancedAnalysisFormCadenceAnalysis? analysis,
-    int index,
+  bool _showDemoCadenceFallback(
+    AdvancedAnalysisMetric<CadenceGraphSnapshot>? metric,
   ) {
-    final graphValues = analysis?.cadenceGraph.value;
-    if (graphValues == null || graphValues.length <= index) {
-      return null;
+    if (metric == null) {
+      return true;
     }
-    return graphValues[index];
+    return metric.availability == AdvancedAnalysisMetricAvailability.demoOnly &&
+        metric.source == AdvancedAnalysisMetricSource.staticDemo;
   }
 
   String _displayLabel(String? valueLabel) {

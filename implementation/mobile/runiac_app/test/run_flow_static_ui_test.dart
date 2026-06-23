@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/app.dart';
 import 'package:runiac_app/core/theme/runiac_colors.dart';
 import 'package:runiac_app/features/run/domain/models/advanced_analysis_snapshot.dart';
+import 'package:runiac_app/features/run/domain/models/cadence_graph_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/coaching_summary_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/complete_run_result.dart';
 import 'package:runiac_app/features/run/domain/models/local_run_completion_payload.dart';
@@ -1084,9 +1085,11 @@ void main() {
       );
       final snapshot = advancedAnalysis.analysisSnapshot;
       final pace = snapshot?.pace;
+      final cadence = snapshot?.formCadence;
 
       expect(snapshot, isNotNull);
       expect(pace, isNotNull);
+      expect(cadence, isNotNull);
       expect(pace!.fastestPace.valueLabel, isNot('--'));
       expect(pace.slowestPace.valueLabel, isNot('--'));
       expect(pace.paceStability.valueLabel, isNot('--'));
@@ -1120,6 +1123,48 @@ void main() {
           'Your pace slowed slightly in the middle section but recovered well in the final part.',
         ),
         findsOneWidget,
+      );
+
+      expect(
+        cadence!.cadenceGraph.availability,
+        AdvancedAnalysisMetricAvailability.available,
+      );
+      expect(
+        cadence.cadenceGraph.source,
+        AdvancedAnalysisMetricSource.localGpsDerived,
+      );
+      final cadenceGraph = cadence.cadenceGraph.value;
+      expect(cadenceGraph, isNotNull);
+      expect(cadenceGraph!.isAvailable, isTrue);
+      expect(cadenceGraph.points.map((point) => point.cadenceSpm), [
+        170,
+        172,
+        174,
+        176,
+      ]);
+      expect(cadenceGraph.lowestCadencePoint?.cadenceSpm, 170);
+      expect(cadenceGraph.highestCadencePoint?.cadenceSpm, 176);
+      expect(cadenceGraph.targetLabel, demoCadenceGraphTargetLabel);
+      expect(cadenceGraph.targetMinCadenceSpm, demoCadenceGraphTargetMinSpm);
+      expect(cadenceGraph.targetMaxCadenceSpm, demoCadenceGraphTargetMaxSpm);
+      expect(cadenceGraph.targetKind, CadenceGraphTargetKind.demo);
+
+      await tester.ensureVisible(find.text('Running Form / Cadence'));
+      expect(find.text('Running Form / Cadence'), findsOneWidget);
+      expect(find.text('173'), findsOneWidget);
+      expect(find.text('170'), findsOneWidget);
+      expect(find.text('176'), findsOneWidget);
+      expect(find.text('Stable'), findsWidgets);
+
+      final cadencePainters = tester
+          .widgetList<CustomPaint>(find.byType(CustomPaint))
+          .map((paint) => paint.painter)
+          .whereType<AdvancedAnalysisCadenceChartPainter>();
+      expect(
+        cadencePainters.any(
+          (painter) => identical(painter.graph, cadenceGraph),
+        ),
+        isTrue,
       );
     },
   );

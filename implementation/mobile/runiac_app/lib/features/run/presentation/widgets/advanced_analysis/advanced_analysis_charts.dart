@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import 'package:runiac_app/features/run/domain/models/cadence_graph_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/pace_graph_snapshot.dart';
 
 import '../../data/advanced_analysis_demo_snapshots.dart';
@@ -258,10 +259,32 @@ class AdvancedAnalysisElevationChartPainter extends CustomPainter {
 }
 
 class AdvancedAnalysisCadenceChartPainter extends CustomPainter {
-  const AdvancedAnalysisCadenceChartPainter();
+  const AdvancedAnalysisCadenceChartPainter({
+    this.graph,
+    this.showDemoFallback = true,
+  });
+
+  final CadenceGraphSnapshot? graph;
+  final bool showDemoFallback;
 
   @override
   void paint(Canvas canvas, Size size) {
+    final graph = this.graph;
+    if (graph != null && graph.isAvailable && graph.points.isNotEmpty) {
+      _paintSnapshotGraph(canvas, size, graph);
+      return;
+    }
+
+    if (graph != null) {
+      return;
+    }
+
+    if (showDemoFallback) {
+      _paintDemoGraph(canvas, size);
+    }
+  }
+
+  void _paintDemoGraph(Canvas canvas, Size size) {
     final plot = AdvancedAnalysisChartGeometry(
       size,
       left: 34,
@@ -302,13 +325,95 @@ class AdvancedAnalysisCadenceChartPainter extends CustomPainter {
     );
     drawAdvancedAnalysisText(
       canvas,
-      'Target 160–175',
+      demoCadenceGraphTargetLabel,
       Offset(plot.right - 96, bandTop - 13),
       advancedAnalysisBlue45,
       10,
     );
   }
 
+  void _paintSnapshotGraph(
+    Canvas canvas,
+    Size size,
+    CadenceGraphSnapshot graph,
+  ) {
+    final plot = AdvancedAnalysisChartGeometry(
+      size,
+      left: 34,
+      top: 14,
+      right: 8,
+      bottom: 24,
+    );
+    final rangeMin = graph.cadenceRangeMinSpm;
+    final rangeMax = graph.cadenceRangeMaxSpm;
+    if (rangeMin == null || rangeMax == null || rangeMax <= rangeMin) {
+      return;
+    }
+
+    double xFor(double progress) {
+      return plot.left + progress.clamp(0.0, 1.0) * plot.width;
+    }
+
+    double yFor(int cadenceSpm) {
+      return plot.bottom -
+          ((cadenceSpm - rangeMin) / (rangeMax - rangeMin)) * plot.height;
+    }
+
+    drawAdvancedAnalysisGrid(
+      canvas,
+      plot,
+      graph.yAxisLabels.reversed.toList(growable: false),
+      graph.xAxisLabels,
+    );
+
+    final offsets = graph.points.map((point) {
+      return Offset(xFor(point.progressFraction), yFor(point.cadenceSpm));
+    }).toList();
+    drawAdvancedAnalysisLineArea(
+      canvas,
+      offsets,
+      plot.bottom,
+      advancedAnalysisBlue07,
+      advancedAnalysisBlue,
+    );
+
+    final targetMin = graph.targetMinCadenceSpm;
+    final targetMax = graph.targetMaxCadenceSpm;
+    final targetLabel = graph.targetLabel;
+    if (targetMin != null &&
+        targetMax != null &&
+        targetMax > targetMin &&
+        targetMin >= rangeMin &&
+        targetMax <= rangeMax) {
+      final bandTop = yFor(targetMax);
+      final bandBottom = yFor(targetMin);
+      drawAdvancedAnalysisDashedLine(
+        canvas,
+        Offset(plot.left, bandTop),
+        Offset(plot.right, bandTop),
+      );
+      drawAdvancedAnalysisDashedLine(
+        canvas,
+        Offset(plot.left, bandBottom),
+        Offset(plot.right, bandBottom),
+      );
+      if (targetLabel != null && targetLabel.isNotEmpty) {
+        drawAdvancedAnalysisText(
+          canvas,
+          targetLabel,
+          Offset(plot.right - 112, bandTop - 13),
+          advancedAnalysisBlue45,
+          10,
+        );
+      }
+    }
+  }
+
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(
+    covariant AdvancedAnalysisCadenceChartPainter oldDelegate,
+  ) {
+    return oldDelegate.graph != graph ||
+        oldDelegate.showDemoFallback != showDemoFallback;
+  }
 }

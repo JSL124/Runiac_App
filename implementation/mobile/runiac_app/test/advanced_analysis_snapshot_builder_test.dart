@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/features/run/domain/models/advanced_analysis_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/cadence_analysis_series.dart';
+import 'package:runiac_app/features/run/domain/models/cadence_graph_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/pace_analysis_series.dart';
 import 'package:runiac_app/features/run/domain/models/pace_graph_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/run_source_display.dart';
@@ -387,11 +388,29 @@ void main() {
       expect(cadence.averageCadence.valueLabel, '172 spm');
       expect(cadence.strideConsistency.valueLabel, 'stable');
       expect(cadence.cadenceStatus.valueLabel, 'stable');
-      expect(cadence.cadenceGraph.value, <String>[
-        '168 spm',
-        '172 spm',
-        '176 spm',
+      final cadenceGraph = cadence.cadenceGraph.value!;
+      expect(cadenceGraph.isAvailable, isTrue);
+      expect(cadenceGraph.points.map((point) => point.elapsedSeconds), <int>[
+        60,
+        120,
+        180,
       ]);
+      expect(cadenceGraph.points.map((point) => point.cadenceSpm), <int>[
+        168,
+        172,
+        176,
+      ]);
+      expect(
+        cadenceGraph.points.map((point) => point.progressFraction),
+        <double>[60 / 1815, 120 / 1815, 180 / 1815],
+      );
+      expect(cadenceGraph.totalDurationSeconds, 1815);
+      expect(cadenceGraph.lowestCadencePoint?.cadenceSpm, 168);
+      expect(cadenceGraph.averageCadenceSpm, 172);
+      expect(cadenceGraph.highestCadencePoint?.cadenceSpm, 176);
+      expect(cadenceGraph.targetLabel, demoCadenceGraphTargetLabel);
+      expect(cadenceGraph.targetMinCadenceSpm, demoCadenceGraphTargetMinSpm);
+      expect(cadenceGraph.targetMaxCadenceSpm, demoCadenceGraphTargetMaxSpm);
       for (final metric in <AdvancedAnalysisMetric<String>>[
         cadence.averageCadence,
         cadence.strideConsistency,
@@ -409,6 +428,15 @@ void main() {
         cadence.cadenceGraph.availability,
         AdvancedAnalysisMetricAvailability.available,
       );
+      expect(
+        cadence.cadenceGraph.source,
+        AdvancedAnalysisMetricSource.localGpsDerived,
+      );
+      expect(
+        cadence.cadenceGraph.confidence,
+        AdvancedAnalysisMetricConfidence.derived,
+      );
+      expect(cadence.cadenceGraph.isTrustedProduction, isFalse);
       expect(cadence.targetRange.isAvailable, isFalse);
       expect(
         cadence.targetRange.reason,
