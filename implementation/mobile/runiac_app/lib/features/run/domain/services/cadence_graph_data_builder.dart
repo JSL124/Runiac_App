@@ -125,11 +125,23 @@ class CadenceGraphDataBuilder {
     required int lowestCadence,
     required int highestCadence,
   }) {
-    var rangeMin = _roundDownToTen(lowestCadence - cadenceGraphRangePaddingSpm);
-    var rangeMax = _roundUpToTen(highestCadence + cadenceGraphRangePaddingSpm);
+    final sampleRangeMin = _roundDownToTen(
+      lowestCadence - cadenceGraphRangePaddingSpm,
+    );
+    final sampleRangeMax = _roundUpToTen(
+      highestCadence + cadenceGraphRangePaddingSpm,
+    );
+    final targetRangeMin = _roundDownToTen(demoCadenceGraphTargetMinSpm);
+    final targetRangeMax = _roundUpToTen(demoCadenceGraphTargetMaxSpm);
+    var rangeMin = sampleRangeMin < targetRangeMin
+        ? sampleRangeMin
+        : targetRangeMin;
+    var rangeMax = sampleRangeMax > targetRangeMax
+        ? sampleRangeMax
+        : targetRangeMax;
 
     if (rangeMax - rangeMin < minVisibleCadenceRangeSpm) {
-      final midpoint = ((lowestCadence + highestCadence) / 2).round();
+      final midpoint = ((rangeMin + rangeMax) / 2).round();
       rangeMin = _roundDownToTen(midpoint - (minVisibleCadenceRangeSpm ~/ 2));
       rangeMax = _roundUpToTen(rangeMin + minVisibleCadenceRangeSpm);
       if (rangeMax - rangeMin < minVisibleCadenceRangeSpm) {

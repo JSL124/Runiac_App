@@ -75,6 +75,10 @@ final activityHistoryDisplayData = [
           cadenceAnalysisSeries: CadenceAnalysisSeries.localAccepted(
             samples: const [
               CadenceAnalysisSample.accepted(
+                elapsedSeconds: 0,
+                cadenceSpm: 173,
+              ),
+              CadenceAnalysisSample.accepted(
                 elapsedSeconds: 120,
                 cadenceSpm: 170,
               ),

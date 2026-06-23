@@ -1137,11 +1137,14 @@ void main() {
       expect(cadenceGraph, isNotNull);
       expect(cadenceGraph!.isAvailable, isTrue);
       expect(cadenceGraph.points.map((point) => point.cadenceSpm), [
+        173,
         170,
         172,
         174,
         176,
       ]);
+      expect(cadenceGraph.points.first.elapsedSeconds, 0);
+      expect(cadenceGraph.points.first.progressFraction, 0);
       expect(cadenceGraph.lowestCadencePoint?.cadenceSpm, 170);
       expect(cadenceGraph.highestCadencePoint?.cadenceSpm, 176);
       expect(cadenceGraph.targetLabel, demoCadenceGraphTargetLabel);

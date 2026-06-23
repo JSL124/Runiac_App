@@ -189,12 +189,14 @@ void main() {
       );
       expect(cadenceGraph.isAvailable, isTrue);
       expect(cadenceGraph.points.map((point) => point.cadenceSpm), [
+        173,
         170,
         172,
         174,
         176,
       ]);
       expect(cadenceGraph.points.map((point) => point.elapsedSeconds), [
+        0,
         120,
         240,
         360,
@@ -702,8 +704,10 @@ void main() {
       expect(cadence.averageCadence.valueLabel, '173 spm');
       expect(
         cadence.cadenceGraph.value!.points.map((point) => point.cadenceSpm),
-        [170, 172, 174, 176],
+        [173, 170, 172, 174, 176],
       );
+      expect(cadence.cadenceGraph.value!.points.first.elapsedSeconds, 0);
+      expect(cadence.cadenceGraph.value!.points.first.progressFraction, 0);
       expect(cadence.cadenceGraph.value!.lowestCadencePoint?.cadenceSpm, 170);
       expect(cadence.cadenceGraph.value!.highestCadencePoint?.cadenceSpm, 176);
       expect(

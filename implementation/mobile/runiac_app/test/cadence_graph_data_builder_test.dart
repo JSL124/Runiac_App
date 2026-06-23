@@ -146,6 +146,63 @@ void main() {
     });
 
     test(
+      'keeps missing early cadence data truthful while target spans chart range',
+      () {
+        final graph = builder.build(
+          series: localAcceptedCadenceSeries(
+            samples: const [
+              CadenceAnalysisSample.accepted(
+                elapsedSeconds: 120,
+                cadenceSpm: 182,
+              ),
+              CadenceAnalysisSample.accepted(
+                elapsedSeconds: 240,
+                cadenceSpm: 184,
+              ),
+              CadenceAnalysisSample.accepted(
+                elapsedSeconds: 360,
+                cadenceSpm: 186,
+              ),
+            ],
+          ),
+          durationSeconds: 480,
+        );
+
+        expect(graph.isAvailable, isTrue);
+        expect(graph.xAxisLabels.first, '0:00');
+        expect(graph.xAxisLabels.last, '8:00');
+        expect(graph.points.first.elapsedSeconds, 120);
+        expect(graph.points.first.progressFraction, 0.25);
+        expect(graph.cadenceRangeMinSpm, lessThanOrEqualTo(160));
+        expect(graph.cadenceRangeMaxSpm, greaterThanOrEqualTo(175));
+        expect(graph.targetLabel, 'Demo Target 160-175');
+      },
+    );
+
+    test('uses a real 0:00 cadence sample when one is present', () {
+      final graph = builder.build(
+        series: localAcceptedCadenceSeries(
+          samples: const [
+            CadenceAnalysisSample.accepted(elapsedSeconds: 0, cadenceSpm: 170),
+            CadenceAnalysisSample.accepted(
+              elapsedSeconds: 120,
+              cadenceSpm: 172,
+            ),
+            CadenceAnalysisSample.accepted(
+              elapsedSeconds: 240,
+              cadenceSpm: 174,
+            ),
+          ],
+        ),
+        durationSeconds: 240,
+      );
+
+      expect(graph.isAvailable, isTrue);
+      expect(graph.points.first.elapsedSeconds, 0);
+      expect(graph.points.first.progressFraction, 0);
+    });
+
+    test(
       'does not change cadence source confidence or scalar eligibility rules',
       () {
         final local = localAcceptedCadenceSeries();
