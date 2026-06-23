@@ -22,20 +22,6 @@ const advancedAnalysisPacePoints = [
   AdvancedAnalysisPoint(4.03, 366),
 ];
 
-const advancedAnalysisElevationPoints = [
-  AdvancedAnalysisPoint(0.00, 4),
-  AdvancedAnalysisPoint(0.4, 6),
-  AdvancedAnalysisPoint(0.8, 9),
-  AdvancedAnalysisPoint(1.2, 7),
-  AdvancedAnalysisPoint(1.6, 5),
-  AdvancedAnalysisPoint(2.0, 8),
-  AdvancedAnalysisPoint(2.4, 11),
-  AdvancedAnalysisPoint(2.8, 9),
-  AdvancedAnalysisPoint(3.2, 6),
-  AdvancedAnalysisPoint(3.6, 4),
-  AdvancedAnalysisPoint(4.03, 5),
-];
-
 const advancedAnalysisCadencePoints = [
   AdvancedAnalysisPoint(0.0, 158),
   AdvancedAnalysisPoint(0.1, 162),
@@ -62,13 +48,6 @@ const advancedAnalysisHeartRateStats = [
   AdvancedAnalysisStatData('Max Heart Rate', '158', 'bpm'),
   AdvancedAnalysisStatData('Target Zone', '130–150', 'bpm'),
   AdvancedAnalysisStatData('Time in Zone', '72', '%'),
-];
-
-const advancedAnalysisElevationStats = [
-  AdvancedAnalysisStatData('Total Gain', '+12', 'm', hot: true),
-  AdvancedAnalysisStatData('Highest Point', '11', 'm'),
-  AdvancedAnalysisStatData('Lowest Point', '3', 'm'),
-  AdvancedAnalysisStatData('Route Difficulty', 'Mostly Flat', ''),
 ];
 
 const advancedAnalysisCadenceStats = [

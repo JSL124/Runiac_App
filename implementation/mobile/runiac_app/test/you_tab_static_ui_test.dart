@@ -645,6 +645,7 @@ void main() {
       final snapshot = advancedAnalysis.analysisSnapshot;
       final paceGraph = snapshot!.pace.paceGraph;
       final cadence = snapshot.formCadence;
+      final elevation = snapshot.elevation;
 
       expect(snapshot, isNotNull);
       expect(
@@ -662,11 +663,36 @@ void main() {
         findsNothing,
       );
       expect(find.text('Pace Over Distance'), findsOneWidget);
+      expect(elevation.elevationGraph.isAvailable, isTrue);
+      expect(
+        elevation.elevationGraph.source,
+        AdvancedAnalysisMetricSource.localGpsDerived,
+      );
+      expect(elevation.elevationGraph.value!.points.length, 5);
+      expect(elevation.totalGain.valueLabel, '+2 m');
+      expect(elevation.highestPoint.valueLabel, '8 m');
+      expect(elevation.lowestPoint.valueLabel, '4 m');
+      expect(elevation.routeDifficulty.valueLabel, 'Mostly Flat');
+      expect(find.text('+2'), findsOneWidget);
+      expect(find.text('8'), findsOneWidget);
+      expect(find.text('4'), findsOneWidget);
+      expect(find.text('+12'), findsNothing);
+      expect(find.text('11'), findsNothing);
+      expect(
+        find.byKey(
+          const ValueKey('advanced_analysis_elevation_graph_unavailable'),
+        ),
+        findsNothing,
+      );
 
       final pacePainters = tester
           .widgetList<CustomPaint>(find.byType(CustomPaint))
           .map((paint) => paint.painter)
           .whereType<AdvancedAnalysisPaceChartPainter>();
+      final elevationPainters = tester
+          .widgetList<CustomPaint>(find.byType(CustomPaint))
+          .map((paint) => paint.painter)
+          .whereType<AdvancedAnalysisElevationChartPainter>();
 
       expect(
         pacePainters.any(
@@ -679,6 +705,10 @@ void main() {
       );
       expect(pacePainters.any((painter) => painter.graph == null), isFalse);
       expect(pacePainter.snapshotXAxisLabels, ['0 km', '0.5 km', '1.1 km']);
+      expect(
+        elevationPainters.single.graph,
+        same(elevation.elevationGraph.value),
+      );
       for (final elapsedLabel in const [
         '0:00',
         '2:00',

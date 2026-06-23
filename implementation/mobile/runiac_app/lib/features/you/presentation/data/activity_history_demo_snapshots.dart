@@ -1,5 +1,6 @@
 import '../../../run/domain/models/run_activity_display_model.dart';
 import '../../../run/domain/models/cadence_analysis_series.dart';
+import '../../../run/domain/models/elevation_analysis_series.dart';
 import '../../../run/domain/models/pace_analysis_series.dart';
 import '../../../run/domain/models/run_source_display.dart';
 import '../../../run/domain/models/run_summary_snapshot.dart';
@@ -94,6 +95,15 @@ final activityHistoryDisplayData = [
                 elapsedSeconds: 480,
                 cadenceSpm: 176,
               ),
+            ],
+          ),
+          elevationSeries: ElevationAnalysisSeries.localAccepted(
+            samples: const [
+              ElevationAnalysisSample(distanceKm: 0, elevationMeters: 4),
+              ElevationAnalysisSample(distanceKm: 0.25, elevationMeters: 5.1),
+              ElevationAnalysisSample(distanceKm: 0.5, elevationMeters: 7.2),
+              ElevationAnalysisSample(distanceKm: 0.8, elevationMeters: 7.8),
+              ElevationAnalysisSample(distanceKm: 1.1, elevationMeters: 5.8),
             ],
           ),
           paceGraph: paceGraphManualQaAvailableGraph,

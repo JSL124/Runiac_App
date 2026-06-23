@@ -5,32 +5,122 @@ import '../../../domain/models/cadence_graph_snapshot.dart';
 import '../../data/advanced_analysis_demo_snapshots.dart';
 import 'advanced_analysis_charts.dart';
 import 'advanced_analysis_shared_widgets.dart';
+import 'advanced_analysis_theme.dart';
 
 class AdvancedAnalysisElevationSection extends StatelessWidget {
-  const AdvancedAnalysisElevationSection({super.key});
+  const AdvancedAnalysisElevationSection({super.key, this.analysis});
+
+  final AdvancedAnalysisElevationAnalysis? analysis;
 
   @override
   Widget build(BuildContext context) {
-    return const AdvancedAnalysisSection(
+    return AdvancedAnalysisSection(
       title: 'Elevation Analysis',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          AdvancedAnalysisChartPanel(
-            height: 150,
-            painter: AdvancedAnalysisElevationChartPainter(),
-            plain: true,
-          ),
-          SizedBox(height: 16),
-          AdvancedAnalysisStatGrid(
-            stats: advancedAnalysisElevationStats,
-            plain: true,
-          ),
-          AdvancedAnalysisInterpretationRow(
+          _elevationGraph,
+          const SizedBox(height: 16),
+          AdvancedAnalysisStatGrid(stats: _elevationStats, plain: true),
+          const AdvancedAnalysisInterpretationRow(
             text:
                 'The route was mostly flat, which helped you maintain a stable pace and steady heart rate.',
           ),
         ],
+      ),
+    );
+  }
+
+  Widget get _elevationGraph {
+    final graph = analysis?.elevationGraph.value;
+    if (analysis == null) {
+      return const _AdvancedAnalysisUnavailableElevationGraph();
+    }
+    if (analysis!.elevationGraph.isAvailable &&
+        graph != null &&
+        graph.isAvailable &&
+        graph.points.length >= 2) {
+      return AdvancedAnalysisChartPanel(
+        height: 150,
+        painter: AdvancedAnalysisElevationChartPainter(graph: graph),
+        plain: true,
+      );
+    }
+    return const _AdvancedAnalysisUnavailableElevationGraph();
+  }
+
+  List<AdvancedAnalysisStatData> get _elevationStats {
+    final analysis = this.analysis;
+    return [
+      AdvancedAnalysisStatData(
+        'Total Gain',
+        _metricValue(analysis?.totalGain),
+        _metricUnit(analysis?.totalGain),
+        hot: analysis?.totalGain.isAvailable ?? false,
+      ),
+      AdvancedAnalysisStatData(
+        'Highest Point',
+        _metricValue(analysis?.highestPoint),
+        _metricUnit(analysis?.highestPoint),
+      ),
+      AdvancedAnalysisStatData(
+        'Lowest Point',
+        _metricValue(analysis?.lowestPoint),
+        _metricUnit(analysis?.lowestPoint),
+      ),
+      AdvancedAnalysisStatData(
+        'Route Difficulty',
+        _displayLabel(analysis?.routeDifficulty.valueLabel),
+        '',
+      ),
+    ];
+  }
+
+  String _metricValue(AdvancedAnalysisMetric<String>? metric) {
+    if (metric == null || !metric.isAvailable) {
+      return '--';
+    }
+    final value = (metric.valueLabel ?? metric.value ?? '').trim();
+    if (value.isEmpty) {
+      return '--';
+    }
+    return value.split(' ').first;
+  }
+
+  String _metricUnit(AdvancedAnalysisMetric<String>? metric) {
+    if (metric == null || !metric.isAvailable) {
+      return '';
+    }
+    final value = (metric.valueLabel ?? metric.value ?? '').trim();
+    final parts = value.split(' ');
+    return parts.length > 1 ? parts.last : '';
+  }
+
+  String _displayLabel(String? valueLabel) {
+    if (valueLabel == null || valueLabel.isEmpty) {
+      return '--';
+    }
+    return valueLabel;
+  }
+}
+
+class _AdvancedAnalysisUnavailableElevationGraph extends StatelessWidget {
+  const _AdvancedAnalysisUnavailableElevationGraph();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SizedBox(
+      key: ValueKey('advanced_analysis_elevation_graph_unavailable'),
+      height: 150,
+      child: Center(
+        child: Text(
+          '--',
+          style: TextStyle(
+            color: advancedAnalysisBlue45,
+            fontSize: 28,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
       ),
     );
   }

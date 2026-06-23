@@ -84,7 +84,9 @@ class AdvancedAnalysisScreen extends StatelessWidget {
                       const SizedBox(height: 14),
                       const AdvancedAnalysisHeartRateSection(),
                       const SizedBox(height: 14),
-                      const AdvancedAnalysisElevationSection(),
+                      AdvancedAnalysisElevationSection(
+                        analysis: analysisSnapshot?.elevation,
+                      ),
                       const SizedBox(height: 14),
                       AdvancedAnalysisCadenceSection(
                         analysis: analysisSnapshot?.formCadence,

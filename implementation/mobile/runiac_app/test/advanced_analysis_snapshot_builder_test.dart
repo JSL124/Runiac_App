@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/features/run/domain/models/advanced_analysis_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/cadence_analysis_series.dart';
 import 'package:runiac_app/features/run/domain/models/cadence_graph_snapshot.dart';
+import 'package:runiac_app/features/run/domain/models/elevation_analysis_series.dart';
 import 'package:runiac_app/features/run/domain/models/pace_analysis_series.dart';
 import 'package:runiac_app/features/run/domain/models/pace_graph_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/run_source_display.dart';
@@ -178,6 +179,210 @@ void main() {
       expect(snapshot.pace.fastestPace.isAvailable, isFalse);
       expect(snapshot.pace.slowestPace.isAvailable, isFalse);
       expect(snapshot.pace.paceStability.isAvailable, isFalse);
+    });
+
+    test('derives elevation analysis from accountable local samples', () {
+      final summary = RunSummarySnapshot(
+        title: 'Hill Check Run',
+        dateLabel: 'Today',
+        timeLabel: '7:06 AM',
+        distanceKm: '2.00 km',
+        avgPace: '7’00” / km',
+        duration: '14:00',
+        avgHeartRate: '--',
+        calories: '145 kcal',
+        routeName: 'Local Hill Loop',
+        elevationSeries: ElevationAnalysisSeries.localAccepted(
+          samples: [
+            ElevationAnalysisSample(distanceKm: 0, elevationMeters: 4),
+            ElevationAnalysisSample(distanceKm: 0.5, elevationMeters: 5.2),
+            ElevationAnalysisSample(distanceKm: 1, elevationMeters: 8.4),
+            ElevationAnalysisSample(distanceKm: 1.5, elevationMeters: 8.9),
+            ElevationAnalysisSample(distanceKm: 2, elevationMeters: 6.1),
+          ],
+        ),
+      );
+
+      final snapshot = builder.fromRunSummary(summary);
+      final elevation = snapshot.elevation;
+
+      expect(elevation.totalGain.valueLabel, '+3 m');
+      expect(elevation.highestPoint.valueLabel, '9 m');
+      expect(elevation.lowestPoint.valueLabel, '4 m');
+      expect(elevation.routeDifficulty.valueLabel, 'Mostly Flat');
+      for (final metric in <AdvancedAnalysisMetric<String>>[
+        elevation.totalGain,
+        elevation.highestPoint,
+        elevation.lowestPoint,
+        elevation.routeDifficulty,
+      ]) {
+        expect(
+          metric.availability,
+          AdvancedAnalysisMetricAvailability.available,
+        );
+        expect(metric.source, AdvancedAnalysisMetricSource.localGpsDerived);
+        expect(metric.confidence, AdvancedAnalysisMetricConfidence.derived);
+      }
+      expect(elevation.elevationGraph.isAvailable, isTrue);
+      expect(
+        elevation.elevationGraph.value!.points.map((point) => point.distanceKm),
+        [0, 0.5, 1, 1.5, 2],
+      );
+      expect(
+        elevation.elevationGraph.value!.points.map(
+          (point) => point.elevationMeters,
+        ),
+        [4, 5.2, 8.4, 8.9, 6.1],
+      );
+      expect(elevation.elevationGraph.value!.xAxisLabels, [
+        '0 km',
+        '1 km',
+        '2 km',
+      ]);
+      expect(elevation.elevationGraph.value!.yAxisLabels, ['9 m', '4 m']);
+    });
+
+    test('ignores tiny elevation fluctuations when calculating gain', () {
+      final summary = RunSummarySnapshot(
+        title: 'Noisy Flat Run',
+        dateLabel: 'Today',
+        timeLabel: '7:06 AM',
+        distanceKm: '1.20 km',
+        avgPace: '7’00” / km',
+        duration: '8:24',
+        avgHeartRate: '--',
+        calories: '90 kcal',
+        routeName: 'Noisy Flat Loop',
+        elevationSeries: ElevationAnalysisSeries.localAccepted(
+          samples: [
+            ElevationAnalysisSample(distanceKm: 0, elevationMeters: 10),
+            ElevationAnalysisSample(distanceKm: 0.4, elevationMeters: 11.2),
+            ElevationAnalysisSample(distanceKm: 0.8, elevationMeters: 10.6),
+            ElevationAnalysisSample(distanceKm: 1.2, elevationMeters: 12.7),
+          ],
+        ),
+      );
+
+      final snapshot = builder.fromRunSummary(summary);
+
+      expect(snapshot.elevation.totalGain.valueLabel, '+2 m');
+      expect(snapshot.elevation.highestPoint.valueLabel, '13 m');
+      expect(snapshot.elevation.lowestPoint.valueLabel, '10 m');
+      expect(snapshot.elevation.routeDifficulty.valueLabel, 'Mostly Flat');
+    });
+
+    test('preserves backend-derived elevation metric provenance', () {
+      final summary = RunSummarySnapshot(
+        title: 'Backend Elevation Run',
+        dateLabel: 'Today',
+        timeLabel: '7:06 AM',
+        distanceKm: '2.00 km',
+        avgPace: '7’00” / km',
+        duration: '14:00',
+        avgHeartRate: '--',
+        calories: '145 kcal',
+        routeName: 'Backend Hill Loop',
+        elevationSeries: ElevationAnalysisSeries.backendDerived(
+          samples: const [
+            ElevationAnalysisSample(distanceKm: 0, elevationMeters: 10),
+            ElevationAnalysisSample(distanceKm: 1, elevationMeters: 17),
+            ElevationAnalysisSample(distanceKm: 2, elevationMeters: 20),
+          ],
+        ),
+      );
+
+      final elevation = builder.fromRunSummary(summary).elevation;
+
+      expect(elevation.totalGain.valueLabel, '+10 m');
+      expect(
+        elevation.elevationGraph.source,
+        AdvancedAnalysisMetricSource.backendDerived,
+      );
+      for (final metric in <AdvancedAnalysisMetric<String>>[
+        elevation.totalGain,
+        elevation.highestPoint,
+        elevation.lowestPoint,
+        elevation.routeDifficulty,
+      ]) {
+        expect(metric.source, AdvancedAnalysisMetricSource.backendDerived);
+      }
+    });
+
+    test('classifies rolling and hilly elevation routes deterministically', () {
+      final rollingSummary = RunSummarySnapshot(
+        title: 'Rolling Elevation Run',
+        dateLabel: 'Today',
+        timeLabel: '7:06 AM',
+        distanceKm: '2.00 km',
+        avgPace: '7’00” / km',
+        duration: '14:00',
+        avgHeartRate: '--',
+        calories: '145 kcal',
+        routeName: 'Rolling Loop',
+        elevationSeries: ElevationAnalysisSeries.localAccepted(
+          samples: const [
+            ElevationAnalysisSample(distanceKm: 0, elevationMeters: 10),
+            ElevationAnalysisSample(distanceKm: 1, elevationMeters: 25),
+            ElevationAnalysisSample(distanceKm: 2, elevationMeters: 20),
+          ],
+        ),
+      );
+      final hillySummary = RunSummarySnapshot(
+        title: 'Hilly Elevation Run',
+        dateLabel: 'Today',
+        timeLabel: '7:06 AM',
+        distanceKm: '2.00 km',
+        avgPace: '7’00” / km',
+        duration: '14:00',
+        avgHeartRate: '--',
+        calories: '145 kcal',
+        routeName: 'Hilly Loop',
+        elevationSeries: ElevationAnalysisSeries.localAccepted(
+          samples: const [
+            ElevationAnalysisSample(distanceKm: 0, elevationMeters: 10),
+            ElevationAnalysisSample(distanceKm: 1, elevationMeters: 65),
+            ElevationAnalysisSample(distanceKm: 2, elevationMeters: 45),
+          ],
+        ),
+      );
+
+      expect(
+        builder.fromRunSummary(rollingSummary).elevation.routeDifficulty.value,
+        'Rolling',
+      );
+      expect(
+        builder.fromRunSummary(hillySummary).elevation.routeDifficulty.value,
+        'Hilly',
+      );
+    });
+
+    test('keeps elevation unavailable when sample data is insufficient', () {
+      final summary = RunSummarySnapshot(
+        title: 'Short Elevation Run',
+        dateLabel: 'Today',
+        timeLabel: '7:06 AM',
+        distanceKm: '0.05 km',
+        avgPace: '--',
+        duration: '00:30',
+        avgHeartRate: '--',
+        calories: '--',
+        routeName: 'Short Start Check',
+        elevationSeries: ElevationAnalysisSeries.localAccepted(
+          samples: [ElevationAnalysisSample(distanceKm: 0, elevationMeters: 6)],
+        ),
+      );
+
+      final snapshot = builder.fromRunSummary(summary);
+
+      expect(snapshot.elevation.totalGain.isAvailable, isFalse);
+      expect(snapshot.elevation.highestPoint.isAvailable, isFalse);
+      expect(snapshot.elevation.lowestPoint.isAvailable, isFalse);
+      expect(snapshot.elevation.routeDifficulty.isAvailable, isFalse);
+      expect(snapshot.elevation.elevationGraph.isAvailable, isFalse);
+      expect(
+        snapshot.elevation.elevationGraph.reason,
+        AdvancedAnalysisMetricReason.missingElevationSource,
+      );
     });
 
     test('derives pace analysis metrics from accountable local series', () {

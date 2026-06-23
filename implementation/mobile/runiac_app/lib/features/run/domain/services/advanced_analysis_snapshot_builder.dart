@@ -2,11 +2,14 @@ import '../models/advanced_analysis_snapshot.dart';
 import '../models/cadence_analysis_derivation.dart';
 import '../models/cadence_analysis_series.dart';
 import '../models/cadence_graph_snapshot.dart';
+import '../models/elevation_analysis_series.dart';
+import '../models/elevation_graph_snapshot.dart';
 import '../models/pace_graph_snapshot.dart';
 import '../models/run_source_display.dart';
 import '../models/run_summary_snapshot.dart';
 import 'cadence_analysis_deriver.dart';
 import 'cadence_graph_data_builder.dart';
+import 'elevation_analysis_graph_builder.dart';
 import 'pace_analysis_deriver.dart';
 
 class AdvancedAnalysisSnapshotBuilder {
@@ -48,7 +51,19 @@ class AdvancedAnalysisSnapshotBuilder {
           reason: AdvancedAnalysisMetricReason.missingHeartRateZonePolicy,
         ),
       ),
-      elevation: const AdvancedAnalysisElevationAnalysis(
+      elevation: _elevationAnalysis(summary),
+      formCadence: _formCadenceAnalysis(summary, cadenceAnalysis),
+    );
+  }
+
+  AdvancedAnalysisElevationAnalysis _elevationAnalysis(
+    RunSummarySnapshot summary,
+  ) {
+    final graph = const ElevationAnalysisGraphBuilder().build(
+      summary.elevationSeries,
+    );
+    if (!graph.isAvailable) {
+      return const AdvancedAnalysisElevationAnalysis(
         totalGain: AdvancedAnalysisMetric<String>.unavailable(
           reason: AdvancedAnalysisMetricReason.missingElevationSource,
         ),
@@ -61,12 +76,73 @@ class AdvancedAnalysisSnapshotBuilder {
         routeDifficulty: AdvancedAnalysisMetric<String>.unavailable(
           reason: AdvancedAnalysisMetricReason.undefinedRouteDifficultySource,
         ),
-        elevationGraph: AdvancedAnalysisMetric<List<String>>.unavailable(
-          reason: AdvancedAnalysisMetricReason.missingElevationSource,
-        ),
+        elevationGraph:
+            AdvancedAnalysisMetric<ElevationGraphSnapshot>.unavailable(
+              reason: AdvancedAnalysisMetricReason.missingElevationSource,
+            ),
+      );
+    }
+
+    final source = _elevationMetricSource(summary.elevationSeries.source);
+    return AdvancedAnalysisElevationAnalysis(
+      totalGain: _elevationMetric(
+        '+${graph.totalGainMeters!.round()} m',
+        source: source,
       ),
-      formCadence: _formCadenceAnalysis(summary, cadenceAnalysis),
+      highestPoint: _elevationMetric(
+        '${graph.highestPointMeters!.round()} m',
+        source: source,
+      ),
+      lowestPoint: _elevationMetric(
+        '${graph.lowestPointMeters!.round()} m',
+        source: source,
+      ),
+      routeDifficulty: _elevationMetric(
+        _difficultyLabel(graph.difficulty),
+        source: source,
+      ),
+      elevationGraph: AdvancedAnalysisMetric<ElevationGraphSnapshot>.available(
+        value: graph,
+        source: source,
+        confidence: AdvancedAnalysisMetricConfidence.derived,
+      ),
     );
+  }
+
+  AdvancedAnalysisMetric<String> _elevationMetric(
+    String valueLabel, {
+    required AdvancedAnalysisMetricSource source,
+  }) {
+    return AdvancedAnalysisMetric<String>.available(
+      value: valueLabel,
+      valueLabel: valueLabel,
+      source: source,
+      confidence: AdvancedAnalysisMetricConfidence.derived,
+    );
+  }
+
+  String _difficultyLabel(ElevationDifficulty difficulty) {
+    return switch (difficulty) {
+      ElevationDifficulty.mostlyFlat => 'Mostly Flat',
+      ElevationDifficulty.rolling => 'Rolling',
+      ElevationDifficulty.hilly => 'Hilly',
+      ElevationDifficulty.unavailable => '--',
+    };
+  }
+
+  AdvancedAnalysisMetricSource _elevationMetricSource(
+    ElevationAnalysisSource source,
+  ) {
+    return switch (source) {
+      ElevationAnalysisSource.runiacLocalAccepted =>
+        AdvancedAnalysisMetricSource.localGpsDerived,
+      ElevationAnalysisSource.backendDerived =>
+        AdvancedAnalysisMetricSource.backendDerived,
+      ElevationAnalysisSource.staticDemo =>
+        AdvancedAnalysisMetricSource.staticDemo,
+      ElevationAnalysisSource.unavailableUnknown =>
+        AdvancedAnalysisMetricSource.unavailable,
+    };
   }
 
   PaceAnalysisDerivation? _derivePaceAnalysis(RunSummarySnapshot summary) {

@@ -2254,9 +2254,15 @@ void main() {
     await tester.ensureVisible(find.text('Running Form / Cadence'));
 
     expect(find.text('Elevation Analysis'), findsOneWidget);
-    expect(find.text('+12'), findsOneWidget);
-    expect(find.text('11'), findsOneWidget);
-    expect(find.text('Mostly Flat'), findsOneWidget);
+    expect(find.text('+12'), findsNothing);
+    expect(find.text('11'), findsNothing);
+    expect(find.text('Mostly Flat'), findsNothing);
+    expect(
+      find.byKey(
+        const ValueKey('advanced_analysis_elevation_graph_unavailable'),
+      ),
+      findsOneWidget,
+    );
     expect(find.text('Running Form / Cadence'), findsOneWidget);
     expect(find.text('164'), findsNothing);
     expect(find.text('160–175'), findsNothing);

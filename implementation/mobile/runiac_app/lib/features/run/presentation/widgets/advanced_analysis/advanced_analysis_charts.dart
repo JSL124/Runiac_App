@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import 'package:runiac_app/features/run/domain/models/cadence_graph_snapshot.dart';
+import 'package:runiac_app/features/run/domain/models/elevation_graph_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/pace_graph_snapshot.dart';
 
 import '../../data/advanced_analysis_demo_snapshots.dart';
@@ -222,10 +223,15 @@ class AdvancedAnalysisPaceChartPainter extends CustomPainter {
 }
 
 class AdvancedAnalysisElevationChartPainter extends CustomPainter {
-  const AdvancedAnalysisElevationChartPainter();
+  const AdvancedAnalysisElevationChartPainter({required this.graph});
+
+  final ElevationGraphSnapshot graph;
 
   @override
   void paint(Canvas canvas, Size size) {
+    if (!graph.isAvailable || graph.points.length < 2) {
+      return;
+    }
     final plot = AdvancedAnalysisChartGeometry(
       size,
       left: 30,
@@ -233,17 +239,39 @@ class AdvancedAnalysisElevationChartPainter extends CustomPainter {
       right: 8,
       bottom: 22,
     );
-    double xFor(double km) => plot.left + (km / 4.03) * plot.width;
-    double yFor(double m) => plot.bottom - (m / 15) * plot.height;
+    final firstDistanceKm = graph.points.first.distanceKm;
+    final lastDistanceKm = graph.points.last.distanceKm;
+    final distanceRangeKm = lastDistanceKm - firstDistanceKm;
+    final lowestMeters = graph.lowestPointMeters;
+    final highestMeters = graph.highestPointMeters;
+    if (distanceRangeKm <= 0 || lowestMeters == null || highestMeters == null) {
+      return;
+    }
+    final elevationRangeMeters = highestMeters - lowestMeters;
+    final visibleRangeMeters = elevationRangeMeters <= 0
+        ? 1.0
+        : elevationRangeMeters;
+    double xFor(double km) {
+      return plot.left +
+          ((km - firstDistanceKm) / distanceRangeKm) * plot.width;
+    }
+
+    double yFor(double meters) {
+      return plot.bottom -
+          ((meters - lowestMeters) / visibleRangeMeters) * plot.height;
+    }
 
     drawAdvancedAnalysisGrid(
       canvas,
       plot,
-      ['10 m', '0 m'],
-      ['0 km', '1 km', '2 km', '3 km', '4 km'],
+      graph.yAxisLabels,
+      graph.xAxisLabels,
     );
-    final offsets = advancedAnalysisElevationPoints
-        .map((p) => Offset(xFor(p.x), yFor(p.y)))
+    final offsets = graph.points
+        .map(
+          (point) =>
+              Offset(xFor(point.distanceKm), yFor(point.elevationMeters)),
+        )
         .toList();
     drawAdvancedAnalysisLineArea(
       canvas,
@@ -255,7 +283,11 @@ class AdvancedAnalysisElevationChartPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(
+    covariant AdvancedAnalysisElevationChartPainter oldDelegate,
+  ) {
+    return oldDelegate.graph != graph;
+  }
 }
 
 class AdvancedAnalysisCadenceChartPainter extends CustomPainter {

@@ -1,4 +1,5 @@
 import 'cadence_graph_snapshot.dart';
+import 'elevation_graph_snapshot.dart';
 import 'pace_graph_snapshot.dart';
 
 enum AdvancedAnalysisMetricAvailability {
@@ -201,7 +202,7 @@ class AdvancedAnalysisElevationAnalysis {
   final AdvancedAnalysisMetric<String> highestPoint;
   final AdvancedAnalysisMetric<String> lowestPoint;
   final AdvancedAnalysisMetric<String> routeDifficulty;
-  final AdvancedAnalysisMetric<List<String>> elevationGraph;
+  final AdvancedAnalysisMetric<ElevationGraphSnapshot> elevationGraph;
 }
 
 class AdvancedAnalysisFormCadenceAnalysis {
