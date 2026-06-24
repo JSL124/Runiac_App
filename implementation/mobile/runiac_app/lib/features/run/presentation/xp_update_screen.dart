@@ -451,7 +451,7 @@ class _GoHomeButton extends StatelessWidget {
     return FilledButton.icon(
       onPressed: onPressed,
       icon: const Icon(Icons.home_rounded, size: 18),
-      label: const Text('Go Home'),
+      label: const Text('Home'),
       style: FilledButton.styleFrom(
         backgroundColor: _blue,
         foregroundColor: _pureWhite,

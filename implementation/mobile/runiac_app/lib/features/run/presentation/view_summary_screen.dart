@@ -869,19 +869,9 @@ class _AnalysisSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const _SectionLabel(title: 'Advanced Analysis'),
+          const _SectionLabel(title: 'Splits'),
           const _AnalysisDivider(),
           const SizedBox(height: 14),
-          const Text(
-            'Splits',
-            style: TextStyle(
-              color: _rBlue,
-              fontSize: 15,
-              fontWeight: FontWeight.w800,
-              letterSpacing: -0.2,
-            ),
-          ),
-          const SizedBox(height: 10),
           _GuardedAnalysisPreview(
             showGuard: !hasSufficientData,
             clipContent: false,
@@ -889,6 +879,8 @@ class _AnalysisSection extends StatelessWidget {
             child: AdvancedAnalysisSplitTable(analysis: paceAnalysis),
           ),
           const SizedBox(height: 12),
+          const _AnalysisDivider(),
+          const SizedBox(height: 14),
           OutlinedButton(
             onPressed: onMoreDetails,
             style: OutlinedButton.styleFrom(
@@ -906,8 +898,6 @@ class _AnalysisSection extends StatelessWidget {
             ),
             child: const Text('More Details'),
           ),
-          const SizedBox(height: 14),
-          const _AnalysisDivider(),
         ],
       ),
     );

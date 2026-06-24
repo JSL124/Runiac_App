@@ -486,7 +486,7 @@ void main() {
     expect(find.text('6’30”'), findsNothing);
     expect(find.text('30:15'), findsNothing);
     expect(find.text('Pace Over Time'), findsOneWidget);
-    expect(find.text('Advanced Analysis'), findsOneWidget);
+    expect(find.text('Splits'), findsOneWidget);
     expect(find.text('Coaching Summary'), findsOneWidget);
     expect(find.text('AI Coaching Summary'), findsNothing);
     expect(
@@ -749,7 +749,7 @@ void main() {
         .splits
         .value!;
 
-    expect(find.text('Advanced Analysis'), findsOneWidget);
+    expect(find.text('Advanced Analysis'), findsNothing);
     expect(find.text('Splits'), findsOneWidget);
     expect(find.text('Km'), findsOneWidget);
     expect(find.text('Pace'), findsOneWidget);
@@ -825,6 +825,7 @@ void main() {
     expect(find.text(_defaultDemoNextFocus), findsOneWidget);
     expect(find.widgetWithText(OutlinedButton, 'Share Route'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'View XP Update'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, 'Home'), findsNothing);
     expect(find.textContaining(_forbiddenRealActivitySaveCopy), findsNothing);
 
     await tester.tap(find.byTooltip('Share summary'));
@@ -1896,7 +1897,7 @@ void main() {
       findsNothing,
     );
     expect(find.text('Pace Over Time'), findsOneWidget);
-    expect(find.text('Advanced Analysis'), findsOneWidget);
+    expect(find.text('Splits'), findsOneWidget);
 
     await tester.pumpWidget(
       const MaterialApp(
@@ -2088,7 +2089,7 @@ void main() {
     );
 
     expect(find.text('Pace Over Time'), findsOneWidget);
-    expect(find.text('Advanced Analysis'), findsOneWidget);
+    expect(find.text('Splits'), findsOneWidget);
     expect(find.text('More run data needed'), findsNWidgets(2));
     expect(
       find.text('Pace insights will appear after a longer run.'),
@@ -2428,10 +2429,13 @@ void main() {
     },
   );
 
-  testWidgets('View XP Update opens reward screen and Go Home exits it', (
+  testWidgets('View XP Update opens reward screen and Home exits it', (
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(const MaterialApp(home: ViewSummaryScreen()));
+
+    expect(find.widgetWithText(FilledButton, 'View XP Update'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, 'Home'), findsNothing);
 
     await tester.ensureVisible(
       find.widgetWithText(FilledButton, 'View XP Update'),
@@ -2446,18 +2450,55 @@ void main() {
     expect(find.text('2,520 XP'), findsOneWidget);
     expect(find.text('5 \u2192 6 days'), findsOneWidget);
     expect(find.text('Great consistency!'), findsOneWidget);
-    expect(find.widgetWithText(FilledButton, 'Go Home'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, 'Home'), findsOneWidget);
     expect(
       find.textContaining(_forbiddenXpUpdateCompetitiveCopy),
       findsNothing,
     );
 
-    await tester.ensureVisible(find.widgetWithText(FilledButton, 'Go Home'));
-    await tester.tap(find.widgetWithText(FilledButton, 'Go Home'));
+    await tester.ensureVisible(find.widgetWithText(FilledButton, 'Home'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Home'));
     await tester.pumpAndSettle();
 
     expect(find.text('XP & Streak Update'), findsNothing);
     expect(find.text('Saturday Morning Run'), findsOneWidget);
+  });
+
+  testWidgets('XP Update Home returns to the app Home root', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      const RuniacApp(showSplash: false, enableForegroundGps: false),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byTooltip('Home'), findsOneWidget);
+
+    Navigator.of(tester.element(find.byTooltip('Home'))).push(
+      MaterialPageRoute<void>(builder: (context) => const ViewSummaryScreen()),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.widgetWithText(FilledButton, 'View XP Update'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, 'Home'), findsNothing);
+
+    await tester.ensureVisible(
+      find.widgetWithText(FilledButton, 'View XP Update'),
+    );
+    await tester.tap(find.widgetWithText(FilledButton, 'View XP Update'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('XP & Streak Update'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, 'Home'), findsOneWidget);
+
+    await tester.ensureVisible(find.widgetWithText(FilledButton, 'Home'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Home'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('XP & Streak Update'), findsNothing);
+    expect(find.text('Saturday Morning Run'), findsNothing);
+    expect(find.byTooltip('Home'), findsOneWidget);
+    expect(find.byTooltip('Run'), findsOneWidget);
   });
 
   testWidgets('XP Update renders supplied backend-ready display model values', (
@@ -2493,7 +2534,7 @@ void main() {
     expect(find.text('220 XP to go'), findsOneWidget);
     expect(find.text('2 \u2192 3 days'), findsOneWidget);
     expect(find.text('Steady return!'), findsOneWidget);
-    expect(find.widgetWithText(FilledButton, 'Go Home'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, 'Home'), findsOneWidget);
     expect(find.text('Nice work, Jinseo!'), findsNothing);
     expect(find.text('+120 XP'), findsNothing);
     expect(
