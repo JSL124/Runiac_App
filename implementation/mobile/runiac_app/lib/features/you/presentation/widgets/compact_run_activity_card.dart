@@ -20,20 +20,19 @@ class CompactRunActivityCard extends StatelessWidget {
       onTap: onTap,
       semanticLabel: 'Open ${activity.title} summary',
       borderRadius: BorderRadius.circular(20),
-      constraints: const BoxConstraints(minHeight: 100),
-      padding: const EdgeInsets.fromLTRB(12, 12, 10, 12),
+      constraints: const BoxConstraints(minHeight: 108),
+      padding: const EdgeInsets.all(12),
       decoration: _historyCardDecoration,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          _RouteIconTile(seed: activity.title.length),
+          _RoutePreviewSlot(seed: activity.title.length),
           const SizedBox(width: 14),
-          Expanded(child: _ActivityCardContent(activity: activity)),
-          const SizedBox(width: 8),
-          const Icon(
-            Icons.chevron_right_rounded,
-            color: Color(0xFFB8C5EE),
-            size: 28,
+          Expanded(
+            child: _ActivityCardContent(
+              key: const ValueKey('activity_card_content'),
+              activity: activity,
+            ),
           ),
         ],
       ),
@@ -41,32 +40,40 @@ class CompactRunActivityCard extends StatelessWidget {
   }
 }
 
-class _RouteIconTile extends StatelessWidget {
-  const _RouteIconTile({required this.seed});
+class _RoutePreviewSlot extends StatelessWidget {
+  const _RoutePreviewSlot({required this.seed});
 
   final int seed;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 64,
-      height: 64,
+      key: const ValueKey('activity_route_preview_slot'),
+      width: 88,
+      height: 76,
+      padding: const EdgeInsets.all(9),
       decoration: _routeTileDecoration,
-      child: CustomPaint(painter: _RouteIconPainter(seed)),
+      child: DecoratedBox(
+        decoration: _routeTileInnerDecoration,
+        child: CustomPaint(painter: _RoutePreviewPainter(seed)),
+      ),
     );
   }
 }
 
-class _RouteIconPainter extends CustomPainter {
-  const _RouteIconPainter(this.seed);
+class _RoutePreviewPainter extends CustomPainter {
+  const _RoutePreviewPainter(this.seed);
 
   final int seed;
 
   @override
   void paint(Canvas canvas, Size size) {
+    final gridPaint = Paint()
+      ..color = const Color(0x1A2F50C7)
+      ..strokeWidth = 1;
     final pathPaint = Paint()
       ..color = RuniacColors.primaryBlue
-      ..strokeWidth = 4
+      ..strokeWidth = 3
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
@@ -76,54 +83,70 @@ class _RouteIconPainter extends CustomPainter {
       ..style = PaintingStyle.fill;
     final startBorderPaint = Paint()
       ..color = RuniacColors.primaryBlue
-      ..strokeWidth = 3
+      ..strokeWidth = 2
       ..style = PaintingStyle.stroke;
 
-    final low = seed.isEven ? 0.62 : 0.55;
-    final high = seed.isEven ? 0.40 : 0.48;
+    canvas.drawLine(
+      Offset(size.width * 0.32, 0),
+      Offset(size.width * 0.32, size.height),
+      gridPaint,
+    );
+    canvas.drawLine(
+      Offset(size.width * 0.68, 0),
+      Offset(size.width * 0.68, size.height),
+      gridPaint,
+    );
+    canvas.drawLine(
+      Offset(0, size.height * 0.45),
+      Offset(size.width, size.height * 0.45),
+      gridPaint,
+    );
+
+    final low = seed.isEven ? 0.68 : 0.58;
+    final high = seed.isEven ? 0.38 : 0.48;
     final path = Path()
-      ..moveTo(size.width * 0.30, size.height * low)
+      ..moveTo(size.width * 0.24, size.height * low)
       ..cubicTo(
-        size.width * 0.44,
-        size.height * 0.58,
-        size.width * 0.46,
+        size.width * 0.40,
+        size.height * 0.62,
+        size.width * 0.48,
         size.height * high,
-        size.width * 0.62,
+        size.width * 0.64,
         size.height * high,
       )
       ..quadraticBezierTo(
-        size.width * 0.72,
+        size.width * 0.78,
         size.height * high,
         size.width * 0.78,
-        size.height * 0.36,
+        size.height * 0.28,
       );
 
     canvas.drawPath(path, pathPaint);
     canvas.drawCircle(
-      Offset(size.width * 0.30, size.height * low),
-      5,
+      Offset(size.width * 0.24, size.height * low),
+      4,
       startPaint,
     );
     canvas.drawCircle(
-      Offset(size.width * 0.30, size.height * low),
-      5,
+      Offset(size.width * 0.24, size.height * low),
+      4,
       startBorderPaint,
     );
     canvas.drawCircle(
-      Offset(size.width * 0.78, size.height * 0.36),
-      6,
+      Offset(size.width * 0.78, size.height * 0.28),
+      5,
       dotPaint,
     );
   }
 
   @override
-  bool shouldRepaint(covariant _RouteIconPainter oldDelegate) {
+  bool shouldRepaint(covariant _RoutePreviewPainter oldDelegate) {
     return oldDelegate.seed != seed;
   }
 }
 
 class _ActivityCardContent extends StatelessWidget {
-  const _ActivityCardContent({required this.activity});
+  const _ActivityCardContent({required this.activity, super.key});
 
   final RunActivityDisplayModel activity;
 
@@ -197,13 +220,17 @@ class _Metric extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (distanceParts == null)
-          Text(value, style: _metricValueStyle)
+          _MetricValueText(child: Text(value, style: _metricValueStyle))
         else
-          Text.rich(
-            TextSpan(
-              text: distanceParts.first,
-              style: _metricValueStyle,
-              children: const [TextSpan(text: ' km', style: _metricUnitStyle)],
+          _MetricValueText(
+            child: Text.rich(
+              TextSpan(
+                text: distanceParts.first,
+                style: _metricValueStyle,
+                children: const [
+                  TextSpan(text: ' km', style: _metricUnitStyle),
+                ],
+              ),
             ),
           ),
         const SizedBox(height: 2),
@@ -213,10 +240,30 @@ class _Metric extends StatelessWidget {
   }
 }
 
+class _MetricValueText extends StatelessWidget {
+  const _MetricValueText({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: Alignment.centerLeft,
+      child: child,
+    );
+  }
+}
+
 final _routeTileDecoration = BoxDecoration(
-  color: RuniacColors.sectionSurface,
+  color: RuniacColors.innerTileSurface,
   borderRadius: BorderRadius.circular(18),
   border: Border.all(color: RuniacColors.cardBorder, width: 1.4),
+);
+
+final _routeTileInnerDecoration = BoxDecoration(
+  color: RuniacColors.sectionSurface,
+  borderRadius: BorderRadius.circular(12),
 );
 
 final _historyCardDecoration = BoxDecoration(

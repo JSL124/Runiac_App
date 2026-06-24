@@ -288,7 +288,39 @@ void main() {
         of: recentRunCards,
         matching: find.byIcon(Icons.chevron_right_rounded),
       ),
+      findsNothing,
+    );
+    expect(
+      find.descendant(
+        of: recentRunCards,
+        matching: find.byKey(const ValueKey('activity_route_preview_slot')),
+      ),
       findsNWidgets(3),
+    );
+    final firstRecentCard = find.byKey(
+      const ValueKey('recent_running_card_Saturday Night Run'),
+    );
+    expect(
+      tester
+          .getTopLeft(
+            find.descendant(
+              of: firstRecentCard,
+              matching: find.byKey(const ValueKey('activity_card_content')),
+            ),
+          )
+          .dx,
+      greaterThan(
+        tester
+            .getRect(
+              find.descendant(
+                of: firstRecentCard,
+                matching: find.byKey(
+                  const ValueKey('activity_route_preview_slot'),
+                ),
+              ),
+            )
+            .right,
+      ),
     );
     expect(
       find.descendant(of: recentRunCards, matching: find.text('DISTANCE')),
@@ -637,6 +669,20 @@ void main() {
 
     expect(find.byType(CompactRunActivityCard), findsNWidgets(8));
     expect(find.byType(VerticalDivider), findsNWidgets(16));
+    expect(
+      find.descendant(
+        of: find.byType(CompactRunActivityCard),
+        matching: find.byIcon(Icons.chevron_right_rounded),
+      ),
+      findsNothing,
+    );
+    expect(
+      find.descendant(
+        of: find.byType(CompactRunActivityCard),
+        matching: find.byKey(const ValueKey('activity_route_preview_slot')),
+      ),
+      findsNWidgets(8),
+    );
   });
 
   testWidgets('Activity History shows source labels', (
