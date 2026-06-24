@@ -34,6 +34,7 @@ import 'package:runiac_app/features/run/presentation/data/run_completion_demo_sn
 import 'package:runiac_app/features/run/presentation/run_launch_screen.dart';
 import 'package:runiac_app/features/run/presentation/view_summary_screen.dart';
 import 'package:runiac_app/features/run/presentation/widgets/advanced_analysis/advanced_analysis_charts.dart';
+import 'package:runiac_app/features/run/presentation/widgets/advanced_analysis/advanced_analysis_splits_table.dart';
 import 'package:runiac_app/features/run/presentation/widgets/completed_route_map_surface.dart';
 import 'package:runiac_app/features/run/presentation/widgets/share_achievement_sheet.dart';
 import 'package:runiac_app/features/run/presentation/xp_update_screen.dart';
@@ -477,7 +478,7 @@ void main() {
     expect(find.text('Easy local route'), findsNothing);
     expect(find.text('0.00'), findsOneWidget);
     expect(find.text('km'), findsOneWidget);
-    expect(find.text('--'), findsNWidgets(3));
+    expect(find.text('--'), findsAtLeastNWidgets(3));
     expect(find.text('0:00'), findsWidgets);
     expect(find.text('Saturday Morning Run'), findsNothing);
     expect(find.text('East Coast Park Loop'), findsNothing);
@@ -617,7 +618,7 @@ void main() {
       expect(find.text('Easy local route'), findsNothing);
       expect(find.text('0.00'), findsOneWidget);
       expect(find.text('0:00'), findsWidgets);
-      expect(find.text('--'), findsNWidgets(3));
+      expect(find.text('--'), findsAtLeastNWidgets(3));
       expect(find.text('-- bpm'), findsNothing);
       expect(find.text('-- kcal'), findsNothing);
       expect(find.text('Saturday Morning Run'), findsNothing);
@@ -742,14 +743,75 @@ void main() {
     expect(find.text('6:40'), findsOneWidget);
     expect(find.text('7:20'), findsOneWidget);
     expect(find.text('More run data needed'), findsNothing);
+    final summarySplits = const AdvancedAnalysisSnapshotBuilder()
+        .fromRunSummary(defaultRunSummarySnapshot)
+        .pace
+        .splits
+        .value!;
+
     expect(find.text('Advanced Analysis'), findsOneWidget);
-    expect(find.text('Heart rate zones, cadence & elevation'), findsOneWidget);
-    expect(find.text('Easy'), findsOneWidget);
-    expect(find.text('72%'), findsOneWidget);
-    expect(find.text('Steady'), findsOneWidget);
-    expect(find.text('22%'), findsOneWidget);
-    expect(find.text('Hard'), findsOneWidget);
-    expect(find.text('6%'), findsOneWidget);
+    expect(find.text('Splits'), findsOneWidget);
+    expect(find.text('Km'), findsOneWidget);
+    expect(find.text('Pace'), findsOneWidget);
+    expect(find.text('Elev'), findsOneWidget);
+    expect(find.text('HR'), findsOneWidget);
+    expect(
+      tester
+          .widget<Text>(find.byKey(const Key('advanced_analysis_split_1_km')))
+          .data,
+      '1',
+    );
+    expect(
+      tester
+          .widget<Text>(find.byKey(const Key('advanced_analysis_split_1_pace')))
+          .data,
+      summarySplits[0].paceLabel,
+    );
+    expect(
+      tester
+          .widget<Text>(find.byKey(const Key('advanced_analysis_split_2_km')))
+          .data,
+      '2',
+    );
+    expect(
+      tester
+          .widget<Text>(find.byKey(const Key('advanced_analysis_split_2_pace')))
+          .data,
+      summarySplits[1].paceLabel,
+    );
+    expect(
+      tester
+          .widget<Text>(
+            find.descendant(
+              of: find.byKey(const Key('advanced_analysis_split_1_elev')),
+              matching: find.byType(Text),
+            ),
+          )
+          .data,
+      '--',
+    );
+    expect(
+      tester
+          .widget<Text>(
+            find.descendant(
+              of: find.byKey(const Key('advanced_analysis_split_1_hr')),
+              matching: find.byType(Text),
+            ),
+          )
+          .data,
+      '--',
+    );
+    expect(
+      find.byType(AdvancedAnalysisSplitBar),
+      findsNWidgets(summarySplits.length),
+    );
+    expect(find.text('Heart rate zones, cadence & elevation'), findsNothing);
+    expect(find.text('Easy'), findsNothing);
+    expect(find.text('72%'), findsNothing);
+    expect(find.text('Steady'), findsNothing);
+    expect(find.text('22%'), findsNothing);
+    expect(find.text('Hard'), findsNothing);
+    expect(find.text('6%'), findsNothing);
     expect(find.text('More Details'), findsOneWidget);
     expect(find.byIcon(Icons.chevron_right_rounded), findsNothing);
     expect(find.text('Coaching Summary'), findsOneWidget);
@@ -1790,7 +1852,7 @@ void main() {
       expect(find.text('7’49”'), findsOneWidget);
       expect(find.text('25:00'), findsOneWidget);
       expect(find.text('Est. calories'), findsOneWidget);
-      expect(find.text('--'), findsNWidgets(2));
+      expect(find.text('--'), findsAtLeastNWidgets(2));
       expect(find.text('-- bpm'), findsNothing);
       expect(find.text('-- kcal'), findsNothing);
       expect(find.text('145 bpm'), findsNothing);
@@ -1823,7 +1885,7 @@ void main() {
 
     expect(find.text('Runiac GPS'), findsOneWidget);
     expect(find.text('Avg Heart Rate'), findsOneWidget);
-    expect(find.text('--'), findsOneWidget);
+    expect(find.text('--'), findsAtLeastNWidgets(1));
     expect(find.text('-- bpm'), findsNothing);
     expect(
       find.text('Heart rate unavailable for Runiac GPS runs.'),
@@ -1889,7 +1951,7 @@ void main() {
 
     expect(find.text('Health Connect'), findsOneWidget);
     expect(find.text('Avg Heart Rate'), findsOneWidget);
-    expect(find.text('--'), findsOneWidget);
+    expect(find.text('--'), findsAtLeastNWidgets(1));
     expect(find.text('-- bpm'), findsNothing);
     expect(
       find.text('Heart rate was not shared by this source.'),
@@ -1961,7 +2023,7 @@ void main() {
     expect(find.text('Short Start'), findsOneWidget);
     expect(find.text('0.02'), findsOneWidget);
     expect(find.text('0:35'), findsOneWidget);
-    expect(find.text('--'), findsNWidgets(3));
+    expect(find.text('--'), findsAtLeastNWidgets(3));
     expect(find.text('Coaching Summary'), findsOneWidget);
     expect(find.text('AI Coaching Summary'), findsNothing);
     expect(

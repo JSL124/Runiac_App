@@ -6,6 +6,7 @@ import 'package:runiac_app/core/theme/runiac_colors.dart';
 import 'package:runiac_app/core/widgets/runiac_back_header.dart';
 
 import 'advanced_analysis_screen.dart';
+import '../domain/models/advanced_analysis_snapshot.dart';
 import '../domain/models/complete_run_result.dart';
 import '../domain/models/coaching_summary_snapshot.dart';
 import '../domain/models/pace_graph_snapshot.dart';
@@ -15,6 +16,7 @@ import '../domain/models/run_summary_snapshot.dart';
 import '../domain/services/advanced_analysis_snapshot_builder.dart';
 import 'data/run_completion_demo_snapshots.dart';
 import 'widgets/completed_route_map_surface.dart';
+import 'widgets/advanced_analysis/advanced_analysis_splits_table.dart';
 import 'widgets/share_achievement_sheet.dart';
 import 'xp_update_screen.dart';
 
@@ -76,6 +78,8 @@ class ViewSummaryScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final displayedSummary = completionResult?.summary ?? summary;
     final hasSufficientData = displayedSummary.hasSufficientData;
+    final analysisSnapshot = const AdvancedAnalysisSnapshotBuilder()
+        .fromRunSummary(displayedSummary);
 
     return Scaffold(
       backgroundColor: _rWhite,
@@ -154,6 +158,7 @@ class ViewSummaryScreen extends StatelessWidget {
                           ),
                           _AnalysisSection(
                             hasSufficientData: hasSufficientData,
+                            paceAnalysis: analysisSnapshot.pace,
                             onMoreDetails: () {
                               if (!hasSufficientData) {
                                 _showSoonMessage(
@@ -168,9 +173,7 @@ class ViewSummaryScreen extends StatelessWidget {
                                   builder: (context) => AdvancedAnalysisScreen(
                                     title: displayedSummary.title,
                                     subtitle: displayedSummary.dateTimeLabel,
-                                    analysisSnapshot:
-                                        const AdvancedAnalysisSnapshotBuilder()
-                                            .fromRunSummary(displayedSummary),
+                                    analysisSnapshot: analysisSnapshot,
                                   ),
                                 ),
                               );
@@ -851,10 +854,12 @@ class _YAxisLabel extends StatelessWidget {
 class _AnalysisSection extends StatelessWidget {
   const _AnalysisSection({
     required this.hasSufficientData,
+    required this.paceAnalysis,
     required this.onMoreDetails,
   });
 
   final bool hasSufficientData;
+  final AdvancedAnalysisPaceAnalysis paceAnalysis;
   final VoidCallback onMoreDetails;
 
   @override
@@ -865,49 +870,56 @@ class _AnalysisSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const _SectionLabel(title: 'Advanced Analysis'),
-          _CardSurface(
-            padding: const EdgeInsets.fromLTRB(14, 16, 14, 14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Text(
-                  'Heart rate zones, cadence & elevation',
-                  style: TextStyle(
-                    color: _rBlue60,
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                _GuardedAnalysisPreview(
-                  showGuard: !hasSufficientData,
-                  minHeight: hasSufficientData ? 0 : 96,
-                  child: const _ZoneBars(),
-                ),
-                const SizedBox(height: 8),
-                OutlinedButton(
-                  onPressed: onMoreDetails,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: _rBlue,
-                    side: const BorderSide(color: _rBlue18, width: 1.5),
-                    minimumSize: const Size.fromHeight(46),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    textStyle: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -0.2,
-                    ),
-                  ),
-                  child: const Text('More Details'),
-                ),
-              ],
+          const _AnalysisDivider(),
+          const SizedBox(height: 14),
+          const Text(
+            'Splits',
+            style: TextStyle(
+              color: _rBlue,
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.2,
             ),
           ),
+          const SizedBox(height: 10),
+          _GuardedAnalysisPreview(
+            showGuard: !hasSufficientData,
+            clipContent: false,
+            minHeight: hasSufficientData ? 0 : 96,
+            child: AdvancedAnalysisSplitTable(analysis: paceAnalysis),
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton(
+            onPressed: onMoreDetails,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: _rBlue,
+              side: const BorderSide(color: _rBlue18, width: 1.5),
+              minimumSize: const Size.fromHeight(46),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+              textStyle: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.2,
+              ),
+            ),
+            child: const Text('More Details'),
+          ),
+          const SizedBox(height: 14),
+          const _AnalysisDivider(),
         ],
       ),
     );
+  }
+}
+
+class _AnalysisDivider extends StatelessWidget {
+  const _AnalysisDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Divider(color: _rBlue10, height: 17, thickness: 1);
   }
 }
 
@@ -1005,81 +1017,6 @@ class _LowDataGraphGuard extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-class _ZoneBars extends StatelessWidget {
-  const _ZoneBars();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.all(8),
-      child: Column(
-        children: [
-          _ZoneRow(label: 'Easy', percent: 72, color: _rBlue30),
-          SizedBox(height: 9),
-          _ZoneRow(label: 'Steady', percent: 22, color: _rBlue60),
-          SizedBox(height: 9),
-          _ZoneRow(label: 'Hard', percent: 6, color: _rOrange),
-        ],
-      ),
-    );
-  }
-}
-
-class _ZoneRow extends StatelessWidget {
-  const _ZoneRow({
-    required this.label,
-    required this.percent,
-    required this.color,
-  });
-
-  final String label;
-  final int percent;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        SizedBox(
-          width: 44,
-          child: Text(
-            label,
-            style: const TextStyle(
-              color: _rBlue60,
-              fontSize: 11.5,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: percent / 100,
-              minHeight: 7,
-              backgroundColor: _rBlue06,
-              valueColor: AlwaysStoppedAnimation<Color>(color),
-            ),
-          ),
-        ),
-        SizedBox(
-          width: 40,
-          child: Text(
-            '$percent%',
-            textAlign: TextAlign.right,
-            style: const TextStyle(
-              color: _rBlue,
-              fontSize: 11.5,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

@@ -2199,7 +2199,7 @@ void main() {
       expect(find.text('0.08'), findsOneWidget);
       expect(find.text('00:30'), findsOneWidget);
       expect(find.text('6’15”'), findsOneWidget);
-      expect(find.text('--'), findsNWidgets(2));
+      expect(find.text('--'), findsAtLeastNWidgets(2));
       expect(find.text('-- bpm'), findsNothing);
       expect(find.text('-- kcal'), findsNothing);
       expect(find.text('Saturday Morning Run'), findsNothing);
