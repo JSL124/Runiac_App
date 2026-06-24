@@ -102,15 +102,16 @@ Active capsule: none selected. The previously active `implementation/roadmap/cap
 Required next-session checklist:
 
 1. Start with required layered context loading from `implementation/roadmap/CURRENT.md`.
-2. Confirm repository state with `git status --short`.
-3. Read the active capsule document before further action if one has been selected.
-4. Do not load future phase documents or route another capsule unless explicitly requested.
-5. Treat the Goal Plan Detail, Weekly Workout Detail, Expert Plan List, Expert Plan Detail, and Goal Plan Detail header/timeline alignment capsules as closed unless a future explicit task reopens one of them.
-6. If committing, stage only the task-relevant files listed by the final status.
-7. Do not touch unrelated dirty files if any appear.
-8. Do not add fake users/ranks/XP/scores/levels, plan completion calculations, completed-run calculations, remaining-run calculations, expert eligibility logic, production Firebase/backend/GPS/native/dependency work, sharing integration, premium gating, subscription logic, or Phase 02 selection.
-9. Do not select or implement another capsule, Phase 02 work, production Firebase, FlutterFire production config, GPS/native work, dependency work, or any new product scope without separate explicit approval.
-10. `goal-plan-detail-header-timeline-alignment` closure preserves static sample daily rows as preview-only display data; they must not create enrollment, persistence, onboarding mutation, trusted current-week calculation, or backend-owned plan progress behavior.
+2. Confirm the logical working root is `/Users/leejinseo/Desktop/FYP_Runiac`; do not launch from the `/Users/leejinseo/Documents/FYP_Runiac` symlink, and keep generated plans, evidence commands, and file links on the Desktop root.
+3. Confirm repository state with `git status --short`.
+4. Read the active capsule document before further action if one has been selected.
+5. Do not load future phase documents or route another capsule unless explicitly requested.
+6. Treat the Goal Plan Detail, Weekly Workout Detail, Expert Plan List, Expert Plan Detail, and Goal Plan Detail header/timeline alignment capsules as closed unless a future explicit task reopens one of them.
+7. If committing, stage only the task-relevant files listed by the final status.
+8. Do not touch unrelated dirty files if any appear.
+9. Do not add fake users/ranks/XP/scores/levels, plan completion calculations, completed-run calculations, remaining-run calculations, expert eligibility logic, production Firebase/backend/GPS/native/dependency work, sharing integration, premium gating, subscription logic, or Phase 02 selection.
+10. Do not select or implement another capsule, Phase 02 work, production Firebase, FlutterFire production config, GPS/native work, dependency work, or any new product scope without separate explicit approval.
+11. `goal-plan-detail-header-timeline-alignment` closure preserves static sample daily rows as preview-only display data; they must not create enrollment, persistence, onboarding mutation, trusted current-week calculation, or backend-owned plan progress behavior.
 
 Closure validation for `leaderboard-leagues-popup-shell`:
 

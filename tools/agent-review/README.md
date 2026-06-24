@@ -45,6 +45,8 @@ tools/agent-review/
 
 ## Runner Usage
 
+Run governance commands from the canonical logical root `/Users/leejinseo/Desktop/FYP_Runiac`; the Documents symlink path is intentionally blocked.
+
 Manual step-by-step usage remains supported:
 
 ```bash

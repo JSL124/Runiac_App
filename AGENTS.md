@@ -5,6 +5,7 @@
 - Runiac is a beginner-focused running app for a Final Year Project.
 - Current work state and routing are determined by `implementation/roadmap/CURRENT.md`.
 - Use `grep` and `find` for repository searches.
+- Runiac must be launched and operated from `/Users/leejinseo/Desktop/FYP_Runiac`. Do not use `/Users/leejinseo/Documents/FYP_Runiac`, even though it may resolve to the same repo through a symlink. Generated plans, evidence, and file links must use the Desktop root.
 
 ## Commit Protocol
 - Default: do not commit unless the user explicitly grants commit or auto-commit permission for the current task or workflow. Stop at Ready for commit by default.

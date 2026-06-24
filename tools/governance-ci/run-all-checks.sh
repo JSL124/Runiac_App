@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
+initial_logical_pwd="${PWD:-$(pwd)}"
 repo_root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 cd "$repo_root"
 
 checks=(
+  "tools/governance-ci/check-canonical-root.sh"
   "tools/governance-ci/check-agent-governance.sh"
   "tools/governance-ci/check-diff-hygiene.sh"
   "tools/governance-ci/check-pre-scaffold-scope.sh"
@@ -25,7 +27,7 @@ for check in "${checks[@]}"; do
     continue
   fi
 
-  "$check"
+  RUNIAC_INITIAL_LOGICAL_PWD="$initial_logical_pwd" "$check"
   status=$?
 
   if [ "$status" -eq 0 ]; then

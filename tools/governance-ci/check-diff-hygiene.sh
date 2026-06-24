@@ -32,7 +32,7 @@ is_allowed_path() {
       return 0
       ;;
     # Approved: scaffold-baseline and Codex-only review instruction cleanup
-    AGENTS.md|docs/pdd/AGENTS_CHANGELOG.md|.agents/skills/runiac-review-flow/SKILL.md|.claude/settings.json|tools/agent-review/profiles/runiac/context-policy.yml|tools/agent-review/runner/build_context_packet.sh|tools/agent-review/runner/classify_high_risk_task.sh|tools/agent-review/profiles/runiac/prompts/01_codex_create_plan.md)
+    AGENTS.md|docs/pdd/AGENTS_CHANGELOG.md|.agents/skills/runiac-review-flow/SKILL.md|.claude/settings.json|tools/agent-review/README.md|tools/agent-review/profiles/runiac/context-policy.yml|tools/agent-review/runner/build_context_packet.sh|tools/agent-review/runner/classify_high_risk_task.sh|tools/agent-review/runner/run_plan_review.sh|tools/agent-review/profiles/runiac/prompts/01_codex_create_plan.md)
       return 0
       ;;
     # Approved: reusable agent-review reference templates only
@@ -61,6 +61,21 @@ is_allowed_path() {
       return 1
       ;;
     implementation/mobile/runiac_app/*)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+is_unrelated_mobile_native_artifact() {
+  case "$1" in
+    implementation/mobile/runiac_app/ios/Podfile.lock|\
+    implementation/mobile/runiac_app/ios/Runner.xcodeproj/project.pbxproj|\
+    implementation/mobile/runiac_app/ios/Runner.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/*|\
+    implementation/mobile/runiac_app/ios/Runner.xcworkspace/xcshareddata/swiftpm/*|\
+    implementation/mobile/runiac_app/ios/**/Package.resolved)
       return 0
       ;;
     *)
@@ -156,6 +171,10 @@ while IFS= read -r line; do
     fail "Unrelated modified path is outside Governance CI scope: $path"
   fi
 
+  if is_unrelated_mobile_native_artifact "$path"; then
+    fail "Unrelated iOS/SwiftPM native artifact appears in diff status: $path"
+  fi
+
   if is_forbidden_path "$path"; then
     fail "Forbidden implementation/config artifact appears in diff status: $path"
   fi
@@ -167,6 +186,10 @@ done < <(git status --short --untracked-files=all)
 
 while IFS= read -r path; do
   [ -n "$path" ] || continue
+  if is_unrelated_mobile_native_artifact "$path"; then
+    fail "Unrelated iOS/SwiftPM native artifact appears in tracked diff: $path"
+  fi
+
   if is_forbidden_path "$path"; then
     fail "Forbidden implementation/config artifact appears in tracked diff: $path"
   fi

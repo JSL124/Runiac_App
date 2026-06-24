@@ -2,8 +2,26 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+CANONICAL_REPO_ROOT="/Users/leejinseo/Desktop/FYP_Runiac"
+FORBIDDEN_REPO_ROOT="/Users/leejinseo/Documents/FYP_Runiac"
+INITIAL_LOGICAL_PWD="${PWD:-$(pwd)}"
+INVOCATION_PATH="${BASH_SOURCE[0]}"
+case "$INVOCATION_PATH" in
+  /*) ;;
+  *) INVOCATION_PATH="$INITIAL_LOGICAL_PWD/$INVOCATION_PATH" ;;
+esac
+
+case "$INVOCATION_PATH" in
+  "$FORBIDDEN_REPO_ROOT"|"$FORBIDDEN_REPO_ROOT"/*)
+    printf 'BLOCKED_WRONG_LOGICAL_ROOT\n' >&2
+    printf 'Launch from %s, not the Documents symlink path.\n' "$CANONICAL_REPO_ROOT" >&2
+    exit 1
+    ;;
+esac
+
+SCRIPT_DIR="$CANONICAL_REPO_ROOT/tools/agent-review/runner"
+REPO_ROOT="$CANONICAL_REPO_ROOT"
+RUNIAC_INITIAL_LOGICAL_PWD="$INITIAL_LOGICAL_PWD" RUNIAC_INVOCATION_PATH="$INVOCATION_PATH" "$REPO_ROOT/tools/governance-ci/check-canonical-root.sh" >&2
 cd "$REPO_ROOT"
 
 # Generic helpers only. Project rules belong in prompt/config files.
