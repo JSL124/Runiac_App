@@ -5,7 +5,10 @@ import '../../run/domain/models/run_activity_display_model.dart';
 import '../../run/presentation/active_run_session_coordinator.dart';
 import '../../run/presentation/view_summary_screen.dart';
 import 'activity_history_screen.dart';
+import 'current_session_activity_history.dart';
+import 'data/activity_history_demo_snapshots.dart';
 import 'data/weekly_workout_demo_snapshots.dart';
+import 'data/you_overview_demo_snapshots.dart';
 import 'expert_plan_detail_screen.dart';
 import 'expert_plan_list_screen.dart';
 import 'goal_plan_detail_screen.dart';
@@ -41,8 +44,16 @@ class _YouTabState extends State<YouTab> {
 
   @override
   Widget build(BuildContext context) {
+    final activityHistoryStore = CurrentSessionActivityHistoryScope.of(context);
+    final recentRuns = activityHistoryStore.recentRunsWithFallback(
+      youProgressSnapshot.runs,
+    );
+    final activityHistoryMonths = activityHistoryStore
+        .activityHistoryWithFallback(activityHistoryDisplayData);
+
     if (_activityHistoryVisible) {
       return ActivityHistoryScreen(
+        activityHistoryMonths: activityHistoryMonths,
         onBack: () {
           setState(() => _activityHistoryVisible = false);
         },
@@ -117,6 +128,7 @@ class _YouTabState extends State<YouTab> {
                   )
                 else
                   YouProgressSurface(
+                    runs: recentRuns,
                     visibleCalendarMonth: _visibleCalendarMonth,
                     onPreviousMonth: _showPreviousCalendarMonth,
                     onNextMonth: _showNextCalendarMonth,
@@ -182,8 +194,11 @@ class _YouTabState extends State<YouTab> {
   void _showRunSummary(RunActivityDisplayModel run) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (context) =>
-            ViewSummaryScreen(summary: run.summary, showXpUpdateAction: false),
+        builder: (context) => ViewSummaryScreen(
+          completionResult: run.completionResult,
+          summary: run.summary,
+          showXpUpdateAction: false,
+        ),
       ),
     );
   }

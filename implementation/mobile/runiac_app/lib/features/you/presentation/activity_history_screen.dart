@@ -8,11 +8,13 @@ import 'widgets/compact_run_activity_card.dart';
 
 class ActivityHistoryScreen extends StatelessWidget {
   const ActivityHistoryScreen({
+    required this.activityHistoryMonths,
     required this.onBack,
     required this.onActivitySelected,
     super.key,
   });
 
+  final List<ActivityHistoryMonth> activityHistoryMonths;
   final VoidCallback onBack;
   final ValueChanged<RunActivityDisplayModel> onActivitySelected;
 
@@ -47,13 +49,13 @@ class ActivityHistoryScreen extends StatelessWidget {
                         style: _helperTextStyle,
                       ),
                       const SizedBox(height: 16),
-                      for (final month in activityHistoryDisplayData) ...[
+                      for (final month in activityHistoryMonths) ...[
                         _MonthHeader(month: month),
                         const SizedBox(height: 10),
                         for (final activity in month.activities) ...[
                           CompactRunActivityCard(
                             key: ValueKey(
-                              'activity_history_card_${activity.title}',
+                              'activity_history_card_${activity.identityKey}',
                             ),
                             activity: activity,
                             onTap: () => onActivitySelected(activity),

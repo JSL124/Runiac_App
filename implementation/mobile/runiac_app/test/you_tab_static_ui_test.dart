@@ -6,12 +6,16 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/app.dart';
 import 'package:runiac_app/features/run/domain/models/advanced_analysis_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/cadence_graph_snapshot.dart';
+import 'package:runiac_app/features/run/domain/models/complete_run_result.dart';
+import 'package:runiac_app/features/run/domain/models/run_summary_snapshot.dart';
 import 'package:runiac_app/features/run/domain/services/advanced_analysis_snapshot_builder.dart';
 import 'package:runiac_app/features/run/presentation/advanced_analysis_screen.dart';
 import 'package:runiac_app/features/run/presentation/active_run_session_coordinator.dart';
 import 'package:runiac_app/features/run/presentation/data/pace_graph_demo_snapshots.dart';
+import 'package:runiac_app/features/run/presentation/data/run_completion_demo_snapshots.dart';
 import 'package:runiac_app/features/run/presentation/view_summary_screen.dart';
 import 'package:runiac_app/features/run/presentation/widgets/advanced_analysis/advanced_analysis_charts.dart';
+import 'package:runiac_app/features/you/presentation/current_session_activity_history.dart';
 import 'package:runiac_app/features/you/presentation/data/activity_history_demo_snapshots.dart';
 import 'package:runiac_app/features/you/presentation/data/you_overview_demo_snapshots.dart';
 import 'package:runiac_app/features/you/presentation/widgets/compact_run_activity_card.dart';
@@ -20,12 +24,14 @@ import 'package:runiac_app/features/you/presentation/widgets/monthly_distance_gr
 Future<void> _openYouTab(
   WidgetTester tester, {
   ActiveRunSessionCoordinator? activeRunSessionCoordinator,
+  CurrentSessionActivityHistoryStore? activityHistoryStore,
 }) async {
   await tester.pumpWidget(
     RuniacApp(
       showSplash: false,
       enableForegroundGps: false,
       activeRunSessionCoordinator: activeRunSessionCoordinator,
+      currentSessionActivityHistoryStore: activityHistoryStore,
     ),
   );
   await tester.tap(find.byTooltip('You'));
@@ -49,6 +55,30 @@ Future<void> _openActivityHistoryFromYou(WidgetTester tester) async {
   await tester.pumpAndSettle();
   await tester.tap(find.text('More Activities'));
   await tester.pumpAndSettle();
+}
+
+CompleteRunResult _sessionCompletion({
+  required String activityId,
+  required String title,
+  required String distanceKm,
+}) {
+  return CompleteRunResult(
+    activityId: activityId,
+    summaryId: 'summary-$activityId',
+    progressionEventId: 'progression-$activityId',
+    summary: RunSummarySnapshot(
+      title: title,
+      dateLabel: 'Today',
+      timeLabel: '8:10 AM',
+      distanceKm: distanceKm,
+      avgPace: '6’15”',
+      duration: '18:30',
+      avgHeartRate: '--',
+      calories: '--',
+      routeName: 'Current Session Route',
+    ),
+    xpUpdate: defaultXpUpdateDisplayModel,
+  );
 }
 
 void main() {
@@ -288,6 +318,94 @@ void main() {
     expect(find.text('Level 12 Runner'), findsNothing);
     expect(find.text('Keep showing up at a comfortable pace.'), findsNothing);
   });
+
+  testWidgets(
+    'current-session history keeps fallback cap and dedupes by activity id',
+    (WidgetTester tester) async {
+      final historyStore = CurrentSessionActivityHistoryStore();
+      addTearDown(historyStore.dispose);
+
+      await _openYouTab(tester, activityHistoryStore: historyStore);
+
+      await tester.drag(find.byType(ListView), const Offset(0, -700));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(CompactRunActivityCard), findsNWidgets(3));
+      expect(find.text('Saturday Night Run'), findsOneWidget);
+      expect(find.text('Morning Easy Run'), findsOneWidget);
+      expect(find.text('Recovery Jog'), findsOneWidget);
+
+      historyStore.registerCompletedRun(
+        _sessionCompletion(
+          activityId: 'session-duplicate',
+          title: 'Session First Run',
+          distanceKm: '2.40',
+        ),
+      );
+      historyStore.registerCompletedRun(
+        _sessionCompletion(
+          activityId: 'session-second',
+          title: 'Session Second Run',
+          distanceKm: '3.10',
+        ),
+      );
+      historyStore.registerCompletedRun(
+        _sessionCompletion(
+          activityId: 'session-duplicate',
+          title: 'Session Replacement Run',
+          distanceKm: '4.20',
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(CompactRunActivityCard), findsNWidgets(3));
+      expect(find.text('Session Replacement Run'), findsOneWidget);
+      expect(find.text('Session Second Run'), findsOneWidget);
+      expect(find.text('Saturday Night Run'), findsOneWidget);
+      expect(find.text('Session First Run'), findsNothing);
+      expect(find.text('Morning Easy Run'), findsNothing);
+      expect(find.text('Recovery Jog'), findsNothing);
+
+      final replacementCard = find.byKey(
+        const ValueKey('recent_running_card_session-duplicate'),
+      );
+      final secondCard = find.byKey(
+        const ValueKey('recent_running_card_session-second'),
+      );
+      final fallbackCard = find.byKey(
+        const ValueKey('recent_running_card_Saturday Night Run'),
+      );
+      expect(replacementCard, findsOneWidget);
+      expect(secondCard, findsOneWidget);
+      expect(fallbackCard, findsOneWidget);
+      expect(
+        tester.getTopLeft(replacementCard).dy,
+        lessThan(tester.getTopLeft(secondCard).dy),
+      );
+      expect(
+        tester.getTopLeft(secondCard).dy,
+        lessThan(tester.getTopLeft(fallbackCard).dy),
+      );
+
+      await tester.ensureVisible(find.text('More Activities'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('More Activities'));
+      await tester.pumpAndSettle();
+
+      final replacementHistoryCard = find.byKey(
+        const ValueKey('activity_history_card_session-duplicate'),
+      );
+      final fallbackHistoryCard = find.byKey(
+        const ValueKey('activity_history_card_Pace Graph QA Run'),
+      );
+      expect(replacementHistoryCard, findsOneWidget);
+      expect(fallbackHistoryCard, findsOneWidget);
+      expect(
+        tester.getTopLeft(replacementHistoryCard).dy,
+        lessThan(tester.getTopLeft(fallbackHistoryCard).dy),
+      );
+    },
+  );
 
   testWidgets(
     'You page shows Runiac-styled weekly distance graph in progress overview',

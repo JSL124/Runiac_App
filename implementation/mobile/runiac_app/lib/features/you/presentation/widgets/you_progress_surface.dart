@@ -26,6 +26,7 @@ const _monthNames = [
 
 class YouProgressSurface extends StatefulWidget {
   const YouProgressSurface({
+    required this.runs,
     required this.visibleCalendarMonth,
     required this.onPreviousMonth,
     required this.onNextMonth,
@@ -34,6 +35,7 @@ class YouProgressSurface extends StatefulWidget {
     super.key,
   });
 
+  final List<RunActivityDisplayModel> runs;
   final DateTime visibleCalendarMonth;
   final VoidCallback onPreviousMonth;
   final VoidCallback onNextMonth;
@@ -78,9 +80,9 @@ class _YouProgressSurfaceState extends State<YouProgressSurface> {
         const SizedBox(height: 18),
         _RecentRunningHeader(onSeeAll: widget.onMoreActivities),
         const SizedBox(height: 12),
-        for (final run in youProgressSnapshot.runs) ...[
+        for (final run in widget.runs) ...[
           CompactRunActivityCard(
-            key: ValueKey('recent_running_card_${run.title}'),
+            key: ValueKey('recent_running_card_${run.identityKey}'),
             activity: run,
             onTap: () => widget.onRunSelected(run),
           ),

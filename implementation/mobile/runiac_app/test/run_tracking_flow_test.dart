@@ -33,6 +33,7 @@ import 'package:runiac_app/features/run/presentation/run_repository_scope.dart';
 import 'package:runiac_app/features/run/presentation/view_summary_screen.dart';
 import 'package:runiac_app/features/run/presentation/widgets/run_map_placeholder.dart';
 import 'package:runiac_app/features/run/presentation/widgets/run_mapbox_surface_config.dart';
+import 'package:runiac_app/features/you/presentation/current_session_activity_history.dart';
 
 const _demoMapboxPublicToken =
     'p'
@@ -2444,6 +2445,183 @@ void main() {
       );
       expect(find.text('Running Form / Cadence'), findsOneWidget);
       expect(find.text('170'), findsWidgets);
+      expect(find.text('Elevation Analysis'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'completed run appears first in You Activity History and replays merged analysis',
+    (WidgetTester tester) async {
+      _useMobileRunSurface(tester);
+      final startedAt = DateTime.utc(2026, 6, 18, 8);
+      var now = startedAt;
+      final cadenceProvider = FakeRunCadenceProvider(
+        cadencePattern: const <double>[168, 170, 172],
+      );
+      final controller = RunTrackingController(
+        locationProvider: ReplayRunLocationProvider([
+          RunLocationReplaySample(
+            activeOffset: Duration.zero,
+            sample: RunLocationSample(
+              recordedAt: startedAt,
+              latitude: 1.300000,
+              longitude: 103.800000,
+              altitudeMeters: 4,
+            ),
+          ),
+          RunLocationReplaySample(
+            activeOffset: const Duration(seconds: 60),
+            sample: RunLocationSample(
+              recordedAt: startedAt.add(const Duration(seconds: 60)),
+              latitude: 1.301349,
+              longitude: 103.800000,
+              altitudeMeters: 5.2,
+            ),
+          ),
+          RunLocationReplaySample(
+            activeOffset: const Duration(seconds: 120),
+            sample: RunLocationSample(
+              recordedAt: startedAt.add(const Duration(seconds: 120)),
+              latitude: 1.302698,
+              longitude: 103.800000,
+              altitudeMeters: 8.4,
+            ),
+          ),
+          RunLocationReplaySample(
+            activeOffset: const Duration(seconds: 180),
+            sample: RunLocationSample(
+              recordedAt: startedAt.add(const Duration(seconds: 180)),
+              latitude: 1.304047,
+              longitude: 103.800000,
+              altitudeMeters: 6.1,
+            ),
+          ),
+          RunLocationReplaySample(
+            activeOffset: const Duration(seconds: 240),
+            sample: RunLocationSample(
+              recordedAt: startedAt.add(const Duration(seconds: 240)),
+              latitude: 1.305396,
+              longitude: 103.800000,
+              altitudeMeters: 7.4,
+            ),
+          ),
+          RunLocationReplaySample(
+            activeOffset: const Duration(seconds: 300),
+            sample: RunLocationSample(
+              recordedAt: startedAt.add(const Duration(seconds: 300)),
+              latitude: 1.306745,
+              longitude: 103.800000,
+              altitudeMeters: 9.1,
+            ),
+          ),
+          RunLocationReplaySample(
+            activeOffset: const Duration(seconds: 360),
+            sample: RunLocationSample(
+              recordedAt: startedAt.add(const Duration(seconds: 360)),
+              latitude: 1.308094,
+              longitude: 103.800000,
+              altitudeMeters: 7.2,
+            ),
+          ),
+        ]),
+        cadenceProvider: cadenceProvider,
+      );
+      final activeRunSessionCoordinator = ActiveRunSessionCoordinator(
+        controller: controller,
+        clock: () => now,
+        foregroundTickStep: const Duration(seconds: 1),
+      );
+      final historyStore = CurrentSessionActivityHistoryStore();
+      addTearDown(activeRunSessionCoordinator.dispose);
+      addTearDown(cadenceProvider.dispose);
+      addTearDown(historyStore.dispose);
+      final repository = _ResultRunRepository(_firebaseScalarCompletionResult);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: CurrentSessionActivityHistoryScope(
+            store: historyStore,
+            child: RunRepositoryScope(
+              repository: repository,
+              child: RunActiveScreen(
+                controller: controller,
+                activeRunSessionCoordinator: activeRunSessionCoordinator,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      for (final elapsed in const [60, 120, 180, 240, 300, 360]) {
+        now = startedAt.add(Duration(seconds: elapsed));
+        await tester.pump(const Duration(seconds: 60));
+        cadenceProvider.emitNext(recordedAt: now);
+        await tester.pump();
+      }
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Pause'));
+      await tester.pumpAndSettle();
+
+      final endButton = find.byKey(const Key('hold_to_end_button'));
+      final holdGesture = await tester.startGesture(
+        tester.getCenter(endButton),
+      );
+      await tester.pump(const Duration(milliseconds: 1600));
+      await holdGesture.up();
+      await tester.pumpAndSettle();
+
+      await tester.pumpWidget(
+        RuniacApp(
+          showSplash: false,
+          enableForegroundGps: false,
+          activeRunSessionCoordinator: activeRunSessionCoordinator,
+          currentSessionActivityHistoryStore: historyStore,
+        ),
+      );
+      await tester.tap(find.byTooltip('You'));
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(find.text('More Activities'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('More Activities'));
+      await tester.pumpAndSettle();
+
+      final sessionCard = find.byKey(
+        const ValueKey('activity_history_card_firebase-repo-activity'),
+      );
+      final firstFallbackCard = find.byKey(
+        const ValueKey('activity_history_card_Pace Graph QA Run'),
+      );
+      expect(sessionCard, findsOneWidget);
+      expect(firstFallbackCard, findsOneWidget);
+      expect(
+        tester.getTopLeft(sessionCard).dy,
+        lessThan(tester.getTopLeft(firstFallbackCard).dy),
+      );
+
+      await tester.tap(sessionCard);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Firebase Scalar Run'), findsOneWidget);
+      expect(find.text('0.32'), findsWidgets);
+      expect(find.text('9’23”'), findsOneWidget);
+      expect(find.text('03:00'), findsWidgets);
+      final summaryScreen = tester.widget<ViewSummaryScreen>(
+        find.byType(ViewSummaryScreen),
+      );
+      final replayedSummary =
+          summaryScreen.completionResult?.summary ?? summaryScreen.summary;
+      expect(replayedSummary.paceAnalysisSeries?.isLocalAcceptedSource, isTrue);
+      expect(replayedSummary.cadenceAnalysisSeries, isNotNull);
+      expect(replayedSummary.elevationSeries.isUnavailable, isFalse);
+      expect(replayedSummary.route.hasRoute, isTrue);
+
+      await tester.ensureVisible(find.text('More Details'));
+      await tester.tap(find.text('More Details'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Pace Analysis'), findsOneWidget);
+      expect(find.text('Running Form / Cadence'), findsOneWidget);
       expect(find.text('Elevation Analysis'), findsOneWidget);
     },
   );

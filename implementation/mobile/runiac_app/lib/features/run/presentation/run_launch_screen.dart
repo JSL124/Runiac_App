@@ -35,6 +35,7 @@ import 'widgets/run_mapbox_follow_qa_overlay.dart';
 import 'widgets/run_mapbox_surface_config.dart';
 import 'widgets/run_tracking_map_surface.dart';
 import 'widgets/run_tracking_sheet_content.dart';
+import '../../you/presentation/current_session_activity_history.dart';
 
 const _blueBorder = Color(0xFFDCE6FF);
 const _sportOrange = Color(0xFFFF7A1A);
@@ -433,6 +434,9 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
         localRoute: route,
       ),
     );
+    CurrentSessionActivityHistoryScope.maybeOf(
+      context,
+    )?.registerCompletedRun(result);
     _activeRunSessionCoordinator.stopForegroundTicker();
     _controller.finish(completedAt: completedAt);
     Navigator.of(context).pushReplacement(

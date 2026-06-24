@@ -9,10 +9,11 @@ import 'features/run/presentation/run_repository_scope.dart';
 import 'features/shell/runiac_shell.dart';
 import 'features/splash/presentation/runiac_splash_tokens.dart';
 import 'features/splash/presentation/runiac_startup_gate.dart';
+import 'features/you/presentation/current_session_activity_history.dart';
 
 export 'features/run/presentation/run_open_intent.dart';
 
-class RuniacApp extends StatelessWidget {
+class RuniacApp extends StatefulWidget {
   const RuniacApp({
     super.key,
     this.showSplash = true,
@@ -21,6 +22,7 @@ class RuniacApp extends StatelessWidget {
     this.enableForegroundGps = true,
     this.activeRunSessionCoordinator,
     this.initialRunOpenIntent,
+    this.currentSessionActivityHistoryStore,
   });
 
   final bool showSplash;
@@ -29,22 +31,52 @@ class RuniacApp extends StatelessWidget {
   final bool enableForegroundGps;
   final ActiveRunSessionCoordinator? activeRunSessionCoordinator;
   final RunOpenIntent? initialRunOpenIntent;
+  final CurrentSessionActivityHistoryStore? currentSessionActivityHistoryStore;
+
+  @override
+  State<RuniacApp> createState() => _RuniacAppState();
+}
+
+class _RuniacAppState extends State<RuniacApp> {
+  late final CurrentSessionActivityHistoryStore _activityHistoryStore;
+  late final bool _ownsActivityHistoryStore;
+
+  @override
+  void initState() {
+    super.initState();
+    _ownsActivityHistoryStore =
+        widget.currentSessionActivityHistoryStore == null;
+    _activityHistoryStore =
+        widget.currentSessionActivityHistoryStore ??
+        CurrentSessionActivityHistoryStore();
+  }
+
+  @override
+  void dispose() {
+    if (_ownsActivityHistoryStore) {
+      _activityHistoryStore.dispose();
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Runiac',
-      theme: buildRuniacTheme(),
-      home: RunRepositoryScope(
-        repository: runRepository,
-        child: RuniacStartupGate(
-          showSplash: showSplash,
-          splashDuration: splashDuration,
-          child: RuniacShell(
-            enableForegroundGps: enableForegroundGps,
-            activeRunSessionCoordinator: activeRunSessionCoordinator,
-            initialRunOpenIntent: initialRunOpenIntent,
+    return CurrentSessionActivityHistoryScope(
+      store: _activityHistoryStore,
+      child: RunRepositoryScope(
+        repository: widget.runRepository,
+        child: MaterialApp(
+          debugShowCheckedModeBanner: false,
+          title: 'Runiac',
+          theme: buildRuniacTheme(),
+          home: RuniacStartupGate(
+            showSplash: widget.showSplash,
+            splashDuration: widget.splashDuration,
+            child: RuniacShell(
+              enableForegroundGps: widget.enableForegroundGps,
+              activeRunSessionCoordinator: widget.activeRunSessionCoordinator,
+              initialRunOpenIntent: widget.initialRunOpenIntent,
+            ),
           ),
         ),
       ),
