@@ -809,7 +809,7 @@ void main() {
         find.descendant(
           of: stationaryRecentCard,
           matching: find.byKey(
-            const ValueKey('activity_route_preview_stationary'),
+            const ValueKey('activity_route_preview_tiny_route'),
           ),
         ),
         findsOneWidget,
@@ -881,7 +881,7 @@ void main() {
         find.descendant(
           of: stationaryHistoryCard,
           matching: find.byKey(
-            const ValueKey('activity_route_preview_stationary'),
+            const ValueKey('activity_route_preview_tiny_route'),
           ),
         ),
         findsOneWidget,
@@ -1346,8 +1346,12 @@ void main() {
 
     // Then: stationary routes remain dot previews rather than image thumbnails.
     expect(
-      find.byKey(const ValueKey('activity_route_preview_stationary')),
+      find.byKey(const ValueKey('activity_route_preview_tiny_route')),
       findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('activity_route_preview_polyline')),
+      findsNothing,
     );
     expect(
       find.byKey(const ValueKey('activity_route_preview_static_thumbnail')),

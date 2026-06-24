@@ -22,9 +22,9 @@ class ActivityRoutePreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final mode = _RoutePreviewMode.forRoute(route);
-    final devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
     const logicalSize = Size(_previewSlotSize, _previewSlotSize);
+    final mode = _RoutePreviewMode.forRoute(route, logicalSize: logicalSize);
+    final devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
 
     return ClipRRect(
       key: const ValueKey('activity_route_preview_slot'),
@@ -45,11 +45,11 @@ class ActivityRoutePreview extends StatelessWidget {
               ),
             ),
           ),
-          _RoutePreviewMode.stationary => Semantics(
-            label: 'Stationary route preview',
+          _RoutePreviewMode.tinyRoute => Semantics(
+            label: 'Tiny route preview',
             child: CustomPaint(
-              key: const ValueKey('activity_route_preview_stationary'),
-              painter: _StationaryRoutePreviewPainter(route),
+              key: const ValueKey('activity_route_preview_tiny_route'),
+              painter: _TinyRoutePreviewPainter(route),
             ),
           ),
           _RoutePreviewMode.fallback => Semantics(
@@ -178,17 +178,24 @@ class _RoutePreviewPolylineSlot extends StatelessWidget {
 
 enum _RoutePreviewMode {
   polyline,
-  stationary,
+  tinyRoute,
   fallback;
 
-  static _RoutePreviewMode forRoute(RunRouteSnapshot route) {
+  static _RoutePreviewMode forRoute(
+    RunRouteSnapshot route, {
+    required Size logicalSize,
+  }) {
+    if (!route.hasRoute) {
+      return _RoutePreviewMode.fallback;
+    }
+
     final points = _drawableRoutePoints(route);
     if (points.length < 2) {
       return _RoutePreviewMode.fallback;
     }
 
-    if (_routeMovementMeters(points) < _stationaryMovementThresholdMeters) {
-      return _RoutePreviewMode.stationary;
+    if (_isTinyRoute(points, logicalSize)) {
+      return _RoutePreviewMode.tinyRoute;
     }
 
     return _RoutePreviewMode.polyline;
@@ -222,8 +229,8 @@ class _FallbackRoutePreviewPainter extends CustomPainter {
   }
 }
 
-class _StationaryRoutePreviewPainter extends CustomPainter {
-  const _StationaryRoutePreviewPainter(this.route);
+class _TinyRoutePreviewPainter extends CustomPainter {
+  const _TinyRoutePreviewPainter(this.route);
 
   final RunRouteSnapshot route;
 
@@ -249,7 +256,7 @@ class _StationaryRoutePreviewPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _StationaryRoutePreviewPainter oldDelegate) {
+  bool shouldRepaint(covariant _TinyRoutePreviewPainter oldDelegate) {
     return oldDelegate.route != route;
   }
 }
@@ -319,6 +326,23 @@ List<RunLocationSample> _drawableRoutePoints(RunRouteSnapshot route) {
       .expand((segment) => segment)
       .where(_isDrawableRoutePoint)
       .toList(growable: false);
+}
+
+bool _isTinyRoute(List<RunLocationSample> points, Size logicalSize) {
+  if (_routeMovementMeters(points) < _stationaryMovementThresholdMeters) {
+    return true;
+  }
+
+  final projectedBounds = _RoutePreviewProjection.fromPoints(
+    points,
+    logicalSize,
+  )?.projectedBounds(points);
+  if (projectedBounds == null) {
+    return true;
+  }
+
+  return projectedBounds.width < _tinyRouteProjectedThresholdPx &&
+      projectedBounds.height < _tinyRouteProjectedThresholdPx;
 }
 
 double _routeMovementMeters(List<RunLocationSample> points) {
@@ -426,6 +450,13 @@ class _RoutePreviewProjection {
         .expand((segment) => segment)
         .where(_isDrawableRoutePoint)
         .toList(growable: false);
+    return _RoutePreviewProjection.fromPoints(points, size);
+  }
+
+  static _RoutePreviewProjection? fromPoints(
+    List<RunLocationSample> points,
+    Size size,
+  ) {
     if (points.length < 2) {
       return null;
     }
@@ -474,9 +505,28 @@ class _RoutePreviewProjection {
     final y = (maxLatitude - point.latitude) * scale;
     return offset + Offset(x, y);
   }
+
+  Rect projectedBounds(List<RunLocationSample> points) {
+    final firstProjected = project(points.first);
+    var minX = firstProjected.dx;
+    var maxX = firstProjected.dx;
+    var minY = firstProjected.dy;
+    var maxY = firstProjected.dy;
+
+    for (final point in points.skip(1)) {
+      final projected = project(point);
+      minX = math.min(minX, projected.dx);
+      maxX = math.max(maxX, projected.dx);
+      minY = math.min(minY, projected.dy);
+      maxY = math.max(maxY, projected.dy);
+    }
+
+    return Rect.fromLTRB(minX, minY, maxX, maxY);
+  }
 }
 
 const _previewPadding = 7.0;
 const _previewSlotSize = 88.0;
 const _minRouteSpan = 0.000001;
 const _stationaryMovementThresholdMeters = 6.0;
+const _tinyRouteProjectedThresholdPx = 6.0;
