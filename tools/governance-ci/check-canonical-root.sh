@@ -8,6 +8,7 @@ logical_pwd="${RUNIAC_INITIAL_LOGICAL_PWD:-${PWD:-$(pwd)}}"
 invocation_path="${RUNIAC_INVOCATION_PATH:-}"
 git_root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
 physical_pwd="$(pwd -P)"
+is_github_actions="${GITHUB_ACTIONS:-}"
 
 fail_wrong_logical_root() {
   printf 'CHECK %s FAIL\n' "$check_name"
@@ -43,6 +44,24 @@ case "$invocation_path" in
     fail_wrong_logical_root
     ;;
 esac
+
+if [ "$is_github_actions" = "true" ]; then
+  if [ -z "$git_root" ]; then
+    fail_canonical_root "GitHub Actions checkout must run inside a Git repository."
+  fi
+
+  printf 'CHECK %s PASS\n' "$check_name"
+  printf 'scanned_paths=logical PWD,runner invocation path\n'
+  printf 'canonical_root=%s\n' "$canonical_root"
+  printf 'logical_pwd=%s\n' "$logical_pwd"
+  if [ -n "$invocation_path" ]; then
+    printf 'invocation_path=%s\n' "$invocation_path"
+  fi
+  printf 'physical_pwd=%s\n' "$physical_pwd"
+  printf 'git_root=%s\n' "$git_root"
+  printf 'message=Hosted GitHub Actions checkout is allowed; local Desktop root enforcement remains active outside CI.\n'
+  exit 0
+fi
 
 case "$logical_pwd" in
   /Users/leejinseo/*)
