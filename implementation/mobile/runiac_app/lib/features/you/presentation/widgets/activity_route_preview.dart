@@ -26,14 +26,12 @@ class ActivityRoutePreview extends StatelessWidget {
     final devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
     const logicalSize = Size(_previewSlotSize, _previewSlotSize);
 
-    return Container(
+    return ClipRRect(
       key: const ValueKey('activity_route_preview_slot'),
-      width: _previewSlotSize,
-      height: _previewSlotSize,
-      padding: const EdgeInsets.all(9),
-      decoration: _routeTileDecoration,
-      child: DecoratedBox(
-        decoration: _routeTileInnerDecoration,
+      borderRadius: BorderRadius.circular(18),
+      child: SizedBox(
+        width: _previewSlotSize,
+        height: _previewSlotSize,
         child: switch (mode) {
           _RoutePreviewMode.polyline => _RoutePreviewPolylineSlot(
             route: route,
@@ -158,15 +156,12 @@ class _RoutePreviewPolylineSlot extends StatelessWidget {
       return Semantics(
         label: 'Static route map thumbnail',
         image: true,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: Image(
-            key: const ValueKey('activity_route_preview_static_thumbnail'),
-            image: imageProvider,
-            fit: BoxFit.cover,
-            width: double.infinity,
-            height: double.infinity,
-          ),
+        child: Image(
+          key: const ValueKey('activity_route_preview_static_thumbnail'),
+          image: imageProvider,
+          fit: BoxFit.cover,
+          width: double.infinity,
+          height: double.infinity,
         ),
       );
     }
@@ -205,6 +200,7 @@ class _FallbackRoutePreviewPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    _paintPreviewBackdrop(canvas, size);
     _paintPreviewGrid(canvas, size);
 
     final center = Offset(size.width * 0.5, size.height * 0.52);
@@ -233,6 +229,7 @@ class _StationaryRoutePreviewPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    _paintPreviewBackdrop(canvas, size);
     _paintPreviewGrid(canvas, size);
 
     final center = Offset(size.width * 0.5, size.height * 0.5);
@@ -264,6 +261,7 @@ class _RoutePolylinePreviewPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    _paintPreviewBackdrop(canvas, size);
     _paintPreviewGrid(canvas, size);
 
     final projection = _RoutePreviewProjection.fromRoute(route, size);
@@ -347,9 +345,14 @@ double _distanceMeters(RunLocationSample a, RunLocationSample b) {
   );
 }
 
+void _paintPreviewBackdrop(Canvas canvas, Size size) {
+  final backdropPaint = Paint()..color = const Color(0xFFF8FAFF);
+  canvas.drawRect(Offset.zero & size, backdropPaint);
+}
+
 void _paintPreviewGrid(Canvas canvas, Size size) {
   final gridPaint = Paint()
-    ..color = const Color(0x1A2F50C7)
+    ..color = const Color(0x0F2F50C7)
     ..strokeWidth = 1;
 
   canvas.drawLine(
@@ -472,17 +475,6 @@ class _RoutePreviewProjection {
     return offset + Offset(x, y);
   }
 }
-
-final _routeTileDecoration = BoxDecoration(
-  color: RuniacColors.innerTileSurface,
-  borderRadius: BorderRadius.circular(18),
-  border: Border.all(color: RuniacColors.cardBorder, width: 1.4),
-);
-
-final _routeTileInnerDecoration = BoxDecoration(
-  color: RuniacColors.sectionSurface,
-  borderRadius: BorderRadius.circular(12),
-);
 
 const _previewPadding = 7.0;
 const _previewSlotSize = 88.0;

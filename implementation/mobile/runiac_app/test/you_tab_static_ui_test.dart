@@ -1271,6 +1271,12 @@ void main() {
       find.byKey(const ValueKey('activity_route_preview_polyline')),
       findsNothing,
     );
+    expect(
+      tester.getRect(
+        find.byKey(const ValueKey('activity_route_preview_static_thumbnail')),
+      ),
+      tester.getRect(find.byKey(const ValueKey('activity_route_preview_slot'))),
+    );
     expect(provider.requestCount, 1);
     expect(provider.lastRequest!.allowExternalStaticMap, isTrue);
     expect(provider.lastRequest!.isDemoRoute, isTrue);
