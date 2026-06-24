@@ -22,13 +22,19 @@ class ActivityRoutePreview extends StatelessWidget {
       child: DecoratedBox(
         decoration: _routeTileInnerDecoration,
         child: route.hasRoute
-            ? CustomPaint(
-                key: const ValueKey('activity_route_preview_polyline'),
-                painter: _RoutePolylinePreviewPainter(route),
+            ? Semantics(
+                label: 'Route-backed activity preview',
+                child: CustomPaint(
+                  key: const ValueKey('activity_route_preview_polyline'),
+                  painter: _RoutePolylinePreviewPainter(route),
+                ),
               )
-            : const CustomPaint(
-                key: ValueKey('activity_route_preview_fallback'),
-                painter: _FallbackRoutePreviewPainter(),
+            : Semantics(
+                label: 'Route preview unavailable',
+                child: const CustomPaint(
+                  key: ValueKey('activity_route_preview_fallback'),
+                  painter: _FallbackRoutePreviewPainter(),
+                ),
               ),
       ),
     );
@@ -42,29 +48,26 @@ class _FallbackRoutePreviewPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     _paintPreviewGrid(canvas, size);
 
-    final pathPaint = _routePathPaint(const Color(0x802F50C7), 2.4);
+    final pathPaint = _routePathPaint(const Color(0x4D7D93E1), 2);
     final path = Path()
-      ..moveTo(size.width * 0.24, size.height * 0.68)
-      ..cubicTo(
-        size.width * 0.40,
-        size.height * 0.62,
-        size.width * 0.48,
-        size.height * 0.48,
-        size.width * 0.64,
-        size.height * 0.48,
-      )
+      ..moveTo(size.width * 0.24, size.height * 0.64)
       ..quadraticBezierTo(
-        size.width * 0.78,
-        size.height * 0.48,
-        size.width * 0.78,
-        size.height * 0.28,
+        size.width * 0.50,
+        size.height * 0.50,
+        size.width * 0.76,
+        size.height * 0.36,
       );
 
-    canvas.drawPath(path, pathPaint);
-    _paintRouteDots(
-      canvas,
-      start: Offset(size.width * 0.24, size.height * 0.68),
-      end: Offset(size.width * 0.78, size.height * 0.28),
+    _paintDashedPath(canvas, path, pathPaint);
+
+    final hintPaint = Paint()
+      ..color = const Color(0x337D93E1)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.4;
+    canvas.drawCircle(
+      Offset(size.width * 0.76, size.height * 0.36),
+      4,
+      hintPaint,
     );
   }
 
@@ -153,6 +156,19 @@ void _paintPreviewGrid(Canvas canvas, Size size) {
     Offset(size.width, size.height * 0.45),
     gridPaint,
   );
+}
+
+void _paintDashedPath(Canvas canvas, Path path, Paint paint) {
+  const dashLength = 5.0;
+  const gapLength = 4.0;
+  for (final metric in path.computeMetrics()) {
+    var distance = 0.0;
+    while (distance < metric.length) {
+      final end = math.min(distance + dashLength, metric.length);
+      canvas.drawPath(metric.extractPath(distance, end), paint);
+      distance = end + gapLength;
+    }
+  }
 }
 
 Paint _routePathPaint(Color color, double strokeWidth) {

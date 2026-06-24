@@ -1163,10 +1163,6 @@ class _BottomActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (!hasSufficientData) {
-      if (!showXpUpdateAction) {
-        return const SizedBox.shrink();
-      }
-
       return Container(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 26),
         decoration: const BoxDecoration(

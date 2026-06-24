@@ -64,6 +64,7 @@ CompleteRunResult _sessionCompletion({
   required String title,
   required String distanceKm,
   String dateLabel = 'Today',
+  bool hasSufficientData = true,
   RunRouteSnapshot route = RunRouteSnapshot.empty,
 }) {
   return CompleteRunResult(
@@ -80,6 +81,7 @@ CompleteRunResult _sessionCompletion({
       avgHeartRate: '--',
       calories: '--',
       routeName: 'Current Session Route',
+      hasSufficientData: hasSufficientData,
       route: route,
     ),
     xpUpdate: defaultXpUpdateDisplayModel,
@@ -113,6 +115,27 @@ RunRouteSnapshot _sessionRouteFixture() {
       recordedAt: startedAt.add(const Duration(seconds: 180)),
       latitude: 1.3025,
       longitude: 103.8016,
+    ),
+  );
+}
+
+RunRouteSnapshot _singlePointRouteFixture() {
+  final startedAt = DateTime.utc(2026, 6, 18, 8, 10);
+
+  return RunRouteSnapshot(
+    segments: [
+      [
+        RunLocationSample(
+          recordedAt: startedAt,
+          latitude: 1.301,
+          longitude: 103.801,
+        ),
+      ],
+    ],
+    lastKnownLocation: RunLocationSample(
+      recordedAt: startedAt,
+      latitude: 1.301,
+      longitude: 103.801,
     ),
   );
 }
@@ -283,6 +306,63 @@ void main() {
     },
   );
 
+  test(
+    'Recent Running demo route fixtures expose route previews for every capped card',
+    () {
+      // Given: Recent Running shows the three newest static/demo activities.
+      final recentRuns = youProgressSnapshot.runs.take(3).toList();
+
+      // Then: each capped demo card carries enough route geometry for a
+      // route-specific preview instead of the generic fallback drawing.
+      expect(recentRuns, hasLength(3));
+      expect(recentRuns.map((activity) => activity.title), [
+        'Saturday Night Run',
+        'Morning Easy Run',
+        'Recovery Jog',
+      ]);
+      for (final activity in recentRuns) {
+        expect(
+          activity.summary.route.hasRoute,
+          isTrue,
+          reason: '${activity.title} should render a route-backed preview',
+        );
+      }
+    },
+  );
+
+  test(
+    'Activity History demo route fixtures distinguish route-backed and fallback previews',
+    () {
+      final activities = {
+        for (final activity in activityHistoryDisplayData.expand(
+          (month) => month.activities,
+        ))
+          activity.title: activity,
+      };
+
+      for (final title in const [
+        'Pace Graph QA Run',
+        'Easy Morning Jog',
+        'Sunset Loop',
+        'Tuesday Tempo',
+        'Park Walk + Run',
+        'First 5K Attempt',
+        'Gentle Start',
+      ]) {
+        expect(
+          activities[title]?.summary.route.hasRoute,
+          isTrue,
+          reason: '$title should render a route-backed preview',
+        );
+      }
+      expect(
+        activities['Riverside Recovery']?.summary.route.hasRoute,
+        isFalse,
+        reason: 'Low-data activity should keep the fallback preview',
+      );
+    },
+  );
+
   testWidgets('You page shows progress overview sections when selected', (
     WidgetTester tester,
   ) async {
@@ -336,9 +416,16 @@ void main() {
     expect(
       find.descendant(
         of: recentRunCards,
-        matching: find.byKey(const ValueKey('activity_route_preview_fallback')),
+        matching: find.byKey(const ValueKey('activity_route_preview_polyline')),
       ),
       findsNWidgets(3),
+    );
+    expect(
+      find.descendant(
+        of: recentRunCards,
+        matching: find.byKey(const ValueKey('activity_route_preview_fallback')),
+      ),
+      findsNothing,
     );
     final firstRecentCard = find.byKey(
       const ValueKey('recent_running_card_Saturday Night Run'),
@@ -450,12 +537,12 @@ void main() {
       final secondCard = find.byKey(
         const ValueKey('recent_running_card_session-second'),
       );
-      final fallbackCard = find.byKey(
+      final retainedStaticCard = find.byKey(
         const ValueKey('recent_running_card_Saturday Night Run'),
       );
       expect(replacementCard, findsOneWidget);
       expect(secondCard, findsOneWidget);
-      expect(fallbackCard, findsOneWidget);
+      expect(retainedStaticCard, findsOneWidget);
       expect(
         find.descendant(
           of: secondCard,
@@ -467,9 +554,9 @@ void main() {
       );
       expect(
         find.descendant(
-          of: fallbackCard,
+          of: retainedStaticCard,
           matching: find.byKey(
-            const ValueKey('activity_route_preview_fallback'),
+            const ValueKey('activity_route_preview_polyline'),
           ),
         ),
         findsOneWidget,
@@ -480,7 +567,7 @@ void main() {
       );
       expect(
         tester.getTopLeft(secondCard).dy,
-        lessThan(tester.getTopLeft(fallbackCard).dy),
+        lessThan(tester.getTopLeft(retainedStaticCard).dy),
       );
 
       await tester.ensureVisible(find.text('More Activities'));
@@ -493,16 +580,139 @@ void main() {
       final replacementHistoryCard = find.byKey(
         const ValueKey('activity_history_card_session-duplicate'),
       );
-      final fallbackHistoryCard = find.byKey(
+      final retainedHistoryCard = find.byKey(
         const ValueKey('activity_history_card_Pace Graph QA Run'),
       );
       expect(replacementHistoryCard, findsOneWidget);
-      expect(fallbackHistoryCard, findsOneWidget);
+      expect(retainedHistoryCard, findsOneWidget);
       expect(
         find.descendant(
           of: find.byKey(
             const ValueKey('activity_history_card_session-second'),
           ),
+          matching: find.byKey(
+            const ValueKey('activity_route_preview_polyline'),
+          ),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: retainedHistoryCard,
+          matching: find.byKey(
+            const ValueKey('activity_route_preview_polyline'),
+          ),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        tester.getTopLeft(replacementHistoryCard).dy,
+        lessThan(tester.getTopLeft(retainedHistoryCard).dy),
+      );
+
+      await tester.tap(replacementHistoryCard);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Session Replacement Run'), findsOneWidget);
+      expect(find.text('Today · 8:10 AM'), findsOneWidget);
+      expect(find.text('4.20'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'low-data current-session route previews depend on route availability',
+    (WidgetTester tester) async {
+      final historyStore = CurrentSessionActivityHistoryStore(
+        now: () => DateTime(2026, 6, 18),
+      );
+      addTearDown(historyStore.dispose);
+
+      await _openYouTab(tester, activityHistoryStore: historyStore);
+
+      historyStore.registerCompletedRun(
+        _sessionCompletion(
+          activityId: 'low-data-route',
+          title: 'Low Data Route Run',
+          distanceKm: '0.08',
+          hasSufficientData: false,
+          route: _sessionRouteFixture(),
+        ),
+      );
+      historyStore.registerCompletedRun(
+        _sessionCompletion(
+          activityId: 'low-data-one-point',
+          title: 'Low Data One Point Run',
+          distanceKm: '0.03',
+          hasSufficientData: false,
+          route: _singlePointRouteFixture(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.drag(find.byType(ListView), const Offset(0, -700));
+      await tester.pumpAndSettle();
+
+      final routeBackedRecentCard = find.byKey(
+        const ValueKey('recent_running_card_low-data-route'),
+      );
+      final fallbackRecentCard = find.byKey(
+        const ValueKey('recent_running_card_low-data-one-point'),
+      );
+      expect(routeBackedRecentCard, findsOneWidget);
+      expect(fallbackRecentCard, findsOneWidget);
+      expect(
+        find.descendant(
+          of: routeBackedRecentCard,
+          matching: find.byKey(
+            const ValueKey('activity_route_preview_polyline'),
+          ),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: routeBackedRecentCard,
+          matching: find.byKey(
+            const ValueKey('activity_route_preview_fallback'),
+          ),
+        ),
+        findsNothing,
+      );
+      expect(
+        find.descendant(
+          of: fallbackRecentCard,
+          matching: find.byKey(
+            const ValueKey('activity_route_preview_fallback'),
+          ),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: fallbackRecentCard,
+          matching: find.byKey(
+            const ValueKey('activity_route_preview_polyline'),
+          ),
+        ),
+        findsNothing,
+      );
+
+      await tester.ensureVisible(find.text('More Activities'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('More Activities'));
+      await tester.pumpAndSettle();
+
+      final routeBackedHistoryCard = find.byKey(
+        const ValueKey('activity_history_card_low-data-route'),
+      );
+      final fallbackHistoryCard = find.byKey(
+        const ValueKey('activity_history_card_low-data-one-point'),
+      );
+      expect(routeBackedHistoryCard, findsOneWidget);
+      expect(fallbackHistoryCard, findsOneWidget);
+      expect(
+        find.descendant(
+          of: routeBackedHistoryCard,
           matching: find.byKey(
             const ValueKey('activity_route_preview_polyline'),
           ),
@@ -518,17 +728,14 @@ void main() {
         ),
         findsOneWidget,
       );
-      expect(
-        tester.getTopLeft(replacementHistoryCard).dy,
-        lessThan(tester.getTopLeft(fallbackHistoryCard).dy),
-      );
 
-      await tester.tap(replacementHistoryCard);
+      await tester.tap(routeBackedHistoryCard);
       await tester.pumpAndSettle();
 
-      expect(find.text('Session Replacement Run'), findsOneWidget);
-      expect(find.text('Today · 8:10 AM'), findsOneWidget);
-      expect(find.text('4.20'), findsOneWidget);
+      expect(find.text('Low Data Route Run'), findsOneWidget);
+      expect(find.text('More run data needed'), findsWidgets);
+      expect(find.widgetWithText(FilledButton, 'Go to Home'), findsOneWidget);
+      expect(find.widgetWithText(FilledButton, 'View XP Update'), findsNothing);
     },
   );
 
@@ -777,6 +984,77 @@ void main() {
       findsNWidgets(8),
     );
   });
+
+  testWidgets(
+    'Activity History route previews render polylines for route-backed demos and fallback for low-data demos',
+    (WidgetTester tester) async {
+      await _openActivityHistoryFromYou(tester);
+
+      for (final title in const [
+        'Pace Graph QA Run',
+        'Easy Morning Jog',
+        'Sunset Loop',
+        'Tuesday Tempo',
+        'Park Walk + Run',
+        'First 5K Attempt',
+        'Gentle Start',
+      ]) {
+        final card = find.byKey(ValueKey('activity_history_card_$title'));
+        await Scrollable.ensureVisible(tester.element(card), alignment: 0.55);
+        await tester.pumpAndSettle();
+
+        expect(card, findsOneWidget);
+        expect(
+          find.descendant(
+            of: card,
+            matching: find.byKey(
+              const ValueKey('activity_route_preview_polyline'),
+            ),
+          ),
+          findsOneWidget,
+          reason: '$title should render the route polyline preview',
+        );
+        expect(
+          find.descendant(
+            of: card,
+            matching: find.byKey(
+              const ValueKey('activity_route_preview_fallback'),
+            ),
+          ),
+          findsNothing,
+          reason: '$title should not use the fallback preview',
+        );
+      }
+
+      final fallbackCard = find.byKey(
+        const ValueKey('activity_history_card_Riverside Recovery'),
+      );
+      await Scrollable.ensureVisible(
+        tester.element(fallbackCard),
+        alignment: 0.55,
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.descendant(
+          of: fallbackCard,
+          matching: find.byKey(
+            const ValueKey('activity_route_preview_fallback'),
+          ),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: fallbackCard,
+          matching: find.byKey(
+            const ValueKey('activity_route_preview_polyline'),
+          ),
+        ),
+        findsNothing,
+      );
+    },
+  );
 
   testWidgets('Activity History shows source labels', (
     WidgetTester tester,
