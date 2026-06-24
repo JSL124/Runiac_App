@@ -24,6 +24,7 @@ import '../domain/repositories/run_location_provider.dart';
 import '../domain/repositories/run_motion_provider.dart';
 import '../domain/repositories/run_notification_permission_service.dart';
 import '../domain/repositories/run_repository.dart';
+import '../domain/services/run_summary_local_analysis_merger.dart';
 import 'active_run_session_coordinator.dart';
 import 'controllers/run_tracking_controller.dart';
 import 'cool_down_screen.dart';
@@ -425,7 +426,13 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
     if (!mounted) {
       return;
     }
-    result = result.copyWith(summary: result.summary.copyWith(route: route));
+    result = result.copyWith(
+      summary: const RunSummaryLocalAnalysisMerger().merge(
+        backendSummary: result.summary,
+        localPayload: payload,
+        localRoute: route,
+      ),
+    );
     _activeRunSessionCoordinator.stopForegroundTicker();
     _controller.finish(completedAt: completedAt);
     Navigator.of(context).pushReplacement(

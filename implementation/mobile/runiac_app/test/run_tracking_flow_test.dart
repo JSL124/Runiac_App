@@ -12,11 +12,13 @@ import 'package:runiac_app/features/run/domain/models/run_activity_read_model.da
 import 'package:runiac_app/features/run/domain/models/run_location_sample.dart';
 import 'package:runiac_app/features/run/domain/models/run_location_permission_status.dart';
 import 'package:runiac_app/features/run/domain/models/run_map_view_state.dart';
+import 'package:runiac_app/features/run/domain/models/run_source_display.dart';
 import 'package:runiac_app/features/run/domain/models/run_summary_read_model.dart';
 import 'package:runiac_app/features/run/domain/models/run_summary_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/run_tracking_diagnostics.dart';
 import 'package:runiac_app/features/run/domain/models/run_tracking_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/xp_update_display_model.dart';
+import 'package:runiac_app/features/run/domain/repositories/run_cadence_provider.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_location_permission_service.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_location_preview_provider.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_location_provider.dart';
@@ -24,9 +26,11 @@ import 'package:runiac_app/features/run/domain/repositories/run_foreground_servi
 import 'package:runiac_app/features/run/domain/repositories/run_notification_permission_service.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_repository.dart';
 import 'package:runiac_app/features/run/presentation/active_run_session_coordinator.dart';
+import 'package:runiac_app/features/run/presentation/controllers/run_tracking_controller.dart';
 import 'package:runiac_app/features/run/presentation/run_active_screen.dart';
 import 'package:runiac_app/features/run/presentation/run_launch_screen.dart';
 import 'package:runiac_app/features/run/presentation/run_repository_scope.dart';
+import 'package:runiac_app/features/run/presentation/view_summary_screen.dart';
 import 'package:runiac_app/features/run/presentation/widgets/run_map_placeholder.dart';
 import 'package:runiac_app/features/run/presentation/widgets/run_mapbox_surface_config.dart';
 
@@ -315,6 +319,45 @@ const _activeCompletionResult = CompleteRunResult(
     didLevelUp: false,
   ),
   message: 'Repository completion accepted.',
+);
+
+const _firebaseScalarCompletionResult = CompleteRunResult(
+  activityId: 'firebase-repo-activity',
+  summaryId: 'firebase-repo-summary',
+  progressionEventId: 'firebase-repo-progression',
+  validationStatus: 'validated',
+  summary: RunSummarySnapshot(
+    title: 'Firebase Scalar Run',
+    dateLabel: 'Today',
+    timeLabel: '8:10 AM',
+    distanceKm: '0.32',
+    avgPace: '9’23”',
+    duration: '03:00',
+    avgHeartRate: '--',
+    calories: '--',
+    routeName: 'Firebase Scalar Route',
+  ),
+  progressionDisplay: ProgressionDisplayModel(
+    xpDelta: 0,
+    countsTowardLeaderboard: false,
+    status: 'deferred',
+    reason: 'progression_formula_deferred',
+  ),
+  xpUpdate: XpUpdateDisplayModel(
+    runnerName: 'Runiac Runner',
+    earnedXpLabel: '+0 XP',
+    totalXpLabel: 'Deferred by backend',
+    levelLabel: 'Pending',
+    nextLevelLabel: 'Pending',
+    progressTargetLabel: 'Progression deferred',
+    xpRemainingLabel: 'Backend formula pending',
+    previousProgressFraction: 0,
+    currentProgressFraction: 0,
+    streakChangeLabel: 'Deferred',
+    streakNote: 'Backend validation accepted the run.',
+    didLevelUp: false,
+  ),
+  message: 'Firebase completion accepted.',
 );
 
 RunLocationSample _previewSample() {
@@ -2205,6 +2248,203 @@ void main() {
       expect(find.text('Saturday Morning Run'), findsNothing);
       expect(find.text('4.03'), findsNothing);
       expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'RunActiveScreen preserves local advanced analysis after Firebase completion',
+    (WidgetTester tester) async {
+      _useMobileRunSurface(tester);
+      final startedAt = DateTime.utc(2026, 6, 18, 8);
+      var now = startedAt;
+      final cadenceProvider = FakeRunCadenceProvider(
+        cadencePattern: const <double>[168, 170, 172],
+      );
+      final controller = RunTrackingController(
+        locationProvider: ReplayRunLocationProvider([
+          RunLocationReplaySample(
+            activeOffset: Duration.zero,
+            sample: RunLocationSample(
+              recordedAt: startedAt,
+              latitude: 1.300000,
+              longitude: 103.800000,
+              altitudeMeters: 4,
+            ),
+          ),
+          RunLocationReplaySample(
+            activeOffset: const Duration(seconds: 60),
+            sample: RunLocationSample(
+              recordedAt: startedAt.add(const Duration(seconds: 60)),
+              latitude: 1.301349,
+              longitude: 103.800000,
+              altitudeMeters: 5.2,
+            ),
+          ),
+          RunLocationReplaySample(
+            activeOffset: const Duration(seconds: 120),
+            sample: RunLocationSample(
+              recordedAt: startedAt.add(const Duration(seconds: 120)),
+              latitude: 1.302698,
+              longitude: 103.800000,
+              altitudeMeters: 8.4,
+            ),
+          ),
+          RunLocationReplaySample(
+            activeOffset: const Duration(seconds: 180),
+            sample: RunLocationSample(
+              recordedAt: startedAt.add(const Duration(seconds: 180)),
+              latitude: 1.304047,
+              longitude: 103.800000,
+              altitudeMeters: 6.1,
+            ),
+          ),
+          RunLocationReplaySample(
+            activeOffset: const Duration(seconds: 240),
+            sample: RunLocationSample(
+              recordedAt: startedAt.add(const Duration(seconds: 240)),
+              latitude: 1.305396,
+              longitude: 103.800000,
+              altitudeMeters: 7.4,
+            ),
+          ),
+          RunLocationReplaySample(
+            activeOffset: const Duration(seconds: 300),
+            sample: RunLocationSample(
+              recordedAt: startedAt.add(const Duration(seconds: 300)),
+              latitude: 1.306745,
+              longitude: 103.800000,
+              altitudeMeters: 9.1,
+            ),
+          ),
+          RunLocationReplaySample(
+            activeOffset: const Duration(seconds: 360),
+            sample: RunLocationSample(
+              recordedAt: startedAt.add(const Duration(seconds: 360)),
+              latitude: 1.308094,
+              longitude: 103.800000,
+              altitudeMeters: 7.2,
+            ),
+          ),
+        ]),
+        cadenceProvider: cadenceProvider,
+      );
+      final activeRunSessionCoordinator = ActiveRunSessionCoordinator(
+        controller: controller,
+        clock: () => now,
+        foregroundTickStep: const Duration(seconds: 1),
+      );
+      addTearDown(activeRunSessionCoordinator.dispose);
+      addTearDown(cadenceProvider.dispose);
+      final repository = _ResultRunRepository(_firebaseScalarCompletionResult);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RunRepositoryScope(
+            repository: repository,
+            child: RunActiveScreen(
+              controller: controller,
+              activeRunSessionCoordinator: activeRunSessionCoordinator,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      now = startedAt.add(const Duration(seconds: 60));
+      await tester.pump(const Duration(seconds: 60));
+      cadenceProvider.emitNext(
+        recordedAt: startedAt.add(const Duration(seconds: 60)),
+      );
+      await tester.pump();
+      now = startedAt.add(const Duration(seconds: 120));
+      await tester.pump(const Duration(seconds: 60));
+      cadenceProvider.emitNext(
+        recordedAt: startedAt.add(const Duration(seconds: 120)),
+      );
+      await tester.pump();
+      now = startedAt.add(const Duration(seconds: 180));
+      await tester.pump(const Duration(seconds: 60));
+      cadenceProvider.emitNext(
+        recordedAt: startedAt.add(const Duration(seconds: 180)),
+      );
+      await tester.pump();
+      now = startedAt.add(const Duration(seconds: 240));
+      await tester.pump(const Duration(seconds: 60));
+      cadenceProvider.emitNext(
+        recordedAt: startedAt.add(const Duration(seconds: 240)),
+      );
+      await tester.pump();
+      now = startedAt.add(const Duration(seconds: 300));
+      await tester.pump(const Duration(seconds: 60));
+      cadenceProvider.emitNext(
+        recordedAt: startedAt.add(const Duration(seconds: 300)),
+      );
+      await tester.pump();
+      now = startedAt.add(const Duration(seconds: 360));
+      await tester.pump(const Duration(seconds: 60));
+      cadenceProvider.emitNext(
+        recordedAt: startedAt.add(const Duration(seconds: 360)),
+      );
+      await tester.pump();
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Pause'));
+      await tester.pumpAndSettle();
+
+      final endButton = find.byKey(const Key('hold_to_end_button'));
+      final holdGesture = await tester.startGesture(
+        tester.getCenter(endButton),
+      );
+      await tester.pump(const Duration(milliseconds: 1600));
+      await holdGesture.up();
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.widgetWithText(OutlinedButton, 'Skip to Summary'));
+      await tester.pumpAndSettle();
+
+      expect(
+        repository.lastPayload?.paceGraphSamples,
+        hasLength(greaterThanOrEqualTo(3)),
+      );
+      expect(repository.lastPayload?.cadenceAnalysisSeries, isNotNull);
+      expect(repository.lastPayload?.elevationAnalysisSeries, isNotNull);
+      expect(find.text('Firebase Scalar Run'), findsOneWidget);
+      final summaryScreen = tester.widget<ViewSummaryScreen>(
+        find.byType(ViewSummaryScreen),
+      );
+      final summary = summaryScreen.completionResult!.summary;
+      expect(summary.distanceKm, '0.32');
+      expect(summary.duration, '03:00');
+      expect(summary.avgPace, '9’23”');
+      expect(
+        summary.paceGraph.isAvailable,
+        isTrue,
+        reason:
+            'payload duration=${repository.lastPayload?.durationSeconds}, '
+            'distance=${repository.lastPayload?.distanceMeters}, '
+            'samples=${repository.lastPayload?.paceGraphSamples.length}',
+      );
+      expect(summary.paceAnalysisSeries?.isLocalAcceptedSource, isTrue);
+      expect(summary.cadenceAnalysisSeries, isNotNull);
+      expect(summary.elevationSeries.isUnavailable, isFalse);
+      expect(summary.route.hasRoute, isTrue);
+      expect(summary.avgHeartRate, '--');
+      expect(
+        summary.heartRateAvailability,
+        HeartRateAvailability.unavailableNoSensor,
+      );
+      expect(find.text('More Details'), findsOneWidget);
+
+      await tester.ensureVisible(find.text('More Details'));
+      await tester.tap(find.text('More Details'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Pace Analysis'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('advanced_analysis_pace_graph_unavailable')),
+        findsNothing,
+      );
+      expect(find.text('Running Form / Cadence'), findsOneWidget);
+      expect(find.text('170'), findsWidgets);
+      expect(find.text('Elevation Analysis'), findsOneWidget);
     },
   );
 
