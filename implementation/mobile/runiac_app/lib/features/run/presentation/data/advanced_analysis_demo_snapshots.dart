@@ -1,5 +1,3 @@
-import 'package:flutter/material.dart';
-
 /// Display-only demo values for the static Advanced Analysis surface.
 ///
 /// Trusted production analysis values must come from approved backend/read-model
@@ -43,49 +41,12 @@ const advancedAnalysisPaceStats = [
   AdvancedAnalysisStatData('Pace Stability', '86', '%'),
 ];
 
-const advancedAnalysisHeartRateStats = [
-  AdvancedAnalysisStatData('Avg Heart Rate', '145', 'bpm'),
-  AdvancedAnalysisStatData('Max Heart Rate', '158', 'bpm'),
-  AdvancedAnalysisStatData('Target Zone', '130–150', 'bpm'),
-  AdvancedAnalysisStatData('Time in Zone', '72', '%'),
-];
-
-const advancedAnalysisCadenceStats = [
-  AdvancedAnalysisStatData('Avg Cadence', '164', 'spm'),
-  AdvancedAnalysisStatData('Target Range', '160–175', 'spm'),
-  AdvancedAnalysisStatData('Stride Consistency', 'Stable', ''),
-  AdvancedAnalysisStatData('Cadence Status', 'Good', ''),
-];
-
 const advancedAnalysisSplits = [
   AdvancedAnalysisSplitData('1 km', '6’24”'),
   AdvancedAnalysisSplitData('2 km', '6’33”'),
   AdvancedAnalysisSplitData('3 km', '6’41”'),
   AdvancedAnalysisSplitData('4 km', '6’21”', fastest: true),
   AdvancedAnalysisSplitData('4.03 km', '0’16”', partial: true),
-];
-
-const advancedAnalysisRecoveryFacts = [
-  AdvancedAnalysisRecoveryFactData(
-    icon: Icons.access_time_rounded,
-    label: 'Recovery Level',
-    value: 'Light',
-  ),
-  AdvancedAnalysisRecoveryFactData(
-    icon: Icons.directions_run_rounded,
-    label: 'Stretching',
-    value: '5–8 min',
-  ),
-  AdvancedAnalysisRecoveryFactData(
-    icon: Icons.water_drop_outlined,
-    label: 'Hydration',
-    value: 'Drink water',
-  ),
-  AdvancedAnalysisRecoveryFactData(
-    icon: Icons.schedule_rounded,
-    label: 'Next Run Readiness',
-    value: 'Ready in 24 hours',
-  ),
 ];
 
 class AdvancedAnalysisPoint {
@@ -121,16 +82,4 @@ class AdvancedAnalysisSplitData {
   final String pace;
   final bool fastest;
   final bool partial;
-}
-
-class AdvancedAnalysisRecoveryFactData {
-  const AdvancedAnalysisRecoveryFactData({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
 }
