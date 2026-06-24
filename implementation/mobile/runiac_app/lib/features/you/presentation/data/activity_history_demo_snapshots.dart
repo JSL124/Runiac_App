@@ -4,6 +4,7 @@ import '../../../run/domain/models/elevation_analysis_series.dart';
 import '../../../run/domain/models/pace_analysis_series.dart';
 import '../../../run/domain/models/run_source_display.dart';
 import '../../../run/domain/models/run_summary_snapshot.dart';
+import '../../../run/domain/models/workout_metric_contract.dart';
 import '../../../run/presentation/data/pace_graph_demo_snapshots.dart';
 
 // Display-only activity history for the static You prototype.
@@ -24,11 +25,69 @@ final activityHistoryDisplayData = [
           distanceKm: '1.10',
           avgPace: '7\'16"',
           duration: '8:00',
-          avgHeartRate: '--',
+          avgHeartRate: '135',
           calories: '--',
           routeName: 'Manual Pace Graph Check',
           sourceType: RunSourceType.runiacGps,
-          heartRateAvailability: HeartRateAvailability.unavailableNotShared,
+          heartRateAvailability: HeartRateAvailability.available,
+          importedMetrics: [
+            ImportedWorkoutMetricContract.sampleBased(
+              metric: WorkoutMetricKind.heartRateSamples,
+              unit: WorkoutMetricUnit.beatsPerMinute,
+              provenance: const WorkoutMetricProvenance(
+                source: WorkoutMetricSource.healthConnect,
+                confidence: WorkoutMetricConfidence.high,
+                evidenceKind: WorkoutMetricEvidenceKind.sampleBased,
+              ),
+              samples: [
+                WorkoutMetricSample.accepted(
+                  elapsedSeconds: 0,
+                  recordedAt: null,
+                  value: 112,
+                ),
+                WorkoutMetricSample.accepted(
+                  elapsedSeconds: 120,
+                  recordedAt: null,
+                  value: 126,
+                ),
+                WorkoutMetricSample.accepted(
+                  elapsedSeconds: 240,
+                  recordedAt: null,
+                  value: 138,
+                ),
+                WorkoutMetricSample.accepted(
+                  elapsedSeconds: 360,
+                  recordedAt: null,
+                  value: 152,
+                ),
+                WorkoutMetricSample.accepted(
+                  elapsedSeconds: 480,
+                  recordedAt: null,
+                  value: 146,
+                ),
+              ],
+            ),
+            ImportedWorkoutMetricContract.summaryOnly(
+              metric: WorkoutMetricKind.heartRateSummary,
+              unit: WorkoutMetricUnit.beatsPerMinute,
+              provenance: const WorkoutMetricProvenance(
+                source: WorkoutMetricSource.healthConnect,
+                confidence: WorkoutMetricConfidence.high,
+                evidenceKind: WorkoutMetricEvidenceKind.summaryOnly,
+              ),
+              summaryValue: 135,
+            ),
+            ImportedWorkoutMetricContract.summaryOnly(
+              metric: WorkoutMetricKind.maxHeartRateSummary,
+              unit: WorkoutMetricUnit.beatsPerMinute,
+              provenance: const WorkoutMetricProvenance(
+                source: WorkoutMetricSource.healthConnect,
+                confidence: WorkoutMetricConfidence.high,
+                evidenceKind: WorkoutMetricEvidenceKind.summaryOnly,
+              ),
+              summaryValue: 152,
+            ),
+          ],
           paceAnalysisSeries: PaceAnalysisSeries.localAccepted(
             samples: [
               PaceAnalysisSample.accepted(

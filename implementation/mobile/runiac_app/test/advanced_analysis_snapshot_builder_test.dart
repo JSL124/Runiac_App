@@ -9,6 +9,7 @@ import 'package:runiac_app/features/run/domain/models/pace_analysis_series.dart'
 import 'package:runiac_app/features/run/domain/models/pace_graph_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/run_source_display.dart';
 import 'package:runiac_app/features/run/domain/models/run_summary_snapshot.dart';
+import 'package:runiac_app/features/run/domain/models/workout_metric_contract.dart';
 import 'package:runiac_app/features/run/domain/services/advanced_analysis_snapshot_builder.dart';
 
 void main() {
@@ -142,43 +143,215 @@ void main() {
       },
     );
 
-    test('keeps unsupported analysis metrics unavailable by default', () {
-      const summary = RunSummarySnapshot(
-        title: 'Easy Run',
+    test(
+      'keeps unsupported non-HR analysis metrics unavailable by default',
+      () {
+        const summary = RunSummarySnapshot(
+          title: 'Easy Run',
+          dateLabel: 'Today',
+          timeLabel: '7:06 AM',
+          distanceKm: '4.03 km',
+          avgPace: '6’30” / km',
+          duration: '30:15',
+          avgHeartRate: '145 bpm',
+          calories: '212 kcal',
+          routeName: 'East Coast Park Loop',
+        );
+
+        final snapshot = builder.fromRunSummary(summary);
+
+        expect(snapshot.heartRate.zones.isAvailable, isFalse);
+        expect(
+          snapshot.heartRate.zones.reason,
+          AdvancedAnalysisMetricReason.missingHeartRateZonePolicy,
+        );
+        expect(snapshot.formCadence.averageCadence.isAvailable, isFalse);
+        expect(
+          snapshot.formCadence.strideLength.reason,
+          AdvancedAnalysisMetricReason.missingStrideSource,
+        );
+        expect(snapshot.elevation.totalGain.isAvailable, isFalse);
+        expect(
+          snapshot.elevation.routeDifficulty.reason,
+          AdvancedAnalysisMetricReason.undefinedRouteDifficultySource,
+        );
+        expect(snapshot.pace.fastestPace.isAvailable, isFalse);
+        expect(snapshot.pace.slowestPace.isAvailable, isFalse);
+        expect(snapshot.pace.paceStability.isAvailable, isFalse);
+      },
+    );
+
+    test('creates mobile-only performance score without heart rate', () {
+      final summary = RunSummarySnapshot(
+        title: 'Phone Run',
         dateLabel: 'Today',
         timeLabel: '7:06 AM',
-        distanceKm: '4.03 km',
+        distanceKm: '4.00 km',
         avgPace: '6’30” / km',
-        duration: '30:15',
-        avgHeartRate: '145 bpm',
+        duration: '26:00',
+        avgHeartRate: '--',
         calories: '212 kcal',
         routeName: 'East Coast Park Loop',
+        paceAnalysisSeries: PaceAnalysisSeries.localAccepted(
+          samples: const [
+            PaceAnalysisSample.accepted(
+              elapsedSeconds: 0,
+              cumulativeDistanceMeters: 0,
+              paceSecondsPerKm: 388,
+            ),
+            PaceAnalysisSample.accepted(
+              elapsedSeconds: 780,
+              cumulativeDistanceMeters: 2000,
+              paceSecondsPerKm: 392,
+            ),
+            PaceAnalysisSample.accepted(
+              elapsedSeconds: 1560,
+              cumulativeDistanceMeters: 4000,
+              paceSecondsPerKm: 390,
+            ),
+          ],
+        ),
       );
 
-      final snapshot = builder.fromRunSummary(summary);
+      final performance = builder.fromRunSummary(summary).performance;
+
+      expect(performance.score.isAvailable, isTrue);
+      expect(performance.score.value, greaterThan(0));
+      expect(performance.scoreMode, AdvancedAnalysisScoreSourceMode.mobileOnly);
+      expect(performance.scoreConfidenceLabel, 'Phone data');
+    });
+
+    test(
+      'keeps demo import performance out of phone-tracked source labels',
+      () {
+        const summary = RunSummarySnapshot(
+          title: 'Demo Run',
+          dateLabel: 'Today',
+          timeLabel: '7:06 AM',
+          distanceKm: '4.00 km',
+          avgPace: '6’30” / km',
+          duration: '26:00',
+          avgHeartRate: '--',
+          calories: '212 kcal',
+          routeName: 'East Coast Park Loop',
+          sourceType: RunSourceType.demoImport,
+        );
+
+        final performance = builder.fromRunSummary(summary).performance;
+
+        expect(performance.scoreMode, AdvancedAnalysisScoreSourceMode.demoOnly);
+        expect(performance.scoreConfidenceLabel, 'Demo data');
+        expect(
+          performance.score.source,
+          AdvancedAnalysisMetricSource.staticDemo,
+        );
+        expect(
+          performance.score.confidence,
+          AdvancedAnalysisMetricConfidence.demo,
+        );
+        expect(performance.score.isTrustedProduction, isFalse);
+      },
+    );
+
+    test('wearable-backed performance score uses a distinct scoring mode', () {
+      final baseSummary = _scoreFixtureSummary();
+      final wearableSummary = _scoreFixtureSummary(
+        sourceType: RunSourceType.appleHealth,
+        heartRateAvailability: HeartRateAvailability.available,
+        importedMetrics: [
+          _heartRateSamples([
+            (elapsedSeconds: 0, bpm: 124),
+            (elapsedSeconds: 300, bpm: 132),
+            (elapsedSeconds: 600, bpm: 141),
+            (elapsedSeconds: 900, bpm: 148),
+            (elapsedSeconds: 1200, bpm: 136),
+            (elapsedSeconds: 1560, bpm: 130),
+          ]),
+          _heartRateSummary(135),
+          _maxHeartRateSummary(148),
+        ],
+      );
+
+      final mobileScore = builder.fromRunSummary(baseSummary).performance.score;
+      final wearablePerformance = builder
+          .fromRunSummary(wearableSummary)
+          .performance;
+
+      expect(wearablePerformance.score.isAvailable, isTrue);
+      expect(
+        wearablePerformance.scoreMode,
+        AdvancedAnalysisScoreSourceMode.wearableBacked,
+      );
+      expect(wearablePerformance.score.value, isNot(mobileScore.value));
+      expect(wearablePerformance.scoreConfidenceLabel, 'Wearable-backed');
+    });
+
+    test('gates achievement badges by supporting metric data', () {
+      final mobileSnapshot = builder.fromRunSummary(_scoreFixtureSummary());
+      final wearableSnapshot = builder.fromRunSummary(
+        _scoreFixtureSummary(
+          sourceType: RunSourceType.appleHealth,
+          heartRateAvailability: HeartRateAvailability.available,
+          importedMetrics: [
+            _heartRateSamples([
+              (elapsedSeconds: 0, bpm: 118),
+              (elapsedSeconds: 300, bpm: 126),
+              (elapsedSeconds: 600, bpm: 132),
+              (elapsedSeconds: 900, bpm: 138),
+              (elapsedSeconds: 1200, bpm: 134),
+              (elapsedSeconds: 1560, bpm: 128),
+            ]),
+            _heartRateSummary(130),
+            _maxHeartRateSummary(138),
+          ],
+          cadenceAnalysisSeries: CadenceAnalysisSeries(
+            source: CadenceAnalysisSource.healthKitAppleWatch,
+            confidence: CadenceAnalysisConfidence.high,
+            samples: const [
+              CadenceAnalysisSample.accepted(
+                elapsedSeconds: 0,
+                cadenceSpm: 162,
+              ),
+              CadenceAnalysisSample.accepted(
+                elapsedSeconds: 600,
+                cadenceSpm: 164,
+              ),
+              CadenceAnalysisSample.accepted(
+                elapsedSeconds: 1200,
+                cadenceSpm: 163,
+              ),
+            ],
+          ),
+          elevationSeries: ElevationAnalysisSeries.localAccepted(
+            samples: const [
+              ElevationAnalysisSample(distanceKm: 0, elevationMeters: 4),
+              ElevationAnalysisSample(distanceKm: 2, elevationMeters: 10),
+              ElevationAnalysisSample(distanceKm: 4, elevationMeters: 5),
+            ],
+          ),
+        ),
+      );
 
       expect(
-        snapshot.performance.score.reason,
-        AdvancedAnalysisMetricReason.undefinedPerformanceFormula,
+        mobileSnapshot.performance.badges.map((badge) => badge.kind),
+        isNot(contains(AdvancedAnalysisBadgeKind.controlledHeartRate)),
       );
-      expect(snapshot.heartRate.zones.isAvailable, isFalse);
       expect(
-        snapshot.heartRate.zones.reason,
-        AdvancedAnalysisMetricReason.missingHeartRateZonePolicy,
+        mobileSnapshot.performance.badges.map((badge) => badge.kind),
+        isNot(contains(AdvancedAnalysisBadgeKind.consistentCadence)),
       );
-      expect(snapshot.formCadence.averageCadence.isAvailable, isFalse);
       expect(
-        snapshot.formCadence.strideLength.reason,
-        AdvancedAnalysisMetricReason.missingStrideSource,
+        mobileSnapshot.performance.badges.map((badge) => badge.kind),
+        isNot(contains(AdvancedAnalysisBadgeKind.hillSteady)),
       );
-      expect(snapshot.elevation.totalGain.isAvailable, isFalse);
       expect(
-        snapshot.elevation.routeDifficulty.reason,
-        AdvancedAnalysisMetricReason.undefinedRouteDifficultySource,
+        wearableSnapshot.performance.badges.map((badge) => badge.kind),
+        containsAll([
+          AdvancedAnalysisBadgeKind.controlledHeartRate,
+          AdvancedAnalysisBadgeKind.consistentCadence,
+          AdvancedAnalysisBadgeKind.hillSteady,
+        ]),
       );
-      expect(snapshot.pace.fastestPace.isAvailable, isFalse);
-      expect(snapshot.pace.slowestPace.isAvailable, isFalse);
-      expect(snapshot.pace.paceStability.isAvailable, isFalse);
     });
 
     test('derives elevation analysis from accountable local samples', () {
@@ -1120,6 +1293,64 @@ void main() {
       );
     });
 
+    test('calculates heart rate metrics and zones from accepted samples', () {
+      final summary = _scoreFixtureSummary(
+        sourceType: RunSourceType.healthConnect,
+        heartRateAvailability: HeartRateAvailability.available,
+        importedMetrics: [
+          _heartRateSamples([
+            (elapsedSeconds: 0, bpm: 110),
+            (elapsedSeconds: 300, bpm: 128),
+            (elapsedSeconds: 600, bpm: 142),
+            (elapsedSeconds: 900, bpm: 151),
+            (elapsedSeconds: 1200, bpm: 135),
+            (elapsedSeconds: 1560, bpm: 132),
+          ]),
+          _heartRateSummary(133),
+          _maxHeartRateSummary(151),
+        ],
+      );
+
+      final heartRate = builder.fromRunSummary(summary).heartRate;
+
+      expect(heartRate.averageHeartRate.valueLabel, '133');
+      expect(heartRate.maxHeartRate.valueLabel, '151');
+      expect(heartRate.targetZone.valueLabel, '120-169 bpm');
+      expect(heartRate.timeInZone.valueLabel, '81%');
+      expect(heartRate.zones.isAvailable, isTrue);
+      expect(heartRate.zones.value!.map((zone) => (zone.label, zone.percent)), [
+        ('Zone 1', 19),
+        ('Zone 2', 62),
+        ('Zone 3', 19),
+        ('Zone 4', 0),
+        ('Zone 5', 0),
+      ]);
+      expect(
+        heartRate.zones.source,
+        AdvancedAnalysisMetricSource.healthConnect,
+      );
+    });
+
+    test('scalar-only heart rate does not produce zone distribution', () {
+      final summary = _scoreFixtureSummary(
+        sourceType: RunSourceType.garminViaHealth,
+        heartRateAvailability: HeartRateAvailability.available,
+        importedMetrics: [_heartRateSummary(145), _maxHeartRateSummary(166)],
+      );
+
+      final heartRate = builder.fromRunSummary(summary).heartRate;
+
+      expect(heartRate.averageHeartRate.valueLabel, '145');
+      expect(heartRate.maxHeartRate.valueLabel, '166');
+      expect(heartRate.zones.isAvailable, isFalse);
+      expect(
+        heartRate.zones.reason,
+        AdvancedAnalysisMetricReason.missingHeartRateZonePolicy,
+      );
+      expect(heartRate.targetZone.valueLabel, isNull);
+      expect(heartRate.timeInZone.valueLabel, isNull);
+    });
+
     test('preserves source and confidence for estimated future metrics', () {
       const metric = AdvancedAnalysisMetric<String>.estimated(
         valueLabel: '0.98 m',
@@ -1218,6 +1449,126 @@ class _AveragePaceSourceCase {
   final AdvancedAnalysisMetricSource expectedSource;
   final AdvancedAnalysisMetricConfidence expectedConfidence;
   final String? expectedLabel;
+}
+
+RunSummarySnapshot _scoreFixtureSummary({
+  RunSourceType sourceType = RunSourceType.runiacGps,
+  HeartRateAvailability heartRateAvailability =
+      HeartRateAvailability.unavailableNoSensor,
+  List<ImportedWorkoutMetricContract> importedMetrics =
+      const <ImportedWorkoutMetricContract>[],
+  CadenceAnalysisSeries? cadenceAnalysisSeries,
+  ElevationAnalysisSeries elevationSeries =
+      const ElevationAnalysisSeries.unavailable(),
+}) {
+  return RunSummarySnapshot(
+    title: 'Scored Run',
+    dateLabel: 'Today',
+    timeLabel: '7:06 AM',
+    distanceKm: '4.00 km',
+    avgPace: '6’30” / km',
+    duration: '26:00',
+    avgHeartRate: heartRateAvailability.isAvailable ? '135' : '--',
+    calories: '212 kcal',
+    routeName: 'East Coast Park Loop',
+    sourceType: sourceType,
+    heartRateAvailability: heartRateAvailability,
+    importedMetrics: importedMetrics,
+    paceAnalysisSeries: PaceAnalysisSeries.localAccepted(
+      samples: const [
+        PaceAnalysisSample.accepted(
+          elapsedSeconds: 0,
+          cumulativeDistanceMeters: 0,
+          paceSecondsPerKm: 388,
+        ),
+        PaceAnalysisSample.accepted(
+          elapsedSeconds: 780,
+          cumulativeDistanceMeters: 2000,
+          paceSecondsPerKm: 392,
+        ),
+        PaceAnalysisSample.accepted(
+          elapsedSeconds: 1560,
+          cumulativeDistanceMeters: 4000,
+          paceSecondsPerKm: 390,
+        ),
+      ],
+    ),
+    paceGraph: PaceGraphSnapshot(
+      isAvailable: true,
+      points: const [
+        PaceGraphPoint(
+          elapsedSeconds: 0,
+          progressFraction: 0,
+          paceSecondsPerKm: 388,
+          distanceProgressFraction: 0,
+        ),
+        PaceGraphPoint(
+          elapsedSeconds: 780,
+          progressFraction: 0.5,
+          paceSecondsPerKm: 392,
+          distanceProgressFraction: 0.5,
+        ),
+        PaceGraphPoint(
+          elapsedSeconds: 1560,
+          progressFraction: 1,
+          paceSecondsPerKm: 390,
+          distanceProgressFraction: 1,
+        ),
+      ],
+      yAxisLabels: const ['6:20', '6:30', '6:40'],
+      xAxisLabels: const ['0:00', '13:00', '26:00'],
+      distanceAxisLabels: const ['0 km', '2 km', '4 km'],
+      totalDurationSeconds: 1560,
+    ),
+    cadenceAnalysisSeries: cadenceAnalysisSeries,
+    elevationSeries: elevationSeries,
+  );
+}
+
+ImportedWorkoutMetricContract _heartRateSummary(int bpm) {
+  return ImportedWorkoutMetricContract.summaryOnly(
+    metric: WorkoutMetricKind.heartRateSummary,
+    unit: WorkoutMetricUnit.beatsPerMinute,
+    provenance: _heartRateProvenance(WorkoutMetricEvidenceKind.summaryOnly),
+    summaryValue: bpm,
+  );
+}
+
+ImportedWorkoutMetricContract _maxHeartRateSummary(int bpm) {
+  return ImportedWorkoutMetricContract.summaryOnly(
+    metric: WorkoutMetricKind.maxHeartRateSummary,
+    unit: WorkoutMetricUnit.beatsPerMinute,
+    provenance: _heartRateProvenance(WorkoutMetricEvidenceKind.summaryOnly),
+    summaryValue: bpm,
+  );
+}
+
+ImportedWorkoutMetricContract _heartRateSamples(
+  List<({int elapsedSeconds, int bpm})> samples,
+) {
+  return ImportedWorkoutMetricContract.sampleBased(
+    metric: WorkoutMetricKind.heartRateSamples,
+    unit: WorkoutMetricUnit.beatsPerMinute,
+    provenance: _heartRateProvenance(WorkoutMetricEvidenceKind.sampleBased),
+    samples: [
+      for (final sample in samples)
+        WorkoutMetricSample.accepted(
+          elapsedSeconds: sample.elapsedSeconds,
+          recordedAt: null,
+          value: sample.bpm,
+        ),
+    ],
+  );
+}
+
+WorkoutMetricProvenance _heartRateProvenance(
+  WorkoutMetricEvidenceKind evidenceKind,
+) {
+  return WorkoutMetricProvenance(
+    source: WorkoutMetricSource.healthConnect,
+    confidence: WorkoutMetricConfidence.high,
+    evidenceKind: evidenceKind,
+  );
 }
 
 class _CadenceUnavailableCase {

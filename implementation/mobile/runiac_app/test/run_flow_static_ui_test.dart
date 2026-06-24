@@ -23,8 +23,10 @@ import 'package:runiac_app/features/run/presentation/cool_down_guide_screen.dart
 import 'package:runiac_app/features/run/presentation/cool_down_screen.dart';
 import 'package:runiac_app/features/run/domain/models/run_summary_read_model.dart';
 import 'package:runiac_app/features/run/domain/models/run_summary_snapshot.dart';
+import 'package:runiac_app/features/run/domain/models/workout_metric_contract.dart';
 import 'package:runiac_app/features/run/domain/models/xp_update_display_model.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_repository.dart';
+import 'package:runiac_app/features/run/domain/services/advanced_analysis_snapshot_builder.dart';
 import 'package:runiac_app/features/run/domain/services/completed_run_title_formatter.dart';
 import 'package:runiac_app/features/run/presentation/active_run_session_coordinator.dart';
 import 'package:runiac_app/features/run/presentation/data/pace_graph_demo_snapshots.dart';
@@ -777,7 +779,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Performance Overview'), findsOneWidget);
-    expect(find.text('Good steady effort'), findsOneWidget);
+    expect(find.text('Demo run effort'), findsOneWidget);
+    expect(find.text('Phone-tracked effort'), findsNothing);
 
     await tester.tap(find.byTooltip('Back to summary'));
     await tester.pumpAndSettle();
@@ -862,6 +865,10 @@ void main() {
     );
     expect(snapshot.performance.duration.isTrustedProduction, isTrue);
     expect(snapshot.performance.score.isTrustedProduction, isFalse);
+    expect(
+      snapshot.performance.scoreMode,
+      AdvancedAnalysisScoreSourceMode.mobileOnly,
+    );
     expect(snapshot.pace.fastestPace.isTrustedProduction, isFalse);
     expect(find.text('Pace Analysis'), findsOneWidget);
     expect(find.text('7’40”'), findsOneWidget);
@@ -906,10 +913,14 @@ void main() {
 
     await tester.ensureVisible(find.text('Heart Rate Analysis'));
 
-    expect(find.text('145'), findsOneWidget);
-    expect(find.text('158'), findsOneWidget);
-    expect(find.text('130–150'), findsOneWidget);
-    expect(find.text('72'), findsOneWidget);
+    expect(find.text('145'), findsNothing);
+    expect(find.text('158'), findsNothing);
+    expect(find.text('130–150'), findsNothing);
+    expect(find.text('72'), findsNothing);
+    expect(
+      find.text('Wearable heart-rate data is needed for this analysis.'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('View summary passes available pace graph into Advanced Analysis', (
@@ -2207,6 +2218,8 @@ void main() {
         home: AdvancedAnalysisScreen(
           title: defaultRunSummarySnapshot.title,
           subtitle: defaultRunSummarySnapshot.dateTimeLabel,
+          analysisSnapshot: const AdvancedAnalysisSnapshotBuilder()
+              .fromRunSummary(defaultRunSummarySnapshot),
         ),
       ),
     );
@@ -2217,39 +2230,38 @@ void main() {
     expect(find.text('Saturday Morning Run'), findsOneWidget);
     expect(find.text('Today · 7:06 AM'), findsOneWidget);
     expect(find.text('Performance Overview'), findsOneWidget);
-    expect(find.text('82'), findsOneWidget);
+    expect(find.text('Demo run effort'), findsOneWidget);
+    expect(find.text('Phone-tracked effort'), findsNothing);
     expect(find.text('/ 100'), findsOneWidget);
-    expect(find.text('Good steady effort'), findsOneWidget);
-    expect(find.text('Stable Pace'), findsOneWidget);
-    expect(find.text('Controlled HR'), findsOneWidget);
     expect(find.text('Good Endurance'), findsOneWidget);
+    expect(find.text('Controlled HR'), findsNothing);
 
     expect(find.text('Pace Analysis'), findsOneWidget);
-    expect(find.text('6’30”'), findsOneWidget);
-    expect(find.text('5’58”'), findsOneWidget);
-    expect(find.text('7’05”'), findsOneWidget);
-    expect(find.text('86'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('advanced_analysis_pace_graph_unavailable')),
+      findsOneWidget,
+    );
     expect(_advancedAnalysisSplitDistanceText('1'), findsOneWidget);
     expect(_advancedAnalysisSplitDistanceText('0.03'), findsOneWidget);
     expect(find.text('1 km'), findsNothing);
     expect(find.text('0.03 km'), findsNothing);
     expect(find.text('4.03 km'), findsNothing);
     expect(find.text('4.03 ...'), findsNothing);
-    final demoPacePainters = tester
-        .widgetList<CustomPaint>(find.byType(CustomPaint))
-        .map((paint) => paint.painter)
-        .whereType<AdvancedAnalysisPaceChartPainter>();
-    expect(demoPacePainters.any((painter) => painter.graph == null), isTrue);
-
     await tester.ensureVisible(find.text('Heart Rate Analysis'));
 
     expect(find.text('Heart Rate Analysis'), findsOneWidget);
-    expect(find.text('145'), findsOneWidget);
-    expect(find.text('158'), findsOneWidget);
-    expect(find.text('130–150'), findsOneWidget);
-    expect(find.text('72'), findsOneWidget);
-    expect(find.text('Zone 2'), findsOneWidget);
-    expect(find.text('Zone 5'), findsOneWidget);
+    expect(
+      find.text('Wearable heart-rate data is needed for this analysis.'),
+      findsOneWidget,
+    );
+    expect(find.text('Zone 2'), findsNothing);
+    expect(find.text('54%'), findsNothing);
+    expect(
+      find.text(
+        'Heart-rate zones are calculated from available wearable samples for this run.',
+      ),
+      findsNothing,
+    );
 
     await tester.ensureVisible(find.text('Running Form / Cadence'));
 
@@ -2274,6 +2286,66 @@ void main() {
     expect(find.text('Drink water'), findsNothing);
     expect(find.text('Ready in 24 hours'), findsNothing);
     expect(find.textContaining(_forbiddenRealActivitySaveCopy), findsNothing);
+  });
+
+  testWidgets('Advanced Analysis renders scalar-only heart rate without zones', (
+    WidgetTester tester,
+  ) async {
+    _useTallSummarySurface(tester);
+    final heartRateSummary = defaultRunSummarySnapshot.copyWith(
+      sourceType: RunSourceType.garminViaHealth,
+      heartRateAvailability: HeartRateAvailability.available,
+      importedMetrics: [
+        ImportedWorkoutMetricContract.summaryOnly(
+          metric: WorkoutMetricKind.heartRateSummary,
+          unit: WorkoutMetricUnit.beatsPerMinute,
+          provenance: const WorkoutMetricProvenance(
+            source: WorkoutMetricSource.garminWearable,
+            confidence: WorkoutMetricConfidence.high,
+            evidenceKind: WorkoutMetricEvidenceKind.summaryOnly,
+          ),
+          summaryValue: 145,
+        ),
+        ImportedWorkoutMetricContract.summaryOnly(
+          metric: WorkoutMetricKind.maxHeartRateSummary,
+          unit: WorkoutMetricUnit.beatsPerMinute,
+          provenance: const WorkoutMetricProvenance(
+            source: WorkoutMetricSource.garminWearable,
+            confidence: WorkoutMetricConfidence.high,
+            evidenceKind: WorkoutMetricEvidenceKind.summaryOnly,
+          ),
+          summaryValue: 166,
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AdvancedAnalysisScreen(
+          title: heartRateSummary.title,
+          subtitle: heartRateSummary.dateTimeLabel,
+          analysisSnapshot: const AdvancedAnalysisSnapshotBuilder()
+              .fromRunSummary(heartRateSummary),
+        ),
+      ),
+    );
+
+    await tester.ensureVisible(find.text('Heart Rate Analysis'));
+
+    expect(find.text('145'), findsOneWidget);
+    expect(find.text('166'), findsOneWidget);
+    expect(find.text('Zone 2'), findsNothing);
+    expect(find.text('54%'), findsNothing);
+    expect(
+      find.text('Wearable heart-rate data is needed for this analysis.'),
+      findsOneWidget,
+    );
+    expect(
+      find.text(
+        'Heart-rate zones are calculated from available wearable samples for this run.',
+      ),
+      findsNothing,
+    );
   });
 
   testWidgets(

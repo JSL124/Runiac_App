@@ -5,6 +5,7 @@ import 'pace_analysis_series.dart';
 import 'pace_graph_snapshot.dart';
 import 'run_route_snapshot.dart';
 import 'run_source_display.dart';
+import 'workout_metric_contract.dart';
 
 class RunSummarySnapshot {
   const RunSummarySnapshot({
@@ -25,6 +26,7 @@ class RunSummarySnapshot {
     this.route = RunRouteSnapshot.empty,
     this.sourceType = RunSourceType.runiacGps,
     this.heartRateAvailability = HeartRateAvailability.unavailableNoSensor,
+    this.importedMetrics = const <ImportedWorkoutMetricContract>[],
     this.coachingSummary = const CoachingSummarySnapshot(
       source: CoachingSummarySource.ruleBased,
       interpretationId: CoachingInterpretationId.basicCompletionInterpretation,
@@ -52,6 +54,7 @@ class RunSummarySnapshot {
   final RunRouteSnapshot route;
   final RunSourceType sourceType;
   final HeartRateAvailability heartRateAvailability;
+  final List<ImportedWorkoutMetricContract> importedMetrics;
   final CoachingSummarySnapshot coachingSummary;
 
   String get dateTimeLabel => '$dateLabel · $timeLabel';
@@ -66,6 +69,7 @@ class RunSummarySnapshot {
     RunRouteSnapshot? route,
     RunSourceType? sourceType,
     HeartRateAvailability? heartRateAvailability,
+    List<ImportedWorkoutMetricContract>? importedMetrics,
     CoachingSummarySnapshot? coachingSummary,
   }) {
     return RunSummarySnapshot(
@@ -88,6 +92,7 @@ class RunSummarySnapshot {
       sourceType: sourceType ?? this.sourceType,
       heartRateAvailability:
           heartRateAvailability ?? this.heartRateAvailability,
+      importedMetrics: importedMetrics ?? this.importedMetrics,
       coachingSummary: coachingSummary ?? this.coachingSummary,
     );
   }

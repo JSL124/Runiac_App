@@ -76,13 +76,17 @@ class AdvancedAnalysisScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const AdvancedAnalysisOverviewSection(),
+                      AdvancedAnalysisOverviewSection(
+                        analysis: analysisSnapshot?.performance,
+                      ),
                       const SizedBox(height: 14),
                       AdvancedAnalysisPaceSection(
                         analysis: analysisSnapshot?.pace,
                       ),
                       const SizedBox(height: 14),
-                      const AdvancedAnalysisHeartRateSection(),
+                      AdvancedAnalysisHeartRateSection(
+                        analysis: analysisSnapshot?.heartRate,
+                      ),
                       const SizedBox(height: 14),
                       AdvancedAnalysisElevationSection(
                         analysis: analysisSnapshot?.elevation,

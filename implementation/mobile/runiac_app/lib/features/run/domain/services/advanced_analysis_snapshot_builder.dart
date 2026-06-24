@@ -7,6 +7,8 @@ import '../models/elevation_graph_snapshot.dart';
 import '../models/pace_graph_snapshot.dart';
 import '../models/run_source_display.dart';
 import '../models/run_summary_snapshot.dart';
+import 'advanced_analysis_heart_rate_builder.dart';
+import 'advanced_analysis_performance_overview_builder.dart';
 import 'cadence_analysis_deriver.dart';
 import 'cadence_graph_data_builder.dart';
 import 'elevation_analysis_graph_builder.dart';
@@ -17,14 +19,21 @@ class AdvancedAnalysisSnapshotBuilder {
 
   AdvancedAnalysisSnapshot fromRunSummary(RunSummarySnapshot summary) {
     final paceAnalysis = _derivePaceAnalysis(summary);
-    final cadenceAnalysis = _deriveCadenceAnalysis(summary);
+    final formCadenceAnalysis = _deriveFormCadenceAnalysis(summary);
+    final performanceCadenceAnalysis = _derivePerformanceCadenceAnalysis(
+      summary,
+    );
+    final heartRateAnalysis = const AdvancedAnalysisHeartRateBuilder().build(
+      summary,
+    );
+    final splits = _deriveSplits(summary);
     return AdvancedAnalysisSnapshot(
-      performance: AdvancedAnalysisPerformanceOverview(
-        score: const AdvancedAnalysisMetric<int>.unavailable(
-          reason: AdvancedAnalysisMetricReason.undefinedPerformanceFormula,
-        ),
-        duration: _sourceAwareSummaryMetric(summary.duration, summary),
-        distance: _sourceAwareSummaryMetric(summary.distanceKm, summary),
+      performance: const AdvancedAnalysisPerformanceOverviewBuilder().build(
+        summary: summary,
+        paceAnalysis: paceAnalysis,
+        cadenceAnalysis: performanceCadenceAnalysis,
+        heartRateAnalysis: heartRateAnalysis,
+        splits: splits,
       ),
       pace: AdvancedAnalysisPaceAnalysis(
         averagePace: _sourceAwareSummaryMetric(summary.avgPace, summary),
@@ -34,25 +43,11 @@ class AdvancedAnalysisSnapshotBuilder {
           paceAnalysis?.paceStabilityScore,
         ),
         paceGraph: _paceGraphMetric(summary),
-        splits: _splitMetric(summary),
+        splits: _splitMetricFromSplits(summary, splits),
       ),
-      heartRate: AdvancedAnalysisHeartRateAnalysis(
-        averageHeartRate: _heartRateAverageMetric(summary),
-        maxHeartRate: const AdvancedAnalysisMetric<String>.unavailable(
-          reason: AdvancedAnalysisMetricReason.missingHeartRateSource,
-        ),
-        targetZone: const AdvancedAnalysisMetric<String>.unavailable(
-          reason: AdvancedAnalysisMetricReason.missingHeartRateZonePolicy,
-        ),
-        timeInZone: const AdvancedAnalysisMetric<String>.unavailable(
-          reason: AdvancedAnalysisMetricReason.missingHeartRateZonePolicy,
-        ),
-        zones: const AdvancedAnalysisMetric<List<String>>.unavailable(
-          reason: AdvancedAnalysisMetricReason.missingHeartRateZonePolicy,
-        ),
-      ),
+      heartRate: heartRateAnalysis,
       elevation: _elevationAnalysis(summary),
-      formCadence: _formCadenceAnalysis(summary, cadenceAnalysis),
+      formCadence: _formCadenceAnalysis(summary, formCadenceAnalysis),
     );
   }
 
@@ -157,14 +152,28 @@ class AdvancedAnalysisSnapshotBuilder {
     return derivation.isAvailable ? derivation : null;
   }
 
-  CadenceAnalysisDerivation? _deriveCadenceAnalysis(
+  CadenceAnalysisDerivation? _deriveFormCadenceAnalysis(
     RunSummarySnapshot summary,
   ) {
-    if (summary.sourceType != RunSourceType.runiacGps) {
-      return null;
-    }
     final series = summary.cadenceAnalysisSeries;
     if (series == null) {
+      return null;
+    }
+    if (!_hasFormCadenceSource(summary.sourceType, series.source)) {
+      return null;
+    }
+    final derivation = const CadenceAnalysisDeriver().derive(series);
+    return derivation.isAvailable ? derivation : null;
+  }
+
+  CadenceAnalysisDerivation? _derivePerformanceCadenceAnalysis(
+    RunSummarySnapshot summary,
+  ) {
+    final series = summary.cadenceAnalysisSeries;
+    if (series == null) {
+      return null;
+    }
+    if (!_hasCompatibleCadenceSource(summary.sourceType, series.source)) {
       return null;
     }
     final derivation = const CadenceAnalysisDeriver().derive(series);
@@ -257,6 +266,16 @@ class AdvancedAnalysisSnapshotBuilder {
       source: _cadenceGraphSource(series.source),
       confidence: _cadenceMetricConfidence(series.source),
     );
+  }
+
+  bool _hasFormCadenceSource(
+    RunSourceType sourceType,
+    CadenceAnalysisSource cadenceSource,
+  ) {
+    return sourceType == RunSourceType.runiacGps &&
+        (cadenceSource == CadenceAnalysisSource.runiacLocalAccepted ||
+            cadenceSource == CadenceAnalysisSource.phoneSensorEstimated ||
+            cadenceSource == CadenceAnalysisSource.backendDerived);
   }
 
   bool _hasCompatibleCadenceSource(
@@ -466,10 +485,11 @@ class AdvancedAnalysisSnapshotBuilder {
     );
   }
 
-  AdvancedAnalysisMetric<List<AdvancedAnalysisSplitSnapshot>> _splitMetric(
+  AdvancedAnalysisMetric<List<AdvancedAnalysisSplitSnapshot>>
+  _splitMetricFromSplits(
     RunSummarySnapshot summary,
+    List<AdvancedAnalysisSplitSnapshot> splits,
   ) {
-    final splits = _deriveSplits(summary);
     if (splits.isEmpty) {
       return const AdvancedAnalysisMetric<
         List<AdvancedAnalysisSplitSnapshot>
@@ -659,47 +679,6 @@ class AdvancedAnalysisSnapshotBuilder {
     final minutes = seconds ~/ 60;
     final remainingSeconds = seconds % 60;
     return '$minutes’${remainingSeconds.toString().padLeft(2, '0')}”';
-  }
-
-  AdvancedAnalysisMetric<String> _heartRateAverageMetric(
-    RunSummarySnapshot summary,
-  ) {
-    if (!_hasTrustedHeartRateSource(summary) ||
-        !_hasDisplayValue(summary.avgHeartRate)) {
-      return const AdvancedAnalysisMetric<String>.unavailable(
-        reason: AdvancedAnalysisMetricReason.missingHeartRateSource,
-      );
-    }
-    return AdvancedAnalysisMetric<String>.available(
-      value: summary.avgHeartRate,
-      valueLabel: summary.avgHeartRate,
-      source: _heartRateSource(summary.sourceType),
-      confidence: AdvancedAnalysisMetricConfidence.derived,
-    );
-  }
-
-  bool _hasTrustedHeartRateSource(RunSummarySnapshot summary) {
-    if (!summary.heartRateAvailability.isAvailable) {
-      return false;
-    }
-    return switch (summary.sourceType) {
-      RunSourceType.appleHealth ||
-      RunSourceType.healthConnect ||
-      RunSourceType.garminViaHealth => true,
-      RunSourceType.runiacGps || RunSourceType.demoImport => false,
-    };
-  }
-
-  AdvancedAnalysisMetricSource _heartRateSource(RunSourceType sourceType) {
-    return switch (sourceType) {
-      RunSourceType.appleHealth =>
-        AdvancedAnalysisMetricSource.healthKitAppleWatch,
-      RunSourceType.healthConnect => AdvancedAnalysisMetricSource.healthConnect,
-      RunSourceType.garminViaHealth =>
-        AdvancedAnalysisMetricSource.garminWearable,
-      RunSourceType.runiacGps ||
-      RunSourceType.demoImport => AdvancedAnalysisMetricSource.unavailable,
-    };
   }
 
   bool _hasDisplayValue(String valueLabel) {

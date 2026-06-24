@@ -46,6 +46,33 @@ enum AdvancedAnalysisMetricReason {
   pendingBackendAnalysis,
 }
 
+enum AdvancedAnalysisScoreSourceMode {
+  mobileOnly,
+  wearableBacked,
+  mixedSource,
+  demoOnly,
+}
+
+enum AdvancedAnalysisBadgeKind {
+  stablePace('Stable Pace'),
+  controlledHeartRate('Controlled HR'),
+  goodEndurance('Good Endurance'),
+  strongFinish('Strong Finish'),
+  consistentCadence('Consistent Cadence'),
+  smoothRhythm('Smooth Rhythm'),
+  hillSteady('Hill Steady'),
+  easyEffort('Easy Effort'),
+  recoveryRun('Recovery Run'),
+  negativeSplit('Negative Split'),
+  evenSplit('Even Split'),
+  firstStep('First Step'),
+  goodConsistency('Good Consistency');
+
+  const AdvancedAnalysisBadgeKind(this.label);
+
+  final String label;
+}
+
 class AdvancedAnalysisMetric<T> {
   const AdvancedAnalysisMetric({
     required this.availability,
@@ -128,11 +155,27 @@ class AdvancedAnalysisPerformanceOverview {
     required this.score,
     required this.duration,
     required this.distance,
+    required this.scoreMode,
+    required this.scoreConfidenceLabel,
+    this.badges = const <AdvancedAnalysisAchievementBadge>[],
   });
 
   final AdvancedAnalysisMetric<int> score;
   final AdvancedAnalysisMetric<String> duration;
   final AdvancedAnalysisMetric<String> distance;
+  final AdvancedAnalysisScoreSourceMode scoreMode;
+  final String scoreConfidenceLabel;
+  final List<AdvancedAnalysisAchievementBadge> badges;
+}
+
+class AdvancedAnalysisAchievementBadge {
+  const AdvancedAnalysisAchievementBadge({
+    required this.kind,
+    this.highlighted = false,
+  });
+
+  final AdvancedAnalysisBadgeKind kind;
+  final bool highlighted;
 }
 
 class AdvancedAnalysisPaceAnalysis {
@@ -186,7 +229,19 @@ class AdvancedAnalysisHeartRateAnalysis {
   final AdvancedAnalysisMetric<String> maxHeartRate;
   final AdvancedAnalysisMetric<String> targetZone;
   final AdvancedAnalysisMetric<String> timeInZone;
-  final AdvancedAnalysisMetric<List<String>> zones;
+  final AdvancedAnalysisMetric<List<AdvancedAnalysisHeartRateZone>> zones;
+}
+
+class AdvancedAnalysisHeartRateZone {
+  const AdvancedAnalysisHeartRateZone({
+    required this.label,
+    required this.percent,
+    required this.isTarget,
+  });
+
+  final String label;
+  final int percent;
+  final bool isTarget;
 }
 
 class AdvancedAnalysisElevationAnalysis {
