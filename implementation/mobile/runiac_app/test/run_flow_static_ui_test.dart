@@ -498,6 +498,7 @@ void main() {
     expect(find.textContaining('steady pace'), findsNothing);
     expect(find.widgetWithText(OutlinedButton, 'Share Route'), findsNothing);
     expect(find.widgetWithText(FilledButton, 'View XP Update'), findsNothing);
+    expect(find.widgetWithText(FilledButton, 'Go to Home'), findsOneWidget);
     expect(find.text('XP & Streak Update'), findsNothing);
     expect(find.textContaining(_forbiddenRealActivitySaveCopy), findsNothing);
   });
@@ -1964,7 +1965,7 @@ void main() {
     );
   });
 
-  testWidgets('Low-data view summary softens copy and hides bottom actions', (
+  testWidgets('Low-data view summary softens copy and routes home', (
     WidgetTester tester,
   ) async {
     _useTallSummarySurface(tester);
@@ -2462,6 +2463,49 @@ void main() {
 
     expect(find.text('XP & Streak Update'), findsNothing);
     expect(find.text('Saturday Morning Run'), findsOneWidget);
+  });
+
+  testWidgets('Low-data Summary Go to Home returns to app Home root', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      const RuniacApp(showSplash: false, enableForegroundGps: false),
+    );
+    await tester.pumpAndSettle();
+
+    Navigator.of(tester.element(find.byTooltip('Home'))).push(
+      MaterialPageRoute<void>(
+        builder: (context) => const ViewSummaryScreen(
+          summary: RunSummarySnapshot(
+            title: 'Short Check-in Run',
+            dateLabel: 'Today',
+            timeLabel: '8:10 AM',
+            distanceKm: '0.00',
+            avgPace: '--',
+            duration: '0:00',
+            avgHeartRate: '--',
+            calories: '--',
+            routeName: 'Easy local route',
+            hasSufficientData: false,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('More run data needed'), findsNWidgets(2));
+    expect(find.widgetWithText(FilledButton, 'Go to Home'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, 'View XP Update'), findsNothing);
+    expect(find.text('XP & Streak Update'), findsNothing);
+    expect(find.text('+120 XP'), findsNothing);
+
+    await tester.tap(find.widgetWithText(FilledButton, 'Go to Home'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Short Check-in Run'), findsNothing);
+    expect(find.text('XP & Streak Update'), findsNothing);
+    expect(find.byTooltip('Home'), findsOneWidget);
+    expect(find.byTooltip('Run'), findsOneWidget);
   });
 
   testWidgets('XP Update Home returns to the app Home root', (

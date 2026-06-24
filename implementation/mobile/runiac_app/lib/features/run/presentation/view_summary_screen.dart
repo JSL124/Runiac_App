@@ -207,6 +207,9 @@ class ViewSummaryScreen extends StatelessWidget {
                       ),
                     );
                   },
+                  onGoHome: () {
+                    Navigator.of(context).popUntil((route) => route.isFirst);
+                  },
                 ),
               ],
             ),
@@ -1148,17 +1151,49 @@ class _BottomActions extends StatelessWidget {
     required this.showXpUpdateAction,
     required this.onShareRoute,
     required this.onXpUpdate,
+    required this.onGoHome,
   });
 
   final bool hasSufficientData;
   final bool showXpUpdateAction;
   final VoidCallback onShareRoute;
   final VoidCallback onXpUpdate;
+  final VoidCallback onGoHome;
 
   @override
   Widget build(BuildContext context) {
     if (!hasSufficientData) {
-      return const SizedBox.shrink();
+      if (!showXpUpdateAction) {
+        return const SizedBox.shrink();
+      }
+
+      return Container(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 26),
+        decoration: const BoxDecoration(
+          color: _rWhite,
+          border: Border(top: BorderSide(color: _rBlue10)),
+        ),
+        child: FilledButton.icon(
+          onPressed: onGoHome,
+          icon: const Icon(Icons.home_rounded, size: 19),
+          label: const Text('Go to Home'),
+          style: FilledButton.styleFrom(
+            backgroundColor: _rBlue,
+            foregroundColor: _rWhite,
+            minimumSize: const Size.fromHeight(56),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            textStyle: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.2,
+            ),
+            elevation: 8,
+            shadowColor: const Color(0x382F51C8),
+          ),
+        ),
+      );
     }
 
     return Container(

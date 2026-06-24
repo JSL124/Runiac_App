@@ -61,6 +61,7 @@ CompleteRunResult _sessionCompletion({
   required String activityId,
   required String title,
   required String distanceKm,
+  String dateLabel = 'Today',
 }) {
   return CompleteRunResult(
     activityId: activityId,
@@ -68,7 +69,7 @@ CompleteRunResult _sessionCompletion({
     progressionEventId: 'progression-$activityId',
     summary: RunSummarySnapshot(
       title: title,
-      dateLabel: 'Today',
+      dateLabel: dateLabel,
       timeLabel: '8:10 AM',
       distanceKm: distanceKm,
       avgPace: '6’15”',
@@ -354,7 +355,9 @@ void main() {
   testWidgets(
     'current-session history keeps fallback cap and dedupes by activity id',
     (WidgetTester tester) async {
-      final historyStore = CurrentSessionActivityHistoryStore();
+      final historyStore = CurrentSessionActivityHistoryStore(
+        now: () => DateTime(2026, 6, 18),
+      );
       addTearDown(historyStore.dispose);
 
       await _openYouTab(tester, activityHistoryStore: historyStore);
@@ -424,6 +427,8 @@ void main() {
       await tester.tap(find.text('More Activities'));
       await tester.pumpAndSettle();
 
+      expect(find.text('Current Session'), findsNothing);
+      expect(find.text('June 2026'), findsOneWidget);
       final replacementHistoryCard = find.byKey(
         const ValueKey('activity_history_card_session-duplicate'),
       );
@@ -436,6 +441,13 @@ void main() {
         tester.getTopLeft(replacementHistoryCard).dy,
         lessThan(tester.getTopLeft(fallbackHistoryCard).dy),
       );
+
+      await tester.tap(replacementHistoryCard);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Session Replacement Run'), findsOneWidget);
+      expect(find.text('Today · 8:10 AM'), findsOneWidget);
+      expect(find.text('4.20'), findsOneWidget);
     },
   );
 
