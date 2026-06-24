@@ -6,6 +6,7 @@ import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/runiac_bottom_sheet_handle.dart';
 import '../data/android_run_notification_permission_service.dart';
 import '../data/geolocator_run_location_permission_service.dart';
+import '../data/phone_motion_run_cadence_provider.dart';
 import '../data/platform_run_foreground_service.dart';
 import '../data/real_foreground_run_location_provider.dart';
 import '../data/sensors_plus_run_motion_provider.dart';
@@ -16,6 +17,7 @@ import '../domain/models/run_completion_error.dart';
 import '../domain/models/run_route_snapshot.dart';
 import '../domain/models/run_tracking_state.dart';
 import '../domain/repositories/run_foreground_service.dart';
+import '../domain/repositories/run_cadence_provider.dart';
 import '../domain/repositories/run_location_permission_service.dart';
 import '../domain/repositories/run_location_preview_provider.dart';
 import '../domain/repositories/run_location_provider.dart';
@@ -131,6 +133,7 @@ class RunLaunchScreen extends StatefulWidget {
     super.key,
     this.repository,
     this.locationProvider,
+    this.cadenceProvider,
     this.motionProvider,
     this.locationPreviewProvider,
     this.permissionService,
@@ -146,6 +149,7 @@ class RunLaunchScreen extends StatefulWidget {
 
   final RunRepository? repository;
   final RunLocationProvider? locationProvider;
+  final RunCadenceProvider? cadenceProvider;
   final RunMotionProvider? motionProvider;
   final RunLocationPreviewProvider? locationPreviewProvider;
   final RunLocationPermissionService? permissionService;
@@ -203,6 +207,11 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
         locationProvider: useForegroundGps
             ? widget.locationProvider ?? RealForegroundRunLocationProvider()
             : widget.locationProvider,
+        cadenceProvider:
+            widget.cadenceProvider ??
+            (useForegroundGps && widget.locationProvider == null
+                ? PhoneMotionRunCadenceProvider()
+                : null),
         motionProvider: useForegroundGps
             ? widget.motionProvider ?? SensorsPlusRunMotionProvider()
             : widget.motionProvider,

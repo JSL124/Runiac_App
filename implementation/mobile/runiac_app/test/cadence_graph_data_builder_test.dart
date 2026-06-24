@@ -41,17 +41,9 @@ void main() {
       },
     );
 
-    test('keeps static demo and phone estimated cadence graph unavailable', () {
+    test('keeps static demo cadence graph unavailable', () {
       final staticDemo = builder.build(
         series: CadenceAnalysisSeries.staticDemo(
-          samples: acceptedCadenceSamples(),
-        ),
-        durationSeconds: sampleCadenceGraphDurationSeconds,
-      );
-      final phoneEstimated = builder.build(
-        series: CadenceAnalysisSeries(
-          source: CadenceAnalysisSource.phoneSensorEstimated,
-          confidence: CadenceAnalysisConfidence.low,
           samples: acceptedCadenceSamples(),
         ),
         durationSeconds: sampleCadenceGraphDurationSeconds,
@@ -62,7 +54,6 @@ void main() {
       );
 
       expect(staticDemo.unavailableReason, 'static_demo_cadence_graph');
-      expect(phoneEstimated.unavailableReason, 'ineligible_cadence_source');
       expect(unavailable.unavailableReason, 'unavailable_cadence_source');
     });
 
@@ -227,7 +218,7 @@ void main() {
         );
         expect(
           builder.build(series: phone, durationSeconds: 300).isAvailable,
-          isFalse,
+          isTrue,
         );
         expect(local.confidence, CadenceAnalysisConfidence.medium);
         expect(backend.source, CadenceAnalysisSource.backendDerived);

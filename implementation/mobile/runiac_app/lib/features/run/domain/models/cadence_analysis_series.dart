@@ -42,6 +42,14 @@ class CadenceAnalysisSeries {
          samples: samples,
        );
 
+  CadenceAnalysisSeries.phoneMotionEstimated({
+    required List<CadenceAnalysisSample> samples,
+  }) : this(
+         source: CadenceAnalysisSource.phoneSensorEstimated,
+         confidence: CadenceAnalysisConfidence.low,
+         samples: samples,
+       );
+
   CadenceAnalysisSeries.staticDemo({
     required List<CadenceAnalysisSample> samples,
   }) : this(
@@ -81,6 +89,10 @@ class CadenceAnalysisSeries {
       (
         CadenceAnalysisSource.backendDerived,
         CadenceAnalysisConfidence.medium,
+      ) ||
+      (
+        CadenceAnalysisSource.phoneSensorEstimated,
+        CadenceAnalysisConfidence.low,
       ) => true,
       _ => false,
     };

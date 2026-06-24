@@ -104,6 +104,16 @@ void main() {
           expectedSource: AdvancedAnalysisMetricSource.garminWearable,
         ),
         _CadenceGraphSourceCase(
+          name: 'phone motion',
+          sourceType: RunSourceType.runiacGps,
+          series: _cadenceSeries(
+            CadenceAnalysisSource.phoneSensorEstimated,
+            CadenceAnalysisConfidence.low,
+          ),
+          expectedSource: AdvancedAnalysisMetricSource.phoneSensorEstimated,
+          expectedConfidence: AdvancedAnalysisMetricConfidence.estimated,
+        ),
+        _CadenceGraphSourceCase(
           name: 'backend',
           sourceType: RunSourceType.runiacGps,
           series: _cadenceSeries(
@@ -128,18 +138,15 @@ void main() {
 
         expect(metric.isAvailable, isTrue, reason: testCase.name);
         expect(metric.source, testCase.expectedSource, reason: testCase.name);
-        expect(metric.confidence, AdvancedAnalysisMetricConfidence.derived);
+        expect(
+          metric.confidence,
+          testCase.expectedConfidence,
+          reason: testCase.name,
+        );
         expect(metric.isTrustedProduction, isFalse);
       }
 
       final unavailableCases = <UnavailableCadenceGraphCase>[
-        UnavailableCadenceGraphCase(
-          name: 'phone estimated',
-          series: _cadenceSeries(
-            CadenceAnalysisSource.phoneSensorEstimated,
-            CadenceAnalysisConfidence.low,
-          ),
-        ),
         UnavailableCadenceGraphCase(
           name: 'source mismatch',
           sourceType: RunSourceType.appleHealth,
@@ -214,10 +221,12 @@ class _CadenceGraphSourceCase {
     required this.sourceType,
     required this.series,
     required this.expectedSource,
+    this.expectedConfidence = AdvancedAnalysisMetricConfidence.derived,
   });
 
   final String name;
   final RunSourceType sourceType;
   final CadenceAnalysisSeries series;
   final AdvancedAnalysisMetricSource expectedSource;
+  final AdvancedAnalysisMetricConfidence expectedConfidence;
 }

@@ -17,5 +17,6 @@ import UIKit
     ) else { return }
     RuniacLiveActivityChannel.register(with: registrar.messenger())
     RuniacHealthKitImportChannel.register(with: registrar.messenger())
+    RuniacPhoneMotionCadenceChannel.register(with: registrar.messenger())
   }
 }

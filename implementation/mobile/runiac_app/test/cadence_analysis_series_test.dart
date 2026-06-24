@@ -251,11 +251,17 @@ void main() {
       expect(healthKit.isLocalAcceptedSource, isFalse);
       expect(healthConnect.isLocalAcceptedSource, isFalse);
       expect(garmin.isLocalAcceptedSource, isFalse);
-      expect(phone.isProductionAnalysisEligible, isFalse);
+      expect(phone.isProductionAnalysisEligible, isTrue);
       expect(healthKit.confidence, CadenceAnalysisConfidence.high);
       expect(healthConnect.confidence, CadenceAnalysisConfidence.high);
       expect(garmin.confidence, CadenceAnalysisConfidence.high);
       expect(phone.confidence, CadenceAnalysisConfidence.low);
+      expect(
+        CadenceAnalysisSeries.phoneMotionEstimated(
+          samples: samples,
+        ).isProductionAnalysisEligible,
+        isTrue,
+      );
       expect(
         CadenceAnalysisSeries.staticDemo(
           samples: samples,

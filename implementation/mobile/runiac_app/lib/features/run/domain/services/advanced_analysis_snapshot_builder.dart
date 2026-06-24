@@ -176,12 +176,21 @@ class AdvancedAnalysisSnapshotBuilder {
     CadenceAnalysisDerivation? derivation,
   ) {
     return AdvancedAnalysisFormCadenceAnalysis(
-      averageCadence: _cadenceValueMetric(derivation?.averageCadenceSpm),
+      averageCadence: _cadenceValueMetric(
+        derivation?.averageCadenceSpm,
+        derivation?.source,
+      ),
       targetRange: const AdvancedAnalysisMetric<String>.unavailable(
         reason: AdvancedAnalysisMetricReason.missingCadenceSource,
       ),
-      strideConsistency: _cadenceTextMetric(_stabilityLabel(derivation)),
-      cadenceStatus: _cadenceTextMetric(_trendLabel(derivation)),
+      strideConsistency: _cadenceTextMetric(
+        _stabilityLabel(derivation),
+        derivation?.source,
+      ),
+      cadenceStatus: _cadenceTextMetric(
+        _trendLabel(derivation),
+        derivation?.source,
+      ),
       strideLength: const AdvancedAnalysisMetric<String>.unavailable(
         reason: AdvancedAnalysisMetricReason.missingStrideSource,
       ),
@@ -189,28 +198,34 @@ class AdvancedAnalysisSnapshotBuilder {
     );
   }
 
-  AdvancedAnalysisMetric<String> _cadenceValueMetric(int? cadenceSpm) {
-    if (cadenceSpm == null) {
+  AdvancedAnalysisMetric<String> _cadenceValueMetric(
+    int? cadenceSpm,
+    CadenceAnalysisSource? source,
+  ) {
+    if (cadenceSpm == null || source == null) {
       return _unavailableCadenceMetric();
     }
     final valueLabel = '$cadenceSpm spm';
     return AdvancedAnalysisMetric<String>.available(
       value: valueLabel,
       valueLabel: valueLabel,
-      source: AdvancedAnalysisMetricSource.localGpsDerived,
-      confidence: AdvancedAnalysisMetricConfidence.derived,
+      source: _cadenceGraphSource(source),
+      confidence: _cadenceMetricConfidence(source),
     );
   }
 
-  AdvancedAnalysisMetric<String> _cadenceTextMetric(String? valueLabel) {
-    if (valueLabel == null) {
+  AdvancedAnalysisMetric<String> _cadenceTextMetric(
+    String? valueLabel,
+    CadenceAnalysisSource? source,
+  ) {
+    if (valueLabel == null || source == null) {
       return _unavailableCadenceMetric();
     }
     return AdvancedAnalysisMetric<String>.available(
       value: valueLabel,
       valueLabel: valueLabel,
-      source: AdvancedAnalysisMetricSource.localGpsDerived,
-      confidence: AdvancedAnalysisMetricConfidence.derived,
+      source: _cadenceGraphSource(source),
+      confidence: _cadenceMetricConfidence(source),
     );
   }
 
@@ -240,7 +255,7 @@ class AdvancedAnalysisSnapshotBuilder {
     return AdvancedAnalysisMetric<CadenceGraphSnapshot>.available(
       value: graph,
       source: _cadenceGraphSource(series.source),
-      confidence: AdvancedAnalysisMetricConfidence.derived,
+      confidence: _cadenceMetricConfidence(series.source),
     );
   }
 
@@ -251,6 +266,7 @@ class AdvancedAnalysisSnapshotBuilder {
     return switch (sourceType) {
       RunSourceType.runiacGps =>
         cadenceSource == CadenceAnalysisSource.runiacLocalAccepted ||
+            cadenceSource == CadenceAnalysisSource.phoneSensorEstimated ||
             cadenceSource == CadenceAnalysisSource.backendDerived,
       RunSourceType.appleHealth =>
         cadenceSource == CadenceAnalysisSource.healthKitAppleWatch ||
@@ -279,10 +295,21 @@ class AdvancedAnalysisSnapshotBuilder {
         AdvancedAnalysisMetricSource.garminWearable,
       CadenceAnalysisSource.backendDerived =>
         AdvancedAnalysisMetricSource.backendDerived,
-      CadenceAnalysisSource.staticDemo ||
-      CadenceAnalysisSource.unavailableUnknown ||
       CadenceAnalysisSource.phoneSensorEstimated =>
+        AdvancedAnalysisMetricSource.phoneSensorEstimated,
+      CadenceAnalysisSource.staticDemo ||
+      CadenceAnalysisSource.unavailableUnknown =>
         AdvancedAnalysisMetricSource.unavailable,
+    };
+  }
+
+  AdvancedAnalysisMetricConfidence _cadenceMetricConfidence(
+    CadenceAnalysisSource source,
+  ) {
+    return switch (source) {
+      CadenceAnalysisSource.phoneSensorEstimated =>
+        AdvancedAnalysisMetricConfidence.estimated,
+      _ => AdvancedAnalysisMetricConfidence.derived,
     };
   }
 

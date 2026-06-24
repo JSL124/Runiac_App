@@ -3,8 +3,10 @@ import 'package:flutter/foundation.dart';
 import '../models/run_location_sample.dart';
 import '../models/run_map_view_state.dart';
 import '../models/run_motion_evidence.dart';
+import '../models/run_cadence_sample.dart';
 import '../models/run_tracking_diagnostics.dart';
 import '../models/run_tracking_state.dart';
+import '../models/cadence_analysis_series.dart';
 import 'local_pace_graph_sample_deriver.dart';
 import 'pace_graph_data_builder.dart';
 import 'run_distance_calculator.dart';
@@ -91,6 +93,8 @@ class LocalRunTrackingSession {
       <List<RunLocationSample>>[];
   final List<List<LocalPaceGraphSamplePoint>> _acceptedGraphSampleSegments =
       <List<LocalPaceGraphSamplePoint>>[];
+  final List<CadenceAnalysisSample> _cadenceAnalysisSamples =
+      <CadenceAnalysisSample>[];
 
   Duration get trackingDuration => _trackingDuration;
   int get activeDurationSeconds => _movingDuration.inSeconds;
@@ -108,6 +112,15 @@ class LocalRunTrackingSession {
           acceptedSampleSegments: _acceptedGraphSampleSegments,
         );
     return List<PaceGraphSample>.unmodifiable(graphSamples);
+  }
+
+  CadenceAnalysisSeries? cadenceAnalysisSeries() {
+    if (_cadenceAnalysisSamples.isEmpty) {
+      return null;
+    }
+    return CadenceAnalysisSeries.phoneMotionEstimated(
+      samples: _cadenceAnalysisSamples,
+    );
   }
 
   RunMapViewState get mapViewState {
@@ -157,6 +170,20 @@ class LocalRunTrackingSession {
       _movingDuration += delta;
     }
     _logAdvance(delta, sampleList.isEmpty);
+  }
+
+  void addCadenceSample(RunCadenceSample sample) {
+    if (!_isActive ||
+        sample.source != CadenceSource.phoneMotion ||
+        !sample.isUsable) {
+      return;
+    }
+    _cadenceAnalysisSamples.add(
+      CadenceAnalysisSample.accepted(
+        elapsedSeconds: _activeElapsedSecondsForTime(sample.recordedAt),
+        cadenceSpm: sample.stepsPerMinute.round(),
+      ),
+    );
   }
 
   void pause() {
@@ -579,9 +606,13 @@ class LocalRunTrackingSession {
   }
 
   int _activeElapsedSecondsFor(RunLocationSample sample) {
+    return _activeElapsedSecondsForTime(sample.recordedAt);
+  }
+
+  int _activeElapsedSecondsForTime(DateTime recordedAt) {
     final elapsed =
         _activeTimelineOffsetAtStart +
-        sample.recordedAt.difference(_activeTimelineStartedAt);
+        recordedAt.difference(_activeTimelineStartedAt);
     if (elapsed.isNegative) {
       return _activeTimelineOffsetAtStart.inSeconds;
     }

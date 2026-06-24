@@ -26,6 +26,7 @@
 		D4B000000000000000000006 /* RuniacRunLiveActivityWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4B000000000000000000014 /* RuniacRunLiveActivityWidget.swift */; };
 		D4B000000000000000000007 /* RunnerLiveActivity.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = D4B000000000000000000016 /* RunnerLiveActivity.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		D4C200000000000000000001 /* RuniacHealthKitImportChannel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4B000000000000000000018 /* RuniacHealthKitImportChannel.swift */; };
+		D4C300000000000000000001 /* RuniacPhoneMotionCadenceChannel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4C300000000000000000010 /* RuniacPhoneMotionCadenceChannel.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -102,6 +103,7 @@
 		D4B000000000000000000015 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		D4B000000000000000000016 /* RunnerLiveActivity.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = RunnerLiveActivity.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		D4B000000000000000000018 /* RuniacHealthKitImportChannel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuniacHealthKitImportChannel.swift; sourceTree = "<group>"; };
+		D4C300000000000000000010 /* RuniacPhoneMotionCadenceChannel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuniacPhoneMotionCadenceChannel.swift; sourceTree = "<group>"; };
 		EDF0D8F5BD8E9B9013C01B5C /* Pods_Runner.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Runner.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		F43036D94DF439A8616511AF /* Pods-RunnerTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.debug.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.debug.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -199,6 +201,7 @@
 				74858FAE1ED2DC5600515810 /* AppDelegate.swift */,
 				7884E8672EC3CC0400C636F2 /* SceneDelegate.swift */,
 				D4B000000000000000000018 /* RuniacHealthKitImportChannel.swift */,
+				D4C300000000000000000010 /* RuniacPhoneMotionCadenceChannel.swift */,
 				D4B000000000000000000010 /* RuniacLiveActivityChannel.swift */,
 				D4B000000000000000000011 /* RuniacLiveActivityManager.swift */,
 				74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */,
@@ -481,6 +484,7 @@
 			files = (
 				74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */,
 				D4C200000000000000000001 /* RuniacHealthKitImportChannel.swift in Sources */,
+				D4C300000000000000000001 /* RuniacPhoneMotionCadenceChannel.swift in Sources */,
 				D4B000000000000000000001 /* RuniacLiveActivityChannel.swift in Sources */,
 				D4B000000000000000000002 /* RuniacLiveActivityManager.swift in Sources */,
 				D4B000000000000000000003 /* RuniacRunActivityAttributes.swift in Sources */,

@@ -226,6 +226,10 @@ class CadenceAnalysisDerivation {
       (
         CadenceAnalysisSource.backendDerived,
         CadenceAnalysisConfidence.medium,
+      ) ||
+      (
+        CadenceAnalysisSource.phoneSensorEstimated,
+        CadenceAnalysisConfidence.low,
       ) => true,
       _ => false,
     };

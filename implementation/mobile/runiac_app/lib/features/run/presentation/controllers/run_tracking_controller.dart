@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import '../../domain/models/local_run_completion_payload.dart';
+import '../../domain/models/run_cadence_sample.dart';
 import '../../domain/models/run_location_sample.dart';
 import '../../domain/models/run_location_permission_status.dart';
 import '../../domain/models/run_map_view_state.dart';
@@ -10,6 +11,7 @@ import '../../domain/models/run_tracking_diagnostics.dart';
 import '../../domain/models/run_tracking_notification_copy.dart';
 import '../../domain/models/run_tracking_state.dart';
 import '../../domain/repositories/run_foreground_service.dart';
+import '../../domain/repositories/run_cadence_provider.dart';
 import '../../domain/repositories/run_location_permission_service.dart';
 import '../../domain/repositories/run_location_provider.dart';
 import '../../domain/repositories/run_motion_provider.dart';
@@ -21,6 +23,7 @@ class RunTrackingController extends ChangeNotifier {
   RunTrackingController({
     double metersPerSecond = 2.4,
     RunLocationProvider? locationProvider,
+    RunCadenceProvider? cadenceProvider,
     RunMotionProvider? motionProvider,
     RunForegroundService? foregroundService,
     this.permissionService,
@@ -31,6 +34,8 @@ class RunTrackingController extends ChangeNotifier {
        _locationProvider =
            locationProvider ??
            ConstantSpeedRunLocationProvider(metersPerSecond: metersPerSecond),
+       _cadenceProvider =
+           cadenceProvider ?? const UnavailableRunCadenceProvider(),
        _motionProvider = motionProvider ?? const NoopRunMotionProvider(),
        _foregroundService =
            foregroundService ?? const NoopRunForegroundService(),
@@ -39,6 +44,7 @@ class RunTrackingController extends ChangeNotifier {
 
   final double metersPerSecond;
   final RunLocationProvider _locationProvider;
+  final RunCadenceProvider _cadenceProvider;
   final RunMotionProvider _motionProvider;
   final RunForegroundService _foregroundService;
   final RunLocationPermissionService? permissionService;
@@ -53,6 +59,7 @@ class RunTrackingController extends ChangeNotifier {
   RunLocationSample? _previewCurrentPosition;
   DateTime? _lastAdvancedAt;
   RunTrackingNotificationCopy? _lastForegroundCopy;
+  StreamSubscription<RunCadenceSample>? _cadenceSubscription;
   bool _foregroundServiceStarted = false;
   bool _foregroundServiceStarting = false;
   bool _foregroundServiceStopRequested = false;
@@ -104,6 +111,7 @@ class RunTrackingController extends ChangeNotifier {
     );
     unawaited(_startForegroundService());
     unawaited(_locationProvider.start(startedAt: effectiveStartedAt));
+    unawaited(_startCadenceProvider());
     unawaited(_motionProvider.start(startedAt: effectiveStartedAt));
     notifyListeners();
   }
@@ -180,6 +188,10 @@ class RunTrackingController extends ChangeNotifier {
     final effectiveStartedAt = startedAt ?? DateTime.now();
     final session = LocalRunTrackingSession(startedAt: effectiveStartedAt);
     _trackingSession = session;
+    unawaited(_cadenceSubscription?.cancel());
+    _cadenceSubscription = _cadenceProvider.cadenceStream.listen(
+      _recordCadenceSample,
+    );
     _mapViewState = const RunMapViewState.empty();
     _lastAdvancedAt = effectiveStartedAt;
     _lastForegroundCopy = null;
@@ -320,6 +332,7 @@ class RunTrackingController extends ChangeNotifier {
     _lastAdvancedAt = pausedAt ?? DateTime.now();
     _trackingSession?.pause();
     unawaited(_locationProvider.pause());
+    unawaited(_pauseCadenceProvider());
     unawaited(_motionProvider.pause());
     _state = _state.copyWith(phase: RunTrackingPhase.paused);
     _logPhaseTransition(
@@ -347,6 +360,7 @@ class RunTrackingController extends ChangeNotifier {
       resumedAt: effectiveResumedAt,
       activeOffset: activeOffset,
     );
+    unawaited(_resumeCadenceProvider());
     unawaited(
       _locationProvider.resume(
         resumedAt: effectiveResumedAt,
@@ -395,6 +409,7 @@ class RunTrackingController extends ChangeNotifier {
       routePrivacy: _state.routePrivacy,
       routeLabel: _state.routeLabel,
       paceGraphSamples: _trackingSession?.paceGraphSamples() ?? const [],
+      cadenceAnalysisSeries: _trackingSession?.cadenceAnalysisSeries(),
     );
   }
 
@@ -402,6 +417,9 @@ class RunTrackingController extends ChangeNotifier {
     final payload = completionPayload(completedAt: completedAt);
     final previousPhase = _state.phase;
     unawaited(_locationProvider.stop());
+    unawaited(_stopCadenceProvider());
+    unawaited(_cadenceSubscription?.cancel());
+    _cadenceSubscription = null;
     unawaited(_motionProvider.stop());
     unawaited(_stopForegroundService());
     _mapViewState = const RunMapViewState.empty();
@@ -425,6 +443,8 @@ class RunTrackingController extends ChangeNotifier {
   void dispose() {
     _disposed = true;
     unawaited(_locationProvider.stop());
+    unawaited(_stopCadenceProvider());
+    unawaited(_cadenceSubscription?.cancel());
     unawaited(_motionProvider.stop());
     unawaited(_stopForegroundService());
     super.dispose();
@@ -443,6 +463,13 @@ class RunTrackingController extends ChangeNotifier {
         return false;
       }
 
+      await _startCadenceProvider();
+      if (_disposed) {
+        await _locationProvider.stop();
+        await _stopCadenceProvider();
+        return false;
+      }
+
       await _motionProvider.start(startedAt: startedAt);
       if (_disposed) {
         await _locationProvider.stop();
@@ -453,6 +480,7 @@ class RunTrackingController extends ChangeNotifier {
       return true;
     } catch (_) {
       await _locationProvider.stop();
+      await _stopCadenceProvider();
       await _motionProvider.stop();
       await _stopForegroundService();
       if (!_disposed) {
@@ -464,10 +492,51 @@ class RunTrackingController extends ChangeNotifier {
 
   void _resetAfterFailedStart() {
     _trackingSession = null;
+    unawaited(_cadenceSubscription?.cancel());
+    _cadenceSubscription = null;
     _mapViewState = const RunMapViewState.empty();
     _lastAdvancedAt = null;
     _previewCurrentPosition = null;
     _state = const RunTrackingState.idle();
+  }
+
+  Future<void> _startCadenceProvider() async {
+    try {
+      await _cadenceProvider.start();
+    } catch (_) {
+      return;
+    }
+  }
+
+  Future<void> _pauseCadenceProvider() async {
+    try {
+      await _cadenceProvider.pause();
+    } catch (_) {
+      return;
+    }
+  }
+
+  Future<void> _resumeCadenceProvider() async {
+    try {
+      await _cadenceProvider.resume();
+    } catch (_) {
+      return;
+    }
+  }
+
+  Future<void> _stopCadenceProvider() async {
+    try {
+      await _cadenceProvider.stop();
+    } catch (_) {
+      return;
+    }
+  }
+
+  void _recordCadenceSample(RunCadenceSample sample) {
+    if (!_state.isActive) {
+      return;
+    }
+    _trackingSession?.addCadenceSample(sample);
   }
 
   Future<void> _startForegroundService() async {

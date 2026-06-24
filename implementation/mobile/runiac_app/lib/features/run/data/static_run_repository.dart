@@ -83,6 +83,9 @@ class StaticRunRepository implements RunRepository {
       paceAnalysisSeries: hasSufficientData
           ? _paceAnalysisSeries(payload.paceGraphSamples)
           : null,
+      cadenceAnalysisSeries: hasSufficientData
+          ? payload.cadenceAnalysisSeries
+          : null,
       paceGraph: hasSufficientData
           ? const PaceGraphDataBuilder().build(
               samples: payload.paceGraphSamples,
