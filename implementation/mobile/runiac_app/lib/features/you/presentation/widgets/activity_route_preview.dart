@@ -7,28 +7,44 @@ import '../../../run/domain/models/run_location_sample.dart';
 import '../../../run/domain/models/run_route_snapshot.dart';
 
 class ActivityRoutePreview extends StatelessWidget {
-  const ActivityRoutePreview({required this.route, super.key});
+  const ActivityRoutePreview({
+    required this.route,
+    this.thumbnailProvider = const NoopActivityRouteThumbnailProvider(),
+    this.allowExternalStaticMap = false,
+    this.isDemoRoute = false,
+    super.key,
+  });
 
   final RunRouteSnapshot route;
+  final ActivityRouteThumbnailProvider thumbnailProvider;
+  final bool allowExternalStaticMap;
+  final bool isDemoRoute;
 
   @override
   Widget build(BuildContext context) {
     final mode = _RoutePreviewMode.forRoute(route);
+    final devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
+    const logicalSize = Size(_previewSlotSize, _previewSlotSize);
 
     return Container(
       key: const ValueKey('activity_route_preview_slot'),
-      width: 88,
-      height: 88,
+      width: _previewSlotSize,
+      height: _previewSlotSize,
       padding: const EdgeInsets.all(9),
       decoration: _routeTileDecoration,
       child: DecoratedBox(
         decoration: _routeTileInnerDecoration,
         child: switch (mode) {
-          _RoutePreviewMode.polyline => Semantics(
-            label: 'Route-backed activity preview',
-            child: CustomPaint(
-              key: const ValueKey('activity_route_preview_polyline'),
-              painter: _RoutePolylinePreviewPainter(route),
+          _RoutePreviewMode.polyline => _RoutePreviewPolylineSlot(
+            route: route,
+            thumbnailResult: thumbnailProvider.resolve(
+              ActivityRouteThumbnailRequest(
+                route: route,
+                logicalSize: logicalSize,
+                devicePixelRatio: devicePixelRatio,
+                allowExternalStaticMap: allowExternalStaticMap,
+                isDemoRoute: isDemoRoute,
+              ),
             ),
           ),
           _RoutePreviewMode.stationary => Semantics(
@@ -46,6 +62,120 @@ class ActivityRoutePreview extends StatelessWidget {
             ),
           ),
         },
+      ),
+    );
+  }
+}
+
+abstract interface class ActivityRouteThumbnailProvider {
+  ActivityRouteThumbnailResult resolve(ActivityRouteThumbnailRequest request);
+}
+
+class ActivityRouteThumbnailRequest {
+  const ActivityRouteThumbnailRequest({
+    required this.route,
+    required this.logicalSize,
+    required this.devicePixelRatio,
+    required this.allowExternalStaticMap,
+    required this.isDemoRoute,
+  });
+
+  final RunRouteSnapshot route;
+  final Size logicalSize;
+  final double devicePixelRatio;
+  final bool allowExternalStaticMap;
+  final bool isDemoRoute;
+}
+
+enum ActivityRouteThumbnailState {
+  readyImage,
+  loading,
+  privacyDisabled,
+  tokenMissing,
+  requestFailed,
+  unavailable,
+}
+
+class ActivityRouteThumbnailResult {
+  const ActivityRouteThumbnailResult._(this.state, {this.imageProvider});
+
+  const ActivityRouteThumbnailResult.readyImage(ImageProvider imageProvider)
+    : this._(
+        ActivityRouteThumbnailState.readyImage,
+        imageProvider: imageProvider,
+      );
+
+  const ActivityRouteThumbnailResult.loading()
+    : this._(ActivityRouteThumbnailState.loading);
+
+  const ActivityRouteThumbnailResult.privacyDisabled()
+    : this._(ActivityRouteThumbnailState.privacyDisabled);
+
+  const ActivityRouteThumbnailResult.tokenMissing()
+    : this._(ActivityRouteThumbnailState.tokenMissing);
+
+  const ActivityRouteThumbnailResult.requestFailed()
+    : this._(ActivityRouteThumbnailState.requestFailed);
+
+  const ActivityRouteThumbnailResult.unavailable()
+    : this._(ActivityRouteThumbnailState.unavailable);
+
+  final ActivityRouteThumbnailState state;
+  final ImageProvider? imageProvider;
+
+  bool get hasReadyImage {
+    return state == ActivityRouteThumbnailState.readyImage &&
+        imageProvider != null;
+  }
+}
+
+class NoopActivityRouteThumbnailProvider
+    implements ActivityRouteThumbnailProvider {
+  const NoopActivityRouteThumbnailProvider();
+
+  @override
+  ActivityRouteThumbnailResult resolve(ActivityRouteThumbnailRequest request) {
+    if (!request.allowExternalStaticMap) {
+      return const ActivityRouteThumbnailResult.privacyDisabled();
+    }
+    return const ActivityRouteThumbnailResult.unavailable();
+  }
+}
+
+class _RoutePreviewPolylineSlot extends StatelessWidget {
+  const _RoutePreviewPolylineSlot({
+    required this.route,
+    required this.thumbnailResult,
+  });
+
+  final RunRouteSnapshot route;
+  final ActivityRouteThumbnailResult thumbnailResult;
+
+  @override
+  Widget build(BuildContext context) {
+    final imageProvider = thumbnailResult.imageProvider;
+    if (thumbnailResult.hasReadyImage && imageProvider != null) {
+      return Semantics(
+        label: 'Static route map thumbnail',
+        image: true,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Image(
+            key: const ValueKey('activity_route_preview_static_thumbnail'),
+            image: imageProvider,
+            fit: BoxFit.cover,
+            width: double.infinity,
+            height: double.infinity,
+          ),
+        ),
+      );
+    }
+
+    return Semantics(
+      label: 'Route-backed activity preview',
+      child: CustomPaint(
+        key: const ValueKey('activity_route_preview_polyline'),
+        painter: _RoutePolylinePreviewPainter(route),
       ),
     );
   }
@@ -355,5 +485,6 @@ final _routeTileInnerDecoration = BoxDecoration(
 );
 
 const _previewPadding = 7.0;
+const _previewSlotSize = 88.0;
 const _minRouteSpan = 0.000001;
 const _stationaryMovementThresholdMeters = 6.0;

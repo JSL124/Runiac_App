@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -20,6 +21,7 @@ import 'package:runiac_app/features/run/presentation/widgets/advanced_analysis/a
 import 'package:runiac_app/features/you/presentation/current_session_activity_history.dart';
 import 'package:runiac_app/features/you/presentation/data/activity_history_demo_snapshots.dart';
 import 'package:runiac_app/features/you/presentation/data/you_overview_demo_snapshots.dart';
+import 'package:runiac_app/features/you/presentation/widgets/activity_route_preview.dart';
 import 'package:runiac_app/features/you/presentation/widgets/compact_run_activity_card.dart';
 import 'package:runiac_app/features/you/presentation/widgets/monthly_distance_graph.dart';
 
@@ -164,6 +166,92 @@ RunRouteSnapshot _stationaryRouteFixture() {
       longitude: 103.80100001,
     ),
   );
+}
+
+const _transparentPixelPng = <int>[
+  0x89,
+  0x50,
+  0x4E,
+  0x47,
+  0x0D,
+  0x0A,
+  0x1A,
+  0x0A,
+  0x00,
+  0x00,
+  0x00,
+  0x0D,
+  0x49,
+  0x48,
+  0x44,
+  0x52,
+  0x00,
+  0x00,
+  0x00,
+  0x01,
+  0x00,
+  0x00,
+  0x00,
+  0x01,
+  0x08,
+  0x06,
+  0x00,
+  0x00,
+  0x00,
+  0x1F,
+  0x15,
+  0xC4,
+  0x89,
+  0x00,
+  0x00,
+  0x00,
+  0x0A,
+  0x49,
+  0x44,
+  0x41,
+  0x54,
+  0x78,
+  0x9C,
+  0x63,
+  0x00,
+  0x01,
+  0x00,
+  0x00,
+  0x05,
+  0x00,
+  0x01,
+  0x0D,
+  0x0A,
+  0x2D,
+  0xB4,
+  0x00,
+  0x00,
+  0x00,
+  0x00,
+  0x49,
+  0x45,
+  0x4E,
+  0x44,
+  0xAE,
+  0x42,
+  0x60,
+  0x82,
+];
+
+class _FakeActivityRouteThumbnailProvider
+    implements ActivityRouteThumbnailProvider {
+  _FakeActivityRouteThumbnailProvider(this.result);
+
+  final ActivityRouteThumbnailResult result;
+  ActivityRouteThumbnailRequest? lastRequest;
+  int requestCount = 0;
+
+  @override
+  ActivityRouteThumbnailResult resolve(ActivityRouteThumbnailRequest request) {
+    requestCount += 1;
+    lastRequest = request;
+    return result;
+  }
 }
 
 void main() {
@@ -1148,6 +1236,143 @@ void main() {
       );
     },
   );
+
+  testWidgets('Activity route preview renders injected ready image thumbnail', (
+    WidgetTester tester,
+  ) async {
+    // Given: a provider that has already resolved a static route thumbnail.
+    final provider = _FakeActivityRouteThumbnailProvider(
+      ActivityRouteThumbnailResult.readyImage(
+        MemoryImage(Uint8List.fromList(_transparentPixelPng)),
+      ),
+    );
+
+    // When: a meaningful route preview is rendered with explicit demo/static
+    // thumbnail permission.
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ActivityRoutePreview(
+          route: _sessionRouteFixture(),
+          thumbnailProvider: provider,
+          allowExternalStaticMap: true,
+          isDemoRoute: true,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Then: the non-interactive image thumbnail is shown instead of the
+    // fallback polyline painter.
+    expect(
+      find.byKey(const ValueKey('activity_route_preview_static_thumbnail')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('activity_route_preview_polyline')),
+      findsNothing,
+    );
+    expect(provider.requestCount, 1);
+    expect(provider.lastRequest!.allowExternalStaticMap, isTrue);
+    expect(provider.lastRequest!.isDemoRoute, isTrue);
+  });
+
+  testWidgets(
+    'Activity route preview falls back when provider has no ready image',
+    (WidgetTester tester) async {
+      for (final result in const [
+        ActivityRouteThumbnailResult.privacyDisabled(),
+        ActivityRouteThumbnailResult.tokenMissing(),
+        ActivityRouteThumbnailResult.requestFailed(),
+        ActivityRouteThumbnailResult.unavailable(),
+      ]) {
+        // Given: a provider state that cannot supply a safe ready image.
+        final provider = _FakeActivityRouteThumbnailProvider(result);
+
+        // When: a meaningful route preview is rendered.
+        await tester.pumpWidget(
+          MaterialApp(
+            home: ActivityRoutePreview(
+              route: _sessionRouteFixture(),
+              thumbnailProvider: provider,
+              allowExternalStaticMap: true,
+              isDemoRoute: true,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Then: the existing CustomPaint route preview remains the fallback.
+        expect(
+          find.byKey(const ValueKey('activity_route_preview_polyline')),
+          findsOneWidget,
+          reason: '${result.state} should preserve the polyline fallback',
+        );
+        expect(
+          find.byKey(const ValueKey('activity_route_preview_static_thumbnail')),
+          findsNothing,
+        );
+      }
+    },
+  );
+
+  testWidgets('Activity route preview keeps stationary and missing route modes', (
+    WidgetTester tester,
+  ) async {
+    // Given: a provider that could render an image for meaningful routes.
+    final provider = _FakeActivityRouteThumbnailProvider(
+      ActivityRouteThumbnailResult.readyImage(
+        MemoryImage(Uint8List.fromList(_transparentPixelPng)),
+      ),
+    );
+
+    // When: a stationary route is rendered.
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ActivityRoutePreview(
+          route: _stationaryRouteFixture(),
+          thumbnailProvider: provider,
+          allowExternalStaticMap: true,
+          isDemoRoute: true,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Then: stationary routes remain dot previews rather than image thumbnails.
+    expect(
+      find.byKey(const ValueKey('activity_route_preview_stationary')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('activity_route_preview_static_thumbnail')),
+      findsNothing,
+    );
+    expect(provider.requestCount, 0);
+
+    // When: a missing route is rendered.
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ActivityRoutePreview(
+          route: RunRouteSnapshot.empty,
+          thumbnailProvider: provider,
+          allowExternalStaticMap: true,
+          isDemoRoute: true,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Then: the no-route fallback remains available.
+    expect(
+      find.byKey(const ValueKey('activity_route_preview_fallback')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('activity_route_preview_static_thumbnail')),
+      findsNothing,
+    );
+    expect(provider.requestCount, 0);
+  });
 
   testWidgets('Activity History shows source labels', (
     WidgetTester tester,
