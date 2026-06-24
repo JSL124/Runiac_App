@@ -2310,6 +2310,9 @@ class _ForegroundPosition implements ForegroundPosition {
   final double longitude;
 
   @override
+  double? get altitude => null;
+
+  @override
   final double? accuracy;
 
   @override

@@ -1,4 +1,5 @@
 import '../domain/models/complete_run_result.dart';
+import '../domain/models/elevation_analysis_series.dart';
 import '../domain/models/local_run_completion_payload.dart';
 import '../domain/models/pace_analysis_series.dart';
 import '../domain/models/pace_graph_snapshot.dart';
@@ -86,6 +87,10 @@ class StaticRunRepository implements RunRepository {
       cadenceAnalysisSeries: hasSufficientData
           ? payload.cadenceAnalysisSeries
           : null,
+      elevationSeries: hasSufficientData
+          ? payload.elevationAnalysisSeries ??
+                const ElevationAnalysisSeries.unavailable()
+          : const ElevationAnalysisSeries.unavailable(),
       paceGraph: hasSufficientData
           ? const PaceGraphDataBuilder().build(
               samples: payload.paceGraphSamples,

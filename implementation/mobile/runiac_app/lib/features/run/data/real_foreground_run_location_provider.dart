@@ -48,6 +48,7 @@ abstract interface class ForegroundPosition {
   DateTime get timestamp;
   double get latitude;
   double get longitude;
+  double? get altitude;
   double? get accuracy;
   double? get speed;
 }
@@ -173,6 +174,7 @@ class RealForegroundRunLocationPreviewProvider
       recordedAt: position.timestamp,
       latitude: position.latitude,
       longitude: position.longitude,
+      altitudeMeters: position.altitude,
       horizontalAccuracyMeters: position.accuracy,
       speedMetersPerSecond: position.speed,
     );
@@ -287,6 +289,7 @@ class RealForegroundRunLocationProvider implements RunLocationProvider {
         recordedAt: position.timestamp,
         latitude: position.latitude,
         longitude: position.longitude,
+        altitudeMeters: position.altitude,
         horizontalAccuracyMeters: position.accuracy,
         speedMetersPerSecond: position.speed,
       ),
@@ -324,6 +327,9 @@ class _GeolocatorForegroundPosition implements ForegroundPosition {
 
   @override
   double get longitude => _position.longitude;
+
+  @override
+  double? get altitude => _position.altitude;
 
   @override
   double? get accuracy => _position.accuracy;

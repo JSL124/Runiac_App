@@ -4,6 +4,7 @@ import '../models/run_location_sample.dart';
 import '../models/run_map_view_state.dart';
 import '../models/run_motion_evidence.dart';
 import '../models/run_cadence_sample.dart';
+import '../models/elevation_analysis_series.dart';
 import '../models/run_tracking_diagnostics.dart';
 import '../models/run_tracking_state.dart';
 import '../models/cadence_analysis_series.dart';
@@ -121,6 +122,56 @@ class LocalRunTrackingSession {
     return CadenceAnalysisSeries.phoneMotionEstimated(
       samples: _cadenceAnalysisSamples,
     );
+  }
+
+  ElevationAnalysisSeries? elevationAnalysisSeries() {
+    final samples = <ElevationAnalysisSample>[];
+    var cumulativeDistanceMeters = 0.0;
+
+    for (final segment in _acceptedSampleSegments) {
+      if (segment.isEmpty) {
+        continue;
+      }
+      final first = segment.first;
+      final firstAltitude = first.altitudeMeters;
+      if (firstAltitude != null && firstAltitude.isFinite) {
+        samples.add(
+          ElevationAnalysisSample(
+            distanceKm: cumulativeDistanceMeters / 1000,
+            elevationMeters: firstAltitude,
+          ),
+        );
+      }
+
+      for (var index = 1; index < segment.length; index += 1) {
+        final previous = segment[index - 1];
+        final current = segment[index];
+        final segmentMeters = distanceCalculator.distanceMeters(
+          previous,
+          current,
+        );
+        if (!segmentMeters.isFinite || segmentMeters <= 0) {
+          continue;
+        }
+        cumulativeDistanceMeters += segmentMeters;
+
+        final altitude = current.altitudeMeters;
+        if (altitude == null || !altitude.isFinite) {
+          continue;
+        }
+        samples.add(
+          ElevationAnalysisSample(
+            distanceKm: cumulativeDistanceMeters / 1000,
+            elevationMeters: altitude,
+          ),
+        );
+      }
+    }
+
+    if (samples.length < defaultMinimumElevationAnalysisSamples) {
+      return null;
+    }
+    return ElevationAnalysisSeries.localAccepted(samples: samples);
   }
 
   RunMapViewState get mapViewState {

@@ -12,6 +12,7 @@ void main() {
     required DateTime timestamp,
     required double latitude,
     required double longitude,
+    double? altitude,
     double? accuracy,
     double? speed,
   }) {
@@ -19,6 +20,7 @@ void main() {
       timestamp: timestamp,
       latitude: latitude,
       longitude: longitude,
+      altitude: altitude,
       accuracy: accuracy,
       speed: speed,
     );
@@ -75,6 +77,47 @@ void main() {
       await provider.start(startedAt: startedAt);
 
       expect(adapter.lastSettings?.distanceFilterMeters, 0);
+    });
+
+    test('foreground samples preserve geolocator altitude', () async {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      final adapter = _FakeForegroundAdapter();
+      final provider = RealForegroundRunLocationProvider(adapter: adapter);
+
+      await provider.start(startedAt: startedAt);
+      adapter.emit(
+        position(
+          timestamp: startedAt.add(const Duration(seconds: 10)),
+          latitude: 1.300000,
+          longitude: 103.800000,
+          altitude: 12.5,
+        ),
+      );
+
+      final samples = provider.samplesBetween(
+        fromActiveOffset: Duration.zero,
+        toActiveOffset: const Duration(seconds: 10),
+        startedAt: startedAt,
+      );
+
+      expect(samples.single.altitudeMeters, 12.5);
+    });
+
+    test('preview current location preserves geolocator altitude', () async {
+      final adapter = _FakeForegroundAdapter()
+        ..currentPosition = position(
+          timestamp: DateTime.utc(2026, 6, 14, 7),
+          latitude: 1.300000,
+          longitude: 103.800000,
+          altitude: 9.25,
+        );
+      final provider = RealForegroundRunLocationPreviewProvider(
+        adapter: adapter,
+      );
+
+      final sample = await provider.currentLocation();
+
+      expect(sample.altitudeMeters, 9.25);
     });
 
     test(
@@ -538,6 +581,7 @@ class _ForegroundPosition implements ForegroundPosition {
     required this.timestamp,
     required this.latitude,
     required this.longitude,
+    this.altitude,
     this.accuracy,
     this.speed,
   });
@@ -550,6 +594,9 @@ class _ForegroundPosition implements ForegroundPosition {
 
   @override
   final double longitude;
+
+  @override
+  final double? altitude;
 
   @override
   final double? accuracy;

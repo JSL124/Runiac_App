@@ -410,6 +410,7 @@ class RunTrackingController extends ChangeNotifier {
       routeLabel: _state.routeLabel,
       paceGraphSamples: _trackingSession?.paceGraphSamples() ?? const [],
       cadenceAnalysisSeries: _trackingSession?.cadenceAnalysisSeries(),
+      elevationAnalysisSeries: _trackingSession?.elevationAnalysisSeries(),
     );
   }
 

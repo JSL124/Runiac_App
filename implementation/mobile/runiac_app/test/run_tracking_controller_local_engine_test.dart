@@ -1,8 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/features/run/data/static_run_repository.dart';
+import 'package:runiac_app/features/run/domain/models/advanced_analysis_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/local_run_completion_payload.dart';
 import 'package:runiac_app/features/run/domain/models/run_location_sample.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_location_provider.dart';
+import 'package:runiac_app/features/run/domain/services/advanced_analysis_snapshot_builder.dart';
 import 'package:runiac_app/features/run/domain/services/pace_graph_data_builder.dart';
 import 'package:runiac_app/features/run/domain/models/run_tracking_state.dart';
 import 'package:runiac_app/features/run/presentation/controllers/run_tracking_controller.dart';
@@ -184,6 +186,115 @@ void main() {
         expect(completedRun.summary.hasSufficientData, isTrue);
         expect(completedRun.summary.paceGraph.isAvailable, isFalse);
         expect(completedRun.summary.paceGraph.points, isEmpty);
+      },
+    );
+
+    test(
+      'completed local run derives elevation from accepted live altitude',
+      () async {
+        final startedAt = DateTime.utc(2026, 6, 14, 7);
+        final controller = RunTrackingController(
+          locationProvider: ReplayRunLocationProvider([
+            RunLocationReplaySample(
+              activeOffset: Duration.zero,
+              sample: RunLocationSample(
+                recordedAt: startedAt,
+                latitude: 1.300000,
+                longitude: 103.800000,
+                altitudeMeters: 4,
+              ),
+            ),
+            RunLocationReplaySample(
+              activeOffset: const Duration(seconds: 60),
+              sample: RunLocationSample(
+                recordedAt: startedAt.add(const Duration(seconds: 60)),
+                latitude: 1.301349,
+                longitude: 103.800000,
+                altitudeMeters: 5.2,
+              ),
+            ),
+            RunLocationReplaySample(
+              activeOffset: const Duration(seconds: 120),
+              sample: RunLocationSample(
+                recordedAt: startedAt.add(const Duration(seconds: 120)),
+                latitude: 1.302698,
+                longitude: 103.800000,
+                altitudeMeters: 8.4,
+              ),
+            ),
+            RunLocationReplaySample(
+              activeOffset: const Duration(seconds: 180),
+              sample: RunLocationSample(
+                recordedAt: startedAt.add(const Duration(seconds: 180)),
+                latitude: 1.304047,
+                longitude: 103.800000,
+                altitudeMeters: 6.1,
+              ),
+            ),
+          ]),
+        );
+
+        controller.start(
+          startedAt: startedAt,
+          clientRunSessionId: 'local-completion-elevation-flow',
+        );
+        controller.advanceBy(const Duration(seconds: 180));
+
+        final payload = controller.completionPayload(
+          completedAt: startedAt.add(const Duration(seconds: 180)),
+        );
+        final completedRun = await const StaticRunRepository().completeRun(
+          payload,
+        );
+        final elevation = const AdvancedAnalysisSnapshotBuilder()
+            .fromRunSummary(completedRun.summary)
+            .elevation;
+
+        expect(payload.elevationAnalysisSeries?.validSamples, hasLength(4));
+        expect(completedRun.summary.elevationSeries.isUnavailable, isFalse);
+        expect(
+          elevation.elevationGraph.source,
+          AdvancedAnalysisMetricSource.localGpsDerived,
+        );
+        expect(elevation.totalGain.valueLabel, '+3 m');
+        expect(elevation.highestPoint.valueLabel, '8 m');
+        expect(elevation.lowestPoint.valueLabel, '4 m');
+        expect(elevation.elevationGraph.isAvailable, isTrue);
+      },
+    );
+
+    test(
+      'completed local run keeps elevation unavailable without altitude',
+      () {
+        final startedAt = DateTime.utc(2026, 6, 14, 7);
+        final controller = RunTrackingController(
+          locationProvider: ReplayRunLocationProvider([
+            RunLocationReplaySample(
+              activeOffset: Duration.zero,
+              sample: RunLocationSample(
+                recordedAt: startedAt,
+                latitude: 1.300000,
+                longitude: 103.800000,
+              ),
+            ),
+            RunLocationReplaySample(
+              activeOffset: const Duration(seconds: 60),
+              sample: RunLocationSample(
+                recordedAt: startedAt.add(const Duration(seconds: 60)),
+                latitude: 1.301349,
+                longitude: 103.800000,
+              ),
+            ),
+          ]),
+        );
+
+        controller.start(startedAt: startedAt);
+        controller.advanceBy(const Duration(seconds: 60));
+        final payload = controller.completionPayload(
+          completedAt: startedAt.add(const Duration(seconds: 60)),
+        );
+
+        expect(payload.elevationAnalysisSeries, isNull);
       },
     );
 
