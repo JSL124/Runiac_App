@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/runiac_colors.dart';
 import '../../../../core/widgets/runiac_buttons.dart';
 import '../../../run/domain/models/run_activity_display_model.dart';
+import 'activity_route_preview.dart';
 
 class CompactRunActivityCard extends StatelessWidget {
   const CompactRunActivityCard({
@@ -26,7 +27,7 @@ class CompactRunActivityCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          _RoutePreviewSlot(seed: activity.title.length),
+          ActivityRoutePreview(route: activity.summary.route),
           const SizedBox(width: 18),
           Expanded(
             child: _ActivityCardContent(
@@ -37,111 +38,6 @@ class CompactRunActivityCard extends StatelessWidget {
         ],
       ),
     );
-  }
-}
-
-class _RoutePreviewSlot extends StatelessWidget {
-  const _RoutePreviewSlot({required this.seed});
-
-  final int seed;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      key: const ValueKey('activity_route_preview_slot'),
-      width: 88,
-      height: 88,
-      padding: const EdgeInsets.all(9),
-      decoration: _routeTileDecoration,
-      child: DecoratedBox(
-        decoration: _routeTileInnerDecoration,
-        child: CustomPaint(painter: _RoutePreviewPainter(seed)),
-      ),
-    );
-  }
-}
-
-class _RoutePreviewPainter extends CustomPainter {
-  const _RoutePreviewPainter(this.seed);
-
-  final int seed;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final gridPaint = Paint()
-      ..color = const Color(0x1A2F50C7)
-      ..strokeWidth = 1;
-    final pathPaint = Paint()
-      ..color = RuniacColors.primaryBlue
-      ..strokeWidth = 3
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-    final dotPaint = Paint()..color = RuniacColors.accentOrange;
-    final startPaint = Paint()
-      ..color = RuniacColors.white
-      ..style = PaintingStyle.fill;
-    final startBorderPaint = Paint()
-      ..color = RuniacColors.primaryBlue
-      ..strokeWidth = 2
-      ..style = PaintingStyle.stroke;
-
-    canvas.drawLine(
-      Offset(size.width * 0.32, 0),
-      Offset(size.width * 0.32, size.height),
-      gridPaint,
-    );
-    canvas.drawLine(
-      Offset(size.width * 0.68, 0),
-      Offset(size.width * 0.68, size.height),
-      gridPaint,
-    );
-    canvas.drawLine(
-      Offset(0, size.height * 0.45),
-      Offset(size.width, size.height * 0.45),
-      gridPaint,
-    );
-
-    final low = seed.isEven ? 0.68 : 0.58;
-    final high = seed.isEven ? 0.38 : 0.48;
-    final path = Path()
-      ..moveTo(size.width * 0.24, size.height * low)
-      ..cubicTo(
-        size.width * 0.40,
-        size.height * 0.62,
-        size.width * 0.48,
-        size.height * high,
-        size.width * 0.64,
-        size.height * high,
-      )
-      ..quadraticBezierTo(
-        size.width * 0.78,
-        size.height * high,
-        size.width * 0.78,
-        size.height * 0.28,
-      );
-
-    canvas.drawPath(path, pathPaint);
-    canvas.drawCircle(
-      Offset(size.width * 0.24, size.height * low),
-      4,
-      startPaint,
-    );
-    canvas.drawCircle(
-      Offset(size.width * 0.24, size.height * low),
-      4,
-      startBorderPaint,
-    );
-    canvas.drawCircle(
-      Offset(size.width * 0.78, size.height * 0.28),
-      5,
-      dotPaint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant _RoutePreviewPainter oldDelegate) {
-    return oldDelegate.seed != seed;
   }
 }
 
@@ -254,17 +150,6 @@ class _MetricValueText extends StatelessWidget {
     );
   }
 }
-
-final _routeTileDecoration = BoxDecoration(
-  color: RuniacColors.innerTileSurface,
-  borderRadius: BorderRadius.circular(18),
-  border: Border.all(color: RuniacColors.cardBorder, width: 1.4),
-);
-
-final _routeTileInnerDecoration = BoxDecoration(
-  color: RuniacColors.sectionSurface,
-  borderRadius: BorderRadius.circular(12),
-);
 
 final _historyCardDecoration = BoxDecoration(
   color: RuniacColors.white,

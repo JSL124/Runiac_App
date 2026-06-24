@@ -7,6 +7,8 @@ import 'package:runiac_app/app.dart';
 import 'package:runiac_app/features/run/domain/models/advanced_analysis_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/cadence_graph_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/complete_run_result.dart';
+import 'package:runiac_app/features/run/domain/models/run_location_sample.dart';
+import 'package:runiac_app/features/run/domain/models/run_route_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/run_summary_snapshot.dart';
 import 'package:runiac_app/features/run/domain/services/advanced_analysis_snapshot_builder.dart';
 import 'package:runiac_app/features/run/presentation/advanced_analysis_screen.dart';
@@ -62,6 +64,7 @@ CompleteRunResult _sessionCompletion({
   required String title,
   required String distanceKm,
   String dateLabel = 'Today',
+  RunRouteSnapshot route = RunRouteSnapshot.empty,
 }) {
   return CompleteRunResult(
     activityId: activityId,
@@ -77,8 +80,40 @@ CompleteRunResult _sessionCompletion({
       avgHeartRate: '--',
       calories: '--',
       routeName: 'Current Session Route',
+      route: route,
     ),
     xpUpdate: defaultXpUpdateDisplayModel,
+  );
+}
+
+RunRouteSnapshot _sessionRouteFixture() {
+  final startedAt = DateTime.utc(2026, 6, 18, 8, 10);
+
+  return RunRouteSnapshot(
+    segments: [
+      [
+        RunLocationSample(
+          recordedAt: startedAt,
+          latitude: 1.301,
+          longitude: 103.801,
+        ),
+        RunLocationSample(
+          recordedAt: startedAt.add(const Duration(seconds: 90)),
+          latitude: 1.3018,
+          longitude: 103.8021,
+        ),
+        RunLocationSample(
+          recordedAt: startedAt.add(const Duration(seconds: 180)),
+          latitude: 1.3025,
+          longitude: 103.8016,
+        ),
+      ],
+    ],
+    lastKnownLocation: RunLocationSample(
+      recordedAt: startedAt.add(const Duration(seconds: 180)),
+      latitude: 1.3025,
+      longitude: 103.8016,
+    ),
   );
 }
 
@@ -298,6 +333,13 @@ void main() {
       ),
       findsNWidgets(3),
     );
+    expect(
+      find.descendant(
+        of: recentRunCards,
+        matching: find.byKey(const ValueKey('activity_route_preview_fallback')),
+      ),
+      findsNWidgets(3),
+    );
     final firstRecentCard = find.byKey(
       const ValueKey('recent_running_card_Saturday Night Run'),
     );
@@ -382,6 +424,7 @@ void main() {
           activityId: 'session-second',
           title: 'Session Second Run',
           distanceKm: '3.10',
+          route: _sessionRouteFixture(),
         ),
       );
       historyStore.registerCompletedRun(
@@ -414,6 +457,24 @@ void main() {
       expect(secondCard, findsOneWidget);
       expect(fallbackCard, findsOneWidget);
       expect(
+        find.descendant(
+          of: secondCard,
+          matching: find.byKey(
+            const ValueKey('activity_route_preview_polyline'),
+          ),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: fallbackCard,
+          matching: find.byKey(
+            const ValueKey('activity_route_preview_fallback'),
+          ),
+        ),
+        findsOneWidget,
+      );
+      expect(
         tester.getTopLeft(replacementCard).dy,
         lessThan(tester.getTopLeft(secondCard).dy),
       );
@@ -437,6 +498,26 @@ void main() {
       );
       expect(replacementHistoryCard, findsOneWidget);
       expect(fallbackHistoryCard, findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(
+            const ValueKey('activity_history_card_session-second'),
+          ),
+          matching: find.byKey(
+            const ValueKey('activity_route_preview_polyline'),
+          ),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: fallbackHistoryCard,
+          matching: find.byKey(
+            const ValueKey('activity_route_preview_fallback'),
+          ),
+        ),
+        findsOneWidget,
+      );
       expect(
         tester.getTopLeft(replacementHistoryCard).dy,
         lessThan(tester.getTopLeft(fallbackHistoryCard).dy),
