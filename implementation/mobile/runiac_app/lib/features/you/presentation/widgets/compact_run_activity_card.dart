@@ -20,14 +20,14 @@ class CompactRunActivityCard extends StatelessWidget {
       onTap: onTap,
       semanticLabel: 'Open ${activity.title} summary',
       borderRadius: BorderRadius.circular(20),
-      constraints: const BoxConstraints(minHeight: 108),
+      constraints: const BoxConstraints(minHeight: 114),
       padding: const EdgeInsets.all(12),
       decoration: _historyCardDecoration,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           _RoutePreviewSlot(seed: activity.title.length),
-          const SizedBox(width: 14),
+          const SizedBox(width: 18),
           Expanded(
             child: _ActivityCardContent(
               key: const ValueKey('activity_card_content'),
@@ -50,7 +50,7 @@ class _RoutePreviewSlot extends StatelessWidget {
     return Container(
       key: const ValueKey('activity_route_preview_slot'),
       width: 88,
-      height: 76,
+      height: 88,
       padding: const EdgeInsets.all(9),
       decoration: _routeTileDecoration,
       child: DecoratedBox(
