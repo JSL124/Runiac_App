@@ -140,6 +140,32 @@ RunRouteSnapshot _singlePointRouteFixture() {
   );
 }
 
+RunRouteSnapshot _stationaryRouteFixture() {
+  final startedAt = DateTime.utc(2026, 6, 18, 8, 10);
+
+  return RunRouteSnapshot(
+    segments: [
+      [
+        RunLocationSample(
+          recordedAt: startedAt,
+          latitude: 1.301,
+          longitude: 103.801,
+        ),
+        RunLocationSample(
+          recordedAt: startedAt.add(const Duration(seconds: 1)),
+          latitude: 1.30100001,
+          longitude: 103.80100001,
+        ),
+      ],
+    ],
+    lastKnownLocation: RunLocationSample(
+      recordedAt: startedAt.add(const Duration(seconds: 1)),
+      latitude: 1.30100001,
+      longitude: 103.80100001,
+    ),
+  );
+}
+
 void main() {
   void expectFixedDistanceGraph(WidgetTester tester) {
     final graphFinder = find.byKey(
@@ -620,7 +646,7 @@ void main() {
   );
 
   testWidgets(
-    'low-data current-session route previews depend on route availability',
+    'low-data current-session route previews distinguish route movement',
     (WidgetTester tester) async {
       final historyStore = CurrentSessionActivityHistoryStore(
         now: () => DateTime(2026, 6, 18),
@@ -640,6 +666,15 @@ void main() {
       );
       historyStore.registerCompletedRun(
         _sessionCompletion(
+          activityId: 'low-data-stationary',
+          title: 'Low Data Stationary Run',
+          distanceKm: '0.00',
+          hasSufficientData: false,
+          route: _stationaryRouteFixture(),
+        ),
+      );
+      historyStore.registerCompletedRun(
+        _sessionCompletion(
           activityId: 'low-data-one-point',
           title: 'Low Data One Point Run',
           distanceKm: '0.03',
@@ -655,10 +690,14 @@ void main() {
       final routeBackedRecentCard = find.byKey(
         const ValueKey('recent_running_card_low-data-route'),
       );
+      final stationaryRecentCard = find.byKey(
+        const ValueKey('recent_running_card_low-data-stationary'),
+      );
       final fallbackRecentCard = find.byKey(
         const ValueKey('recent_running_card_low-data-one-point'),
       );
       expect(routeBackedRecentCard, findsOneWidget);
+      expect(stationaryRecentCard, findsOneWidget);
       expect(fallbackRecentCard, findsOneWidget);
       expect(
         find.descendant(
@@ -672,6 +711,33 @@ void main() {
       expect(
         find.descendant(
           of: routeBackedRecentCard,
+          matching: find.byKey(
+            const ValueKey('activity_route_preview_fallback'),
+          ),
+        ),
+        findsNothing,
+      );
+      expect(
+        find.descendant(
+          of: stationaryRecentCard,
+          matching: find.byKey(
+            const ValueKey('activity_route_preview_stationary'),
+          ),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: stationaryRecentCard,
+          matching: find.byKey(
+            const ValueKey('activity_route_preview_polyline'),
+          ),
+        ),
+        findsNothing,
+      );
+      expect(
+        find.descendant(
+          of: stationaryRecentCard,
           matching: find.byKey(
             const ValueKey('activity_route_preview_fallback'),
           ),
@@ -705,10 +771,14 @@ void main() {
       final routeBackedHistoryCard = find.byKey(
         const ValueKey('activity_history_card_low-data-route'),
       );
+      final stationaryHistoryCard = find.byKey(
+        const ValueKey('activity_history_card_low-data-stationary'),
+      );
       final fallbackHistoryCard = find.byKey(
         const ValueKey('activity_history_card_low-data-one-point'),
       );
       expect(routeBackedHistoryCard, findsOneWidget);
+      expect(stationaryHistoryCard, findsOneWidget);
       expect(fallbackHistoryCard, findsOneWidget);
       expect(
         find.descendant(
@@ -721,6 +791,24 @@ void main() {
       );
       expect(
         find.descendant(
+          of: stationaryHistoryCard,
+          matching: find.byKey(
+            const ValueKey('activity_route_preview_stationary'),
+          ),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: stationaryHistoryCard,
+          matching: find.byKey(
+            const ValueKey('activity_route_preview_polyline'),
+          ),
+        ),
+        findsNothing,
+      );
+      expect(
+        find.descendant(
           of: fallbackHistoryCard,
           matching: find.byKey(
             const ValueKey('activity_route_preview_fallback'),
@@ -729,6 +817,11 @@ void main() {
         findsOneWidget,
       );
 
+      await Scrollable.ensureVisible(
+        tester.element(routeBackedHistoryCard),
+        alignment: 0.3,
+      );
+      await tester.pumpAndSettle();
       await tester.tap(routeBackedHistoryCard);
       await tester.pumpAndSettle();
 

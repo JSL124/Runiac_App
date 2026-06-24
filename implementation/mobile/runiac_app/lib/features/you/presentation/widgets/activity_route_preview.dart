@@ -13,6 +13,8 @@ class ActivityRoutePreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final mode = _RoutePreviewMode.forRoute(route);
+
     return Container(
       key: const ValueKey('activity_route_preview_slot'),
       width: 88,
@@ -21,23 +23,50 @@ class ActivityRoutePreview extends StatelessWidget {
       decoration: _routeTileDecoration,
       child: DecoratedBox(
         decoration: _routeTileInnerDecoration,
-        child: route.hasRoute
-            ? Semantics(
-                label: 'Route-backed activity preview',
-                child: CustomPaint(
-                  key: const ValueKey('activity_route_preview_polyline'),
-                  painter: _RoutePolylinePreviewPainter(route),
-                ),
-              )
-            : Semantics(
-                label: 'Route preview unavailable',
-                child: const CustomPaint(
-                  key: ValueKey('activity_route_preview_fallback'),
-                  painter: _FallbackRoutePreviewPainter(),
-                ),
-              ),
+        child: switch (mode) {
+          _RoutePreviewMode.polyline => Semantics(
+            label: 'Route-backed activity preview',
+            child: CustomPaint(
+              key: const ValueKey('activity_route_preview_polyline'),
+              painter: _RoutePolylinePreviewPainter(route),
+            ),
+          ),
+          _RoutePreviewMode.stationary => Semantics(
+            label: 'Stationary route preview',
+            child: CustomPaint(
+              key: const ValueKey('activity_route_preview_stationary'),
+              painter: _StationaryRoutePreviewPainter(route),
+            ),
+          ),
+          _RoutePreviewMode.fallback => Semantics(
+            label: 'Route preview unavailable',
+            child: const CustomPaint(
+              key: ValueKey('activity_route_preview_fallback'),
+              painter: _FallbackRoutePreviewPainter(),
+            ),
+          ),
+        },
       ),
     );
+  }
+}
+
+enum _RoutePreviewMode {
+  polyline,
+  stationary,
+  fallback;
+
+  static _RoutePreviewMode forRoute(RunRouteSnapshot route) {
+    final points = _drawableRoutePoints(route);
+    if (points.length < 2) {
+      return _RoutePreviewMode.fallback;
+    }
+
+    if (_routeMovementMeters(points) < _stationaryMovementThresholdMeters) {
+      return _RoutePreviewMode.stationary;
+    }
+
+    return _RoutePreviewMode.polyline;
   }
 }
 
@@ -48,32 +77,53 @@ class _FallbackRoutePreviewPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     _paintPreviewGrid(canvas, size);
 
-    final pathPaint = _routePathPaint(const Color(0x4D7D93E1), 2);
-    final path = Path()
-      ..moveTo(size.width * 0.24, size.height * 0.64)
-      ..quadraticBezierTo(
-        size.width * 0.50,
-        size.height * 0.50,
-        size.width * 0.76,
-        size.height * 0.36,
-      );
-
-    _paintDashedPath(canvas, path, pathPaint);
-
-    final hintPaint = Paint()
-      ..color = const Color(0x337D93E1)
+    final center = Offset(size.width * 0.5, size.height * 0.52);
+    final outerPaint = Paint()
+      ..color = const Color(0x247D93E1)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.4;
-    canvas.drawCircle(
-      Offset(size.width * 0.76, size.height * 0.36),
-      4,
-      hintPaint,
-    );
+      ..strokeWidth = 1.3;
+    final innerPaint = Paint()
+      ..color = const Color(0x1A7D93E1)
+      ..style = PaintingStyle.fill;
+
+    canvas.drawCircle(center, 9, outerPaint);
+    canvas.drawCircle(center, 3.5, innerPaint);
   }
 
   @override
   bool shouldRepaint(covariant _FallbackRoutePreviewPainter oldDelegate) {
     return false;
+  }
+}
+
+class _StationaryRoutePreviewPainter extends CustomPainter {
+  const _StationaryRoutePreviewPainter(this.route);
+
+  final RunRouteSnapshot route;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    _paintPreviewGrid(canvas, size);
+
+    final center = Offset(size.width * 0.5, size.height * 0.5);
+
+    final haloPaint = Paint()
+      ..color = const Color(0x2E2F50C7)
+      ..style = PaintingStyle.fill;
+    final dotPaint = Paint()..color = RuniacColors.primaryBlue;
+    final ringPaint = Paint()
+      ..color = RuniacColors.white
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke;
+
+    canvas.drawCircle(center, 10, haloPaint);
+    canvas.drawCircle(center, 5.5, dotPaint);
+    canvas.drawCircle(center, 5.5, ringPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _StationaryRoutePreviewPainter oldDelegate) {
+    return oldDelegate.route != route;
   }
 }
 
@@ -136,6 +186,37 @@ bool _isDrawableRoutePoint(RunLocationSample point) {
   return point.latitude.isFinite && point.longitude.isFinite;
 }
 
+List<RunLocationSample> _drawableRoutePoints(RunRouteSnapshot route) {
+  return route.segments
+      .expand((segment) => segment)
+      .where(_isDrawableRoutePoint)
+      .toList(growable: false);
+}
+
+double _routeMovementMeters(List<RunLocationSample> points) {
+  var maxDistance = 0.0;
+  for (var index = 1; index < points.length; index += 1) {
+    maxDistance = math.max(
+      maxDistance,
+      _distanceMeters(points.first, points[index]),
+    );
+  }
+  return maxDistance;
+}
+
+double _distanceMeters(RunLocationSample a, RunLocationSample b) {
+  const metersPerLatitudeDegree = 111320.0;
+  final meanLatitudeRadians = ((a.latitude + b.latitude) / 2) * math.pi / 180;
+  final metersPerLongitudeDegree =
+      metersPerLatitudeDegree * math.cos(meanLatitudeRadians).abs();
+  final latitudeMeters = (b.latitude - a.latitude) * metersPerLatitudeDegree;
+  final longitudeMeters =
+      (b.longitude - a.longitude) * metersPerLongitudeDegree;
+  return math.sqrt(
+    (latitudeMeters * latitudeMeters) + (longitudeMeters * longitudeMeters),
+  );
+}
+
 void _paintPreviewGrid(Canvas canvas, Size size) {
   final gridPaint = Paint()
     ..color = const Color(0x1A2F50C7)
@@ -156,19 +237,6 @@ void _paintPreviewGrid(Canvas canvas, Size size) {
     Offset(size.width, size.height * 0.45),
     gridPaint,
   );
-}
-
-void _paintDashedPath(Canvas canvas, Path path, Paint paint) {
-  const dashLength = 5.0;
-  const gapLength = 4.0;
-  for (final metric in path.computeMetrics()) {
-    var distance = 0.0;
-    while (distance < metric.length) {
-      final end = math.min(distance + dashLength, metric.length);
-      canvas.drawPath(metric.extractPath(distance, end), paint);
-      distance = end + gapLength;
-    }
-  }
 }
 
 Paint _routePathPaint(Color color, double strokeWidth) {
@@ -288,3 +356,4 @@ final _routeTileInnerDecoration = BoxDecoration(
 
 const _previewPadding = 7.0;
 const _minRouteSpan = 0.000001;
+const _stationaryMovementThresholdMeters = 6.0;
