@@ -11,12 +11,14 @@ void main() {
   test(
     'Mapbox snapshot generator returns ready image from runtime bytes',
     () async {
+      final diagnostics = <ActivityRouteSnapshotterDiagnostic>[];
       final runtime = _FakeSnapshotterRuntime(
         bytes: Uint8List.fromList(const [1, 2, 3]),
       );
       final generator = MapboxActivityRouteSnapshotThumbnailGenerator(
         accessToken: _testPublicToken,
         runtime: runtime,
+        onDiagnostic: diagnostics.add,
       );
 
       final result = await generator.generate(_generationRequest());
@@ -34,6 +36,13 @@ void main() {
       expect(runtime.lastCamera!.centerLatitude, 1.3015);
       expect(runtime.lastCamera!.centerLongitude, 103.8015);
       expect(runtime.lastCamera!.zoom, 15.5);
+      expect(diagnostics.map((diagnostic) => diagnostic.event), [
+        ActivityRouteSnapshotterDiagnosticEvent.started,
+        ActivityRouteSnapshotterDiagnosticEvent.finished,
+      ]);
+      expect(diagnostics.last.state, ActivityRouteThumbnailState.readyImage);
+      expect(diagnostics.last.byteLength, 3);
+      expect(diagnostics.last.activityId, 'session-activity');
     },
   );
 
@@ -60,14 +69,24 @@ void main() {
   test(
     'Mapbox snapshot generator reports request failure from runtime error',
     () async {
+      final diagnostics = <ActivityRouteSnapshotterDiagnostic>[];
       final runtime = _FakeSnapshotterRuntime(error: StateError('boom'));
 
       final result = await MapboxActivityRouteSnapshotThumbnailGenerator(
         accessToken: _testPublicToken,
         runtime: runtime,
+        onDiagnostic: diagnostics.add,
       ).generate(_generationRequest());
 
       expect(result, const ActivityRouteThumbnailResult.requestFailed());
+      expect(diagnostics.map((diagnostic) => diagnostic.event), [
+        ActivityRouteSnapshotterDiagnosticEvent.started,
+        ActivityRouteSnapshotterDiagnosticEvent.failed,
+      ]);
+      expect(diagnostics.last.state, ActivityRouteThumbnailState.requestFailed);
+      expect(diagnostics.last.byteLength, 0);
+      expect(diagnostics.last.errorType, 'StateError');
+      expect(diagnostics.last.errorDescription, contains('boom'));
     },
   );
 }

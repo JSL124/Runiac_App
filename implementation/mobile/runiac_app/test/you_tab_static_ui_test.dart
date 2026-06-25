@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -261,6 +262,25 @@ class _FakeActivityRouteThumbnailProvider
   }
 }
 
+class _CompletingActivityRouteThumbnailProvider
+    implements ActivityRouteThumbnailProvider {
+  _CompletingActivityRouteThumbnailProvider();
+
+  final Completer<ActivityRouteThumbnailResult> completer =
+      Completer<ActivityRouteThumbnailResult>();
+  ActivityRouteThumbnailRequest? lastRequest;
+  int requestCount = 0;
+
+  @override
+  Future<ActivityRouteThumbnailResult> resolve(
+    ActivityRouteThumbnailRequest request,
+  ) {
+    requestCount += 1;
+    lastRequest = request;
+    return completer.future;
+  }
+}
+
 void main() {
   void expectFixedDistanceGraph(WidgetTester tester) {
     final graphFinder = find.byKey(
@@ -335,6 +355,65 @@ void main() {
       );
       expect(
         find.byKey(const ValueKey('activity_route_preview_polyline')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey('activity_route_preview_fallback')),
+        findsNothing,
+      );
+    },
+  );
+
+  testWidgets(
+    'current-session single-point route replaces local grid with ready image',
+    (WidgetTester tester) async {
+      final provider = _CompletingActivityRouteThumbnailProvider();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ActivityRoutePreview(
+              route: _singlePointRouteFixture(),
+              thumbnailProvider: provider,
+              allowExternalStaticMap: true,
+              isCurrentSessionRoute: true,
+              activityId: 'low-data-one-point',
+            ),
+          ),
+        ),
+      );
+
+      expect(provider.requestCount, 1);
+      expect(
+        find.byKey(const ValueKey('activity_route_preview_tiny_route')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('activity_route_preview_static_thumbnail')),
+        findsNothing,
+      );
+
+      provider.completer.complete(
+        ActivityRouteThumbnailResult.readyImage(
+          MemoryImage(Uint8List.fromList(_transparentPixelPng)),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('activity_route_preview_static_thumbnail')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey(
+            'activity_route_preview_static_thumbnail_location_dot',
+          ),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('activity_route_preview_tiny_route')),
         findsNothing,
       );
       expect(

@@ -219,10 +219,39 @@ ActivityRouteThumbnailProvider _createActivityRouteThumbnailProvider() {
     cache: _activityRouteThumbnailCache,
     generator: MapboxActivityRouteSnapshotThumbnailGenerator(
       accessToken: config.accessToken,
+      onDiagnostic: _logActivityRouteSnapshotterDiagnostic,
     ),
     snapshotThumbnailsEnabled: config.snapshotThumbnailsEnabled,
     hasValidMapboxToken: config.hasPublicAccessToken,
     onDiagnostic: _logActivityRouteThumbnailDiagnostic,
+  );
+}
+
+void _logActivityRouteSnapshotterDiagnostic(
+  ActivityRouteSnapshotterDiagnostic diagnostic,
+) {
+  if (!_activityRouteThumbnailDiagnosticsEnabled) {
+    return;
+  }
+  final state = diagnostic.state;
+  final byteLength = diagnostic.byteLength;
+  final errorType = diagnostic.errorType;
+  final errorDescription = diagnostic.errorDescription;
+  debugPrint(
+    'Runiac Activity route snapshotter: '
+    'activityId=${diagnostic.activityId ?? "(none)"} '
+    'event=${diagnostic.event.name} '
+    'state=${state?.name ?? "(pending)"} '
+    'bytes=${byteLength?.toString() ?? "(unknown)"} '
+    'style=${diagnostic.styleUri} '
+    'size=${diagnostic.logicalSize.width.toStringAsFixed(0)}x'
+    '${diagnostic.logicalSize.height.toStringAsFixed(0)} '
+    'dpr=${diagnostic.devicePixelRatio.toStringAsFixed(2)} '
+    'center=${diagnostic.centerLatitude.toStringAsFixed(6)},'
+    '${diagnostic.centerLongitude.toStringAsFixed(6)} '
+    'zoom=${diagnostic.zoom.toStringAsFixed(2)} '
+    'errorType=${errorType ?? "(none)"} '
+    'error=${errorDescription ?? "(none)"}',
   );
 }
 
