@@ -390,6 +390,21 @@ RunSummarySnapshot _mergeBackendSummary() {
   );
 }
 
+RunSummarySnapshot _lowDataMergeBackendSummary() {
+  return const RunSummarySnapshot(
+    title: 'Backend Low Data Run',
+    dateLabel: 'Today',
+    timeLabel: '8:10 AM',
+    distanceKm: '0.04',
+    avgPace: '--',
+    duration: '00:42',
+    avgHeartRate: '--',
+    calories: '--',
+    routeName: 'Backend Low Data Route',
+    hasSufficientData: false,
+  );
+}
+
 LocalRunCompletionPayload _localAnalysisMergePayload(String sessionId) {
   return LocalRunCompletionPayload(
     clientRunSessionId: sessionId,
@@ -498,6 +513,26 @@ void main() {
     expect(mismatched.paceAnalysisSeries, isNull);
     expect(mismatched.cadenceAnalysisSeries, isNull);
     expect(mismatched.elevationSeries.isUnavailable, isTrue);
+  });
+
+  test('low-data local analysis merge preserves route only', () {
+    const merger = RunSummaryLocalAnalysisMerger();
+    final payload = _localAnalysisMergePayload('payload-session');
+    final localRoute = _localRouteSnapshot();
+
+    final merged = merger.merge(
+      backendSummary: _lowDataMergeBackendSummary(),
+      localPayload: payload,
+      localRoute: localRoute,
+      resultClientRunSessionId: payload.clientRunSessionId,
+    );
+
+    expect(merged.hasSufficientData, isFalse);
+    expect(merged.route.hasRoute, isTrue);
+    expect(merged.paceGraph.isAvailable, isFalse);
+    expect(merged.paceAnalysisSeries, isNull);
+    expect(merged.cadenceAnalysisSeries, isNull);
+    expect(merged.elevationSeries.isUnavailable, isTrue);
   });
 
   test(

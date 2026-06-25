@@ -18,6 +18,8 @@ class RunSummaryLocalAnalysisMerger {
       return backendSummary;
     }
     if (!backendSummary.hasSufficientData) {
+      // Low-data runs may still show the recorded route, but local analysis
+      // remains unavailable so the summary does not imply metric confidence.
       return backendSummary.copyWith(route: localRoute);
     }
 
