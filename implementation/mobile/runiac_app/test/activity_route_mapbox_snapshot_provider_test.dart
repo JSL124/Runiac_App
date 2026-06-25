@@ -1,6 +1,5 @@
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runiac_app/features/you/presentation/widgets/activity_route_mapbox_snapshot_provider.dart';
@@ -89,6 +88,66 @@ void main() {
       expect(diagnostics.last.errorDescription, contains('boom'));
     },
   );
+
+  test(
+    'Mapbox snapshot generator reports cancelled state from snapshot failure',
+    () async {
+      final diagnostics = <ActivityRouteSnapshotterDiagnostic>[];
+      final runtime = _FakeSnapshotterRuntime(
+        error: PlatformException(
+          code: 'snapshotFailed',
+          message: 'Snapshot cancelled',
+        ),
+      );
+
+      final result = await MapboxActivityRouteSnapshotThumbnailGenerator(
+        accessToken: _testPublicToken,
+        runtime: runtime,
+        onDiagnostic: diagnostics.add,
+      ).generate(_generationRequest());
+
+      expect(result, const ActivityRouteThumbnailResult.requestFailed());
+      expect(diagnostics.map((diagnostic) => diagnostic.event), [
+        ActivityRouteSnapshotterDiagnosticEvent.started,
+        ActivityRouteSnapshotterDiagnosticEvent.cancelled,
+      ]);
+      expect(diagnostics.last.state, ActivityRouteThumbnailState.requestFailed);
+      expect(diagnostics.last.errorType, 'PlatformException');
+      expect(diagnostics.last.errorDescription, contains('Snapshot cancelled'));
+    },
+  );
+
+  test(
+    'Mapbox snapshot runtime reports lifecycle in completion order',
+    () async {
+      final diagnostics = <ActivityRouteSnapshotterDiagnostic>[];
+      final runtime = _FakeSnapshotterRuntime(
+        bytes: Uint8List.fromList(const [4, 5, 6]),
+        lifecycleEvents: [
+          ActivityRouteSnapshotterDiagnosticEvent.snapshotterCreated,
+          ActivityRouteSnapshotterDiagnosticEvent.startRequested,
+          ActivityRouteSnapshotterDiagnosticEvent.startCompleted,
+          ActivityRouteSnapshotterDiagnosticEvent.disposeRequested,
+        ],
+      );
+
+      final result = await MapboxActivityRouteSnapshotThumbnailGenerator(
+        accessToken: _testPublicToken,
+        runtime: runtime,
+        onDiagnostic: diagnostics.add,
+      ).generate(_generationRequest());
+
+      expect(result.state, ActivityRouteThumbnailState.readyImage);
+      expect(diagnostics.map((diagnostic) => diagnostic.event), [
+        ActivityRouteSnapshotterDiagnosticEvent.started,
+        ActivityRouteSnapshotterDiagnosticEvent.snapshotterCreated,
+        ActivityRouteSnapshotterDiagnosticEvent.startRequested,
+        ActivityRouteSnapshotterDiagnosticEvent.startCompleted,
+        ActivityRouteSnapshotterDiagnosticEvent.disposeRequested,
+        ActivityRouteSnapshotterDiagnosticEvent.finished,
+      ]);
+    },
+  );
 }
 
 const _testPublicToken =
@@ -110,10 +169,11 @@ ActivityRouteSnapshotThumbnailGenerationRequest _generationRequest() {
 }
 
 class _FakeSnapshotterRuntime implements ActivityRouteSnapshotterRuntime {
-  _FakeSnapshotterRuntime({this.bytes, this.error});
+  _FakeSnapshotterRuntime({this.bytes, this.error, this.lifecycleEvents});
 
   final Uint8List? bytes;
   final Object? error;
+  final List<ActivityRouteSnapshotterDiagnosticEvent>? lifecycleEvents;
   int callCount = 0;
   String? lastAccessToken;
   String? lastStyleUri;
@@ -128,6 +188,7 @@ class _FakeSnapshotterRuntime implements ActivityRouteSnapshotterRuntime {
     required Size logicalSize,
     required double pixelRatio,
     required ActivityRouteSnapshotCamera camera,
+    required ActivityRouteSnapshotterLifecycleSink onLifecycleDiagnostic,
   }) async {
     callCount += 1;
     lastAccessToken = accessToken;
@@ -138,6 +199,9 @@ class _FakeSnapshotterRuntime implements ActivityRouteSnapshotterRuntime {
     final error = this.error;
     if (error != null) {
       throw error;
+    }
+    for (final event in lifecycleEvents ?? const []) {
+      onLifecycleDiagnostic(event);
     }
     return bytes;
   }

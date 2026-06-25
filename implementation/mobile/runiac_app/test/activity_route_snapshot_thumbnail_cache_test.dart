@@ -434,6 +434,39 @@ void main() {
   );
 
   test(
+    'snapshot provider keeps timed out generation in flight for duplicate requests',
+    () async {
+      final completer = Completer<ActivityRouteThumbnailResult>();
+      final image = MemoryImage(Uint8List.fromList(const [22, 23, 24]));
+      final generator = _FakeSnapshotThumbnailGenerator((request) {
+        return completer.future;
+      });
+      final provider = CachedActivityRouteThumbnailProvider(
+        cache: ActivityRouteSnapshotThumbnailMemoryCache(),
+        generator: generator,
+        snapshotThumbnailsEnabled: true,
+        hasValidMapboxToken: true,
+        generationTimeout: const Duration(milliseconds: 1),
+      );
+      final request = _request(route: _routeFixture());
+
+      final timedOut = await provider.resolve(request);
+      final second = provider.resolve(request);
+
+      expect(timedOut, const ActivityRouteThumbnailResult.timedOut());
+      expect(generator.requestCount, 1);
+
+      completer.complete(ActivityRouteThumbnailResult.readyImage(image));
+      final resolved = await second;
+
+      expect(resolved.state, ActivityRouteThumbnailState.readyImage);
+      expect(resolved.imageProvider, same(image));
+      expect(generator.requestCount, 1);
+      expect(provider.cache.length, 1);
+    },
+  );
+
+  test(
     'snapshot provider resolves stationary current-session location thumbnails',
     () async {
       final startedAt = DateTime.utc(2026, 6, 18, 8, 10);

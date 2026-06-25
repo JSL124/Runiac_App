@@ -1,5 +1,4 @@
-import 'dart:typed_data';
-
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart' as widgets;
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mapbox;
 
@@ -19,6 +18,7 @@ abstract interface class ActivityRouteSnapshotterRuntime {
     required widgets.Size logicalSize,
     required double pixelRatio,
     required ActivityRouteSnapshotCamera camera,
+    required ActivityRouteSnapshotterLifecycleSink onLifecycleDiagnostic,
   });
 }
 
@@ -33,6 +33,7 @@ class MapboxActivityRouteSnapshotterRuntime
     required widgets.Size logicalSize,
     required double pixelRatio,
     required ActivityRouteSnapshotCamera camera,
+    required ActivityRouteSnapshotterLifecycleSink onLifecycleDiagnostic,
   }) async {
     mapbox.MapboxOptions.setAccessToken(accessToken);
     final snapshotter = await mapbox.Snapshotter.create(
@@ -40,6 +41,9 @@ class MapboxActivityRouteSnapshotterRuntime
         size: mapbox.Size(width: logicalSize.width, height: logicalSize.height),
         pixelRatio: pixelRatio,
       ),
+    );
+    onLifecycleDiagnostic(
+      ActivityRouteSnapshotterDiagnosticEvent.snapshotterCreated,
     );
     try {
       await snapshotter.setCamera(
@@ -54,8 +58,18 @@ class MapboxActivityRouteSnapshotterRuntime
         ),
       );
       await snapshotter.style.setStyleURI(styleUri);
-      return snapshotter.start();
+      onLifecycleDiagnostic(
+        ActivityRouteSnapshotterDiagnosticEvent.startRequested,
+      );
+      final bytes = await snapshotter.start();
+      onLifecycleDiagnostic(
+        ActivityRouteSnapshotterDiagnosticEvent.startCompleted,
+      );
+      return bytes;
     } finally {
+      onLifecycleDiagnostic(
+        ActivityRouteSnapshotterDiagnosticEvent.disposeRequested,
+      );
       await snapshotter.dispose();
     }
   }
@@ -92,6 +106,15 @@ class MapboxActivityRouteSnapshotThumbnailGenerator
         logicalSize: request.logicalSize,
         pixelRatio: request.devicePixelRatio,
         camera: request.camera,
+        onLifecycleDiagnostic: (event) {
+          _reportDiagnostic(
+            ActivityRouteSnapshotterDiagnostic.lifecycle(
+              request: request,
+              styleUri: styleUri,
+              event: event,
+            ),
+          );
+        },
       );
       if (bytes == null || bytes.isEmpty) {
         _reportDiagnostic(
@@ -115,6 +138,21 @@ class MapboxActivityRouteSnapshotThumbnailGenerator
       return ActivityRouteThumbnailResult.readyImage(
         widgets.MemoryImage(bytes),
       );
+    } on PlatformException catch (error) {
+      _reportDiagnostic(
+        _snapshotWasCancelled(error)
+            ? ActivityRouteSnapshotterDiagnostic.cancelled(
+                request: request,
+                styleUri: styleUri,
+                error: error,
+              )
+            : ActivityRouteSnapshotterDiagnostic.failed(
+                request: request,
+                styleUri: styleUri,
+                error: error,
+              ),
+      );
+      return const ActivityRouteThumbnailResult.requestFailed();
     } on Object catch (error) {
       _reportDiagnostic(
         ActivityRouteSnapshotterDiagnostic.failed(
@@ -136,10 +174,23 @@ class MapboxActivityRouteSnapshotThumbnailGenerator
   }
 }
 
+typedef ActivityRouteSnapshotterLifecycleSink =
+    void Function(ActivityRouteSnapshotterDiagnosticEvent event);
+
 typedef ActivityRouteSnapshotterDiagnosticSink =
     void Function(ActivityRouteSnapshotterDiagnostic diagnostic);
 
-enum ActivityRouteSnapshotterDiagnosticEvent { started, finished, failed }
+enum ActivityRouteSnapshotterDiagnosticEvent {
+  started,
+  snapshotterCreated,
+  startRequested,
+  startCompleted,
+  disposeRequested,
+  finished,
+  cancelled,
+  failed,
+  timeout,
+}
 
 class ActivityRouteSnapshotterDiagnostic {
   const ActivityRouteSnapshotterDiagnostic._({
@@ -193,6 +244,44 @@ class ActivityRouteSnapshotterDiagnostic {
     );
   }
 
+  factory ActivityRouteSnapshotterDiagnostic.lifecycle({
+    required ActivityRouteSnapshotThumbnailGenerationRequest request,
+    required String styleUri,
+    required ActivityRouteSnapshotterDiagnosticEvent event,
+  }) {
+    return ActivityRouteSnapshotterDiagnostic._(
+      event: event,
+      activityId: request.activityId,
+      styleUri: styleUri,
+      logicalSize: request.logicalSize,
+      devicePixelRatio: request.devicePixelRatio,
+      centerLatitude: request.camera.centerLatitude,
+      centerLongitude: request.camera.centerLongitude,
+      zoom: request.camera.zoom,
+    );
+  }
+
+  factory ActivityRouteSnapshotterDiagnostic.cancelled({
+    required ActivityRouteSnapshotThumbnailGenerationRequest request,
+    required String styleUri,
+    required Object error,
+  }) {
+    return ActivityRouteSnapshotterDiagnostic._(
+      event: ActivityRouteSnapshotterDiagnosticEvent.cancelled,
+      activityId: request.activityId,
+      styleUri: styleUri,
+      logicalSize: request.logicalSize,
+      devicePixelRatio: request.devicePixelRatio,
+      centerLatitude: request.camera.centerLatitude,
+      centerLongitude: request.camera.centerLongitude,
+      zoom: request.camera.zoom,
+      state: ActivityRouteThumbnailState.requestFailed,
+      byteLength: 0,
+      errorType: error.runtimeType.toString(),
+      errorDescription: error.toString(),
+    );
+  }
+
   factory ActivityRouteSnapshotterDiagnostic.failed({
     required ActivityRouteSnapshotThumbnailGenerationRequest request,
     required String styleUri,
@@ -226,4 +315,10 @@ class ActivityRouteSnapshotterDiagnostic {
   final int? byteLength;
   final String? errorType;
   final String? errorDescription;
+}
+
+bool _snapshotWasCancelled(PlatformException error) {
+  final description = '${error.code} ${error.message ?? ''} ${error.details}'
+      .toLowerCase();
+  return error.code == 'snapshotFailed' && description.contains('cancel');
 }

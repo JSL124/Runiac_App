@@ -307,7 +307,7 @@ class CachedActivityRouteThumbnailProvider
 
     final pending = _inFlight[key];
     if (pending != null) {
-      return pending;
+      return _resolveWithTimeout(pending);
     }
 
     final generation = _generateAndCache(
@@ -316,16 +316,36 @@ class CachedActivityRouteThumbnailProvider
       generator: generator,
     );
     _inFlight[key] = generation;
+    unawaited(
+      generation.whenComplete(() {
+        if (identical(_inFlight[key], generation)) {
+          _inFlight.remove(key);
+        }
+      }),
+    );
+    final result = await _resolveWithTimeout(generation);
+    _reportDiagnostic(
+      request: request,
+      result: result,
+      source: ActivityRouteThumbnailDiagnosticSource.generator,
+    );
+    return result;
+  }
+
+  Future<ActivityRouteThumbnailResult> _resolveWithTimeout(
+    Future<ActivityRouteThumbnailResult> generation,
+  ) async {
     try {
-      final result = await generation;
-      _reportDiagnostic(
-        request: request,
-        result: result,
-        source: ActivityRouteThumbnailDiagnosticSource.generator,
+      return await generation.timeout(
+        generationTimeout,
+        onTimeout: () {
+          return const ActivityRouteThumbnailResult.timedOut();
+        },
       );
-      return result;
-    } finally {
-      _inFlight.remove(key);
+    } on TimeoutException {
+      return const ActivityRouteThumbnailResult.timedOut();
+    } on Object {
+      return const ActivityRouteThumbnailResult.requestFailed();
     }
   }
 
@@ -357,28 +377,19 @@ class CachedActivityRouteThumbnailProvider
     if (generationRequest == null) {
       return const ActivityRouteThumbnailResult.unavailable();
     }
-    final result = await _generateWithTimeout(generator, generationRequest);
+    final result = await _generate(generator, generationRequest);
     if (result.hasReadyImage) {
       cache.store(key, result);
     }
     return result;
   }
 
-  Future<ActivityRouteThumbnailResult> _generateWithTimeout(
+  Future<ActivityRouteThumbnailResult> _generate(
     ActivityRouteSnapshotThumbnailGenerator generator,
     ActivityRouteSnapshotThumbnailGenerationRequest request,
   ) async {
     try {
-      return await generator
-          .generate(request)
-          .timeout(
-            generationTimeout,
-            onTimeout: () {
-              return const ActivityRouteThumbnailResult.timedOut();
-            },
-          );
-    } on TimeoutException {
-      return const ActivityRouteThumbnailResult.timedOut();
+      return await generator.generate(request);
     } on Object {
       return const ActivityRouteThumbnailResult.requestFailed();
     }
