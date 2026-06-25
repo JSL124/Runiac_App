@@ -2358,6 +2358,34 @@ void main() {
     expect(find.textContaining(_forbiddenRealActivitySaveCopy), findsNothing);
   });
 
+  testWidgets(
+    'Advanced Analysis does not claim steady heart rate when heart rate is unavailable',
+    (WidgetTester tester) async {
+      _useTallSummarySurface(tester);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: AdvancedAnalysisScreen(
+            title: defaultRunSummarySnapshot.title,
+            subtitle: defaultRunSummarySnapshot.dateTimeLabel,
+            analysisSnapshot: const AdvancedAnalysisSnapshotBuilder()
+                .fromRunSummary(defaultRunSummarySnapshot),
+          ),
+        ),
+      );
+
+      await tester.ensureVisible(find.text('Elevation Analysis'));
+
+      expect(find.textContaining('steady heart rate'), findsNothing);
+      expect(
+        find.text(
+          'Route insights use the movement data available for this run.',
+        ),
+        findsOneWidget,
+      );
+    },
+  );
+
   testWidgets('Advanced Analysis renders scalar-only heart rate without zones', (
     WidgetTester tester,
   ) async {

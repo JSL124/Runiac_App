@@ -24,7 +24,7 @@ class AdvancedAnalysisElevationSection extends StatelessWidget {
           AdvancedAnalysisStatGrid(stats: _elevationStats, plain: true),
           const AdvancedAnalysisInterpretationRow(
             text:
-                'The route was mostly flat, which helped you maintain a stable pace and steady heart rate.',
+                'Route insights use the movement data available for this run.',
           ),
         ],
       ),
