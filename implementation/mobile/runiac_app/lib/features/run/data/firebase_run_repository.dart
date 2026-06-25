@@ -9,8 +9,7 @@ import '../domain/models/run_summary_read_model.dart';
 import '../domain/models/run_summary_snapshot.dart';
 import '../domain/models/xp_update_display_model.dart';
 import '../domain/repositories/run_repository.dart';
-import '../domain/services/completed_run_title_formatter.dart';
-import '../domain/services/run_calories_estimator.dart';
+import '../domain/services/run_summary_scalar_mapper.dart';
 import 'static_run_repository.dart';
 
 abstract interface class CompleteRunCallable {
@@ -94,16 +93,12 @@ class _CompleteRunResultMapper {
     final distanceMeters = _readInt(summary, 'distanceMeters');
     final durationSeconds = _readInt(summary, 'durationSeconds');
     final endedAt = _readDate(summary, 'endedAt');
-    final calories = const RunCaloriesEstimator().estimate(
-      bodyWeightKg: demoBodyWeightKgForCalories,
-      movingSeconds: durationSeconds,
-      distanceMeters: distanceMeters,
-      averagePaceSecondsPerKm: paceSeconds,
-    );
-    final avgPace = _formatPace(
+    final scalar = const RunSummaryScalarMapper().map(
+      completedAt: endedAt,
       distanceMeters: distanceMeters,
       durationSeconds: durationSeconds,
-      paceSecondsPerKm: paceSeconds,
+      averagePaceSecondsPerKm: paceSeconds,
+      routeLabel: _readOptionalString(summary, 'routeLabel'),
     );
 
     return CompleteRunResult(
@@ -112,21 +107,16 @@ class _CompleteRunResultMapper {
       progressionEventId: _readString(response, 'progressionEventId'),
       validationStatus: _readString(response, 'validationStatus'),
       summary: RunSummarySnapshot(
-        title: const CompletedRunTitleFormatter().format(completedAt: endedAt),
-        dateLabel: _formatDate(endedAt),
-        timeLabel: _formatTime(endedAt),
-        distanceKm: _formatDistanceKm(distanceMeters),
-        avgPace: avgPace,
-        duration: _formatDuration(durationSeconds),
+        title: scalar.title,
+        dateLabel: scalar.dateLabel,
+        timeLabel: scalar.timeLabel,
+        distanceKm: scalar.distanceKm,
+        avgPace: scalar.avgPace,
+        duration: scalar.duration,
         avgHeartRate: '--',
-        calories: _formatCalories(calories),
-        routeName:
-            _readOptionalString(summary, 'routeLabel') ?? 'Private route',
-        hasSufficientData: _hasSufficientSummaryData(
-          distanceMeters: distanceMeters,
-          durationSeconds: durationSeconds,
-          avgPace: avgPace,
-        ),
+        calories: scalar.calories,
+        routeName: scalar.routeName,
+        hasSufficientData: scalar.hasSufficientData,
         paceGraph: const PaceGraphSnapshot.unavailable(
           unavailableReason: 'backend_graph_data_unavailable',
         ),
@@ -240,59 +230,5 @@ class _CompleteRunResultMapper {
       message: 'The emulator returned an invalid run completion response.',
       isRetryable: true,
     );
-  }
-
-  static String _formatDistanceKm(int distanceMeters) {
-    return (distanceMeters / 1000).toStringAsFixed(2);
-  }
-
-  static String _formatDuration(int totalSeconds) {
-    final minutes = totalSeconds ~/ 60;
-    final seconds = totalSeconds % 60;
-    return '$minutes:${seconds.toString().padLeft(2, '0')}';
-  }
-
-  static String _formatPace({
-    required int distanceMeters,
-    required int durationSeconds,
-    required int paceSecondsPerKm,
-  }) {
-    if (distanceMeters < 50 ||
-        durationSeconds < 60 ||
-        paceSecondsPerKm <= 0 ||
-        paceSecondsPerKm < 150 ||
-        paceSecondsPerKm > 1800) {
-      return '--';
-    }
-
-    final minutes = paceSecondsPerKm ~/ 60;
-    final seconds = paceSecondsPerKm % 60;
-    return '$minutes’${seconds.toString().padLeft(2, '0')}”';
-  }
-
-  static bool _hasSufficientSummaryData({
-    required int distanceMeters,
-    required int durationSeconds,
-    required String avgPace,
-  }) {
-    return distanceMeters >= 50 && durationSeconds >= 60 && avgPace != '--';
-  }
-
-  static String _formatCalories(int? calories) {
-    return calories == null ? '--' : calories.toString();
-  }
-
-  static String _formatDate(DateTime value) {
-    final local = value.toLocal();
-    final year = local.year.toString().substring(2);
-    return '${local.day}/${local.month}/$year';
-  }
-
-  static String _formatTime(DateTime value) {
-    final local = value.toLocal();
-    final hour = local.hour % 12 == 0 ? 12 : local.hour % 12;
-    final minute = local.minute.toString().padLeft(2, '0');
-    final period = local.hour < 12 ? 'AM' : 'PM';
-    return '$hour:$minute $period';
   }
 }

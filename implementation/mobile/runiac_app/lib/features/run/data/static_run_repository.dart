@@ -10,10 +10,9 @@ import '../domain/models/run_summary_read_model.dart';
 import '../domain/models/run_summary_snapshot.dart';
 import '../domain/models/xp_update_display_model.dart';
 import '../domain/repositories/run_repository.dart';
-import '../domain/services/completed_run_title_formatter.dart';
 import '../domain/services/pace_graph_data_builder.dart';
 import '../domain/services/rule_based_coaching_summary_engine.dart';
-import '../domain/services/run_calories_estimator.dart';
+import '../domain/services/run_summary_scalar_mapper.dart';
 import '../presentation/data/run_completion_demo_snapshots.dart';
 
 class StaticRunRepository implements RunRepository {
@@ -52,46 +51,35 @@ class StaticRunRepository implements RunRepository {
     RunCompletionRequestAdapter.toBackendRequest(payload);
 
     final sessionId = payload.clientRunSessionId;
-    final calories = const RunCaloriesEstimator().estimate(
-      bodyWeightKg: demoBodyWeightKgForCalories,
-      movingSeconds: payload.durationSeconds,
+    final scalar = const RunSummaryScalarMapper().map(
+      completedAt: payload.completedAt,
       distanceMeters: payload.distanceMeters,
+      durationSeconds: payload.durationSeconds,
       averagePaceSecondsPerKm: payload.avgPaceSecondsPerKm,
-    );
-    final avgPace = _formatPace(
-      distanceMeters: payload.distanceMeters,
-      durationSeconds: payload.durationSeconds,
-      paceSecondsPerKm: payload.avgPaceSecondsPerKm,
-    );
-    final hasSufficientData = _hasSufficientSummaryData(
-      distanceMeters: payload.distanceMeters,
-      durationSeconds: payload.durationSeconds,
-      avgPace: avgPace,
+      routeLabel: payload.routeLabel,
     );
     final baseSummary = RunSummarySnapshot(
-      title: const CompletedRunTitleFormatter().format(
-        completedAt: payload.completedAt,
-      ),
-      dateLabel: _formatDate(payload.completedAt),
-      timeLabel: _formatTime(payload.completedAt),
-      distanceKm: _formatDistanceKm(payload.distanceMeters),
-      avgPace: avgPace,
-      duration: _formatDuration(payload.durationSeconds),
+      title: scalar.title,
+      dateLabel: scalar.dateLabel,
+      timeLabel: scalar.timeLabel,
+      distanceKm: scalar.distanceKm,
+      avgPace: scalar.avgPace,
+      duration: scalar.duration,
       avgHeartRate: '--',
-      calories: _formatCalories(calories),
-      routeName: payload.routeLabel ?? 'Private route',
-      hasSufficientData: hasSufficientData,
-      paceAnalysisSeries: hasSufficientData
+      calories: scalar.calories,
+      routeName: scalar.routeName,
+      hasSufficientData: scalar.hasSufficientData,
+      paceAnalysisSeries: scalar.hasSufficientData
           ? _paceAnalysisSeries(payload.paceGraphSamples)
           : null,
-      cadenceAnalysisSeries: hasSufficientData
+      cadenceAnalysisSeries: scalar.hasSufficientData
           ? payload.cadenceAnalysisSeries
           : null,
-      elevationSeries: hasSufficientData
+      elevationSeries: scalar.hasSufficientData
           ? payload.elevationAnalysisSeries ??
                 const ElevationAnalysisSeries.unavailable()
           : const ElevationAnalysisSeries.unavailable(),
-      paceGraph: hasSufficientData
+      paceGraph: scalar.hasSufficientData
           ? const PaceGraphDataBuilder().build(
               samples: payload.paceGraphSamples,
               durationSeconds: payload.durationSeconds,
@@ -152,46 +140,6 @@ class StaticRunRepository implements RunRepository {
     );
   }
 
-  String _formatDistanceKm(int distanceMeters) {
-    return (distanceMeters / 1000).toStringAsFixed(2);
-  }
-
-  String _formatDuration(int totalSeconds) {
-    final minutes = totalSeconds ~/ 60;
-    final seconds = totalSeconds % 60;
-    return '$minutes:${seconds.toString().padLeft(2, '0')}';
-  }
-
-  String _formatPace({
-    required int distanceMeters,
-    required int durationSeconds,
-    required int paceSecondsPerKm,
-  }) {
-    if (distanceMeters < 50 ||
-        durationSeconds < 60 ||
-        paceSecondsPerKm <= 0 ||
-        paceSecondsPerKm < 150 ||
-        paceSecondsPerKm > 1800) {
-      return '--';
-    }
-
-    final minutes = paceSecondsPerKm ~/ 60;
-    final seconds = paceSecondsPerKm % 60;
-    return '$minutes’${seconds.toString().padLeft(2, '0')}”';
-  }
-
-  bool _hasSufficientSummaryData({
-    required int distanceMeters,
-    required int durationSeconds,
-    required String avgPace,
-  }) {
-    return distanceMeters >= 50 && durationSeconds >= 60 && avgPace != '--';
-  }
-
-  String _formatCalories(int? calories) {
-    return calories == null ? '--' : calories.toString();
-  }
-
   PaceAnalysisSeries? _paceAnalysisSeries(List<PaceGraphSample> samples) {
     final acceptedSamples = <PaceAnalysisSample>[];
     for (final sample in samples) {
@@ -212,19 +160,5 @@ class StaticRunRepository implements RunRepository {
       return null;
     }
     return PaceAnalysisSeries.localAccepted(samples: acceptedSamples);
-  }
-
-  String _formatDate(DateTime value) {
-    final local = value.toLocal();
-    final year = local.year.toString().substring(2);
-    return '${local.day}/${local.month}/$year';
-  }
-
-  String _formatTime(DateTime value) {
-    final local = value.toLocal();
-    final hour = local.hour % 12 == 0 ? 12 : local.hour % 12;
-    final minute = local.minute.toString().padLeft(2, '0');
-    final period = local.hour < 12 ? 'AM' : 'PM';
-    return '$hour:$minute $period';
   }
 }
