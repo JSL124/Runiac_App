@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/features/run/domain/models/advanced_analysis_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/cadence_analysis_series.dart';
 import 'package:runiac_app/features/run/domain/models/elevation_analysis_series.dart';
+import 'package:runiac_app/features/run/domain/models/heart_rate_analysis_eligibility.dart';
 import 'package:runiac_app/features/run/domain/models/pace_analysis_series.dart';
 import 'package:runiac_app/features/run/domain/models/pace_graph_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/run_source_display.dart';
@@ -30,6 +31,8 @@ void main() {
             _scoreFixtureSummary(
               sourceType: RunSourceType.appleHealth,
               heartRateAvailability: HeartRateAvailability.available,
+              heartRateAnalysisEligibility:
+                  HeartRateAnalysisEligibility.zoneReady,
               importedMetrics: [
                 _heartRateSamples([
                   (elapsedSeconds: 0, bpm: 124),
@@ -169,6 +172,7 @@ void main() {
         _scoreFixtureSummary(
           sourceType: RunSourceType.runiacGps,
           heartRateAvailability: HeartRateAvailability.available,
+          heartRateAnalysisEligibility: HeartRateAnalysisEligibility.zoneReady,
           importedMetrics: [
             _heartRateSamples([
               (elapsedSeconds: 0, bpm: 118),
@@ -219,6 +223,7 @@ void main() {
         _scoreFixtureSummary(
           sourceType: RunSourceType.appleHealth,
           heartRateAvailability: HeartRateAvailability.available,
+          heartRateAnalysisEligibility: HeartRateAnalysisEligibility.zoneReady,
           importedMetrics: [
             _heartRateSamples([
               (elapsedSeconds: 0, bpm: 126),
@@ -447,6 +452,7 @@ void main() {
       final summary = _scoreFixtureSummary(
         sourceType: RunSourceType.healthConnect,
         heartRateAvailability: HeartRateAvailability.available,
+        heartRateAnalysisEligibility: HeartRateAnalysisEligibility.zoneReady,
         importedMetrics: [
           ImportedWorkoutMetricContract.sampleBased(
             metric: WorkoutMetricKind.heartRateSamples,
@@ -510,6 +516,7 @@ void main() {
       final summary = _scoreFixtureSummary(
         sourceType: RunSourceType.healthConnect,
         heartRateAvailability: HeartRateAvailability.available,
+        heartRateAnalysisEligibility: HeartRateAnalysisEligibility.zoneReady,
         importedMetrics: [
           ImportedWorkoutMetricContract.sampleBased(
             metric: WorkoutMetricKind.heartRateSamples,
@@ -566,6 +573,8 @@ RunSummarySnapshot _scoreFixtureSummary({
   RunSourceType sourceType = RunSourceType.runiacGps,
   HeartRateAvailability heartRateAvailability =
       HeartRateAvailability.unavailableNoSensor,
+  HeartRateAnalysisEligibility heartRateAnalysisEligibility =
+      HeartRateAnalysisEligibility.unavailable,
   List<ImportedWorkoutMetricContract> importedMetrics =
       const <ImportedWorkoutMetricContract>[],
   CadenceAnalysisSeries? cadenceAnalysisSeries,
@@ -584,6 +593,7 @@ RunSummarySnapshot _scoreFixtureSummary({
     routeName: 'East Coast Park Loop',
     sourceType: sourceType,
     heartRateAvailability: heartRateAvailability,
+    heartRateAnalysisEligibility: heartRateAnalysisEligibility,
     importedMetrics: importedMetrics,
     paceAnalysisSeries: PaceAnalysisSeries.localAccepted(
       samples: const [

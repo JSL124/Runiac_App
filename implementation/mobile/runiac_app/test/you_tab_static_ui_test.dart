@@ -1823,9 +1823,9 @@ void main() {
       expect(find.text('Pace Over Distance'), findsOneWidget);
       expect(
         snapshot.performance.scoreMode,
-        AdvancedAnalysisScoreSourceMode.wearableBacked,
+        AdvancedAnalysisScoreSourceMode.mobileOnly,
       );
-      expect(snapshot.performance.scoreConfidenceLabel, 'Wearable-backed');
+      expect(snapshot.performance.scoreConfidenceLabel, 'Phone data');
       final hiddenBadgeCount = snapshot.performance.badges.length - 4;
       expect(hiddenBadgeCount, greaterThan(0));
       expect(find.text('Controlled HR'), findsNothing);
@@ -1842,34 +1842,31 @@ void main() {
       await tester.pump(const Duration(milliseconds: 220));
 
       expect(find.text('Show less'), findsOneWidget);
-      expect(find.text('Controlled HR'), findsOneWidget);
-      expect(find.text('Easy Effort'), findsOneWidget);
+      expect(find.text('Controlled HR'), findsNothing);
+      expect(find.text('Easy Effort'), findsNothing);
       expect(heartRate.averageHeartRate.valueLabel, '135');
       expect(heartRate.maxHeartRate.valueLabel, '152');
-      expect(heartRate.targetZone.valueLabel, '120-169 bpm');
-      expect(heartRate.timeInZone.valueLabel, '75%');
+      expect(heartRate.targetZone.valueLabel, isNull);
+      expect(heartRate.timeInZone.valueLabel, isNull);
       expect(
         heartRate.averageHeartRate.source,
         AdvancedAnalysisMetricSource.healthConnect,
       );
-      expect(heartRate.zones.isAvailable, isTrue);
-      expect(heartRate.zones.value!.map((zone) => (zone.label, zone.percent)), [
-        ('Zone 1', 25),
-        ('Zone 2', 50),
-        ('Zone 3', 25),
-        ('Zone 4', 0),
-        ('Zone 5', 0),
-      ]);
+      expect(heartRate.zones.isAvailable, isFalse);
       await tester.ensureVisible(find.text('Heart Rate Analysis'));
       expect(find.text('135'), findsOneWidget);
       expect(find.text('152'), findsOneWidget);
-      expect(find.text('120-169'), findsOneWidget);
-      expect(find.text('75'), findsOneWidget);
-      expect(find.text('Zone 2'), findsOneWidget);
-      expect(find.text('50%'), findsOneWidget);
+      expect(find.text('Target Zone'), findsNothing);
+      expect(find.text('Time in Zone'), findsNothing);
+      expect(find.text('120-169'), findsNothing);
+      expect(find.text('75'), findsNothing);
+      expect(find.text('Zone 2'), findsNothing);
+      expect(find.text('50%'), findsNothing);
       expect(
-        find.text('Wearable heart-rate data is needed for this analysis.'),
-        findsNothing,
+        find.text(
+          'Heart rate was recorded, but zone analysis is not enabled for this run.',
+        ),
+        findsOneWidget,
       );
       expect(elevation.elevationGraph.isAvailable, isTrue);
       expect(

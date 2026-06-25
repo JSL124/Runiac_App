@@ -1,5 +1,6 @@
 import 'cadence_graph_snapshot.dart';
 import 'elevation_graph_snapshot.dart';
+import 'heart_rate_analysis_eligibility.dart';
 import 'pace_graph_snapshot.dart';
 
 enum AdvancedAnalysisMetricAvailability {
@@ -218,6 +219,7 @@ class AdvancedAnalysisSplitSnapshot {
 
 class AdvancedAnalysisHeartRateAnalysis {
   const AdvancedAnalysisHeartRateAnalysis({
+    required this.eligibility,
     required this.averageHeartRate,
     required this.maxHeartRate,
     required this.targetZone,
@@ -225,11 +227,14 @@ class AdvancedAnalysisHeartRateAnalysis {
     required this.zones,
   });
 
+  final HeartRateAnalysisEligibility eligibility;
   final AdvancedAnalysisMetric<String> averageHeartRate;
   final AdvancedAnalysisMetric<String> maxHeartRate;
   final AdvancedAnalysisMetric<String> targetZone;
   final AdvancedAnalysisMetric<String> timeInZone;
   final AdvancedAnalysisMetric<List<AdvancedAnalysisHeartRateZone>> zones;
+
+  bool get isZoneReady => eligibility.allowsZoneAnalysis;
 }
 
 class AdvancedAnalysisHeartRateZone {

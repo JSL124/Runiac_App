@@ -1,6 +1,7 @@
 import 'cadence_analysis_series.dart';
 import 'coaching_summary_snapshot.dart';
 import 'elevation_analysis_series.dart';
+import 'heart_rate_analysis_eligibility.dart';
 import 'pace_analysis_series.dart';
 import 'pace_graph_snapshot.dart';
 import 'run_route_snapshot.dart';
@@ -26,6 +27,8 @@ class RunSummarySnapshot {
     this.route = RunRouteSnapshot.empty,
     this.sourceType = RunSourceType.runiacGps,
     this.heartRateAvailability = HeartRateAvailability.unavailableNoSensor,
+    this.heartRateAnalysisEligibility =
+        HeartRateAnalysisEligibility.unavailable,
     this.importedMetrics = const <ImportedWorkoutMetricContract>[],
     this.coachingSummary = const CoachingSummarySnapshot(
       source: CoachingSummarySource.ruleBased,
@@ -54,6 +57,7 @@ class RunSummarySnapshot {
   final RunRouteSnapshot route;
   final RunSourceType sourceType;
   final HeartRateAvailability heartRateAvailability;
+  final HeartRateAnalysisEligibility heartRateAnalysisEligibility;
   final List<ImportedWorkoutMetricContract> importedMetrics;
   final CoachingSummarySnapshot coachingSummary;
 
@@ -69,6 +73,7 @@ class RunSummarySnapshot {
     RunRouteSnapshot? route,
     RunSourceType? sourceType,
     HeartRateAvailability? heartRateAvailability,
+    HeartRateAnalysisEligibility? heartRateAnalysisEligibility,
     List<ImportedWorkoutMetricContract>? importedMetrics,
     CoachingSummarySnapshot? coachingSummary,
   }) {
@@ -92,6 +97,8 @@ class RunSummarySnapshot {
       sourceType: sourceType ?? this.sourceType,
       heartRateAvailability:
           heartRateAvailability ?? this.heartRateAvailability,
+      heartRateAnalysisEligibility:
+          heartRateAnalysisEligibility ?? this.heartRateAnalysisEligibility,
       importedMetrics: importedMetrics ?? this.importedMetrics,
       coachingSummary: coachingSummary ?? this.coachingSummary,
     );

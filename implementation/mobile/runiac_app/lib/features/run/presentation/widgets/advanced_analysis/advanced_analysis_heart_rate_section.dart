@@ -17,7 +17,8 @@ class AdvancedAnalysisHeartRateSection extends StatelessWidget {
     final heartRate = analysis;
     final zones =
         heartRate?.zones.value ?? const <AdvancedAnalysisHeartRateZone>[];
-    final hasZoneDistribution = heartRate?.zones.isAvailable ?? false;
+    final hasZoneDistribution =
+        heartRate?.isZoneReady == true && heartRate?.zones.isAvailable == true;
     final hasAnyHeartRateMetric =
         heartRate?.averageHeartRate.isAvailable == true ||
         heartRate?.maxHeartRate.isAvailable == true;
@@ -30,12 +31,15 @@ class AdvancedAnalysisHeartRateSection extends StatelessWidget {
           plain: true,
         ),
         const SizedBox(height: 18),
-        const AdvancedAnalysisSubhead('Zone Distribution'),
-        const SizedBox(height: 10),
-        if (hasZoneDistribution)
-          _AdvancedAnalysisZoneBars(zones: zones)
-        else
-          _AdvancedAnalysisUnavailableZonePanel(showMessage: !fullUnavailable),
+        if (hasZoneDistribution) ...[
+          const AdvancedAnalysisSubhead('Zone Distribution'),
+          const SizedBox(height: 10),
+          _AdvancedAnalysisZoneBars(zones: zones),
+        ] else
+          _AdvancedAnalysisHeartRateStatusPanel(
+            message: _statusMessage(heartRate),
+            showMessage: !fullUnavailable,
+          ),
         if (hasZoneDistribution)
           const AdvancedAnalysisInterpretationRow(
             text:
@@ -59,12 +63,25 @@ class AdvancedAnalysisHeartRateSection extends StatelessWidget {
   List<AdvancedAnalysisStatData> _heartRateStats(
     AdvancedAnalysisHeartRateAnalysis? heartRate,
   ) {
-    return [
+    final stats = [
       _heartRateStat('Avg Heart Rate', heartRate?.averageHeartRate, 'bpm'),
       _heartRateStat('Max Heart Rate', heartRate?.maxHeartRate, 'bpm'),
-      _heartRateStat('Target Zone', heartRate?.targetZone, 'bpm'),
-      _heartRateStat('Time in Zone', heartRate?.timeInZone, '%'),
     ];
+    if (heartRate?.isZoneReady == true) {
+      stats.addAll([
+        _heartRateStat('Target Zone', heartRate?.targetZone, 'bpm'),
+        _heartRateStat('Time in Zone', heartRate?.timeInZone, '%'),
+      ]);
+    }
+    return stats;
+  }
+
+  String _statusMessage(AdvancedAnalysisHeartRateAnalysis? heartRate) {
+    if (heartRate?.averageHeartRate.isAvailable == true ||
+        heartRate?.maxHeartRate.isAvailable == true) {
+      return 'Heart rate was recorded, but zone analysis is not enabled for this run.';
+    }
+    return 'Heart rate was not recorded for this run.';
   }
 
   AdvancedAnalysisStatData _heartRateStat(
@@ -187,9 +204,13 @@ class _AdvancedAnalysisZoneRow extends StatelessWidget {
   }
 }
 
-class _AdvancedAnalysisUnavailableZonePanel extends StatelessWidget {
-  const _AdvancedAnalysisUnavailableZonePanel({required this.showMessage});
+class _AdvancedAnalysisHeartRateStatusPanel extends StatelessWidget {
+  const _AdvancedAnalysisHeartRateStatusPanel({
+    required this.message,
+    required this.showMessage,
+  });
 
+  final String message;
   final bool showMessage;
 
   @override
@@ -205,7 +226,7 @@ class _AdvancedAnalysisUnavailableZonePanel extends StatelessWidget {
               borderRadius: BorderRadius.all(Radius.circular(14)),
             ),
           ),
-          if (showMessage) const _AdvancedAnalysisHeartRateGuard(),
+          if (showMessage) _AdvancedAnalysisHeartRateGuard(message: message),
         ],
       ),
     );
@@ -213,7 +234,11 @@ class _AdvancedAnalysisUnavailableZonePanel extends StatelessWidget {
 }
 
 class _AdvancedAnalysisHeartRateGuard extends StatelessWidget {
-  const _AdvancedAnalysisHeartRateGuard();
+  const _AdvancedAnalysisHeartRateGuard({
+    this.message = 'Heart rate was not recorded for this run.',
+  });
+
+  final String message;
 
   @override
   Widget build(BuildContext context) {
@@ -226,11 +251,14 @@ class _AdvancedAnalysisHeartRateGuard extends StatelessWidget {
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.44),
             ),
-            child: const Center(
+            child: Center(
               child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 10,
+                ),
                 child: Text(
-                  'Wearable heart-rate data is needed for this analysis.',
+                  message,
                   textAlign: TextAlign.center,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,

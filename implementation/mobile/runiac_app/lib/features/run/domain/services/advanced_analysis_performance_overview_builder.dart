@@ -139,6 +139,9 @@ class AdvancedAnalysisPerformanceOverviewBuilder {
   }
 
   int? _targetZonePercent(AdvancedAnalysisHeartRateAnalysis heartRateAnalysis) {
+    if (!heartRateAnalysis.isZoneReady) {
+      return null;
+    }
     final zones = heartRateAnalysis.zones.value;
     if (zones == null || zones.isEmpty) {
       return null;

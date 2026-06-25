@@ -981,8 +981,10 @@ void main() {
     expect(find.text('158'), findsNothing);
     expect(find.text('130–150'), findsNothing);
     expect(find.text('72'), findsNothing);
+    expect(find.text('Target Zone'), findsNothing);
+    expect(find.text('Time in Zone'), findsNothing);
     expect(
-      find.text('Wearable heart-rate data is needed for this analysis.'),
+      find.text('Heart rate was not recorded for this run.'),
       findsOneWidget,
     );
   });
@@ -2314,8 +2316,10 @@ void main() {
     await tester.ensureVisible(find.text('Heart Rate Analysis'));
 
     expect(find.text('Heart Rate Analysis'), findsOneWidget);
+    expect(find.text('Target Zone'), findsNothing);
+    expect(find.text('Time in Zone'), findsNothing);
     expect(
-      find.text('Wearable heart-rate data is needed for this analysis.'),
+      find.text('Heart rate was not recorded for this run.'),
       findsOneWidget,
     );
     expect(find.text('Zone 2'), findsNothing);
@@ -2398,10 +2402,14 @@ void main() {
 
     expect(find.text('145'), findsOneWidget);
     expect(find.text('166'), findsOneWidget);
+    expect(find.text('Target Zone'), findsNothing);
+    expect(find.text('Time in Zone'), findsNothing);
     expect(find.text('Zone 2'), findsNothing);
     expect(find.text('54%'), findsNothing);
     expect(
-      find.text('Wearable heart-rate data is needed for this analysis.'),
+      find.text(
+        'Heart rate was recorded, but zone analysis is not enabled for this run.',
+      ),
       findsOneWidget,
     );
     expect(
