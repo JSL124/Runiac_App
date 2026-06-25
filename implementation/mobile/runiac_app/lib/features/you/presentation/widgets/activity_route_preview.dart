@@ -39,6 +39,8 @@ class ActivityRoutePreview extends StatelessWidget {
       activityId: activityId,
     );
 
+    final canRequestLocationSnapshot = _canRequestLocationSnapshot;
+
     return ClipRRect(
       key: const ValueKey('activity_route_preview_slot'),
       borderRadius: BorderRadius.circular(18),
@@ -53,7 +55,7 @@ class ActivityRoutePreview extends StatelessWidget {
             overlayMode: _RoutePreviewOverlayMode.route,
           ),
           _RoutePreviewMode.tinyRoute =>
-            _canRequestLocationSnapshot
+            canRequestLocationSnapshot
                 ? _RoutePreviewSnapshotSlot(
                     route: route,
                     thumbnailProvider: thumbnailProvider,
@@ -67,13 +69,21 @@ class ActivityRoutePreview extends StatelessWidget {
                       painter: _TinyRoutePreviewPainter(route),
                     ),
                   ),
-          _RoutePreviewMode.fallback => Semantics(
-            label: 'Route preview unavailable',
-            child: const CustomPaint(
-              key: ValueKey('activity_route_preview_fallback'),
-              painter: _FallbackRoutePreviewPainter(),
-            ),
-          ),
+          _RoutePreviewMode.fallback =>
+            canRequestLocationSnapshot
+                ? _RoutePreviewSnapshotSlot(
+                    route: route,
+                    thumbnailProvider: thumbnailProvider,
+                    thumbnailRequest: thumbnailRequest,
+                    overlayMode: _RoutePreviewOverlayMode.location,
+                  )
+                : Semantics(
+                    label: 'Route preview unavailable',
+                    child: const CustomPaint(
+                      key: ValueKey('activity_route_preview_fallback'),
+                      painter: _FallbackRoutePreviewPainter(),
+                    ),
+                  ),
         },
       ),
     );

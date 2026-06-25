@@ -222,5 +222,30 @@ ActivityRouteThumbnailProvider _createActivityRouteThumbnailProvider() {
     ),
     snapshotThumbnailsEnabled: config.snapshotThumbnailsEnabled,
     hasValidMapboxToken: config.hasPublicAccessToken,
+    onDiagnostic: _logActivityRouteThumbnailDiagnostic,
   );
 }
+
+void _logActivityRouteThumbnailDiagnostic(
+  ActivityRouteThumbnailDiagnostic diagnostic,
+) {
+  if (!_activityRouteThumbnailDiagnosticsEnabled) {
+    return;
+  }
+  debugPrint(
+    'Runiac Activity route thumbnail: '
+    'activityId=${diagnostic.activityId ?? "(none)"} '
+    'state=${diagnostic.fallbackReason} '
+    'source=${diagnostic.source.name} '
+    'allowExternal=${diagnostic.allowExternalStaticMap} '
+    'demo=${diagnostic.isDemoRoute} '
+    'currentSession=${diagnostic.isCurrentSessionRoute} '
+    'snapshotFlag=${diagnostic.snapshotThumbnailsEnabled} '
+    'publicToken=${diagnostic.hasValidMapboxToken} '
+    'knownLocation=${diagnostic.hasKnownLocation}',
+  );
+}
+
+const _activityRouteThumbnailDiagnosticsEnabled = bool.fromEnvironment(
+  'RUNIAC_ENABLE_MAPBOX_SNAPSHOT_DIAGNOSTICS',
+);

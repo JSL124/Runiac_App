@@ -24,7 +24,7 @@ class ActivityRouteSnapshotThumbnailCacheKey {
   }) {
     return ActivityRouteSnapshotThumbnailCacheKey(
       activityIdentity: request.activityId,
-      routeFingerprint: _routeFingerprint(request.route.segments),
+      routeFingerprint: _routeFingerprint(request.route),
       styleId: styleId,
       logicalWidth: request.logicalSize.width.round(),
       logicalHeight: request.logicalSize.height.round(),
@@ -243,6 +243,7 @@ class CachedActivityRouteThumbnailProvider
     this.hasValidMapboxToken = false,
     this.generationTimeout = const Duration(seconds: 4),
     this.styleId = _defaultStyleId,
+    this.onDiagnostic,
   });
 
   final ActivityRouteSnapshotThumbnailMemoryCache cache;
@@ -251,6 +252,7 @@ class CachedActivityRouteThumbnailProvider
   final bool hasValidMapboxToken;
   final Duration generationTimeout;
   final String styleId;
+  final ActivityRouteThumbnailDiagnosticSink? onDiagnostic;
   final Map<
     ActivityRouteSnapshotThumbnailCacheKey,
     Future<ActivityRouteThumbnailResult>
@@ -271,17 +273,35 @@ class CachedActivityRouteThumbnailProvider
     );
     final generator = this.generator;
     if (generator == null) {
-      return cache.resolve(key) ??
-          const ActivityRouteThumbnailResult.unavailable();
+      final cached = cache.resolve(key);
+      final result = cached ?? const ActivityRouteThumbnailResult.unavailable();
+      _reportDiagnostic(
+        request: request,
+        result: result,
+        source: cached == null
+            ? ActivityRouteThumbnailDiagnosticSource.generatorMissing
+            : ActivityRouteThumbnailDiagnosticSource.memoryCache,
+      );
+      return result;
     }
 
     final policyResult = _resolvePolicy(request);
     if (policyResult != null) {
+      _reportDiagnostic(
+        request: request,
+        result: policyResult,
+        source: ActivityRouteThumbnailDiagnosticSource.policy,
+      );
       return policyResult;
     }
 
     final cached = cache.resolve(key);
     if (cached != null) {
+      _reportDiagnostic(
+        request: request,
+        result: cached,
+        source: ActivityRouteThumbnailDiagnosticSource.memoryCache,
+      );
       return cached;
     }
 
@@ -297,7 +317,13 @@ class CachedActivityRouteThumbnailProvider
     );
     _inFlight[key] = generation;
     try {
-      return await generation;
+      final result = await generation;
+      _reportDiagnostic(
+        request: request,
+        result: result,
+        source: ActivityRouteThumbnailDiagnosticSource.generator,
+      );
+      return result;
     } finally {
       _inFlight.remove(key);
     }
@@ -356,6 +382,76 @@ class CachedActivityRouteThumbnailProvider
     } on Object {
       return const ActivityRouteThumbnailResult.requestFailed();
     }
+  }
+
+  void _reportDiagnostic({
+    required ActivityRouteThumbnailRequest request,
+    required ActivityRouteThumbnailResult result,
+    required ActivityRouteThumbnailDiagnosticSource source,
+  }) {
+    final onDiagnostic = this.onDiagnostic;
+    if (onDiagnostic == null) {
+      return;
+    }
+    onDiagnostic(
+      ActivityRouteThumbnailDiagnostic(
+        activityId: request.activityId,
+        resultState: result.state,
+        source: source,
+        allowExternalStaticMap: request.allowExternalStaticMap,
+        isDemoRoute: request.isDemoRoute,
+        isCurrentSessionRoute: request.isCurrentSessionRoute,
+        snapshotThumbnailsEnabled: snapshotThumbnailsEnabled,
+        hasValidMapboxToken: hasValidMapboxToken,
+        hasKnownLocation: _knownPreviewLocation(request.route) != null,
+      ),
+    );
+  }
+}
+
+typedef ActivityRouteThumbnailDiagnosticSink =
+    void Function(ActivityRouteThumbnailDiagnostic diagnostic);
+
+enum ActivityRouteThumbnailDiagnosticSource {
+  policy,
+  generatorMissing,
+  generator,
+  memoryCache,
+}
+
+class ActivityRouteThumbnailDiagnostic {
+  const ActivityRouteThumbnailDiagnostic({
+    required this.activityId,
+    required this.resultState,
+    required this.source,
+    required this.allowExternalStaticMap,
+    required this.isDemoRoute,
+    required this.isCurrentSessionRoute,
+    required this.snapshotThumbnailsEnabled,
+    required this.hasValidMapboxToken,
+    required this.hasKnownLocation,
+  });
+
+  final String? activityId;
+  final ActivityRouteThumbnailState resultState;
+  final ActivityRouteThumbnailDiagnosticSource source;
+  final bool allowExternalStaticMap;
+  final bool isDemoRoute;
+  final bool isCurrentSessionRoute;
+  final bool snapshotThumbnailsEnabled;
+  final bool hasValidMapboxToken;
+  final bool hasKnownLocation;
+
+  String get fallbackReason {
+    return switch (resultState) {
+      ActivityRouteThumbnailState.readyImage => 'readyImage',
+      ActivityRouteThumbnailState.loading => 'loading',
+      ActivityRouteThumbnailState.privacyDisabled => 'privacyDisabled',
+      ActivityRouteThumbnailState.tokenMissing => 'tokenMissing',
+      ActivityRouteThumbnailState.requestFailed => 'requestFailed',
+      ActivityRouteThumbnailState.timedOut => 'timedOut',
+      ActivityRouteThumbnailState.unavailable => 'unavailable',
+    };
   }
 }
 
@@ -439,9 +535,9 @@ bool _projectedRouteIsTiny({
       projectedHeight < _tinyRouteProjectedThresholdPx;
 }
 
-int _routeFingerprint(List<List<RunLocationSample>> segments) {
+int _routeFingerprint(RunRouteSnapshot route) {
   var hash = _fnvOffsetBasis;
-  for (final segment in segments) {
+  for (final segment in route.segments) {
     hash = _combineHash(hash, _segmentSeparator);
     for (final point in segment) {
       if (!point.latitude.isFinite || !point.longitude.isFinite) {
@@ -450,6 +546,14 @@ int _routeFingerprint(List<List<RunLocationSample>> segments) {
       hash = _combineHash(hash, _quantizeCoordinate(point.latitude));
       hash = _combineHash(hash, _quantizeCoordinate(point.longitude));
     }
+  }
+  final lastKnownLocation = route.lastKnownLocation;
+  if (lastKnownLocation != null &&
+      lastKnownLocation.latitude.isFinite &&
+      lastKnownLocation.longitude.isFinite) {
+    hash = _combineHash(hash, _lastKnownLocationSeparator);
+    hash = _combineHash(hash, _quantizeCoordinate(lastKnownLocation.latitude));
+    hash = _combineHash(hash, _quantizeCoordinate(lastKnownLocation.longitude));
   }
   return hash;
 }
@@ -496,6 +600,7 @@ const _locationSnapshotZoom = 16.5;
 const _coordinatePrecision = 1000000;
 const _devicePixelRatioPrecision = 4;
 const _segmentSeparator = 0x9e3779b9;
+const _lastKnownLocationSeparator = 0x85ebca6b;
 const _fnvOffsetBasis = 0xcbf29ce484222325;
 const _fnvPrime = 0x100000001b3;
 const _hashMask = 0x7fffffffffffffff;

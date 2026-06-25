@@ -143,6 +143,10 @@ RunRouteSnapshot _singlePointRouteFixture() {
   );
 }
 
+RunRouteSnapshot _noLocationRouteFixture() {
+  return const RunRouteSnapshot();
+}
+
 RunRouteSnapshot _stationaryRouteFixture() {
   final startedAt = DateTime.utc(2026, 6, 18, 8, 10);
 
@@ -276,6 +280,113 @@ void main() {
       findsOneWidget,
     );
   }
+
+  testWidgets(
+    'current-session single-point route renders snapshot with orange dot only',
+    (WidgetTester tester) async {
+      final provider = _FakeActivityRouteThumbnailProvider(
+        ActivityRouteThumbnailResult.readyImage(
+          MemoryImage(Uint8List.fromList(_transparentPixelPng)),
+        ),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ActivityRoutePreview(
+              route: _singlePointRouteFixture(),
+              thumbnailProvider: provider,
+              allowExternalStaticMap: true,
+              isCurrentSessionRoute: true,
+              activityId: 'low-data-one-point',
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(provider.requestCount, 1);
+      expect(provider.lastRequest!.allowExternalStaticMap, isTrue);
+      expect(provider.lastRequest!.isCurrentSessionRoute, isTrue);
+      expect(provider.lastRequest!.isDemoRoute, isFalse);
+      expect(
+        provider.lastRequest!.route.lastKnownLocation?.latitude,
+        closeTo(1.301, 0.000001),
+      );
+      expect(
+        find.byKey(const ValueKey('activity_route_preview_static_thumbnail')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey(
+            'activity_route_preview_static_thumbnail_location_dot',
+          ),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey(
+            'activity_route_preview_static_thumbnail_route_overlay',
+          ),
+        ),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey('activity_route_preview_polyline')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey('activity_route_preview_fallback')),
+        findsNothing,
+      );
+    },
+  );
+
+  testWidgets(
+    'current-session no-location route keeps fallback without provider request',
+    (WidgetTester tester) async {
+      final provider = _FakeActivityRouteThumbnailProvider(
+        ActivityRouteThumbnailResult.readyImage(
+          MemoryImage(Uint8List.fromList(_transparentPixelPng)),
+        ),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ActivityRoutePreview(
+              route: _noLocationRouteFixture(),
+              thumbnailProvider: provider,
+              allowExternalStaticMap: true,
+              isCurrentSessionRoute: true,
+              activityId: 'low-data-no-location',
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(provider.requestCount, 0);
+      expect(
+        find.byKey(const ValueKey('activity_route_preview_fallback')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('activity_route_preview_static_thumbnail')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(
+          const ValueKey(
+            'activity_route_preview_static_thumbnail_location_dot',
+          ),
+        ),
+        findsNothing,
+      );
+    },
+  );
 
   test(
     'pace chart display anchors sufficient graph endpoints to final slot',
@@ -766,11 +877,11 @@ void main() {
       );
       historyStore.registerCompletedRun(
         _sessionCompletion(
-          activityId: 'low-data-one-point',
-          title: 'Low Data One Point Run',
+          activityId: 'low-data-no-location',
+          title: 'Low Data No Location Run',
           distanceKm: '0.03',
           hasSufficientData: false,
-          route: _singlePointRouteFixture(),
+          route: _noLocationRouteFixture(),
         ),
       );
       await tester.pumpAndSettle();
@@ -785,7 +896,7 @@ void main() {
         const ValueKey('recent_running_card_low-data-stationary'),
       );
       final fallbackRecentCard = find.byKey(
-        const ValueKey('recent_running_card_low-data-one-point'),
+        const ValueKey('recent_running_card_low-data-no-location'),
       );
       expect(routeBackedRecentCard, findsOneWidget);
       expect(stationaryRecentCard, findsOneWidget);
@@ -866,7 +977,7 @@ void main() {
         const ValueKey('activity_history_card_low-data-stationary'),
       );
       final fallbackHistoryCard = find.byKey(
-        const ValueKey('activity_history_card_low-data-one-point'),
+        const ValueKey('activity_history_card_low-data-no-location'),
       );
       expect(routeBackedHistoryCard, findsOneWidget);
       expect(stationaryHistoryCard, findsOneWidget);

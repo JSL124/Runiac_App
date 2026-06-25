@@ -37,6 +37,21 @@ RunRouteSnapshot _routeFixture({
   );
 }
 
+RunRouteSnapshot _singlePointRouteFixture() {
+  final startedAt = DateTime.utc(2026, 6, 18, 8, 10);
+  final location = RunLocationSample(
+    recordedAt: startedAt,
+    latitude: 1.301,
+    longitude: 103.801,
+  );
+  return RunRouteSnapshot(
+    segments: [
+      [location],
+    ],
+    lastKnownLocation: location,
+  );
+}
+
 ActivityRouteThumbnailRequest _request({
   required RunRouteSnapshot route,
   Size logicalSize = const Size(88, 88),
@@ -134,6 +149,16 @@ void main() {
         route: _routeFixture(),
         activityId: 'activity-2',
       );
+      final lastKnownChanged = _request(
+        route: RunRouteSnapshot(
+          segments: _routeFixture().segments,
+          lastKnownLocation: RunLocationSample(
+            recordedAt: DateTime.utc(2026, 6, 18, 8, 12),
+            latitude: 1.305,
+            longitude: 103.805,
+          ),
+        ),
+      );
       final privacyChanged = _request(
         route: _routeFixture(),
         allowExternalStaticMap: false,
@@ -158,6 +183,10 @@ void main() {
       );
       expect(
         ActivityRouteSnapshotThumbnailCacheKey.fromRequest(activityChanged),
+        isNot(baseKey),
+      );
+      expect(
+        ActivityRouteSnapshotThumbnailCacheKey.fromRequest(lastKnownChanged),
         isNot(baseKey),
       );
       expect(
@@ -238,6 +267,7 @@ void main() {
 
   test('snapshot provider resolves current-session route thumbnails', () async {
     final cache = ActivityRouteSnapshotThumbnailMemoryCache();
+    final diagnostics = <ActivityRouteThumbnailDiagnostic>[];
     final image = MemoryImage(Uint8List.fromList(const [10, 11, 12]));
     final generator = _FakeSnapshotThumbnailGenerator((request) async {
       return ActivityRouteThumbnailResult.readyImage(image);
@@ -247,6 +277,7 @@ void main() {
       generator: generator,
       snapshotThumbnailsEnabled: true,
       hasValidMapboxToken: true,
+      onDiagnostic: diagnostics.add,
     );
 
     final request = _request(
@@ -261,6 +292,14 @@ void main() {
     expect(generator.requestCount, 1);
     expect(generator.lastRequest!.activityId, request.activityId);
     expect(cache.length, 1);
+    expect(diagnostics, hasLength(1));
+    expect(diagnostics.single.fallbackReason, 'readyImage');
+    expect(
+      diagnostics.single.source,
+      ActivityRouteThumbnailDiagnosticSource.generator,
+    );
+    expect(diagnostics.single.isCurrentSessionRoute, isTrue);
+    expect(diagnostics.single.hasKnownLocation, isTrue);
   });
 
   test(
@@ -268,6 +307,7 @@ void main() {
     () async {
       // Given: static thumbnails are enabled and a valid token is available.
       final cache = ActivityRouteSnapshotThumbnailMemoryCache();
+      final diagnostics = <ActivityRouteThumbnailDiagnostic>[];
       final generator = _FakeSnapshotThumbnailGenerator((request) async {
         return ActivityRouteThumbnailResult.readyImage(
           MemoryImage(Uint8List.fromList(const [10, 11, 12])),
@@ -278,6 +318,7 @@ void main() {
         generator: generator,
         snapshotThumbnailsEnabled: true,
         hasValidMapboxToken: true,
+        onDiagnostic: diagnostics.add,
       );
 
       // When: a non-demo route asks for a static thumbnail.
@@ -293,12 +334,23 @@ void main() {
       expect(resolved, const ActivityRouteThumbnailResult.privacyDisabled());
       expect(generator.requestCount, 0);
       expect(cache.length, 0);
+      expect(diagnostics, hasLength(1));
+      expect(diagnostics.single.fallbackReason, 'privacyDisabled');
+      expect(
+        diagnostics.single.source,
+        ActivityRouteThumbnailDiagnosticSource.policy,
+      );
+      expect(diagnostics.single.snapshotThumbnailsEnabled, isTrue);
+      expect(diagnostics.single.hasValidMapboxToken, isTrue);
+      expect(diagnostics.single.allowExternalStaticMap, isTrue);
+      expect(diagnostics.single.isCurrentSessionRoute, isFalse);
     },
   );
 
   test(
     'snapshot provider reports disabled flag and missing token states',
     () async {
+      final diagnostics = <ActivityRouteThumbnailDiagnostic>[];
       final disabledProvider = CachedActivityRouteThumbnailProvider(
         cache: ActivityRouteSnapshotThumbnailMemoryCache(),
         generator: _FakeSnapshotThumbnailGenerator((request) async {
@@ -306,6 +358,7 @@ void main() {
         }),
         snapshotThumbnailsEnabled: false,
         hasValidMapboxToken: true,
+        onDiagnostic: diagnostics.add,
       );
       final missingTokenProvider = CachedActivityRouteThumbnailProvider(
         cache: ActivityRouteSnapshotThumbnailMemoryCache(),
@@ -314,6 +367,7 @@ void main() {
         }),
         snapshotThumbnailsEnabled: true,
         hasValidMapboxToken: false,
+        onDiagnostic: diagnostics.add,
       );
 
       expect(
@@ -324,6 +378,10 @@ void main() {
         await missingTokenProvider.resolve(_request(route: _routeFixture())),
         const ActivityRouteThumbnailResult.tokenMissing(),
       );
+      expect(diagnostics.map((diagnostic) => diagnostic.fallbackReason), [
+        'privacyDisabled',
+        'tokenMissing',
+      ]);
     },
   );
 
@@ -429,6 +487,41 @@ void main() {
       expect(
         generator.lastRequest!.camera.centerLongitude,
         closeTo(103.801001, 0.000001),
+      );
+    },
+  );
+
+  test(
+    'snapshot provider resolves single-point current-session location thumbnails',
+    () async {
+      final image = MemoryImage(Uint8List.fromList(const [19, 20, 21]));
+      final generator = _FakeSnapshotThumbnailGenerator((request) async {
+        return ActivityRouteThumbnailResult.readyImage(image);
+      });
+      final provider = CachedActivityRouteThumbnailProvider(
+        cache: ActivityRouteSnapshotThumbnailMemoryCache(),
+        generator: generator,
+        snapshotThumbnailsEnabled: true,
+        hasValidMapboxToken: true,
+      );
+
+      final resolved = await provider.resolve(
+        _request(
+          route: _singlePointRouteFixture(),
+          isDemoRoute: false,
+          isCurrentSessionRoute: true,
+        ),
+      );
+
+      expect(resolved.state, ActivityRouteThumbnailState.readyImage);
+      expect(generator.requestCount, 1);
+      expect(
+        generator.lastRequest!.camera.centerLatitude,
+        closeTo(1.301, 0.000001),
+      );
+      expect(
+        generator.lastRequest!.camera.centerLongitude,
+        closeTo(103.801, 0.000001),
       );
     },
   );
