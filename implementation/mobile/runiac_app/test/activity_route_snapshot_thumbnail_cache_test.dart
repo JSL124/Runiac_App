@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runiac_app/features/run/domain/models/run_location_sample.dart';
 import 'package:runiac_app/features/run/domain/models/run_route_snapshot.dart';
+import 'package:runiac_app/features/you/presentation/widgets/activity_route_thumbnail_viewport.dart';
 import 'package:runiac_app/features/you/presentation/widgets/activity_route_preview.dart';
 import 'package:runiac_app/features/you/presentation/widgets/activity_route_snapshot_thumbnail_cache.dart';
 
@@ -52,6 +53,61 @@ RunRouteSnapshot _singlePointRouteFixture() {
   );
 }
 
+RunRouteSnapshot _turnRouteFixture() {
+  final startedAt = DateTime.utc(2026, 6, 18, 8, 10);
+  return RunRouteSnapshot(
+    segments: [
+      [
+        RunLocationSample(
+          recordedAt: startedAt,
+          latitude: 1.3000,
+          longitude: 103.8000,
+        ),
+        RunLocationSample(
+          recordedAt: startedAt.add(const Duration(seconds: 60)),
+          latitude: 1.3009,
+          longitude: 103.8000,
+        ),
+        RunLocationSample(
+          recordedAt: startedAt.add(const Duration(seconds: 120)),
+          latitude: 1.3009,
+          longitude: 103.8012,
+        ),
+      ],
+    ],
+    lastKnownLocation: RunLocationSample(
+      recordedAt: startedAt.add(const Duration(seconds: 120)),
+      latitude: 1.3009,
+      longitude: 103.8012,
+    ),
+  );
+}
+
+RunRouteSnapshot _longNarrowRouteFixture() {
+  final startedAt = DateTime.utc(2026, 6, 18, 8, 10);
+  return RunRouteSnapshot(
+    segments: [
+      [
+        RunLocationSample(
+          recordedAt: startedAt,
+          latitude: 1.3000,
+          longitude: 103.8000,
+        ),
+        RunLocationSample(
+          recordedAt: startedAt.add(const Duration(seconds: 120)),
+          latitude: 1.3060,
+          longitude: 103.8001,
+        ),
+      ],
+    ],
+    lastKnownLocation: RunLocationSample(
+      recordedAt: startedAt.add(const Duration(seconds: 120)),
+      latitude: 1.3060,
+      longitude: 103.8001,
+    ),
+  );
+}
+
 ActivityRouteThumbnailRequest _request({
   required RunRouteSnapshot route,
   Size logicalSize = const Size(88, 88),
@@ -94,6 +150,72 @@ class _FakeSnapshotThumbnailGenerator
 }
 
 void main() {
+  test('shared viewport derives deterministic camera for a turn route', () {
+    final route = _turnRouteFixture();
+    final viewport = ActivityRouteThumbnailViewport.fromRoute(
+      route,
+      logicalSize: const Size(88, 88),
+    );
+
+    expect(viewport.mode, ActivityRouteThumbnailViewportMode.meaningfulRoute);
+    expect(viewport.centerLatitude, closeTo(1.30045, 0.000001));
+    expect(viewport.centerLongitude, closeTo(103.8006, 0.000001));
+    expect(viewport.cameraZoom, inInclusiveRange(11.5, 17.2));
+
+    final camera = ActivityRouteSnapshotCamera.fromViewport(viewport);
+    expect(camera, isNotNull);
+    expect(camera!.centerLatitude, viewport.centerLatitude);
+    expect(camera.centerLongitude, viewport.centerLongitude);
+    expect(camera.zoom, viewport.cameraZoom);
+  });
+
+  test(
+    'shared viewport projects turn route points inside thumbnail bounds',
+    () {
+      final viewport = ActivityRouteThumbnailViewport.fromRoute(
+        _turnRouteFixture(),
+        logicalSize: const Size(88, 88),
+      );
+
+      expect(viewport.mode, ActivityRouteThumbnailViewportMode.meaningfulRoute);
+      for (final point in viewport.drawablePoints) {
+        final projected = viewport.project(point);
+        expect(projected.dx, inInclusiveRange(7, 81));
+        expect(projected.dy, inInclusiveRange(7, 81));
+      }
+    },
+  );
+
+  test('shared viewport keeps long narrow route inside thumbnail bounds', () {
+    final viewport = ActivityRouteThumbnailViewport.fromRoute(
+      _longNarrowRouteFixture(),
+      logicalSize: const Size(88, 88),
+    );
+
+    expect(viewport.mode, ActivityRouteThumbnailViewportMode.meaningfulRoute);
+    for (final point in viewport.drawablePoints) {
+      final projected = viewport.project(point);
+      expect(projected.dx, inInclusiveRange(7, 81));
+      expect(projected.dy, inInclusiveRange(7, 81));
+    }
+  });
+
+  test('shared viewport keeps stationary and no-route modes distinct', () {
+    final stationary = ActivityRouteThumbnailViewport.fromRoute(
+      _singlePointRouteFixture(),
+      logicalSize: const Size(88, 88),
+    );
+    final noRoute = ActivityRouteThumbnailViewport.fromRoute(
+      RunRouteSnapshot.empty,
+      logicalSize: const Size(88, 88),
+    );
+
+    expect(stationary.mode, ActivityRouteThumbnailViewportMode.tinyRoute);
+    expect(stationary.hasKnownLocation, isTrue);
+    expect(noRoute.mode, ActivityRouteThumbnailViewportMode.noRoute);
+    expect(noRoute.hasKnownLocation, isFalse);
+  });
+
   test('cache returns deterministic hit for stored thumbnail result', () async {
     // Given: a session cache with a stored fake snapshot result.
     final cache = ActivityRouteSnapshotThumbnailMemoryCache();
@@ -140,6 +262,7 @@ void main() {
       final base = _request(route: _routeFixture());
       final same = _request(route: _routeFixture());
       final moved = _request(route: _routeFixture(latitudeOffset: 0.001));
+      final turn = _request(route: _turnRouteFixture());
       final resized = _request(
         route: _routeFixture(),
         logicalSize: const Size(96, 88),
@@ -171,6 +294,10 @@ void main() {
       expect(ActivityRouteSnapshotThumbnailCacheKey.fromRequest(same), baseKey);
       expect(
         ActivityRouteSnapshotThumbnailCacheKey.fromRequest(moved),
+        isNot(baseKey),
+      );
+      expect(
+        ActivityRouteSnapshotThumbnailCacheKey.fromRequest(turn),
         isNot(baseKey),
       );
       expect(
