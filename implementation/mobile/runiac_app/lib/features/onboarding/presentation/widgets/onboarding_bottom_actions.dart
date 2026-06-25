@@ -25,7 +25,7 @@ class OnboardingBottomActions extends StatelessWidget {
     final isPreview = step.kind == OnboardingStepKind.preview;
     final primaryLabel = switch (step.kind) {
       OnboardingStepKind.welcome => 'Start setup',
-      OnboardingStepKind.preview => 'Create my preview plan',
+      OnboardingStepKind.preview => 'Continue with this plan',
       OnboardingStepKind.single => 'Continue',
       OnboardingStepKind.multi => 'Continue',
     };

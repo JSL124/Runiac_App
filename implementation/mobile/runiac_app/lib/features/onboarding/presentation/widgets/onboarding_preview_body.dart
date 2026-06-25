@@ -19,12 +19,8 @@ class OnboardingPreviewBody extends StatelessWidget {
       draft ?? _previewFallbackDraft,
     );
     final cautious = _labelFor('cautious', fallback: 'Balanced beginner');
-    final length = draft == null
-        ? _labelFor('length', fallback: plan.sessionDurationLabel)
-        : plan.sessionDurationLabel;
-    final weekly = draft == null
-        ? _labelFor('availability', fallback: plan.weeklyFrequencyLabel)
-        : plan.weeklyFrequencyLabel;
+    final length = plan.sessionDurationLabel;
+    final weekly = plan.weeklyFrequencyLabel;
     final summary = [
       ('Goal', _labelFor('goal', fallback: 'Build a running habit')),
       ('Starting point', _labelFor('experience', fallback: 'New to running')),
@@ -58,7 +54,10 @@ class OnboardingPreviewBody extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 10),
-        _SummaryTile(label: 'Preferred days', value: plan.preferredScheduleLabel),
+        _SummaryTile(
+          label: 'Preferred days',
+          value: plan.preferredScheduleLabel,
+        ),
         const SizedBox(height: 10),
         _SummaryTile(label: 'Safety setting', value: cautious),
         const SizedBox(height: 16),

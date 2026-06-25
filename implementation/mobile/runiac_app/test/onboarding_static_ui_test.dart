@@ -89,10 +89,11 @@ void main() {
     expect(find.text('Your beginner plan preview is ready'), findsOneWidget);
     expect(find.text('Suggested starting plan'), findsOneWidget);
     expect(find.text('First week preview'), findsOneWidget);
-    expect(find.text('Create my preview plan'), findsOneWidget);
+    expect(find.text('Continue with this plan'), findsOneWidget);
+    expect(find.text('Create my preview plan'), findsNothing);
     expect(find.text('Edit answers'), findsOneWidget);
 
-    await tapText(tester, 'Create my preview plan');
+    await tapText(tester, 'Continue with this plan');
     expect(find.text('Good to see you'), findsOneWidget);
     expect(find.byTooltip('Home'), findsOneWidget);
   });
@@ -111,10 +112,10 @@ void main() {
     await completeOnboardingToFourSessionPreview(tester);
 
     expect(find.text('4 sessions / week'), findsOneWidget);
-    expect(find.text('Mon · Easy run'), findsOneWidget);
-    expect(find.text('Tue · Easy run'), findsOneWidget);
-    expect(find.text('Wed · Easy run'), findsOneWidget);
-    expect(find.text('Thu · Recovery walk'), findsOneWidget);
+    expect(find.text('Mon · Easy run · 30 min'), findsOneWidget);
+    expect(find.text('Tue · Easy run · 30 min'), findsOneWidget);
+    expect(find.text('Wed · Easy run · 30 min'), findsOneWidget);
+    expect(find.text('Thu · Recovery walk · 30 min'), findsOneWidget);
   });
 
   testWidgets('final preview emits a typed local onboarding draft', (
@@ -134,7 +135,7 @@ void main() {
     );
 
     await completeOnboardingToPreview(tester);
-    await tapText(tester, 'Create my preview plan');
+    await tapText(tester, 'Continue with this plan');
 
     expect(completedDraft, isNotNull);
     expect(completedDraft!.goal, OnboardingGoal.habit);
@@ -174,7 +175,7 @@ void main() {
     expect(find.text('Step 12 of 13'), findsOneWidget);
 
     await answerSingle(tester, 'Balanced beginner plan');
-    await tapText(tester, 'Create my preview plan');
+    await tapText(tester, 'Continue with this plan');
 
     expect(completedDraft, isNotNull);
     expect(completedDraft!.activitySymptoms, [OnboardingActivitySymptom.none]);
@@ -215,15 +216,18 @@ void main() {
       const MaterialApp(
         home: Scaffold(
           body: SingleChildScrollView(
-            child: OnboardingPreviewBody(answers: <String, Object>{}),
+            child: OnboardingPreviewBody(
+              answers: <String, Object>{'availability': 'unsure'},
+            ),
           ),
         ),
       ),
     );
 
     expect(find.text('2 sessions / week'), findsOneWidget);
-    expect(find.text('Day 1 · Walk-run session'), findsOneWidget);
-    expect(find.text('Day 2 · Walk-run session'), findsOneWidget);
+    expect(find.text('3 runs / week'), findsNothing);
+    expect(find.text('Day 1 · Walk-run session · 15 min'), findsOneWidget);
+    expect(find.text('Day 2 · Walk-run session · 15 min'), findsOneWidget);
     expect(find.text('First week preview'), findsOneWidget);
   });
 }

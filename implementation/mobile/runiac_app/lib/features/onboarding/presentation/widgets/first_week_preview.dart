@@ -57,7 +57,8 @@ class _FirstWeekPreviewRow {
         BeginnerWorkoutKind.recoveryWalk => Icons.favorite_border_rounded,
         BeginnerWorkoutKind.restOrMobility => Icons.self_improvement_rounded,
       },
-      title: '${workout.dayLabel} · ${workout.title}',
+      title:
+          '${workout.dayLabel} · ${workout.title} · ${workout.durationMinutes} min',
       subtitle: workout.description,
     );
   }
