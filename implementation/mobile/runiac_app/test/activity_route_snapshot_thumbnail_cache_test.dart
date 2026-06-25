@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -54,8 +55,29 @@ ActivityRouteThumbnailRequest _request({
   );
 }
 
+class _FakeSnapshotThumbnailGenerator
+    implements ActivityRouteSnapshotThumbnailGenerator {
+  _FakeSnapshotThumbnailGenerator(this._generate);
+
+  final Future<ActivityRouteThumbnailResult> Function(
+    ActivityRouteSnapshotThumbnailGenerationRequest request,
+  )
+  _generate;
+  int requestCount = 0;
+  ActivityRouteSnapshotThumbnailGenerationRequest? lastRequest;
+
+  @override
+  Future<ActivityRouteThumbnailResult> generate(
+    ActivityRouteSnapshotThumbnailGenerationRequest request,
+  ) {
+    requestCount += 1;
+    lastRequest = request;
+    return _generate(request);
+  }
+}
+
 void main() {
-  test('cache returns deterministic hit for stored thumbnail result', () {
+  test('cache returns deterministic hit for stored thumbnail result', () async {
     // Given: a session cache with a stored fake snapshot result.
     final cache = ActivityRouteSnapshotThumbnailMemoryCache();
     final request = _request(route: _routeFixture());
@@ -73,7 +95,7 @@ void main() {
       cache: cache,
       styleId: styleId,
     );
-    final resolved = provider.resolve(request);
+    final resolved = await provider.resolve(request);
 
     // Then: the same ready image result is returned from memory.
     expect(resolved.state, ActivityRouteThumbnailState.readyImage);
@@ -81,13 +103,13 @@ void main() {
     expect(cache.length, 1);
   });
 
-  test('cache miss returns unavailable without creating external work', () {
+  test('cache miss returns unavailable without creating external work', () async {
     // Given: an empty session cache and a meaningful route request.
     final cache = ActivityRouteSnapshotThumbnailMemoryCache();
     final provider = CachedActivityRouteThumbnailProvider(cache: cache);
 
     // When: no thumbnail was stored for this route.
-    final resolved = provider.resolve(_request(route: _routeFixture()));
+    final resolved = await provider.resolve(_request(route: _routeFixture()));
 
     // Then: the provider reports unavailable so the preview can use CustomPaint.
     expect(resolved, const ActivityRouteThumbnailResult.unavailable());
@@ -170,4 +192,145 @@ void main() {
     expect(cache.resolve(key), isNull);
     expect(cache.length, 0);
   });
+
+  test(
+    'snapshot provider resolves demo request and stores ready image',
+    () async {
+      // Given: the explicit demo/static flag and a valid public token are present.
+      final cache = ActivityRouteSnapshotThumbnailMemoryCache();
+      final image = MemoryImage(Uint8List.fromList(const [7, 8, 9]));
+      final generator = _FakeSnapshotThumbnailGenerator((request) async {
+        return ActivityRouteThumbnailResult.readyImage(image);
+      });
+      final provider = CachedActivityRouteThumbnailProvider(
+        cache: cache,
+        generator: generator,
+        snapshotThumbnailsEnabled: true,
+        hasValidMapboxToken: true,
+      );
+
+      // When: a demo route asks for a static background image.
+      final request = _request(route: _routeFixture(), isDemoRoute: true);
+      final resolved = await provider.resolve(request);
+      final secondResolved = await provider.resolve(request);
+
+      // Then: the fake generator is used once and the ready image is cached.
+      expect(resolved.state, ActivityRouteThumbnailState.readyImage);
+      expect(resolved.imageProvider, same(image));
+      expect(secondResolved.imageProvider, same(image));
+      expect(generator.requestCount, 1);
+      expect(generator.lastRequest!.logicalSize, request.logicalSize);
+      expect(generator.lastRequest!.devicePixelRatio, request.devicePixelRatio);
+      expect(generator.lastRequest!.activityId, request.activityId);
+      expect(cache.length, 1);
+    },
+  );
+
+  test(
+    'snapshot provider never generates real user route thumbnails',
+    () async {
+      // Given: static thumbnails are enabled and a valid token is available.
+      final cache = ActivityRouteSnapshotThumbnailMemoryCache();
+      final generator = _FakeSnapshotThumbnailGenerator((request) async {
+        return ActivityRouteThumbnailResult.readyImage(
+          MemoryImage(Uint8List.fromList(const [10, 11, 12])),
+        );
+      });
+      final provider = CachedActivityRouteThumbnailProvider(
+        cache: cache,
+        generator: generator,
+        snapshotThumbnailsEnabled: true,
+        hasValidMapboxToken: true,
+      );
+
+      // When: a non-demo route asks for a static thumbnail.
+      final resolved = await provider.resolve(
+        _request(route: _routeFixture(), isDemoRoute: false),
+      );
+
+      // Then: the provider refuses before any external generator can see it.
+      expect(resolved, const ActivityRouteThumbnailResult.privacyDisabled());
+      expect(generator.requestCount, 0);
+      expect(cache.length, 0);
+    },
+  );
+
+  test(
+    'snapshot provider reports disabled flag and missing token states',
+    () async {
+      final disabledProvider = CachedActivityRouteThumbnailProvider(
+        cache: ActivityRouteSnapshotThumbnailMemoryCache(),
+        generator: _FakeSnapshotThumbnailGenerator((request) async {
+          return const ActivityRouteThumbnailResult.unavailable();
+        }),
+        snapshotThumbnailsEnabled: false,
+        hasValidMapboxToken: true,
+      );
+      final missingTokenProvider = CachedActivityRouteThumbnailProvider(
+        cache: ActivityRouteSnapshotThumbnailMemoryCache(),
+        generator: _FakeSnapshotThumbnailGenerator((request) async {
+          return const ActivityRouteThumbnailResult.unavailable();
+        }),
+        snapshotThumbnailsEnabled: true,
+        hasValidMapboxToken: false,
+      );
+
+      expect(
+        await disabledProvider.resolve(_request(route: _routeFixture())),
+        const ActivityRouteThumbnailResult.privacyDisabled(),
+      );
+      expect(
+        await missingTokenProvider.resolve(_request(route: _routeFixture())),
+        const ActivityRouteThumbnailResult.tokenMissing(),
+      );
+    },
+  );
+
+  test('snapshot provider coalesces duplicate in-flight requests', () async {
+    // Given: a generator that has not completed yet.
+    final completer = Completer<ActivityRouteThumbnailResult>();
+    final generator = _FakeSnapshotThumbnailGenerator((request) {
+      return completer.future;
+    });
+    final provider = CachedActivityRouteThumbnailProvider(
+      cache: ActivityRouteSnapshotThumbnailMemoryCache(),
+      generator: generator,
+      snapshotThumbnailsEnabled: true,
+      hasValidMapboxToken: true,
+    );
+    final request = _request(route: _routeFixture());
+
+    // When: two identical requests are made before the first one completes.
+    final first = provider.resolve(request);
+    final second = provider.resolve(request);
+    completer.complete(
+      ActivityRouteThumbnailResult.readyImage(
+        MemoryImage(Uint8List.fromList(const [13, 14, 15])),
+      ),
+    );
+
+    // Then: only one external generation is performed.
+    expect(await first, await second);
+    expect(generator.requestCount, 1);
+  });
+
+  test(
+    'snapshot provider exposes timed out state without caching loading',
+    () async {
+      final provider = CachedActivityRouteThumbnailProvider(
+        cache: ActivityRouteSnapshotThumbnailMemoryCache(),
+        generator: _FakeSnapshotThumbnailGenerator((request) {
+          return Completer<ActivityRouteThumbnailResult>().future;
+        }),
+        snapshotThumbnailsEnabled: true,
+        hasValidMapboxToken: true,
+        generationTimeout: const Duration(milliseconds: 1),
+      );
+
+      final resolved = await provider.resolve(_request(route: _routeFixture()));
+
+      expect(resolved, const ActivityRouteThumbnailResult.timedOut());
+      expect(provider.cache.length, 0);
+    },
+  );
 }

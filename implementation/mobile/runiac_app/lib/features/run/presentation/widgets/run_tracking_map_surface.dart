@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../../domain/models/run_map_view_state.dart';
+import 'mapbox_runtime_config.dart';
 import 'run_map_placeholder.dart';
 import 'run_mapbox_follow_qa_overlay.dart';
 import 'run_mapbox_run_map.dart';
 import 'run_mapbox_surface_config.dart';
 
-const _mapboxPublicAccessToken = String.fromEnvironment(
-  'MAPBOX_PUBLIC_ACCESS_TOKEN',
-);
 const _mapboxSurfaceSelectedKey = Key('run_mapbox_surface_selected');
 const _mapboxPlaceholderSelectedKey = Key('run_mapbox_placeholder_selected');
 
@@ -40,8 +38,10 @@ class RunTrackingMapSurface extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accessToken = (mapboxAccessToken ?? _mapboxPublicAccessToken).trim();
-    if (accessToken.isEmpty) {
+    final runtimeConfig = mapboxAccessToken == null
+        ? MapboxRuntimeConfig.fromEnvironment()
+        : MapboxRuntimeConfig(accessToken: mapboxAccessToken!.trim());
+    if (runtimeConfig.accessToken.isEmpty) {
       _debugLogMapboxBranch('placeholder fallback selected');
       _updateDiagnostics(mapPath: 'placeholder');
       return KeyedSubtree(
@@ -60,7 +60,7 @@ class RunTrackingMapSurface extends StatelessWidget {
       );
     }
 
-    if (!accessToken.startsWith('pk.')) {
+    if (!runtimeConfig.hasPublicAccessToken) {
       _debugLogMapboxBranch('invalid token fallback selected');
       _updateDiagnostics(mapPath: 'placeholder');
       return KeyedSubtree(
@@ -83,7 +83,7 @@ class RunTrackingMapSurface extends StatelessWidget {
     _updateDiagnostics(mapPath: 'mapbox');
     final builder = mapboxBuilder ?? _defaultMapboxBuilder;
     final config = RunMapboxSurfaceConfig(
-      accessToken: accessToken,
+      accessToken: runtimeConfig.accessToken,
       mapViewState: mapViewState,
       isFollowingRunner: isFollowingRunner,
       recenterRequestId: recenterRequestId,

@@ -247,7 +247,9 @@ class _FakeActivityRouteThumbnailProvider
   int requestCount = 0;
 
   @override
-  ActivityRouteThumbnailResult resolve(ActivityRouteThumbnailRequest request) {
+  Future<ActivityRouteThumbnailResult> resolve(
+    ActivityRouteThumbnailRequest request,
+  ) async {
     requestCount += 1;
     lastRequest = request;
     return result;
@@ -1261,15 +1263,17 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // Then: the non-interactive image thumbnail is shown instead of the
-    // fallback polyline painter.
+    // Then: the non-interactive image thumbnail is used as a background while
+    // the exact route remains a local overlay.
     expect(
       find.byKey(const ValueKey('activity_route_preview_static_thumbnail')),
       findsOneWidget,
     );
     expect(
-      find.byKey(const ValueKey('activity_route_preview_polyline')),
-      findsNothing,
+      find.byKey(
+        const ValueKey('activity_route_preview_static_thumbnail_route_overlay'),
+      ),
+      findsOneWidget,
     );
     expect(
       tester.getRect(
@@ -1323,6 +1327,7 @@ void main() {
         ActivityRouteThumbnailResult.privacyDisabled(),
         ActivityRouteThumbnailResult.tokenMissing(),
         ActivityRouteThumbnailResult.requestFailed(),
+        ActivityRouteThumbnailResult.timedOut(),
         ActivityRouteThumbnailResult.unavailable(),
       ]) {
         // Given: a provider state that cannot supply a safe ready image.

@@ -9,6 +9,7 @@ import 'package:runiac_app/features/run/domain/models/run_location_sample.dart';
 import 'package:runiac_app/features/run/domain/models/run_map_view_state.dart';
 import 'package:runiac_app/features/run/presentation/widgets/completed_route_map_surface.dart';
 import 'package:runiac_app/features/run/presentation/widgets/display_route_smoother.dart';
+import 'package:runiac_app/features/run/presentation/widgets/mapbox_runtime_config.dart';
 import 'package:runiac_app/features/run/presentation/widgets/run_map_placeholder.dart';
 import 'package:runiac_app/features/run/presentation/widgets/run_mapbox_follow_qa_overlay.dart';
 import 'package:runiac_app/features/run/presentation/widgets/run_mapbox_geometry.dart';
@@ -21,6 +22,61 @@ const _demoMapboxPublicToken =
     'k.demo-public-token';
 
 void main() {
+  group('MapboxRuntimeConfig', () {
+    test('fromEnvironment defaults snapshot thumbnails off without token', () {
+      final config = MapboxRuntimeConfig.fromEnvironment();
+
+      expect(config.accessToken, isEmpty);
+      expect(config.hasPublicAccessToken, isFalse);
+      expect(config.snapshotThumbnailsEnabled, isFalse);
+    });
+
+    test('validates only public Mapbox tokens', () {
+      expect(
+        const MapboxRuntimeConfig(
+          accessToken: _demoMapboxPublicToken,
+        ).hasPublicAccessToken,
+        isTrue,
+      );
+      expect(
+        const MapboxRuntimeConfig(
+          accessToken: 'private-token',
+        ).hasPublicAccessToken,
+        isFalse,
+      );
+      expect(
+        const MapboxRuntimeConfig(
+          accessToken: 'demo-public-token',
+        ).hasPublicAccessToken,
+        isFalse,
+      );
+    });
+
+    test('parses snapshot thumbnail flag explicitly', () {
+      expect(
+        MapboxRuntimeConfig.fromRaw(
+          accessToken: _demoMapboxPublicToken,
+          snapshotThumbnailsFlag: 'true',
+        ).snapshotThumbnailsEnabled,
+        isTrue,
+      );
+      expect(
+        MapboxRuntimeConfig.fromRaw(
+          accessToken: _demoMapboxPublicToken,
+          snapshotThumbnailsFlag: 'false',
+        ).snapshotThumbnailsEnabled,
+        isFalse,
+      );
+      expect(
+        MapboxRuntimeConfig.fromRaw(
+          accessToken: _demoMapboxPublicToken,
+          snapshotThumbnailsFlag: '',
+        ).snapshotThumbnailsEnabled,
+        isFalse,
+      );
+    });
+  });
+
   group('RunMapViewState', () {
     test('displayPosition prefers active current position over preview', () {
       final startedAt = DateTime.utc(2026, 6, 14, 7);

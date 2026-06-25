@@ -7,12 +7,10 @@ import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import '../../domain/models/run_location_sample.dart';
 import '../../domain/models/run_map_view_state.dart';
 import '../../domain/models/run_route_snapshot.dart';
+import 'mapbox_runtime_config.dart';
 import 'run_mapbox_geometry.dart';
 import 'run_mapbox_run_map.dart';
 
-const _mapboxPublicAccessToken = String.fromEnvironment(
-  'MAPBOX_PUBLIC_ACCESS_TOKEN',
-);
 const _ornamentLeftMargin = 16.0;
 const _ornamentTopMargin = 80.0;
 const _logoBelowScaleBarTopMargin = 104.0;
@@ -62,13 +60,16 @@ class CompletedRouteMapSurface extends StatelessWidget {
       return fallback;
     }
 
-    final accessToken = (mapboxAccessToken ?? _mapboxPublicAccessToken).trim();
-    if (accessToken.isEmpty || !accessToken.startsWith('pk.')) {
+    final runtimeConfig = mapboxAccessToken == null
+        ? MapboxRuntimeConfig.fromEnvironment()
+        : MapboxRuntimeConfig(accessToken: mapboxAccessToken!.trim());
+    if (runtimeConfig.accessToken.isEmpty ||
+        !runtimeConfig.hasPublicAccessToken) {
       return fallback;
     }
 
     final config = CompletedRouteMapboxSurfaceConfig(
-      accessToken: accessToken,
+      accessToken: runtimeConfig.accessToken,
       route: route,
       isExpanded: isExpanded,
     );

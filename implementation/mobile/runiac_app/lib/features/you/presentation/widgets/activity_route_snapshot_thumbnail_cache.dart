@@ -1,3 +1,7 @@
+import 'dart:async';
+
+import 'package:flutter/widgets.dart';
+
 import '../../../run/domain/models/run_location_sample.dart';
 import 'activity_route_preview.dart';
 
@@ -89,24 +93,157 @@ class ActivityRouteSnapshotThumbnailMemoryCache {
   }
 }
 
+abstract interface class ActivityRouteSnapshotThumbnailGenerator {
+  Future<ActivityRouteThumbnailResult> generate(
+    ActivityRouteSnapshotThumbnailGenerationRequest request,
+  );
+}
+
+class ActivityRouteSnapshotThumbnailGenerationRequest {
+  const ActivityRouteSnapshotThumbnailGenerationRequest({
+    required this.logicalSize,
+    required this.devicePixelRatio,
+    required this.styleId,
+    this.activityId,
+  });
+
+  factory ActivityRouteSnapshotThumbnailGenerationRequest.fromThumbnailRequest(
+    ActivityRouteThumbnailRequest request, {
+    required String styleId,
+  }) {
+    return ActivityRouteSnapshotThumbnailGenerationRequest(
+      logicalSize: request.logicalSize,
+      devicePixelRatio: request.devicePixelRatio,
+      styleId: styleId,
+      activityId: request.activityId,
+    );
+  }
+
+  final Size logicalSize;
+  final double devicePixelRatio;
+  final String styleId;
+  final String? activityId;
+}
+
 class CachedActivityRouteThumbnailProvider
     implements ActivityRouteThumbnailProvider {
-  const CachedActivityRouteThumbnailProvider({
+  CachedActivityRouteThumbnailProvider({
     required this.cache,
+    this.generator,
+    this.snapshotThumbnailsEnabled = false,
+    this.hasValidMapboxToken = false,
+    this.generationTimeout = const Duration(seconds: 4),
     this.styleId = _defaultStyleId,
   });
 
   final ActivityRouteSnapshotThumbnailMemoryCache cache;
+  final ActivityRouteSnapshotThumbnailGenerator? generator;
+  final bool snapshotThumbnailsEnabled;
+  final bool hasValidMapboxToken;
+  final Duration generationTimeout;
   final String styleId;
+  final Map<
+    ActivityRouteSnapshotThumbnailCacheKey,
+    Future<ActivityRouteThumbnailResult>
+  >
+  _inFlight =
+      <
+        ActivityRouteSnapshotThumbnailCacheKey,
+        Future<ActivityRouteThumbnailResult>
+      >{};
 
   @override
-  ActivityRouteThumbnailResult resolve(ActivityRouteThumbnailRequest request) {
+  Future<ActivityRouteThumbnailResult> resolve(
+    ActivityRouteThumbnailRequest request,
+  ) async {
     final key = ActivityRouteSnapshotThumbnailCacheKey.fromRequest(
       request,
       styleId: styleId,
     );
-    return cache.resolve(key) ??
-        const ActivityRouteThumbnailResult.unavailable();
+    final generator = this.generator;
+    if (generator == null) {
+      return cache.resolve(key) ??
+          const ActivityRouteThumbnailResult.unavailable();
+    }
+
+    final policyResult = _resolvePolicy(request);
+    if (policyResult != null) {
+      return policyResult;
+    }
+
+    final cached = cache.resolve(key);
+    if (cached != null) {
+      return cached;
+    }
+
+    final pending = _inFlight[key];
+    if (pending != null) {
+      return pending;
+    }
+
+    final generation = _generateAndCache(
+      key: key,
+      request: request,
+      generator: generator,
+    );
+    _inFlight[key] = generation;
+    try {
+      return await generation;
+    } finally {
+      _inFlight.remove(key);
+    }
+  }
+
+  ActivityRouteThumbnailResult? _resolvePolicy(
+    ActivityRouteThumbnailRequest request,
+  ) {
+    if (!request.allowExternalStaticMap || !snapshotThumbnailsEnabled) {
+      return const ActivityRouteThumbnailResult.privacyDisabled();
+    }
+    if (!request.isDemoRoute) {
+      return const ActivityRouteThumbnailResult.privacyDisabled();
+    }
+    if (!hasValidMapboxToken) {
+      return const ActivityRouteThumbnailResult.tokenMissing();
+    }
+    return null;
+  }
+
+  Future<ActivityRouteThumbnailResult> _generateAndCache({
+    required ActivityRouteSnapshotThumbnailCacheKey key,
+    required ActivityRouteThumbnailRequest request,
+    required ActivityRouteSnapshotThumbnailGenerator generator,
+  }) async {
+    final result = await _generateWithTimeout(generator, request);
+    if (result.hasReadyImage) {
+      cache.store(key, result);
+    }
+    return result;
+  }
+
+  Future<ActivityRouteThumbnailResult> _generateWithTimeout(
+    ActivityRouteSnapshotThumbnailGenerator generator,
+    ActivityRouteThumbnailRequest request,
+  ) async {
+    final generationRequest =
+        ActivityRouteSnapshotThumbnailGenerationRequest.fromThumbnailRequest(
+          request,
+          styleId: styleId,
+        );
+    try {
+      return await generator
+          .generate(generationRequest)
+          .timeout(
+            generationTimeout,
+            onTimeout: () {
+              return const ActivityRouteThumbnailResult.timedOut();
+            },
+          );
+    } on TimeoutException {
+      return const ActivityRouteThumbnailResult.timedOut();
+    } on Object {
+      return const ActivityRouteThumbnailResult.requestFailed();
+    }
   }
 }
 
