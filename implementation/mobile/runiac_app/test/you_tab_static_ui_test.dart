@@ -1282,6 +1282,40 @@ void main() {
     expect(provider.lastRequest!.isDemoRoute, isTrue);
   });
 
+  testWidgets('Activity route preview area uses the card tap target', (
+    WidgetTester tester,
+  ) async {
+    // Given: an activity card with a route-backed preview.
+    var tapCount = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: CompactRunActivityCard(
+            activity: activityHistoryDisplayData.first.activities.first,
+            onTap: () {
+              tapCount += 1;
+            },
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // When: the user taps inside the route preview slot.
+    await tester.tap(find.byKey(const ValueKey('activity_route_preview_slot')));
+    await tester.pumpAndSettle();
+
+    // Then: the card onTap fires; the preview has no independent tap action.
+    expect(tapCount, 1);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('activity_route_preview_slot')),
+        matching: find.byType(GestureDetector),
+      ),
+      findsNothing,
+    );
+  });
+
   testWidgets(
     'Activity route preview falls back when provider has no ready image',
     (WidgetTester tester) async {

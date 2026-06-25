@@ -12,6 +12,7 @@ class ActivityRoutePreview extends StatelessWidget {
     this.thumbnailProvider = const NoopActivityRouteThumbnailProvider(),
     this.allowExternalStaticMap = false,
     this.isDemoRoute = false,
+    this.activityId,
     super.key,
   });
 
@@ -19,6 +20,7 @@ class ActivityRoutePreview extends StatelessWidget {
   final ActivityRouteThumbnailProvider thumbnailProvider;
   final bool allowExternalStaticMap;
   final bool isDemoRoute;
+  final String? activityId;
 
   @override
   Widget build(BuildContext context) {
@@ -42,6 +44,7 @@ class ActivityRoutePreview extends StatelessWidget {
                 devicePixelRatio: devicePixelRatio,
                 allowExternalStaticMap: allowExternalStaticMap,
                 isDemoRoute: isDemoRoute,
+                activityId: activityId,
               ),
             ),
           ),
@@ -76,6 +79,7 @@ class ActivityRouteThumbnailRequest {
     required this.devicePixelRatio,
     required this.allowExternalStaticMap,
     required this.isDemoRoute,
+    this.activityId,
   });
 
   final RunRouteSnapshot route;
@@ -83,6 +87,7 @@ class ActivityRouteThumbnailRequest {
   final double devicePixelRatio;
   final bool allowExternalStaticMap;
   final bool isDemoRoute;
+  final String? activityId;
 }
 
 enum ActivityRouteThumbnailState {
@@ -125,6 +130,16 @@ class ActivityRouteThumbnailResult {
     return state == ActivityRouteThumbnailState.readyImage &&
         imageProvider != null;
   }
+
+  @override
+  bool operator ==(Object other) {
+    return other is ActivityRouteThumbnailResult &&
+        other.state == state &&
+        other.imageProvider == imageProvider;
+  }
+
+  @override
+  int get hashCode => Object.hash(state, imageProvider);
 }
 
 class NoopActivityRouteThumbnailProvider

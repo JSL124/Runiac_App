@@ -27,7 +27,10 @@ class CompactRunActivityCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          ActivityRoutePreview(route: activity.summary.route),
+          ActivityRoutePreview(
+            route: activity.summary.route,
+            activityId: activity.identityKey,
+          ),
           const SizedBox(width: 18),
           Expanded(
             child: _ActivityCardContent(
