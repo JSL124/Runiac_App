@@ -9,6 +9,7 @@ class OnboardingStepBody extends StatelessWidget {
   const OnboardingStepBody({
     required this.step,
     required this.answers,
+    required this.helperText,
     required this.onSelectSingle,
     required this.onToggleMulti,
     super.key,
@@ -16,6 +17,7 @@ class OnboardingStepBody extends StatelessWidget {
 
   final OnboardingStep step;
   final Map<String, Object> answers;
+  final String? helperText;
   final void Function(String key, String value) onSelectSingle;
   final void Function(String key, String value, {String? noneValue})
   onToggleMulti;
@@ -28,12 +30,14 @@ class OnboardingStepBody extends StatelessWidget {
       OnboardingStepKind.single => OnboardingQuestionBody(
         step: step,
         answers: answers,
+        helperText: helperText,
         onSelectSingle: onSelectSingle,
         onToggleMulti: onToggleMulti,
       ),
       OnboardingStepKind.multi => OnboardingQuestionBody(
         step: step,
         answers: answers,
+        helperText: helperText,
         onSelectSingle: onSelectSingle,
         onToggleMulti: onToggleMulti,
       ),

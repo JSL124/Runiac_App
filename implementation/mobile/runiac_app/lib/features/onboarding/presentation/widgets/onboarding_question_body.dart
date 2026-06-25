@@ -8,6 +8,7 @@ class OnboardingQuestionBody extends StatelessWidget {
   const OnboardingQuestionBody({
     required this.step,
     required this.answers,
+    required this.helperText,
     required this.onSelectSingle,
     required this.onToggleMulti,
     super.key,
@@ -15,6 +16,7 @@ class OnboardingQuestionBody extends StatelessWidget {
 
   final OnboardingStep step;
   final Map<String, Object> answers;
+  final String? helperText;
   final void Function(String key, String value) onSelectSingle;
   final void Function(String key, String value, {String? noneValue})
   onToggleMulti;
@@ -38,6 +40,19 @@ class OnboardingQuestionBody extends StatelessWidget {
                 weight: FontWeight.w500,
                 color: onboardingBlueWithOpacity(.60),
                 height: 1.5,
+              ),
+            ),
+          ),
+        if (helperText != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Text(
+              helperText!,
+              style: onboardingTextStyle(
+                size: 13.5,
+                weight: FontWeight.w700,
+                color: onboardingBlueWithOpacity(.72),
+                height: 1.45,
               ),
             ),
           ),

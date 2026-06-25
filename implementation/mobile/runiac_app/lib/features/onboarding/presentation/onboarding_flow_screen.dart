@@ -24,6 +24,16 @@ class _OnboardingFlowScreenState extends State<OnboardingFlowScreen> {
 
   OnboardingStep get _step => onboardingSteps[_stepIndex];
 
+  int? get _requiredPreferredDays {
+    final availability = OnboardingAvailability.fromValue(
+      _answers['availability'] as String?,
+    );
+    if (availability == null) {
+      return null;
+    }
+    return requiredPreferredDayCountForAvailability(availability);
+  }
+
   @override
   void dispose() {
     _scrollController.dispose();
@@ -97,15 +107,21 @@ class _OnboardingFlowScreenState extends State<OnboardingFlowScreen> {
 
   bool get _canContinue {
     final step = _step;
-    if (step.kind != OnboardingStepKind.single) {
-      return true;
+    if (step.kind == OnboardingStepKind.single) {
+      return _answers[step.answerKey] != null;
     }
-    return _answers[step.answerKey] != null;
+    if (step.daysGrid) {
+      final requiredDays = _requiredPreferredDays;
+      final selectedDays = _answers[step.answerKey] as Set<String>? ?? {};
+      return requiredDays != null && selectedDays.length >= requiredDays;
+    }
+    return true;
   }
 
   @override
   Widget build(BuildContext context) {
     final step = _step;
+    final requiredPreferredDays = _requiredPreferredDays;
 
     return Scaffold(
       backgroundColor: onboardingSurfaceWhite,
@@ -126,6 +142,9 @@ class _OnboardingFlowScreenState extends State<OnboardingFlowScreen> {
                 child: OnboardingStepBody(
                   step: step,
                   answers: _answers,
+                  helperText: step.daysGrid && requiredPreferredDays != null
+                      ? 'Choose at least $requiredPreferredDays days that usually work for you.'
+                      : null,
                   onSelectSingle: _selectSingle,
                   onToggleMulti: _toggleMulti,
                 ),

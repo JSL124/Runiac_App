@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 Future<void> completeOnboardingToPreview(WidgetTester tester) async {
@@ -5,7 +6,9 @@ Future<void> completeOnboardingToPreview(WidgetTester tester) async {
   await answerSingle(tester, 'Build a running habit');
   await answerSingle(tester, 'Completely new to running');
   await answerSingle(tester, '3 days per week');
-  await tapText(tester, 'Mon');
+  for (final day in ['Mon', 'Wed', 'Fri']) {
+    await tapText(tester, day);
+  }
   await tapText(tester, 'Continue');
   await answerSingle(tester, 'Morning');
   await answerSingle(tester, '20 minutes');
@@ -36,11 +39,24 @@ Future<void> completeOnboardingToFourSessionPreview(WidgetTester tester) async {
   await answerSingle(tester, 'Standard beginner plan');
 }
 
+Future<void> advanceToPreferredDays(
+  WidgetTester tester,
+  String availabilityLabel,
+) async {
+  await tapText(tester, 'Start setup');
+  await answerSingle(tester, 'Build a running habit');
+  await answerSingle(tester, 'Completely new to running');
+  await answerSingle(tester, availabilityLabel);
+}
+
 Future<void> advanceToSymptoms(WidgetTester tester) async {
   await tapText(tester, 'Start setup');
   await answerSingle(tester, 'Build a running habit');
   await answerSingle(tester, 'Completely new to running');
   await answerSingle(tester, '3 days per week');
+  for (final day in ['Mon', 'Wed', 'Fri']) {
+    await tapText(tester, day);
+  }
   await tapText(tester, 'Continue');
   await answerSingle(tester, 'Morning');
   await answerSingle(tester, '20 minutes');
@@ -66,4 +82,10 @@ Future<void> tapTooltip(WidgetTester tester, String tooltip) async {
   final finder = find.byTooltip(tooltip).first;
   await tester.tap(finder);
   await tester.pumpAndSettle();
+}
+
+FilledButton primaryContinueButton(WidgetTester tester) {
+  return tester.widget<FilledButton>(
+    find.widgetWithText(FilledButton, 'Continue').last,
+  );
 }

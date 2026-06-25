@@ -167,6 +167,17 @@ enum OnboardingPlanCautiousness {
       _enumByValue(values, value, (item) => item.value);
 }
 
+int requiredPreferredDayCountForAvailability(
+  OnboardingAvailability availability,
+) {
+  return switch (availability) {
+    OnboardingAvailability.two => 2,
+    OnboardingAvailability.three => 3,
+    OnboardingAvailability.four => 4,
+    OnboardingAvailability.unsure => 2,
+  };
+}
+
 T? _enumByValue<T extends Enum>(
   List<T> values,
   String? value,
