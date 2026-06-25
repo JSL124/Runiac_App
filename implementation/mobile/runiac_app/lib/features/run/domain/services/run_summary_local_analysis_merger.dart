@@ -12,7 +12,11 @@ class RunSummaryLocalAnalysisMerger {
     required RunSummarySnapshot backendSummary,
     required LocalRunCompletionPayload localPayload,
     required RunRouteSnapshot localRoute,
+    required String? resultClientRunSessionId,
   }) {
+    if (localPayload.clientRunSessionId != resultClientRunSessionId) {
+      return backendSummary;
+    }
     if (!backendSummary.hasSufficientData) {
       return backendSummary.copyWith(route: localRoute);
     }

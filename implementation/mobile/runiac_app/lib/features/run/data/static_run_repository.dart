@@ -107,6 +107,7 @@ class StaticRunRepository implements RunRepository {
     );
 
     return CompleteRunResult(
+      clientRunSessionId: sessionId,
       activityId: 'static-$sessionId',
       summaryId: 'static-summary-$sessionId',
       progressionEventId: 'static-progression-$sessionId',

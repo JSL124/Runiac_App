@@ -135,6 +135,7 @@ class _RunActiveScreenState extends State<RunActiveScreen> {
         backendSummary: result.summary,
         localPayload: payload,
         localRoute: route,
+        resultClientRunSessionId: result.clientRunSessionId,
       ),
     );
     CurrentSessionActivityHistoryScope.maybeOf(

@@ -5,13 +5,16 @@ import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runiac_app/app.dart';
+import 'package:runiac_app/features/run/domain/models/cadence_analysis_series.dart';
 import 'package:runiac_app/features/run/domain/models/complete_run_result.dart';
+import 'package:runiac_app/features/run/domain/models/elevation_analysis_series.dart';
 import 'package:runiac_app/features/run/domain/models/local_run_completion_payload.dart';
 import 'package:runiac_app/features/run/domain/models/progression_display_model.dart';
 import 'package:runiac_app/features/run/domain/models/run_activity_read_model.dart';
 import 'package:runiac_app/features/run/domain/models/run_location_sample.dart';
 import 'package:runiac_app/features/run/domain/models/run_location_permission_status.dart';
 import 'package:runiac_app/features/run/domain/models/run_map_view_state.dart';
+import 'package:runiac_app/features/run/domain/models/run_route_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/run_source_display.dart';
 import 'package:runiac_app/features/run/domain/models/run_summary_read_model.dart';
 import 'package:runiac_app/features/run/domain/models/run_summary_snapshot.dart';
@@ -25,6 +28,8 @@ import 'package:runiac_app/features/run/domain/repositories/run_location_provide
 import 'package:runiac_app/features/run/domain/repositories/run_foreground_service.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_notification_permission_service.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_repository.dart';
+import 'package:runiac_app/features/run/domain/services/pace_graph_data_builder.dart';
+import 'package:runiac_app/features/run/domain/services/run_summary_local_analysis_merger.dart';
 import 'package:runiac_app/features/run/presentation/active_run_session_coordinator.dart';
 import 'package:runiac_app/features/run/presentation/controllers/run_tracking_controller.dart';
 import 'package:runiac_app/features/run/presentation/run_active_screen.dart';
@@ -323,6 +328,7 @@ const _activeCompletionResult = CompleteRunResult(
 );
 
 const _firebaseScalarCompletionResult = CompleteRunResult(
+  clientRunSessionId: 'local-run-1',
   activityId: 'firebase-repo-activity',
   summaryId: 'firebase-repo-summary',
   progressionEventId: 'firebase-repo-progression',
@@ -370,7 +376,130 @@ RunLocationSample _previewSample() {
   );
 }
 
+RunSummarySnapshot _mergeBackendSummary() {
+  return const RunSummarySnapshot(
+    title: 'Backend Scalar Run',
+    dateLabel: 'Today',
+    timeLabel: '8:10 AM',
+    distanceKm: '0.32',
+    avgPace: '9’23”',
+    duration: '03:00',
+    avgHeartRate: '--',
+    calories: '--',
+    routeName: 'Backend Scalar Route',
+  );
+}
+
+LocalRunCompletionPayload _localAnalysisMergePayload(String sessionId) {
+  return LocalRunCompletionPayload(
+    clientRunSessionId: sessionId,
+    startedAt: DateTime.utc(2026, 6, 18, 8),
+    completedAt: DateTime.utc(2026, 6, 18, 8, 6),
+    durationSeconds: 360,
+    distanceMeters: 760,
+    avgPaceSecondsPerKm: 473,
+    source: 'local_gps',
+    routePrivacy: 'private',
+    routeLabel: 'Local merge route',
+    paceGraphSamples: const <PaceGraphSample>[
+      PaceGraphSample(
+        elapsedSeconds: 60,
+        paceSecondsPerKm: 470,
+        cumulativeDistanceMeters: 130,
+      ),
+      PaceGraphSample(
+        elapsedSeconds: 120,
+        paceSecondsPerKm: 474,
+        cumulativeDistanceMeters: 255,
+      ),
+      PaceGraphSample(
+        elapsedSeconds: 180,
+        paceSecondsPerKm: 476,
+        cumulativeDistanceMeters: 380,
+      ),
+      PaceGraphSample(
+        elapsedSeconds: 240,
+        paceSecondsPerKm: 472,
+        cumulativeDistanceMeters: 510,
+      ),
+    ],
+    cadenceAnalysisSeries: CadenceAnalysisSeries.localAccepted(
+      samples: const [
+        CadenceAnalysisSample.accepted(elapsedSeconds: 60, cadenceSpm: 168),
+        CadenceAnalysisSample.accepted(elapsedSeconds: 120, cadenceSpm: 170),
+        CadenceAnalysisSample.accepted(elapsedSeconds: 180, cadenceSpm: 171),
+      ],
+    ),
+    elevationAnalysisSeries: ElevationAnalysisSeries.localAccepted(
+      samples: const [
+        ElevationAnalysisSample(distanceKm: 0, elevationMeters: 4),
+        ElevationAnalysisSample(distanceKm: 0.4, elevationMeters: 7),
+        ElevationAnalysisSample(distanceKm: 0.76, elevationMeters: 5),
+      ],
+    ),
+  );
+}
+
+RunRouteSnapshot _localRouteSnapshot() {
+  return RunRouteSnapshot(
+    segments: [
+      [
+        RunLocationSample(
+          recordedAt: DateTime.utc(2026, 6, 18, 8),
+          latitude: 1.3,
+          longitude: 103.8,
+        ),
+        RunLocationSample(
+          recordedAt: DateTime.utc(2026, 6, 18, 8, 1),
+          latitude: 1.3008,
+          longitude: 103.8,
+        ),
+      ],
+    ],
+  );
+}
+
 void main() {
+  test('local analysis merge requires matching client run session id', () {
+    const merger = RunSummaryLocalAnalysisMerger();
+    final payload = _localAnalysisMergePayload('payload-session');
+    final localRoute = _localRouteSnapshot();
+    final matchedResult = CompleteRunResult(
+      clientRunSessionId: 'payload-session',
+      summary: _mergeBackendSummary(),
+      xpUpdate: _activeCompletionResult.xpUpdate,
+    );
+    final mismatchedResult = CompleteRunResult(
+      clientRunSessionId: 'other-session',
+      summary: _mergeBackendSummary(),
+      xpUpdate: _activeCompletionResult.xpUpdate,
+    );
+
+    final matched = merger.merge(
+      backendSummary: matchedResult.summary,
+      localPayload: payload,
+      localRoute: localRoute,
+      resultClientRunSessionId: matchedResult.clientRunSessionId,
+    );
+    final mismatched = merger.merge(
+      backendSummary: mismatchedResult.summary,
+      localPayload: payload,
+      localRoute: localRoute,
+      resultClientRunSessionId: mismatchedResult.clientRunSessionId,
+    );
+
+    expect(matched.route.hasRoute, isTrue);
+    expect(matched.paceGraph.isAvailable, isTrue);
+    expect(matched.paceAnalysisSeries?.isLocalAcceptedSource, isTrue);
+    expect(matched.cadenceAnalysisSeries, isNotNull);
+    expect(matched.elevationSeries.isUnavailable, isFalse);
+    expect(mismatched.route.hasRoute, isFalse);
+    expect(mismatched.paceGraph.isAvailable, isFalse);
+    expect(mismatched.paceAnalysisSeries, isNull);
+    expect(mismatched.cadenceAnalysisSeries, isNull);
+    expect(mismatched.elevationSeries.isUnavailable, isTrue);
+  });
+
   test(
     'prewarmRunLaunchPreviewCurrentPosition returns a sample when permission is granted',
     () async {

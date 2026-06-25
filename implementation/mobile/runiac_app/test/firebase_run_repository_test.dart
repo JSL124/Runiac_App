@@ -38,6 +38,7 @@ void main() {
 
       final result = await repository.completeRun(_payload());
 
+      expect(result.clientRunSessionId, 'local-session-20260614-0700');
       expect(result.activityId, 'activity_123');
       expect(result.summaryId, 'summary_123');
       expect(result.progressionEventId, 'progression_123');

@@ -432,6 +432,7 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
         backendSummary: result.summary,
         localPayload: payload,
         localRoute: route,
+        resultClientRunSessionId: result.clientRunSessionId,
       ),
     );
     CurrentSessionActivityHistoryScope.maybeOf(

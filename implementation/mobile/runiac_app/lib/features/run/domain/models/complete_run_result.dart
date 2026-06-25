@@ -8,6 +8,7 @@ import 'xp_update_display_model.dart';
 /// eligibility, or perform backend, network, or storage actions.
 class CompleteRunResult {
   const CompleteRunResult({
+    this.clientRunSessionId,
     this.activityId = 'static-latest-run-activity',
     this.summaryId = 'static-latest-run-summary',
     this.progressionEventId = 'static-latest-progression-event',
@@ -23,6 +24,7 @@ class CompleteRunResult {
     this.message = 'Static completion result.',
   });
 
+  final String? clientRunSessionId;
   final String activityId;
   final String summaryId;
   final String progressionEventId;
@@ -32,8 +34,12 @@ class CompleteRunResult {
   final XpUpdateDisplayModel xpUpdate;
   final String message;
 
-  CompleteRunResult copyWith({RunSummarySnapshot? summary}) {
+  CompleteRunResult copyWith({
+    String? clientRunSessionId,
+    RunSummarySnapshot? summary,
+  }) {
     return CompleteRunResult(
+      clientRunSessionId: clientRunSessionId ?? this.clientRunSessionId,
       activityId: activityId,
       summaryId: summaryId,
       progressionEventId: progressionEventId,

@@ -280,6 +280,7 @@ void main() {
         isNot(contains(_forbiddenDefaultDemoCoachingCopy)),
       );
       expect(completedRun.activityId, 'static-local-session-20260614-0700');
+      expect(completedRun.clientRunSessionId, 'local-session-20260614-0700');
       expect(
         completedRun.summaryId,
         'static-summary-local-session-20260614-0700',

@@ -57,7 +57,9 @@ class FirebaseRunRepository implements RunRepository {
       );
     });
 
-    return _CompleteRunResultMapper.fromCallableResponse(response);
+    return _CompleteRunResultMapper.fromCallableResponse(
+      response,
+    ).copyWith(clientRunSessionId: payload.clientRunSessionId);
   }
 
   @override
