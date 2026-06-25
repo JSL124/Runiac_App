@@ -1,3 +1,5 @@
+import 'elevation_analysis_series.dart';
+
 enum ElevationDifficulty { mostlyFlat, rolling, hilly, unavailable }
 
 class ElevationGraphSnapshot {
@@ -11,10 +13,13 @@ class ElevationGraphSnapshot {
     this.highestPointMeters,
     this.lowestPointMeters,
     this.difficulty = ElevationDifficulty.unavailable,
+    this.unavailableDiagnosticReason = ElevationUnavailableReason.none,
   });
 
   const ElevationGraphSnapshot.unavailable({
     this.unavailableReason = 'insufficient_elevation_graph_data',
+    this.unavailableDiagnosticReason =
+        ElevationUnavailableReason.graphUnavailable,
   }) : isAvailable = false,
        points = const <ElevationGraphPoint>[],
        yAxisLabels = const <String>[],
@@ -33,6 +38,7 @@ class ElevationGraphSnapshot {
   final double? highestPointMeters;
   final double? lowestPointMeters;
   final ElevationDifficulty difficulty;
+  final ElevationUnavailableReason unavailableDiagnosticReason;
 }
 
 class ElevationGraphPoint {

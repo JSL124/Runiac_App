@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
+import '../../domain/models/elevation_analysis_series.dart';
 import '../../domain/models/local_run_completion_payload.dart';
 import '../../domain/models/run_cadence_sample.dart';
 import '../../domain/models/run_location_sample.dart';
@@ -411,6 +412,9 @@ class RunTrackingController extends ChangeNotifier {
       paceGraphSamples: _trackingSession?.paceGraphSamples() ?? const [],
       cadenceAnalysisSeries: _trackingSession?.cadenceAnalysisSeries(),
       elevationAnalysisSeries: _trackingSession?.elevationAnalysisSeries(),
+      elevationUnavailableReason:
+          _trackingSession?.elevationUnavailableReason() ??
+          ElevationUnavailableReason.noElevationSeries,
     );
   }
 

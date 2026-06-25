@@ -489,6 +489,38 @@ void main() {
         snapshot.elevation.elevationGraph.reason,
         AdvancedAnalysisMetricReason.missingElevationSource,
       );
+      expect(
+        snapshot.elevation.unavailableReason,
+        ElevationUnavailableReason.tooFewValidAltitudeSamples,
+      );
+    });
+
+    test('keeps elevation unavailable with non-increasing distance reason', () {
+      final summary = RunSummarySnapshot(
+        title: 'Duplicate Distance Elevation Run',
+        dateLabel: 'Today',
+        timeLabel: '7:06 AM',
+        distanceKm: '0.20 km',
+        avgPace: '7’00” / km',
+        duration: '1:24',
+        avgHeartRate: '--',
+        calories: '--',
+        routeName: 'Duplicate Altitude Loop',
+        elevationSeries: ElevationAnalysisSeries.localAccepted(
+          samples: const [
+            ElevationAnalysisSample(distanceKm: 0, elevationMeters: 4),
+            ElevationAnalysisSample(distanceKm: 0, elevationMeters: 5),
+          ],
+        ),
+      );
+
+      final elevation = builder.fromRunSummary(summary).elevation;
+
+      expect(elevation.elevationGraph.isAvailable, isFalse);
+      expect(
+        elevation.unavailableReason,
+        ElevationUnavailableReason.nonIncreasingDistance,
+      );
     });
 
     test('derives pace analysis metrics from accountable local series', () {

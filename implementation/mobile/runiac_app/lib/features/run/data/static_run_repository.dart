@@ -77,8 +77,12 @@ class StaticRunRepository implements RunRepository {
           : null,
       elevationSeries: scalar.hasSufficientData
           ? payload.elevationAnalysisSeries ??
-                const ElevationAnalysisSeries.unavailable()
-          : const ElevationAnalysisSeries.unavailable(),
+                ElevationAnalysisSeries.unavailable(
+                  reason: payload.elevationUnavailableReason,
+                )
+          : const ElevationAnalysisSeries.unavailable(
+              reason: ElevationUnavailableReason.lowDataSummary,
+            ),
       paceGraph: scalar.hasSufficientData
           ? const PaceGraphDataBuilder().build(
               samples: payload.paceGraphSamples,

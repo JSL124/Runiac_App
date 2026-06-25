@@ -125,6 +125,42 @@ class LocalRunTrackingSession {
   }
 
   ElevationAnalysisSeries? elevationAnalysisSeries() {
+    final samples = _elevationAnalysisSamples();
+
+    if (samples.length < defaultMinimumElevationAnalysisSamples) {
+      return null;
+    }
+    return ElevationAnalysisSeries.localAccepted(samples: samples);
+  }
+
+  ElevationUnavailableReason elevationUnavailableReason() {
+    var acceptedSampleCount = 0;
+    var acceptedAltitudeSampleCount = 0;
+
+    for (final segment in _acceptedSampleSegments) {
+      for (final sample in segment) {
+        acceptedSampleCount += 1;
+        final altitude = sample.altitudeMeters;
+        if (altitude != null && altitude.isFinite) {
+          acceptedAltitudeSampleCount += 1;
+        }
+      }
+    }
+
+    if (acceptedSampleCount == 0) {
+      return ElevationUnavailableReason.noAcceptedMovementSamples;
+    }
+    if (acceptedAltitudeSampleCount == 0) {
+      return ElevationUnavailableReason.noAcceptedAltitudeSamples;
+    }
+    if (_elevationAnalysisSamples().length <
+        defaultMinimumElevationAnalysisSamples) {
+      return ElevationUnavailableReason.tooFewValidAltitudeSamples;
+    }
+    return ElevationUnavailableReason.none;
+  }
+
+  List<ElevationAnalysisSample> _elevationAnalysisSamples() {
     final samples = <ElevationAnalysisSample>[];
     var cumulativeDistanceMeters = 0.0;
 
@@ -168,10 +204,7 @@ class LocalRunTrackingSession {
       }
     }
 
-    if (samples.length < defaultMinimumElevationAnalysisSamples) {
-      return null;
-    }
-    return ElevationAnalysisSeries.localAccepted(samples: samples);
+    return samples;
   }
 
   RunMapViewState get mapViewState {

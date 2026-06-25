@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/features/run/data/static_run_repository.dart';
 import 'package:runiac_app/features/run/domain/models/advanced_analysis_snapshot.dart';
+import 'package:runiac_app/features/run/domain/models/elevation_analysis_series.dart';
 import 'package:runiac_app/features/run/domain/models/local_run_completion_payload.dart';
 import 'package:runiac_app/features/run/domain/models/run_location_sample.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_location_provider.dart';
@@ -295,8 +296,49 @@ void main() {
         );
 
         expect(payload.elevationAnalysisSeries, isNull);
+        expect(
+          payload.elevationUnavailableReason,
+          ElevationUnavailableReason.noAcceptedAltitudeSamples,
+        );
       },
     );
+
+    test('completed local run explains too few accepted altitude samples', () {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      final controller = RunTrackingController(
+        locationProvider: ReplayRunLocationProvider([
+          RunLocationReplaySample(
+            activeOffset: Duration.zero,
+            sample: RunLocationSample(
+              recordedAt: startedAt,
+              latitude: 1.300000,
+              longitude: 103.800000,
+              altitudeMeters: 4,
+            ),
+          ),
+          RunLocationReplaySample(
+            activeOffset: const Duration(seconds: 60),
+            sample: RunLocationSample(
+              recordedAt: startedAt.add(const Duration(seconds: 60)),
+              latitude: 1.301349,
+              longitude: 103.800000,
+            ),
+          ),
+        ]),
+      );
+
+      controller.start(startedAt: startedAt);
+      controller.advanceBy(const Duration(seconds: 60));
+      final payload = controller.completionPayload(
+        completedAt: startedAt.add(const Duration(seconds: 60)),
+      );
+
+      expect(payload.elevationAnalysisSeries, isNull);
+      expect(
+        payload.elevationUnavailableReason,
+        ElevationUnavailableReason.tooFewValidAltitudeSamples,
+      );
+    });
 
     test(
       'completion payload carries local-only graph samples from accepted route segments',

@@ -1,5 +1,6 @@
 import '../models/local_run_completion_payload.dart';
 import '../models/pace_analysis_series.dart';
+import '../models/elevation_analysis_series.dart';
 import '../models/run_route_snapshot.dart';
 import '../models/run_summary_snapshot.dart';
 import 'pace_graph_data_builder.dart';
@@ -20,7 +21,12 @@ class RunSummaryLocalAnalysisMerger {
     if (!backendSummary.hasSufficientData) {
       // Low-data runs may still show the recorded route, but local analysis
       // remains unavailable so the summary does not imply metric confidence.
-      return backendSummary.copyWith(route: localRoute);
+      return backendSummary.copyWith(
+        route: localRoute,
+        elevationSeries: const ElevationAnalysisSeries.unavailable(
+          reason: ElevationUnavailableReason.lowDataSummary,
+        ),
+      );
     }
 
     final localPaceGraph = const PaceGraphDataBuilder().build(

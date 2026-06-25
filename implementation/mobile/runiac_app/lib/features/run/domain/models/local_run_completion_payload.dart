@@ -17,6 +17,8 @@ class LocalRunCompletionPayload {
     this.paceGraphSamples = const <PaceGraphSample>[],
     this.cadenceAnalysisSeries,
     this.elevationAnalysisSeries,
+    this.elevationUnavailableReason =
+        ElevationUnavailableReason.noElevationSeries,
   });
 
   final String clientRunSessionId;
@@ -32,6 +34,7 @@ class LocalRunCompletionPayload {
   final List<PaceGraphSample> paceGraphSamples;
   final CadenceAnalysisSeries? cadenceAnalysisSeries;
   final ElevationAnalysisSeries? elevationAnalysisSeries;
+  final ElevationUnavailableReason elevationUnavailableReason;
 
   Map<String, Object?> toRawClientMap() {
     return <String, Object?>{

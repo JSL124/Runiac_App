@@ -533,6 +533,10 @@ void main() {
     expect(merged.paceAnalysisSeries, isNull);
     expect(merged.cadenceAnalysisSeries, isNull);
     expect(merged.elevationSeries.isUnavailable, isTrue);
+    expect(
+      merged.elevationSeries.unavailableReason,
+      ElevationUnavailableReason.lowDataSummary,
+    );
   });
 
   test(

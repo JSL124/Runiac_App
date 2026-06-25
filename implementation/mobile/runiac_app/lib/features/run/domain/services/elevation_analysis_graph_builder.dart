@@ -8,14 +8,24 @@ class ElevationAnalysisGraphBuilder {
     final sourceReason = _unavailableReasonForSource(series);
     if (sourceReason != null) {
       return ElevationGraphSnapshot.unavailable(
-        unavailableReason: sourceReason,
+        unavailableReason: sourceReason.label,
+        unavailableDiagnosticReason: sourceReason.reason,
       );
     }
 
     final validSamples = series.validSamples;
-    if (validSamples.length < defaultMinimumElevationAnalysisSamples ||
-        !_hasStrictlyIncreasingDistance(validSamples)) {
-      return const ElevationGraphSnapshot.unavailable();
+    if (validSamples.length < defaultMinimumElevationAnalysisSamples) {
+      return const ElevationGraphSnapshot.unavailable(
+        unavailableDiagnosticReason:
+            ElevationUnavailableReason.tooFewValidAltitudeSamples,
+      );
+    }
+    if (!_hasStrictlyIncreasingDistance(validSamples)) {
+      return const ElevationGraphSnapshot.unavailable(
+        unavailableReason: 'non_increasing_elevation_distance',
+        unavailableDiagnosticReason:
+            ElevationUnavailableReason.nonIncreasingDistance,
+      );
     }
 
     final points = validSamples
@@ -54,15 +64,26 @@ class ElevationAnalysisGraphBuilder {
     );
   }
 
-  String? _unavailableReasonForSource(ElevationAnalysisSeries series) {
+  _ElevationGraphUnavailableSourceReason? _unavailableReasonForSource(
+    ElevationAnalysisSeries series,
+  ) {
     if (series.isStaticDemoSource) {
-      return 'static_demo_elevation_graph';
+      return const _ElevationGraphUnavailableSourceReason(
+        label: 'static_demo_elevation_graph',
+        reason: ElevationUnavailableReason.graphUnavailable,
+      );
     }
     if (series.isUnavailable) {
-      return 'unavailable_elevation_source';
+      return _ElevationGraphUnavailableSourceReason(
+        label: 'unavailable_elevation_source',
+        reason: series.unavailableReason,
+      );
     }
     if (!series.isProductionAnalysisEligible) {
-      return 'ineligible_elevation_source';
+      return const _ElevationGraphUnavailableSourceReason(
+        label: 'ineligible_elevation_source',
+        reason: ElevationUnavailableReason.graphUnavailable,
+      );
     }
     return null;
   }
@@ -124,4 +145,14 @@ class ElevationAnalysisGraphBuilder {
     }
     return distanceKm.toStringAsFixed(1);
   }
+}
+
+class _ElevationGraphUnavailableSourceReason {
+  const _ElevationGraphUnavailableSourceReason({
+    required this.label,
+    required this.reason,
+  });
+
+  final String label;
+  final ElevationUnavailableReason reason;
 }

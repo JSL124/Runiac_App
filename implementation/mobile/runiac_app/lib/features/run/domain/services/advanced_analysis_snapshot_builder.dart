@@ -58,23 +58,24 @@ class AdvancedAnalysisSnapshotBuilder {
       summary.elevationSeries,
     );
     if (!graph.isAvailable) {
-      return const AdvancedAnalysisElevationAnalysis(
-        totalGain: AdvancedAnalysisMetric<String>.unavailable(
+      return AdvancedAnalysisElevationAnalysis(
+        totalGain: const AdvancedAnalysisMetric<String>.unavailable(
           reason: AdvancedAnalysisMetricReason.missingElevationSource,
         ),
-        highestPoint: AdvancedAnalysisMetric<String>.unavailable(
+        highestPoint: const AdvancedAnalysisMetric<String>.unavailable(
           reason: AdvancedAnalysisMetricReason.missingElevationSource,
         ),
-        lowestPoint: AdvancedAnalysisMetric<String>.unavailable(
+        lowestPoint: const AdvancedAnalysisMetric<String>.unavailable(
           reason: AdvancedAnalysisMetricReason.missingElevationSource,
         ),
-        routeDifficulty: AdvancedAnalysisMetric<String>.unavailable(
+        routeDifficulty: const AdvancedAnalysisMetric<String>.unavailable(
           reason: AdvancedAnalysisMetricReason.undefinedRouteDifficultySource,
         ),
         elevationGraph:
-            AdvancedAnalysisMetric<ElevationGraphSnapshot>.unavailable(
+            const AdvancedAnalysisMetric<ElevationGraphSnapshot>.unavailable(
               reason: AdvancedAnalysisMetricReason.missingElevationSource,
             ),
+        unavailableReason: graph.unavailableDiagnosticReason,
       );
     }
 
@@ -101,6 +102,7 @@ class AdvancedAnalysisSnapshotBuilder {
         source: source,
         confidence: AdvancedAnalysisMetricConfidence.derived,
       ),
+      unavailableReason: ElevationUnavailableReason.none,
     );
   }
 

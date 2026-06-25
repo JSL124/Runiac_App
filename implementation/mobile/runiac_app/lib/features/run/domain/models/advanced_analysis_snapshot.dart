@@ -1,4 +1,5 @@
 import 'cadence_graph_snapshot.dart';
+import 'elevation_analysis_series.dart';
 import 'elevation_graph_snapshot.dart';
 import 'heart_rate_analysis_eligibility.dart';
 import 'pace_graph_snapshot.dart';
@@ -256,6 +257,7 @@ class AdvancedAnalysisElevationAnalysis {
     required this.lowestPoint,
     required this.routeDifficulty,
     required this.elevationGraph,
+    required this.unavailableReason,
   });
 
   final AdvancedAnalysisMetric<String> totalGain;
@@ -263,6 +265,7 @@ class AdvancedAnalysisElevationAnalysis {
   final AdvancedAnalysisMetric<String> lowestPoint;
   final AdvancedAnalysisMetric<String> routeDifficulty;
   final AdvancedAnalysisMetric<ElevationGraphSnapshot> elevationGraph;
+  final ElevationUnavailableReason unavailableReason;
 }
 
 class AdvancedAnalysisFormCadenceAnalysis {
