@@ -8,5 +8,7 @@ Future<void> main() async {
 
   final bootstrap = await RuniacFirebaseBootstrap.initialize();
 
-  runApp(RuniacApp(runRepository: bootstrap.runRepository));
+  runApp(
+    RuniacApp(runRepository: bootstrap.runRepository, showOnboarding: true),
+  );
 }
