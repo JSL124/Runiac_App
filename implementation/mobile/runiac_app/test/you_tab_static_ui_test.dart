@@ -9,6 +9,7 @@ import 'package:runiac_app/features/run/domain/models/advanced_analysis_snapshot
 import 'package:runiac_app/features/run/domain/models/cadence_graph_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/complete_run_result.dart';
 import 'package:runiac_app/features/run/domain/models/run_location_sample.dart';
+import 'package:runiac_app/features/run/domain/models/run_activity_display_model.dart';
 import 'package:runiac_app/features/run/domain/models/run_route_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/run_summary_snapshot.dart';
 import 'package:runiac_app/features/run/domain/services/advanced_analysis_snapshot_builder.dart';
@@ -1319,6 +1320,60 @@ void main() {
       findsNothing,
     );
   });
+
+  testWidgets(
+    'Current-session activity card requests a guarded Mapbox thumbnail',
+    (WidgetTester tester) async {
+      // Given: a current-session completion card with a meaningful route.
+      final provider = _FakeActivityRouteThumbnailProvider(
+        const ActivityRouteThumbnailResult.unavailable(),
+      );
+      final completion = _sessionCompletion(
+        activityId: 'current-session-mapbox-card',
+        title: 'Current Session Mapbox Card',
+        distanceKm: '1.20',
+        route: _sessionRouteFixture(),
+      );
+      final activity = RunActivityDisplayModel(
+        activityId: completion.activityId,
+        title: completion.summary.title,
+        timeAgoLabel: 'Just now',
+        distanceLabel: '${completion.summary.distanceKm} km',
+        paceLabel: completion.summary.avgPace,
+        durationLabel: completion.summary.duration,
+        summary: completion.summary,
+        completionResult: completion,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: CompactRunActivityCard(
+              activity: activity,
+              routeThumbnailProvider: provider,
+              onTap: () {},
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Then: the card keeps the preview non-interactive while only the
+      // current-session route is allowed through the provider boundary.
+      expect(provider.requestCount, 1);
+      expect(provider.lastRequest!.activityId, 'current-session-mapbox-card');
+      expect(provider.lastRequest!.allowExternalStaticMap, isTrue);
+      expect(provider.lastRequest!.isCurrentSessionRoute, isTrue);
+      expect(provider.lastRequest!.isDemoRoute, isFalse);
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('activity_route_preview_slot')),
+          matching: find.byType(GestureDetector),
+        ),
+        findsNothing,
+      );
+    },
+  );
 
   testWidgets(
     'Activity route preview falls back when provider has no ready image',

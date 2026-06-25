@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/widgets.dart';
 
 import '../../../run/domain/models/run_location_sample.dart';
+import '../../../run/domain/models/run_route_snapshot.dart';
 import 'activity_route_preview.dart';
 
 class ActivityRouteSnapshotThumbnailCacheKey {
@@ -104,17 +106,26 @@ class ActivityRouteSnapshotThumbnailGenerationRequest {
     required this.logicalSize,
     required this.devicePixelRatio,
     required this.styleId,
+    required this.camera,
     this.activityId,
   });
 
-  factory ActivityRouteSnapshotThumbnailGenerationRequest.fromThumbnailRequest(
+  static ActivityRouteSnapshotThumbnailGenerationRequest? fromThumbnailRequest(
     ActivityRouteThumbnailRequest request, {
     required String styleId,
   }) {
+    final camera = ActivityRouteSnapshotCamera.fromRoute(
+      request.route,
+      logicalSize: request.logicalSize,
+    );
+    if (camera == null) {
+      return null;
+    }
     return ActivityRouteSnapshotThumbnailGenerationRequest(
       logicalSize: request.logicalSize,
       devicePixelRatio: request.devicePixelRatio,
       styleId: styleId,
+      camera: camera,
       activityId: request.activityId,
     );
   }
@@ -122,7 +133,90 @@ class ActivityRouteSnapshotThumbnailGenerationRequest {
   final Size logicalSize;
   final double devicePixelRatio;
   final String styleId;
+  final ActivityRouteSnapshotCamera camera;
   final String? activityId;
+}
+
+class ActivityRouteSnapshotCamera {
+  const ActivityRouteSnapshotCamera({
+    required this.centerLatitude,
+    required this.centerLongitude,
+    required this.zoom,
+  });
+
+  factory ActivityRouteSnapshotCamera.fromBounds({
+    required double minLatitude,
+    required double maxLatitude,
+    required double minLongitude,
+    required double maxLongitude,
+    required Size logicalSize,
+  }) {
+    final centerLatitude = (minLatitude + maxLatitude) / 2;
+    final centerLongitude = (minLongitude + maxLongitude) / 2;
+    final latitudeSpan = (maxLatitude - minLatitude).abs();
+    final longitudeSpan = (maxLongitude - minLongitude).abs();
+    final adjustedLongitudeSpan =
+        longitudeSpan * math.cos(centerLatitude * math.pi / 180).abs();
+    final routeSpan = math.max(latitudeSpan, adjustedLongitudeSpan);
+    final paddedSpan = math.max(routeSpan * 1.8, _minCameraSpan);
+    final zoom = (math.log(360 / paddedSpan) / math.ln2).clamp(
+      _minSnapshotZoom,
+      _maxSnapshotZoom,
+    );
+
+    return ActivityRouteSnapshotCamera(
+      centerLatitude: centerLatitude,
+      centerLongitude: centerLongitude,
+      zoom: zoom.toDouble(),
+    );
+  }
+
+  static ActivityRouteSnapshotCamera? fromRoute(
+    RunRouteSnapshot route, {
+    required Size logicalSize,
+  }) {
+    final points = _drawableRoutePoints(route.segments);
+    if (points.length < 2) {
+      return null;
+    }
+    final movementMeters = _routeMovementMeters(points);
+    if (movementMeters < _stationaryMovementThresholdMeters) {
+      return null;
+    }
+
+    var minLatitude = points.first.latitude;
+    var maxLatitude = points.first.latitude;
+    var minLongitude = points.first.longitude;
+    var maxLongitude = points.first.longitude;
+    for (final point in points.skip(1)) {
+      minLatitude = math.min(minLatitude, point.latitude);
+      maxLatitude = math.max(maxLatitude, point.latitude);
+      minLongitude = math.min(minLongitude, point.longitude);
+      maxLongitude = math.max(maxLongitude, point.longitude);
+    }
+
+    if (_projectedRouteIsTiny(
+      minLatitude: minLatitude,
+      maxLatitude: maxLatitude,
+      minLongitude: minLongitude,
+      maxLongitude: maxLongitude,
+      logicalSize: logicalSize,
+    )) {
+      return null;
+    }
+
+    return ActivityRouteSnapshotCamera.fromBounds(
+      minLatitude: minLatitude,
+      maxLatitude: maxLatitude,
+      minLongitude: minLongitude,
+      maxLongitude: maxLongitude,
+      logicalSize: logicalSize,
+    );
+  }
+
+  final double centerLatitude;
+  final double centerLongitude;
+  final double zoom;
 }
 
 class CachedActivityRouteThumbnailProvider
@@ -200,7 +294,7 @@ class CachedActivityRouteThumbnailProvider
     if (!request.allowExternalStaticMap || !snapshotThumbnailsEnabled) {
       return const ActivityRouteThumbnailResult.privacyDisabled();
     }
-    if (!request.isDemoRoute) {
+    if (!request.isDemoRoute && !request.isCurrentSessionRoute) {
       return const ActivityRouteThumbnailResult.privacyDisabled();
     }
     if (!hasValidMapboxToken) {
@@ -214,7 +308,15 @@ class CachedActivityRouteThumbnailProvider
     required ActivityRouteThumbnailRequest request,
     required ActivityRouteSnapshotThumbnailGenerator generator,
   }) async {
-    final result = await _generateWithTimeout(generator, request);
+    final generationRequest =
+        ActivityRouteSnapshotThumbnailGenerationRequest.fromThumbnailRequest(
+          request,
+          styleId: styleId,
+        );
+    if (generationRequest == null) {
+      return const ActivityRouteThumbnailResult.unavailable();
+    }
+    final result = await _generateWithTimeout(generator, generationRequest);
     if (result.hasReadyImage) {
       cache.store(key, result);
     }
@@ -223,16 +325,11 @@ class CachedActivityRouteThumbnailProvider
 
   Future<ActivityRouteThumbnailResult> _generateWithTimeout(
     ActivityRouteSnapshotThumbnailGenerator generator,
-    ActivityRouteThumbnailRequest request,
+    ActivityRouteSnapshotThumbnailGenerationRequest request,
   ) async {
-    final generationRequest =
-        ActivityRouteSnapshotThumbnailGenerationRequest.fromThumbnailRequest(
-          request,
-          styleId: styleId,
-        );
     try {
       return await generator
-          .generate(generationRequest)
+          .generate(request)
           .timeout(
             generationTimeout,
             onTimeout: () {
@@ -245,6 +342,71 @@ class CachedActivityRouteThumbnailProvider
       return const ActivityRouteThumbnailResult.requestFailed();
     }
   }
+}
+
+List<RunLocationSample> _drawableRoutePoints(
+  List<List<RunLocationSample>> segments,
+) {
+  return segments
+      .expand((segment) => segment)
+      .where(_isDrawableRoutePoint)
+      .toList(growable: false);
+}
+
+bool _isDrawableRoutePoint(RunLocationSample point) {
+  return point.latitude.isFinite && point.longitude.isFinite;
+}
+
+double _routeMovementMeters(List<RunLocationSample> points) {
+  var maxDistance = 0.0;
+  for (var index = 1; index < points.length; index += 1) {
+    maxDistance = math.max(
+      maxDistance,
+      _distanceMeters(points.first, points[index]),
+    );
+  }
+  return maxDistance;
+}
+
+double _distanceMeters(RunLocationSample a, RunLocationSample b) {
+  const metersPerLatitudeDegree = 111320.0;
+  final meanLatitudeRadians = ((a.latitude + b.latitude) / 2) * math.pi / 180;
+  final metersPerLongitudeDegree =
+      metersPerLatitudeDegree * math.cos(meanLatitudeRadians).abs();
+  final latitudeMeters = (b.latitude - a.latitude) * metersPerLatitudeDegree;
+  final longitudeMeters =
+      (b.longitude - a.longitude) * metersPerLongitudeDegree;
+  return math.sqrt(
+    (latitudeMeters * latitudeMeters) + (longitudeMeters * longitudeMeters),
+  );
+}
+
+bool _projectedRouteIsTiny({
+  required double minLatitude,
+  required double maxLatitude,
+  required double minLongitude,
+  required double maxLongitude,
+  required Size logicalSize,
+}) {
+  final longitudeSpan = math.max(maxLongitude - minLongitude, _minRouteSpan);
+  final latitudeSpan = math.max(maxLatitude - minLatitude, _minRouteSpan);
+  final drawableWidth = math.max(
+    1.0,
+    logicalSize.width - (_previewPadding * 2),
+  );
+  final drawableHeight = math.max(
+    1.0,
+    logicalSize.height - (_previewPadding * 2),
+  );
+  final scale = math.min(
+    drawableWidth / longitudeSpan,
+    drawableHeight / latitudeSpan,
+  );
+  final projectedWidth = longitudeSpan * scale;
+  final projectedHeight = latitudeSpan * scale;
+
+  return projectedWidth < _tinyRouteProjectedThresholdPx &&
+      projectedHeight < _tinyRouteProjectedThresholdPx;
 }
 
 int _routeFingerprint(List<List<RunLocationSample>> segments) {
@@ -274,7 +436,13 @@ String _privacyMode(ActivityRouteThumbnailRequest request) {
   if (!request.allowExternalStaticMap) {
     return 'privacy-disabled';
   }
-  return request.isDemoRoute ? 'demo-static-allowed' : 'real-route-disabled';
+  if (request.isDemoRoute) {
+    return 'demo-static-allowed';
+  }
+  if (request.isCurrentSessionRoute) {
+    return 'current-session-runtime-allowed';
+  }
+  return 'real-route-disabled';
 }
 
 int _combineHash(int hash, int value) {
@@ -287,6 +455,13 @@ int _combineHash(int hash, int value) {
 }
 
 const _defaultStyleId = 'runiac-card-static-v1';
+const _previewPadding = 7.0;
+const _minRouteSpan = 0.000001;
+const _stationaryMovementThresholdMeters = 6.0;
+const _tinyRouteProjectedThresholdPx = 6.0;
+const _minCameraSpan = 0.00018;
+const _minSnapshotZoom = 11.5;
+const _maxSnapshotZoom = 17.2;
 const _coordinatePrecision = 1000000;
 const _devicePixelRatioPrecision = 4;
 const _segmentSeparator = 0x9e3779b9;

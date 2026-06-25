@@ -3,17 +3,22 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/runiac_colors.dart';
 import '../../../../core/widgets/runiac_buttons.dart';
 import '../../../run/domain/models/run_activity_display_model.dart';
+import '../../../run/presentation/widgets/mapbox_runtime_config.dart';
+import 'activity_route_mapbox_snapshot_provider.dart';
 import 'activity_route_preview.dart';
+import 'activity_route_snapshot_thumbnail_cache.dart';
 
 class CompactRunActivityCard extends StatelessWidget {
   const CompactRunActivityCard({
     required this.activity,
     required this.onTap,
+    this.routeThumbnailProvider,
     super.key,
   });
 
   final RunActivityDisplayModel activity;
   final VoidCallback onTap;
+  final ActivityRouteThumbnailProvider? routeThumbnailProvider;
 
   @override
   Widget build(BuildContext context) {
@@ -29,6 +34,10 @@ class CompactRunActivityCard extends StatelessWidget {
         children: [
           ActivityRoutePreview(
             route: activity.summary.route,
+            thumbnailProvider:
+                routeThumbnailProvider ?? _activityRouteThumbnailProvider,
+            allowExternalStaticMap: activity.completionResult != null,
+            isCurrentSessionRoute: activity.completionResult != null,
             activityId: activity.identityKey,
           ),
           const SizedBox(width: 18),
@@ -199,3 +208,19 @@ const _metricLabelStyle = TextStyle(
   fontSize: 10,
   fontWeight: FontWeight.w800,
 );
+
+final _activityRouteThumbnailCache =
+    ActivityRouteSnapshotThumbnailMemoryCache();
+final _activityRouteThumbnailProvider = _createActivityRouteThumbnailProvider();
+
+ActivityRouteThumbnailProvider _createActivityRouteThumbnailProvider() {
+  final config = MapboxRuntimeConfig.fromEnvironment();
+  return CachedActivityRouteThumbnailProvider(
+    cache: _activityRouteThumbnailCache,
+    generator: MapboxActivityRouteSnapshotThumbnailGenerator(
+      accessToken: config.accessToken,
+    ),
+    snapshotThumbnailsEnabled: config.snapshotThumbnailsEnabled,
+    hasValidMapboxToken: config.hasPublicAccessToken,
+  );
+}

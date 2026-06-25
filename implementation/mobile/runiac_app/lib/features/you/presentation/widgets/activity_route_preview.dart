@@ -12,6 +12,7 @@ class ActivityRoutePreview extends StatelessWidget {
     this.thumbnailProvider = const NoopActivityRouteThumbnailProvider(),
     this.allowExternalStaticMap = false,
     this.isDemoRoute = false,
+    this.isCurrentSessionRoute = false,
     this.activityId,
     super.key,
   });
@@ -20,6 +21,7 @@ class ActivityRoutePreview extends StatelessWidget {
   final ActivityRouteThumbnailProvider thumbnailProvider;
   final bool allowExternalStaticMap;
   final bool isDemoRoute;
+  final bool isCurrentSessionRoute;
   final String? activityId;
 
   @override
@@ -44,6 +46,7 @@ class ActivityRoutePreview extends StatelessWidget {
               devicePixelRatio: devicePixelRatio,
               allowExternalStaticMap: allowExternalStaticMap,
               isDemoRoute: isDemoRoute,
+              isCurrentSessionRoute: isCurrentSessionRoute,
               activityId: activityId,
             ),
           ),
@@ -80,6 +83,7 @@ class ActivityRouteThumbnailRequest {
     required this.devicePixelRatio,
     required this.allowExternalStaticMap,
     required this.isDemoRoute,
+    this.isCurrentSessionRoute = false,
     this.activityId,
   });
 
@@ -88,6 +92,7 @@ class ActivityRouteThumbnailRequest {
   final double devicePixelRatio;
   final bool allowExternalStaticMap;
   final bool isDemoRoute;
+  final bool isCurrentSessionRoute;
   final String? activityId;
 
   @override
@@ -98,6 +103,7 @@ class ActivityRouteThumbnailRequest {
         other.devicePixelRatio == devicePixelRatio &&
         other.allowExternalStaticMap == allowExternalStaticMap &&
         other.isDemoRoute == isDemoRoute &&
+        other.isCurrentSessionRoute == isCurrentSessionRoute &&
         other.activityId == activityId;
   }
 
@@ -109,6 +115,7 @@ class ActivityRouteThumbnailRequest {
       devicePixelRatio,
       allowExternalStaticMap,
       isDemoRoute,
+      isCurrentSessionRoute,
       activityId,
     );
   }

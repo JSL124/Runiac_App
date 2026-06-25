@@ -43,6 +43,7 @@ ActivityRouteThumbnailRequest _request({
   double devicePixelRatio = 3,
   bool allowExternalStaticMap = true,
   bool isDemoRoute = true,
+  bool isCurrentSessionRoute = false,
   String? activityId = 'activity-1',
 }) {
   return ActivityRouteThumbnailRequest(
@@ -51,6 +52,7 @@ ActivityRouteThumbnailRequest _request({
     devicePixelRatio: devicePixelRatio,
     allowExternalStaticMap: allowExternalStaticMap,
     isDemoRoute: isDemoRoute,
+    isCurrentSessionRoute: isCurrentSessionRoute,
     activityId: activityId,
   );
 }
@@ -222,12 +224,47 @@ void main() {
       expect(generator.lastRequest!.logicalSize, request.logicalSize);
       expect(generator.lastRequest!.devicePixelRatio, request.devicePixelRatio);
       expect(generator.lastRequest!.activityId, request.activityId);
+      expect(
+        generator.lastRequest!.camera.centerLatitude,
+        closeTo(1.3015, 0.001),
+      );
+      expect(
+        generator.lastRequest!.camera.centerLongitude,
+        closeTo(103.8015, 0.001),
+      );
       expect(cache.length, 1);
     },
   );
 
+  test('snapshot provider resolves current-session route thumbnails', () async {
+    final cache = ActivityRouteSnapshotThumbnailMemoryCache();
+    final image = MemoryImage(Uint8List.fromList(const [10, 11, 12]));
+    final generator = _FakeSnapshotThumbnailGenerator((request) async {
+      return ActivityRouteThumbnailResult.readyImage(image);
+    });
+    final provider = CachedActivityRouteThumbnailProvider(
+      cache: cache,
+      generator: generator,
+      snapshotThumbnailsEnabled: true,
+      hasValidMapboxToken: true,
+    );
+
+    final request = _request(
+      route: _routeFixture(),
+      isDemoRoute: false,
+      isCurrentSessionRoute: true,
+    );
+
+    final resolved = await provider.resolve(request);
+
+    expect(resolved.state, ActivityRouteThumbnailState.readyImage);
+    expect(generator.requestCount, 1);
+    expect(generator.lastRequest!.activityId, request.activityId);
+    expect(cache.length, 1);
+  });
+
   test(
-    'snapshot provider never generates real user route thumbnails',
+    'snapshot provider never generates non-current real user route thumbnails',
     () async {
       // Given: static thumbnails are enabled and a valid token is available.
       final cache = ActivityRouteSnapshotThumbnailMemoryCache();
@@ -245,7 +282,11 @@ void main() {
 
       // When: a non-demo route asks for a static thumbnail.
       final resolved = await provider.resolve(
-        _request(route: _routeFixture(), isDemoRoute: false),
+        _request(
+          route: _routeFixture(),
+          isDemoRoute: false,
+          isCurrentSessionRoute: false,
+        ),
       );
 
       // Then: the provider refuses before any external generator can see it.
@@ -331,6 +372,51 @@ void main() {
 
       expect(resolved, const ActivityRouteThumbnailResult.timedOut());
       expect(provider.cache.length, 0);
+    },
+  );
+
+  test(
+    'snapshot provider bypasses generator when route is stationary',
+    () async {
+      final startedAt = DateTime.utc(2026, 6, 18, 8, 10);
+      final stationaryRoute = RunRouteSnapshot(
+        segments: [
+          [
+            RunLocationSample(
+              recordedAt: startedAt,
+              latitude: 1.301000,
+              longitude: 103.801000,
+            ),
+            RunLocationSample(
+              recordedAt: startedAt.add(const Duration(seconds: 30)),
+              latitude: 1.301001,
+              longitude: 103.801001,
+            ),
+          ],
+        ],
+      );
+      final generator = _FakeSnapshotThumbnailGenerator((request) async {
+        return ActivityRouteThumbnailResult.readyImage(
+          MemoryImage(Uint8List.fromList(const [16, 17, 18])),
+        );
+      });
+      final provider = CachedActivityRouteThumbnailProvider(
+        cache: ActivityRouteSnapshotThumbnailMemoryCache(),
+        generator: generator,
+        snapshotThumbnailsEnabled: true,
+        hasValidMapboxToken: true,
+      );
+
+      final resolved = await provider.resolve(
+        _request(
+          route: stationaryRoute,
+          isDemoRoute: false,
+          isCurrentSessionRoute: true,
+        ),
+      );
+
+      expect(resolved, const ActivityRouteThumbnailResult.unavailable());
+      expect(generator.requestCount, 0);
     },
   );
 }
