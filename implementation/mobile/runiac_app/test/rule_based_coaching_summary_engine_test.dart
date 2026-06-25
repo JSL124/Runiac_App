@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/features/run/domain/models/cadence_analysis_series.dart';
 import 'package:runiac_app/features/run/domain/models/coaching_summary_snapshot.dart';
+import 'package:runiac_app/features/run/domain/models/elevation_analysis_series.dart';
 import 'package:runiac_app/features/run/domain/models/pace_graph_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/run_source_display.dart';
 import 'package:runiac_app/features/run/domain/models/run_summary_snapshot.dart';
@@ -116,6 +117,24 @@ void main() {
       _expectSafeCopy(coaching);
     });
 
+    test('steady_pace_elevation_available_adds_cautious_route_context', () {
+      final coaching = _build(
+        paceGraph: _steadyGraph(),
+        elevationSeries: _rollingElevationSeries(),
+      );
+
+      expect(coaching.message, contains('steady rhythm'));
+      expect(
+        coaching.message,
+        contains(RegExp('elevation data', caseSensitive: false)),
+      );
+      expect(coaching.message, contains('route context'));
+      expect(coaching.message, isNot(contains('caused')));
+      expect(coaching.nextAction, contains('changing ground'));
+      _expectDiaryShape(coaching);
+      _expectSafeCopy(coaching);
+    });
+
     test('steady_pace_stable_cadence_uses_neutral_rhythm_copy', () {
       final coaching = _build(
         paceGraph: _steadyGraph(),
@@ -162,6 +181,21 @@ void main() {
       _expectDiaryShape(coaching);
       _expectSafeCopy(coaching);
       _expectCadenceSafeCopy(coaching);
+    });
+
+    test('pace_fade_elevation_available_does_not_blame_hills', () {
+      final coaching = _build(
+        paceGraph: _fastStartFadeGraph(),
+        elevationSeries: _rollingElevationSeries(),
+      );
+
+      expect(coaching.message, contains('pace eased later'));
+      expect(coaching.message, contains('route context'));
+      expect(coaching.message, contains('not proof'));
+      expect(coaching.message, isNot(contains('caused')));
+      expect(coaching.nextAction, contains('route changes'));
+      _expectDiaryShape(coaching);
+      _expectSafeCopy(coaching);
     });
 
     test('fast_start_fade_hr_available_no_fatigue_claim', () {
@@ -236,6 +270,29 @@ void main() {
       _expectSafeCopy(coaching);
     });
 
+    test('low_data_elevation_available_stays_low_data_safe', () {
+      final coaching = _build(
+        hasSufficientData: false,
+        avgPace: '--',
+        paceGraph: const PaceGraphSnapshot.unavailable(),
+        elevationSeries: _rollingElevationSeries(),
+      );
+
+      expect(
+        coaching.interpretationId,
+        CoachingInterpretationId.lowDataInterpretation,
+      );
+      expect(coaching.message, contains('limited data'));
+      expect(
+        coaching.message,
+        contains(RegExp('elevation data was captured', caseSensitive: false)),
+      );
+      expect(coaching.message, contains('usable pace and distance data'));
+      expect(coaching.message, isNot(contains('hill caused')));
+      _expectDiaryShape(coaching);
+      _expectSafeCopy(coaching);
+    });
+
     test('strong_finish_no_hr_controlled_finish_copy', () {
       final coaching = _build(paceGraph: _strongFinishGraph());
 
@@ -297,6 +354,20 @@ void main() {
       _expectSafeCopy(coaching);
     });
 
+    test('unavailable_elevation_does_not_change_steady_copy', () {
+      final coaching = _build(
+        paceGraph: _steadyGraph(),
+        elevationSeries: const ElevationAnalysisSeries.unavailable(),
+      );
+
+      expect(coaching.message, contains('steady rhythm'));
+      expect(coaching.message, contains('avoids guessing how hard it felt'));
+      expect(coaching.message, isNot(contains('elevation data')));
+      expect(coaching.message, isNot(contains('route context')));
+      _expectDiaryShape(coaching);
+      _expectSafeCopy(coaching);
+    });
+
     test('graph_unavailable_valid_scalars_avoids_graph_claim', () {
       final coaching = _build(paceGraph: const PaceGraphSnapshot.unavailable());
 
@@ -315,7 +386,15 @@ void main() {
         _build(distanceKm: '0.72', duration: '5:45', paceGraph: _steadyGraph()),
         _build(distanceKm: '0.75', duration: '5:50', paceGraph: _unevenGraph()),
         _build(paceGraph: _steadyGraph()),
+        _build(
+          paceGraph: _steadyGraph(),
+          elevationSeries: _rollingElevationSeries(),
+        ),
         _build(paceGraph: _fastStartFadeGraph()),
+        _build(
+          paceGraph: _fastStartFadeGraph(),
+          elevationSeries: _rollingElevationSeries(),
+        ),
         _build(paceGraph: _strongFinishGraph()),
         _build(paceGraph: const PaceGraphSnapshot.unavailable()),
       ];
@@ -339,6 +418,8 @@ CoachingSummarySnapshot _build({
   HeartRateAvailability heartRateAvailability =
       HeartRateAvailability.unavailableNoSensor,
   CadenceAnalysisSeries? cadenceAnalysisSeries,
+  ElevationAnalysisSeries elevationSeries =
+      const ElevationAnalysisSeries.unavailable(),
   PaceGraphSnapshot paceGraph = const PaceGraphSnapshot(
     isAvailable: true,
     points: [
@@ -377,6 +458,7 @@ CoachingSummarySnapshot _build({
       sourceType: sourceType,
       heartRateAvailability: heartRateAvailability,
       cadenceAnalysisSeries: cadenceAnalysisSeries,
+      elevationSeries: elevationSeries,
       paceGraph: paceGraph,
     ),
   );
@@ -515,6 +597,17 @@ CadenceAnalysisSeries _droppingCadenceSeries() {
       CadenceAnalysisSample.accepted(elapsedSeconds: 120, cadenceSpm: 170),
       CadenceAnalysisSample.accepted(elapsedSeconds: 180, cadenceSpm: 158),
       CadenceAnalysisSample.accepted(elapsedSeconds: 240, cadenceSpm: 156),
+    ],
+  );
+}
+
+ElevationAnalysisSeries _rollingElevationSeries() {
+  return ElevationAnalysisSeries.localAccepted(
+    samples: const <ElevationAnalysisSample>[
+      ElevationAnalysisSample(distanceKm: 0, elevationMeters: 22),
+      ElevationAnalysisSample(distanceKm: 1.4, elevationMeters: 36),
+      ElevationAnalysisSample(distanceKm: 2.8, elevationMeters: 31),
+      ElevationAnalysisSample(distanceKm: 4.2, elevationMeters: 49),
     ],
   );
 }

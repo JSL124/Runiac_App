@@ -1,9 +1,11 @@
 import '../models/cadence_analysis_derivation.dart';
 import '../models/coaching_summary_snapshot.dart';
+import '../models/elevation_graph_snapshot.dart';
 import '../models/pace_graph_snapshot.dart';
 import '../models/run_source_display.dart';
 import '../models/run_summary_snapshot.dart';
 import 'cadence_analysis_deriver.dart';
+import 'elevation_analysis_graph_builder.dart';
 
 const int _veryShortRunDurationSeconds = 2 * 60;
 const double _veryShortRunDistanceKm = 0.25;
@@ -26,7 +28,9 @@ class RuleBasedCoachingSummaryEngine {
     final signals = _CoachingSignals.fromSummary(summary);
 
     if (signals.dataConfidence == _CoachingDataConfidence.low) {
-      return _lowDataInterpretation;
+      return signals.elevationSignal == _CoachingElevationSignal.unavailable
+          ? _lowDataInterpretation
+          : _lowDataElevationInterpretation;
     }
 
     if (signals.runScale == _CoachingRunScale.veryShort) {
@@ -54,6 +58,20 @@ class RuleBasedCoachingSummaryEngine {
         _CoachingPacePattern.fastStartFade => _shortUnevenNoHrInterpretation,
         _ => _shortValidInterpretation,
       };
+    }
+
+    if (signals.elevationSignal != _CoachingElevationSignal.unavailable &&
+        signals.pacePattern == _CoachingPacePattern.steady) {
+      return signals.elevationSignal == _CoachingElevationSignal.mostlyFlat
+          ? _steadyMostlyFlatElevationInterpretation
+          : _steadyChangingElevationInterpretation;
+    }
+
+    if (signals.elevationSignal != _CoachingElevationSignal.unavailable &&
+        signals.pacePattern == _CoachingPacePattern.fastStartFade) {
+      return signals.elevationSignal == _CoachingElevationSignal.mostlyFlat
+          ? _fadeMostlyFlatElevationInterpretation
+          : _fadeChangingElevationInterpretation;
     }
 
     if (signals.cadencePattern == _CoachingCadencePattern.stable &&
@@ -115,6 +133,8 @@ enum _CoachingSourceSignal { liveGps, importedOrDemo }
 
 enum _CoachingCadencePattern { unavailable, stable, dropping, otherAvailable }
 
+enum _CoachingElevationSignal { unavailable, mostlyFlat, changingRoute }
+
 class _CoachingSignals {
   const _CoachingSignals({
     required this.dataConfidence,
@@ -124,6 +144,7 @@ class _CoachingSignals {
     required this.sourceSignal,
     required this.hasDisplayAveragePace,
     required this.cadencePattern,
+    required this.elevationSignal,
   });
 
   final _CoachingDataConfidence dataConfidence;
@@ -133,6 +154,7 @@ class _CoachingSignals {
   final _CoachingSourceSignal sourceSignal;
   final bool hasDisplayAveragePace;
   final _CoachingCadencePattern cadencePattern;
+  final _CoachingElevationSignal elevationSignal;
 
   factory _CoachingSignals.fromSummary(RunSummarySnapshot summary) {
     final distanceKm = _parseDistanceKm(summary.distanceKm);
@@ -159,6 +181,7 @@ class _CoachingSignals {
       sourceSignal: _classifySource(summary.sourceType),
       hasDisplayAveragePace: _hasDisplayAveragePace(summary.avgPace),
       cadencePattern: _classifyCadencePattern(summary),
+      elevationSignal: _classifyElevationSignal(summary),
     );
   }
 }
@@ -247,6 +270,22 @@ _CoachingCadencePattern _classifyCadencePattern(RunSummarySnapshot summary) {
   }
 
   return _CoachingCadencePattern.otherAvailable;
+}
+
+_CoachingElevationSignal _classifyElevationSignal(RunSummarySnapshot summary) {
+  final graph = const ElevationAnalysisGraphBuilder().build(
+    summary.elevationSeries,
+  );
+  if (!graph.isAvailable) {
+    return _CoachingElevationSignal.unavailable;
+  }
+
+  return switch (graph.difficulty) {
+    ElevationDifficulty.mostlyFlat => _CoachingElevationSignal.mostlyFlat,
+    ElevationDifficulty.rolling ||
+    ElevationDifficulty.hilly => _CoachingElevationSignal.changingRoute,
+    ElevationDifficulty.unavailable => _CoachingElevationSignal.unavailable,
+  };
 }
 
 List<PaceGraphPoint> _usableGraphPoints(PaceGraphSnapshot graph) {
@@ -378,6 +417,15 @@ const _lowDataInterpretation = CoachingSummarySnapshot(
   nextAction: 'Try one short easy run with GPS ready.',
 );
 
+const _lowDataElevationInterpretation = CoachingSummarySnapshot(
+  source: CoachingSummarySource.ruleBased,
+  interpretationId: CoachingInterpretationId.lowDataInterpretation,
+  headline: 'A simple check-in run',
+  message:
+      'This run has limited data, so the summary stays careful and simple. Elevation data was captured, but Runiac needs more usable pace and distance data before giving route context. Completion still matters because it gives you a check-in point.',
+  nextAction: 'Try one short easy run with GPS ready.',
+);
+
 const _veryShortInterpretation = CoachingSummarySnapshot(
   source: CoachingSummarySource.ruleBased,
   interpretationId: CoachingInterpretationId.shortValidInterpretation,
@@ -424,6 +472,24 @@ const _normalSteadyHrUnavailableInterpretation = CoachingSummarySnapshot(
   nextAction: 'Repeat the easy rhythm and keep the start relaxed.',
 );
 
+const _steadyMostlyFlatElevationInterpretation = CoachingSummarySnapshot(
+  source: CoachingSummarySource.ruleBased,
+  interpretationId: CoachingInterpretationId.steadyEffortInterpretation,
+  headline: 'A steady rhythm run',
+  message:
+      'The available pace data supports a steady rhythm today. Elevation data also adds route context and looks mostly flat, so the main takeaway stays simple: your rhythm was repeatable across the usable run data without needing bigger claims.',
+  nextAction: 'Repeat the easy rhythm and keep the start relaxed.',
+);
+
+const _steadyChangingElevationInterpretation = CoachingSummarySnapshot(
+  source: CoachingSummarySource.ruleBased,
+  interpretationId: CoachingInterpretationId.steadyEffortInterpretation,
+  headline: 'A steady rhythm run',
+  message:
+      'The available pace data supports a steady rhythm today. Elevation data adds route context because the route had some changing ground, so the useful takeaway is steady rhythm without treating the route as the whole story.',
+  nextAction: 'Keep the rhythm relaxed on changing ground.',
+);
+
 const _steadyPaceStableCadenceInterpretation = CoachingSummarySnapshot(
   source: CoachingSummarySource.ruleBased,
   interpretationId: CoachingInterpretationId.steadyEffortInterpretation,
@@ -449,6 +515,24 @@ const _fastStartFadeHrAvailableInterpretation = CoachingSummarySnapshot(
   message:
       'The pace pattern appears quicker early and slower later, so pacing is the main signal to learn from. Heart-rate data was recorded, but it is not enough for detailed effort labels here. A calmer opening can make the rest of the run easier to read.',
   nextAction: 'Use calmer first few minutes before settling in.',
+);
+
+const _fadeMostlyFlatElevationInterpretation = CoachingSummarySnapshot(
+  source: CoachingSummarySource.ruleBased,
+  interpretationId: CoachingInterpretationId.paceControlInterpretation,
+  headline: 'A quick start that settled',
+  message:
+      'The pace eased later after a quicker start. Elevation data adds route context and looks mostly flat, so this stays a pacing note rather than proof of why the change happened. The useful lesson is still a calmer opening.',
+  nextAction: 'Start easier and let the first few minutes settle.',
+);
+
+const _fadeChangingElevationInterpretation = CoachingSummarySnapshot(
+  source: CoachingSummarySource.ruleBased,
+  interpretationId: CoachingInterpretationId.paceControlInterpretation,
+  headline: 'A quick start that settled',
+  message:
+      'The pace eased later after a quicker start. Elevation data adds route context because the route had some changing ground, but it is not proof that hills shaped the pattern. The useful lesson is still a calmer opening.',
+  nextAction: 'Start easier and let route changes settle before judging pace.',
 );
 
 const _paceFadeCadenceDropInterpretation = CoachingSummarySnapshot(
