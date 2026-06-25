@@ -269,6 +269,7 @@ void main() {
           elapsedSeconds: session.activeDurationSeconds,
           distanceMeters: session.distanceMeters,
           averagePaceSecondsPerKm: session.averagePaceSecondsPerKm,
+          currentPaceSecondsPerKm: session.currentPaceSecondsPerKm,
           routePrivacy: 'private',
           source: session.source,
           locationStatus: RunTrackingLocationStatus.gpsActive,
@@ -319,6 +320,7 @@ void main() {
           elapsedSeconds: session.activeDurationSeconds,
           distanceMeters: session.distanceMeters,
           averagePaceSecondsPerKm: session.averagePaceSecondsPerKm,
+          currentPaceSecondsPerKm: session.currentPaceSecondsPerKm,
           routePrivacy: 'private',
           source: session.source,
           locationStatus: RunTrackingLocationStatus.gpsActive,
@@ -356,6 +358,7 @@ void main() {
           elapsedSeconds: session.activeDurationSeconds,
           distanceMeters: session.distanceMeters,
           averagePaceSecondsPerKm: session.averagePaceSecondsPerKm,
+          currentPaceSecondsPerKm: session.currentPaceSecondsPerKm,
           routePrivacy: 'private',
           source: session.source,
           locationStatus: RunTrackingLocationStatus.gpsActive,
@@ -962,6 +965,98 @@ void main() {
       expect(session.activeDurationSeconds, 120);
       expect(session.distanceMeters, closeTo(300, 2));
       expect(session.averagePaceSecondsPerKm, closeTo(400, 3));
+    });
+
+    test('current pace follows latest accepted movement segment', () {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      final session = LocalRunTrackingSession(startedAt: startedAt);
+
+      session.advanceBy(
+        const Duration(seconds: 120),
+        samples: [
+          RunLocationSample(
+            recordedAt: startedAt,
+            latitude: 1.300000,
+            longitude: 103.800000,
+          ),
+          RunLocationSample(
+            recordedAt: startedAt.add(const Duration(seconds: 60)),
+            latitude: 1.301349,
+            longitude: 103.800000,
+          ),
+          RunLocationSample(
+            recordedAt: startedAt.add(const Duration(seconds: 120)),
+            latitude: 1.301799,
+            longitude: 103.800000,
+          ),
+        ],
+      );
+
+      expect(session.distanceMeters, closeTo(200, 2));
+      expect(session.averagePaceSecondsPerKm, closeTo(600, 4));
+      expect(session.currentPaceSecondsPerKm, closeTo(1200, 8));
+    });
+
+    test('current pace ignores rejected stationary and paused samples', () {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      final session = LocalRunTrackingSession(startedAt: startedAt);
+
+      session.advanceBy(
+        const Duration(seconds: 60),
+        samples: [
+          RunLocationSample(
+            recordedAt: startedAt,
+            latitude: 1.300000,
+            longitude: 103.800000,
+          ),
+          RunLocationSample(
+            recordedAt: startedAt.add(const Duration(seconds: 60)),
+            latitude: 1.300899,
+            longitude: 103.800000,
+          ),
+        ],
+      );
+
+      final reliableCurrentPace = session.currentPaceSecondsPerKm;
+      expect(reliableCurrentPace, closeTo(600, 4));
+
+      session.advanceBy(
+        const Duration(seconds: 1),
+        samples: [
+          RunLocationSample(
+            recordedAt: startedAt.add(const Duration(seconds: 61)),
+            latitude: 1.500000,
+            longitude: 103.800000,
+          ),
+        ],
+      );
+      expect(session.currentPaceSecondsPerKm, reliableCurrentPace);
+
+      session.advanceBy(
+        const Duration(seconds: 10),
+        samples: [
+          RunLocationSample(
+            recordedAt: startedAt.add(const Duration(seconds: 70)),
+            latitude: 1.300899,
+            longitude: 103.800000,
+          ),
+        ],
+      );
+      expect(session.currentPaceSecondsPerKm, reliableCurrentPace);
+
+      session.pause();
+      session.advanceBy(
+        const Duration(seconds: 60),
+        samples: [
+          RunLocationSample(
+            recordedAt: startedAt.add(const Duration(seconds: 130)),
+            latitude: 1.301798,
+            longitude: 103.800000,
+          ),
+        ],
+      );
+
+      expect(session.currentPaceSecondsPerKm, reliableCurrentPace);
     });
 
     test('auto pause freezes moving time and suppresses stationary drift', () {
@@ -1960,6 +2055,7 @@ void main() {
       expect(session.activeDurationSeconds, 120);
       expect(session.distanceMeters, closeTo(300, 3));
       expect(session.averagePaceSecondsPerKm, closeTo(400, 4));
+      expect(session.currentPaceSecondsPerKm, closeTo(400, 4));
     });
 
     test('ignores impossible GPS jumps', () {

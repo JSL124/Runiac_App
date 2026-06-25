@@ -37,7 +37,7 @@ void main() {
           body: '00:10 • --:-- /km • 0.00 km',
           statusLabel: 'Paused',
           elapsedTimeLabel: '00:10',
-          averagePaceLabel: '--:-- /km',
+          currentPaceLabel: '--:-- /km',
           distanceLabel: '0.00 km',
           supportCopy: 'Tracking is paused until you resume.',
         ),

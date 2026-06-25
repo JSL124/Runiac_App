@@ -383,7 +383,8 @@ void main() {
     expect(find.text('DISTANCE'), findsOneWidget);
     expect(find.text('0.00'), findsOneWidget);
     expect(find.text('km'), findsOneWidget);
-    expect(find.text('AVG PACE'), findsOneWidget);
+    expect(find.text('AVG PACE'), findsNothing);
+    expect(find.text('CURRENT PACE'), findsOneWidget);
     expect(find.text('--:--/km'), findsOneWidget);
     expect(find.text('HEART'), findsNothing);
     expect(find.text('Pause'), findsOneWidget);
@@ -416,7 +417,8 @@ void main() {
     expect(find.textContaining('of 4.50 km'), findsOneWidget);
     expect(find.text('TIME'), findsOneWidget);
     expect(find.text('00:10'), findsOneWidget);
-    expect(find.text('AVG PACE'), findsOneWidget);
+    expect(find.text('AVG PACE'), findsNothing);
+    expect(find.text('CURRENT PACE'), findsOneWidget);
     expect(find.text('--:--/km'), findsOneWidget);
 
     await tester.pump(const Duration(seconds: 10));

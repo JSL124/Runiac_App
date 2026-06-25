@@ -14,6 +14,7 @@ void main() {
       int elapsedSeconds = 125,
       int distanceMeters = 620,
       int averagePaceSecondsPerKm = 432,
+      int currentPaceSecondsPerKm = 415,
     }) {
       return RunTrackingState(
         phase: phase,
@@ -23,6 +24,7 @@ void main() {
         elapsedSeconds: elapsedSeconds,
         distanceMeters: distanceMeters,
         averagePaceSecondsPerKm: averagePaceSecondsPerKm,
+        currentPaceSecondsPerKm: currentPaceSecondsPerKm,
         routePrivacy: 'private',
         source: 'local_gps',
         locationStatus: locationStatus,
@@ -35,7 +37,7 @@ void main() {
       final copy = RunTrackingNotificationCopy.fromState(state());
 
       expect(copy.title, 'Runiac is tracking your run');
-      expect(copy.body, '02:05 • 7:12 /km • 0.62 km');
+      expect(copy.body, '02:05 • 6:55 /km • 0.62 km');
     });
 
     test('formats waiting and weak GPS copy without shaming language', () {
@@ -47,9 +49,9 @@ void main() {
       );
 
       expect(waiting.title, 'Runiac is tracking your run');
-      expect(waiting.body, '02:05 • 7:12 /km • 0.62 km');
+      expect(waiting.body, '02:05 • 6:55 /km • 0.62 km');
       expect(weak.title, 'Runiac is tracking your run');
-      expect(weak.body, '02:05 • 7:12 /km • 0.62 km');
+      expect(weak.body, '02:05 • 6:55 /km • 0.62 km');
     });
 
     test('formats manual auto and abnormal paused states', () {
@@ -64,11 +66,11 @@ void main() {
       );
 
       expect(manual.title, 'Run paused');
-      expect(manual.body, '02:05 • 7:12 /km • 0.62 km');
+      expect(manual.body, '02:05 • 6:55 /km • 0.62 km');
       expect(autoPaused.title, 'Tracking paused');
-      expect(autoPaused.body, '02:05 • 7:12 /km • 0.62 km');
+      expect(autoPaused.body, '02:05 • 6:55 /km • 0.62 km');
       expect(abnormalPaused.title, 'Tracking paused');
-      expect(abnormalPaused.body, '02:05 • 7:12 /km • 0.62 km');
+      expect(abnormalPaused.body, '02:05 • 6:55 /km • 0.62 km');
     });
 
     test('formats approximate location copy', () {
@@ -77,7 +79,7 @@ void main() {
       );
 
       expect(copy.title, 'Runiac is tracking your run');
-      expect(copy.body, '02:05 • 7:12 /km • 0.62 km');
+      expect(copy.body, '02:05 • 6:55 /km • 0.62 km');
     });
   });
 
@@ -90,6 +92,7 @@ void main() {
       int elapsedSeconds = 754,
       int distanceMeters = 1250,
       int averagePaceSecondsPerKm = 432,
+      int currentPaceSecondsPerKm = 415,
     }) {
       return RunNotificationDisplayModel.fromState(
         RunTrackingState(
@@ -100,6 +103,7 @@ void main() {
           elapsedSeconds: elapsedSeconds,
           distanceMeters: distanceMeters,
           averagePaceSecondsPerKm: averagePaceSecondsPerKm,
+          currentPaceSecondsPerKm: currentPaceSecondsPerKm,
           routePrivacy: 'private',
           source: 'local_gps',
           locationStatus: locationStatus,
@@ -115,20 +119,24 @@ void main() {
         final display = model();
 
         expect(display.title, 'Runiac is tracking your run');
-        expect(display.collapsedBody, '12:34 • 7:12 /km • 1.25 km');
+        expect(display.collapsedBody, '12:34 • 6:55 /km • 1.25 km');
         expect(display.statusLabel, 'GPS active');
         expect(display.elapsedTimeLabel, '12:34');
-        expect(display.averagePaceLabel, '7:12 /km');
+        expect(display.currentPaceLabel, '6:55 /km');
         expect(display.distanceLabel, '1.25 km');
         expect(display.supportCopy, isNull);
       },
     );
 
     test('uses unavailable pace until enough distance is available', () {
-      final display = model(distanceMeters: 20, averagePaceSecondsPerKm: 0);
+      final display = model(
+        distanceMeters: 20,
+        averagePaceSecondsPerKm: 0,
+        currentPaceSecondsPerKm: 0,
+      );
 
       expect(display.collapsedBody, '12:34 • --:-- /km • 0.02 km');
-      expect(display.averagePaceLabel, '--:-- /km');
+      expect(display.currentPaceLabel, '--:-- /km');
     });
 
     test(
@@ -139,6 +147,7 @@ void main() {
           elapsedSeconds: 25,
           distanceMeters: 0,
           averagePaceSecondsPerKm: 0,
+          currentPaceSecondsPerKm: 0,
         );
 
         expect(display.title, 'Runiac is tracking your run');

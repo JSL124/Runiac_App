@@ -85,7 +85,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="AVG PACE"
+                android:text="CURRENT PACE"
                 android:textColor="#6B7280"
                 android:textSize="10sp"
                 android:textStyle="bold" />

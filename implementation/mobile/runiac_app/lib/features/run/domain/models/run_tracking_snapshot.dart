@@ -11,6 +11,7 @@ class RunTrackingSnapshot {
     required this.distanceValueLabel,
     required this.distanceUnitLabel,
     required this.averagePaceLabel,
+    required this.currentPaceLabel,
     required this.planProgressLabel,
     required this.planProgressPercentLabel,
     required this.planProgressValue,
@@ -33,6 +34,9 @@ class RunTrackingSnapshot {
       averagePaceLabel: state.distanceMeters < livePaceReadinessThresholdMeters
           ? '--:--/km'
           : _formatPace(state.averagePaceSecondsPerKm),
+      currentPaceLabel: state.distanceMeters < livePaceReadinessThresholdMeters
+          ? '--:--/km'
+          : _formatPace(state.currentPaceSecondsPerKm),
       planProgressLabel:
           '${_formatDistanceValue(state.distanceMeters)} of 4.50 km',
       planProgressPercentLabel: '${(planProgressValue * 100).round()}%',
@@ -54,6 +58,7 @@ class RunTrackingSnapshot {
   final String distanceValueLabel;
   final String distanceUnitLabel;
   final String averagePaceLabel;
+  final String currentPaceLabel;
   final String planProgressLabel;
   final String planProgressPercentLabel;
   final double planProgressValue;

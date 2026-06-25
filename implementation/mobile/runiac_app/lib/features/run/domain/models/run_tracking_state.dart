@@ -25,6 +25,7 @@ class RunTrackingState {
     required this.elapsedSeconds,
     required this.distanceMeters,
     required this.averagePaceSecondsPerKm,
+    required this.currentPaceSecondsPerKm,
     required this.routePrivacy,
     required this.source,
     required this.locationStatus,
@@ -41,6 +42,7 @@ class RunTrackingState {
       elapsedSeconds = 0,
       distanceMeters = 0,
       averagePaceSecondsPerKm = 0,
+      currentPaceSecondsPerKm = 0,
       routePrivacy = 'private',
       source = 'local_simulation',
       locationStatus = RunTrackingLocationStatus.demo,
@@ -55,6 +57,7 @@ class RunTrackingState {
   final int elapsedSeconds;
   final int distanceMeters;
   final int averagePaceSecondsPerKm;
+  final int currentPaceSecondsPerKm;
   final String routePrivacy;
   final String source;
   final RunTrackingLocationStatus locationStatus;
@@ -79,6 +82,7 @@ class RunTrackingState {
     int? elapsedSeconds,
     int? distanceMeters,
     int? averagePaceSecondsPerKm,
+    int? currentPaceSecondsPerKm,
     String? routePrivacy,
     String? source,
     RunTrackingLocationStatus? locationStatus,
@@ -95,6 +99,8 @@ class RunTrackingState {
       distanceMeters: distanceMeters ?? this.distanceMeters,
       averagePaceSecondsPerKm:
           averagePaceSecondsPerKm ?? this.averagePaceSecondsPerKm,
+      currentPaceSecondsPerKm:
+          currentPaceSecondsPerKm ?? this.currentPaceSecondsPerKm,
       routePrivacy: routePrivacy ?? this.routePrivacy,
       source: source ?? this.source,
       locationStatus: locationStatus ?? this.locationStatus,

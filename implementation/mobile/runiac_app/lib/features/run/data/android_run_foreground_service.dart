@@ -46,7 +46,7 @@ class AndroidRunForegroundService implements RunForegroundService {
       'body': copy.body,
       'statusLabel': copy.statusLabel,
       'elapsedTimeLabel': copy.elapsedTimeLabel,
-      'averagePaceLabel': copy.averagePaceLabel,
+      'averagePaceLabel': copy.currentPaceLabel,
       'distanceLabel': copy.distanceLabel,
       'supportCopy': copy.supportCopy ?? '',
     };

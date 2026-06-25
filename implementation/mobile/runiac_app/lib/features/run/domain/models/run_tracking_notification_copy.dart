@@ -7,7 +7,7 @@ class RunTrackingNotificationCopy {
     required this.body,
     this.statusLabel = 'Getting GPS ready',
     this.elapsedTimeLabel = '00:00',
-    this.averagePaceLabel = '--:-- /km',
+    this.currentPaceLabel = '--:-- /km',
     this.distanceLabel = '0.00 km',
     this.supportCopy,
   });
@@ -25,7 +25,7 @@ class RunTrackingNotificationCopy {
       body: display.collapsedBody,
       statusLabel: display.statusLabel,
       elapsedTimeLabel: display.elapsedTimeLabel,
-      averagePaceLabel: display.averagePaceLabel,
+      currentPaceLabel: display.currentPaceLabel,
       distanceLabel: display.distanceLabel,
       supportCopy: display.supportCopy,
     );
@@ -36,7 +36,7 @@ class RunTrackingNotificationCopy {
     body: '00:00 • --:-- /km • 0.00 km',
     statusLabel: 'Getting GPS ready',
     elapsedTimeLabel: '00:00',
-    averagePaceLabel: '--:-- /km',
+    currentPaceLabel: '--:-- /km',
     distanceLabel: '0.00 km',
     supportCopy: 'Keep moving in an open area.',
   );
@@ -45,7 +45,7 @@ class RunTrackingNotificationCopy {
   final String body;
   final String statusLabel;
   final String elapsedTimeLabel;
-  final String averagePaceLabel;
+  final String currentPaceLabel;
   final String distanceLabel;
   final String? supportCopy;
 
@@ -57,7 +57,7 @@ class RunTrackingNotificationCopy {
             other.body == body &&
             other.statusLabel == statusLabel &&
             other.elapsedTimeLabel == elapsedTimeLabel &&
-            other.averagePaceLabel == averagePaceLabel &&
+            other.currentPaceLabel == currentPaceLabel &&
             other.distanceLabel == distanceLabel &&
             other.supportCopy == supportCopy;
   }
@@ -68,7 +68,7 @@ class RunTrackingNotificationCopy {
     body,
     statusLabel,
     elapsedTimeLabel,
-    averagePaceLabel,
+    currentPaceLabel,
     distanceLabel,
     supportCopy,
   );

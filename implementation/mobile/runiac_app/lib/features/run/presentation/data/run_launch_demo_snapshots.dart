@@ -16,8 +16,8 @@ const runLiveDemoSnapshot = RunLiveDemoSnapshot(
   distanceUnitLabel: 'km',
   timeLabel: 'TIME',
   timeValue: '30:10',
-  avgPaceLabel: 'AVG PACE',
-  avgPaceValue: '6:30/km',
+  currentPaceLabel: 'CURRENT PACE',
+  currentPaceValue: '6:30/km',
 );
 
 class RunLaunchDemoSnapshot {
@@ -48,8 +48,8 @@ class RunLiveDemoSnapshot {
     required this.distanceUnitLabel,
     required this.timeLabel,
     required this.timeValue,
-    required this.avgPaceLabel,
-    required this.avgPaceValue,
+    required this.currentPaceLabel,
+    required this.currentPaceValue,
   });
 
   final String progressSummaryLabel;
@@ -60,6 +60,6 @@ class RunLiveDemoSnapshot {
   final String distanceUnitLabel;
   final String timeLabel;
   final String timeValue;
-  final String avgPaceLabel;
-  final String avgPaceValue;
+  final String currentPaceLabel;
+  final String currentPaceValue;
 }

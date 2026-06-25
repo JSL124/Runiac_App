@@ -193,8 +193,8 @@ class _SecondaryMetricRow extends StatelessWidget {
           const VerticalDivider(width: 1, thickness: 1, color: _blueBorder),
           Expanded(
             child: _MetricItem(
-              label: 'AVG PACE',
-              value: snapshot.averagePaceLabel,
+              label: 'CURRENT PACE',
+              value: snapshot.currentPaceLabel,
             ),
           ),
         ],

@@ -7,24 +7,24 @@ class RunNotificationDisplayModel {
     required this.collapsedBody,
     required this.statusLabel,
     required this.elapsedTimeLabel,
-    required this.averagePaceLabel,
+    required this.currentPaceLabel,
     required this.distanceLabel,
     required this.supportCopy,
   });
 
   factory RunNotificationDisplayModel.fromState(RunTrackingState state) {
     final snapshot = RunTrackingSnapshot.fromState(state);
-    final averagePaceLabel = _notificationPaceLabel(snapshot.averagePaceLabel);
+    final currentPaceLabel = _notificationPaceLabel(snapshot.currentPaceLabel);
     final title = _titleFor(state);
 
     return RunNotificationDisplayModel(
       title: title,
       collapsedBody:
-          '${snapshot.elapsedTimeLabel} • $averagePaceLabel • '
+          '${snapshot.elapsedTimeLabel} • $currentPaceLabel • '
           '${snapshot.distanceLabel}',
       statusLabel: _statusLabelFor(state),
       elapsedTimeLabel: snapshot.elapsedTimeLabel,
-      averagePaceLabel: averagePaceLabel,
+      currentPaceLabel: currentPaceLabel,
       distanceLabel: snapshot.distanceLabel,
       supportCopy: _supportCopyFor(state),
     );
@@ -34,7 +34,7 @@ class RunNotificationDisplayModel {
   final String collapsedBody;
   final String statusLabel;
   final String elapsedTimeLabel;
-  final String averagePaceLabel;
+  final String currentPaceLabel;
   final String distanceLabel;
   final String? supportCopy;
 }

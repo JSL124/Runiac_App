@@ -74,6 +74,7 @@ class LocalRunTrackingSession {
   Duration _movingDuration = Duration.zero;
   Duration _trackingDuration = Duration.zero;
   double _distanceMeters = 0;
+  int _currentPaceSecondsPerKm = 0;
   RunMovementStatus _movementStatus = RunMovementStatus.moving;
   RunTrackingDiagnostics _diagnostics = const RunTrackingDiagnostics.initial();
   RunLocationSample? _currentPositionSample;
@@ -101,6 +102,7 @@ class LocalRunTrackingSession {
   int get activeDurationSeconds => _movingDuration.inSeconds;
   int get trackingDurationSeconds => _trackingDuration.inSeconds;
   int get distanceMeters => _distanceMeters.round();
+  int get currentPaceSecondsPerKm => _currentPaceSecondsPerKm;
   int get acceptedSampleCount => _diagnostics.acceptedSampleCount;
   int get rejectedSampleCount => _diagnostics.rejectedSampleCount;
   RunMovementStatus get movementStatus => _movementStatus;
@@ -599,6 +601,11 @@ class LocalRunTrackingSession {
       if (_movementStatus == RunMovementStatus.autoPaused) {
         final resumeAnchor = resumeCandidateSample ?? sample;
         _addAcceptedSampleSegment(<RunLocationSample>[resumeAnchor, sample]);
+        _recordCurrentPaceFromSegment(
+          previousSample: resumeAnchor,
+          currentSample: sample,
+          segmentDistanceMeters: segmentDistanceMeters,
+        );
         _distanceMeters += segmentDistanceMeters;
         _lastRouteSample = sample;
       } else {
@@ -646,6 +653,11 @@ class LocalRunTrackingSession {
     RunLocationSample sample,
     double segmentDistanceMeters,
   ) {
+    _recordCurrentPaceFromSegment(
+      previousSample: _lastRouteSample,
+      currentSample: sample,
+      segmentDistanceMeters: segmentDistanceMeters,
+    );
     _distanceMeters += segmentDistanceMeters;
     if (_acceptedSampleSegments.isEmpty) {
       final previousRouteSample = _lastRouteSample;
@@ -680,6 +692,36 @@ class LocalRunTrackingSession {
     }
     _acceptedSampleSegments.last.add(sample);
     _acceptedGraphSampleSegments.last.add(_graphPointFor(sample));
+  }
+
+  void _recordCurrentPaceFromSegment({
+    required RunLocationSample? previousSample,
+    required RunLocationSample currentSample,
+    required double segmentDistanceMeters,
+  }) {
+    if (previousSample == null ||
+        !segmentDistanceMeters.isFinite ||
+        segmentDistanceMeters <= 0) {
+      return;
+    }
+
+    final segmentSeconds =
+        currentSample.recordedAt
+            .difference(previousSample.recordedAt)
+            .inMilliseconds /
+        Duration.millisecondsPerSecond;
+    if (!segmentSeconds.isFinite || segmentSeconds <= 0) {
+      return;
+    }
+
+    final paceSecondsPerKm = (segmentSeconds / (segmentDistanceMeters / 1000))
+        .round();
+    if (paceSecondsPerKm < minGraphPaceSecondsPerKm ||
+        paceSecondsPerKm > maxGraphPaceSecondsPerKm) {
+      return;
+    }
+
+    _currentPaceSecondsPerKm = paceSecondsPerKm;
   }
 
   LocalPaceGraphSamplePoint _graphPointFor(RunLocationSample sample) {
@@ -782,6 +824,11 @@ class LocalRunTrackingSession {
     }
 
     _addAcceptedSampleSegment(<RunLocationSample>[resumeAnchor, sample]);
+    _recordCurrentPaceFromSegment(
+      previousSample: resumeAnchor,
+      currentSample: sample,
+      segmentDistanceMeters: resumeDistanceMeters,
+    );
     _distanceMeters += resumeDistanceMeters;
     _lastRouteSample = sample;
     _setMovementStatus(RunMovementStatus.moving, 'abnormalResumeConfirmed');
@@ -853,6 +900,11 @@ class LocalRunTrackingSession {
               anchorToCandidateMeters + resumeMovementDistanceMeters;
       if (hasConsistentDisplacement) {
         _addAcceptedSampleSegment(<RunLocationSample>[candidate, sample]);
+        _recordCurrentPaceFromSegment(
+          previousSample: candidate,
+          currentSample: sample,
+          segmentDistanceMeters: candidateDistanceMeters,
+        );
         _distanceMeters += candidateDistanceMeters;
         _lastRouteSample = sample;
         _autoResumeCandidateSample = null;

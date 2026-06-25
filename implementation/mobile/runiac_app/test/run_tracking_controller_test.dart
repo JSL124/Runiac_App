@@ -404,6 +404,56 @@ void main() {
       expect(controller.state.elapsedSeconds, 120);
       expect(controller.state.distanceMeters, 300);
       expect(controller.state.averagePaceSecondsPerKm, 400);
+      expect(controller.state.currentPaceSecondsPerKm, 400);
+    });
+
+    test('publishes current pace separately from average pace', () {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      final provider = _LifecycleReplayProvider([
+        RunLocationReplaySample(
+          activeOffset: Duration.zero,
+          sample: RunLocationSample(
+            recordedAt: startedAt,
+            latitude: 1.300000,
+            longitude: 103.800000,
+            horizontalAccuracyMeters: 5,
+          ),
+        ),
+        RunLocationReplaySample(
+          activeOffset: const Duration(seconds: 60),
+          sample: RunLocationSample(
+            recordedAt: startedAt.add(const Duration(seconds: 60)),
+            latitude: 1.301349,
+            longitude: 103.800000,
+            horizontalAccuracyMeters: 5,
+          ),
+        ),
+        RunLocationReplaySample(
+          activeOffset: const Duration(seconds: 120),
+          sample: RunLocationSample(
+            recordedAt: startedAt.add(const Duration(seconds: 120)),
+            latitude: 1.301799,
+            longitude: 103.800000,
+            horizontalAccuracyMeters: 5,
+          ),
+        ),
+      ]);
+      final controller = RunTrackingController(locationProvider: provider);
+
+      controller.start(
+        startedAt: startedAt,
+        clientRunSessionId: 'variable-current-pace-run',
+      );
+      controller.advanceBy(const Duration(seconds: 60));
+      controller.advanceBy(const Duration(seconds: 60));
+
+      expect(controller.state.distanceMeters, closeTo(200, 2));
+      expect(controller.state.averagePaceSecondsPerKm, closeTo(600, 4));
+      expect(controller.state.currentPaceSecondsPerKm, closeTo(1200, 8));
+      expect(
+        controller.completionPayload().avgPaceSecondsPerKm,
+        controller.state.averagePaceSecondsPerKm,
+      );
     });
 
     test('jittered moving ticks accumulate without losing display seconds', () {

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -38,7 +40,7 @@ void main() {
             body: '00:01 • --:-- /km • 0.00 km',
             statusLabel: 'GPS active',
             elapsedTimeLabel: '00:01',
-            averagePaceLabel: '--:-- /km',
+            currentPaceLabel: '--:-- /km',
             distanceLabel: '0.00 km',
           ),
         );
@@ -86,6 +88,16 @@ void main() {
       await service.stop();
 
       expect(callCount, 0);
+    });
+
+    test('expanded notification labels active pace as current pace', () {
+      final layout = File(
+        'android/app/src/main/res/layout/'
+        'runiac_run_tracking_notification_expanded.xml',
+      ).readAsStringSync();
+
+      expect(layout, contains('CURRENT PACE'));
+      expect(layout, isNot(contains('AVG PACE')));
     });
   });
 }

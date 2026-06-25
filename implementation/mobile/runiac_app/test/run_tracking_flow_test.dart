@@ -740,6 +740,7 @@ void main() {
     expect(find.text('DISTANCE'), findsNothing);
     expect(find.text('TIME'), findsNothing);
     expect(find.text('AVG PACE'), findsNothing);
+    expect(find.text('CURRENT PACE'), findsNothing);
     expect(find.text('Pause'), findsNothing);
     expect(find.text('Finish'), findsNothing);
     expect(find.text('End'), findsNothing);
@@ -760,7 +761,8 @@ void main() {
     expect(find.byKey(const Key('run_plan_progress_bar')), findsOneWidget);
     expect(find.text('DISTANCE'), findsOneWidget);
     expect(find.text('TIME'), findsOneWidget);
-    expect(find.text('AVG PACE'), findsOneWidget);
+    expect(find.text('AVG PACE'), findsNothing);
+    expect(find.text('CURRENT PACE'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'Pause'), findsOneWidget);
     expect(find.text('Finish'), findsNothing);
     expect(find.text('End'), findsNothing);
@@ -1771,7 +1773,8 @@ void main() {
     expect(find.text('0.00'), findsOneWidget);
     expect(find.text('km'), findsOneWidget);
     expect(find.text('--:--/km'), findsOneWidget);
-    expect(find.text('AVG PACE'), findsOneWidget);
+    expect(find.text('AVG PACE'), findsNothing);
+    expect(find.text('CURRENT PACE'), findsOneWidget);
     expect(find.text('00:00'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'Pause'), findsOneWidget);
     expect(find.text('Finish'), findsNothing);
