@@ -24,12 +24,16 @@ class AdvancedAnalysisPerformanceOverviewBuilder {
       heartRateAnalysis: heartRateAnalysis,
       scoreMode: scoreMode,
     );
+    final qualityLabel = _qualityLabel(summary, score.value);
     return AdvancedAnalysisPerformanceOverview(
       score: score,
       duration: _sourceAwareSummaryMetric(summary.duration, summary),
       distance: _sourceAwareSummaryMetric(summary.distanceKm, summary),
       scoreMode: scoreMode,
       scoreConfidenceLabel: _scoreConfidenceLabel(scoreMode),
+      qualityLabel: qualityLabel,
+      takeaway: _takeaway(summary, qualityLabel),
+      nextFocus: _nextFocus(summary, score.value),
       badges: const AdvancedAnalysisAchievementBadgeBuilder().build(
         summary: summary,
         paceAnalysis: paceAnalysis,
@@ -47,6 +51,9 @@ class AdvancedAnalysisPerformanceOverviewBuilder {
   ) {
     if (summary.sourceType == RunSourceType.demoImport) {
       return AdvancedAnalysisScoreSourceMode.demoOnly;
+    }
+    if (summary.sourceType == RunSourceType.runiacGps) {
+      return AdvancedAnalysisScoreSourceMode.mobileOnly;
     }
     if (heartRateAnalysis.zones.isAvailable ||
         _hasWearableSource(summary.sourceType)) {
@@ -67,6 +74,43 @@ class AdvancedAnalysisPerformanceOverviewBuilder {
     };
   }
 
+  String _qualityLabel(RunSummarySnapshot summary, int? qualityValue) {
+    if (!summary.hasSufficientData || qualityValue == null) {
+      return 'More data needed';
+    }
+    if (qualityValue >= 92) {
+      return 'Steady effort';
+    }
+    if (qualityValue >= 84) {
+      return 'Good foundation run';
+    }
+    return 'Building consistency';
+  }
+
+  String _takeaway(RunSummarySnapshot summary, String qualityLabel) {
+    if (!summary.hasSufficientData) {
+      return 'This run was a useful start, but there is not enough movement data yet to give a detailed overview.';
+    }
+    return switch (qualityLabel) {
+      'Steady effort' =>
+        'Your distance, duration, and pace data point to a steady run today. Missing wearable data does not lower this overview.',
+      'Good foundation run' =>
+        'You completed a measurable run with enough phone data for a simple overview. Missing wearable data does not lower this overview.',
+      _ =>
+        'This run gives Runiac enough phone data to suggest one calm next step. Missing wearable data does not lower this overview.',
+    };
+  }
+
+  String _nextFocus(RunSummarySnapshot summary, int? qualityValue) {
+    if (!summary.hasSufficientData || qualityValue == null) {
+      return 'Try a slightly longer easy run so Runiac can give more useful feedback.';
+    }
+    if (qualityValue >= 92) {
+      return 'Keep the next run comfortable and repeatable.';
+    }
+    return 'Aim for another easy run with a similar steady feel.';
+  }
+
   AdvancedAnalysisMetric<int> _performanceScore({
     required RunSummarySnapshot summary,
     required PaceAnalysisDerivation? paceAnalysis,
@@ -76,41 +120,32 @@ class AdvancedAnalysisPerformanceOverviewBuilder {
   }) {
     final distanceKm = _distanceKm(summary.distanceKm);
     final durationSeconds = _durationSeconds(summary.duration);
-    if (distanceKm == null || durationSeconds == null) {
+    if (!summary.hasSufficientData ||
+        distanceKm == null ||
+        durationSeconds == null) {
       return const AdvancedAnalysisMetric<int>.unavailable(
         reason: AdvancedAnalysisMetricReason.missingSummaryField,
       );
     }
 
     final paceStability = paceAnalysis?.paceStabilityScore;
-    final cadenceStable = cadenceAnalysis?.stability == CadenceStability.stable
-        ? 1
-        : 0;
-    final hasElevation = summary.elevationSeries.hasMinimumValidSamples();
-    final targetZonePercent = _targetZonePercent(heartRateAnalysis);
 
     final score = switch (scoreMode) {
       AdvancedAnalysisScoreSourceMode.mobileOnly =>
         45 +
             (distanceKm * 6).round().clamp(0, 24) +
             (durationSeconds / 120).round().clamp(0, 16) +
-            ((paceStability ?? 50) * 0.15).round() +
-            (hasElevation ? 4 : 0),
+            ((paceStability ?? 50) * 0.15).round(),
       AdvancedAnalysisScoreSourceMode.mixedSource =>
         48 +
             (distanceKm * 5).round().clamp(0, 20) +
             (durationSeconds / 150).round().clamp(0, 13) +
-            ((paceStability ?? 50) * 0.13).round() +
-            cadenceStable * 6 +
-            (hasElevation ? 3 : 0),
+            ((paceStability ?? 50) * 0.13).round(),
       AdvancedAnalysisScoreSourceMode.wearableBacked =>
         42 +
             (distanceKm * 4).round().clamp(0, 18) +
             (durationSeconds / 180).round().clamp(0, 10) +
-            ((paceStability ?? 50) * 0.12).round() +
-            ((targetZonePercent ?? 0) * 0.12).round() +
-            cadenceStable * 6 +
-            (hasElevation ? 4 : 0),
+            ((paceStability ?? 50) * 0.12).round(),
       AdvancedAnalysisScoreSourceMode.demoOnly =>
         40 +
             (distanceKm * 4).round().clamp(0, 18) +
@@ -136,19 +171,6 @@ class AdvancedAnalysisPerformanceOverviewBuilder {
           : AdvancedAnalysisMetricSource.localRunSummary,
       confidence: AdvancedAnalysisMetricConfidence.derived,
     );
-  }
-
-  int? _targetZonePercent(AdvancedAnalysisHeartRateAnalysis heartRateAnalysis) {
-    if (!heartRateAnalysis.isZoneReady) {
-      return null;
-    }
-    final zones = heartRateAnalysis.zones.value;
-    if (zones == null || zones.isEmpty) {
-      return null;
-    }
-    return zones
-        .where((zone) => zone.isTarget)
-        .fold<int>(0, (total, zone) => total + zone.percent);
   }
 
   AdvancedAnalysisMetric<String> _sourceAwareSummaryMetric(

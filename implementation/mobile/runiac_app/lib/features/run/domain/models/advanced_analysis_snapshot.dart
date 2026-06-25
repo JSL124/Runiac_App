@@ -159,6 +159,9 @@ class AdvancedAnalysisPerformanceOverview {
     required this.distance,
     required this.scoreMode,
     required this.scoreConfidenceLabel,
+    required this.qualityLabel,
+    required this.takeaway,
+    required this.nextFocus,
     this.badges = const <AdvancedAnalysisAchievementBadge>[],
   });
 
@@ -167,6 +170,9 @@ class AdvancedAnalysisPerformanceOverview {
   final AdvancedAnalysisMetric<String> distance;
   final AdvancedAnalysisScoreSourceMode scoreMode;
   final String scoreConfidenceLabel;
+  final String qualityLabel;
+  final String takeaway;
+  final String nextFocus;
   final List<AdvancedAnalysisAchievementBadge> badges;
 }
 

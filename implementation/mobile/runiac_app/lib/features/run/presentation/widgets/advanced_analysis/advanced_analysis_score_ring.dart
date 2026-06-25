@@ -12,6 +12,7 @@ class AdvancedAnalysisScoreRing extends StatelessWidget {
     required this.stroke,
     required this.color,
     this.percentOnly = false,
+    this.valueLabel,
   });
 
   final int value;
@@ -19,6 +20,7 @@ class AdvancedAnalysisScoreRing extends StatelessWidget {
   final double stroke;
   final Color color;
   final bool percentOnly;
+  final String? valueLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +42,7 @@ class AdvancedAnalysisScoreRing extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                percentOnly ? '$value%' : '$value',
+                valueLabel ?? (percentOnly ? '$value%' : '$value'),
                 style: TextStyle(
                   color: advancedAnalysisInk,
                   fontSize: percentOnly ? 20 : 38,
@@ -48,7 +50,7 @@ class AdvancedAnalysisScoreRing extends StatelessWidget {
                   letterSpacing: -1.5,
                 ),
               ),
-              if (!percentOnly)
+              if (!percentOnly && valueLabel == null)
                 const Text(
                   '/ 100',
                   style: TextStyle(

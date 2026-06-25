@@ -13,24 +13,27 @@ class AdvancedAnalysisOverviewSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final performance = analysis;
-    final score = performance?.score.value ?? 0;
-    final title = _scoreTitle(score, performance?.scoreMode);
-    final detail = _scoreDetail(performance);
+    final qualityValue = performance?.score.value ?? 0;
+    final title = performance?.qualityLabel ?? 'More data needed';
+    final detail = _qualityDetail(performance);
     final badges =
         performance?.badges ?? const <AdvancedAnalysisAchievementBadge>[];
 
     return AdvancedAnalysisSection(
-      title: 'Performance Overview',
+      title: 'Run Quality',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
             children: [
               AdvancedAnalysisScoreRing(
-                value: score,
+                value: qualityValue,
                 size: 112,
                 stroke: 9,
-                color: advancedAnalysisBlue,
+                color: performance?.score.isAvailable == true
+                    ? advancedAnalysisBlue
+                    : advancedAnalysisBlue22,
+                valueLabel: performance?.score.value == null ? '--' : null,
               ),
               const SizedBox(width: 18),
               Expanded(
@@ -73,25 +76,11 @@ class AdvancedAnalysisOverviewSection extends StatelessWidget {
     );
   }
 
-  String _scoreTitle(int score, AdvancedAnalysisScoreSourceMode? scoreMode) {
-    if (score <= 0 || scoreMode == null) {
-      return 'Analysis pending';
+  String _qualityDetail(AdvancedAnalysisPerformanceOverview? performance) {
+    if (performance == null) {
+      return 'Complete a run with enough distance and duration so Runiac can give a supportive overview.';
     }
-    return switch (scoreMode) {
-      AdvancedAnalysisScoreSourceMode.mobileOnly => 'Phone-tracked effort',
-      AdvancedAnalysisScoreSourceMode.wearableBacked =>
-        'Wearable-backed effort',
-      AdvancedAnalysisScoreSourceMode.mixedSource => 'Mixed-source effort',
-      AdvancedAnalysisScoreSourceMode.demoOnly => 'Demo run effort',
-    };
-  }
-
-  String _scoreDetail(AdvancedAnalysisPerformanceOverview? performance) {
-    final score = performance?.score.value;
-    if (score == null) {
-      return 'Complete a run with enough distance and duration to unlock a data-backed score.';
-    }
-    return '${performance!.scoreConfidenceLabel} score from available run metrics. Missing wearable-only data is not filled in.';
+    return '${performance.takeaway} ${performance.nextFocus}';
   }
 
   IconData _badgeIcon(AdvancedAnalysisBadgeKind kind) {

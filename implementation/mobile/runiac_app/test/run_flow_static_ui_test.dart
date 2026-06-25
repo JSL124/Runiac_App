@@ -844,8 +844,8 @@ void main() {
     await tester.tap(find.widgetWithText(OutlinedButton, 'More Details'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Performance Overview'), findsOneWidget);
-    expect(find.text('Demo run effort'), findsOneWidget);
+    expect(find.text('Run Quality'), findsOneWidget);
+    expect(find.text('Building consistency'), findsOneWidget);
     expect(find.text('Phone-tracked effort'), findsNothing);
 
     await tester.tap(find.byTooltip('Back to summary'));
@@ -2297,8 +2297,8 @@ void main() {
 
     expect(find.text('Saturday Morning Run'), findsOneWidget);
     expect(find.text('Today · 7:06 AM'), findsOneWidget);
-    expect(find.text('Performance Overview'), findsOneWidget);
-    expect(find.text('Demo run effort'), findsOneWidget);
+    expect(find.text('Run Quality'), findsOneWidget);
+    expect(find.text('Building consistency'), findsOneWidget);
     expect(find.text('Phone-tracked effort'), findsNothing);
     expect(find.text('/ 100'), findsOneWidget);
     expect(find.text('Good Endurance'), findsOneWidget);

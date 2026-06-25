@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/features/run/domain/models/advanced_analysis_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/cadence_analysis_series.dart';
@@ -10,12 +11,14 @@ import 'package:runiac_app/features/run/domain/models/run_summary_snapshot.dart'
 import 'package:runiac_app/features/run/domain/models/workout_metric_contract.dart';
 import 'package:runiac_app/features/run/domain/services/advanced_analysis_achievement_badge_builder.dart';
 import 'package:runiac_app/features/run/domain/services/advanced_analysis_snapshot_builder.dart';
+import 'package:runiac_app/features/run/presentation/widgets/advanced_analysis/advanced_analysis_overview_section.dart';
+import 'package:runiac_app/features/run/presentation/widgets/advanced_analysis/advanced_analysis_score_ring.dart';
 
 void main() {
   group('Advanced Analysis policy', () {
     const builder = AdvancedAnalysisSnapshotBuilder();
 
-    test('calculates deterministic scores for every analysis source mode', () {
+    test('calculates supportive quality indicators by source mode', () {
       final mobilePerformance = builder
           .fromRunSummary(_scoreFixtureSummary())
           .performance;
@@ -72,23 +75,25 @@ void main() {
       expect(mobilePerformance.score.value, 97);
       expect(
         mixedPerformance.scoreMode,
-        AdvancedAnalysisScoreSourceMode.mixedSource,
+        AdvancedAnalysisScoreSourceMode.mobileOnly,
       );
-      expect(mixedPerformance.score.value, 97);
+      expect(mixedPerformance.score.value, mobilePerformance.score.value);
       expect(
         wearablePerformance.scoreMode,
         AdvancedAnalysisScoreSourceMode.wearableBacked,
       );
-      expect(wearablePerformance.score.value, 85);
+      expect(wearablePerformance.score.value, 73);
       expect(
         demoPerformance.scoreMode,
         AdvancedAnalysisScoreSourceMode.demoOnly,
       );
       expect(demoPerformance.score.value, 65);
       expect(demoPerformance.score.isTrustedProduction, isFalse);
+      expect(mobilePerformance.qualityLabel, 'Steady effort');
+      expect(mixedPerformance.qualityLabel, 'Steady effort');
     });
 
-    test('keeps mobile-only scoring fair without cadence or heart rate', () {
+    test('keeps mobile-only run quality fair without optional metrics', () {
       const mobileSummary = RunSummarySnapshot(
         title: 'Phone Run',
         dateLabel: 'Today',
@@ -102,6 +107,13 @@ void main() {
       );
       final phoneEnhancedSummary = mobileSummary.copyWith(
         cadenceAnalysisSeries: _phoneMotionCadenceSeries(),
+        elevationSeries: ElevationAnalysisSeries.localAccepted(
+          samples: const [
+            ElevationAnalysisSample(distanceKm: 0, elevationMeters: 4),
+            ElevationAnalysisSample(distanceKm: 2, elevationMeters: 8),
+            ElevationAnalysisSample(distanceKm: 4, elevationMeters: 5),
+          ],
+        ),
       );
 
       final mobilePerformance = builder
@@ -116,15 +128,79 @@ void main() {
         AdvancedAnalysisScoreSourceMode.mobileOnly,
       );
       expect(mobilePerformance.score.isAvailable, isTrue);
-      expect(mobilePerformance.score.value, 90);
       expect(
         phoneEnhancedPerformance.scoreMode,
-        AdvancedAnalysisScoreSourceMode.mixedSource,
+        AdvancedAnalysisScoreSourceMode.mobileOnly,
       );
       expect(
         phoneEnhancedPerformance.score.value,
-        greaterThan(mobilePerformance.score.value!),
+        mobilePerformance.score.value,
       );
+      expect(mobilePerformance.qualityLabel, 'Good foundation run');
+      expect(
+        mobilePerformance.takeaway,
+        contains('Missing wearable data does not lower this overview.'),
+      );
+    });
+
+    test('uses supportive low-data run overview without numeric quality', () {
+      const lowDataSummary = RunSummarySnapshot(
+        title: 'Short Try',
+        dateLabel: 'Today',
+        timeLabel: '7:06 AM',
+        distanceKm: '0.05 km',
+        avgPace: '9’30” / km',
+        duration: '00:20',
+        avgHeartRate: '--',
+        calories: '3 kcal',
+        routeName: 'Starting Out',
+        hasSufficientData: false,
+      );
+
+      final performance = builder.fromRunSummary(lowDataSummary).performance;
+
+      expect(performance.score.isAvailable, isFalse);
+      expect(performance.score.value, isNull);
+      expect(performance.qualityLabel, 'More data needed');
+      expect(
+        performance.takeaway,
+        'This run was a useful start, but there is not enough movement data yet to give a detailed overview.',
+      );
+      expect(
+        performance.nextFocus,
+        'Try a slightly longer easy run so Runiac can give more useful feedback.',
+      );
+    });
+
+    testWidgets('keeps overview ring while removing competitive score copy', (
+      tester,
+    ) async {
+      final performance = builder
+          .fromRunSummary(_scoreFixtureSummary())
+          .performance;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: AdvancedAnalysisOverviewSection(analysis: performance),
+          ),
+        ),
+      );
+
+      expect(find.byType(AdvancedAnalysisScoreRing), findsOneWidget);
+      expect(find.text('Run Quality'), findsOneWidget);
+      expect(find.text('Steady effort'), findsOneWidget);
+      expect(find.textContaining('score', findRichText: true), findsNothing);
+      expect(find.textContaining('Performance Score'), findsNothing);
+      expect(find.textContaining('Rating'), findsNothing);
+      expect(find.textContaining('Grade'), findsNothing);
+      expect(find.textContaining('poor', findRichText: true), findsNothing);
+      expect(find.textContaining('bad', findRichText: true), findsNothing);
+      expect(find.textContaining('XP'), findsNothing);
+      expect(find.textContaining('leaderboard'), findsNothing);
+      expect(find.textContaining('rank'), findsNothing);
+      expect(find.textContaining('level'), findsNothing);
+      expect(find.textContaining('streak'), findsNothing);
     });
 
     test(
