@@ -29,6 +29,15 @@ class ActivityRoutePreview extends StatelessWidget {
     const logicalSize = Size(_previewSlotSize, _previewSlotSize);
     final mode = _RoutePreviewMode.forRoute(route, logicalSize: logicalSize);
     final devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
+    final thumbnailRequest = ActivityRouteThumbnailRequest(
+      route: route,
+      logicalSize: logicalSize,
+      devicePixelRatio: devicePixelRatio,
+      allowExternalStaticMap: allowExternalStaticMap,
+      isDemoRoute: isDemoRoute,
+      isCurrentSessionRoute: isCurrentSessionRoute,
+      activityId: activityId,
+    );
 
     return ClipRRect(
       key: const ValueKey('activity_route_preview_slot'),
@@ -37,26 +46,27 @@ class ActivityRoutePreview extends StatelessWidget {
         width: _previewSlotSize,
         height: _previewSlotSize,
         child: switch (mode) {
-          _RoutePreviewMode.polyline => _RoutePreviewPolylineSlot(
+          _RoutePreviewMode.polyline => _RoutePreviewSnapshotSlot(
             route: route,
             thumbnailProvider: thumbnailProvider,
-            thumbnailRequest: ActivityRouteThumbnailRequest(
-              route: route,
-              logicalSize: logicalSize,
-              devicePixelRatio: devicePixelRatio,
-              allowExternalStaticMap: allowExternalStaticMap,
-              isDemoRoute: isDemoRoute,
-              isCurrentSessionRoute: isCurrentSessionRoute,
-              activityId: activityId,
-            ),
+            thumbnailRequest: thumbnailRequest,
+            overlayMode: _RoutePreviewOverlayMode.route,
           ),
-          _RoutePreviewMode.tinyRoute => Semantics(
-            label: 'Tiny route preview',
-            child: CustomPaint(
-              key: const ValueKey('activity_route_preview_tiny_route'),
-              painter: _TinyRoutePreviewPainter(route),
-            ),
-          ),
+          _RoutePreviewMode.tinyRoute =>
+            _canRequestLocationSnapshot
+                ? _RoutePreviewSnapshotSlot(
+                    route: route,
+                    thumbnailProvider: thumbnailProvider,
+                    thumbnailRequest: thumbnailRequest,
+                    overlayMode: _RoutePreviewOverlayMode.location,
+                  )
+                : Semantics(
+                    label: 'Tiny route preview',
+                    child: CustomPaint(
+                      key: const ValueKey('activity_route_preview_tiny_route'),
+                      painter: _TinyRoutePreviewPainter(route),
+                    ),
+                  ),
           _RoutePreviewMode.fallback => Semantics(
             label: 'Route preview unavailable',
             child: const CustomPaint(
@@ -67,6 +77,12 @@ class ActivityRoutePreview extends StatelessWidget {
         },
       ),
     );
+  }
+
+  bool get _canRequestLocationSnapshot {
+    return allowExternalStaticMap &&
+        isCurrentSessionRoute &&
+        _knownPreviewLocation(route) != null;
   }
 }
 
@@ -192,23 +208,25 @@ class NoopActivityRouteThumbnailProvider
   }
 }
 
-class _RoutePreviewPolylineSlot extends StatefulWidget {
-  const _RoutePreviewPolylineSlot({
+class _RoutePreviewSnapshotSlot extends StatefulWidget {
+  const _RoutePreviewSnapshotSlot({
     required this.route,
     required this.thumbnailProvider,
     required this.thumbnailRequest,
+    required this.overlayMode,
   });
 
   final RunRouteSnapshot route;
   final ActivityRouteThumbnailProvider thumbnailProvider;
   final ActivityRouteThumbnailRequest thumbnailRequest;
+  final _RoutePreviewOverlayMode overlayMode;
 
   @override
-  State<_RoutePreviewPolylineSlot> createState() =>
-      _RoutePreviewPolylineSlotState();
+  State<_RoutePreviewSnapshotSlot> createState() =>
+      _RoutePreviewSnapshotSlotState();
 }
 
-class _RoutePreviewPolylineSlotState extends State<_RoutePreviewPolylineSlot> {
+class _RoutePreviewSnapshotSlotState extends State<_RoutePreviewSnapshotSlot> {
   late Future<ActivityRouteThumbnailResult> _thumbnailFuture;
 
   @override
@@ -220,7 +238,7 @@ class _RoutePreviewPolylineSlotState extends State<_RoutePreviewPolylineSlot> {
   }
 
   @override
-  void didUpdateWidget(covariant _RoutePreviewPolylineSlot oldWidget) {
+  void didUpdateWidget(covariant _RoutePreviewSnapshotSlot oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.thumbnailProvider != widget.thumbnailProvider ||
         oldWidget.thumbnailRequest != widget.thumbnailRequest) {
@@ -252,15 +270,23 @@ class _RoutePreviewPolylineSlotState extends State<_RoutePreviewPolylineSlot> {
                   image: imageProvider,
                   fit: BoxFit.cover,
                 ),
-                CustomPaint(
-                  key: const ValueKey(
-                    'activity_route_preview_static_thumbnail_route_overlay',
+                switch (widget.overlayMode) {
+                  _RoutePreviewOverlayMode.route => CustomPaint(
+                    key: const ValueKey(
+                      'activity_route_preview_static_thumbnail_route_overlay',
+                    ),
+                    painter: _RoutePolylinePreviewPainter(
+                      widget.route,
+                      paintBackdrop: false,
+                    ),
                   ),
-                  painter: _RoutePolylinePreviewPainter(
-                    widget.route,
-                    paintBackdrop: false,
+                  _RoutePreviewOverlayMode.location => const CustomPaint(
+                    key: ValueKey(
+                      'activity_route_preview_static_thumbnail_location_dot',
+                    ),
+                    painter: _LocationDotPreviewPainter(),
                   ),
-                ),
+                },
               ],
             ),
           );
@@ -269,14 +295,20 @@ class _RoutePreviewPolylineSlotState extends State<_RoutePreviewPolylineSlot> {
         return Semantics(
           label: 'Route-backed activity preview',
           child: CustomPaint(
-            key: const ValueKey('activity_route_preview_polyline'),
-            painter: _RoutePolylinePreviewPainter(widget.route),
+            key: widget.overlayMode == _RoutePreviewOverlayMode.route
+                ? const ValueKey('activity_route_preview_polyline')
+                : const ValueKey('activity_route_preview_tiny_route'),
+            painter: widget.overlayMode == _RoutePreviewOverlayMode.route
+                ? _RoutePolylinePreviewPainter(widget.route)
+                : _TinyRoutePreviewPainter(widget.route),
           ),
         );
       },
     );
   }
 }
+
+enum _RoutePreviewOverlayMode { route, location }
 
 enum _RoutePreviewMode {
   polyline,
@@ -363,6 +395,34 @@ class _TinyRoutePreviewPainter extends CustomPainter {
   }
 }
 
+class _LocationDotPreviewPainter extends CustomPainter {
+  const _LocationDotPreviewPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width * 0.5, size.height * 0.5);
+    final haloPaint = Paint()
+      ..color = const Color(0x66304BB7)
+      ..style = PaintingStyle.fill;
+    final dotPaint = Paint()
+      ..color = _runnerOrange
+      ..style = PaintingStyle.fill;
+    final ringPaint = Paint()
+      ..color = RuniacColors.white
+      ..strokeWidth = 3
+      ..style = PaintingStyle.stroke;
+
+    canvas.drawCircle(center, 12, haloPaint);
+    canvas.drawCircle(center, 7, dotPaint);
+    canvas.drawCircle(center, 7, ringPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _LocationDotPreviewPainter oldDelegate) {
+    return false;
+  }
+}
+
 class _RoutePolylinePreviewPainter extends CustomPainter {
   const _RoutePolylinePreviewPainter(this.route, {this.paintBackdrop = true});
 
@@ -434,6 +494,21 @@ List<RunLocationSample> _drawableRoutePoints(RunRouteSnapshot route) {
       .expand((segment) => segment)
       .where(_isDrawableRoutePoint)
       .toList(growable: false);
+}
+
+RunLocationSample? _knownPreviewLocation(RunRouteSnapshot route) {
+  final lastKnownLocation = route.lastKnownLocation;
+  if (lastKnownLocation != null && _isDrawableRoutePoint(lastKnownLocation)) {
+    return lastKnownLocation;
+  }
+  for (final segment in route.segments.reversed) {
+    for (final point in segment.reversed) {
+      if (_isDrawableRoutePoint(point)) {
+        return point;
+      }
+    }
+  }
+  return null;
 }
 
 bool _isTinyRoute(List<RunLocationSample> points, Size logicalSize) {
@@ -638,3 +713,4 @@ const _previewSlotSize = 88.0;
 const _minRouteSpan = 0.000001;
 const _stationaryMovementThresholdMeters = 6.0;
 const _tinyRouteProjectedThresholdPx = 6.0;
+const _runnerOrange = Color(0xFFFF6818);

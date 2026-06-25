@@ -376,7 +376,7 @@ void main() {
   );
 
   test(
-    'snapshot provider bypasses generator when route is stationary',
+    'snapshot provider resolves stationary current-session location thumbnails',
     () async {
       final startedAt = DateTime.utc(2026, 6, 18, 8, 10);
       final stationaryRoute = RunRouteSnapshot(
@@ -394,11 +394,15 @@ void main() {
             ),
           ],
         ],
+        lastKnownLocation: RunLocationSample(
+          recordedAt: startedAt.add(const Duration(seconds: 30)),
+          latitude: 1.301001,
+          longitude: 103.801001,
+        ),
       );
+      final image = MemoryImage(Uint8List.fromList(const [16, 17, 18]));
       final generator = _FakeSnapshotThumbnailGenerator((request) async {
-        return ActivityRouteThumbnailResult.readyImage(
-          MemoryImage(Uint8List.fromList(const [16, 17, 18])),
-        );
+        return ActivityRouteThumbnailResult.readyImage(image);
       });
       final provider = CachedActivityRouteThumbnailProvider(
         cache: ActivityRouteSnapshotThumbnailMemoryCache(),
@@ -415,8 +419,17 @@ void main() {
         ),
       );
 
-      expect(resolved, const ActivityRouteThumbnailResult.unavailable());
-      expect(generator.requestCount, 0);
+      expect(resolved.state, ActivityRouteThumbnailState.readyImage);
+      expect(resolved.imageProvider, same(image));
+      expect(generator.requestCount, 1);
+      expect(
+        generator.lastRequest!.camera.centerLatitude,
+        closeTo(1.301001, 0.000001),
+      );
+      expect(
+        generator.lastRequest!.camera.centerLongitude,
+        closeTo(103.801001, 0.000001),
+      );
     },
   );
 }

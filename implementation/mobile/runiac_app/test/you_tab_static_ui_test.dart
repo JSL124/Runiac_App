@@ -1415,7 +1415,7 @@ void main() {
     },
   );
 
-  testWidgets('Activity route preview keeps stationary and missing route modes', (
+  testWidgets('Activity route preview handles stationary and missing routes', (
     WidgetTester tester,
   ) async {
     // Given: a provider that could render an image for meaningful routes.
@@ -1432,26 +1432,36 @@ void main() {
           route: _stationaryRouteFixture(),
           thumbnailProvider: provider,
           allowExternalStaticMap: true,
-          isDemoRoute: true,
+          isDemoRoute: false,
+          isCurrentSessionRoute: true,
         ),
       ),
     );
     await tester.pumpAndSettle();
 
-    // Then: stationary routes remain dot previews rather than image thumbnails.
+    // Then: stationary current-session routes can use a map background with a
+    // single local marker, not a fake route line.
     expect(
-      find.byKey(const ValueKey('activity_route_preview_tiny_route')),
+      find.byKey(const ValueKey('activity_route_preview_static_thumbnail')),
       findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey('activity_route_preview_static_thumbnail_location_dot'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey('activity_route_preview_static_thumbnail_route_overlay'),
+      ),
+      findsNothing,
     );
     expect(
       find.byKey(const ValueKey('activity_route_preview_polyline')),
       findsNothing,
     );
-    expect(
-      find.byKey(const ValueKey('activity_route_preview_static_thumbnail')),
-      findsNothing,
-    );
-    expect(provider.requestCount, 0);
+    expect(provider.requestCount, 1);
 
     // When: a missing route is rendered.
     await tester.pumpWidget(
@@ -1475,7 +1485,7 @@ void main() {
       find.byKey(const ValueKey('activity_route_preview_static_thumbnail')),
       findsNothing,
     );
-    expect(provider.requestCount, 0);
+    expect(provider.requestCount, 1);
   });
 
   testWidgets('Activity History shows source labels', (

@@ -176,12 +176,17 @@ class ActivityRouteSnapshotCamera {
     required Size logicalSize,
   }) {
     final points = _drawableRoutePoints(route.segments);
+    final knownLocation = _knownPreviewLocation(route);
     if (points.length < 2) {
-      return null;
+      return knownLocation == null
+          ? null
+          : ActivityRouteSnapshotCamera.fromLocation(knownLocation);
     }
     final movementMeters = _routeMovementMeters(points);
     if (movementMeters < _stationaryMovementThresholdMeters) {
-      return null;
+      return knownLocation == null
+          ? null
+          : ActivityRouteSnapshotCamera.fromLocation(knownLocation);
     }
 
     var minLatitude = points.first.latitude;
@@ -202,7 +207,9 @@ class ActivityRouteSnapshotCamera {
       maxLongitude: maxLongitude,
       logicalSize: logicalSize,
     )) {
-      return null;
+      return knownLocation == null
+          ? null
+          : ActivityRouteSnapshotCamera.fromLocation(knownLocation);
     }
 
     return ActivityRouteSnapshotCamera.fromBounds(
@@ -211,6 +218,14 @@ class ActivityRouteSnapshotCamera {
       minLongitude: minLongitude,
       maxLongitude: maxLongitude,
       logicalSize: logicalSize,
+    );
+  }
+
+  factory ActivityRouteSnapshotCamera.fromLocation(RunLocationSample location) {
+    return ActivityRouteSnapshotCamera(
+      centerLatitude: location.latitude,
+      centerLongitude: location.longitude,
+      zoom: _locationSnapshotZoom,
     );
   }
 
@@ -357,6 +372,21 @@ bool _isDrawableRoutePoint(RunLocationSample point) {
   return point.latitude.isFinite && point.longitude.isFinite;
 }
 
+RunLocationSample? _knownPreviewLocation(RunRouteSnapshot route) {
+  final lastKnownLocation = route.lastKnownLocation;
+  if (lastKnownLocation != null && _isDrawableRoutePoint(lastKnownLocation)) {
+    return lastKnownLocation;
+  }
+  for (final segment in route.segments.reversed) {
+    for (final point in segment.reversed) {
+      if (_isDrawableRoutePoint(point)) {
+        return point;
+      }
+    }
+  }
+  return null;
+}
+
 double _routeMovementMeters(List<RunLocationSample> points) {
   var maxDistance = 0.0;
   for (var index = 1; index < points.length; index += 1) {
@@ -462,6 +492,7 @@ const _tinyRouteProjectedThresholdPx = 6.0;
 const _minCameraSpan = 0.00018;
 const _minSnapshotZoom = 11.5;
 const _maxSnapshotZoom = 17.2;
+const _locationSnapshotZoom = 16.5;
 const _coordinatePrecision = 1000000;
 const _devicePixelRatioPrecision = 4;
 const _segmentSeparator = 0x9e3779b9;
