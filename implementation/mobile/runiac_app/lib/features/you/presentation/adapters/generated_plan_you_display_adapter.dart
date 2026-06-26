@@ -5,6 +5,16 @@ import '../../../plan/presentation/current_session_generated_plan.dart';
 import '../data/weekly_workout_demo_snapshots.dart';
 import '../data/you_overview_demo_snapshots.dart';
 
+const _weeklyDisplayDayLabels = [
+  'Mon',
+  'Tue',
+  'Wed',
+  'Thu',
+  'Fri',
+  'Sat',
+  'Sun',
+];
+
 class GeneratedYouPlanDisplay {
   const GeneratedYouPlanDisplay({
     required this.weeklyTitle,
@@ -38,20 +48,50 @@ GeneratedYouPlanDisplay? generatedYouPlanDisplayFromSnapshot(
     subtitle: snapshot.subtitle,
     progressLabel: '0 of $runningSessionCount done',
     progressValue: 0,
-    scheduleRows: [
-      for (final workout in currentWeek.workouts)
-        YouPlanScheduleRow(
-          workout.dayLabel,
-          workout.title,
-          '${workout.durationMinutes} min',
-          _iconForWorkout(workout.kind),
-          active: isGeneratedPlanSession(workout),
-          opensWorkoutDetail: isGeneratedPlanSession(workout),
-          detailSnapshot: isGeneratedPlanSession(workout)
-              ? _workoutDetailFor(workout, snapshot)
-              : null,
-        ),
-    ],
+    scheduleRows: _weeklyScheduleRowsFor(currentWeek, snapshot),
+  );
+}
+
+List<YouPlanScheduleRow> _weeklyScheduleRowsFor(
+  BeginnerAdaptivePlanWeek currentWeek,
+  BeginnerAdaptivePlanSnapshot snapshot,
+) {
+  final workoutsByDay = {
+    for (final workout in currentWeek.workouts) workout.dayLabel: workout,
+  };
+
+  return [
+    for (final dayLabel in _weeklyDisplayDayLabels)
+      _scheduleRowForDay(dayLabel, workoutsByDay[dayLabel], snapshot),
+  ];
+}
+
+YouPlanScheduleRow _scheduleRowForDay(
+  String dayLabel,
+  BeginnerAdaptiveWorkout? workout,
+  BeginnerAdaptivePlanSnapshot snapshot,
+) {
+  if (workout == null || !isGeneratedPlanSession(workout)) {
+    return _restRow(dayLabel);
+  }
+
+  return YouPlanScheduleRow(
+    dayLabel,
+    workout.title,
+    '${workout.durationMinutes} min',
+    _iconForWorkout(workout.kind),
+    active: true,
+    opensWorkoutDetail: true,
+    detailSnapshot: _workoutDetailFor(workout, snapshot),
+  );
+}
+
+YouPlanScheduleRow _restRow(String dayLabel) {
+  return YouPlanScheduleRow(
+    dayLabel,
+    'Rest',
+    'Recovery day',
+    Icons.self_improvement,
   );
 }
 

@@ -59,6 +59,7 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('0 of 4 done'), findsOneWidget);
+      expect(find.text('0 of 7 done'), findsNothing);
       expect(find.text('2 of 3 done'), findsNothing);
       expect(find.text('Week 3 of 8'), findsNothing);
       expect(find.text('43% completed'), findsNothing);
@@ -70,6 +71,9 @@ void main() {
         'Tue',
         'Wed',
         'Thu',
+        'Fri',
+        'Sat',
+        'Sun',
         'Comfortable Run',
         'Controlled Steady Run',
         'Longer Easy Run',
@@ -79,8 +83,39 @@ void main() {
       ]) {
         expect(find.text(text), findsWidgets);
       }
+      expect(find.text('Rest'), findsNWidgets(3));
+      expect(find.text('Recovery day'), findsNWidgets(3));
     },
   );
+
+  testWidgets('generated weekly rest rows do not open workout detail', (
+    WidgetTester tester,
+  ) async {
+    final generatedPlanStore = CurrentSessionGeneratedPlanStore();
+    expect(generatedPlanStore.setActivePlan(_tenKPerformancePlan()), isTrue);
+
+    await _openYouPlansTab(tester, generatedPlanStore);
+
+    await tester.ensureVisible(find.text('Rest').first);
+    await tester.tap(find.text('Rest').first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Workout detail'), findsNothing);
+    expect(find.text('10K Performance Build'), findsOneWidget);
+    expect(find.text('0 of 4 done'), findsOneWidget);
+  });
+
+  testWidgets('You Plans keeps static fallback when no generated plan exists', (
+    WidgetTester tester,
+  ) async {
+    await _openYouPlansTab(tester, CurrentSessionGeneratedPlanStore());
+
+    expect(find.text('Current Goal'), findsOneWidget);
+    expect(find.text('10K Preparation'), findsOneWidget);
+    expect(find.text('2 of 3 done'), findsOneWidget);
+    expect(find.text('10K Performance Build'), findsNothing);
+    expect(find.text('Recovery day'), findsNothing);
+  });
 
   testWidgets('You Plans shows starter movement plan before static fallback', (
     WidgetTester tester,
