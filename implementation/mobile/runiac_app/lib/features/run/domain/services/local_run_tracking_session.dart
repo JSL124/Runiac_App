@@ -173,11 +173,10 @@ class LocalRunTrackingSession {
       final first = segment.first;
       final firstAltitude = first.altitudeMeters;
       if (firstAltitude != null && firstAltitude.isFinite) {
-        samples.add(
-          ElevationAnalysisSample(
-            distanceKm: cumulativeDistanceMeters / 1000,
-            elevationMeters: firstAltitude,
-          ),
+        _addElevationSample(
+          samples,
+          distanceMeters: cumulativeDistanceMeters,
+          elevationMeters: firstAltitude,
         );
       }
 
@@ -197,16 +196,32 @@ class LocalRunTrackingSession {
         if (altitude == null || !altitude.isFinite) {
           continue;
         }
-        samples.add(
-          ElevationAnalysisSample(
-            distanceKm: cumulativeDistanceMeters / 1000,
-            elevationMeters: altitude,
-          ),
+        _addElevationSample(
+          samples,
+          distanceMeters: cumulativeDistanceMeters,
+          elevationMeters: altitude,
         );
       }
     }
 
     return samples;
+  }
+
+  void _addElevationSample(
+    List<ElevationAnalysisSample> samples, {
+    required double distanceMeters,
+    required double elevationMeters,
+  }) {
+    final distanceKm = distanceMeters / 1000;
+    if (samples.isNotEmpty && distanceKm <= samples.last.distanceKm) {
+      return;
+    }
+    samples.add(
+      ElevationAnalysisSample(
+        distanceKm: distanceKm,
+        elevationMeters: elevationMeters,
+      ),
+    );
   }
 
   RunMapViewState get mapViewState {

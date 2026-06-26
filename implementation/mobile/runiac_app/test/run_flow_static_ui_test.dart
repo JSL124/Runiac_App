@@ -1105,7 +1105,8 @@ void main() {
     expect(find.text('Pace'), findsOneWidget);
     expect(find.text('Elev'), findsOneWidget);
     expect(find.text('HR'), findsOneWidget);
-    expect(_advancedAnalysisSplitDistanceText('--'), findsOneWidget);
+    expect(_advancedAnalysisSplitDistanceText('--'), findsNothing);
+    expect(_advancedAnalysisSplitDistanceText('0.50'), findsOneWidget);
     expect(_advancedAnalysisSplitDistanceText('1'), findsNothing);
     expect(_advancedAnalysisSplitDistanceText('2'), findsNothing);
     expect(_advancedAnalysisSplitDistanceText('3'), findsNothing);
@@ -1118,6 +1119,7 @@ void main() {
     expect(find.text('0.03 km'), findsNothing);
     expect(find.text('4.03 km'), findsNothing);
     expect(find.text('4.03 ...'), findsNothing);
+    expect(find.text('4’00”'), findsOneWidget);
     expect(find.text('6’24”'), findsNothing);
     expect(find.text('6’33”'), findsNothing);
     expect(find.text('6’41”'), findsNothing);

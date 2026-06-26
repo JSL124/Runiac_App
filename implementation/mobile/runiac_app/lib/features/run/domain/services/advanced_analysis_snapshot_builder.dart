@@ -533,7 +533,8 @@ class AdvancedAnalysisSnapshotBuilder {
     RunSummarySnapshot summary,
   ) {
     final graph = summary.paceGraph;
-    final totalDurationSeconds = graph.totalDurationSeconds;
+    final totalDurationSeconds =
+        graph.totalDurationSeconds ?? _durationSeconds(summary.duration);
     final totalDistanceKm = _distanceKm(summary.distanceKm);
     if (!graph.isAvailable ||
         !graph.hasDistanceAxis ||

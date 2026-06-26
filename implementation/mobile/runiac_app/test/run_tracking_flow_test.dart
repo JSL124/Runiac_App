@@ -28,6 +28,7 @@ import 'package:runiac_app/features/run/domain/repositories/run_location_provide
 import 'package:runiac_app/features/run/domain/repositories/run_foreground_service.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_notification_permission_service.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_repository.dart';
+import 'package:runiac_app/features/run/domain/services/advanced_analysis_snapshot_builder.dart';
 import 'package:runiac_app/features/run/domain/services/pace_graph_data_builder.dart';
 import 'package:runiac_app/features/run/domain/services/run_summary_local_analysis_merger.dart';
 import 'package:runiac_app/features/run/presentation/active_run_session_coordinator.dart';
@@ -2583,6 +2584,8 @@ void main() {
         find.byType(ViewSummaryScreen),
       );
       final summary = summaryScreen.completionResult!.summary;
+      final advancedAnalysis = const AdvancedAnalysisSnapshotBuilder()
+          .fromRunSummary(summary);
       expect(summary.distanceKm, '0.32');
       expect(summary.duration, '03:00');
       expect(summary.avgPace, '9’23”');
@@ -2597,6 +2600,10 @@ void main() {
       expect(summary.paceAnalysisSeries?.isLocalAcceptedSource, isTrue);
       expect(summary.cadenceAnalysisSeries, isNotNull);
       expect(summary.elevationSeries.isUnavailable, isFalse);
+      expect(advancedAnalysis.elevation.elevationGraph.isAvailable, isTrue);
+      expect(advancedAnalysis.elevation.totalGain.valueLabel, '+6 m');
+      expect(advancedAnalysis.elevation.highestPoint.valueLabel, '9 m');
+      expect(advancedAnalysis.elevation.lowestPoint.valueLabel, '4 m');
       expect(summary.route.hasRoute, isTrue);
       expect(summary.avgHeartRate, '--');
       expect(
@@ -2614,9 +2621,45 @@ void main() {
         find.byKey(const ValueKey('advanced_analysis_pace_graph_unavailable')),
         findsNothing,
       );
+      expect(
+        tester
+            .widget<Text>(find.byKey(const Key('advanced_analysis_split_1_km')))
+            .data,
+        '0.32',
+      );
+      expect(
+        tester
+            .widget<Text>(
+              find.byKey(const Key('advanced_analysis_split_1_pace')),
+            )
+            .data,
+        isNot('--'),
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('advanced_analysis_split_1_elev')),
+          matching: find.text('--'),
+        ),
+        findsOneWidget,
+      );
       expect(find.text('Running Form / Cadence'), findsOneWidget);
+      expect(find.text('Cadence is unavailable for this run.'), findsNothing);
       expect(find.text('170'), findsWidgets);
+      expect(find.text('168'), findsWidgets);
+      expect(find.text('172'), findsWidgets);
+      expect(find.text('Stable'), findsWidgets);
       expect(find.text('Elevation Analysis'), findsOneWidget);
+      expect(
+        find.byKey(
+          const ValueKey('advanced_analysis_elevation_graph_unavailable'),
+        ),
+        findsNothing,
+      );
+      expect(find.text('+6'), findsOneWidget);
+      expect(find.text('9'), findsWidgets);
+      expect(find.text('4'), findsWidgets);
+      expect(find.text('m'), findsAtLeastNWidgets(3));
+      expect(find.text('Mostly Flat'), findsOneWidget);
     },
   );
 
