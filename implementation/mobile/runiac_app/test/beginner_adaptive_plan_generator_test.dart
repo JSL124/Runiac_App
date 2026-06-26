@@ -84,7 +84,7 @@ void main() {
       },
     );
 
-    test('keeps health and symptom answers conservative and local-only', () {
+    test('keeps restricted health answers conservative and local-only', () {
       final plan = generator.generate(
         _draft(
           experience: OnboardingExperience.newRunner,
@@ -96,20 +96,17 @@ void main() {
             OnboardingPreferredDay.sun,
           ],
           length: OnboardingSessionLength.fortyFive,
-          health: OnboardingHealthComfort.heart,
-          symptoms: [OnboardingActivitySymptom.breath],
+          health: OnboardingHealthComfort.joint,
+          symptoms: [OnboardingActivitySymptom.legpain],
           cautiousness: OnboardingPlanCautiousness.veryGentle,
         ),
       );
 
       expect(plan.title, 'Return to Movement');
-      expect(
-        plan.templateKind,
-        BeginnerPlanTemplateKind.safetyFirstMovementStart,
-      );
-      expect(plan.safetyBand, BeginnerPlanSafetyBand.safetyFirst);
-      expect(plan.weeklyFrequencyLabel, '2 sessions / week');
-      expect(plan.preferredScheduleLabel, 'Tue · Sat');
+      expect(plan.templateKind, BeginnerPlanTemplateKind.veryGentleStart);
+      expect(plan.safetyBand, BeginnerPlanSafetyBand.highCaution);
+      expect(plan.weeklyFrequencyLabel, '3 sessions / week');
+      expect(plan.preferredScheduleLabel, 'Tue · Thu · Sat');
       expect(plan.sessionDurationLabel, '15 min');
       expect(plan.weeks.first.focus, 'Keep movement easy and comfortable');
       expect(
@@ -120,7 +117,7 @@ void main() {
         plan.weeks.first.workouts.map((workout) => workout.kind),
         everyElement(BeginnerWorkoutKind.recoveryWalk),
       );
-      expect(plan.safetyNote, contains('consider professional guidance'));
+      expect(plan.safetyNote, contains('Start gently'));
 
       final copy = [
         plan.title,
@@ -151,6 +148,30 @@ void main() {
           ),
         ),
       );
+    });
+
+    test('blocks needs-clearance drafts without fallback workout rows', () {
+      final plan = generator.generate(
+        _draft(
+          health: OnboardingHealthComfort.heart,
+          symptoms: [OnboardingActivitySymptom.breath],
+        ),
+      );
+
+      expect(plan.isBlocked, isTrue);
+      expect(plan.family, isNull);
+      expect(plan.familyCategory, isNull);
+      expect(plan.title, isNot('Return to Movement'));
+      expect(plan.durationWeeks, 0);
+      expect(plan.weeks, isEmpty);
+      expect(plan.weeklyFrequencyLabel, 'No running plan');
+      expect(plan.familyReason, contains('paused'));
+      expect([
+        plan.title,
+        plan.subtitle,
+        for (final week in plan.weeks)
+          for (final workout in week.workouts) workout.title,
+      ], isNot(contains('Easy Walk')));
     });
 
     test('treats none symptom intent as a clear standard start', () {

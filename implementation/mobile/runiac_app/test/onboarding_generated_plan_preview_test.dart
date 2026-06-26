@@ -55,6 +55,47 @@ void main() {
       }
     },
   );
+
+  testWidgets('needs-clearance preview renders no generated workout rows', (
+    tester,
+  ) async {
+    final draft = LocalOnboardingDraft(
+      goal: OnboardingGoal.first5k,
+      experience: OnboardingExperience.intervals,
+      availability: OnboardingAvailability.three,
+      preferredDays: const [
+        OnboardingPreferredDay.mon,
+        OnboardingPreferredDay.wed,
+        OnboardingPreferredDay.fri,
+      ],
+      preferredTime: OnboardingPreferredTime.morning,
+      sessionLength: OnboardingSessionLength.twenty,
+      runningPlace: OnboardingRunningPlace.park,
+      motivationStyle: OnboardingMotivationStyle.plan,
+      healthComfort: OnboardingHealthComfort.heart,
+      activitySymptoms: const [OnboardingActivitySymptom.breath],
+      planCautiousness: OnboardingPlanCautiousness.standard,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: OnboardingPreviewBody(answers: _answersFor(draft)),
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      find.textContaining("Runiac can't create a running plan"),
+      findsOneWidget,
+    );
+    expect(find.text('Suggested starting plan'), findsNothing);
+    expect(find.text('First week preview'), findsNothing);
+    expect(find.text('Return to Movement'), findsNothing);
+    expect(find.textContaining('Easy Walk'), findsNothing);
+  });
 }
 
 Map<String, Object> _answersFor(LocalOnboardingDraft draft) {

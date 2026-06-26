@@ -187,6 +187,23 @@ void main() {
         everyElement(BeginnerPlanIntensity.veryGentle),
       );
     });
+
+    test('needs-clearance answers do not fallback to movement rows', () {
+      final plan = generator.generate(
+        planFamilyStarterDraft(health: OnboardingHealthComfort.heart),
+      );
+
+      expect(plan.isBlocked, isTrue);
+      expect(plan.family, isNull);
+      expect(plan.familyCategory, isNull);
+      expect(plan.title, isNot('Return to Movement'));
+      expect(plan.weeks, isEmpty);
+      expect(plan.weeklyFrequencyLabel, 'No running plan');
+      expect(
+        _copyFor(plan),
+        isNot(containsAll(['Return to Movement', 'Easy Walk'])),
+      );
+    });
   });
 }
 

@@ -158,15 +158,32 @@ void main() {
                   OnboardingPreferredDay.thu,
                   OnboardingPreferredDay.sat,
                 ],
-                health: OnboardingHealthComfort.heart,
-                symptoms: [OnboardingActivitySymptom.heartbeat],
+                health: OnboardingHealthComfort.joint,
+                symptoms: [OnboardingActivitySymptom.legpain],
               ),
             )
             .weeks
             .first
             .workouts,
-        hasLength(2),
+        hasLength(3),
       );
+
+      final blocked = generator.generate(
+        _draft(
+          availability: OnboardingAvailability.four,
+          days: [
+            OnboardingPreferredDay.mon,
+            OnboardingPreferredDay.tue,
+            OnboardingPreferredDay.thu,
+            OnboardingPreferredDay.sat,
+          ],
+          health: OnboardingHealthComfort.heart,
+          symptoms: [OnboardingActivitySymptom.heartbeat],
+        ),
+      );
+      expect(blocked.isBlocked, isTrue);
+      expect(blocked.weeks, isEmpty);
+      expect(blocked.weeklyFrequencyLabel, 'No running plan');
     });
 
     test('uses only selected preferred days and best-spaced subset', () {

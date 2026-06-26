@@ -48,8 +48,8 @@ class BeginnerAdaptivePlanSnapshot {
   final int durationWeeks;
   final BeginnerPlanSafetyBand safetyBand;
   final BeginnerPlanTemplateKind templateKind;
-  final PlanFamily family;
-  final PlanFamilyCategory familyCategory;
+  final PlanFamily? family;
+  final PlanFamilyCategory? familyCategory;
   final String familyReason;
   final String supportStyleLabel;
   final String weeklyFrequencyLabel;
@@ -57,6 +57,8 @@ class BeginnerAdaptivePlanSnapshot {
   final String sessionDurationLabel;
   final String safetyNote;
   final List<BeginnerAdaptivePlanWeek> weeks;
+
+  bool get isBlocked => family == null;
 }
 
 class BeginnerAdaptivePlanWeek {

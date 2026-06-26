@@ -7,8 +7,8 @@ void main() {
   const generator = BeginnerAdaptivePlanGenerator();
 
   group('BeginnerAdaptivePlanGenerator variation matrix', () {
-    test('safe returning runner visibly differs from safety-first', () {
-      final safetyFirst = generator.generate(
+    test('safe returning runner visibly differs from restricted restart', () {
+      final restrictedRestart = generator.generate(
         _draft(
           goal: OnboardingGoal.tenK,
           experience: OnboardingExperience.run30,
@@ -20,8 +20,8 @@ void main() {
             OnboardingPreferredDay.thu,
           ],
           length: OnboardingSessionLength.thirty,
-          health: OnboardingHealthComfort.heart,
-          symptoms: const [OnboardingActivitySymptom.chest],
+          health: OnboardingHealthComfort.injury,
+          symptoms: const [OnboardingActivitySymptom.legpain],
           cautiousness: OnboardingPlanCautiousness.standard,
         ),
       );
@@ -46,14 +46,14 @@ void main() {
       );
 
       expect(
-        safetyFirst.templateKind,
-        BeginnerPlanTemplateKind.safetyFirstMovementStart,
+        restrictedRestart.templateKind,
+        BeginnerPlanTemplateKind.veryGentleStart,
       );
       expect(
         safeReturning.templateKind,
         BeginnerPlanTemplateKind.returningBeginnerStart,
       );
-      expect(_firstWeekTitles(safetyFirst), everyElement('Easy Walk'));
+      expect(_firstWeekTitles(restrictedRestart), everyElement('Easy Walk'));
       expect(
         _firstWeekTitles(safeReturning),
         contains('Controlled Steady Run'),
@@ -61,12 +61,12 @@ void main() {
       expect(_firstWeekTitles(safeReturning), contains('Longer Easy Run'));
       expect(
         _firstWeekSignature(safeReturning),
-        isNot(_firstWeekSignature(safetyFirst)),
+        isNot(_firstWeekSignature(restrictedRestart)),
       );
     });
 
     test(
-      'safety-first overrides aggressive answers with conservative rows',
+      'restricted answers override aggressive answers with conservative rows',
       () {
         final plan = generator.generate(
           _draft(
@@ -80,17 +80,14 @@ void main() {
             ],
             length: OnboardingSessionLength.thirty,
             health: OnboardingHealthComfort.injury,
-            symptoms: const [OnboardingActivitySymptom.breath],
+            symptoms: const [OnboardingActivitySymptom.legpain],
             cautiousness: OnboardingPlanCautiousness.standard,
           ),
         );
 
-        expect(
-          plan.templateKind,
-          BeginnerPlanTemplateKind.safetyFirstMovementStart,
-        );
-        expect(plan.weeklyFrequencyLabel, '2 sessions / week');
-        expect(plan.sessionDurationLabel, '15 min');
+        expect(plan.templateKind, BeginnerPlanTemplateKind.veryGentleStart);
+        expect(plan.weeklyFrequencyLabel, '3 sessions / week');
+        expect(plan.sessionDurationLabel, '20 min');
         expect(
           _firstWeekKinds(plan),
           everyElement(BeginnerWorkoutKind.recoveryWalk),

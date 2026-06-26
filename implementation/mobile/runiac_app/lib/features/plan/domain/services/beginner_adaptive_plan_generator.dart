@@ -41,8 +41,33 @@ class BeginnerAdaptivePlanGenerator {
       runnerLevel: runnerLevel,
       resolvedStyle: resolvedStyle,
     );
-    final family = resolvedFamily.family ?? PlanFamily.returnToMovement;
-    final category = resolvedFamily.category ?? PlanFamilyCategory.starter;
+    final family = resolvedFamily.family;
+    if (family == null) {
+      return BeginnerAdaptivePlanSnapshot(
+        id: 'local-onboarding-beginner-plan',
+        title: 'Plan paused for safety',
+        subtitle:
+            'These answers need qualified guidance before Runiac can suggest running sessions.',
+        planKind: BeginnerAdaptivePlanKind.onboardingBased,
+        sourceLabel: 'Onboarding based',
+        durationWeeks: 0,
+        safetyBand: policy.profile.safetyBand,
+        templateKind: policy.profile.templateKind,
+        family: null,
+        familyCategory: null,
+        familyReason: resolvedFamily.reason,
+        supportStyleLabel: BeginnerAdaptivePlanCopy.supportStyleFor(draft),
+        weeklyFrequencyLabel: 'No running plan',
+        preferredScheduleLabel: 'Not scheduled',
+        sessionDurationLabel: 'Not scheduled',
+        safetyNote: BeginnerAdaptivePlanCopy.safetyNoteFor(
+          policy.profile.safetyBand,
+        ),
+        weeks: const [],
+      );
+    }
+
+    final category = resolvedFamily.category ?? family.category;
     final requiredSessions = _workoutBuilder.requiredSessionsFor(
       family,
       policy,

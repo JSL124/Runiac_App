@@ -37,6 +37,10 @@ class OnboardingPreviewBody extends StatelessWidget {
     final plan = const BeginnerAdaptivePlanGenerator().generate(
       draft ?? _previewFallbackDraft,
     );
+    if (plan.isBlocked) {
+      return const _NeedsClearancePreview();
+    }
+
     final length = plan.sessionDurationLabel;
     final weekly = plan.weeklyFrequencyLabel;
     final preferredDays = draft == null || draft.preferredDays.isEmpty

@@ -119,12 +119,13 @@ void main() {
     );
 
     test('safety and missing data only block or downgrade', () {
-      expect(
-        resolve(
-          planFamilyStarterDraft(health: OnboardingHealthComfort.heart),
-        ).family,
-        isNull,
+      final needsClearance = resolve(
+        planFamilyStarterDraft(health: OnboardingHealthComfort.heart),
       );
+      expect(needsClearance.family, isNull);
+      expect(needsClearance.category, isNull);
+      expect(needsClearance.reason, contains('paused'));
+
       expect(
         resolve(
           planFamilyPerformanceDraft(
