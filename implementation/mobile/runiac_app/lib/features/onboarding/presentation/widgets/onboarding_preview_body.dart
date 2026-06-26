@@ -80,6 +80,11 @@ class OnboardingPreviewBody extends StatelessWidget {
         _SummaryTile(label: 'Plan style', value: _styleLabel(resolvedStyle)),
         const SizedBox(height: 16),
         _SuggestedPlanCard(title: plan.title, subtitle: plan.subtitle),
+        const SizedBox(height: 10),
+        OnboardingInfoBanner(
+          icon: Icons.route_outlined,
+          text: plan.familyReason,
+        ),
         const SizedBox(height: 14),
         FirstWeekPreview(workouts: plan.weeks.first.workouts),
         const SizedBox(height: 14),

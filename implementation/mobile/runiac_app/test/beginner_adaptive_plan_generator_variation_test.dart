@@ -38,6 +38,10 @@ void main() {
           ],
           length: OnboardingSessionLength.thirty,
           cautiousness: OnboardingPlanCautiousness.standard,
+          consistency: RecentRunningConsistency.threeToSixMonths,
+          frequency: CurrentWeeklyRunFrequency.four,
+          capacity: ContinuousRunCapacity.fortyFivePlusMinutes,
+          style: OnboardingPlanStyle.performanceFocused,
         ),
       );
 
@@ -50,7 +54,10 @@ void main() {
         BeginnerPlanTemplateKind.returningBeginnerStart,
       );
       expect(_firstWeekTitles(safetyFirst), everyElement('Easy Walk'));
-      expect(_firstWeekTitles(safeReturning), contains('Comfortable Run'));
+      expect(
+        _firstWeekTitles(safeReturning),
+        contains('Controlled Steady Run'),
+      );
       expect(_firstWeekTitles(safeReturning), contains('Longer Easy Run'));
       expect(
         _firstWeekSignature(safeReturning),
@@ -115,14 +122,24 @@ void main() {
         BeginnerPlanTemplateKind.standardBeginnerStart,
       );
       expect(veryGentle.templateKind, BeginnerPlanTemplateKind.veryGentleStart);
-      expect(
-        _firstWeekKinds(standard),
-        everyElement(BeginnerWorkoutKind.runWalk),
-      );
-      expect(_firstWeekKinds(veryGentle), [
-        BeginnerWorkoutKind.walkRun,
+      expect(_firstWeekKinds(standard), [
+        BeginnerWorkoutKind.runWalk,
         BeginnerWorkoutKind.recoveryWalk,
         BeginnerWorkoutKind.runWalk,
+      ]);
+      expect(
+        _firstWeekKinds(veryGentle),
+        everyElement(BeginnerWorkoutKind.recoveryWalk),
+      );
+      expect(_firstWeekTitles(standard), [
+        'Easy Run-Walk',
+        'Easy Walk',
+        'Confidence Run-Walk',
+      ]);
+      expect(_firstWeekTitles(veryGentle), [
+        'Easy Walk',
+        'Easy Walk',
+        'Easy Walk',
       ]);
       expect(_firstWeekTitles(standard).toSet(), hasLength(greaterThan(1)));
       expect(
@@ -180,6 +197,10 @@ LocalOnboardingDraft _draft({
     OnboardingActivitySymptom.none,
   ],
   OnboardingPlanCautiousness cautiousness = OnboardingPlanCautiousness.balanced,
+  RecentRunningConsistency consistency = RecentRunningConsistency.none,
+  CurrentWeeklyRunFrequency frequency = CurrentWeeklyRunFrequency.zero,
+  ContinuousRunCapacity capacity = ContinuousRunCapacity.runWalk,
+  OnboardingPlanStyle? style,
 }) {
   return LocalOnboardingDraft(
     goal: goal,
@@ -193,6 +214,10 @@ LocalOnboardingDraft _draft({
     healthComfort: health,
     activitySymptoms: symptoms,
     planCautiousness: cautiousness,
+    recentRunningConsistency: consistency,
+    currentWeeklyRunFrequency: frequency,
+    continuousRunCapacity: capacity,
+    planStyle: style,
   );
 }
 

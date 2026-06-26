@@ -1,40 +1,85 @@
 import '../../../onboarding/domain/models/local_onboarding_draft.dart';
+import '../../../onboarding/domain/services/onboarding_plan_style_resolver.dart';
+import '../../../onboarding/domain/services/runner_level_resolver.dart';
+import '../../../onboarding/domain/services/safety_gate_resolver.dart';
 import '../models/beginner_adaptive_plan_snapshot.dart';
+import '../models/plan_family.dart';
 import 'beginner_adaptive_plan_copy.dart';
 import 'beginner_plan_policy_resolver.dart';
+import 'plan_family_resolver.dart';
+import 'plan_family_workout_builder.dart';
 
 class BeginnerAdaptivePlanGenerator {
   const BeginnerAdaptivePlanGenerator([
     this._policyResolver = const BeginnerPlanPolicyResolver(),
+    this._safetyGateResolver = const SafetyGateResolver(),
+    this._runnerLevelResolver = const RunnerLevelResolver(),
+    this._styleResolver = const PlanStyleResolver(),
+    this._familyResolver = const PlanFamilyResolver(),
+    this._workoutBuilder = const PlanFamilyWorkoutBuilder(),
   ]);
 
   final BeginnerPlanPolicyResolver _policyResolver;
+  final SafetyGateResolver _safetyGateResolver;
+  final RunnerLevelResolver _runnerLevelResolver;
+  final PlanStyleResolver _styleResolver;
+  final PlanFamilyResolver _familyResolver;
+  final PlanFamilyWorkoutBuilder _workoutBuilder;
 
   BeginnerAdaptivePlanSnapshot generate(LocalOnboardingDraft draft) {
     final policy = _policyResolver.resolve(draft);
+    final safetyGate = _safetyGateResolver.resolve(draft);
+    final runnerLevel = _runnerLevelResolver.resolve(draft);
+    final resolvedStyle = _styleResolver.resolve(
+      draft: draft,
+      safetyGate: safetyGate,
+      runnerLevel: runnerLevel,
+    );
+    final resolvedFamily = _familyResolver.resolve(
+      draft: draft,
+      safetyGate: safetyGate,
+      runnerLevel: runnerLevel,
+      resolvedStyle: resolvedStyle,
+    );
+    final family = resolvedFamily.family ?? PlanFamily.returnToMovement;
+    final category = resolvedFamily.category ?? PlanFamilyCategory.starter;
+    final requiredSessions = _workoutBuilder.requiredSessionsFor(
+      family,
+      policy,
+    );
+    final durationWeeks = family.durationWeeks;
     final weekOneDurations = [
-      for (var index = 0; index < policy.requiredSessions; index++)
+      for (var index = 0; index < requiredSessions; index++)
         policy.durationFor(
           weekNumber: 1,
-          isLastSession: index == policy.requiredSessions - 1,
+          isLastSession: index == requiredSessions - 1,
         ),
     ];
 
     return BeginnerAdaptivePlanSnapshot(
       id: 'local-onboarding-beginner-plan',
-      title: BeginnerAdaptivePlanCopy.titleFor(
-        draft,
-        policy.profile.templateKind,
+      title: family.title,
+      subtitle: BeginnerAdaptivePlanCopy.subtitleFor(
+        draft: draft,
+        family: family,
+        requiredSessions: requiredSessions,
+        durationWeeks: durationWeeks,
       ),
-      subtitle: BeginnerAdaptivePlanCopy.subtitleFor(draft, policy),
       planKind: BeginnerAdaptivePlanKind.onboardingBased,
       sourceLabel: 'Onboarding based',
-      durationWeeks: policy.durationWeeks,
+      durationWeeks: durationWeeks,
       safetyBand: policy.profile.safetyBand,
       templateKind: policy.profile.templateKind,
+      family: family,
+      familyCategory: category,
+      familyReason: resolvedFamily.reason,
       supportStyleLabel: BeginnerAdaptivePlanCopy.supportStyleFor(draft),
-      weeklyFrequencyLabel: '${policy.requiredSessions} sessions / week',
-      preferredScheduleLabel: _dayLabelsFor(policy).join(' · '),
+      weeklyFrequencyLabel: '$requiredSessions sessions / week',
+      preferredScheduleLabel: _dayLabelsFor(
+        draft,
+        policy,
+        requiredSessions,
+      ).join(' · '),
       sessionDurationLabel: BeginnerAdaptivePlanCopy.durationLabelFor(
         weekOneDurations,
       ),
@@ -42,12 +87,14 @@ class BeginnerAdaptivePlanGenerator {
         policy.profile.safetyBand,
       ),
       weeks: [
-        for (
-          var weekNumber = 1;
-          weekNumber <= policy.durationWeeks;
-          weekNumber++
-        )
-          _weekFor(draft: draft, policy: policy, weekNumber: weekNumber),
+        for (var weekNumber = 1; weekNumber <= durationWeeks; weekNumber++)
+          _weekFor(
+            draft: draft,
+            policy: policy,
+            family: family,
+            requiredSessions: requiredSessions,
+            weekNumber: weekNumber,
+          ),
       ],
     );
   }
@@ -55,16 +102,20 @@ class BeginnerAdaptivePlanGenerator {
   BeginnerAdaptivePlanWeek _weekFor({
     required LocalOnboardingDraft draft,
     required BeginnerPlanPolicy policy,
+    required PlanFamily family,
+    required int requiredSessions,
     required int weekNumber,
   }) {
-    final dayLabels = _dayLabelsFor(policy);
+    final dayLabels = _dayLabelsFor(draft, policy, requiredSessions);
     final workouts = <BeginnerAdaptiveWorkout>[
-      for (var index = 0; index < policy.requiredSessions; index++)
-        _workoutFor(
+      for (var index = 0; index < requiredSessions; index++)
+        _workoutBuilder.workoutFor(
           draft: draft,
           policy: policy,
+          family: family,
           dayLabel: dayLabels[index],
           sessionIndex: index,
+          requiredSessions: requiredSessions,
           weekNumber: weekNumber,
         ),
     ];
@@ -72,140 +123,32 @@ class BeginnerAdaptivePlanGenerator {
     return BeginnerAdaptivePlanWeek(
       weekNumber: weekNumber,
       title: 'Week $weekNumber',
-      focus: BeginnerAdaptivePlanCopy.focusFor(
-        policy.profile.templateKind,
-        weekNumber,
-      ),
+      focus: BeginnerAdaptivePlanCopy.focusFor(family, weekNumber),
       workouts: workouts,
     );
   }
 
-  List<String> _dayLabelsFor(BeginnerPlanPolicy policy) {
-    if (policy.selectedDays.isEmpty) {
+  List<String> _dayLabelsFor(
+    LocalOnboardingDraft draft,
+    BeginnerPlanPolicy policy,
+    int requiredSessions,
+  ) {
+    final selectedDays = policy.selectedDays.length == requiredSessions
+        ? policy.selectedDays
+        : _policyResolver.selectPreferredDays(
+            draft.preferredDays,
+            requiredSessions,
+          );
+    if (selectedDays.isEmpty) {
       return [
-        for (var index = 0; index < policy.requiredSessions; index++)
+        for (var index = 0; index < requiredSessions; index++)
           'Day ${index + 1}',
       ];
     }
 
     return [
-      for (var index = 0; index < policy.requiredSessions; index++)
-        policy.selectedDays[index % policy.selectedDays.length].value,
+      for (var index = 0; index < requiredSessions; index++)
+        selectedDays[index % selectedDays.length].value,
     ];
-  }
-
-  BeginnerAdaptiveWorkout _workoutFor({
-    required LocalOnboardingDraft draft,
-    required BeginnerPlanPolicy policy,
-    required String dayLabel,
-    required int sessionIndex,
-    required int weekNumber,
-  }) {
-    final isLastSession = sessionIndex == policy.requiredSessions - 1;
-    final kind = _workoutKindFor(policy, sessionIndex);
-    final durationMinutes = policy.durationFor(
-      weekNumber: weekNumber,
-      isLastSession: isLastSession,
-    );
-    final intensity = _intensityFor(policy);
-    final title = BeginnerAdaptivePlanCopy.workoutTitleFor(
-      policy.profile.templateKind,
-      kind,
-      sessionIndex,
-      isLastSession,
-    );
-    final runMinutes = _mainEffortMinutes(durationMinutes, intensity, kind);
-
-    return BeginnerAdaptiveWorkout(
-      dayLabel: dayLabel,
-      title: title,
-      durationMinutes: durationMinutes,
-      kind: kind,
-      intensity: intensity,
-      description: BeginnerAdaptivePlanCopy.descriptionFor(draft, kind),
-      steps: _stepsFor(kind, durationMinutes, runMinutes),
-      supportiveNote: BeginnerAdaptivePlanCopy.supportiveNoteFor(
-        draft,
-        intensity,
-      ),
-    );
-  }
-
-  BeginnerPlanIntensity _intensityFor(BeginnerPlanPolicy policy) {
-    return switch (policy.profile.templateKind) {
-      BeginnerPlanTemplateKind.safetyFirstMovementStart ||
-      BeginnerPlanTemplateKind.veryGentleStart =>
-        BeginnerPlanIntensity.veryGentle,
-      BeginnerPlanTemplateKind.standardBeginnerStart ||
-      BeginnerPlanTemplateKind.returningBeginnerStart =>
-        BeginnerPlanIntensity.balanced,
-    };
-  }
-
-  BeginnerWorkoutKind _workoutKindFor(
-    BeginnerPlanPolicy policy,
-    int sessionIndex,
-  ) {
-    return switch (policy.profile.templateKind) {
-      BeginnerPlanTemplateKind.safetyFirstMovementStart =>
-        BeginnerWorkoutKind.recoveryWalk,
-      BeginnerPlanTemplateKind.veryGentleStart =>
-        sessionIndex == 1
-            ? BeginnerWorkoutKind.recoveryWalk
-            : _gentleKind(sessionIndex),
-      BeginnerPlanTemplateKind.standardBeginnerStart =>
-        BeginnerWorkoutKind.runWalk,
-      BeginnerPlanTemplateKind.returningBeginnerStart =>
-        BeginnerWorkoutKind.easyRun,
-    };
-  }
-
-  BeginnerWorkoutKind _gentleKind(int sessionIndex) {
-    if (sessionIndex == 2) {
-      return BeginnerWorkoutKind.runWalk;
-    }
-    return BeginnerWorkoutKind.walkRun;
-  }
-
-  int _mainEffortMinutes(
-    int durationMinutes,
-    BeginnerPlanIntensity intensity,
-    BeginnerWorkoutKind kind,
-  ) {
-    if (kind == BeginnerWorkoutKind.recoveryWalk) {
-      return durationMinutes - 5;
-    }
-
-    final warmAndCool = intensity == BeginnerPlanIntensity.veryGentle ? 8 : 6;
-    return durationMinutes - warmAndCool;
-  }
-
-  List<String> _stepsFor(
-    BeginnerWorkoutKind kind,
-    int durationMinutes,
-    int mainEffortMinutes,
-  ) {
-    return switch (kind) {
-      BeginnerWorkoutKind.recoveryWalk => [
-        'Easy walk · $mainEffortMinutes min',
-        'Slow finish · 5 min',
-      ],
-      BeginnerWorkoutKind.walkRun => [
-        'Warm-up walk · 5 min',
-        'Short walk-run repeats · $mainEffortMinutes min',
-        'Cool-down walk · ${durationMinutes - mainEffortMinutes - 5} min',
-      ],
-      BeginnerWorkoutKind.runWalk => [
-        'Warm-up walk · 4 min',
-        'Easy run-walk repeats · $mainEffortMinutes min',
-        'Cool-down walk · ${durationMinutes - mainEffortMinutes - 4} min',
-      ],
-      BeginnerWorkoutKind.easyRun => [
-        'Warm-up walk · 4 min',
-        'Easy run · $mainEffortMinutes min',
-        'Cool-down walk · ${durationMinutes - mainEffortMinutes - 4} min',
-      ],
-      BeginnerWorkoutKind.restOrMobility => const ['Rest or light mobility'],
-    };
   }
 }

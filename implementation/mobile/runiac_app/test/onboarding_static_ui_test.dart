@@ -96,9 +96,10 @@ void main() {
     expect(find.text('First week preview'), findsOneWidget);
     expect(find.text('4 weeks'), findsOneWidget);
     expect(find.text('3 sessions / week'), findsOneWidget);
-    expect(find.text('Mon · Gentle Walk-Run · 20 min'), findsOneWidget);
+    expect(find.text('Return to Movement'), findsOneWidget);
+    expect(find.text('Mon · Easy Walk · 20 min'), findsOneWidget);
     expect(find.text('Wed · Easy Walk · 20 min'), findsOneWidget);
-    expect(find.text('Fri · Confidence Builder · 20 min'), findsOneWidget);
+    expect(find.text('Fri · Easy Walk · 20 min'), findsOneWidget);
     expect(find.text('Continue with this plan'), findsOneWidget);
     expect(find.text('Create my preview plan'), findsNothing);
     expect(find.text('Edit answers'), findsOneWidget);
@@ -121,14 +122,14 @@ void main() {
 
     await completeOnboardingToFourSessionPreview(tester);
 
-    expect(find.text('4 weeks'), findsOneWidget);
+    expect(find.text('8 weeks'), findsOneWidget);
     expect(find.text('4 sessions / week'), findsOneWidget);
     expect(find.text('25-30 min'), findsOneWidget);
-    expect(find.text('Endurance Foundation Start'), findsOneWidget);
+    expect(find.text('10K Performance Build'), findsOneWidget);
     expect(find.text('Mon · Comfortable Run · 25 min'), findsOneWidget);
-    expect(find.text('Tue · Comfortable Run · 25 min'), findsOneWidget);
-    expect(find.text('Wed · Comfortable Run · 25 min'), findsOneWidget);
-    expect(find.text('Thu · Longer Easy Run · 30 min'), findsOneWidget);
+    expect(find.text('Tue · Controlled Steady Run · 25 min'), findsOneWidget);
+    expect(find.text('Wed · Longer Easy Run · 25 min'), findsOneWidget);
+    expect(find.text('Thu · Recovery Run · 30 min'), findsOneWidget);
   });
 
   testWidgets('final preview emits a typed local onboarding draft', (
@@ -275,7 +276,7 @@ void main() {
     expect(find.text('2 sessions / week'), findsOneWidget);
     expect(find.text('4 weeks'), findsOneWidget);
     expect(find.text('3 runs / week'), findsNothing);
-    expect(find.text('Day 1 · Gentle Walk-Run · 20 min'), findsOneWidget);
+    expect(find.text('Day 1 · Easy Walk · 20 min'), findsOneWidget);
     expect(find.text('Day 2 · Easy Walk · 20 min'), findsOneWidget);
     expect(find.text('First week preview'), findsOneWidget);
   });

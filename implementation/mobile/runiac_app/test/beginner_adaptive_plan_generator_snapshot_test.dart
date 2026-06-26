@@ -9,16 +9,20 @@ void main() {
   group('BeginnerAdaptivePlanGenerator snapshot labels', () {
     test('goal variation changes plan emphasis without aggressive rows', () {
       final habit = generator.generate(_draft(goal: OnboardingGoal.habit));
-      final first5k = generator.generate(_draft(goal: OnboardingGoal.first5k));
+      final first5k = generator.generate(
+        _draft(
+          goal: OnboardingGoal.first5k,
+          consistency: RecentRunningConsistency.underFourWeeks,
+          frequency: CurrentWeeklyRunFrequency.three,
+          capacity: ContinuousRunCapacity.twentyToThirtyMinutes,
+        ),
+      );
 
-      expect(habit.title, 'Consistency Starter Plan');
-      expect(first5k.title, 'Beginner 5K Start');
+      expect(habit.title, 'Run-Walk Foundation');
+      expect(first5k.title, 'First Continuous Running Start');
       expect(habit.subtitle, contains('repeatable short sessions'));
       expect(first5k.subtitle, contains('gradual running confidence'));
-      expect(
-        _firstWeekKinds(first5k),
-        isNot(contains(BeginnerWorkoutKind.easyRun)),
-      );
+      expect(_firstWeekKinds(first5k), contains(BeginnerWorkoutKind.easyRun));
       expect(
         _firstWeekCopy(first5k),
         isNot(contains(RegExp('pace|heart rate|calorie|VO2|max'))),
@@ -49,6 +53,10 @@ void main() {
             OnboardingPreferredDay.sun,
           ],
           length: OnboardingSessionLength.thirty,
+          cautiousness: OnboardingPlanCautiousness.standard,
+          consistency: RecentRunningConsistency.threeToSixMonths,
+          frequency: CurrentWeeklyRunFrequency.four,
+          capacity: ContinuousRunCapacity.fortyFivePlusMinutes,
         ),
       );
 
@@ -101,6 +109,9 @@ LocalOnboardingDraft _draft({
     OnboardingActivitySymptom.none,
   ],
   OnboardingPlanCautiousness cautiousness = OnboardingPlanCautiousness.balanced,
+  RecentRunningConsistency consistency = RecentRunningConsistency.none,
+  CurrentWeeklyRunFrequency frequency = CurrentWeeklyRunFrequency.zero,
+  ContinuousRunCapacity capacity = ContinuousRunCapacity.runWalk,
 }) {
   return LocalOnboardingDraft(
     goal: goal,
@@ -114,6 +125,9 @@ LocalOnboardingDraft _draft({
     healthComfort: health,
     activitySymptoms: symptoms,
     planCautiousness: cautiousness,
+    recentRunningConsistency: consistency,
+    currentWeeklyRunFrequency: frequency,
+    continuousRunCapacity: capacity,
   );
 }
 

@@ -108,6 +108,7 @@ void main() {
         generator
             .generate(
               _draft(
+                goal: OnboardingGoal.first5k,
                 experience: OnboardingExperience.run30,
                 availability: OnboardingAvailability.four,
                 days: [
@@ -117,6 +118,9 @@ void main() {
                   OnboardingPreferredDay.sat,
                 ],
                 cautiousness: OnboardingPlanCautiousness.standard,
+                consistency: RecentRunningConsistency.threeToSixMonths,
+                frequency: CurrentWeeklyRunFrequency.four,
+                capacity: ContinuousRunCapacity.fortyFivePlusMinutes,
               ),
             )
             .weeks
@@ -204,6 +208,9 @@ LocalOnboardingDraft _draft({
     OnboardingActivitySymptom.none,
   ],
   OnboardingPlanCautiousness cautiousness = OnboardingPlanCautiousness.balanced,
+  RecentRunningConsistency consistency = RecentRunningConsistency.none,
+  CurrentWeeklyRunFrequency frequency = CurrentWeeklyRunFrequency.zero,
+  ContinuousRunCapacity capacity = ContinuousRunCapacity.runWalk,
 }) {
   return LocalOnboardingDraft(
     goal: goal,
@@ -217,5 +224,8 @@ LocalOnboardingDraft _draft({
     healthComfort: health,
     activitySymptoms: symptoms,
     planCautiousness: cautiousness,
+    recentRunningConsistency: consistency,
+    currentWeeklyRunFrequency: frequency,
+    continuousRunCapacity: capacity,
   );
 }

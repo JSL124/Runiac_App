@@ -1,6 +1,7 @@
 export 'beginner_plan_profile.dart';
 
 import 'beginner_plan_profile.dart';
+import 'plan_family.dart';
 
 enum BeginnerAdaptivePlanKind { onboardingBased }
 
@@ -9,6 +10,10 @@ enum BeginnerWorkoutKind {
   runWalk,
   walkRun,
   recoveryWalk,
+  steadyRun,
+  controlledSteadyRun,
+  longerEasyRun,
+  recoveryRun,
   restOrMobility,
 }
 
@@ -24,6 +29,9 @@ class BeginnerAdaptivePlanSnapshot {
     required this.durationWeeks,
     required this.safetyBand,
     required this.templateKind,
+    required this.family,
+    required this.familyCategory,
+    required this.familyReason,
     required this.supportStyleLabel,
     required this.weeklyFrequencyLabel,
     required this.preferredScheduleLabel,
@@ -40,6 +48,9 @@ class BeginnerAdaptivePlanSnapshot {
   final int durationWeeks;
   final BeginnerPlanSafetyBand safetyBand;
   final BeginnerPlanTemplateKind templateKind;
+  final PlanFamily family;
+  final PlanFamilyCategory familyCategory;
+  final String familyReason;
   final String supportStyleLabel;
   final String weeklyFrequencyLabel;
   final String preferredScheduleLabel;

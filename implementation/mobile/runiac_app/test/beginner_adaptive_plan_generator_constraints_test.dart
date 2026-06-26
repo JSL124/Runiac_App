@@ -62,10 +62,13 @@ void main() {
           ],
           length: OnboardingSessionLength.fortyFive,
           cautiousness: OnboardingPlanCautiousness.standard,
+          consistency: RecentRunningConsistency.oneToThreeMonths,
+          frequency: CurrentWeeklyRunFrequency.three,
+          capacity: ContinuousRunCapacity.twentyToThirtyMinutes,
         ),
       );
 
-      expect(plan.title, 'Endurance Foundation Start');
+      expect(plan.title, '10K Foundation');
       expect(_copyFor(plan), isNot(contains(_forbiddenPlanClaims)));
     });
   });
@@ -114,6 +117,9 @@ LocalOnboardingDraft _draft({
     OnboardingActivitySymptom.none,
   ],
   OnboardingPlanCautiousness cautiousness = OnboardingPlanCautiousness.balanced,
+  RecentRunningConsistency consistency = RecentRunningConsistency.none,
+  CurrentWeeklyRunFrequency frequency = CurrentWeeklyRunFrequency.zero,
+  ContinuousRunCapacity capacity = ContinuousRunCapacity.runWalk,
 }) {
   return LocalOnboardingDraft(
     goal: goal,
@@ -127,5 +133,8 @@ LocalOnboardingDraft _draft({
     healthComfort: health,
     activitySymptoms: symptoms,
     planCautiousness: cautiousness,
+    recentRunningConsistency: consistency,
+    currentWeeklyRunFrequency: frequency,
+    continuousRunCapacity: capacity,
   );
 }

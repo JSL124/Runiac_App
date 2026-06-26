@@ -11,8 +11,23 @@ class BeginnerPlanPolicyResolver {
       profile: profile,
       requiredSessions: requiredSessions,
       userCapMinutes: _userCapMinutesFor(draft),
-      selectedDays: _selectedDaysFor(draft.preferredDays, requiredSessions),
+      selectedDays: selectPreferredDays(draft.preferredDays, requiredSessions),
     );
+  }
+
+  List<OnboardingPreferredDay> selectPreferredDays(
+    List<OnboardingPreferredDay> preferredDays,
+    int requiredSessions,
+  ) {
+    final sorted = [...preferredDays]..sort(_compareDays);
+    if (sorted.length <= requiredSessions) {
+      return sorted;
+    }
+
+    final combinations = <List<OnboardingPreferredDay>>[];
+    _collectCombinations(sorted, requiredSessions, 0, [], combinations);
+    combinations.sort(_compareCombinations);
+    return combinations.last;
   }
 
   BeginnerPlanProfile _profileFor(LocalOnboardingDraft draft) {
@@ -136,21 +151,6 @@ class BeginnerPlanPolicyResolver {
       OnboardingSessionLength.fortyFive => 45,
       OnboardingSessionLength.unsure => 20,
     };
-  }
-
-  List<OnboardingPreferredDay> _selectedDaysFor(
-    List<OnboardingPreferredDay> preferredDays,
-    int requiredSessions,
-  ) {
-    final sorted = [...preferredDays]..sort(_compareDays);
-    if (sorted.length <= requiredSessions) {
-      return sorted;
-    }
-
-    final combinations = <List<OnboardingPreferredDay>>[];
-    _collectCombinations(sorted, requiredSessions, 0, [], combinations);
-    combinations.sort(_compareCombinations);
-    return combinations.last;
   }
 
   void _collectCombinations(
