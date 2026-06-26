@@ -113,11 +113,20 @@ class BeginnerAdaptivePlanCopy {
   static String workoutTitleFor(
     BeginnerPlanTemplateKind templateKind,
     BeginnerWorkoutKind kind,
+    int sessionIndex,
     bool isLastSession,
   ) {
     if (templateKind == BeginnerPlanTemplateKind.returningBeginnerStart &&
         kind == BeginnerWorkoutKind.easyRun) {
       return isLastSession ? 'Longer Easy Run' : 'Comfortable Run';
+    }
+
+    if (templateKind == BeginnerPlanTemplateKind.standardBeginnerStart &&
+        kind == BeginnerWorkoutKind.runWalk) {
+      if (isLastSession) {
+        return 'Confidence Run-Walk';
+      }
+      return sessionIndex == 0 ? 'Easy Run-Walk' : 'Comfortable Run-Walk';
     }
 
     if (templateKind == BeginnerPlanTemplateKind.veryGentleStart &&
@@ -142,7 +151,7 @@ class BeginnerAdaptivePlanCopy {
       OnboardingRunningPlace.park => 'Choose a familiar park loop.',
       OnboardingRunningPlace.road => 'Choose a calm neighbourhood route.',
       OnboardingRunningPlace.track => 'Use an easy lane or short loop.',
-      OnboardingRunningPlace.treadmill => 'Keep the treadmill pace relaxed.',
+      OnboardingRunningPlace.treadmill => 'Keep the treadmill effort relaxed.',
       OnboardingRunningPlace.mixed => 'Choose whichever route feels easiest.',
     };
 

@@ -111,6 +111,7 @@ class BeginnerAdaptivePlanGenerator {
     final title = BeginnerAdaptivePlanCopy.workoutTitleFor(
       policy.profile.templateKind,
       kind,
+      sessionIndex,
       isLastSession,
     );
     final runMinutes = _mainEffortMinutes(durationMinutes, intensity, kind);
