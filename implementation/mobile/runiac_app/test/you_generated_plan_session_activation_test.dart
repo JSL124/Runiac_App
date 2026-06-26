@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/app.dart';
 import 'package:runiac_app/features/plan/domain/models/beginner_adaptive_plan_snapshot.dart';
@@ -184,8 +183,7 @@ void main() {
     expect(find.text('Generated'), findsOneWidget);
     expect(find.text('Suggested pace'), findsNothing);
     expect(find.text('7:30 /km'), findsNothing);
-    await tester.drag(find.byType(ListView), const Offset(0, -700));
-    await tester.pumpAndSettle();
-    expect(find.text('Start This Run'), findsOneWidget);
+    expect(find.text('Edit schedule'), findsOneWidget);
+    expect(find.text('Start this run'), findsNothing);
   });
 }

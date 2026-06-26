@@ -41,6 +41,7 @@ class WeeklyWorkoutDetailScreen extends StatelessWidget {
           enableForegroundGps: enableForegroundGps,
           initialPreviewCurrentPosition: initialPreviewCurrentPosition,
           activeRunSessionCoordinator: activeRunSessionCoordinator,
+          plannedWorkout: snapshot.plannedRunContext,
         ),
       ),
     );
@@ -48,6 +49,7 @@ class WeeklyWorkoutDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final startActionLabel = snapshot.startActionLabel;
     return Material(
       color: RuniacColors.background,
       child: SafeArea(
@@ -62,7 +64,7 @@ class WeeklyWorkoutDetailScreen extends StatelessWidget {
                 titleStyle: _headerTitleStyle,
                 tooltip: 'Back to Plans',
                 onBack: onBack,
-                trailing: showEditScheduleAction
+                trailing: showEditScheduleAction && snapshot.canEditSchedule
                     ? TextButton(
                         onPressed: () =>
                             _showEditScheduleSheet(context, snapshot),
@@ -102,11 +104,13 @@ class WeeklyWorkoutDetailScreen extends StatelessWidget {
                     _EffortGuideCard(snapshot.effortGuide),
                     const SizedBox(height: 12),
                     _CoachNoteCard(snapshot.coachNotes),
-                    const SizedBox(height: 16),
-                    _StartRunAction(
-                      snapshot.startActionLabel,
-                      onTap: onStartRun ?? () => _openRunLaunch(context),
-                    ),
+                    if (startActionLabel != null) ...[
+                      const SizedBox(height: 16),
+                      _StartRunAction(
+                        startActionLabel,
+                        onTap: onStartRun ?? () => _openRunLaunch(context),
+                      ),
+                    ],
                   ],
                 ),
               ),

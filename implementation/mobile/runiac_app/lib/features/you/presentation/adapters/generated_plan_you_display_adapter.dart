@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../plan/domain/models/beginner_adaptive_plan_snapshot.dart';
+import '../../../plan/domain/models/plan_family.dart';
+import '../../../run/presentation/models/planned_run_context.dart';
 import '../../../plan/presentation/current_session_generated_plan.dart';
 import '../data/weekly_workout_demo_snapshots.dart';
 import '../data/you_overview_demo_snapshots.dart';
@@ -32,13 +34,15 @@ class GeneratedYouPlanDisplay {
 }
 
 GeneratedYouPlanDisplay? generatedYouPlanDisplayFromSnapshot(
-  BeginnerAdaptivePlanSnapshot? snapshot,
-) {
+  BeginnerAdaptivePlanSnapshot? snapshot, {
+  DateTime? currentDate,
+}) {
   if (snapshot == null || !isEligibleCurrentSessionGeneratedPlan(snapshot)) {
     return null;
   }
 
   final currentWeek = snapshot.weeks.first;
+  final currentWeekdayIndex = (currentDate ?? DateTime.now()).weekday;
   final runningSessionCount = currentWeek.workouts
       .where(isGeneratedPlanSession)
       .length;
@@ -48,13 +52,18 @@ GeneratedYouPlanDisplay? generatedYouPlanDisplayFromSnapshot(
     subtitle: snapshot.subtitle,
     progressLabel: '0 of $runningSessionCount done',
     progressValue: 0,
-    scheduleRows: _weeklyScheduleRowsFor(currentWeek, snapshot),
+    scheduleRows: _weeklyScheduleRowsFor(
+      currentWeek,
+      snapshot,
+      currentWeekdayIndex,
+    ),
   );
 }
 
 List<YouPlanScheduleRow> _weeklyScheduleRowsFor(
   BeginnerAdaptivePlanWeek currentWeek,
   BeginnerAdaptivePlanSnapshot snapshot,
+  int currentWeekdayIndex,
 ) {
   final workoutsByDay = {
     for (final workout in currentWeek.workouts) workout.dayLabel: workout,
@@ -62,7 +71,12 @@ List<YouPlanScheduleRow> _weeklyScheduleRowsFor(
 
   return [
     for (final dayLabel in _weeklyDisplayDayLabels)
-      _scheduleRowForDay(dayLabel, workoutsByDay[dayLabel], snapshot),
+      _scheduleRowForDay(
+        dayLabel,
+        workoutsByDay[dayLabel],
+        snapshot,
+        currentWeekdayIndex,
+      ),
   ];
 }
 
@@ -70,11 +84,25 @@ YouPlanScheduleRow _scheduleRowForDay(
   String dayLabel,
   BeginnerAdaptiveWorkout? workout,
   BeginnerAdaptivePlanSnapshot snapshot,
+  int currentWeekdayIndex,
 ) {
+  final weekdayIndex = _weekdayIndexFor(dayLabel);
+  final isToday = weekdayIndex == currentWeekdayIndex;
+  final isPast = weekdayIndex < currentWeekdayIndex;
+  final isFuture = weekdayIndex > currentWeekdayIndex;
+
   if (workout == null || !isGeneratedPlanSession(workout)) {
-    return _restRow(dayLabel);
+    return _restRow(
+      dayLabel,
+      weekdayIndex: weekdayIndex,
+      isToday: isToday,
+      isPast: isPast,
+      isFuture: isFuture,
+    );
   }
 
+  final canStart = isToday;
+  final canEditSchedule = !isToday;
   return YouPlanScheduleRow(
     dayLabel,
     workout.title,
@@ -82,23 +110,48 @@ YouPlanScheduleRow _scheduleRowForDay(
     _iconForWorkout(workout.kind),
     active: true,
     opensWorkoutDetail: true,
-    detailSnapshot: _workoutDetailFor(workout, snapshot),
+    detailSnapshot: _workoutDetailFor(
+      workout,
+      snapshot,
+      canStart: canStart,
+      canEditSchedule: canEditSchedule,
+    ),
+    weekdayIndex: weekdayIndex,
+    isToday: isToday,
+    isPast: isPast,
+    isFuture: isFuture,
+    isRunningSession: true,
+    canOpenDetail: true,
+    canStart: canStart,
+    canEditSchedule: canEditSchedule,
   );
 }
 
-YouPlanScheduleRow _restRow(String dayLabel) {
+YouPlanScheduleRow _restRow(
+  String dayLabel, {
+  required int weekdayIndex,
+  required bool isToday,
+  required bool isPast,
+  required bool isFuture,
+}) {
   return YouPlanScheduleRow(
     dayLabel,
     'Rest',
     'Recovery day',
     Icons.self_improvement,
+    weekdayIndex: weekdayIndex,
+    isToday: isToday,
+    isPast: isPast,
+    isFuture: isFuture,
   );
 }
 
 WeeklyWorkoutDetailSnapshot _workoutDetailFor(
   BeginnerAdaptiveWorkout workout,
-  BeginnerAdaptivePlanSnapshot snapshot,
-) {
+  BeginnerAdaptivePlanSnapshot snapshot, {
+  required bool canStart,
+  required bool canEditSchedule,
+}) {
   return WeeklyWorkoutDetailSnapshot(
     title: 'Workout detail',
     dayLabel: '${workout.dayLabel} · ${workout.title}',
@@ -116,8 +169,37 @@ WeeklyWorkoutDetailSnapshot _workoutDetailFor(
     ],
     effortGuide: workout.description,
     coachNotes: [workout.supportiveNote, snapshot.safetyNote],
-    startActionLabel: 'Start This Run',
+    startActionLabel: canStart ? 'Start this run' : null,
+    canEditSchedule: canEditSchedule,
+    plannedRunContext: canStart
+        ? _plannedRunContextFor(workout, snapshot)
+        : null,
   );
+}
+
+PlannedRunContext _plannedRunContextFor(
+  BeginnerAdaptiveWorkout workout,
+  BeginnerAdaptivePlanSnapshot snapshot,
+) {
+  return PlannedRunContext(
+    title: workout.title,
+    durationMinutes: workout.durationMinutes,
+    planTitle: snapshot.title,
+    planFamilyLabel: snapshot.family?.title ?? snapshot.sourceLabel,
+    workoutKindLabel: _kindLabel(workout.kind),
+    intensityLabel: _intensityLabel(workout.intensity),
+    steps: workout.steps,
+    supportiveNote: workout.supportiveNote,
+    sourceLabel: 'Generated onboarding plan',
+  );
+}
+
+int _weekdayIndexFor(String dayLabel) {
+  final index = _weeklyDisplayDayLabels.indexOf(dayLabel);
+  if (index == -1) {
+    return 0;
+  }
+  return index + DateTime.monday;
 }
 
 WorkoutStepDisplay _stepDisplayFor(String step, BeginnerWorkoutKind kind) {

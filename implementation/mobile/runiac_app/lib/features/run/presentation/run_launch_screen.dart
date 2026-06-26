@@ -29,6 +29,7 @@ import 'active_run_session_coordinator.dart';
 import 'controllers/run_tracking_controller.dart';
 import 'cool_down_screen.dart';
 import 'data/run_launch_demo_snapshots.dart';
+import 'models/planned_run_context.dart';
 import 'run_repository_scope.dart';
 import 'widgets/run_map_placeholder.dart';
 import 'widgets/run_mapbox_follow_qa_overlay.dart';
@@ -147,6 +148,7 @@ class RunLaunchScreen extends StatefulWidget {
     this.enableMapboxFollowQa = runMapboxFollowQaEnabled,
     this.initialPreviewCurrentPosition,
     this.activeRunSessionCoordinator,
+    this.plannedWorkout,
   });
 
   final RunRepository? repository;
@@ -163,6 +165,7 @@ class RunLaunchScreen extends StatefulWidget {
   final bool enableMapboxFollowQa;
   final RunLocationSample? initialPreviewCurrentPosition;
   final ActiveRunSessionCoordinator? activeRunSessionCoordinator;
+  final PlannedRunContext? plannedWorkout;
 
   @override
   State<RunLaunchScreen> createState() => _RunLaunchScreenState();
@@ -782,6 +785,7 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
 
                                       return _PreRunSheetContent(
                                         permissionMessage: permissionMessage,
+                                        plannedWorkout: widget.plannedWorkout,
                                         onStart: _startRun,
                                         onSwitchRoute: () => _showPreviewMessage(
                                           'Route switching preview is coming soon.',
@@ -1054,11 +1058,13 @@ class _RunBottomSheetShell extends StatelessWidget {
 class _PreRunSheetContent extends StatelessWidget {
   const _PreRunSheetContent({
     this.permissionMessage,
+    this.plannedWorkout,
     required this.onStart,
     required this.onSwitchRoute,
   });
 
   final String? permissionMessage;
+  final PlannedRunContext? plannedWorkout;
   final VoidCallback onStart;
   final VoidCallback onSwitchRoute;
 
@@ -1068,6 +1074,16 @@ class _PreRunSheetContent extends StatelessWidget {
       builder: (context, constraints) {
         final compact = constraints.maxWidth < 360;
         final startHeight = compact ? 56.0 : 66.0;
+        final planned = plannedWorkout;
+        final planLabel =
+            planned?.title.toUpperCase() ?? runLaunchDemoSnapshot.planLabel;
+        final primaryValue =
+            planned?.durationLabel ?? runLaunchDemoSnapshot.distanceValue;
+        final primaryUnit =
+            planned?.workoutKindLabel ??
+            runLaunchDemoSnapshot.distanceUnitLabel;
+        final supportLabel =
+            planned?.planTitle ?? runLaunchDemoSnapshot.paceLabel;
 
         return Column(
           mainAxisSize: MainAxisSize.min,
@@ -1077,7 +1093,7 @@ class _PreRunSheetContent extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    runLaunchDemoSnapshot.planLabel,
+                    planLabel,
                     style: const TextStyle(
                       color: _sportOrange,
                       fontSize: 16,
@@ -1109,7 +1125,7 @@ class _PreRunSheetContent extends StatelessWidget {
               runSpacing: 2,
               children: [
                 Text(
-                  runLaunchDemoSnapshot.distanceValue,
+                  primaryValue,
                   style: const TextStyle(
                     color: _panelTextBlue,
                     fontSize: 46,
@@ -1120,7 +1136,7 @@ class _PreRunSheetContent extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.only(bottom: 5),
                   child: Text(
-                    runLaunchDemoSnapshot.distanceUnitLabel,
+                    primaryUnit,
                     style: const TextStyle(
                       color: _mutedBlue,
                       fontSize: 22,
@@ -1132,13 +1148,24 @@ class _PreRunSheetContent extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              runLaunchDemoSnapshot.paceLabel,
+              supportLabel,
               style: const TextStyle(
                 color: _mutedBlue,
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
               ),
             ),
+            if (planned case final workout?) ...[
+              const SizedBox(height: 8),
+              Text(
+                workout.supportiveNote,
+                style: const TextStyle(
+                  color: _mutedBlue,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
             if (permissionMessage case final message?) ...[
               SizedBox(height: compact ? 12 : 14),
               _RunPermissionGuidance(message: message),

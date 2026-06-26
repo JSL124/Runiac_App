@@ -172,6 +172,14 @@ class YouPlanScheduleRow {
     this.active = false,
     this.opensWorkoutDetail = false,
     this.detailSnapshot,
+    this.weekdayIndex = 0,
+    this.isToday = false,
+    this.isPast = false,
+    this.isFuture = false,
+    this.isRunningSession = false,
+    this.canOpenDetail = false,
+    this.canStart = false,
+    this.canEditSchedule = false,
   });
 
   final String day;
@@ -181,6 +189,14 @@ class YouPlanScheduleRow {
   final bool active;
   final bool opensWorkoutDetail;
   final WeeklyWorkoutDetailSnapshot? detailSnapshot;
+  final int weekdayIndex;
+  final bool isToday;
+  final bool isPast;
+  final bool isFuture;
+  final bool isRunningSession;
+  final bool canOpenDetail;
+  final bool canStart;
+  final bool canEditSchedule;
 }
 
 class YouExpertPlanOptionDisplay {

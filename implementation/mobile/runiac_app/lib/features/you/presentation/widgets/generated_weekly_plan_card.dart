@@ -73,7 +73,9 @@ class GeneratedWeeklyPlanCard extends StatelessWidget {
 
   VoidCallback? _workoutDetailTap(YouPlanScheduleRow row) {
     final detailSnapshot = row.detailSnapshot;
-    if (!row.opensWorkoutDetail || detailSnapshot == null) {
+    if (!row.canOpenDetail ||
+        !row.opensWorkoutDetail ||
+        detailSnapshot == null) {
       return null;
     }
 
@@ -95,13 +97,19 @@ class _GeneratedPlanDayRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tappable = onTap != null;
+    final rowColor = display.isToday && display.isRunningSession
+        ? RuniacColors.accentOrange.withValues(alpha: 0.10)
+        : tappable
+        ? RuniacColors.primaryBlue.withValues(alpha: 0.06)
+        : null;
+    final activeColor = display.isToday && display.isRunningSession
+        ? RuniacColors.accentOrange
+        : RuniacColors.primaryBlue;
     final row = Container(
       constraints: const BoxConstraints(minHeight: 50),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
       decoration: BoxDecoration(
-        color: tappable
-            ? RuniacColors.primaryBlue.withValues(alpha: 0.06)
-            : null,
+        color: rowColor,
         border: showDivider && !tappable
             ? Border(
                 top: BorderSide(
@@ -119,7 +127,7 @@ class _GeneratedPlanDayRow extends StatelessWidget {
               display.day,
               style: TextStyle(
                 color: tappable
-                    ? RuniacColors.primaryBlue
+                    ? activeColor
                     : RuniacColors.primaryBlue.withValues(alpha: 0.45),
                 fontSize: 13,
                 fontWeight: tappable ? FontWeight.w800 : FontWeight.w600,
@@ -134,14 +142,14 @@ class _GeneratedPlanDayRow extends StatelessWidget {
               height: 28,
               decoration: BoxDecoration(
                 color: tappable
-                    ? RuniacColors.primaryBlue.withValues(alpha: 0.12)
+                    ? activeColor.withValues(alpha: 0.12)
                     : Colors.transparent,
                 borderRadius: BorderRadius.circular(999),
               ),
               child: Icon(
                 display.icon,
                 color: tappable
-                    ? RuniacColors.primaryBlue
+                    ? activeColor
                     : RuniacColors.primaryBlue.withValues(alpha: 0.35),
                 size: 17,
               ),

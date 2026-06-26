@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../run/presentation/models/planned_run_context.dart';
+
 // Display-only workout previews used by the static You prototype.
 const weeklyWorkoutDetailSnapshot = WeeklyWorkoutDetailSnapshot(
   title: 'Workout detail',
@@ -85,7 +87,9 @@ class WeeklyWorkoutDetailSnapshot {
     required this.breakdown,
     required this.effortGuide,
     required this.coachNotes,
-    required this.startActionLabel,
+    this.startActionLabel,
+    this.canEditSchedule = true,
+    this.plannedRunContext,
   }) : planTitle = planTitle ?? heroTitle ?? '';
 
   final String title;
@@ -97,7 +101,9 @@ class WeeklyWorkoutDetailSnapshot {
   final List<WorkoutStepDisplay> breakdown;
   final String effortGuide;
   final List<String> coachNotes;
-  final String startActionLabel;
+  final String? startActionLabel;
+  final bool canEditSchedule;
+  final PlannedRunContext? plannedRunContext;
 }
 
 class WorkoutMetricDisplay {
