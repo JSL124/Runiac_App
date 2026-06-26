@@ -16,6 +16,7 @@ const _weeklyDisplayDayLabels = [
   'Sat',
   'Sun',
 ];
+const _generatedPlanFallbackTime = '7:30 AM';
 
 class GeneratedYouPlanDisplay {
   const GeneratedYouPlanDisplay({
@@ -105,8 +106,8 @@ YouPlanScheduleRow _scheduleRowForDay(
   final canEditSchedule = !isToday;
   return YouPlanScheduleRow(
     dayLabel,
-    workout.title,
-    '${workout.durationMinutes} min',
+    '${workout.durationMinutes} min ${workout.title}',
+    'Upcoming · $_generatedPlanFallbackTime',
     _iconForWorkout(workout.kind),
     active: true,
     opensWorkoutDetail: true,
@@ -136,9 +137,9 @@ YouPlanScheduleRow _restRow(
 }) {
   return YouPlanScheduleRow(
     dayLabel,
-    'Rest',
-    'Recovery day',
-    Icons.self_improvement,
+    'Rest Day',
+    '',
+    Icons.hotel_outlined,
     weekdayIndex: weekdayIndex,
     isToday: isToday,
     isPast: isPast,

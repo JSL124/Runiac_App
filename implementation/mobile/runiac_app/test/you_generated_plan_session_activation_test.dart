@@ -63,7 +63,7 @@ void main() {
       expect(find.text('Week 3 of 8'), findsNothing);
       expect(find.text('43% completed'), findsNothing);
       expect(find.text('15 min walk-run'), findsNothing);
-      expect(find.text('Upcoming · 7:30 AM'), findsNothing);
+      expect(find.text('Upcoming · 7:30 AM'), findsWidgets);
 
       for (final text in [
         'Mon',
@@ -73,17 +73,16 @@ void main() {
         'Fri',
         'Sat',
         'Sun',
-        'Comfortable Run',
-        'Controlled Steady Run',
-        'Longer Easy Run',
-        'Recovery Run',
-        '25 min',
-        '30 min',
+        '25 min Comfortable Run',
+        '25 min Controlled Steady Run',
+        '25 min Longer Easy Run',
+        '30 min Recovery Run',
       ]) {
         expect(find.text(text), findsWidgets);
       }
-      expect(find.text('Rest'), findsNWidgets(3));
-      expect(find.text('Recovery day'), findsNWidgets(3));
+      expect(find.text('Rest Day'), findsNWidgets(3));
+      expect(find.text('Rest'), findsNothing);
+      expect(find.text('Recovery day'), findsNothing);
     },
   );
 
@@ -95,8 +94,11 @@ void main() {
 
     await _openYouPlansTab(tester, generatedPlanStore);
 
-    await tester.ensureVisible(find.text('Rest').first);
-    await tester.tap(find.text('Rest').first);
+    expect(find.text('Rest Day'), findsNWidgets(3));
+    expect(find.text('Rest'), findsNothing);
+    expect(find.text('Recovery day'), findsNothing);
+    await tester.ensureVisible(find.text('Rest Day').first);
+    await tester.tap(find.text('Rest Day').first);
     await tester.pumpAndSettle();
 
     expect(find.text('Workout detail'), findsNothing);
@@ -130,8 +132,8 @@ void main() {
     expect(find.text('Current Goal'), findsNothing);
     expect(find.text('Return to Movement'), findsOneWidget);
     expect(find.text('0 of 3 done'), findsOneWidget);
-    expect(find.text('Easy Walk'), findsNWidgets(3));
-    expect(find.text('30 min'), findsWidgets);
+    expect(find.textContaining('min Easy Walk'), findsNWidgets(3));
+    expect(find.text('30 min Easy Walk'), findsOneWidget);
     expect(find.text('10K Base Builder'), findsNothing);
     expect(find.text('15 min walk-run'), findsNothing);
   });
@@ -158,7 +160,7 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('0 of 3 done'), findsOneWidget);
-      expect(find.text('Easy Walk'), findsNWidgets(3));
+      expect(find.text('20 min Easy Walk'), findsNWidgets(3));
       expect(find.text('10K Performance Build'), findsNothing);
     },
   );
@@ -171,8 +173,8 @@ void main() {
 
     await _openYouPlansTab(tester, generatedPlanStore);
 
-    await tester.ensureVisible(find.text('Controlled Steady Run'));
-    await tester.tap(find.text('Controlled Steady Run'));
+    await tester.ensureVisible(find.text('25 min Controlled Steady Run'));
+    await tester.tap(find.text('25 min Controlled Steady Run'));
     await tester.pumpAndSettle();
 
     expect(find.text('Workout detail'), findsOneWidget);
