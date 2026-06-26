@@ -1,138 +1,118 @@
 import '../../../onboarding/domain/models/local_onboarding_draft.dart';
 import '../models/beginner_adaptive_plan_snapshot.dart';
 import 'beginner_adaptive_plan_copy.dart';
+import 'beginner_plan_policy_resolver.dart';
 
 class BeginnerAdaptivePlanGenerator {
-  const BeginnerAdaptivePlanGenerator();
+  const BeginnerAdaptivePlanGenerator([
+    this._policyResolver = const BeginnerPlanPolicyResolver(),
+  ]);
+
+  final BeginnerPlanPolicyResolver _policyResolver;
 
   BeginnerAdaptivePlanSnapshot generate(LocalOnboardingDraft draft) {
-    final intensity = _intensityFor(draft);
-    final sessionCount = _sessionCountFor(draft);
-    final durationMinutes = _durationFor(draft, intensity);
-    final dayLabels = _dayLabelsFor(draft, sessionCount);
-    final workouts = <BeginnerAdaptiveWorkout>[
-      for (var index = 0; index < sessionCount; index++)
-        _workoutFor(
-          draft: draft,
-          dayLabel: dayLabels[index],
-          sessionIndex: index,
-          durationMinutes: durationMinutes,
-          intensity: intensity,
+    final policy = _policyResolver.resolve(draft);
+    final weekOneDurations = [
+      for (var index = 0; index < policy.requiredSessions; index++)
+        policy.durationFor(
+          weekNumber: 1,
+          isLastSession: index == policy.requiredSessions - 1,
         ),
     ];
 
     return BeginnerAdaptivePlanSnapshot(
       id: 'local-onboarding-beginner-plan',
-      title: BeginnerAdaptivePlanCopy.titleFor(draft, intensity),
-      subtitle: BeginnerAdaptivePlanCopy.subtitleFor(
+      title: BeginnerAdaptivePlanCopy.titleFor(
         draft,
-        durationMinutes,
-        sessionCount,
+        policy.profile.templateKind,
       ),
+      subtitle: BeginnerAdaptivePlanCopy.subtitleFor(draft, policy),
       planKind: BeginnerAdaptivePlanKind.onboardingBased,
       sourceLabel: 'Onboarding based',
+      durationWeeks: policy.durationWeeks,
+      safetyBand: policy.profile.safetyBand,
+      templateKind: policy.profile.templateKind,
       supportStyleLabel: BeginnerAdaptivePlanCopy.supportStyleFor(draft),
-      weeklyFrequencyLabel: '$sessionCount sessions / week',
-      preferredScheduleLabel: dayLabels.join(' · '),
+      weeklyFrequencyLabel: '${policy.requiredSessions} sessions / week',
+      preferredScheduleLabel: _dayLabelsFor(policy).join(' · '),
       sessionDurationLabel: BeginnerAdaptivePlanCopy.durationLabelFor(
-        draft,
-        durationMinutes,
+        weekOneDurations,
       ),
-      safetyNote: BeginnerAdaptivePlanCopy.safetyNoteFor(draft),
+      safetyNote: BeginnerAdaptivePlanCopy.safetyNoteFor(
+        policy.profile.safetyBand,
+      ),
       weeks: [
-        BeginnerAdaptivePlanWeek(
-          weekNumber: 1,
-          title: 'Week 1',
-          focus: BeginnerAdaptivePlanCopy.focusFor(intensity),
-          workouts: workouts,
-        ),
+        for (
+          var weekNumber = 1;
+          weekNumber <= policy.durationWeeks;
+          weekNumber++
+        )
+          _weekFor(draft: draft, policy: policy, weekNumber: weekNumber),
       ],
     );
   }
 
-  BeginnerPlanIntensity _intensityFor(LocalOnboardingDraft draft) {
-    if (draft.planCautiousness == OnboardingPlanCautiousness.veryGentle ||
-        draft.activitySymptoms.isEmpty ||
-        draft.healthComfort != OnboardingHealthComfort.ready ||
-        draft.activitySymptoms.any(
-          (symptom) => symptom != OnboardingActivitySymptom.none,
-        )) {
-      return BeginnerPlanIntensity.veryGentle;
-    }
+  BeginnerAdaptivePlanWeek _weekFor({
+    required LocalOnboardingDraft draft,
+    required BeginnerPlanPolicy policy,
+    required int weekNumber,
+  }) {
+    final dayLabels = _dayLabelsFor(policy);
+    final workouts = <BeginnerAdaptiveWorkout>[
+      for (var index = 0; index < policy.requiredSessions; index++)
+        _workoutFor(
+          draft: draft,
+          policy: policy,
+          dayLabel: dayLabels[index],
+          sessionIndex: index,
+          weekNumber: weekNumber,
+        ),
+    ];
 
-    if (draft.planCautiousness == OnboardingPlanCautiousness.unsure ||
-        draft.experience == OnboardingExperience.newRunner ||
-        draft.experience == OnboardingExperience.walk) {
-      return BeginnerPlanIntensity.gentle;
-    }
-
-    return switch (draft.planCautiousness) {
-      OnboardingPlanCautiousness.standard => BeginnerPlanIntensity.balanced,
-      OnboardingPlanCautiousness.balanced => BeginnerPlanIntensity.balanced,
-      OnboardingPlanCautiousness.veryGentle => BeginnerPlanIntensity.veryGentle,
-      OnboardingPlanCautiousness.unsure => BeginnerPlanIntensity.gentle,
-    };
+    return BeginnerAdaptivePlanWeek(
+      weekNumber: weekNumber,
+      title: 'Week $weekNumber',
+      focus: BeginnerAdaptivePlanCopy.focusFor(
+        policy.profile.templateKind,
+        weekNumber,
+      ),
+      workouts: workouts,
+    );
   }
 
-  int _sessionCountFor(LocalOnboardingDraft draft) {
-    if (draft.availability == OnboardingAvailability.unsure) {
-      return 2;
-    }
-
-    if (draft.availability == OnboardingAvailability.four &&
-        !_readyForFourSessions(draft)) {
-      return 3;
-    }
-
-    return draft.requestedWeeklySessionCount;
-  }
-
-  bool _readyForFourSessions(LocalOnboardingDraft draft) {
-    final experiencedEnough =
-        draft.experience == OnboardingExperience.run10 ||
-        draft.experience == OnboardingExperience.run30 ||
-        draft.experience == OnboardingExperience.intervals;
-    return experiencedEnough && !draft.hasCautionIntent;
-  }
-
-  int _durationFor(
-    LocalOnboardingDraft draft,
-    BeginnerPlanIntensity intensity,
-  ) {
-    final preferred = draft.preferredDurationMinutes;
-    final cap = switch (intensity) {
-      BeginnerPlanIntensity.veryGentle => 20,
-      BeginnerPlanIntensity.gentle => 30,
-      BeginnerPlanIntensity.balanced => 45,
-    };
-    if (draft.sessionLength == OnboardingSessionLength.unsure) {
-      return 15;
-    }
-    return preferred > cap ? cap : preferred;
-  }
-
-  List<String> _dayLabelsFor(LocalOnboardingDraft draft, int sessionCount) {
-    if (draft.preferredDays.isEmpty) {
+  List<String> _dayLabelsFor(BeginnerPlanPolicy policy) {
+    if (policy.selectedDays.isEmpty) {
       return [
-        for (var index = 0; index < sessionCount; index++) 'Day ${index + 1}',
+        for (var index = 0; index < policy.requiredSessions; index++)
+          'Day ${index + 1}',
       ];
     }
 
     return [
-      for (var index = 0; index < sessionCount; index++)
-        draft.preferredDays[index % draft.preferredDays.length].value,
+      for (var index = 0; index < policy.requiredSessions; index++)
+        policy.selectedDays[index % policy.selectedDays.length].value,
     ];
   }
 
   BeginnerAdaptiveWorkout _workoutFor({
     required LocalOnboardingDraft draft,
+    required BeginnerPlanPolicy policy,
     required String dayLabel,
     required int sessionIndex,
-    required int durationMinutes,
-    required BeginnerPlanIntensity intensity,
+    required int weekNumber,
   }) {
-    final kind = _workoutKindFor(draft, sessionIndex, intensity);
-    final title = BeginnerAdaptivePlanCopy.workoutTitleFor(kind);
+    final isLastSession = sessionIndex == policy.requiredSessions - 1;
+    final kind = _workoutKindFor(policy, sessionIndex);
+    final durationMinutes = policy.durationFor(
+      weekNumber: weekNumber,
+      isLastSession: isLastSession,
+    );
+    final intensity = _intensityFor(policy);
+    final title = BeginnerAdaptivePlanCopy.workoutTitleFor(
+      policy.profile.templateKind,
+      kind,
+      isLastSession,
+    );
     final runMinutes = _mainEffortMinutes(durationMinutes, intensity, kind);
 
     return BeginnerAdaptiveWorkout(
@@ -150,37 +130,40 @@ class BeginnerAdaptivePlanGenerator {
     );
   }
 
+  BeginnerPlanIntensity _intensityFor(BeginnerPlanPolicy policy) {
+    return switch (policy.profile.templateKind) {
+      BeginnerPlanTemplateKind.safetyFirstMovementStart ||
+      BeginnerPlanTemplateKind.veryGentleStart =>
+        BeginnerPlanIntensity.veryGentle,
+      BeginnerPlanTemplateKind.standardBeginnerStart ||
+      BeginnerPlanTemplateKind.returningBeginnerStart =>
+        BeginnerPlanIntensity.balanced,
+    };
+  }
+
   BeginnerWorkoutKind _workoutKindFor(
-    LocalOnboardingDraft draft,
+    BeginnerPlanPolicy policy,
     int sessionIndex,
-    BeginnerPlanIntensity intensity,
   ) {
-    if (sessionIndex == 3) {
-      return BeginnerWorkoutKind.recoveryWalk;
-    }
+    return switch (policy.profile.templateKind) {
+      BeginnerPlanTemplateKind.safetyFirstMovementStart =>
+        BeginnerWorkoutKind.recoveryWalk,
+      BeginnerPlanTemplateKind.veryGentleStart =>
+        sessionIndex == 1
+            ? BeginnerWorkoutKind.recoveryWalk
+            : _gentleKind(sessionIndex),
+      BeginnerPlanTemplateKind.standardBeginnerStart =>
+        BeginnerWorkoutKind.runWalk,
+      BeginnerPlanTemplateKind.returningBeginnerStart =>
+        BeginnerWorkoutKind.easyRun,
+    };
+  }
 
-    if (intensity == BeginnerPlanIntensity.veryGentle) {
-      return sessionIndex.isEven
-          ? BeginnerWorkoutKind.walkRun
-          : BeginnerWorkoutKind.recoveryWalk;
-    }
-
-    if (draft.experience == OnboardingExperience.newRunner ||
-        draft.experience == OnboardingExperience.walk) {
-      return BeginnerWorkoutKind.walkRun;
-    }
-
-    if (draft.experience == OnboardingExperience.intervals) {
+  BeginnerWorkoutKind _gentleKind(int sessionIndex) {
+    if (sessionIndex == 2) {
       return BeginnerWorkoutKind.runWalk;
     }
-
-    if (sessionIndex == 2 && intensity == BeginnerPlanIntensity.gentle) {
-      return BeginnerWorkoutKind.recoveryWalk;
-    }
-
-    return intensity == BeginnerPlanIntensity.balanced
-        ? BeginnerWorkoutKind.easyRun
-        : BeginnerWorkoutKind.runWalk;
+    return BeginnerWorkoutKind.walkRun;
   }
 
   int _mainEffortMinutes(

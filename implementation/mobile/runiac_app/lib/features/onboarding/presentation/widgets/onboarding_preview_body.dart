@@ -25,7 +25,7 @@ class OnboardingPreviewBody extends StatelessWidget {
         ? plan.preferredScheduleLabel
         : draft.preferredDays.map((day) => day.value).join(' · ');
     final summary = [
-      ('Goal', _labelFor('goal', fallback: 'Build a running habit')),
+      ('Plan length', '${plan.durationWeeks} weeks'),
       ('Starting point', _labelFor('experience', fallback: 'New to running')),
       ('Schedule', weekly),
       ('Session length', length),
@@ -61,19 +61,14 @@ class OnboardingPreviewBody extends StatelessWidget {
         const SizedBox(height: 10),
         _SummaryTile(label: 'Safety setting', value: cautious),
         const SizedBox(height: 16),
-        _SuggestedPlanCard(
-          title: draft == null ? '$cautious Plan' : plan.title,
-          subtitle: draft == null
-              ? '$weekly · run / walk intervals · $length per session'
-              : plan.subtitle,
-        ),
+        _SuggestedPlanCard(title: plan.title, subtitle: plan.subtitle),
         const SizedBox(height: 14),
         FirstWeekPreview(workouts: plan.weeks.first.workouts),
         const SizedBox(height: 14),
         const OnboardingInfoBanner(
           icon: Icons.info_outline_rounded,
           text:
-              'This is a preview plan. You can adjust these answers later in Plan settings.',
+              'This is a preview plan. Nothing is locked in, and you can adjust these answers later.',
         ),
       ],
     );

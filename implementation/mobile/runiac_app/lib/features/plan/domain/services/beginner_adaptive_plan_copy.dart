@@ -6,25 +6,24 @@ class BeginnerAdaptivePlanCopy {
 
   static String titleFor(
     LocalOnboardingDraft draft,
-    BeginnerPlanIntensity intensity,
+    BeginnerPlanTemplateKind templateKind,
   ) {
-    if (intensity == BeginnerPlanIntensity.veryGentle) {
-      return 'Very Gentle Beginner Plan';
+    if (templateKind == BeginnerPlanTemplateKind.safetyFirstMovementStart) {
+      return 'Gentle Movement Start';
     }
 
     return switch (draft.goal) {
-      OnboardingGoal.first5k => 'First 5K Beginner Plan',
-      OnboardingGoal.tenK => 'Gentle 10K Starter Plan',
-      OnboardingGoal.stamina => 'Beginner Stamina Plan',
+      OnboardingGoal.first5k => 'Beginner 5K Start',
+      OnboardingGoal.tenK => 'Endurance Foundation Start',
+      OnboardingGoal.stamina => 'Stamina Starter Plan',
       OnboardingGoal.gentle => 'Gentle Running Starter Plan',
-      OnboardingGoal.habit => 'Running Habit Starter Plan',
+      OnboardingGoal.habit => 'Consistency Starter Plan',
     };
   }
 
   static String subtitleFor(
     LocalOnboardingDraft draft,
-    int durationMinutes,
-    int sessionCount,
+    BeginnerPlanPolicy policy,
   ) {
     final place = switch (draft.runningPlace) {
       OnboardingRunningPlace.park => 'outdoor park',
@@ -40,8 +39,16 @@ class BeginnerAdaptivePlanCopy {
       OnboardingPreferredTime.night => 'night',
       OnboardingPreferredTime.flexible => 'flexible-time',
     };
-    return '$sessionCount short $time sessions for your $place routine, '
-        'starting around $durationMinutes minutes.';
+    final emphasis = switch (draft.goal) {
+      OnboardingGoal.habit => 'repeatable short sessions',
+      OnboardingGoal.gentle => 'comfort and low pressure',
+      OnboardingGoal.first5k => 'gradual running confidence',
+      OnboardingGoal.tenK => 'base-building before longer goals',
+      OnboardingGoal.stamina => 'comfortable time-on-feet',
+    };
+    return '${policy.durationWeeks}-week starter plan with '
+        '${policy.requiredSessions} $time sessions for your $place routine, '
+        'focused on $emphasis.';
   }
 
   static String supportStyleFor(LocalOnboardingDraft draft) {
@@ -54,40 +61,75 @@ class BeginnerAdaptivePlanCopy {
     };
   }
 
-  static String durationLabelFor(
-    LocalOnboardingDraft draft,
-    int durationMinutes,
-  ) {
-    if (draft.sessionLength == OnboardingSessionLength.unsure) {
-      return '15-20 min';
+  static String durationLabelFor(Iterable<int> durationMinutes) {
+    final ordered = durationMinutes.toSet().toList()..sort();
+    if (ordered.length == 1) {
+      return '${ordered.single} min';
     }
-    return '$durationMinutes min';
+
+    return '${ordered.first}-${ordered.last} min';
   }
 
-  static String safetyNoteFor(LocalOnboardingDraft draft) {
-    if (draft.hasCautionIntent) {
-      return 'Start gently, pause if something feels wrong, and follow '
-          'professional guidance if you have symptoms or health concerns.';
+  static String safetyNoteFor(BeginnerPlanSafetyBand safetyBand) {
+    if (safetyBand == BeginnerPlanSafetyBand.safetyFirst) {
+      return 'Keep this very easy and comfortable, and consider professional '
+          'guidance before increasing intensity.';
+    }
+
+    if (safetyBand == BeginnerPlanSafetyBand.highCaution ||
+        safetyBand == BeginnerPlanSafetyBand.cautious) {
+      return 'Start gently, keep the effort comfortable, and pause if '
+          'something feels wrong.';
     }
 
     return 'Keep the first week easy and conversational. You can adjust the '
         'plan if a session feels like too much.';
   }
 
-  static String focusFor(BeginnerPlanIntensity intensity) {
-    return switch (intensity) {
-      BeginnerPlanIntensity.veryGentle => 'Comfortable movement and recovery',
-      BeginnerPlanIntensity.gentle => 'Easy consistency',
-      BeginnerPlanIntensity.balanced => 'Steady beginner rhythm',
+  static String focusFor(
+    BeginnerPlanTemplateKind templateKind,
+    int weekNumber,
+  ) {
+    if (weekNumber == 1) {
+      return switch (templateKind) {
+        BeginnerPlanTemplateKind.safetyFirstMovementStart =>
+          'Keep movement easy and comfortable',
+        BeginnerPlanTemplateKind.veryGentleStart =>
+          'Gentle adaptation and confidence',
+        BeginnerPlanTemplateKind.standardBeginnerStart =>
+          'Easy run-walk consistency',
+        BeginnerPlanTemplateKind.returningBeginnerStart =>
+          'Comfortable running rhythm',
+      };
+    }
+
+    return switch (weekNumber) {
+      2 => 'Repeat the rhythm with a small build',
+      3 => 'Add a little confidence without pressure',
+      _ => 'Stabilize the routine',
     };
   }
 
-  static String workoutTitleFor(BeginnerWorkoutKind kind) {
+  static String workoutTitleFor(
+    BeginnerPlanTemplateKind templateKind,
+    BeginnerWorkoutKind kind,
+    bool isLastSession,
+  ) {
+    if (templateKind == BeginnerPlanTemplateKind.returningBeginnerStart &&
+        kind == BeginnerWorkoutKind.easyRun) {
+      return isLastSession ? 'Longer Easy Run' : 'Comfortable Run';
+    }
+
+    if (templateKind == BeginnerPlanTemplateKind.veryGentleStart &&
+        kind == BeginnerWorkoutKind.runWalk) {
+      return 'Confidence Builder';
+    }
+
     return switch (kind) {
-      BeginnerWorkoutKind.easyRun => 'Easy run',
-      BeginnerWorkoutKind.runWalk => 'Run-walk intervals',
-      BeginnerWorkoutKind.walkRun => 'Walk-run session',
-      BeginnerWorkoutKind.recoveryWalk => 'Recovery walk',
+      BeginnerWorkoutKind.easyRun => 'Comfortable Run',
+      BeginnerWorkoutKind.runWalk => 'Easy Run-Walk',
+      BeginnerWorkoutKind.walkRun => 'Gentle Walk-Run',
+      BeginnerWorkoutKind.recoveryWalk => 'Easy Walk',
       BeginnerWorkoutKind.restOrMobility => 'Rest or mobility',
     };
   }

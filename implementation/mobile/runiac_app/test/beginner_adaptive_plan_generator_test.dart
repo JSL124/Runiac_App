@@ -30,17 +30,24 @@ void main() {
         expect(plan.id, 'local-onboarding-beginner-plan');
         expect(plan.planKind, BeginnerAdaptivePlanKind.onboardingBased);
         expect(plan.sourceLabel, 'Onboarding based');
-        expect(plan.title, 'First 5K Beginner Plan');
+        expect(plan.title, 'Beginner 5K Start');
+        expect(
+          plan.templateKind,
+          BeginnerPlanTemplateKind.standardBeginnerStart,
+        );
+        expect(plan.safetyBand, BeginnerPlanSafetyBand.clear);
+        expect(plan.durationWeeks, 4);
         expect(plan.weeklyFrequencyLabel, '3 sessions / week');
         expect(plan.preferredScheduleLabel, 'Mon · Wed · Sat');
         expect(plan.sessionDurationLabel, '20 min');
-        expect(plan.weeks.single.workouts, hasLength(3));
+        expect(plan.weeks, hasLength(4));
+        expect(plan.weeks.first.workouts, hasLength(3));
         expect(
-          plan.weeks.single.workouts.first.kind,
+          plan.weeks.first.workouts.first.kind,
           BeginnerWorkoutKind.runWalk,
         );
         expect(
-          plan.weeks.single.workouts.first.description,
+          plan.weeks.first.workouts.first.description,
           contains('familiar park loop'),
         );
       },
@@ -60,15 +67,16 @@ void main() {
 
         expect(plan.weeklyFrequencyLabel, '2 sessions / week');
         expect(plan.preferredScheduleLabel, 'Day 1 · Day 2');
-        expect(plan.sessionDurationLabel, '15-20 min');
-        expect(plan.weeks.single.workouts, hasLength(2));
+        expect(plan.sessionDurationLabel, '20 min');
+        expect(plan.weeks, hasLength(4));
+        expect(plan.weeks.first.workouts, hasLength(2));
         expect(
-          plan.weeks.single.workouts.map((workout) => workout.durationMinutes),
-          everyElement(15),
+          plan.weeks.first.workouts.map((workout) => workout.durationMinutes),
+          everyElement(20),
         );
         expect(
-          plan.weeks.single.workouts.map((workout) => workout.intensity),
-          everyElement(BeginnerPlanIntensity.gentle),
+          plan.weeks.first.workouts.map((workout) => workout.intensity),
+          everyElement(BeginnerPlanIntensity.veryGentle),
         );
       },
     );
@@ -91,20 +99,25 @@ void main() {
         ),
       );
 
-      expect(plan.title, 'Very Gentle Beginner Plan');
-      expect(plan.weeklyFrequencyLabel, '3 sessions / week');
-      expect(plan.preferredScheduleLabel, 'Tue · Thu · Sat');
-      expect(plan.sessionDurationLabel, '20 min');
-      expect(plan.weeks.single.focus, 'Comfortable movement and recovery');
+      expect(plan.title, 'Gentle Movement Start');
       expect(
-        plan.weeks.single.workouts.map((workout) => workout.intensity),
+        plan.templateKind,
+        BeginnerPlanTemplateKind.safetyFirstMovementStart,
+      );
+      expect(plan.safetyBand, BeginnerPlanSafetyBand.safetyFirst);
+      expect(plan.weeklyFrequencyLabel, '2 sessions / week');
+      expect(plan.preferredScheduleLabel, 'Tue · Sat');
+      expect(plan.sessionDurationLabel, '15 min');
+      expect(plan.weeks.first.focus, 'Keep movement easy and comfortable');
+      expect(
+        plan.weeks.first.workouts.map((workout) => workout.intensity),
         everyElement(BeginnerPlanIntensity.veryGentle),
       );
       expect(
-        plan.weeks.single.workouts.map((workout) => workout.kind),
-        contains(BeginnerWorkoutKind.recoveryWalk),
+        plan.weeks.first.workouts.map((workout) => workout.kind),
+        everyElement(BeginnerWorkoutKind.recoveryWalk),
       );
-      expect(plan.safetyNote, contains('Start gently'));
+      expect(plan.safetyNote, contains('consider professional guidance'));
 
       final copy = [
         plan.title,
@@ -137,19 +150,20 @@ void main() {
       );
     });
 
-    test('treats unanswered symptom intent as a very gentle start', () {
+    test('treats none symptom intent as a clear standard start', () {
       final plan = generator.generate(
         _draft(
           experience: OnboardingExperience.intervals,
-          symptoms: const [],
           cautiousness: OnboardingPlanCautiousness.balanced,
         ),
       );
 
-      expect(plan.title, 'Very Gentle Beginner Plan');
+      expect(plan.title, 'Consistency Starter Plan');
+      expect(plan.safetyBand, BeginnerPlanSafetyBand.clear);
+      expect(plan.templateKind, BeginnerPlanTemplateKind.standardBeginnerStart);
       expect(
-        plan.weeks.single.workouts.map((workout) => workout.intensity),
-        everyElement(BeginnerPlanIntensity.veryGentle),
+        plan.weeks.first.workouts.map((workout) => workout.intensity),
+        everyElement(BeginnerPlanIntensity.balanced),
       );
     });
   });
