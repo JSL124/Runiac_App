@@ -6,6 +6,9 @@ LocalOnboardingDraft planFamilyStarterDraft({
   OnboardingGoal goal = OnboardingGoal.habit,
   OnboardingAvailability availability = OnboardingAvailability.two,
   OnboardingHealthComfort health = OnboardingHealthComfort.ready,
+  List<OnboardingActivitySymptom> symptoms = const [
+    OnboardingActivitySymptom.none,
+  ],
   RecentRunningConsistency consistency = RecentRunningConsistency.none,
   CurrentWeeklyRunFrequency frequency = CurrentWeeklyRunFrequency.zero,
   ContinuousRunCapacity capacity = ContinuousRunCapacity.walkOnly,
@@ -20,6 +23,7 @@ LocalOnboardingDraft planFamilyStarterDraft({
     goal: goal,
     availability: availability,
     health: health,
+    symptoms: symptoms,
     consistency: consistency,
     frequency: frequency,
     capacity: capacity,
@@ -53,6 +57,9 @@ LocalOnboardingDraft planFamilyPerformanceDraft({
   OnboardingGoal goal = OnboardingGoal.first5k,
   OnboardingAvailability availability = OnboardingAvailability.four,
   OnboardingHealthComfort health = OnboardingHealthComfort.ready,
+  List<OnboardingActivitySymptom> symptoms = const [
+    OnboardingActivitySymptom.none,
+  ],
   OnboardingPlanStyle style = OnboardingPlanStyle.balanced,
   List<OnboardingPreferredDay> days = const [
     OnboardingPreferredDay.mon,
@@ -65,6 +72,7 @@ LocalOnboardingDraft planFamilyPerformanceDraft({
     goal: goal,
     availability: availability,
     health: health,
+    symptoms: symptoms,
     consistency: RecentRunningConsistency.threeToSixMonths,
     frequency: CurrentWeeklyRunFrequency.four,
     capacity: ContinuousRunCapacity.fortyFivePlusMinutes,
@@ -102,6 +110,9 @@ LocalOnboardingDraft _draft({
   required OnboardingPlanStyle style,
   required List<OnboardingPreferredDay> days,
   OnboardingHealthComfort health = OnboardingHealthComfort.ready,
+  List<OnboardingActivitySymptom> symptoms = const [
+    OnboardingActivitySymptom.none,
+  ],
 }) {
   return LocalOnboardingDraft(
     goal: goal,
@@ -113,7 +124,7 @@ LocalOnboardingDraft _draft({
     runningPlace: OnboardingRunningPlace.park,
     motivationStyle: OnboardingMotivationStyle.plan,
     healthComfort: health,
-    activitySymptoms: const [OnboardingActivitySymptom.none],
+    activitySymptoms: symptoms,
     recentRunningConsistency: consistency,
     currentWeeklyRunFrequency: frequency,
     continuousRunCapacity: capacity,

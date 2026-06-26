@@ -11,6 +11,10 @@ class BeginnerAdaptivePlanCopy {
     required int requiredSessions,
     required int durationWeeks,
   }) {
+    if (family == PlanFamily.returnToMovement) {
+      return 'A gentle restart plan focused on comfort and consistency.';
+    }
+
     final place = switch (draft.runningPlace) {
       OnboardingRunningPlace.park => 'outdoor park',
       OnboardingRunningPlace.road => 'neighbourhood',

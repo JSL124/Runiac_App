@@ -55,6 +55,30 @@ void main() {
     },
   );
 
+  testWidgets(
+    'body concern onboarding completion activates recovery plan session',
+    (tester) async {
+      final generatedPlanStore = CurrentSessionGeneratedPlanStore();
+
+      await tester.pumpWidget(
+        RuniacApp(
+          showSplash: false,
+          showOnboarding: true,
+          enableForegroundGps: false,
+          currentSessionGeneratedPlanStore: generatedPlanStore,
+        ),
+      );
+
+      await completeOnboardingToBodyConcernPreview(tester);
+      await tapText(tester, 'Continue with this plan');
+
+      expect(find.text('Good to see you'), findsOneWidget);
+      expect(generatedPlanStore.activePlan, isNotNull);
+      expect(generatedPlanStore.activePlan!.title, 'Return to Movement');
+      expect(generatedPlanStore.currentWeekRunningSessionCount, 3);
+    },
+  );
+
   testWidgets('needs clearance completion does not activate generated plan', (
     tester,
   ) async {

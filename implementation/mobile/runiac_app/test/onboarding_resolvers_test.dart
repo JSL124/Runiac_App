@@ -8,25 +8,66 @@ void main() {
   group('SafetyGateResolver', () {
     const resolver = SafetyGateResolver();
 
-    test('resolves clear, caution, restricted, and needsClearance states', () {
+    test('resolves ready answers without symptoms as clear', () {
       expect(resolver.resolve(_draft()), SafetyGateState.clear);
+    });
+
+    test('keeps red-flag symptoms and unsafe advice at needsClearance', () {
+      for (final symptom in [
+        OnboardingActivitySymptom.chest,
+        OnboardingActivitySymptom.dizzy,
+        OnboardingActivitySymptom.breath,
+        OnboardingActivitySymptom.heartbeat,
+      ]) {
+        expect(
+          resolver.resolve(_draft(symptoms: [symptom])),
+          SafetyGateState.needsClearance,
+        );
+      }
+
+      for (final health in [
+        OnboardingHealthComfort.advised,
+        OnboardingHealthComfort.heart,
+      ]) {
+        expect(
+          resolver.resolve(_draft(health: health)),
+          SafetyGateState.needsClearance,
+        );
+      }
+    });
+
+    test('maps body concerns to restricted recovery instead of clearance', () {
+      for (final health in [
+        OnboardingHealthComfort.injury,
+        OnboardingHealthComfort.joint,
+      ]) {
+        expect(
+          resolver.resolve(_draft(health: health)),
+          SafetyGateState.restricted,
+        );
+      }
+
       expect(
-        resolver.resolve(
-          _draft(health: OnboardingHealthComfort.breakAfterTimeAway),
-        ),
-        SafetyGateState.caution,
-      );
-      expect(
-        resolver.resolve(_draft(health: OnboardingHealthComfort.injury)),
+        resolver.resolve(_draft(symptoms: [OnboardingActivitySymptom.legpain])),
         SafetyGateState.restricted,
       );
+    });
+
+    test('maps softer conservative concerns to caution', () {
+      for (final health in [
+        OnboardingHealthComfort.breakAfterTimeAway,
+        OnboardingHealthComfort.asthma,
+        OnboardingHealthComfort.unsure,
+      ]) {
+        expect(
+          resolver.resolve(_draft(health: health)),
+          SafetyGateState.caution,
+        );
+      }
+
       expect(
-        resolver.resolve(_draft(symptoms: [OnboardingActivitySymptom.chest])),
-        SafetyGateState.needsClearance,
-      );
-      expect(
-        resolver.resolve(_draft(health: OnboardingHealthComfort.advised)),
-        SafetyGateState.needsClearance,
+        resolver.resolve(_draft(symptoms: const [])),
+        SafetyGateState.caution,
       );
     });
   });

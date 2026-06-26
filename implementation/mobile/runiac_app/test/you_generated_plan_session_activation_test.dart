@@ -102,6 +102,33 @@ void main() {
     expect(find.text('15 min walk-run'), findsNothing);
   });
 
+  testWidgets(
+    'You Plans shows restricted recovery plan before static fallback',
+    (WidgetTester tester) async {
+      final generatedPlanStore = CurrentSessionGeneratedPlanStore();
+      final recoveryPlan = const BeginnerAdaptivePlanGenerator().generate(
+        planFamilyPerformanceDraft(
+          goal: OnboardingGoal.tenK,
+          health: OnboardingHealthComfort.injury,
+          style: OnboardingPlanStyle.performanceFocused,
+        ),
+      );
+      expect(generatedPlanStore.setActivePlan(recoveryPlan), isTrue);
+
+      await _openYouPlansTab(tester, generatedPlanStore);
+
+      expect(find.text('Current Goal'), findsNothing);
+      expect(find.text('Return to Movement'), findsOneWidget);
+      expect(
+        find.text('A gentle restart plan focused on comfort and consistency.'),
+        findsOneWidget,
+      );
+      expect(find.text('0 of 3 done'), findsOneWidget);
+      expect(find.text('Easy Walk'), findsNWidgets(3));
+      expect(find.text('10K Performance Build'), findsNothing);
+    },
+  );
+
   testWidgets('generated weekly row opens generated workout detail', (
     WidgetTester tester,
   ) async {

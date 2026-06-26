@@ -147,6 +147,49 @@ void main() {
       );
     });
 
+    test(
+      'restricted body concerns choose recovery family without performance promotion',
+      () {
+        for (final draft in [
+          planFamilyPerformanceDraft(
+            goal: OnboardingGoal.tenK,
+            health: OnboardingHealthComfort.injury,
+            style: OnboardingPlanStyle.performanceFocused,
+          ),
+          planFamilyPerformanceDraft(
+            goal: OnboardingGoal.tenK,
+            health: OnboardingHealthComfort.joint,
+            style: OnboardingPlanStyle.performanceFocused,
+          ),
+          planFamilyPerformanceDraft(
+            goal: OnboardingGoal.tenK,
+            symptoms: const [OnboardingActivitySymptom.legpain],
+            style: OnboardingPlanStyle.performanceFocused,
+          ),
+        ]) {
+          final family = resolve(draft);
+
+          expect(family.family, PlanFamily.returnToMovement);
+          expect(family.category, PlanFamilyCategory.starter);
+        }
+      },
+    );
+
+    test('needsClearance never resolves a fallback family', () {
+      for (final draft in [
+        planFamilyStarterDraft(health: OnboardingHealthComfort.heart),
+        planFamilyStarterDraft(health: OnboardingHealthComfort.advised),
+        planFamilyStarterDraft(
+          symptoms: const [OnboardingActivitySymptom.chest],
+        ),
+      ]) {
+        final family = resolve(draft);
+
+        expect(family.family, isNull);
+        expect(family.category, isNull);
+      }
+    });
+
     test('goal and style cannot promote objective eligibility', () {
       expect(
         resolve(

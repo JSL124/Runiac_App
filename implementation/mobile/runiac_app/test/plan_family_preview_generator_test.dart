@@ -130,6 +130,7 @@ void main() {
             contains(
               RegExp(
                 r'pace|heart rate|HR zone|calorie|VO2|diagnos|injury-proof|'
+                r'injury-safe|rehab|treatment|cleared|risk-free|'
                 r'medically cleared|guarantee|leaderboard|\bXP\b|rank',
                 caseSensitive: false,
               ),
@@ -165,7 +166,7 @@ void main() {
       },
     );
 
-    test('restricted answers receive movement-only starter preview', () {
+    test('restricted answers receive recovery-style movement-only preview', () {
       final plan = generator.generate(
         planFamilyPerformanceDraft(
           goal: OnboardingGoal.tenK,
@@ -176,6 +177,10 @@ void main() {
 
       expect(plan.family, PlanFamily.returnToMovement);
       expect(plan.familyCategory, PlanFamilyCategory.starter);
+      expect(
+        plan.subtitle,
+        'A gentle restart plan focused on comfort and consistency.',
+      );
       expect(
         _weekOneTitles(plan),
         isNot(

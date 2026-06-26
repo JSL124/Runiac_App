@@ -96,6 +96,53 @@ void main() {
     expect(find.text('Return to Movement'), findsNothing);
     expect(find.textContaining('Easy Walk'), findsNothing);
   });
+
+  testWidgets('body concern preview renders recovery plan rows', (
+    tester,
+  ) async {
+    final draft = LocalOnboardingDraft(
+      goal: OnboardingGoal.first5k,
+      experience: OnboardingExperience.run30,
+      availability: OnboardingAvailability.three,
+      preferredDays: const [
+        OnboardingPreferredDay.mon,
+        OnboardingPreferredDay.wed,
+        OnboardingPreferredDay.fri,
+      ],
+      preferredTime: OnboardingPreferredTime.morning,
+      sessionLength: OnboardingSessionLength.twenty,
+      runningPlace: OnboardingRunningPlace.park,
+      motivationStyle: OnboardingMotivationStyle.plan,
+      healthComfort: OnboardingHealthComfort.injury,
+      activitySymptoms: const [OnboardingActivitySymptom.none],
+      planCautiousness: OnboardingPlanCautiousness.standard,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: OnboardingPreviewBody(answers: _answersFor(draft)),
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      find.textContaining("Runiac can't create a running plan"),
+      findsNothing,
+    );
+    expect(find.text('Suggested starting plan'), findsOneWidget);
+    expect(find.text('Return to Movement'), findsOneWidget);
+    expect(
+      find.text('A gentle restart plan focused on comfort and consistency.'),
+      findsOneWidget,
+    );
+    expect(find.text('First week preview'), findsOneWidget);
+    expect(find.text('Mon · Easy Walk · 20 min'), findsOneWidget);
+    expect(find.text('Wed · Easy Walk · 20 min'), findsOneWidget);
+    expect(find.text('Fri · Easy Walk · 20 min'), findsOneWidget);
+  });
 }
 
 Map<String, Object> _answersFor(LocalOnboardingDraft draft) {

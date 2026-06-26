@@ -45,6 +45,28 @@ Future<void> completeOnboardingToFourSessionPreview(WidgetTester tester) async {
   await answerSingle(tester, 'Build steadily');
 }
 
+Future<void> completeOnboardingToBodyConcernPreview(WidgetTester tester) async {
+  await tapText(tester, 'Start setup');
+  await answerSingle(tester, 'Work toward a 10K');
+  await answerSingle(tester, '3 to 6 months');
+  await answerSingle(tester, '4 runs per week');
+  await answerSingle(tester, '45 minutes or more');
+  await answerSingle(tester, 'I can run 20-30 minutes');
+  await answerSingle(tester, '4 days per week');
+  for (final day in ['Mon', 'Tue', 'Wed', 'Thu']) {
+    await tapText(tester, day);
+  }
+  await tapText(tester, 'Continue');
+  await answerSingle(tester, 'Morning');
+  await answerSingle(tester, '30 minutes');
+  await answerSingle(tester, 'Outdoor park');
+  await answerSingle(tester, 'Gentle reminders');
+  await answerSingle(tester, 'Currently managing an injury or pain');
+  await tapText(tester, 'None of these');
+  await tapText(tester, 'Continue');
+  await answerSingle(tester, 'Build steadily');
+}
+
 Future<void> advanceToPreferredDays(
   WidgetTester tester,
   String availabilityLabel,
