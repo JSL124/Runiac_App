@@ -55,6 +55,10 @@ class _FirstWeekPreviewRow {
         BeginnerWorkoutKind.runWalk => Icons.auto_awesome_rounded,
         BeginnerWorkoutKind.walkRun => Icons.directions_walk_rounded,
         BeginnerWorkoutKind.recoveryWalk => Icons.favorite_border_rounded,
+        BeginnerWorkoutKind.steadyRun ||
+        BeginnerWorkoutKind.controlledSteadyRun => Icons.auto_awesome_rounded,
+        BeginnerWorkoutKind.longerEasyRun ||
+        BeginnerWorkoutKind.recoveryRun => Icons.directions_run_rounded,
         BeginnerWorkoutKind.restOrMobility => Icons.self_improvement_rounded,
       },
       title:
