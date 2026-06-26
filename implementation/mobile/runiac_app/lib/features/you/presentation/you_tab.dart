@@ -4,8 +4,10 @@ import '../../../core/theme/runiac_colors.dart';
 import '../../run/domain/models/run_activity_display_model.dart';
 import '../../run/presentation/active_run_session_coordinator.dart';
 import '../../run/presentation/view_summary_screen.dart';
+import '../../plan/presentation/current_session_generated_plan.dart';
 import 'activity_history_screen.dart';
 import 'current_session_activity_history.dart';
+import 'adapters/generated_plan_you_display_adapter.dart';
 import 'data/activity_history_demo_snapshots.dart';
 import 'data/weekly_workout_demo_snapshots.dart';
 import 'data/you_overview_demo_snapshots.dart';
@@ -50,6 +52,10 @@ class _YouTabState extends State<YouTab> {
     );
     final activityHistoryMonths = activityHistoryStore
         .activityHistoryWithFallback(activityHistoryDisplayData);
+    final generatedPlanStore = CurrentSessionGeneratedPlanScope.of(context);
+    final generatedPlanDisplay = generatedYouPlanDisplayFromSnapshot(
+      generatedPlanStore.activePlan,
+    );
 
     if (_activityHistoryVisible) {
       return ActivityHistoryScreen(
@@ -122,6 +128,7 @@ class _YouTabState extends State<YouTab> {
                 const SizedBox(height: 12),
                 if (_plans)
                   YouPlansSurface(
+                    generatedPlan: generatedPlanDisplay,
                     onViewGoalPlan: _showGoalPlanDetail,
                     onViewWorkout: _showWorkoutDetail,
                     onViewExpertPlans: _showExpertPlanList,

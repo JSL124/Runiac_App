@@ -53,7 +53,7 @@ void main() {
     }
   });
 
-  testWidgets('completed onboarding leaves Plans tab on static source', (
+  testWidgets('completed onboarding shows generated plan on Plans tab', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -69,10 +69,11 @@ void main() {
     await tapTooltip(tester, 'You');
     await tapText(tester, 'Plans');
 
-    expect(find.text('Current Goal'), findsOneWidget);
-    expect(find.text('10K Preparation'), findsOneWidget);
-    expect(find.text("This Week's Plan"), findsOneWidget);
-    expect(find.text('2 of 3 done'), findsOneWidget);
+    expect(find.text('Current Goal'), findsNothing);
+    expect(find.text('Return to Movement'), findsOneWidget);
+    expect(find.text('0 of 3 done'), findsOneWidget);
+    expect(find.text('Easy Walk'), findsNWidgets(3));
+    expect(find.text('10K Preparation'), findsNothing);
   });
 
   testWidgets('preview preferred days shows every selected candidate day', (

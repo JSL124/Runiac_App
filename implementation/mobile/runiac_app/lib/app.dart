@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import 'core/theme/runiac_theme.dart';
 import 'features/onboarding/domain/models/local_onboarding_draft.dart';
+import 'features/plan/domain/services/beginner_adaptive_plan_generator.dart';
+import 'features/plan/presentation/current_session_generated_plan.dart';
 import 'features/run/data/static_run_repository.dart';
 import 'features/run/domain/repositories/run_repository.dart';
 import 'features/run/presentation/active_run_session_coordinator.dart';
@@ -26,6 +28,7 @@ class RuniacApp extends StatefulWidget {
     this.activeRunSessionCoordinator,
     this.initialRunOpenIntent,
     this.currentSessionActivityHistoryStore,
+    this.currentSessionGeneratedPlanStore,
     this.onOnboardingCompleted,
   });
 
@@ -37,6 +40,7 @@ class RuniacApp extends StatefulWidget {
   final ActiveRunSessionCoordinator? activeRunSessionCoordinator;
   final RunOpenIntent? initialRunOpenIntent;
   final CurrentSessionActivityHistoryStore? currentSessionActivityHistoryStore;
+  final CurrentSessionGeneratedPlanStore? currentSessionGeneratedPlanStore;
   final ValueChanged<LocalOnboardingDraft>? onOnboardingCompleted;
 
   @override
@@ -46,6 +50,8 @@ class RuniacApp extends StatefulWidget {
 class _RuniacAppState extends State<RuniacApp> {
   late final CurrentSessionActivityHistoryStore _activityHistoryStore;
   late final bool _ownsActivityHistoryStore;
+  late final CurrentSessionGeneratedPlanStore _generatedPlanStore;
+  late final bool _ownsGeneratedPlanStore;
 
   @override
   void initState() {
@@ -55,12 +61,19 @@ class _RuniacAppState extends State<RuniacApp> {
     _activityHistoryStore =
         widget.currentSessionActivityHistoryStore ??
         CurrentSessionActivityHistoryStore();
+    _ownsGeneratedPlanStore = widget.currentSessionGeneratedPlanStore == null;
+    _generatedPlanStore =
+        widget.currentSessionGeneratedPlanStore ??
+        CurrentSessionGeneratedPlanStore();
   }
 
   @override
   void dispose() {
     if (_ownsActivityHistoryStore) {
       _activityHistoryStore.dispose();
+    }
+    if (_ownsGeneratedPlanStore) {
+      _generatedPlanStore.dispose();
     }
     super.dispose();
   }
@@ -69,27 +82,39 @@ class _RuniacAppState extends State<RuniacApp> {
   Widget build(BuildContext context) {
     return CurrentSessionActivityHistoryScope(
       store: _activityHistoryStore,
-      child: RunRepositoryScope(
-        repository: widget.runRepository,
-        child: MaterialApp(
-          debugShowCheckedModeBanner: false,
-          title: 'Runiac',
-          theme: buildRuniacTheme(),
-          home: RuniacStartupGate(
-            showSplash: widget.showSplash,
-            splashDuration: widget.splashDuration,
-            child: RuniacOnboardingGate(
-              showOnboarding: widget.showOnboarding,
-              onCompletedDraft: widget.onOnboardingCompleted,
-              child: RuniacShell(
-                enableForegroundGps: widget.enableForegroundGps,
-                activeRunSessionCoordinator: widget.activeRunSessionCoordinator,
-                initialRunOpenIntent: widget.initialRunOpenIntent,
+      child: CurrentSessionGeneratedPlanScope(
+        store: _generatedPlanStore,
+        child: RunRepositoryScope(
+          repository: widget.runRepository,
+          child: MaterialApp(
+            debugShowCheckedModeBanner: false,
+            title: 'Runiac',
+            theme: buildRuniacTheme(),
+            home: RuniacStartupGate(
+              showSplash: widget.showSplash,
+              splashDuration: widget.splashDuration,
+              child: RuniacOnboardingGate(
+                showOnboarding: widget.showOnboarding,
+                onCompletedDraft: _completeOnboarding,
+                child: RuniacShell(
+                  enableForegroundGps: widget.enableForegroundGps,
+                  activeRunSessionCoordinator:
+                      widget.activeRunSessionCoordinator,
+                  initialRunOpenIntent: widget.initialRunOpenIntent,
+                ),
               ),
             ),
           ),
         ),
       ),
     );
+  }
+
+  void _completeOnboarding(LocalOnboardingDraft draft) {
+    final snapshot = const BeginnerAdaptivePlanGenerator().generate(draft);
+    if (!_generatedPlanStore.setActivePlan(snapshot)) {
+      _generatedPlanStore.clear();
+    }
+    widget.onOnboardingCompleted?.call(draft);
   }
 }
