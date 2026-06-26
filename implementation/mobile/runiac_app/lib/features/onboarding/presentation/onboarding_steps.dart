@@ -43,38 +43,39 @@ const _onboardingSafetySteps = [
     ],
   ),
   OnboardingStep(
-    id: 'cautious',
+    id: 'style',
     kind: OnboardingStepKind.single,
-    answerKey: 'cautious',
-    title: 'How gentle should your first plan be?',
-    help: 'You can change the intensity anytime as you grow.',
+    answerKey: 'style',
+    title: 'How would you like your training plan to feel?',
+    help:
+        'Preference shapes the plan, but your recent running decides the level.',
     options: [
       OnboardingOption(
-        'verygentle',
-        'Very gentle start',
-        sub: 'Lots of walking, shorter runs.',
+        'conservative',
+        'Keep it gentle',
+        sub: 'More easy effort and slower progression.',
       ),
       OnboardingOption(
         'balanced',
-        'Balanced beginner plan',
-        sub: 'A mix of walking and easy running.',
+        'Balanced progression',
+        sub: 'A comfortable mix of easy running and gradual build.',
       ),
       OnboardingOption(
-        'standard',
-        'Standard beginner plan',
-        sub: 'Mostly easy running, some walk breaks.',
+        'performance',
+        'Build steadily',
+        sub: 'A little more structure, only if your answers support it.',
       ),
       OnboardingOption(
-        'unsure',
-        'Not sure',
-        sub: "We'll keep your first weeks gentle.",
+        'auto',
+        'Let Runiac decide',
+        sub: "We'll choose the safest fit from your answers.",
       ),
     ],
   ),
   OnboardingStep(
     id: 'preview',
     kind: OnboardingStepKind.preview,
-    title: 'Your beginner plan preview is ready',
+    title: 'Your plan preview is ready',
   ),
 ];
 
@@ -92,6 +93,28 @@ const onboardingPreviewLabels = {
     'intervals': 'Run / walk intervals',
     'run10': 'Can run about 10 min',
     'run30': 'Can run 20-30 min',
+  },
+  'consistency': {
+    'none': 'Not running yet',
+    'under4': 'Under 4 weeks',
+    '1-3m': '1-3 months',
+    '3-6m': '3-6 months',
+    '6plus': '6+ months',
+  },
+  'frequency': {
+    '0': '0 runs / week',
+    '1-2': '1-2 runs / week',
+    '3': '3 runs / week',
+    '4': '4 runs / week',
+    '5plus': '5+ runs / week',
+  },
+  'capacity': {
+    'walk': 'Mostly walking',
+    'runwalk': 'Run-walk intervals',
+    '10min': 'About 10 min',
+    '20-30min': '20-30 min',
+    '45plus': '45+ min',
+    '60plus': '60+ min',
   },
   'availability': {
     '2': '2 runs / week',
@@ -111,5 +134,11 @@ const onboardingPreviewLabels = {
     'balanced': 'Balanced beginner',
     'standard': 'Standard beginner',
     'unsure': 'Balanced beginner',
+  },
+  'style': {
+    'conservative': 'Keep it gentle',
+    'balanced': 'Balanced progression',
+    'performance': 'Build steadily',
+    'auto': 'Let Runiac decide',
   },
 };

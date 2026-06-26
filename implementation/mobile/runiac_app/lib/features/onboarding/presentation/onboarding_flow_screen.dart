@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../domain/models/local_onboarding_draft.dart';
+import '../domain/services/safety_gate_resolver.dart';
 import 'onboarding_step_config.dart';
 import 'onboarding_steps.dart';
 import 'widgets/onboarding_bottom_actions.dart';
@@ -118,6 +119,16 @@ class _OnboardingFlowScreenState extends State<OnboardingFlowScreen> {
     return true;
   }
 
+  bool get _showsClearancePreview {
+    if (_step.kind != OnboardingStepKind.preview) {
+      return false;
+    }
+    final draft = LocalOnboardingDraft.fromAnswers(_answers);
+    return draft != null &&
+        const SafetyGateResolver().resolve(draft) ==
+            SafetyGateState.needsClearance;
+  }
+
   @override
   Widget build(BuildContext context) {
     final step = _step;
@@ -165,6 +176,9 @@ class _OnboardingFlowScreenState extends State<OnboardingFlowScreen> {
                 OnboardingStepKind.single => null,
                 OnboardingStepKind.multi => null,
               },
+              previewPrimaryLabel: _showsClearancePreview
+                  ? 'Finish for now'
+                  : null,
             ),
           ],
         ),

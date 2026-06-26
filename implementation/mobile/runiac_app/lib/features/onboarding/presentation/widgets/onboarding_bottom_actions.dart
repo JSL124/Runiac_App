@@ -11,6 +11,7 @@ class OnboardingBottomActions extends StatelessWidget {
     required this.canContinue,
     required this.onPrimary,
     required this.onSecondary,
+    this.previewPrimaryLabel,
     super.key,
   });
 
@@ -18,6 +19,7 @@ class OnboardingBottomActions extends StatelessWidget {
   final bool canContinue;
   final VoidCallback onPrimary;
   final VoidCallback? onSecondary;
+  final String? previewPrimaryLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +27,8 @@ class OnboardingBottomActions extends StatelessWidget {
     final isPreview = step.kind == OnboardingStepKind.preview;
     final primaryLabel = switch (step.kind) {
       OnboardingStepKind.welcome => 'Start setup',
-      OnboardingStepKind.preview => 'Continue with this plan',
+      OnboardingStepKind.preview =>
+        previewPrimaryLabel ?? 'Continue with this plan',
       OnboardingStepKind.single => 'Continue',
       OnboardingStepKind.multi => 'Continue',
     };

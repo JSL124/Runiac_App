@@ -17,7 +17,7 @@ void main() {
     );
 
     expect(find.text('Welcome to Runiac'), findsOneWidget);
-    expect(find.text('Step 1 of 13'), findsOneWidget);
+    expect(find.text('Step 1 of 16'), findsOneWidget);
     expect(find.text('Start setup'), findsOneWidget);
     expect(find.text('Set up later'), findsNothing);
     expect(find.text('Good to see you'), findsNothing);
@@ -35,20 +35,23 @@ void main() {
     );
 
     await tapText(tester, 'Start setup');
-    expect(find.text('Step 2 of 13'), findsOneWidget);
+    expect(find.text('Step 2 of 16'), findsOneWidget);
     expect(find.text('What would you like to work toward?'), findsOneWidget);
 
     await tapText(tester, 'Build a running habit');
     await tapText(tester, 'Continue');
-    expect(find.text('Step 3 of 13'), findsOneWidget);
-    expect(find.text('Where are you starting from?'), findsOneWidget);
+    expect(find.text('Step 3 of 16'), findsOneWidget);
+    expect(
+      find.text('How consistently have you been running lately?'),
+      findsOneWidget,
+    );
 
     await tapTooltip(tester, 'Back');
-    expect(find.text('Step 2 of 13'), findsOneWidget);
+    expect(find.text('Step 2 of 16'), findsOneWidget);
     expect(find.text('Build a running habit'), findsOneWidget);
 
     await tapText(tester, 'Continue');
-    expect(find.text('Step 3 of 13'), findsOneWidget);
+    expect(find.text('Step 3 of 16'), findsOneWidget);
   });
 
   testWidgets('onboarding remains mandatory before the preview is created', (
@@ -64,7 +67,7 @@ void main() {
 
     await tapText(tester, 'Start setup');
 
-    expect(find.text('Step 2 of 13'), findsOneWidget);
+    expect(find.text('Step 2 of 16'), findsOneWidget);
     expect(find.text('What would you like to work toward?'), findsOneWidget);
     expect(find.text('Set up later'), findsNothing);
     expect(find.text('Setup paused'), findsNothing);
@@ -85,9 +88,11 @@ void main() {
 
     await completeOnboardingToPreview(tester);
 
-    expect(find.text('Step 13 of 13'), findsOneWidget);
-    expect(find.text('Your beginner plan preview is ready'), findsOneWidget);
+    expect(find.text('Step 16 of 16'), findsOneWidget);
+    expect(find.text('Your plan preview is ready'), findsOneWidget);
     expect(find.text('Suggested starting plan'), findsOneWidget);
+    expect(find.text('Getting started'), findsOneWidget);
+    expect(find.text('Balanced progression'), findsOneWidget);
     expect(find.text('First week preview'), findsOneWidget);
     expect(find.text('4 weeks'), findsOneWidget);
     expect(find.text('3 sessions / week'), findsOneWidget);
@@ -175,18 +180,53 @@ void main() {
     await tapText(tester, 'None of these');
     await tapText(tester, 'Continue');
 
-    expect(find.text('Step 12 of 13'), findsOneWidget);
+    expect(find.text('Step 15 of 16'), findsOneWidget);
+    expect(
+      find.text('How would you like your training plan to feel?'),
+      findsOneWidget,
+    );
+    expect(find.text('How gentle should your first plan be?'), findsNothing);
+    await answerSingle(tester, 'Balanced progression');
     await tapTooltip(tester, 'Back');
-    expect(find.text('Step 11 of 13'), findsOneWidget);
+    expect(find.text('Step 15 of 16'), findsOneWidget);
+    await tapTooltip(tester, 'Back');
+    expect(find.text('Step 14 of 16'), findsOneWidget);
 
     await tapText(tester, 'Continue');
-    expect(find.text('Step 12 of 13'), findsOneWidget);
+    expect(find.text('Step 15 of 16'), findsOneWidget);
 
-    await answerSingle(tester, 'Balanced beginner plan');
+    await answerSingle(tester, 'Balanced progression');
     await tapText(tester, 'Continue with this plan');
 
     expect(completedDraft, isNotNull);
     expect(completedDraft!.activitySymptoms, [OnboardingActivitySymptom.none]);
+  });
+
+  testWidgets('needs clearance preview does not show normal plan rows', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const RuniacApp(
+        showSplash: false,
+        showOnboarding: true,
+        enableForegroundGps: false,
+      ),
+    );
+
+    await completeOnboardingToNeedsClearancePreview(tester);
+
+    expect(find.text('Step 16 of 16'), findsOneWidget);
+    expect(
+      find.text(
+        "Runiac can't create a running plan from these answers. Please get guidance from a qualified professional before starting or increasing running. You can still use Runiac for gentle reminders and edit answers later.",
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('First week preview'), findsNothing);
+    expect(find.text('Suggested starting plan'), findsNothing);
+    expect(find.text('Continue with this plan'), findsNothing);
+    expect(find.text('Finish for now'), findsOneWidget);
+    expect(find.text('Edit answers'), findsOneWidget);
   });
 
   testWidgets('onboarding avoids forbidden backend-owned and medical claims', (

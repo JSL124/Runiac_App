@@ -14,11 +14,16 @@ class LocalOnboardingDraft {
     required this.motivationStyle,
     required this.healthComfort,
     required List<OnboardingActivitySymptom> activitySymptoms,
-    required this.planCautiousness,
+    this.recentRunningConsistency = RecentRunningConsistency.none,
+    this.currentWeeklyRunFrequency = CurrentWeeklyRunFrequency.zero,
+    this.continuousRunCapacity = ContinuousRunCapacity.walkOnly,
+    OnboardingPlanStyle? planStyle,
+    this.planCautiousness = OnboardingPlanCautiousness.balanced,
   }) : preferredDays = List.unmodifiable(preferredDays),
        activitySymptoms = List.unmodifiable(
          _normalizeSymptoms(activitySymptoms),
-       );
+       ),
+       planStyle = planStyle ?? planStyleFromCautiousness(planCautiousness);
 
   final OnboardingGoal goal;
   final OnboardingExperience experience;
@@ -30,6 +35,10 @@ class LocalOnboardingDraft {
   final OnboardingMotivationStyle motivationStyle;
   final OnboardingHealthComfort healthComfort;
   final List<OnboardingActivitySymptom> activitySymptoms;
+  final RecentRunningConsistency recentRunningConsistency;
+  final CurrentWeeklyRunFrequency currentWeeklyRunFrequency;
+  final ContinuousRunCapacity continuousRunCapacity;
+  final OnboardingPlanStyle planStyle;
   final OnboardingPlanCautiousness planCautiousness;
 
   static LocalOnboardingDraft? fromAnswers(Map<String, Object> answers) {
@@ -39,6 +48,15 @@ class LocalOnboardingDraft {
     );
     final availability = OnboardingAvailability.fromValue(
       _stringAnswer(answers, 'availability'),
+    );
+    final recentRunningConsistency = RecentRunningConsistency.fromValue(
+      _stringAnswer(answers, 'consistency'),
+    );
+    final currentWeeklyRunFrequency = CurrentWeeklyRunFrequency.fromValue(
+      _stringAnswer(answers, 'frequency'),
+    );
+    final continuousRunCapacity = ContinuousRunCapacity.fromValue(
+      _stringAnswer(answers, 'capacity'),
     );
     final preferredTime = OnboardingPreferredTime.fromValue(
       _stringAnswer(answers, 'time'),
@@ -58,6 +76,9 @@ class LocalOnboardingDraft {
     final planCautiousness = OnboardingPlanCautiousness.fromValue(
       _stringAnswer(answers, 'cautious'),
     );
+    final planStyle = OnboardingPlanStyle.fromValue(
+      _stringAnswer(answers, 'style'),
+    );
 
     if (goal == null ||
         experience == null ||
@@ -66,15 +87,23 @@ class LocalOnboardingDraft {
         sessionLength == null ||
         runningPlace == null ||
         motivationStyle == null ||
-        healthComfort == null ||
-        planCautiousness == null) {
+        healthComfort == null) {
       return null;
     }
+
+    final resolvedPlanCautiousness =
+        planCautiousness ?? OnboardingPlanCautiousness.balanced;
 
     return LocalOnboardingDraft(
       goal: goal,
       experience: experience,
       availability: availability,
+      recentRunningConsistency:
+          recentRunningConsistency ?? RecentRunningConsistency.none,
+      currentWeeklyRunFrequency:
+          currentWeeklyRunFrequency ?? CurrentWeeklyRunFrequency.zero,
+      continuousRunCapacity:
+          continuousRunCapacity ?? ContinuousRunCapacity.walkOnly,
       preferredDays: _enumListAnswer(
         answers,
         'days',
@@ -90,14 +119,16 @@ class LocalOnboardingDraft {
         'symptoms',
         OnboardingActivitySymptom.fromValue,
       ),
-      planCautiousness: planCautiousness,
+      planStyle:
+          planStyle ?? planStyleFromCautiousness(resolvedPlanCautiousness),
+      planCautiousness: resolvedPlanCautiousness,
     );
   }
 
   bool get hasCautionIntent {
     return activitySymptoms.isEmpty ||
-        planCautiousness == OnboardingPlanCautiousness.veryGentle ||
-        planCautiousness == OnboardingPlanCautiousness.unsure ||
+        planStyle == OnboardingPlanStyle.conservativeBase ||
+        planStyle == OnboardingPlanStyle.auto ||
         healthComfort != OnboardingHealthComfort.ready ||
         activitySymptoms.any(
           (symptom) => symptom != OnboardingActivitySymptom.none,

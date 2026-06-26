@@ -26,7 +26,7 @@ void main() {
 
       await advanceToPreferredDays(tester, scenario.$1);
 
-      expect(find.text('Step 5 of 13'), findsOneWidget);
+      expect(find.text('Step 8 of 16'), findsOneWidget);
       expect(
         find.text(
           'Choose at least ${scenario.$2} days that usually work for you.',
@@ -98,9 +98,9 @@ void main() {
     await answerSingle(tester, "No, I'm ready to start");
     await tapText(tester, 'None of these');
     await tapText(tester, 'Continue');
-    await answerSingle(tester, 'Balanced beginner plan');
+    await answerSingle(tester, 'Balanced progression');
 
-    expect(find.text('Step 13 of 13'), findsOneWidget);
+    expect(find.text('Step 16 of 16'), findsOneWidget);
     expect(find.text('Mon · Tue · Fri · Sun'), findsOneWidget);
     expect(find.text('3 sessions / week'), findsOneWidget);
   });

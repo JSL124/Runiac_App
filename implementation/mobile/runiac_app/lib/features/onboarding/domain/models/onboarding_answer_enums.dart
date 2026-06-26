@@ -28,6 +28,52 @@ enum OnboardingExperience {
       _enumByValue(values, value, (item) => item.value);
 }
 
+enum RecentRunningConsistency {
+  none('none'),
+  underFourWeeks('under4'),
+  oneToThreeMonths('1-3m'),
+  threeToSixMonths('3-6m'),
+  sixMonthsPlus('6plus');
+
+  const RecentRunningConsistency(this.value);
+
+  final String value;
+
+  static RecentRunningConsistency? fromValue(String? value) =>
+      _enumByValue(values, value, (item) => item.value);
+}
+
+enum CurrentWeeklyRunFrequency {
+  zero('0'),
+  oneToTwo('1-2'),
+  three('3'),
+  four('4'),
+  fivePlus('5plus');
+
+  const CurrentWeeklyRunFrequency(this.value);
+
+  final String value;
+
+  static CurrentWeeklyRunFrequency? fromValue(String? value) =>
+      _enumByValue(values, value, (item) => item.value);
+}
+
+enum ContinuousRunCapacity {
+  walkOnly('walk'),
+  runWalk('runwalk'),
+  tenMinutes('10min'),
+  twentyToThirtyMinutes('20-30min'),
+  fortyFivePlusMinutes('45plus'),
+  sixtyPlusMinutes('60plus');
+
+  const ContinuousRunCapacity(this.value);
+
+  final String value;
+
+  static ContinuousRunCapacity? fromValue(String? value) =>
+      _enumByValue(values, value, (item) => item.value);
+}
+
 enum OnboardingAvailability {
   two('2'),
   three('3'),
@@ -165,6 +211,32 @@ enum OnboardingPlanCautiousness {
 
   static OnboardingPlanCautiousness? fromValue(String? value) =>
       _enumByValue(values, value, (item) => item.value);
+}
+
+enum OnboardingPlanStyle {
+  conservativeBase('conservative'),
+  balanced('balanced'),
+  performanceFocused('performance'),
+  auto('auto');
+
+  const OnboardingPlanStyle(this.value);
+
+  final String value;
+
+  static OnboardingPlanStyle? fromValue(String? value) =>
+      _enumByValue(values, value, (item) => item.value);
+}
+
+OnboardingPlanStyle planStyleFromCautiousness(
+  OnboardingPlanCautiousness cautiousness,
+) {
+  return switch (cautiousness) {
+    OnboardingPlanCautiousness.veryGentle =>
+      OnboardingPlanStyle.conservativeBase,
+    OnboardingPlanCautiousness.balanced => OnboardingPlanStyle.balanced,
+    OnboardingPlanCautiousness.standard => OnboardingPlanStyle.balanced,
+    OnboardingPlanCautiousness.unsure => OnboardingPlanStyle.auto,
+  };
 }
 
 int requiredPreferredDayCountForAvailability(

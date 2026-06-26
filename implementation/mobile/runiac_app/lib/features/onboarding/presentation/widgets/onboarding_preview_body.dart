@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/runiac_colors.dart';
+import '../../domain/services/onboarding_plan_style_resolver.dart';
+import '../../domain/services/runner_level_resolver.dart';
+import '../../domain/services/safety_gate_resolver.dart';
 import '../../../plan/domain/services/beginner_adaptive_plan_generator.dart';
 import '../../domain/models/local_onboarding_draft.dart';
-import '../onboarding_steps.dart';
 import 'first_week_preview.dart';
 import 'onboarding_visuals.dart';
 
@@ -15,10 +17,26 @@ class OnboardingPreviewBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final draft = LocalOnboardingDraft.fromAnswers(answers);
+    final safetyGate = draft == null
+        ? SafetyGateState.clear
+        : const SafetyGateResolver().resolve(draft);
+    if (safetyGate == SafetyGateState.needsClearance) {
+      return const _NeedsClearancePreview();
+    }
+
+    final runnerLevel = draft == null
+        ? RunnerLevel.starter
+        : const RunnerLevelResolver().resolve(draft);
+    final resolvedStyle = draft == null
+        ? ResolvedPlanStyle.balanced
+        : const PlanStyleResolver().resolve(
+            draft: draft,
+            safetyGate: safetyGate,
+            runnerLevel: runnerLevel,
+          );
     final plan = const BeginnerAdaptivePlanGenerator().generate(
       draft ?? _previewFallbackDraft,
     );
-    final cautious = _labelFor('cautious', fallback: 'Balanced beginner');
     final length = plan.sessionDurationLabel;
     final weekly = plan.weeklyFrequencyLabel;
     final preferredDays = draft == null || draft.preferredDays.isEmpty
@@ -26,7 +44,7 @@ class OnboardingPreviewBody extends StatelessWidget {
         : draft.preferredDays.map((day) => day.value).join(' · ');
     final summary = [
       ('Plan length', '${plan.durationWeeks} weeks'),
-      ('Starting point', _labelFor('experience', fallback: 'New to running')),
+      ('Starting point', _runnerLevelLabel(runnerLevel)),
       ('Schedule', weekly),
       ('Session length', length),
     ];
@@ -59,7 +77,7 @@ class OnboardingPreviewBody extends StatelessWidget {
         const SizedBox(height: 10),
         _SummaryTile(label: 'Preferred days', value: preferredDays),
         const SizedBox(height: 10),
-        _SummaryTile(label: 'Safety setting', value: cautious),
+        _SummaryTile(label: 'Plan style', value: _styleLabel(resolvedStyle)),
         const SizedBox(height: 16),
         _SuggestedPlanCard(title: plan.title, subtitle: plan.subtitle),
         const SizedBox(height: 14),
@@ -73,11 +91,24 @@ class OnboardingPreviewBody extends StatelessWidget {
       ],
     );
   }
+}
 
-  String _labelFor(String key, {required String fallback}) {
-    final value = answers[key] as String?;
-    return onboardingPreviewLabels[key]?[value] ?? fallback;
-  }
+String _runnerLevelLabel(RunnerLevel level) {
+  return switch (level) {
+    RunnerLevel.starter => 'Getting started',
+    RunnerLevel.developing => 'Building consistency',
+    RunnerLevel.performance => 'Training for performance',
+    RunnerLevel.advanced => 'Advanced structured training',
+  };
+}
+
+String _styleLabel(ResolvedPlanStyle style) {
+  return switch (style) {
+    ResolvedPlanStyle.conservativeBase => 'Keep it gentle',
+    ResolvedPlanStyle.balanced => 'Balanced progression',
+    ResolvedPlanStyle.performanceFocused => 'Build steadily',
+    ResolvedPlanStyle.blocked => 'Paused for safety',
+  };
 }
 
 final _previewFallbackDraft = LocalOnboardingDraft(
@@ -91,8 +122,26 @@ final _previewFallbackDraft = LocalOnboardingDraft(
   motivationStyle: OnboardingMotivationStyle.plan,
   healthComfort: OnboardingHealthComfort.ready,
   activitySymptoms: const [OnboardingActivitySymptom.none],
-  planCautiousness: OnboardingPlanCautiousness.balanced,
+  planStyle: OnboardingPlanStyle.balanced,
 );
+
+class _NeedsClearancePreview extends StatelessWidget {
+  const _NeedsClearancePreview();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        OnboardingInfoBanner(
+          icon: Icons.health_and_safety_outlined,
+          text:
+              "Runiac can't create a running plan from these answers. Please get guidance from a qualified professional before starting or increasing running. You can still use Runiac for gentle reminders and edit answers later.",
+        ),
+      ],
+    );
+  }
+}
 
 class _SummaryTile extends StatelessWidget {
   const _SummaryTile({required this.label, required this.value});

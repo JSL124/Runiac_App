@@ -47,7 +47,7 @@ class BeginnerPlanPolicyResolver {
 
     if (draft.healthComfort == OnboardingHealthComfort.breakAfterTimeAway ||
         draft.healthComfort == OnboardingHealthComfort.unsure ||
-        draft.planCautiousness == OnboardingPlanCautiousness.unsure ||
+        draft.planStyle == OnboardingPlanStyle.auto ||
         draft.activitySymptoms.isEmpty) {
       return BeginnerPlanSafetyBand.cautious;
     }
@@ -77,13 +77,13 @@ class BeginnerPlanPolicyResolver {
   }
 
   BeginnerPlanCautionIntent _cautionIntentFor(LocalOnboardingDraft draft) {
-    return switch (draft.planCautiousness) {
-      OnboardingPlanCautiousness.veryGentle =>
+    return switch (draft.planStyle) {
+      OnboardingPlanStyle.conservativeBase =>
         BeginnerPlanCautionIntent.veryGentle,
-      OnboardingPlanCautiousness.balanced => BeginnerPlanCautionIntent.balanced,
-      OnboardingPlanCautiousness.standard => BeginnerPlanCautionIntent.standard,
-      OnboardingPlanCautiousness.unsure =>
-        BeginnerPlanCautionIntent.conservative,
+      OnboardingPlanStyle.balanced => BeginnerPlanCautionIntent.balanced,
+      OnboardingPlanStyle.performanceFocused =>
+        BeginnerPlanCautionIntent.standard,
+      OnboardingPlanStyle.auto => BeginnerPlanCautionIntent.conservative,
     };
   }
 
