@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'core/theme/runiac_theme.dart';
+import 'features/auth/presentation/runiac_auth_gate.dart';
 import 'features/onboarding/domain/models/local_onboarding_draft.dart';
 import 'features/plan/domain/services/beginner_adaptive_plan_generator.dart';
 import 'features/plan/presentation/current_session_generated_plan.dart';
@@ -21,6 +22,7 @@ class RuniacApp extends StatefulWidget {
   const RuniacApp({
     super.key,
     this.showSplash = true,
+    this.showAuth = false,
     this.showOnboarding = false,
     this.splashDuration = RuniacSplashTokens.minVisibleDuration,
     this.runRepository = const StaticRunRepository(),
@@ -33,6 +35,7 @@ class RuniacApp extends StatefulWidget {
   });
 
   final bool showSplash;
+  final bool showAuth;
   final bool showOnboarding;
   final Duration splashDuration;
   final RunRepository runRepository;
@@ -52,6 +55,7 @@ class _RuniacAppState extends State<RuniacApp> {
   late final bool _ownsActivityHistoryStore;
   late final CurrentSessionGeneratedPlanStore _generatedPlanStore;
   late final bool _ownsGeneratedPlanStore;
+  RuniacAuthCompletion? _authCompletion;
 
   @override
   void initState() {
@@ -93,14 +97,24 @@ class _RuniacAppState extends State<RuniacApp> {
             home: RuniacStartupGate(
               showSplash: widget.showSplash,
               splashDuration: widget.splashDuration,
-              child: RuniacOnboardingGate(
-                showOnboarding: widget.showOnboarding,
-                onCompletedDraft: _completeOnboarding,
-                child: RuniacShell(
-                  enableForegroundGps: widget.enableForegroundGps,
-                  activeRunSessionCoordinator:
-                      widget.activeRunSessionCoordinator,
-                  initialRunOpenIntent: widget.initialRunOpenIntent,
+              child: RuniacAuthGate(
+                showAuth: widget.showAuth,
+                onAuthenticated: (completion) {
+                  setState(() {
+                    _authCompletion = completion;
+                  });
+                },
+                child: RuniacOnboardingGate(
+                  showOnboarding:
+                      widget.showOnboarding &&
+                      _authCompletion != RuniacAuthCompletion.login,
+                  onCompletedDraft: _completeOnboarding,
+                  child: RuniacShell(
+                    enableForegroundGps: widget.enableForegroundGps,
+                    activeRunSessionCoordinator:
+                        widget.activeRunSessionCoordinator,
+                    initialRunOpenIntent: widget.initialRunOpenIntent,
+                  ),
                 ),
               ),
             ),

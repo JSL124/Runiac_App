@@ -1,0 +1,133 @@
+# Runiac Design System
+
+## 1. Atmosphere & Identity
+
+Runiac feels like a calm beginner running companion: clear, encouraging, and light enough for a new runner to trust without feeling judged. The signature is a blue-first mobile surface with orange reserved for warm action moments, using soft rounded structure and restrained motion.
+
+## 2. Color
+
+### Palette
+
+| Role | Token | Light | Dark | Usage |
+|------|-------|-------|------|-------|
+| Surface/primary | `RuniacColors.background` | `#FFFFFF` | `#172033` | Main screen background |
+| Surface/secondary | `RuniacColors.sectionSurface` | `#F4F7FF` | `#172033` | Calm screen panels and auth surfaces |
+| Surface/strong | `RuniacColors.sectionSurfaceStrong` | `#EEF3FF` | `#172033` | Tinted icon and input surfaces |
+| Surface/inner | `RuniacColors.innerTileSurface` | `#F7FAFF` | `#172033` | Inner tiles and secondary form fills |
+| Text/primary | `RuniacColors.textPrimary` | `#172033` | `#FFFFFF` | Headlines and primary labels |
+| Text/secondary | `RuniacColors.textSecondary` | `#6B7280` | `#DCE5FF` | Supporting copy and helper text |
+| Border/default | `RuniacColors.border` | `#E6EAF2` | `#DCE5FF` | Field, button, and divider outlines |
+| Border/brand | `RuniacColors.cardBorder` | `#DCE5FF` | `#DCE5FF` | Blue-tinted card edges |
+| Accent/primary | `RuniacColors.primaryBlue` | `#2F50C7` | `#DCE5FF` | Primary CTAs, links, focus, logo |
+| Accent/action | `RuniacColors.accentOrange` | `#FC6818` | `#FC6818` | High-emphasis action accents |
+
+### Rules
+
+- Use blue for identity and primary auth actions.
+- Use orange sparingly for warmth and action emphasis, never for competitive pressure.
+- Add new semantic colors to `RuniacColors` before using them in UI code.
+
+## 3. Typography
+
+### Scale
+
+| Level | Size | Weight | Line Height | Tracking | Usage |
+|-------|------|--------|-------------|----------|-------|
+| Display | 36px | 800 | 1.12 | 0 | Auth welcome and major mobile moments |
+| H1 | 28px | 800 | 1.15 | 0 | Screen titles |
+| H2 | 22px | 800 | 1.2 | 0 | Section titles |
+| H3 | 18px | 800 | 1.25 | 0 | Card titles |
+| Body | 16px | 600 | 1.4 | 0 | Primary body copy |
+| Body/sm | 14px | 600 | 1.35 | 0 | Secondary copy |
+| Caption | 12px | 700 | 1.3 | 0 | Form labels and helper text |
+
+### Font Stack
+
+- Primary: Flutter platform sans via `ThemeData`, matching the current Flutter scaffold.
+- Mono: not used in product UI.
+- Serif: not used.
+
+### Rules
+
+- Keep mobile labels readable at 12px or larger.
+- Avoid negative letter spacing in compact panels and buttons.
+
+## 4. Spacing & Layout
+
+### Base Unit
+
+All spacing derives from a base of 4px.
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| `space1` | 4px | Tight icon gaps |
+| `space2` | 8px | Compact groups |
+| `space3` | 12px | Small vertical rhythm |
+| `space4` | 16px | Button gaps and field padding |
+| `space5` | 20px | Screen horizontal padding |
+| `space6` | 24px | Card padding and section separation |
+| `space8` | 32px | Major panel separation |
+| `space10` | 40px | Large hero separation |
+
+### Grid
+
+- Max content width: mobile-first, constrained to 430px for auth surfaces.
+- Column system: single-column mobile layout with stacked actions.
+- Breakpoints: Flutter adaptive constraints, with narrow layouts verified at 360px.
+
+### Rules
+
+- Prefer `SafeArea`, `SingleChildScrollView`, and constrained content over fixed viewport assumptions.
+- Fixed-format controls use stable minimum heights so labels and hover/focus states do not shift layout.
+
+## 5. Components
+
+### Auth Flow Screen
+
+- **Structure**: `Scaffold` -> `SafeArea` -> constrained scroll body -> hero/header, fields, CTA stack, helper links.
+- **Variants**: welcome, login, signup, forgot password.
+- **Fields**: login and signup collect Email and Password only in this static auth flow.
+- **Validation**: local form validation covers email shape, required login password, and minimum signup password length. Firebase remains the identity authority.
+- **Welcome mark**: show the Runiac logo asset directly without a backing circle.
+- **Spacing**: `space4`, `space5`, `space6`, and `space8`.
+- **States**: default, tap, focus, static completion handoff.
+- **Accessibility**: semantic buttons, labeled text fields, visible focus through Material defaults.
+- **Motion**: short `AnimatedSwitcher` screen transition only.
+
+### Primary Auth Button
+
+- **Structure**: full-width `FilledButton` with optional icon.
+- **Variants**: primary blue, secondary outlined, Google-style neutral.
+- **Spacing**: 56px height, 16px radius, `space4` internal gap.
+- **States**: default, disabled, pressed, focus from Material.
+- **Accessibility**: text label is always visible and high contrast.
+- **Motion**: Material press feedback only.
+
+## 6. Motion & Interaction
+
+### Timing
+
+| Type | Duration | Easing | Usage |
+|------|----------|--------|-------|
+| Micro | 100-150ms | ease-out | Button press feedback |
+| Standard | 200-300ms | ease-in-out | Auth screen changes |
+
+### Rules
+
+- Animate only opacity and transform-like transitions.
+- Respect Material focus, tap, and semantics behavior.
+- Avoid scroll listeners for auth and onboarding surfaces.
+
+## 7. Depth & Surface
+
+### Strategy
+
+Mixed, with soft tonal surfaces first and subtle shadows only for major brand marks or elevated auth cards.
+
+| Level | Value | Usage |
+|-------|-------|-------|
+| Subtle | `RuniacColors.softCardShadow` | Resting cards |
+| Brand | `RuniacColors.primaryButtonShadow` | Blue CTA or logo emphasis |
+| Action | `RuniacColors.orangeButtonShadow` | Orange action emphasis |
+
+Depth stays light. The UI should feel friendly, not glossy or competitive.
