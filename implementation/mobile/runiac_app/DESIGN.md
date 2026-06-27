@@ -86,11 +86,18 @@ All spacing derives from a base of 4px.
 
 - **Structure**: `Scaffold` -> `SafeArea` -> constrained scroll body -> hero/header, fields, CTA stack, helper links.
 - **Variants**: welcome, login, signup, forgot password.
-- **Fields**: login and signup collect Email and Password only in this static auth flow.
-- **Validation**: local form validation covers email shape, required login password, and minimum signup password length. Firebase remains the identity authority.
+- **Fields**: login and signup collect Email and Password only.
+- **Identity provider**: email/password uses the injected auth repository. In emulator runs this is Firebase Auth emulator-backed; non-emulator runs use the non-production repository because production Firebase config is not present.
+- **Validation**: local form validation covers email shape, required login password, and minimum signup password length. Firebase Auth remains the identity authority for account creation, login, password reset, persisted auth state, and sign-out.
+- **Loading and errors**: login, signup, reset, and account sign-out disable their submitting controls while work is in progress, show operation-specific loading labels, and surface mapped beginner-friendly auth error messages.
+- **Google/OAuth**: Google sign-in is displayed as disabled "Google sign-in coming later" copy. It must not complete auth until an OAuth provider and dependency are separately approved.
+- **Routing**: `RuniacAuthGate` observes the auth-state stream. Signed-out users see the auth flow, signed-in users see the app shell, signup immediately enters onboarding when onboarding is enabled, and login/restart skips onboarding.
+- **Sign-out**: the Account screen includes a Sign out row that calls the auth repository, shows a signing-out state, and returns the user to the welcome/auth flow through the auth-state gate.
+- **Profile bootstrap**: signup does not create `users/{uid}` or `userProfiles/{uid}` records. Profile bootstrap is deferred until onboarding completion because auth only has email/password, and the Flutter client must not write backend-owned role, subscription, XP, streak, level, rank, leaderboard, validation, premium, or expert-publication fields.
+- **Emulator boundary**: Firebase Auth is emulator-only for this auth flow. Android debug emulator runs require cleartext traffic so the app can reach local emulator hosts such as `10.0.2.2`; this debug allowance is not a production Firebase configuration.
 - **Welcome mark**: show the Runiac logo asset directly without a backing circle.
 - **Spacing**: `space4`, `space5`, `space6`, and `space8`.
-- **States**: default, tap, focus, static completion handoff.
+- **States**: default, tap, focus, loading/disabled, error feedback, and auth-state completion handoff.
 - **Accessibility**: semantic buttons, labeled text fields, visible focus through Material defaults.
 - **Motion**: short `AnimatedSwitcher` screen transition only.
 

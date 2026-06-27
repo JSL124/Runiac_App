@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "cd ../.. && ./tests/firebase-rules/node_modules/.bin/firebase emulators:exec --only firestore \"cd tests/firebase-rules && node --test firestore.rules.test.mjs\""
+    "test": "cd ../.. && ./tests/firebase-rules/node_modules/.bin/firebase emulators:exec --only firestore \"cd tests/firebase-rules && node --test firestore.rules.test.mjs firestore.catalog.rules.test.mjs firestore.routes-enrollment.rules.test.mjs\""
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "3.0.4",

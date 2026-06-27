@@ -3,6 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/app.dart';
 import 'package:runiac_app/features/auth/presentation/runiac_auth_flow_screen.dart';
 
+import 'support/auth_flow_test_helpers.dart';
+import 'support/fake_runiac_auth_repository.dart';
+
 void main() {
   testWidgets('auth renders before onboarding when enabled', (tester) async {
     await tester.pumpWidget(
@@ -13,6 +16,7 @@ void main() {
         enableForegroundGps: false,
       ),
     );
+    await tester.pumpAndSettle();
 
     expect(
       find.byKey(const ValueKey('auth_welcome_runiac_logo')),
@@ -27,11 +31,14 @@ void main() {
   testWidgets('auth welcome routes to login, password recovery, and signup', (
     tester,
   ) async {
+    final repository = FakeRuniacAuthRepository();
+    addTearDown(repository.dispose);
     var authenticated = false;
 
     await tester.pumpWidget(
       MaterialApp(
         home: RuniacAuthFlowScreen(
+          authRepository: repository,
           onAuthenticated: (_) {
             authenticated = true;
           },
@@ -68,54 +75,20 @@ void main() {
     );
     await tapVisibleText(tester, 'Create account');
     expect(authenticated, isTrue);
-  });
-
-  testWidgets('login validates email and password before completion', (
-    tester,
-  ) async {
-    var authenticated = false;
-
-    await tester.pumpWidget(
-      MaterialApp(
-        home: RuniacAuthFlowScreen(
-          onAuthenticated: (_) {
-            authenticated = true;
-          },
-        ),
-      ),
-    );
-
-    await tapVisibleText(tester, 'Log in');
-    await tapVisibleText(tester, 'Sign in');
-
-    expect(find.text('Enter your email'), findsOneWidget);
-    expect(find.text('Password is required'), findsOneWidget);
-    expect(authenticated, isFalse);
-
-    await tester.enterText(find.byType(TextFormField).first, 'not-an-email');
-    await tapVisibleText(tester, 'Sign in');
-
-    expect(find.text('Enter a valid email'), findsOneWidget);
-    expect(authenticated, isFalse);
-
-    await enterAuthCredentials(
-      tester,
-      email: 'runner@runiac.app',
-      password: 'password123',
-    );
-    await tapVisibleText(tester, 'Sign in');
-
-    expect(authenticated, isTrue);
+    expect(repository.createUserCalls, 1);
   });
 
   testWidgets(
-    'signup validates email and stronger password before onboarding',
+    'Google action does not complete auth without provider approval',
     (tester) async {
+      final repository = FakeRuniacAuthRepository();
+      addTearDown(repository.dispose);
       var authenticated = false;
 
       await tester.pumpWidget(
         MaterialApp(
           home: RuniacAuthFlowScreen(
+            authRepository: repository,
             onAuthenticated: (_) {
               authenticated = true;
             },
@@ -123,104 +96,22 @@ void main() {
         ),
       );
 
-      await tapVisibleText(tester, 'Sign up');
-      await enterAuthCredentials(
-        tester,
-        email: 'runner@runiac.app',
-        password: 'short',
+      await tapVisibleText(tester, 'Log in');
+      expect(find.text('Continue with Google'), findsNothing);
+      expect(find.text('Google sign-in coming later'), findsOneWidget);
+      await tester.tap(find.text('Google sign-in coming later'));
+      await tester.pumpAndSettle();
+
+      expect(
+        authenticated,
+        isFalse,
+        reason:
+            'Google auth must not fake completion before OAuth is approved.',
       );
-      await tapVisibleText(tester, 'Create account');
-
-      expect(find.text('Use at least 8 characters'), findsOneWidget);
-      expect(authenticated, isFalse);
-
-      await enterAuthCredentials(
-        tester,
-        email: 'runner@runiac.app',
-        password: 'password123',
-      );
-      await tapVisibleText(tester, 'Create account');
-
-      expect(authenticated, isTrue);
+      expect(repository.signInCalls, 0);
+      expect(repository.createUserCalls, 0);
     },
   );
-
-  testWidgets('password reset validates email before showing reset feedback', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      MaterialApp(home: RuniacAuthFlowScreen(onAuthenticated: (_) {})),
-    );
-
-    await tapVisibleText(tester, 'Log in');
-    await tapVisibleText(tester, 'Forgot password?');
-    await tapVisibleText(tester, 'Send reset link');
-
-    expect(find.text('Enter your email'), findsOneWidget);
-    expect(
-      find.text('Password reset will connect to Firebase Auth later.'),
-      findsNothing,
-    );
-
-    await tester.enterText(
-      find.byType(TextFormField).first,
-      'runner@runiac.app',
-    );
-    await tapVisibleText(tester, 'Send reset link');
-
-    expect(
-      find.text('Password reset will connect to Firebase Auth later.'),
-      findsOneWidget,
-    );
-  });
-
-  testWidgets('login auth completion hands off to the app shell', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      const RuniacApp(
-        showSplash: false,
-        showAuth: true,
-        showOnboarding: true,
-        enableForegroundGps: false,
-      ),
-    );
-
-    await tapVisibleText(tester, 'Log in');
-    await enterAuthCredentials(
-      tester,
-      email: 'runner@runiac.app',
-      password: 'password123',
-    );
-    await tapVisibleText(tester, 'Sign in');
-
-    expect(find.text('Welcome to Runiac'), findsNothing);
-    expect(find.text('Step 1 of 16'), findsNothing);
-    expect(find.text('Good to see you'), findsOneWidget);
-  });
-
-  testWidgets('signup auth completion hands off to onboarding', (tester) async {
-    await tester.pumpWidget(
-      const RuniacApp(
-        showSplash: false,
-        showAuth: true,
-        showOnboarding: true,
-        enableForegroundGps: false,
-      ),
-    );
-
-    await tapVisibleText(tester, 'Sign up');
-    await enterAuthCredentials(
-      tester,
-      email: 'runner@runiac.app',
-      password: 'password123',
-    );
-    await tapVisibleText(tester, 'Create account');
-
-    expect(find.text('Welcome to Runiac'), findsOneWidget);
-    expect(find.text('Step 1 of 16'), findsOneWidget);
-    expect(find.text('Good to see you'), findsNothing);
-  });
 
   testWidgets('auth flow remains reachable on phone and tablet viewports', (
     tester,
@@ -228,6 +119,8 @@ void main() {
     addTearDown(tester.view.reset);
 
     for (final size in [const Size(390, 844), const Size(768, 1024)]) {
+      final repository = FakeRuniacAuthRepository();
+      addTearDown(repository.dispose);
       tester.view
         ..physicalSize = size
         ..devicePixelRatio = 1;
@@ -236,6 +129,7 @@ void main() {
         MaterialApp(
           home: RuniacAuthFlowScreen(
             key: ValueKey('auth_flow_${size.width}_${size.height}'),
+            authRepository: repository,
             onAuthenticated: (_) {},
           ),
         ),
@@ -258,22 +152,4 @@ void main() {
       expect(find.text('Create account'), findsOneWidget);
     }
   });
-}
-
-Future<void> tapVisibleText(WidgetTester tester, String text) async {
-  final finder = find.text(text).first;
-  await tester.ensureVisible(finder);
-  await tester.tap(finder);
-  await tester.pumpAndSettle();
-}
-
-Future<void> enterAuthCredentials(
-  WidgetTester tester, {
-  required String email,
-  required String password,
-}) async {
-  final fields = find.byType(TextFormField);
-  await tester.enterText(fields.at(0), email);
-  await tester.enterText(fields.at(1), password);
-  await tester.pumpAndSettle();
 }

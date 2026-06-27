@@ -6,12 +6,16 @@ Tracks the Firebase backend project area for Runiac.
 - Root `firestore.rules` and `firestore.indexes.json` exist.
 - `tests/firebase-rules/` contains synthetic Firestore rules tests.
 - `functions/` contains the emulator-only `completeRun` Cloud Functions skeleton.
+- The Flutter auth flow can use Firebase Auth emulator wiring for email/password signup, login, password reset, auth-state persistence, and sign-out.
+- Google/OAuth is not implemented. The mobile UI keeps Google sign-in disabled instead of faking success.
+- Android debug emulator auth testing requires debug cleartext traffic so the app can reach the local Auth emulator host. This is a debug/emulator boundary only and is not production Firebase configuration.
 - Firestore emulator smoke validation used transient `firebase-tools@14.27.0`.
 
 ## Not implemented
 - No production Firebase project or `.firebaserc`.
-- No FlutterFire/mobile Firebase config.
-- No Auth or Firestore app wiring.
+- No FlutterFire-generated mobile Firebase config files such as `firebase_options.dart`, `google-services.json`, or `GoogleService-Info.plist`.
+- No production Auth or Firestore app wiring. Current mobile Auth support is emulator-only and uses demo runtime options.
+- No auth-time Firestore profile bootstrap; signup has only email/password, so safe `userProfiles/{uid}` creation is deferred until onboarding completion. The client must not write `users/{uid}` or backend-owned role, subscription, progression, leaderboard, validation, premium, or expert-publication fields.
 - No production Cloud Functions deploy target.
 - No real backend-owned progression formula.
 - No real GPS/private route fixtures.
@@ -22,4 +26,4 @@ The latest Firebase CLI may require Java 21 or newer. Java/tooling upgrade work 
 `functions/package.json` pins Firebase emulator tooling for this capsule. Current npm audit findings are accepted for this emulator-only tooling lane because the available fix requires a breaking `firebase-tools` major upgrade and production deploy remains forbidden. Reassess before any production Functions deploy or CI hardening capsule.
 
 ## Current backend direction
-The active backend direction is the emulator-only `completeRun` Cloud Functions skeleton. It may validate raw run completion input and write backend-owned emulator documents, but production Firebase setup, FlutterFire wiring, real XP formulas, and leaderboard aggregation remain future scope.
+The active backend direction is the emulator-only `completeRun` Cloud Functions skeleton plus emulator-only Auth support for the mobile auth flow. The callable skeleton may validate raw run completion input and write backend-owned emulator documents, and the Auth emulator supports email/password auth-state flows only. Production Firebase setup, production FlutterFire config, auth-time profile bootstrap, OAuth providers, real XP formulas, and leaderboard aggregation remain future scope.

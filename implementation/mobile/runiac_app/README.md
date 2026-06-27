@@ -1,9 +1,9 @@
 # Runiac Flutter app
 
-## M5 FlutterFire emulator-only run completion
+## Auth and run-completion Firebase emulator boundary
 
-The mobile app keeps `StaticRunRepository` as the default. FlutterFire wiring is
-enabled only when the app is launched with:
+The mobile app keeps non-production/static fallbacks as the default. FlutterFire
+wiring is enabled only when the app is launched with:
 
 ```bash
 flutter run \
@@ -12,7 +12,8 @@ flutter run \
 ```
 
 Use `RUNIAC_FIREBASE_EMULATOR_HOST=10.0.2.2` for an Android emulator that needs
-to reach services running on the host machine.
+to reach services running on the host machine. Local iOS Simulator and desktop
+runs can use `127.0.0.1`.
 
 Expected local emulator ports:
 
@@ -21,12 +22,16 @@ Expected local emulator ports:
 - Firestore: `127.0.0.1:8080`
 
 The emulator project ID is `runiac-functions-test`. The Flutter app uses
-non-secret demo `FirebaseOptions` only for emulator initialization. Do not run
-`flutterfire configure`, do not add `firebase_options.dart`, do not add native
-Firebase config files, and do not deploy from this app.
+non-secret demo `FirebaseOptions` only for emulator initialization. In emulator
+mode, email/password signup, login, password reset, auth-state persistence, and
+sign-out use Firebase Auth emulator wiring; run completion can use the local
+Functions/Firestore emulator path. Google/OAuth remains disabled and must not
+fake authentication.
 
 When `RUNIAC_FIREBASE_EMULATOR` is missing or false, the app uses the static
-repository and does not initialize Firebase.
+run repository, a non-production auth repository, and does not initialize
+Firebase. Do not run `flutterfire configure`, do not add `firebase_options.dart`,
+do not add native Firebase config files, and do not deploy from this app.
 
 ## M4-C2 Mapbox run map demo boundary
 

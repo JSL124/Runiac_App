@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'core/theme/runiac_theme.dart';
+import 'features/auth/data/non_production_auth_repository.dart';
+import 'features/auth/domain/runiac_auth_service.dart';
 import 'features/auth/presentation/runiac_auth_gate.dart';
 import 'features/onboarding/domain/models/local_onboarding_draft.dart';
 import 'features/plan/domain/services/beginner_adaptive_plan_generator.dart';
@@ -25,6 +27,7 @@ class RuniacApp extends StatefulWidget {
     this.showAuth = false,
     this.showOnboarding = false,
     this.splashDuration = RuniacSplashTokens.minVisibleDuration,
+    this.authRepository = const NonProductionAuthRepository(),
     this.runRepository = const StaticRunRepository(),
     this.enableForegroundGps = true,
     this.activeRunSessionCoordinator,
@@ -38,6 +41,7 @@ class RuniacApp extends StatefulWidget {
   final bool showAuth;
   final bool showOnboarding;
   final Duration splashDuration;
+  final RuniacAuthRepository authRepository;
   final RunRepository runRepository;
   final bool enableForegroundGps;
   final ActiveRunSessionCoordinator? activeRunSessionCoordinator;
@@ -98,6 +102,7 @@ class _RuniacAppState extends State<RuniacApp> {
               showSplash: widget.showSplash,
               splashDuration: widget.splashDuration,
               child: RuniacAuthGate(
+                authRepository: widget.authRepository,
                 showAuth: widget.showAuth,
                 onAuthenticated: (completion) {
                   setState(() {
@@ -105,11 +110,10 @@ class _RuniacAppState extends State<RuniacApp> {
                   });
                 },
                 child: RuniacOnboardingGate(
-                  showOnboarding:
-                      widget.showOnboarding &&
-                      _authCompletion != RuniacAuthCompletion.login,
+                  showOnboarding: _shouldShowOnboarding,
                   onCompletedDraft: _completeOnboarding,
                   child: RuniacShell(
+                    authRepository: widget.authRepository,
                     enableForegroundGps: widget.enableForegroundGps,
                     activeRunSessionCoordinator:
                         widget.activeRunSessionCoordinator,
@@ -130,5 +134,15 @@ class _RuniacAppState extends State<RuniacApp> {
       _generatedPlanStore.clear();
     }
     widget.onOnboardingCompleted?.call(draft);
+  }
+
+  bool get _shouldShowOnboarding {
+    if (!widget.showOnboarding) {
+      return false;
+    }
+    if (!widget.showAuth) {
+      return true;
+    }
+    return _authCompletion == RuniacAuthCompletion.signup;
   }
 }

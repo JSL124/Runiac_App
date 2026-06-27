@@ -1,111 +1,14 @@
-import { readFileSync } from 'node:fs';
-import { after, before, beforeEach, describe, it } from 'node:test';
+import { describe, it } from 'node:test';
+import { assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
+import { deleteField, doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+
 import {
-  assertFails,
-  assertSucceeds,
-  initializeTestEnvironment,
-} from '@firebase/rules-unit-testing';
-import { deleteDoc, deleteField, doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
-
-const PROJECT_ID = 'runiac-firestore-rules-test';
-const RULES_PATH = new URL('../../firestore.rules', import.meta.url);
-
-let testEnv;
-
-const profileFields = {
-  displayName: 'Synthetic Runner',
-  avatarInitials: 'SR',
-  locationLabel: 'Synthetic Region',
-  fitnessLevel: 'beginner',
-  goals: ['habit'],
-  availability: ['monday'],
-  planCautiousness: 'gentle',
-  healthSafetyReadiness: 'ready',
-  updatedAt: 1,
-};
-
-const activityDraft = {
-  ownerUid: 'alice',
-  status: 'pending',
-  source: 'mobile',
-  activityType: 'run',
-  startedAt: 1,
-  endedAt: 2,
-  durationSeconds: 1200,
-  distanceMeters: 1800,
-  averagePaceSecondsPerKm: 420,
-  routePrivacy: 'private',
-  createdAt: 3,
-  updatedAt: 4,
-};
-
-const notificationPrefs = {
-  ownerUid: 'alice',
-  runReminderEnabled: true,
-  restReminderEnabled: true,
-  streakRiskEnabled: false,
-  reminderTime: '07:00',
-  quietHoursStart: '22:00',
-  quietHoursEnd: '06:00',
-  updatedAt: 1,
-};
-
-const sharedRouteDraft = {
-  ownerUid: 'alice',
-  title: 'Masked Synthetic Park Loop',
-  description: 'Synthetic public-area route metadata only.',
-  distanceMeters: 1800,
-  estimatedDurationSeconds: 900,
-  difficulty: 'easy',
-  regionLabel: 'Synthetic Region',
-  visibilityStatus: 'draft',
-  createdAt: 1,
-  updatedAt: 1,
-};
-
-const pendingEnrollment = {
-  ownerUid: 'alice',
-  planId: 'first-5k',
-  planType: 'expert',
-  status: 'pending',
-  requestedAt: 1,
-};
-
-before(async () => {
-  const rules = readFileSync(RULES_PATH, 'utf8');
-
-  testEnv = await initializeTestEnvironment({
-    projectId: PROJECT_ID,
-    firestore: { rules },
-  });
-});
-
-beforeEach(async () => {
-  await testEnv.clearFirestore();
-});
-
-after(async () => {
-  if (testEnv) {
-    await testEnv.cleanup();
-  }
-});
-
-function dbFor(uid) {
-  return testEnv.authenticatedContext(uid).firestore();
-}
-
-async function seed(path, data) {
-  await testEnv.withSecurityRulesDisabled(async (context) => {
-    await setDoc(doc(context.firestore(), path), data);
-  });
-}
-
-async function seedUser(uid, subscriptionStatus) {
-  await seed(`users/${uid}`, {
-    subscriptionStatus,
-    userRole: 'Basic User',
-  });
-}
+  activityDraft,
+  dbFor,
+  notificationPrefs,
+  profileFields,
+  seed,
+} from './support/firestore_rules_test_support.mjs';
 
 describe('owner-owned client records', () => {
   it('allows an owner to write safe user profile fields', async () => {
@@ -149,6 +52,63 @@ describe('owner-owned client records', () => {
       setDoc(doc(alice, 'userProfiles/alice'), {
         ...profileFields,
         subscriptionStatus: 'Premium',
+      }),
+    );
+  });
+
+  it('denies auth bootstrap writes to users and backend-owned fields', async () => {
+    const alice = dbFor('alice');
+    const authBootstrapPayload = {
+      email: 'alice@example.test',
+      displayName: 'Synthetic Runner',
+      userRole: 'Platform Administrator',
+      subscriptionStatus: 'premium',
+      subscriptionPrivilegeState: 'active',
+      xp: 100,
+      weeklyXP: 100,
+      monthlyXP: 200,
+      streak: 7,
+      level: 3,
+      rank: 1,
+      leaderboardScore: 500,
+      validationStatus: 'validated',
+      countsTowardProgression: true,
+      validatedActivityContributionState: 'accepted',
+      expertPlanPublicationState: 'published',
+    };
+
+    await assertFails(setDoc(doc(alice, 'users/alice'), authBootstrapPayload));
+    await assertFails(
+      setDoc(doc(alice, 'userProfiles/alice'), {
+        ...profileFields,
+        userRole: 'Basic User',
+      }),
+    );
+    await assertFails(
+      setDoc(doc(alice, 'userProfiles/alice'), {
+        ...profileFields,
+        subscriptionStatus: 'basic',
+      }),
+    );
+    await assertFails(
+      setDoc(doc(alice, 'userProfiles/alice'), {
+        ...profileFields,
+        xp: 0,
+        weeklyXP: 0,
+        monthlyXP: 0,
+        streak: 0,
+        level: 1,
+        rank: 0,
+        leaderboardScore: 0,
+      }),
+    );
+    await assertFails(
+      setDoc(doc(alice, 'userProfiles/alice'), {
+        ...profileFields,
+        validationStatus: 'pending',
+        countsTowardProgression: false,
+        validatedActivityContributionState: 'none',
+        expertPlanPublicationState: 'draft',
       }),
     );
   });
@@ -247,171 +207,5 @@ describe('owner-owned client records', () => {
     await assertFails(updateDoc(prefs, { lastScheduledAt: deleteField() }));
     await assertFails(updateDoc(prefs, { deliveryState: 'sent' }));
     await assertFails(updateDoc(prefs, { serverManagedTokenState: deleteField() }));
-  });
-});
-
-describe('backend-owned read models and public catalogue records', () => {
-  it('denies client writes to trusted progression and leaderboard fields', async () => {
-    const alice = dbFor('alice');
-
-    await assertFails(
-      setDoc(doc(alice, 'runSummaries/summary-001'), { ownerUid: 'alice' }),
-    );
-    await assertFails(
-      setDoc(doc(alice, 'progressionEvents/event-001'), { ownerUid: 'alice' }),
-    );
-    await assertFails(
-      setDoc(doc(alice, 'leaderboardSnapshots/weekly-sg'), { rank: 1 }),
-    );
-    await assertFails(
-      setDoc(doc(alice, 'userProfiles/alice'), { ...profileFields, xp: 10 }),
-    );
-    await assertFails(
-      setDoc(doc(alice, 'userProfiles/alice'), {
-        ...profileFields,
-        streak: 2,
-      }),
-    );
-    await assertFails(
-      setDoc(doc(alice, 'userProfiles/alice'), { ...profileFields, level: 3 }),
-    );
-    await assertFails(
-      setDoc(doc(alice, 'userProfiles/alice'), { ...profileFields, rank: 4 }),
-    );
-    await assertFails(
-      setDoc(doc(alice, 'userProfiles/alice'), {
-        ...profileFields,
-        leaderboardScore: 5,
-      }),
-    );
-  });
-
-  it('allows premium users to read published expert plans and denies basic users', async () => {
-    await seedUser('alice', 'premium');
-    await seedUser('bob', 'basic');
-    await seed('expertPlans/first-5k', {
-      status: 'published',
-      title: 'Synthetic First 5K',
-      difficulty: 'beginner',
-    });
-    await seed('expertPlans/draft-10k', {
-      status: 'draft',
-      title: 'Synthetic Draft 10K',
-    });
-
-    await assertSucceeds(getDoc(doc(dbFor('alice'), 'expertPlans/first-5k')));
-    await assertFails(getDoc(doc(dbFor('bob'), 'expertPlans/first-5k')));
-    await assertFails(getDoc(doc(dbFor('alice'), 'expertPlans/draft-10k')));
-    await assertFails(
-      setDoc(doc(dbFor('alice'), 'expertPlans/new-plan'), {
-        status: 'published',
-        title: 'Client Published Plan',
-      }),
-    );
-    await assertFails(deleteDoc(doc(dbFor('alice'), 'expertPlans/first-5k')));
-  });
-});
-
-describe('shared route privacy and plan enrollment boundaries', () => {
-  it('allows owners to create draft route metadata without precise GPS traces', async () => {
-    await assertSucceeds(
-      setDoc(doc(dbFor('alice'), 'sharedRoutes/route-001'), sharedRouteDraft),
-    );
-    await assertFails(
-      setDoc(doc(dbFor('alice'), 'sharedRoutes/route-002'), {
-        ...sharedRouteDraft,
-        rawCoordinates: [{ latitude: 1.2345, longitude: 6.789 }],
-      }),
-    );
-    await assertFails(
-      setDoc(doc(dbFor('alice'), 'sharedRoutes/route-003'), {
-        ...sharedRouteDraft,
-        moderationStatus: 'approved',
-      }),
-    );
-    await assertFails(
-      setDoc(doc(dbFor('alice'), 'sharedRoutes/route-004'), {
-        ...sharedRouteDraft,
-        visibilityStatus: 'published',
-      }),
-    );
-  });
-
-  it('enforces private and published shared route read boundaries', async () => {
-    await seed('sharedRoutes/private-route', sharedRouteDraft);
-    await seed('sharedRoutes/published-route', {
-      ...sharedRouteDraft,
-      visibilityStatus: 'published',
-      moderationStatus: 'approved',
-    });
-
-    await assertSucceeds(getDoc(doc(dbFor('alice'), 'sharedRoutes/private-route')));
-    await assertFails(getDoc(doc(dbFor('bob'), 'sharedRoutes/private-route')));
-    await assertSucceeds(getDoc(doc(dbFor('bob'), 'sharedRoutes/published-route')));
-  });
-
-  it('allows premium users to create minimal pending enrollments only', async () => {
-    await seedUser('alice', 'premium');
-    await seedUser('bob', 'basic');
-    await seed('expertPlans/first-5k', {
-      status: 'published',
-      title: 'Synthetic First 5K',
-    });
-    await seed('expertPlans/draft-10k', {
-      status: 'draft',
-      title: 'Synthetic Draft 10K',
-    });
-
-    await assertSucceeds(
-      setDoc(doc(dbFor('alice'), 'planEnrollments/enrollment-001'), pendingEnrollment),
-    );
-    await assertFails(
-      setDoc(doc(dbFor('bob'), 'planEnrollments/enrollment-002'), {
-        ...pendingEnrollment,
-        ownerUid: 'bob',
-      }),
-    );
-    await assertFails(
-      setDoc(doc(dbFor('alice'), 'planEnrollments/enrollment-003'), {
-        ...pendingEnrollment,
-        ownerUid: 'bob',
-      }),
-    );
-    await assertFails(
-      setDoc(doc(dbFor('alice'), 'planEnrollments/enrollment-004'), {
-        ...pendingEnrollment,
-        planId: 'draft-10k',
-      }),
-    );
-    await assertFails(
-      setDoc(doc(dbFor('alice'), 'planEnrollments/enrollment-005'), {
-        ...pendingEnrollment,
-        status: 'active',
-      }),
-    );
-    await assertFails(
-      setDoc(doc(dbFor('alice'), 'planEnrollments/enrollment-006'), {
-        ...pendingEnrollment,
-        completionPercent: 50,
-      }),
-    );
-  });
-
-  it('denies client enrollment updates and backend-owned enrollment mutation', async () => {
-    await seedUser('alice', 'premium');
-    await seed('planEnrollments/enrollment-001', {
-      ...pendingEnrollment,
-      status: 'active',
-      completionPercent: 10,
-      validatedActivityContributionState: 'backend-managed',
-    });
-
-    const enrollment = doc(dbFor('alice'), 'planEnrollments/enrollment-001');
-
-    await assertFails(updateDoc(enrollment, { status: 'pending' }));
-    await assertFails(updateDoc(enrollment, { completionPercent: 20 }));
-    await assertFails(
-      updateDoc(enrollment, { validatedActivityContributionState: deleteField() }),
-    );
   });
 });

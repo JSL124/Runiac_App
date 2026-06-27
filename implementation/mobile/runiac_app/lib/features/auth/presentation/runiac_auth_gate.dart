@@ -1,49 +1,67 @@
 import 'package:flutter/material.dart';
 
+import '../domain/runiac_auth_service.dart';
 import 'runiac_auth_flow_screen.dart';
 
 export 'runiac_auth_flow_screen.dart' show RuniacAuthCompletion;
 
-class RuniacAuthGate extends StatefulWidget {
+class RuniacAuthGate extends StatelessWidget {
   const RuniacAuthGate({
+    required this.authRepository,
     required this.child,
     this.showAuth = false,
     this.onAuthenticated,
     super.key,
   });
 
+  final RuniacAuthRepository authRepository;
   final Widget child;
   final bool showAuth;
   final ValueChanged<RuniacAuthCompletion>? onAuthenticated;
 
   @override
-  State<RuniacAuthGate> createState() => _RuniacAuthGateState();
+  Widget build(BuildContext context) {
+    if (!showAuth) {
+      return child;
+    }
+
+    return StreamBuilder<RuniacAuthUser?>(
+      initialData: authRepository.currentUser,
+      stream: authRepository.authStateChanges(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting &&
+            snapshot.data == null) {
+          return const _RuniacAuthGateLoading();
+        }
+
+        if (snapshot.data != null) {
+          return child;
+        }
+
+        return RuniacAuthFlowScreen(
+          authRepository: authRepository,
+          onAuthenticated: (completion) {
+            onAuthenticated?.call(completion);
+          },
+        );
+      },
+    );
+  }
 }
 
-class _RuniacAuthGateState extends State<RuniacAuthGate> {
-  bool _authenticated = false;
-
-  @override
-  void didUpdateWidget(covariant RuniacAuthGate oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (!widget.showAuth && oldWidget.showAuth) {
-      _authenticated = false;
-    }
-  }
+class _RuniacAuthGateLoading extends StatelessWidget {
+  const _RuniacAuthGateLoading();
 
   @override
   Widget build(BuildContext context) {
-    if (!widget.showAuth || _authenticated) {
-      return widget.child;
-    }
-
-    return RuniacAuthFlowScreen(
-      onAuthenticated: (completion) {
-        widget.onAuthenticated?.call(completion);
-        setState(() {
-          _authenticated = true;
-        });
-      },
+    return const Scaffold(
+      body: Center(
+        child: SizedBox.square(
+          key: ValueKey('auth_gate_loading'),
+          dimension: 28,
+          child: CircularProgressIndicator(strokeWidth: 3),
+        ),
+      ),
     );
   }
 }
