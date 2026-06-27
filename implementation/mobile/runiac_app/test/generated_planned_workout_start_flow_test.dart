@@ -283,6 +283,37 @@ void main() {
     expect(find.text('Edit schedule'), findsNothing);
   });
 
+  testWidgets('today rest generated row uses orange row treatment', (
+    tester,
+  ) async {
+    // Given: Sunday is the injected current day and the generated plan has a
+    // rest day on Sunday.
+    await _pumpGeneratedPlans(
+      tester,
+      currentDate: _weekdayDate(DateTime.sunday),
+    );
+
+    // Then: the rest row receives today's orange row treatment without
+    // becoming tappable or opening workout detail.
+    expect(find.text('Rest Day'), findsNWidgets(3));
+    expect(
+      _rowWithTextHasColor(
+        tester,
+        'Rest Day',
+        RuniacColors.accentOrange.withValues(alpha: 0.06),
+      ),
+      isTrue,
+    );
+
+    await tester.ensureVisible(find.text('Rest Day').last);
+    await tester.tap(find.text('Rest Day').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Workout detail'), findsNothing);
+    expect(find.text('Start this run'), findsNothing);
+    expect(find.text('Edit schedule'), findsNothing);
+  });
+
   testWidgets('today Start opens Run launch with planned workout context', (
     tester,
   ) async {

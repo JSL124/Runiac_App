@@ -62,13 +62,28 @@ class GeneratedWeeklyPlanCard extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           for (var index = 0; index < plan.scheduleRows.length; index++)
-            WeeklyPlanDayRow(
-              plan.scheduleRows[index],
-              showDivider: index > 0,
-              onTap: _workoutDetailTap(plan.scheduleRows[index]),
-            ),
+            _scheduleRow(plan.scheduleRows[index], showDivider: index > 0),
         ],
       ),
+    );
+  }
+
+  Widget _scheduleRow(YouPlanScheduleRow row, {required bool showDivider}) {
+    final dayRow = WeeklyPlanDayRow(
+      row,
+      showDivider: showDivider,
+      onTap: _workoutDetailTap(row),
+    );
+    if (!_usesTodayRestTreatment(row)) {
+      return dayRow;
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: RuniacColors.accentOrange.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: dayRow,
     );
   }
 
@@ -82,4 +97,8 @@ class GeneratedWeeklyPlanCard extends StatelessWidget {
 
     return () => onViewWorkout(detailSnapshot);
   }
+}
+
+bool _usesTodayRestTreatment(YouPlanScheduleRow row) {
+  return row.isToday && row.title == 'Rest Day';
 }
