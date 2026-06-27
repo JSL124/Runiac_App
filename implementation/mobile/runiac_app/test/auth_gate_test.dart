@@ -49,6 +49,43 @@ void main() {
     },
   );
 
+  testWidgets('showAuth true reuses auth stream across parent rebuilds', (
+    tester,
+  ) async {
+    final repository = FakeRuniacAuthRepository();
+    addTearDown(repository.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RuniacAuthGate(
+          authRepository: repository,
+          showAuth: true,
+          child: const Text('Protected app shell A'),
+        ),
+      ),
+    );
+
+    expect(repository.authStateListenCount, 1);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RuniacAuthGate(
+          authRepository: repository,
+          showAuth: true,
+          child: const Text('Protected app shell B'),
+        ),
+      ),
+    );
+
+    expect(repository.authStateListenCount, 1);
+
+    repository.emitSignedIn();
+    await tester.pumpAndSettle();
+
+    expect(find.text('Protected app shell B'), findsOneWidget);
+    expect(find.text('Protected app shell A'), findsNothing);
+  });
+
   testWidgets('signed-out repository state shows auth flow', (tester) async {
     final repository = FakeRuniacAuthRepository();
     addTearDown(repository.dispose);

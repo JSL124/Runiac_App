@@ -219,17 +219,20 @@ Future<void> waitForText(
   Duration timeout = const Duration(seconds: 20),
 }) async {
   final finder = find.text(text);
-  final deadline = DateTime.now().add(timeout);
+  const pumpStep = Duration(milliseconds: 100);
+  final attempts = timeout.inMilliseconds <= 0
+      ? 1
+      : (timeout.inMilliseconds / pumpStep.inMilliseconds).ceil();
 
-  while (DateTime.now().isBefore(deadline)) {
-    await tester.pump(const Duration(milliseconds: 100));
+  for (var attempt = 0; attempt < attempts; attempt += 1) {
+    await tester.pump(pumpStep);
     if (finder.evaluate().isNotEmpty) {
       return;
     }
   }
 
   await tester.pumpAndSettle(
-    const Duration(milliseconds: 100),
+    pumpStep,
     EnginePhase.sendSemanticsUpdate,
     const Duration(seconds: 2),
   );

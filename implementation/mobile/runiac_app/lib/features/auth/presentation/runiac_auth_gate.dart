@@ -5,7 +5,7 @@ import 'runiac_auth_flow_screen.dart';
 
 export 'runiac_auth_flow_screen.dart' show RuniacAuthCompletion;
 
-class RuniacAuthGate extends StatelessWidget {
+class RuniacAuthGate extends StatefulWidget {
   const RuniacAuthGate({
     required this.authRepository,
     required this.child,
@@ -20,14 +20,33 @@ class RuniacAuthGate extends StatelessWidget {
   final ValueChanged<RuniacAuthCompletion>? onAuthenticated;
 
   @override
+  State<RuniacAuthGate> createState() => _RuniacAuthGateState();
+}
+
+class _RuniacAuthGateState extends State<RuniacAuthGate> {
+  Stream<RuniacAuthUser?>? _authStateChanges;
+
+  Stream<RuniacAuthUser?> get _authStream {
+    return _authStateChanges ??= widget.authRepository.authStateChanges();
+  }
+
+  @override
+  void didUpdateWidget(covariant RuniacAuthGate oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.authRepository != widget.authRepository) {
+      _authStateChanges = null;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    if (!showAuth) {
-      return child;
+    if (!widget.showAuth) {
+      return widget.child;
     }
 
     return StreamBuilder<RuniacAuthUser?>(
-      initialData: authRepository.currentUser,
-      stream: authRepository.authStateChanges(),
+      initialData: widget.authRepository.currentUser,
+      stream: _authStream,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting &&
             snapshot.data == null) {
@@ -35,13 +54,13 @@ class RuniacAuthGate extends StatelessWidget {
         }
 
         if (snapshot.data != null) {
-          return child;
+          return widget.child;
         }
 
         return RuniacAuthFlowScreen(
-          authRepository: authRepository,
+          authRepository: widget.authRepository,
           onAuthenticated: (completion) {
-            onAuthenticated?.call(completion);
+            widget.onAuthenticated?.call(completion);
           },
         );
       },
