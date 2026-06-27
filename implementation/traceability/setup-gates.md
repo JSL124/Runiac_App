@@ -25,11 +25,11 @@ Allowed statuses:
 | Gate | Current Status | Approval Evidence Required | Notes |
 | --- | --- | --- | --- |
 | Gate-00: Git State Baseline | APPROVED | Clean status, push baseline confirmation, no unrelated untracked/staged files, no failed traceability artifacts, explicit human/project approval evidence | Baseline readiness approved only; not scaffold execution approval. |
-| Flutter Scaffold Gate | EXECUTED FOR STOCK SCAFFOLD BASELINE | Human/project approval to create Flutter scaffold and package metadata | Stock scaffold baseline exists at `implementation/mobile/runiac_app/`; no Firebase setup or feature implementation is authorized. |
-| Firebase Project and Config Gate | PARTIALLY APPROVED FOR EMULATOR-ONLY ROOT FIREBASE.JSON | Human/project approval for Firebase project/config approach | Root `firebase.json` is approved only for the `firebase-emulator-shell` Firestore emulator shell; no production project, `.firebaserc`, mobile config, rules, indexes, or Functions are approved. |
-| Firestore Data Model Gate | PARTIALLY APPROVED FOR EMULATOR-ONLY RULES DRAFT AND SYNTHETIC RULES TESTS | Approved collection/access model and traceability to requirements | Limited first-pass collection/access model for emulator rules only; no production project, deployment, Cloud Functions, Flutter wiring, real Auth integration, backend-owned state logic, or real GPS/private route data. |
+| Flutter Scaffold Gate | EXECUTED FOR STOCK SCAFFOLD BASELINE | Human/project approval to create Flutter scaffold and package metadata | Stock scaffold baseline exists at `implementation/mobile/runiac_app/`; no further Firebase setup or feature implementation is authorized. |
+| Firebase Project and Config Gate | PARTIALLY APPROVED FOR EMULATOR ROOT FIREBASE.JSON AND PRODUCTION AUTH MOBILE CONFIG | Human/project approval for Firebase project/config approach | Root `firebase.json` is approved for the `firebase-emulator-shell` Firestore emulator shell, and production Firebase Auth/mobile config is connected for `runiac-fypp` as of `478898c0`; no `.firebaserc`, Firestore production wiring, production rules/index deployment, production Cloud Functions deploy, OAuth, or backend-owned state logic is approved. |
+| Firestore Data Model Gate | PARTIALLY APPROVED FOR EMULATOR-ONLY RULES DRAFT AND SYNTHETIC RULES TESTS | Approved collection/access model and traceability to requirements | Limited first-pass collection/access model for emulator rules only; no Firestore production wiring, deployment, Cloud Functions production deploy, auth-time profile persistence, backend-owned state logic, or real GPS/private route data. |
 | Cloud Functions Boundary Gate | Not Started | Approved backend ownership boundaries | No functions source, package files, or TypeScript config yet. |
-| Firestore Security Rules Gate | PARTIALLY APPROVED FOR EMULATOR-ONLY RULES DRAFT AND SYNTHETIC RULES TESTS | Approved rules strategy and emulator test plan | Limited to local `firestore.rules`, `firestore.indexes.json`, and synthetic emulator rules tests; no production rules deployment or production Firebase project. |
+| Firestore Security Rules Gate | PARTIALLY APPROVED FOR EMULATOR-ONLY RULES DRAFT AND SYNTHETIC RULES TESTS | Approved rules strategy and emulator test plan | Limited to local `firestore.rules`, `firestore.indexes.json`, and synthetic emulator rules tests; no production rules deployment or Firestore production wiring. |
 | Secret / API Key / Environment Handling Gate | Not Started | Approved secret-handling process and `.gitignore` checks | No `.env*` or service account files. |
 | GPS and Location Privacy Gate | Not Started | Approved privacy masking and test-data policy | No private route fixtures. |
 | XP / Streak / Level / Leaderboard Backend Ownership Gate | Not Started | Approved backend-only write policy and test strategy | No client writes to trusted fields. |
@@ -80,8 +80,7 @@ Executed baseline:
 - `pubspec.yaml`, `lib/main.dart`, Android platform files, iOS platform files, and template baseline tests exist as generated scaffold files.
 - No `flutter pub get` was run.
 - No `firebase init` was run.
-- `flutterfire configure` has not been run.
-- Firebase config/secrets remain absent.
+- At stock scaffold baseline execution time, `flutterfire configure` had not been run and Firebase config/secrets were absent; `478898c0 feat(auth): connect production firebase auth` later added bounded production Auth/mobile config for `runiac-fypp`.
 - Production Runiac feature implementation has not started.
 
 Still blocked until separately approved:
@@ -105,36 +104,37 @@ Approval evidence required:
 
 ## 6. Firebase Project and Config Gate
 
-Status: `PARTIALLY APPROVED FOR EMULATOR-ONLY ROOT FIREBASE.JSON`
+Status: `PARTIALLY APPROVED FOR EMULATOR ROOT FIREBASE.JSON AND PRODUCTION AUTH MOBILE CONFIG`
 
 Approved exception:
 
 - Root `firebase.json` is approved only for the `firebase-emulator-shell` capsule.
 - The approved file is limited to Firestore emulator configuration.
 - Firestore emulator host is local-only.
-- No production Firebase project ID is approved.
+- Production Firebase Auth/mobile config for project `runiac-fypp` is connected as of `478898c0 feat(auth): connect production firebase auth` through FlutterFire generated mobile config.
 - No `.firebaserc` is approved.
 - No `firebase init` or `firebase init emulators` command is approved.
-- No FlutterFire or mobile Firebase configuration is approved.
-- No Cloud Functions are approved.
-- No Firestore rules or indexes are approved.
-- No Auth/Firestore app wiring is approved.
+- No further FlutterFire or mobile Firebase configuration is approved.
+- No production Cloud Functions deploy is approved.
+- No production Firestore rules or indexes deployment is approved.
+- No Firestore app wiring, `cloud_firestore` dependency, or `FirebaseFirestore` runtime usage is approved.
 - No backend-owned state logic is approved.
 
 Blocked until approved:
 
 - No `firebase init`.
-- No additional or nested `firebase.json` beyond the approved root emulator shell file.
+- No additional or nested `firebase.json` beyond the approved root emulator shell file and the committed `implementation/mobile/runiac_app/firebase.json` Auth/mobile config metadata for `runiac-fypp`.
 - No `.firebaserc`.
-- No Firebase production project IDs.
-- No `google-services.json`.
-- No `GoogleService-Info.plist`.
+- No Firebase production project IDs beyond the approved `runiac-fypp` Auth/mobile config.
+- No additional `google-services.json`.
+- No additional `GoogleService-Info.plist`.
+- No production Firestore wiring, auth-time profile persistence, OAuth provider flow, or Cloud Functions production deploy.
 
 Required evidence before approval:
 
-- Decide whether Firebase uses emulator-first local setup, demo project, or production project later.
-- Confirm no production secrets or project IDs enter the repository.
-- Confirm `.gitignore` coverage for generated and sensitive Firebase/mobile config files.
+- Decide any further Firebase setup beyond the committed `runiac-fypp` Auth/mobile config separately.
+- Confirm no production secrets or unapproved project IDs enter the repository.
+- Confirm `.gitignore` coverage for generated and sensitive Firebase/mobile config files before any expansion.
 
 Approval evidence required:
 
@@ -149,7 +149,7 @@ Approved exception:
 - Root `firestore.rules` and `firestore.indexes.json` are approved only for the `firestore-schema-rules-draft` emulator-only capsule.
 - The initial collection/access model is a first-pass rules draft for local emulator development.
 - Synthetic root `tests/firebase-rules` coverage may exercise owner access, subscription gating, route privacy, enrollment requests, and backend-owned write denial.
-- No production Firebase project, rules deployment, `.firebaserc`, mobile Firebase config, Cloud Functions, Flutter Firebase wiring, real Auth integration, backend-owned state logic implementation, secrets, service accounts, or real GPS/private route fixtures are approved.
+- No production Firestore wiring, rules deployment, `.firebaserc`, Cloud Functions production deploy, auth-time profile persistence, backend-owned state logic implementation, secrets, service accounts, or real GPS/private route fixtures are approved.
 
 Required evidence before approval:
 
@@ -198,10 +198,9 @@ Still blocked until separately approved:
 
 - No Storage rules.
 - No rules deployment.
-- No production Firebase project.
-- No FlutterFire/mobile config.
-- No Cloud Functions or backend-owned state transition logic.
-- No real Auth/Firestore app wiring.
+- No Firestore production wiring.
+- No Cloud Functions production deploy or backend-owned state transition logic.
+- No auth-time profile persistence.
 
 Required evidence before approval:
 
@@ -224,9 +223,9 @@ Blocked until approved:
 - No `.env*` committed.
 - No API keys.
 - No service account files.
-- No `google-services.json`.
-- No `GoogleService-Info.plist`.
-- No production Firebase project IDs.
+- No additional `google-services.json` beyond the approved `runiac-fypp` Auth/mobile config.
+- No additional `GoogleService-Info.plist` beyond the approved `runiac-fypp` Auth/mobile config.
+- No unapproved production Firebase project IDs beyond approved `runiac-fypp` Auth/mobile config.
 - No map provider keys.
 - No AI/LLM provider keys.
 - No Android/iOS signing material.
@@ -237,7 +236,7 @@ Required `.gitignore`/handling checks:
 - `.env*` excluded or documented with safe examples only.
 - Service account JSON files excluded.
 - Firebase mobile config files excluded unless explicitly approved as non-sensitive demo config.
-- Production Firebase project IDs excluded from committed docs/code unless explicitly approved.
+- Production Firebase project IDs excluded from committed docs/code unless explicitly approved; `runiac-fypp` is approved only for the committed Auth/mobile config exception.
 - Secret examples use placeholder values only.
 
 Sensitive configuration categories to split and review before approval:
@@ -412,15 +411,15 @@ Still forbidden until relevant gates are approved:
 
 - No `flutter create`.
 - No `firebase init`.
-- No `flutterfire configure`.
+- No further `flutterfire configure`.
 - No `pubspec.yaml`.
-- No additional or nested `firebase.json` beyond the approved root emulator shell file.
+- No additional or nested `firebase.json` beyond the approved root emulator shell file and the committed `implementation/mobile/runiac_app/firebase.json` Auth/mobile config metadata for `runiac-fypp`.
 - No `.firebaserc`.
 - No `package.json`.
 - No `tsconfig.json`.
 - No Firestore rules.
 - No Storage rules.
-- No production Flutter/Firebase source beyond the stock scaffold baseline.
+- No further production Flutter/Firebase source beyond the committed `runiac-fypp` Auth/mobile config exception.
 
 ## 18. Explicit Approval Evidence Log
 
@@ -430,6 +429,7 @@ Still forbidden until relevant gates are approved:
 | 2026-05-24 | Phase 1 traceability docs | Created as `Drafted` | User approved creation of `requirements-map.md` and `setup-gates.md` only | Does not approve scaffolding or implementation. LLM/agent-generated decisions alone are not approval. |
 | 2026-06-14 | Firebase Project and Config Gate | `Not Started` to `PARTIALLY APPROVED FOR EMULATOR-ONLY ROOT FIREBASE.JSON` | Lee Jinseo approved the chat phrase for Firebase Project and Config Gate emulator-only setup; capsule: `firebase-emulator-shell`; commit reference: commit pending | Approval is limited to root `firebase.json` for Firestore emulator only. Validation evidence: transient `npx firebase-tools@14`, Firestore emulator hub check, Governance CI pass, and direct forbidden artifact scan. Latest `firebase-tools` required Java 21; current smoke validation used transient `firebase-tools@14.27.0`. Java 21/tooling upgrade is future work and is not approved by this capsule. |
 | 2026-06-14 | Firestore Data Model Gate / Firestore Security Rules Gate / Testing and Evidence Gate | `Not Started` to `PARTIALLY APPROVED FOR EMULATOR-ONLY RULES DRAFT AND SYNTHETIC RULES TESTS` | Lee Jinseo approved implementation of the `firestore-schema-rules-draft` capsule in chat; commit reference: pending | Approval is limited to local `firestore.rules`, `firestore.indexes.json`, root `tests/firebase-rules` package/tests, and governance allowlist alignment for those files. It does not approve production Firebase, `.firebaserc`, FlutterFire/mobile config, Cloud Functions, Flutter app wiring, real Auth integration, backend-owned state logic implementation, secrets/service accounts, deploys, or real GPS/private route fixtures. |
+| 2026-06-27 | Firebase Project and Config Gate | `PARTIALLY APPROVED FOR EMULATOR-ONLY ROOT FIREBASE.JSON` to `PARTIALLY APPROVED FOR EMULATOR ROOT FIREBASE.JSON AND PRODUCTION AUTH MOBILE CONFIG` | Committed production Auth connection: `478898c0 feat(auth): connect production firebase auth` | Approval is limited to production Firebase Auth/mobile config for `runiac-fypp` and the existing emulator shell. It does not approve `.firebaserc`, Firestore production wiring, auth-time Firestore profile persistence, OAuth, production Cloud Functions deploy, backend-owned state client writes, or Phase 02 work. |
 
 ### Gate-00 Approval Evidence
 
@@ -489,8 +489,7 @@ Still forbidden until relevant gates are approved:
   - `--no-pub` was used.
   - No `flutter pub get` was run.
   - No `firebase init` was run.
-  - `flutterfire configure` has not been run.
-  - No Firebase config/secrets were generated or committed.
-  - Firebase Project and Config Gate remained `Not Started` at scaffold execution time. It is now partially approved only for the root Firestore emulator `firebase.json` recorded above.
+  - At stock scaffold baseline execution time, `flutterfire configure` had not been run and no Firebase config/secrets were generated or committed; `478898c0` later added bounded production Auth/mobile config for `runiac-fypp`.
+  - Firebase Project and Config Gate remained `Not Started` at scaffold execution time. It is now partially approved only for the root Firestore emulator `firebase.json` and the bounded `runiac-fypp` Auth/mobile config recorded above.
   - Stock Flutter scaffold baseline is present, but production Runiac feature implementation has not started.
   - Build, deploy, custom tests, source expansion, Firebase setup, and Phase 02 feature work remain unauthorized until separately routed and approved.
