@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/core/contracts/backend_owned_value_contract.dart';
 import 'package:runiac_app/features/account/domain/models/user_profile_read_model.dart';
@@ -256,4 +258,43 @@ void main() {
       );
     });
   });
+
+  group('Firestore base boundary', () {
+    test('keeps feature code free of Firestore data access APIs', () {
+      const forbiddenFeatureTerms = <String>[
+        'package:cloud_firestore',
+        'FirebaseFirestore',
+        'QuerySnapshot',
+        'DocumentSnapshot',
+        'CollectionReference',
+        'DocumentReference',
+        'WriteBatch',
+        'Transaction',
+        '.collection(',
+        '.collectionGroup(',
+        '.doc(',
+        '.get(',
+        '.snapshots(',
+        '.set(',
+      ];
+
+      for (final file in _dartFilesIn('lib/features')) {
+        final source = file.readAsStringSync();
+        for (final term in forbiddenFeatureTerms) {
+          expect(source, isNot(contains(term)), reason: '${file.path}: $term');
+        }
+      }
+    });
+  });
+}
+
+List<File> _dartFilesIn(String path) {
+  final files =
+      Directory(path)
+          .listSync(recursive: true)
+          .whereType<File>()
+          .where((file) => file.path.endsWith('.dart'))
+          .toList()
+        ..sort((left, right) => left.path.compareTo(right.path));
+  return files;
 }

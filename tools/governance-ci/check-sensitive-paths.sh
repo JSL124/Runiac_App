@@ -56,6 +56,20 @@ require_file ".gitignore"
 require_file ".claude/settings.json"
 require_file "tools/agent-review/profiles/runiac/context-policy.yml"
 
+is_approved_auth_mobile_config_path() {
+  case "$1" in
+    implementation/mobile/runiac_app/firebase.json|\
+    implementation/mobile/runiac_app/lib/firebase_options.dart|\
+    implementation/mobile/runiac_app/android/app/google-services.json|\
+    implementation/mobile/runiac_app/ios/Runner/GoogleService-Info.plist)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 secret_gate_status="$(gate_status 'Secret / API Key / Environment Handling Gate')"
 gps_gate_status="$(gate_status 'GPS and Location Privacy Gate')"
 
@@ -140,6 +154,9 @@ check_mapbox_token_leaks
 
 if [ "$secret_gate_status" = "Not Started" ] || [ "$secret_gate_status" = "Blocked" ]; then
   while IFS= read -r path; do
+    if is_approved_auth_mobile_config_path "$path"; then
+      continue
+    fi
     fail "Secret/config artifact present while Secret gate is $secret_gate_status: $path"
   done < <(
     git ls-files --others --cached --exclude-standard \

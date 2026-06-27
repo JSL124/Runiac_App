@@ -8,15 +8,45 @@ check_name="check-pre-scaffold-scope"
 scanned_paths="."
 failures=0
 approved_scaffold_prefix="implementation/mobile/runiac_app/"
-backend_capsule="complete-run-cloud-functions-emulator-skeleton"
 
 fail() {
   failures=$((failures + 1))
   printf 'finding=%s\n' "$1"
 }
 
-is_backend_capsule_active() {
-  grep -Eq "^- Current active capsule: \`implementation/roadmap/capsules/${backend_capsule}\.md\`" implementation/roadmap/CURRENT.md
+is_approved_auth_mobile_config_path() {
+  case "$1" in
+    implementation/mobile/runiac_app/firebase.json|\
+    implementation/mobile/runiac_app/lib/firebase_options.dart|\
+    implementation/mobile/runiac_app/android/app/google-services.json|\
+    implementation/mobile/runiac_app/ios/Runner/GoogleService-Info.plist)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+is_historical_complete_run_functions_path() {
+  case "$1" in
+    functions/.gitignore|\
+    functions/package-lock.json|\
+    functions/package.json|\
+    functions/tsconfig.json|\
+    functions/src/index.ts|\
+    functions/src/run/completeRun.ts|\
+    functions/src/run/runCompletionTypes.ts|\
+    functions/src/run/validateRunPayload.ts|\
+    functions/src/progression/progressionEventWriter.ts|\
+    functions/test/completeRun.test.ts|\
+    functions/test/completeRunCallableSurface.test.ts)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
 }
 
 is_approved_scaffold_path() {
@@ -39,6 +69,9 @@ is_forbidden_config_or_secret() {
       return 1
       ;;
     *firebase.json|*.firebaserc|*firebase_options.dart|*google-services.json|*GoogleService-Info.plist|*firestore.rules|*storage.rules)
+      if is_approved_auth_mobile_config_path "$1"; then
+        return 1
+      fi
       return 0
       ;;
     *.env|*.env.*|*service-account*|*credentials*|*ServiceAccount*|*Credentials*)
@@ -54,7 +87,7 @@ is_forbidden_config_or_secret() {
       return 0
       ;;
     functions/.gitignore|functions/package-lock.json|functions/package.json|functions/tsconfig.json|functions/src/index.ts|functions/src/run/completeRun.ts|functions/src/run/runCompletionTypes.ts|functions/src/run/validateRunPayload.ts|functions/src/progression/progressionEventWriter.ts|functions/test/completeRun.test.ts|functions/test/completeRunCallableSurface.test.ts)
-      if is_backend_capsule_active; then
+      if is_historical_complete_run_functions_path "$1"; then
         return 1
       fi
       return 0
@@ -84,7 +117,7 @@ while IFS= read -r path; do
     *package.json)
       case "$path" in
         functions/package.json)
-          if is_backend_capsule_active; then
+          if is_historical_complete_run_functions_path "$path"; then
             continue
           fi
           fail "Forbidden app package marker found: $path"
@@ -105,7 +138,7 @@ done < <(git ls-files --cached --others --exclude-standard)
 if [ "$failures" -eq 0 ]; then
   printf 'CHECK %s PASS\n' "$check_name"
   printf 'scanned_paths=%s\n' "$scanned_paths"
-  printf 'message=Approved Flutter scaffold baseline is limited to implementation/mobile/runiac_app and no Firebase config, secrets, backend source, or unauthorized scaffold markers were found.\n'
+  printf 'message=Approved Flutter scaffold, Auth config, and Functions skeleton exceptions are limited to their explicit paths; no secrets or unauthorized scaffold markers were found.\n'
   exit 0
 fi
 

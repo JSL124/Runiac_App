@@ -7,6 +7,7 @@ import '../../features/auth/domain/runiac_auth_service.dart';
 import '../../features/run/data/run_repository_factory.dart';
 import '../../features/run/domain/repositories/run_repository.dart';
 import '../../firebase_options.dart';
+import 'runiac_firestore_gateway.dart';
 
 class RuniacFirebaseBootstrap {
   const RuniacFirebaseBootstrap._();
@@ -14,6 +15,7 @@ class RuniacFirebaseBootstrap {
   static Future<RuniacFirebaseBootstrapResult> initialize({
     RuniacFirebaseRuntimeConfig? config,
     bool enableAnonymousEmulatorSignIn = true,
+    RuniacFirestoreConnector? firestoreConnector,
   }) async {
     final runtimeConfig =
         config ?? RuniacFirebaseRuntimeConfig.fromEnvironment();
@@ -24,11 +26,17 @@ class RuniacFirebaseBootstrap {
         );
       }
       final firebaseAuth = FirebaseAuth.instance;
+      final firestoreGateway = RuniacFirestoreGateway.configure(
+        useFirebaseEmulator: runtimeConfig.useFirebaseEmulator,
+        emulatorHost: runtimeConfig.emulatorHost,
+        connector: firestoreConnector,
+      );
       return RuniacFirebaseBootstrapResult(
         runRepository: RunRepositoryFactory.create(config: runtimeConfig),
         authRepository: FirebaseRuniacAuthRepository(
           firebaseAuth: firebaseAuth,
         ),
+        firestoreGateway: firestoreGateway,
       );
     }
 
@@ -48,6 +56,11 @@ class RuniacFirebaseBootstrap {
     FirebaseFunctions.instanceFor(
       region: 'asia-southeast1',
     ).useFunctionsEmulator(runtimeConfig.emulatorHost, 5001);
+    final firestoreGateway = RuniacFirestoreGateway.configure(
+      useFirebaseEmulator: runtimeConfig.useFirebaseEmulator,
+      emulatorHost: runtimeConfig.emulatorHost,
+      connector: firestoreConnector,
+    );
 
     if (enableAnonymousEmulatorSignIn && firebaseAuth.currentUser == null) {
       await firebaseAuth.signInAnonymously();
@@ -56,6 +69,7 @@ class RuniacFirebaseBootstrap {
     return RuniacFirebaseBootstrapResult(
       runRepository: RunRepositoryFactory.create(config: runtimeConfig),
       authRepository: FirebaseRuniacAuthRepository(firebaseAuth: firebaseAuth),
+      firestoreGateway: firestoreGateway,
     );
   }
 
@@ -71,8 +85,10 @@ class RuniacFirebaseBootstrapResult {
   const RuniacFirebaseBootstrapResult({
     required this.runRepository,
     required this.authRepository,
+    required this.firestoreGateway,
   });
 
   final RunRepository runRepository;
   final RuniacAuthRepository authRepository;
+  final RuniacFirestoreGateway firestoreGateway;
 }

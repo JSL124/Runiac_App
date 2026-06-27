@@ -1,6 +1,7 @@
 // ignore: depend_on_referenced_packages
 import 'package:firebase_core_platform_interface/test.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:runiac_app/core/firebase/runiac_firestore_gateway.dart';
 import 'package:runiac_app/core/firebase/runiac_firebase_bootstrap.dart';
 import 'package:runiac_app/features/auth/data/firebase_runiac_auth_repository.dart';
 import 'package:runiac_app/features/auth/data/non_production_auth_repository.dart';
@@ -122,6 +123,8 @@ void main() {
 
         expect(bootstrap.runRepository, isA<StaticRunRepository>());
         expect(bootstrap.authRepository, isA<FirebaseRuniacAuthRepository>());
+        expect(bootstrap.firestoreGateway, isA<RuniacFirestoreGateway>());
+        expect(bootstrap.firestoreGateway.usesEmulator, isFalse);
         expect(
           bootstrap.authRepository,
           isNot(isA<NonProductionAuthRepository>()),
@@ -139,6 +142,7 @@ void main() {
 
         expect(bootstrap.runRepository, isA<StaticRunRepository>());
         expect(bootstrap.authRepository, isA<FirebaseRuniacAuthRepository>());
+        expect(bootstrap.firestoreGateway.usesEmulator, isFalse);
         expect(
           bootstrap.authRepository,
           isNot(isA<NonProductionAuthRepository>()),

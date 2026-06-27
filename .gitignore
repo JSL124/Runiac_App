@@ -52,6 +52,9 @@ GoogleService-Info.plist
 build/
 coverage/
 
+# Xcode/SwiftPM generated resolver files
+**/xcshareddata/swiftpm/Package.resolved
+
 # Mobile local config and signing material
 android/local.properties
 **/android/local.properties
