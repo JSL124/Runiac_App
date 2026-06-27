@@ -3,10 +3,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 
 import '../../features/auth/data/firebase_runiac_auth_repository.dart';
-import '../../features/auth/data/non_production_auth_repository.dart';
 import '../../features/auth/domain/runiac_auth_service.dart';
 import '../../features/run/data/run_repository_factory.dart';
 import '../../features/run/domain/repositories/run_repository.dart';
+import '../../firebase_options.dart';
 
 class RuniacFirebaseBootstrap {
   const RuniacFirebaseBootstrap._();
@@ -18,9 +18,17 @@ class RuniacFirebaseBootstrap {
     final runtimeConfig =
         config ?? RuniacFirebaseRuntimeConfig.fromEnvironment();
     if (!runtimeConfig.useFirebaseEmulator) {
+      if (Firebase.apps.isEmpty) {
+        await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform,
+        );
+      }
+      final firebaseAuth = FirebaseAuth.instance;
       return RuniacFirebaseBootstrapResult(
         runRepository: RunRepositoryFactory.create(config: runtimeConfig),
-        authRepository: const NonProductionAuthRepository(),
+        authRepository: FirebaseRuniacAuthRepository(
+          firebaseAuth: firebaseAuth,
+        ),
       );
     }
 

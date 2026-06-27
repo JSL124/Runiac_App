@@ -1,11 +1,17 @@
+// ignore: depend_on_referenced_packages
+import 'package:firebase_core_platform_interface/test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/core/firebase/runiac_firebase_bootstrap.dart';
+import 'package:runiac_app/features/auth/data/firebase_runiac_auth_repository.dart';
 import 'package:runiac_app/features/auth/data/non_production_auth_repository.dart';
 import 'package:runiac_app/features/auth/domain/runiac_auth_service.dart';
 import 'package:runiac_app/features/run/data/run_repository_factory.dart';
 import 'package:runiac_app/features/run/data/static_run_repository.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  TestFirebaseCoreHostApi.setUp(_EmptyFirebaseCoreHostApi());
+
   group('Runiac auth service', () {
     test('maps FirebaseAuthException codes to beginner-friendly errors', () {
       const cases = <_FirebaseAuthErrorCase>[
@@ -108,18 +114,62 @@ void main() {
     );
 
     test(
-      'bootstrap returns signed-out auth fallback outside emulator',
+      'bootstrap returns Firebase auth with static runs outside emulator',
       () async {
         final bootstrap = await RuniacFirebaseBootstrap.initialize(
           config: const RuniacFirebaseRuntimeConfig(useFirebaseEmulator: false),
         );
 
         expect(bootstrap.runRepository, isA<StaticRunRepository>());
-        expect(bootstrap.authRepository, isA<NonProductionAuthRepository>());
-        expect(bootstrap.authRepository.currentUser, isNull);
+        expect(bootstrap.authRepository, isA<FirebaseRuniacAuthRepository>());
+        expect(
+          bootstrap.authRepository,
+          isNot(isA<NonProductionAuthRepository>()),
+        );
+      },
+    );
+
+    test(
+      'production bootstrap does not use non-production auth when anonymous emulator sign-in is disabled',
+      () async {
+        final bootstrap = await RuniacFirebaseBootstrap.initialize(
+          config: const RuniacFirebaseRuntimeConfig(useFirebaseEmulator: false),
+          enableAnonymousEmulatorSignIn: false,
+        );
+
+        expect(bootstrap.runRepository, isA<StaticRunRepository>());
+        expect(bootstrap.authRepository, isA<FirebaseRuniacAuthRepository>());
+        expect(
+          bootstrap.authRepository,
+          isNot(isA<NonProductionAuthRepository>()),
+        );
       },
     );
   });
+}
+
+class _EmptyFirebaseCoreHostApi implements TestFirebaseCoreHostApi {
+  @override
+  Future<CoreInitializeResponse> initializeApp(
+    String appName,
+    CoreFirebaseOptions initializeAppRequest,
+  ) async {
+    return CoreInitializeResponse(
+      name: appName,
+      options: initializeAppRequest,
+      pluginConstants: {},
+    );
+  }
+
+  @override
+  Future<List<CoreInitializeResponse>> initializeCore() async {
+    return const <CoreInitializeResponse>[];
+  }
+
+  @override
+  Future<CoreFirebaseOptions> optionsFromResource() {
+    throw UnimplementedError();
+  }
 }
 
 class _FirebaseAuthErrorCase {

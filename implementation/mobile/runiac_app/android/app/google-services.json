@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "299427653807",
+    "project_id": "runiac-fypp",
+    "storage_bucket": "runiac-fypp.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:299427653807:android:5a96828c12c112b6598c5a",
+        "android_client_info": {
+          "package_name": "com.runiac.runiac_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBc8zceFI1el75s2cPjmwoXcspKenpX8YU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
