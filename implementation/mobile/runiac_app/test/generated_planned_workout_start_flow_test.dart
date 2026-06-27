@@ -28,6 +28,31 @@ BeginnerAdaptivePlanSnapshot _tenKPerformancePlan() {
   );
 }
 
+BeginnerAdaptivePlanSnapshot _safetyReadinessPlanWithStaleWorkoutRows() {
+  final basePlan = _tenKPerformancePlan();
+  return BeginnerAdaptivePlanSnapshot(
+    id: basePlan.id,
+    title: 'Safety Readiness Plan',
+    subtitle: basePlan.subtitle,
+    planKind: basePlan.planKind,
+    sourceLabel: basePlan.sourceLabel,
+    durationWeeks: 0,
+    safetyBand: basePlan.safetyBand,
+    templateKind: basePlan.templateKind,
+    family: basePlan.family,
+    familyCategory: basePlan.familyCategory,
+    familyReason: basePlan.familyReason,
+    supportStyleLabel: basePlan.supportStyleLabel,
+    weeklyFrequencyLabel: 'No running workouts',
+    preferredScheduleLabel: 'No workout schedule',
+    sessionDurationLabel: 'No duration target',
+    safetyNote: basePlan.safetyNote,
+    weeks: basePlan.weeks,
+    clientDisplayStatus:
+        BeginnerAdaptivePlanClientDisplayStatus.safetyReadiness,
+  );
+}
+
 DateTime _weekdayDate(int weekday) {
   return DateTime(2026, 6, 21 + weekday);
 }
@@ -72,9 +97,13 @@ bool _rowWithTextHasColor(
 }
 
 class _GeneratedPlansHarness extends StatefulWidget {
-  const _GeneratedPlansHarness({required this.generatedPlan});
+  const _GeneratedPlansHarness({
+    required this.generatedPlan,
+    this.safetyReadinessPlan,
+  });
 
-  final GeneratedYouPlanDisplay generatedPlan;
+  final GeneratedYouPlanDisplay? generatedPlan;
+  final SafetyReadinessYouPlanDisplay? safetyReadinessPlan;
 
   @override
   State<_GeneratedPlansHarness> createState() => _GeneratedPlansHarnessState();
@@ -99,6 +128,7 @@ class _GeneratedPlansHarnessState extends State<_GeneratedPlansHarness> {
       body: SingleChildScrollView(
         child: YouPlansSurface(
           generatedPlan: widget.generatedPlan,
+          safetyReadinessPlan: widget.safetyReadinessPlan,
           onViewGoalPlan: () {},
           onViewWorkout: (snapshot) => setState(() => _detail = snapshot),
           onViewExpertPlans: () {},
@@ -109,6 +139,42 @@ class _GeneratedPlansHarnessState extends State<_GeneratedPlansHarness> {
 }
 
 void main() {
+  testWidgets('safety readiness does not create planned run context', (
+    tester,
+  ) async {
+    // Given: a Safety Readiness display state must win over any stale
+    // generated workout rows carried in session-local display data.
+    final safetySnapshot = _safetyReadinessPlanWithStaleWorkoutRows();
+
+    // When: the normal generated weekly-plan adapter sees that display state.
+    final generatedPlan = generatedYouPlanDisplayFromSnapshot(
+      safetySnapshot,
+      currentDate: _weekdayDate(DateTime.monday),
+    );
+    final safetyPlan = safetyReadinessYouPlanDisplayFromSnapshot(
+      safetySnapshot,
+    );
+
+    // Then: it cannot create a workout detail, Start CTA, or planned context.
+    expect(generatedPlan, isNull);
+    expect(safetyPlan, isNotNull);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: _GeneratedPlansHarness(
+          generatedPlan: generatedPlan,
+          safetyReadinessPlan: safetyPlan,
+        ),
+      ),
+    );
+
+    expect(find.text('Safety Readiness Plan'), findsOneWidget);
+    expect(find.text('25 min Comfortable Run'), findsNothing);
+    expect(find.text('Workout detail'), findsNothing);
+    expect(find.text('Start this run'), findsNothing);
+    expect(find.text('CONTROLLED STEADY RUN'), findsNothing);
+  });
+
   testWidgets('today generated running row is orange and shows Start only', (
     tester,
   ) async {

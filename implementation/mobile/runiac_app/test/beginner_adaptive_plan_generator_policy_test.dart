@@ -183,7 +183,63 @@ void main() {
       );
       expect(blocked.isBlocked, isTrue);
       expect(blocked.weeks, isEmpty);
-      expect(blocked.weeklyFrequencyLabel, 'No running plan');
+      expect(blocked.weeklyFrequencyLabel, 'No running workouts');
+    });
+
+    test('needsClearance produces Safety Readiness Plan', () {
+      final cases = [
+        _draft(health: OnboardingHealthComfort.heart),
+        _draft(health: OnboardingHealthComfort.advised),
+        _draft(symptoms: [OnboardingActivitySymptom.chest]),
+        _draft(symptoms: [OnboardingActivitySymptom.dizzy]),
+        _draft(symptoms: [OnboardingActivitySymptom.breath]),
+        _draft(symptoms: [OnboardingActivitySymptom.heartbeat]),
+        _draft(
+          health: OnboardingHealthComfort.ready,
+          symptoms: [OnboardingActivitySymptom.chest],
+        ),
+        _draft(
+          health: OnboardingHealthComfort.injury,
+          symptoms: [OnboardingActivitySymptom.dizzy],
+        ),
+      ];
+
+      for (final draft in cases) {
+        final plan = generator.generate(draft);
+
+        expect(
+          plan.clientDisplayStatus,
+          BeginnerAdaptivePlanClientDisplayStatus.safetyReadiness,
+        );
+        expect(plan.isSafetyReadinessDisplay, isTrue);
+        expect(plan.canStartPlannedRun, isFalse);
+        expect(plan.isBlocked, isTrue);
+        expect(plan.family, isNull);
+        expect(plan.familyCategory, isNull);
+        expect(plan.durationWeeks, 0);
+        expect(plan.weeks, isEmpty);
+        expect(plan.weeklyFrequencyLabel, 'No running workouts');
+        expect(plan.preferredScheduleLabel, 'No workout schedule');
+        expect(plan.sessionDurationLabel, 'No duration target');
+        expect(plan.title, 'Safety Readiness Plan');
+        expect(
+          [plan.subtitle, plan.safetyNote].join(' '),
+          contains('qualified professional guidance'),
+        );
+        expect(
+          [plan.title, plan.subtitle, plan.safetyNote].join(' '),
+          isNot(
+            contains(
+              RegExp(
+                'safe to run|cleared|diagnosis|treatment|medical advice|'
+                'push through|continue anyway|at your own risk|pace|'
+                'distance|planned session',
+                caseSensitive: false,
+              ),
+            ),
+          ),
+        );
+      }
     });
 
     test('uses only selected preferred days and best-spaced subset', () {

@@ -45,9 +45,10 @@ class BeginnerAdaptivePlanGenerator {
     if (family == null) {
       return BeginnerAdaptivePlanSnapshot(
         id: 'local-onboarding-beginner-plan',
-        title: 'Plan paused for safety',
+        title: 'Safety Readiness Plan',
         subtitle:
-            'These answers need qualified guidance before Runiac can suggest running sessions.',
+            'These answers need qualified professional guidance before Runiac '
+            'can suggest running workouts.',
         planKind: BeginnerAdaptivePlanKind.onboardingBased,
         sourceLabel: 'Onboarding based',
         durationWeeks: 0,
@@ -57,13 +58,15 @@ class BeginnerAdaptivePlanGenerator {
         familyCategory: null,
         familyReason: resolvedFamily.reason,
         supportStyleLabel: BeginnerAdaptivePlanCopy.supportStyleFor(draft),
-        weeklyFrequencyLabel: 'No running plan',
-        preferredScheduleLabel: 'Not scheduled',
-        sessionDurationLabel: 'Not scheduled',
-        safetyNote: BeginnerAdaptivePlanCopy.safetyNoteFor(
-          policy.profile.safetyBand,
-        ),
+        weeklyFrequencyLabel: 'No running workouts',
+        preferredScheduleLabel: 'No workout schedule',
+        sessionDurationLabel: 'No duration target',
+        safetyNote:
+            'Use this as a readiness checkpoint and get qualified '
+            'professional guidance before choosing a running plan.',
         weeks: const [],
+        clientDisplayStatus:
+            BeginnerAdaptivePlanClientDisplayStatus.safetyReadiness,
       );
     }
 

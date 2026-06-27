@@ -164,7 +164,11 @@ void main() {
       expect(plan.title, isNot('Return to Movement'));
       expect(plan.durationWeeks, 0);
       expect(plan.weeks, isEmpty);
-      expect(plan.weeklyFrequencyLabel, 'No running plan');
+      expect(plan.weeklyFrequencyLabel, 'No running workouts');
+      expect(plan.preferredScheduleLabel, 'No workout schedule');
+      expect(plan.sessionDurationLabel, 'No duration target');
+      expect(plan.isSafetyReadinessDisplay, isTrue);
+      expect(plan.canStartPlannedRun, isFalse);
       expect(plan.familyReason, contains('paused'));
       expect([
         plan.title,

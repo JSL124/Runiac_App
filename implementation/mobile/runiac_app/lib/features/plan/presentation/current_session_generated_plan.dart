@@ -11,7 +11,7 @@ class CurrentSessionGeneratedPlanStore extends ChangeNotifier {
 
   int get currentWeekRunningSessionCount {
     final plan = _activePlan;
-    if (plan == null || plan.weeks.isEmpty) {
+    if (plan == null || !isEligibleCurrentSessionGeneratedPlan(plan)) {
       return 0;
     }
 
@@ -19,7 +19,7 @@ class CurrentSessionGeneratedPlanStore extends ChangeNotifier {
   }
 
   bool setActivePlan(BeginnerAdaptivePlanSnapshot snapshot) {
-    if (!isEligibleCurrentSessionGeneratedPlan(snapshot)) {
+    if (!isDisplayableCurrentSessionGeneratedPlan(snapshot)) {
       return false;
     }
 
@@ -42,10 +42,19 @@ class CurrentSessionGeneratedPlanStore extends ChangeNotifier {
   }
 }
 
+bool isDisplayableCurrentSessionGeneratedPlan(
+  BeginnerAdaptivePlanSnapshot snapshot,
+) {
+  return isEligibleCurrentSessionGeneratedPlan(snapshot) ||
+      (snapshot.isSafetyReadinessDisplay && snapshot.weeks.isEmpty);
+}
+
 bool isEligibleCurrentSessionGeneratedPlan(
   BeginnerAdaptivePlanSnapshot snapshot,
 ) {
-  if (snapshot.isBlocked || snapshot.weeks.isEmpty) {
+  if (!snapshot.canStartPlannedRun ||
+      snapshot.isBlocked ||
+      snapshot.weeks.isEmpty) {
     return false;
   }
 

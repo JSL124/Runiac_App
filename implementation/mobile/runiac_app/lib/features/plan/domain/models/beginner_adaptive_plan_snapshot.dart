@@ -5,6 +5,8 @@ import 'plan_family.dart';
 
 enum BeginnerAdaptivePlanKind { onboardingBased }
 
+enum BeginnerAdaptivePlanClientDisplayStatus { generatedPlan, safetyReadiness }
+
 enum BeginnerWorkoutKind {
   easyRun,
   runWalk,
@@ -38,6 +40,8 @@ class BeginnerAdaptivePlanSnapshot {
     required this.sessionDurationLabel,
     required this.safetyNote,
     required List<BeginnerAdaptivePlanWeek> weeks,
+    this.clientDisplayStatus =
+        BeginnerAdaptivePlanClientDisplayStatus.generatedPlan,
   }) : weeks = List.unmodifiable(weeks);
 
   final String id;
@@ -57,8 +61,21 @@ class BeginnerAdaptivePlanSnapshot {
   final String sessionDurationLabel;
   final String safetyNote;
   final List<BeginnerAdaptivePlanWeek> weeks;
+  // Frontend/session-local display state only. This is not a PlanFamily,
+  // Firestore plan status, or backend-owned plan lifecycle value.
+  final BeginnerAdaptivePlanClientDisplayStatus clientDisplayStatus;
 
   bool get isBlocked => family == null;
+
+  bool get isSafetyReadinessDisplay =>
+      clientDisplayStatus ==
+      BeginnerAdaptivePlanClientDisplayStatus.safetyReadiness;
+
+  bool get canStartPlannedRun =>
+      clientDisplayStatus ==
+          BeginnerAdaptivePlanClientDisplayStatus.generatedPlan &&
+      !isBlocked &&
+      weeks.any((week) => week.workouts.isNotEmpty);
 }
 
 class BeginnerAdaptivePlanWeek {

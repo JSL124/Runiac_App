@@ -56,45 +56,59 @@ void main() {
     },
   );
 
-  testWidgets('needs-clearance preview renders no generated workout rows', (
+  testWidgets('needsClearance preview shows Safety Readiness Plan', (
     tester,
   ) async {
-    final draft = LocalOnboardingDraft(
-      goal: OnboardingGoal.first5k,
-      experience: OnboardingExperience.intervals,
-      availability: OnboardingAvailability.three,
-      preferredDays: const [
-        OnboardingPreferredDay.mon,
-        OnboardingPreferredDay.wed,
-        OnboardingPreferredDay.fri,
-      ],
-      preferredTime: OnboardingPreferredTime.morning,
-      sessionLength: OnboardingSessionLength.twenty,
-      runningPlace: OnboardingRunningPlace.park,
-      motivationStyle: OnboardingMotivationStyle.plan,
-      healthComfort: OnboardingHealthComfort.heart,
-      activitySymptoms: const [OnboardingActivitySymptom.breath],
-      planCautiousness: OnboardingPlanCautiousness.standard,
-    );
+    final redFlagDrafts = <LocalOnboardingDraft>[
+      _needsClearanceDraft(health: OnboardingHealthComfort.heart),
+      _needsClearanceDraft(health: OnboardingHealthComfort.advised),
+      _needsClearanceDraft(symptoms: const [OnboardingActivitySymptom.chest]),
+      _needsClearanceDraft(symptoms: const [OnboardingActivitySymptom.dizzy]),
+      _needsClearanceDraft(symptoms: const [OnboardingActivitySymptom.breath]),
+      _needsClearanceDraft(
+        symptoms: const [OnboardingActivitySymptom.heartbeat],
+      ),
+      _needsClearanceDraft(
+        health: OnboardingHealthComfort.ready,
+        symptoms: const [OnboardingActivitySymptom.chest],
+      ),
+      _needsClearanceDraft(
+        health: OnboardingHealthComfort.injury,
+        symptoms: const [OnboardingActivitySymptom.dizzy],
+      ),
+    ];
 
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: SingleChildScrollView(
-            child: OnboardingPreviewBody(answers: _answersFor(draft)),
+    for (final draft in redFlagDrafts) {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: OnboardingPreviewBody(answers: _answersFor(draft)),
+            ),
           ),
         ),
-      ),
-    );
+      );
 
-    expect(
-      find.textContaining("Runiac can't create a running plan"),
-      findsOneWidget,
-    );
-    expect(find.text('Suggested starting plan'), findsNothing);
-    expect(find.text('First week preview'), findsNothing);
-    expect(find.text('Return to Movement'), findsNothing);
-    expect(find.textContaining('Easy Walk'), findsNothing);
+      expect(find.text('Safety-first setup'), findsOneWidget);
+      expect(find.text('Safety Readiness Plan'), findsOneWidget);
+      expect(
+        find.textContaining('qualified professional guidance'),
+        findsWidgets,
+      );
+      expect(
+        find.textContaining("Runiac can't create a running plan"),
+        findsNothing,
+      );
+      expect(find.text('Suggested starting plan'), findsNothing);
+      expect(find.text('First week preview'), findsNothing);
+      expect(find.text('Return to Movement'), findsNothing);
+      expect(find.textContaining('Easy Walk'), findsNothing);
+      expect(find.textContaining(' min'), findsNothing);
+      expect(find.textContaining('km'), findsNothing);
+      expect(find.textContaining('pace'), findsNothing);
+      expect(find.textContaining('Start Run'), findsNothing);
+      expect(find.textContaining('continue anyway'), findsNothing);
+    }
   });
 
   testWidgets('body concern preview renders recovery plan rows', (
@@ -159,4 +173,29 @@ Map<String, Object> _answersFor(LocalOnboardingDraft draft) {
     'symptoms': draft.activitySymptoms.map((symptom) => symptom.value).toSet(),
     'cautious': draft.planCautiousness.value,
   };
+}
+
+LocalOnboardingDraft _needsClearanceDraft({
+  OnboardingHealthComfort health = OnboardingHealthComfort.ready,
+  List<OnboardingActivitySymptom> symptoms = const [
+    OnboardingActivitySymptom.none,
+  ],
+}) {
+  return LocalOnboardingDraft(
+    goal: OnboardingGoal.first5k,
+    experience: OnboardingExperience.intervals,
+    availability: OnboardingAvailability.three,
+    preferredDays: const [
+      OnboardingPreferredDay.mon,
+      OnboardingPreferredDay.wed,
+      OnboardingPreferredDay.fri,
+    ],
+    preferredTime: OnboardingPreferredTime.morning,
+    sessionLength: OnboardingSessionLength.twenty,
+    runningPlace: OnboardingRunningPlace.park,
+    motivationStyle: OnboardingMotivationStyle.plan,
+    healthComfort: health,
+    activitySymptoms: symptoms,
+    planCautiousness: OnboardingPlanCautiousness.standard,
+  );
 }

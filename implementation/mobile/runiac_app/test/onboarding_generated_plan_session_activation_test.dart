@@ -79,7 +79,7 @@ void main() {
     },
   );
 
-  testWidgets('needs clearance completion does not activate generated plan', (
+  testWidgets('needs clearance completion retains safety readiness display', (
     tester,
   ) async {
     final generatedPlanStore = CurrentSessionGeneratedPlanStore();
@@ -94,14 +94,35 @@ void main() {
     );
 
     await completeOnboardingToNeedsClearancePreview(tester);
+
+    expect(find.text('Safety-first setup'), findsOneWidget);
+    expect(find.text('Safety Readiness Plan'), findsOneWidget);
+    expect(
+      find.textContaining('qualified professional guidance'),
+      findsWidgets,
+    );
+    expect(find.text('First week preview'), findsNothing);
+    expect(find.text('Suggested starting plan'), findsNothing);
+    expect(find.textContaining(' min'), findsNothing);
+    expect(find.textContaining('km'), findsNothing);
+    expect(find.textContaining('pace'), findsNothing);
+    expect(find.textContaining('Start Run'), findsNothing);
+    expect(find.textContaining('continue anyway'), findsNothing);
+
     await tapText(tester, 'Finish for now');
 
     expect(find.text('Good to see you'), findsOneWidget);
-    expect(generatedPlanStore.activePlan, isNull);
+    expect(generatedPlanStore.activePlan, isNotNull);
+    expect(generatedPlanStore.activePlan!.isSafetyReadinessDisplay, isTrue);
+    expect(generatedPlanStore.activePlan!.canStartPlannedRun, isFalse);
+    expect(
+      isEligibleCurrentSessionGeneratedPlan(generatedPlanStore.activePlan!),
+      isFalse,
+    );
     expect(generatedPlanStore.currentWeekRunningSessionCount, 0);
   });
 
-  testWidgets('blocked onboarding completion clears stale generated plan', (
+  testWidgets('needs clearance completion replaces stale generated plan', (
     tester,
   ) async {
     final generatedPlanStore = CurrentSessionGeneratedPlanStore();
@@ -129,10 +150,22 @@ void main() {
     );
 
     await completeOnboardingToNeedsClearancePreview(tester);
+
+    expect(find.text('Safety-first setup'), findsOneWidget);
+    expect(find.text('Safety Readiness Plan'), findsOneWidget);
+    expect(find.text('Continue with this plan'), findsNothing);
+    expect(find.text('Finish for now'), findsOneWidget);
+
     await tapText(tester, 'Finish for now');
 
     expect(find.text('Good to see you'), findsOneWidget);
-    expect(generatedPlanStore.activePlan, isNull);
+    expect(generatedPlanStore.activePlan, isNotNull);
+    expect(generatedPlanStore.activePlan, isNot(same(stalePlan)));
+    expect(generatedPlanStore.activePlan!.isSafetyReadinessDisplay, isTrue);
+    expect(
+      isEligibleCurrentSessionGeneratedPlan(generatedPlanStore.activePlan!),
+      isFalse,
+    );
     expect(generatedPlanStore.currentWeekRunningSessionCount, 0);
   });
 }

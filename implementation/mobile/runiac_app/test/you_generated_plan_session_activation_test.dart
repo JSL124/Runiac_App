@@ -1,8 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/app.dart';
 import 'package:runiac_app/features/plan/domain/models/beginner_adaptive_plan_snapshot.dart';
 import 'package:runiac_app/features/plan/domain/services/beginner_adaptive_plan_generator.dart';
 import 'package:runiac_app/features/plan/presentation/current_session_generated_plan.dart';
+import 'package:runiac_app/features/you/presentation/adapters/generated_plan_you_display_adapter.dart';
 
 import 'support/plan_family_test_drafts.dart';
 
@@ -38,7 +40,73 @@ BeginnerAdaptivePlanSnapshot _tenKPerformancePlan() {
   );
 }
 
+BeginnerAdaptivePlanSnapshot _safetyReadinessPlan() {
+  return const BeginnerAdaptivePlanGenerator().generate(
+    planFamilyStarterDraft(health: OnboardingHealthComfort.heart),
+  );
+}
+
 void main() {
+  testWidgets('You shows safety readiness plan without workout detail', (
+    WidgetTester tester,
+  ) async {
+    final safetyPlan = _safetyReadinessPlan();
+    final generatedPlanStore = CurrentSessionGeneratedPlanStore();
+    expect(generatedPlanStore.setActivePlan(safetyPlan), isTrue);
+
+    final generatedDisplay = generatedYouPlanDisplayFromSnapshot(safetyPlan);
+    final safetyDisplay = safetyReadinessYouPlanDisplayFromSnapshot(safetyPlan);
+
+    expect(generatedDisplay, isNull);
+    expect(safetyDisplay, isNotNull);
+    expect(safetyDisplay!.title, 'Safety Readiness Plan');
+    expect(safetyDisplay.readinessRows, hasLength(4));
+    expect(
+      safetyDisplay.readinessRows.map((row) => row.title),
+      containsAll(const [
+        'Review answers',
+        'Update answers',
+        'Read non-prescriptive safety information',
+        'Seek qualified professional guidance',
+      ]),
+    );
+
+    await _openYouPlansTab(tester, generatedPlanStore);
+
+    expect(find.text('Current Goal'), findsNothing);
+    expect(find.text('Safety Readiness Plan'), findsOneWidget);
+    expect(find.text('Read-only safety display'), findsOneWidget);
+    expect(find.text('Review answers'), findsOneWidget);
+    expect(find.text('Update answers'), findsOneWidget);
+    expect(
+      find.text('Read non-prescriptive safety information'),
+      findsOneWidget,
+    );
+    expect(find.text('Seek qualified professional guidance'), findsOneWidget);
+    expect(find.text('Start this run'), findsNothing);
+    expect(find.text('Upcoming · 7:30 AM'), findsNothing);
+    expect(find.text('Rest Day'), findsNothing);
+    expect(find.text('0 of 0 done'), findsNothing);
+    expect(find.text('Explore expert plans'), findsNothing);
+    expect(find.text('Explore Expert Plans'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('weekly_workout_detail_chevron')),
+      findsNothing,
+    );
+
+    await tester.tap(find.text('Review answers'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Update answers'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Read non-prescriptive safety information'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Seek qualified professional guidance'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Workout detail'), findsNothing);
+    expect(find.text('Safety Readiness Plan'), findsOneWidget);
+  });
+
   testWidgets(
     'You Plans shows generated onboarding plan before static fallback',
     (WidgetTester tester) async {

@@ -217,11 +217,11 @@ void main() {
     await completeOnboardingToNeedsClearancePreview(tester);
 
     expect(find.text('Step 16 of 16'), findsOneWidget);
+    expect(find.text('Safety-first setup'), findsOneWidget);
+    expect(find.text('Safety Readiness Plan'), findsOneWidget);
     expect(
-      find.text(
-        "Runiac can't create a running plan from these answers. Please get guidance from a qualified professional before starting or increasing running. You can still use Runiac for gentle reminders and edit answers later.",
-      ),
-      findsOneWidget,
+      find.textContaining('qualified professional guidance'),
+      findsWidgets,
     );
     expect(find.text('First week preview'), findsNothing);
     expect(find.text('Suggested starting plan'), findsNothing);

@@ -4,6 +4,7 @@ import '../../../../core/theme/runiac_colors.dart';
 import '../../domain/services/onboarding_plan_style_resolver.dart';
 import '../../domain/services/runner_level_resolver.dart';
 import '../../domain/services/safety_gate_resolver.dart';
+import '../../../plan/domain/models/beginner_adaptive_plan_snapshot.dart';
 import '../../../plan/domain/services/beginner_adaptive_plan_generator.dart';
 import '../../domain/models/local_onboarding_draft.dart';
 import 'first_week_preview.dart';
@@ -20,8 +21,11 @@ class OnboardingPreviewBody extends StatelessWidget {
     final safetyGate = draft == null
         ? SafetyGateState.clear
         : const SafetyGateResolver().resolve(draft);
-    if (safetyGate == SafetyGateState.needsClearance) {
-      return const _NeedsClearancePreview();
+    final plan = const BeginnerAdaptivePlanGenerator().generate(
+      draft ?? _previewFallbackDraft,
+    );
+    if (plan.isSafetyReadinessDisplay) {
+      return _SafetyReadinessPreview(plan: plan);
     }
 
     final runnerLevel = draft == null
@@ -34,11 +38,8 @@ class OnboardingPreviewBody extends StatelessWidget {
             safetyGate: safetyGate,
             runnerLevel: runnerLevel,
           );
-    final plan = const BeginnerAdaptivePlanGenerator().generate(
-      draft ?? _previewFallbackDraft,
-    );
     if (plan.isBlocked) {
-      return const _NeedsClearancePreview();
+      return _SafetyReadinessPreview(plan: plan);
     }
 
     final length = plan.sessionDurationLabel;
@@ -134,20 +135,108 @@ final _previewFallbackDraft = LocalOnboardingDraft(
   planStyle: OnboardingPlanStyle.balanced,
 );
 
-class _NeedsClearancePreview extends StatelessWidget {
-  const _NeedsClearancePreview();
+class _SafetyReadinessPreview extends StatelessWidget {
+  const _SafetyReadinessPreview({required this.plan});
+
+  final BeginnerAdaptivePlanSnapshot plan;
 
   @override
   Widget build(BuildContext context) {
-    return const Column(
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        Text(
+          'Safety-first setup',
+          style: onboardingTextStyle(
+            size: 14,
+            weight: FontWeight.w800,
+            color: RuniacColors.accentOrange,
+            height: 1.35,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Runiac will keep this as a read-only readiness checkpoint. It does not create running workouts or a workout schedule.',
+          style: onboardingTextStyle(
+            size: 14,
+            weight: FontWeight.w500,
+            color: onboardingBlueWithOpacity(.75),
+            height: 1.5,
+          ),
+        ),
+        const SizedBox(height: 16),
+        _SafetyReadinessCard(title: plan.title, subtitle: plan.subtitle),
+        const SizedBox(height: 10),
+        _SummaryTile(label: 'Running workouts', value: 'None generated'),
+        const SizedBox(height: 10),
+        _SummaryTile(label: 'Workout schedule', value: 'None created'),
+        const SizedBox(height: 10),
         OnboardingInfoBanner(
           icon: Icons.health_and_safety_outlined,
-          text:
-              "Runiac can't create a running plan from these answers. Please get guidance from a qualified professional before starting or increasing running. You can still use Runiac for gentle reminders and edit answers later.",
+          text: plan.safetyNote,
         ),
       ],
+    );
+  }
+}
+
+class _SafetyReadinessCard extends StatelessWidget {
+  const _SafetyReadinessCard({required this.title, required this.subtitle});
+
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+      decoration: BoxDecoration(
+        color: RuniacColors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: onboardingBlueWithOpacity(.12)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.verified_user_outlined,
+                color: RuniacColors.accentOrange,
+                size: 18,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Read-only display',
+                style: onboardingTextStyle(
+                  size: 11.5,
+                  weight: FontWeight.w700,
+                  color: RuniacColors.accentOrange,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            title,
+            style: onboardingTextStyle(
+              size: 19,
+              weight: FontWeight.w800,
+              color: RuniacColors.primaryBlue,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            subtitle,
+            style: onboardingTextStyle(
+              size: 13.5,
+              weight: FontWeight.w500,
+              color: onboardingBlueWithOpacity(.75),
+              height: 1.5,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

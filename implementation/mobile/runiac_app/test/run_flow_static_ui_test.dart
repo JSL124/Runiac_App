@@ -134,7 +134,11 @@ Widget _shareSheetHarness() {
 
 Future<void> _openPausedRun(WidgetTester tester) async {
   await tester.pumpWidget(
-    const RuniacApp(showSplash: false, enableForegroundGps: false),
+    RuniacApp(
+      showSplash: false,
+      enableForegroundGps: false,
+      activeRunSessionCoordinator: _testActiveRunSessionCoordinator(tester),
+    ),
   );
 
   await tester.tap(find.byTooltip('Run'));
@@ -149,7 +153,7 @@ ActiveRunSessionCoordinator _testActiveRunSessionCoordinator(
   WidgetTester tester,
 ) {
   final activeRunSessionCoordinator = ActiveRunSessionCoordinator(
-    clock: tester.binding.clock.now,
+    clock: () => DateTime(2026, 6, 24, 8, 10),
     foregroundTickStep: const Duration(seconds: 1),
   );
   addTearDown(activeRunSessionCoordinator.dispose);
@@ -515,6 +519,9 @@ void main() {
           home: RunLaunchScreen(
             repository: repository,
             enableForegroundGps: false,
+            activeRunSessionCoordinator: _testActiveRunSessionCoordinator(
+              tester,
+            ),
           ),
         ),
       );
@@ -575,6 +582,7 @@ void main() {
         home: RunLaunchScreen(
           repository: repository,
           enableForegroundGps: false,
+          activeRunSessionCoordinator: _testActiveRunSessionCoordinator(tester),
         ),
       ),
     );
@@ -604,7 +612,14 @@ void main() {
     'Immediate Run finish shows zero summary instead of demo fallback',
     (WidgetTester tester) async {
       await tester.pumpWidget(
-        const MaterialApp(home: RunLaunchScreen(enableForegroundGps: false)),
+        MaterialApp(
+          home: RunLaunchScreen(
+            enableForegroundGps: false,
+            activeRunSessionCoordinator: _testActiveRunSessionCoordinator(
+              tester,
+            ),
+          ),
+        ),
       );
 
       await tester.tap(find.text('Start run'));

@@ -27,7 +27,7 @@ void main() {
     });
 
     test(
-      'rejects blocked generated plans without replacing existing state',
+      'stores safety readiness plan for display only and replaces stale plan',
       () {
         final store = CurrentSessionGeneratedPlanStore();
         final acceptedSnapshot = const BeginnerAdaptivePlanGenerator().generate(
@@ -46,10 +46,14 @@ void main() {
 
         final accepted = store.setActivePlan(blockedSnapshot);
 
-        expect(accepted, isFalse);
-        expect(store.activePlan, same(acceptedSnapshot));
+        expect(accepted, isTrue);
+        expect(store.activePlan, same(blockedSnapshot));
         expect(store.hasActivePlan, isTrue);
-        expect(notifications, 0);
+        expect(store.activePlan!.isSafetyReadinessDisplay, isTrue);
+        expect(store.activePlan!.canStartPlannedRun, isFalse);
+        expect(isEligibleCurrentSessionGeneratedPlan(blockedSnapshot), isFalse);
+        expect(store.currentWeekRunningSessionCount, 0);
+        expect(notifications, 1);
       },
     );
 

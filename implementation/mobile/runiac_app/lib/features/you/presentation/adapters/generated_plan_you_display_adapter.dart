@@ -34,6 +34,32 @@ class GeneratedYouPlanDisplay {
   final List<YouPlanScheduleRow> scheduleRows;
 }
 
+class SafetyReadinessYouPlanDisplay {
+  const SafetyReadinessYouPlanDisplay({
+    required this.title,
+    required this.subtitle,
+    required this.statusLabel,
+    required this.readinessRows,
+  });
+
+  final String title;
+  final String subtitle;
+  final String statusLabel;
+  final List<SafetyReadinessYouPlanRow> readinessRows;
+}
+
+class SafetyReadinessYouPlanRow {
+  const SafetyReadinessYouPlanRow({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+}
+
 GeneratedYouPlanDisplay? generatedYouPlanDisplayFromSnapshot(
   BeginnerAdaptivePlanSnapshot? snapshot, {
   DateTime? currentDate,
@@ -58,6 +84,45 @@ GeneratedYouPlanDisplay? generatedYouPlanDisplayFromSnapshot(
       snapshot,
       currentWeekdayIndex,
     ),
+  );
+}
+
+SafetyReadinessYouPlanDisplay? safetyReadinessYouPlanDisplayFromSnapshot(
+  BeginnerAdaptivePlanSnapshot? snapshot,
+) {
+  if (snapshot == null || !snapshot.isSafetyReadinessDisplay) {
+    return null;
+  }
+
+  return SafetyReadinessYouPlanDisplay(
+    title: snapshot.title,
+    subtitle: snapshot.subtitle,
+    statusLabel: 'Read-only safety display',
+    readinessRows: const [
+      SafetyReadinessYouPlanRow(
+        title: 'Review answers',
+        subtitle:
+            'Check the onboarding health and symptom answers stored for this session.',
+        icon: Icons.fact_check_outlined,
+      ),
+      SafetyReadinessYouPlanRow(
+        title: 'Update answers',
+        subtitle: 'Change any answer that is incomplete or no longer accurate.',
+        icon: Icons.edit_note_outlined,
+      ),
+      SafetyReadinessYouPlanRow(
+        title: 'Read non-prescriptive safety information',
+        subtitle:
+            'Use general safety information that avoids workout instructions.',
+        icon: Icons.menu_book_outlined,
+      ),
+      SafetyReadinessYouPlanRow(
+        title: 'Seek qualified professional guidance',
+        subtitle:
+            'Ask a qualified professional before choosing a running plan.',
+        icon: Icons.health_and_safety_outlined,
+      ),
+    ],
   );
 }
 
@@ -153,6 +218,10 @@ WeeklyWorkoutDetailSnapshot _workoutDetailFor(
   required bool canStart,
   required bool canEditSchedule,
 }) {
+  final canStartPlannedRun = canStart && snapshot.canStartPlannedRun;
+  final canEditGeneratedSchedule =
+      canEditSchedule && snapshot.canStartPlannedRun;
+
   return WeeklyWorkoutDetailSnapshot(
     title: 'Workout detail',
     dayLabel: '${workout.dayLabel} · ${workout.title}',
@@ -170,9 +239,9 @@ WeeklyWorkoutDetailSnapshot _workoutDetailFor(
     ],
     effortGuide: workout.description,
     coachNotes: [workout.supportiveNote, snapshot.safetyNote],
-    startActionLabel: canStart ? 'Start this run' : null,
-    canEditSchedule: canEditSchedule,
-    plannedRunContext: canStart
+    startActionLabel: canStartPlannedRun ? 'Start this run' : null,
+    canEditSchedule: canEditGeneratedSchedule,
+    plannedRunContext: canStartPlannedRun
         ? _plannedRunContextFor(workout, snapshot)
         : null,
   );

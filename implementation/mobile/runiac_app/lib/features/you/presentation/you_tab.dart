@@ -56,6 +56,9 @@ class _YouTabState extends State<YouTab> {
     final generatedPlanDisplay = generatedYouPlanDisplayFromSnapshot(
       generatedPlanStore.activePlan,
     );
+    final safetyReadinessDisplay = safetyReadinessYouPlanDisplayFromSnapshot(
+      generatedPlanStore.activePlan,
+    );
 
     if (_activityHistoryVisible) {
       return ActivityHistoryScreen(
@@ -129,6 +132,7 @@ class _YouTabState extends State<YouTab> {
                 if (_plans)
                   YouPlansSurface(
                     generatedPlan: generatedPlanDisplay,
+                    safetyReadinessPlan: safetyReadinessDisplay,
                     onViewGoalPlan: _showGoalPlanDetail,
                     onViewWorkout: _showWorkoutDetail,
                     onViewExpertPlans: _showExpertPlanList,

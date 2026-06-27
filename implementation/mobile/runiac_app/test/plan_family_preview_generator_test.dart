@@ -203,7 +203,11 @@ void main() {
       expect(plan.familyCategory, isNull);
       expect(plan.title, isNot('Return to Movement'));
       expect(plan.weeks, isEmpty);
-      expect(plan.weeklyFrequencyLabel, 'No running plan');
+      expect(plan.weeklyFrequencyLabel, 'No running workouts');
+      expect(plan.preferredScheduleLabel, 'No workout schedule');
+      expect(plan.sessionDurationLabel, 'No duration target');
+      expect(plan.isSafetyReadinessDisplay, isTrue);
+      expect(plan.canStartPlannedRun, isFalse);
       expect(
         _copyFor(plan),
         isNot(containsAll(['Return to Movement', 'Easy Walk'])),
