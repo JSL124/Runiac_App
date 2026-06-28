@@ -177,22 +177,13 @@ class RuniacGoogleGlyph extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 22,
-      height: 22,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        border: Border.all(color: RuniacColors.border),
-        shape: BoxShape.circle,
-      ),
-      child: const Text(
-        'G',
-        style: TextStyle(
-          color: RuniacColors.primaryBlue,
-          fontSize: 13,
-          fontWeight: FontWeight.w900,
-          height: 1,
-        ),
+    return const SizedBox.square(
+      dimension: 22,
+      child: Image(
+        image: AssetImage('assets/icons/google_icon.png'),
+        fit: BoxFit.contain,
+        filterQuality: FilterQuality.high,
+        excludeFromSemantics: true,
       ),
     );
   }

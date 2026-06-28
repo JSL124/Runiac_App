@@ -68,6 +68,7 @@ flutter:
   uses-material-design: true
 
   assets:
+    - assets/icons/google_icon.png
     - assets/icons/instagram_stories.png
     - assets/images/home/todays_plan_runner.png
     - assets/images/leaderboard/share_rank_card_background.png
