@@ -238,6 +238,39 @@ void main() {
     await tester.tap(find.text('Sign out'));
     await tester.pumpAndSettle();
 
+    expect(repository.signOutCalls, 0);
+    expect(find.text('Sign out?'), findsOneWidget);
+    expect(
+      find.text('You can sign back in with your email any time.'),
+      findsOneWidget,
+    );
+
+    final staySignedIn = find.textContaining(RegExp('Cancel|Stay signed in'));
+    expect(staySignedIn, findsOneWidget);
+
+    await tester.ensureVisible(staySignedIn);
+    await tester.pumpAndSettle();
+    await tester.tap(staySignedIn);
+    await tester.pumpAndSettle();
+
+    expect(repository.signOutCalls, 0);
+    expect(find.text('Sign out?'), findsNothing);
+    expect(find.text('Account'), findsOneWidget);
+
+    await tester.ensureVisible(find.text('Sign out'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Sign out'));
+    await tester.pumpAndSettle();
+
+    expect(repository.signOutCalls, 0);
+    expect(find.text('Sign out?'), findsOneWidget);
+
+    final confirmSignOut = find.text('Sign out').last;
+    await tester.ensureVisible(confirmSignOut);
+    await tester.pumpAndSettle();
+    await tester.tap(confirmSignOut);
+    await tester.pumpAndSettle();
+
     expect(repository.signOutCalls, 1);
     expect(
       find.byKey(const ValueKey('auth_welcome_runiac_logo')),
@@ -280,8 +313,18 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Sign out'));
+    await tester.pumpAndSettle();
+    final confirmSignOut = find.text('Sign out').last;
+    await tester.ensureVisible(confirmSignOut);
+    await tester.pumpAndSettle();
+    await tester.tap(confirmSignOut);
     await tester.pump();
-    await tester.tap(find.text('Signing out...'));
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(const ValueKey('account_sign_out_confirmation')),
+        matching: find.text('Signing out...'),
+      ),
+    );
     await tester.pump();
 
     expect(repository.signOutCalls, 1);
