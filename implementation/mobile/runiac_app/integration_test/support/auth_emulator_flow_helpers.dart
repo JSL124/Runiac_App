@@ -116,6 +116,11 @@ class DiagnosticAuthRepository implements RuniacAuthRepository {
   }
 
   @override
+  Future<RuniacAuthUser> signInWithGoogle() {
+    return _record('signInWithGoogle', _delegate.signInWithGoogle);
+  }
+
+  @override
   Future<RuniacAuthUser> signInWithEmailAndPassword({
     required String email,
     required String password,

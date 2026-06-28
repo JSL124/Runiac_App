@@ -31,6 +31,11 @@ class NonProductionAuthRepository implements RuniacAuthRepository {
   }
 
   @override
+  Future<RuniacAuthUser> signInWithGoogle() {
+    return _unavailable();
+  }
+
+  @override
   Future<void> sendEmailVerification() {
     return _unavailable();
   }

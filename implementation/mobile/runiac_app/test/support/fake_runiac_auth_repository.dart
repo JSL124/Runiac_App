@@ -6,6 +6,7 @@ class FakeRuniacAuthRepository implements RuniacAuthRepository {
   FakeRuniacAuthRepository({
     this.signInError,
     this.createUserError,
+    this.googleSignInError,
     this.resetError,
     this.emailVerificationError,
   });
@@ -13,16 +14,19 @@ class FakeRuniacAuthRepository implements RuniacAuthRepository {
   final _controller = StreamController<RuniacAuthUser?>.broadcast();
   final RuniacAuthException? signInError;
   final RuniacAuthException? createUserError;
+  final RuniacAuthException? googleSignInError;
   final RuniacAuthException? resetError;
   final RuniacAuthException? emailVerificationError;
 
   RuniacAuthUser? _currentUser;
   Completer<RuniacAuthUser>? _heldSignIn;
+  Completer<RuniacAuthUser>? _heldGoogleSignIn;
   Completer<void>? _pendingSignOut;
 
   int authStateListenCount = 0;
   int signInCalls = 0;
   int createUserCalls = 0;
+  int googleSignInCalls = 0;
   int resetCalls = 0;
   int sendEmailVerificationCalls = 0;
   int signOutCalls = 0;
@@ -63,8 +67,21 @@ class FakeRuniacAuthRepository implements RuniacAuthRepository {
     _heldSignIn = Completer<RuniacAuthUser>();
   }
 
+  void holdNextGoogleSignIn() {
+    _heldGoogleSignIn = Completer<RuniacAuthUser>();
+  }
+
   void completeHeldSignIn() {
     final completer = _heldSignIn;
+    if (completer == null || completer.isCompleted) {
+      return;
+    }
+    emitSignedIn();
+    completer.complete(_currentUser!);
+  }
+
+  void completeHeldGoogleSignIn() {
+    final completer = _heldGoogleSignIn;
     if (completer == null || completer.isCompleted) {
       return;
     }
@@ -131,6 +148,21 @@ class FakeRuniacAuthRepository implements RuniacAuthRepository {
     final heldSignIn = _heldSignIn;
     if (heldSignIn != null) {
       return heldSignIn.future;
+    }
+    emitSignedIn();
+    return _currentUser!;
+  }
+
+  @override
+  Future<RuniacAuthUser> signInWithGoogle() async {
+    googleSignInCalls += 1;
+    final error = googleSignInError;
+    if (error != null) {
+      throw error;
+    }
+    final heldGoogleSignIn = _heldGoogleSignIn;
+    if (heldGoogleSignIn != null) {
+      return heldGoogleSignIn.future;
     }
     emitSignedIn();
     return _currentUser!;

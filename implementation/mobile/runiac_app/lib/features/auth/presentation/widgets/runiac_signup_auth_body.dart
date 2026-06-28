@@ -26,6 +26,7 @@ class _RuniacSignupAuthBodyState extends State<RuniacSignupAuthBody> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isSubmitting = false;
+  bool _isGoogleSubmitting = false;
   String? _errorMessage;
 
   @override
@@ -36,7 +37,7 @@ class _RuniacSignupAuthBodyState extends State<RuniacSignupAuthBody> {
   }
 
   Future<void> _submit() async {
-    if (_isSubmitting) {
+    if (_isSubmitting || _isGoogleSubmitting) {
       return;
     }
     if (!(_formKey.currentState?.validate() ?? false)) {
@@ -79,6 +80,44 @@ class _RuniacSignupAuthBodyState extends State<RuniacSignupAuthBody> {
     }
   }
 
+  Future<void> _submitGoogle() async {
+    if (_isSubmitting || _isGoogleSubmitting) {
+      return;
+    }
+
+    final onAuthenticated = widget.onAuthenticated;
+    setState(() {
+      _isGoogleSubmitting = true;
+      _errorMessage = null;
+    });
+
+    try {
+      await widget.authRepository.signInWithGoogle();
+      onAuthenticated();
+    } on RuniacAuthException catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _errorMessage = error.userMessage;
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _errorMessage =
+            'We could not complete Google sign-in. Please try again.';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isGoogleSubmitting = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Form(
@@ -114,7 +153,7 @@ class _RuniacSignupAuthBodyState extends State<RuniacSignupAuthBody> {
           const SizedBox(height: 20),
           RuniacAuthButton(
             label: _isSubmitting ? 'Creating...' : 'Create account',
-            onPressed: _isSubmitting ? null : _submit,
+            onPressed: _isSubmitting || _isGoogleSubmitting ? null : _submit,
           ),
           if (_errorMessage != null) ...[
             const SizedBox(height: 12),
@@ -123,11 +162,15 @@ class _RuniacSignupAuthBodyState extends State<RuniacSignupAuthBody> {
           const SizedBox(height: 16),
           const RuniacAuthDivider(),
           const SizedBox(height: 16),
-          const RuniacAuthButton(
-            label: 'Google sign-in coming later',
-            onPressed: null,
+          RuniacAuthButton(
+            label: _isGoogleSubmitting
+                ? 'Signing in with Google...'
+                : 'Continue with Google',
+            onPressed: _isSubmitting || _isGoogleSubmitting
+                ? null
+                : _submitGoogle,
             variant: RuniacAuthButtonVariant.google,
-            icon: RuniacGoogleGlyph(),
+            icon: const RuniacGoogleGlyph(),
           ),
           const SizedBox(height: 42),
           RuniacInlineAuthAction(

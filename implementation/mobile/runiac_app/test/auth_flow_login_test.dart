@@ -99,6 +99,74 @@ void main() {
     expect(find.text('Good to see you'), findsOneWidget);
   });
 
+  testWidgets('Google login calls auth repository and opens app shell', (
+    tester,
+  ) async {
+    final repository = FakeRuniacAuthRepository();
+    addTearDown(repository.dispose);
+    repository.holdNextGoogleSignIn();
+
+    await tester.pumpWidget(
+      RuniacApp(
+        showSplash: false,
+        showAuth: true,
+        showOnboarding: true,
+        enableForegroundGps: false,
+        authRepository: repository,
+      ),
+    );
+    repository.emitSignedOut();
+    await tester.pumpAndSettle();
+
+    await tapVisibleText(tester, 'Log in');
+    await tapVisibleText(tester, 'Continue with Google');
+
+    expect(repository.googleSignInCalls, 1);
+    expect(find.text('Signing in with Google...'), findsOneWidget);
+
+    await tester.tap(find.text('Signing in with Google...'));
+    await tester.pump();
+    expect(
+      repository.googleSignInCalls,
+      1,
+      reason: 'Loading Google auth button must prevent double submit.',
+    );
+
+    repository.completeHeldGoogleSignIn();
+    await tester.pumpAndSettle();
+
+    expect(find.text('Welcome to Runiac'), findsNothing);
+    expect(find.text('Step 1 of 16'), findsNothing);
+    expect(find.text('Good to see you'), findsOneWidget);
+  });
+
+  testWidgets('Google login error shows auth repository message', (
+    tester,
+  ) async {
+    final repository = FakeRuniacAuthRepository(
+      googleSignInError: RuniacAuthException.fromFirebaseCode(
+        'network-request-failed',
+      ),
+    );
+    addTearDown(repository.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RuniacAuthFlowScreen(
+          authRepository: repository,
+          onAuthenticated: (_) {},
+        ),
+      ),
+    );
+
+    await tapVisibleText(tester, 'Log in');
+    await tapVisibleText(tester, 'Continue with Google');
+
+    expect(repository.googleSignInCalls, 1);
+    expect(find.text('Check your connection and try again.'), findsOneWidget);
+    expect(find.text('Good to see you'), findsNothing);
+  });
+
   testWidgets('invalid credentials show auth repository message', (
     tester,
   ) async {

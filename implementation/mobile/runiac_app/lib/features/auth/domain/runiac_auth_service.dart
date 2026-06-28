@@ -83,6 +83,8 @@ abstract interface class RuniacAuthRepository {
     required String password,
   });
 
+  Future<RuniacAuthUser> signInWithGoogle();
+
   Future<void> sendPasswordResetEmail({required String email});
 
   Future<void> sendEmailVerification();

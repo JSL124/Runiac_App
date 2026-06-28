@@ -78,40 +78,34 @@ void main() {
     expect(repository.createUserCalls, 1);
   });
 
-  testWidgets(
-    'Google action does not complete auth without provider approval',
-    (tester) async {
-      final repository = FakeRuniacAuthRepository();
-      addTearDown(repository.dispose);
-      var authenticated = false;
+  testWidgets('Google action uses the approved auth provider path', (
+    tester,
+  ) async {
+    final repository = FakeRuniacAuthRepository();
+    addTearDown(repository.dispose);
+    var completion = RuniacAuthCompletion.signup;
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: RuniacAuthFlowScreen(
-            authRepository: repository,
-            onAuthenticated: (_) {
-              authenticated = true;
-            },
-          ),
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RuniacAuthFlowScreen(
+          authRepository: repository,
+          onAuthenticated: (value) {
+            completion = value;
+          },
         ),
-      );
+      ),
+    );
 
-      await tapVisibleText(tester, 'Log in');
-      expect(find.text('Continue with Google'), findsNothing);
-      expect(find.text('Google sign-in coming later'), findsOneWidget);
-      await tester.tap(find.text('Google sign-in coming later'));
-      await tester.pumpAndSettle();
+    await tapVisibleText(tester, 'Log in');
+    expect(find.text('Google sign-in coming later'), findsNothing);
+    expect(find.text('Continue with Google'), findsOneWidget);
+    await tapVisibleText(tester, 'Continue with Google');
 
-      expect(
-        authenticated,
-        isFalse,
-        reason:
-            'Google auth must not fake completion before OAuth is approved.',
-      );
-      expect(repository.signInCalls, 0);
-      expect(repository.createUserCalls, 0);
-    },
-  );
+    expect(completion, RuniacAuthCompletion.login);
+    expect(repository.googleSignInCalls, 1);
+    expect(repository.signInCalls, 0);
+    expect(repository.createUserCalls, 0);
+  });
 
   testWidgets('auth flow remains reachable on phone and tablet viewports', (
     tester,

@@ -7,6 +7,7 @@ class InMemoryRuniacAuthRepository implements RuniacAuthRepository {
   final _accountsByEmail = <String, _FakeAuthAccount>{};
   final sentPasswordResetEmails = <String>[];
   final sentEmailVerificationEmails = <String>[];
+  int googleSignInCalls = 0;
   var _nextUid = 1;
   RuniacAuthUser? _currentUser;
 
@@ -68,6 +69,18 @@ class InMemoryRuniacAuthRepository implements RuniacAuthRepository {
   @override
   Future<void> sendPasswordResetEmail({required String email}) async {
     sentPasswordResetEmails.add(_normalizeEmail(email));
+  }
+
+  @override
+  Future<RuniacAuthUser> signInWithGoogle() async {
+    googleSignInCalls += 1;
+    final user = RuniacAuthUser(
+      uid: 'fake-google-uid-${_nextUid++}',
+      email: 'google.runner@runiac.app',
+      emailVerified: true,
+    );
+    _setCurrentUser(user);
+    return user;
   }
 
   @override

@@ -1,6 +1,8 @@
 // ignore: depend_on_referenced_packages
 import 'package:firebase_core_platform_interface/test.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:runiac_app/core/firebase/runiac_firestore_gateway.dart';
 import 'package:runiac_app/core/firebase/runiac_firebase_bootstrap.dart';
 import 'package:runiac_app/features/auth/data/firebase_runiac_auth_repository.dart';
@@ -62,6 +64,70 @@ void main() {
         expect(error.firebaseCode, testCase.firebaseCode);
       }
     });
+
+    test('Google cancellation maps to a cancelled auth message', () async {
+      final bootstrap = await RuniacFirebaseBootstrap.initialize(
+        config: const RuniacFirebaseRuntimeConfig(useFirebaseEmulator: false),
+      );
+      final repository = FirebaseRuniacAuthRepository(
+        firebaseAuth: FirebaseAuth.instance,
+        googleAuthClient: const _ThrowingGoogleAuthClient(
+          GoogleSignInException(code: GoogleSignInExceptionCode.canceled),
+        ),
+      );
+
+      expect(bootstrap.authRepository, isA<FirebaseRuniacAuthRepository>());
+      await expectLater(
+        repository.signInWithGoogle(),
+        throwsA(
+          isA<RuniacAuthException>()
+              .having(
+                (error) => error.code,
+                'code',
+                RuniacAuthErrorCode.authUnavailable,
+              )
+              .having(
+                (error) => error.userMessage,
+                'message',
+                'Google sign-in was cancelled.',
+              ),
+        ),
+      );
+    });
+
+    test(
+      'Google provider errors map to generic Google auth feedback',
+      () async {
+        await RuniacFirebaseBootstrap.initialize(
+          config: const RuniacFirebaseRuntimeConfig(useFirebaseEmulator: false),
+        );
+        final repository = FirebaseRuniacAuthRepository(
+          firebaseAuth: FirebaseAuth.instance,
+          googleAuthClient: const _ThrowingGoogleAuthClient(
+            GoogleSignInException(
+              code: GoogleSignInExceptionCode.providerConfigurationError,
+            ),
+          ),
+        );
+
+        await expectLater(
+          repository.signInWithGoogle(),
+          throwsA(
+            isA<RuniacAuthException>()
+                .having(
+                  (error) => error.code,
+                  'code',
+                  RuniacAuthErrorCode.unknown,
+                )
+                .having(
+                  (error) => error.userMessage,
+                  'message',
+                  'We could not complete Google sign-in. Please try again.',
+                ),
+          ),
+        );
+      },
+    );
 
     test(
       'non-production auth fallback stays signed out and unavailable',
@@ -186,4 +252,15 @@ class _FirebaseAuthErrorCase {
   final String firebaseCode;
   final RuniacAuthErrorCode appCode;
   final String message;
+}
+
+class _ThrowingGoogleAuthClient implements RuniacGoogleAuthClient {
+  const _ThrowingGoogleAuthClient(this.error);
+
+  final GoogleSignInException error;
+
+  @override
+  Future<AuthCredential?> signInCredential() {
+    throw error;
+  }
 }
