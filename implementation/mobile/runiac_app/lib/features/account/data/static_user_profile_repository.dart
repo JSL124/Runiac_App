@@ -12,7 +12,12 @@ class StaticUserProfileRepository implements UserProfileRepository {
     return UserProfileReadModel(
       userId: 'demo-user',
       displayName: snapshot.displayName,
+      fullName: 'Runiac Runner',
+      nickname: snapshot.displayName,
+      dateOfBirthIso: '2000-01-01',
       avatarInitials: snapshot.avatarInitials,
+      ageYears: 26,
+      weightKg: 60,
       locationLabel: snapshot.regionLabel,
       previewLevelBadge: snapshot.previewLevelBadge,
       previewNote: snapshot.previewNote,

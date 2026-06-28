@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/app.dart';
+import 'package:runiac_app/features/account/domain/repositories/user_profile_persistence_repository.dart';
 import 'package:runiac_app/features/auth/domain/runiac_auth_service.dart';
 import 'package:runiac_app/features/auth/presentation/runiac_auth_flow_screen.dart';
 
@@ -199,16 +200,102 @@ void main() {
 
       await tester.enterText(find.bySemanticsLabel('Name'), 'Maya Tan');
       await tester.enterText(find.bySemanticsLabel('Nickname'), 'Maya');
-      await tester.enterText(find.bySemanticsLabel('Age'), '24');
+      await tester.tap(find.bySemanticsLabel('Date of birth'));
+      await tester.pumpAndSettle();
+      expect(find.text('Select birthdate'), findsOneWidget);
+      await tapVisibleText(tester, 'Use selected date');
+      await tester.pumpAndSettle();
+      expect(find.text('Age'), findsOneWidget);
+      expect(find.text('26'), findsOneWidget);
       await tester.enterText(
         find.bySemanticsLabel('Weight in kilograms'),
         '58.5',
       );
-      await tester.enterText(find.bySemanticsLabel('Region'), 'Queenstown');
+      await tester.tap(find.bySemanticsLabel('Region'));
+      await tester.pumpAndSettle();
+      expect(find.text('Jurong East, Singapore'), findsOneWidget);
+      expect(find.text('Orchard, Singapore'), findsOneWidget);
+      await tapVisibleText(tester, 'Orchard, Singapore');
+      await tester.pumpAndSettle();
       await tapVisibleText(tester, 'Continue to onboarding');
 
       expect(find.text('Welcome to Runiac'), findsOneWidget);
       expect(find.text('Step 1 of 16'), findsOneWidget);
     },
   );
+
+  testWidgets('signup blocks a duplicate nickname before onboarding', (
+    tester,
+  ) async {
+    final repository = FakeRuniacAuthRepository();
+    final persistenceRepository = _DuplicateNicknameProfileRepository();
+    addTearDown(repository.dispose);
+
+    await tester.pumpWidget(
+      RuniacApp(
+        showSplash: false,
+        showAuth: true,
+        showOnboarding: true,
+        enableForegroundGps: false,
+        authRepository: repository,
+        profilePersistenceRepository: persistenceRepository,
+      ),
+    );
+    repository.emitSignedOut();
+    await tester.pumpAndSettle();
+
+    await tapVisibleText(tester, 'Sign up');
+    await enterAuthCredentials(
+      tester,
+      email: 'runner@runiac.app',
+      password: 'password123',
+    );
+    await tapVisibleText(tester, 'Create account');
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.bySemanticsLabel('Name'), 'Maya Tan');
+    await tester.enterText(find.bySemanticsLabel('Nickname'), 'TakenRunner');
+    await tester.tap(find.bySemanticsLabel('Date of birth'));
+    await tester.pumpAndSettle();
+    await tapVisibleText(tester, 'Use selected date');
+    await tester.enterText(
+      find.bySemanticsLabel('Weight in kilograms'),
+      '58.5',
+    );
+    await tester.tap(find.bySemanticsLabel('Region'));
+    await tester.pumpAndSettle();
+    await tapVisibleText(tester, 'Jurong East, Singapore');
+    await tapVisibleText(tester, 'Continue to onboarding');
+    await tester.pumpAndSettle();
+
+    expect(persistenceRepository.checkedNickname, 'TakenRunner');
+    expect(find.text('Nickname is already taken.'), findsOneWidget);
+    expect(find.text('Welcome to Runiac'), findsNothing);
+  });
+}
+
+class _DuplicateNicknameProfileRepository
+    implements UserProfilePersistenceRepository {
+  String? checkedNickname;
+
+  @override
+  Future<bool> isNicknameAvailable({
+    required String uid,
+    required String nickname,
+  }) async {
+    checkedNickname = nickname;
+    return false;
+  }
+
+  @override
+  Future<void> saveOnboardingProfile({
+    required String uid,
+    required UserProfileOnboardingSnapshot profile,
+  }) async {}
+
+  @override
+  Future<void> savePersonalProfile({
+    required String uid,
+    required UserProfilePersonalSnapshot profile,
+  }) async {}
 }

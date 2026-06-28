@@ -144,7 +144,9 @@ class _RuniacAppState extends State<RuniacApp> {
         );
       }
       return PersonalProfileCollectionScreen(
+        uid: currentUser.uid,
         emailLabel: currentUser.email ?? 'Email unavailable',
+        persistenceRepository: widget.profilePersistenceRepository,
         onComplete: (draft) {
           setState(() {
             _personalProfileDraft = draft;
@@ -206,6 +208,8 @@ class _RuniacAppState extends State<RuniacApp> {
     final fullName = personalProfile?.fullName ?? 'Runiac Runner';
     final nickname = personalProfile?.nickname ?? 'Runiac Runner';
     final avatarInitials = personalProfile?.avatarInitials ?? 'RR';
+    final nicknameKey = personalProfile?.nicknameKey ?? 'runiac-runner';
+    final dateOfBirthIso = personalProfile?.dateOfBirthIso ?? '2008-01-01';
     final ageYears = personalProfile?.ageYears ?? 18;
     final weightKg = personalProfile?.weightKg ?? 60;
     final locationLabel = personalProfile?.locationLabel ?? 'Not set yet';
@@ -214,6 +218,8 @@ class _RuniacAppState extends State<RuniacApp> {
       fullName: fullName,
       nickname: nickname,
       avatarInitials: avatarInitials,
+      nicknameKey: nicknameKey,
+      dateOfBirthIso: dateOfBirthIso,
       ageYears: ageYears,
       weightKg: weightKg,
       locationLabel: locationLabel,

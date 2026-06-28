@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import { assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
-import { deleteField, doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { deleteDoc, deleteField, doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 
 import {
   activityDraft,
@@ -14,6 +14,12 @@ describe('owner-owned client records', () => {
   it('allows an owner to write safe user profile fields', async () => {
     const alice = dbFor('alice');
 
+    await seed('nicknameClaims/runner', {
+      ownerUid: 'alice',
+      nickname: 'Runner',
+      nicknameKey: 'runner',
+      updatedAt: 1,
+    });
     await assertSucceeds(setDoc(doc(alice, 'userProfiles/alice'), profileFields));
     await assertSucceeds(getDoc(doc(alice, 'userProfiles/alice')));
     await assertFails(getDoc(doc(dbFor('bob'), 'userProfiles/alice')));
@@ -81,6 +87,76 @@ describe('owner-owned client records', () => {
       setDoc(doc(alice, 'userProfiles/alice'), {
         ...profileFields,
         nickname: 'Line\nBreak',
+      }),
+    );
+    await assertFails(
+      setDoc(doc(alice, 'userProfiles/alice'), {
+        ...profileFields,
+        dateOfBirth: 'not-a-date',
+      }),
+    );
+    await assertFails(
+      setDoc(doc(alice, 'userProfiles/alice'), {
+        ...profileFields,
+        locationLabel: 'London, United Kingdom',
+      }),
+    );
+  });
+
+  it('allows nickname claims only for the authenticated owner', async () => {
+    const alice = dbFor('alice');
+
+    await assertSucceeds(
+      setDoc(doc(alice, 'nicknameClaims/runner'), {
+        ownerUid: 'alice',
+        nickname: 'Runner',
+        nicknameKey: 'runner',
+        updatedAt: 1,
+      }),
+    );
+    await assertSucceeds(getDoc(doc(alice, 'nicknameClaims/runner')));
+    await assertFails(
+      setDoc(doc(dbFor('bob'), 'nicknameClaims/runner'), {
+        ownerUid: 'bob',
+        nickname: 'Runner',
+        nicknameKey: 'runner',
+        updatedAt: 1,
+      }),
+    );
+    await assertFails(
+      setDoc(doc(alice, 'nicknameClaims/other-key'), {
+        ownerUid: 'alice',
+        nickname: 'Runner',
+        nicknameKey: 'runner',
+        updatedAt: 1,
+      }),
+    );
+    await assertSucceeds(deleteDoc(doc(alice, 'nicknameClaims/runner')));
+  });
+
+  it('requires a matching owner nickname claim before profile nickname writes', async () => {
+    const alice = dbFor('alice');
+
+    await assertFails(setDoc(doc(alice, 'userProfiles/alice'), profileFields));
+    await seed('nicknameClaims/runner', {
+      ownerUid: 'alice',
+      nickname: 'Runner',
+      nicknameKey: 'runner',
+      updatedAt: 1,
+    });
+    await assertSucceeds(setDoc(doc(alice, 'userProfiles/alice'), profileFields));
+
+    await seed('nicknameClaims/maya', {
+      ownerUid: 'bob',
+      nickname: 'Maya',
+      nicknameKey: 'maya',
+      updatedAt: 1,
+    });
+    await assertFails(
+      updateDoc(doc(alice, 'userProfiles/alice'), {
+        displayName: 'Maya',
+        nickname: 'Maya',
+        nicknameKey: 'maya',
       }),
     );
   });

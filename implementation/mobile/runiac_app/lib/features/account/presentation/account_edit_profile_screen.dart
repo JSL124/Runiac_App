@@ -10,6 +10,7 @@ import '../../plan/domain/services/beginner_adaptive_plan_generator.dart';
 import '../../plan/presentation/current_session_generated_plan.dart';
 import '../domain/models/user_profile_read_model.dart';
 import '../domain/repositories/user_profile_persistence_repository.dart';
+import 'widgets/profile_form_controls.dart';
 
 class AccountEditProfileScreen extends StatefulWidget {
   const AccountEditProfileScreen({
@@ -34,9 +35,9 @@ class _AccountEditProfileScreenState extends State<AccountEditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameController;
   late final TextEditingController _nicknameController;
-  late final TextEditingController _ageController;
   late final TextEditingController _weightController;
-  late final TextEditingController _regionController;
+  late String _dateOfBirthIso;
+  late String _region;
   bool _saving = false;
   String? _error;
 
@@ -53,24 +54,18 @@ class _AccountEditProfileScreenState extends State<AccountEditProfileScreen> {
           ? widget.profile.displayName
           : widget.profile.nickname,
     );
-    _ageController = TextEditingController(
-      text: widget.profile.ageYears?.toString() ?? '',
-    );
     _weightController = TextEditingController(
       text: widget.profile.weightKg?.toString() ?? '',
     );
-    _regionController = TextEditingController(
-      text: widget.profile.locationLabel,
-    );
+    _dateOfBirthIso = widget.profile.dateOfBirthIso;
+    _region = widget.profile.locationLabel;
   }
 
   @override
   void dispose() {
     _nameController.dispose();
     _nicknameController.dispose();
-    _ageController.dispose();
     _weightController.dispose();
-    _regionController.dispose();
     super.dispose();
   }
 
@@ -88,11 +83,14 @@ class _AccountEditProfileScreenState extends State<AccountEditProfileScreen> {
     final draft = PersonalProfileDraft.tryCreate(
       fullName: _nameController.text,
       nickname: _nicknameController.text,
-      age: _ageController.text,
+      dateOfBirthIso: _dateOfBirthIso,
       weightKg: _weightController.text,
-      locationLabel: _regionController.text,
+      locationLabel: _region,
     );
     if (draft == null) {
+      setState(() {
+        _error = 'Choose your birthdate, weight, and Singapore region.';
+      });
       return;
     }
 
@@ -101,6 +99,16 @@ class _AccountEditProfileScreenState extends State<AccountEditProfileScreen> {
       _error = null;
     });
     try {
+      final available = await widget.persistenceRepository.isNicknameAvailable(
+        uid: user.uid,
+        nickname: draft.nickname,
+      );
+      if (!available) {
+        setState(() {
+          _error = 'Nickname is already taken.';
+        });
+        return;
+      }
       await widget.persistenceRepository.savePersonalProfile(
         uid: user.uid,
         profile: draft.toPersonalSnapshot(),
@@ -134,11 +142,14 @@ class _AccountEditProfileScreenState extends State<AccountEditProfileScreen> {
     final personalProfile = PersonalProfileDraft.tryCreate(
       fullName: _nameController.text,
       nickname: _nicknameController.text,
-      age: _ageController.text,
+      dateOfBirthIso: _dateOfBirthIso,
       weightKg: _weightController.text,
-      locationLabel: _regionController.text,
+      locationLabel: _region,
     );
     if (personalProfile == null) {
+      setState(() {
+        _error = 'Choose your birthdate, weight, and Singapore region.';
+      });
       return;
     }
     Navigator.of(context).push(
@@ -190,11 +201,16 @@ class _AccountEditProfileScreenState extends State<AccountEditProfileScreen> {
                             controller: _nicknameController,
                             validator: PersonalProfileDraft.validateNickname,
                           ),
-                          _ProfileField(
-                            label: 'Age',
-                            controller: _ageController,
-                            keyboardType: TextInputType.number,
-                            validator: PersonalProfileDraft.validateAge,
+                          ProfileDateOfBirthField(
+                            value: _dateOfBirthIso,
+                            onChanged: (value) {
+                              setState(() {
+                                _dateOfBirthIso = value;
+                              });
+                            },
+                          ),
+                          ProfileAgeReadOnlyField(
+                            dateOfBirthIso: _dateOfBirthIso,
                           ),
                           _ProfileField(
                             label: 'Weight in kilograms',
@@ -204,11 +220,13 @@ class _AccountEditProfileScreenState extends State<AccountEditProfileScreen> {
                             ),
                             validator: PersonalProfileDraft.validateWeight,
                           ),
-                          _ProfileField(
-                            label: 'Region',
-                            controller: _regionController,
-                            validator:
-                                PersonalProfileDraft.validateLocationLabel,
+                          SingaporeRegionPickerField(
+                            value: _region,
+                            onChanged: (value) {
+                              setState(() {
+                                _region = value;
+                              });
+                            },
                           ),
                         ],
                       ),
@@ -307,6 +325,8 @@ class _RetakeOnboardingScreenState extends State<_RetakeOnboardingScreen> {
           fullName: widget.personalProfile.fullName,
           nickname: widget.personalProfile.nickname,
           avatarInitials: widget.personalProfile.avatarInitials,
+          nicknameKey: widget.personalProfile.nicknameKey,
+          dateOfBirthIso: widget.personalProfile.dateOfBirthIso,
           ageYears: widget.personalProfile.ageYears,
           weightKg: widget.personalProfile.weightKg,
           locationLabel: widget.personalProfile.locationLabel,

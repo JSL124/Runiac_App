@@ -75,9 +75,9 @@ void main() {
         initialPersonalProfileDraft: PersonalProfileDraft(
           fullName: 'Maya Tan',
           nickname: 'Maya',
-          ageYears: 24,
+          dateOfBirthIso: '2002-06-28',
           weightKg: 58.5,
-          locationLabel: 'Queenstown',
+          locationLabel: 'Queenstown, Singapore',
         ),
       ),
     );
@@ -91,9 +91,11 @@ void main() {
     expect(profileRepository.profile?.fullName, 'Maya Tan');
     expect(profileRepository.profile?.nickname, 'Maya');
     expect(profileRepository.profile?.avatarInitials, 'M');
+    expect(profileRepository.profile?.nicknameKey, 'maya');
+    expect(profileRepository.profile?.dateOfBirthIso, '2002-06-28');
     expect(profileRepository.profile?.ageYears, 24);
     expect(profileRepository.profile?.weightKg, 58.5);
-    expect(profileRepository.profile?.locationLabel, 'Queenstown');
+    expect(profileRepository.profile?.locationLabel, 'Queenstown, Singapore');
     expect(profileRepository.profile?.fitnessLevel, 'new');
     expect(profileRepository.profile?.goals, <String>['habit']);
     expect(profileRepository.profile?.availability, <String, Object>{
@@ -133,9 +135,9 @@ void main() {
           initialPersonalProfileDraft: PersonalProfileDraft(
             fullName: 'Maya Tan',
             nickname: 'Maya',
-            ageYears: 24,
+            dateOfBirthIso: '2002-06-28',
             weightKg: 58.5,
-            locationLabel: 'Queenstown',
+            locationLabel: 'Queenstown, Singapore',
           ),
         ),
       );
@@ -275,6 +277,14 @@ class _RecordingUserProfilePersistenceRepository
   UserProfileOnboardingSnapshot? profile;
   bool failNextSave = false;
   int saveCalls = 0;
+
+  @override
+  Future<bool> isNicknameAvailable({
+    required String uid,
+    required String nickname,
+  }) async {
+    return true;
+  }
 
   @override
   Future<void> saveOnboardingProfile({

@@ -305,8 +305,9 @@ void main() {
         ).readAsStringSync();
 
         expect(persistenceSource, contains("collection('userProfiles')"));
+        expect(persistenceSource, contains("collection('nicknameClaims')"));
+        expect(persistenceSource, contains('runTransaction'));
         expect(persistenceSource, contains('.set('));
-        expect(persistenceSource, isNot(contains('.get(')));
         expect(persistenceSource, isNot(contains("collection('users')")));
         expect(readSource, contains("collection('userProfiles')"));
         expect(readSource, contains('.get('));

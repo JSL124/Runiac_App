@@ -8,6 +8,7 @@ class UserProfileReadModel {
     required this.displayName,
     this.fullName = '',
     this.nickname = '',
+    this.dateOfBirthIso = '',
     required this.avatarInitials,
     this.ageYears,
     this.weightKg,
@@ -28,6 +29,7 @@ class UserProfileReadModel {
   final String displayName;
   final String fullName;
   final String nickname;
+  final String dateOfBirthIso;
   final String avatarInitials;
   final int? ageYears;
   final num? weightKg;

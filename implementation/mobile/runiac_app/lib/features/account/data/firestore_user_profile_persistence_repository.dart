@@ -5,9 +5,16 @@ import '../domain/repositories/user_profile_persistence_repository.dart';
 typedef UserProfileUpdatedAtFactory = Object Function();
 
 abstract interface class UserProfileDocumentWriter {
+  Future<bool> isNicknameAvailable({
+    required String uid,
+    required String nicknameKey,
+  });
+
   Future<void> mergeUserProfile({
     required String uid,
     required Map<String, Object> data,
+    required String nickname,
+    required String nicknameKey,
   });
 }
 
@@ -18,14 +25,58 @@ class FirestoreUserProfileDocumentWriter implements UserProfileDocumentWriter {
   final FirebaseFirestore _firestore;
 
   @override
+  Future<bool> isNicknameAvailable({
+    required String uid,
+    required String nicknameKey,
+  }) async {
+    final snapshot = await _firestore
+        .collection('nicknameClaims')
+        .doc(nicknameKey)
+        .get();
+    if (!snapshot.exists) {
+      return true;
+    }
+    return snapshot.data()?['ownerUid'] == uid;
+  }
+
+  @override
   Future<void> mergeUserProfile({
     required String uid,
     required Map<String, Object> data,
+    required String nickname,
+    required String nicknameKey,
   }) {
-    return _firestore
-        .collection('userProfiles')
-        .doc(uid)
-        .set(data, SetOptions(merge: true));
+    final profileRef = _firestore.collection('userProfiles').doc(uid);
+    final claimRef = _firestore.collection('nicknameClaims').doc(nicknameKey);
+    return _firestore.runTransaction((transaction) async {
+      final claimSnapshot = await transaction.get(claimRef);
+      if (claimSnapshot.exists && claimSnapshot.data()?['ownerUid'] != uid) {
+        throw const DuplicateNicknameException();
+      }
+
+      final profileSnapshot = await transaction.get(profileRef);
+      final previousNicknameKey = profileSnapshot.data()?['nicknameKey'];
+      if (previousNicknameKey is String &&
+          previousNicknameKey.isNotEmpty &&
+          previousNicknameKey != nicknameKey) {
+        final previousClaimRef = _firestore
+            .collection('nicknameClaims')
+            .doc(previousNicknameKey);
+        final previousClaimSnapshot = await transaction.get(previousClaimRef);
+        if (previousClaimSnapshot.exists &&
+            previousClaimSnapshot.data()?['ownerUid'] == uid) {
+          transaction.delete(previousClaimRef);
+        }
+      }
+
+      transaction.set(claimRef, <String, Object>{
+        'ownerUid': uid,
+        'nickname': nickname,
+        'nicknameKey': nicknameKey,
+        'updatedAt': data['updatedAt']!,
+      }, SetOptions(merge: true));
+      transaction.set(profileRef, data, SetOptions(merge: true));
+    });
   }
 }
 
@@ -41,6 +92,17 @@ class FirestoreUserProfilePersistenceRepository
   final UserProfileUpdatedAtFactory _updatedAt;
 
   @override
+  Future<bool> isNicknameAvailable({
+    required String uid,
+    required String nickname,
+  }) {
+    return _writer.isNicknameAvailable(
+      uid: uid,
+      nicknameKey: normalizeNicknameKey(nickname),
+    );
+  }
+
+  @override
   Future<void> saveOnboardingProfile({
     required String uid,
     required UserProfileOnboardingSnapshot profile,
@@ -48,6 +110,8 @@ class FirestoreUserProfilePersistenceRepository
     return _writer.mergeUserProfile(
       uid: uid,
       data: profile.toFirestoreDocument(updatedAt: _updatedAt()),
+      nickname: profile.nickname,
+      nicknameKey: profile.nicknameKey,
     );
   }
 
@@ -59,6 +123,12 @@ class FirestoreUserProfilePersistenceRepository
     return _writer.mergeUserProfile(
       uid: uid,
       data: profile.toFirestoreDocument(updatedAt: _updatedAt()),
+      nickname: profile.nickname,
+      nicknameKey: profile.nicknameKey,
     );
   }
+}
+
+class DuplicateNicknameException implements Exception {
+  const DuplicateNicknameException();
 }

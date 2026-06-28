@@ -3,15 +3,20 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/runiac_buttons.dart';
 import '../domain/repositories/user_profile_persistence_repository.dart';
+import 'widgets/profile_form_controls.dart';
 
 class PersonalProfileCollectionScreen extends StatefulWidget {
   const PersonalProfileCollectionScreen({
+    required this.uid,
     required this.emailLabel,
+    required this.persistenceRepository,
     required this.onComplete,
     super.key,
   });
 
+  final String uid;
   final String emailLabel;
+  final UserProfilePersistenceRepository persistenceRepository;
   final ValueChanged<PersonalProfileDraft> onComplete;
 
   @override
@@ -24,35 +29,67 @@ class _PersonalProfileCollectionScreenState
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _nicknameController = TextEditingController();
-  final _ageController = TextEditingController();
   final _weightController = TextEditingController();
-  final _regionController = TextEditingController();
+  String _dateOfBirthIso = '';
+  String _region = '';
+  bool _checkingNickname = false;
+  String? _error;
 
   @override
   void dispose() {
     _nameController.dispose();
     _nicknameController.dispose();
-    _ageController.dispose();
     _weightController.dispose();
-    _regionController.dispose();
     super.dispose();
   }
 
-  void _continue() {
+  Future<void> _continue() async {
+    if (_checkingNickname) {
+      return;
+    }
     if (!(_formKey.currentState?.validate() ?? false)) {
       return;
     }
     final draft = PersonalProfileDraft.tryCreate(
       fullName: _nameController.text,
       nickname: _nicknameController.text,
-      age: _ageController.text,
       weightKg: _weightController.text,
-      locationLabel: _regionController.text,
+      dateOfBirthIso: _dateOfBirthIso,
+      locationLabel: _region,
     );
     if (draft == null) {
+      setState(() {
+        _error = 'Choose your birthdate, weight, and Singapore region.';
+      });
       return;
     }
-    widget.onComplete(draft);
+    setState(() {
+      _checkingNickname = true;
+      _error = null;
+    });
+    try {
+      final available = await widget.persistenceRepository.isNicknameAvailable(
+        uid: widget.uid,
+        nickname: draft.nickname,
+      );
+      if (!available) {
+        setState(() {
+          _error = 'Nickname is already taken.';
+        });
+        return;
+      }
+      widget.onComplete(draft);
+    } catch (_) {
+      setState(() {
+        _error = 'We could not check that nickname. Try again.';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _checkingNickname = false;
+        });
+      }
+    }
   }
 
   @override
@@ -104,12 +141,16 @@ class _PersonalProfileCollectionScreenState
                       validator: PersonalProfileDraft.validateNickname,
                     ),
                     const SizedBox(height: 12),
-                    _ProfileField(
-                      label: 'Age',
-                      controller: _ageController,
-                      keyboardType: TextInputType.number,
-                      validator: PersonalProfileDraft.validateAge,
+                    ProfileDateOfBirthField(
+                      value: _dateOfBirthIso,
+                      onChanged: (value) {
+                        setState(() {
+                          _dateOfBirthIso = value;
+                        });
+                      },
                     ),
+                    const SizedBox(height: 12),
+                    ProfileAgeReadOnlyField(dateOfBirthIso: _dateOfBirthIso),
                     const SizedBox(height: 12),
                     _ProfileField(
                       label: 'Weight in kilograms',
@@ -120,22 +161,40 @@ class _PersonalProfileCollectionScreenState
                       validator: PersonalProfileDraft.validateWeight,
                     ),
                     const SizedBox(height: 12),
-                    _ProfileField(
-                      label: 'Region',
-                      controller: _regionController,
-                      validator: PersonalProfileDraft.validateLocationLabel,
+                    SingaporeRegionPickerField(
+                      value: _region,
+                      onChanged: (value) {
+                        setState(() {
+                          _region = value;
+                        });
+                      },
                     ),
+                    if (_error != null) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        _error!,
+                        style: const TextStyle(
+                          color: RuniacColors.accentOrange,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 20),
                     SizedBox(
                       height: 54,
                       child: FilledButton(
-                        onPressed: _continue,
+                        onPressed: _checkingNickname ? null : _continue,
                         style: RuniacButtonStyles.primary(
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),
                         ),
-                        child: const Text('Continue to onboarding'),
+                        child: Text(
+                          _checkingNickname
+                              ? 'Checking nickname...'
+                              : 'Continue to onboarding',
+                        ),
                       ),
                     ),
                   ],

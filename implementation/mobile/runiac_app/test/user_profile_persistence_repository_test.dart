@@ -10,9 +10,11 @@ void main() {
         fullName: 'Maya Tan',
         nickname: 'Maya',
         avatarInitials: 'M',
+        nicknameKey: 'maya',
+        dateOfBirthIso: '2002-06-28',
         ageYears: 24,
         weightKg: 58.5,
-        locationLabel: 'Queenstown',
+        locationLabel: 'Queenstown, Singapore',
         fitnessLevel: 'new',
         goals: const <String>['habit'],
         availability: const <String, Object>{
@@ -40,6 +42,8 @@ void main() {
         'fullName',
         'nickname',
         'avatarInitials',
+        'nicknameKey',
+        'dateOfBirth',
         'ageYears',
         'weightKg',
         'locationLabel',
@@ -63,9 +67,11 @@ void main() {
       final snapshot = UserProfilePersonalSnapshot(
         fullName: 'Maya Tan',
         nickname: 'May',
-        ageYears: 25,
+        nicknameKey: 'may',
+        dateOfBirthIso: '2000-01-01',
+        ageYears: 26,
         weightKg: 59,
-        locationLabel: 'Tiong Bahru',
+        locationLabel: 'Tiong Bahru, Singapore',
       );
 
       final document = snapshot.toFirestoreDocument(updatedAt: 2);
@@ -75,9 +81,11 @@ void main() {
         'fullName': 'Maya Tan',
         'nickname': 'May',
         'avatarInitials': 'M',
-        'ageYears': 25,
+        'nicknameKey': 'may',
+        'dateOfBirth': '2000-01-01',
+        'ageYears': 26,
         'weightKg': 59,
-        'locationLabel': 'Tiong Bahru',
+        'locationLabel': 'Tiong Bahru, Singapore',
         'updatedAt': 2,
       });
       expect(document, isNot(containsPair('email', anything)));
@@ -102,9 +110,11 @@ void main() {
             fullName: 'Maya Tan',
             nickname: 'Maya',
             avatarInitials: 'M',
+            nicknameKey: 'maya',
+            dateOfBirthIso: '2002-06-28',
             ageYears: 24,
             weightKg: 58.5,
-            locationLabel: 'Queenstown',
+            locationLabel: 'Queenstown, Singapore',
             fitnessLevel: 'new',
             goals: const <String>['habit'],
             availability: const <String, Object>{
@@ -132,9 +142,11 @@ void main() {
         expect(writer.data?['fullName'], 'Maya Tan');
         expect(writer.data?['nickname'], 'Maya');
         expect(writer.data?['avatarInitials'], 'M');
+        expect(writer.data?['nicknameKey'], 'maya');
+        expect(writer.data?['dateOfBirth'], '2002-06-28');
         expect(writer.data?['ageYears'], 24);
         expect(writer.data?['weightKg'], 58.5);
-        expect(writer.data?['locationLabel'], 'Queenstown');
+        expect(writer.data?['locationLabel'], 'Queenstown, Singapore');
         expect(writer.data?['fitnessLevel'], 'new');
         expect(
           writer.data,
@@ -158,34 +170,68 @@ void main() {
           profile: UserProfilePersonalSnapshot(
             fullName: 'Maya Tan',
             nickname: 'May',
-            ageYears: 25,
+            nicknameKey: 'may',
+            dateOfBirthIso: '2000-01-01',
+            ageYears: 26,
             weightKg: 59,
-            locationLabel: 'Tiong Bahru',
+            locationLabel: 'Tiong Bahru, Singapore',
           ),
         );
 
         expect(writer.uid, 'test-auth-user-1');
         expect(writer.data?['updatedAt'], 43);
         expect(writer.data?['displayName'], 'May');
-        expect(writer.data?['locationLabel'], 'Tiong Bahru');
+        expect(writer.data?['nicknameKey'], 'may');
+        expect(writer.data?['dateOfBirth'], '2000-01-01');
+        expect(writer.data?['locationLabel'], 'Tiong Bahru, Singapore');
         expect(writer.data, isNot(containsPair('email', anything)));
         expect(writer.data, isNot(containsPair('fitnessLevel', anything)));
         expect(writer.data, isNot(containsPair('goals', anything)));
       },
     );
+
+    test('normalizes nickname keys consistently', () {
+      final draft = PersonalProfileDraft.tryCreate(
+        fullName: 'Maya Tan',
+        nickname: '  May Runner  ',
+        dateOfBirthIso: '2000-01-01',
+        weightKg: '59',
+        locationLabel: 'Orchard, Singapore',
+      );
+
+      expect(draft, isNotNull);
+      expect(draft?.nicknameKey, 'may-runner');
+      expect(draft?.ageYears, 26);
+    });
   });
 }
 
 class _RecordingUserProfileDocumentWriter implements UserProfileDocumentWriter {
   String? uid;
   Map<String, Object>? data;
+  String? nickname;
+  String? nicknameKey;
+
+  @override
+  Future<bool> isNicknameAvailable({
+    required String uid,
+    required String nicknameKey,
+  }) async {
+    this.uid = uid;
+    this.nicknameKey = nicknameKey;
+    return true;
+  }
 
   @override
   Future<void> mergeUserProfile({
     required String uid,
     required Map<String, Object> data,
+    required String nickname,
+    required String nicknameKey,
   }) async {
     this.uid = uid;
     this.data = Map<String, Object>.from(data);
+    this.nickname = nickname;
+    this.nicknameKey = nicknameKey;
   }
 }

@@ -1,4 +1,11 @@
+import '../singapore_region_options.dart';
+
 abstract interface class UserProfilePersistenceRepository {
+  Future<bool> isNicknameAvailable({
+    required String uid,
+    required String nickname,
+  });
+
   Future<void> saveOnboardingProfile({
     required String uid,
     required UserProfileOnboardingSnapshot profile,
@@ -14,16 +21,17 @@ class PersonalProfileDraft {
   PersonalProfileDraft({
     required String fullName,
     required String nickname,
-    required this.ageYears,
+    required String dateOfBirthIso,
     required this.weightKg,
     required String locationLabel,
   }) : fullName = fullName.trim(),
        nickname = nickname.trim(),
+       dateOfBirthIso = dateOfBirthIso.trim(),
        locationLabel = locationLabel.trim();
 
   final String fullName;
   final String nickname;
-  final int ageYears;
+  final String dateOfBirthIso;
   final num weightKg;
   final String locationLabel;
 
@@ -31,10 +39,16 @@ class PersonalProfileDraft {
 
   String get avatarInitials => _avatarInitials(nickname, fullName);
 
+  String get nicknameKey => normalizeNicknameKey(nickname);
+
+  int get ageYears => ageFromBirthDateIso(dateOfBirthIso);
+
   UserProfilePersonalSnapshot toPersonalSnapshot() {
     return UserProfilePersonalSnapshot(
       fullName: fullName,
       nickname: nickname,
+      nicknameKey: nicknameKey,
+      dateOfBirthIso: dateOfBirthIso,
       ageYears: ageYears,
       weightKg: weightKg,
       locationLabel: locationLabel,
@@ -46,17 +60,35 @@ class PersonalProfileDraft {
   }
 
   static String? validateNickname(String value) {
-    return _validateText(value, 'Nickname', 30);
+    final textError = _validateText(value, 'Nickname', 30);
+    if (textError != null) {
+      return textError;
+    }
+    if (normalizeNicknameKey(value).isEmpty) {
+      return 'Nickname must include letters or numbers.';
+    }
+    return null;
   }
 
   static String? validateLocationLabel(String value) {
-    return _validateText(value, 'Region', 80);
+    final textError = _validateText(value, 'Region', 80);
+    if (textError != null) {
+      return textError;
+    }
+    if (!SingaporeRegionOptions.contains(value)) {
+      return 'Choose a Singapore region from the list.';
+    }
+    return null;
   }
 
-  static String? validateAge(String value) {
-    final parsed = int.tryParse(value.trim());
-    if (parsed == null || parsed < 13 || parsed > 100) {
-      return 'Enter an age from 13 to 100.';
+  static String? validateDateOfBirth(String value) {
+    final parsed = _parseBirthDate(value);
+    if (parsed == null) {
+      return 'Choose your birthdate.';
+    }
+    final age = ageFromBirthDate(parsed);
+    if (age < 13 || age > 100) {
+      return 'Age must be from 13 to 100.';
     }
     return null;
   }
@@ -74,13 +106,13 @@ class PersonalProfileDraft {
   static PersonalProfileDraft? tryCreate({
     required String fullName,
     required String nickname,
-    required String age,
+    required String dateOfBirthIso,
     required String weightKg,
     required String locationLabel,
   }) {
     if (validateFullName(fullName) != null ||
         validateNickname(nickname) != null ||
-        validateAge(age) != null ||
+        validateDateOfBirth(dateOfBirthIso) != null ||
         validateWeight(weightKg) != null ||
         validateLocationLabel(locationLabel) != null) {
       return null;
@@ -88,7 +120,7 @@ class PersonalProfileDraft {
     return PersonalProfileDraft(
       fullName: fullName,
       nickname: nickname,
-      ageYears: int.parse(age.trim()),
+      dateOfBirthIso: dateOfBirthIso,
       weightKg: num.parse(weightKg.trim()),
       locationLabel: locationLabel,
     );
@@ -110,6 +142,8 @@ class UserProfilePersonalSnapshot {
   UserProfilePersonalSnapshot({
     required this.fullName,
     required this.nickname,
+    required this.nicknameKey,
+    required this.dateOfBirthIso,
     required this.ageYears,
     required this.weightKg,
     required this.locationLabel,
@@ -117,6 +151,8 @@ class UserProfilePersonalSnapshot {
 
   final String fullName;
   final String nickname;
+  final String nicknameKey;
+  final String dateOfBirthIso;
   final int ageYears;
   final num weightKg;
   final String locationLabel;
@@ -131,6 +167,8 @@ class UserProfilePersonalSnapshot {
       'fullName': fullName,
       'nickname': nickname,
       'avatarInitials': avatarInitials,
+      'nicknameKey': nicknameKey,
+      'dateOfBirth': dateOfBirthIso,
       'ageYears': ageYears,
       'weightKg': weightKg,
       'locationLabel': locationLabel,
@@ -145,6 +183,8 @@ class UserProfileOnboardingSnapshot {
     required this.fullName,
     required this.nickname,
     required this.avatarInitials,
+    required this.nicknameKey,
+    required this.dateOfBirthIso,
     required this.ageYears,
     required this.weightKg,
     required this.locationLabel,
@@ -161,6 +201,8 @@ class UserProfileOnboardingSnapshot {
   final String fullName;
   final String nickname;
   final String avatarInitials;
+  final String nicknameKey;
+  final String dateOfBirthIso;
   final int ageYears;
   final num weightKg;
   final String locationLabel;
@@ -176,6 +218,8 @@ class UserProfileOnboardingSnapshot {
       'fullName': fullName,
       'nickname': nickname,
       'avatarInitials': avatarInitials,
+      'nicknameKey': nicknameKey,
+      'dateOfBirth': dateOfBirthIso,
       'ageYears': ageYears,
       'weightKg': weightKg,
       'locationLabel': locationLabel,
@@ -192,6 +236,14 @@ class UserProfileOnboardingSnapshot {
 class NoopUserProfilePersistenceRepository
     implements UserProfilePersistenceRepository {
   const NoopUserProfilePersistenceRepository();
+
+  @override
+  Future<bool> isNicknameAvailable({
+    required String uid,
+    required String nickname,
+  }) async {
+    return true;
+  }
 
   @override
   Future<void> saveOnboardingProfile({
@@ -220,4 +272,56 @@ String _avatarInitials(String nickname, String fullName) {
 
 String _firstCharacter(String value) {
   return value.substring(0, 1);
+}
+
+String normalizeNicknameKey(String value) {
+  final normalized = value
+      .trim()
+      .toLowerCase()
+      .replaceAll(RegExp(r'[^a-z0-9]+'), '-')
+      .replaceAll(RegExp(r'-+'), '-')
+      .replaceAll(RegExp(r'^-|-$'), '');
+  return normalized.length <= 30 ? normalized : normalized.substring(0, 30);
+}
+
+int ageFromBirthDateIso(String value, {DateTime? today}) {
+  final birthDate = _parseBirthDate(value);
+  if (birthDate == null) {
+    return 0;
+  }
+  return ageFromBirthDate(birthDate, today: today);
+}
+
+int ageFromBirthDate(DateTime birthDate, {DateTime? today}) {
+  final now = today ?? DateTime.now();
+  var age = now.year - birthDate.year;
+  if (now.month < birthDate.month ||
+      (now.month == birthDate.month && now.day < birthDate.day)) {
+    age -= 1;
+  }
+  return age;
+}
+
+String birthDateIso(DateTime value) {
+  final month = value.month.toString().padLeft(2, '0');
+  final day = value.day.toString().padLeft(2, '0');
+  return '${value.year}-$month-$day';
+}
+
+DateTime? _parseBirthDate(String value) {
+  final match = RegExp(r'^(\d{4})-(\d{2})-(\d{2})$').firstMatch(value.trim());
+  if (match == null) {
+    return null;
+  }
+  final year = int.parse(match.group(1)!);
+  final month = int.parse(match.group(2)!);
+  final day = int.parse(match.group(3)!);
+  final parsed = DateTime(year, month, day);
+  if (parsed.year != year || parsed.month != month || parsed.day != day) {
+    return null;
+  }
+  if (parsed.isAfter(DateTime.now())) {
+    return null;
+  }
+  return parsed;
 }

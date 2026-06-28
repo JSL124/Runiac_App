@@ -11,9 +11,11 @@ export const profileFields = {
   fullName: 'Synthetic Runner',
   nickname: 'Runner',
   avatarInitials: 'SR',
+  nicknameKey: 'runner',
+  dateOfBirth: '2002-06-28',
   ageYears: 24,
   weightKg: 58.5,
-  locationLabel: 'Synthetic Region',
+  locationLabel: 'Jurong East, Singapore',
   fitnessLevel: 'beginner',
   goals: ['habit'],
   availability: {

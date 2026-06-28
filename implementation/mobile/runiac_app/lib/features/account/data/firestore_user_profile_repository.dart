@@ -78,6 +78,7 @@ class FirestoreUserProfileRepository implements UserProfileRepository {
     final displayName = _requiredTrimmedString(document['displayName']);
     final fullName = _optionalTrimmedString(document['fullName']);
     final nickname = _optionalTrimmedString(document['nickname']);
+    final dateOfBirthIso = _optionalTrimmedString(document['dateOfBirth']);
     final avatarInitials = _requiredTrimmedString(document['avatarInitials']);
     final ageYears = _intValue(document['ageYears']);
     final weightKg = _numValue(document['weightKg']);
@@ -93,6 +94,7 @@ class FirestoreUserProfileRepository implements UserProfileRepository {
       displayName: displayName,
       fullName: fullName,
       nickname: nickname,
+      dateOfBirthIso: dateOfBirthIso,
       avatarInitials: avatarInitials,
       ageYears: ageYears,
       weightKg: weightKg,
