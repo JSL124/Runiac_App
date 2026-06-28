@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../account/presentation/account_profile_screen.dart';
+import '../../account/domain/repositories/user_profile_repository.dart';
 import '../../auth/domain/runiac_auth_service.dart';
 import '../../run/presentation/active_run_session_coordinator.dart';
 import '../../run/presentation/run_launch_screen.dart';
@@ -15,12 +16,14 @@ const _homeScreenBackground = Colors.white;
 class HomeTab extends StatelessWidget {
   const HomeTab({
     required this.authRepository,
+    required this.profileRepository,
     super.key,
     this.enableForegroundGps = true,
     this.activeRunSessionCoordinator,
   });
 
   final RuniacAuthRepository authRepository;
+  final UserProfileRepository profileRepository;
   final bool enableForegroundGps;
   final ActiveRunSessionCoordinator? activeRunSessionCoordinator;
 
@@ -70,6 +73,7 @@ class HomeTab extends StatelessWidget {
         builder: (context) {
           return AccountProfileScreen(
             authRepository: authRepository,
+            profileRepository: profileRepository,
             onBack: () => Navigator.of(context).pop(),
           );
         },

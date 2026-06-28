@@ -3,7 +3,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 
 import '../../features/account/data/firestore_user_profile_persistence_repository.dart';
+import '../../features/account/data/firestore_user_profile_repository.dart';
 import '../../features/account/domain/repositories/user_profile_persistence_repository.dart';
+import '../../features/account/domain/repositories/user_profile_repository.dart';
 import '../../features/auth/data/firebase_runiac_auth_repository.dart';
 import '../../features/auth/domain/runiac_auth_service.dart';
 import '../../features/run/data/run_repository_factory.dart';
@@ -28,6 +30,9 @@ class RuniacFirebaseBootstrap {
         );
       }
       final firebaseAuth = FirebaseAuth.instance;
+      final authRepository = FirebaseRuniacAuthRepository(
+        firebaseAuth: firebaseAuth,
+      );
       final firestoreGateway = RuniacFirestoreGateway.configure(
         useFirebaseEmulator: runtimeConfig.useFirebaseEmulator,
         emulatorHost: runtimeConfig.emulatorHost,
@@ -35,8 +40,9 @@ class RuniacFirebaseBootstrap {
       );
       return RuniacFirebaseBootstrapResult(
         runRepository: RunRepositoryFactory.create(config: runtimeConfig),
-        authRepository: FirebaseRuniacAuthRepository(
-          firebaseAuth: firebaseAuth,
+        authRepository: authRepository,
+        profileRepository: FirestoreUserProfileRepository(
+          authRepository: authRepository,
         ),
         profilePersistenceRepository:
             FirestoreUserProfilePersistenceRepository(),
@@ -70,9 +76,16 @@ class RuniacFirebaseBootstrap {
       await firebaseAuth.signInAnonymously();
     }
 
+    final authRepository = FirebaseRuniacAuthRepository(
+      firebaseAuth: firebaseAuth,
+    );
+
     return RuniacFirebaseBootstrapResult(
       runRepository: RunRepositoryFactory.create(config: runtimeConfig),
-      authRepository: FirebaseRuniacAuthRepository(firebaseAuth: firebaseAuth),
+      authRepository: authRepository,
+      profileRepository: FirestoreUserProfileRepository(
+        authRepository: authRepository,
+      ),
       profilePersistenceRepository: FirestoreUserProfilePersistenceRepository(),
       firestoreGateway: firestoreGateway,
     );
@@ -90,12 +103,14 @@ class RuniacFirebaseBootstrapResult {
   const RuniacFirebaseBootstrapResult({
     required this.runRepository,
     required this.authRepository,
+    required this.profileRepository,
     required this.profilePersistenceRepository,
     required this.firestoreGateway,
   });
 
   final RunRepository runRepository;
   final RuniacAuthRepository authRepository;
+  final UserProfileRepository profileRepository;
   final UserProfilePersistenceRepository profilePersistenceRepository;
   final RuniacFirestoreGateway firestoreGateway;
 }

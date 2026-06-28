@@ -261,9 +261,11 @@ void main() {
 
   group('Firestore base boundary', () {
     test('keeps feature code free of Firestore data access APIs', () {
-      const allowedProfilePersistencePath =
-          'lib/features/account/data/'
-          'firestore_user_profile_persistence_repository.dart';
+      const allowedProfileFirestorePaths = <String>{
+        'lib/features/account/data/'
+            'firestore_user_profile_persistence_repository.dart',
+        'lib/features/account/data/firestore_user_profile_repository.dart',
+      };
       const forbiddenFeatureTerms = <String>[
         'package:cloud_firestore',
         'FirebaseFirestore',
@@ -283,7 +285,7 @@ void main() {
 
       for (final file in _dartFilesIn(
         'lib/features',
-      ).where((file) => file.path != allowedProfilePersistencePath)) {
+      ).where((file) => !allowedProfileFirestorePaths.contains(file.path))) {
         final source = file.readAsStringSync();
         for (final term in forbiddenFeatureTerms) {
           expect(source, isNot(contains(term)), reason: '${file.path}: $term');
@@ -291,20 +293,33 @@ void main() {
       }
     });
 
-    test('limits Firestore feature access to user profile persistence', () {
-      final source = File(
-        'lib/features/account/data/'
-        'firestore_user_profile_persistence_repository.dart',
-      ).readAsStringSync();
+    test(
+      'limits Firestore feature access to approved user profile repositories',
+      () {
+        final persistenceSource = File(
+          'lib/features/account/data/'
+          'firestore_user_profile_persistence_repository.dart',
+        ).readAsStringSync();
+        final readSource = File(
+          'lib/features/account/data/firestore_user_profile_repository.dart',
+        ).readAsStringSync();
 
-      expect(source, contains("collection('userProfiles')"));
-      expect(source, isNot(contains("collection('users')")));
-      expect(source, isNot(contains('FirebaseFirestore get')));
-      expect(source, isNot(contains('get firestore')));
-      for (final field in BackendOwnedValueContract.protectedFieldNames) {
-        expect(source, isNot(contains("'$field'")), reason: field);
-      }
-    });
+        expect(persistenceSource, contains("collection('userProfiles')"));
+        expect(persistenceSource, contains('.set('));
+        expect(persistenceSource, isNot(contains('.get(')));
+        expect(persistenceSource, isNot(contains("collection('users')")));
+        expect(readSource, contains("collection('userProfiles')"));
+        expect(readSource, contains('.get('));
+        expect(readSource, isNot(contains('.set(')));
+        expect(readSource, isNot(contains('.update(')));
+        expect(readSource, isNot(contains('.delete(')));
+        expect(readSource, isNot(contains("collection('users')")));
+        for (final field in BackendOwnedValueContract.protectedFieldNames) {
+          expect(persistenceSource, isNot(contains("'$field'")), reason: field);
+          expect(readSource, isNot(contains("'$field'")), reason: field);
+        }
+      },
+    );
   });
 }
 

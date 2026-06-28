@@ -3,7 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import 'core/theme/runiac_theme.dart';
+import 'features/account/data/static_user_profile_repository.dart';
 import 'features/account/domain/repositories/user_profile_persistence_repository.dart';
+import 'features/account/domain/repositories/user_profile_repository.dart';
 import 'features/auth/data/non_production_auth_repository.dart';
 import 'features/auth/domain/runiac_auth_service.dart';
 import 'features/auth/presentation/runiac_auth_gate.dart';
@@ -32,6 +34,7 @@ class RuniacApp extends StatefulWidget {
     this.splashDuration = RuniacSplashTokens.minVisibleDuration,
     this.authRepository = const NonProductionAuthRepository(),
     this.runRepository = const StaticRunRepository(),
+    this.profileRepository = const StaticUserProfileRepository(),
     this.profilePersistenceRepository =
         const NoopUserProfilePersistenceRepository(),
     this.enableForegroundGps = true,
@@ -48,6 +51,7 @@ class RuniacApp extends StatefulWidget {
   final Duration splashDuration;
   final RuniacAuthRepository authRepository;
   final RunRepository runRepository;
+  final UserProfileRepository profileRepository;
   final UserProfilePersistenceRepository profilePersistenceRepository;
   final bool enableForegroundGps;
   final ActiveRunSessionCoordinator? activeRunSessionCoordinator;
@@ -120,6 +124,7 @@ class _RuniacAppState extends State<RuniacApp> {
                   onCompletedDraft: _completeOnboarding,
                   child: RuniacShell(
                     authRepository: widget.authRepository,
+                    profileRepository: widget.profileRepository,
                     enableForegroundGps: widget.enableForegroundGps,
                     activeRunSessionCoordinator:
                         widget.activeRunSessionCoordinator,

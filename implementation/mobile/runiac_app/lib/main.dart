@@ -14,6 +14,7 @@ Future<void> main() async {
     RuniacApp(
       authRepository: bootstrap.authRepository,
       runRepository: bootstrap.runRepository,
+      profileRepository: bootstrap.profileRepository,
       profilePersistenceRepository: bootstrap.profilePersistenceRepository,
       showAuth: true,
       showOnboarding: true,

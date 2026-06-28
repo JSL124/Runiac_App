@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 // backend/Auth/location read paths later, not this static snapshot.
 const accountProfileDemoSnapshot = AccountProfileDemoSnapshot(
   displayName: 'Runiac Runner',
+  avatarInitials: 'RR',
   regionLabel: 'Jurong East, Singapore',
   // Static decorative preview only. Real level/progression display is
   // backend-owned and must come from approved read paths later.
@@ -72,6 +73,7 @@ const accountProfileDemoSnapshot = AccountProfileDemoSnapshot(
 class AccountProfileDemoSnapshot {
   const AccountProfileDemoSnapshot({
     required this.displayName,
+    required this.avatarInitials,
     required this.regionLabel,
     required this.previewLevelBadge,
     required this.previewNote,
@@ -83,6 +85,7 @@ class AccountProfileDemoSnapshot {
   });
 
   final String displayName;
+  final String avatarInitials;
   final String regionLabel;
   final String previewLevelBadge;
   final String previewNote;

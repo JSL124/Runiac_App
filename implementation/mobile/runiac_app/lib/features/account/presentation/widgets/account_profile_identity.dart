@@ -20,7 +20,10 @@ class AccountIdentityCard extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              _AvatarWithLevelBadge(levelBadge: snapshot.previewLevelBadge),
+              _AvatarWithLevelBadge(
+                initials: snapshot.avatarInitials,
+                levelBadge: snapshot.previewLevelBadge,
+              ),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
@@ -134,8 +137,12 @@ class _IdentityAccentStrip extends StatelessWidget {
 }
 
 class _AvatarWithLevelBadge extends StatelessWidget {
-  const _AvatarWithLevelBadge({required this.levelBadge});
+  const _AvatarWithLevelBadge({
+    required this.initials,
+    required this.levelBadge,
+  });
 
+  final String initials;
   final String levelBadge;
 
   @override
@@ -147,42 +154,43 @@ class _AvatarWithLevelBadge extends StatelessWidget {
         clipBehavior: Clip.none,
         alignment: Alignment.topCenter,
         children: [
-          const _AccountAvatar(),
-          Positioned(
-            top: 69,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: RuniacColors.primaryBlue,
-                borderRadius: BorderRadius.circular(7),
-                border: Border.all(color: RuniacColors.white, width: 2),
-                boxShadow: [
-                  BoxShadow(
-                    color: RuniacColors.primaryBlue.withValues(alpha: 0.18),
-                    blurRadius: 8,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
+          _AccountAvatar(initials: initials),
+          if (levelBadge.isNotEmpty)
+            Positioned(
+              top: 69,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: RuniacColors.primaryBlue,
+                  borderRadius: BorderRadius.circular(7),
+                  border: Border.all(color: RuniacColors.white, width: 2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: RuniacColors.primaryBlue.withValues(alpha: 0.18),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
                 ),
-                child: Text(
-                  levelBadge,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: RuniacColors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w900,
-                    height: 1.05,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  child: Text(
+                    levelBadge,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: RuniacColors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w900,
+                      height: 1.05,
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
         ],
       ),
     );
@@ -190,7 +198,9 @@ class _AvatarWithLevelBadge extends StatelessWidget {
 }
 
 class _AccountAvatar extends StatelessWidget {
-  const _AccountAvatar();
+  const _AccountAvatar({required this.initials});
+
+  final String initials;
 
   @override
   Widget build(BuildContext context) {
@@ -203,17 +213,17 @@ class _AccountAvatar extends StatelessWidget {
         color: RuniacColors.accentOrange,
         shape: BoxShape.circle,
       ),
-      child: const DecoratedBox(
-        decoration: BoxDecoration(
+      child: DecoratedBox(
+        decoration: const BoxDecoration(
           color: RuniacColors.primaryBlue,
           shape: BoxShape.circle,
         ),
         child: Center(
           child: Text(
-            'R',
-            style: TextStyle(
+            initials,
+            style: const TextStyle(
               color: RuniacColors.white,
-              fontSize: 32,
+              fontSize: 28,
               fontWeight: FontWeight.w900,
             ),
           ),

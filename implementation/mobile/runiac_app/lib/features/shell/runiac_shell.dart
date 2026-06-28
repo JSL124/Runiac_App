@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/runiac_colors.dart';
+import '../account/domain/repositories/user_profile_repository.dart';
 import '../auth/domain/runiac_auth_service.dart';
 import '../home/presentation/home_tab.dart';
 import '../leaderboard/presentation/leaderboard_tab.dart';
@@ -14,6 +15,7 @@ import '../you/presentation/you_tab.dart';
 class RuniacShell extends StatefulWidget {
   const RuniacShell({
     required this.authRepository,
+    required this.profileRepository,
     super.key,
     this.enableForegroundGps = true,
     this.activeRunSessionCoordinator,
@@ -21,6 +23,7 @@ class RuniacShell extends StatefulWidget {
   });
 
   final RuniacAuthRepository authRepository;
+  final UserProfileRepository profileRepository;
   final bool enableForegroundGps;
   final ActiveRunSessionCoordinator? activeRunSessionCoordinator;
   final RunOpenIntent? initialRunOpenIntent;
@@ -168,6 +171,7 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
     final tabs = [
       HomeTab(
         authRepository: widget.authRepository,
+        profileRepository: widget.profileRepository,
         enableForegroundGps: widget.enableForegroundGps,
         activeRunSessionCoordinator: _activeRunSessionCoordinator,
       ),

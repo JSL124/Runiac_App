@@ -3,6 +3,8 @@ import '../domain/repositories/user_profile_repository.dart';
 import '../presentation/data/account_profile_demo_snapshots.dart';
 
 class StaticUserProfileRepository implements UserProfileRepository {
+  const StaticUserProfileRepository();
+
   @override
   Future<UserProfileReadModel> loadUserProfile() async {
     const snapshot = accountProfileDemoSnapshot;
@@ -10,7 +12,7 @@ class StaticUserProfileRepository implements UserProfileRepository {
     return UserProfileReadModel(
       userId: 'demo-user',
       displayName: snapshot.displayName,
-      avatarInitials: 'RR',
+      avatarInitials: snapshot.avatarInitials,
       locationLabel: snapshot.regionLabel,
       previewLevelBadge: snapshot.previewLevelBadge,
       previewNote: snapshot.previewNote,
