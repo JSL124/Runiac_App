@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/app.dart';
+import 'package:runiac_app/features/account/data/firestore_user_profile_repository.dart';
 import 'package:runiac_app/features/account/domain/repositories/user_profile_persistence_repository.dart';
 import 'package:runiac_app/features/plan/domain/services/beginner_adaptive_plan_generator.dart';
 import 'package:runiac_app/features/plan/presentation/current_session_generated_plan.dart';
@@ -54,6 +55,37 @@ void main() {
       expect(generatedPlanStore.activePlan, isNotNull);
       expect(generatedPlanStore.activePlan!.title, 'Return to Movement');
       expect(generatedPlanStore.currentWeekRunningSessionCount, 3);
+    },
+  );
+
+  testWidgets(
+    'signed-in saved onboarding profile hydrates generated plan after restart',
+    (tester) async {
+      final authRepository = FakeRuniacAuthRepository();
+      final generatedPlanStore = CurrentSessionGeneratedPlanStore();
+      addTearDown(authRepository.dispose);
+      authRepository.emitSignedIn();
+
+      await tester.pumpWidget(
+        RuniacApp(
+          showSplash: false,
+          showAuth: true,
+          showOnboarding: true,
+          enableForegroundGps: false,
+          authRepository: authRepository,
+          currentSessionGeneratedPlanStore: generatedPlanStore,
+          profileRepository: FirestoreUserProfileRepository(
+            authRepository: authRepository,
+            reader: const _SavedOnboardingProfileDocumentReader(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(generatedPlanStore.activePlan, isNotNull);
+      expect(generatedPlanStore.activePlan!.title, '10K Performance Build');
+      expect(generatedPlanStore.currentWeekRunningSessionCount, 4);
+      expect(find.text('Good to see you'), findsOneWidget);
     },
   );
 
@@ -269,6 +301,46 @@ void main() {
     );
     expect(generatedPlanStore.currentWeekRunningSessionCount, 0);
   });
+}
+
+class _SavedOnboardingProfileDocumentReader
+    implements UserProfileDocumentReader {
+  const _SavedOnboardingProfileDocumentReader();
+
+  @override
+  Future<UserProfileDocumentReadResult> readUserProfile({
+    required String uid,
+  }) async {
+    return const UserProfileDocumentReadResult.exists(<String, Object?>{
+      'displayName': 'Maya',
+      'fullName': 'Maya Tan',
+      'nickname': 'Maya',
+      'avatarInitials': 'M',
+      'nicknameKey': 'maya',
+      'dateOfBirth': '2002-06-28',
+      'ageYears': 24,
+      'weightKg': 58.5,
+      'locationLabel': 'Queenstown, Singapore',
+      'fitnessLevel': 'run30',
+      'goals': <String>['10k'],
+      'availability': <String, Object?>{
+        'weeklySessions': '4',
+        'preferredDays': <String>['Mon', 'Tue', 'Wed', 'Thu'],
+        'preferredTime': 'morning',
+        'sessionLengthMinutes': '30',
+      },
+      'planCautiousness': 'performance',
+      'healthSafetyReadiness': <String, Object?>{
+        'comfort': 'ready',
+        'activitySymptoms': <String>['none'],
+        'recentRunningConsistency': '3-6m',
+        'currentWeeklyRunFrequency': '4',
+        'continuousRunCapacity': '45plus',
+        'runningPlace': 'park',
+        'motivationStyle': 'reminders',
+      },
+    });
+  }
 }
 
 class _RecordingUserProfilePersistenceRepository

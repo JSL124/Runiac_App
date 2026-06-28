@@ -1,3 +1,5 @@
+import '../../../onboarding/domain/models/local_onboarding_draft.dart';
+
 /// Backend-produced account profile display contract.
 ///
 /// Identity, account, region, and progression labels are read-only outputs for
@@ -18,6 +20,7 @@ class UserProfileReadModel {
     this.setupSectionLabel = '',
     this.manageSectionLabel = '',
     this.footerCaption = '',
+    this.onboardingDraft,
     List<UserProfileInfoItemReadModel> setupItems =
         const <UserProfileInfoItemReadModel>[],
     List<UserProfileManageRowReadModel> manageRows =
@@ -39,6 +42,7 @@ class UserProfileReadModel {
   final String setupSectionLabel;
   final String manageSectionLabel;
   final String footerCaption;
+  final LocalOnboardingDraft? onboardingDraft;
   final List<UserProfileInfoItemReadModel> setupItems;
   final List<UserProfileManageRowReadModel> manageRows;
 }

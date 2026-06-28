@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../auth/domain/runiac_auth_service.dart';
+import '../../onboarding/domain/models/local_onboarding_draft.dart';
 import '../domain/models/user_profile_read_model.dart';
 import '../domain/repositories/user_profile_repository.dart';
 import 'static_user_profile_repository.dart';
@@ -124,6 +125,7 @@ class FirestoreUserProfileRepository implements UserProfileRepository {
       setupSectionLabel: 'RUNNING SETUP',
       manageSectionLabel: 'MANAGE',
       footerCaption: 'Runiac · Preview build · Built for new runners',
+      onboardingDraft: _onboardingDraftFromDocument(document),
       setupItems: _setupItemsFromDocument(document),
       manageRows: const <UserProfileManageRowReadModel>[
         UserProfileManageRowReadModel(
@@ -160,6 +162,47 @@ class FirestoreUserProfileRepository implements UserProfileRepository {
         ),
       ],
     );
+  }
+
+  LocalOnboardingDraft? _onboardingDraftFromDocument(
+    Map<String, Object?> document,
+  ) {
+    final goal = _stringList(document['goals']).firstOrNull;
+    final experience = _requiredTrimmedString(document['fitnessLevel']);
+    final availability = document['availability'];
+    final safety = document['healthSafetyReadiness'];
+    if (goal == null || availability is! Map || safety is! Map) {
+      return null;
+    }
+
+    final planPreference = _requiredTrimmedString(document['planCautiousness']);
+    final answers = <String, Object>{
+      'goal': goal,
+      'experience': experience ?? '',
+      'availability':
+          _requiredTrimmedString(availability['weeklySessions']) ?? '',
+      'days': _stringList(availability['preferredDays']),
+      'time': _requiredTrimmedString(availability['preferredTime']) ?? '',
+      'length':
+          _requiredTrimmedString(availability['sessionLengthMinutes']) ?? '',
+      'health': _requiredTrimmedString(safety['comfort']) ?? '',
+      'symptoms': _stringList(safety['activitySymptoms']),
+      'consistency':
+          _requiredTrimmedString(safety['recentRunningConsistency']) ?? '',
+      'frequency':
+          _requiredTrimmedString(safety['currentWeeklyRunFrequency']) ?? '',
+      'capacity': _requiredTrimmedString(safety['continuousRunCapacity']) ?? '',
+      'place': _requiredTrimmedString(safety['runningPlace']) ?? '',
+      'motivation': _requiredTrimmedString(safety['motivationStyle']) ?? '',
+    };
+
+    if (OnboardingPlanStyle.fromValue(planPreference) != null) {
+      answers['style'] = planPreference!;
+    } else {
+      answers['cautious'] = planPreference ?? '';
+    }
+
+    return LocalOnboardingDraft.fromAnswers(answers);
   }
 
   List<UserProfileInfoItemReadModel> _setupItemsFromDocument(

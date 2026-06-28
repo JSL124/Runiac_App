@@ -485,7 +485,7 @@ class _RetakeOnboardingScreenState extends State<_RetakeOnboardingScreen> {
             'preferredTime': draft.preferredTime.value,
             'sessionLengthMinutes': draft.sessionLength.value,
           },
-          planCautiousness: draft.planCautiousness.value,
+          planCautiousness: draft.planStyle.value,
           healthSafetyReadiness: <String, Object>{
             'comfort': draft.healthComfort.value,
             'activitySymptoms': draft.activitySymptoms

@@ -290,6 +290,10 @@ void main() {
         persistenceRepository.onboardingProfile?.locationLabel,
         'Tiong Bahru, Singapore',
       );
+      expect(
+        persistenceRepository.onboardingProfile?.planCautiousness,
+        'performance',
+      );
       expect(generatedPlanStore.activePlan?.title, '10K Performance Build');
       expect(profileRepository.loadCount, 2);
       expect(find.text('Account'), findsOneWidget);

@@ -61,6 +61,59 @@ void main() {
       );
     });
 
+    test('maps saved onboarding fields into a regeneratable draft', () async {
+      final authRepository = FakeRuniacAuthRepository()..emitSignedIn();
+      final repository = FirestoreUserProfileRepository(
+        authRepository: authRepository,
+        reader: _FakeUserProfileDocumentReader(
+          documents: const <String, UserProfileDocumentReadResult>{
+            'test-auth-user-1': UserProfileDocumentReadResult.exists(
+              <String, Object?>{
+                'displayName': 'Maya',
+                'avatarInitials': 'M',
+                'locationLabel': 'Queenstown, Singapore',
+                'fitnessLevel': 'run30',
+                'goals': <String>['10k'],
+                'availability': <String, Object?>{
+                  'weeklySessions': '4',
+                  'preferredDays': <String>['Mon', 'Tue', 'Wed', 'Thu'],
+                  'preferredTime': 'morning',
+                  'sessionLengthMinutes': '30',
+                },
+                'planCautiousness': 'performance',
+                'healthSafetyReadiness': <String, Object?>{
+                  'comfort': 'ready',
+                  'activitySymptoms': <String>['none'],
+                  'recentRunningConsistency': '3-6m',
+                  'currentWeeklyRunFrequency': '4',
+                  'continuousRunCapacity': '45plus',
+                  'runningPlace': 'park',
+                  'motivationStyle': 'reminders',
+                },
+              },
+            ),
+          },
+        ),
+      );
+
+      final profile = await repository.loadUserProfile();
+      final draft = profile.onboardingDraft;
+
+      expect(draft, isNotNull);
+      expect(draft!.goal.value, '10k');
+      expect(draft.experience.value, 'run30');
+      expect(draft.availability.value, '4');
+      expect(draft.preferredDays.map((day) => day.value), <String>[
+        'Mon',
+        'Tue',
+        'Wed',
+        'Thu',
+      ]);
+      expect(draft.sessionLength.value, '30');
+      expect(draft.continuousRunCapacity.value, '45plus');
+      expect(draft.planStyle.value, 'performance');
+    });
+
     test('falls back to the demo profile when signed out', () async {
       final reader = _FakeUserProfileDocumentReader();
       final repository = FirestoreUserProfileRepository(

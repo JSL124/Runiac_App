@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'core/theme/runiac_theme.dart';
 import 'features/account/data/static_user_profile_repository.dart';
+import 'features/account/domain/models/user_profile_read_model.dart';
 import 'features/account/domain/repositories/user_profile_persistence_repository.dart';
 import 'features/account/domain/repositories/user_profile_repository.dart';
 import 'features/account/presentation/personal_profile_collection_screen.dart';
@@ -163,6 +164,7 @@ class _RuniacAppState extends State<RuniacApp> {
         authRepository: widget.authRepository,
         profileRepository: widget.profileRepository,
         currentUser: currentUser!,
+        onLoadedProfile: _hydrateGeneratedPlanFromProfile,
         child: _buildOnboardingAndShell(),
       );
     }
@@ -196,6 +198,17 @@ class _RuniacAppState extends State<RuniacApp> {
         });
       },
     );
+  }
+
+  void _hydrateGeneratedPlanFromProfile(UserProfileReadModel profile) {
+    final draft = profile.onboardingDraft;
+    if (draft == null) {
+      return;
+    }
+    final snapshot = const BeginnerAdaptivePlanGenerator().generate(draft);
+    if (!_generatedPlanStore.setActivePlan(snapshot)) {
+      _generatedPlanStore.clear();
+    }
   }
 
   Future<bool> _completeOnboarding(LocalOnboardingDraft draft) async {
@@ -262,7 +275,7 @@ class _RuniacAppState extends State<RuniacApp> {
         'preferredTime': draft.preferredTime.value,
         'sessionLengthMinutes': draft.sessionLength.value,
       },
-      planCautiousness: draft.planCautiousness.value,
+      planCautiousness: draft.planStyle.value,
       healthSafetyReadiness: <String, Object>{
         'comfort': draft.healthComfort.value,
         'activitySymptoms': draft.activitySymptoms

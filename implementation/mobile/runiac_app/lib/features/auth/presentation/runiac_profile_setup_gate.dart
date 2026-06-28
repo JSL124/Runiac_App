@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../account/data/firestore_user_profile_repository.dart';
+import '../../account/domain/models/user_profile_read_model.dart';
 import '../../account/domain/repositories/user_profile_repository.dart';
 import '../domain/runiac_auth_service.dart';
 
@@ -10,6 +11,7 @@ class RuniacProfileSetupGate extends StatefulWidget {
     required this.profileRepository,
     required this.currentUser,
     required this.child,
+    this.onLoadedProfile,
     super.key,
   });
 
@@ -17,6 +19,7 @@ class RuniacProfileSetupGate extends StatefulWidget {
   final UserProfileRepository profileRepository;
   final RuniacAuthUser currentUser;
   final Widget child;
+  final ValueChanged<UserProfileReadModel>? onLoadedProfile;
 
   @override
   State<RuniacProfileSetupGate> createState() => _RuniacProfileSetupGateState();
@@ -75,7 +78,8 @@ class _RuniacProfileSetupGateState extends State<RuniacProfileSetupGate> {
     final authRepository = widget.authRepository;
     final profileRepository = widget.profileRepository;
     try {
-      await profileRepository.loadUserProfile();
+      final profile = await profileRepository.loadUserProfile();
+      widget.onLoadedProfile?.call(profile);
       return true;
     } catch (error) {
       if (!_isRecoverableProfileSetupError(error)) {
