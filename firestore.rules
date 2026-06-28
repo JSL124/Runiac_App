@@ -397,7 +397,11 @@ service cloud.firestore {
     }
 
     match /runSummaries/{summaryId} {
-      allow read: if isSignedIn() && resource.data.ownerUid == request.auth.uid;
+      allow get: if isSignedIn() && resource.data.ownerUid == request.auth.uid;
+      allow list: if isSignedIn()
+        && request.query.limit != null
+        && request.query.limit <= 30
+        && resource.data.ownerUid == request.auth.uid;
       allow create, update, delete: if false;
     }
 

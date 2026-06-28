@@ -3,6 +3,8 @@ import '../domain/repositories/activity_history_repository.dart';
 import '../presentation/data/activity_history_demo_snapshots.dart';
 
 class StaticActivityHistoryRepository implements ActivityHistoryRepository {
+  const StaticActivityHistoryRepository();
+
   @override
   Future<ActivityHistoryReadModel> loadActivityHistory() async {
     final months = activityHistoryDisplayData

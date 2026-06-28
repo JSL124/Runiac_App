@@ -11,11 +11,14 @@ import '../run/domain/models/run_location_sample.dart';
 import '../run/presentation/active_run_session_coordinator.dart';
 import '../run/presentation/run_launch_screen.dart';
 import '../run/presentation/run_open_intent.dart';
+import '../you/data/static_activity_history_repository.dart';
+import '../you/domain/repositories/activity_history_repository.dart';
 import '../you/presentation/you_tab.dart';
 
 class RuniacShell extends StatefulWidget {
   const RuniacShell({
     required this.authRepository,
+    this.activityHistoryRepository = const StaticActivityHistoryRepository(),
     required this.profileRepository,
     required this.profilePersistenceRepository,
     super.key,
@@ -25,6 +28,7 @@ class RuniacShell extends StatefulWidget {
   });
 
   final RuniacAuthRepository authRepository;
+  final ActivityHistoryRepository activityHistoryRepository;
   final UserProfileRepository profileRepository;
   final UserProfilePersistenceRepository profilePersistenceRepository;
   final bool enableForegroundGps;
@@ -183,6 +187,7 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
       const SizedBox.shrink(),
       const LeaderboardTab(),
       YouTab(
+        activityHistoryRepository: widget.activityHistoryRepository,
         enableForegroundGps: widget.enableForegroundGps,
         activeRunSessionCoordinator: _activeRunSessionCoordinator,
       ),

@@ -18,6 +18,8 @@ import 'features/run/domain/repositories/run_repository.dart';
 import 'features/run/presentation/active_run_session_coordinator.dart';
 import 'features/run/presentation/run_open_intent.dart';
 import 'features/run/presentation/run_repository_scope.dart';
+import 'features/you/data/static_activity_history_repository.dart';
+import 'features/you/domain/repositories/activity_history_repository.dart';
 import 'features/onboarding/presentation/runiac_onboarding_gate.dart';
 import 'features/shell/runiac_shell.dart';
 import 'features/splash/presentation/runiac_splash_tokens.dart';
@@ -35,6 +37,7 @@ class RuniacApp extends StatefulWidget {
     this.splashDuration = RuniacSplashTokens.minVisibleDuration,
     this.authRepository = const NonProductionAuthRepository(),
     this.runRepository = const StaticRunRepository(),
+    this.activityHistoryRepository = const StaticActivityHistoryRepository(),
     this.profileRepository = const StaticUserProfileRepository(),
     this.profilePersistenceRepository =
         const NoopUserProfilePersistenceRepository(),
@@ -53,6 +56,7 @@ class RuniacApp extends StatefulWidget {
   final Duration splashDuration;
   final RuniacAuthRepository authRepository;
   final RunRepository runRepository;
+  final ActivityHistoryRepository activityHistoryRepository;
   final UserProfileRepository profileRepository;
   final UserProfilePersistenceRepository profilePersistenceRepository;
   final bool enableForegroundGps;
@@ -178,6 +182,7 @@ class _RuniacAppState extends State<RuniacApp> {
       onCompletedDraft: _completeOnboarding,
       child: RuniacShell(
         authRepository: widget.authRepository,
+        activityHistoryRepository: widget.activityHistoryRepository,
         profileRepository: widget.profileRepository,
         profilePersistenceRepository: widget.profilePersistenceRepository,
         enableForegroundGps: widget.enableForegroundGps,

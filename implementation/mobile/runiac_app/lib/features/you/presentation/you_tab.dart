@@ -4,13 +4,14 @@ import '../../../core/theme/runiac_colors.dart';
 import '../../run/domain/models/run_activity_display_model.dart';
 import '../../run/presentation/active_run_session_coordinator.dart';
 import '../../run/presentation/view_summary_screen.dart';
+import '../data/static_activity_history_repository.dart';
+import '../domain/repositories/activity_history_repository.dart';
 import '../../plan/presentation/current_session_generated_plan.dart';
+import 'activity_history_display_controller.dart';
 import 'activity_history_screen.dart';
 import 'current_session_activity_history.dart';
 import 'adapters/generated_plan_you_display_adapter.dart';
-import 'data/activity_history_demo_snapshots.dart';
 import 'data/weekly_workout_demo_snapshots.dart';
-import 'data/you_overview_demo_snapshots.dart';
 import 'expert_plan_detail_screen.dart';
 import 'expert_plan_list_screen.dart';
 import 'goal_plan_detail_screen.dart';
@@ -23,10 +24,12 @@ import 'widgets/you_segmented_control.dart';
 class YouTab extends StatefulWidget {
   const YouTab({
     super.key,
+    this.activityHistoryRepository = const StaticActivityHistoryRepository(),
     this.enableForegroundGps = true,
     this.activeRunSessionCoordinator,
   });
 
+  final ActivityHistoryRepository activityHistoryRepository;
   final bool enableForegroundGps;
   final ActiveRunSessionCoordinator? activeRunSessionCoordinator;
 
@@ -41,17 +44,51 @@ class _YouTabState extends State<YouTab> {
   var _goalPlanDetailVisible = false;
   var _workoutDetailVisible = false;
   var _activityHistoryVisible = false;
+  late ActivityHistoryDisplayController _activityHistoryController;
   var _workoutDetailSnapshot = weeklyWorkoutDetailSnapshot;
   var _visibleCalendarMonth = DateTime(2026, 5);
 
   @override
+  void initState() {
+    super.initState();
+    _activityHistoryController = ActivityHistoryDisplayController(
+      repository: widget.activityHistoryRepository,
+    )..addListener(_handleActivityHistoryChanged);
+    _activityHistoryController.load();
+  }
+
+  @override
+  void didUpdateWidget(covariant YouTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.activityHistoryRepository !=
+        widget.activityHistoryRepository) {
+      _activityHistoryController
+        ..removeListener(_handleActivityHistoryChanged)
+        ..dispose();
+      _activityHistoryController = ActivityHistoryDisplayController(
+        repository: widget.activityHistoryRepository,
+      )..addListener(_handleActivityHistoryChanged);
+      _activityHistoryController.load();
+    }
+  }
+
+  @override
+  void dispose() {
+    _activityHistoryController
+      ..removeListener(_handleActivityHistoryChanged)
+      ..dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final activityHistoryStore = CurrentSessionActivityHistoryScope.of(context);
-    final recentRuns = activityHistoryStore.recentRunsWithFallback(
-      youProgressSnapshot.runs,
+    final recentRuns = _activityHistoryController.recentRuns(
+      activityHistoryStore,
     );
-    final activityHistoryMonths = activityHistoryStore
-        .activityHistoryWithFallback(activityHistoryDisplayData);
+    final activityHistoryMonths = _activityHistoryController.months(
+      activityHistoryStore,
+    );
     final generatedPlanStore = CurrentSessionGeneratedPlanScope.of(context);
     final generatedPlanDisplay = generatedYouPlanDisplayFromSnapshot(
       generatedPlanStore.activePlan,
@@ -63,6 +100,10 @@ class _YouTabState extends State<YouTab> {
     if (_activityHistoryVisible) {
       return ActivityHistoryScreen(
         activityHistoryMonths: activityHistoryMonths,
+        loadFailed: _activityHistoryController.loadFailed,
+        onRetryLoad: () {
+          _activityHistoryController.load();
+        },
         onBack: () {
           setState(() => _activityHistoryVisible = false);
         },
@@ -212,5 +253,12 @@ class _YouTabState extends State<YouTab> {
         ),
       ),
     );
+  }
+
+  void _handleActivityHistoryChanged() {
+    if (!mounted) {
+      return;
+    }
+    setState(() {});
   }
 }

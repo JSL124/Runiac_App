@@ -1,6 +1,20 @@
+import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
-import { deleteDoc, deleteField, doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import {
+  collection,
+  deleteDoc,
+  deleteField,
+  doc,
+  getDoc,
+  getDocs,
+  limit,
+  orderBy,
+  query,
+  setDoc,
+  updateDoc,
+  where,
+} from 'firebase/firestore';
 
 import {
   activityDraft,
@@ -286,6 +300,130 @@ describe('owner-owned client records', () => {
     await assertFails(setDoc(activity, activityDraft));
     await assertFails(updateDoc(activity, { status: 'pending' }));
     await assertFails(updateDoc(activity, { validationStatus: deleteField() }));
+  });
+
+  it('run summary owner history reads', async () => {
+    await seed('runSummaries/alice-summary', {
+      ownerUid: 'alice',
+      activityId: 'activity-alice',
+      status: 'validated',
+      startedAt: 10,
+      endedAt: 20,
+      durationSeconds: 600,
+      distanceMeters: 1200,
+      averagePaceSecondsPerKm: 500,
+      routePrivacy: 'private',
+      createdAt: 21,
+    });
+    await seed('runSummaries/bob-summary', {
+      ownerUid: 'bob',
+      activityId: 'activity-bob',
+      status: 'validated',
+      startedAt: 30,
+      endedAt: 40,
+      durationSeconds: 900,
+      distanceMeters: 1800,
+      averagePaceSecondsPerKm: 500,
+      routePrivacy: 'private',
+      createdAt: 41,
+    });
+
+    const alice = dbFor('alice');
+
+    const aliceSummary = await assertSucceeds(
+      getDoc(doc(alice, 'runSummaries/alice-summary')),
+    );
+    assert.equal(aliceSummary.data().ownerUid, 'alice');
+
+    const aliceHistory = query(
+      collection(alice, 'runSummaries'),
+      where('ownerUid', '==', 'alice'),
+      orderBy('endedAt', 'desc'),
+      limit(30),
+    );
+    const aliceHistorySnapshot = await assertSucceeds(getDocs(aliceHistory));
+    assert.deepEqual(
+      aliceHistorySnapshot.docs.map((summary) => summary.id),
+      ['alice-summary'],
+    );
+  });
+
+  it('denies unbounded run summary history list queries', async () => {
+    await seed('runSummaries/alice-summary', {
+      ownerUid: 'alice',
+      activityId: 'activity-alice',
+      status: 'validated',
+      startedAt: 10,
+      endedAt: 20,
+      durationSeconds: 600,
+      distanceMeters: 1200,
+      averagePaceSecondsPerKm: 500,
+      routePrivacy: 'private',
+      createdAt: 21,
+    });
+
+    const unboundedHistory = query(
+      collection(dbFor('alice'), 'runSummaries'),
+      where('ownerUid', '==', 'alice'),
+      orderBy('endedAt', 'desc'),
+    );
+
+    await assertFails(getDocs(unboundedHistory));
+  });
+
+  it('run summary history denies cross-owner and client writes', async () => {
+    await seed('runSummaries/alice-summary', {
+      ownerUid: 'alice',
+      activityId: 'activity-alice',
+      status: 'validated',
+      startedAt: 10,
+      endedAt: 20,
+      durationSeconds: 600,
+      distanceMeters: 1200,
+      averagePaceSecondsPerKm: 500,
+      routePrivacy: 'private',
+      createdAt: 21,
+    });
+    await seed('runSummaries/bob-summary', {
+      ownerUid: 'bob',
+      activityId: 'activity-bob',
+      status: 'validated',
+      startedAt: 30,
+      endedAt: 40,
+      durationSeconds: 900,
+      distanceMeters: 1800,
+      averagePaceSecondsPerKm: 500,
+      routePrivacy: 'private',
+      createdAt: 41,
+    });
+
+    const bob = dbFor('bob');
+
+    await assertFails(getDoc(doc(bob, 'runSummaries/alice-summary')));
+    await assertFails(
+      getDocs(
+        query(
+          collection(bob, 'runSummaries'),
+          where('ownerUid', '==', 'alice'),
+          orderBy('endedAt', 'desc'),
+          limit(30),
+        ),
+      ),
+    );
+    await assertFails(
+      setDoc(doc(dbFor('alice'), 'runSummaries/client-summary'), {
+        ownerUid: 'alice',
+        activityId: 'activity-client',
+        status: 'validated',
+        startedAt: 50,
+        endedAt: 60,
+        durationSeconds: 600,
+        distanceMeters: 1200,
+        averagePaceSecondsPerKm: 500,
+        routePrivacy: 'private',
+        createdAt: 61,
+      }),
+    );
   });
 
   it('allows report creation but denies client resolution', async () => {

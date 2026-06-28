@@ -11,12 +11,16 @@ class ActivityHistoryScreen extends StatelessWidget {
     required this.activityHistoryMonths,
     required this.onBack,
     required this.onActivitySelected,
+    this.loadFailed = false,
+    this.onRetryLoad,
     super.key,
   });
 
   final List<ActivityHistoryMonth> activityHistoryMonths;
   final VoidCallback onBack;
   final ValueChanged<RunActivityDisplayModel> onActivitySelected;
+  final bool loadFailed;
+  final VoidCallback? onRetryLoad;
 
   @override
   Widget build(BuildContext context) {
@@ -48,6 +52,10 @@ class ActivityHistoryScreen extends StatelessWidget {
                         'Showing your recent activities',
                         style: _helperTextStyle,
                       ),
+                      if (loadFailed) ...[
+                        const SizedBox(height: 10),
+                        _LoadFailedBanner(onRetryLoad: onRetryLoad),
+                      ],
                       const SizedBox(height: 16),
                       for (final month in activityHistoryMonths) ...[
                         _MonthHeader(month: month),
@@ -71,6 +79,46 @@ class ActivityHistoryScreen extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _LoadFailedBanner extends StatelessWidget {
+  const _LoadFailedBanner({this.onRetryLoad});
+
+  final VoidCallback? onRetryLoad;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: RuniacColors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: RuniacColors.border),
+      ),
+      child: Row(
+        children: [
+          const Expanded(
+            child: Text(
+              'We could not load your activity history.',
+              style: _helperTextStyle,
+            ),
+          ),
+          if (onRetryLoad != null) ...[
+            const SizedBox(width: 8),
+            TextButton(
+              onPressed: onRetryLoad,
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                minimumSize: const Size(0, 36),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: const Text('Try again', style: _retryTextStyle),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -151,6 +199,11 @@ const _helperTextStyle = TextStyle(
   color: RuniacColors.textSecondary,
   fontSize: 12,
   fontWeight: FontWeight.w600,
+);
+const _retryTextStyle = TextStyle(
+  color: RuniacColors.primaryBlue,
+  fontSize: 13,
+  fontWeight: FontWeight.w800,
 );
 const _monthTitleStyle = TextStyle(
   color: RuniacColors.textPrimary,

@@ -92,6 +92,31 @@ CompleteRunResult _sessionCompletion({
   );
 }
 
+RunActivityDisplayModel _displayRun({
+  required String activityId,
+  required String title,
+}) {
+  return RunActivityDisplayModel(
+    activityId: activityId,
+    title: title,
+    timeAgoLabel: '12 Jun 2026',
+    distanceLabel: '3.20 km',
+    paceLabel: '7’10”',
+    durationLabel: '22:56',
+    summary: RunSummarySnapshot(
+      title: title,
+      dateLabel: '12 Jun 2026',
+      timeLabel: '7:20 AM',
+      distanceKm: '3.20',
+      avgPace: '7’10”',
+      duration: '22:56',
+      avgHeartRate: '--',
+      calories: '--',
+      routeName: 'Repository Route',
+    ),
+  );
+}
+
 RunRouteSnapshot _sessionRouteFixture() {
   final startedAt = DateTime.utc(2026, 6, 18, 8, 10);
 
@@ -925,6 +950,39 @@ void main() {
       expect(find.text('4.20'), findsOneWidget);
     },
   );
+
+  test('current-session recent fallback fills limit after dedupe', () {
+    final historyStore = CurrentSessionActivityHistoryStore(
+      now: () => DateTime(2026, 6, 18),
+    );
+    addTearDown(historyStore.dispose);
+    historyStore.registerCompletedRun(
+      _sessionCompletion(
+        activityId: 'shared-activity',
+        title: 'Session Replacement Run',
+        distanceKm: '4.20',
+      ),
+    );
+
+    final recentRuns = historyStore.recentRunsWithFallback(<
+      RunActivityDisplayModel
+    >[
+      _displayRun(activityId: 'shared-activity', title: 'Repository Match'),
+      _displayRun(activityId: 'repository-second', title: 'Repository Second'),
+      _displayRun(activityId: 'repository-third', title: 'Repository Third'),
+    ]);
+
+    expect(recentRuns.map((run) => run.activityId), <String?>[
+      'shared-activity',
+      'repository-second',
+      'repository-third',
+    ]);
+    expect(recentRuns.map((run) => run.title), <String>[
+      'Session Replacement Run',
+      'Repository Second',
+      'Repository Third',
+    ]);
+  });
 
   testWidgets(
     'low-data current-session route previews distinguish route movement',

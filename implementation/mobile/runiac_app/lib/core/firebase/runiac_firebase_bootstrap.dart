@@ -12,6 +12,9 @@ import '../../features/auth/data/non_production_auth_repository.dart';
 import '../../features/auth/domain/runiac_auth_service.dart';
 import '../../features/run/data/run_repository_factory.dart';
 import '../../features/run/domain/repositories/run_repository.dart';
+import '../../features/you/data/firestore_activity_history_repository.dart';
+import '../../features/you/data/static_activity_history_repository.dart';
+import '../../features/you/domain/repositories/activity_history_repository.dart';
 import 'runiac_firestore_gateway.dart';
 
 class RuniacFirebaseBootstrap {
@@ -30,6 +33,7 @@ class RuniacFirebaseBootstrap {
         return RuniacFirebaseBootstrapResult(
           runRepository: RunRepositoryFactory.create(config: runtimeConfig),
           authRepository: const NonProductionAuthRepository(),
+          activityHistoryRepository: const StaticActivityHistoryRepository(),
           profileRepository: const StaticUserProfileRepository(),
           profilePersistenceRepository:
               const NoopUserProfilePersistenceRepository(),
@@ -55,6 +59,9 @@ class RuniacFirebaseBootstrap {
       return RuniacFirebaseBootstrapResult(
         runRepository: RunRepositoryFactory.create(config: runtimeConfig),
         authRepository: authRepository,
+        activityHistoryRepository: FirestoreActivityHistoryRepository(
+          authRepository: authRepository,
+        ),
         profileRepository: FirestoreUserProfileRepository(
           authRepository: authRepository,
         ),
@@ -97,6 +104,9 @@ class RuniacFirebaseBootstrap {
     return RuniacFirebaseBootstrapResult(
       runRepository: RunRepositoryFactory.create(config: runtimeConfig),
       authRepository: authRepository,
+      activityHistoryRepository: FirestoreActivityHistoryRepository(
+        authRepository: authRepository,
+      ),
       profileRepository: FirestoreUserProfileRepository(
         authRepository: authRepository,
       ),
@@ -143,6 +153,7 @@ class RuniacFirebaseBootstrapResult {
   const RuniacFirebaseBootstrapResult({
     required this.runRepository,
     required this.authRepository,
+    required this.activityHistoryRepository,
     required this.profileRepository,
     required this.profilePersistenceRepository,
     required this.firestoreGateway,
@@ -150,6 +161,7 @@ class RuniacFirebaseBootstrapResult {
 
   final RunRepository runRepository;
   final RuniacAuthRepository authRepository;
+  final ActivityHistoryRepository activityHistoryRepository;
   final UserProfileRepository profileRepository;
   final UserProfilePersistenceRepository profilePersistenceRepository;
   final RuniacFirestoreGateway firestoreGateway;

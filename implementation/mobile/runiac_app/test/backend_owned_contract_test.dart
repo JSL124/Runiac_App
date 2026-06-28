@@ -265,6 +265,7 @@ void main() {
         'lib/features/account/data/'
             'firestore_user_profile_persistence_repository.dart',
         'lib/features/account/data/firestore_user_profile_repository.dart',
+        'lib/features/you/data/firestore_activity_history_repository.dart',
       };
       const forbiddenFeatureTerms = <String>[
         'package:cloud_firestore',
@@ -321,6 +322,22 @@ void main() {
         }
       },
     );
+
+    test('limits Firestore activity history access to owner-scoped reads', () {
+      final source = File(
+        'lib/features/you/data/firestore_activity_history_repository.dart',
+      ).readAsStringSync();
+
+      expect(source, contains("collection('runSummaries')"));
+      expect(source, contains("where('ownerUid'"));
+      expect(source, contains("orderBy('endedAt'"));
+      expect(source, contains('.get('));
+      expect(source, isNot(contains('.set(')));
+      expect(source, isNot(contains('.update(')));
+      expect(source, isNot(contains('.delete(')));
+      expect(source, isNot(contains('runTransaction')));
+      expect(source, isNot(contains('writeBatch')));
+    });
   });
 }
 

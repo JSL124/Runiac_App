@@ -56,10 +56,27 @@ class CurrentSessionActivityHistoryStore extends ChangeNotifier {
     List<RunActivityDisplayModel> fallback, {
     int limit = 3,
   }) {
-    return <RunActivityDisplayModel>[
+    final merged = <RunActivityDisplayModel>[
       for (final activity in _activities) activity.display,
       ...fallback,
-    ].take(limit).toList(growable: false);
+    ];
+    final seenIds = <String>{};
+    final deduped = <RunActivityDisplayModel>[];
+
+    for (final activity in merged) {
+      final activityId = activity.activityId;
+      if (activityId != null &&
+          activityId.isNotEmpty &&
+          !seenIds.add(activityId)) {
+        continue;
+      }
+      deduped.add(activity);
+      if (deduped.length == limit) {
+        break;
+      }
+    }
+
+    return deduped;
   }
 
   List<ActivityHistoryMonth> activityHistoryWithFallback(

@@ -72,6 +72,28 @@ describe("completeRun callable boundary", () => {
     assert.equal(progressionEvent.get("countsTowardLeaderboard"), false);
   });
 
+  it("completeRun writes owner scoped run summaries", async () => {
+    const result = await callCompleteRun({ auth: { uid: "alice" }, data: validPayload() });
+
+    const activity = await firestore.doc(`activities/${result.activityId}`).get();
+    const summary = await firestore.doc(`runSummaries/${result.summaryId}`).get();
+    const progressionEvent = await firestore.doc(`progressionEvents/${result.progressionEventId}`).get();
+
+    assert.equal(activity.get("ownerUid"), "alice");
+    assert.equal(summary.get("ownerUid"), "alice");
+    assert.equal(summary.get("activityId"), result.activityId);
+    assert.equal(progressionEvent.get("ownerUid"), "alice");
+  });
+
+  it("completeRun scopes deterministic ids by uid", async () => {
+    const aliceResult = await callCompleteRun({ auth: { uid: "alice" }, data: validPayload() });
+    const bobResult = await callCompleteRun({ auth: { uid: "bob" }, data: validPayload() });
+
+    assert.notEqual(aliceResult.activityId, bobResult.activityId);
+    assert.notEqual(aliceResult.summaryId, bobResult.summaryId);
+    assert.notEqual(aliceResult.progressionEventId, bobResult.progressionEventId);
+  });
+
   it("fails when a required field is missing", async () => {
     const payload = validPayloadWithout("distanceMeters");
 
