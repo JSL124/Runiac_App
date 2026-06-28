@@ -20,6 +20,8 @@ Runiac feels like a calm beginner running companion: clear, encouraging, and lig
 | Border/brand | `RuniacColors.cardBorder` | `#DCE5FF` | `#DCE5FF` | Blue-tinted card edges |
 | Accent/primary | `RuniacColors.primaryBlue` | `#2F50C7` | `#DCE5FF` | Primary CTAs, links, focus, logo |
 | Accent/action | `RuniacColors.accentOrange` | `#FC6818` | `#FC6818` | High-emphasis action accents |
+| Feedback/success | `RuniacColors.successGreen` | `#15803D` | `#15803D` | Positive validation and available states |
+| Feedback/error | `RuniacColors.errorRed` | `#DC2626` | `#DC2626` | Blocking validation and unavailable states |
 
 ### Rules
 

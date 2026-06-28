@@ -345,9 +345,11 @@ class _NicknameStatusText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = available == false
-        ? RuniacColors.accentOrange
-        : RuniacColors.textSecondary;
+    final color = switch (available) {
+      true => RuniacColors.successGreen,
+      false => RuniacColors.errorRed,
+      null => RuniacColors.textSecondary,
+    };
     return Text(
       message,
       style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w800),

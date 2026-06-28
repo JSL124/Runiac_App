@@ -236,7 +236,7 @@ class _AccountEditProfileScreenState extends State<AccountEditProfileScreen> {
     });
   }
 
-  void _retakeOnboarding() {
+  Future<void> _retakeOnboarding() async {
     if (_checkingNickname) {
       setState(() {
         _error = 'Wait for the nickname check to finish.';
@@ -265,8 +265,8 @@ class _AccountEditProfileScreenState extends State<AccountEditProfileScreen> {
       });
       return;
     }
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
+    final updated = await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
         builder: (_) => _RetakeOnboardingScreen(
           authRepository: widget.authRepository,
           persistenceRepository: widget.persistenceRepository,
@@ -274,6 +274,10 @@ class _AccountEditProfileScreenState extends State<AccountEditProfileScreen> {
         ),
       ),
     );
+    if (!mounted || updated != true) {
+      return;
+    }
+    Navigator.of(context).pop(true);
   }
 
   @override
@@ -502,7 +506,7 @@ class _RetakeOnboardingScreenState extends State<_RetakeOnboardingScreen> {
       if (store != null && !store.setActivePlan(plan)) {
         store.clear();
       }
-      Navigator.of(context).pop();
+      Navigator.of(context).pop(true);
       return true;
     } catch (_) {
       setState(() {
@@ -613,9 +617,11 @@ class _NicknameStatusText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = available == false
-        ? RuniacColors.accentOrange
-        : RuniacColors.textSecondary;
+    final color = switch (available) {
+      true => RuniacColors.successGreen,
+      false => RuniacColors.errorRed,
+      null => RuniacColors.textSecondary,
+    };
     return Text(
       message,
       style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w800),

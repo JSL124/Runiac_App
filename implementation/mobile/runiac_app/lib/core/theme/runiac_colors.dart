@@ -5,6 +5,8 @@ class RuniacColors {
 
   static const primaryBlue = Color(0xFF2F50C7);
   static const accentOrange = Color(0xFFFC6818);
+  static const successGreen = Color(0xFF15803D);
+  static const errorRed = Color(0xFFDC2626);
   static const white = Color(0xFFFFFFFF);
   static const background = Color(0xFFFFFFFF);
   static const sectionSurface = Color(0xFFF4F7FF);

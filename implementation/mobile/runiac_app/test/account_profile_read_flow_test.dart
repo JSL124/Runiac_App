@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/app.dart';
+import 'package:runiac_app/core/theme/runiac_colors.dart';
 import 'package:runiac_app/features/account/domain/models/user_profile_read_model.dart';
 import 'package:runiac_app/features/account/domain/repositories/user_profile_persistence_repository.dart';
 import 'package:runiac_app/features/account/domain/repositories/user_profile_repository.dart';
+import 'package:runiac_app/features/plan/presentation/current_session_generated_plan.dart';
 
 import 'support/fake_runiac_auth_repository.dart';
 import 'support/onboarding_flow_test_helpers.dart';
@@ -78,8 +80,78 @@ void main() {
       final authRepository = FakeRuniacAuthRepository();
       addTearDown(authRepository.dispose);
       authRepository.emitSignedIn();
-      final persistenceRepository =
-          _RecordingUserProfilePersistenceRepository();
+      final generatedPlanStore = CurrentSessionGeneratedPlanStore();
+      final profileRepository = _MutableProfileRepository(
+        UserProfileReadModel(
+          userId: 'test-auth-user-1',
+          displayName: 'Maya',
+          fullName: 'Maya Tan',
+          nickname: 'Maya',
+          avatarInitials: 'M',
+          dateOfBirthIso: '2000-01-01',
+          ageYears: 24,
+          weightKg: 58.5,
+          locationLabel: 'Queenstown',
+          setupItems: const <UserProfileInfoItemReadModel>[
+            UserProfileInfoItemReadModel(title: 'Current goal', value: 'habit'),
+            UserProfileInfoItemReadModel(
+              title: 'Weekly rhythm',
+              value: '3 sessions / week',
+            ),
+            UserProfileInfoItemReadModel(title: 'Experience', value: 'new'),
+          ],
+          manageRows: const <UserProfileManageRowReadModel>[
+            UserProfileManageRowReadModel(
+              title: 'Edit profile',
+              subtitle: 'Email, personal details, and onboarding',
+              snackBarMessage: '',
+              action: UserProfileManageAction.editProfile,
+            ),
+          ],
+        ),
+      );
+      final persistenceRepository = _RecordingUserProfilePersistenceRepository(
+        onSaveOnboardingProfile: (profile) {
+          profileRepository.profile = UserProfileReadModel(
+            userId: 'test-auth-user-1',
+            displayName: profile.displayName,
+            fullName: profile.fullName,
+            nickname: profile.nickname,
+            avatarInitials: profile.avatarInitials,
+            dateOfBirthIso: profile.dateOfBirthIso,
+            ageYears: profile.ageYears,
+            weightKg: profile.weightKg,
+            locationLabel: profile.locationLabel,
+            previewNote: 'Loaded from your saved profile.',
+            setupSectionLabel: 'RUNNING SETUP',
+            manageSectionLabel: 'MANAGE',
+            footerCaption: 'Runiac · Preview build · Built for new runners',
+            setupItems: <UserProfileInfoItemReadModel>[
+              UserProfileInfoItemReadModel(
+                title: 'Current goal',
+                value: profile.goals.join(', '),
+              ),
+              UserProfileInfoItemReadModel(
+                title: 'Weekly rhythm',
+                value:
+                    '${profile.availability['weeklySessions']} sessions / week',
+              ),
+              UserProfileInfoItemReadModel(
+                title: 'Experience',
+                value: profile.fitnessLevel,
+              ),
+            ],
+            manageRows: const <UserProfileManageRowReadModel>[
+              UserProfileManageRowReadModel(
+                title: 'Edit profile',
+                subtitle: 'Email, personal details, and onboarding',
+                snackBarMessage: '',
+                action: UserProfileManageAction.editProfile,
+              ),
+            ],
+          );
+        },
+      );
 
       await tester.pumpWidget(
         RuniacApp(
@@ -88,38 +160,8 @@ void main() {
           enableForegroundGps: false,
           authRepository: authRepository,
           profilePersistenceRepository: persistenceRepository,
-          profileRepository: _SingleProfileRepository(
-            UserProfileReadModel(
-              userId: 'test-auth-user-1',
-              displayName: 'Maya',
-              fullName: 'Maya Tan',
-              nickname: 'Maya',
-              avatarInitials: 'M',
-              dateOfBirthIso: '2000-01-01',
-              ageYears: 24,
-              weightKg: 58.5,
-              locationLabel: 'Queenstown',
-              setupItems: const <UserProfileInfoItemReadModel>[
-                UserProfileInfoItemReadModel(
-                  title: 'Current goal',
-                  value: 'habit',
-                ),
-                UserProfileInfoItemReadModel(
-                  title: 'Weekly rhythm',
-                  value: '3 sessions / week',
-                ),
-                UserProfileInfoItemReadModel(title: 'Experience', value: 'new'),
-              ],
-              manageRows: const <UserProfileManageRowReadModel>[
-                UserProfileManageRowReadModel(
-                  title: 'Edit profile',
-                  subtitle: 'Email, personal details, and onboarding',
-                  snackBarMessage: '',
-                  action: UserProfileManageAction.editProfile,
-                ),
-              ],
-            ),
-          ),
+          currentSessionGeneratedPlanStore: generatedPlanStore,
+          profileRepository: profileRepository,
         ),
       );
 
@@ -138,6 +180,10 @@ void main() {
       await tester.enterText(find.bySemanticsLabel('Nickname'), 'May');
       await tester.pump(const Duration(milliseconds: 500));
       expect(find.text('Nickname is available.'), findsOneWidget);
+      expect(
+        _textColor(tester, 'Nickname is available.'),
+        RuniacColors.successGreen,
+      );
       expect(find.text('Date of birth'), findsOneWidget);
       expect(find.text('Age'), findsOneWidget);
       await tester.enterText(
@@ -160,7 +206,7 @@ void main() {
       await tester.ensureVisible(find.text('Retake onboarding'));
       await tester.tap(find.text('Retake onboarding'));
       await tester.pumpAndSettle();
-      await completeOnboardingToPreview(tester);
+      await completeOnboardingToFourSessionPreview(tester);
       await tapText(tester, 'Continue with this plan');
       await tester.pumpAndSettle();
 
@@ -175,24 +221,12 @@ void main() {
         persistenceRepository.onboardingProfile?.locationLabel,
         'Tiong Bahru, Singapore',
       );
-
-      await tester.ensureVisible(find.text('Save changes'));
-      await tester.tap(find.text('Save changes'));
-      await tester.pumpAndSettle();
-
-      expect(persistenceRepository.uid, 'test-auth-user-1');
-      expect(persistenceRepository.checkedNickname, 'May');
-      expect(persistenceRepository.personalProfile?.nickname, 'May');
-      expect(
-        persistenceRepository.personalProfile?.dateOfBirthIso,
-        '2000-01-01',
-      );
-      expect(persistenceRepository.personalProfile?.ageYears, 26);
-      expect(persistenceRepository.personalProfile?.weightKg, 59);
-      expect(
-        persistenceRepository.personalProfile?.locationLabel,
-        'Tiong Bahru, Singapore',
-      );
+      expect(generatedPlanStore.activePlan?.title, '10K Performance Build');
+      expect(profileRepository.loadCount, 2);
+      expect(find.text('Account'), findsOneWidget);
+      expect(find.text('Edit profile'), findsOneWidget);
+      expect(find.text('4 sessions / week'), findsOneWidget);
+      expect(find.text('3 sessions / week'), findsNothing);
     },
   );
 
@@ -340,6 +374,10 @@ void main() {
     await tester.pump(const Duration(milliseconds: 500));
     expect(persistenceRepository.checkedNickname, 'TakenRunner');
     expect(find.text('Nickname is already taken.'), findsOneWidget);
+    expect(
+      _textColor(tester, 'Nickname is already taken.'),
+      RuniacColors.errorRed,
+    );
     await tester.ensureVisible(find.text('Save changes'));
     await tester.tap(find.text('Save changes'));
     await tester.pumpAndSettle();
@@ -428,6 +466,10 @@ void main() {
   });
 }
 
+Color? _textColor(WidgetTester tester, String text) {
+  return tester.widget<Text>(find.text(text)).style?.color;
+}
+
 class _SingleProfileRepository implements UserProfileRepository {
   const _SingleProfileRepository(this.profile);
 
@@ -455,11 +497,13 @@ class _RecordingUserProfilePersistenceRepository
   _RecordingUserProfilePersistenceRepository({
     this.nicknameAvailable = true,
     this.nicknameCheckError,
+    this.onSaveOnboardingProfile,
     this.onSavePersonalProfile,
   });
 
   final bool nicknameAvailable;
   final NicknameAvailabilityCheckException? nicknameCheckError;
+  final ValueChanged<UserProfileOnboardingSnapshot>? onSaveOnboardingProfile;
   final ValueChanged<UserProfilePersonalSnapshot>? onSavePersonalProfile;
   String? uid;
   String? checkedNickname;
@@ -485,6 +529,7 @@ class _RecordingUserProfilePersistenceRepository
   }) async {
     this.uid = uid;
     onboardingProfile = profile;
+    onSaveOnboardingProfile?.call(profile);
   }
 
   @override

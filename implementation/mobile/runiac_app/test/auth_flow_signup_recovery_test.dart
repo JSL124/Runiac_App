@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/app.dart';
+import 'package:runiac_app/core/theme/runiac_colors.dart';
 import 'package:runiac_app/features/account/domain/repositories/user_profile_persistence_repository.dart';
 import 'package:runiac_app/features/auth/domain/runiac_auth_service.dart';
 import 'package:runiac_app/features/auth/presentation/runiac_auth_flow_screen.dart';
@@ -202,6 +203,10 @@ void main() {
       await tester.enterText(find.bySemanticsLabel('Nickname'), 'Maya');
       await tester.pump(const Duration(milliseconds: 500));
       expect(find.text('Nickname is available.'), findsOneWidget);
+      expect(
+        _textColor(tester, 'Nickname is available.'),
+        RuniacColors.successGreen,
+      );
       await tester.tap(find.bySemanticsLabel('Date of birth'));
       await tester.pumpAndSettle();
       expect(find.text('Select birthdate'), findsOneWidget);
@@ -268,6 +273,10 @@ void main() {
 
     expect(persistenceRepository.checkedNickname, 'TakenRunner');
     expect(find.text('Nickname is already taken.'), findsOneWidget);
+    expect(
+      _textColor(tester, 'Nickname is already taken.'),
+      RuniacColors.errorRed,
+    );
 
     await tester.tap(find.bySemanticsLabel('Date of birth'));
     await tester.pumpAndSettle();
@@ -286,6 +295,10 @@ void main() {
     expect(find.text('Nickname is already taken.'), findsOneWidget);
     expect(find.text('Welcome to Runiac'), findsNothing);
   });
+}
+
+Color? _textColor(WidgetTester tester, String text) {
+  return tester.widget<Text>(find.text(text)).style?.color;
 }
 
 class _DuplicateNicknameProfileRepository
