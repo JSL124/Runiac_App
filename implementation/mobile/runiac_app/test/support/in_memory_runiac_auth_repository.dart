@@ -6,6 +6,7 @@ class InMemoryRuniacAuthRepository implements RuniacAuthRepository {
   final _authStateController = StreamController<RuniacAuthUser?>.broadcast();
   final _accountsByEmail = <String, _FakeAuthAccount>{};
   final sentPasswordResetEmails = <String>[];
+  final sentEmailVerificationEmails = <String>[];
   var _nextUid = 1;
   RuniacAuthUser? _currentUser;
 
@@ -67,6 +68,18 @@ class InMemoryRuniacAuthRepository implements RuniacAuthRepository {
   @override
   Future<void> sendPasswordResetEmail({required String email}) async {
     sentPasswordResetEmails.add(_normalizeEmail(email));
+  }
+
+  @override
+  Future<void> sendEmailVerification() async {
+    final currentUser = _currentUser;
+    if (currentUser == null || currentUser.email == null) {
+      throw const RuniacAuthException(
+        code: RuniacAuthErrorCode.userNotFound,
+        userMessage: 'Please sign in again before verifying your email.',
+      );
+    }
+    sentEmailVerificationEmails.add(_normalizeEmail(currentUser.email!));
   }
 
   @override

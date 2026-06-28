@@ -75,44 +75,59 @@ void main() {
       expect(profile.locationLabel, accountProfileDemoSnapshot.regionLabel);
     });
 
-    test('falls back to the demo profile for missing documents', () async {
-      final authRepository = FakeRuniacAuthRepository()..emitSignedIn();
-      final repository = FirestoreUserProfileRepository(
-        authRepository: authRepository,
-        reader: _FakeUserProfileDocumentReader(),
-      );
-
-      final profile = await repository.loadUserProfile();
-
-      expect(profile.displayName, accountProfileDemoSnapshot.displayName);
-      expect(profile.locationLabel, accountProfileDemoSnapshot.regionLabel);
-    });
-
     test(
-      'falls back to the demo profile for malformed identity fields',
+      'throws a recovery exception for missing signed-in profiles',
       () async {
         final authRepository = FakeRuniacAuthRepository()..emitSignedIn();
         final repository = FirestoreUserProfileRepository(
           authRepository: authRepository,
-          reader: _FakeUserProfileDocumentReader(
-            documents: const <String, UserProfileDocumentReadResult>{
-              'test-auth-user-1':
-                  UserProfileDocumentReadResult.exists(<String, Object?>{
-                    'displayName': 'Maya Tan',
-                    'avatarInitials': '',
-                    'locationLabel': 'Queenstown, Singapore',
-                  }),
-            },
-          ),
+          reader: _FakeUserProfileDocumentReader(),
         );
 
-        final profile = await repository.loadUserProfile();
-
-        expect(profile.displayName, accountProfileDemoSnapshot.displayName);
-        expect(profile.avatarInitials, 'RR');
-        expect(profile.locationLabel, accountProfileDemoSnapshot.regionLabel);
+        await expectLater(
+          repository.loadUserProfile(),
+          throwsA(
+            isA<CurrentUserProfileException>()
+                .having((error) => error.uid, 'uid', 'test-auth-user-1')
+                .having(
+                  (error) => error.reason,
+                  'reason',
+                  CurrentUserProfileFailureReason.missing,
+                ),
+          ),
+        );
       },
     );
+
+    test('throws a recovery exception for malformed identity fields', () async {
+      final authRepository = FakeRuniacAuthRepository()..emitSignedIn();
+      final repository = FirestoreUserProfileRepository(
+        authRepository: authRepository,
+        reader: _FakeUserProfileDocumentReader(
+          documents: const <String, UserProfileDocumentReadResult>{
+            'test-auth-user-1':
+                UserProfileDocumentReadResult.exists(<String, Object?>{
+                  'displayName': 'Maya Tan',
+                  'avatarInitials': '',
+                  'locationLabel': 'Queenstown, Singapore',
+                }),
+          },
+        ),
+      );
+
+      await expectLater(
+        repository.loadUserProfile(),
+        throwsA(
+          isA<CurrentUserProfileException>()
+              .having((error) => error.uid, 'uid', 'test-auth-user-1')
+              .having(
+                (error) => error.reason,
+                'reason',
+                CurrentUserProfileFailureReason.invalid,
+              ),
+        ),
+      );
+    });
   });
 }
 

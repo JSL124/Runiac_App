@@ -7,12 +7,14 @@ class FakeRuniacAuthRepository implements RuniacAuthRepository {
     this.signInError,
     this.createUserError,
     this.resetError,
+    this.emailVerificationError,
   });
 
   final _controller = StreamController<RuniacAuthUser?>.broadcast();
   final RuniacAuthException? signInError;
   final RuniacAuthException? createUserError;
   final RuniacAuthException? resetError;
+  final RuniacAuthException? emailVerificationError;
 
   RuniacAuthUser? _currentUser;
   Completer<RuniacAuthUser>? _heldSignIn;
@@ -22,6 +24,7 @@ class FakeRuniacAuthRepository implements RuniacAuthRepository {
   int signInCalls = 0;
   int createUserCalls = 0;
   int resetCalls = 0;
+  int sendEmailVerificationCalls = 0;
   int signOutCalls = 0;
   String? lastSignInEmail;
   String? lastSignInPassword;
@@ -42,10 +45,11 @@ class FakeRuniacAuthRepository implements RuniacAuthRepository {
     _controller.close();
   }
 
-  void emitSignedIn() {
-    _currentUser = const RuniacAuthUser(
+  void emitSignedIn({bool emailVerified = true}) {
+    _currentUser = RuniacAuthUser(
       uid: 'test-auth-user-1',
       email: 'runner@runiac.app',
+      emailVerified: emailVerified,
     );
     _controller.add(_currentUser);
   }
@@ -98,6 +102,15 @@ class FakeRuniacAuthRepository implements RuniacAuthRepository {
     resetCalls += 1;
     lastResetEmail = email;
     final error = resetError;
+    if (error != null) {
+      throw error;
+    }
+  }
+
+  @override
+  Future<void> sendEmailVerification() async {
+    sendEmailVerificationCalls += 1;
+    final error = emailVerificationError;
     if (error != null) {
       throw error;
     }

@@ -1,20 +1,31 @@
 class RuniacAuthUser {
-  const RuniacAuthUser({required this.uid, required this.email});
+  const RuniacAuthUser({
+    required this.uid,
+    required this.email,
+    this.emailVerified = false,
+  });
 
   final String uid;
   final String? email;
+  final bool emailVerified;
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
-        other is RuniacAuthUser && other.uid == uid && other.email == email;
+        other is RuniacAuthUser &&
+            other.uid == uid &&
+            other.email == email &&
+            other.emailVerified == emailVerified;
   }
 
   @override
-  int get hashCode => Object.hash(uid, email);
+  int get hashCode => Object.hash(uid, email, emailVerified);
 
   @override
-  String toString() => 'RuniacAuthUser(uid: $uid, email: $email)';
+  String toString() {
+    return 'RuniacAuthUser(uid: $uid, email: $email, '
+        'emailVerified: $emailVerified)';
+  }
 }
 
 enum RuniacAuthErrorCode {
@@ -73,6 +84,8 @@ abstract interface class RuniacAuthRepository {
   });
 
   Future<void> sendPasswordResetEmail({required String email});
+
+  Future<void> sendEmailVerification();
 
   Future<void> signOut();
 }

@@ -38,6 +38,22 @@ class FirebaseRuniacAuthRepository implements RuniacAuthRepository {
   }
 
   @override
+  Future<void> sendEmailVerification() async {
+    final user = firebaseAuth.currentUser;
+    if (user == null) {
+      throw const RuniacAuthException(
+        code: RuniacAuthErrorCode.userNotFound,
+        userMessage: 'Please sign in again before verifying your email.',
+      );
+    }
+    try {
+      await user.sendEmailVerification();
+    } on FirebaseAuthException catch (error) {
+      throw RuniacAuthException.fromFirebaseCode(error.code);
+    }
+  }
+
+  @override
   Future<RuniacAuthUser> signInWithEmailAndPassword({
     required String email,
     required String password,
@@ -84,6 +100,10 @@ class FirebaseRuniacAuthRepository implements RuniacAuthRepository {
     if (user == null) {
       return null;
     }
-    return RuniacAuthUser(uid: user.uid, email: user.email);
+    return RuniacAuthUser(
+      uid: user.uid,
+      email: user.email,
+      emailVerified: user.emailVerified,
+    );
   }
 }

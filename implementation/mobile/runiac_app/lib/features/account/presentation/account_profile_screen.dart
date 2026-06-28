@@ -33,6 +33,8 @@ class AccountProfileScreen extends StatefulWidget {
 
 class _AccountProfileScreenState extends State<AccountProfileScreen> {
   late Future<UserProfileReadModel> _profileFuture;
+  bool _verificationSendPending = false;
+  String? _verificationFeedbackMessage;
 
   @override
   void initState() {
@@ -65,52 +67,15 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
               child: FutureBuilder<UserProfileReadModel>(
                 future: _profileFuture,
                 builder: (context, asyncProfile) {
-                  final snapshot = _snapshotFromProfile(
-                    asyncProfile.data,
-                    widget.snapshot,
-                  );
-                  return ScrollConfiguration(
-                    behavior: ScrollConfiguration.of(
-                      context,
-                    ).copyWith(overscroll: false),
-                    child: SingleChildScrollView(
-                      physics: const ClampingScrollPhysics(),
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          AccountIdentityCard(snapshot: snapshot),
-                          const SizedBox(height: 14),
-                          AccountPreviewNote(message: snapshot.previewNote),
-                          const SizedBox(height: 22),
-                          AccountSectionLabel(snapshot.setupSectionLabel),
-                          const SizedBox(height: 8),
-                          AccountSetupSection(items: snapshot.setupItems),
-                          const SizedBox(height: 22),
-                          AccountSectionLabel(snapshot.manageSectionLabel),
-                          const SizedBox(height: 8),
-                          AccountManageSection(
-                            rows: snapshot.manageRows,
-                            authRepository: widget.authRepository,
-                            onEditProfile: asyncProfile.data == null
-                                ? null
-                                : () => _openEditProfile(asyncProfile.data!),
-                          ),
-                          const SizedBox(height: 22),
-                          Text(
-                            snapshot.footerCaption,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              color: RuniacColors.textSecondary,
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w700,
-                              height: 1.25,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
+                  if (asyncProfile.connectionState == ConnectionState.waiting) {
+                    return const _AccountProfileLoadingState();
+                  }
+                  if (asyncProfile.hasError) {
+                    return _AccountProfileRecoveryState(
+                      onSetupProfile: _showProfileRecoveryUnavailable,
+                    );
+                  }
+                  return _buildProfileBody(asyncProfile.data);
                 },
               ),
             ),
@@ -118,6 +83,133 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
         ),
       ),
     );
+  }
+
+  Widget _buildProfileBody(UserProfileReadModel? profile) {
+    final snapshot = _snapshotFromProfile(profile, widget.snapshot);
+    final currentUser = widget.authRepository.currentUser;
+    final showVerificationPrompt =
+        currentUser != null &&
+        (currentUser.email?.trim().isNotEmpty ?? false) &&
+        !currentUser.emailVerified;
+    return ScrollConfiguration(
+      behavior: ScrollConfiguration.of(context).copyWith(overscroll: false),
+      child: SingleChildScrollView(
+        physics: const ClampingScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (showVerificationPrompt) ...[
+              _EmailVerificationPrompt(
+                email: currentUser.email!.trim(),
+                isPending: _verificationSendPending,
+                feedbackMessage: _verificationFeedbackMessage,
+                onResend: () {
+                  _sendVerificationEmail();
+                },
+              ),
+              const SizedBox(height: 14),
+            ],
+            AccountIdentityCard(snapshot: snapshot),
+            const SizedBox(height: 14),
+            AccountPreviewNote(message: snapshot.previewNote),
+            const SizedBox(height: 22),
+            AccountSectionLabel(snapshot.setupSectionLabel),
+            const SizedBox(height: 8),
+            AccountSetupSection(items: snapshot.setupItems),
+            const SizedBox(height: 22),
+            AccountSectionLabel(snapshot.manageSectionLabel),
+            const SizedBox(height: 8),
+            AccountManageSection(
+              rows: snapshot.manageRows,
+              authRepository: widget.authRepository,
+              onEditProfile: profile == null
+                  ? null
+                  : () => _openEditProfile(profile),
+            ),
+            const SizedBox(height: 22),
+            Text(
+              snapshot.footerCaption,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: RuniacColors.textSecondary,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w700,
+                height: 1.25,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _sendVerificationEmail() async {
+    if (_verificationSendPending) {
+      return;
+    }
+    setState(() {
+      _verificationSendPending = true;
+      _verificationFeedbackMessage = null;
+    });
+    try {
+      await widget.authRepository.sendEmailVerification();
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _verificationFeedbackMessage = 'Verification email sent.';
+      });
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(content: Text('Verification email sent.')),
+        );
+    } on RuniacAuthException catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _verificationFeedbackMessage = error.userMessage;
+      });
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(error.userMessage)));
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _verificationFeedbackMessage =
+            'We could not send that email. Please try again.';
+      });
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('We could not send that email. Please try again.'),
+          ),
+        );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _verificationSendPending = false;
+        });
+      }
+    }
+  }
+
+  void _showProfileRecoveryUnavailable() {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Profile recovery setup requires completing signup/onboarding again.',
+          ),
+        ),
+      );
   }
 
   AccountProfileDemoSnapshot _snapshotFromProfile(
@@ -230,5 +322,180 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
       }
     }
     return null;
+  }
+}
+
+class _EmailVerificationPrompt extends StatelessWidget {
+  const _EmailVerificationPrompt({
+    required this.email,
+    required this.isPending,
+    required this.feedbackMessage,
+    required this.onResend,
+  });
+
+  final String email;
+  final bool isPending;
+  final String? feedbackMessage;
+  final VoidCallback onResend;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: RuniacColors.sectionSurface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: RuniacColors.cardBorder),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.mark_email_unread_outlined,
+              color: RuniacColors.primaryBlue,
+              size: 21,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Verify your email',
+                    style: TextStyle(
+                      color: RuniacColors.textPrimary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w900,
+                      height: 1.2,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    email,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: RuniacColors.textSecondary,
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      height: 1.2,
+                    ),
+                  ),
+                  if (feedbackMessage != null) ...[
+                    const SizedBox(height: 5),
+                    Text(
+                      feedbackMessage!,
+                      style: const TextStyle(
+                        color: RuniacColors.primaryBlue,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w800,
+                        height: 1.2,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            TextButton(
+              onPressed: isPending ? null : onResend,
+              child: Text(isPending ? 'Sending...' : 'Resend email'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AccountProfileLoadingState extends StatelessWidget {
+  const _AccountProfileLoadingState();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox.square(
+            dimension: 28,
+            child: CircularProgressIndicator(strokeWidth: 3),
+          ),
+          SizedBox(height: 12),
+          Text(
+            'Loading profile...',
+            style: TextStyle(
+              color: RuniacColors.textSecondary,
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AccountProfileRecoveryState extends StatelessWidget {
+  const _AccountProfileRecoveryState({required this.onSetupProfile});
+
+  final VoidCallback onSetupProfile;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: RuniacColors.sectionSurface,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: RuniacColors.cardBorder),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Icon(
+                  Icons.manage_accounts_outlined,
+                  color: RuniacColors.primaryBlue,
+                  size: 32,
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Profile setup was not found',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: RuniacColors.textPrimary,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                    height: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Your account is signed in, but the profile setup needed for this page is missing. You can keep using other parts of Runiac while recovery is prepared.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: RuniacColors.textSecondary,
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                    height: 1.3,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                FilledButton(
+                  onPressed: onSetupProfile,
+                  child: const Text('Set up profile'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

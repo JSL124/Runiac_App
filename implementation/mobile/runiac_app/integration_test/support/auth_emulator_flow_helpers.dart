@@ -111,6 +111,11 @@ class DiagnosticAuthRepository implements RuniacAuthRepository {
   }
 
   @override
+  Future<void> sendEmailVerification() {
+    return _record('sendEmailVerification', _delegate.sendEmailVerification);
+  }
+
+  @override
   Future<RuniacAuthUser> signInWithEmailAndPassword({
     required String email,
     required String password,

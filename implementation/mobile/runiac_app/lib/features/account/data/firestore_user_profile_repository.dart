@@ -20,6 +20,20 @@ class UserProfileDocumentReadResult {
   final Map<String, Object?> data;
 }
 
+enum CurrentUserProfileFailureReason { missing, invalid }
+
+class CurrentUserProfileException implements Exception {
+  const CurrentUserProfileException({required this.uid, required this.reason});
+
+  final String uid;
+  final CurrentUserProfileFailureReason reason;
+
+  @override
+  String toString() {
+    return 'CurrentUserProfileException(uid: $uid, reason: $reason)';
+  }
+}
+
 class FirestoreUserProfileDocumentReader implements UserProfileDocumentReader {
   FirestoreUserProfileDocumentReader({FirebaseFirestore? firestore})
     : _firestore = firestore ?? FirebaseFirestore.instance;
@@ -61,12 +75,18 @@ class FirestoreUserProfileRepository implements UserProfileRepository {
 
     final result = await documentReader.readUserProfile(uid: currentUser.uid);
     if (!result.exists) {
-      return fallbackRepository.loadUserProfile();
+      throw CurrentUserProfileException(
+        uid: currentUser.uid,
+        reason: CurrentUserProfileFailureReason.missing,
+      );
     }
 
     final profile = _mapDocument(currentUser.uid, result.data);
     if (profile == null) {
-      return fallbackRepository.loadUserProfile();
+      throw CurrentUserProfileException(
+        uid: currentUser.uid,
+        reason: CurrentUserProfileFailureReason.invalid,
+      );
     }
     return profile;
   }

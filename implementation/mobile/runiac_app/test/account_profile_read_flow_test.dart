@@ -1,10 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/app.dart';
 import 'package:runiac_app/core/theme/runiac_colors.dart';
+import 'package:runiac_app/features/account/data/firestore_user_profile_repository.dart';
 import 'package:runiac_app/features/account/domain/models/user_profile_read_model.dart';
 import 'package:runiac_app/features/account/domain/repositories/user_profile_persistence_repository.dart';
 import 'package:runiac_app/features/account/domain/repositories/user_profile_repository.dart';
+import 'package:runiac_app/features/auth/domain/runiac_auth_service.dart';
 import 'package:runiac_app/features/plan/presentation/current_session_generated_plan.dart';
 
 import 'support/fake_runiac_auth_repository.dart';
@@ -73,6 +77,71 @@ void main() {
       expect(find.text('Returning runner'), findsOneWidget);
     },
   );
+
+  testWidgets(
+    'Account profile shows email verification prompt for unverified user and resends successfully',
+    (tester) async {
+      final authRepository = FakeRuniacAuthRepository();
+      addTearDown(authRepository.dispose);
+      authRepository.emitSignedIn(emailVerified: false);
+
+      await tester.pumpWidget(
+        RuniacApp(
+          showSplash: false,
+          showAuth: true,
+          enableForegroundGps: false,
+          authRepository: authRepository,
+          profileRepository: _SingleProfileRepository(_savedProfile()),
+        ),
+      );
+
+      await tester.tap(find.bySemanticsLabel('Profile'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Verify your email'), findsOneWidget);
+      expect(find.text('Resend email'), findsOneWidget);
+
+      await tester.tap(find.text('Resend email'));
+      await tester.pumpAndSettle();
+
+      expect(authRepository.sendEmailVerificationCalls, 1);
+      expect(find.text('Verification email sent.'), findsWidgets);
+    },
+  );
+
+  testWidgets('Account profile shows auth error when resend fails', (
+    tester,
+  ) async {
+    final authRepository = FakeRuniacAuthRepository(
+      emailVerificationError: const RuniacAuthException(
+        code: RuniacAuthErrorCode.tooManyRequests,
+        userMessage: 'Too many attempts. Please wait a moment and try again.',
+      ),
+    );
+    addTearDown(authRepository.dispose);
+    authRepository.emitSignedIn(emailVerified: false);
+
+    await tester.pumpWidget(
+      RuniacApp(
+        showSplash: false,
+        showAuth: true,
+        enableForegroundGps: false,
+        authRepository: authRepository,
+        profileRepository: _SingleProfileRepository(_savedProfile()),
+      ),
+    );
+
+    await tester.tap(find.bySemanticsLabel('Profile'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Resend email'));
+    await tester.pumpAndSettle();
+
+    expect(authRepository.sendEmailVerificationCalls, 1);
+    expect(
+      find.text('Too many attempts. Please wait a moment and try again.'),
+      findsWidgets,
+    );
+  });
 
   testWidgets(
     'Edit profile shows read-only email and editable personal fields',
@@ -447,6 +516,74 @@ void main() {
     expect(persistenceRepository.personalProfile, isNull);
   });
 
+  testWidgets(
+    'Account profile shows recovery UI when authenticated profile is missing',
+    (tester) async {
+      final authRepository = FakeRuniacAuthRepository();
+      addTearDown(authRepository.dispose);
+      authRepository.emitSignedIn();
+
+      await tester.pumpWidget(
+        RuniacApp(
+          showSplash: false,
+          showAuth: true,
+          enableForegroundGps: false,
+          authRepository: authRepository,
+          profileRepository: FirestoreUserProfileRepository(
+            authRepository: authRepository,
+            reader: const _MissingUserProfileDocumentReader(),
+          ),
+        ),
+      );
+
+      await tester.tap(find.bySemanticsLabel('Profile'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Profile setup was not found'), findsOneWidget);
+      expect(find.text('Set up profile'), findsOneWidget);
+      expect(find.text('Runiac Runner'), findsNothing);
+
+      await tester.tap(find.text('Set up profile'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(
+          'Profile recovery setup requires completing signup/onboarding again.',
+        ),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets('Account profile shows loading state while profile is loading', (
+    tester,
+  ) async {
+    final profileCompleter = Completer<UserProfileReadModel>();
+
+    await tester.pumpWidget(
+      RuniacApp(
+        showSplash: false,
+        enableForegroundGps: false,
+        profileRepository: _CompletingProfileRepository(
+          profileCompleter.future,
+        ),
+      ),
+    );
+
+    await tester.tap(find.bySemanticsLabel('Profile'));
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.text('Loading profile...'), findsOneWidget);
+    expect(find.text('Runiac Runner'), findsNothing);
+
+    profileCompleter.complete(_savedProfile());
+    await tester.pumpAndSettle();
+
+    expect(find.text('Loading profile...'), findsNothing);
+    expect(find.text('Maya'), findsOneWidget);
+  });
+
   testWidgets('Account profile falls back to the demo profile snapshot', (
     tester,
   ) async {
@@ -470,6 +607,37 @@ Color? _textColor(WidgetTester tester, String text) {
   return tester.widget<Text>(find.text(text)).style?.color;
 }
 
+UserProfileReadModel _savedProfile() {
+  return UserProfileReadModel(
+    userId: 'test-auth-user-1',
+    displayName: 'Maya Tan',
+    fullName: 'Maya Tan',
+    nickname: 'Maya',
+    avatarInitials: 'MT',
+    ageYears: 24,
+    weightKg: 58.5,
+    locationLabel: 'Queenstown, Singapore',
+    previewNote: 'Loaded from your saved profile.',
+    setupSectionLabel: 'RUNNING SETUP',
+    manageSectionLabel: 'MANAGE',
+    footerCaption: 'Runiac · Preview build · Built for new runners',
+    setupItems: const <UserProfileInfoItemReadModel>[
+      UserProfileInfoItemReadModel(
+        title: 'Current goal',
+        value: 'First relaxed 5K',
+      ),
+    ],
+    manageRows: const <UserProfileManageRowReadModel>[
+      UserProfileManageRowReadModel(
+        title: 'Edit profile',
+        subtitle: 'Email, personal details, and onboarding',
+        snackBarMessage: '',
+        action: UserProfileManageAction.editProfile,
+      ),
+    ],
+  );
+}
+
 class _SingleProfileRepository implements UserProfileRepository {
   const _SingleProfileRepository(this.profile);
 
@@ -477,6 +645,26 @@ class _SingleProfileRepository implements UserProfileRepository {
 
   @override
   Future<UserProfileReadModel> loadUserProfile() async => profile;
+}
+
+class _CompletingProfileRepository implements UserProfileRepository {
+  const _CompletingProfileRepository(this.profile);
+
+  final Future<UserProfileReadModel> profile;
+
+  @override
+  Future<UserProfileReadModel> loadUserProfile() => profile;
+}
+
+class _MissingUserProfileDocumentReader implements UserProfileDocumentReader {
+  const _MissingUserProfileDocumentReader();
+
+  @override
+  Future<UserProfileDocumentReadResult> readUserProfile({
+    required String uid,
+  }) async {
+    return const UserProfileDocumentReadResult.missing();
+  }
 }
 
 class _MutableProfileRepository implements UserProfileRepository {
