@@ -8,6 +8,7 @@ import 'features/account/presentation/personal_profile_collection_screen.dart';
 import 'features/auth/data/non_production_auth_repository.dart';
 import 'features/auth/domain/runiac_auth_service.dart';
 import 'features/auth/presentation/runiac_auth_gate.dart';
+import 'features/auth/presentation/runiac_profile_setup_gate.dart';
 import 'features/onboarding/domain/models/local_onboarding_draft.dart';
 import 'features/plan/domain/services/beginner_adaptive_plan_generator.dart';
 import 'features/plan/presentation/current_session_generated_plan.dart';
@@ -90,6 +91,16 @@ class _RuniacAppState extends State<RuniacApp> {
   }
 
   @override
+  void didUpdateWidget(covariant RuniacApp oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.authRepository != widget.authRepository ||
+        oldWidget.profileRepository != widget.profileRepository) {
+      _authCompletion = null;
+      _personalProfileDraft = widget.initialPersonalProfileDraft;
+    }
+  }
+
+  @override
   void dispose() {
     if (_ownsActivityHistoryStore) {
       _activityHistoryStore.dispose();
@@ -124,7 +135,7 @@ class _RuniacAppState extends State<RuniacApp> {
                     _authStateError = null;
                   });
                 },
-                child: _buildPostAuthFlow(),
+                childBuilder: (_) => _buildPostAuthFlow(),
               ),
             ),
           ),
@@ -143,18 +154,23 @@ class _RuniacAppState extends State<RuniacApp> {
               'We could not confirm your account. Please try signing in again.',
         );
       }
-      return PersonalProfileCollectionScreen(
-        uid: currentUser.uid,
-        emailLabel: currentUser.email ?? 'Email unavailable',
-        persistenceRepository: widget.profilePersistenceRepository,
-        onComplete: (draft) {
-          setState(() {
-            _personalProfileDraft = draft;
-          });
-        },
+      return _buildPersonalProfileCollection(currentUser);
+    }
+
+    final currentUser = widget.authRepository.currentUser;
+    if (_shouldProbeSignedInProfileSetup(currentUser)) {
+      return RuniacProfileSetupGate(
+        authRepository: widget.authRepository,
+        profileRepository: widget.profileRepository,
+        currentUser: currentUser!,
+        child: _buildOnboardingAndShell(),
       );
     }
 
+    return _buildOnboardingAndShell();
+  }
+
+  Widget _buildOnboardingAndShell() {
     return RuniacOnboardingGate(
       showOnboarding: _shouldShowOnboarding,
       onCompletedDraft: _completeOnboarding,
@@ -166,6 +182,19 @@ class _RuniacAppState extends State<RuniacApp> {
         activeRunSessionCoordinator: widget.activeRunSessionCoordinator,
         initialRunOpenIntent: widget.initialRunOpenIntent,
       ),
+    );
+  }
+
+  Widget _buildPersonalProfileCollection(RuniacAuthUser currentUser) {
+    return PersonalProfileCollectionScreen(
+      uid: currentUser.uid,
+      emailLabel: currentUser.email ?? 'Email unavailable',
+      persistenceRepository: widget.profilePersistenceRepository,
+      onComplete: (draft) {
+        setState(() {
+          _personalProfileDraft = draft;
+        });
+      },
     );
   }
 
@@ -263,6 +292,14 @@ class _RuniacAppState extends State<RuniacApp> {
     return widget.showAuth &&
         widget.showOnboarding &&
         _authCompletion == RuniacAuthCompletion.signup &&
+        _personalProfileDraft == null;
+  }
+
+  bool _shouldProbeSignedInProfileSetup(RuniacAuthUser? currentUser) {
+    return widget.showAuth &&
+        widget.showOnboarding &&
+        currentUser != null &&
+        _authCompletion == null &&
         _personalProfileDraft == null;
   }
 }

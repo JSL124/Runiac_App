@@ -1,6 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/app.dart';
+import 'package:runiac_app/features/account/data/firestore_user_profile_repository.dart';
+import 'package:runiac_app/features/account/domain/models/user_profile_read_model.dart';
+import 'package:runiac_app/features/account/domain/repositories/user_profile_repository.dart';
+import 'package:runiac_app/features/auth/domain/runiac_auth_service.dart';
 import 'package:runiac_app/features/auth/presentation/runiac_auth_gate.dart';
 
 import 'support/auth_flow_test_helpers.dart';
@@ -137,6 +143,88 @@ void main() {
   });
 
   testWidgets(
+    'signed-in user with missing profile returns to auth flow after restart',
+    (tester) async {
+      final repository = FakeRuniacAuthRepository();
+      addTearDown(repository.dispose);
+
+      await tester.pumpWidget(
+        RuniacApp(
+          showSplash: false,
+          showAuth: true,
+          showOnboarding: true,
+          enableForegroundGps: false,
+          authRepository: repository,
+          profileRepository: const _MissingCurrentUserProfileRepository(),
+        ),
+      );
+
+      repository.emitSignedIn();
+      await tester.pumpAndSettle();
+
+      expect(repository.signOutCalls, 1);
+      expect(
+        find.byKey(const ValueKey('auth_welcome_runiac_logo')),
+        findsOneWidget,
+      );
+      expect(find.text('Log in'), findsOneWidget);
+      expect(find.text('Sign up'), findsOneWidget);
+      expect(find.text('Tell us about you'), findsNothing);
+      expect(find.text('Good to see you'), findsNothing);
+      expect(find.text('Profile setup was not found'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'stale missing profile probe does not sign out newer signed-in session',
+    (tester) async {
+      final authRepository = _SwitchableRuniacAuthRepository();
+      final profileRepository = _StaleMissingProfileRepository();
+      addTearDown(authRepository.dispose);
+
+      await tester.pumpWidget(
+        RuniacApp(
+          showSplash: false,
+          showAuth: true,
+          showOnboarding: true,
+          enableForegroundGps: false,
+          authRepository: authRepository,
+          profileRepository: profileRepository,
+        ),
+      );
+
+      authRepository.emitSignedIn(uid: 'test-auth-user-1');
+      await tester.pump();
+
+      expect(profileRepository.loadCalls, 1);
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+      authRepository.emitSignedIn(uid: 'test-auth-user-2');
+      await tester.pump();
+      await tester.pump();
+
+      expect(profileRepository.loadCalls, 2);
+      expect(find.text('Good to see you'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('auth_welcome_runiac_logo')),
+        findsNothing,
+      );
+
+      profileRepository.completeFirstProbeWithMissingProfile();
+      await tester.pump();
+      await tester.pump();
+
+      expect(authRepository.signOutCalls, 0);
+      expect(authRepository.currentUser?.uid, 'test-auth-user-2');
+      expect(find.text('Good to see you'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('auth_welcome_runiac_logo')),
+        findsNothing,
+      );
+    },
+  );
+
+  testWidgets(
     'login form signs in through repository and opens after auth stream',
     (tester) async {
       final repository = FakeRuniacAuthRepository();
@@ -174,6 +262,40 @@ void main() {
       expect(find.text('Welcome back'), findsNothing);
     },
   );
+
+  testWidgets('login reaches app shell without waiting for profile probe', (
+    tester,
+  ) async {
+    final repository = FakeRuniacAuthRepository();
+    addTearDown(repository.dispose);
+
+    await tester.pumpWidget(
+      RuniacApp(
+        showSplash: false,
+        showAuth: true,
+        showOnboarding: true,
+        enableForegroundGps: false,
+        authRepository: repository,
+        profileRepository: const _NeverCompletingProfileRepository(),
+      ),
+    );
+
+    repository.emitSignedOut();
+    await tester.pump();
+    await tapVisibleText(tester, 'Log in');
+    await enterAuthCredentials(
+      tester,
+      email: 'runner@runiac.app',
+      password: 'password123',
+    );
+    await tapVisibleText(tester, 'Sign in');
+    await tester.pumpAndSettle();
+
+    expect(repository.signInCalls, 1);
+    expect(find.text('Good to see you'), findsOneWidget);
+    expect(find.text('Welcome back'), findsNothing);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+  });
 
   testWidgets('signed-out after signed-in returns to auth flow', (
     tester,
@@ -337,4 +459,124 @@ void main() {
       findsOneWidget,
     );
   });
+}
+
+class _MissingCurrentUserProfileRepository implements UserProfileRepository {
+  const _MissingCurrentUserProfileRepository();
+
+  @override
+  Future<UserProfileReadModel> loadUserProfile() async {
+    throw const CurrentUserProfileException(
+      uid: 'test-auth-user-1',
+      reason: CurrentUserProfileFailureReason.missing,
+    );
+  }
+}
+
+class _NeverCompletingProfileRepository implements UserProfileRepository {
+  const _NeverCompletingProfileRepository();
+
+  @override
+  Future<UserProfileReadModel> loadUserProfile() {
+    return Completer<UserProfileReadModel>().future;
+  }
+}
+
+class _StaleMissingProfileRepository implements UserProfileRepository {
+  final Completer<UserProfileReadModel> _firstProbe =
+      Completer<UserProfileReadModel>();
+
+  int loadCalls = 0;
+
+  @override
+  Future<UserProfileReadModel> loadUserProfile() {
+    loadCalls += 1;
+    if (loadCalls == 1) {
+      return _firstProbe.future;
+    }
+    return Future<UserProfileReadModel>.value(_profileFor('test-auth-user-2'));
+  }
+
+  void completeFirstProbeWithMissingProfile() {
+    _firstProbe.completeError(
+      const CurrentUserProfileException(
+        uid: 'test-auth-user-1',
+        reason: CurrentUserProfileFailureReason.missing,
+      ),
+    );
+  }
+}
+
+class _SwitchableRuniacAuthRepository implements RuniacAuthRepository {
+  final StreamController<RuniacAuthUser?> _controller =
+      StreamController<RuniacAuthUser?>.broadcast();
+
+  RuniacAuthUser? _currentUser;
+  int signOutCalls = 0;
+
+  @override
+  Stream<RuniacAuthUser?> authStateChanges() => _controller.stream;
+
+  @override
+  RuniacAuthUser? get currentUser => _currentUser;
+
+  void emitSignedIn({required String uid}) {
+    _currentUser = RuniacAuthUser(
+      uid: uid,
+      email: '$uid@runiac.app',
+      emailVerified: true,
+    );
+    _controller.add(_currentUser);
+  }
+
+  void dispose() {
+    _controller.close();
+  }
+
+  @override
+  Future<RuniacAuthUser> createUserWithEmailAndPassword({
+    required String email,
+    required String password,
+  }) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> sendEmailVerification() {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> sendPasswordResetEmail({required String email}) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<RuniacAuthUser> signInWithEmailAndPassword({
+    required String email,
+    required String password,
+  }) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<RuniacAuthUser> signInWithGoogle() {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> signOut() async {
+    signOutCalls += 1;
+    _currentUser = null;
+    _controller.add(null);
+  }
+}
+
+UserProfileReadModel _profileFor(String uid) {
+  return UserProfileReadModel(
+    userId: uid,
+    displayName: 'Maya Tan',
+    avatarInitials: 'MT',
+    locationLabel: 'Queenstown, Singapore',
+  );
 }

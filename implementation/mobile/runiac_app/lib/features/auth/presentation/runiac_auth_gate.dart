@@ -8,14 +8,16 @@ export 'runiac_auth_flow_screen.dart' show RuniacAuthCompletion;
 class RuniacAuthGate extends StatefulWidget {
   const RuniacAuthGate({
     required this.authRepository,
-    required this.child,
+    this.child,
+    this.childBuilder,
     this.showAuth = false,
     this.onAuthenticated,
     super.key,
-  });
+  }) : assert(child != null || childBuilder != null);
 
   final RuniacAuthRepository authRepository;
-  final Widget child;
+  final Widget? child;
+  final WidgetBuilder? childBuilder;
   final bool showAuth;
   final ValueChanged<RuniacAuthCompletion>? onAuthenticated;
 
@@ -41,7 +43,7 @@ class _RuniacAuthGateState extends State<RuniacAuthGate> {
   @override
   Widget build(BuildContext context) {
     if (!widget.showAuth) {
-      return widget.child;
+      return _buildChild(context);
     }
 
     return StreamBuilder<RuniacAuthUser?>(
@@ -54,7 +56,7 @@ class _RuniacAuthGateState extends State<RuniacAuthGate> {
         }
 
         if (snapshot.data != null) {
-          return widget.child;
+          return _buildChild(context);
         }
 
         return RuniacAuthFlowScreen(
@@ -65,6 +67,10 @@ class _RuniacAuthGateState extends State<RuniacAuthGate> {
         );
       },
     );
+  }
+
+  Widget _buildChild(BuildContext context) {
+    return widget.childBuilder?.call(context) ?? widget.child!;
   }
 }
 
