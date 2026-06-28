@@ -186,17 +186,26 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
     );
   }
 
-  void _openEditProfile(UserProfileReadModel profile) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
+  Future<void> _openEditProfile(UserProfileReadModel profile) async {
+    final updated = await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
         builder: (context) => AccountEditProfileScreen(
           authRepository: widget.authRepository,
           persistenceRepository: widget.profilePersistenceRepository,
           profile: profile,
-          onBack: () => Navigator.of(context).pop(),
+          onBack: () => Navigator.of(context).pop(false),
         ),
       ),
     );
+    if (!mounted || updated != true) {
+      return;
+    }
+    setState(() {
+      _profileFuture = widget.profileRepository.loadUserProfile();
+    });
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(const SnackBar(content: Text('Profile updated.')));
   }
 
   IconData _matchingSetupIcon(

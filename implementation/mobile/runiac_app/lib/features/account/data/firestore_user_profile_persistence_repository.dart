@@ -29,14 +29,25 @@ class FirestoreUserProfileDocumentWriter implements UserProfileDocumentWriter {
     required String uid,
     required String nicknameKey,
   }) async {
-    final snapshot = await _firestore
-        .collection('nicknameClaims')
-        .doc(nicknameKey)
-        .get();
-    if (!snapshot.exists) {
-      return true;
+    try {
+      final snapshot = await _firestore
+          .collection('nicknameClaims')
+          .doc(nicknameKey)
+          .get();
+      if (!snapshot.exists) {
+        return true;
+      }
+      return snapshot.data()?['ownerUid'] == uid;
+    } on FirebaseException catch (error) {
+      if (error.code == 'permission-denied') {
+        throw const NicknameAvailabilityCheckException(
+          NicknameAvailabilityFailureReason.rulesUnavailable,
+        );
+      }
+      throw const NicknameAvailabilityCheckException(
+        NicknameAvailabilityFailureReason.unavailable,
+      );
     }
-    return snapshot.data()?['ownerUid'] == uid;
   }
 
   @override

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/runiac_colors.dart';
@@ -33,6 +35,10 @@ class _PersonalProfileCollectionScreenState
   String _dateOfBirthIso = '';
   String _region = '';
   bool _checkingNickname = false;
+  bool? _nicknameAvailable;
+  String? _nicknameStatusMessage;
+  int _nicknameCheckGeneration = 0;
+  Timer? _nicknameCheckTimer;
   String? _error;
 
   @override
@@ -40,11 +46,21 @@ class _PersonalProfileCollectionScreenState
     _nameController.dispose();
     _nicknameController.dispose();
     _weightController.dispose();
+    _nicknameCheckTimer?.cancel();
     super.dispose();
   }
 
   Future<void> _continue() async {
     if (_checkingNickname) {
+      setState(() {
+        _error = 'Wait for the nickname check to finish.';
+      });
+      return;
+    }
+    if (_nicknameAvailable == false) {
+      setState(() {
+        _error = 'Choose an available nickname.';
+      });
       return;
     }
     if (!(_formKey.currentState?.validate() ?? false)) {
@@ -74,11 +90,22 @@ class _PersonalProfileCollectionScreenState
       );
       if (!available) {
         setState(() {
+          _nicknameAvailable = false;
+          _nicknameStatusMessage = 'Nickname is already taken.';
           _error = 'Nickname is already taken.';
         });
         return;
       }
+      setState(() {
+        _nicknameAvailable = true;
+        _nicknameStatusMessage = 'Nickname is available.';
+      });
       widget.onComplete(draft);
+    } on NicknameAvailabilityCheckException catch (error) {
+      final message = _nicknameCheckErrorMessage(error);
+      setState(() {
+        _error = message;
+      });
     } catch (_) {
       setState(() {
         _error = 'We could not check that nickname. Try again.';
@@ -90,6 +117,67 @@ class _PersonalProfileCollectionScreenState
         });
       }
     }
+  }
+
+  void _scheduleNicknameCheck(String value) {
+    _nicknameCheckTimer?.cancel();
+    final nickname = value.trim();
+    final generation = ++_nicknameCheckGeneration;
+    if (PersonalProfileDraft.validateNickname(nickname) != null) {
+      setState(() {
+        _checkingNickname = false;
+        _nicknameAvailable = null;
+        _nicknameStatusMessage = null;
+      });
+      return;
+    }
+    setState(() {
+      _checkingNickname = true;
+      _nicknameAvailable = null;
+      _nicknameStatusMessage = 'Checking nickname...';
+      if (_error == 'Nickname is already taken.' ||
+          _error == 'Choose an available nickname.' ||
+          _error ==
+              'Nickname check is blocked by Firestore rules. Deploy the updated rules or use the emulator.' ||
+          _error == 'We could not check that nickname. Try again.') {
+        _error = null;
+      }
+    });
+    _nicknameCheckTimer = Timer(const Duration(milliseconds: 350), () async {
+      try {
+        final available = await widget.persistenceRepository
+            .isNicknameAvailable(uid: widget.uid, nickname: nickname);
+        if (!mounted || generation != _nicknameCheckGeneration) {
+          return;
+        }
+        setState(() {
+          _checkingNickname = false;
+          _nicknameAvailable = available;
+          _nicknameStatusMessage = available
+              ? 'Nickname is available.'
+              : 'Nickname is already taken.';
+        });
+      } on NicknameAvailabilityCheckException catch (error) {
+        if (!mounted || generation != _nicknameCheckGeneration) {
+          return;
+        }
+        setState(() {
+          _checkingNickname = false;
+          _nicknameAvailable = null;
+          _nicknameStatusMessage = _nicknameCheckErrorMessage(error);
+        });
+      } catch (_) {
+        if (!mounted || generation != _nicknameCheckGeneration) {
+          return;
+        }
+        setState(() {
+          _checkingNickname = false;
+          _nicknameAvailable = null;
+          _nicknameStatusMessage =
+              'We could not check that nickname. Try again.';
+        });
+      }
+    });
   }
 
   @override
@@ -139,7 +227,15 @@ class _PersonalProfileCollectionScreenState
                       label: 'Nickname',
                       controller: _nicknameController,
                       validator: PersonalProfileDraft.validateNickname,
+                      onChanged: _scheduleNicknameCheck,
                     ),
+                    if (_nicknameStatusMessage != null) ...[
+                      const SizedBox(height: 8),
+                      _NicknameStatusText(
+                        message: _nicknameStatusMessage!,
+                        available: _nicknameAvailable,
+                      ),
+                    ],
                     const SizedBox(height: 12),
                     ProfileDateOfBirthField(
                       value: _dateOfBirthIso,
@@ -157,6 +253,13 @@ class _PersonalProfileCollectionScreenState
                       controller: _weightController,
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
+                      ),
+                      textInputAction: TextInputAction.done,
+                      onEditingComplete: () => FocusScope.of(context).unfocus(),
+                      suffixIcon: IconButton(
+                        tooltip: 'Hide keyboard',
+                        onPressed: () => FocusScope.of(context).unfocus(),
+                        icon: const Icon(Icons.keyboard_hide),
                       ),
                       validator: PersonalProfileDraft.validateWeight,
                     ),
@@ -184,7 +287,10 @@ class _PersonalProfileCollectionScreenState
                     SizedBox(
                       height: 54,
                       child: FilledButton(
-                        onPressed: _checkingNickname ? null : _continue,
+                        onPressed:
+                            _checkingNickname || _nicknameAvailable == false
+                            ? null
+                            : _continue,
                         style: RuniacButtonStyles.primary(
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
@@ -208,6 +314,15 @@ class _PersonalProfileCollectionScreenState
   }
 }
 
+String _nicknameCheckErrorMessage(NicknameAvailabilityCheckException error) {
+  return switch (error.reason) {
+    NicknameAvailabilityFailureReason.rulesUnavailable =>
+      'Nickname check is blocked by Firestore rules. Deploy the updated rules or use the emulator.',
+    NicknameAvailabilityFailureReason.unavailable =>
+      'We could not check that nickname. Try again.',
+  };
+}
+
 class _ReadOnlyEmail extends StatelessWidget {
   const _ReadOnlyEmail({required this.value});
 
@@ -222,25 +337,55 @@ class _ReadOnlyEmail extends StatelessWidget {
   }
 }
 
+class _NicknameStatusText extends StatelessWidget {
+  const _NicknameStatusText({required this.message, required this.available});
+
+  final String message;
+  final bool? available;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = available == false
+        ? RuniacColors.accentOrange
+        : RuniacColors.textSecondary;
+    return Text(
+      message,
+      style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w800),
+    );
+  }
+}
+
 class _ProfileField extends StatelessWidget {
   const _ProfileField({
     required this.label,
     required this.controller,
     required this.validator,
     this.keyboardType,
+    this.textInputAction,
+    this.onEditingComplete,
+    this.onChanged,
+    this.suffixIcon,
   });
 
   final String label;
   final TextEditingController controller;
   final String? Function(String) validator;
   final TextInputType? keyboardType;
+  final TextInputAction? textInputAction;
+  final VoidCallback? onEditingComplete;
+  final ValueChanged<String>? onChanged;
+  final Widget? suffixIcon;
 
   @override
   Widget build(BuildContext context) {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
-      decoration: InputDecoration(labelText: label),
+      textInputAction: textInputAction,
+      onEditingComplete: onEditingComplete,
+      onChanged: onChanged,
+      onTapOutside: (_) => FocusScope.of(context).unfocus(),
+      decoration: InputDecoration(labelText: label, suffixIcon: suffixIcon),
       validator: (value) => validator(value ?? ''),
     );
   }

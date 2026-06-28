@@ -17,6 +17,14 @@ abstract interface class UserProfilePersistenceRepository {
   });
 }
 
+class NicknameAvailabilityCheckException implements Exception {
+  const NicknameAvailabilityCheckException(this.reason);
+
+  final NicknameAvailabilityFailureReason reason;
+}
+
+enum NicknameAvailabilityFailureReason { rulesUnavailable, unavailable }
+
 class PersonalProfileDraft {
   PersonalProfileDraft({
     required String fullName,

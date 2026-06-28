@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/app.dart';
 import 'package:runiac_app/features/account/domain/models/user_profile_read_model.dart';
@@ -135,17 +136,46 @@ void main() {
       expect(find.text('Retake onboarding'), findsOneWidget);
 
       await tester.enterText(find.bySemanticsLabel('Nickname'), 'May');
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(find.text('Nickname is available.'), findsOneWidget);
       expect(find.text('Date of birth'), findsOneWidget);
       expect(find.text('Age'), findsOneWidget);
       await tester.enterText(
         find.bySemanticsLabel('Weight in kilograms'),
         '59',
       );
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pump();
+      expect(
+        FocusManager.instance.primaryFocus?.context?.widget,
+        isNot(isA<EditableText>()),
+      );
+      await tester.ensureVisible(find.bySemanticsLabel('Region'));
       await tester.tap(find.bySemanticsLabel('Region'));
       await tester.pumpAndSettle();
       expect(find.text('Tiong Bahru, Singapore'), findsOneWidget);
       await tapText(tester, 'Tiong Bahru, Singapore');
       await tester.pumpAndSettle();
+
+      await tester.ensureVisible(find.text('Retake onboarding'));
+      await tester.tap(find.text('Retake onboarding'));
+      await tester.pumpAndSettle();
+      await completeOnboardingToPreview(tester);
+      await tapText(tester, 'Continue with this plan');
+      await tester.pumpAndSettle();
+
+      expect(persistenceRepository.onboardingProfile?.nickname, 'May');
+      expect(
+        persistenceRepository.onboardingProfile?.dateOfBirthIso,
+        '2000-01-01',
+      );
+      expect(persistenceRepository.onboardingProfile?.ageYears, 26);
+      expect(persistenceRepository.onboardingProfile?.weightKg, 59);
+      expect(
+        persistenceRepository.onboardingProfile?.locationLabel,
+        'Tiong Bahru, Singapore',
+      );
+
       await tester.ensureVisible(find.text('Save changes'));
       await tester.tap(find.text('Save changes'));
       await tester.pumpAndSettle();
@@ -163,26 +193,101 @@ void main() {
         persistenceRepository.personalProfile?.locationLabel,
         'Tiong Bahru, Singapore',
       );
-
-      await tester.ensureVisible(find.text('Retake onboarding'));
-      await tester.tap(find.text('Retake onboarding'));
-      await tester.pumpAndSettle();
-      await completeOnboardingToPreview(tester);
-      await tapText(tester, 'Continue with this plan');
-
-      expect(persistenceRepository.onboardingProfile?.nickname, 'May');
-      expect(
-        persistenceRepository.onboardingProfile?.dateOfBirthIso,
-        '2000-01-01',
-      );
-      expect(persistenceRepository.onboardingProfile?.ageYears, 26);
-      expect(persistenceRepository.onboardingProfile?.weightKg, 59);
-      expect(
-        persistenceRepository.onboardingProfile?.locationLabel,
-        'Tiong Bahru, Singapore',
-      );
     },
   );
+
+  testWidgets('Edit profile refreshes Account after saving personal fields', (
+    tester,
+  ) async {
+    final authRepository = FakeRuniacAuthRepository();
+    addTearDown(authRepository.dispose);
+    authRepository.emitSignedIn();
+    final profileRepository = _MutableProfileRepository(
+      UserProfileReadModel(
+        userId: 'test-auth-user-1',
+        displayName: 'Maya',
+        fullName: 'Maya Tan',
+        nickname: 'Maya',
+        avatarInitials: 'M',
+        dateOfBirthIso: '2000-01-01',
+        ageYears: 24,
+        weightKg: 58.5,
+        locationLabel: 'Queenstown, Singapore',
+        manageRows: const <UserProfileManageRowReadModel>[
+          UserProfileManageRowReadModel(
+            title: 'Edit profile',
+            subtitle: 'Email, personal details, and onboarding',
+            snackBarMessage: '',
+            action: UserProfileManageAction.editProfile,
+          ),
+        ],
+      ),
+    );
+    final persistenceRepository = _RecordingUserProfilePersistenceRepository(
+      onSavePersonalProfile: (profile) {
+        profileRepository.profile = UserProfileReadModel(
+          userId: 'test-auth-user-1',
+          displayName: profile.displayName,
+          fullName: profile.fullName,
+          nickname: profile.nickname,
+          avatarInitials: profile.avatarInitials,
+          dateOfBirthIso: profile.dateOfBirthIso,
+          ageYears: profile.ageYears,
+          weightKg: profile.weightKg,
+          locationLabel: profile.locationLabel,
+          previewNote: 'Loaded from your saved profile.',
+          setupSectionLabel: 'RUNNING SETUP',
+          manageSectionLabel: 'MANAGE',
+          footerCaption: 'Runiac · Preview build · Built for new runners',
+          manageRows: const <UserProfileManageRowReadModel>[
+            UserProfileManageRowReadModel(
+              title: 'Edit profile',
+              subtitle: 'Email, personal details, and onboarding',
+              snackBarMessage: '',
+              action: UserProfileManageAction.editProfile,
+            ),
+          ],
+        );
+      },
+    );
+
+    await tester.pumpWidget(
+      RuniacApp(
+        showSplash: false,
+        showAuth: true,
+        enableForegroundGps: false,
+        authRepository: authRepository,
+        profileRepository: profileRepository,
+        profilePersistenceRepository: persistenceRepository,
+      ),
+    );
+
+    await tester.tap(find.bySemanticsLabel('Profile'));
+    await tester.pumpAndSettle();
+    expect(find.text('Maya'), findsOneWidget);
+    await tester.ensureVisible(find.text('Edit profile'));
+    await tester.tap(find.text('Edit profile'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.bySemanticsLabel('Name'), 'Jess Lee');
+    await tester.enterText(find.bySemanticsLabel('Nickname'), 'Jess');
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.enterText(find.bySemanticsLabel('Weight in kilograms'), '61');
+    await tester.ensureVisible(find.bySemanticsLabel('Region'));
+    await tester.tap(find.bySemanticsLabel('Region'));
+    await tester.pumpAndSettle();
+    await tapText(tester, 'Orchard, Singapore');
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Save changes'));
+    await tester.tap(find.text('Save changes'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Account'), findsOneWidget);
+    expect(find.text('Jess'), findsOneWidget);
+    expect(find.text('Maya'), findsNothing);
+    expect(find.text('Orchard, Singapore'), findsOneWidget);
+    expect(profileRepository.loadCount, 2);
+  });
 
   testWidgets('Edit profile blocks duplicate nickname before saving', (
     tester,
@@ -232,12 +337,75 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.enterText(find.bySemanticsLabel('Nickname'), 'TakenRunner');
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(persistenceRepository.checkedNickname, 'TakenRunner');
+    expect(find.text('Nickname is already taken.'), findsOneWidget);
     await tester.ensureVisible(find.text('Save changes'));
     await tester.tap(find.text('Save changes'));
     await tester.pumpAndSettle();
 
-    expect(persistenceRepository.checkedNickname, 'TakenRunner');
     expect(find.text('Nickname is already taken.'), findsOneWidget);
+    expect(persistenceRepository.personalProfile, isNull);
+  });
+
+  testWidgets('Edit profile explains when nickname rules block checking', (
+    tester,
+  ) async {
+    final authRepository = FakeRuniacAuthRepository();
+    addTearDown(authRepository.dispose);
+    authRepository.emitSignedIn();
+    final persistenceRepository = _RecordingUserProfilePersistenceRepository(
+      nicknameCheckError: const NicknameAvailabilityCheckException(
+        NicknameAvailabilityFailureReason.rulesUnavailable,
+      ),
+    );
+
+    await tester.pumpWidget(
+      RuniacApp(
+        showSplash: false,
+        showAuth: true,
+        enableForegroundGps: false,
+        authRepository: authRepository,
+        profilePersistenceRepository: persistenceRepository,
+        profileRepository: _SingleProfileRepository(
+          UserProfileReadModel(
+            userId: 'test-auth-user-1',
+            displayName: 'Maya',
+            fullName: 'Maya Tan',
+            nickname: 'Maya',
+            avatarInitials: 'M',
+            dateOfBirthIso: '2000-01-01',
+            ageYears: 24,
+            weightKg: 58.5,
+            locationLabel: 'Queenstown, Singapore',
+            manageRows: const <UserProfileManageRowReadModel>[
+              UserProfileManageRowReadModel(
+                title: 'Edit profile',
+                subtitle: 'Email, personal details, and onboarding',
+                snackBarMessage: '',
+                action: UserProfileManageAction.editProfile,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.bySemanticsLabel('Profile'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Edit profile'));
+    await tester.tap(find.text('Edit profile'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.bySemanticsLabel('Nickname'), 'Jinseo Lee');
+    await tester.pump(const Duration(milliseconds: 500));
+
+    expect(
+      find.text(
+        'Nickname check is blocked by Firestore rules. Deploy the updated rules or use the emulator.',
+      ),
+      findsOneWidget,
+    );
     expect(persistenceRepository.personalProfile, isNull);
   });
 
@@ -269,11 +437,30 @@ class _SingleProfileRepository implements UserProfileRepository {
   Future<UserProfileReadModel> loadUserProfile() async => profile;
 }
 
+class _MutableProfileRepository implements UserProfileRepository {
+  _MutableProfileRepository(this.profile);
+
+  UserProfileReadModel profile;
+  int loadCount = 0;
+
+  @override
+  Future<UserProfileReadModel> loadUserProfile() async {
+    loadCount += 1;
+    return profile;
+  }
+}
+
 class _RecordingUserProfilePersistenceRepository
     implements UserProfilePersistenceRepository {
-  _RecordingUserProfilePersistenceRepository({this.nicknameAvailable = true});
+  _RecordingUserProfilePersistenceRepository({
+    this.nicknameAvailable = true,
+    this.nicknameCheckError,
+    this.onSavePersonalProfile,
+  });
 
   final bool nicknameAvailable;
+  final NicknameAvailabilityCheckException? nicknameCheckError;
+  final ValueChanged<UserProfilePersonalSnapshot>? onSavePersonalProfile;
   String? uid;
   String? checkedNickname;
   UserProfilePersonalSnapshot? personalProfile;
@@ -285,6 +472,9 @@ class _RecordingUserProfilePersistenceRepository
     required String nickname,
   }) async {
     checkedNickname = nickname;
+    if (nicknameCheckError != null) {
+      throw nicknameCheckError!;
+    }
     return nicknameAvailable;
   }
 
@@ -304,5 +494,6 @@ class _RecordingUserProfilePersistenceRepository
   }) async {
     this.uid = uid;
     personalProfile = profile;
+    onSavePersonalProfile?.call(profile);
   }
 }

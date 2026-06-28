@@ -200,6 +200,8 @@ void main() {
 
       await tester.enterText(find.bySemanticsLabel('Name'), 'Maya Tan');
       await tester.enterText(find.bySemanticsLabel('Nickname'), 'Maya');
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(find.text('Nickname is available.'), findsOneWidget);
       await tester.tap(find.bySemanticsLabel('Date of birth'));
       await tester.pumpAndSettle();
       expect(find.text('Select birthdate'), findsOneWidget);
@@ -211,6 +213,13 @@ void main() {
         find.bySemanticsLabel('Weight in kilograms'),
         '58.5',
       );
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pump();
+      expect(
+        FocusManager.instance.primaryFocus?.context?.widget,
+        isNot(isA<EditableText>()),
+      );
+      await tester.ensureVisible(find.bySemanticsLabel('Region'));
       await tester.tap(find.bySemanticsLabel('Region'));
       await tester.pumpAndSettle();
       expect(find.text('Jurong East, Singapore'), findsOneWidget);
@@ -255,6 +264,11 @@ void main() {
 
     await tester.enterText(find.bySemanticsLabel('Name'), 'Maya Tan');
     await tester.enterText(find.bySemanticsLabel('Nickname'), 'TakenRunner');
+    await tester.pump(const Duration(milliseconds: 500));
+
+    expect(persistenceRepository.checkedNickname, 'TakenRunner');
+    expect(find.text('Nickname is already taken.'), findsOneWidget);
+
     await tester.tap(find.bySemanticsLabel('Date of birth'));
     await tester.pumpAndSettle();
     await tapVisibleText(tester, 'Use selected date');
@@ -262,13 +276,13 @@ void main() {
       find.bySemanticsLabel('Weight in kilograms'),
       '58.5',
     );
+    await tester.ensureVisible(find.bySemanticsLabel('Region'));
     await tester.tap(find.bySemanticsLabel('Region'));
     await tester.pumpAndSettle();
     await tapVisibleText(tester, 'Jurong East, Singapore');
     await tapVisibleText(tester, 'Continue to onboarding');
     await tester.pumpAndSettle();
 
-    expect(persistenceRepository.checkedNickname, 'TakenRunner');
     expect(find.text('Nickname is already taken.'), findsOneWidget);
     expect(find.text('Welcome to Runiac'), findsNothing);
   });
