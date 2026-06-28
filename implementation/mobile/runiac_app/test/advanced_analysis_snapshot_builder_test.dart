@@ -1122,6 +1122,105 @@ void main() {
       expect(splits.last.heartRateLabel, '--');
     });
 
+    test(
+      'keeps local GPS splits when display graph distance anchors are noisy',
+      () {
+        final summary = RunSummarySnapshot(
+          title: 'Noisy Local Split Run',
+          dateLabel: 'Today',
+          timeLabel: '9:23 PM',
+          distanceKm: '5.03 km',
+          avgPace: '7’56” / km',
+          duration: '40:00',
+          avgHeartRate: '--',
+          calories: '312 kcal',
+          routeName: 'Local GPS Route',
+          paceAnalysisSeries: PaceAnalysisSeries.localAccepted(
+            samples: <PaceAnalysisSample>[
+              PaceAnalysisSample.accepted(
+                elapsedSeconds: 480,
+                cumulativeDistanceMeters: 1000,
+                paceSecondsPerKm: 480,
+              ),
+              PaceAnalysisSample.accepted(
+                elapsedSeconds: 960,
+                cumulativeDistanceMeters: 2000,
+                paceSecondsPerKm: 480,
+              ),
+              PaceAnalysisSample.accepted(
+                elapsedSeconds: 1440,
+                cumulativeDistanceMeters: 3000,
+                paceSecondsPerKm: 480,
+              ),
+              PaceAnalysisSample.accepted(
+                elapsedSeconds: 1920,
+                cumulativeDistanceMeters: 4000,
+                paceSecondsPerKm: 480,
+              ),
+              PaceAnalysisSample.accepted(
+                elapsedSeconds: 2400,
+                cumulativeDistanceMeters: 5030,
+                paceSecondsPerKm: 466,
+              ),
+            ],
+          ),
+          paceGraph: PaceGraphSnapshot(
+            isAvailable: true,
+            points: <PaceGraphPoint>[
+              PaceGraphPoint(
+                elapsedSeconds: 0,
+                progressFraction: 0,
+                paceSecondsPerKm: 480,
+                distanceProgressFraction: 0,
+              ),
+              PaceGraphPoint(
+                elapsedSeconds: 480,
+                progressFraction: 0.2,
+                paceSecondsPerKm: 480,
+                distanceProgressFraction: 0.25,
+              ),
+              PaceGraphPoint(
+                elapsedSeconds: 960,
+                progressFraction: 0.4,
+                paceSecondsPerKm: 480,
+                distanceProgressFraction: 0.2,
+              ),
+              PaceGraphPoint(
+                elapsedSeconds: 1440,
+                progressFraction: 0.6,
+                paceSecondsPerKm: 480,
+                distanceProgressFraction: 3 / 5.03,
+              ),
+              PaceGraphPoint(
+                elapsedSeconds: 2400,
+                progressFraction: 1,
+                paceSecondsPerKm: 466,
+                distanceProgressFraction: 1,
+              ),
+            ],
+            yAxisLabels: <String>['5:40', '9:10', '12:40'],
+            xAxisLabels: <String>['0:00', '20:00', '40:00'],
+            distanceAxisLabels: <String>['0 km', '1.6 km', '3.3 km', '5.03 km'],
+            totalDurationSeconds: 2400,
+          ),
+        );
+
+        final snapshot = builder.fromRunSummary(summary);
+
+        expect(snapshot.pace.paceGraph.isAvailable, isTrue);
+        expect(snapshot.pace.paceGraph.value!.hasDistanceAxis, isTrue);
+        expect(snapshot.pace.splits.isAvailable, isTrue);
+        expect(
+          snapshot.pace.splits.value!.map((split) => split.distanceLabel),
+          <String>['1 km', '2 km', '3 km', '4 km', '5 km', '0.03 km'],
+        );
+        expect(
+          snapshot.pace.splits.value!.map((split) => split.paceLabel),
+          <String>['8’00”', '8’00”', '8’00”', '8’00”', '7’46”', '0’14”'],
+        );
+      },
+    );
+
     test('preserves imported pace graph source identity', () {
       const summary = RunSummarySnapshot(
         title: 'Apple Health Graph Run',

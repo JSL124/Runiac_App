@@ -537,18 +537,43 @@ class AdvancedAnalysisSnapshotBuilder {
         graph.totalDurationSeconds ?? _durationSeconds(summary.duration);
     final totalDistanceKm = _distanceKm(summary.distanceKm);
     if (!graph.isAvailable ||
-        !graph.hasDistanceAxis ||
         totalDurationSeconds == null ||
         totalDistanceKm == null ||
         totalDistanceKm <= 0) {
       return const [];
     }
 
-    final anchors = _splitAnchors(
-      graph: graph,
+    if (graph.hasDistanceAxis) {
+      final graphSplits = _buildSplitsFromAnchors(
+        _splitAnchors(
+          graph: graph,
+          totalDistanceKm: totalDistanceKm,
+          totalDurationSeconds: totalDurationSeconds,
+        ),
+        totalDistanceKm: totalDistanceKm,
+        totalDurationSeconds: totalDurationSeconds,
+      );
+      if (graphSplits.isNotEmpty) {
+        return graphSplits;
+      }
+    }
+
+    return _buildSplitsFromAnchors(
+      _splitAnchorsFromLocalPaceSeries(
+        summary: summary,
+        totalDistanceKm: totalDistanceKm,
+        totalDurationSeconds: totalDurationSeconds,
+      ),
       totalDistanceKm: totalDistanceKm,
       totalDurationSeconds: totalDurationSeconds,
     );
+  }
+
+  List<AdvancedAnalysisSplitSnapshot> _buildSplitsFromAnchors(
+    List<_SplitAnchor> anchors, {
+    required double totalDistanceKm,
+    required int totalDurationSeconds,
+  }) {
     if (anchors.length < 2 || !_isMonotonicDistance(anchors)) {
       return const [];
     }
@@ -593,6 +618,56 @@ class AdvancedAnalysisSnapshotBuilder {
     }
 
     return splits;
+  }
+
+  List<_SplitAnchor> _splitAnchorsFromLocalPaceSeries({
+    required RunSummarySnapshot summary,
+    required double totalDistanceKm,
+    required int totalDurationSeconds,
+  }) {
+    final series = summary.paceAnalysisSeries;
+    if (summary.sourceType != RunSourceType.runiacGps ||
+        series == null ||
+        !series.isLocalAcceptedSource ||
+        !series.hasMinimumValidSamples() ||
+        !series.hasMonotonicValidSamples) {
+      return const [];
+    }
+
+    final anchors = <_SplitAnchor>[
+      const _SplitAnchor(distanceKm: 0, elapsedSeconds: 0),
+    ];
+
+    for (final sample in series.validAcceptedSamples) {
+      final distanceKm = sample.cumulativeDistanceMeters / 1000;
+      if (!distanceKm.isFinite ||
+          distanceKm < 0 ||
+          sample.elapsedSeconds < 0 ||
+          sample.elapsedSeconds > totalDurationSeconds) {
+        continue;
+      }
+      anchors.add(
+        _SplitAnchor(
+          distanceKm: distanceKm.clamp(0.0, totalDistanceKm).toDouble(),
+          elapsedSeconds: sample.elapsedSeconds,
+        ),
+      );
+    }
+
+    anchors.add(
+      _SplitAnchor(
+        distanceKm: totalDistanceKm,
+        elapsedSeconds: totalDurationSeconds,
+      ),
+    );
+    anchors.sort((a, b) {
+      final distanceOrder = a.distanceKm.compareTo(b.distanceKm);
+      if (distanceOrder != 0) {
+        return distanceOrder;
+      }
+      return a.elapsedSeconds.compareTo(b.elapsedSeconds);
+    });
+    return anchors;
   }
 
   List<_SplitAnchor> _splitAnchors({
