@@ -6,7 +6,11 @@ class UserProfileReadModel {
   UserProfileReadModel({
     required this.userId,
     required this.displayName,
+    this.fullName = '',
+    this.nickname = '',
     required this.avatarInitials,
+    this.ageYears,
+    this.weightKg,
     required this.locationLabel,
     this.previewLevelBadge = '',
     this.previewNote = '',
@@ -22,7 +26,11 @@ class UserProfileReadModel {
 
   final String userId;
   final String displayName;
+  final String fullName;
+  final String nickname;
   final String avatarInitials;
+  final int? ageYears;
+  final num? weightKg;
   final String locationLabel;
   final String previewLevelBadge;
   final String previewNote;
@@ -48,9 +56,13 @@ class UserProfileManageRowReadModel {
     required this.title,
     required this.subtitle,
     required this.snackBarMessage,
+    this.action = UserProfileManageAction.snackBar,
   });
 
   final String title;
   final String subtitle;
   final String snackBarMessage;
+  final UserProfileManageAction action;
 }
+
+enum UserProfileManageAction { snackBar, editProfile, watchHealthApps }

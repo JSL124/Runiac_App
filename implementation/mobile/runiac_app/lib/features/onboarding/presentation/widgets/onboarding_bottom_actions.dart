@@ -12,6 +12,8 @@ class OnboardingBottomActions extends StatelessWidget {
     required this.onPrimary,
     required this.onSecondary,
     this.previewPrimaryLabel,
+    this.isSubmitting = false,
+    this.errorText,
     super.key,
   });
 
@@ -20,6 +22,8 @@ class OnboardingBottomActions extends StatelessWidget {
   final VoidCallback onPrimary;
   final VoidCallback? onSecondary;
   final String? previewPrimaryLabel;
+  final bool isSubmitting;
+  final String? errorText;
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +32,9 @@ class OnboardingBottomActions extends StatelessWidget {
     final primaryLabel = switch (step.kind) {
       OnboardingStepKind.welcome => 'Start setup',
       OnboardingStepKind.preview =>
-        previewPrimaryLabel ?? 'Continue with this plan',
+        isSubmitting
+            ? 'Saving profile...'
+            : previewPrimaryLabel ?? 'Continue with this plan',
       OnboardingStepKind.single => 'Continue',
       OnboardingStepKind.multi => 'Continue',
     };
@@ -46,6 +52,18 @@ class OnboardingBottomActions extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              if (errorText != null) ...[
+                Text(
+                  errorText!,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: RuniacColors.accentOrange,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
               SizedBox(
                 width: double.infinity,
                 height: 54,

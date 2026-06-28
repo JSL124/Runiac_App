@@ -162,35 +162,53 @@ void main() {
     );
   });
 
-  testWidgets('signup auth completion hands off to onboarding', (tester) async {
-    final repository = FakeRuniacAuthRepository();
-    addTearDown(repository.dispose);
+  testWidgets(
+    'signup auth completion asks for personal profile before onboarding',
+    (tester) async {
+      final repository = FakeRuniacAuthRepository();
+      addTearDown(repository.dispose);
 
-    await tester.pumpWidget(
-      RuniacApp(
-        showSplash: false,
-        showAuth: true,
-        showOnboarding: true,
-        enableForegroundGps: false,
-        authRepository: repository,
-      ),
-    );
-    repository.emitSignedOut();
-    await tester.pumpAndSettle();
+      await tester.pumpWidget(
+        RuniacApp(
+          showSplash: false,
+          showAuth: true,
+          showOnboarding: true,
+          enableForegroundGps: false,
+          authRepository: repository,
+        ),
+      );
+      repository.emitSignedOut();
+      await tester.pumpAndSettle();
 
-    await tapVisibleText(tester, 'Sign up');
-    await enterAuthCredentials(
-      tester,
-      email: 'runner@runiac.app',
-      password: 'password123',
-    );
-    await tapVisibleText(tester, 'Create account');
+      await tapVisibleText(tester, 'Sign up');
+      await enterAuthCredentials(
+        tester,
+        email: 'runner@runiac.app',
+        password: 'password123',
+      );
+      await tapVisibleText(tester, 'Create account');
 
-    await tester.pumpAndSettle();
+      await tester.pumpAndSettle();
 
-    expect(repository.createUserCalls, 1);
-    expect(find.text('Welcome to Runiac'), findsOneWidget);
-    expect(find.text('Step 1 of 16'), findsOneWidget);
-    expect(find.text('Good to see you'), findsNothing);
-  });
+      expect(repository.createUserCalls, 1);
+      expect(find.text('Tell us about you'), findsOneWidget);
+      expect(find.text('runner@runiac.app'), findsOneWidget);
+      expect(find.text('Welcome to Runiac'), findsNothing);
+      expect(find.text('Step 1 of 16'), findsNothing);
+      expect(find.text('Good to see you'), findsNothing);
+
+      await tester.enterText(find.bySemanticsLabel('Name'), 'Maya Tan');
+      await tester.enterText(find.bySemanticsLabel('Nickname'), 'Maya');
+      await tester.enterText(find.bySemanticsLabel('Age'), '24');
+      await tester.enterText(
+        find.bySemanticsLabel('Weight in kilograms'),
+        '58.5',
+      );
+      await tester.enterText(find.bySemanticsLabel('Region'), 'Queenstown');
+      await tapVisibleText(tester, 'Continue to onboarding');
+
+      expect(find.text('Welcome to Runiac'), findsOneWidget);
+      expect(find.text('Step 1 of 16'), findsOneWidget);
+    },
+  );
 }

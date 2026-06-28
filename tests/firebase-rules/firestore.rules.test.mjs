@@ -56,6 +56,35 @@ describe('owner-owned client records', () => {
     );
   });
 
+  it('denies profile email persistence and invalid personal profile fields', async () => {
+    const alice = dbFor('alice');
+
+    await assertFails(
+      setDoc(doc(alice, 'userProfiles/alice'), {
+        ...profileFields,
+        email: 'alice@example.test',
+      }),
+    );
+    await assertFails(
+      setDoc(doc(alice, 'userProfiles/alice'), {
+        ...profileFields,
+        ageYears: 12,
+      }),
+    );
+    await assertFails(
+      setDoc(doc(alice, 'userProfiles/alice'), {
+        ...profileFields,
+        weightKg: 251,
+      }),
+    );
+    await assertFails(
+      setDoc(doc(alice, 'userProfiles/alice'), {
+        ...profileFields,
+        nickname: 'Line\nBreak',
+      }),
+    );
+  });
+
   it('denies unapproved nested profile fields', async () => {
     const alice = dbFor('alice');
 

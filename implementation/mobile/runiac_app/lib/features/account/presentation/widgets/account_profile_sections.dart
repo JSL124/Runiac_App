@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/runiac_colors.dart';
 import '../../../../core/widgets/runiac_buttons.dart';
 import '../../../auth/domain/runiac_auth_service.dart';
+import '../../domain/models/user_profile_read_model.dart';
 import '../data/account_profile_demo_snapshots.dart';
 import '../watch_health_apps_screen.dart';
 import 'account_sign_out_row.dart';
@@ -61,18 +62,20 @@ class AccountManageSection extends StatelessWidget {
   const AccountManageSection({
     required this.rows,
     required this.authRepository,
+    this.onEditProfile,
     super.key,
   });
 
   final List<AccountProfileManageRow> rows;
   final RuniacAuthRepository authRepository;
+  final VoidCallback? onEditProfile;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
         for (final row in rows) ...[
-          _ManageRow(row: row),
+          _ManageRow(row: row, onEditProfile: onEditProfile),
           const SizedBox(height: 8),
         ],
         AccountSignOutRow(authRepository: authRepository),
@@ -129,9 +132,10 @@ class _SetupRow extends StatelessWidget {
 }
 
 class _ManageRow extends StatelessWidget {
-  const _ManageRow({required this.row});
+  const _ManageRow({required this.row, this.onEditProfile});
 
   final AccountProfileManageRow row;
+  final VoidCallback? onEditProfile;
 
   @override
   Widget build(BuildContext context) {
@@ -145,7 +149,11 @@ class _ManageRow extends StatelessWidget {
         border: Border.all(color: RuniacColors.border),
       ),
       onTap: () {
-        if (row.opensWatchHealthApps) {
+        if (row.action == UserProfileManageAction.editProfile) {
+          onEditProfile?.call();
+          return;
+        }
+        if (row.action == UserProfileManageAction.watchHealthApps) {
           Navigator.of(context).push(
             MaterialPageRoute<void>(
               builder: (_) => const WatchHealthAppsScreen(),

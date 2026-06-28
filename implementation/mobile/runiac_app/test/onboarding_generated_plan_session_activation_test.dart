@@ -72,6 +72,13 @@ void main() {
         enableForegroundGps: false,
         authRepository: authRepository,
         profilePersistenceRepository: profileRepository,
+        initialPersonalProfileDraft: PersonalProfileDraft(
+          fullName: 'Maya Tan',
+          nickname: 'Maya',
+          ageYears: 24,
+          weightKg: 58.5,
+          locationLabel: 'Queenstown',
+        ),
       ),
     );
 
@@ -80,9 +87,13 @@ void main() {
 
     expect(find.text('Good to see you'), findsOneWidget);
     expect(profileRepository.uid, 'test-auth-user-1');
-    expect(profileRepository.profile?.displayName, 'Runiac Runner');
-    expect(profileRepository.profile?.avatarInitials, 'RR');
-    expect(profileRepository.profile?.locationLabel, 'Not set yet');
+    expect(profileRepository.profile?.displayName, 'Maya');
+    expect(profileRepository.profile?.fullName, 'Maya Tan');
+    expect(profileRepository.profile?.nickname, 'Maya');
+    expect(profileRepository.profile?.avatarInitials, 'M');
+    expect(profileRepository.profile?.ageYears, 24);
+    expect(profileRepository.profile?.weightKg, 58.5);
+    expect(profileRepository.profile?.locationLabel, 'Queenstown');
     expect(profileRepository.profile?.fitnessLevel, 'new');
     expect(profileRepository.profile?.goals, <String>['habit']);
     expect(profileRepository.profile?.availability, <String, Object>{
@@ -102,6 +113,46 @@ void main() {
       'motivationStyle': 'reminders',
     });
   });
+
+  testWidgets(
+    'signed-in onboarding completion waits when profile persistence fails',
+    (tester) async {
+      final authRepository = FakeRuniacAuthRepository();
+      final profileRepository = _RecordingUserProfilePersistenceRepository()
+        ..failNextSave = true;
+      addTearDown(authRepository.dispose);
+      authRepository.emitSignedIn();
+
+      await tester.pumpWidget(
+        RuniacApp(
+          showSplash: false,
+          showOnboarding: true,
+          enableForegroundGps: false,
+          authRepository: authRepository,
+          profilePersistenceRepository: profileRepository,
+          initialPersonalProfileDraft: PersonalProfileDraft(
+            fullName: 'Maya Tan',
+            nickname: 'Maya',
+            ageYears: 24,
+            weightKg: 58.5,
+            locationLabel: 'Queenstown',
+          ),
+        ),
+      );
+
+      await completeOnboardingToPreview(tester);
+      await tapText(tester, 'Continue with this plan');
+
+      expect(find.text('Good to see you'), findsNothing);
+      expect(find.text('Continue with this plan'), findsOneWidget);
+      expect(find.textContaining('profile'), findsWidgets);
+
+      await tapText(tester, 'Continue with this plan');
+
+      expect(find.text('Good to see you'), findsOneWidget);
+      expect(profileRepository.saveCalls, 2);
+    },
+  );
 
   testWidgets(
     'body concern onboarding completion activates recovery plan session',
@@ -222,13 +273,26 @@ class _RecordingUserProfilePersistenceRepository
     implements UserProfilePersistenceRepository {
   String? uid;
   UserProfileOnboardingSnapshot? profile;
+  bool failNextSave = false;
+  int saveCalls = 0;
 
   @override
   Future<void> saveOnboardingProfile({
     required String uid,
     required UserProfileOnboardingSnapshot profile,
   }) async {
+    saveCalls += 1;
+    if (failNextSave) {
+      failNextSave = false;
+      throw StateError('profile save failed');
+    }
     this.uid = uid;
     this.profile = profile;
   }
+
+  @override
+  Future<void> savePersonalProfile({
+    required String uid,
+    required UserProfilePersonalSnapshot profile,
+  }) async {}
 }

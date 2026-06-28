@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../domain/models/local_onboarding_draft.dart';
 import 'onboarding_flow_screen.dart';
 
 class RuniacOnboardingGate extends StatefulWidget {
@@ -13,7 +12,7 @@ class RuniacOnboardingGate extends StatefulWidget {
 
   final Widget child;
   final bool showOnboarding;
-  final ValueChanged<LocalOnboardingDraft>? onCompletedDraft;
+  final OnboardingCompleteCallback? onCompletedDraft;
 
   @override
   State<RuniacOnboardingGate> createState() => _RuniacOnboardingGateState();
@@ -37,11 +36,16 @@ class _RuniacOnboardingGateState extends State<RuniacOnboardingGate> {
     }
 
     return OnboardingFlowScreen(
-      onComplete: (draft) {
-        widget.onCompletedDraft?.call(draft);
-        setState(() {
-          _completed = true;
-        });
+      onComplete: (draft) async {
+        final completed =
+            await (widget.onCompletedDraft?.call(draft) ??
+                Future<bool>.value(true));
+        if (completed && mounted) {
+          setState(() {
+            _completed = true;
+          });
+        }
+        return completed;
       },
     );
   }

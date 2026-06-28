@@ -1,11 +1,10 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 
 import 'core/theme/runiac_theme.dart';
 import 'features/account/data/static_user_profile_repository.dart';
 import 'features/account/domain/repositories/user_profile_persistence_repository.dart';
 import 'features/account/domain/repositories/user_profile_repository.dart';
+import 'features/account/presentation/personal_profile_collection_screen.dart';
 import 'features/auth/data/non_production_auth_repository.dart';
 import 'features/auth/domain/runiac_auth_service.dart';
 import 'features/auth/presentation/runiac_auth_gate.dart';
@@ -42,6 +41,7 @@ class RuniacApp extends StatefulWidget {
     this.initialRunOpenIntent,
     this.currentSessionActivityHistoryStore,
     this.currentSessionGeneratedPlanStore,
+    this.initialPersonalProfileDraft,
     this.onOnboardingCompleted,
   });
 
@@ -58,6 +58,7 @@ class RuniacApp extends StatefulWidget {
   final RunOpenIntent? initialRunOpenIntent;
   final CurrentSessionActivityHistoryStore? currentSessionActivityHistoryStore;
   final CurrentSessionGeneratedPlanStore? currentSessionGeneratedPlanStore;
+  final PersonalProfileDraft? initialPersonalProfileDraft;
   final ValueChanged<LocalOnboardingDraft>? onOnboardingCompleted;
 
   @override
@@ -70,6 +71,8 @@ class _RuniacAppState extends State<RuniacApp> {
   late final CurrentSessionGeneratedPlanStore _generatedPlanStore;
   late final bool _ownsGeneratedPlanStore;
   RuniacAuthCompletion? _authCompletion;
+  PersonalProfileDraft? _personalProfileDraft;
+  String? _authStateError;
 
   @override
   void initState() {
@@ -83,6 +86,7 @@ class _RuniacAppState extends State<RuniacApp> {
     _generatedPlanStore =
         widget.currentSessionGeneratedPlanStore ??
         CurrentSessionGeneratedPlanStore();
+    _personalProfileDraft = widget.initialPersonalProfileDraft;
   }
 
   @override
@@ -117,20 +121,10 @@ class _RuniacAppState extends State<RuniacApp> {
                 onAuthenticated: (completion) {
                   setState(() {
                     _authCompletion = completion;
+                    _authStateError = null;
                   });
                 },
-                child: RuniacOnboardingGate(
-                  showOnboarding: _shouldShowOnboarding,
-                  onCompletedDraft: _completeOnboarding,
-                  child: RuniacShell(
-                    authRepository: widget.authRepository,
-                    profileRepository: widget.profileRepository,
-                    enableForegroundGps: widget.enableForegroundGps,
-                    activeRunSessionCoordinator:
-                        widget.activeRunSessionCoordinator,
-                    initialRunOpenIntent: widget.initialRunOpenIntent,
-                  ),
-                ),
+                child: _buildPostAuthFlow(),
               ),
             ),
           ),
@@ -139,19 +133,57 @@ class _RuniacAppState extends State<RuniacApp> {
     );
   }
 
-  void _completeOnboarding(LocalOnboardingDraft draft) {
+  Widget _buildPostAuthFlow() {
+    if (_shouldShowPersonalProfile) {
+      final currentUser = widget.authRepository.currentUser;
+      if (currentUser == null) {
+        return _AuthStateErrorScreen(
+          message:
+              _authStateError ??
+              'We could not confirm your account. Please try signing in again.',
+        );
+      }
+      return PersonalProfileCollectionScreen(
+        emailLabel: currentUser.email ?? 'Email unavailable',
+        onComplete: (draft) {
+          setState(() {
+            _personalProfileDraft = draft;
+          });
+        },
+      );
+    }
+
+    return RuniacOnboardingGate(
+      showOnboarding: _shouldShowOnboarding,
+      onCompletedDraft: _completeOnboarding,
+      child: RuniacShell(
+        authRepository: widget.authRepository,
+        profileRepository: widget.profileRepository,
+        profilePersistenceRepository: widget.profilePersistenceRepository,
+        enableForegroundGps: widget.enableForegroundGps,
+        activeRunSessionCoordinator: widget.activeRunSessionCoordinator,
+        initialRunOpenIntent: widget.initialRunOpenIntent,
+      ),
+    );
+  }
+
+  Future<bool> _completeOnboarding(LocalOnboardingDraft draft) async {
     final snapshot = const BeginnerAdaptivePlanGenerator().generate(draft);
+    final currentUser = widget.authRepository.currentUser;
+    if (currentUser != null) {
+      final saved = await _saveOnboardingProfile(currentUser.uid, draft);
+      if (!saved) {
+        return false;
+      }
+    }
     if (!_generatedPlanStore.setActivePlan(snapshot)) {
       _generatedPlanStore.clear();
     }
-    final currentUser = widget.authRepository.currentUser;
-    if (currentUser != null) {
-      unawaited(_saveOnboardingProfile(currentUser.uid, draft));
-    }
     widget.onOnboardingCompleted?.call(draft);
+    return true;
   }
 
-  Future<void> _saveOnboardingProfile(
+  Future<bool> _saveOnboardingProfile(
     String uid,
     LocalOnboardingDraft draft,
   ) async {
@@ -160,25 +192,31 @@ class _RuniacAppState extends State<RuniacApp> {
         uid: uid,
         profile: _profileSnapshotFromDraft(draft),
       );
-    } catch (error, stackTrace) {
-      FlutterError.reportError(
-        FlutterErrorDetails(
-          exception: error,
-          stack: stackTrace,
-          library: 'runiac profile persistence',
-          context: ErrorDescription('saving the onboarding profile'),
-        ),
-      );
+      return true;
+    } catch (_) {
+      return false;
     }
   }
 
   UserProfileOnboardingSnapshot _profileSnapshotFromDraft(
     LocalOnboardingDraft draft,
   ) {
+    final personalProfile = _personalProfileDraft;
+    final displayName = personalProfile?.displayName ?? 'Runiac Runner';
+    final fullName = personalProfile?.fullName ?? 'Runiac Runner';
+    final nickname = personalProfile?.nickname ?? 'Runiac Runner';
+    final avatarInitials = personalProfile?.avatarInitials ?? 'RR';
+    final ageYears = personalProfile?.ageYears ?? 18;
+    final weightKg = personalProfile?.weightKg ?? 60;
+    final locationLabel = personalProfile?.locationLabel ?? 'Not set yet';
     return UserProfileOnboardingSnapshot(
-      displayName: 'Runiac Runner',
-      avatarInitials: 'RR',
-      locationLabel: 'Not set yet',
+      displayName: displayName,
+      fullName: fullName,
+      nickname: nickname,
+      avatarInitials: avatarInitials,
+      ageYears: ageYears,
+      weightKg: weightKg,
+      locationLabel: locationLabel,
       fitnessLevel: draft.experience.value,
       goals: <String>[draft.goal.value],
       availability: <String, Object>{
@@ -211,6 +249,32 @@ class _RuniacAppState extends State<RuniacApp> {
     if (!widget.showAuth) {
       return true;
     }
-    return _authCompletion == RuniacAuthCompletion.signup;
+    return _authCompletion == RuniacAuthCompletion.signup &&
+        _personalProfileDraft != null;
+  }
+
+  bool get _shouldShowPersonalProfile {
+    return widget.showAuth &&
+        widget.showOnboarding &&
+        _authCompletion == RuniacAuthCompletion.signup &&
+        _personalProfileDraft == null;
+  }
+}
+
+class _AuthStateErrorScreen extends StatelessWidget {
+  const _AuthStateErrorScreen({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Text(message, textAlign: TextAlign.center),
+        ),
+      ),
+    );
   }
 }

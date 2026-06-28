@@ -76,7 +76,11 @@ class FirestoreUserProfileRepository implements UserProfileRepository {
     Map<String, Object?> document,
   ) {
     final displayName = _requiredTrimmedString(document['displayName']);
+    final fullName = _optionalTrimmedString(document['fullName']);
+    final nickname = _optionalTrimmedString(document['nickname']);
     final avatarInitials = _requiredTrimmedString(document['avatarInitials']);
+    final ageYears = _intValue(document['ageYears']);
+    final weightKg = _numValue(document['weightKg']);
     final locationLabel = _requiredTrimmedString(document['locationLabel']);
     if (displayName == null ||
         avatarInitials == null ||
@@ -87,7 +91,11 @@ class FirestoreUserProfileRepository implements UserProfileRepository {
     return UserProfileReadModel(
       userId: uid,
       displayName: displayName,
+      fullName: fullName,
+      nickname: nickname,
       avatarInitials: avatarInitials,
+      ageYears: ageYears,
+      weightKg: weightKg,
       locationLabel: locationLabel,
       previewLevelBadge: '',
       previewNote: 'Loaded from your saved profile.',
@@ -96,6 +104,12 @@ class FirestoreUserProfileRepository implements UserProfileRepository {
       footerCaption: 'Runiac · Preview build · Built for new runners',
       setupItems: _setupItemsFromDocument(document),
       manageRows: const <UserProfileManageRowReadModel>[
+        UserProfileManageRowReadModel(
+          title: 'Edit profile',
+          subtitle: 'Email, personal details, and onboarding',
+          snackBarMessage: '',
+          action: UserProfileManageAction.editProfile,
+        ),
         UserProfileManageRowReadModel(
           title: 'Settings',
           subtitle: 'Units, reminders, and app comfort',
@@ -115,6 +129,7 @@ class FirestoreUserProfileRepository implements UserProfileRepository {
           title: 'Watch & Health Apps',
           subtitle: 'Connect watch runs and health apps',
           snackBarMessage: 'Adding watch runs comes next.',
+          action: UserProfileManageAction.watchHealthApps,
         ),
         UserProfileManageRowReadModel(
           title: 'About Runiac',
@@ -186,5 +201,20 @@ class FirestoreUserProfileRepository implements UserProfileRepository {
     }
     final trimmed = value.trim();
     return trimmed.isEmpty ? null : trimmed;
+  }
+
+  String _optionalTrimmedString(Object? value) {
+    if (value is! String) {
+      return '';
+    }
+    return value.trim();
+  }
+
+  int? _intValue(Object? value) {
+    return value is int ? value : null;
+  }
+
+  num? _numValue(Object? value) {
+    return value is num ? value : null;
   }
 }

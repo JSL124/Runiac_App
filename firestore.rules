@@ -67,7 +67,11 @@ service cloud.firestore {
     function userProfileWritableKeys() {
       return [
         'displayName',
+        'fullName',
+        'nickname',
         'avatarInitials',
+        'ageYears',
+        'weightKg',
         'locationLabel',
         'fitnessLevel',
         'goals',
@@ -91,11 +95,58 @@ service cloud.firestore {
     }
 
     function validProfileStringField(field) {
-      return !hasProfileField(field) || request.resource.data[field] is string;
+      return !hasProfileField(field)
+        || (request.resource.data[field] is string
+          && request.resource.data[field].size() > 0
+          && request.resource.data[field].matches('^[^\\n\\r\\t]{1,80}$'));
     }
 
     function validChangedProfileStringField(field) {
       return !changesProfileField(field) || validProfileStringField(field);
+    }
+
+    function validProfileShortStringField(field) {
+      return !hasProfileField(field)
+        || (request.resource.data[field] is string
+          && request.resource.data[field].size() > 0
+          && request.resource.data[field].matches('^[^\\n\\r\\t]{1,30}$'));
+    }
+
+    function validChangedProfileShortStringField(field) {
+      return !changesProfileField(field) || validProfileShortStringField(field);
+    }
+
+    function validProfileInitials() {
+      return !hasProfileField('avatarInitials')
+        || (request.resource.data.avatarInitials is string
+          && request.resource.data.avatarInitials.matches('^[A-Z]{1,3}$'));
+    }
+
+    function validChangedProfileInitials() {
+      return !changesProfileField('avatarInitials') || validProfileInitials();
+    }
+
+    function validProfileAgeYears() {
+      return !hasProfileField('ageYears')
+        || (request.resource.data.ageYears is int
+          && request.resource.data.ageYears >= 13
+          && request.resource.data.ageYears <= 100);
+    }
+
+    function validChangedProfileAgeYears() {
+      return !changesProfileField('ageYears') || validProfileAgeYears();
+    }
+
+    function validProfileWeightKg() {
+      return !hasProfileField('weightKg')
+        || ((request.resource.data.weightKg is int
+          || request.resource.data.weightKg is float)
+          && request.resource.data.weightKg >= 30
+          && request.resource.data.weightKg <= 250);
+    }
+
+    function validChangedProfileWeightKg() {
+      return !changesProfileField('weightKg') || validProfileWeightKg();
     }
 
     function validProfileUpdatedAt() {
@@ -164,7 +215,11 @@ service cloud.firestore {
     function validUserProfileCreateData() {
       return hasOnlyAllowedKeys(userProfileWritableKeys())
         && validProfileStringField('displayName')
-        && validProfileStringField('avatarInitials')
+        && validProfileStringField('fullName')
+        && validProfileShortStringField('nickname')
+        && validProfileInitials()
+        && validProfileAgeYears()
+        && validProfileWeightKg()
         && validProfileStringField('locationLabel')
         && validProfileStringField('fitnessLevel')
         && validProfileGoals()
@@ -177,7 +232,11 @@ service cloud.firestore {
     function validUserProfileUpdateData() {
       return changesOnlyAllowedKeys(userProfileWritableKeys())
         && validChangedProfileStringField('displayName')
-        && validChangedProfileStringField('avatarInitials')
+        && validChangedProfileStringField('fullName')
+        && validChangedProfileShortStringField('nickname')
+        && validChangedProfileInitials()
+        && validChangedProfileAgeYears()
+        && validChangedProfileWeightKg()
         && validChangedProfileStringField('locationLabel')
         && validChangedProfileStringField('fitnessLevel')
         && validChangedProfileGoals()

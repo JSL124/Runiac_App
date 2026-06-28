@@ -9,10 +9,13 @@ import 'widgets/onboarding_progress_header.dart';
 import 'widgets/onboarding_step_body.dart';
 import 'widgets/onboarding_visuals.dart';
 
+typedef OnboardingCompleteCallback =
+    Future<bool> Function(LocalOnboardingDraft draft);
+
 class OnboardingFlowScreen extends StatefulWidget {
   const OnboardingFlowScreen({required this.onComplete, super.key});
 
-  final ValueChanged<LocalOnboardingDraft> onComplete;
+  final OnboardingCompleteCallback onComplete;
 
   @override
   State<OnboardingFlowScreen> createState() => _OnboardingFlowScreenState();
@@ -22,6 +25,8 @@ class _OnboardingFlowScreenState extends State<OnboardingFlowScreen> {
   final _scrollController = ScrollController();
   final Map<String, Object> _answers = {};
   int _stepIndex = 0;
+  bool _completing = false;
+  String? _completionError;
 
   OnboardingStep get _step => onboardingSteps[_stepIndex];
 
@@ -90,12 +95,28 @@ class _OnboardingFlowScreenState extends State<OnboardingFlowScreen> {
     _resetScroll();
   }
 
-  void _completeOnboarding() {
+  Future<void> _completeOnboarding() async {
+    if (_completing) {
+      return;
+    }
     final draft = LocalOnboardingDraft.fromAnswers(_answers);
     if (draft == null) {
       return;
     }
-    widget.onComplete(draft);
+    setState(() {
+      _completing = true;
+      _completionError = null;
+    });
+    final completed = await widget.onComplete(draft);
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _completing = false;
+      _completionError = completed
+          ? null
+          : 'We could not save your profile. Try again.';
+    });
   }
 
   void _resetScroll() {
@@ -163,7 +184,7 @@ class _OnboardingFlowScreenState extends State<OnboardingFlowScreen> {
             ),
             OnboardingBottomActions(
               step: step,
-              canContinue: _canContinue,
+              canContinue: _canContinue && !_completing,
               onPrimary: switch (step.kind) {
                 OnboardingStepKind.welcome => _goNext,
                 OnboardingStepKind.preview => _completeOnboarding,
@@ -179,6 +200,8 @@ class _OnboardingFlowScreenState extends State<OnboardingFlowScreen> {
               previewPrimaryLabel: _showsClearancePreview
                   ? 'Finish for now'
                   : null,
+              isSubmitting: _completing,
+              errorText: _completionError,
             ),
           ],
         ),

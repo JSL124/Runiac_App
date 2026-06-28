@@ -4,7 +4,9 @@ import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/runiac_back_header.dart';
 import '../../auth/domain/runiac_auth_service.dart';
 import '../domain/models/user_profile_read_model.dart';
+import '../domain/repositories/user_profile_persistence_repository.dart';
 import '../domain/repositories/user_profile_repository.dart';
+import 'account_edit_profile_screen.dart';
 import 'data/account_profile_demo_snapshots.dart';
 import 'widgets/account_profile_identity.dart';
 import 'widgets/account_profile_sections.dart';
@@ -13,6 +15,7 @@ class AccountProfileScreen extends StatefulWidget {
   const AccountProfileScreen({
     required this.authRepository,
     required this.profileRepository,
+    required this.profilePersistenceRepository,
     required this.onBack,
     this.snapshot = accountProfileDemoSnapshot,
     super.key,
@@ -20,6 +23,7 @@ class AccountProfileScreen extends StatefulWidget {
 
   final RuniacAuthRepository authRepository;
   final UserProfileRepository profileRepository;
+  final UserProfilePersistenceRepository profilePersistenceRepository;
   final VoidCallback onBack;
   final AccountProfileDemoSnapshot snapshot;
 
@@ -88,6 +92,9 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
                           AccountManageSection(
                             rows: snapshot.manageRows,
                             authRepository: widget.authRepository,
+                            onEditProfile: asyncProfile.data == null
+                                ? null
+                                : () => _openEditProfile(asyncProfile.data!),
                           ),
                           const SizedBox(height: 22),
                           Text(
@@ -121,7 +128,9 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
       return fallback;
     }
     return AccountProfileDemoSnapshot(
-      displayName: profile.displayName,
+      displayName: profile.nickname.isEmpty
+          ? profile.displayName
+          : profile.nickname,
       avatarInitials: profile.avatarInitials,
       regionLabel: profile.locationLabel,
       previewLevelBadge: profile.previewLevelBadge,
@@ -171,7 +180,22 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
       title: row.title,
       subtitle: row.subtitle,
       snackBarMessage: row.snackBarMessage,
-      opensWatchHealthApps: matchingFallbackRow?.opensWatchHealthApps ?? false,
+      action: row.action == UserProfileManageAction.snackBar
+          ? matchingFallbackRow?.action ?? UserProfileManageAction.snackBar
+          : row.action,
+    );
+  }
+
+  void _openEditProfile(UserProfileReadModel profile) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => AccountEditProfileScreen(
+          authRepository: widget.authRepository,
+          persistenceRepository: widget.profilePersistenceRepository,
+          profile: profile,
+          onBack: () => Navigator.of(context).pop(),
+        ),
+      ),
     );
   }
 

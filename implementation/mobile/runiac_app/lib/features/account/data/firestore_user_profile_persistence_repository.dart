@@ -50,4 +50,15 @@ class FirestoreUserProfilePersistenceRepository
       data: profile.toFirestoreDocument(updatedAt: _updatedAt()),
     );
   }
+
+  @override
+  Future<void> savePersonalProfile({
+    required String uid,
+    required UserProfilePersonalSnapshot profile,
+  }) {
+    return _writer.mergeUserProfile(
+      uid: uid,
+      data: profile.toFirestoreDocument(updatedAt: _updatedAt()),
+    );
+  }
 }

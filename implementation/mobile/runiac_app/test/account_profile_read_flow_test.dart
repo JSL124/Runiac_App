@@ -1,7 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/app.dart';
 import 'package:runiac_app/features/account/domain/models/user_profile_read_model.dart';
+import 'package:runiac_app/features/account/domain/repositories/user_profile_persistence_repository.dart';
 import 'package:runiac_app/features/account/domain/repositories/user_profile_repository.dart';
+
+import 'support/fake_runiac_auth_repository.dart';
+import 'support/onboarding_flow_test_helpers.dart';
 
 void main() {
   testWidgets(
@@ -15,7 +19,11 @@ void main() {
             UserProfileReadModel(
               userId: 'test-auth-user-1',
               displayName: 'Maya Tan',
+              fullName: 'Maya Tan',
+              nickname: 'Maya',
               avatarInitials: 'MT',
+              ageYears: 24,
+              weightKg: 58.5,
               locationLabel: 'Queenstown, Singapore',
               previewLevelBadge: '',
               previewNote: 'Loaded from your saved profile.',
@@ -36,6 +44,14 @@ void main() {
                   value: 'Returning runner',
                 ),
               ],
+              manageRows: const <UserProfileManageRowReadModel>[
+                UserProfileManageRowReadModel(
+                  title: 'Edit profile',
+                  subtitle: 'Email, personal details, and onboarding',
+                  snackBarMessage: '',
+                  action: UserProfileManageAction.editProfile,
+                ),
+              ],
             ),
           ),
         ),
@@ -45,13 +61,111 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Account'), findsOneWidget);
-      expect(find.text('Maya Tan'), findsOneWidget);
+      expect(find.text('Maya'), findsOneWidget);
       expect(find.text('MT'), findsOneWidget);
       expect(find.text('Queenstown, Singapore'), findsOneWidget);
       expect(find.text('Lv. 12'), findsNothing);
       expect(find.text('First relaxed 5K'), findsOneWidget);
       expect(find.text('4 sessions / week'), findsOneWidget);
       expect(find.text('Returning runner'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'Edit profile shows read-only email and editable personal fields',
+    (tester) async {
+      final authRepository = FakeRuniacAuthRepository();
+      addTearDown(authRepository.dispose);
+      authRepository.emitSignedIn();
+      final persistenceRepository =
+          _RecordingUserProfilePersistenceRepository();
+
+      await tester.pumpWidget(
+        RuniacApp(
+          showSplash: false,
+          showAuth: true,
+          enableForegroundGps: false,
+          authRepository: authRepository,
+          profilePersistenceRepository: persistenceRepository,
+          profileRepository: _SingleProfileRepository(
+            UserProfileReadModel(
+              userId: 'test-auth-user-1',
+              displayName: 'Maya',
+              fullName: 'Maya Tan',
+              nickname: 'Maya',
+              avatarInitials: 'M',
+              ageYears: 24,
+              weightKg: 58.5,
+              locationLabel: 'Queenstown',
+              setupItems: const <UserProfileInfoItemReadModel>[
+                UserProfileInfoItemReadModel(
+                  title: 'Current goal',
+                  value: 'habit',
+                ),
+                UserProfileInfoItemReadModel(
+                  title: 'Weekly rhythm',
+                  value: '3 sessions / week',
+                ),
+                UserProfileInfoItemReadModel(title: 'Experience', value: 'new'),
+              ],
+              manageRows: const <UserProfileManageRowReadModel>[
+                UserProfileManageRowReadModel(
+                  title: 'Edit profile',
+                  subtitle: 'Email, personal details, and onboarding',
+                  snackBarMessage: '',
+                  action: UserProfileManageAction.editProfile,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.bySemanticsLabel('Profile'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Edit profile'));
+      await tester.tap(find.text('Edit profile'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Edit profile'), findsOneWidget);
+      expect(find.text('runner@runiac.app'), findsOneWidget);
+      expect(find.text('Personal details'), findsOneWidget);
+      expect(find.text('Onboarding result'), findsOneWidget);
+      expect(find.text('Retake onboarding'), findsOneWidget);
+
+      await tester.enterText(find.bySemanticsLabel('Nickname'), 'May');
+      await tester.enterText(find.bySemanticsLabel('Age'), '25');
+      await tester.enterText(
+        find.bySemanticsLabel('Weight in kilograms'),
+        '59',
+      );
+      await tester.enterText(find.bySemanticsLabel('Region'), 'Tiong Bahru');
+      await tester.ensureVisible(find.text('Save changes'));
+      await tester.tap(find.text('Save changes'));
+      await tester.pumpAndSettle();
+
+      expect(persistenceRepository.uid, 'test-auth-user-1');
+      expect(persistenceRepository.personalProfile?.nickname, 'May');
+      expect(persistenceRepository.personalProfile?.ageYears, 25);
+      expect(persistenceRepository.personalProfile?.weightKg, 59);
+      expect(
+        persistenceRepository.personalProfile?.locationLabel,
+        'Tiong Bahru',
+      );
+
+      await tester.ensureVisible(find.text('Retake onboarding'));
+      await tester.tap(find.text('Retake onboarding'));
+      await tester.pumpAndSettle();
+      await completeOnboardingToPreview(tester);
+      await tapText(tester, 'Continue with this plan');
+
+      expect(persistenceRepository.onboardingProfile?.nickname, 'May');
+      expect(persistenceRepository.onboardingProfile?.ageYears, 25);
+      expect(persistenceRepository.onboardingProfile?.weightKg, 59);
+      expect(
+        persistenceRepository.onboardingProfile?.locationLabel,
+        'Tiong Bahru',
+      );
     },
   );
 
@@ -81,4 +195,29 @@ class _SingleProfileRepository implements UserProfileRepository {
 
   @override
   Future<UserProfileReadModel> loadUserProfile() async => profile;
+}
+
+class _RecordingUserProfilePersistenceRepository
+    implements UserProfilePersistenceRepository {
+  String? uid;
+  UserProfilePersonalSnapshot? personalProfile;
+  UserProfileOnboardingSnapshot? onboardingProfile;
+
+  @override
+  Future<void> saveOnboardingProfile({
+    required String uid,
+    required UserProfileOnboardingSnapshot profile,
+  }) async {
+    this.uid = uid;
+    onboardingProfile = profile;
+  }
+
+  @override
+  Future<void> savePersonalProfile({
+    required String uid,
+    required UserProfilePersonalSnapshot profile,
+  }) async {
+    this.uid = uid;
+    personalProfile = profile;
+  }
 }

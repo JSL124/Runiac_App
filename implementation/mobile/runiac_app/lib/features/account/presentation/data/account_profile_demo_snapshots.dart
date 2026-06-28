@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../domain/models/user_profile_read_model.dart';
+
 // Production account/profile/region values must come from approved
 // backend/Auth/location read paths later, not this static snapshot.
 const accountProfileDemoSnapshot = AccountProfileDemoSnapshot(
@@ -37,6 +39,13 @@ const accountProfileDemoSnapshot = AccountProfileDemoSnapshot(
   ],
   manageRows: [
     AccountProfileManageRow(
+      icon: Icons.edit_outlined,
+      title: 'Edit profile',
+      subtitle: 'Email, personal details, and onboarding',
+      snackBarMessage: '',
+      action: UserProfileManageAction.editProfile,
+    ),
+    AccountProfileManageRow(
       icon: Icons.settings_outlined,
       title: 'Settings',
       subtitle: 'Units, reminders, and app comfort',
@@ -59,7 +68,7 @@ const accountProfileDemoSnapshot = AccountProfileDemoSnapshot(
       title: 'Watch & Health Apps',
       subtitle: 'Connect watch runs and health apps',
       snackBarMessage: 'Adding watch runs comes next.',
-      opensWatchHealthApps: true,
+      action: UserProfileManageAction.watchHealthApps,
     ),
     AccountProfileManageRow(
       icon: Icons.info_outline,
@@ -114,12 +123,12 @@ class AccountProfileManageRow {
     required this.title,
     required this.subtitle,
     required this.snackBarMessage,
-    this.opensWatchHealthApps = false,
+    this.action = UserProfileManageAction.snackBar,
   });
 
   final IconData icon;
   final String title;
   final String subtitle;
   final String snackBarMessage;
-  final bool opensWatchHealthApps;
+  final UserProfileManageAction action;
 }

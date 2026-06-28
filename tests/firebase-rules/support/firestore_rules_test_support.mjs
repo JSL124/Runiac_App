@@ -8,7 +8,11 @@ let testEnv;
 
 export const profileFields = {
   displayName: 'Synthetic Runner',
+  fullName: 'Synthetic Runner',
+  nickname: 'Runner',
   avatarInitials: 'SR',
+  ageYears: 24,
+  weightKg: 58.5,
   locationLabel: 'Synthetic Region',
   fitnessLevel: 'beginner',
   goals: ['habit'],

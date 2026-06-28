@@ -33,6 +33,7 @@ class StaticUserProfileRepository implements UserProfileRepository {
               title: row.title,
               subtitle: row.subtitle,
               snackBarMessage: row.snackBarMessage,
+              action: row.action,
             ),
           )
           .toList(growable: false),
