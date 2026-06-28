@@ -28,8 +28,8 @@ serviceAccount*.json
 .firebase/
 .firebaserc
 .runtimeconfig.json
+**/firebase.json
 **/firebase_options.dart
-!implementation/mobile/runiac_app/lib/firebase_options.dart
 firebase-debug.log
 firestore-debug.log
 database-debug.log
@@ -40,8 +40,6 @@ firebase-export-*/
 **/firebase-export-*/
 google-services.json
 GoogleService-Info.plist
-!implementation/mobile/runiac_app/android/app/google-services.json
-!implementation/mobile/runiac_app/ios/Runner/GoogleService-Info.plist
 
 # Flutter/Dart generated files and caches
 .dart_tool/

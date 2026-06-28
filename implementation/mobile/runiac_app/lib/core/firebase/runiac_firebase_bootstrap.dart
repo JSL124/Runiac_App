@@ -4,13 +4,14 @@ import 'package:firebase_core/firebase_core.dart';
 
 import '../../features/account/data/firestore_user_profile_persistence_repository.dart';
 import '../../features/account/data/firestore_user_profile_repository.dart';
+import '../../features/account/data/static_user_profile_repository.dart';
 import '../../features/account/domain/repositories/user_profile_persistence_repository.dart';
 import '../../features/account/domain/repositories/user_profile_repository.dart';
 import '../../features/auth/data/firebase_runiac_auth_repository.dart';
+import '../../features/auth/data/non_production_auth_repository.dart';
 import '../../features/auth/domain/runiac_auth_service.dart';
 import '../../features/run/data/run_repository_factory.dart';
 import '../../features/run/domain/repositories/run_repository.dart';
-import '../../firebase_options.dart';
 import 'runiac_firestore_gateway.dart';
 
 class RuniacFirebaseBootstrap {
@@ -24,10 +25,23 @@ class RuniacFirebaseBootstrap {
     final runtimeConfig =
         config ?? RuniacFirebaseRuntimeConfig.fromEnvironment();
     if (!runtimeConfig.useFirebaseEmulator) {
-      if (Firebase.apps.isEmpty) {
-        await Firebase.initializeApp(
-          options: DefaultFirebaseOptions.currentPlatform,
+      final productionOptions = _productionOptionsFor(runtimeConfig);
+      if (productionOptions == null) {
+        return RuniacFirebaseBootstrapResult(
+          runRepository: RunRepositoryFactory.create(config: runtimeConfig),
+          authRepository: const NonProductionAuthRepository(),
+          profileRepository: const StaticUserProfileRepository(),
+          profilePersistenceRepository:
+              const NoopUserProfilePersistenceRepository(),
+          firestoreGateway: RuniacFirestoreGateway.configure(
+            useFirebaseEmulator: runtimeConfig.useFirebaseEmulator,
+            emulatorHost: runtimeConfig.emulatorHost,
+            connector: firestoreConnector,
+          ),
         );
+      }
+      if (Firebase.apps.isEmpty) {
+        await Firebase.initializeApp(options: productionOptions);
       }
       final firebaseAuth = FirebaseAuth.instance;
       final authRepository = FirebaseRuniacAuthRepository(
@@ -96,6 +110,32 @@ class RuniacFirebaseBootstrap {
     RuniacFirebaseRuntimeConfig runtimeConfig,
   ) {
     return firebaseAuth.useAuthEmulator(runtimeConfig.emulatorHost, 9099);
+  }
+
+  static FirebaseOptions? _productionOptionsFor(
+    RuniacFirebaseRuntimeConfig runtimeConfig,
+  ) {
+    if (!runtimeConfig.useProductionFirebase) {
+      return null;
+    }
+
+    if (runtimeConfig.productionApiKey.isEmpty ||
+        runtimeConfig.productionAppId.isEmpty ||
+        runtimeConfig.productionMessagingSenderId.isEmpty ||
+        runtimeConfig.productionProjectId.isEmpty) {
+      throw StateError(
+        'Production Firebase requires RUNIAC_FIREBASE_API_KEY, '
+        'RUNIAC_FIREBASE_APP_ID, RUNIAC_FIREBASE_MESSAGING_SENDER_ID, and '
+        'RUNIAC_FIREBASE_PROJECT_ID dart-defines.',
+      );
+    }
+
+    return FirebaseOptions(
+      apiKey: runtimeConfig.productionApiKey,
+      appId: runtimeConfig.productionAppId,
+      messagingSenderId: runtimeConfig.productionMessagingSenderId,
+      projectId: runtimeConfig.productionProjectId,
+    );
   }
 }
 

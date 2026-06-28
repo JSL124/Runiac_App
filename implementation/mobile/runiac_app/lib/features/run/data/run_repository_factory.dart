@@ -9,6 +9,11 @@ class RuniacFirebaseRuntimeConfig {
   const RuniacFirebaseRuntimeConfig({
     required this.useFirebaseEmulator,
     this.emulatorHost = defaultEmulatorHost,
+    this.useProductionFirebase = false,
+    this.productionApiKey = '',
+    this.productionAppId = '',
+    this.productionMessagingSenderId = '',
+    this.productionProjectId = '',
   });
 
   factory RuniacFirebaseRuntimeConfig.fromEnvironment() {
@@ -18,6 +23,13 @@ class RuniacFirebaseRuntimeConfig {
         'RUNIAC_FIREBASE_EMULATOR_HOST',
         defaultValue: defaultEmulatorHost,
       ),
+      useProductionFirebase: bool.fromEnvironment('RUNIAC_FIREBASE_PRODUCTION'),
+      productionApiKey: String.fromEnvironment('RUNIAC_FIREBASE_API_KEY'),
+      productionAppId: String.fromEnvironment('RUNIAC_FIREBASE_APP_ID'),
+      productionMessagingSenderId: String.fromEnvironment(
+        'RUNIAC_FIREBASE_MESSAGING_SENDER_ID',
+      ),
+      productionProjectId: String.fromEnvironment('RUNIAC_FIREBASE_PROJECT_ID'),
     );
   }
 
@@ -25,6 +37,11 @@ class RuniacFirebaseRuntimeConfig {
 
   final bool useFirebaseEmulator;
   final String emulatorHost;
+  final bool useProductionFirebase;
+  final String productionApiKey;
+  final String productionAppId;
+  final String productionMessagingSenderId;
+  final String productionProjectId;
 }
 
 class RunRepositoryFactory {

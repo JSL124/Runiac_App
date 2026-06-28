@@ -29,9 +29,22 @@ Functions/Firestore emulator path. Google/OAuth remains disabled and must not
 fake authentication.
 
 When `RUNIAC_FIREBASE_EMULATOR` is missing or false, the app uses the static
-run repository, a non-production auth repository, and does not initialize
-Firebase. Do not run `flutterfire configure`, do not add `firebase_options.dart`,
-do not add native Firebase config files, and do not deploy from this app.
+run repository and a non-production auth repository unless production Firebase
+is explicitly enabled with local dart-defines. Do not run `flutterfire
+configure`, do not commit `firebase_options.dart`, do not commit `firebase.json`,
+do not commit native Firebase config files, and do not deploy from this app.
+
+For local production-Firebase testing only, pass the required values at runtime
+instead of storing generated config files in the repository:
+
+```bash
+flutter run \
+  --dart-define=RUNIAC_FIREBASE_PRODUCTION=true \
+  --dart-define=RUNIAC_FIREBASE_API_KEY=<local-api-key> \
+  --dart-define=RUNIAC_FIREBASE_APP_ID=<local-app-id> \
+  --dart-define=RUNIAC_FIREBASE_MESSAGING_SENDER_ID=<local-sender-id> \
+  --dart-define=RUNIAC_FIREBASE_PROJECT_ID=<local-project-id>
+```
 
 ## M4-C2 Mapbox run map demo boundary
 

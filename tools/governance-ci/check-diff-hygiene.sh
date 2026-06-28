@@ -5,7 +5,7 @@ repo_root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 cd "$repo_root"
 
 check_name="check-diff-hygiene"
-scanned_paths="git status --short,git diff --check,git diff --cached --check,git diff --name-only"
+scanned_paths="git status --short,git diff --check,git diff --cached --check,git diff --name-status"
 failures=0
 
 fail() {
@@ -131,6 +131,17 @@ is_forbidden_path() {
   return 1
 }
 
+is_deletion_status() {
+  case "$1" in
+    " D"|"D "|D)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 is_pubspec_outside_approved_scaffold() {
   case "$1" in
     implementation/mobile/runiac_app/pubspec.yaml|implementation/mobile/runiac_app/pubspec.lock)
@@ -157,6 +168,7 @@ fi
 
 while IFS= read -r line; do
   [ -n "$line" ] || continue
+  status_code="${line:0:2}"
   path="${line:3}"
   case "$path" in
     *' -> '*)
@@ -172,7 +184,7 @@ while IFS= read -r line; do
     fail "Unrelated iOS/SwiftPM native artifact appears in diff status: $path"
   fi
 
-  if is_forbidden_path "$path"; then
+  if is_forbidden_path "$path" && ! is_deletion_status "$status_code"; then
     fail "Forbidden implementation/config artifact appears in diff status: $path"
   fi
 
@@ -181,20 +193,24 @@ while IFS= read -r line; do
   fi
 done < <(git status --short --untracked-files=all)
 
-while IFS= read -r path; do
+while IFS=$'\t' read -r status path rest; do
   [ -n "$path" ] || continue
+  if [ -n "${rest:-}" ]; then
+    path="$rest"
+  fi
+
   if is_unrelated_mobile_native_artifact "$path"; then
     fail "Unrelated iOS/SwiftPM native artifact appears in tracked diff: $path"
   fi
 
-  if is_forbidden_path "$path"; then
+  if is_forbidden_path "$path" && ! is_deletion_status "$status"; then
     fail "Forbidden implementation/config artifact appears in tracked diff: $path"
   fi
 
   if is_pubspec_outside_approved_scaffold "$path"; then
     fail "Flutter pubspec artifact appears outside approved scaffold path: $path"
   fi
-done < <(git diff --name-only)
+done < <(git diff --name-status)
 
 if [ "$failures" -eq 0 ]; then
   printf 'CHECK %s PASS\n' "$check_name"

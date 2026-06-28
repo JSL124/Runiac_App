@@ -67,7 +67,7 @@ void main() {
 
     test('Google cancellation maps to a cancelled auth message', () async {
       final bootstrap = await RuniacFirebaseBootstrap.initialize(
-        config: const RuniacFirebaseRuntimeConfig(useFirebaseEmulator: false),
+        config: _productionConfig,
       );
       final repository = FirebaseRuniacAuthRepository(
         firebaseAuth: FirebaseAuth.instance,
@@ -98,9 +98,7 @@ void main() {
     test(
       'Google provider errors map to generic Google auth feedback',
       () async {
-        await RuniacFirebaseBootstrap.initialize(
-          config: const RuniacFirebaseRuntimeConfig(useFirebaseEmulator: false),
-        );
+        await RuniacFirebaseBootstrap.initialize(config: _productionConfig);
         final repository = FirebaseRuniacAuthRepository(
           firebaseAuth: FirebaseAuth.instance,
           googleAuthClient: const _ThrowingGoogleAuthClient(
@@ -181,28 +179,24 @@ void main() {
     );
 
     test(
-      'bootstrap returns Firebase auth with static runs outside emulator',
+      'bootstrap uses non-production auth outside emulator by default',
       () async {
         final bootstrap = await RuniacFirebaseBootstrap.initialize(
           config: const RuniacFirebaseRuntimeConfig(useFirebaseEmulator: false),
         );
 
         expect(bootstrap.runRepository, isA<StaticRunRepository>());
-        expect(bootstrap.authRepository, isA<FirebaseRuniacAuthRepository>());
+        expect(bootstrap.authRepository, isA<NonProductionAuthRepository>());
         expect(bootstrap.firestoreGateway, isA<RuniacFirestoreGateway>());
         expect(bootstrap.firestoreGateway.usesEmulator, isFalse);
-        expect(
-          bootstrap.authRepository,
-          isNot(isA<NonProductionAuthRepository>()),
-        );
       },
     );
 
     test(
-      'production bootstrap does not use non-production auth when anonymous emulator sign-in is disabled',
+      'production bootstrap uses Firebase auth only with explicit config',
       () async {
         final bootstrap = await RuniacFirebaseBootstrap.initialize(
-          config: const RuniacFirebaseRuntimeConfig(useFirebaseEmulator: false),
+          config: _productionConfig,
           enableAnonymousEmulatorSignIn: false,
         );
 
@@ -217,6 +211,15 @@ void main() {
     );
   });
 }
+
+const _productionConfig = RuniacFirebaseRuntimeConfig(
+  useFirebaseEmulator: false,
+  useProductionFirebase: true,
+  productionApiKey: 'test-api-key',
+  productionAppId: '1:000000000000:ios:test',
+  productionMessagingSenderId: '000000000000',
+  productionProjectId: 'runiac-test',
+);
 
 class _EmptyFirebaseCoreHostApi implements TestFirebaseCoreHostApi {
   @override
