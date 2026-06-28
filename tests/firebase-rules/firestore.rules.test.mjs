@@ -56,6 +56,29 @@ describe('owner-owned client records', () => {
     );
   });
 
+  it('denies unapproved nested profile fields', async () => {
+    const alice = dbFor('alice');
+
+    await assertFails(
+      setDoc(doc(alice, 'userProfiles/alice'), {
+        ...profileFields,
+        availability: {
+          ...profileFields.availability,
+          subscriptionStatus: 'premium',
+        },
+      }),
+    );
+    await assertFails(
+      setDoc(doc(alice, 'userProfiles/alice'), {
+        ...profileFields,
+        healthSafetyReadiness: {
+          ...profileFields.healthSafetyReadiness,
+          userRole: 'Platform Administrator',
+        },
+      }),
+    );
+  });
+
   it('denies auth bootstrap writes to users and backend-owned fields', async () => {
     const alice = dbFor('alice');
     const authBootstrapPayload = {

@@ -12,9 +12,22 @@ export const profileFields = {
   locationLabel: 'Synthetic Region',
   fitnessLevel: 'beginner',
   goals: ['habit'],
-  availability: ['monday'],
-  planCautiousness: 'gentle',
-  healthSafetyReadiness: 'ready',
+  availability: {
+    weeklySessions: '3',
+    preferredDays: ['Mon', 'Wed', 'Fri'],
+    preferredTime: 'morning',
+    sessionLengthMinutes: '20',
+  },
+  planCautiousness: 'balanced',
+  healthSafetyReadiness: {
+    comfort: 'ready',
+    activitySymptoms: ['none'],
+    recentRunningConsistency: 'none',
+    currentWeeklyRunFrequency: '0',
+    continuousRunCapacity: 'walk',
+    runningPlace: 'park',
+    motivationStyle: 'reminders',
+  },
   updatedAt: 1,
 };
 

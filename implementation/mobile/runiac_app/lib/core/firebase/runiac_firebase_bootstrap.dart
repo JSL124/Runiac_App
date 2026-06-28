@@ -2,6 +2,8 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 
+import '../../features/account/data/firestore_user_profile_persistence_repository.dart';
+import '../../features/account/domain/repositories/user_profile_persistence_repository.dart';
 import '../../features/auth/data/firebase_runiac_auth_repository.dart';
 import '../../features/auth/domain/runiac_auth_service.dart';
 import '../../features/run/data/run_repository_factory.dart';
@@ -36,6 +38,8 @@ class RuniacFirebaseBootstrap {
         authRepository: FirebaseRuniacAuthRepository(
           firebaseAuth: firebaseAuth,
         ),
+        profilePersistenceRepository:
+            FirestoreUserProfilePersistenceRepository(),
         firestoreGateway: firestoreGateway,
       );
     }
@@ -69,6 +73,7 @@ class RuniacFirebaseBootstrap {
     return RuniacFirebaseBootstrapResult(
       runRepository: RunRepositoryFactory.create(config: runtimeConfig),
       authRepository: FirebaseRuniacAuthRepository(firebaseAuth: firebaseAuth),
+      profilePersistenceRepository: FirestoreUserProfilePersistenceRepository(),
       firestoreGateway: firestoreGateway,
     );
   }
@@ -85,10 +90,12 @@ class RuniacFirebaseBootstrapResult {
   const RuniacFirebaseBootstrapResult({
     required this.runRepository,
     required this.authRepository,
+    required this.profilePersistenceRepository,
     required this.firestoreGateway,
   });
 
   final RunRepository runRepository;
   final RuniacAuthRepository authRepository;
+  final UserProfilePersistenceRepository profilePersistenceRepository;
   final RuniacFirestoreGateway firestoreGateway;
 }

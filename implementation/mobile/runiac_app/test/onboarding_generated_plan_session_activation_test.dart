@@ -1,8 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/app.dart';
+import 'package:runiac_app/features/account/domain/repositories/user_profile_persistence_repository.dart';
 import 'package:runiac_app/features/plan/domain/services/beginner_adaptive_plan_generator.dart';
 import 'package:runiac_app/features/plan/presentation/current_session_generated_plan.dart';
 
+import 'support/fake_runiac_auth_repository.dart';
 import 'support/onboarding_flow_test_helpers.dart';
 import 'support/plan_family_test_drafts.dart';
 
@@ -54,6 +56,49 @@ void main() {
       expect(generatedPlanStore.currentWeekRunningSessionCount, 3);
     },
   );
+
+  testWidgets('signed-in onboarding completion persists safe profile fields', (
+    tester,
+  ) async {
+    final authRepository = FakeRuniacAuthRepository();
+    final profileRepository = _RecordingUserProfilePersistenceRepository();
+    addTearDown(authRepository.dispose);
+    authRepository.emitSignedIn();
+
+    await tester.pumpWidget(
+      RuniacApp(
+        showSplash: false,
+        showOnboarding: true,
+        enableForegroundGps: false,
+        authRepository: authRepository,
+        profilePersistenceRepository: profileRepository,
+      ),
+    );
+
+    await completeOnboardingToPreview(tester);
+    await tapText(tester, 'Continue with this plan');
+
+    expect(find.text('Good to see you'), findsOneWidget);
+    expect(profileRepository.uid, 'test-auth-user-1');
+    expect(profileRepository.profile?.fitnessLevel, 'new');
+    expect(profileRepository.profile?.goals, <String>['habit']);
+    expect(profileRepository.profile?.availability, <String, Object>{
+      'weeklySessions': '3',
+      'preferredDays': <String>['Mon', 'Wed', 'Fri'],
+      'preferredTime': 'morning',
+      'sessionLengthMinutes': '20',
+    });
+    expect(profileRepository.profile?.planCautiousness, 'balanced');
+    expect(profileRepository.profile?.healthSafetyReadiness, <String, Object>{
+      'comfort': 'ready',
+      'activitySymptoms': <String>['none'],
+      'recentRunningConsistency': 'none',
+      'currentWeeklyRunFrequency': '0',
+      'continuousRunCapacity': 'walk',
+      'runningPlace': 'park',
+      'motivationStyle': 'reminders',
+    });
+  });
 
   testWidgets(
     'body concern onboarding completion activates recovery plan session',
@@ -168,4 +213,19 @@ void main() {
     );
     expect(generatedPlanStore.currentWeekRunningSessionCount, 0);
   });
+}
+
+class _RecordingUserProfilePersistenceRepository
+    implements UserProfilePersistenceRepository {
+  String? uid;
+  UserProfileOnboardingSnapshot? profile;
+
+  @override
+  Future<void> saveOnboardingProfile({
+    required String uid,
+    required UserProfileOnboardingSnapshot profile,
+  }) async {
+    this.uid = uid;
+    this.profile = profile;
+  }
 }

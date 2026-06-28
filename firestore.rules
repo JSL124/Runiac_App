@@ -64,6 +64,129 @@ service cloud.firestore {
       return !request.resource.data.diff(resource.data).affectedKeys().hasAny(backendOwnedKeys());
     }
 
+    function userProfileWritableKeys() {
+      return [
+        'displayName',
+        'avatarInitials',
+        'locationLabel',
+        'fitnessLevel',
+        'goals',
+        'availability',
+        'planCautiousness',
+        'healthSafetyReadiness',
+        'updatedAt'
+      ];
+    }
+
+    function affectedUserProfileKeys() {
+      return request.resource.data.diff(resource.data).affectedKeys();
+    }
+
+    function hasProfileField(field) {
+      return field in request.resource.data;
+    }
+
+    function changesProfileField(field) {
+      return affectedUserProfileKeys().hasAny([field]);
+    }
+
+    function validProfileStringField(field) {
+      return !hasProfileField(field) || request.resource.data[field] is string;
+    }
+
+    function validChangedProfileStringField(field) {
+      return !changesProfileField(field) || validProfileStringField(field);
+    }
+
+    function validProfileUpdatedAt() {
+      return !hasProfileField('updatedAt')
+        || request.resource.data.updatedAt is int
+        || request.resource.data.updatedAt is timestamp;
+    }
+
+    function validChangedProfileUpdatedAt() {
+      return !changesProfileField('updatedAt') || validProfileUpdatedAt();
+    }
+
+    function validProfileAvailability() {
+      return !hasProfileField('availability')
+        || (request.resource.data.availability is map
+          && request.resource.data.availability.keys().hasOnly([
+            'weeklySessions',
+            'preferredDays',
+            'preferredTime',
+            'sessionLengthMinutes'
+          ])
+          && request.resource.data.availability.weeklySessions is string
+          && request.resource.data.availability.preferredDays is list
+          && request.resource.data.availability.preferredTime is string
+          && request.resource.data.availability.sessionLengthMinutes is string);
+    }
+
+    function validChangedProfileAvailability() {
+      return !changesProfileField('availability') || validProfileAvailability();
+    }
+
+    function validProfileHealthSafetyReadiness() {
+      return !hasProfileField('healthSafetyReadiness')
+        || (request.resource.data.healthSafetyReadiness is map
+          && request.resource.data.healthSafetyReadiness.keys().hasOnly([
+            'comfort',
+            'activitySymptoms',
+            'recentRunningConsistency',
+            'currentWeeklyRunFrequency',
+            'continuousRunCapacity',
+            'runningPlace',
+            'motivationStyle'
+          ])
+          && request.resource.data.healthSafetyReadiness.comfort is string
+          && request.resource.data.healthSafetyReadiness.activitySymptoms is list
+          && request.resource.data.healthSafetyReadiness.recentRunningConsistency is string
+          && request.resource.data.healthSafetyReadiness.currentWeeklyRunFrequency is string
+          && request.resource.data.healthSafetyReadiness.continuousRunCapacity is string
+          && request.resource.data.healthSafetyReadiness.runningPlace is string
+          && request.resource.data.healthSafetyReadiness.motivationStyle is string);
+    }
+
+    function validChangedProfileHealthSafetyReadiness() {
+      return !changesProfileField('healthSafetyReadiness')
+        || validProfileHealthSafetyReadiness();
+    }
+
+    function validProfileGoals() {
+      return !hasProfileField('goals') || request.resource.data.goals is list;
+    }
+
+    function validChangedProfileGoals() {
+      return !changesProfileField('goals') || validProfileGoals();
+    }
+
+    function validUserProfileCreateData() {
+      return hasOnlyAllowedKeys(userProfileWritableKeys())
+        && validProfileStringField('displayName')
+        && validProfileStringField('avatarInitials')
+        && validProfileStringField('locationLabel')
+        && validProfileStringField('fitnessLevel')
+        && validProfileGoals()
+        && validProfileAvailability()
+        && validProfileStringField('planCautiousness')
+        && validProfileHealthSafetyReadiness()
+        && validProfileUpdatedAt();
+    }
+
+    function validUserProfileUpdateData() {
+      return changesOnlyAllowedKeys(userProfileWritableKeys())
+        && validChangedProfileStringField('displayName')
+        && validChangedProfileStringField('avatarInitials')
+        && validChangedProfileStringField('locationLabel')
+        && validChangedProfileStringField('fitnessLevel')
+        && validChangedProfileGoals()
+        && validChangedProfileAvailability()
+        && validChangedProfileStringField('planCautiousness')
+        && validChangedProfileHealthSafetyReadiness()
+        && validChangedProfileUpdatedAt();
+    }
+
     function isPremiumUser() {
       return isSignedIn()
         && exists(/databases/$(database)/documents/users/$(request.auth.uid))
@@ -83,30 +206,10 @@ service cloud.firestore {
     match /userProfiles/{uid} {
       allow read: if isOwner(uid);
       allow create: if isOwner(uid)
-        && hasOnlyAllowedKeys([
-          'displayName',
-          'avatarInitials',
-          'locationLabel',
-          'fitnessLevel',
-          'goals',
-          'availability',
-          'planCautiousness',
-          'healthSafetyReadiness',
-          'updatedAt'
-        ])
+        && validUserProfileCreateData()
         && doesNotTouchBackendOwnedKeys();
       allow update: if isOwner(uid)
-        && changesOnlyAllowedKeys([
-          'displayName',
-          'avatarInitials',
-          'locationLabel',
-          'fitnessLevel',
-          'goals',
-          'availability',
-          'planCautiousness',
-          'healthSafetyReadiness',
-          'updatedAt'
-        ])
+        && validUserProfileUpdateData()
         && doesNotChangeBackendOwnedKeys();
       allow delete: if false;
     }

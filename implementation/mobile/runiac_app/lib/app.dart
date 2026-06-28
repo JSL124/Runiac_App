@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'core/theme/runiac_theme.dart';
+import 'features/account/domain/repositories/user_profile_persistence_repository.dart';
 import 'features/auth/data/non_production_auth_repository.dart';
 import 'features/auth/domain/runiac_auth_service.dart';
 import 'features/auth/presentation/runiac_auth_gate.dart';
@@ -29,6 +32,8 @@ class RuniacApp extends StatefulWidget {
     this.splashDuration = RuniacSplashTokens.minVisibleDuration,
     this.authRepository = const NonProductionAuthRepository(),
     this.runRepository = const StaticRunRepository(),
+    this.profilePersistenceRepository =
+        const NoopUserProfilePersistenceRepository(),
     this.enableForegroundGps = true,
     this.activeRunSessionCoordinator,
     this.initialRunOpenIntent,
@@ -43,6 +48,7 @@ class RuniacApp extends StatefulWidget {
   final Duration splashDuration;
   final RuniacAuthRepository authRepository;
   final RunRepository runRepository;
+  final UserProfilePersistenceRepository profilePersistenceRepository;
   final bool enableForegroundGps;
   final ActiveRunSessionCoordinator? activeRunSessionCoordinator;
   final RunOpenIntent? initialRunOpenIntent;
@@ -133,7 +139,61 @@ class _RuniacAppState extends State<RuniacApp> {
     if (!_generatedPlanStore.setActivePlan(snapshot)) {
       _generatedPlanStore.clear();
     }
+    final currentUser = widget.authRepository.currentUser;
+    if (currentUser != null) {
+      unawaited(_saveOnboardingProfile(currentUser.uid, draft));
+    }
     widget.onOnboardingCompleted?.call(draft);
+  }
+
+  Future<void> _saveOnboardingProfile(
+    String uid,
+    LocalOnboardingDraft draft,
+  ) async {
+    try {
+      await widget.profilePersistenceRepository.saveOnboardingProfile(
+        uid: uid,
+        profile: _profileSnapshotFromDraft(draft),
+      );
+    } catch (error, stackTrace) {
+      FlutterError.reportError(
+        FlutterErrorDetails(
+          exception: error,
+          stack: stackTrace,
+          library: 'runiac profile persistence',
+          context: ErrorDescription('saving the onboarding profile'),
+        ),
+      );
+    }
+  }
+
+  UserProfileOnboardingSnapshot _profileSnapshotFromDraft(
+    LocalOnboardingDraft draft,
+  ) {
+    return UserProfileOnboardingSnapshot(
+      fitnessLevel: draft.experience.value,
+      goals: <String>[draft.goal.value],
+      availability: <String, Object>{
+        'weeklySessions': draft.availability.value,
+        'preferredDays': draft.preferredDays
+            .map((day) => day.value)
+            .toList(growable: false),
+        'preferredTime': draft.preferredTime.value,
+        'sessionLengthMinutes': draft.sessionLength.value,
+      },
+      planCautiousness: draft.planCautiousness.value,
+      healthSafetyReadiness: <String, Object>{
+        'comfort': draft.healthComfort.value,
+        'activitySymptoms': draft.activitySymptoms
+            .map((symptom) => symptom.value)
+            .toList(growable: false),
+        'recentRunningConsistency': draft.recentRunningConsistency.value,
+        'currentWeeklyRunFrequency': draft.currentWeeklyRunFrequency.value,
+        'continuousRunCapacity': draft.continuousRunCapacity.value,
+        'runningPlace': draft.runningPlace.value,
+        'motivationStyle': draft.motivationStyle.value,
+      },
+    );
   }
 
   bool get _shouldShowOnboarding {

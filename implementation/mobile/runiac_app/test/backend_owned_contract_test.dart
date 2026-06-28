@@ -261,6 +261,9 @@ void main() {
 
   group('Firestore base boundary', () {
     test('keeps feature code free of Firestore data access APIs', () {
+      const allowedProfilePersistencePath =
+          'lib/features/account/data/'
+          'firestore_user_profile_persistence_repository.dart';
       const forbiddenFeatureTerms = <String>[
         'package:cloud_firestore',
         'FirebaseFirestore',
@@ -278,11 +281,28 @@ void main() {
         '.set(',
       ];
 
-      for (final file in _dartFilesIn('lib/features')) {
+      for (final file in _dartFilesIn(
+        'lib/features',
+      ).where((file) => file.path != allowedProfilePersistencePath)) {
         final source = file.readAsStringSync();
         for (final term in forbiddenFeatureTerms) {
           expect(source, isNot(contains(term)), reason: '${file.path}: $term');
         }
+      }
+    });
+
+    test('limits Firestore feature access to user profile persistence', () {
+      final source = File(
+        'lib/features/account/data/'
+        'firestore_user_profile_persistence_repository.dart',
+      ).readAsStringSync();
+
+      expect(source, contains("collection('userProfiles')"));
+      expect(source, isNot(contains("collection('users')")));
+      expect(source, isNot(contains('FirebaseFirestore get')));
+      expect(source, isNot(contains('get firestore')));
+      for (final field in BackendOwnedValueContract.protectedFieldNames) {
+        expect(source, isNot(contains("'$field'")), reason: field);
       }
     });
   });
