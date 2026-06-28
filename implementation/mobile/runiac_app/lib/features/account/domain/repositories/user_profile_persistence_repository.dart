@@ -7,6 +7,9 @@ abstract interface class UserProfilePersistenceRepository {
 
 class UserProfileOnboardingSnapshot {
   UserProfileOnboardingSnapshot({
+    required this.displayName,
+    required this.avatarInitials,
+    required this.locationLabel,
     required this.fitnessLevel,
     required List<String> goals,
     required Map<String, Object> availability,
@@ -16,6 +19,9 @@ class UserProfileOnboardingSnapshot {
        availability = Map.unmodifiable(availability),
        healthSafetyReadiness = Map.unmodifiable(healthSafetyReadiness);
 
+  final String displayName;
+  final String avatarInitials;
+  final String locationLabel;
   final String fitnessLevel;
   final List<String> goals;
   final Map<String, Object> availability;
@@ -24,6 +30,9 @@ class UserProfileOnboardingSnapshot {
 
   Map<String, Object> toFirestoreDocument({required Object updatedAt}) {
     return <String, Object>{
+      'displayName': displayName,
+      'avatarInitials': avatarInitials,
+      'locationLabel': locationLabel,
       'fitnessLevel': fitnessLevel,
       'goals': goals,
       'availability': availability,

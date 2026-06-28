@@ -6,6 +6,9 @@ void main() {
   group('UserProfileOnboardingSnapshot', () {
     test('serializes only client-owned onboarding profile fields', () {
       final snapshot = UserProfileOnboardingSnapshot(
+        displayName: 'Runiac Runner',
+        avatarInitials: 'RR',
+        locationLabel: 'Not set yet',
         fitnessLevel: 'new',
         goals: const <String>['habit'],
         availability: const <String, Object>{
@@ -29,6 +32,9 @@ void main() {
       final document = snapshot.toFirestoreDocument(updatedAt: 1);
 
       expect(document.keys, <String>[
+        'displayName',
+        'avatarInitials',
+        'locationLabel',
         'fitnessLevel',
         'goals',
         'availability',
@@ -58,6 +64,9 @@ void main() {
         await repository.saveOnboardingProfile(
           uid: 'test-auth-user-1',
           profile: UserProfileOnboardingSnapshot(
+            displayName: 'Runiac Runner',
+            avatarInitials: 'RR',
+            locationLabel: 'Not set yet',
             fitnessLevel: 'new',
             goals: const <String>['habit'],
             availability: const <String, Object>{
@@ -81,6 +90,9 @@ void main() {
 
         expect(writer.uid, 'test-auth-user-1');
         expect(writer.data?['updatedAt'], 42);
+        expect(writer.data?['displayName'], 'Runiac Runner');
+        expect(writer.data?['avatarInitials'], 'RR');
+        expect(writer.data?['locationLabel'], 'Not set yet');
         expect(writer.data?['fitnessLevel'], 'new');
         expect(
           writer.data,

@@ -171,6 +171,9 @@ class _RuniacAppState extends State<RuniacApp> {
     LocalOnboardingDraft draft,
   ) {
     return UserProfileOnboardingSnapshot(
+      displayName: 'Runiac Runner',
+      avatarInitials: 'RR',
+      locationLabel: 'Not set yet',
       fitnessLevel: draft.experience.value,
       goals: <String>[draft.goal.value],
       availability: <String, Object>{

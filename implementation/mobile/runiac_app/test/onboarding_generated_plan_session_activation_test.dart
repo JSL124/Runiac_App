@@ -80,6 +80,9 @@ void main() {
 
     expect(find.text('Good to see you'), findsOneWidget);
     expect(profileRepository.uid, 'test-auth-user-1');
+    expect(profileRepository.profile?.displayName, 'Runiac Runner');
+    expect(profileRepository.profile?.avatarInitials, 'RR');
+    expect(profileRepository.profile?.locationLabel, 'Not set yet');
     expect(profileRepository.profile?.fitnessLevel, 'new');
     expect(profileRepository.profile?.goals, <String>['habit']);
     expect(profileRepository.profile?.availability, <String, Object>{
