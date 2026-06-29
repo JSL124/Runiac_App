@@ -12,6 +12,16 @@ Map<String, Object?> _localPendingRunActivityToJson(
     'validationStatus': activity.result.validationStatus,
     'message': activity.result.message,
     'syncAccepted': activity.syncAccepted,
+    'syncState': activity.syncState.name,
+    'syncAttemptCount': activity.syncAttemptCount,
+    if (activity.lastSyncAttemptedAt != null)
+      'lastSyncAttemptedAt': activity.lastSyncAttemptedAt!
+          .toUtc()
+          .toIso8601String(),
+    if (activity.lastSyncFailureCode != null)
+      'lastSyncFailureCode': activity.lastSyncFailureCode,
+    if (activity.lastSyncFailureMessage != null)
+      'lastSyncFailureMessage': activity.lastSyncFailureMessage,
     'summary': <String, Object?>{
       'title': activity.result.summary.title,
       'dateLabel': activity.result.summary.dateLabel,
@@ -85,6 +95,7 @@ LocalPendingRunActivity? _localPendingRunActivityFromJson(
   }
 
   final restoredPayload = _payloadFromJson(payload, clientRunSessionId);
+  final syncAccepted = _readBool(source, 'syncAccepted') ?? false;
   return LocalPendingRunActivity(
     ownerUid: ownerUid,
     clientRunSessionId: clientRunSessionId,
@@ -123,7 +134,14 @@ LocalPendingRunActivity? _localPendingRunActivityFromJson(
       message: _readString(source, 'message') ?? 'Saved locally.',
     ),
     payload: restoredPayload,
-    syncAccepted: _readBool(source, 'syncAccepted') ?? false,
+    syncAccepted: syncAccepted,
+    syncState:
+        _enumByName(RunSyncState.values, _readString(source, 'syncState')) ??
+        (syncAccepted ? RunSyncState.syncAccepted : RunSyncState.localSaved),
+    syncAttemptCount: _readInt(source, 'syncAttemptCount') ?? 0,
+    lastSyncAttemptedAt: _readDate(source, 'lastSyncAttemptedAt'),
+    lastSyncFailureCode: _readString(source, 'lastSyncFailureCode'),
+    lastSyncFailureMessage: _readString(source, 'lastSyncFailureMessage'),
   );
 }
 

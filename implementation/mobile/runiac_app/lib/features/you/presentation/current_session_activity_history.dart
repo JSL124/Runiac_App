@@ -8,6 +8,7 @@ import 'package:flutter/widgets.dart';
 import '../../run/domain/models/complete_run_result.dart';
 import '../../run/domain/models/local_run_completion_payload.dart';
 import '../../run/domain/models/run_activity_display_model.dart';
+import '../../run/domain/models/run_completion_error.dart';
 import '../../run/domain/models/run_summary_snapshot.dart';
 import '../../run/domain/repositories/run_repository.dart';
 import '../data/local_pending_run_activity_store.dart';
@@ -30,6 +31,30 @@ class SessionCompletedRunActivity {
   final CompleteRunResult completionResult;
 }
 
+class RunSyncDebugSnapshot {
+  const RunSyncDebugSnapshot({
+    required this.ownerUid,
+    required this.clientRunSessionId,
+    required this.syncState,
+    required this.syncAccepted,
+    required this.syncAttemptCount,
+    this.activityId,
+    this.lastSyncAttemptedAt,
+    this.lastSyncFailureCode,
+    this.lastSyncFailureMessage,
+  });
+
+  final String ownerUid;
+  final String clientRunSessionId;
+  final RunSyncState syncState;
+  final bool syncAccepted;
+  final int syncAttemptCount;
+  final String? activityId;
+  final DateTime? lastSyncAttemptedAt;
+  final String? lastSyncFailureCode;
+  final String? lastSyncFailureMessage;
+}
+
 class CurrentSessionActivityHistoryStore extends ChangeNotifier {
   CurrentSessionActivityHistoryStore({
     DateTime Function()? now,
@@ -42,6 +67,8 @@ class CurrentSessionActivityHistoryStore extends ChangeNotifier {
   final LocalPendingRunActivityStore? persistence;
   final List<SessionCompletedRunActivity> _activities =
       <SessionCompletedRunActivity>[];
+  final List<RunSyncDebugSnapshot> _syncDebugSnapshots =
+      <RunSyncDebugSnapshot>[];
   Future<void> _pendingStorageMutation = Future<void>.value();
   Future<void>? _pendingSync;
   String? _ownerUid;
@@ -54,6 +81,10 @@ class CurrentSessionActivityHistoryStore extends ChangeNotifier {
 
   String? get ownerUid => _ownerUid;
 
+  UnmodifiableListView<RunSyncDebugSnapshot> get syncDebugSnapshots {
+    return UnmodifiableListView(_syncDebugSnapshots);
+  }
+
   void updateOwnerUid(String? ownerUid) {
     if (_ownerUid == ownerUid) {
       return;
@@ -62,6 +93,7 @@ class CurrentSessionActivityHistoryStore extends ChangeNotifier {
     _ownerGeneration += 1;
     if (_activities.isNotEmpty) {
       _activities.clear();
+      _syncDebugSnapshots.clear();
       notifyListeners();
     }
   }
@@ -124,6 +156,7 @@ class CurrentSessionActivityHistoryStore extends ChangeNotifier {
       if (_ownerUid != ownerUid || _ownerGeneration != ownerGeneration) {
         return;
       }
+      _upsertSyncDebugSnapshot(record);
       registerCompletedRun(record.result, ownerUid: record.ownerUid);
     } catch (error, stackTrace) {
       _reportAsyncError(error, stackTrace, 'saving a completed run locally');
@@ -172,6 +205,35 @@ class CurrentSessionActivityHistoryStore extends ChangeNotifier {
 
   void _notifyActivityHistoryChanged() {
     notifyListeners();
+  }
+
+  void _upsertSyncDebugSnapshot(LocalPendingRunActivity record) {
+    final snapshot = RunSyncDebugSnapshot(
+      ownerUid: record.ownerUid,
+      clientRunSessionId: record.clientRunSessionId,
+      syncState: record.syncState,
+      syncAccepted: record.syncAccepted,
+      syncAttemptCount: record.syncAttemptCount,
+      activityId: record.result.activityId,
+      lastSyncAttemptedAt: record.lastSyncAttemptedAt,
+      lastSyncFailureCode: record.lastSyncFailureCode,
+      lastSyncFailureMessage: record.lastSyncFailureMessage,
+    );
+    _syncDebugSnapshots.removeWhere(
+      (item) =>
+          item.ownerUid == snapshot.ownerUid &&
+          item.clientRunSessionId == snapshot.clientRunSessionId,
+    );
+    _syncDebugSnapshots.insert(0, snapshot);
+    assert(() {
+      debugPrint(
+        'Runiac run sync ${snapshot.clientRunSessionId}: '
+        '${snapshot.syncState.name}'
+        '${snapshot.lastSyncFailureCode == null ? '' : ' '
+                  '(${snapshot.lastSyncFailureCode})'}',
+      );
+      return true;
+    }());
   }
 }
 

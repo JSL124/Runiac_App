@@ -11,6 +11,7 @@ import 'package:runiac_app/features/run/domain/models/pace_analysis_series.dart'
 import 'package:runiac_app/features/run/domain/models/run_activity_display_model.dart';
 import 'package:runiac_app/features/run/domain/models/run_activity_read_model.dart';
 import 'package:runiac_app/features/run/domain/models/run_location_sample.dart';
+import 'package:runiac_app/features/run/domain/models/run_completion_error.dart';
 import 'package:runiac_app/features/run/domain/models/run_route_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/run_summary_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/run_summary_read_model.dart';
@@ -174,17 +175,64 @@ void main() {
       _completionResult('sync-client-session'),
       payload: _payload('sync-client-session'),
     );
+    final savedBeforeSync = await storage.load();
+    expect(savedBeforeSync.single.syncState, RunSyncState.localSaved);
+    expect(store.syncDebugSnapshots.single.syncState, RunSyncState.localSaved);
+
     await store.syncPendingRuns(repository);
 
     expect(repository.completedClientRunSessionIds, ['sync-client-session']);
-    expect((await storage.load()).map((run) => run.clientRunSessionId), [
+    final savedAfterSync = await storage.load();
+    expect(savedAfterSync.map((run) => run.clientRunSessionId), [
       'sync-client-session',
     ]);
-    expect((await storage.load()).map((run) => run.syncAccepted), [true]);
+    expect(savedAfterSync.map((run) => run.syncAccepted), [true]);
+    expect(savedAfterSync.single.syncState, RunSyncState.syncAccepted);
+    expect(
+      store.syncDebugSnapshots.single.syncState,
+      RunSyncState.syncAccepted,
+    );
     expect(store.activities.map((run) => run.activityId), [
       'activity_sync-client-session',
     ]);
   });
+
+  test(
+    'sync exposes pending state while repository call is in flight',
+    () async {
+      final storage = MemoryLocalPendingRunActivityStore();
+      final store = CurrentSessionActivityHistoryStore(
+        ownerUid: ownerUid,
+        persistence: storage,
+      );
+      addTearDown(store.dispose);
+      final repository = _DelayedRecordingRunRepository();
+
+      await store.saveCompletedRun(
+        _completionResult('pending-observable-client-session'),
+        payload: _payload('pending-observable-client-session'),
+      );
+
+      final sync = store.syncPendingRuns(repository);
+      await Future<void>.delayed(Duration.zero);
+
+      final inFlight = await storage.load();
+      expect(inFlight.single.syncState, RunSyncState.pendingSync);
+      expect(
+        store.syncDebugSnapshots.single.syncState,
+        RunSyncState.pendingSync,
+      );
+      expect(inFlight.single.syncAttemptCount, 1);
+
+      repository.complete();
+      await sync;
+
+      expect(
+        (await storage.load()).single.syncState,
+        RunSyncState.syncAccepted,
+      );
+    },
+  );
 
   test('sync merges remote scalar identity into rich local snapshot', () async {
     final storage = MemoryLocalPendingRunActivityStore();
@@ -589,7 +637,53 @@ void main() {
     expect(store.activities.map((run) => run.activityId), [
       'local-retry-client-session',
     ]);
+    final saved = await storage.load();
+    expect(saved.single.syncState, RunSyncState.syncRetryableFailure);
+    expect(saved.single.lastSyncFailureCode, 'unknown');
+    expect(
+      saved.single.lastSyncFailureMessage,
+      contains('repository unavailable'),
+    );
+    expect(
+      store.syncDebugSnapshots.single.syncState,
+      RunSyncState.syncRetryableFailure,
+    );
   });
+
+  test(
+    'sync records non-retryable completion failures without resubmitting',
+    () async {
+      final storage = MemoryLocalPendingRunActivityStore();
+      final store = CurrentSessionActivityHistoryStore(
+        ownerUid: ownerUid,
+        persistence: storage,
+      );
+      addTearDown(store.dispose);
+      final repository = _RunCompletionErrorRepository(
+        code: 'invalid-argument',
+        isRetryable: false,
+      );
+
+      await store.saveCompletedRun(
+        _completionResult('non-retryable-client-session'),
+        payload: _payload('non-retryable-client-session'),
+      );
+      await store.syncPendingRuns(repository);
+      await store.syncPendingRuns(repository);
+
+      expect(repository.completedClientRunSessionIds, [
+        'non-retryable-client-session',
+      ]);
+      final saved = await storage.load();
+      expect(saved.single.syncAccepted, isFalse);
+      expect(saved.single.syncState, RunSyncState.syncNonRetryableFailure);
+      expect(saved.single.lastSyncFailureCode, 'invalid-argument');
+      expect(
+        store.syncDebugSnapshots.single.syncState,
+        RunSyncState.syncNonRetryableFailure,
+      );
+    },
+  );
 
   test('restore and sync ignore pending runs for another owner', () async {
     final storage = MemoryLocalPendingRunActivityStore();
@@ -1015,6 +1109,28 @@ class _RejectingRunRepository extends _RecordingRunRepository {
   ) async {
     completedClientRunSessionIds.add(payload.clientRunSessionId);
     throw StateError('repository unavailable');
+  }
+}
+
+class _RunCompletionErrorRepository extends _RecordingRunRepository {
+  _RunCompletionErrorRepository({
+    required this.code,
+    required this.isRetryable,
+  });
+
+  final String code;
+  final bool isRetryable;
+
+  @override
+  Future<CompleteRunResult> completeRun(
+    LocalRunCompletionPayload payload,
+  ) async {
+    completedClientRunSessionIds.add(payload.clientRunSessionId);
+    throw RunCompletionException(
+      code: code,
+      message: 'callable rejected ${payload.clientRunSessionId}',
+      isRetryable: isRetryable,
+    );
   }
 }
 

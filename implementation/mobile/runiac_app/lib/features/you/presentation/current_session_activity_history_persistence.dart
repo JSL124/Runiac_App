@@ -25,6 +25,7 @@ extension CurrentSessionActivityHistoryPersistence
       if (_ownerUid != ownerUid || _ownerGeneration != ownerGeneration) {
         return;
       }
+      _upsertSyncDebugSnapshot(record);
       registerCompletedRun(record.result, ownerUid: record.ownerUid);
     }
   }
@@ -73,17 +74,38 @@ extension CurrentSessionActivityHistoryPersistence
       return;
     }
     final pendingRecords = records
-        .where((record) => record.ownerUid == ownerUid && !record.syncAccepted)
+        .where(
+          (record) => record.ownerUid == ownerUid && record.shouldAttemptSync,
+        )
         .toList(growable: false);
 
     for (final record in pendingRecords) {
       CompleteRunResult syncedResult;
+      LocalPendingRunActivity syncingRecord;
       try {
         if (_ownerUid != ownerUid || _ownerGeneration != ownerGeneration) {
           return;
         }
-        syncedResult = await repository.completeRun(record.payload);
+        final markedRecord = await _markPendingRunSyncStarted(
+          storage: storage,
+          ownerUid: ownerUid,
+          clientRunSessionId: record.clientRunSessionId,
+        );
+        if (markedRecord == null) {
+          continue;
+        }
+        syncingRecord = markedRecord;
+        if (_ownerUid != ownerUid || _ownerGeneration != ownerGeneration) {
+          return;
+        }
+        syncedResult = await repository.completeRun(syncingRecord.payload);
       } catch (error, stackTrace) {
+        await _markPendingRunSyncFailed(
+          storage: storage,
+          ownerUid: ownerUid,
+          clientRunSessionId: record.clientRunSessionId,
+          failure: _classifySyncFailure(error),
+        );
         _reportAsyncError(error, stackTrace, 'syncing a pending run');
         return;
       }
@@ -252,9 +274,78 @@ extension CurrentSessionActivityHistoryPersistence
       ];
       if (mergedRecord != null) {
         await storage.save(next);
+        _upsertSyncDebugSnapshot(mergedRecord);
       }
       return mergedRecord;
     });
+  }
+
+  Future<LocalPendingRunActivity?> _markPendingRunSyncStarted({
+    required LocalPendingRunActivityStore storage,
+    required String ownerUid,
+    required String clientRunSessionId,
+  }) {
+    return _enqueueStorageMutation(() async {
+      final saved = await storage.load();
+      LocalPendingRunActivity? updatedRecord;
+      final next = <LocalPendingRunActivity>[
+        for (final record in saved)
+          if (record.ownerUid == ownerUid &&
+              record.clientRunSessionId == clientRunSessionId)
+            updatedRecord = record.markPendingSync(_now().toUtc())
+          else
+            record,
+      ];
+      if (updatedRecord != null) {
+        await storage.save(next);
+        _upsertSyncDebugSnapshot(updatedRecord);
+      }
+      return updatedRecord;
+    });
+  }
+
+  Future<LocalPendingRunActivity?> _markPendingRunSyncFailed({
+    required LocalPendingRunActivityStore storage,
+    required String ownerUid,
+    required String clientRunSessionId,
+    required _RunSyncFailure failure,
+  }) {
+    return _enqueueStorageMutation(() async {
+      final saved = await storage.load();
+      LocalPendingRunActivity? updatedRecord;
+      final next = <LocalPendingRunActivity>[
+        for (final record in saved)
+          if (record.ownerUid == ownerUid &&
+              record.clientRunSessionId == clientRunSessionId)
+            updatedRecord = record.markSyncFailure(
+              code: failure.code,
+              message: failure.message,
+              isRetryable: failure.isRetryable,
+            )
+          else
+            record,
+      ];
+      if (updatedRecord != null) {
+        await storage.save(next);
+        _upsertSyncDebugSnapshot(updatedRecord);
+      }
+      return updatedRecord;
+    });
+  }
+
+  _RunSyncFailure _classifySyncFailure(Object error) {
+    if (error is RunCompletionException) {
+      return _RunSyncFailure(
+        code: error.code,
+        message: error.message,
+        isRetryable: error.isRetryable,
+      );
+    }
+    return _RunSyncFailure(
+      code: 'unknown',
+      message: error.toString(),
+      isRetryable: true,
+    );
   }
 
   void _replaceCompletedRun(CompleteRunResult result, {String? ownerUid}) {
@@ -296,4 +387,16 @@ extension CurrentSessionActivityHistoryPersistence
       completionResult: result,
     );
   }
+}
+
+class _RunSyncFailure {
+  const _RunSyncFailure({
+    required this.code,
+    required this.message,
+    required this.isRetryable,
+  });
+
+  final String code;
+  final String message;
+  final bool isRetryable;
 }
