@@ -36,18 +36,25 @@ class CompleteRunResult {
 
   CompleteRunResult copyWith({
     String? clientRunSessionId,
+    String? activityId,
+    String? summaryId,
+    String? progressionEventId,
+    String? validationStatus,
     RunSummarySnapshot? summary,
+    ProgressionDisplayModel? progressionDisplay,
+    XpUpdateDisplayModel? xpUpdate,
+    String? message,
   }) {
     return CompleteRunResult(
       clientRunSessionId: clientRunSessionId ?? this.clientRunSessionId,
-      activityId: activityId,
-      summaryId: summaryId,
-      progressionEventId: progressionEventId,
-      validationStatus: validationStatus,
+      activityId: activityId ?? this.activityId,
+      summaryId: summaryId ?? this.summaryId,
+      progressionEventId: progressionEventId ?? this.progressionEventId,
+      validationStatus: validationStatus ?? this.validationStatus,
       summary: summary ?? this.summary,
-      progressionDisplay: progressionDisplay,
-      xpUpdate: xpUpdate,
-      message: message,
+      progressionDisplay: progressionDisplay ?? this.progressionDisplay,
+      xpUpdate: xpUpdate ?? this.xpUpdate,
+      message: message ?? this.message,
     );
   }
 }

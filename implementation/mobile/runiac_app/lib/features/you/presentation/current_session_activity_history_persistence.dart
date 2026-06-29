@@ -94,11 +94,17 @@ extension CurrentSessionActivityHistoryPersistence
         continue;
       }
       try {
-        await _markPendingRunSyncAccepted(
+        final syncedRecord = await _mergePendingRunSyncAccepted(
           storage: storage,
           ownerUid: ownerUid,
           clientRunSessionId: record.clientRunSessionId,
+          remoteResult: syncedResult,
         );
+        if (syncedRecord != null &&
+            _ownerUid == ownerUid &&
+            _ownerGeneration == ownerGeneration) {
+          _replaceCompletedRun(syncedRecord.result, ownerUid: ownerUid);
+        }
       } catch (error, stackTrace) {
         _reportAsyncError(error, stackTrace, 'saving pending run sync state');
         return;
@@ -107,11 +113,13 @@ extension CurrentSessionActivityHistoryPersistence
   }
 
   void reconcileWithRemote(Iterable<RunActivityDisplayModel> remoteActivities) {
-    final remoteClientRunSessionIds = remoteActivities
-        .map((activity) => activity.clientRunSessionId)
-        .whereType<String>()
-        .where((value) => value.isNotEmpty)
-        .toSet();
+    final remoteByClientRunSessionId = <String, RunActivityDisplayModel>{
+      for (final activity in remoteActivities)
+        if (activity.clientRunSessionId != null &&
+            activity.clientRunSessionId!.isNotEmpty)
+          activity.clientRunSessionId!: activity,
+    };
+    final remoteClientRunSessionIds = remoteByClientRunSessionId.keys.toSet();
     final remoteActivityIds = remoteActivities
         .map((activity) => activity.activityId)
         .whereType<String>()
@@ -121,16 +129,36 @@ extension CurrentSessionActivityHistoryPersistence
       return;
     }
 
-    final previousLength = _activities.length;
-    _activities.removeWhere((activity) {
+    var changed = false;
+    final nextActivities = <SessionCompletedRunActivity>[];
+    for (final activity in _activities) {
       final clientRunSessionId = activity.completionResult.clientRunSessionId;
+      final remoteActivity = clientRunSessionId == null
+          ? null
+          : remoteByClientRunSessionId[clientRunSessionId];
       final hasRemoteMatch =
-          (clientRunSessionId != null &&
-              remoteClientRunSessionIds.contains(clientRunSessionId)) ||
+          remoteActivity != null ||
           remoteActivityIds.contains(activity.activityId);
-      return hasRemoteMatch && !_hasLocalOnlySnapshot(activity);
-    });
-    if (_activities.length != previousLength) {
+      if (!hasRemoteMatch) {
+        nextActivities.add(activity);
+        continue;
+      }
+      if (_hasLocalOnlySnapshot(activity)) {
+        final mergedActivity = remoteActivity == null
+            ? activity
+            : _mergeRemoteActivityIdentity(activity, remoteActivity);
+        if (!identical(mergedActivity, activity)) {
+          changed = true;
+        }
+        nextActivities.add(mergedActivity);
+        continue;
+      }
+      changed = true;
+    }
+    if (changed) {
+      _activities
+        ..clear()
+        ..addAll(nextActivities);
       _notifyActivityHistoryChanged();
       unawaited(
         _persistCurrentPendingActivities().catchError(
@@ -177,47 +205,95 @@ extension CurrentSessionActivityHistoryPersistence
     }
 
     await _enqueueStorageMutation(() async {
-      final records = _activities
-          .where((activity) => activity.ownerUid == ownerUid)
-          .map((activity) => activity.completionResult.clientRunSessionId)
-          .whereType<String>()
-          .toSet();
+      final activitiesByClientRunSessionId =
+          <String, SessionCompletedRunActivity>{
+            for (final activity in _activities)
+              if (activity.ownerUid == ownerUid &&
+                  activity.completionResult.clientRunSessionId != null &&
+                  activity.completionResult.clientRunSessionId!.isNotEmpty)
+                activity.completionResult.clientRunSessionId!: activity,
+          };
       final saved = await storage.load();
-      final kept = saved
-          .where(
-            (record) =>
-                record.ownerUid != ownerUid ||
-                records.contains(record.clientRunSessionId),
-          )
-          .toList(growable: false);
+      final kept = <LocalPendingRunActivity>[
+        for (final record in saved)
+          if (record.ownerUid != ownerUid)
+            record
+          else if (activitiesByClientRunSessionId.containsKey(
+            record.clientRunSessionId,
+          ))
+            record.copyWith(
+              result: activitiesByClientRunSessionId[record.clientRunSessionId]!
+                  .completionResult,
+            ),
+      ];
       await storage.save(kept);
     });
   }
 
-  Future<void> _markPendingRunSyncAccepted({
+  Future<LocalPendingRunActivity?> _mergePendingRunSyncAccepted({
     required LocalPendingRunActivityStore storage,
     required String ownerUid,
     required String clientRunSessionId,
+    required CompleteRunResult remoteResult,
   }) {
     return _enqueueStorageMutation(() async {
       final saved = await storage.load();
+      LocalPendingRunActivity? mergedRecord;
       final next = <LocalPendingRunActivity>[
         for (final record in saved)
           if (record.ownerUid == ownerUid &&
               record.clientRunSessionId == clientRunSessionId)
-            record.copyWith(syncAccepted: true)
+            mergedRecord = record.mergeRemoteCompletion(
+              remoteResult,
+              syncAccepted: true,
+            )
           else
             record,
       ];
-      final changed = next.any(
-        (record) =>
-            record.ownerUid == ownerUid &&
-            record.clientRunSessionId == clientRunSessionId &&
-            record.syncAccepted,
-      );
-      if (changed) {
+      if (mergedRecord != null) {
         await storage.save(next);
       }
+      return mergedRecord;
     });
+  }
+
+  void _replaceCompletedRun(CompleteRunResult result, {String? ownerUid}) {
+    final clientRunSessionId = result.clientRunSessionId;
+    if (clientRunSessionId != null) {
+      _activities.removeWhere(
+        (activity) =>
+            activity.ownerUid == (ownerUid ?? _ownerUid) &&
+            activity.completionResult.clientRunSessionId == clientRunSessionId,
+      );
+    }
+    registerCompletedRun(result, ownerUid: ownerUid);
+  }
+
+  SessionCompletedRunActivity _mergeRemoteActivityIdentity(
+    SessionCompletedRunActivity activity,
+    RunActivityDisplayModel remoteActivity,
+  ) {
+    if (activity.activityId == remoteActivity.activityId) {
+      return activity;
+    }
+    final result = activity.completionResult.copyWith(
+      activityId: remoteActivity.activityId,
+    );
+    return SessionCompletedRunActivity(
+      activityId: result.activityId,
+      ownerUid: activity.ownerUid,
+      display: RunActivityDisplayModel(
+        activityId: result.activityId,
+        clientRunSessionId: result.clientRunSessionId,
+        title: result.summary.title,
+        timeAgoLabel: result.summary.dateTimeLabel,
+        distanceLabel: '${result.summary.distanceKm} km',
+        paceLabel: result.summary.avgPace,
+        durationLabel: result.summary.duration,
+        summary: result.summary,
+        completionResult: result,
+      ),
+      completionResult: result,
+    );
   }
 }

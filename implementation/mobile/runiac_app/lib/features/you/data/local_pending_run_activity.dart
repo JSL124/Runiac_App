@@ -28,13 +28,35 @@ class LocalPendingRunActivity {
   final LocalRunCompletionPayload payload;
   final bool syncAccepted;
 
-  LocalPendingRunActivity copyWith({bool? syncAccepted}) {
+  LocalPendingRunActivity copyWith({
+    CompleteRunResult? result,
+    bool? syncAccepted,
+  }) {
     return LocalPendingRunActivity(
       ownerUid: ownerUid,
       clientRunSessionId: clientRunSessionId,
-      result: result,
+      result: result ?? this.result,
       payload: payload,
       syncAccepted: syncAccepted ?? this.syncAccepted,
+    );
+  }
+
+  LocalPendingRunActivity mergeRemoteCompletion(
+    CompleteRunResult remoteResult, {
+    bool? syncAccepted,
+  }) {
+    return copyWith(
+      result: result.copyWith(
+        clientRunSessionId: clientRunSessionId,
+        activityId: remoteResult.activityId,
+        summaryId: remoteResult.summaryId,
+        progressionEventId: remoteResult.progressionEventId,
+        validationStatus: remoteResult.validationStatus,
+        progressionDisplay: remoteResult.progressionDisplay,
+        xpUpdate: remoteResult.xpUpdate,
+        message: remoteResult.message,
+      ),
+      syncAccepted: syncAccepted,
     );
   }
 

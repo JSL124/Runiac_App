@@ -182,9 +182,90 @@ void main() {
     ]);
     expect((await storage.load()).map((run) => run.syncAccepted), [true]);
     expect(store.activities.map((run) => run.activityId), [
-      'local-sync-client-session',
+      'activity_sync-client-session',
     ]);
   });
+
+  test('sync merges remote scalar identity into rich local snapshot', () async {
+    final storage = MemoryLocalPendingRunActivityStore();
+    final store = CurrentSessionActivityHistoryStore(
+      ownerUid: ownerUid,
+      persistence: storage,
+    );
+    addTearDown(store.dispose);
+    final repository = _RecordingRunRepository();
+
+    await store.saveCompletedRun(
+      _richCompletionResult(
+        'rich-sync-client-session',
+        route: _routeSnapshot(),
+      ),
+      payload: _richPayload('rich-sync-client-session'),
+    );
+    await store.syncPendingRuns(repository);
+
+    final saved = (await storage.load()).single;
+    expect(saved.syncAccepted, isTrue);
+    expect(saved.result.activityId, 'activity_rich-sync-client-session');
+    expect(saved.result.summaryId, 'summary_rich-sync-client-session');
+    expect(
+      saved.result.progressionEventId,
+      'progression_rich-sync-client-session',
+    );
+    expect(
+      store.activities.single.activityId,
+      'activity_rich-sync-client-session',
+    );
+    expect(saved.result.summary.route.hasRoute, isTrue);
+    expect(saved.result.summary.paceGraph.isAvailable, isTrue);
+    expect(saved.result.summary.cadenceAnalysisSeries, isNotNull);
+    expect(saved.result.summary.elevationSeries.isUnavailable, isFalse);
+  });
+
+  test(
+    'merged rich local snapshot survives shared preferences restore',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      const storage = SharedPreferencesLocalPendingRunActivityStore(
+        key: 'test.pendingMergedRichRun',
+      );
+      final firstStore = CurrentSessionActivityHistoryStore(
+        ownerUid: ownerUid,
+        persistence: storage,
+      );
+      addTearDown(firstStore.dispose);
+      final repository = _RecordingRunRepository();
+
+      await firstStore.saveCompletedRun(
+        _richCompletionResult(
+          'rich-restore-merged-client-session',
+          route: _routeSnapshot(),
+        ),
+        payload: _richPayload('rich-restore-merged-client-session'),
+      );
+      await firstStore.syncPendingRuns(repository);
+
+      final restoredStore = CurrentSessionActivityHistoryStore(
+        ownerUid: ownerUid,
+        persistence: storage,
+      );
+      addTearDown(restoredStore.dispose);
+      await restoredStore.restoreSavedActivities();
+
+      final restoredActivity = restoredStore.activities.single;
+      expect(
+        restoredActivity.activityId,
+        'activity_rich-restore-merged-client-session',
+      );
+      expect(restoredActivity.display.summary.route.hasRoute, isTrue);
+      expect(restoredActivity.display.summary.paceGraph.isAvailable, isTrue);
+      expect(restoredActivity.display.summary.cadenceAnalysisSeries, isNotNull);
+      expect(
+        restoredActivity.display.summary.elevationSeries.isUnavailable,
+        isFalse,
+      );
+    },
+  );
 
   test('low-data save stores confirmation and sync submits it', () async {
     final storage = MemoryLocalPendingRunActivityStore();
@@ -392,6 +473,48 @@ void main() {
       final saved = await storage.load();
       expect(saved.single.syncAccepted, isTrue);
       expect(store.activities, hasLength(1));
+      final summary = store.activities.single.display.summary;
+      expect(summary.route.hasRoute, isTrue);
+      expect(summary.paceGraph.isAvailable, isTrue);
+      expect(summary.cadenceAnalysisSeries, isNotNull);
+      expect(summary.elevationSeries.isUnavailable, isFalse);
+    },
+  );
+
+  test(
+    'remote reconcile merges scalar identity into rich local snapshot',
+    () async {
+      final storage = MemoryLocalPendingRunActivityStore();
+      final store = CurrentSessionActivityHistoryStore(
+        ownerUid: ownerUid,
+        persistence: storage,
+      );
+      addTearDown(store.dispose);
+      final repository = _RecordingRunRepository();
+
+      await store.saveCompletedRun(
+        _richCompletionResult(
+          'rich-reconcile-merge-client-session',
+          route: _routeSnapshot(),
+        ),
+        payload: _richPayload('rich-reconcile-merge-client-session'),
+      );
+      await store.syncPendingRuns(repository);
+
+      store.reconcileWithRemote([
+        _remoteActivity('rich-reconcile-merge-client-session'),
+      ]);
+      await Future<void>.delayed(Duration.zero);
+
+      final saved = await storage.load();
+      expect(
+        saved.single.result.activityId,
+        'firestore-rich-reconcile-merge-client-session',
+      );
+      expect(
+        store.activities.single.activityId,
+        'firestore-rich-reconcile-merge-client-session',
+      );
       final summary = store.activities.single.display.summary;
       expect(summary.route.hasRoute, isTrue);
       expect(summary.paceGraph.isAvailable, isTrue);
