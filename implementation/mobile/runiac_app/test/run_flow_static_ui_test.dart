@@ -2520,7 +2520,7 @@ void main() {
     expect(find.text('Saturday Morning Run'), findsOneWidget);
   });
 
-  testWidgets('Low-data Summary Go to Home returns to app Home root', (
+  testWidgets('Low-data Summary Go to Home asks before saving', (
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(
@@ -2555,6 +2555,20 @@ void main() {
     expect(find.text('+120 XP'), findsNothing);
 
     await tester.tap(find.widgetWithText(FilledButton, 'Go to Home'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Save this short run?'), findsOneWidget);
+    expect(
+      find.text(
+        'This run has limited data, so it may not be useful for analysis. You can still keep it in your running history.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.widgetWithText(OutlinedButton, 'Discard'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, 'Save run'), findsOneWidget);
+    expect(find.text('Short Check-in Run'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(FilledButton, 'Save run'));
     await tester.pumpAndSettle();
 
     expect(find.text('Short Check-in Run'), findsNothing);
