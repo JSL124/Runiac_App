@@ -25,6 +25,9 @@ void main() {
       expect(request['startedAt'], '2026-06-14T07:00:00.000Z');
       expect(request['completedAt'], '2026-06-14T07:25:00.000Z');
       expect(request['durationSeconds'], 1500);
+      expect(request['activeDurationSeconds'], 1500);
+      expect(request['elapsedWallSeconds'], 1500);
+      expect(request['pausedDurationSeconds'], 0);
       expect(request['distanceMeters'], 3200);
       expect(request['avgPaceSecondsPerKm'], 469);
       expect(request['source'], 'mobile');
@@ -85,6 +88,26 @@ void main() {
 
       expect(request['startedAt'], '2026-06-14T07:00:00.123Z');
       expect(request['completedAt'], '2026-06-14T07:25:00.789Z');
+    });
+
+    test('sends explicit paused-run duration fields', () {
+      final payload = LocalRunCompletionPayload(
+        clientRunSessionId: 'local-session-paused-duration',
+        startedAt: DateTime.utc(2026, 6, 14, 9),
+        completedAt: DateTime.utc(2026, 6, 14, 10, 5),
+        durationSeconds: 3207,
+        distanceMeters: 8460,
+        avgPaceSecondsPerKm: 379,
+        source: 'local_simulation',
+        routePrivacy: 'private',
+      );
+
+      final request = RunCompletionRequestAdapter.toBackendRequest(payload);
+
+      expect(request['durationSeconds'], 3207);
+      expect(request['activeDurationSeconds'], 3207);
+      expect(request['elapsedWallSeconds'], 3900);
+      expect(request['pausedDurationSeconds'], 693);
     });
 
     test('includes user confirmation for low-data save requests', () {

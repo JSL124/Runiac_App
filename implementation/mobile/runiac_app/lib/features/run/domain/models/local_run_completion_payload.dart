@@ -38,12 +38,33 @@ class LocalRunCompletionPayload {
   final ElevationAnalysisSeries? elevationAnalysisSeries;
   final ElevationUnavailableReason elevationUnavailableReason;
 
+  int get activeDurationSeconds => durationSeconds;
+
+  int get elapsedWallSeconds {
+    final wallSeconds = completedAt.difference(startedAt).inSeconds;
+    if (wallSeconds < durationSeconds) {
+      return durationSeconds;
+    }
+    return wallSeconds;
+  }
+
+  int get pausedDurationSeconds {
+    final pausedSeconds = elapsedWallSeconds - activeDurationSeconds;
+    if (pausedSeconds < 0) {
+      return 0;
+    }
+    return pausedSeconds;
+  }
+
   Map<String, Object?> toRawClientMap() {
     return <String, Object?>{
       'clientRunSessionId': clientRunSessionId,
       'startedAt': startedAt,
       'completedAt': completedAt,
       'durationSeconds': durationSeconds,
+      'activeDurationSeconds': activeDurationSeconds,
+      'elapsedWallSeconds': elapsedWallSeconds,
+      'pausedDurationSeconds': pausedDurationSeconds,
       'distanceMeters': distanceMeters,
       'avgPaceSecondsPerKm': avgPaceSecondsPerKm,
       'source': source,

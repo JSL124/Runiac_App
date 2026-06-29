@@ -5,6 +5,9 @@ export type RawRunCompletionPayload = {
   readonly startedAt: string;
   readonly completedAt: string;
   readonly durationSeconds: number;
+  readonly activeDurationSeconds: number;
+  readonly elapsedWallSeconds: number;
+  readonly pausedDurationSeconds: number;
   readonly distanceMeters: number;
   readonly avgPaceSecondsPerKm: number;
   readonly source: "mobile";
@@ -38,6 +41,9 @@ export type RunSummaryResult = {
   readonly endedAt: string;
   readonly distanceMeters: number;
   readonly durationSeconds: number;
+  readonly activeDurationSeconds: number;
+  readonly elapsedWallSeconds: number;
+  readonly pausedDurationSeconds: number;
   readonly averagePaceSecondsPerKm: number;
   readonly displayDistance: string;
   readonly displayDuration: string;

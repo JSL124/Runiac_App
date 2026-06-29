@@ -51,6 +51,27 @@ describe("completeRun callable emulator surface", () => {
     assert.equal(progressionEvent.get("xpDelta"), 0);
     assert.equal(progressionEvent.get("countsTowardLeaderboard"), false);
   });
+
+  it("accepts paused duration fields through the callable HTTP surface", async () => {
+    const response = await postCallable(pausedRunPayload(), USER_UID);
+    const body: unknown = await response.json();
+    const result = readCallableResult(body);
+
+    assert.equal(response.status, 200);
+    assert.equal(result.validationStatus, "validated");
+
+    const activity = await firestore.doc(`activities/${result.activityId}`).get();
+    const summary = await firestore.doc(`runSummaries/${result.summaryId}`).get();
+
+    assert.equal(activity.get("durationSeconds"), 3207);
+    assert.equal(activity.get("activeDurationSeconds"), 3207);
+    assert.equal(activity.get("elapsedWallSeconds"), 3900);
+    assert.equal(activity.get("pausedDurationSeconds"), 693);
+    assert.equal(summary.get("durationSeconds"), 3207);
+    assert.equal(summary.get("activeDurationSeconds"), 3207);
+    assert.equal(summary.get("elapsedWallSeconds"), 3900);
+    assert.equal(summary.get("pausedDurationSeconds"), 693);
+  });
 });
 
 type CallableSuccessBody = {
@@ -135,6 +156,22 @@ function validPayload(): Record<string, unknown> {
     durationSeconds: 1500,
     distanceMeters: 3200,
     avgPaceSecondsPerKm: 469,
+    source: "mobile",
+    routePrivacy: "private",
+  };
+}
+
+function pausedRunPayload(): Record<string, unknown> {
+  return {
+    clientRunSessionId: "surface-paused-session-001",
+    startedAt: "2026-06-14T09:00:00.000Z",
+    completedAt: "2026-06-14T10:05:00.000Z",
+    durationSeconds: 3207,
+    activeDurationSeconds: 3207,
+    elapsedWallSeconds: 3900,
+    pausedDurationSeconds: 693,
+    distanceMeters: 8460,
+    avgPaceSecondsPerKm: 379,
     source: "mobile",
     routePrivacy: "private",
   };

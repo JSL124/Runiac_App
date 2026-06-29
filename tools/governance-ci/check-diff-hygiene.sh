@@ -21,9 +21,24 @@ is_running_activity_history_capsule_active() {
   grep -Eq '^- Current active capsule: `implementation/roadmap/capsules/running-activity-history-user-link\.md`' implementation/roadmap/CURRENT.md
 }
 
+is_run_duration_fields_capsule_active() {
+  grep -Eq '^- Current active capsule: `implementation/roadmap/capsules/run-duration-fields\.md`' implementation/roadmap/CURRENT.md
+}
+
 is_running_activity_history_functions_path() {
   case "$1" in
     functions/package.json|functions/src/run/completeRun.ts|functions/src/run/runCompletionTypes.ts|functions/src/run/validateRunPayload.ts|functions/test/completeRun.test.ts|functions/test/completeRunZeroMetrics.test.ts)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+is_run_duration_fields_functions_path() {
+  case "$1" in
+    functions/src/run/completeRun.ts|functions/src/run/runCompletionTypes.ts|functions/src/run/validateRunPayload.ts|functions/test/completeRun.test.ts|functions/test/completeRunCallableSurface.test.ts)
       return 0
       ;;
     *)
@@ -39,7 +54,7 @@ is_allowed_path() {
       return 0
       ;;
     # Approved: routed capsule documentation/governance patches only
-    docs/meta/REPOSITORY_WORKFLOW_RECORD.md|implementation/roadmap/capsules/repository-workflow-record.md|implementation/roadmap/capsules/flutter-app-shell-baseline.md|implementation/roadmap/capsules/android-ui-smoke-test-evidence.md|implementation/roadmap/capsules/home-dashboard-visual-polish.md|implementation/roadmap/capsules/premium-home-dashboard-static-wireframe-alignment.md|implementation/roadmap/capsules/github-actions-governance-ci-baseline.md|implementation/roadmap/capsules/github-actions-flutter-validation-baseline.md|implementation/roadmap/capsules/home-dashboard-scroll-layout-stability-fix.md|implementation/roadmap/capsules/home-dashboard-reference-layout-alignment.md|implementation/roadmap/capsules/home-dashboard-primary-action-simplification.md|implementation/roadmap/capsules/home-maps-static-read-model-snapshot-readiness.md|implementation/roadmap/capsules/complete-run-progression-contract-plan.md|implementation/roadmap/capsules/complete-run-cloud-functions-emulator-skeleton.md|implementation/roadmap/capsules/running-activity-history-user-link.md|implementation/roadmap/capsules/firestore-base-bootstrap-seam.md|implementation/roadmap/capsules/profile-persistence-rules-contract.md|implementation/roadmap/capsules/goal-plan-detail-static-snapshot-shell.md|implementation/roadmap/capsules/goal-plan-detail-header-timeline-alignment.md|implementation/roadmap/capsules/maps-tab-static-placeholder.md|implementation/roadmap/capsules/maps-static-discovery-hierarchy-polish.md|implementation/roadmap/capsules/leaderboard-static-motivation-hierarchy-polish.md|implementation/roadmap/capsules/leaderboard-map-first-landing-shell.md|implementation/roadmap/capsules/leaderboard-help-modal-shell.md|implementation/roadmap/capsules/leaderboard-region-preview-sheet-shell.md|implementation/roadmap/capsules/leaderboard-leagues-popup-shell.md|implementation/roadmap/capsules/leaderboard-static-read-model-snapshot-readiness.md|implementation/roadmap/capsules/flutter-frontend-hygiene-cleanup.md|implementation/roadmap/capsules/flutter-source-structure-refactor.md|implementation/roadmap/capsules/run-tab-static-placeholder.md|implementation/roadmap/capsules/run-tab-fullscreen-map-overlay-alignment.md|implementation/roadmap/capsules/run-controls-and-plan-spacing-polish.md|implementation/roadmap/capsules/run-launch-fullscreen-static-interaction.md|implementation/roadmap/capsules/run-launch-brand-color-polish.md|implementation/roadmap/capsules/run-static-read-model-snapshot-readiness.md|implementation/roadmap/capsules/weekly-workout-detail-static-snapshot-shell.md|implementation/roadmap/capsules/expert-plan-list-static-snapshot-shell.md|implementation/roadmap/capsules/expert-plan-detail-static-snapshot-shell.md|implementation/roadmap/capsules/you-tab-progress-overview-static.md|implementation/roadmap/capsules/you-plans-static-ui.md)
+    docs/meta/REPOSITORY_WORKFLOW_RECORD.md|implementation/roadmap/capsules/repository-workflow-record.md|implementation/roadmap/capsules/flutter-app-shell-baseline.md|implementation/roadmap/capsules/android-ui-smoke-test-evidence.md|implementation/roadmap/capsules/home-dashboard-visual-polish.md|implementation/roadmap/capsules/premium-home-dashboard-static-wireframe-alignment.md|implementation/roadmap/capsules/github-actions-governance-ci-baseline.md|implementation/roadmap/capsules/github-actions-flutter-validation-baseline.md|implementation/roadmap/capsules/home-dashboard-scroll-layout-stability-fix.md|implementation/roadmap/capsules/home-dashboard-reference-layout-alignment.md|implementation/roadmap/capsules/home-dashboard-primary-action-simplification.md|implementation/roadmap/capsules/home-maps-static-read-model-snapshot-readiness.md|implementation/roadmap/capsules/complete-run-progression-contract-plan.md|implementation/roadmap/capsules/complete-run-cloud-functions-emulator-skeleton.md|implementation/roadmap/capsules/run-duration-fields.md|implementation/roadmap/capsules/running-activity-history-user-link.md|implementation/roadmap/capsules/firestore-base-bootstrap-seam.md|implementation/roadmap/capsules/profile-persistence-rules-contract.md|implementation/roadmap/capsules/goal-plan-detail-static-snapshot-shell.md|implementation/roadmap/capsules/goal-plan-detail-header-timeline-alignment.md|implementation/roadmap/capsules/maps-tab-static-placeholder.md|implementation/roadmap/capsules/maps-static-discovery-hierarchy-polish.md|implementation/roadmap/capsules/leaderboard-static-motivation-hierarchy-polish.md|implementation/roadmap/capsules/leaderboard-map-first-landing-shell.md|implementation/roadmap/capsules/leaderboard-help-modal-shell.md|implementation/roadmap/capsules/leaderboard-region-preview-sheet-shell.md|implementation/roadmap/capsules/leaderboard-leagues-popup-shell.md|implementation/roadmap/capsules/leaderboard-static-read-model-snapshot-readiness.md|implementation/roadmap/capsules/flutter-frontend-hygiene-cleanup.md|implementation/roadmap/capsules/flutter-source-structure-refactor.md|implementation/roadmap/capsules/run-tab-static-placeholder.md|implementation/roadmap/capsules/run-tab-fullscreen-map-overlay-alignment.md|implementation/roadmap/capsules/run-controls-and-plan-spacing-polish.md|implementation/roadmap/capsules/run-launch-fullscreen-static-interaction.md|implementation/roadmap/capsules/run-launch-brand-color-polish.md|implementation/roadmap/capsules/run-static-read-model-snapshot-readiness.md|implementation/roadmap/capsules/weekly-workout-detail-static-snapshot-shell.md|implementation/roadmap/capsules/expert-plan-list-static-snapshot-shell.md|implementation/roadmap/capsules/expert-plan-detail-static-snapshot-shell.md|implementation/roadmap/capsules/you-tab-progress-overview-static.md|implementation/roadmap/capsules/you-plans-static-ui.md)
       return 0
       ;;
     # Approved: scaffold-baseline instruction/setup-gate alignment only
@@ -71,6 +86,9 @@ is_allowed_path() {
         return 0
       fi
       if is_running_activity_history_functions_path "$1" && is_running_activity_history_capsule_active; then
+        return 0
+      fi
+      if is_run_duration_fields_functions_path "$1" && is_run_duration_fields_capsule_active; then
         return 0
       fi
       return 1
@@ -133,6 +151,9 @@ is_forbidden_path() {
         return 1
       fi
       if is_running_activity_history_functions_path "$1" && is_running_activity_history_capsule_active; then
+        return 1
+      fi
+      if is_run_duration_fields_functions_path "$1" && is_run_duration_fields_capsule_active; then
         return 1
       fi
       return 0

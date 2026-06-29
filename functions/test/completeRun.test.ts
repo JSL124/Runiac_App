@@ -72,6 +72,71 @@ describe("completeRun callable boundary", () => {
     assert.equal(progressionEvent.get("countsTowardLeaderboard"), false);
   });
 
+  it("accepts paused duration fields without using wall-clock time as active duration", async () => {
+    const result = await callCompleteRun({
+      auth: { uid: USER_UID },
+      data: pausedRunPayload(),
+    });
+
+    assert.equal(result.validationStatus, "validated");
+
+    const activity = await firestore.doc(`activities/${result.activityId}`).get();
+    const summary = await firestore.doc(`runSummaries/${result.summaryId}`).get();
+
+    assert.equal(activity.get("durationSeconds"), 3207);
+    assert.equal(activity.get("activeDurationSeconds"), 3207);
+    assert.equal(activity.get("elapsedWallSeconds"), 3900);
+    assert.equal(activity.get("pausedDurationSeconds"), 693);
+    assert.equal(summary.get("durationSeconds"), 3207);
+    assert.equal(summary.get("activeDurationSeconds"), 3207);
+    assert.equal(summary.get("elapsedWallSeconds"), 3900);
+    assert.equal(summary.get("pausedDurationSeconds"), 693);
+    assert.equal(summary.get("displayDuration"), "53:27");
+    assert.equal(summary.get("displayPace"), "379 sec/km");
+  });
+
+  it("rejects inconsistent duration aliases and paused duration math", async () => {
+    await expectRejectsCode(
+      () =>
+        callCompleteRun({
+          auth: { uid: USER_UID },
+          data: {
+            ...pausedRunPayload(),
+            clientRunSessionId: "paused-duration-alias-mismatch",
+            durationSeconds: 3208,
+          },
+        }),
+      "invalid-argument",
+    );
+
+    await expectRejectsCode(
+      () =>
+        callCompleteRun({
+          auth: { uid: USER_UID },
+          data: {
+            ...pausedRunPayload(),
+            clientRunSessionId: "paused-duration-math-mismatch",
+            pausedDurationSeconds: 1,
+          },
+        }),
+      "invalid-argument",
+    );
+
+    await expectRejectsCode(
+      () =>
+        callCompleteRun({
+          auth: { uid: USER_UID },
+          data: {
+            ...pausedRunPayload(),
+            clientRunSessionId: "paused-duration-active-exceeds-elapsed",
+            activeDurationSeconds: 4000,
+            durationSeconds: 4000,
+          },
+        }),
+      "invalid-argument",
+    );
+  });
+
   it("accepts user-confirmed low-data saves and rejects raw low-data payloads", async () => {
     await expectRejectsCode(
       () =>
@@ -358,6 +423,22 @@ function lowDataPayload(): Record<string, unknown> {
     durationSeconds: 2,
     distanceMeters: 0,
     avgPaceSecondsPerKm: 0,
+    source: "mobile",
+    routePrivacy: "private",
+  };
+}
+
+function pausedRunPayload(): Record<string, unknown> {
+  return {
+    clientRunSessionId: "paused-local-session-001",
+    startedAt: "2026-06-14T09:00:00.000Z",
+    completedAt: "2026-06-14T10:05:00.000Z",
+    durationSeconds: 3207,
+    activeDurationSeconds: 3207,
+    elapsedWallSeconds: 3900,
+    pausedDurationSeconds: 693,
+    distanceMeters: 8460,
+    avgPaceSecondsPerKm: 379,
     source: "mobile",
     routePrivacy: "private",
   };

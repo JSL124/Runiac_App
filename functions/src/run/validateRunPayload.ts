@@ -6,6 +6,9 @@ const allowedKeys = new Set([
   "startedAt",
   "completedAt",
   "durationSeconds",
+  "activeDurationSeconds",
+  "elapsedWallSeconds",
+  "pausedDurationSeconds",
   "distanceMeters",
   "avgPaceSecondsPerKm",
   "source",
@@ -68,12 +71,48 @@ export function parseRunCompletionPayload(data: unknown): RawRunCompletionPayloa
 
   const userConfirmedLowDataSave = readUserConfirmedLowDataSave(data);
   const durationSeconds = readDurationSeconds(data, userConfirmedLowDataSave);
+  const activeDurationSeconds =
+    readOptionalDurationSeconds(data, "activeDurationSeconds", userConfirmedLowDataSave) ?? durationSeconds;
   const distanceMeters = readDistanceMeters(data, userConfirmedLowDataSave);
+  const startedAt = readIsoDateString(data, "startedAt");
+  const completedAt = readIsoDateString(data, "completedAt");
+
+  if (Date.parse(completedAt) <= Date.parse(startedAt)) {
+    throw invalid("completedAt must be after startedAt.");
+  }
+
+  const computedElapsedWallSeconds = (Date.parse(completedAt) - Date.parse(startedAt)) / 1000;
+  const elapsedWallSeconds =
+    readOptionalDurationSeconds(data, "elapsedWallSeconds", userConfirmedLowDataSave) ??
+    Math.round(computedElapsedWallSeconds);
+  const pausedDurationSeconds =
+    readOptionalDurationSeconds(data, "pausedDurationSeconds", true) ??
+    Math.max(0, elapsedWallSeconds - activeDurationSeconds);
+
+  if (durationSeconds !== activeDurationSeconds) {
+    throw invalid("durationSeconds must match activeDurationSeconds.");
+  }
+
+  if (Math.abs(computedElapsedWallSeconds - elapsedWallSeconds) > 60) {
+    throw invalid("elapsedWallSeconds must match startedAt/completedAt within tolerance.");
+  }
+
+  if (activeDurationSeconds - elapsedWallSeconds > 60) {
+    throw invalid("activeDurationSeconds must not exceed elapsedWallSeconds within tolerance.");
+  }
+
+  if (Math.abs(elapsedWallSeconds - activeDurationSeconds - pausedDurationSeconds) > 60) {
+    throw invalid("pausedDurationSeconds must match elapsedWallSeconds minus activeDurationSeconds within tolerance.");
+  }
+
   const payload = {
     clientRunSessionId: readString(data, "clientRunSessionId"),
-    startedAt: readIsoDateString(data, "startedAt"),
-    completedAt: readIsoDateString(data, "completedAt"),
+    startedAt,
+    completedAt,
     durationSeconds,
+    activeDurationSeconds,
+    elapsedWallSeconds,
+    pausedDurationSeconds,
     distanceMeters,
     avgPaceSecondsPerKm: readPaceSecondsPerKm(data, {
       userConfirmedLowDataSave,
@@ -90,15 +129,6 @@ export function parseRunCompletionPayload(data: unknown): RawRunCompletionPayloa
     deviceRecordedAt: readOptionalIsoDateString(data, "deviceRecordedAt"),
     clientAppVersion: readOptionalString(data, "clientAppVersion"),
   };
-
-  if (Date.parse(payload.completedAt) <= Date.parse(payload.startedAt)) {
-    throw invalid("completedAt must be after startedAt.");
-  }
-
-  const elapsedSeconds = (Date.parse(payload.completedAt) - Date.parse(payload.startedAt)) / 1000;
-  if (Math.abs(elapsedSeconds - payload.durationSeconds) > 60) {
-    throw invalid("durationSeconds must match startedAt/completedAt within tolerance.");
-  }
 
   return withoutUndefined(payload);
 }
@@ -153,6 +183,24 @@ function readDurationSeconds(data: Readonly<Record<string, unknown>>, userConfir
   const value = readNonNegativeNumber(data, "durationSeconds");
   if (value > maxDurationSeconds) {
     throw invalid("durationSeconds exceeds the emulator skeleton safety limit.");
+  }
+  return value;
+}
+
+function readOptionalDurationSeconds(
+  data: Readonly<Record<string, unknown>>,
+  key: string,
+  userConfirmedLowDataSave: boolean,
+): number | undefined {
+  if (data[key] === undefined) {
+    return undefined;
+  }
+  if (!userConfirmedLowDataSave) {
+    return readBoundedPositiveNumber(data, key, maxDurationSeconds);
+  }
+  const value = readNonNegativeNumber(data, key);
+  if (value > maxDurationSeconds) {
+    throw invalid(`${key} exceeds the emulator skeleton safety limit.`);
   }
   return value;
 }
@@ -257,6 +305,9 @@ function withoutUndefined(payload: {
   readonly startedAt: string;
   readonly completedAt: string;
   readonly durationSeconds: number;
+  readonly activeDurationSeconds: number;
+  readonly elapsedWallSeconds: number;
+  readonly pausedDurationSeconds: number;
   readonly distanceMeters: number;
   readonly avgPaceSecondsPerKm: number;
   readonly source: "mobile";
@@ -275,6 +326,9 @@ function withoutUndefined(payload: {
     startedAt: payload.startedAt,
     completedAt: payload.completedAt,
     durationSeconds: payload.durationSeconds,
+    activeDurationSeconds: payload.activeDurationSeconds,
+    elapsedWallSeconds: payload.elapsedWallSeconds,
+    pausedDurationSeconds: payload.pausedDurationSeconds,
     distanceMeters: payload.distanceMeters,
     avgPaceSecondsPerKm: payload.avgPaceSecondsPerKm,
     source: payload.source,

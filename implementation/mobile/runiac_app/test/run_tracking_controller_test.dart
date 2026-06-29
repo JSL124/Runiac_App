@@ -588,6 +588,9 @@ void main() {
       expect(controller.state.distanceMeters, 75);
       expect(controller.state.averagePaceSecondsPerKm, 400);
       expect(payload.durationSeconds, 30);
+      expect(payload.activeDurationSeconds, 30);
+      expect(payload.elapsedWallSeconds, 600);
+      expect(payload.pausedDurationSeconds, 570);
       expect(payload.distanceMeters, 75);
       expect(payload.avgPaceSecondsPerKm, 400);
     });
