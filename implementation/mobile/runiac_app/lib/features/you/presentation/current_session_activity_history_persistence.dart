@@ -124,9 +124,11 @@ extension CurrentSessionActivityHistoryPersistence
     final previousLength = _activities.length;
     _activities.removeWhere((activity) {
       final clientRunSessionId = activity.completionResult.clientRunSessionId;
-      return (clientRunSessionId != null &&
+      final hasRemoteMatch =
+          (clientRunSessionId != null &&
               remoteClientRunSessionIds.contains(clientRunSessionId)) ||
           remoteActivityIds.contains(activity.activityId);
+      return hasRemoteMatch && !_hasLocalOnlySnapshot(activity);
     });
     if (_activities.length != previousLength) {
       _notifyActivityHistoryChanged();
@@ -140,6 +142,17 @@ extension CurrentSessionActivityHistoryPersistence
         ),
       );
     }
+  }
+
+  bool _hasLocalOnlySnapshot(SessionCompletedRunActivity activity) {
+    final summary = activity.display.summary;
+    return summary.route.hasRoute ||
+        summary.paceGraph.isAvailable ||
+        (summary.paceAnalysisSeries != null &&
+            !summary.paceAnalysisSeries!.isUnavailable) ||
+        (summary.cadenceAnalysisSeries != null &&
+            !summary.cadenceAnalysisSeries!.isUnavailable) ||
+        !summary.elevationSeries.isUnavailable;
   }
 
   Future<List<LocalPendingRunActivity>> _loadPendingActivities(

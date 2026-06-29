@@ -3,8 +3,11 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:runiac_app/features/run/data/static_run_repository.dart';
+import 'package:runiac_app/features/run/domain/models/cadence_analysis_series.dart';
 import 'package:runiac_app/features/run/domain/models/complete_run_result.dart';
+import 'package:runiac_app/features/run/domain/models/elevation_analysis_series.dart';
 import 'package:runiac_app/features/run/domain/models/local_run_completion_payload.dart';
+import 'package:runiac_app/features/run/domain/models/pace_analysis_series.dart';
 import 'package:runiac_app/features/run/domain/models/run_activity_display_model.dart';
 import 'package:runiac_app/features/run/domain/models/run_activity_read_model.dart';
 import 'package:runiac_app/features/run/domain/models/run_location_sample.dart';
@@ -13,6 +16,7 @@ import 'package:runiac_app/features/run/domain/models/run_summary_snapshot.dart'
 import 'package:runiac_app/features/run/domain/models/run_summary_read_model.dart';
 import 'package:runiac_app/features/run/domain/models/xp_update_display_model.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_repository.dart';
+import 'package:runiac_app/features/run/domain/services/pace_graph_data_builder.dart';
 import 'package:runiac_app/features/you/data/local_pending_run_activity_store.dart';
 import 'package:runiac_app/features/you/presentation/current_session_activity_history.dart';
 
@@ -105,6 +109,55 @@ void main() {
       expect(restoredRoute.segments.single, hasLength(3));
       expect(restoredRoute.lastKnownLocation?.latitude, 1.3033);
       expect(restoredRoute.lastKnownLocation?.longitude, 103.8333);
+    },
+  );
+
+  test(
+    'restores rich local run snapshot from shared preferences storage',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      const storage = SharedPreferencesLocalPendingRunActivityStore(
+        key: 'test.pendingRichRunSnapshot',
+      );
+      final route = _routeSnapshot();
+      final firstStore = CurrentSessionActivityHistoryStore(
+        ownerUid: ownerUid,
+        persistence: storage,
+      );
+      addTearDown(firstStore.dispose);
+
+      await firstStore.saveCompletedRun(
+        _richCompletionResult('rich-client-session', route: route),
+        payload: _richPayload('rich-client-session'),
+      );
+
+      final restoredStore = CurrentSessionActivityHistoryStore(
+        ownerUid: ownerUid,
+        persistence: storage,
+      );
+      addTearDown(restoredStore.dispose);
+      await restoredStore.restoreSavedActivities();
+
+      final restoredActivity = restoredStore.activities.single;
+      final restoredSummary = restoredActivity.display.summary;
+      final restoredPayload = (await storage.load()).single.payload;
+
+      expect(restoredSummary.hasSufficientData, isTrue);
+      expect(restoredSummary.route.hasRoute, isTrue);
+      expect(restoredSummary.paceGraph.isAvailable, isTrue);
+      expect(restoredSummary.paceAnalysisSeries?.isLocalAcceptedSource, isTrue);
+      expect(
+        restoredSummary.cadenceAnalysisSeries?.isProductionAnalysisEligible,
+        isTrue,
+      );
+      expect(restoredSummary.elevationSeries.isUnavailable, isFalse);
+      expect(restoredPayload.paceGraphSamples, hasLength(4));
+      expect(restoredPayload.cadenceAnalysisSeries?.samples, hasLength(3));
+      expect(restoredPayload.elevationAnalysisSeries?.samples, hasLength(3));
+      expect(
+        restoredPayload.elevationUnavailableReason,
+        ElevationUnavailableReason.none,
+      );
     },
   );
 
@@ -308,6 +361,42 @@ void main() {
 
       expect(await storage.load(), isEmpty);
       expect(store.activities, isEmpty);
+    },
+  );
+
+  test(
+    'remote reconcile keeps accepted rich local snapshot after read-side appears',
+    () async {
+      final storage = MemoryLocalPendingRunActivityStore();
+      final store = CurrentSessionActivityHistoryStore(
+        ownerUid: ownerUid,
+        persistence: storage,
+      );
+      addTearDown(store.dispose);
+      final repository = _RecordingRunRepository();
+
+      await store.saveCompletedRun(
+        _richCompletionResult(
+          'rich-reconcile-client-session',
+          route: _routeSnapshot(),
+        ),
+        payload: _richPayload('rich-reconcile-client-session'),
+      );
+      await store.syncPendingRuns(repository);
+
+      store.reconcileWithRemote([
+        _remoteActivity('rich-reconcile-client-session'),
+      ]);
+      await Future<void>.delayed(Duration.zero);
+
+      final saved = await storage.load();
+      expect(saved.single.syncAccepted, isTrue);
+      expect(store.activities, hasLength(1));
+      final summary = store.activities.single.display.summary;
+      expect(summary.route.hasRoute, isTrue);
+      expect(summary.paceGraph.isAvailable, isTrue);
+      expect(summary.cadenceAnalysisSeries, isNotNull);
+      expect(summary.elevationSeries.isUnavailable, isFalse);
     },
   );
 
@@ -543,6 +632,54 @@ CompleteRunResult _completionResult(
   );
 }
 
+CompleteRunResult _richCompletionResult(
+  String clientRunSessionId, {
+  RunRouteSnapshot route = RunRouteSnapshot.empty,
+}) {
+  return CompleteRunResult(
+    clientRunSessionId: clientRunSessionId,
+    activityId: 'local-$clientRunSessionId',
+    summary: RunSummarySnapshot(
+      title: 'Completed Run',
+      dateLabel: 'Today',
+      timeLabel: '7:25 AM',
+      distanceKm: '1.00',
+      avgPace: '5:00',
+      duration: '5:00',
+      avgHeartRate: '--',
+      calories: '--',
+      routeName: 'Private route',
+      hasSufficientData: true,
+      paceAnalysisSeries: PaceAnalysisSeries.localAccepted(
+        samples: _paceAnalysisSamples(),
+      ),
+      cadenceAnalysisSeries: _cadenceAnalysisSeries(),
+      elevationSeries: _elevationAnalysisSeries(),
+      paceGraph: const PaceGraphDataBuilder().build(
+        samples: _paceGraphSamples(),
+        durationSeconds: 300,
+        distanceMeters: 1000,
+        averagePaceSecondsPerKm: 300,
+      ),
+      route: route,
+    ),
+    xpUpdate: const XpUpdateDisplayModel(
+      runnerName: 'Runiac Runner',
+      earnedXpLabel: '+0 XP',
+      totalXpLabel: 'Deferred by backend',
+      levelLabel: 'Pending',
+      nextLevelLabel: 'Pending',
+      progressTargetLabel: 'Pending',
+      xpRemainingLabel: 'Formula pending',
+      previousProgressFraction: 0,
+      currentProgressFraction: 0,
+      streakChangeLabel: 'Deferred',
+      streakNote: 'Backend validation accepted the run.',
+      didLevelUp: false,
+    ),
+  );
+}
+
 RunRouteSnapshot _routeSnapshot() {
   final samples = <RunLocationSample>[
     RunLocationSample(
@@ -573,6 +710,76 @@ RunRouteSnapshot _routeSnapshot() {
   return RunRouteSnapshot(segments: [samples], lastKnownLocation: samples.last);
 }
 
+List<PaceGraphSample> _paceGraphSamples() {
+  return const <PaceGraphSample>[
+    PaceGraphSample(
+      elapsedSeconds: 60,
+      paceSecondsPerKm: 300,
+      cumulativeDistanceMeters: 200,
+    ),
+    PaceGraphSample(
+      elapsedSeconds: 120,
+      paceSecondsPerKm: 295,
+      cumulativeDistanceMeters: 400,
+    ),
+    PaceGraphSample(
+      elapsedSeconds: 210,
+      paceSecondsPerKm: 305,
+      cumulativeDistanceMeters: 700,
+    ),
+    PaceGraphSample(
+      elapsedSeconds: 300,
+      paceSecondsPerKm: 300,
+      cumulativeDistanceMeters: 1000,
+    ),
+  ];
+}
+
+List<PaceAnalysisSample> _paceAnalysisSamples() {
+  return const <PaceAnalysisSample>[
+    PaceAnalysisSample.accepted(
+      elapsedSeconds: 60,
+      cumulativeDistanceMeters: 200,
+      paceSecondsPerKm: 300,
+    ),
+    PaceAnalysisSample.accepted(
+      elapsedSeconds: 120,
+      cumulativeDistanceMeters: 400,
+      paceSecondsPerKm: 295,
+    ),
+    PaceAnalysisSample.accepted(
+      elapsedSeconds: 210,
+      cumulativeDistanceMeters: 700,
+      paceSecondsPerKm: 305,
+    ),
+    PaceAnalysisSample.accepted(
+      elapsedSeconds: 300,
+      cumulativeDistanceMeters: 1000,
+      paceSecondsPerKm: 300,
+    ),
+  ];
+}
+
+CadenceAnalysisSeries _cadenceAnalysisSeries() {
+  return CadenceAnalysisSeries.phoneMotionEstimated(
+    samples: const <CadenceAnalysisSample>[
+      CadenceAnalysisSample.accepted(elapsedSeconds: 60, cadenceSpm: 170),
+      CadenceAnalysisSample.accepted(elapsedSeconds: 120, cadenceSpm: 174),
+      CadenceAnalysisSample.accepted(elapsedSeconds: 210, cadenceSpm: 172),
+    ],
+  );
+}
+
+ElevationAnalysisSeries _elevationAnalysisSeries() {
+  return ElevationAnalysisSeries.localAccepted(
+    samples: const <ElevationAnalysisSample>[
+      ElevationAnalysisSample(distanceKm: 0, elevationMeters: 12),
+      ElevationAnalysisSample(distanceKm: 0.5, elevationMeters: 18),
+      ElevationAnalysisSample(distanceKm: 1, elevationMeters: 16),
+    ],
+  );
+}
+
 LocalRunCompletionPayload _payload(
   String clientRunSessionId, {
   bool userConfirmedLowDataSave = false,
@@ -587,6 +794,23 @@ LocalRunCompletionPayload _payload(
     source: 'mobile',
     routePrivacy: 'private',
     userConfirmedLowDataSave: userConfirmedLowDataSave,
+  );
+}
+
+LocalRunCompletionPayload _richPayload(String clientRunSessionId) {
+  return LocalRunCompletionPayload(
+    clientRunSessionId: clientRunSessionId,
+    startedAt: DateTime.utc(2026, 6, 14, 9),
+    completedAt: DateTime.utc(2026, 6, 14, 9, 5),
+    durationSeconds: 300,
+    distanceMeters: 1000,
+    avgPaceSecondsPerKm: 300,
+    source: 'mobile',
+    routePrivacy: 'private',
+    paceGraphSamples: _paceGraphSamples(),
+    cadenceAnalysisSeries: _cadenceAnalysisSeries(),
+    elevationAnalysisSeries: _elevationAnalysisSeries(),
+    elevationUnavailableReason: ElevationUnavailableReason.none,
   );
 }
 

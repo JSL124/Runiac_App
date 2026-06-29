@@ -2,13 +2,17 @@ import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../run/domain/models/cadence_analysis_series.dart';
 import '../../run/domain/models/complete_run_result.dart';
+import '../../run/domain/models/elevation_analysis_series.dart';
 import '../../run/domain/models/local_run_completion_payload.dart';
+import '../../run/domain/models/pace_analysis_series.dart';
 import '../../run/domain/models/progression_display_model.dart';
 import '../../run/domain/models/run_location_sample.dart';
 import '../../run/domain/models/run_route_snapshot.dart';
 import '../../run/domain/models/run_summary_snapshot.dart';
 import '../../run/domain/models/xp_update_display_model.dart';
+import '../../run/domain/services/pace_graph_data_builder.dart';
 
 part 'local_pending_run_activity.dart';
 part 'local_pending_run_activity_codec.dart';

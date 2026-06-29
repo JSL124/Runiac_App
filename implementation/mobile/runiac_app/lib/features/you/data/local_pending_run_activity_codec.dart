@@ -23,6 +23,17 @@ Map<String, Object?> _localPendingRunActivityToJson(
       'calories': activity.result.summary.calories,
       'routeName': activity.result.summary.routeName,
       'hasSufficientData': activity.result.summary.hasSufficientData,
+      if (activity.result.summary.paceAnalysisSeries != null)
+        'paceAnalysisSeries': _paceAnalysisSeriesToJson(
+          activity.result.summary.paceAnalysisSeries!,
+        ),
+      if (activity.result.summary.cadenceAnalysisSeries != null)
+        'cadenceAnalysisSeries': _cadenceAnalysisSeriesToJson(
+          activity.result.summary.cadenceAnalysisSeries!,
+        ),
+      'elevationSeries': _elevationAnalysisSeriesToJson(
+        activity.result.summary.elevationSeries,
+      ),
       'route': _routeToJson(activity.result.summary.route),
     },
     'payload': <String, Object?>{
@@ -40,6 +51,21 @@ Map<String, Object?> _localPendingRunActivityToJson(
         'routeLabel': activity.payload.routeLabel,
       if (activity.payload.clientAppVersion != null)
         'clientAppVersion': activity.payload.clientAppVersion,
+      if (activity.payload.paceGraphSamples.isNotEmpty)
+        'paceGraphSamples': [
+          for (final sample in activity.payload.paceGraphSamples)
+            _paceGraphSampleToJson(sample),
+        ],
+      if (activity.payload.cadenceAnalysisSeries != null)
+        'cadenceAnalysisSeries': _cadenceAnalysisSeriesToJson(
+          activity.payload.cadenceAnalysisSeries!,
+        ),
+      if (activity.payload.elevationAnalysisSeries != null)
+        'elevationAnalysisSeries': _elevationAnalysisSeriesToJson(
+          activity.payload.elevationAnalysisSeries!,
+        ),
+      'elevationUnavailableReason':
+          activity.payload.elevationUnavailableReason.name,
     },
   };
 }
@@ -58,6 +84,7 @@ LocalPendingRunActivity? _localPendingRunActivityFromJson(
     return null;
   }
 
+  final restoredPayload = _payloadFromJson(payload, clientRunSessionId);
   return LocalPendingRunActivity(
     ownerUid: ownerUid,
     clientRunSessionId: clientRunSessionId,
@@ -72,19 +99,7 @@ LocalPendingRunActivity? _localPendingRunActivityFromJson(
           _readString(source, 'progressionEventId') ??
           'local-progression-$clientRunSessionId',
       validationStatus: _readString(source, 'validationStatus') ?? 'validated',
-      summary: RunSummarySnapshot(
-        title: _readString(summary, 'title') ?? 'Completed Run',
-        dateLabel: _readString(summary, 'dateLabel') ?? 'Today',
-        timeLabel: _readString(summary, 'timeLabel') ?? '--',
-        distanceKm: _readString(summary, 'distanceKm') ?? '0.00',
-        avgPace: _readString(summary, 'avgPace') ?? '--',
-        duration: _readString(summary, 'duration') ?? '--',
-        avgHeartRate: _readString(summary, 'avgHeartRate') ?? '--',
-        calories: _readString(summary, 'calories') ?? '--',
-        routeName: _readString(summary, 'routeName') ?? 'Private route',
-        hasSufficientData: _readBool(summary, 'hasSufficientData') ?? false,
-        route: _routeFromJson(_readMap(summary, 'route')),
-      ),
+      summary: _summaryFromJson(summary, restoredPayload),
       progressionDisplay: const ProgressionDisplayModel(
         xpDelta: 0,
         countsTowardLeaderboard: false,
@@ -107,8 +122,50 @@ LocalPendingRunActivity? _localPendingRunActivityFromJson(
       ),
       message: _readString(source, 'message') ?? 'Saved locally.',
     ),
-    payload: _payloadFromJson(payload, clientRunSessionId),
+    payload: restoredPayload,
     syncAccepted: _readBool(source, 'syncAccepted') ?? false,
+  );
+}
+
+RunSummarySnapshot _summaryFromJson(
+  Map<String, Object?> source,
+  LocalRunCompletionPayload payload,
+) {
+  final elevationSeries =
+      _elevationAnalysisSeriesFromJson(_readMap(source, 'elevationSeries')) ??
+      payload.elevationAnalysisSeries ??
+      ElevationAnalysisSeries.unavailable(
+        reason: payload.elevationUnavailableReason,
+      );
+  return RunSummarySnapshot(
+    title: _readString(source, 'title') ?? 'Completed Run',
+    dateLabel: _readString(source, 'dateLabel') ?? 'Today',
+    timeLabel: _readString(source, 'timeLabel') ?? '--',
+    distanceKm: _readString(source, 'distanceKm') ?? '0.00',
+    avgPace: _readString(source, 'avgPace') ?? '--',
+    duration: _readString(source, 'duration') ?? '--',
+    avgHeartRate: _readString(source, 'avgHeartRate') ?? '--',
+    calories: _readString(source, 'calories') ?? '--',
+    routeName: _readString(source, 'routeName') ?? 'Private route',
+    hasSufficientData: _readBool(source, 'hasSufficientData') ?? false,
+    paceAnalysisSeries: _paceAnalysisSeriesFromJson(
+      _readMap(source, 'paceAnalysisSeries'),
+    ),
+    cadenceAnalysisSeries:
+        _cadenceAnalysisSeriesFromJson(
+          _readMap(source, 'cadenceAnalysisSeries'),
+        ) ??
+        payload.cadenceAnalysisSeries,
+    elevationSeries: elevationSeries,
+    paceGraph: const PaceGraphDataBuilder().build(
+      samples: payload.paceGraphSamples,
+      durationSeconds: payload.durationSeconds,
+      distanceMeters: payload.distanceMeters,
+      averagePaceSecondsPerKm: payload.avgPaceSecondsPerKm > 0
+          ? payload.avgPaceSecondsPerKm
+          : null,
+    ),
+    route: _routeFromJson(_readMap(source, 'route')),
   );
 }
 
@@ -134,6 +191,303 @@ LocalRunCompletionPayload _payloadFromJson(
         _readBool(source, 'userConfirmedLowDataSave') ?? false,
     routeLabel: _readString(source, 'routeLabel'),
     clientAppVersion: _readString(source, 'clientAppVersion'),
+    paceGraphSamples: [
+      for (final rawSample in _readList(source, 'paceGraphSamples'))
+        ?_paceGraphSampleFromJson(_readObjectMap(rawSample)),
+    ],
+    cadenceAnalysisSeries: _cadenceAnalysisSeriesFromJson(
+      _readMap(source, 'cadenceAnalysisSeries'),
+    ),
+    elevationAnalysisSeries: _elevationAnalysisSeriesFromJson(
+      _readMap(source, 'elevationAnalysisSeries'),
+    ),
+    elevationUnavailableReason:
+        _enumByName(
+          ElevationUnavailableReason.values,
+          _readString(source, 'elevationUnavailableReason'),
+        ) ??
+        ElevationUnavailableReason.noElevationSeries,
+  );
+}
+
+Map<String, Object?> _paceGraphSampleToJson(PaceGraphSample sample) {
+  return <String, Object?>{
+    'elapsedSeconds': sample.elapsedSeconds,
+    'paceSecondsPerKm': sample.paceSecondsPerKm,
+    if (sample.cumulativeDistanceMeters != null)
+      'cumulativeDistanceMeters': sample.cumulativeDistanceMeters,
+  };
+}
+
+PaceGraphSample? _paceGraphSampleFromJson(Map<String, Object?>? source) {
+  if (source == null) {
+    return null;
+  }
+  final elapsedSeconds = _readInt(source, 'elapsedSeconds');
+  final paceSecondsPerKm = _readInt(source, 'paceSecondsPerKm');
+  if (elapsedSeconds == null || paceSecondsPerKm == null) {
+    return null;
+  }
+  return PaceGraphSample(
+    elapsedSeconds: elapsedSeconds,
+    paceSecondsPerKm: paceSecondsPerKm,
+    cumulativeDistanceMeters: _readInt(source, 'cumulativeDistanceMeters'),
+  );
+}
+
+Map<String, Object?> _paceAnalysisSeriesToJson(PaceAnalysisSeries series) {
+  return <String, Object?>{
+    'source': series.source.name,
+    'confidence': series.confidence.name,
+    'samples': [
+      for (final sample in series.samples) _paceAnalysisSampleToJson(sample),
+    ],
+  };
+}
+
+PaceAnalysisSeries? _paceAnalysisSeriesFromJson(Map<String, Object?>? source) {
+  if (source == null) {
+    return null;
+  }
+  final seriesSource = _enumByName(
+    PaceAnalysisSource.values,
+    _readString(source, 'source'),
+  );
+  final confidence = _enumByName(
+    PaceAnalysisConfidence.values,
+    _readString(source, 'confidence'),
+  );
+  if (seriesSource == null || confidence == null) {
+    return null;
+  }
+  final samples = [
+    for (final rawSample in _readList(source, 'samples'))
+      ?_paceAnalysisSampleFromJson(_readObjectMap(rawSample)),
+  ];
+  try {
+    return PaceAnalysisSeries(
+      source: seriesSource,
+      confidence: confidence,
+      samples: samples,
+    );
+  } catch (_) {
+    return null;
+  }
+}
+
+Map<String, Object?> _paceAnalysisSampleToJson(PaceAnalysisSample sample) {
+  return <String, Object?>{
+    'elapsedSeconds': sample.elapsedSeconds,
+    'cumulativeDistanceMeters': sample.cumulativeDistanceMeters,
+    'paceSecondsPerKm': sample.paceSecondsPerKm,
+    'status': sample.status.name,
+    'rejectionReason': sample.rejectionReason.name,
+  };
+}
+
+PaceAnalysisSample? _paceAnalysisSampleFromJson(Map<String, Object?>? source) {
+  if (source == null) {
+    return null;
+  }
+  final elapsedSeconds = _readInt(source, 'elapsedSeconds');
+  final cumulativeDistanceMeters = _readDouble(
+    source,
+    'cumulativeDistanceMeters',
+  );
+  final paceSecondsPerKm = _readInt(source, 'paceSecondsPerKm');
+  final status = _enumByName(
+    PaceAnalysisSampleStatus.values,
+    _readString(source, 'status'),
+  );
+  final rejectionReason =
+      _enumByName(
+        PaceAnalysisSampleRejectionReason.values,
+        _readString(source, 'rejectionReason'),
+      ) ??
+      PaceAnalysisSampleRejectionReason.none;
+  if (elapsedSeconds == null ||
+      cumulativeDistanceMeters == null ||
+      paceSecondsPerKm == null ||
+      status == null) {
+    return null;
+  }
+  try {
+    return PaceAnalysisSample(
+      elapsedSeconds: elapsedSeconds,
+      cumulativeDistanceMeters: cumulativeDistanceMeters,
+      paceSecondsPerKm: paceSecondsPerKm,
+      status: status,
+      rejectionReason: rejectionReason,
+    );
+  } catch (_) {
+    return null;
+  }
+}
+
+Map<String, Object?> _cadenceAnalysisSeriesToJson(
+  CadenceAnalysisSeries series,
+) {
+  return <String, Object?>{
+    'source': series.source.name,
+    'confidence': series.confidence.name,
+    'samples': [
+      for (final sample in series.samples) _cadenceAnalysisSampleToJson(sample),
+    ],
+  };
+}
+
+CadenceAnalysisSeries? _cadenceAnalysisSeriesFromJson(
+  Map<String, Object?>? source,
+) {
+  if (source == null) {
+    return null;
+  }
+  final seriesSource = _enumByName(
+    CadenceAnalysisSource.values,
+    _readString(source, 'source'),
+  );
+  final confidence = _enumByName(
+    CadenceAnalysisConfidence.values,
+    _readString(source, 'confidence'),
+  );
+  if (seriesSource == null || confidence == null) {
+    return null;
+  }
+  final samples = [
+    for (final rawSample in _readList(source, 'samples'))
+      ?_cadenceAnalysisSampleFromJson(_readObjectMap(rawSample)),
+  ];
+  try {
+    return CadenceAnalysisSeries(
+      source: seriesSource,
+      confidence: confidence,
+      samples: samples,
+    );
+  } catch (_) {
+    return null;
+  }
+}
+
+Map<String, Object?> _cadenceAnalysisSampleToJson(
+  CadenceAnalysisSample sample,
+) {
+  return <String, Object?>{
+    'elapsedSeconds': sample.elapsedSeconds,
+    'cadenceSpm': sample.cadenceSpmValue,
+    'status': sample.status.name,
+    'rejectionReason': sample.rejectionReason.name,
+  };
+}
+
+CadenceAnalysisSample? _cadenceAnalysisSampleFromJson(
+  Map<String, Object?>? source,
+) {
+  if (source == null) {
+    return null;
+  }
+  final elapsedSeconds = _readInt(source, 'elapsedSeconds');
+  final cadenceSpm = _readDouble(source, 'cadenceSpm');
+  final status = _enumByName(
+    CadenceAnalysisSampleStatus.values,
+    _readString(source, 'status'),
+  );
+  final rejectionReason =
+      _enumByName(
+        CadenceAnalysisSampleRejectionReason.values,
+        _readString(source, 'rejectionReason'),
+      ) ??
+      CadenceAnalysisSampleRejectionReason.none;
+  if (elapsedSeconds == null || cadenceSpm == null || status == null) {
+    return null;
+  }
+  try {
+    return CadenceAnalysisSample(
+      elapsedSeconds: elapsedSeconds,
+      cadenceSpm: cadenceSpm,
+      status: status,
+      rejectionReason: rejectionReason,
+    );
+  } catch (_) {
+    return null;
+  }
+}
+
+Map<String, Object?> _elevationAnalysisSeriesToJson(
+  ElevationAnalysisSeries series,
+) {
+  return <String, Object?>{
+    'source': series.source.name,
+    'confidence': series.confidence.name,
+    'unavailableReason': series.unavailableReason.name,
+    'samples': [
+      for (final sample in series.samples)
+        _elevationAnalysisSampleToJson(sample),
+    ],
+  };
+}
+
+ElevationAnalysisSeries? _elevationAnalysisSeriesFromJson(
+  Map<String, Object?>? source,
+) {
+  if (source == null) {
+    return null;
+  }
+  final seriesSource = _enumByName(
+    ElevationAnalysisSource.values,
+    _readString(source, 'source'),
+  );
+  final confidence = _enumByName(
+    ElevationAnalysisConfidence.values,
+    _readString(source, 'confidence'),
+  );
+  final unavailableReason =
+      _enumByName(
+        ElevationUnavailableReason.values,
+        _readString(source, 'unavailableReason'),
+      ) ??
+      ElevationUnavailableReason.none;
+  if (seriesSource == null || confidence == null) {
+    return null;
+  }
+  final samples = [
+    for (final rawSample in _readList(source, 'samples'))
+      ?_elevationAnalysisSampleFromJson(_readObjectMap(rawSample)),
+  ];
+  try {
+    return ElevationAnalysisSeries(
+      source: seriesSource,
+      confidence: confidence,
+      samples: samples,
+      unavailableReason: unavailableReason,
+    );
+  } catch (_) {
+    return null;
+  }
+}
+
+Map<String, Object?> _elevationAnalysisSampleToJson(
+  ElevationAnalysisSample sample,
+) {
+  return <String, Object?>{
+    'distanceKm': sample.distanceKm,
+    'elevationMeters': sample.elevationMeters,
+  };
+}
+
+ElevationAnalysisSample? _elevationAnalysisSampleFromJson(
+  Map<String, Object?>? source,
+) {
+  if (source == null) {
+    return null;
+  }
+  final distanceKm = _readDouble(source, 'distanceKm');
+  final elevationMeters = _readDouble(source, 'elevationMeters');
+  if (distanceKm == null || elevationMeters == null) {
+    return null;
+  }
+  return ElevationAnalysisSample(
+    distanceKm: distanceKm,
+    elevationMeters: elevationMeters,
   );
 }
 
@@ -281,4 +635,16 @@ bool? _readBool(Map<String, Object?> source, String key) {
 DateTime? _readDate(Map<String, Object?> source, String key) {
   final value = _readString(source, key);
   return value == null ? null : DateTime.tryParse(value);
+}
+
+T? _enumByName<T extends Enum>(List<T> values, String? name) {
+  if (name == null) {
+    return null;
+  }
+  for (final value in values) {
+    if (value.name == name) {
+      return value;
+    }
+  }
+  return null;
 }
