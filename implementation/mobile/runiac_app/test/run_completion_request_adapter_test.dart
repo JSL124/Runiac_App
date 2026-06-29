@@ -87,6 +87,41 @@ void main() {
       expect(request['completedAt'], '2026-06-14T07:25:00.789Z');
     });
 
+    test('includes user confirmation for low-data save requests', () {
+      final payload = LocalRunCompletionPayload(
+        clientRunSessionId: 'local-session-confirmed-low-data',
+        startedAt: DateTime.utc(2026, 6, 14, 7),
+        completedAt: DateTime.utc(2026, 6, 14, 7, 0, 2),
+        durationSeconds: 2,
+        distanceMeters: 0,
+        avgPaceSecondsPerKm: 0,
+        source: 'local_simulation',
+        routePrivacy: 'private',
+        userConfirmedLowDataSave: true,
+      );
+
+      final request = RunCompletionRequestAdapter.toBackendRequest(payload);
+
+      expect(request['userConfirmedLowDataSave'], isTrue);
+    });
+
+    test('excludes low-data confirmation unless the user saved it', () {
+      final payload = LocalRunCompletionPayload(
+        clientRunSessionId: 'local-session-raw-low-data',
+        startedAt: DateTime.utc(2026, 6, 14, 7),
+        completedAt: DateTime.utc(2026, 6, 14, 7, 0, 2),
+        durationSeconds: 2,
+        distanceMeters: 0,
+        avgPaceSecondsPerKm: 0,
+        source: 'local_simulation',
+        routePrivacy: 'private',
+      );
+
+      final request = RunCompletionRequestAdapter.toBackendRequest(payload);
+
+      expect(request.keys, isNot(contains('userConfirmedLowDataSave')));
+    });
+
     test('excludes local-only pace graph samples from backend request', () {
       final payload = LocalRunCompletionPayload(
         clientRunSessionId: 'local-session-graph-request-boundary',

@@ -9,6 +9,7 @@ export type RawRunCompletionPayload = {
   readonly avgPaceSecondsPerKm: number;
   readonly source: "mobile";
   readonly routePrivacy: RoutePrivacy;
+  readonly userConfirmedLowDataSave?: boolean;
   readonly routeLabel?: string;
   readonly avgHeartRate?: number;
   readonly caloriesEstimate?: number;

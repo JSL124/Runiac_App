@@ -25,12 +25,19 @@ Allowed implementation files:
 - `firestore.indexes.json`
 - `firestore.rules` only if rules tests prove a minimal owner-read fix is required
 - `tests/firebase-rules/**`
-- `functions/test/completeRun.test.ts` only if existing tests do not already prove owner-scoped writes and uid-scoped deterministic ids
+- `functions/package.json` only to include the focused completeRun zero-metrics test in the existing Functions test command
+- `functions/src/run/completeRun.ts` only to persist the backend-owned `clientRunSessionId` read-side identity on `runSummaries`
+- `functions/src/run/runCompletionTypes.ts` only to carry the explicit user-confirmed low-data save contract bit
+- `functions/src/run/validateRunPayload.ts` only to allow zero-distance low-data completions while preserving positive-distance pace and wall-clock duration validation
+- `functions/test/completeRun.test.ts` only if existing tests do not already prove owner-scoped writes, uid-scoped deterministic ids, and bounded metric validation
+- `functions/test/completeRunZeroMetrics.test.ts` only for zero-distance low-data completion validation
 - `implementation/mobile/runiac_app/lib/app.dart`
 - `implementation/mobile/runiac_app/lib/main.dart`
 - `implementation/mobile/runiac_app/lib/core/firebase/runiac_firebase_bootstrap.dart`
 - `implementation/mobile/runiac_app/lib/features/shell/runiac_shell.dart`
 - `implementation/mobile/runiac_app/lib/features/you/**`
+- `implementation/mobile/runiac_app/pubspec.yaml` only to add the local pending-run persistence dependency
+- `implementation/mobile/runiac_app/pubspec.lock` only for the same dependency resolution
 - Focused Flutter tests under `implementation/mobile/runiac_app/test/`
 
 Allowed workflow artifacts:
@@ -45,7 +52,7 @@ Allowed workflow artifacts:
 - Activity History reads must be scoped to the authenticated user.
 - The intended Firestore query shape is `runSummaries` filtered by `ownerUid == currentUser.uid`, ordered by `endedAt` descending, and bounded by a small limit.
 - Flutter must keep static fallback behavior when Firebase/Auth/history loading is unavailable.
-- Newly completed in-session runs must remain visible immediately and should be deduplicated against repository rows by `activityId`.
+- Newly completed in-session runs must remain visible immediately and should be reconciled against repository rows by `clientRunSessionId`, with `activityId` as the backend-row fallback identity.
 - Activity History summary navigation must keep the XP update action hidden.
 - Client code must not directly write `runSummaries`, `progressionEvents`, XP, streak, level, rank, leaderboard score, weekly XP, monthly XP, subscription privilege state, expert plan publication state, or validated activity contribution state.
 - `completeRun` remains the run completion write path.
@@ -89,7 +96,7 @@ Allowed workflow artifacts:
 - [ ] Authenticated users can see their own completed-run scalar history from `runSummaries`.
 - [ ] Cross-user history reads and client writes to `runSummaries` are denied by tests.
 - [ ] Unauthenticated/non-Firebase paths remain safe and use static fallback.
-- [ ] Current-session completed runs still appear immediately and dedupe by `activityId`.
+- [ ] Current-session completed runs still appear immediately and reconcile by `clientRunSessionId` or `activityId`.
 - [ ] History-opened summaries keep `View XP Update` hidden.
 - [ ] No client writes backend-owned progression, ranking, entitlement, publication, or validation fields.
 - [ ] Final automated validation is captured with exact evidence.

@@ -78,6 +78,7 @@ export async function completeRunForCallable(
       transaction.set(summaryRef, {
         ownerUid: uid,
         activityId: ids.activityId,
+        clientRunSessionId: payload.clientRunSessionId,
         ...runSummary,
         createdAt: payload.completedAt,
       });

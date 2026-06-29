@@ -21,6 +21,17 @@ is_running_activity_history_capsule_active() {
   grep -Eq '^- Current active capsule: `implementation/roadmap/capsules/running-activity-history-user-link\.md`' implementation/roadmap/CURRENT.md
 }
 
+is_running_activity_history_functions_path() {
+  case "$1" in
+    functions/package.json|functions/src/run/completeRun.ts|functions/src/run/runCompletionTypes.ts|functions/src/run/validateRunPayload.ts|functions/test/completeRun.test.ts|functions/test/completeRunZeroMetrics.test.ts)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 is_allowed_path() {
   case "$1" in
     # Approved: non-operational historical archive (Phase A)
@@ -59,7 +70,13 @@ is_allowed_path() {
       if is_complete_run_functions_capsule_active; then
         return 0
       fi
-      if [ "$1" = "functions/test/completeRun.test.ts" ] && is_running_activity_history_capsule_active; then
+      if is_running_activity_history_functions_path "$1" && is_running_activity_history_capsule_active; then
+        return 0
+      fi
+      return 1
+      ;;
+    functions/test/completeRunZeroMetrics.test.ts)
+      if is_running_activity_history_capsule_active; then
         return 0
       fi
       return 1
@@ -115,7 +132,13 @@ is_forbidden_path() {
       if is_complete_run_functions_capsule_active; then
         return 1
       fi
-      if [ "$1" = "functions/test/completeRun.test.ts" ] && is_running_activity_history_capsule_active; then
+      if is_running_activity_history_functions_path "$1" && is_running_activity_history_capsule_active; then
+        return 1
+      fi
+      return 0
+      ;;
+    functions/test/completeRunZeroMetrics.test.ts)
+      if is_running_activity_history_capsule_active; then
         return 1
       fi
       return 0
@@ -126,7 +149,7 @@ is_forbidden_path() {
     *package.json)
       case "$1" in
         functions/package.json)
-          if is_complete_run_functions_capsule_active; then
+          if is_complete_run_functions_capsule_active || is_running_activity_history_capsule_active; then
             return 1
           fi
           return 0

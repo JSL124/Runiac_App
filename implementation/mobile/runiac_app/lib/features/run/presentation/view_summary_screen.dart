@@ -101,8 +101,9 @@ class ViewSummaryScreen extends StatelessWidget {
         final payload = completionPayload;
         if (result != null && payload != null) {
           final store = CurrentSessionActivityHistoryScope.maybeOf(context);
+          final savePayload = payload.copyWith(userConfirmedLowDataSave: true);
           try {
-            await store?.saveCompletedRun(result, payload: payload);
+            await store?.saveCompletedRun(result, payload: savePayload);
           } catch (error, stackTrace) {
             FlutterError.reportError(
               FlutterErrorDetails(

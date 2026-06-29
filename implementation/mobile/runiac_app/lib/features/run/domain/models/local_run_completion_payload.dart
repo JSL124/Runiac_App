@@ -12,6 +12,7 @@ class LocalRunCompletionPayload {
     required this.avgPaceSecondsPerKm,
     required this.source,
     required this.routePrivacy,
+    this.userConfirmedLowDataSave = false,
     this.routeLabel,
     this.clientAppVersion,
     this.paceGraphSamples = const <PaceGraphSample>[],
@@ -29,6 +30,7 @@ class LocalRunCompletionPayload {
   final int avgPaceSecondsPerKm;
   final String source;
   final String routePrivacy;
+  final bool userConfirmedLowDataSave;
   final String? routeLabel;
   final String? clientAppVersion;
   final List<PaceGraphSample> paceGraphSamples;
@@ -46,8 +48,31 @@ class LocalRunCompletionPayload {
       'avgPaceSecondsPerKm': avgPaceSecondsPerKm,
       'source': source,
       'routePrivacy': routePrivacy,
+      if (userConfirmedLowDataSave)
+        'userConfirmedLowDataSave': userConfirmedLowDataSave,
       if (routeLabel != null) 'routeLabel': routeLabel,
       if (clientAppVersion != null) 'clientAppVersion': clientAppVersion,
     };
+  }
+
+  LocalRunCompletionPayload copyWith({bool? userConfirmedLowDataSave}) {
+    return LocalRunCompletionPayload(
+      clientRunSessionId: clientRunSessionId,
+      startedAt: startedAt,
+      completedAt: completedAt,
+      durationSeconds: durationSeconds,
+      distanceMeters: distanceMeters,
+      avgPaceSecondsPerKm: avgPaceSecondsPerKm,
+      source: source,
+      routePrivacy: routePrivacy,
+      userConfirmedLowDataSave:
+          userConfirmedLowDataSave ?? this.userConfirmedLowDataSave,
+      routeLabel: routeLabel,
+      clientAppVersion: clientAppVersion,
+      paceGraphSamples: paceGraphSamples,
+      cadenceAnalysisSeries: cadenceAnalysisSeries,
+      elevationAnalysisSeries: elevationAnalysisSeries,
+      elevationUnavailableReason: elevationUnavailableReason,
+    );
   }
 }

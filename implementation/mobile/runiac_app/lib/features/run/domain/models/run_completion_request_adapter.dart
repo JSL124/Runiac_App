@@ -15,6 +15,7 @@ class RunCompletionRequestAdapter {
       'avgPaceSecondsPerKm': payload.avgPaceSecondsPerKm,
       'source': 'mobile',
       'routePrivacy': payload.routePrivacy,
+      if (payload.userConfirmedLowDataSave) 'userConfirmedLowDataSave': true,
       if (payload.routeLabel != null) 'routeLabel': payload.routeLabel,
       if (payload.clientAppVersion != null)
         'clientAppVersion': payload.clientAppVersion,

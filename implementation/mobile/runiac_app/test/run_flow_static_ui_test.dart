@@ -2686,6 +2686,7 @@ void main() {
 
     expect(repository.completeRunCalls, 1);
     expect(repository.lastPayload?.clientRunSessionId, 'local-run-1');
+    expect(repository.lastPayload?.userConfirmedLowDataSave, isTrue);
     expect(historyStore.activities, isNotEmpty);
     expect(find.byTooltip('Home'), findsOneWidget);
   });

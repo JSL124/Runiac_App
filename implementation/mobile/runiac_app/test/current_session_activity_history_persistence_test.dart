@@ -133,6 +133,69 @@ void main() {
     ]);
   });
 
+  test('low-data save stores confirmation and sync submits it', () async {
+    final storage = MemoryLocalPendingRunActivityStore();
+    final store = CurrentSessionActivityHistoryStore(
+      ownerUid: ownerUid,
+      persistence: storage,
+    );
+    addTearDown(store.dispose);
+    final repository = _RecordingRunRepository();
+
+    await store.saveCompletedRun(
+      _completionResult('confirmed-low-data-client-session'),
+      payload: _payload(
+        'confirmed-low-data-client-session',
+        userConfirmedLowDataSave: true,
+      ),
+    );
+
+    final savedBeforeSync = await storage.load();
+    expect(savedBeforeSync.single.payload.userConfirmedLowDataSave, isTrue);
+
+    await store.syncPendingRuns(repository);
+
+    expect(repository.completedClientRunSessionIds, [
+      'confirmed-low-data-client-session',
+    ]);
+    expect(
+      repository.submittedPayloads.single.userConfirmedLowDataSave,
+      isTrue,
+    );
+    expect(
+      (await storage.load()).single.payload.userConfirmedLowDataSave,
+      isTrue,
+    );
+    expect((await storage.load()).single.syncAccepted, isTrue);
+  });
+
+  test(
+    'restores low-data save confirmation from shared preferences storage',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      const storage = SharedPreferencesLocalPendingRunActivityStore(
+        key: 'test.pendingConfirmedLowDataRun',
+      );
+      final firstStore = CurrentSessionActivityHistoryStore(
+        ownerUid: ownerUid,
+        persistence: storage,
+      );
+      addTearDown(firstStore.dispose);
+
+      await firstStore.saveCompletedRun(
+        _completionResult('confirmed-low-data-shared-prefs-session'),
+        payload: _payload(
+          'confirmed-low-data-shared-prefs-session',
+          userConfirmedLowDataSave: true,
+        ),
+      );
+
+      final restored = await storage.load();
+
+      expect(restored.single.payload.userConfirmedLowDataSave, isTrue);
+    },
+  );
+
   test('static repository sync does not mark pending run accepted', () async {
     final storage = MemoryLocalPendingRunActivityStore();
     final store = CurrentSessionActivityHistoryStore(
@@ -510,7 +573,10 @@ RunRouteSnapshot _routeSnapshot() {
   return RunRouteSnapshot(segments: [samples], lastKnownLocation: samples.last);
 }
 
-LocalRunCompletionPayload _payload(String clientRunSessionId) {
+LocalRunCompletionPayload _payload(
+  String clientRunSessionId, {
+  bool userConfirmedLowDataSave = false,
+}) {
   return LocalRunCompletionPayload(
     clientRunSessionId: clientRunSessionId,
     startedAt: DateTime.utc(2026, 6, 14, 9),
@@ -520,17 +586,21 @@ LocalRunCompletionPayload _payload(String clientRunSessionId) {
     avgPaceSecondsPerKm: 0,
     source: 'mobile',
     routePrivacy: 'private',
+    userConfirmedLowDataSave: userConfirmedLowDataSave,
   );
 }
 
 class _RecordingRunRepository implements RunRepository {
   final List<String> completedClientRunSessionIds = <String>[];
+  final List<LocalRunCompletionPayload> submittedPayloads =
+      <LocalRunCompletionPayload>[];
 
   @override
   Future<CompleteRunResult> completeRun(
     LocalRunCompletionPayload payload,
   ) async {
     completedClientRunSessionIds.add(payload.clientRunSessionId);
+    submittedPayloads.add(payload);
     final result = _completionResult(payload.clientRunSessionId);
     return CompleteRunResult(
       clientRunSessionId: result.clientRunSessionId,

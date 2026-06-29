@@ -72,6 +72,59 @@ describe("completeRun callable boundary", () => {
     assert.equal(progressionEvent.get("countsTowardLeaderboard"), false);
   });
 
+  it("accepts user-confirmed low-data saves and rejects raw low-data payloads", async () => {
+    await expectRejectsCode(
+      () =>
+        callCompleteRun({
+          auth: { uid: USER_UID },
+          data: lowDataPayload(),
+        }),
+      "invalid-argument",
+    );
+
+    const result = await callCompleteRun({
+      auth: { uid: USER_UID },
+      data: {
+        ...lowDataPayload(),
+        userConfirmedLowDataSave: true,
+      },
+    });
+
+    assert.equal(result.validationStatus, "validated");
+    assert.equal(result.progressionDisplay.xpDelta, 0);
+    assert.equal(result.progressionDisplay.countsTowardLeaderboard, false);
+
+    const activity = await firestore.doc(`activities/${result.activityId}`).get();
+    const summary = await firestore.doc(`runSummaries/${result.summaryId}`).get();
+    const progressionEvent = await firestore.doc(`progressionEvents/${result.progressionEventId}`).get();
+
+    assert.equal(activity.exists, true);
+    assert.equal(summary.exists, true);
+    assert.equal(progressionEvent.exists, true);
+    assert.equal(activity.get("distanceMeters"), 0);
+    assert.equal(activity.get("averagePaceSecondsPerKm"), 0);
+    assert.equal(summary.get("distanceMeters"), 0);
+    assert.equal(summary.get("averagePaceSecondsPerKm"), 0);
+    assert.equal(progressionEvent.get("xpDelta"), 0);
+    assert.equal(progressionEvent.get("countsTowardLeaderboard"), false);
+  });
+
+  it("rejects confirmed positive-distance saves with zero pace", async () => {
+    await expectRejectsCode(
+      () =>
+        callCompleteRun({
+          auth: { uid: USER_UID },
+          data: {
+            ...validPayload(),
+            clientRunSessionId: "positive-distance-zero-pace",
+            userConfirmedLowDataSave: true,
+            avgPaceSecondsPerKm: 0,
+          },
+        }),
+      "invalid-argument",
+    );
+  });
+
   it("completeRun writes owner scoped run summaries", async () => {
     const result = await callCompleteRun({ auth: { uid: "alice" }, data: validPayload() });
 
@@ -263,6 +316,19 @@ function validPayload(): Record<string, unknown> {
     durationSeconds: 1500,
     distanceMeters: 3200,
     avgPaceSecondsPerKm: 469,
+    source: "mobile",
+    routePrivacy: "private",
+  };
+}
+
+function lowDataPayload(): Record<string, unknown> {
+  return {
+    clientRunSessionId: "low-data-local-session-001",
+    startedAt: "2026-06-14T09:00:00.000Z",
+    completedAt: "2026-06-14T09:00:02.000Z",
+    durationSeconds: 2,
+    distanceMeters: 0,
+    avgPaceSecondsPerKm: 0,
     source: "mobile",
     routePrivacy: "private",
   };
