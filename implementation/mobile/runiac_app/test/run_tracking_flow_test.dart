@@ -535,6 +535,38 @@ RunRouteSnapshot _localRouteSnapshot() {
 }
 
 void main() {
+  test('default run session ids stay unique across controller recreation', () {
+    final firstController = RunTrackingController();
+    addTearDown(firstController.dispose);
+    final secondController = RunTrackingController();
+    addTearDown(secondController.dispose);
+
+    firstController.start(startedAt: DateTime.utc(2026, 6, 18, 8));
+    secondController.start(startedAt: DateTime.utc(2026, 6, 18, 9));
+
+    expect(firstController.state.clientRunSessionId, isNotEmpty);
+    expect(secondController.state.clientRunSessionId, isNotEmpty);
+    expect(
+      secondController.state.clientRunSessionId,
+      isNot(firstController.state.clientRunSessionId),
+      reason:
+          'Fresh app/controller sessions must not reuse the same '
+          'clientRunSessionId because Firestore IDs are deterministic.',
+    );
+  });
+
+  test('explicit run session id is preserved', () {
+    final controller = RunTrackingController();
+    addTearDown(controller.dispose);
+
+    controller.start(
+      startedAt: DateTime.utc(2026, 6, 18, 8),
+      clientRunSessionId: 'manual-session-id',
+    );
+
+    expect(controller.state.clientRunSessionId, 'manual-session-id');
+  });
+
   test('local analysis merge requires matching client run session id', () {
     const merger = RunSummaryLocalAnalysisMerger();
     final payload = _localAnalysisMergePayload('payload-session');

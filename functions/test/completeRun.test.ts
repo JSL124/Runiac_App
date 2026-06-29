@@ -147,6 +147,35 @@ describe("completeRun callable boundary", () => {
     assert.notEqual(aliceResult.progressionEventId, bobResult.progressionEventId);
   });
 
+  it("completeRun gives distinct artifacts to distinct client run session ids", async () => {
+    const firstResult = await callCompleteRun({
+      auth: { uid: USER_UID },
+      data: {
+        ...validPayload(),
+        clientRunSessionId: "local-run-20260618-080000-a",
+      },
+    });
+    const secondResult = await callCompleteRun({
+      auth: { uid: USER_UID },
+      data: {
+        ...validPayload(),
+        clientRunSessionId: "local-run-20260618-090000-b",
+        startedAt: "2026-06-14T10:00:00.000Z",
+        completedAt: "2026-06-14T10:25:00.000Z",
+      },
+    });
+
+    assert.notEqual(firstResult.activityId, secondResult.activityId);
+    assert.notEqual(firstResult.summaryId, secondResult.summaryId);
+    assert.notEqual(
+      firstResult.progressionEventId,
+      secondResult.progressionEventId,
+    );
+    assert.equal(await countDocuments("activities"), 2);
+    assert.equal(await countDocuments("runSummaries"), 2);
+    assert.equal(await countDocuments("progressionEvents"), 2);
+  });
+
   it("fails when a required field is missing", async () => {
     const payload = validPayloadWithout("distanceMeters");
 

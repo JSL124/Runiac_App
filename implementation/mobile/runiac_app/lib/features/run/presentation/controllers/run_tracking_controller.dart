@@ -65,7 +65,7 @@ class RunTrackingController extends ChangeNotifier {
   bool _foregroundServiceStarting = false;
   bool _foregroundServiceStopRequested = false;
   bool _disposed = false;
-  int _sessionSequence = 0;
+  static int _defaultSessionSequence = 0;
   RunTrackingLocationStatus _latestLocationStatus =
       RunTrackingLocationStatus.demo;
 
@@ -185,7 +185,6 @@ class RunTrackingController extends ChangeNotifier {
     String routePrivacy = 'private',
     String? routeLabel,
   }) {
-    _sessionSequence += 1;
     final effectiveStartedAt = startedAt ?? DateTime.now();
     final session = LocalRunTrackingSession(startedAt: effectiveStartedAt);
     _trackingSession = session;
@@ -203,7 +202,7 @@ class RunTrackingController extends ChangeNotifier {
     _state = RunTrackingState(
       phase: RunTrackingPhase.active,
       clientRunSessionId:
-          clientRunSessionId ?? 'local-run-${_sessionSequence.toString()}',
+          clientRunSessionId ?? _defaultClientRunSessionId(effectiveStartedAt),
       startedAt: effectiveStartedAt,
       completedAt: null,
       elapsedSeconds: 0,
@@ -222,6 +221,13 @@ class RunTrackingController extends ChangeNotifier {
       reason: 'start',
     );
     return effectiveStartedAt;
+  }
+
+  static String _defaultClientRunSessionId(DateTime startedAt) {
+    _defaultSessionSequence += 1;
+    final startedMicros = startedAt.toUtc().microsecondsSinceEpoch;
+    final generatedMicros = DateTime.now().toUtc().microsecondsSinceEpoch;
+    return 'local-run-$startedMicros-$generatedMicros-$_defaultSessionSequence';
   }
 
   void syncTo(DateTime now) {

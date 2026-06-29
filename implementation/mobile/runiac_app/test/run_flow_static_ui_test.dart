@@ -2685,7 +2685,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(repository.completeRunCalls, 1);
-    expect(repository.lastPayload?.clientRunSessionId, 'local-run-1');
+    expect(repository.lastPayload?.clientRunSessionId, isNotEmpty);
+    expect(
+      repository.lastPayload?.clientRunSessionId,
+      startsWith('local-run-'),
+    );
     expect(repository.lastPayload?.userConfirmedLowDataSave, isTrue);
     expect(historyStore.activities, isNotEmpty);
     expect(find.byTooltip('Home'), findsOneWidget);
