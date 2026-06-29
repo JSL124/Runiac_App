@@ -142,19 +142,20 @@ class _RunActiveScreenState extends State<RunActiveScreen> {
       }
       if (didSaveLocally) {
         unawaited(
-          activityHistoryStore
-              .syncPendingRuns(_repository)
-              .catchError(
-                (Object error, StackTrace stackTrace) =>
-                    FlutterError.reportError(
-                      FlutterErrorDetails(
-                        exception: error,
-                        stack: stackTrace,
-                        library: 'runiac run tracking',
-                        context: ErrorDescription('syncing a completed run'),
-                      ),
-                    ),
+          activityHistoryStore.syncPendingRuns(_repository).catchError((
+            Object error,
+            StackTrace stackTrace,
+          ) {
+            FlutterError.reportError(
+              FlutterErrorDetails(
+                exception: error,
+                stack: stackTrace,
+                library: 'runiac run tracking',
+                context: ErrorDescription('syncing a completed run'),
               ),
+            );
+            return false;
+          }),
         );
       }
     }

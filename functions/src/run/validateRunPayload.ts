@@ -48,8 +48,9 @@ const protectedKeys = new Set([
 const isoDatePattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
 const maxDurationSeconds = 86_400;
 const maxDistanceMeters = 100_000;
-const minPaceSecondsPerKm = 120;
+const minPositivePaceSecondsPerKm = 120;
 const maxPaceSecondsPerKm = 3_600;
+const wallClockDurationToleranceSeconds = 5;
 
 export function parseRunCompletionPayload(data: unknown): RawRunCompletionPayload {
   if (!isRecord(data)) {
@@ -69,8 +70,8 @@ export function parseRunCompletionPayload(data: unknown): RawRunCompletionPayloa
     clientRunSessionId: readString(data, "clientRunSessionId"),
     startedAt: readIsoDateString(data, "startedAt"),
     completedAt: readIsoDateString(data, "completedAt"),
-    durationSeconds: readBoundedPositiveNumber(data, "durationSeconds", maxDurationSeconds),
-    distanceMeters: readBoundedPositiveNumber(data, "distanceMeters", maxDistanceMeters),
+    durationSeconds: readBoundedNonNegativeNumber(data, "durationSeconds", maxDurationSeconds),
+    distanceMeters: readBoundedNonNegativeNumber(data, "distanceMeters", maxDistanceMeters),
     avgPaceSecondsPerKm: readPaceSecondsPerKm(data),
     source: readMobileSource(data),
     routePrivacy: readRoutePrivacy(data),
@@ -88,8 +89,12 @@ export function parseRunCompletionPayload(data: unknown): RawRunCompletionPayloa
   }
 
   const elapsedSeconds = (Date.parse(payload.completedAt) - Date.parse(payload.startedAt)) / 1000;
-  if (Math.abs(elapsedSeconds - payload.durationSeconds) > 60) {
-    throw invalid("durationSeconds must match startedAt/completedAt within tolerance.");
+  if (payload.durationSeconds > elapsedSeconds + wallClockDurationToleranceSeconds) {
+    throw invalid("durationSeconds must not exceed startedAt/completedAt elapsed time.");
+  }
+
+  if (payload.distanceMeters > 0 && payload.avgPaceSecondsPerKm <= 0) {
+    throw invalid("avgPaceSecondsPerKm must be positive when distanceMeters is positive.");
   }
 
   return withoutUndefined(payload);
@@ -118,20 +123,20 @@ function readOptionalString(data: Readonly<Record<string, unknown>>, key: string
   return value;
 }
 
-function readPositiveNumber(data: Readonly<Record<string, unknown>>, key: string): number {
+function readNonNegativeNumber(data: Readonly<Record<string, unknown>>, key: string): number {
   const value = data[key];
-  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
-    throw invalid(`${key} must be a positive number.`);
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
+    throw invalid(`${key} must be a non-negative number.`);
   }
   return value;
 }
 
-function readBoundedPositiveNumber(
+function readBoundedNonNegativeNumber(
   data: Readonly<Record<string, unknown>>,
   key: string,
   maxValue: number,
 ): number {
-  const value = readPositiveNumber(data, key);
+  const value = readNonNegativeNumber(data, key);
   if (value > maxValue) {
     throw invalid(`${key} exceeds the emulator skeleton safety limit.`);
   }
@@ -139,8 +144,11 @@ function readBoundedPositiveNumber(
 }
 
 function readPaceSecondsPerKm(data: Readonly<Record<string, unknown>>): number {
-  const value = readPositiveNumber(data, "avgPaceSecondsPerKm");
-  if (value < minPaceSecondsPerKm || value > maxPaceSecondsPerKm) {
+  const value = readNonNegativeNumber(data, "avgPaceSecondsPerKm");
+  if (value === 0) {
+    return value;
+  }
+  if (value < minPositivePaceSecondsPerKm || value > maxPaceSecondsPerKm) {
     throw invalid("avgPaceSecondsPerKm is outside the emulator skeleton safety limits.");
   }
   return value;

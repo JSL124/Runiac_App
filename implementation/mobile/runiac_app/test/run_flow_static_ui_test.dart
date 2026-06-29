@@ -334,7 +334,7 @@ const _repositoryCompletionResult = CompleteRunResult(
 
 const _lowDataCompletionResult = CompleteRunResult(
   clientRunSessionId: 'low-data-client-session',
-  activityId: 'repo-low-data-activity',
+  activityId: 'activity_low_data',
   summaryId: 'repo-low-data-summary',
   progressionEventId: 'repo-low-data-progression',
   validationStatus: 'validated',
@@ -371,6 +371,47 @@ const _lowDataCompletionResult = CompleteRunResult(
     didLevelUp: false,
   ),
   message: 'Accepted.',
+);
+
+const _lowDataSyncRejectedResult = CompleteRunResult(
+  clientRunSessionId: 'low-data-client-session',
+  activityId: 'local-sync-rejected',
+  summaryId: 'repo-low-data-summary',
+  progressionEventId: 'repo-low-data-progression',
+  validationStatus: 'validated',
+  summary: RunSummarySnapshot(
+    title: 'Low Data Run',
+    dateLabel: 'Today',
+    timeLabel: '8:10 AM',
+    distanceKm: '0.00',
+    avgPace: '--',
+    duration: '0:00',
+    avgHeartRate: '--',
+    calories: '--',
+    routeName: 'Private route',
+    hasSufficientData: false,
+  ),
+  progressionDisplay: ProgressionDisplayModel(
+    xpDelta: 0,
+    countsTowardLeaderboard: false,
+    status: 'deferred',
+    reason: 'progression_formula_deferred',
+  ),
+  xpUpdate: XpUpdateDisplayModel(
+    runnerName: 'Maya',
+    earnedXpLabel: '+0 XP',
+    totalXpLabel: '0 XP',
+    levelLabel: '0',
+    nextLevelLabel: '1',
+    progressTargetLabel: 'Progress deferred',
+    xpRemainingLabel: 'Pending',
+    previousProgressFraction: 0,
+    currentProgressFraction: 0,
+    streakChangeLabel: 'Deferred',
+    streakNote: 'Accepted.',
+    didLevelUp: false,
+  ),
+  message: 'Saved locally.',
 );
 
 void main() {
@@ -2688,6 +2729,53 @@ void main() {
     expect(repository.lastPayload?.clientRunSessionId, 'local-run-1');
     expect(historyStore.activities, isNotEmpty);
     expect(find.byTooltip('Home'), findsOneWidget);
+  });
+
+  testWidgets('Low-data run save reports when remote sync is not accepted', (
+    WidgetTester tester,
+  ) async {
+    final repository = _ResultRunRepository(_lowDataSyncRejectedResult);
+    final authRepository = FakeRuniacAuthRepository()..emitSignedIn();
+    final storage = MemoryLocalPendingRunActivityStore();
+    final historyStore = CurrentSessionActivityHistoryStore(
+      ownerUid: authRepository.currentUser?.uid,
+      persistence: storage,
+    );
+    addTearDown(historyStore.dispose);
+    addTearDown(authRepository.dispose);
+
+    await tester.pumpWidget(
+      RuniacApp(
+        authRepository: authRepository,
+        showSplash: false,
+        enableForegroundGps: false,
+        runRepository: repository,
+        currentSessionActivityHistoryStore: historyStore,
+        activeRunSessionCoordinator: _testActiveRunSessionCoordinator(tester),
+      ),
+    );
+
+    await tester.tap(find.byTooltip('Run'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Start run'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Pause'));
+    await tester.pumpAndSettle();
+    await _finishPausedRun(tester);
+
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Skip to Summary'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Go to Home'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Save run'));
+    await tester.pumpAndSettle();
+
+    expect(repository.completeRunCalls, 1);
+    expect(
+      find.text('Saved locally, but Firestore sync did not complete.'),
+      findsOneWidget,
+    );
+    expect(find.widgetWithText(FilledButton, 'Go to Home'), findsOneWidget);
   });
 
   testWidgets('XP Update Home returns to the app Home root', (

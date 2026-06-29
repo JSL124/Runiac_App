@@ -155,6 +155,18 @@ describe("completeRun callable boundary", () => {
         }),
       "invalid-argument",
     );
+
+    await expectRejectsCode(
+      () =>
+        callCompleteRun({
+          auth: { uid: USER_UID },
+          data: {
+            ...validPayload(),
+            durationSeconds: 100_000,
+          },
+        }),
+      "invalid-argument",
+    );
   });
 
   it("rejects protected backend-owned fields", async () => {

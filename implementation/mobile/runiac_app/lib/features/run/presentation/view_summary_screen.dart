@@ -118,23 +118,19 @@ class ViewSummaryScreen extends StatelessWidget {
             return;
           }
           if (store != null) {
-            unawaited(
-              store
-                  .syncPendingRuns(RunRepositoryScope.of(context))
-                  .catchError(
-                    (Object error, StackTrace stackTrace) =>
-                        FlutterError.reportError(
-                          FlutterErrorDetails(
-                            exception: error,
-                            stack: stackTrace,
-                            library: 'runiac run summary',
-                            context: ErrorDescription(
-                              'syncing a saved low-data run',
-                            ),
-                          ),
-                        ),
-                  ),
+            final didSync = await store.syncPendingRuns(
+              RunRepositoryScope.of(context),
             );
+            if (!context.mounted) {
+              return;
+            }
+            if (!didSync) {
+              _showSoonMessage(
+                context,
+                'Saved locally, but Firestore sync did not complete.',
+              );
+              return;
+            }
           }
         }
       }
