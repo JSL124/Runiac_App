@@ -69,6 +69,24 @@ void main() {
       }
     });
 
+    test('formats real run timestamps with backend millisecond precision', () {
+      final payload = LocalRunCompletionPayload(
+        clientRunSessionId: 'local-session-microsecond-timestamps',
+        startedAt: DateTime.utc(2026, 6, 14, 7, 0, 0, 123, 456),
+        completedAt: DateTime.utc(2026, 6, 14, 7, 25, 0, 789, 123),
+        durationSeconds: 1500,
+        distanceMeters: 3200,
+        avgPaceSecondsPerKm: 469,
+        source: 'local_simulation',
+        routePrivacy: 'private',
+      );
+
+      final request = RunCompletionRequestAdapter.toBackendRequest(payload);
+
+      expect(request['startedAt'], '2026-06-14T07:00:00.123Z');
+      expect(request['completedAt'], '2026-06-14T07:25:00.789Z');
+    });
+
     test('excludes local-only pace graph samples from backend request', () {
       final payload = LocalRunCompletionPayload(
         clientRunSessionId: 'local-session-graph-request-boundary',

@@ -12,6 +12,7 @@ class RuniacAuthGate extends StatefulWidget {
     this.childBuilder,
     this.showAuth = false,
     this.onAuthenticated,
+    this.onAuthStateChanged,
     super.key,
   }) : assert(child != null || childBuilder != null);
 
@@ -20,6 +21,7 @@ class RuniacAuthGate extends StatefulWidget {
   final WidgetBuilder? childBuilder;
   final bool showAuth;
   final ValueChanged<RuniacAuthCompletion>? onAuthenticated;
+  final ValueChanged<RuniacAuthUser?>? onAuthStateChanged;
 
   @override
   State<RuniacAuthGate> createState() => _RuniacAuthGateState();
@@ -55,6 +57,8 @@ class _RuniacAuthGateState extends State<RuniacAuthGate> {
           return const _RuniacAuthGateLoading();
         }
 
+        _notifyAuthStateChanged(snapshot.data);
+
         if (snapshot.data != null) {
           return _buildChild(context);
         }
@@ -71,6 +75,18 @@ class _RuniacAuthGateState extends State<RuniacAuthGate> {
 
   Widget _buildChild(BuildContext context) {
     return widget.childBuilder?.call(context) ?? widget.child!;
+  }
+
+  void _notifyAuthStateChanged(RuniacAuthUser? user) {
+    final callback = widget.onAuthStateChanged;
+    if (callback == null) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        callback(user);
+      }
+    });
   }
 }
 

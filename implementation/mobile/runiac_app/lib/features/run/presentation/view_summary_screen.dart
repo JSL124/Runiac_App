@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -8,12 +9,15 @@ import 'package:runiac_app/core/widgets/runiac_back_header.dart';
 import 'advanced_analysis_screen.dart';
 import '../domain/models/advanced_analysis_snapshot.dart';
 import '../domain/models/complete_run_result.dart';
+import '../domain/models/local_run_completion_payload.dart';
 import '../domain/models/coaching_summary_snapshot.dart';
 import '../domain/models/pace_graph_snapshot.dart';
 import '../domain/models/run_location_sample.dart';
 import '../domain/models/run_route_snapshot.dart';
 import '../domain/models/run_summary_snapshot.dart';
 import '../domain/services/advanced_analysis_snapshot_builder.dart';
+import '../../you/presentation/current_session_activity_history.dart';
+import 'run_repository_scope.dart';
 import 'data/run_completion_demo_snapshots.dart';
 import 'widgets/completed_route_map_surface.dart';
 import 'widgets/advanced_analysis/advanced_analysis_splits_table.dart';
@@ -57,6 +61,7 @@ class ViewSummaryScreen extends StatelessWidget {
     super.key,
     this.summary = defaultRunSummarySnapshot,
     this.completionResult,
+    this.completionPayload,
     this.showXpUpdateAction = true,
     this.mapboxAccessToken,
     this.mapboxBuilder,
@@ -64,6 +69,7 @@ class ViewSummaryScreen extends StatelessWidget {
 
   final RunSummarySnapshot summary;
   final CompleteRunResult? completionResult;
+  final LocalRunCompletionPayload? completionPayload;
   final bool showXpUpdateAction;
   final String? mapboxAccessToken;
   final CompletedRouteMapboxBuilder? mapboxBuilder;
@@ -89,6 +95,48 @@ class ViewSummaryScreen extends StatelessWidget {
       );
       if (!context.mounted || decision == null) {
         return;
+      }
+      if (decision) {
+        final result = completionResult;
+        final payload = completionPayload;
+        if (result != null && payload != null) {
+          final store = CurrentSessionActivityHistoryScope.maybeOf(context);
+          try {
+            await store?.saveCompletedRun(result, payload: payload);
+          } catch (error, stackTrace) {
+            FlutterError.reportError(
+              FlutterErrorDetails(
+                exception: error,
+                stack: stackTrace,
+                library: 'runiac run summary',
+                context: ErrorDescription('saving a low-data run locally'),
+              ),
+            );
+            return;
+          }
+          if (!context.mounted) {
+            return;
+          }
+          if (store != null) {
+            unawaited(
+              store
+                  .syncPendingRuns(RunRepositoryScope.of(context))
+                  .catchError(
+                    (Object error, StackTrace stackTrace) =>
+                        FlutterError.reportError(
+                          FlutterErrorDetails(
+                            exception: error,
+                            stack: stackTrace,
+                            library: 'runiac run summary',
+                            context: ErrorDescription(
+                              'syncing a saved low-data run',
+                            ),
+                          ),
+                        ),
+                  ),
+            );
+          }
+        }
       }
     }
 

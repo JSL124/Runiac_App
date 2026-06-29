@@ -1,41 +1,78 @@
+// ignore_for_file: prefer_initializing_formals
+
+import 'dart:async';
 import 'dart:collection';
 
 import 'package:flutter/widgets.dart';
 
 import '../../run/domain/models/complete_run_result.dart';
+import '../../run/domain/models/local_run_completion_payload.dart';
 import '../../run/domain/models/run_activity_display_model.dart';
 import '../../run/domain/models/run_summary_snapshot.dart';
+import '../../run/domain/repositories/run_repository.dart';
+import '../data/local_pending_run_activity_store.dart';
 import 'data/activity_history_demo_snapshots.dart';
+
+part 'current_session_activity_history_persistence.dart';
+part 'current_session_activity_history_queries.dart';
 
 class SessionCompletedRunActivity {
   const SessionCompletedRunActivity({
     required this.activityId,
+    this.ownerUid,
     required this.display,
     required this.completionResult,
   });
 
   final String activityId;
+  final String? ownerUid;
   final RunActivityDisplayModel display;
   final CompleteRunResult completionResult;
 }
 
 class CurrentSessionActivityHistoryStore extends ChangeNotifier {
-  CurrentSessionActivityHistoryStore({DateTime Function()? now})
-    : _now = now ?? DateTime.now;
+  CurrentSessionActivityHistoryStore({
+    DateTime Function()? now,
+    String? ownerUid,
+    this.persistence,
+  }) : _now = now ?? DateTime.now,
+       _ownerUid = ownerUid;
 
   final DateTime Function() _now;
+  final LocalPendingRunActivityStore? persistence;
   final List<SessionCompletedRunActivity> _activities =
       <SessionCompletedRunActivity>[];
+  Future<void> _pendingStorageMutation = Future<void>.value();
+  Future<void>? _pendingSync;
+  String? _ownerUid;
+  var _ownerGeneration = 0;
+  var _syncRequestSerial = 0;
 
   UnmodifiableListView<SessionCompletedRunActivity> get activities {
     return UnmodifiableListView(_activities);
   }
 
-  void registerCompletedRun(CompleteRunResult result) {
+  String? get ownerUid => _ownerUid;
+
+  void updateOwnerUid(String? ownerUid) {
+    if (_ownerUid == ownerUid) {
+      return;
+    }
+    _ownerUid = ownerUid;
+    _ownerGeneration += 1;
+    if (_activities.isNotEmpty) {
+      _activities.clear();
+      notifyListeners();
+    }
+  }
+
+  void registerCompletedRun(CompleteRunResult result, {String? ownerUid}) {
     final activity = SessionCompletedRunActivity(
       activityId: result.activityId,
+      ownerUid: ownerUid ?? _ownerUid,
       display: RunActivityDisplayModel(
         activityId: result.activityId,
+        clientRunSessionId: result.clientRunSessionId,
         title: result.summary.title,
         timeAgoLabel: result.summary.dateTimeLabel,
         distanceLabel: '${result.summary.distanceKm} km',
@@ -52,144 +89,91 @@ class CurrentSessionActivityHistoryStore extends ChangeNotifier {
     notifyListeners();
   }
 
-  List<RunActivityDisplayModel> recentRunsWithFallback(
-    List<RunActivityDisplayModel> fallback, {
-    int limit = 3,
-  }) {
-    final merged = <RunActivityDisplayModel>[
-      for (final activity in _activities) activity.display,
-      ...fallback,
-    ];
-    final seenIds = <String>{};
-    final deduped = <RunActivityDisplayModel>[];
-
-    for (final activity in merged) {
-      final activityId = activity.activityId;
-      if (activityId != null &&
-          activityId.isNotEmpty &&
-          !seenIds.add(activityId)) {
-        continue;
+  Future<void> saveCompletedRun(
+    CompleteRunResult result, {
+    required LocalRunCompletionPayload payload,
+  }) async {
+    final ownerUid = _requireOwnerUid();
+    final ownerGeneration = _ownerGeneration;
+    final record = LocalPendingRunActivity.fromCompletedRun(
+      ownerUid: ownerUid,
+      result: result,
+      payload: payload,
+    );
+    final storage = persistence;
+    if (storage == null) {
+      if (_ownerUid != ownerUid || _ownerGeneration != ownerGeneration) {
+        return;
       }
-      deduped.add(activity);
-      if (deduped.length == limit) {
-        break;
-      }
+      registerCompletedRun(record.result, ownerUid: record.ownerUid);
+      return;
     }
 
-    return deduped;
+    try {
+      await _enqueueStorageMutation(() async {
+        final existing = await storage.load();
+        final next = <LocalPendingRunActivity>[
+          record,
+          for (final activity in existing)
+            if (activity.ownerUid != record.ownerUid ||
+                activity.clientRunSessionId != record.clientRunSessionId)
+              activity,
+        ];
+        await storage.save(next);
+      });
+      if (_ownerUid != ownerUid || _ownerGeneration != ownerGeneration) {
+        return;
+      }
+      registerCompletedRun(record.result, ownerUid: record.ownerUid);
+    } catch (error, stackTrace) {
+      _reportAsyncError(error, stackTrace, 'saving a completed run locally');
+      rethrow;
+    }
   }
 
-  List<ActivityHistoryMonth> activityHistoryWithFallback(
-    List<ActivityHistoryMonth> fallback,
+  String _requireOwnerUid() {
+    final ownerUid = _ownerUid;
+    if (ownerUid == null || ownerUid.isEmpty) {
+      throw StateError('Cannot persist a run without an authenticated owner.');
+    }
+    return ownerUid;
+  }
+
+  bool _looksLikeRemoteCompletion(CompleteRunResult result) {
+    return result.activityId.startsWith('activity_');
+  }
+
+  Future<T> _enqueueStorageMutation<T>(Future<T> Function() action) {
+    final run = _pendingStorageMutation.then(
+      (_) => action(),
+      onError: (Object _, StackTrace _) => action(),
+    );
+    _pendingStorageMutation = run.then<void>(
+      (_) {},
+      onError: (Object _, StackTrace _) {},
+    );
+    return run;
+  }
+
+  void _reportAsyncError(
+    Object error,
+    StackTrace stackTrace,
+    String operation,
   ) {
-    if (_activities.isEmpty) {
-      return fallback;
-    }
-
-    final sessionActivitiesByMonth = <String, List<RunActivityDisplayModel>>{};
-    for (final activity in _activities) {
-      final label = _monthLabelFor(activity.display.summary);
-      sessionActivitiesByMonth
-          .putIfAbsent(label, () => <RunActivityDisplayModel>[])
-          .add(activity.display);
-    }
-
-    final merged = <ActivityHistoryMonth>[];
-    final fallbackLabels = fallback.map((month) => month.label).toSet();
-
-    for (final entry in sessionActivitiesByMonth.entries) {
-      if (!fallbackLabels.contains(entry.key)) {
-        merged.add(
-          ActivityHistoryMonth(label: entry.key, activities: entry.value),
-        );
-      }
-    }
-
-    for (final month in fallback) {
-      final sessionActivities = sessionActivitiesByMonth[month.label];
-      if (sessionActivities == null) {
-        merged.add(month);
-        continue;
-      }
-
-      merged.add(
-        ActivityHistoryMonth(
-          label: month.label,
-          activities: <RunActivityDisplayModel>[
-            ...sessionActivities,
-            ...month.activities,
-          ],
-        ),
-      );
-    }
-
-    return merged;
+    FlutterError.reportError(
+      FlutterErrorDetails(
+        exception: error,
+        stack: stackTrace,
+        library: 'runiac activity history',
+        context: ErrorDescription(operation),
+      ),
+    );
   }
 
-  String _monthLabelFor(RunSummarySnapshot summary) {
-    final dateLabel = summary.dateLabel.trim();
-    if (dateLabel.toLowerCase() == 'today') {
-      return _formatMonth(_now());
-    }
-
-    final parsedDate = DateTime.tryParse(dateLabel);
-    if (parsedDate != null) {
-      return _formatMonth(parsedDate);
-    }
-
-    final dayMonthYear = RegExp(
-      r'^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})$',
-    ).firstMatch(dateLabel);
-    if (dayMonthYear != null) {
-      final month = _monthNumber(dayMonthYear.group(2)!);
-      final year = int.tryParse(dayMonthYear.group(3)!);
-      if (month != null && year != null) {
-        return _formatMonth(DateTime(year, month));
-      }
-    }
-
-    final monthYear = RegExp(r'^([A-Za-z]+)\s+(\d{4})$').firstMatch(dateLabel);
-    if (monthYear != null) {
-      final month = _monthNumber(monthYear.group(1)!);
-      final year = int.tryParse(monthYear.group(2)!);
-      if (month != null && year != null) {
-        return _formatMonth(DateTime(year, month));
-      }
-    }
-
-    return _formatMonth(_now());
-  }
-
-  static String _formatMonth(DateTime date) {
-    return '${_monthNames[date.month - 1]} ${date.year}';
-  }
-
-  static int? _monthNumber(String name) {
-    final normalized = name.toLowerCase();
-    for (var index = 0; index < _monthNames.length; index++) {
-      if (_monthNames[index].toLowerCase().startsWith(normalized) ||
-          normalized.startsWith(_monthNames[index].toLowerCase())) {
-        return index + 1;
-      }
-    }
-    return null;
+  void _notifyActivityHistoryChanged() {
+    notifyListeners();
   }
 }
-
-const _monthNames = <String>[
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-];
 
 class CurrentSessionActivityHistoryScope
     extends InheritedNotifier<CurrentSessionActivityHistoryStore> {

@@ -38,7 +38,11 @@ import 'package:runiac_app/features/run/presentation/widgets/advanced_analysis/a
 import 'package:runiac_app/features/run/presentation/widgets/completed_route_map_surface.dart';
 import 'package:runiac_app/features/run/presentation/widgets/share_achievement_sheet.dart';
 import 'package:runiac_app/features/run/presentation/xp_update_screen.dart';
+import 'package:runiac_app/features/you/data/local_pending_run_activity_store.dart';
+import 'package:runiac_app/features/you/presentation/current_session_activity_history.dart';
 import 'package:runiac_app/features/you/presentation/data/activity_history_demo_snapshots.dart';
+
+import 'support/fake_runiac_auth_repository.dart';
 
 final _forbiddenRunCompletionCopy = RegExp(
   r'XP|streak|Leaderboard|Activity saved|Saved activity|activity saved|'
@@ -174,6 +178,8 @@ class _ResultRunRepository implements RunRepository {
   final CompleteRunResult result;
   int completeRunCalls = 0;
   LocalRunCompletionPayload? lastPayload;
+  final List<LocalRunCompletionPayload> payloads =
+      <LocalRunCompletionPayload>[];
 
   @override
   Future<CompleteRunResult> completeRun(
@@ -181,6 +187,7 @@ class _ResultRunRepository implements RunRepository {
   ) async {
     completeRunCalls += 1;
     lastPayload = payload;
+    payloads.add(payload);
     return result;
   }
 
@@ -228,6 +235,7 @@ class _FailingRunRepository extends _ResultRunRepository {
   ) async {
     completeRunCalls += 1;
     lastPayload = payload;
+    payloads.add(payload);
     throw StateError('repository unavailable');
   }
 }
@@ -241,6 +249,7 @@ class _DelayedRunRepository extends _ResultRunRepository {
   Future<CompleteRunResult> completeRun(LocalRunCompletionPayload payload) {
     completeRunCalls += 1;
     lastPayload = payload;
+    payloads.add(payload);
     return completer.future;
   }
 }
@@ -254,6 +263,7 @@ class _GeneratedTitleRunRepository extends _ResultRunRepository {
   Future<CompleteRunResult> completeRun(LocalRunCompletionPayload payload) {
     completeRunCalls += 1;
     lastPayload = payload;
+    payloads.add(payload);
     final title = const CompletedRunTitleFormatter().format(
       completedAt: payload.completedAt,
     );
@@ -320,6 +330,47 @@ const _repositoryCompletionResult = CompleteRunResult(
     didLevelUp: false,
   ),
   message: 'Static repository completion accepted.',
+);
+
+const _lowDataCompletionResult = CompleteRunResult(
+  clientRunSessionId: 'low-data-client-session',
+  activityId: 'repo-low-data-activity',
+  summaryId: 'repo-low-data-summary',
+  progressionEventId: 'repo-low-data-progression',
+  validationStatus: 'validated',
+  summary: RunSummarySnapshot(
+    title: 'Low Data Run',
+    dateLabel: 'Today',
+    timeLabel: '8:10 AM',
+    distanceKm: '0.00',
+    avgPace: '--',
+    duration: '0:00',
+    avgHeartRate: '--',
+    calories: '--',
+    routeName: 'Private route',
+    hasSufficientData: false,
+  ),
+  progressionDisplay: ProgressionDisplayModel(
+    xpDelta: 0,
+    countsTowardLeaderboard: false,
+    status: 'deferred',
+    reason: 'progression_formula_deferred',
+  ),
+  xpUpdate: XpUpdateDisplayModel(
+    runnerName: 'Maya',
+    earnedXpLabel: '+0 XP',
+    totalXpLabel: '0 XP',
+    levelLabel: '0',
+    nextLevelLabel: '1',
+    progressTargetLabel: 'Progress deferred',
+    xpRemainingLabel: 'Pending',
+    previousProgressFraction: 0,
+    currentProgressFraction: 0,
+    streakChangeLabel: 'Deferred',
+    streakNote: 'Accepted.',
+    didLevelUp: false,
+  ),
+  message: 'Accepted.',
 );
 
 void main() {
@@ -510,7 +561,7 @@ void main() {
   });
 
   testWidgets(
-    'Run finish uses repository completion result through summary and XP update',
+    'Run finish builds local summary before repository sync decision',
     (WidgetTester tester) async {
       final repository = _ResultRunRepository(_repositoryCompletionResult);
 
@@ -532,42 +583,21 @@ void main() {
       await tester.pumpAndSettle();
       await _finishPausedRun(tester);
 
-      expect(repository.completeRunCalls, 1);
-      expect(repository.lastPayload, isNotNull);
-      expect(repository.lastPayload!.clientRunSessionId, 'local-run-1');
-      expect(repository.lastPayload!.routePrivacy, 'private');
-      expect(repository.lastPayload!.routeLabel, 'Easy local route');
-      expect(repository.lastPayload!.source, 'local_simulation');
+      expect(repository.completeRunCalls, 0);
+      expect(repository.lastPayload, isNull);
       expect(find.text('Cool down'), findsOneWidget);
       expect(find.text('Repository Result Run'), findsNothing);
 
       await tester.tap(find.widgetWithText(OutlinedButton, 'Skip to Summary'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Repository Result Run'), findsOneWidget);
-      expect(find.text('Today · 8:10 AM'), findsOneWidget);
+      expect(find.text('Repository Result Run'), findsNothing);
       expect(find.text('Repository Route'), findsNothing);
-      expect(find.text('5.40'), findsOneWidget);
-      expect(find.text('36:00'), findsOneWidget);
-      expect(find.text('138 bpm'), findsOneWidget);
+      expect(find.text('0.00'), findsOneWidget);
+      expect(find.text('0:00'), findsWidgets);
+      expect(find.text('138 bpm'), findsNothing);
       expect(find.text('Saturday Morning Run'), findsNothing);
-
-      await tester.ensureVisible(
-        find.widgetWithText(FilledButton, 'View XP Update'),
-      );
-      await tester.tap(find.widgetWithText(FilledButton, 'View XP Update'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('XP & Streak Update'), findsOneWidget);
-      expect(find.text('Nice work, Maya!'), findsOneWidget);
-      expect(find.text('+0 XP'), findsOneWidget);
-      expect(find.text('0 XP'), findsOneWidget);
-      expect(find.text('Accepted.'), findsOneWidget);
-      expect(find.text('Nice work, Jinseo!'), findsNothing);
-      expect(
-        find.textContaining(_forbiddenXpUpdateCompetitiveCopy),
-        findsNothing,
-      );
+      expect(find.widgetWithText(FilledButton, 'View XP Update'), findsNothing);
       expect(tester.takeException(), isNull);
     },
   );
@@ -593,16 +623,14 @@ void main() {
     await tester.pumpAndSettle();
     await _finishPausedRun(tester);
 
-    expect(repository.completeRunCalls, 1);
-    expect(repository.lastPayload, isNotNull);
-    expect(repository.generatedTitle, isNotNull);
-    final generatedTitle = repository.generatedTitle!;
-    expect(find.text(generatedTitle), findsNothing);
+    expect(repository.completeRunCalls, 0);
+    expect(repository.lastPayload, isNull);
+    expect(repository.generatedTitle, isNull);
 
     await tester.tap(find.widgetWithText(OutlinedButton, 'Skip to Summary'));
     await tester.pumpAndSettle();
 
-    expect(find.text(generatedTitle), findsOneWidget);
+    expect(find.text('Repository Result Run'), findsNothing);
     expect(find.text('Repository Route'), findsNothing);
     expect(find.text('Saturday Morning Run'), findsNothing);
     expect(tester.takeException(), isNull);
@@ -650,7 +678,7 @@ void main() {
     },
   );
 
-  testWidgets('Run finish keeps retry path when repository completion fails', (
+  testWidgets('Run finish reaches cool down when repository sync would fail', (
     WidgetTester tester,
   ) async {
     final repository = _FailingRunRepository(_repositoryCompletionResult);
@@ -670,18 +698,18 @@ void main() {
     await tester.pumpAndSettle();
     await _finishPausedRun(tester);
 
-    expect(repository.completeRunCalls, 1);
-    expect(repository.lastPayload, isNotNull);
-    expect(find.text('Cool down'), findsNothing);
+    expect(repository.completeRunCalls, 0);
+    expect(repository.lastPayload, isNull);
+    expect(find.text('Cool down'), findsOneWidget);
     expect(
       find.text('Run completion is unavailable. Please try again.'),
-      findsOneWidget,
+      findsNothing,
     );
-    expect(find.text('End'), findsOneWidget);
+    expect(find.text('End'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('Run finish guards duplicate completion while repository waits', (
+  testWidgets('Run finish does not wait for repository before cool down', (
     WidgetTester tester,
   ) async {
     final repository = _DelayedRunRepository(_repositoryCompletionResult);
@@ -702,23 +730,11 @@ void main() {
     await _finishPausedRun(tester);
     await tester.pump();
 
-    expect(repository.completeRunCalls, 1);
-    expect(repository.lastPayload, isNotNull);
-    expect(find.text('Saving'), findsOneWidget);
-    expect(find.text('End'), findsNothing);
-    expect(find.text('Resume'), findsOneWidget);
-
-    await tester.longPress(find.byKey(const Key('hold_to_end_button')));
-    await tester.pump(const Duration(milliseconds: 50));
-
-    expect(repository.completeRunCalls, 1);
-    expect(find.text('Cool down'), findsNothing);
-
-    repository.completer.complete(_repositoryCompletionResult);
-    await tester.pumpAndSettle();
-
-    expect(repository.completeRunCalls, 1);
+    expect(repository.completeRunCalls, 0);
+    expect(repository.lastPayload, isNull);
+    expect(find.text('Saving'), findsNothing);
     expect(find.text('Cool down'), findsOneWidget);
+    expect(find.text('End'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
@@ -2575,6 +2591,103 @@ void main() {
     expect(find.text('XP & Streak Update'), findsNothing);
     expect(find.byTooltip('Home'), findsOneWidget);
     expect(find.byTooltip('Run'), findsOneWidget);
+  });
+
+  testWidgets(
+    'Low-data run discard does not call repository or persist pending',
+    (WidgetTester tester) async {
+      final repository = _ResultRunRepository(_lowDataCompletionResult);
+      final authRepository = FakeRuniacAuthRepository()..emitSignedIn();
+      final storage = MemoryLocalPendingRunActivityStore();
+      final historyStore = CurrentSessionActivityHistoryStore(
+        ownerUid: authRepository.currentUser?.uid,
+        persistence: storage,
+      );
+      addTearDown(historyStore.dispose);
+      addTearDown(authRepository.dispose);
+
+      await tester.pumpWidget(
+        RuniacApp(
+          authRepository: authRepository,
+          showSplash: false,
+          enableForegroundGps: false,
+          runRepository: repository,
+          currentSessionActivityHistoryStore: historyStore,
+          activeRunSessionCoordinator: _testActiveRunSessionCoordinator(tester),
+        ),
+      );
+
+      await tester.tap(find.byTooltip('Run'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Start run'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Pause'));
+      await tester.pumpAndSettle();
+      await _finishPausedRun(tester);
+
+      expect(repository.completeRunCalls, 0);
+
+      await tester.tap(find.widgetWithText(OutlinedButton, 'Skip to Summary'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Go to Home'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(OutlinedButton, 'Discard'));
+      await tester.pumpAndSettle();
+
+      expect(repository.completeRunCalls, 0);
+      expect(await storage.load(), isEmpty);
+      expect(historyStore.activities, isEmpty);
+      expect(find.byTooltip('Home'), findsOneWidget);
+    },
+  );
+
+  testWidgets('Low-data run save calls repository only after Save run', (
+    WidgetTester tester,
+  ) async {
+    final repository = _ResultRunRepository(_lowDataCompletionResult);
+    final authRepository = FakeRuniacAuthRepository()..emitSignedIn();
+    final storage = MemoryLocalPendingRunActivityStore();
+    final historyStore = CurrentSessionActivityHistoryStore(
+      ownerUid: authRepository.currentUser?.uid,
+      persistence: storage,
+    );
+    addTearDown(historyStore.dispose);
+    addTearDown(authRepository.dispose);
+
+    await tester.pumpWidget(
+      RuniacApp(
+        authRepository: authRepository,
+        showSplash: false,
+        enableForegroundGps: false,
+        runRepository: repository,
+        currentSessionActivityHistoryStore: historyStore,
+        activeRunSessionCoordinator: _testActiveRunSessionCoordinator(tester),
+      ),
+    );
+
+    await tester.tap(find.byTooltip('Run'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Start run'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Pause'));
+    await tester.pumpAndSettle();
+    await _finishPausedRun(tester);
+
+    expect(repository.completeRunCalls, 0);
+
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Skip to Summary'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Go to Home'));
+    await tester.pumpAndSettle();
+    expect(repository.completeRunCalls, 0);
+
+    await tester.tap(find.widgetWithText(FilledButton, 'Save run'));
+    await tester.pumpAndSettle();
+
+    expect(repository.completeRunCalls, 1);
+    expect(repository.lastPayload?.clientRunSessionId, 'local-run-1');
+    expect(historyStore.activities, isNotEmpty);
+    expect(find.byTooltip('Home'), findsOneWidget);
   });
 
   testWidgets('XP Update Home returns to the app Home root', (

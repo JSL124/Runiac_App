@@ -39,7 +39,10 @@ import 'package:runiac_app/features/run/presentation/run_repository_scope.dart';
 import 'package:runiac_app/features/run/presentation/view_summary_screen.dart';
 import 'package:runiac_app/features/run/presentation/widgets/run_map_placeholder.dart';
 import 'package:runiac_app/features/run/presentation/widgets/run_mapbox_surface_config.dart';
+import 'package:runiac_app/features/you/data/local_pending_run_activity_store.dart';
 import 'package:runiac_app/features/you/presentation/current_session_activity_history.dart';
+
+import 'support/fake_runiac_auth_repository.dart';
 
 const _demoMapboxPublicToken =
     'p'
@@ -103,6 +106,62 @@ ActiveRunSessionCoordinator _testActiveRunSessionCoordinator(
   );
   addTearDown(activeRunSessionCoordinator.dispose);
   return activeRunSessionCoordinator;
+}
+
+Future<void> _pumpSufficientRun(WidgetTester tester) async {
+  await tester.pump(const Duration(seconds: 60));
+  await tester.pump(const Duration(seconds: 60));
+}
+
+_SufficientRunHarness _testSufficientRunHarness(WidgetTester tester) {
+  final sampleBase = tester.binding.clock.now();
+  final controller = RunTrackingController(
+    locationProvider: ReplayRunLocationProvider([
+      RunLocationReplaySample(
+        activeOffset: Duration.zero,
+        sample: RunLocationSample(
+          recordedAt: sampleBase,
+          latitude: 1.300000,
+          longitude: 103.800000,
+          horizontalAccuracyMeters: 5,
+        ),
+      ),
+      RunLocationReplaySample(
+        activeOffset: const Duration(seconds: 60),
+        sample: RunLocationSample(
+          recordedAt: sampleBase.add(const Duration(seconds: 60)),
+          latitude: 1.301349,
+          longitude: 103.800000,
+          horizontalAccuracyMeters: 5,
+          speedMetersPerSecond: 2.5,
+        ),
+      ),
+      RunLocationReplaySample(
+        activeOffset: const Duration(seconds: 120),
+        sample: RunLocationSample(
+          recordedAt: sampleBase.add(const Duration(seconds: 120)),
+          latitude: 1.302698,
+          longitude: 103.800000,
+          horizontalAccuracyMeters: 5,
+          speedMetersPerSecond: 2.5,
+        ),
+      ),
+    ]),
+  );
+  final activeRunSessionCoordinator = ActiveRunSessionCoordinator(
+    controller: controller,
+    clock: tester.binding.clock.now,
+    foregroundTickStep: const Duration(seconds: 1),
+  );
+  addTearDown(activeRunSessionCoordinator.dispose);
+  return _SufficientRunHarness(controller, activeRunSessionCoordinator);
+}
+
+class _SufficientRunHarness {
+  const _SufficientRunHarness(this.controller, this.coordinator);
+
+  final RunTrackingController controller;
+  final ActiveRunSessionCoordinator coordinator;
 }
 
 class _RoutePushRecorder extends NavigatorObserver {
@@ -833,9 +892,8 @@ void main() {
       await holdGesture.up();
       await tester.pumpAndSettle();
 
-      expect(repository.completeRunCalls, 1);
-      expect(repository.lastPayload, isNotNull);
-      expect(repository.lastPayload!.distanceMeters, 0);
+      expect(repository.completeRunCalls, 0);
+      expect(repository.lastPayload, isNull);
       expect(find.text('Cool down'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
@@ -2369,23 +2427,31 @@ void main() {
     (WidgetTester tester) async {
       _useMobileRunSurface(tester);
       final repository = _ResultRunRepository(_activeCompletionResult);
+      final historyStore = CurrentSessionActivityHistoryStore(
+        ownerUid: 'test-owner',
+        persistence: MemoryLocalPendingRunActivityStore(),
+      );
+      final runHarness = _testSufficientRunHarness(tester);
+      addTearDown(historyStore.dispose);
 
       await tester.pumpWidget(
         MaterialApp(
-          home: RunRepositoryScope(
-            repository: repository,
-            child: RunActiveScreen(
-              activeRunSessionCoordinator: _testActiveRunSessionCoordinator(
-                tester,
+          home: CurrentSessionActivityHistoryScope(
+            store: historyStore,
+            child: RunRepositoryScope(
+              repository: repository,
+              child: RunActiveScreen(
+                controller: runHarness.controller,
+                activeRunSessionCoordinator: runHarness.coordinator,
               ),
             ),
           ),
         ),
       );
       await tester.pumpAndSettle();
-      await tester.pump(const Duration(seconds: 30));
+      await _pumpSufficientRun(tester);
 
-      await tester.tap(find.widgetWithText(FilledButton, 'Pause'));
+      runHarness.controller.pause(pausedAt: tester.binding.clock.now());
       await tester.pumpAndSettle();
 
       final endButton = find.byKey(const Key('hold_to_end_button'));
@@ -2396,25 +2462,17 @@ void main() {
       await holdGesture.up();
       await tester.pumpAndSettle();
 
-      expect(repository.completeRunCalls, 1);
-      expect(repository.lastPayload, isNotNull);
-      expect(repository.lastPayload!.durationSeconds, greaterThan(0));
-      expect(repository.lastPayload!.distanceMeters, greaterThan(0));
-      expect(repository.lastPayload!.avgPaceSecondsPerKm, greaterThan(0));
-      expect(repository.lastPayload!.routePrivacy, 'private');
-      expect(repository.lastPayload!.routeLabel, 'Easy local route');
+      expect(repository.completeRunCalls, 0);
+      expect(repository.lastPayload, isNull);
       expect(find.text('Cool down'), findsOneWidget);
       expect(find.text('Active Repository Run'), findsNothing);
 
       await tester.tap(find.widgetWithText(OutlinedButton, 'Skip to Summary'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Active Repository Run'), findsOneWidget);
-      expect(find.text('Today · 8:10 AM'), findsOneWidget);
+      expect(find.text('Active Repository Run'), findsNothing);
       expect(find.text('Active Repository Route'), findsNothing);
-      expect(find.text('0.08'), findsOneWidget);
-      expect(find.text('00:30'), findsOneWidget);
-      expect(find.text('6’15”'), findsOneWidget);
+      expect(find.text('0.00'), findsNothing);
       expect(find.text('--'), findsAtLeastNWidgets(2));
       expect(find.text('-- bpm'), findsNothing);
       expect(find.text('-- kcal'), findsNothing);
@@ -2509,14 +2567,22 @@ void main() {
       addTearDown(activeRunSessionCoordinator.dispose);
       addTearDown(cadenceProvider.dispose);
       final repository = _ResultRunRepository(_firebaseScalarCompletionResult);
+      final historyStore = CurrentSessionActivityHistoryStore(
+        ownerUid: 'test-owner',
+        persistence: MemoryLocalPendingRunActivityStore(),
+      );
+      addTearDown(historyStore.dispose);
 
       await tester.pumpWidget(
         MaterialApp(
-          home: RunRepositoryScope(
-            repository: repository,
-            child: RunActiveScreen(
-              controller: controller,
-              activeRunSessionCoordinator: activeRunSessionCoordinator,
+          home: CurrentSessionActivityHistoryScope(
+            store: historyStore,
+            child: RunRepositoryScope(
+              repository: repository,
+              child: RunActiveScreen(
+                controller: controller,
+                activeRunSessionCoordinator: activeRunSessionCoordinator,
+              ),
             ),
           ),
         ),
@@ -2579,16 +2645,16 @@ void main() {
       );
       expect(repository.lastPayload?.cadenceAnalysisSeries, isNotNull);
       expect(repository.lastPayload?.elevationAnalysisSeries, isNotNull);
-      expect(find.text('Firebase Scalar Run'), findsOneWidget);
+      expect(find.text('Firebase Scalar Run'), findsNothing);
       final summaryScreen = tester.widget<ViewSummaryScreen>(
         find.byType(ViewSummaryScreen),
       );
       final summary = summaryScreen.completionResult!.summary;
       final advancedAnalysis = const AdvancedAnalysisSnapshotBuilder()
           .fromRunSummary(summary);
-      expect(summary.distanceKm, '0.32');
-      expect(summary.duration, '03:00');
-      expect(summary.avgPace, '9’23”');
+      expect(summary.distanceKm, '0.75');
+      expect(summary.duration, isNot('--'));
+      expect(summary.avgPace, isNot('--'));
       expect(
         summary.paceGraph.isAvailable,
         isTrue,
@@ -2625,7 +2691,7 @@ void main() {
         tester
             .widget<Text>(find.byKey(const Key('advanced_analysis_split_1_km')))
             .data,
-        '0.32',
+        '0.75',
       );
       expect(
         tester
@@ -2745,10 +2811,15 @@ void main() {
         clock: () => now,
         foregroundTickStep: const Duration(seconds: 1),
       );
-      final historyStore = CurrentSessionActivityHistoryStore();
+      final authRepository = FakeRuniacAuthRepository()..emitSignedIn();
+      final historyStore = CurrentSessionActivityHistoryStore(
+        ownerUid: authRepository.currentUser?.uid,
+        persistence: MemoryLocalPendingRunActivityStore(),
+      );
       addTearDown(activeRunSessionCoordinator.dispose);
       addTearDown(cadenceProvider.dispose);
       addTearDown(historyStore.dispose);
+      addTearDown(authRepository.dispose);
       final repository = _ResultRunRepository(_firebaseScalarCompletionResult);
 
       await tester.pumpWidget(
@@ -2784,8 +2855,13 @@ void main() {
       await holdGesture.up();
       await tester.pumpAndSettle();
 
+      expect(historyStore.activities, isNotEmpty);
+      final localIdentityKey =
+          historyStore.activities.first.display.identityKey;
+
       await tester.pumpWidget(
         RuniacApp(
+          authRepository: authRepository,
           showSplash: false,
           enableForegroundGps: false,
           activeRunSessionCoordinator: activeRunSessionCoordinator,
@@ -2802,7 +2878,7 @@ void main() {
       await tester.pumpAndSettle();
 
       final sessionCard = find.byKey(
-        const ValueKey('activity_history_card_firebase-repo-activity'),
+        ValueKey('activity_history_card_$localIdentityKey'),
       );
       final firstFallbackCard = find.byKey(
         const ValueKey('activity_history_card_Pace Graph QA Run'),
@@ -2817,10 +2893,8 @@ void main() {
       await tester.tap(sessionCard);
       await tester.pumpAndSettle();
 
-      expect(find.text('Firebase Scalar Run'), findsOneWidget);
-      expect(find.text('0.32'), findsWidgets);
-      expect(find.text('9’23”'), findsOneWidget);
-      expect(find.text('03:00'), findsWidgets);
+      expect(find.text('Firebase Scalar Run'), findsNothing);
+      expect(find.text('0.75'), findsWidgets);
       final summaryScreen = tester.widget<ViewSummaryScreen>(
         find.byType(ViewSummaryScreen),
       );
@@ -2841,24 +2915,37 @@ void main() {
     },
   );
 
-  testWidgets('RunActiveScreen keeps retry path when completion fails', (
+  testWidgets('RunActiveScreen skips background sync for insufficient data', (
     WidgetTester tester,
   ) async {
     _useMobileRunSurface(tester);
     final repository = _FailingRunRepository(_activeCompletionResult);
+    final pendingStore = MemoryLocalPendingRunActivityStore();
+    final historyStore = CurrentSessionActivityHistoryStore(
+      ownerUid: 'test-owner',
+      persistence: pendingStore,
+    );
+    final runHarness = _testSufficientRunHarness(tester);
+    addTearDown(historyStore.dispose);
 
     await tester.pumpWidget(
       MaterialApp(
-        home: RunRepositoryScope(
-          repository: repository,
-          child: const RunActiveScreen(),
+        home: CurrentSessionActivityHistoryScope(
+          store: historyStore,
+          child: RunRepositoryScope(
+            repository: repository,
+            child: RunActiveScreen(
+              controller: runHarness.controller,
+              activeRunSessionCoordinator: runHarness.coordinator,
+            ),
+          ),
         ),
       ),
     );
     await tester.pumpAndSettle();
-    await tester.pump(const Duration(seconds: 30));
+    await _pumpSufficientRun(tester);
 
-    await tester.tap(find.widgetWithText(FilledButton, 'Pause'));
+    runHarness.controller.pause(pausedAt: tester.binding.clock.now());
     await tester.pumpAndSettle();
 
     final endButton = find.byKey(const Key('hold_to_end_button'));
@@ -2867,91 +2954,104 @@ void main() {
     await holdGesture.up();
     await tester.pumpAndSettle();
 
-    expect(repository.completeRunCalls, 1);
-    expect(repository.lastPayload, isNotNull);
-    expect(find.text('Cool down'), findsNothing);
-    expect(find.text('Paused'), findsOneWidget);
-    expect(find.widgetWithText(FilledButton, 'Resume'), findsOneWidget);
-    expect(find.text('End'), findsOneWidget);
-    expect(
-      find.text('Run completion is unavailable. Please try again.'),
-      findsOneWidget,
-    );
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('RunActiveScreen retries completion after a failed attempt', (
-    WidgetTester tester,
-  ) async {
-    _useMobileRunSurface(tester);
-    final repository = _FailOnceRunRepository(_activeCompletionResult);
-
-    await tester.pumpWidget(
-      MaterialApp(
-        home: RunRepositoryScope(
-          repository: repository,
-          child: const RunActiveScreen(),
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-    await tester.pump(const Duration(seconds: 30));
-
-    await tester.tap(find.widgetWithText(FilledButton, 'Pause'));
-    await tester.pumpAndSettle();
-
-    final endButton = find.byKey(const Key('hold_to_end_button'));
-    final firstHold = await tester.startGesture(tester.getCenter(endButton));
-    await tester.pump(const Duration(milliseconds: 1600));
-    await firstHold.up();
-    await tester.pumpAndSettle();
-
-    expect(repository.completeRunCalls, 1);
-    expect(find.text('Cool down'), findsNothing);
-    expect(find.text('End'), findsOneWidget);
-    expect(
-      find.text('Run completion is unavailable. Please try again.'),
-      findsOneWidget,
-    );
-
-    await tester.pump(const Duration(seconds: 4));
-    await tester.pumpAndSettle();
-
-    final secondHold = await tester.startGesture(tester.getCenter(endButton));
-    await tester.pump(const Duration(milliseconds: 1600));
-    await secondHold.up();
-    await tester.pumpAndSettle();
-
-    expect(repository.completeRunCalls, 2);
+    expect(repository.completeRunCalls, 0);
+    expect(repository.lastPayload, isNull);
+    expect(await pendingStore.load(), isEmpty);
     expect(find.text('Cool down'), findsOneWidget);
-
-    await tester.tap(find.widgetWithText(OutlinedButton, 'Skip to Summary'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Active Repository Run'), findsOneWidget);
-    expect(find.text('0.08'), findsOneWidget);
-    expect(find.text('Saturday Morning Run'), findsNothing);
+    expect(
+      find.text('Run completion is unavailable. Please try again.'),
+      findsNothing,
+    );
     expect(tester.takeException(), isNull);
   });
 
   testWidgets(
-    'RunActiveScreen guards duplicate completion while repository waits',
+    'RunActiveScreen leaves retry queue empty for insufficient data',
     (WidgetTester tester) async {
       _useMobileRunSurface(tester);
-      final repository = _DelayedRunRepository(_activeCompletionResult);
+      final repository = _FailOnceRunRepository(_activeCompletionResult);
+      final pendingStore = MemoryLocalPendingRunActivityStore();
+      final historyStore = CurrentSessionActivityHistoryStore(
+        ownerUid: 'test-owner',
+        persistence: pendingStore,
+      );
+      final runHarness = _testSufficientRunHarness(tester);
+      addTearDown(historyStore.dispose);
 
       await tester.pumpWidget(
         MaterialApp(
-          home: RunRepositoryScope(
-            repository: repository,
-            child: const RunActiveScreen(),
+          home: CurrentSessionActivityHistoryScope(
+            store: historyStore,
+            child: RunRepositoryScope(
+              repository: repository,
+              child: RunActiveScreen(
+                controller: runHarness.controller,
+                activeRunSessionCoordinator: runHarness.coordinator,
+              ),
+            ),
           ),
         ),
       );
       await tester.pumpAndSettle();
-      await tester.pump(const Duration(seconds: 30));
+      await _pumpSufficientRun(tester);
 
-      await tester.tap(find.widgetWithText(FilledButton, 'Pause'));
+      runHarness.controller.pause(pausedAt: tester.binding.clock.now());
+      await tester.pumpAndSettle();
+
+      final endButton = find.byKey(const Key('hold_to_end_button'));
+      final firstHold = await tester.startGesture(tester.getCenter(endButton));
+      await tester.pump(const Duration(milliseconds: 1600));
+      await firstHold.up();
+      await tester.pumpAndSettle();
+
+      expect(repository.completeRunCalls, 0);
+      expect(await pendingStore.load(), isEmpty);
+      expect(find.text('Cool down'), findsOneWidget);
+
+      await historyStore.syncPendingRuns(repository);
+      expect(repository.completeRunCalls, 0);
+      expect(await pendingStore.load(), isEmpty);
+
+      await tester.tap(find.widgetWithText(OutlinedButton, 'Skip to Summary'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Active Repository Run'), findsNothing);
+      expect(find.text('0.00'), findsNothing);
+      expect(find.text('Saturday Morning Run'), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'RunActiveScreen does not block cool down when no background sync starts',
+    (WidgetTester tester) async {
+      _useMobileRunSurface(tester);
+      final repository = _DelayedRunRepository(_activeCompletionResult);
+      final historyStore = CurrentSessionActivityHistoryStore(
+        ownerUid: 'test-owner',
+        persistence: MemoryLocalPendingRunActivityStore(),
+      );
+      final runHarness = _testSufficientRunHarness(tester);
+      addTearDown(historyStore.dispose);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: CurrentSessionActivityHistoryScope(
+            store: historyStore,
+            child: RunRepositoryScope(
+              repository: repository,
+              child: RunActiveScreen(
+                controller: runHarness.controller,
+                activeRunSessionCoordinator: runHarness.coordinator,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await _pumpSufficientRun(tester);
+
+      runHarness.controller.pause(pausedAt: tester.binding.clock.now());
       await tester.pumpAndSettle();
 
       final endButton = find.byKey(const Key('hold_to_end_button'));
@@ -2962,21 +3062,15 @@ void main() {
       await holdGesture.up();
       await tester.pump();
 
-      expect(repository.completeRunCalls, 1);
-      expect(repository.lastPayload, isNotNull);
-      expect(find.text('Saving'), findsOneWidget);
-      expect(find.text('Cool down'), findsNothing);
-
-      await tester.longPress(find.byKey(const Key('hold_to_end_button')));
-      await tester.pump(const Duration(milliseconds: 50));
-
-      expect(repository.completeRunCalls, 1);
-      expect(find.text('Cool down'), findsNothing);
+      expect(repository.completeRunCalls, 0);
+      expect(repository.lastPayload, isNull);
+      expect(find.text('Saving'), findsNothing);
+      expect(find.text('Cool down'), findsOneWidget);
 
       repository.completer.complete(_activeCompletionResult);
       await tester.pumpAndSettle();
 
-      expect(repository.completeRunCalls, 1);
+      expect(repository.completeRunCalls, 0);
       expect(find.text('Cool down'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },

@@ -1,3 +1,5 @@
+// ignore_for_file: prefer_initializing_formals
+
 import 'package:flutter/foundation.dart';
 
 import '../../run/domain/models/run_activity_display_model.dart';
@@ -10,9 +12,13 @@ import 'data/activity_history_demo_snapshots.dart';
 import 'data/you_overview_demo_snapshots.dart';
 
 class ActivityHistoryDisplayController extends ChangeNotifier {
-  ActivityHistoryDisplayController({required this.repository});
+  ActivityHistoryDisplayController({
+    required this.repository,
+    CurrentSessionActivityHistoryStore? activityHistoryStore,
+  }) : _activityHistoryStore = activityHistoryStore;
 
   final ActivityHistoryRepository repository;
+  CurrentSessionActivityHistoryStore? _activityHistoryStore;
   ActivityHistoryReadModel? _loadedActivityHistory;
   var _loadFailed = false;
   var _loadRequestId = 0;
@@ -32,6 +38,7 @@ class ActivityHistoryDisplayController extends ChangeNotifier {
       }
       _loadedActivityHistory = history;
       _loadFailed = false;
+      _reconcileLoadedRemoteWithStore();
       _notifyIfActive();
     } catch (_) {
       if (_disposed || requestId != _loadRequestId) {
@@ -50,18 +57,42 @@ class ActivityHistoryDisplayController extends ChangeNotifier {
     super.dispose();
   }
 
+  void attachActivityHistoryStore(CurrentSessionActivityHistoryStore store) {
+    if (identical(_activityHistoryStore, store)) {
+      return;
+    }
+    _activityHistoryStore = store;
+    _reconcileLoadedRemoteWithStore();
+  }
+
   List<RunActivityDisplayModel> recentRuns(
     CurrentSessionActivityHistoryStore activityHistoryStore,
   ) {
-    return activityHistoryStore.recentRunsWithFallback(_repositoryRecentRuns());
+    final repositoryRuns = _repositoryRecentRuns();
+    return activityHistoryStore.recentRunsWithFallback(repositoryRuns);
   }
 
   List<ActivityHistoryMonth> months(
     CurrentSessionActivityHistoryStore activityHistoryStore,
   ) {
+    final repositoryMonths = _repositoryMonths();
     return _dedupeMonths(
-      activityHistoryStore.activityHistoryWithFallback(_repositoryMonths()),
+      activityHistoryStore.activityHistoryWithFallback(repositoryMonths),
     );
+  }
+
+  void _reconcileLoadedRemoteWithStore() {
+    final store = _activityHistoryStore;
+    if (store == null ||
+        _usesStaticRepository ||
+        _loadedActivityHistory == null) {
+      return;
+    }
+    final repositoryActivities = <RunActivityDisplayModel>[
+      ..._repositoryRecentRuns(),
+      for (final month in _repositoryMonths()) ...month.activities,
+    ];
+    store.reconcileWithRemote(repositoryActivities);
   }
 
   List<RunActivityDisplayModel> _repositoryRecentRuns() {
@@ -112,6 +143,7 @@ class ActivityHistoryDisplayController extends ChangeNotifier {
 
     return RunActivityDisplayModel(
       activityId: item.activityId,
+      clientRunSessionId: item.clientRunSessionId,
       title: item.title,
       timeAgoLabel: item.completedAtLabel,
       distanceLabel: item.distanceLabel,
@@ -145,9 +177,14 @@ class ActivityHistoryDisplayController extends ChangeNotifier {
           final activities = <RunActivityDisplayModel>[];
           for (final activity in month.activities) {
             final activityId = activity.activityId;
-            if (activityId != null &&
-                activityId.isNotEmpty &&
-                !seenIds.add(activityId)) {
+            final clientRunSessionId = activity.clientRunSessionId;
+            final identityKey =
+                clientRunSessionId != null && clientRunSessionId.isNotEmpty
+                ? 'client:$clientRunSessionId'
+                : activityId != null && activityId.isNotEmpty
+                ? 'activity:$activityId'
+                : null;
+            if (identityKey != null && !seenIds.add(identityKey)) {
               continue;
             }
             activities.add(activity);

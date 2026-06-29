@@ -1,6 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:runiac_app/features/run/domain/models/complete_run_result.dart';
+import 'package:runiac_app/features/run/domain/models/local_run_completion_payload.dart';
+import 'package:runiac_app/features/run/domain/models/run_summary_snapshot.dart';
+import 'package:runiac_app/features/run/domain/models/xp_update_display_model.dart';
+import 'package:runiac_app/features/you/data/local_pending_run_activity_store.dart';
 import 'package:runiac_app/features/you/domain/models/activity_history_read_model.dart';
 import 'package:runiac_app/features/you/domain/repositories/activity_history_repository.dart';
 import 'package:runiac_app/features/you/data/static_activity_history_repository.dart';
@@ -10,6 +15,8 @@ import 'package:runiac_app/features/you/presentation/data/activity_history_demo_
 import 'package:runiac_app/features/you/presentation/data/you_overview_demo_snapshots.dart';
 
 void main() {
+  const ownerUid = 'owner-1';
+
   group('ActivityHistoryDisplayController', () {
     test(
       'does not replace authenticated empty history with demo rows',
@@ -18,7 +25,7 @@ void main() {
           repository: _ImmediateActivityHistoryRepository(_emptyHistory()),
         );
         addTearDown(controller.dispose);
-        final store = CurrentSessionActivityHistoryStore();
+        final store = CurrentSessionActivityHistoryStore(ownerUid: ownerUid);
         addTearDown(store.dispose);
 
         await controller.load();
@@ -28,12 +35,54 @@ void main() {
       },
     );
 
+    test(
+      'removes persisted pending run when remote history has matching client session',
+      () async {
+        final storage = MemoryLocalPendingRunActivityStore();
+        final store = CurrentSessionActivityHistoryStore(
+          ownerUid: ownerUid,
+          persistence: storage,
+        );
+        final controller = ActivityHistoryDisplayController(
+          repository: _ImmediateActivityHistoryRepository(
+            ActivityHistoryReadModel(
+              recentRuns: const <ActivityHistoryItemReadModel>[
+                ActivityHistoryItemReadModel(
+                  activityId: 'firestore-activity-1',
+                  clientRunSessionId: 'client-session-1',
+                  title: 'Completed Run',
+                  completedAtLabel: '14/6/26',
+                  distanceLabel: '0.00 km',
+                  paceLabel: '--',
+                  durationLabel: '0:02',
+                ),
+              ],
+              months: const <ActivityHistoryMonthReadModel>[],
+            ),
+          ),
+          activityHistoryStore: store,
+        );
+        addTearDown(controller.dispose);
+        addTearDown(store.dispose);
+        await store.saveCompletedRun(
+          _completionResult('client-session-1'),
+          payload: _payload('client-session-1'),
+        );
+
+        await controller.load();
+        await Future<void>.delayed(Duration.zero);
+
+        expect(store.activities, isEmpty);
+        expect(await storage.load(), isEmpty);
+      },
+    );
+
     test('keeps demo rows for the static repository path', () async {
       final controller = ActivityHistoryDisplayController(
         repository: const StaticActivityHistoryRepository(),
       );
       addTearDown(controller.dispose);
-      final store = CurrentSessionActivityHistoryStore();
+      final store = CurrentSessionActivityHistoryStore(ownerUid: ownerUid);
       addTearDown(store.dispose);
 
       await controller.load();
@@ -65,6 +114,64 @@ void main() {
 
       await expectLater(load, completes);
     });
+
+    test(
+      'removes local pending run when load receives matching client session',
+      () async {
+        final store = CurrentSessionActivityHistoryStore(ownerUid: ownerUid);
+        final controller = ActivityHistoryDisplayController(
+          repository: _ImmediateActivityHistoryRepository(
+            ActivityHistoryReadModel(
+              recentRuns: const <ActivityHistoryItemReadModel>[
+                ActivityHistoryItemReadModel(
+                  activityId: 'firestore-activity-1',
+                  clientRunSessionId: 'client-session-1',
+                  title: 'Completed Run',
+                  completedAtLabel: '14/6/26',
+                  distanceLabel: '0.00 km',
+                  paceLabel: '--',
+                  durationLabel: '0:02',
+                ),
+              ],
+              months: const <ActivityHistoryMonthReadModel>[],
+            ),
+          ),
+          activityHistoryStore: store,
+        );
+        addTearDown(controller.dispose);
+        addTearDown(store.dispose);
+        store.registerCompletedRun(_completionResult('client-session-1'));
+
+        await controller.load();
+
+        expect(store.activities, isEmpty);
+        expect(controller.recentRuns(store).map((run) => run.activityId), [
+          'firestore-activity-1',
+        ]);
+      },
+    );
+
+    test(
+      'recent runs and months projection do not notify the local pending store',
+      () async {
+        final controller = ActivityHistoryDisplayController(
+          repository: _ImmediateActivityHistoryRepository(_emptyHistory()),
+        );
+        addTearDown(controller.dispose);
+        final store = CurrentSessionActivityHistoryStore(ownerUid: ownerUid);
+        addTearDown(store.dispose);
+        var notificationCount = 0;
+        store.addListener(() => notificationCount++);
+        store.registerCompletedRun(_completionResult('client-session-1'));
+        notificationCount = 0;
+
+        controller.recentRuns(store);
+        controller.months(store);
+
+        expect(notificationCount, 0);
+        expect(store.activities, isNotEmpty);
+      },
+    );
   });
 }
 
@@ -92,5 +199,51 @@ ActivityHistoryReadModel _emptyHistory() {
   return ActivityHistoryReadModel(
     recentRuns: const <ActivityHistoryItemReadModel>[],
     months: const <ActivityHistoryMonthReadModel>[],
+  );
+}
+
+CompleteRunResult _completionResult(String clientRunSessionId) {
+  return CompleteRunResult(
+    clientRunSessionId: clientRunSessionId,
+    activityId: 'local-$clientRunSessionId',
+    summary: const RunSummarySnapshot(
+      title: 'Completed Run',
+      dateLabel: 'Today',
+      timeLabel: '7:25 AM',
+      distanceKm: '0.00',
+      avgPace: '--',
+      duration: '0:02',
+      avgHeartRate: '--',
+      calories: '--',
+      routeName: 'Private route',
+      hasSufficientData: false,
+    ),
+    xpUpdate: const XpUpdateDisplayModel(
+      runnerName: 'Runiac Runner',
+      earnedXpLabel: '+0 XP',
+      totalXpLabel: 'Deferred by backend',
+      levelLabel: 'Pending',
+      nextLevelLabel: 'Pending',
+      progressTargetLabel: 'Pending',
+      xpRemainingLabel: 'Formula pending',
+      previousProgressFraction: 0,
+      currentProgressFraction: 0,
+      streakChangeLabel: 'Deferred',
+      streakNote: 'Backend validation accepted the run.',
+      didLevelUp: false,
+    ),
+  );
+}
+
+LocalRunCompletionPayload _payload(String clientRunSessionId) {
+  return LocalRunCompletionPayload(
+    clientRunSessionId: clientRunSessionId,
+    startedAt: DateTime.utc(2026, 6, 14, 9),
+    completedAt: DateTime.utc(2026, 6, 14, 9, 0, 2),
+    durationSeconds: 2,
+    distanceMeters: 0,
+    avgPaceSecondsPerKm: 0,
+    source: 'mobile',
+    routePrivacy: 'private',
   );
 }

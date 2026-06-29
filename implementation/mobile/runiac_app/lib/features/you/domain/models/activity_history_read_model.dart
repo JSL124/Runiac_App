@@ -23,6 +23,7 @@ class ActivityHistoryMonthReadModel {
 class ActivityHistoryItemReadModel {
   const ActivityHistoryItemReadModel({
     required this.activityId,
+    this.clientRunSessionId,
     required this.title,
     required this.completedAtLabel,
     required this.distanceLabel,
@@ -33,6 +34,7 @@ class ActivityHistoryItemReadModel {
   });
 
   final String activityId;
+  final String? clientRunSessionId;
   final String title;
   final String completedAtLabel;
   final String distanceLabel;

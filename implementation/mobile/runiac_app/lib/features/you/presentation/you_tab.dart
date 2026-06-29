@@ -58,6 +58,14 @@ class _YouTabState extends State<YouTab> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _activityHistoryController.attachActivityHistoryStore(
+      CurrentSessionActivityHistoryScope.of(context),
+    );
+  }
+
+  @override
   void didUpdateWidget(covariant YouTab oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.activityHistoryRepository !=
@@ -68,6 +76,9 @@ class _YouTabState extends State<YouTab> {
       _activityHistoryController = ActivityHistoryDisplayController(
         repository: widget.activityHistoryRepository,
       )..addListener(_handleActivityHistoryChanged);
+      _activityHistoryController.attachActivityHistoryStore(
+        CurrentSessionActivityHistoryScope.of(context),
+      );
       _activityHistoryController.load();
     }
   }

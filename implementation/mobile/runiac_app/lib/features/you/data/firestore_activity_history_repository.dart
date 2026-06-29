@@ -126,6 +126,7 @@ class FirestoreActivityHistoryRepository implements ActivityHistoryRepository {
       endedAt: endedAt,
       item: ActivityHistoryItemReadModel(
         activityId: _readOptionalString(data, 'activityId') ?? document.id,
+        clientRunSessionId: _readOptionalString(data, 'clientRunSessionId'),
         title: _readOptionalString(data, 'title') ?? 'Completed Run',
         completedAtLabel: scalar.dateLabel,
         distanceLabel: '${scalar.distanceKm} km',

@@ -118,6 +118,35 @@ void main() {
     expect(find.text('Protected app shell'), findsNothing);
   });
 
+  testWidgets('auth state callback emits null when user signs out', (
+    tester,
+  ) async {
+    final repository = FakeRuniacAuthRepository();
+    addTearDown(repository.dispose);
+    final ownerEvents = <String?>[];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RuniacAuthGate(
+          authRepository: repository,
+          showAuth: true,
+          onAuthStateChanged: (user) => ownerEvents.add(user?.uid),
+          child: const Text('Protected app shell'),
+        ),
+      ),
+    );
+
+    repository.emitSignedIn();
+    await tester.pumpAndSettle();
+
+    repository.emitSignedOut();
+    await tester.pumpAndSettle();
+
+    expect(ownerEvents, contains('test-auth-user-1'));
+    expect(ownerEvents.last, isNull);
+    expect(find.text('Protected app shell'), findsNothing);
+  });
+
   testWidgets('signed-in repository user reaches app shell after restart', (
     tester,
   ) async {

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'core/theme/runiac_theme.dart';
@@ -19,6 +21,7 @@ import 'features/run/presentation/active_run_session_coordinator.dart';
 import 'features/run/presentation/run_open_intent.dart';
 import 'features/run/presentation/run_repository_scope.dart';
 import 'features/you/data/static_activity_history_repository.dart';
+import 'features/you/data/local_pending_run_activity_store.dart';
 import 'features/you/domain/repositories/activity_history_repository.dart';
 import 'features/onboarding/presentation/runiac_onboarding_gate.dart';
 import 'features/shell/runiac_shell.dart';
@@ -87,7 +90,14 @@ class _RuniacAppState extends State<RuniacApp> {
         widget.currentSessionActivityHistoryStore == null;
     _activityHistoryStore =
         widget.currentSessionActivityHistoryStore ??
-        CurrentSessionActivityHistoryStore();
+        CurrentSessionActivityHistoryStore(
+          ownerUid: widget.authRepository.currentUser?.uid,
+          persistence: const SharedPreferencesLocalPendingRunActivityStore(),
+        );
+    final initialOwnerUid = widget.authRepository.currentUser?.uid;
+    if (initialOwnerUid != null) {
+      unawaited(_restoreAndSyncPendingRuns(ownerUid: initialOwnerUid));
+    }
     _ownsGeneratedPlanStore = widget.currentSessionGeneratedPlanStore == null;
     _generatedPlanStore =
         widget.currentSessionGeneratedPlanStore ??
@@ -102,6 +112,7 @@ class _RuniacAppState extends State<RuniacApp> {
         oldWidget.profileRepository != widget.profileRepository) {
       _authCompletion = null;
       _personalProfileDraft = widget.initialPersonalProfileDraft;
+      _scheduleActivityHistoryOwnerSync(widget.authRepository.currentUser?.uid);
     }
   }
 
@@ -140,6 +151,9 @@ class _RuniacAppState extends State<RuniacApp> {
                     _authStateError = null;
                   });
                 },
+                onAuthStateChanged: (user) {
+                  _scheduleActivityHistoryOwnerSync(user?.uid);
+                },
                 childBuilder: (_) => _buildPostAuthFlow(),
               ),
             ),
@@ -149,7 +163,31 @@ class _RuniacAppState extends State<RuniacApp> {
     );
   }
 
+  Future<void> _restoreAndSyncPendingRuns({required String ownerUid}) async {
+    try {
+      if (_activityHistoryStore.ownerUid != ownerUid) {
+        return;
+      }
+      await _activityHistoryStore.restoreSavedActivities();
+      if (_activityHistoryStore.ownerUid != ownerUid) {
+        return;
+      }
+      await _activityHistoryStore.syncPendingRuns(widget.runRepository);
+    } catch (error, stackTrace) {
+      FlutterError.reportError(
+        FlutterErrorDetails(
+          exception: error,
+          stack: stackTrace,
+          library: 'runiac app',
+          context: ErrorDescription('restoring and syncing pending runs'),
+        ),
+      );
+    }
+  }
+
   Widget _buildPostAuthFlow() {
+    _scheduleActivityHistoryOwnerSync(widget.authRepository.currentUser?.uid);
+
     if (_shouldShowPersonalProfile) {
       final currentUser = widget.authRepository.currentUser;
       if (currentUser == null) {
@@ -174,6 +212,24 @@ class _RuniacAppState extends State<RuniacApp> {
     }
 
     return _buildOnboardingAndShell();
+  }
+
+  void _scheduleActivityHistoryOwnerSync(String? ownerUid) {
+    if (_activityHistoryStore.ownerUid == ownerUid) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      if (_activityHistoryStore.ownerUid == ownerUid) {
+        return;
+      }
+      _activityHistoryStore.updateOwnerUid(ownerUid);
+      if (ownerUid != null) {
+        unawaited(_restoreAndSyncPendingRuns(ownerUid: ownerUid));
+      }
+    });
   }
 
   Widget _buildOnboardingAndShell() {

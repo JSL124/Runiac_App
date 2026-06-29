@@ -22,6 +22,16 @@ class RunCompletionRequestAdapter {
   }
 
   static String _toBackendIsoString(DateTime value) {
-    return value.toUtc().toIso8601String();
+    final utc = value.toUtc();
+    final millisecondDate = DateTime.utc(
+      utc.year,
+      utc.month,
+      utc.day,
+      utc.hour,
+      utc.minute,
+      utc.second,
+      utc.millisecond,
+    );
+    return millisecondDate.toIso8601String();
   }
 }

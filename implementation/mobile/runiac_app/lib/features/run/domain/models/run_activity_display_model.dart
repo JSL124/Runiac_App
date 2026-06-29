@@ -5,6 +5,7 @@ import 'run_summary_snapshot.dart';
 class RunActivityDisplayModel {
   const RunActivityDisplayModel({
     this.activityId,
+    this.clientRunSessionId,
     required this.title,
     required this.timeAgoLabel,
     required this.distanceLabel,
@@ -15,6 +16,7 @@ class RunActivityDisplayModel {
   });
 
   final String? activityId;
+  final String? clientRunSessionId;
   final String title;
   final String timeAgoLabel;
   final String distanceLabel;
@@ -24,5 +26,5 @@ class RunActivityDisplayModel {
   final CompleteRunResult? completionResult;
 
   String get sourceLabel => summary.sourceLabel;
-  String get identityKey => activityId ?? title;
+  String get identityKey => clientRunSessionId ?? activityId ?? title;
 }

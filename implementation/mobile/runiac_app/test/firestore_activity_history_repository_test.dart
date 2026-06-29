@@ -12,6 +12,7 @@ void main() {
           _runSummaryDocument(
             id: 'summary-june-2',
             ownerUid: 'test-auth-user-1',
+            clientRunSessionId: 'client-session-june-2',
             endedAt: DateTime(2026, 6, 14, 7, 25),
             distanceMeters: 3200,
             durationSeconds: 1500,
@@ -53,6 +54,10 @@ void main() {
         'summary-june-1',
         'summary-may-1',
       ]);
+      expect(
+        history.recentRuns.first.clientRunSessionId,
+        'client-session-june-2',
+      );
       expect(history.recentRuns.first.title, 'Authenticated Recovery Run');
       expect(history.recentRuns[1].title, 'Completed Run');
       expect(history.recentRuns.first.completedAtLabel, '14/6/26');
@@ -200,6 +205,7 @@ ActivityHistorySummaryDocument _runSummaryDocument({
   required String id,
   required String ownerUid,
   required DateTime endedAt,
+  String? clientRunSessionId,
   int distanceMeters = 3200,
   int durationSeconds = 1500,
   int averagePaceSecondsPerKm = 469,
@@ -215,6 +221,9 @@ ActivityHistorySummaryDocument _runSummaryDocument({
   };
   if (title != null) {
     data['title'] = title;
+  }
+  if (clientRunSessionId != null) {
+    data['clientRunSessionId'] = clientRunSessionId;
   }
   if (routeLabel != null) {
     data['routeLabel'] = routeLabel;

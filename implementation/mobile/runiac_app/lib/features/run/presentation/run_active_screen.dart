@@ -1,8 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/runiac_colors.dart';
+import '../data/static_run_repository.dart';
 import '../domain/models/complete_run_result.dart';
-import '../domain/models/run_completion_error.dart';
 import '../domain/models/run_route_snapshot.dart';
 import '../domain/models/run_tracking_state.dart';
 import '../domain/repositories/run_repository.dart';
@@ -102,30 +104,9 @@ class _RunActiveScreenState extends State<RunActiveScreen> {
     final route = RunRouteSnapshot.fromMapViewState(_controller.mapViewState);
     setState(() => _isCompletingRun = true);
 
-    CompleteRunResult result;
-    try {
-      result = await _repository.completeRun(payload);
-    } on RunCompletionException catch (error) {
-      if (!mounted) {
-        return;
-      }
-      setState(() => _isCompletingRun = false);
-      _showCompletionFailureMessage(
-        error.isRetryable
-            ? 'Run completion is unavailable. Please try again.'
-            : 'Run details could not be submitted.',
-      );
-      return;
-    } catch (_) {
-      if (!mounted) {
-        return;
-      }
-      setState(() => _isCompletingRun = false);
-      _showCompletionFailureMessage(
-        'Run completion is unavailable. Please try again.',
-      );
-      return;
-    }
+    CompleteRunResult result = await const StaticRunRepository().completeRun(
+      payload,
+    );
 
     if (!mounted) {
       return;
@@ -138,26 +119,59 @@ class _RunActiveScreenState extends State<RunActiveScreen> {
         resultClientRunSessionId: result.clientRunSessionId,
       ),
     );
-    CurrentSessionActivityHistoryScope.maybeOf(
+    final activityHistoryStore = CurrentSessionActivityHistoryScope.maybeOf(
       context,
-    )?.registerCompletedRun(result);
+    );
+    if (result.summary.hasSufficientData && activityHistoryStore != null) {
+      var didSaveLocally = false;
+      try {
+        await activityHistoryStore.saveCompletedRun(result, payload: payload);
+        didSaveLocally = true;
+      } catch (error, stackTrace) {
+        FlutterError.reportError(
+          FlutterErrorDetails(
+            exception: error,
+            stack: stackTrace,
+            library: 'runiac run tracking',
+            context: ErrorDescription('saving a completed run locally'),
+          ),
+        );
+      }
+      if (!mounted) {
+        return;
+      }
+      if (didSaveLocally) {
+        unawaited(
+          activityHistoryStore
+              .syncPendingRuns(_repository)
+              .catchError(
+                (Object error, StackTrace stackTrace) =>
+                    FlutterError.reportError(
+                      FlutterErrorDetails(
+                        exception: error,
+                        stack: stackTrace,
+                        library: 'runiac run tracking',
+                        context: ErrorDescription('syncing a completed run'),
+                      ),
+                    ),
+              ),
+        );
+      }
+    }
     _activeRunSessionCoordinator.stopForegroundTicker();
     _controller.finish(completedAt: completedAt);
     Navigator.of(context).pushReplacement(
       MaterialPageRoute<void>(
-        builder: (context) => CoolDownScreen(completionResult: result),
+        builder: (context) => CoolDownScreen(
+          completionResult: result,
+          completionPayload: payload,
+        ),
       ),
     );
   }
 
   RunRepository get _repository {
     return widget.repository ?? RunRepositoryScope.of(context);
-  }
-
-  void _showCompletionFailureMessage(String message) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
   }
 
   void _updateFollowQaMapState() {
