@@ -185,12 +185,6 @@ final youCardLikeDecoration = BoxDecoration(
   border: Border.all(color: RuniacColors.cardBorder),
 );
 
-final youMoreActivitiesDecoration = BoxDecoration(
-  color: RuniacColors.white,
-  borderRadius: BorderRadius.circular(999),
-  border: Border.all(color: RuniacColors.cardBorder, width: 1.2),
-);
-
 final youSoftIconDecoration = BoxDecoration(
   color: RuniacColors.innerTileSurface,
   borderRadius: BorderRadius.circular(youInnerRadius),
@@ -248,12 +242,6 @@ abstract final class YouTextStyles {
   static const button = TextStyle(
     color: RuniacColors.textPrimary,
     fontSize: 13,
-    fontWeight: FontWeight.w900,
-  );
-
-  static const moreActivities = TextStyle(
-    color: RuniacColors.primaryBlue,
-    fontSize: 17,
     fontWeight: FontWeight.w900,
   );
 

@@ -80,15 +80,17 @@ class _YouProgressSurfaceState extends State<YouProgressSurface> {
         const SizedBox(height: 18),
         _RecentRunningHeader(onSeeAll: widget.onMoreActivities),
         const SizedBox(height: 12),
-        for (final run in widget.runs) ...[
-          CompactRunActivityCard(
-            key: ValueKey('recent_running_card_${run.identityKey}'),
-            activity: run,
-            onTap: () => widget.onRunSelected(run),
-          ),
-          const SizedBox(height: 10),
-        ],
-        _MoreActivitiesButton(onTap: widget.onMoreActivities),
+        if (widget.runs.isEmpty)
+          const _RecentRunningEmptyState()
+        else
+          for (final run in widget.runs) ...[
+            CompactRunActivityCard(
+              key: ValueKey('recent_running_card_${run.identityKey}'),
+              activity: run,
+              onTap: () => widget.onRunSelected(run),
+            ),
+            const SizedBox(height: 10),
+          ],
       ],
     );
   }
@@ -116,6 +118,30 @@ class _RecentRunningHeader extends StatelessWidget {
           child: const Text('See all', style: YouTextStyles.seeAll),
         ),
       ],
+    );
+  }
+}
+
+class _RecentRunningEmptyState extends StatelessWidget {
+  const _RecentRunningEmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: const ValueKey('recent_running_empty_state'),
+      padding: const EdgeInsets.all(16),
+      decoration: youCardLikeDecoration,
+      child: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          YouCardHeader(Icons.directions_run, 'Start your first run'),
+          SizedBox(height: 8),
+          Text(
+            "Start a run when you're ready. Your recent activities will appear here.",
+            style: YouTextStyles.body,
+          ),
+        ],
+      ),
     );
   }
 }
@@ -382,37 +408,6 @@ class _DateCell extends StatelessWidget {
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _MoreActivitiesButton extends StatelessWidget {
-  const _MoreActivitiesButton({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return RuniacTappableSurface(
-      key: const ValueKey('more_activities_button'),
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(999),
-      height: 54,
-      alignment: Alignment.center,
-      decoration: youMoreActivitiesDecoration,
-      child: const Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text('More Activities', style: YouTextStyles.moreActivities),
-          SizedBox(width: 10),
-          Icon(
-            Icons.chevron_right_rounded,
-            key: ValueKey('more_activities_chevron'),
-            color: RuniacColors.primaryBlue,
-            size: 26,
-          ),
-        ],
       ),
     );
   }

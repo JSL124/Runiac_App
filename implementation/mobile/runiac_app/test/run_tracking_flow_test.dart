@@ -2795,9 +2795,10 @@ void main() {
       await tester.tap(find.byTooltip('You'));
       await tester.pumpAndSettle();
 
-      await tester.ensureVisible(find.text('More Activities'));
+      final seeAll = find.byKey(const ValueKey('recent_running_see_all'));
+      await Scrollable.ensureVisible(tester.element(seeAll), alignment: 0.55);
       await tester.pumpAndSettle();
-      await tester.tap(find.text('More Activities'));
+      await tester.tap(seeAll);
       await tester.pumpAndSettle();
 
       final sessionCard = find.byKey(

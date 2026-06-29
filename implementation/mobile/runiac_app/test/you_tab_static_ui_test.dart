@@ -57,9 +57,14 @@ ActiveRunSessionCoordinator _testActiveRunSessionCoordinator(
 
 Future<void> _openActivityHistoryFromYou(WidgetTester tester) async {
   await _openYouTab(tester);
-  await tester.ensureVisible(find.text('More Activities'));
+  await _tapRecentRunningSeeAll(tester);
+}
+
+Future<void> _tapRecentRunningSeeAll(WidgetTester tester) async {
+  final seeAll = find.byKey(const ValueKey('recent_running_see_all'));
+  await Scrollable.ensureVisible(tester.element(seeAll), alignment: 0.55);
   await tester.pumpAndSettle();
-  await tester.tap(find.text('More Activities'));
+  await tester.tap(seeAll);
   await tester.pumpAndSettle();
 }
 
@@ -803,11 +808,9 @@ void main() {
       ),
       findsNWidgets(6),
     );
-    expect(find.text('More Activities'), findsOneWidget);
-    expect(
-      find.byKey(const ValueKey('more_activities_chevron')),
-      findsOneWidget,
-    );
+    expect(find.text('More Activities'), findsNothing);
+    expect(find.byKey(const ValueKey('more_activities_button')), findsNothing);
+    expect(find.byKey(const ValueKey('more_activities_chevron')), findsNothing);
     expect(find.text('Run Level'), findsNothing);
     expect(find.text('Level 12 Runner'), findsNothing);
     expect(find.text('Keep showing up at a comfortable pace.'), findsNothing);
@@ -902,10 +905,7 @@ void main() {
         lessThan(tester.getTopLeft(retainedStaticCard).dy),
       );
 
-      await tester.ensureVisible(find.text('More Activities'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('More Activities'));
-      await tester.pumpAndSettle();
+      await _tapRecentRunningSeeAll(tester);
 
       expect(find.text('Current Session'), findsNothing);
       expect(find.text('June 2026'), findsOneWidget);
@@ -1102,10 +1102,7 @@ void main() {
         findsNothing,
       );
 
-      await tester.ensureVisible(find.text('More Activities'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('More Activities'));
-      await tester.pumpAndSettle();
+      await _tapRecentRunningSeeAll(tester);
 
       final routeBackedHistoryCard = find.byKey(
         const ValueKey('activity_history_card_low-data-route'),
@@ -1351,14 +1348,11 @@ void main() {
   });
 
   testWidgets(
-    'More Activities opens Activity History with shell navigation preserved',
+    'Recent Running See all opens Activity History with shell navigation preserved',
     (WidgetTester tester) async {
       await _openYouTab(tester);
 
-      await tester.ensureVisible(find.text('More Activities'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('More Activities'));
-      await tester.pumpAndSettle();
+      await _tapRecentRunningSeeAll(tester);
 
       expect(find.text('Activity History'), findsOneWidget);
       expect(find.text('Review your runs at your own pace.'), findsNothing);
@@ -1377,10 +1371,7 @@ void main() {
   ) async {
     await _openYouTab(tester);
 
-    await tester.ensureVisible(find.text('More Activities'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('More Activities'));
-    await tester.pumpAndSettle();
+    await _tapRecentRunningSeeAll(tester);
 
     expect(find.text('June 2026'), findsOneWidget);
     expect(find.text('May 2026'), findsOneWidget);

@@ -42,26 +42,43 @@ void main() {
       expect(find.text('22:56'), findsOneWidget);
     });
 
-    testWidgets(
-      'Authenticated empty history does not show demo activity rows',
-      (tester) async {
-        final repository = _FakeActivityHistoryRepository.empty();
+    testWidgets('Authenticated empty history does not show demo activity rows', (
+      tester,
+    ) async {
+      final repository = _FakeActivityHistoryRepository.empty();
 
-        await _openActivityHistoryFromYou(
-          tester,
-          activityHistoryRepository: repository,
-        );
+      await _openYouTab(tester, activityHistoryRepository: repository);
 
-        expect(repository.loadCount, 1);
-        expect(find.text('Activity History'), findsOneWidget);
-        expect(find.text('Authenticated Recovery Run'), findsNothing);
-        expect(find.text('Easy Morning Jog'), findsNothing);
-        expect(
-          find.text('We could not load your activity history.'),
-          findsNothing,
-        );
-      },
-    );
+      final seeAll = find.byKey(const ValueKey('recent_running_see_all'));
+      await Scrollable.ensureVisible(tester.element(seeAll), alignment: 0.55);
+      await tester.pumpAndSettle();
+
+      expect(repository.loadCount, 1);
+      expect(find.text('Recent Running'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('recent_running_empty_state')),
+        findsOneWidget,
+      );
+      expect(find.text('Start your first run'), findsOneWidget);
+      expect(
+        find.text(
+          "Start a run when you're ready. Your recent activities will appear here.",
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('More Activities'), findsNothing);
+      expect(find.text('Authenticated Recovery Run'), findsNothing);
+      expect(find.text('Easy Morning Jog'), findsNothing);
+      expect(
+        find.text('We could not load your activity history.'),
+        findsNothing,
+      );
+
+      await tester.tap(seeAll);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Activity History'), findsOneWidget);
+    });
 
     testWidgets(
       'Authenticated Activity History summary keeps XP update hidden',
@@ -156,9 +173,10 @@ Future<void> _openActivityHistoryFromYou(
     tester,
     activityHistoryRepository: activityHistoryRepository,
   );
-  await tester.ensureVisible(find.text('More Activities'));
+  final seeAll = find.byKey(const ValueKey('recent_running_see_all'));
+  await Scrollable.ensureVisible(tester.element(seeAll), alignment: 0.55);
   await tester.pumpAndSettle();
-  await tester.tap(find.text('More Activities'));
+  await tester.tap(seeAll);
   await tester.pumpAndSettle();
 }
 
