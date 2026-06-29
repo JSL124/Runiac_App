@@ -3,6 +3,7 @@ part of 'local_pending_run_activity_store.dart';
 enum RunSyncState {
   localSaved,
   pendingSync,
+  syncDeferred,
   syncAccepted,
   syncRetryableFailure,
   syncNonRetryableFailure,
@@ -49,7 +50,9 @@ class LocalPendingRunActivity {
   final String? lastSyncFailureMessage;
 
   bool get shouldAttemptSync {
-    return !syncAccepted && syncState != RunSyncState.syncNonRetryableFailure;
+    return !syncAccepted &&
+        syncState != RunSyncState.syncDeferred &&
+        syncState != RunSyncState.syncNonRetryableFailure;
   }
 
   LocalPendingRunActivity copyWith({
@@ -103,6 +106,19 @@ class LocalPendingRunActivity {
       lastSyncAttemptedAt: lastSyncAttemptedAt,
       lastSyncFailureCode: code,
       lastSyncFailureMessage: message,
+    );
+  }
+
+  LocalPendingRunActivity markSyncDeferred() {
+    return LocalPendingRunActivity(
+      ownerUid: ownerUid,
+      clientRunSessionId: clientRunSessionId,
+      result: result,
+      payload: payload,
+      syncAccepted: false,
+      syncState: RunSyncState.syncDeferred,
+      syncAttemptCount: syncAttemptCount,
+      lastSyncAttemptedAt: lastSyncAttemptedAt,
     );
   }
 

@@ -100,19 +100,29 @@ extension CurrentSessionActivityHistoryPersistence
         }
         syncedResult = await repository.completeRun(syncingRecord.payload);
       } catch (error, stackTrace) {
+        final failure = _classifySyncFailure(error);
         await _markPendingRunSyncFailed(
           storage: storage,
           ownerUid: ownerUid,
           clientRunSessionId: record.clientRunSessionId,
-          failure: _classifySyncFailure(error),
+          failure: failure,
         );
-        _reportAsyncError(error, stackTrace, 'syncing a pending run');
+        _reportAsyncError(
+          StateError('${failure.message} (${failure.code})'),
+          stackTrace,
+          'syncing a pending run',
+        );
         return;
       }
       if (_ownerUid != ownerUid || _ownerGeneration != ownerGeneration) {
         return;
       }
       if (!_looksLikeRemoteCompletion(syncedResult)) {
+        await _markPendingRunSyncDeferred(
+          storage: storage,
+          ownerUid: ownerUid,
+          clientRunSessionId: record.clientRunSessionId,
+        );
         continue;
       }
       try {
@@ -333,19 +343,50 @@ extension CurrentSessionActivityHistoryPersistence
     });
   }
 
+  Future<LocalPendingRunActivity?> _markPendingRunSyncDeferred({
+    required LocalPendingRunActivityStore storage,
+    required String ownerUid,
+    required String clientRunSessionId,
+  }) {
+    return _enqueueStorageMutation(() async {
+      final saved = await storage.load();
+      LocalPendingRunActivity? updatedRecord;
+      final next = <LocalPendingRunActivity>[
+        for (final record in saved)
+          if (record.ownerUid == ownerUid &&
+              record.clientRunSessionId == clientRunSessionId)
+            updatedRecord = record.markSyncDeferred()
+          else
+            record,
+      ];
+      if (updatedRecord != null) {
+        await storage.save(next);
+        _upsertSyncDebugSnapshot(updatedRecord);
+      }
+      return updatedRecord;
+    });
+  }
+
   _RunSyncFailure _classifySyncFailure(Object error) {
     if (error is RunCompletionException) {
       return _RunSyncFailure(
         code: error.code,
-        message: error.message,
+        message: _safeSyncFailureMessage(error.code),
         isRetryable: error.isRetryable,
       );
     }
     return _RunSyncFailure(
       code: 'unknown',
-      message: error.toString(),
+      message: _safeSyncFailureMessage('unknown'),
       isRetryable: true,
     );
+  }
+
+  String _safeSyncFailureMessage(String code) {
+    if (code == 'unknown') {
+      return 'Run sync failed.';
+    }
+    return 'Run sync failed with $code.';
   }
 
   void _replaceCompletedRun(CompleteRunResult result, {String? ownerUid}) {

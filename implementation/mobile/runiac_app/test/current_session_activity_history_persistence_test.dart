@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:runiac_app/features/run/data/static_run_repository.dart';
 import 'package:runiac_app/features/run/domain/models/cadence_analysis_series.dart';
 import 'package:runiac_app/features/run/domain/models/complete_run_result.dart';
 import 'package:runiac_app/features/run/domain/models/elevation_analysis_series.dart';
@@ -378,24 +377,32 @@ void main() {
     },
   );
 
-  test('static repository sync does not mark pending run accepted', () async {
+  test('local-result sync is deferred and not resubmitted', () async {
     final storage = MemoryLocalPendingRunActivityStore();
     final store = CurrentSessionActivityHistoryStore(
       ownerUid: ownerUid,
       persistence: storage,
     );
     addTearDown(store.dispose);
+    final repository = _LocalResultRunRepository();
 
     await store.saveCompletedRun(
       _completionResult('static-sync-client-session'),
       payload: _payload('static-sync-client-session'),
     );
-    await store.syncPendingRuns(const StaticRunRepository());
+    await store.syncPendingRuns(repository);
+    await store.syncPendingRuns(repository);
 
     expect((await storage.load()).map((run) => run.clientRunSessionId), [
       'static-sync-client-session',
     ]);
     expect((await storage.load()).map((run) => run.syncAccepted), [false]);
+    expect((await storage.load()).map((run) => run.syncState), [
+      RunSyncState.syncDeferred,
+    ]);
+    expect(repository.completedClientRunSessionIds, [
+      'static-sync-client-session',
+    ]);
   });
 
   test('concurrent sync calls submit a pending run once', () async {
@@ -490,6 +497,36 @@ void main() {
 
       expect(await storage.load(), isEmpty);
       expect(store.activities, isEmpty);
+    },
+  );
+
+  test(
+    'owner change clears debug snapshots after scalar reconcile removes run',
+    () async {
+      final storage = MemoryLocalPendingRunActivityStore();
+      final store = CurrentSessionActivityHistoryStore(
+        ownerUid: ownerUid,
+        persistence: storage,
+      );
+      addTearDown(store.dispose);
+      final repository = _RecordingRunRepository();
+
+      await store.saveCompletedRun(
+        _completionResult('debug-owner-client-session'),
+        payload: _payload('debug-owner-client-session'),
+      );
+      await store.syncPendingRuns(repository);
+
+      store.reconcileWithRemote([
+        _remoteActivity('debug-owner-client-session'),
+      ]);
+      await Future<void>.delayed(Duration.zero);
+      expect(store.activities, isEmpty);
+      expect(store.syncDebugSnapshots, isNotEmpty);
+
+      store.updateOwnerUid(otherOwnerUid);
+
+      expect(store.syncDebugSnapshots, isEmpty);
     },
   );
 
@@ -640,10 +677,7 @@ void main() {
     final saved = await storage.load();
     expect(saved.single.syncState, RunSyncState.syncRetryableFailure);
     expect(saved.single.lastSyncFailureCode, 'unknown');
-    expect(
-      saved.single.lastSyncFailureMessage,
-      contains('repository unavailable'),
-    );
+    expect(saved.single.lastSyncFailureMessage, 'Run sync failed.');
     expect(
       store.syncDebugSnapshots.single.syncState,
       RunSyncState.syncRetryableFailure,
@@ -661,6 +695,7 @@ void main() {
       addTearDown(store.dispose);
       final repository = _RunCompletionErrorRepository(
         code: 'invalid-argument',
+        message: 'callable rejected owner=owner-1 token=secret-123',
         isRetryable: false,
       );
 
@@ -678,6 +713,12 @@ void main() {
       expect(saved.single.syncAccepted, isFalse);
       expect(saved.single.syncState, RunSyncState.syncNonRetryableFailure);
       expect(saved.single.lastSyncFailureCode, 'invalid-argument');
+      expect(
+        saved.single.lastSyncFailureMessage,
+        'Run sync failed with invalid-argument.',
+      );
+      expect(saved.single.lastSyncFailureMessage, isNot(contains('owner-1')));
+      expect(saved.single.lastSyncFailureMessage, isNot(contains('secret')));
       expect(
         store.syncDebugSnapshots.single.syncState,
         RunSyncState.syncNonRetryableFailure,
@@ -1112,13 +1153,25 @@ class _RejectingRunRepository extends _RecordingRunRepository {
   }
 }
 
+class _LocalResultRunRepository extends _RecordingRunRepository {
+  @override
+  Future<CompleteRunResult> completeRun(
+    LocalRunCompletionPayload payload,
+  ) async {
+    completedClientRunSessionIds.add(payload.clientRunSessionId);
+    return _completionResult(payload.clientRunSessionId);
+  }
+}
+
 class _RunCompletionErrorRepository extends _RecordingRunRepository {
   _RunCompletionErrorRepository({
     required this.code,
+    required this.message,
     required this.isRetryable,
   });
 
   final String code;
+  final String message;
   final bool isRetryable;
 
   @override
@@ -1128,7 +1181,7 @@ class _RunCompletionErrorRepository extends _RecordingRunRepository {
     completedClientRunSessionIds.add(payload.clientRunSessionId);
     throw RunCompletionException(
       code: code,
-      message: 'callable rejected ${payload.clientRunSessionId}',
+      message: message,
       isRetryable: isRetryable,
     );
   }

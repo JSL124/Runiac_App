@@ -91,7 +91,8 @@ class CurrentSessionActivityHistoryStore extends ChangeNotifier {
     }
     _ownerUid = ownerUid;
     _ownerGeneration += 1;
-    if (_activities.isNotEmpty) {
+    final hadState = _activities.isNotEmpty || _syncDebugSnapshots.isNotEmpty;
+    if (hadState) {
       _activities.clear();
       _syncDebugSnapshots.clear();
       notifyListeners();
