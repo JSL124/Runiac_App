@@ -29,7 +29,7 @@ extension CurrentSessionActivityHistoryPersistence
     }
   }
 
-  Future<bool> syncPendingRuns(RunRepository repository) async {
+  Future<void> syncPendingRuns(RunRepository repository) async {
     _syncRequestSerial += 1;
     final activeSync = _pendingSync;
     if (activeSync != null) {
@@ -37,7 +37,7 @@ extension CurrentSessionActivityHistoryPersistence
     }
 
     final sync = _drainPendingSyncRequests(repository);
-    late final Future<bool> trackedSync;
+    late final Future<void> trackedSync;
     trackedSync = sync.whenComplete(() {
       if (identical(_pendingSync, trackedSync)) {
         _pendingSync = null;
@@ -47,24 +47,22 @@ extension CurrentSessionActivityHistoryPersistence
     return trackedSync;
   }
 
-  Future<bool> _drainPendingSyncRequests(RunRepository repository) async {
+  Future<void> _drainPendingSyncRequests(RunRepository repository) async {
     var completedSerial = 0;
-    var syncAccepted = true;
     while (completedSerial != _syncRequestSerial) {
       completedSerial = _syncRequestSerial;
-      syncAccepted = await _syncPendingRuns(repository) && syncAccepted;
+      await _syncPendingRuns(repository);
     }
-    return syncAccepted;
   }
 
-  Future<bool> _syncPendingRuns(RunRepository repository) async {
+  Future<void> _syncPendingRuns(RunRepository repository) async {
     final storage = persistence;
     if (storage == null) {
-      return false;
+      return;
     }
     final ownerUid = _ownerUid;
     if (ownerUid == null) {
-      return false;
+      return;
     }
     final ownerGeneration = _ownerGeneration;
 
@@ -72,31 +70,28 @@ extension CurrentSessionActivityHistoryPersistence
       () => _loadPendingActivities(storage),
     );
     if (_ownerUid != ownerUid || _ownerGeneration != ownerGeneration) {
-      return false;
+      return;
     }
     final pendingRecords = records
         .where((record) => record.ownerUid == ownerUid && !record.syncAccepted)
         .toList(growable: false);
-    if (pendingRecords.isEmpty) {
-      return true;
-    }
 
     for (final record in pendingRecords) {
       CompleteRunResult syncedResult;
       try {
         if (_ownerUid != ownerUid || _ownerGeneration != ownerGeneration) {
-          return false;
+          return;
         }
         syncedResult = await repository.completeRun(record.payload);
       } catch (error, stackTrace) {
         _reportAsyncError(error, stackTrace, 'syncing a pending run');
-        return false;
+        return;
       }
       if (_ownerUid != ownerUid || _ownerGeneration != ownerGeneration) {
-        return false;
+        return;
       }
       if (!_looksLikeRemoteCompletion(syncedResult)) {
-        return false;
+        continue;
       }
       try {
         await _markPendingRunSyncAccepted(
@@ -106,10 +101,9 @@ extension CurrentSessionActivityHistoryPersistence
         );
       } catch (error, stackTrace) {
         _reportAsyncError(error, stackTrace, 'saving pending run sync state');
-        return false;
+        return;
       }
     }
-    return true;
   }
 
   void reconcileWithRemote(Iterable<RunActivityDisplayModel> remoteActivities) {

@@ -121,10 +121,9 @@ void main() {
       _completionResult('sync-client-session'),
       payload: _payload('sync-client-session'),
     );
-    final didSync = await store.syncPendingRuns(repository);
+    await store.syncPendingRuns(repository);
 
     expect(repository.completedClientRunSessionIds, ['sync-client-session']);
-    expect(didSync, isTrue);
     expect((await storage.load()).map((run) => run.clientRunSessionId), [
       'sync-client-session',
     ]);
@@ -146,9 +145,8 @@ void main() {
       _completionResult('static-sync-client-session'),
       payload: _payload('static-sync-client-session'),
     );
-    final didSync = await store.syncPendingRuns(const StaticRunRepository());
+    await store.syncPendingRuns(const StaticRunRepository());
 
-    expect(didSync, isFalse);
     expect((await storage.load()).map((run) => run.clientRunSessionId), [
       'static-sync-client-session',
     ]);

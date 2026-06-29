@@ -43,7 +43,7 @@ class CurrentSessionActivityHistoryStore extends ChangeNotifier {
   final List<SessionCompletedRunActivity> _activities =
       <SessionCompletedRunActivity>[];
   Future<void> _pendingStorageMutation = Future<void>.value();
-  Future<bool>? _pendingSync;
+  Future<void>? _pendingSync;
   String? _ownerUid;
   var _ownerGeneration = 0;
   var _syncRequestSerial = 0;
