@@ -14,6 +14,9 @@ final class RuniacPhoneMotionCadenceChannel: NSObject, FlutterStreamHandler {
   private var eventSink: FlutterEventSink?
   private var baselineSteps: Int?
   private var baselineDate: Date?
+  private var acceptedCadenceCount = 0
+  private var filteredCadenceCount = 0
+  private var nativeErrorCount = 0
 
   init(pedometer: CMPedometer = CMPedometer()) {
     self.pedometer = pedometer
@@ -34,7 +37,7 @@ final class RuniacPhoneMotionCadenceChannel: NSObject, FlutterStreamHandler {
       case "isAvailable":
         result(CMPedometer.isStepCountingAvailable())
       case "requestPermission":
-        result("granted")
+        result(Self.permissionStatus())
       default:
         result(FlutterMethodNotImplemented)
       }
@@ -47,21 +50,45 @@ final class RuniacPhoneMotionCadenceChannel: NSObject, FlutterStreamHandler {
     eventSink events: @escaping FlutterEventSink
   ) -> FlutterError? {
     guard CMPedometer.isStepCountingAvailable() else {
+      events(Self.diagnosticEvent(
+        reason: "unavailable",
+        availabilityStatus: "unavailable"
+      ))
       events(FlutterEndOfEventStream)
       return nil
     }
 
     baselineSteps = nil
     baselineDate = nil
+    acceptedCadenceCount = 0
+    filteredCadenceCount = 0
+    nativeErrorCount = 0
     eventSink = events
     pedometer.startUpdates(from: Date()) { [weak self] data, error in
-      guard let self = self, error == nil, let data = data else { return }
+      guard let self = self else { return }
+      if let error = error {
+        self.nativeErrorCount += 1
+        self.emitDiagnostic(
+          reason: "nativeError",
+          errorCode: String(describing: type(of: error)),
+          errorMessage: error.localizedDescription
+        )
+        return
+      }
+      guard let data = data else {
+        self.emitDiagnostic(reason: "nilData")
+        return
+      }
       guard let cadence = self.cadence(from: data) else { return }
+      self.acceptedCadenceCount += 1
       DispatchQueue.main.async {
         events([
+          "type": "sample",
           "recordedAtMillis": self.millisecondsSinceEpoch(Date()),
           "stepsPerMinute": cadence,
           "confidence": "estimated",
+          "acceptedCadenceCount": self.acceptedCadenceCount,
+          "filteredCadenceCount": self.filteredCadenceCount,
         ])
       }
     }
@@ -110,9 +137,88 @@ final class RuniacPhoneMotionCadenceChannel: NSObject, FlutterStreamHandler {
     guard cadence >= Self.minimumCadenceSpm,
           cadence <= Self.maximumCadenceSpm
     else {
+      filteredCadenceCount += 1
+      emitDiagnostic(reason: "filteredOutOfRange", cadence: cadence)
       return nil
     }
     return cadence
+  }
+
+  private static func permissionStatus() -> String {
+    if #available(iOS 11.0, *) {
+      switch CMPedometer.authorizationStatus() {
+      case .authorized:
+        return "granted"
+      case .denied:
+        return "denied"
+      case .restricted:
+        return "restricted"
+      case .notDetermined:
+        return "unknown"
+      @unknown default:
+        return "unknown"
+      }
+    }
+    return "unknown"
+  }
+
+  private func emitDiagnostic(
+    reason: String,
+    cadence: Int? = nil,
+    errorCode: String? = nil,
+    errorMessage: String? = nil
+  ) {
+    let event = Self.diagnosticEvent(
+      reason: reason,
+      availabilityStatus: "available",
+      cadence: cadence,
+      acceptedCadenceCount: acceptedCadenceCount,
+      filteredCadenceCount: filteredCadenceCount,
+      nativeErrorCount: nativeErrorCount,
+      errorCode: errorCode,
+      errorMessage: errorMessage
+    )
+    DispatchQueue.main.async { [weak self] in
+      self?.eventSink?(event)
+    }
+  }
+
+  private static func diagnosticEvent(
+    reason: String,
+    availabilityStatus: String? = nil,
+    cadence: Int? = nil,
+    acceptedCadenceCount: Int? = nil,
+    filteredCadenceCount: Int? = nil,
+    nativeErrorCount: Int? = nil,
+    errorCode: String? = nil,
+    errorMessage: String? = nil
+  ) -> [String: Any] {
+    var event: [String: Any] = [
+      "type": "diagnostic",
+      "reason": reason,
+    ]
+    if let availabilityStatus = availabilityStatus {
+      event["availabilityStatus"] = availabilityStatus
+    }
+    if let cadence = cadence {
+      event["stepsPerMinute"] = cadence
+    }
+    if let acceptedCadenceCount = acceptedCadenceCount {
+      event["acceptedCadenceCount"] = acceptedCadenceCount
+    }
+    if let filteredCadenceCount = filteredCadenceCount {
+      event["filteredCadenceCount"] = filteredCadenceCount
+    }
+    if let nativeErrorCount = nativeErrorCount {
+      event["nativeErrorCount"] = nativeErrorCount
+    }
+    if let errorCode = errorCode {
+      event["errorCode"] = errorCode
+    }
+    if let errorMessage = errorMessage {
+      event["errorMessage"] = errorMessage
+    }
+    return event
   }
 
   private func millisecondsSinceEpoch(_ date: Date) -> Int64 {

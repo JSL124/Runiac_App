@@ -1,9 +1,12 @@
 import 'dart:async';
 
+import '../models/run_cadence_diagnostics.dart';
 import '../models/run_cadence_sample.dart';
 
 abstract interface class RunCadenceProvider {
   Stream<RunCadenceSample> get cadenceStream;
+
+  Stream<RunCadenceDiagnostics> get diagnosticsStream;
 
   Future<bool> isAvailable();
 
@@ -21,6 +24,14 @@ class UnavailableRunCadenceProvider implements RunCadenceProvider {
 
   @override
   Stream<RunCadenceSample> get cadenceStream => const Stream.empty();
+
+  @override
+  Stream<RunCadenceDiagnostics> get diagnosticsStream => Stream.value(
+    const RunCadenceDiagnostics(
+      availabilityStatus: RunCadenceAvailabilityStatus.unavailable,
+      latestReason: RunCadenceDiagnosticReason.unavailable,
+    ),
+  );
 
   @override
   Future<bool> isAvailable() async => false;
@@ -46,6 +57,8 @@ class FakeRunCadenceProvider implements RunCadenceProvider {
   final List<double> cadencePattern;
   final StreamController<RunCadenceSample> _controller =
       StreamController<RunCadenceSample>.broadcast();
+  final StreamController<RunCadenceDiagnostics> _diagnosticsController =
+      StreamController<RunCadenceDiagnostics>.broadcast();
 
   bool _active = false;
   int _sampleIndex = 0;
@@ -54,12 +67,23 @@ class FakeRunCadenceProvider implements RunCadenceProvider {
   Stream<RunCadenceSample> get cadenceStream => _controller.stream;
 
   @override
+  Stream<RunCadenceDiagnostics> get diagnosticsStream =>
+      _diagnosticsController.stream;
+
+  @override
   Future<bool> isAvailable() async => true;
 
   @override
   Future<void> start() async {
     _active = true;
     _sampleIndex = 0;
+    _emitDiagnostics(
+      const RunCadenceDiagnostics(
+        availabilityStatus: RunCadenceAvailabilityStatus.available,
+        permissionStatus: RunCadencePermissionStatus.notRequired,
+        latestReason: RunCadenceDiagnosticReason.available,
+      ),
+    );
   }
 
   @override
@@ -91,9 +115,25 @@ class FakeRunCadenceProvider implements RunCadenceProvider {
         confidence: CadenceConfidence.estimated,
       ),
     );
+    _emitDiagnostics(
+      RunCadenceDiagnostics(
+        availabilityStatus: RunCadenceAvailabilityStatus.available,
+        permissionStatus: RunCadencePermissionStatus.notRequired,
+        latestReason: RunCadenceDiagnosticReason.acceptedSample,
+        acceptedSampleCount: _sampleIndex,
+        updatedAt: recordedAt,
+      ),
+    );
+  }
+
+  void _emitDiagnostics(RunCadenceDiagnostics diagnostics) {
+    if (!_diagnosticsController.isClosed) {
+      _diagnosticsController.add(diagnostics);
+    }
   }
 
   Future<void> dispose() async {
     await _controller.close();
+    await _diagnosticsController.close();
   }
 }

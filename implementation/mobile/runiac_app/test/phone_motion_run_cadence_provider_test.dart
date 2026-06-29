@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/features/run/data/phone_motion_run_cadence_provider.dart';
+import 'package:runiac_app/features/run/domain/models/run_cadence_diagnostics.dart';
 import 'package:runiac_app/features/run/domain/models/run_cadence_sample.dart';
 
 void main() {
@@ -69,6 +70,7 @@ void main() {
 
       await provider.start();
       nativeEvents.add({
+        'type': 'sample',
         'recordedAtMillis': 1782284400000,
         'stepsPerMinute': 172,
         'confidence': 'estimated',
@@ -90,6 +92,148 @@ void main() {
       expect(samples, hasLength(1));
 
       await subscription.cancel();
+      await provider.dispose();
+      nativeEvents.close();
+    });
+
+    test('reports cadence permission denied diagnostics', () async {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+            if (call.method == 'isAvailable') {
+              return true;
+            }
+            if (call.method == 'requestPermission') {
+              return 'denied';
+            }
+            return null;
+          });
+      final nativeEvents = StreamController<Object?>.broadcast();
+      final provider = PhoneMotionRunCadenceProvider(
+        methodChannel: channel,
+        nativeEvents: nativeEvents.stream,
+      );
+      final samples = <RunCadenceSample>[];
+      final diagnostics = <RunCadenceDiagnostics>[];
+      final sampleSubscription = provider.cadenceStream.listen(samples.add);
+      final diagnosticSubscription = provider.diagnosticsStream.listen(
+        diagnostics.add,
+      );
+
+      await provider.start();
+      nativeEvents.add({
+        'type': 'sample',
+        'recordedAtMillis': 1782284400000,
+        'stepsPerMinute': 172,
+        'confidence': 'estimated',
+      });
+      await Future<void>.delayed(Duration.zero);
+
+      expect(samples, isEmpty);
+      expect(diagnostics, isNotEmpty);
+      expect(
+        diagnostics.last.permissionStatus,
+        RunCadencePermissionStatus.denied,
+      );
+      expect(
+        diagnostics.last.latestReason,
+        RunCadenceDiagnosticReason.permissionDenied,
+      );
+
+      await sampleSubscription.cancel();
+      await diagnosticSubscription.cancel();
+      await provider.dispose();
+      nativeEvents.close();
+    });
+
+    test('reports filtered native cadence diagnostics', () async {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+            if (call.method == 'isAvailable') {
+              return true;
+            }
+            if (call.method == 'requestPermission') {
+              return 'granted';
+            }
+            return null;
+          });
+      final nativeEvents = StreamController<Object?>.broadcast();
+      final provider = PhoneMotionRunCadenceProvider(
+        methodChannel: channel,
+        nativeEvents: nativeEvents.stream,
+      );
+      final samples = <RunCadenceSample>[];
+      final diagnostics = <RunCadenceDiagnostics>[];
+      final sampleSubscription = provider.cadenceStream.listen(samples.add);
+      final diagnosticSubscription = provider.diagnosticsStream.listen(
+        diagnostics.add,
+      );
+
+      await provider.start();
+      nativeEvents.add({
+        'type': 'diagnostic',
+        'reason': 'filteredOutOfRange',
+        'stepsPerMinute': 90,
+        'filteredCadenceCount': 1,
+      });
+      await Future<void>.delayed(Duration.zero);
+
+      expect(samples, isEmpty);
+      expect(
+        diagnostics.last.latestReason,
+        RunCadenceDiagnosticReason.filteredOutOfRange,
+      );
+      expect(diagnostics.last.filteredCadenceCount, 1);
+      expect(diagnostics.last.latestFilteredCadenceSpm, 90);
+
+      await sampleSubscription.cancel();
+      await diagnosticSubscription.cancel();
+      await provider.dispose();
+      nativeEvents.close();
+    });
+
+    test('reports malformed and native error cadence diagnostics', () async {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+            if (call.method == 'isAvailable') {
+              return true;
+            }
+            if (call.method == 'requestPermission') {
+              return 'granted';
+            }
+            return null;
+          });
+      final nativeEvents = StreamController<Object?>.broadcast();
+      final provider = PhoneMotionRunCadenceProvider(
+        methodChannel: channel,
+        nativeEvents: nativeEvents.stream,
+      );
+      final diagnostics = <RunCadenceDiagnostics>[];
+      final diagnosticSubscription = provider.diagnosticsStream.listen(
+        diagnostics.add,
+      );
+
+      await provider.start();
+      nativeEvents.add({'type': 'sample', 'stepsPerMinute': double.nan});
+      nativeEvents.add({
+        'type': 'diagnostic',
+        'reason': 'nativeError',
+        'errorCode': 'CMPedometerDenied',
+        'errorMessage': 'Motion access denied.',
+        'nativeErrorCount': 1,
+      });
+      await Future<void>.delayed(Duration.zero);
+
+      expect(
+        diagnostics.map((diagnostic) => diagnostic.latestReason),
+        containsAll([
+          RunCadenceDiagnosticReason.malformedEvent,
+          RunCadenceDiagnosticReason.nativeError,
+        ]),
+      );
+      expect(diagnostics.last.nativeErrorCount, 1);
+      expect(diagnostics.last.latestNativeErrorCode, 'CMPedometerDenied');
+
+      await diagnosticSubscription.cancel();
       await provider.dispose();
       nativeEvents.close();
     });
@@ -129,6 +273,53 @@ void main() {
         expect(samples.single.stepsPerMinute, 176);
 
         await subscription.cancel();
+        await provider.dispose();
+        nativeEvents.close();
+      },
+    );
+
+    test(
+      'treats unknown first-run permission as provisional and subscribes',
+      () async {
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(channel, (call) async {
+              if (call.method == 'isAvailable') {
+                return true;
+              }
+              if (call.method == 'requestPermission') {
+                return 'unknown';
+              }
+              return null;
+            });
+        final nativeEvents = StreamController<Object?>.broadcast();
+        final provider = PhoneMotionRunCadenceProvider(
+          methodChannel: channel,
+          nativeEvents: nativeEvents.stream,
+        );
+        final samples = <RunCadenceSample>[];
+        final diagnostics = <RunCadenceDiagnostics>[];
+        final sampleSubscription = provider.cadenceStream.listen(samples.add);
+        final diagnosticSubscription = provider.diagnosticsStream.listen(
+          diagnostics.add,
+        );
+
+        await provider.start();
+        nativeEvents.add({
+          'type': 'sample',
+          'recordedAtMillis': 1782284400000,
+          'stepsPerMinute': 176,
+          'confidence': 'estimated',
+        });
+        await Future<void>.delayed(Duration.zero);
+
+        expect(samples.single.stepsPerMinute, 176);
+        expect(
+          diagnostics.map((diagnostic) => diagnostic.latestReason),
+          contains(RunCadenceDiagnosticReason.permissionUnknown),
+        );
+
+        await sampleSubscription.cancel();
+        await diagnosticSubscription.cancel();
         await provider.dispose();
         nativeEvents.close();
       },

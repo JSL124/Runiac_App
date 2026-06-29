@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runiac_app/features/run/domain/models/local_run_completion_payload.dart';
+import 'package:runiac_app/features/run/domain/models/run_cadence_diagnostics.dart';
+import 'package:runiac_app/features/run/domain/models/run_cadence_sample.dart';
 import 'package:runiac_app/features/run/domain/models/run_location_sample.dart';
 import 'package:runiac_app/features/run/domain/models/run_location_permission_status.dart';
 import 'package:runiac_app/features/run/domain/models/run_motion_evidence.dart';
@@ -11,6 +13,7 @@ import 'package:runiac_app/features/run/domain/models/run_tracking_notification_
 import 'package:runiac_app/features/run/domain/models/run_tracking_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/run_tracking_startup_readiness.dart';
 import 'package:runiac_app/features/run/domain/models/run_tracking_state.dart';
+import 'package:runiac_app/features/run/domain/repositories/run_cadence_provider.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_foreground_service.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_location_permission_service.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_location_provider.dart';
@@ -2291,6 +2294,60 @@ void main() {
       },
     );
 
+    test(
+      'records cadence permission denied diagnostics without blocking run',
+      () async {
+        final startedAt = DateTime.utc(2026, 6, 14, 7);
+        final cadenceProvider = _DiagnosticsRunCadenceProvider();
+        final controller = RunTrackingController(
+          cadenceProvider: cadenceProvider,
+          locationProvider: ReplayRunLocationProvider([
+            RunLocationReplaySample(
+              activeOffset: const Duration(seconds: 1),
+              sample: RunLocationSample(
+                recordedAt: startedAt.add(const Duration(seconds: 1)),
+                latitude: 1.3,
+                longitude: 103.8,
+                horizontalAccuracyMeters: 5,
+              ),
+            ),
+          ]),
+          locationStatus: RunTrackingLocationStatus.waitingForGps,
+        );
+
+        controller.start(
+          startedAt: startedAt,
+          clientRunSessionId: 'cadence-denied-run',
+        );
+        await Future<void>.delayed(Duration.zero);
+        cadenceProvider.emitDiagnostics(
+          const RunCadenceDiagnostics(
+            permissionStatus: RunCadencePermissionStatus.denied,
+            latestReason: RunCadenceDiagnosticReason.permissionDenied,
+          ),
+        );
+        await Future<void>.delayed(Duration.zero);
+        controller.advanceBy(const Duration(seconds: 1));
+
+        expect(controller.state.isActive, isTrue);
+        expect(
+          controller.state.diagnostics.cadence.permissionStatus,
+          RunCadencePermissionStatus.denied,
+        );
+        expect(
+          controller.state.diagnostics.cadence.latestReason,
+          RunCadenceDiagnosticReason.permissionDenied,
+        );
+        expect(controller.state.diagnostics.acceptedSampleCount, 1);
+
+        controller.finish(
+          completedAt: startedAt.add(const Duration(seconds: 1)),
+        );
+        expect(controller.state.phase, RunTrackingPhase.finished);
+        await cadenceProvider.dispose();
+      },
+    );
+
     test('dispose stops the active location provider', () async {
       final provider = _LifecycleTrackingProvider();
       final controller = RunTrackingController(locationProvider: provider);
@@ -2305,6 +2362,43 @@ void main() {
       expect(provider.stopCount, 1);
     });
   });
+}
+
+class _DiagnosticsRunCadenceProvider implements RunCadenceProvider {
+  final _cadenceController = StreamController<RunCadenceSample>.broadcast();
+  final _diagnosticsController =
+      StreamController<RunCadenceDiagnostics>.broadcast();
+
+  @override
+  Stream<RunCadenceSample> get cadenceStream => _cadenceController.stream;
+
+  @override
+  Stream<RunCadenceDiagnostics> get diagnosticsStream =>
+      _diagnosticsController.stream;
+
+  @override
+  Future<bool> isAvailable() async => true;
+
+  @override
+  Future<void> start() async {}
+
+  @override
+  Future<void> pause() async {}
+
+  @override
+  Future<void> resume() async {}
+
+  @override
+  Future<void> stop() async {}
+
+  void emitDiagnostics(RunCadenceDiagnostics diagnostics) {
+    _diagnosticsController.add(diagnostics);
+  }
+
+  Future<void> dispose() async {
+    await _cadenceController.close();
+    await _diagnosticsController.close();
+  }
 }
 
 class _FakeForegroundAdapter implements ForegroundLocationAdapter {

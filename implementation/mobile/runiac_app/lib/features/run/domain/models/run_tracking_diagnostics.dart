@@ -1,3 +1,4 @@
+import 'run_cadence_diagnostics.dart';
 import 'run_location_sample.dart';
 
 enum RunLocationRejectionReason {
@@ -28,6 +29,7 @@ class RunTrackingDiagnostics {
     required this.latestHorizontalAccuracyMeters,
     required this.latestAccuracyBucket,
     required this.locationAccuracyStatus,
+    this.cadence = const RunCadenceDiagnostics.initial(),
   });
 
   const RunTrackingDiagnostics.initial()
@@ -41,7 +43,8 @@ class RunTrackingDiagnostics {
       lastRejectedSampleSequence = 0,
       latestHorizontalAccuracyMeters = null,
       latestAccuracyBucket = RunLocationAccuracyBucket.unknown,
-      locationAccuracyStatus = RunTrackingLocationAccuracyStatus.notChecked;
+      locationAccuracyStatus = RunTrackingLocationAccuracyStatus.notChecked,
+      cadence = const RunCadenceDiagnostics.initial();
 
   final DateTime? lastSampleReceivedAt;
   final DateTime? lastAcceptedSampleAt;
@@ -54,6 +57,7 @@ class RunTrackingDiagnostics {
   final double? latestHorizontalAccuracyMeters;
   final RunLocationAccuracyBucket latestAccuracyBucket;
   final RunTrackingLocationAccuracyStatus locationAccuracyStatus;
+  final RunCadenceDiagnostics cadence;
 
   bool get hasReceivedSample => lastSampleReceivedAt != null;
   bool get hasAcceptedSample => acceptedSampleCount > 0;
@@ -72,6 +76,7 @@ class RunTrackingDiagnostics {
       latestHorizontalAccuracyMeters: horizontalAccuracyMeters,
       latestAccuracyBucket: bucketForAccuracy(horizontalAccuracyMeters),
       locationAccuracyStatus: locationAccuracyStatus,
+      cadence: cadence,
     );
   }
 
@@ -88,6 +93,7 @@ class RunTrackingDiagnostics {
       latestHorizontalAccuracyMeters: latestHorizontalAccuracyMeters,
       latestAccuracyBucket: latestAccuracyBucket,
       locationAccuracyStatus: locationAccuracyStatus,
+      cadence: cadence,
     );
   }
 
@@ -109,6 +115,7 @@ class RunTrackingDiagnostics {
           ? RunLocationAccuracyBucket.unusable
           : latestAccuracyBucket,
       locationAccuracyStatus: locationAccuracyStatus,
+      cadence: cadence,
     );
   }
 
@@ -127,6 +134,24 @@ class RunTrackingDiagnostics {
       latestHorizontalAccuracyMeters: latestHorizontalAccuracyMeters,
       latestAccuracyBucket: latestAccuracyBucket,
       locationAccuracyStatus: status,
+      cadence: cadence,
+    );
+  }
+
+  RunTrackingDiagnostics withCadence(RunCadenceDiagnostics diagnostics) {
+    return RunTrackingDiagnostics(
+      lastSampleReceivedAt: lastSampleReceivedAt,
+      lastAcceptedSampleAt: lastAcceptedSampleAt,
+      lastRejectedSampleAt: lastRejectedSampleAt,
+      latestRejectionReason: latestRejectionReason,
+      acceptedSampleCount: acceptedSampleCount,
+      rejectedSampleCount: rejectedSampleCount,
+      lastAcceptedSampleSequence: lastAcceptedSampleSequence,
+      lastRejectedSampleSequence: lastRejectedSampleSequence,
+      latestHorizontalAccuracyMeters: latestHorizontalAccuracyMeters,
+      latestAccuracyBucket: latestAccuracyBucket,
+      locationAccuracyStatus: locationAccuracyStatus,
+      cadence: diagnostics,
     );
   }
 

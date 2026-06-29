@@ -4,6 +4,7 @@ import 'dart:async';
 
 import 'package:flutter/services.dart';
 
+import '../domain/models/run_cadence_diagnostics.dart';
 import '../domain/models/run_cadence_sample.dart';
 import '../domain/repositories/run_cadence_provider.dart';
 
@@ -25,20 +26,47 @@ class PhoneMotionRunCadenceProvider implements RunCadenceProvider {
   final Stream<Object?>? _nativeEvents;
   final StreamController<RunCadenceSample> _controller =
       StreamController<RunCadenceSample>.broadcast();
+  final StreamController<RunCadenceDiagnostics> _diagnosticsController =
+      StreamController<RunCadenceDiagnostics>.broadcast();
 
   StreamSubscription<Object?>? _nativeSubscription;
+  RunCadenceDiagnostics _diagnostics = const RunCadenceDiagnostics.initial();
 
   @override
   Stream<RunCadenceSample> get cadenceStream => _controller.stream;
 
   @override
+  Stream<RunCadenceDiagnostics> get diagnosticsStream =>
+      _diagnosticsController.stream;
+
+  @override
   Future<bool> isAvailable() async {
     try {
       final available = await _methodChannel.invokeMethod<bool>('isAvailable');
-      return available ?? false;
+      final isAvailable = available ?? false;
+      _emitDiagnostics(
+        _diagnostics.copyWith(
+          availabilityStatus: isAvailable
+              ? RunCadenceAvailabilityStatus.available
+              : RunCadenceAvailabilityStatus.unavailable,
+          latestReason: isAvailable
+              ? RunCadenceDiagnosticReason.available
+              : RunCadenceDiagnosticReason.unavailable,
+          updatedAt: DateTime.now().toUtc(),
+        ),
+      );
+      return isAvailable;
     } on PlatformException {
+      _recordNativeError(
+        code: 'isAvailablePlatformException',
+        message: 'Cadence availability check failed.',
+      );
       return false;
     } on MissingPluginException {
+      _recordNativeError(
+        code: 'missingPlugin',
+        message: 'Cadence native plugin is unavailable.',
+      );
       return false;
     }
   }
@@ -75,12 +103,17 @@ class PhoneMotionRunCadenceProvider implements RunCadenceProvider {
       return;
     }
     final events = _nativeEvents ?? _eventChannel.receiveBroadcastStream();
-    _nativeSubscription = events.listen((event) {
-      final sample = _sampleFromEvent(event);
-      if (sample != null && !_controller.isClosed) {
-        _controller.add(sample);
-      }
-    });
+    _nativeSubscription = events.listen(
+      (event) {
+        final sample = _handleNativeEvent(event);
+        if (sample != null && !_controller.isClosed) {
+          _controller.add(sample);
+        }
+      },
+      onError: (Object error) {
+        _recordNativeError(code: 'nativeStreamError', message: '$error');
+      },
+    );
   }
 
   Future<void> _unsubscribe() async {
@@ -93,10 +126,28 @@ class PhoneMotionRunCadenceProvider implements RunCadenceProvider {
       final result = await _methodChannel.invokeMethod<Object?>(
         'requestPermission',
       );
-      return result == 'granted' || result == 'notRequired';
-    } on PlatformException {
+      final permissionStatus = _permissionStatusFrom(result);
+      _emitDiagnostics(
+        _diagnostics.copyWith(
+          permissionStatus: permissionStatus,
+          latestReason: _reasonForPermission(permissionStatus),
+          updatedAt: DateTime.now().toUtc(),
+        ),
+      );
+      return permissionStatus == RunCadencePermissionStatus.granted ||
+          permissionStatus == RunCadencePermissionStatus.notRequired ||
+          permissionStatus == RunCadencePermissionStatus.unknown;
+    } on PlatformException catch (error) {
+      _recordNativeError(
+        code: error.code,
+        message: error.message ?? 'Cadence permission request failed.',
+      );
       return false;
     } on MissingPluginException {
+      _recordNativeError(
+        code: 'missingPlugin',
+        message: 'Cadence native plugin is unavailable.',
+      );
       return false;
     }
   }
@@ -104,22 +155,39 @@ class PhoneMotionRunCadenceProvider implements RunCadenceProvider {
   Future<void> dispose() async {
     await _unsubscribe();
     await _controller.close();
+    await _diagnosticsController.close();
   }
 
-  RunCadenceSample? _sampleFromEvent(Object? event) {
+  RunCadenceSample? _handleNativeEvent(Object? event) {
     if (event is! Map) {
+      _recordMalformedEvent();
+      return null;
+    }
+    if (event['type'] == 'diagnostic') {
+      _emitDiagnostics(_diagnosticsFromEvent(event));
       return null;
     }
     final cadence = event['stepsPerMinute'];
     final recordedAtMillis = event['recordedAtMillis'];
     if (cadence is! num || recordedAtMillis is! num || !cadence.isFinite) {
+      _recordMalformedEvent();
       return null;
     }
-    return RunCadenceSample(
-      recordedAt: DateTime.fromMillisecondsSinceEpoch(
-        recordedAtMillis.round(),
-        isUtc: true,
+    final recordedAt = DateTime.fromMillisecondsSinceEpoch(
+      recordedAtMillis.round(),
+      isUtc: true,
+    );
+    _emitDiagnostics(
+      _diagnostics.copyWith(
+        acceptedSampleCount:
+            _readInt(event['acceptedCadenceCount']) ??
+            _diagnostics.acceptedSampleCount + 1,
+        latestReason: RunCadenceDiagnosticReason.acceptedSample,
+        updatedAt: recordedAt,
       ),
+    );
+    return RunCadenceSample(
+      recordedAt: recordedAt,
       stepsPerMinute: cadence.toDouble(),
       source: CadenceSource.phoneMotion,
       confidence: _confidenceFrom(event['confidence']),
@@ -133,5 +201,124 @@ class PhoneMotionRunCadenceProvider implements RunCadenceProvider {
       'unavailable' => CadenceConfidence.unavailable,
       _ => CadenceConfidence.estimated,
     };
+  }
+
+  RunCadenceDiagnostics _diagnosticsFromEvent(Map event) {
+    final reason = _diagnosticReasonFrom(event['reason']);
+    final filteredCount = _readInt(event['filteredCadenceCount']);
+    final nativeErrorCount = _readInt(event['nativeErrorCount']);
+    return _diagnostics.copyWith(
+      latestReason: reason,
+      availabilityStatus: _availabilityStatusFrom(event['availabilityStatus']),
+      permissionStatus: _permissionStatusFrom(event['permissionStatus']),
+      filteredCadenceCount:
+          filteredCount ??
+          (reason == RunCadenceDiagnosticReason.filteredOutOfRange
+              ? _diagnostics.filteredCadenceCount + 1
+              : _diagnostics.filteredCadenceCount),
+      nativeErrorCount:
+          nativeErrorCount ??
+          (reason == RunCadenceDiagnosticReason.nativeError
+              ? _diagnostics.nativeErrorCount + 1
+              : _diagnostics.nativeErrorCount),
+      latestFilteredCadenceSpm: _readInt(event['stepsPerMinute']),
+      latestNativeErrorCode: _readString(event['errorCode']),
+      latestNativeErrorMessage: _readString(event['errorMessage']),
+      updatedAt: DateTime.now().toUtc(),
+    );
+  }
+
+  void _recordMalformedEvent() {
+    _emitDiagnostics(
+      _diagnostics.copyWith(
+        latestReason: RunCadenceDiagnosticReason.malformedEvent,
+        malformedEventCount: _diagnostics.malformedEventCount + 1,
+        updatedAt: DateTime.now().toUtc(),
+      ),
+    );
+  }
+
+  void _recordNativeError({required String code, required String message}) {
+    _emitDiagnostics(
+      _diagnostics.copyWith(
+        latestReason: RunCadenceDiagnosticReason.nativeError,
+        nativeErrorCount: _diagnostics.nativeErrorCount + 1,
+        latestNativeErrorCode: code,
+        latestNativeErrorMessage: message,
+        updatedAt: DateTime.now().toUtc(),
+      ),
+    );
+  }
+
+  void _emitDiagnostics(RunCadenceDiagnostics diagnostics) {
+    _diagnostics = diagnostics;
+    if (!_diagnosticsController.isClosed) {
+      _diagnosticsController.add(diagnostics);
+    }
+  }
+
+  RunCadencePermissionStatus _permissionStatusFrom(Object? value) {
+    return switch (value) {
+      'granted' => RunCadencePermissionStatus.granted,
+      'authorized' => RunCadencePermissionStatus.granted,
+      'notRequired' => RunCadencePermissionStatus.notRequired,
+      'denied' => RunCadencePermissionStatus.denied,
+      'restricted' => RunCadencePermissionStatus.restricted,
+      'unknown' => RunCadencePermissionStatus.unknown,
+      'notDetermined' => RunCadencePermissionStatus.unknown,
+      _ => _diagnostics.permissionStatus,
+    };
+  }
+
+  RunCadenceAvailabilityStatus _availabilityStatusFrom(Object? value) {
+    return switch (value) {
+      'available' => RunCadenceAvailabilityStatus.available,
+      'unavailable' => RunCadenceAvailabilityStatus.unavailable,
+      _ => _diagnostics.availabilityStatus,
+    };
+  }
+
+  RunCadenceDiagnosticReason _reasonForPermission(
+    RunCadencePermissionStatus status,
+  ) {
+    return switch (status) {
+      RunCadencePermissionStatus.granted =>
+        RunCadenceDiagnosticReason.permissionGranted,
+      RunCadencePermissionStatus.notRequired =>
+        RunCadenceDiagnosticReason.permissionGranted,
+      RunCadencePermissionStatus.denied =>
+        RunCadenceDiagnosticReason.permissionDenied,
+      RunCadencePermissionStatus.restricted =>
+        RunCadenceDiagnosticReason.permissionRestricted,
+      RunCadencePermissionStatus.unknown =>
+        RunCadenceDiagnosticReason.permissionUnknown,
+      RunCadencePermissionStatus.notChecked => RunCadenceDiagnosticReason.none,
+    };
+  }
+
+  RunCadenceDiagnosticReason _diagnosticReasonFrom(Object? value) {
+    return switch (value) {
+      'available' => RunCadenceDiagnosticReason.available,
+      'unavailable' => RunCadenceDiagnosticReason.unavailable,
+      'permissionDenied' => RunCadenceDiagnosticReason.permissionDenied,
+      'permissionRestricted' => RunCadenceDiagnosticReason.permissionRestricted,
+      'permissionUnknown' => RunCadenceDiagnosticReason.permissionUnknown,
+      'nativeError' => RunCadenceDiagnosticReason.nativeError,
+      'nilData' => RunCadenceDiagnosticReason.nilData,
+      'filteredOutOfRange' => RunCadenceDiagnosticReason.filteredOutOfRange,
+      'malformedEvent' => RunCadenceDiagnosticReason.malformedEvent,
+      _ => RunCadenceDiagnosticReason.none,
+    };
+  }
+
+  int? _readInt(Object? value) {
+    if (value is num && value.isFinite) {
+      return value.round();
+    }
+    return null;
+  }
+
+  String? _readString(Object? value) {
+    return value is String && value.isNotEmpty ? value : null;
   }
 }

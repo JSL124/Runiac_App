@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 
 import '../../domain/models/elevation_analysis_series.dart';
 import '../../domain/models/local_run_completion_payload.dart';
+import '../../domain/models/run_cadence_diagnostics.dart';
 import '../../domain/models/run_cadence_sample.dart';
 import '../../domain/models/run_location_sample.dart';
 import '../../domain/models/run_location_permission_status.dart';
@@ -61,6 +62,7 @@ class RunTrackingController extends ChangeNotifier {
   DateTime? _lastAdvancedAt;
   RunTrackingNotificationCopy? _lastForegroundCopy;
   StreamSubscription<RunCadenceSample>? _cadenceSubscription;
+  StreamSubscription<RunCadenceDiagnostics>? _cadenceDiagnosticsSubscription;
   bool _foregroundServiceStarted = false;
   bool _foregroundServiceStarting = false;
   bool _foregroundServiceStopRequested = false;
@@ -189,9 +191,7 @@ class RunTrackingController extends ChangeNotifier {
     final session = LocalRunTrackingSession(startedAt: effectiveStartedAt);
     _trackingSession = session;
     unawaited(_cadenceSubscription?.cancel());
-    _cadenceSubscription = _cadenceProvider.cadenceStream.listen(
-      _recordCadenceSample,
-    );
+    unawaited(_cadenceDiagnosticsSubscription?.cancel());
     _mapViewState = const RunMapViewState.empty();
     _lastAdvancedAt = effectiveStartedAt;
     _lastForegroundCopy = null;
@@ -214,6 +214,12 @@ class RunTrackingController extends ChangeNotifier {
       source: session.source,
       locationStatus: _initialLocationStatus,
       diagnostics: session.diagnostics,
+    );
+    _cadenceSubscription = _cadenceProvider.cadenceStream.listen(
+      _recordCadenceSample,
+    );
+    _cadenceDiagnosticsSubscription = _cadenceProvider.diagnosticsStream.listen(
+      _recordCadenceDiagnostics,
     );
     _logPhaseTransition(
       from: RunTrackingPhase.idle,
@@ -283,13 +289,16 @@ class RunTrackingController extends ChangeNotifier {
     session.advanceBy(delta, samples: samples, motionEvidence: motionEvidence);
     _latestLocationStatus = _locationStatusFor(session.diagnostics);
 
+    final diagnostics = session.diagnostics.withCadence(
+      _state.diagnostics.cadence,
+    );
     _state = _state.copyWith(
       elapsedSeconds: session.activeDurationSeconds,
       distanceMeters: session.distanceMeters,
       averagePaceSecondsPerKm: session.averagePaceSecondsPerKm,
       currentPaceSecondsPerKm: session.currentPaceSecondsPerKm,
       locationStatus: _latestLocationStatus,
-      diagnostics: session.diagnostics,
+      diagnostics: diagnostics,
       movementStatus: session.movementStatus,
     );
     _mapViewState = _withSmoothedDisplayRoute(session.mapViewState);
@@ -433,6 +442,8 @@ class RunTrackingController extends ChangeNotifier {
     unawaited(_stopCadenceProvider());
     unawaited(_cadenceSubscription?.cancel());
     _cadenceSubscription = null;
+    unawaited(_cadenceDiagnosticsSubscription?.cancel());
+    _cadenceDiagnosticsSubscription = null;
     unawaited(_motionProvider.stop());
     unawaited(_stopForegroundService());
     _mapViewState = const RunMapViewState.empty();
@@ -458,6 +469,7 @@ class RunTrackingController extends ChangeNotifier {
     unawaited(_locationProvider.stop());
     unawaited(_stopCadenceProvider());
     unawaited(_cadenceSubscription?.cancel());
+    unawaited(_cadenceDiagnosticsSubscription?.cancel());
     unawaited(_motionProvider.stop());
     unawaited(_stopForegroundService());
     super.dispose();
@@ -507,6 +519,8 @@ class RunTrackingController extends ChangeNotifier {
     _trackingSession = null;
     unawaited(_cadenceSubscription?.cancel());
     _cadenceSubscription = null;
+    unawaited(_cadenceDiagnosticsSubscription?.cancel());
+    _cadenceDiagnosticsSubscription = null;
     _mapViewState = const RunMapViewState.empty();
     _lastAdvancedAt = null;
     _previewCurrentPosition = null;
@@ -516,7 +530,8 @@ class RunTrackingController extends ChangeNotifier {
   Future<void> _startCadenceProvider() async {
     try {
       await _cadenceProvider.start();
-    } catch (_) {
+    } catch (error) {
+      _recordCadenceLifecycleError('start', error);
       return;
     }
   }
@@ -524,7 +539,8 @@ class RunTrackingController extends ChangeNotifier {
   Future<void> _pauseCadenceProvider() async {
     try {
       await _cadenceProvider.pause();
-    } catch (_) {
+    } catch (error) {
+      _recordCadenceLifecycleError('pause', error);
       return;
     }
   }
@@ -532,7 +548,8 @@ class RunTrackingController extends ChangeNotifier {
   Future<void> _resumeCadenceProvider() async {
     try {
       await _cadenceProvider.resume();
-    } catch (_) {
+    } catch (error) {
+      _recordCadenceLifecycleError('resume', error);
       return;
     }
   }
@@ -540,7 +557,8 @@ class RunTrackingController extends ChangeNotifier {
   Future<void> _stopCadenceProvider() async {
     try {
       await _cadenceProvider.stop();
-    } catch (_) {
+    } catch (error) {
+      _recordCadenceLifecycleError('stop', error);
       return;
     }
   }
@@ -550,6 +568,32 @@ class RunTrackingController extends ChangeNotifier {
       return;
     }
     _trackingSession?.addCadenceSample(sample);
+  }
+
+  void _recordCadenceDiagnostics(RunCadenceDiagnostics diagnostics) {
+    if (_disposed || _state.phase == RunTrackingPhase.idle) {
+      return;
+    }
+    _state = _state.copyWith(
+      diagnostics: _state.diagnostics.withCadence(diagnostics),
+    );
+    notifyListeners();
+  }
+
+  void _recordCadenceLifecycleError(String operation, Object error) {
+    if (_disposed) {
+      return;
+    }
+    final current = _state.diagnostics.cadence;
+    _recordCadenceDiagnostics(
+      current.copyWith(
+        latestReason: RunCadenceDiagnosticReason.lifecycleError,
+        lifecycleErrorCount: current.lifecycleErrorCount + 1,
+        latestNativeErrorCode: 'cadenceProvider.$operation',
+        latestNativeErrorMessage: '$error',
+        updatedAt: DateTime.now().toUtc(),
+      ),
+    );
   }
 
   Future<void> _startForegroundService() async {
