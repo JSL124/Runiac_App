@@ -54,11 +54,12 @@ class RunRepositoryFactory {
   }) {
     final runtimeConfig =
         config ?? RuniacFirebaseRuntimeConfig.fromEnvironment();
-    if (!runtimeConfig.useFirebaseEmulator) {
-      return const StaticRunRepository();
+    if (runtimeConfig.useFirebaseEmulator ||
+        runtimeConfig.useProductionFirebase) {
+      return FirebaseRunRepository(callable: completeRunCallableFactory());
     }
 
-    return FirebaseRunRepository(callable: completeRunCallableFactory());
+    return const StaticRunRepository();
   }
 
   static CompleteRunCallable _defaultCompleteRunCallableFactory() {

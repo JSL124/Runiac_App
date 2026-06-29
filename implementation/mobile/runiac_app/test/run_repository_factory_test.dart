@@ -24,6 +24,18 @@ void main() {
 
       expect(repository, isA<FirebaseRunRepository>());
     });
+
+    test('selects FirebaseRunRepository when production flag is enabled', () {
+      final repository = RunRepositoryFactory.create(
+        config: const RuniacFirebaseRuntimeConfig(
+          useFirebaseEmulator: false,
+          useProductionFirebase: true,
+        ),
+        completeRunCallableFactory: _FakeCallable.new,
+      );
+
+      expect(repository, isA<FirebaseRunRepository>());
+    });
   });
 
   testWidgets('Run UI works with StaticRunRepository fallback', (tester) async {

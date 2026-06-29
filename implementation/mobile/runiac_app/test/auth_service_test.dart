@@ -8,6 +8,7 @@ import 'package:runiac_app/core/firebase/runiac_firebase_bootstrap.dart';
 import 'package:runiac_app/features/auth/data/firebase_runiac_auth_repository.dart';
 import 'package:runiac_app/features/auth/data/non_production_auth_repository.dart';
 import 'package:runiac_app/features/auth/domain/runiac_auth_service.dart';
+import 'package:runiac_app/features/run/data/firebase_run_repository.dart';
 import 'package:runiac_app/features/run/data/run_repository_factory.dart';
 import 'package:runiac_app/features/run/data/static_run_repository.dart';
 
@@ -200,7 +201,7 @@ void main() {
           enableAnonymousEmulatorSignIn: false,
         );
 
-        expect(bootstrap.runRepository, isA<StaticRunRepository>());
+        expect(bootstrap.runRepository, isA<FirebaseRunRepository>());
         expect(bootstrap.authRepository, isA<FirebaseRuniacAuthRepository>());
         expect(bootstrap.firestoreGateway.usesEmulator, isFalse);
         expect(
