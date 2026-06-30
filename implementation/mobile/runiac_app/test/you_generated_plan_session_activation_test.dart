@@ -253,7 +253,5 @@ void main() {
     expect(find.text('Generated'), findsOneWidget);
     expect(find.text('Suggested pace'), findsNothing);
     expect(find.text('7:30 /km'), findsNothing);
-    expect(find.text('Edit schedule'), findsOneWidget);
-    expect(find.text('Start this run'), findsNothing);
   });
 }

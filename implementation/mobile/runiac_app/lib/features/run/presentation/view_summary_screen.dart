@@ -63,6 +63,7 @@ class ViewSummaryScreen extends StatelessWidget {
     this.completionResult,
     this.completionPayload,
     this.showXpUpdateAction = true,
+    this.showLowDataSaveAction = true,
     this.mapboxAccessToken,
     this.mapboxBuilder,
   });
@@ -71,6 +72,7 @@ class ViewSummaryScreen extends StatelessWidget {
   final CompleteRunResult? completionResult;
   final LocalRunCompletionPayload? completionPayload;
   final bool showXpUpdateAction;
+  final bool showLowDataSaveAction;
   final String? mapboxAccessToken;
   final CompletedRouteMapboxBuilder? mapboxBuilder;
 
@@ -260,6 +262,7 @@ class ViewSummaryScreen extends StatelessWidget {
                 _BottomActions(
                   hasSufficientData: hasSufficientData,
                   showXpUpdateAction: showXpUpdateAction,
+                  showLowDataSaveAction: showLowDataSaveAction,
                   onShareRoute: () {
                     _showSoonMessage(
                       context,
@@ -1330,6 +1333,7 @@ class _BottomActions extends StatelessWidget {
   const _BottomActions({
     required this.hasSufficientData,
     required this.showXpUpdateAction,
+    required this.showLowDataSaveAction,
     required this.onShareRoute,
     required this.onXpUpdate,
     required this.onGoHome,
@@ -1337,19 +1341,19 @@ class _BottomActions extends StatelessWidget {
 
   final bool hasSufficientData;
   final bool showXpUpdateAction;
+  final bool showLowDataSaveAction;
   final VoidCallback onShareRoute;
   final VoidCallback onXpUpdate;
   final VoidCallback onGoHome;
 
   @override
   Widget build(BuildContext context) {
+    if (!hasSufficientData && !showLowDataSaveAction) {
+      return const SizedBox.shrink();
+    }
+
     if (!hasSufficientData) {
-      return Container(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 26),
-        decoration: const BoxDecoration(
-          color: _rWhite,
-          border: Border(top: BorderSide(color: _rBlue10)),
-        ),
+      return _BottomActionBar(
         child: FilledButton.icon(
           onPressed: onGoHome,
           icon: const Icon(Icons.home_rounded, size: 19),
@@ -1373,12 +1377,7 @@ class _BottomActions extends StatelessWidget {
       );
     }
 
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 26),
-      decoration: const BoxDecoration(
-        color: _rWhite,
-        border: Border(top: BorderSide(color: _rBlue10)),
-      ),
+    return _BottomActionBar(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1426,6 +1425,24 @@ class _BottomActions extends StatelessWidget {
           ],
         ],
       ),
+    );
+  }
+}
+
+class _BottomActionBar extends StatelessWidget {
+  const _BottomActionBar({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 26),
+      decoration: const BoxDecoration(
+        color: _rWhite,
+        border: Border(top: BorderSide(color: _rBlue10)),
+      ),
+      child: child,
     );
   }
 }

@@ -32,9 +32,7 @@ class OnboardingProgressHeader extends StatelessWidget {
               height: 36,
               child: Row(
                 children: [
-                  if (onBack == null)
-                    const SizedBox(width: 0)
-                  else
+                  if (onBack != null) ...[
                     IconButton(
                       key: const ValueKey('onboarding_back_button'),
                       tooltip: 'Back',
@@ -50,7 +48,8 @@ class OnboardingProgressHeader extends StatelessWidget {
                         height: 32,
                       ),
                     ),
-                  if (onBack != null) const SizedBox(width: 6),
+                    const SizedBox(width: 6),
+                  ],
                   Text(
                     'Step ${stepIndex + 1} of $stepCount',
                     style: onboardingTextStyle(

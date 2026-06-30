@@ -261,6 +261,7 @@ class _YouTabState extends State<YouTab> {
           completionResult: run.completionResult,
           summary: run.summary,
           showXpUpdateAction: false,
+          showLowDataSaveAction: false,
         ),
       ),
     );

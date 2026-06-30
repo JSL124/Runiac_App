@@ -1163,7 +1163,7 @@ void main() {
 
       expect(find.text('Low Data Route Run'), findsOneWidget);
       expect(find.text('More run data needed'), findsWidgets);
-      expect(find.widgetWithText(FilledButton, 'Go to Home'), findsOneWidget);
+      expect(find.widgetWithText(FilledButton, 'Go to Home'), findsNothing);
       expect(find.widgetWithText(FilledButton, 'View XP Update'), findsNothing);
     },
   );
@@ -1819,6 +1819,7 @@ void main() {
         find.text('Pace insights will appear after a longer run.'),
         findsWidgets,
       );
+      expect(find.widgetWithText(FilledButton, 'Go to Home'), findsNothing);
       expect(find.widgetWithText(FilledButton, 'View XP Update'), findsNothing);
     },
   );
