@@ -130,6 +130,7 @@ class FirestoreActivityHistoryRepository implements ActivityHistoryRepository {
         title: _readOptionalString(data, 'title') ?? 'Completed Run',
         completedAtLabel: scalar.dateLabel,
         distanceLabel: '${scalar.distanceKm} km',
+        distanceMeters: distanceMeters,
         paceLabel: scalar.avgPace,
         durationLabel: scalar.duration,
         timeLabel: scalar.timeLabel,

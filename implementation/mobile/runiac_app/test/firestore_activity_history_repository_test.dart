@@ -63,6 +63,7 @@ void main() {
       expect(history.recentRuns.first.completedAtLabel, '14/6/26');
       expect(history.recentRuns.first.timeLabel, '7:25 AM');
       expect(history.recentRuns.first.distanceLabel, '3.20 km');
+      expect(history.recentRuns.first.distanceMeters, 3200);
       expect(history.recentRuns.first.durationLabel, '25:00');
       expect(history.recentRuns.first.paceLabel, '7’49”');
       expect(

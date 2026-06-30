@@ -27,11 +27,13 @@ class YouTab extends StatefulWidget {
     this.activityHistoryRepository = const StaticActivityHistoryRepository(),
     this.enableForegroundGps = true,
     this.activeRunSessionCoordinator,
+    this.progressToday,
   });
 
   final ActivityHistoryRepository activityHistoryRepository;
   final bool enableForegroundGps;
   final ActiveRunSessionCoordinator? activeRunSessionCoordinator;
+  final DateTime? progressToday;
 
   @override
   State<YouTab> createState() => _YouTabState();
@@ -191,12 +193,14 @@ class _YouTabState extends State<YouTab> {
                   )
                 else
                   YouProgressSurface(
+                    activityHistoryMonths: activityHistoryMonths,
                     runs: recentRuns,
                     visibleCalendarMonth: _visibleCalendarMonth,
                     onPreviousMonth: _showPreviousCalendarMonth,
                     onNextMonth: _showNextCalendarMonth,
                     onRunSelected: _showRunSummary,
                     onMoreActivities: _showActivityHistory,
+                    today: widget.progressToday,
                   ),
               ],
             ),

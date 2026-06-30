@@ -26,7 +26,11 @@ extension CurrentSessionActivityHistoryPersistence
         return;
       }
       _upsertSyncDebugSnapshot(record);
-      registerCompletedRun(record.result, ownerUid: record.ownerUid);
+      registerCompletedRun(
+        record.result,
+        ownerUid: record.ownerUid,
+        distanceMeters: record.payload.distanceMeters,
+      );
     }
   }
 
@@ -135,7 +139,11 @@ extension CurrentSessionActivityHistoryPersistence
         if (syncedRecord != null &&
             _ownerUid == ownerUid &&
             _ownerGeneration == ownerGeneration) {
-          _replaceCompletedRun(syncedRecord.result, ownerUid: ownerUid);
+          _replaceCompletedRun(
+            syncedRecord.result,
+            ownerUid: ownerUid,
+            distanceMeters: syncedRecord.payload.distanceMeters,
+          );
         }
       } catch (error, stackTrace) {
         _reportAsyncError(error, stackTrace, 'saving pending run sync state');
@@ -389,7 +397,11 @@ extension CurrentSessionActivityHistoryPersistence
     return 'Run sync failed with $code.';
   }
 
-  void _replaceCompletedRun(CompleteRunResult result, {String? ownerUid}) {
+  void _replaceCompletedRun(
+    CompleteRunResult result, {
+    String? ownerUid,
+    int? distanceMeters,
+  }) {
     final clientRunSessionId = result.clientRunSessionId;
     if (clientRunSessionId != null) {
       _activities.removeWhere(
@@ -398,7 +410,11 @@ extension CurrentSessionActivityHistoryPersistence
             activity.completionResult.clientRunSessionId == clientRunSessionId,
       );
     }
-    registerCompletedRun(result, ownerUid: ownerUid);
+    registerCompletedRun(
+      result,
+      ownerUid: ownerUid,
+      distanceMeters: distanceMeters,
+    );
   }
 
   SessionCompletedRunActivity _mergeRemoteActivityIdentity(
@@ -420,6 +436,7 @@ extension CurrentSessionActivityHistoryPersistence
         title: result.summary.title,
         timeAgoLabel: result.summary.dateTimeLabel,
         distanceLabel: '${result.summary.distanceKm} km',
+        distanceMeters: activity.display.distanceMeters,
         paceLabel: result.summary.avgPace,
         durationLabel: result.summary.duration,
         summary: result.summary,

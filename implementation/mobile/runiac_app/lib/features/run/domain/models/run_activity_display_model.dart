@@ -9,6 +9,7 @@ class RunActivityDisplayModel {
     required this.title,
     required this.timeAgoLabel,
     required this.distanceLabel,
+    required this.distanceMeters,
     required this.paceLabel,
     required this.durationLabel,
     required this.summary,
@@ -20,6 +21,7 @@ class RunActivityDisplayModel {
   final String title;
   final String timeAgoLabel;
   final String distanceLabel;
+  final int distanceMeters;
   final String paceLabel;
   final String durationLabel;
   final RunSummarySnapshot summary;

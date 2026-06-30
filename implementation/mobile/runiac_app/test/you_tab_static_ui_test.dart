@@ -20,17 +20,23 @@ import 'package:runiac_app/features/run/presentation/data/pace_graph_demo_snapsh
 import 'package:runiac_app/features/run/presentation/data/run_completion_demo_snapshots.dart';
 import 'package:runiac_app/features/run/presentation/view_summary_screen.dart';
 import 'package:runiac_app/features/run/presentation/widgets/advanced_analysis/advanced_analysis_charts.dart';
+import 'package:runiac_app/features/you/data/static_activity_history_repository.dart';
 import 'package:runiac_app/features/you/presentation/current_session_activity_history.dart';
 import 'package:runiac_app/features/you/presentation/data/activity_history_demo_snapshots.dart';
 import 'package:runiac_app/features/you/presentation/data/you_overview_demo_snapshots.dart';
+import 'package:runiac_app/features/you/domain/models/activity_history_read_model.dart';
+import 'package:runiac_app/features/you/domain/repositories/activity_history_repository.dart';
 import 'package:runiac_app/features/you/presentation/widgets/activity_route_preview.dart';
 import 'package:runiac_app/features/you/presentation/widgets/compact_run_activity_card.dart';
 import 'package:runiac_app/features/you/presentation/widgets/monthly_distance_graph.dart';
+
+final _progressToday = DateTime(2026, 6, 30);
 
 Future<void> _openYouTab(
   WidgetTester tester, {
   ActiveRunSessionCoordinator? activeRunSessionCoordinator,
   CurrentSessionActivityHistoryStore? activityHistoryStore,
+  ActivityHistoryRepository? activityHistoryRepository,
 }) async {
   await tester.pumpWidget(
     RuniacApp(
@@ -38,10 +44,96 @@ Future<void> _openYouTab(
       enableForegroundGps: false,
       activeRunSessionCoordinator: activeRunSessionCoordinator,
       currentSessionActivityHistoryStore: activityHistoryStore,
+      activityHistoryRepository:
+          activityHistoryRepository ?? const StaticActivityHistoryRepository(),
+      youProgressToday: _progressToday,
     ),
   );
   await tester.tap(find.byTooltip('You'));
   await tester.pumpAndSettle();
+}
+
+class _AggregateProgressRepository implements ActivityHistoryRepository {
+  const _AggregateProgressRepository();
+
+  @override
+  Future<ActivityHistoryReadModel> loadActivityHistory() async {
+    final activities = [
+      _activity(
+        id: 'aggregate-week',
+        title: 'Aggregate Week Run',
+        date: '30 Jun 2026',
+        distance: 'label hidden',
+        distanceMeters: 4250,
+      ),
+      _activity(
+        id: 'aggregate-month',
+        title: 'Aggregate Month Run',
+        date: '2 Jun 2026',
+        distance: 'label hidden',
+        distanceMeters: 3500,
+      ),
+      _activity(
+        id: 'aggregate-year',
+        title: 'Aggregate Year Run',
+        date: '4 May 2026',
+        distance: 'label hidden',
+        distanceMeters: 8100,
+      ),
+      _activity(
+        id: 'aggregate-all',
+        title: 'Aggregate All Run',
+        date: '24 Dec 2025',
+        distance: 'label hidden',
+        distanceMeters: 1050,
+      ),
+      _activity(
+        id: 'aggregate-invalid',
+        title: 'Aggregate Invalid Distance',
+        date: '30 Jun 2026',
+        distance: 'distance pending',
+        distanceMeters: 0,
+      ),
+    ];
+
+    return ActivityHistoryReadModel(
+      recentRuns: activities.take(3).toList(growable: false),
+      months: [
+        ActivityHistoryMonthReadModel(
+          label: 'June 2026',
+          activities: [activities[0], activities[1], activities[4]],
+        ),
+        ActivityHistoryMonthReadModel(
+          label: 'May 2026',
+          activities: [activities[2]],
+        ),
+        ActivityHistoryMonthReadModel(
+          label: 'December 2025',
+          activities: [activities[3]],
+        ),
+      ],
+    );
+  }
+
+  ActivityHistoryItemReadModel _activity({
+    required String id,
+    required String title,
+    required String date,
+    required String distance,
+    required int distanceMeters,
+  }) {
+    return ActivityHistoryItemReadModel(
+      activityId: id,
+      title: title,
+      completedAtLabel: date,
+      distanceLabel: distance,
+      distanceMeters: distanceMeters,
+      paceLabel: '7’10”',
+      durationLabel: '22:56',
+      timeLabel: '7:20 AM',
+      routeNameLabel: 'Aggregate Test Route',
+    );
+  }
 }
 
 ActiveRunSessionCoordinator _testActiveRunSessionCoordinator(
@@ -106,6 +198,7 @@ RunActivityDisplayModel _displayRun({
     title: title,
     timeAgoLabel: '12 Jun 2026',
     distanceLabel: '3.20 km',
+    distanceMeters: 3200,
     paceLabel: '7’10”',
     durationLabel: '22:56',
     summary: RunSummarySnapshot(
@@ -312,19 +405,39 @@ class _CompletingActivityRouteThumbnailProvider
 }
 
 void main() {
-  void expectFixedDistanceGraph(WidgetTester tester) {
+  void expectDistanceGraph(
+    WidgetTester tester, {
+    List<double> expectedValues = const [
+      2.5,
+      5,
+      0,
+      0,
+      3.8,
+      5,
+      4.5,
+      4.09,
+      0,
+      0,
+      0,
+      1.1,
+    ],
+    String axisLabelPattern = r'0 km.*2 km.*5 km',
+  }) {
     final graphFinder = find.byKey(
       const ValueKey('you_monthly_distance_graph'),
     );
     expect(graphFinder, findsOneWidget);
 
     final graph = tester.widget<PastTwelveWeeksDistanceGraph>(graphFinder);
-    expect(graph.labels, pastTwelveWeeksDistanceGraphLabels);
-    expect(graph.values, pastTwelveWeeksDistanceGraphValues);
+    expect(graph.labels, ['APR', 'MAY', 'JUN']);
+    expect(graph.values, hasLength(expectedValues.length));
+    for (var index = 0; index < expectedValues.length; index += 1) {
+      expect(graph.values[index], closeTo(expectedValues[index], 0.001));
+    }
     expect(
       find.bySemanticsLabel(
         RegExp(
-          r'Past 12 weeks distance graph.*APR.*MAY.*JUN.*0 km.*6 km.*13 km',
+          'Past 12 weeks distance graph.*APR.*MAY.*JUN.*$axisLabelPattern',
         ),
       ),
       findsOneWidget,
@@ -712,8 +825,8 @@ void main() {
     expect(find.text('Weekly Distance'), findsOneWidget);
     expect(find.text('Monthly Distance'), findsNothing);
     expect(find.text('Past 12 weeks'), findsOneWidget);
-    expect(find.text('12.4'), findsOneWidget);
-    expectFixedDistanceGraph(tester);
+    expect(find.text('1.10'), findsOneWidget);
+    expectDistanceGraph(tester);
     expect(find.text('3 runs this week'), findsNothing);
     expect(find.text('82% of weekly goal'), findsNothing);
     expect(find.text('This Week'), findsNothing);
@@ -1176,37 +1289,148 @@ void main() {
       expect(find.text('Weekly Distance'), findsOneWidget);
       expect(find.text('Monthly Distance'), findsNothing);
       expect(find.text('Past 12 weeks'), findsOneWidget);
-      expect(find.text('12.4'), findsOneWidget);
+      expect(find.text('1.10'), findsOneWidget);
       expect(find.text('km'), findsWidgets);
-      expectFixedDistanceGraph(tester);
+      expectDistanceGraph(tester);
       expect(find.text('This Week'), findsNothing);
       expect(find.text('3 runs this week'), findsNothing);
       expect(find.text('82% of weekly goal'), findsNothing);
     },
   );
 
+  testWidgets('weekly distance graph exposes floored half-max axis labels', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: PastTwelveWeeksDistanceGraph(
+            labels: ['APR', 'MAY', 'JUN'],
+            values: [0, 8, 15, 25, 30, 45, 50, 62, 70, 81, 92, 100],
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      find.bySemanticsLabel(
+        RegExp(
+          r'Past 12 weeks distance graph.*APR.*MAY.*JUN.*0 km.*50 km.*100 km',
+        ),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.bySemanticsLabel(
+        RegExp(r'\bmiddle\b|\bmax\b', caseSensitive: false),
+      ),
+      findsNothing,
+    );
+  });
+
+  testWidgets('weekly distance graph floors odd half-max labels with km', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: PastTwelveWeeksDistanceGraph(
+            labels: ['APR', 'MAY', 'JUN'],
+            values: [0, 3, 5, 6, 7, 9, 11, 12, 13, 14, 15, 0],
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      find.bySemanticsLabel(
+        RegExp(
+          r'Past 12 weeks distance graph.*APR.*MAY.*JUN.*0 km.*7 km.*15 km',
+        ),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('weekly distance graph aligns y-axis labels by km right edge', (
+    WidgetTester tester,
+  ) async {
+    const style = TextStyle(fontSize: 13, fontWeight: FontWeight.w700);
+    const rightEdge = 50.0;
+    const top = 0.0;
+    const maxWidth = 56.0;
+
+    double labelRightEdge(String value) {
+      final offset = axisLabelOffsetFor(
+        value: value,
+        style: style,
+        rightEdge: rightEdge,
+        top: top,
+        maxWidth: maxWidth,
+      );
+      final painter = TextPainter(
+        text: const TextSpan(style: style),
+        textDirection: TextDirection.ltr,
+        maxLines: 1,
+      );
+      painter.text = TextSpan(text: value, style: style);
+      painter.layout(maxWidth: maxWidth);
+      return offset.dx + painter.width;
+    }
+
+    expect(labelRightEdge('0 km'), closeTo(rightEdge, 0.001));
+    expect(labelRightEdge('7 km'), closeTo(rightEdge, 0.001));
+    expect(labelRightEdge('15 km'), closeTo(rightEdge, 0.001));
+    expect(labelRightEdge('100 km'), closeTo(rightEdge, 0.001));
+  });
+
+  testWidgets(
+    'weekly distance graph month labels sit between week boundaries',
+    (WidgetTester tester) async {
+      final fractions = monthLabelFractionsForGraph(
+        labelCount: 3,
+        pointCount: 12,
+      );
+
+      expect(fractions, hasLength(3));
+      expect(fractions[0], closeTo(2.5 / 12, 0.0001));
+      expect(fractions[1], closeTo(6.5 / 12, 0.0001));
+      expect(fractions[2], closeTo(10.5 / 12, 0.0001));
+      for (final fraction in fractions) {
+        expect(fraction * 12, isNot(closeTo((fraction * 12).round(), 0.0001)));
+      }
+    },
+  );
+
   testWidgets('You progress period buttons update only distance summary', (
     WidgetTester tester,
   ) async {
-    await _openYouTab(tester);
+    await _openYouTab(
+      tester,
+      activityHistoryRepository: const _AggregateProgressRepository(),
+    );
 
     void expectFixedGraphContext() {
       expect(find.text('Past 12 weeks'), findsOneWidget);
-      expectFixedDistanceGraph(tester);
+      expectDistanceGraph(
+        tester,
+        expectedValues: const [0, 0, 0, 8.1, 0, 0, 0, 3.5, 0, 0, 0, 4.25],
+        axisLabelPattern: r'0 km.*4 km.*8.1 km',
+      );
       expect(find.text('This Week'), findsNothing);
       expect(find.text('3 runs this week'), findsNothing);
       expect(find.text('82% of weekly goal'), findsNothing);
     }
 
     expect(find.text('Weekly Distance'), findsOneWidget);
-    expect(find.text('12.4'), findsOneWidget);
+    expect(find.text('4.25'), findsOneWidget);
     expectFixedGraphContext();
 
     await tester.tap(find.text('Month'));
     await tester.pumpAndSettle();
 
     expect(find.text('Monthly Distance'), findsOneWidget);
-    expect(find.text('48.6'), findsOneWidget);
+    expect(find.text('7.75'), findsOneWidget);
     expect(find.text('Weekly Distance'), findsNothing);
     expectFixedGraphContext();
 
@@ -1214,7 +1438,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Yearly Distance'), findsOneWidget);
-    expect(find.text('326.8'), findsOneWidget);
+    expect(find.text('15.85'), findsOneWidget);
     expect(find.text('Monthly Distance'), findsNothing);
     expectFixedGraphContext();
 
@@ -1222,7 +1446,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Total Distance'), findsOneWidget);
-    expect(find.text('1,284.2'), findsOneWidget);
+    expect(find.text('16.90'), findsOneWidget);
     expect(find.text('Yearly Distance'), findsNothing);
     expectFixedGraphContext();
   });
@@ -1578,6 +1802,7 @@ void main() {
         title: completion.summary.title,
         timeAgoLabel: 'Just now',
         distanceLabel: '${completion.summary.distanceKm} km',
+        distanceMeters: 1200,
         paceLabel: completion.summary.avgPace,
         durationLabel: completion.summary.duration,
         summary: completion.summary,

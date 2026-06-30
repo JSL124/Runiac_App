@@ -10,6 +10,7 @@ final recentRunningDisplayData = [
     timeAgoLabel: '4/11/26',
     title: 'Saturday Night Run',
     distanceLabel: '4.03 km',
+    distanceMeters: 4030,
     paceLabel: '6\'30"',
     durationLabel: '30:15',
     summary: RunSummarySnapshot(
@@ -32,6 +33,7 @@ final recentRunningDisplayData = [
     timeAgoLabel: '4/11/26',
     title: 'Morning Easy Run',
     distanceLabel: '3.20 km',
+    distanceMeters: 3200,
     paceLabel: '7\'05"',
     durationLabel: '24:10',
     summary: RunSummarySnapshot(
@@ -54,6 +56,7 @@ final recentRunningDisplayData = [
     timeAgoLabel: '4/11/26',
     title: 'Recovery Jog',
     distanceLabel: '5.17 km',
+    distanceMeters: 5170,
     paceLabel: '7\'40"',
     durationLabel: '39:38',
     summary: RunSummarySnapshot(

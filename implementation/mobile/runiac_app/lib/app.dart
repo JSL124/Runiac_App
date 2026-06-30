@@ -51,6 +51,7 @@ class RuniacApp extends StatefulWidget {
     this.currentSessionGeneratedPlanStore,
     this.initialPersonalProfileDraft,
     this.onOnboardingCompleted,
+    this.youProgressToday,
   });
 
   final bool showSplash;
@@ -69,6 +70,7 @@ class RuniacApp extends StatefulWidget {
   final CurrentSessionGeneratedPlanStore? currentSessionGeneratedPlanStore;
   final PersonalProfileDraft? initialPersonalProfileDraft;
   final ValueChanged<LocalOnboardingDraft>? onOnboardingCompleted;
+  final DateTime? youProgressToday;
 
   @override
   State<RuniacApp> createState() => _RuniacAppState();
@@ -244,6 +246,7 @@ class _RuniacAppState extends State<RuniacApp> {
         enableForegroundGps: widget.enableForegroundGps,
         activeRunSessionCoordinator: widget.activeRunSessionCoordinator,
         initialRunOpenIntent: widget.initialRunOpenIntent,
+        youProgressToday: widget.youProgressToday,
       ),
     );
   }

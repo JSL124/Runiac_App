@@ -99,7 +99,11 @@ class CurrentSessionActivityHistoryStore extends ChangeNotifier {
     }
   }
 
-  void registerCompletedRun(CompleteRunResult result, {String? ownerUid}) {
+  void registerCompletedRun(
+    CompleteRunResult result, {
+    String? ownerUid,
+    int? distanceMeters,
+  }) {
     final activity = SessionCompletedRunActivity(
       activityId: result.activityId,
       ownerUid: ownerUid ?? _ownerUid,
@@ -109,6 +113,7 @@ class CurrentSessionActivityHistoryStore extends ChangeNotifier {
         title: result.summary.title,
         timeAgoLabel: result.summary.dateTimeLabel,
         distanceLabel: '${result.summary.distanceKm} km',
+        distanceMeters: distanceMeters ?? _distanceMetersFor(result),
         paceLabel: result.summary.avgPace,
         durationLabel: result.summary.duration,
         summary: result.summary,
@@ -138,7 +143,11 @@ class CurrentSessionActivityHistoryStore extends ChangeNotifier {
       if (_ownerUid != ownerUid || _ownerGeneration != ownerGeneration) {
         return;
       }
-      registerCompletedRun(record.result, ownerUid: record.ownerUid);
+      registerCompletedRun(
+        record.result,
+        ownerUid: record.ownerUid,
+        distanceMeters: record.payload.distanceMeters,
+      );
       return;
     }
 
@@ -158,11 +167,23 @@ class CurrentSessionActivityHistoryStore extends ChangeNotifier {
         return;
       }
       _upsertSyncDebugSnapshot(record);
-      registerCompletedRun(record.result, ownerUid: record.ownerUid);
+      registerCompletedRun(
+        record.result,
+        ownerUid: record.ownerUid,
+        distanceMeters: record.payload.distanceMeters,
+      );
     } catch (error, stackTrace) {
       _reportAsyncError(error, stackTrace, 'saving a completed run locally');
       rethrow;
     }
+  }
+
+  int _distanceMetersFor(CompleteRunResult result) {
+    final kilometers = double.tryParse(result.summary.distanceKm);
+    if (kilometers == null || !kilometers.isFinite) {
+      return 0;
+    }
+    return (kilometers * 1000).round();
   }
 
   String _requireOwnerUid() {

@@ -69,6 +69,7 @@ void main() {
             title: 'Easy Marina Bay run',
             completedAtLabel: 'Today',
             distanceLabel: '3.2 km',
+            distanceMeters: 3200,
             paceLabel: '7:20 / km',
           ),
         ],
@@ -160,6 +161,7 @@ void main() {
           title: 'Easy run',
           completedAtLabel: 'Today',
           distanceLabel: '3 km',
+          distanceMeters: 3000,
           paceLabel: '7:00 / km',
         ),
       ];

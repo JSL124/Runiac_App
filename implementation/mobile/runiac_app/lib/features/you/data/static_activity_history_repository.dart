@@ -18,6 +18,7 @@ class StaticActivityHistoryRepository implements ActivityHistoryRepository {
                     title: activity.title,
                     completedAtLabel: activity.timeAgoLabel,
                     distanceLabel: activity.distanceLabel,
+                    distanceMeters: activity.distanceMeters,
                     paceLabel: activity.paceLabel,
                     durationLabel: activity.durationLabel,
                     timeLabel: activity.summary.timeLabel,

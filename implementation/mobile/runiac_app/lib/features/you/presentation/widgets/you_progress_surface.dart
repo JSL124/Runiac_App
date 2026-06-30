@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/runiac_colors.dart';
 import '../../../../core/widgets/runiac_buttons.dart';
 import '../../../run/domain/models/run_activity_display_model.dart';
+import '../data/activity_history_demo_snapshots.dart';
 import '../data/you_overview_demo_snapshots.dart';
 import 'compact_run_activity_card.dart';
 import 'monthly_distance_graph.dart';
@@ -26,21 +27,25 @@ const _monthNames = [
 
 class YouProgressSurface extends StatefulWidget {
   const YouProgressSurface({
+    required this.activityHistoryMonths,
     required this.runs,
     required this.visibleCalendarMonth,
     required this.onPreviousMonth,
     required this.onNextMonth,
     required this.onRunSelected,
     required this.onMoreActivities,
+    this.today,
     super.key,
   });
 
+  final List<ActivityHistoryMonth> activityHistoryMonths;
   final List<RunActivityDisplayModel> runs;
   final DateTime visibleCalendarMonth;
   final VoidCallback onPreviousMonth;
   final VoidCallback onNextMonth;
   final ValueChanged<RunActivityDisplayModel> onRunSelected;
   final VoidCallback onMoreActivities;
+  final DateTime? today;
 
   @override
   State<YouProgressSurface> createState() => _YouProgressSurfaceState();
@@ -51,8 +56,15 @@ class _YouProgressSurfaceState extends State<YouProgressSurface> {
 
   @override
   Widget build(BuildContext context) {
-    final summaries = youProgressSnapshot.distancePeriodSummaries;
+    final summaries = _distancePeriodSummariesFor(
+      widget.activityHistoryMonths,
+      widget.today ?? DateTime.now(),
+    );
     final selectedSummary = summaries[_selectedDistancePeriod];
+    final graphData = _weeklyDistanceGraphDataFor(
+      widget.activityHistoryMonths,
+      widget.today ?? DateTime.now(),
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -68,7 +80,7 @@ class _YouProgressSurfaceState extends State<YouProgressSurface> {
           },
         ),
         const SizedBox(height: 12),
-        _MonthlyDistanceSection(summary: selectedSummary),
+        _MonthlyDistanceSection(summary: selectedSummary, graphData: graphData),
         const SizedBox(height: 10),
         const _StreakSection(),
         const SizedBox(height: 10),
@@ -94,6 +106,190 @@ class _YouProgressSurfaceState extends State<YouProgressSurface> {
       ],
     );
   }
+}
+
+class _WeeklyDistanceGraphData {
+  const _WeeklyDistanceGraphData({required this.labels, required this.values});
+
+  final List<String> labels;
+  final List<double> values;
+}
+
+List<YouDistancePeriodSummary> _distancePeriodSummariesFor(
+  List<ActivityHistoryMonth> months,
+  DateTime today,
+) {
+  final activities = [for (final month in months) ...month.activities];
+  final weekStart = _startOfWeek(today);
+  final weekEnd = weekStart.add(const Duration(days: 7));
+  final monthStart = DateTime(today.year, today.month);
+  final nextMonthStart = DateTime(today.year, today.month + 1);
+  final yearStart = DateTime(today.year);
+  final nextYearStart = DateTime(today.year + 1);
+
+  final weekTotal = _sumDistanceFor(
+    activities,
+    today,
+    (date) => !date.isBefore(weekStart) && date.isBefore(weekEnd),
+  );
+  final monthTotal = _sumDistanceFor(
+    activities,
+    today,
+    (date) => !date.isBefore(monthStart) && date.isBefore(nextMonthStart),
+  );
+  final yearTotal = _sumDistanceFor(
+    activities,
+    today,
+    (date) => !date.isBefore(yearStart) && date.isBefore(nextYearStart),
+  );
+  final allTotal = activities.fold<double>(
+    0,
+    (total, activity) => total + _distanceKmFor(activity),
+  );
+
+  return [
+    YouDistancePeriodSummary(
+      'Week',
+      'Weekly Distance',
+      _formatKm(weekTotal),
+      'km',
+    ),
+    YouDistancePeriodSummary(
+      'Month',
+      'Monthly Distance',
+      _formatKm(monthTotal),
+      'km',
+    ),
+    YouDistancePeriodSummary(
+      'Year',
+      'Yearly Distance',
+      _formatKm(yearTotal),
+      'km',
+    ),
+    YouDistancePeriodSummary(
+      'All',
+      'Total Distance',
+      _formatKm(allTotal),
+      'km',
+    ),
+  ];
+}
+
+_WeeklyDistanceGraphData _weeklyDistanceGraphDataFor(
+  List<ActivityHistoryMonth> months,
+  DateTime today,
+) {
+  const weekCount = 12;
+  final activities = [for (final month in months) ...month.activities];
+  final currentWeekStart = _startOfWeek(today);
+  final firstWeekStart = currentWeekStart.subtract(
+    const Duration(days: 7 * (weekCount - 1)),
+  );
+  final graphEnd = currentWeekStart.add(const Duration(days: 7));
+  final values = List<double>.filled(weekCount, 0);
+
+  for (final activity in activities) {
+    final date = _dateFor(activity.summary.dateLabel, today);
+    if (date == null ||
+        date.isBefore(firstWeekStart) ||
+        !date.isBefore(graphEnd)) {
+      continue;
+    }
+    final weekIndex = date.difference(firstWeekStart).inDays ~/ 7;
+    values[weekIndex] += _distanceKmFor(activity);
+  }
+
+  return _WeeklyDistanceGraphData(
+    labels: _monthLabelsForWeeklyGraph(firstWeekStart, weekCount),
+    values: values,
+  );
+}
+
+List<String> _monthLabelsForWeeklyGraph(
+  DateTime firstWeekStart,
+  int weekCount,
+) {
+  const labelCount = 3;
+  final weeksPerLabel = weekCount / labelCount;
+  return List.generate(labelCount, (index) {
+    final representativeWeek = ((index + 0.5) * weeksPerLabel).floor();
+    final date = firstWeekStart.add(Duration(days: 7 * representativeWeek));
+    return _monthNames[date.month - 1].substring(0, 3).toUpperCase();
+  });
+}
+
+double _sumDistanceFor(
+  List<RunActivityDisplayModel> activities,
+  DateTime today,
+  bool Function(DateTime date) includes,
+) {
+  return activities.fold<double>(0, (total, activity) {
+    final date = _dateFor(activity.summary.dateLabel, today);
+    if (date == null || !includes(date)) {
+      return total;
+    }
+    return total + _distanceKmFor(activity);
+  });
+}
+
+DateTime _startOfWeek(DateTime date) {
+  final localDate = DateTime(date.year, date.month, date.day);
+  return localDate.subtract(
+    Duration(days: localDate.weekday - DateTime.monday),
+  );
+}
+
+DateTime? _dateFor(String label, DateTime today) {
+  final trimmed = label.trim();
+  if (trimmed.isEmpty) {
+    return null;
+  }
+  if (trimmed.toLowerCase() == 'today') {
+    return DateTime(today.year, today.month, today.day);
+  }
+  final parsed = DateTime.tryParse(trimmed);
+  if (parsed != null) {
+    return DateTime(parsed.year, parsed.month, parsed.day);
+  }
+  final dayMonthYear = RegExp(
+    r'^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})$',
+  ).firstMatch(trimmed);
+  if (dayMonthYear != null) {
+    final day = int.tryParse(dayMonthYear.group(1)!);
+    final month = _monthNumber(dayMonthYear.group(2)!);
+    final year = int.tryParse(dayMonthYear.group(3)!);
+    if (day != null && month != null && year != null) {
+      return DateTime(year, month, day);
+    }
+  }
+  final monthYear = RegExp(r'^([A-Za-z]+)\s+(\d{4})$').firstMatch(trimmed);
+  if (monthYear != null) {
+    final month = _monthNumber(monthYear.group(1)!);
+    final year = int.tryParse(monthYear.group(2)!);
+    if (month != null && year != null) {
+      return DateTime(year, month);
+    }
+  }
+  return null;
+}
+
+int? _monthNumber(String label) {
+  final normalized = label.toLowerCase();
+  for (var index = 0; index < _monthNames.length; index += 1) {
+    final month = _monthNames[index].toLowerCase();
+    if (month.startsWith(normalized) || normalized.startsWith(month)) {
+      return index + 1;
+    }
+  }
+  return null;
+}
+
+double _distanceKmFor(RunActivityDisplayModel activity) {
+  return activity.distanceMeters / 1000;
+}
+
+String _formatKm(double value) {
+  return value.toStringAsFixed(2);
 }
 
 class _RecentRunningHeader extends StatelessWidget {
@@ -147,9 +343,13 @@ class _RecentRunningEmptyState extends StatelessWidget {
 }
 
 class _MonthlyDistanceSection extends StatelessWidget {
-  const _MonthlyDistanceSection({required this.summary});
+  const _MonthlyDistanceSection({
+    required this.summary,
+    required this.graphData,
+  });
 
   final YouDistancePeriodSummary summary;
+  final _WeeklyDistanceGraphData graphData;
 
   @override
   Widget build(BuildContext context) {
@@ -176,8 +376,10 @@ class _MonthlyDistanceSection extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 12),
-              const PastTwelveWeeksDistanceGraph(
+              PastTwelveWeeksDistanceGraph(
                 key: ValueKey('you_monthly_distance_graph'),
+                labels: graphData.labels,
+                values: graphData.values,
               ),
             ],
           ),

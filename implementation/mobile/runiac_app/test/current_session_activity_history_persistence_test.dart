@@ -847,6 +847,7 @@ RunActivityDisplayModel _remoteActivity(String clientRunSessionId) {
     title: result.summary.title,
     timeAgoLabel: result.summary.dateTimeLabel,
     distanceLabel: '${result.summary.distanceKm} km',
+    distanceMeters: 0,
     paceLabel: result.summary.avgPace,
     durationLabel: result.summary.duration,
     summary: result.summary,

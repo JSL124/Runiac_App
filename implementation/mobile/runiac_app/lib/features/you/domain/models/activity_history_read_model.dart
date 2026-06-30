@@ -27,6 +27,7 @@ class ActivityHistoryItemReadModel {
     required this.title,
     required this.completedAtLabel,
     required this.distanceLabel,
+    required this.distanceMeters,
     required this.paceLabel,
     this.durationLabel = '',
     this.timeLabel = '',
@@ -38,6 +39,7 @@ class ActivityHistoryItemReadModel {
   final String title;
   final String completedAtLabel;
   final String distanceLabel;
+  final int distanceMeters;
   final String paceLabel;
   final String durationLabel;
   final String timeLabel;

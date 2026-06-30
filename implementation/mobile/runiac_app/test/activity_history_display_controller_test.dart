@@ -53,6 +53,7 @@ void main() {
                   title: 'Completed Run',
                   completedAtLabel: '14/6/26',
                   distanceLabel: '0.00 km',
+                  distanceMeters: 0,
                   paceLabel: '--',
                   durationLabel: '0:02',
                 ),
@@ -129,6 +130,7 @@ void main() {
                   title: 'Completed Run',
                   completedAtLabel: '14/6/26',
                   distanceLabel: '0.00 km',
+                  distanceMeters: 0,
                   paceLabel: '--',
                   durationLabel: '0:02',
                 ),
@@ -172,6 +174,33 @@ void main() {
         expect(store.activities, isNotEmpty);
       },
     );
+
+    test('projects numeric distance meters into display rows', () async {
+      final controller = ActivityHistoryDisplayController(
+        repository: _ImmediateActivityHistoryRepository(
+          ActivityHistoryReadModel(
+            recentRuns: const <ActivityHistoryItemReadModel>[
+              ActivityHistoryItemReadModel(
+                activityId: 'firestore-activity-1',
+                title: 'Completed Run',
+                completedAtLabel: '14/6/26',
+                distanceLabel: 'label owned by formatter',
+                distanceMeters: 4250,
+                paceLabel: '7’10”',
+                durationLabel: '30:28',
+              ),
+            ],
+          ),
+        ),
+      );
+      addTearDown(controller.dispose);
+      final store = CurrentSessionActivityHistoryStore(ownerUid: ownerUid);
+      addTearDown(store.dispose);
+
+      await controller.load();
+
+      expect(controller.recentRuns(store).single.distanceMeters, 4250);
+    });
   });
 }
 

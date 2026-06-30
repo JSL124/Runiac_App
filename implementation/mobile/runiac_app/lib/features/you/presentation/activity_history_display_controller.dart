@@ -147,6 +147,7 @@ class ActivityHistoryDisplayController extends ChangeNotifier {
       title: item.title,
       timeAgoLabel: item.completedAtLabel,
       distanceLabel: item.distanceLabel,
+      distanceMeters: item.distanceMeters,
       paceLabel: pace,
       durationLabel: duration,
       summary: RunSummarySnapshot(

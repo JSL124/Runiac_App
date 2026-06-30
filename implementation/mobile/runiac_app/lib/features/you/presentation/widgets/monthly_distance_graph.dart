@@ -6,10 +6,12 @@ import '../../../../core/theme/runiac_colors.dart';
 import '../data/you_overview_demo_snapshots.dart';
 
 const _graphHeight = 178.0;
-const _leftInset = 48.0;
+const _leftInset = 58.0;
 const _rightInset = 12.0;
 const _topInset = 30.0;
 const _bottomInset = 38.0;
+const _axisLabelRightGap = 8.0;
+const _axisLabelMaxWidth = 56.0;
 const _showVerticalGridLines = true;
 const _showTopHorizontalGuideLine = true;
 const _contextLabel = 'Past 12 weeks';
@@ -26,20 +28,29 @@ const _axisFontSize = 13.0;
 const _monthFontSize = 13.0;
 
 class PastTwelveWeeksDistanceGraph extends StatelessWidget {
-  const PastTwelveWeeksDistanceGraph({super.key});
+  const PastTwelveWeeksDistanceGraph({
+    super.key,
+    List<String>? labels,
+    List<double>? values,
+  }) : _labels = labels ?? pastTwelveWeeksDistanceGraphLabels,
+       _values = values ?? pastTwelveWeeksDistanceGraphValues;
 
-  List<String> get labels => pastTwelveWeeksDistanceGraphLabels;
-  List<double> get values => pastTwelveWeeksDistanceGraphValues;
+  final List<String> _labels;
+  final List<double> _values;
+
+  List<String> get labels => _labels;
+  List<double> get values => _values;
 
   @override
   Widget build(BuildContext context) {
     final graphLabels = labels;
     final graphValues = values;
+    final axisLabels = _axisLabelsFor(graphValues);
 
     return Semantics(
       label:
           'Past 12 weeks distance graph ${graphLabels.join(' ')} '
-          '0 km 6 km 13 km',
+          '${axisLabels.join(' ')}',
       child: SizedBox(
         height: _graphHeight,
         width: double.infinity,
@@ -108,8 +119,8 @@ class _PastTwelveWeeksDistanceGraphPainter extends CustomPainter {
       ..color = verticalGridColor
       ..strokeWidth = _gridStrokeWidth;
     if (_showVerticalGridLines) {
-      for (var i = 0; i < values.length; i += 1) {
-        final x = _pointX(chartRect, i, values.length);
+      for (var i = 0; i <= values.length; i += 1) {
+        final x = _boundaryX(chartRect, i, values.length);
         canvas.drawLine(
           Offset(x, chartRect.top),
           Offset(x, chartRect.bottom),
@@ -126,12 +137,13 @@ class _PastTwelveWeeksDistanceGraphPainter extends CustomPainter {
       );
     }
 
+    final axisValues = _axisValuesFor(values);
     final points = <Offset>[];
     for (var i = 0; i < values.length; i += 1) {
       points.add(
         Offset(
           _pointX(chartRect, i, values.length),
-          _pointY(chartRect, values[i]),
+          _pointY(chartRect, values[i], axisValues.max),
         ),
       );
     }
@@ -184,26 +196,27 @@ class _PastTwelveWeeksDistanceGraphPainter extends CustomPainter {
       fontSize: _axisFontSize,
       fontWeight: FontWeight.w700,
     );
-    _paintText(
+    final axisLabelRightEdge = chartRect.left - _axisLabelRightGap;
+    _paintAxisText(
       canvas,
-      '13 km',
-      Offset(0, chartRect.top - 7),
+      _formatAxisLabel(axisValues.max),
+      rightEdge: axisLabelRightEdge,
+      top: chartRect.top - 7,
       axisLabelStyle,
-      maxWidth: 46,
     );
-    _paintText(
+    _paintAxisText(
       canvas,
-      '6 km',
-      Offset(5, _pointY(chartRect, 6) - 8),
+      _formatAxisLabel(axisValues.middle, roundDown: true),
+      rightEdge: axisLabelRightEdge,
+      top: chartRect.center.dy - 8,
       axisLabelStyle,
-      maxWidth: 38,
     );
-    _paintText(
+    _paintAxisText(
       canvas,
       '0 km',
-      Offset(5, chartRect.bottom - 8),
+      rightEdge: axisLabelRightEdge,
+      top: chartRect.bottom - 8,
       axisLabelStyle,
-      maxWidth: 38,
     );
 
     const monthLabelStyle = TextStyle(
@@ -212,7 +225,7 @@ class _PastTwelveWeeksDistanceGraphPainter extends CustomPainter {
       fontWeight: FontWeight.w600,
     );
     for (var i = 0; i < labels.length; i += 1) {
-      final x = _labelX(chartRect, i, labels.length, values.length);
+      final x = _labelX(chartRect, i, labels.length);
       _paintText(
         canvas,
         labels[i],
@@ -225,20 +238,24 @@ class _PastTwelveWeeksDistanceGraphPainter extends CustomPainter {
 
   double _pointX(Rect chartRect, int index, int pointCount) {
     return chartRect.left +
-        chartRect.width * index / math.max(1, pointCount - 1);
+        chartRect.width * (index + 0.5) / math.max(1, pointCount);
   }
 
-  double _pointY(Rect chartRect, double value) {
-    final normalized = (value / 13).clamp(0.0, 1.0);
+  double _boundaryX(Rect chartRect, int index, int pointCount) {
+    return chartRect.left + chartRect.width * index / math.max(1, pointCount);
+  }
+
+  double _pointY(Rect chartRect, double value, double maxValue) {
+    final normalized = maxValue <= 0 ? 0.0 : (value / maxValue).clamp(0.0, 1.0);
     return chartRect.bottom - chartRect.height * normalized;
   }
 
-  double _labelX(Rect chartRect, int index, int labelCount, int pointCount) {
-    if (labelCount == 3 && pointCount >= 11) {
-      return _pointX(chartRect, const [1, 6, 10][index], pointCount);
-    }
-    return chartRect.left +
-        chartRect.width * index / math.max(1, labelCount - 1);
+  double _labelX(Rect chartRect, int index, int labelCount) {
+    final fractions = monthLabelFractionsForGraph(
+      labelCount: labelCount,
+      pointCount: values.length,
+    );
+    return chartRect.left + chartRect.width * fractions[index];
   }
 
   void _paintText(
@@ -254,6 +271,23 @@ class _PastTwelveWeeksDistanceGraphPainter extends CustomPainter {
       maxLines: 1,
     )..layout(maxWidth: maxWidth);
     painter.paint(canvas, offset);
+  }
+
+  void _paintAxisText(
+    Canvas canvas,
+    String value,
+    TextStyle style, {
+    required double rightEdge,
+    required double top,
+  }) {
+    final offset = axisLabelOffsetFor(
+      value: value,
+      style: style,
+      rightEdge: rightEdge,
+      top: top,
+      maxWidth: _axisLabelMaxWidth,
+    );
+    _paintText(canvas, value, offset, style, maxWidth: _axisLabelMaxWidth);
   }
 
   @override
@@ -287,4 +321,65 @@ class _PastTwelveWeeksDistanceGraphPainter extends CustomPainter {
     }
     return true;
   }
+}
+
+@visibleForTesting
+Offset axisLabelOffsetFor({
+  required String value,
+  required TextStyle style,
+  required double rightEdge,
+  required double top,
+  required double maxWidth,
+}) {
+  final painter = TextPainter(
+    text: TextSpan(text: value, style: style),
+    textDirection: TextDirection.ltr,
+    maxLines: 1,
+  )..layout(maxWidth: maxWidth);
+  return Offset(rightEdge - painter.width, top);
+}
+
+({double middle, double max}) _axisValuesFor(List<double> values) {
+  final finiteValues = values.where((value) => value.isFinite);
+  final maxValue = finiteValues.fold<double>(
+    0,
+    (currentMax, value) => math.max(currentMax, value),
+  );
+  return (middle: maxValue / 2, max: maxValue);
+}
+
+List<String> _axisLabelsFor(List<double> values) {
+  final axisValues = _axisValuesFor(values);
+  return [
+    '0 km',
+    _formatAxisLabel(axisValues.middle, roundDown: true),
+    _formatAxisLabel(axisValues.max),
+  ];
+}
+
+String _formatAxisLabel(double value, {bool roundDown = false}) {
+  if (roundDown) {
+    return '${value.floor()} km';
+  }
+  final roundedDown = value.floor();
+  if ((value - roundedDown).abs() < 0.001) {
+    return '$roundedDown km';
+  }
+  return '${value.toStringAsFixed(1)} km';
+}
+
+@visibleForTesting
+List<double> monthLabelFractionsForGraph({
+  required int labelCount,
+  required int pointCount,
+}) {
+  if (labelCount <= 0 || pointCount <= 0) {
+    return const [];
+  }
+  final pointsPerLabel = pointCount / labelCount;
+  return List.generate(labelCount, (index) {
+    final centeredWeek = (index + 0.5) * pointsPerLabel;
+    final intervalCenter = centeredWeek + 0.5;
+    return (intervalCenter / pointCount).clamp(0.0, 1.0);
+  });
 }

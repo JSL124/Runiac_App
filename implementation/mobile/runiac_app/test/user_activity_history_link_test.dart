@@ -232,6 +232,7 @@ ActivityHistoryReadModel _authenticatedActivityHistory() {
     title: 'Authenticated Recovery Run',
     completedAtLabel: '12 Jun 2026',
     distanceLabel: '3.20 km',
+    distanceMeters: 3200,
     paceLabel: '7\'10"',
     durationLabel: '22:56',
     routeNameLabel: 'Private route',

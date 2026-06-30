@@ -25,6 +25,7 @@ class RuniacShell extends StatefulWidget {
     this.enableForegroundGps = true,
     this.activeRunSessionCoordinator,
     this.initialRunOpenIntent,
+    this.youProgressToday,
   });
 
   final RuniacAuthRepository authRepository;
@@ -34,6 +35,7 @@ class RuniacShell extends StatefulWidget {
   final bool enableForegroundGps;
   final ActiveRunSessionCoordinator? activeRunSessionCoordinator;
   final RunOpenIntent? initialRunOpenIntent;
+  final DateTime? youProgressToday;
 
   @override
   State<RuniacShell> createState() => _RuniacShellState();
@@ -190,6 +192,7 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
         activityHistoryRepository: widget.activityHistoryRepository,
         enableForegroundGps: widget.enableForegroundGps,
         activeRunSessionCoordinator: _activeRunSessionCoordinator,
+        progressToday: widget.youProgressToday,
       ),
     ];
 

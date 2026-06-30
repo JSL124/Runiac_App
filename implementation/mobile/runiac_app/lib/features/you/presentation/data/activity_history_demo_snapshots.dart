@@ -18,6 +18,7 @@ final activityHistoryDisplayData = [
         title: 'Pace Graph QA Run',
         timeAgoLabel: 'Today · Manual QA',
         distanceLabel: '1.10 km',
+        distanceMeters: 1100,
         paceLabel: '7\'16"',
         durationLabel: '8:00',
         summary: RunSummarySnapshot(
@@ -175,6 +176,7 @@ final activityHistoryDisplayData = [
         title: 'Easy Morning Jog',
         timeAgoLabel: '4 Jun 2026',
         distanceLabel: '4.03 km',
+        distanceMeters: 4030,
         paceLabel: '6\'30"',
         durationLabel: '30:15',
         summary: RunSummarySnapshot(
@@ -197,6 +199,7 @@ final activityHistoryDisplayData = [
         title: 'Riverside Recovery',
         timeAgoLabel: '1 Jun 2026',
         distanceLabel: '0.06 km',
+        distanceMeters: 60,
         paceLabel: '--',
         durationLabel: '00:38',
         summary: RunSummarySnapshot(
@@ -224,6 +227,7 @@ final activityHistoryDisplayData = [
         title: 'Sunset Loop',
         timeAgoLabel: '28 May 2026',
         distanceLabel: '4.50 km',
+        distanceMeters: 4500,
         paceLabel: '6\'52"',
         durationLabel: '30:54',
         summary: RunSummarySnapshot(
@@ -245,6 +249,7 @@ final activityHistoryDisplayData = [
         title: 'Tuesday Tempo',
         timeAgoLabel: '20 May 2026',
         distanceLabel: '5.00 km',
+        distanceMeters: 5000,
         paceLabel: '6\'20"',
         durationLabel: '31:40',
         summary: RunSummarySnapshot(
@@ -266,6 +271,7 @@ final activityHistoryDisplayData = [
         title: 'Park Walk + Run',
         timeAgoLabel: '12 May 2026',
         distanceLabel: '3.80 km',
+        distanceMeters: 3800,
         paceLabel: '7\'10"',
         durationLabel: '27:14',
         summary: RunSummarySnapshot(
@@ -292,6 +298,7 @@ final activityHistoryDisplayData = [
         title: 'First 5K Attempt',
         timeAgoLabel: '25 Apr 2026',
         distanceLabel: '5.00 km',
+        distanceMeters: 5000,
         paceLabel: '7\'25"',
         durationLabel: '37:05',
         summary: RunSummarySnapshot(
@@ -313,6 +320,7 @@ final activityHistoryDisplayData = [
         title: 'Gentle Start',
         timeAgoLabel: '14 Apr 2026',
         distanceLabel: '2.50 km',
+        distanceMeters: 2500,
         paceLabel: '7\'40"',
         durationLabel: '19:10',
         summary: RunSummarySnapshot(
