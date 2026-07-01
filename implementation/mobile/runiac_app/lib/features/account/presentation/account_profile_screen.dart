@@ -112,8 +112,10 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
               const SizedBox(height: 14),
             ],
             AccountIdentityCard(snapshot: snapshot),
-            const SizedBox(height: 14),
-            AccountPreviewNote(message: snapshot.previewNote),
+            if (snapshot.previewNote.isNotEmpty) ...[
+              const SizedBox(height: 14),
+              AccountPreviewNote(message: snapshot.previewNote),
+            ],
             const SizedBox(height: 22),
             AccountSectionLabel(snapshot.setupSectionLabel),
             const SizedBox(height: 8),
@@ -226,9 +228,7 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
       avatarInitials: profile.avatarInitials,
       regionLabel: profile.locationLabel,
       previewLevelBadge: profile.previewLevelBadge,
-      previewNote: profile.previewNote.isEmpty
-          ? fallback.previewNote
-          : profile.previewNote,
+      previewNote: profile.previewNote,
       setupSectionLabel: profile.setupSectionLabel.isEmpty
           ? fallback.setupSectionLabel
           : profile.setupSectionLabel,

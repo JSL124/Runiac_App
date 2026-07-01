@@ -121,7 +121,7 @@ class FirestoreUserProfileRepository implements UserProfileRepository {
       weightKg: weightKg,
       locationLabel: locationLabel,
       previewLevelBadge: '',
-      previewNote: 'Loaded from your saved profile.',
+      previewNote: '',
       setupSectionLabel: 'RUNNING SETUP',
       manageSectionLabel: 'MANAGE',
       footerCaption: 'Runiac · Preview build · Built for new runners',
