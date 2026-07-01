@@ -2858,10 +2858,20 @@ void main() {
     await tester.drag(find.byType(ListView), const Offset(0, -700));
     await tester.pumpAndSettle();
     expect(find.text('Workout detail'), findsOneWidget);
-    expect(find.text('Edit schedule'), findsOneWidget);
+    expect(find.byTooltip('Edit schedule'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('edit_schedule_icon_action')),
+      findsOneWidget,
+    );
+    expect(find.text('Edit schedule'), findsNothing);
     expect(find.byTooltip('Back to Plans'), findsOneWidget);
     expect(tester.getTopLeft(find.text('Workout detail')).dy, greaterThan(0));
-    expect(tester.getTopLeft(find.text('Edit schedule')).dy, greaterThan(0));
+    expect(
+      tester
+          .getTopLeft(find.byKey(const ValueKey('edit_schedule_icon_action')))
+          .dy,
+      greaterThan(0),
+    );
     expect(find.text('Start This Run'), findsOneWidget);
   });
 
@@ -2893,7 +2903,7 @@ void main() {
     expect(find.text('Easy run'), findsOneWidget);
     expect(find.text('Cool-down'), findsOneWidget);
 
-    await tester.tap(find.text('Edit schedule'));
+    await tester.tap(find.byTooltip('Edit schedule'));
     await tester.pumpAndSettle();
 
     expect(find.byType(BottomSheet), findsOneWidget);
@@ -2990,7 +3000,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // When: the preview-only Edit schedule action is opened.
-    await tester.tap(find.text('Edit schedule'));
+    await tester.tap(find.byTooltip('Edit schedule'));
     await tester.pumpAndSettle();
 
     // Then: the bottom sheet presents a richer static preview without mutation.
@@ -3136,7 +3146,7 @@ void main() {
       findsOneWidget,
     );
 
-    await tester.tap(find.text('Edit schedule'));
+    await tester.tap(find.byTooltip('Edit schedule'));
     await tester.pumpAndSettle();
 
     // And: the preview-only sheet uses the same no-stretch boundary locally.
@@ -3179,13 +3189,20 @@ void main() {
       find.byKey(const ValueKey('suggested_pace_metric_label')),
     );
 
-    // Then: the centered header title has room before ellipsis is needed.
+    // Then: the centered header title renders without ellipsis, and the
+    // schedule action is icon-only while remaining accessible.
     expect(headerTitle.data, 'Workout detail');
-    expect(headerTitle.maxLines, 1);
-    expect(headerTitle.overflow, TextOverflow.ellipsis);
+    expect(headerTitle.maxLines, 2);
+    expect(headerTitle.overflow, TextOverflow.visible);
     expect(headerTitle.style?.fontFamily, isNull);
     expect(headerTitle.style?.decoration, isNot(TextDecoration.underline));
-    expect(headerTitleSize.width, greaterThan(120));
+    expect(headerTitleSize.width, greaterThan(92));
+    expect(find.byTooltip('Edit schedule'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('edit_schedule_icon_action')),
+      findsOneWidget,
+    );
+    expect(find.text('Edit schedule'), findsNothing);
 
     final dayLabel = tester.widget<Text>(find.text('Thursday · Easy Run'));
     final planTitle = tester.widget<Text>(find.text('20 min easy run'));

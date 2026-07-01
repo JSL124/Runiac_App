@@ -204,7 +204,7 @@ void main() {
     await tester.drag(find.byType(ListView), const Offset(0, -700));
     await tester.pumpAndSettle();
     expect(find.text('Start this run'), findsOneWidget);
-    expect(find.text('Edit schedule'), findsNothing);
+    expect(find.byTooltip('Edit schedule'), findsNothing);
   });
 
   testWidgets(
@@ -234,7 +234,8 @@ void main() {
       // Then: the future detail can be rescheduled, but cannot start today.
       expect(find.text('Workout detail'), findsOneWidget);
       expect(find.text('Thu · Recovery Run'), findsOneWidget);
-      expect(find.text('Edit schedule'), findsOneWidget);
+      expect(find.byTooltip('Edit schedule'), findsOneWidget);
+      expect(find.text('Edit schedule'), findsNothing);
       await tester.drag(find.byType(ListView), const Offset(0, -700));
       await tester.pumpAndSettle();
       expect(find.text('Start this run'), findsNothing);
@@ -256,7 +257,8 @@ void main() {
     // Then: the past detail can be rescheduled, but cannot start today.
     expect(find.text('Workout detail'), findsOneWidget);
     expect(find.text('Mon · Comfortable Run'), findsOneWidget);
-    expect(find.text('Edit schedule'), findsOneWidget);
+    expect(find.byTooltip('Edit schedule'), findsOneWidget);
+    expect(find.text('Edit schedule'), findsNothing);
     await tester.drag(find.byType(ListView), const Offset(0, -700));
     await tester.pumpAndSettle();
     expect(find.text('Start this run'), findsNothing);
@@ -280,7 +282,7 @@ void main() {
     // Then: no detail, Start CTA, or edit action appears.
     expect(find.text('Workout detail'), findsNothing);
     expect(find.text('Start this run'), findsNothing);
-    expect(find.text('Edit schedule'), findsNothing);
+    expect(find.byTooltip('Edit schedule'), findsNothing);
   });
 
   testWidgets('today rest generated row uses orange row treatment', (
@@ -311,7 +313,7 @@ void main() {
 
     expect(find.text('Workout detail'), findsNothing);
     expect(find.text('Start this run'), findsNothing);
-    expect(find.text('Edit schedule'), findsNothing);
+    expect(find.byTooltip('Edit schedule'), findsNothing);
   });
 
   testWidgets('today Start opens Run launch with planned workout context', (

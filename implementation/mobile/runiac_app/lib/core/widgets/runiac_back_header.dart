@@ -12,6 +12,8 @@ class RuniacBackHeader extends StatelessWidget {
     this.titleKey,
     this.titleStyle,
     this.subtitleStyle,
+    this.titleMaxLines = 1,
+    this.titleOverflow = TextOverflow.ellipsis,
     this.height = 56,
     this.trailingWidth = 48,
     super.key,
@@ -25,6 +27,8 @@ class RuniacBackHeader extends StatelessWidget {
   final Key? titleKey;
   final TextStyle? titleStyle;
   final TextStyle? subtitleStyle;
+  final int titleMaxLines;
+  final TextOverflow titleOverflow;
   final double height;
   final double trailingWidth;
 
@@ -64,6 +68,8 @@ class RuniacBackHeader extends StatelessWidget {
                 titleKey: titleKey,
                 titleStyle: titleStyle,
                 subtitleStyle: subtitleStyle,
+                titleMaxLines: titleMaxLines,
+                titleOverflow: titleOverflow,
               ),
             ),
             SizedBox(
@@ -86,6 +92,8 @@ class _RuniacBackHeaderTitle extends StatelessWidget {
     required this.titleKey,
     required this.titleStyle,
     required this.subtitleStyle,
+    required this.titleMaxLines,
+    required this.titleOverflow,
   });
 
   final String title;
@@ -93,6 +101,8 @@ class _RuniacBackHeaderTitle extends StatelessWidget {
   final Key? titleKey;
   final TextStyle? titleStyle;
   final TextStyle? subtitleStyle;
+  final int titleMaxLines;
+  final TextOverflow titleOverflow;
 
   @override
   Widget build(BuildContext context) {
@@ -104,8 +114,8 @@ class _RuniacBackHeaderTitle extends StatelessWidget {
         title,
         key: titleKey,
         textAlign: TextAlign.center,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
+        maxLines: titleMaxLines,
+        overflow: titleOverflow,
         style: effectiveTitleStyle,
       );
     }
@@ -117,8 +127,8 @@ class _RuniacBackHeaderTitle extends StatelessWidget {
           title,
           key: titleKey,
           textAlign: TextAlign.center,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
+          maxLines: titleMaxLines,
+          overflow: titleOverflow,
           style: effectiveTitleStyle,
         ),
         const SizedBox(height: 1),
