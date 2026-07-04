@@ -62,35 +62,35 @@ class _AggregateProgressRepository implements ActivityHistoryRepository {
       _activity(
         id: 'aggregate-week',
         title: 'Aggregate Week Run',
-        date: '30 Jun 2026',
+        date: '30/6/26',
         distance: 'label hidden',
         distanceMeters: 4250,
       ),
       _activity(
         id: 'aggregate-month',
         title: 'Aggregate Month Run',
-        date: '2 Jun 2026',
+        date: '2/6/26',
         distance: 'label hidden',
         distanceMeters: 3500,
       ),
       _activity(
         id: 'aggregate-year',
         title: 'Aggregate Year Run',
-        date: '4 May 2026',
+        date: '4/5/26',
         distance: 'label hidden',
         distanceMeters: 8100,
       ),
       _activity(
         id: 'aggregate-all',
         title: 'Aggregate All Run',
-        date: '24 Dec 2025',
+        date: '24/12/25',
         distance: 'label hidden',
         distanceMeters: 1050,
       ),
       _activity(
         id: 'aggregate-invalid',
         title: 'Aggregate Invalid Distance',
-        date: '30 Jun 2026',
+        date: '30/6/26',
         distance: 'distance pending',
         distanceMeters: 0,
       ),
@@ -132,6 +132,79 @@ class _AggregateProgressRepository implements ActivityHistoryRepository {
       durationLabel: '22:56',
       timeLabel: '7:20 AM',
       routeNameLabel: 'Aggregate Test Route',
+    );
+  }
+}
+
+class _WeeklyBoundaryProgressRepository implements ActivityHistoryRepository {
+  const _WeeklyBoundaryProgressRepository();
+
+  @override
+  Future<ActivityHistoryReadModel> loadActivityHistory() async {
+    final activities = [
+      _activity(
+        id: 'previous-sunday',
+        title: 'Previous Sunday Run',
+        date: '28/6/26',
+        distanceMeters: 10000,
+      ),
+      _activity(
+        id: 'monday-boundary',
+        title: 'Monday Boundary Run',
+        date: '29/6/26',
+        distanceMeters: 1000,
+      ),
+      _activity(
+        id: 'tuesday-current',
+        title: 'Tuesday Current Run',
+        date: '30/6/26',
+        distanceMeters: 2000,
+      ),
+      _activity(
+        id: 'sunday-boundary',
+        title: 'Sunday Boundary Run',
+        date: '5/7/26',
+        distanceMeters: 3000,
+      ),
+      _activity(
+        id: 'next-monday',
+        title: 'Next Monday Run',
+        date: '6/7/26',
+        distanceMeters: 20000,
+      ),
+    ];
+
+    return ActivityHistoryReadModel(
+      recentRuns: activities.toList(growable: false),
+      months: [
+        ActivityHistoryMonthReadModel(
+          label: 'July 2026',
+          activities: [activities[3], activities[4]],
+        ),
+        ActivityHistoryMonthReadModel(
+          label: 'June 2026',
+          activities: [activities[0], activities[1], activities[2]],
+        ),
+      ],
+    );
+  }
+
+  ActivityHistoryItemReadModel _activity({
+    required String id,
+    required String title,
+    required String date,
+    required int distanceMeters,
+  }) {
+    return ActivityHistoryItemReadModel(
+      activityId: id,
+      title: title,
+      completedAtLabel: date,
+      distanceLabel: 'label hidden',
+      distanceMeters: distanceMeters,
+      paceLabel: '7’10”',
+      durationLabel: '22:56',
+      timeLabel: '7:20 AM',
+      routeNameLabel: 'Weekly Boundary Route',
     );
   }
 }
@@ -1449,6 +1522,20 @@ void main() {
     expect(find.text('16.90'), findsOneWidget);
     expect(find.text('Yearly Distance'), findsNothing);
     expectFixedGraphContext();
+  });
+
+  testWidgets('Weekly Distance aggregates Monday through Sunday only', (
+    WidgetTester tester,
+  ) async {
+    await _openYouTab(
+      tester,
+      activityHistoryRepository: const _WeeklyBoundaryProgressRepository(),
+    );
+
+    expect(find.text('Weekly Distance'), findsOneWidget);
+    expect(find.text('6.00'), findsOneWidget);
+    expect(find.text('10.00'), findsNothing);
+    expect(find.text('20.00'), findsNothing);
   });
 
   testWidgets('Recent Running card opens selected summary with matching data', (

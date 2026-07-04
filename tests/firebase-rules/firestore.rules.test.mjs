@@ -302,6 +302,50 @@ describe('owner-owned client records', () => {
     await assertFails(updateDoc(activity, { validationStatus: deleteField() }));
   });
 
+  it('activity owner history list supports latest-first bounded queries', async () => {
+    await seed('activities/alice-older', {
+      ...activityDraft,
+      ownerUid: 'alice',
+      endedAt: 20,
+      updatedAt: 21,
+    });
+    await seed('activities/alice-newer', {
+      ...activityDraft,
+      ownerUid: 'alice',
+      endedAt: 40,
+      updatedAt: 41,
+    });
+    await seed('activities/bob-activity', {
+      ...activityDraft,
+      ownerUid: 'bob',
+      endedAt: 60,
+      updatedAt: 61,
+    });
+
+    const aliceHistory = query(
+      collection(dbFor('alice'), 'activities'),
+      where('ownerUid', '==', 'alice'),
+      orderBy('endedAt', 'desc'),
+      limit(30),
+    );
+    const aliceHistorySnapshot = await assertSucceeds(getDocs(aliceHistory));
+    assert.deepEqual(
+      aliceHistorySnapshot.docs.map((activity) => activity.id),
+      ['alice-newer', 'alice-older'],
+    );
+
+    await assertFails(
+      getDocs(
+        query(
+          collection(dbFor('bob'), 'activities'),
+          where('ownerUid', '==', 'alice'),
+          orderBy('endedAt', 'desc'),
+          limit(30),
+        ),
+      ),
+    );
+  });
+
   it('run summary owner history reads', async () => {
     await seed('runSummaries/alice-summary', {
       ownerUid: 'alice',

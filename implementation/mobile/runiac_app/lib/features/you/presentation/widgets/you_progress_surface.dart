@@ -251,6 +251,21 @@ DateTime? _dateFor(String label, DateTime today) {
   if (parsed != null) {
     return DateTime(parsed.year, parsed.month, parsed.day);
   }
+  final slashDayMonthYear = RegExp(
+    r'^(\d{1,2})/(\d{1,2})/(\d{2}|\d{4})$',
+  ).firstMatch(trimmed);
+  if (slashDayMonthYear != null) {
+    final day = int.tryParse(slashDayMonthYear.group(1)!);
+    final month = int.tryParse(slashDayMonthYear.group(2)!);
+    final rawYear = int.tryParse(slashDayMonthYear.group(3)!);
+    if (day != null && month != null && rawYear != null) {
+      final year = rawYear < 100 ? 2000 + rawYear : rawYear;
+      final date = DateTime(year, month, day);
+      if (date.year == year && date.month == month && date.day == day) {
+        return date;
+      }
+    }
+  }
   final dayMonthYear = RegExp(
     r'^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})$',
   ).firstMatch(trimmed);

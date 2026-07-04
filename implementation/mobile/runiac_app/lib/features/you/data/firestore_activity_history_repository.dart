@@ -11,6 +11,11 @@ abstract interface class ActivityHistorySummaryDocumentReader {
     required String ownerUid,
     required int limit,
   });
+
+  Future<List<ActivityHistorySummaryDocument>> loadActivities({
+    required String ownerUid,
+    required int limit,
+  });
 }
 
 class ActivityHistorySummaryDocument {
@@ -34,6 +39,28 @@ class FirestoreActivityHistorySummaryDocumentReader
   }) async {
     final snapshot = await _firestore
         .collection('runSummaries')
+        .where('ownerUid', isEqualTo: ownerUid)
+        .orderBy('endedAt', descending: true)
+        .limit(limit)
+        .get();
+
+    return snapshot.docs
+        .map(
+          (document) => ActivityHistorySummaryDocument(
+            id: document.id,
+            data: Map<String, Object?>.from(document.data()),
+          ),
+        )
+        .toList(growable: false);
+  }
+
+  @override
+  Future<List<ActivityHistorySummaryDocument>> loadActivities({
+    required String ownerUid,
+    required int limit,
+  }) async {
+    final snapshot = await _firestore
+        .collection('activities')
         .where('ownerUid', isEqualTo: ownerUid)
         .orderBy('endedAt', descending: true)
         .limit(limit)
@@ -75,16 +102,26 @@ class FirestoreActivityHistoryRepository implements ActivityHistoryRepository {
       return fallbackRepository.loadActivityHistory();
     }
 
-    final documents = await documentReader.loadRunSummaries(
+    final summaryDocuments = await documentReader.loadRunSummaries(
       ownerUid: currentUser.uid,
       limit: limit,
     );
-    final activities =
-        documents
-            .map((document) => _mapDocument(currentUser.uid, document))
-            .nonNulls
-            .toList(growable: false)
-          ..sort((left, right) => right.endedAt.compareTo(left.endedAt));
+    final activityDocuments = await documentReader.loadActivities(
+      ownerUid: currentUser.uid,
+      limit: limit,
+    );
+    final activities = _dedupeByIdentity(<_MappedActivity>[
+      ..._mapDocuments(
+        currentUser.uid,
+        summaryDocuments,
+        dateKeys: const ['endedAt', 'completedAt'],
+      ),
+      ..._mapDocuments(
+        currentUser.uid,
+        activityDocuments,
+        dateKeys: const ['completedAt', 'endedAt'],
+      ),
+    ])..sort((left, right) => right.endedAt.compareTo(left.endedAt));
 
     return ActivityHistoryReadModel(
       recentRuns: activities
@@ -97,14 +134,15 @@ class FirestoreActivityHistoryRepository implements ActivityHistoryRepository {
 
   _MappedActivity? _mapDocument(
     String ownerUid,
-    ActivityHistorySummaryDocument document,
-  ) {
+    ActivityHistorySummaryDocument document, {
+    required List<String> dateKeys,
+  }) {
     final data = document.data;
     if (_readRequiredString(data, 'ownerUid') != ownerUid) {
       return null;
     }
 
-    final endedAt = _readDateTime(data, 'endedAt');
+    final endedAt = _readDateTimeFromAny(data, dateKeys);
     final distanceMeters = _readInt(data, 'distanceMeters');
     final durationSeconds = _readInt(data, 'durationSeconds');
     final averagePaceSecondsPerKm = _readInt(data, 'averagePaceSecondsPerKm');
@@ -115,6 +153,8 @@ class FirestoreActivityHistoryRepository implements ActivityHistoryRepository {
       return null;
     }
 
+    final activityId = _readOptionalString(data, 'activityId') ?? document.id;
+    final clientRunSessionId = _readOptionalString(data, 'clientRunSessionId');
     final scalar = mapper.map(
       completedAt: endedAt,
       distanceMeters: distanceMeters,
@@ -124,9 +164,12 @@ class FirestoreActivityHistoryRepository implements ActivityHistoryRepository {
     );
     return _MappedActivity(
       endedAt: endedAt,
+      identityKey: clientRunSessionId != null && clientRunSessionId.isNotEmpty
+          ? 'client:$clientRunSessionId'
+          : 'activity:$activityId',
       item: ActivityHistoryItemReadModel(
-        activityId: _readOptionalString(data, 'activityId') ?? document.id,
-        clientRunSessionId: _readOptionalString(data, 'clientRunSessionId'),
+        activityId: activityId,
+        clientRunSessionId: clientRunSessionId,
         title: _readOptionalString(data, 'title') ?? 'Completed Run',
         completedAtLabel: scalar.dateLabel,
         distanceLabel: '${scalar.distanceKm} km',
@@ -137,6 +180,38 @@ class FirestoreActivityHistoryRepository implements ActivityHistoryRepository {
         routeNameLabel: scalar.routeName,
       ),
     );
+  }
+
+  List<_MappedActivity> _mapDocuments(
+    String ownerUid,
+    List<ActivityHistorySummaryDocument> documents, {
+    required List<String> dateKeys,
+  }) {
+    return documents
+        .map((document) => _mapDocument(ownerUid, document, dateKeys: dateKeys))
+        .nonNulls
+        .toList(growable: false);
+  }
+
+  List<_MappedActivity> _dedupeByIdentity(List<_MappedActivity> activities) {
+    final byIdentity = <String, _MappedActivity>{};
+    for (final activity in activities) {
+      byIdentity.putIfAbsent(activity.identityKey, () => activity);
+    }
+    return byIdentity.values.toList(growable: false);
+  }
+
+  DateTime? _readDateTimeFromAny(
+    Map<String, Object?> source,
+    List<String> keys,
+  ) {
+    for (final key in keys) {
+      final value = _readDateTime(source, key);
+      if (value != null) {
+        return value;
+      }
+    }
+    return null;
   }
 
   List<ActivityHistoryMonthReadModel> _groupByMonth(
@@ -229,8 +304,13 @@ class FirestoreActivityHistoryRepository implements ActivityHistoryRepository {
 }
 
 class _MappedActivity {
-  const _MappedActivity({required this.endedAt, required this.item});
+  const _MappedActivity({
+    required this.endedAt,
+    required this.identityKey,
+    required this.item,
+  });
 
   final DateTime endedAt;
+  final String identityKey;
   final ActivityHistoryItemReadModel item;
 }
