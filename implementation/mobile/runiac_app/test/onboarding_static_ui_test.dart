@@ -124,12 +124,12 @@ void main() {
 
     expect(find.text('8 weeks'), findsOneWidget);
     expect(find.text('4 sessions / week'), findsOneWidget);
-    expect(find.text('25-30 min'), findsOneWidget);
+    expect(find.text('20-30 min'), findsOneWidget);
     expect(find.text('10K Performance Build'), findsOneWidget);
     expect(find.text('Mon · Comfortable Run · 25 min'), findsOneWidget);
     expect(find.text('Tue · Controlled Steady Run · 25 min'), findsOneWidget);
-    expect(find.text('Wed · Longer Easy Run · 25 min'), findsOneWidget);
-    expect(find.text('Thu · Recovery Run · 30 min'), findsOneWidget);
+    expect(find.text('Wed · Longer Easy Run · 30 min'), findsOneWidget);
+    expect(find.text('Thu · Recovery Run · 20 min'), findsOneWidget);
   });
 
   testWidgets('final preview emits a typed local onboarding draft', (

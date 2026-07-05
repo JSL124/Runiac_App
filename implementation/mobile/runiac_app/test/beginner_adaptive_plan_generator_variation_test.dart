@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/features/onboarding/domain/models/local_onboarding_draft.dart';
 import 'package:runiac_app/features/plan/domain/models/beginner_adaptive_plan_snapshot.dart';
+import 'package:runiac_app/features/plan/domain/models/plan_family.dart';
 import 'package:runiac_app/features/plan/domain/services/beginner_adaptive_plan_generator.dart';
 
 void main() {
@@ -62,6 +63,123 @@ void main() {
       expect(
         _firstWeekSignature(safeReturning),
         isNot(_firstWeekSignature(restrictedRestart)),
+      );
+    });
+
+    test(
+      'fifteen-minute performance plan does not label equal work as longer',
+      () {
+        final plan = generator.generate(
+          _performanceReturningDraft(length: OnboardingSessionLength.fifteen),
+        );
+
+        expect(plan.family, PlanFamily.tenKPerformanceBuild);
+        expect(
+          plan.templateKind,
+          BeginnerPlanTemplateKind.returningBeginnerStart,
+        );
+        expect(plan.sessionDurationLabel, '15 min');
+
+        final comparableEasy = _requiredFirstWeekWorkout(
+          plan,
+          BeginnerWorkoutKind.easyRun,
+        );
+        expect(
+          _firstWeekKinds(plan),
+          isNot(contains(BeginnerWorkoutKind.longerEasyRun)),
+        );
+        expect(_firstWeekTitles(plan), isNot(contains('Longer Easy Run')));
+
+        expect(comparableEasy.title, 'Comfortable Run');
+        expect(comparableEasy.durationMinutes, 15);
+        expect(_mainEffortMinutes(comparableEasy), lessThanOrEqualTo(15));
+      },
+    );
+
+    test(
+      'thirty-minute same-family plan keeps a genuinely longer easy run',
+      () {
+        final plan = generator.generate(
+          _performanceReturningDraft(length: OnboardingSessionLength.thirty),
+        );
+
+        expect(plan.family, PlanFamily.tenKPerformanceBuild);
+        expect(
+          plan.templateKind,
+          BeginnerPlanTemplateKind.returningBeginnerStart,
+        );
+
+        final comparableEasy = _requiredFirstWeekWorkout(
+          plan,
+          BeginnerWorkoutKind.easyRun,
+        );
+        final longerEasy = _requiredFirstWeekWorkout(
+          plan,
+          BeginnerWorkoutKind.longerEasyRun,
+        );
+
+        expect(longerEasy.title, 'Longer Easy Run');
+        expect(
+          longerEasy.durationMinutes,
+          greaterThan(comparableEasy.durationMinutes),
+        );
+        expect(
+          _mainEffortMinutes(longerEasy),
+          greaterThan(_mainEffortMinutes(comparableEasy)),
+        );
+      },
+    );
+
+    test('first-week detail signatures vary by purpose and intensity', () {
+      final performancePlan = generator.generate(
+        _performanceReturningDraft(length: OnboardingSessionLength.thirty),
+      );
+      final titlelessPurposeSignatures = performancePlan.weeks.first.workouts
+          .map(_workoutDetailSignature)
+          .toSet();
+
+      expect(
+        titlelessPurposeSignatures,
+        hasLength(performancePlan.weeks.first.workouts.length),
+        reason:
+            'Workout details should differ by kind, purpose, breakdown, and '
+            'intensity instead of relying on titles alone.',
+      );
+
+      final balancedRecovery = _requiredFirstWeekWorkout(
+        generator.generate(
+          _draft(
+            experience: OnboardingExperience.intervals,
+            length: OnboardingSessionLength.fifteen,
+            cautiousness: OnboardingPlanCautiousness.standard,
+          ),
+        ),
+        BeginnerWorkoutKind.recoveryWalk,
+      );
+      final veryGentleRecovery = _requiredFirstWeekWorkout(
+        generator.generate(
+          _draft(
+            experience: OnboardingExperience.newRunner,
+            length: OnboardingSessionLength.fifteen,
+            cautiousness: OnboardingPlanCautiousness.veryGentle,
+          ),
+        ),
+        BeginnerWorkoutKind.recoveryWalk,
+      );
+
+      expect(balancedRecovery.title, veryGentleRecovery.title);
+      expect(
+        balancedRecovery.durationMinutes,
+        veryGentleRecovery.durationMinutes,
+      );
+      expect(balancedRecovery.kind, veryGentleRecovery.kind);
+      expect(balancedRecovery.intensity, isNot(veryGentleRecovery.intensity));
+      expect(
+        _workoutDetailSignature(balancedRecovery),
+        isNot(_workoutDetailSignature(veryGentleRecovery)),
+        reason:
+            'Onboarding-derived intensity must change generated workout '
+            'details even when title, kind, and total duration match.',
       );
     });
 
@@ -176,6 +294,28 @@ void main() {
   });
 }
 
+LocalOnboardingDraft _performanceReturningDraft({
+  required OnboardingSessionLength length,
+}) {
+  return _draft(
+    goal: OnboardingGoal.tenK,
+    experience: OnboardingExperience.run30,
+    availability: OnboardingAvailability.four,
+    days: const [
+      OnboardingPreferredDay.mon,
+      OnboardingPreferredDay.tue,
+      OnboardingPreferredDay.wed,
+      OnboardingPreferredDay.thu,
+    ],
+    length: length,
+    cautiousness: OnboardingPlanCautiousness.standard,
+    consistency: RecentRunningConsistency.threeToSixMonths,
+    frequency: CurrentWeeklyRunFrequency.four,
+    capacity: ContinuousRunCapacity.fortyFivePlusMinutes,
+    style: OnboardingPlanStyle.performanceFocused,
+  );
+}
+
 LocalOnboardingDraft _draft({
   OnboardingGoal goal = OnboardingGoal.habit,
   OnboardingExperience experience = OnboardingExperience.newRunner,
@@ -244,4 +384,70 @@ String _firstWeekSignature(BeginnerAdaptivePlanSnapshot plan) {
             '${workout.kind.name}|${workout.intensity.name}',
       )
       .join('\n');
+}
+
+BeginnerAdaptiveWorkout _requiredFirstWeekWorkout(
+  BeginnerAdaptivePlanSnapshot plan,
+  BeginnerWorkoutKind kind,
+) {
+  final workout = _firstWeekWorkoutOrNull(plan, kind);
+  expect(workout, isNotNull);
+  return workout!;
+}
+
+BeginnerAdaptiveWorkout? _firstWeekWorkoutOrNull(
+  BeginnerAdaptivePlanSnapshot plan,
+  BeginnerWorkoutKind kind,
+) {
+  for (final workout in plan.weeks.first.workouts) {
+    if (workout.kind == kind) {
+      return workout;
+    }
+  }
+  return null;
+}
+
+int _mainEffortMinutes(BeginnerAdaptiveWorkout workout) {
+  final mainEffortSteps = workout.detail.breakdown.where((step) {
+    final title = step.title.toLowerCase();
+    return !title.contains('warm') &&
+        !title.contains('cool') &&
+        !title.contains('finish') &&
+        !title.contains('rest');
+  });
+  if (mainEffortSteps.isNotEmpty) {
+    return mainEffortSteps
+        .map((step) => _minutesFromBreakdownDetail(step.detail))
+        .reduce((total, minutes) => total + minutes);
+  }
+
+  return workout.detail.breakdown
+      .map((step) => _minutesFromBreakdownDetail(step.detail))
+      .reduce((total, minutes) => total + minutes);
+}
+
+int _minutesFromBreakdownDetail(String detail) {
+  final match = RegExp(r'(\d+)\s*min').firstMatch(detail);
+  expect(match, isNotNull, reason: 'Expected a minute value in "$detail".');
+  return int.parse(match!.group(1)!);
+}
+
+String _workoutDetailSignature(BeginnerAdaptiveWorkout workout) {
+  final metrics = workout.detail.metrics
+      .map((metric) => '${metric.label}:${metric.value}')
+      .join('|');
+  final breakdown = workout.detail.breakdown
+      .map((step) => '${step.kind.name}:${step.title}:${step.detail}')
+      .join('|');
+  final notes = workout.detail.coachNotes.join('|');
+
+  return [
+    workout.kind.name,
+    workout.intensity.name,
+    workout.description,
+    metrics,
+    breakdown,
+    workout.detail.effortGuide,
+    notes,
+  ].join('\n');
 }

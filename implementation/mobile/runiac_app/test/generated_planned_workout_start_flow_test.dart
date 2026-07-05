@@ -221,7 +221,7 @@ void main() {
       expect(
         _rowWithTextHasColor(
           tester,
-          '30 min Recovery Run',
+          '20 min Recovery Run',
           RuniacColors.primaryBlue.withValues(alpha: 0.06),
         ),
         isTrue,
@@ -229,7 +229,7 @@ void main() {
       expect(find.text('Upcoming · 7:30 AM'), findsWidgets);
 
       // When: a future generated running row is opened.
-      await _openWorkoutDetail(tester, '30 min Recovery Run');
+      await _openWorkoutDetail(tester, '20 min Recovery Run');
 
       // Then: the future detail can be rescheduled, but cannot start today.
       expect(find.text('Workout detail'), findsOneWidget);

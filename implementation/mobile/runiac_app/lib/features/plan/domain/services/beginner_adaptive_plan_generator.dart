@@ -76,12 +76,18 @@ class BeginnerAdaptivePlanGenerator {
       policy,
     );
     final durationWeeks = family.durationWeeks;
-    final weekOneDurations = [
-      for (var index = 0; index < requiredSessions; index++)
-        policy.durationFor(
-          weekNumber: 1,
-          isLastSession: index == requiredSessions - 1,
+    final weeks = [
+      for (var weekNumber = 1; weekNumber <= durationWeeks; weekNumber++)
+        _weekFor(
+          draft: draft,
+          policy: policy,
+          family: family,
+          requiredSessions: requiredSessions,
+          weekNumber: weekNumber,
         ),
+    ];
+    final weekOneDurations = [
+      for (final workout in weeks.first.workouts) workout.durationMinutes,
     ];
 
     return BeginnerAdaptivePlanSnapshot(
@@ -114,16 +120,7 @@ class BeginnerAdaptivePlanGenerator {
       safetyNote: BeginnerAdaptivePlanCopy.safetyNoteFor(
         policy.profile.safetyBand,
       ),
-      weeks: [
-        for (var weekNumber = 1; weekNumber <= durationWeeks; weekNumber++)
-          _weekFor(
-            draft: draft,
-            policy: policy,
-            family: family,
-            requiredSessions: requiredSessions,
-            weekNumber: weekNumber,
-          ),
-      ],
+      weeks: weeks,
     );
   }
 

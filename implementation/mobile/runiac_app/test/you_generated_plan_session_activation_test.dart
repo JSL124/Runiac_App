@@ -143,8 +143,8 @@ void main() {
         'Sun',
         '25 min Comfortable Run',
         '25 min Controlled Steady Run',
-        '25 min Longer Easy Run',
-        '30 min Recovery Run',
+        '30 min Longer Easy Run',
+        '20 min Recovery Run',
       ]) {
         expect(find.text(text), findsWidgets);
       }
@@ -298,7 +298,6 @@ void main() {
     expect(find.text('Return to Movement'), findsOneWidget);
     expect(find.text('0 of 3 done'), findsOneWidget);
     expect(find.textContaining('min Easy Walk'), findsNWidgets(3));
-    expect(find.text('30 min Easy Walk'), findsOneWidget);
     expect(find.text('10K Base Builder'), findsNothing);
     expect(find.text('15 min walk-run'), findsNothing);
   });

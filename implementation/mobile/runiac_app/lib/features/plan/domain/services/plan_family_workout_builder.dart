@@ -33,13 +33,15 @@ class PlanFamilyWorkoutBuilder {
     required int weekNumber,
   }) {
     final isLastSession = sessionIndex == requiredSessions - 1;
-    final kind = _workoutKindFor(family, sessionIndex, isLastSession);
-    final durationMinutes = policy.durationFor(
-      weekNumber: weekNumber,
-      isLastSession: isLastSession,
-    );
+    final intendedKind = _workoutKindFor(family, sessionIndex, isLastSession);
     final intensity = _intensityFor(family, policy);
-    final runMinutes = _mainEffortMinutes(durationMinutes, intensity, kind);
+    final kind = _resolvedKindFor(
+      policy: policy,
+      intendedKind: intendedKind,
+      weekNumber: weekNumber,
+    );
+    final durationMinutes = _durationForKind(policy, weekNumber, kind);
+    final runMinutes = _mainEffortMinutes(durationMinutes, kind);
 
     final description = BeginnerAdaptivePlanCopy.descriptionFor(draft, kind);
     final supportiveNote = BeginnerAdaptivePlanCopy.supportiveNoteFor(
@@ -80,7 +82,16 @@ class PlanFamilyWorkoutBuilder {
         ],
         breakdown: [for (final step in steps) _detailStepFor(step, kind)],
         effortGuide: description,
-        coachNotes: [supportiveNote, _adjustmentNoteFor(draft, intensity)],
+        coachNotes: [
+          supportiveNote,
+          _purposeNoteFor(
+            kind: kind,
+            sessionIndex: sessionIndex,
+            requiredSessions: requiredSessions,
+            mainEffortMinutes: runMinutes,
+          ),
+          _adjustmentNoteFor(draft, intensity),
+        ],
       ),
     );
   }
@@ -140,17 +151,69 @@ class PlanFamilyWorkoutBuilder {
     };
   }
 
-  int _mainEffortMinutes(
-    int durationMinutes,
-    BeginnerPlanIntensity intensity,
-    BeginnerWorkoutKind kind,
-  ) {
-    if (kind == BeginnerWorkoutKind.recoveryWalk) {
-      return durationMinutes - 5;
+  BeginnerWorkoutKind _resolvedKindFor({
+    required BeginnerPlanPolicy policy,
+    required BeginnerWorkoutKind intendedKind,
+    required int weekNumber,
+  }) {
+    if (intendedKind != BeginnerWorkoutKind.longerEasyRun) {
+      return intendedKind;
     }
 
-    final warmAndCool = intensity == BeginnerPlanIntensity.veryGentle ? 8 : 6;
-    return durationMinutes - warmAndCool;
+    final easyDuration = _durationForKind(
+      policy,
+      weekNumber,
+      BeginnerWorkoutKind.easyRun,
+    );
+    final longerDuration = _durationForKind(policy, weekNumber, intendedKind);
+    final easyMainEffort = _mainEffortMinutes(
+      easyDuration,
+      BeginnerWorkoutKind.easyRun,
+    );
+    final longerMainEffort = _mainEffortMinutes(longerDuration, intendedKind);
+
+    if (longerDuration <= easyDuration || longerMainEffort <= easyMainEffort) {
+      return BeginnerWorkoutKind.easyRun;
+    }
+
+    return intendedKind;
+  }
+
+  int _durationForKind(
+    BeginnerPlanPolicy policy,
+    int weekNumber,
+    BeginnerWorkoutKind kind,
+  ) {
+    final standardDuration = policy.durationFor(
+      weekNumber: weekNumber,
+      isLastSession: false,
+    );
+
+    return switch (kind) {
+      BeginnerWorkoutKind.longerEasyRun => policy.durationFor(
+        weekNumber: weekNumber,
+        isLastSession: true,
+      ),
+      BeginnerWorkoutKind.recoveryRun => _recoveryRunDuration(standardDuration),
+      _ => standardDuration,
+    };
+  }
+
+  int _recoveryRunDuration(int standardDuration) {
+    final reduced = standardDuration - 5;
+    return reduced < 15 ? 15 : reduced;
+  }
+
+  int _mainEffortMinutes(int durationMinutes, BeginnerWorkoutKind kind) {
+    final minutes = switch (kind) {
+      BeginnerWorkoutKind.recoveryWalk => durationMinutes - 5,
+      BeginnerWorkoutKind.walkRun ||
+      BeginnerWorkoutKind.controlledSteadyRun => durationMinutes - 10,
+      BeginnerWorkoutKind.restOrMobility => 0,
+      _ => durationMinutes - 8,
+    };
+
+    return minutes < 1 ? 1 : minutes;
   }
 
   List<String> _stepsFor(
@@ -247,6 +310,48 @@ class PlanFamilyWorkoutBuilder {
       BeginnerPlanIntensity.balanced =>
         'Stay controlled on your $place and reduce the run portions if the effort stops feeling comfortable.',
     };
+  }
+
+  String _purposeNoteFor({
+    required BeginnerWorkoutKind kind,
+    required int sessionIndex,
+    required int requiredSessions,
+    required int mainEffortMinutes,
+  }) {
+    final position = _sessionPositionLabel(sessionIndex, requiredSessions);
+    return switch (kind) {
+      BeginnerWorkoutKind.easyRun =>
+        'Use this as the $position easy run: $mainEffortMinutes minutes of relaxed running after the warm-up.',
+      BeginnerWorkoutKind.runWalk =>
+        'Use this as the $position run-walk session: keep the run blocks short and repeatable.',
+      BeginnerWorkoutKind.walkRun =>
+        'Use this as the $position walk-run session: walking stays in control and the running stays brief.',
+      BeginnerWorkoutKind.recoveryWalk =>
+        'Use this as the $position recovery walk: keep the pace light enough to feel better afterward.',
+      BeginnerWorkoutKind.steadyRun =>
+        'Use this as the $position steady builder: hold one calm rhythm without pushing the pace.',
+      BeginnerWorkoutKind.controlledSteadyRun =>
+        'Use this as the $position controlled session: the middle block should feel structured, not hard.',
+      BeginnerWorkoutKind.longerEasyRun =>
+        'Use this as the $position longer run: $mainEffortMinutes minutes of easy running, easier than a steady day.',
+      BeginnerWorkoutKind.recoveryRun =>
+        'Use this as the $position recovery run: short running only, with enough energy left for the next session.',
+      BeginnerWorkoutKind.restOrMobility =>
+        'Use this as the $position reset day: skip running and keep any movement light.',
+    };
+  }
+
+  String _sessionPositionLabel(int sessionIndex, int requiredSessions) {
+    if (sessionIndex == 0) {
+      return 'opening';
+    }
+    if (sessionIndex == requiredSessions - 1) {
+      return 'closing';
+    }
+    if (sessionIndex == 1) {
+      return 'middle';
+    }
+    return 'bridge';
   }
 
   String _kindLabel(BeginnerWorkoutKind kind) {
