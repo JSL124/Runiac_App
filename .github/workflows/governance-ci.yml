@@ -40,4 +40,4 @@ jobs:
 
       - name: Test Flutter app
         working-directory: implementation/mobile/runiac_app
-        run: flutter test
+        run: flutter test --no-pub
