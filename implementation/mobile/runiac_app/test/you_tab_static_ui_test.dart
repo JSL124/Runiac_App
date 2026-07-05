@@ -29,6 +29,7 @@ import 'package:runiac_app/features/you/domain/repositories/activity_history_rep
 import 'package:runiac_app/features/you/presentation/widgets/activity_route_preview.dart';
 import 'package:runiac_app/features/you/presentation/widgets/compact_run_activity_card.dart';
 import 'package:runiac_app/features/you/presentation/widgets/monthly_distance_graph.dart';
+import 'package:runiac_app/features/you/presentation/widgets/you_progress_surface.dart';
 
 final _progressToday = DateTime(2026, 6, 30);
 
@@ -1474,6 +1475,20 @@ void main() {
       }
     },
   );
+
+  test('weekly distance graph surfaces the current month as the last label', () {
+    final julyMarkers = weeklyDistanceGraphMonthMarkers(DateTime(2026, 7, 5));
+    expect(julyMarkers.labels.last, 'JUL');
+    expect(julyMarkers.labels, contains('JUN'));
+    expect(julyMarkers.weekIndices, hasLength(julyMarkers.labels.length));
+    // The current month marker is anchored on the final (current) week bucket.
+    expect(julyMarkers.weekIndices.last, 11);
+
+    // The label set advances with the calendar: a June "today" keeps June last.
+    final juneMarkers = weeklyDistanceGraphMonthMarkers(DateTime(2026, 6, 30));
+    expect(juneMarkers.labels, ['APR', 'MAY', 'JUN']);
+    expect(juneMarkers.labels.last, 'JUN');
+  });
 
   testWidgets('You progress period buttons update only distance summary', (
     WidgetTester tester,

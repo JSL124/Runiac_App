@@ -32,11 +32,16 @@ class PastTwelveWeeksDistanceGraph extends StatelessWidget {
     super.key,
     List<String>? labels,
     List<double>? values,
+    this.labelWeekIndices,
   }) : _labels = labels ?? pastTwelveWeeksDistanceGraphLabels,
        _values = values ?? pastTwelveWeeksDistanceGraphValues;
 
   final List<String> _labels;
   final List<double> _values;
+
+  /// Week bucket index (0-based) each label should sit under. When null, labels
+  /// are spread evenly across the chart width.
+  final List<int>? labelWeekIndices;
 
   List<String> get labels => _labels;
   List<double> get values => _values;
@@ -60,6 +65,7 @@ class PastTwelveWeeksDistanceGraph extends StatelessWidget {
               painter: _PastTwelveWeeksDistanceGraphPainter(
                 labels: graphLabels,
                 values: graphValues,
+                labelWeekIndices: labelWeekIndices,
               ),
               child: const SizedBox.expand(),
             ),
@@ -86,10 +92,12 @@ class _PastTwelveWeeksDistanceGraphPainter extends CustomPainter {
   const _PastTwelveWeeksDistanceGraphPainter({
     required this.labels,
     required this.values,
+    required this.labelWeekIndices,
   });
 
   final List<String> labels;
   final List<double> values;
+  final List<int>? labelWeekIndices;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -226,14 +234,35 @@ class _PastTwelveWeeksDistanceGraphPainter extends CustomPainter {
     );
     for (var i = 0; i < labels.length; i += 1) {
       final x = _labelX(chartRect, i, labels.length);
-      _paintText(
+      _paintCenteredLabel(
         canvas,
         labels[i],
-        Offset(x - 18, chartRect.bottom + 9),
-        monthLabelStyle,
-        maxWidth: 42,
+        centerX: x,
+        top: chartRect.bottom + 9,
+        chartRect: chartRect,
+        style: monthLabelStyle,
       );
     }
+  }
+
+  void _paintCenteredLabel(
+    Canvas canvas,
+    String value, {
+    required double centerX,
+    required double top,
+    required Rect chartRect,
+    required TextStyle style,
+  }) {
+    final painter = TextPainter(
+      text: TextSpan(text: value, style: style),
+      textDirection: TextDirection.ltr,
+      maxLines: 1,
+    )..layout(maxWidth: 48);
+    final maxLeft = math.max(chartRect.left, chartRect.right - painter.width);
+    final dx = (centerX - painter.width / 2)
+        .clamp(chartRect.left, maxLeft)
+        .toDouble();
+    painter.paint(canvas, Offset(dx, top));
   }
 
   double _pointX(Rect chartRect, int index, int pointCount) {
@@ -251,6 +280,10 @@ class _PastTwelveWeeksDistanceGraphPainter extends CustomPainter {
   }
 
   double _labelX(Rect chartRect, int index, int labelCount) {
+    final indices = labelWeekIndices;
+    if (indices != null && index < indices.length) {
+      return _pointX(chartRect, indices[index], values.length);
+    }
     final fractions = monthLabelFractionsForGraph(
       labelCount: labelCount,
       pointCount: values.length,
@@ -295,7 +328,23 @@ class _PastTwelveWeeksDistanceGraphPainter extends CustomPainter {
     covariant _PastTwelveWeeksDistanceGraphPainter oldDelegate,
   ) {
     return !_sameStringList(oldDelegate.labels, labels) ||
-        !_sameDoubleList(oldDelegate.values, values);
+        !_sameDoubleList(oldDelegate.values, values) ||
+        !_sameIntList(oldDelegate.labelWeekIndices, labelWeekIndices);
+  }
+
+  bool _sameIntList(List<int>? a, List<int>? b) {
+    if (a == null || b == null) {
+      return a == b;
+    }
+    if (a.length != b.length) {
+      return false;
+    }
+    for (var i = 0; i < a.length; i += 1) {
+      if (a[i] != b[i]) {
+        return false;
+      }
+    }
+    return true;
   }
 
   bool _sameStringList(List<String> a, List<String> b) {

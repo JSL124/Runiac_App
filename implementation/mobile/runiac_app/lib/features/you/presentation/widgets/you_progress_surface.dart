@@ -109,10 +109,15 @@ class _YouProgressSurfaceState extends State<YouProgressSurface> {
 }
 
 class _WeeklyDistanceGraphData {
-  const _WeeklyDistanceGraphData({required this.labels, required this.values});
+  const _WeeklyDistanceGraphData({
+    required this.labels,
+    required this.values,
+    required this.labelWeekIndices,
+  });
 
   final List<String> labels;
   final List<double> values;
+  final List<int> labelWeekIndices;
 }
 
 List<YouDistancePeriodSummary> _distancePeriodSummariesFor(
@@ -199,23 +204,60 @@ _WeeklyDistanceGraphData _weeklyDistanceGraphDataFor(
     values[weekIndex] += _distanceKmFor(activity);
   }
 
+  final markers = _monthMarkersForWeeklyGraph(firstWeekStart, weekCount, today);
   return _WeeklyDistanceGraphData(
-    labels: _monthLabelsForWeeklyGraph(firstWeekStart, weekCount),
+    labels: markers.labels,
     values: values,
+    labelWeekIndices: markers.weekIndices,
   );
 }
 
-List<String> _monthLabelsForWeeklyGraph(
+/// Places one month label at the first week bucket belonging to each calendar
+/// month the 12-week window spans, guaranteeing the current month is the
+/// rightmost label. The current (last) week is attributed to [today]'s month so
+/// a week that starts in the previous month but reaches into the current month
+/// still surfaces the current month.
+({List<String> labels, List<int> weekIndices}) _monthMarkersForWeeklyGraph(
   DateTime firstWeekStart,
   int weekCount,
+  DateTime today,
 ) {
-  const labelCount = 3;
-  final weeksPerLabel = weekCount / labelCount;
-  return List.generate(labelCount, (index) {
-    final representativeWeek = ((index + 0.5) * weeksPerLabel).floor();
-    final date = firstWeekStart.add(Duration(days: 7 * representativeWeek));
-    return _monthNames[date.month - 1].substring(0, 3).toUpperCase();
-  });
+  final labels = <String>[];
+  final weekIndices = <int>[];
+  int? lastMonthKey;
+  for (var week = 0; week < weekCount; week += 1) {
+    final isCurrentWeek = week == weekCount - 1;
+    final markerMonth = isCurrentWeek
+        ? DateTime(today.year, today.month)
+        : () {
+            final weekStart = firstWeekStart.add(Duration(days: 7 * week));
+            return DateTime(weekStart.year, weekStart.month);
+          }();
+    final monthKey = markerMonth.year * 12 + markerMonth.month;
+    if (monthKey == lastMonthKey) {
+      continue;
+    }
+    lastMonthKey = monthKey;
+    labels.add(
+      _monthNames[markerMonth.month - 1].substring(0, 3).toUpperCase(),
+    );
+    weekIndices.add(week);
+  }
+  return (labels: labels, weekIndices: weekIndices);
+}
+
+/// Test-visible wrapper computing the month markers for the past-12-weeks graph
+/// window ending at [today].
+@visibleForTesting
+({List<String> labels, List<int> weekIndices}) weeklyDistanceGraphMonthMarkers(
+  DateTime today, {
+  int weekCount = 12,
+}) {
+  final currentWeekStart = _startOfWeek(today);
+  final firstWeekStart = currentWeekStart.subtract(
+    Duration(days: 7 * (weekCount - 1)),
+  );
+  return _monthMarkersForWeeklyGraph(firstWeekStart, weekCount, today);
 }
 
 double _sumDistanceFor(
@@ -395,6 +437,7 @@ class _MonthlyDistanceSection extends StatelessWidget {
                 key: ValueKey('you_monthly_distance_graph'),
                 labels: graphData.labels,
                 values: graphData.values,
+                labelWeekIndices: graphData.labelWeekIndices,
               ),
             ],
           ),
