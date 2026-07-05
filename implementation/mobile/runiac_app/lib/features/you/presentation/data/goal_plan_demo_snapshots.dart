@@ -1,3 +1,5 @@
+import 'weekly_workout_demo_snapshots.dart';
+
 enum GoalPlanWeekStatus { completed, current, upcoming, goalWeek }
 
 // Display-only goal plan preview. Future production progress/status must be
@@ -104,6 +106,7 @@ class GoalPlanDisplaySnapshot {
     required this.currentPhaseLabel,
     required this.currentPhase,
     required this.weeks,
+    this.showProgress = true,
   });
 
   final String title;
@@ -115,6 +118,7 @@ class GoalPlanDisplaySnapshot {
   final String currentPhaseLabel;
   final String currentPhase;
   final List<GoalPlanWeekDisplaySnapshot> weeks;
+  final bool showProgress;
 }
 
 class GoalPlanWeekDisplaySnapshot {
@@ -136,9 +140,11 @@ class GoalPlanDayDisplaySnapshot {
     required this.weekday,
     required this.workoutType,
     required this.distanceOrTime,
+    this.workoutDetail,
   });
 
   final String weekday;
   final String workoutType;
   final String distanceOrTime;
+  final WeeklyWorkoutDetailSnapshot? workoutDetail;
 }

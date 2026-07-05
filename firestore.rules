@@ -313,6 +313,206 @@ service cloud.firestore {
         && validProfileUpdatedAt();
     }
 
+    function generatedPlanWritableKeys() {
+      return [
+        'planId',
+        'planKind',
+        'title',
+        'subtitle',
+        'sourceLabel',
+        'durationWeeks',
+        'safetyBand',
+        'templateKind',
+        'family',
+        'familyCategory',
+        'familyReason',
+        'supportStyleLabel',
+        'weeklyFrequencyLabel',
+        'preferredScheduleLabel',
+        'sessionDurationLabel',
+        'safetyNote',
+        'clientDisplayStatus',
+        'weeks',
+        'updatedAt'
+      ];
+    }
+
+    function generatedPlanWeekWritableKeys() {
+      return ['weekNumber', 'title', 'focus', 'workouts'];
+    }
+
+    function generatedPlanWorkoutWritableKeys() {
+      return [
+        'dayLabel',
+        'title',
+        'durationMinutes',
+        'kind',
+        'intensity',
+        'description',
+        'steps',
+        'supportiveNote',
+        'detail'
+      ];
+    }
+
+    function generatedPlanDetailWritableKeys() {
+      return ['metrics', 'breakdown', 'effortGuide', 'coachNotes'];
+    }
+
+    function generatedPlanMetricWritableKeys() {
+      return ['label', 'value'];
+    }
+
+    function generatedPlanBreakdownWritableKeys() {
+      return ['kind', 'title', 'detail'];
+    }
+
+    function validGeneratedPlanStringList(values, maxSize) {
+      return values is list
+        && values.size() <= maxSize
+        && (values.size() < 1 || values[0] is string)
+        && (values.size() < 2 || values[1] is string)
+        && (values.size() < 3 || values[2] is string);
+    }
+
+    function validGeneratedPlanWeeks(weeks) {
+      return weeks is list
+        && weeks.size() > 0
+        && weeks.size() <= 8
+        && (weeks.size() < 1 || validGeneratedPlanWeek(weeks[0]))
+        && (weeks.size() < 2 || validGeneratedPlanWeek(weeks[1]))
+        && (weeks.size() < 3 || validGeneratedPlanWeek(weeks[2]))
+        && (weeks.size() < 4 || validGeneratedPlanWeek(weeks[3]))
+        && (weeks.size() < 5 || validGeneratedPlanWeek(weeks[4]))
+        && (weeks.size() < 6 || validGeneratedPlanWeek(weeks[5]))
+        && (weeks.size() < 7 || validGeneratedPlanWeek(weeks[6]))
+        && (weeks.size() < 8 || validGeneratedPlanWeek(weeks[7]));
+    }
+
+    function validGeneratedPlanWeek(week) {
+      return week is map
+        && week.keys().hasOnly(generatedPlanWeekWritableKeys())
+        && week.weekNumber is int
+        && week.title is string
+        && week.focus is string
+        && validGeneratedPlanWorkouts(week.workouts);
+    }
+
+    function validGeneratedPlanWorkouts(workouts) {
+      return workouts is list
+        && workouts.size() <= 7
+        && (workouts.size() < 1 || validGeneratedPlanWorkout(workouts[0]))
+        && (workouts.size() < 2 || validGeneratedPlanWorkout(workouts[1]))
+        && (workouts.size() < 3 || validGeneratedPlanWorkout(workouts[2]))
+        && (workouts.size() < 4 || validGeneratedPlanWorkout(workouts[3]))
+        && (workouts.size() < 5 || validGeneratedPlanWorkout(workouts[4]))
+        && (workouts.size() < 6 || validGeneratedPlanWorkout(workouts[5]))
+        && (workouts.size() < 7 || validGeneratedPlanWorkout(workouts[6]));
+    }
+
+    function validGeneratedPlanWorkout(workout) {
+      return workout is map
+        && workout.keys().hasOnly(generatedPlanWorkoutWritableKeys())
+        && workout.dayLabel is string
+        && workout.title is string
+        && workout.durationMinutes is int
+        && workout.kind is string
+        && workout.intensity is string
+        && workout.description is string
+        && validGeneratedPlanStringList(workout.steps, 3)
+        && workout.supportiveNote is string
+        && validGeneratedPlanDetail(workout.detail);
+    }
+
+    function validGeneratedPlanDetail(detail) {
+      return detail is map
+        && detail.keys().hasOnly(generatedPlanDetailWritableKeys())
+        && validGeneratedPlanMetrics(detail.metrics)
+        && validGeneratedPlanBreakdown(detail.breakdown)
+        && detail.effortGuide is string
+        && validGeneratedPlanStringList(detail.coachNotes, 2);
+    }
+
+    function validGeneratedPlanMetrics(metrics) {
+      return metrics is list
+        && metrics.size() <= 4
+        && (metrics.size() < 1 || validGeneratedPlanMetric(metrics[0]))
+        && (metrics.size() < 2 || validGeneratedPlanMetric(metrics[1]))
+        && (metrics.size() < 3 || validGeneratedPlanMetric(metrics[2]))
+        && (metrics.size() < 4 || validGeneratedPlanMetric(metrics[3]));
+    }
+
+    function validGeneratedPlanMetric(metric) {
+      return metric is map
+        && metric.keys().hasOnly(generatedPlanMetricWritableKeys())
+        && metric.label is string
+        && metric.value is string;
+    }
+
+    function validGeneratedPlanBreakdown(breakdown) {
+      return breakdown is list
+        && breakdown.size() <= 8
+        && (breakdown.size() < 1 || validGeneratedPlanBreakdownStep(breakdown[0]))
+        && (breakdown.size() < 2 || validGeneratedPlanBreakdownStep(breakdown[1]))
+        && (breakdown.size() < 3 || validGeneratedPlanBreakdownStep(breakdown[2]))
+        && (breakdown.size() < 4 || validGeneratedPlanBreakdownStep(breakdown[3]))
+        && (breakdown.size() < 5 || validGeneratedPlanBreakdownStep(breakdown[4]))
+        && (breakdown.size() < 6 || validGeneratedPlanBreakdownStep(breakdown[5]))
+        && (breakdown.size() < 7 || validGeneratedPlanBreakdownStep(breakdown[6]))
+        && (breakdown.size() < 8 || validGeneratedPlanBreakdownStep(breakdown[7]));
+    }
+
+    function validGeneratedPlanBreakdownStep(step) {
+      return step is map
+        && step.keys().hasOnly(generatedPlanBreakdownWritableKeys())
+        && step.kind in ['walk', 'run', 'mobility']
+        && step.title is string
+        && step.detail is string;
+    }
+
+    function validGeneratedPlanData(uid) {
+      return hasOnlyAllowedKeys(generatedPlanWritableKeys())
+        && request.resource.data.planId is string
+        && request.resource.data.planKind == 'onboardingBased'
+        && request.resource.data.title is string
+        && request.resource.data.subtitle is string
+        && request.resource.data.sourceLabel is string
+        && request.resource.data.durationWeeks is int
+        && request.resource.data.safetyBand is string
+        && request.resource.data.templateKind is string
+        && validGeneratedPlanFamilyFields()
+        && request.resource.data.familyReason is string
+        && request.resource.data.supportStyleLabel is string
+        && request.resource.data.weeklyFrequencyLabel is string
+        && request.resource.data.preferredScheduleLabel is string
+        && request.resource.data.sessionDurationLabel is string
+        && request.resource.data.safetyNote is string
+        && request.resource.data.clientDisplayStatus in [
+          'generatedPlan',
+          'safetyReadiness'
+        ]
+        && validGeneratedPlanWeeksForStatus()
+        && validProfileUpdatedAt()
+        && doesNotTouchBackendOwnedKeys();
+    }
+
+    function validGeneratedPlanFamilyFields() {
+      return (request.resource.data.clientDisplayStatus == 'generatedPlan'
+          && request.resource.data.family is string
+          && request.resource.data.familyCategory is string)
+        || (request.resource.data.clientDisplayStatus == 'safetyReadiness'
+          && request.resource.data.family == null
+          && request.resource.data.familyCategory == null);
+    }
+
+    function validGeneratedPlanWeeksForStatus() {
+      return (request.resource.data.clientDisplayStatus == 'generatedPlan'
+          && validGeneratedPlanWeeks(request.resource.data.weeks))
+        || (request.resource.data.clientDisplayStatus == 'safetyReadiness'
+          && request.resource.data.weeks is list
+          && request.resource.data.weeks.size() == 0);
+    }
+
     function isPremiumUser() {
       return isSignedIn()
         && exists(/databases/$(database)/documents/users/$(request.auth.uid))
@@ -350,6 +550,16 @@ service cloud.firestore {
         && validNicknameClaimData(nicknameKey);
       allow delete: if isSignedIn()
         && resource.data.ownerUid == request.auth.uid;
+    }
+
+    match /generatedPlans/{uid} {
+      allow read: if isOwner(uid);
+      allow create: if isOwner(uid) && validGeneratedPlanData(uid);
+      allow update: if isOwner(uid)
+        && changesOnlyAllowedKeys(generatedPlanWritableKeys())
+        && validGeneratedPlanData(uid)
+        && doesNotChangeBackendOwnedKeys();
+      allow delete: if false;
     }
 
     match /activities/{activityId} {

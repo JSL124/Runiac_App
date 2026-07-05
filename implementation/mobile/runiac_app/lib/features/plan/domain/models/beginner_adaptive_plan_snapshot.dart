@@ -102,6 +102,7 @@ class BeginnerAdaptiveWorkout {
     required this.description,
     required List<String> steps,
     required this.supportiveNote,
+    required this.detail,
   }) : steps = List.unmodifiable(steps);
 
   final String dayLabel;
@@ -112,4 +113,45 @@ class BeginnerAdaptiveWorkout {
   final String description;
   final List<String> steps;
   final String supportiveNote;
+  final BeginnerAdaptiveWorkoutDetail detail;
 }
+
+class BeginnerAdaptiveWorkoutDetail {
+  BeginnerAdaptiveWorkoutDetail({
+    required List<BeginnerAdaptiveWorkoutMetric> metrics,
+    required List<BeginnerAdaptiveWorkoutBreakdownStep> breakdown,
+    required this.effortGuide,
+    required List<String> coachNotes,
+  }) : metrics = List.unmodifiable(metrics),
+       breakdown = List.unmodifiable(breakdown),
+       coachNotes = List.unmodifiable(coachNotes);
+
+  final List<BeginnerAdaptiveWorkoutMetric> metrics;
+  final List<BeginnerAdaptiveWorkoutBreakdownStep> breakdown;
+  final String effortGuide;
+  final List<String> coachNotes;
+}
+
+class BeginnerAdaptiveWorkoutMetric {
+  const BeginnerAdaptiveWorkoutMetric({
+    required this.label,
+    required this.value,
+  });
+
+  final String label;
+  final String value;
+}
+
+class BeginnerAdaptiveWorkoutBreakdownStep {
+  const BeginnerAdaptiveWorkoutBreakdownStep({
+    required this.kind,
+    required this.title,
+    required this.detail,
+  });
+
+  final BeginnerAdaptiveWorkoutBreakdownStepKind kind;
+  final String title;
+  final String detail;
+}
+
+enum BeginnerAdaptiveWorkoutBreakdownStepKind { walk, run, mobility }

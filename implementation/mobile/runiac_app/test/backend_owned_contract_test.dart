@@ -267,6 +267,8 @@ void main() {
         'lib/features/account/data/'
             'firestore_user_profile_persistence_repository.dart',
         'lib/features/account/data/firestore_user_profile_repository.dart',
+        'lib/features/plan/data/'
+            'firestore_generated_plan_persistence_repository.dart',
         'lib/features/you/data/firestore_activity_history_repository.dart',
       };
       const forbiddenFeatureTerms = <String>[
@@ -339,6 +341,24 @@ void main() {
       expect(source, isNot(contains('.delete(')));
       expect(source, isNot(contains('runTransaction')));
       expect(source, isNot(contains('writeBatch')));
+    });
+
+    test('limits generated plan persistence to plan content fields', () {
+      final source = File(
+        'lib/features/plan/data/'
+        'firestore_generated_plan_persistence_repository.dart',
+      ).readAsStringSync();
+
+      expect(source, contains("collection('generatedPlans')"));
+      expect(source, contains('.set('));
+      expect(source, contains('.get('));
+      expect(source, isNot(contains("collection('users')")));
+      for (final field in BackendOwnedValueContract.protectedFieldNames) {
+        expect(source, isNot(contains("'$field'")), reason: field);
+      }
+      expect(source, isNot(contains("'completedRunCount'")));
+      expect(source, isNot(contains("'remainingRunCount'")));
+      expect(source, isNot(contains("'planCompletion'")));
     });
   });
 }

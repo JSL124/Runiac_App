@@ -13,6 +13,8 @@ import 'features/auth/domain/runiac_auth_service.dart';
 import 'features/auth/presentation/runiac_auth_gate.dart';
 import 'features/auth/presentation/runiac_profile_setup_gate.dart';
 import 'features/onboarding/domain/models/local_onboarding_draft.dart';
+import 'features/plan/domain/models/beginner_adaptive_plan_snapshot.dart';
+import 'features/plan/domain/repositories/generated_plan_persistence_repository.dart';
 import 'features/plan/domain/services/beginner_adaptive_plan_generator.dart';
 import 'features/plan/presentation/current_session_generated_plan.dart';
 import 'features/run/data/static_run_repository.dart';
@@ -44,6 +46,8 @@ class RuniacApp extends StatefulWidget {
     this.profileRepository = const StaticUserProfileRepository(),
     this.profilePersistenceRepository =
         const NoopUserProfilePersistenceRepository(),
+    this.generatedPlanPersistenceRepository =
+        const NoopGeneratedPlanPersistenceRepository(),
     this.enableForegroundGps = true,
     this.activeRunSessionCoordinator,
     this.initialRunOpenIntent,
@@ -63,6 +67,7 @@ class RuniacApp extends StatefulWidget {
   final ActivityHistoryRepository activityHistoryRepository;
   final UserProfileRepository profileRepository;
   final UserProfilePersistenceRepository profilePersistenceRepository;
+  final GeneratedPlanPersistenceRepository generatedPlanPersistenceRepository;
   final bool enableForegroundGps;
   final ActiveRunSessionCoordinator? activeRunSessionCoordinator;
   final RunOpenIntent? initialRunOpenIntent;
@@ -83,6 +88,7 @@ class _RuniacAppState extends State<RuniacApp> {
   late final bool _ownsGeneratedPlanStore;
   RuniacAuthCompletion? _authCompletion;
   PersonalProfileDraft? _personalProfileDraft;
+  String? _generatedPlanOwnerUid;
   String? _authStateError;
 
   @override
@@ -155,6 +161,7 @@ class _RuniacAppState extends State<RuniacApp> {
                 },
                 onAuthStateChanged: (user) {
                   _scheduleActivityHistoryOwnerSync(user?.uid);
+                  _clearGeneratedPlanForAuthChange(user?.uid);
                 },
                 childBuilder: (_) => _buildPostAuthFlow(),
               ),
@@ -163,6 +170,15 @@ class _RuniacAppState extends State<RuniacApp> {
         ),
       ),
     );
+  }
+
+  void _clearGeneratedPlanForAuthChange(String? nextOwnerUid) {
+    final currentPlanOwnerUid = _generatedPlanOwnerUid;
+    if (currentPlanOwnerUid == null || currentPlanOwnerUid == nextOwnerUid) {
+      return;
+    }
+    _generatedPlanOwnerUid = null;
+    _generatedPlanStore.clear();
   }
 
   Future<void> _restoreAndSyncPendingRuns({required String ownerUid}) async {
@@ -208,7 +224,9 @@ class _RuniacAppState extends State<RuniacApp> {
         authRepository: widget.authRepository,
         profileRepository: widget.profileRepository,
         currentUser: currentUser!,
-        onLoadedProfile: _hydrateGeneratedPlanFromProfile,
+        onLoadedProfile: (profile) {
+          unawaited(_hydrateGeneratedPlanFromProfile(profile));
+        },
         child: _buildOnboardingAndShell(),
       );
     }
@@ -243,6 +261,8 @@ class _RuniacAppState extends State<RuniacApp> {
         activityHistoryRepository: widget.activityHistoryRepository,
         profileRepository: widget.profileRepository,
         profilePersistenceRepository: widget.profilePersistenceRepository,
+        generatedPlanPersistenceRepository:
+            widget.generatedPlanPersistenceRepository,
         enableForegroundGps: widget.enableForegroundGps,
         activeRunSessionCoordinator: widget.activeRunSessionCoordinator,
         initialRunOpenIntent: widget.initialRunOpenIntent,
@@ -264,15 +284,35 @@ class _RuniacAppState extends State<RuniacApp> {
     );
   }
 
-  void _hydrateGeneratedPlanFromProfile(UserProfileReadModel profile) {
+  Future<void> _hydrateGeneratedPlanFromProfile(
+    UserProfileReadModel profile,
+  ) async {
+    final currentUser = widget.authRepository.currentUser;
+    if (currentUser != null) {
+      final hydratedUid = currentUser.uid;
+      BeginnerAdaptivePlanSnapshot? persistedPlan;
+      try {
+        persistedPlan = await widget.generatedPlanPersistenceRepository
+            .loadGeneratedPlan(uid: hydratedUid);
+      } catch (_) {
+        persistedPlan = null;
+      }
+      final stillCurrentUser = widget.authRepository.currentUser;
+      if (!mounted || stillCurrentUser?.uid != hydratedUid) {
+        return;
+      }
+      if (persistedPlan != null) {
+        _setActiveGeneratedPlan(persistedPlan, ownerUid: hydratedUid);
+        return;
+      }
+    }
+
     final draft = profile.onboardingDraft;
     if (draft == null) {
       return;
     }
     final snapshot = const BeginnerAdaptivePlanGenerator().generate(draft);
-    if (!_generatedPlanStore.setActivePlan(snapshot)) {
-      _generatedPlanStore.clear();
-    }
+    _setActiveGeneratedPlan(snapshot, ownerUid: currentUser?.uid);
   }
 
   Future<bool> _completeOnboarding(LocalOnboardingDraft draft) async {
@@ -283,12 +323,28 @@ class _RuniacAppState extends State<RuniacApp> {
       if (!saved) {
         return false;
       }
+      final generatedPlanSaved = await _saveGeneratedPlan(
+        currentUser.uid,
+        snapshot,
+      );
+      if (!generatedPlanSaved) {
+        return false;
+      }
     }
-    if (!_generatedPlanStore.setActivePlan(snapshot)) {
-      _generatedPlanStore.clear();
-    }
+    _setActiveGeneratedPlan(snapshot, ownerUid: currentUser?.uid);
     widget.onOnboardingCompleted?.call(draft);
     return true;
+  }
+
+  void _setActiveGeneratedPlan(
+    BeginnerAdaptivePlanSnapshot snapshot, {
+    required String? ownerUid,
+  }) {
+    _generatedPlanOwnerUid = ownerUid;
+    if (!_generatedPlanStore.setActivePlan(snapshot)) {
+      _generatedPlanOwnerUid = null;
+      _generatedPlanStore.clear();
+    }
   }
 
   Future<bool> _saveOnboardingProfile(
@@ -299,6 +355,21 @@ class _RuniacAppState extends State<RuniacApp> {
       await widget.profilePersistenceRepository.saveOnboardingProfile(
         uid: uid,
         profile: _profileSnapshotFromDraft(draft),
+      );
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> _saveGeneratedPlan(
+    String uid,
+    BeginnerAdaptivePlanSnapshot snapshot,
+  ) async {
+    try {
+      await widget.generatedPlanPersistenceRepository.saveGeneratedPlan(
+        uid: uid,
+        plan: snapshot,
       );
       return true;
     } catch (_) {

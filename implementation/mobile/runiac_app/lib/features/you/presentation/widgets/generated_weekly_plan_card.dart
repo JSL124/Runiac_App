@@ -11,11 +11,13 @@ class GeneratedWeeklyPlanCard extends StatelessWidget {
   const GeneratedWeeklyPlanCard({
     required this.plan,
     required this.onViewWorkout,
+    required this.onViewPlanDetail,
     super.key,
   });
 
   final GeneratedYouPlanDisplay plan;
   final ValueChanged<WeeklyWorkoutDetailSnapshot> onViewWorkout;
+  final VoidCallback onViewPlanDetail;
 
   @override
   Widget build(BuildContext context) {
@@ -23,21 +25,35 @@ class GeneratedWeeklyPlanCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: YouCardHeader(
-                  Icons.calendar_today_outlined,
-                  plan.weeklyTitle,
-                  iconSize: 20,
+          Semantics(
+            button: true,
+            label: 'View Full Plan',
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(14),
+                onTap: onViewPlanDetail,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: YouCardHeader(
+                          Icons.calendar_today_outlined,
+                          plan.weeklyTitle,
+                          iconSize: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        plan.progressLabel,
+                        style: YouTextStyles.weeklyPlanProgressLabel,
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              const SizedBox(width: 12),
-              Text(
-                plan.progressLabel,
-                style: YouTextStyles.weeklyPlanProgressLabel,
-              ),
-            ],
+            ),
           ),
           if (plan.subtitle.isNotEmpty) ...[
             const SizedBox(height: 6),

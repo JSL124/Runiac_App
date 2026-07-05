@@ -7,6 +7,7 @@ import '../auth/domain/runiac_auth_service.dart';
 import '../home/presentation/home_tab.dart';
 import '../leaderboard/presentation/leaderboard_tab.dart';
 import '../maps/presentation/maps_tab.dart';
+import '../plan/domain/repositories/generated_plan_persistence_repository.dart';
 import '../run/domain/models/run_location_sample.dart';
 import '../run/presentation/active_run_session_coordinator.dart';
 import '../run/presentation/run_launch_screen.dart';
@@ -21,6 +22,8 @@ class RuniacShell extends StatefulWidget {
     this.activityHistoryRepository = const StaticActivityHistoryRepository(),
     required this.profileRepository,
     required this.profilePersistenceRepository,
+    this.generatedPlanPersistenceRepository =
+        const NoopGeneratedPlanPersistenceRepository(),
     super.key,
     this.enableForegroundGps = true,
     this.activeRunSessionCoordinator,
@@ -32,6 +35,7 @@ class RuniacShell extends StatefulWidget {
   final ActivityHistoryRepository activityHistoryRepository;
   final UserProfileRepository profileRepository;
   final UserProfilePersistenceRepository profilePersistenceRepository;
+  final GeneratedPlanPersistenceRepository generatedPlanPersistenceRepository;
   final bool enableForegroundGps;
   final ActiveRunSessionCoordinator? activeRunSessionCoordinator;
   final RunOpenIntent? initialRunOpenIntent;
@@ -182,6 +186,8 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
         authRepository: widget.authRepository,
         profileRepository: widget.profileRepository,
         profilePersistenceRepository: widget.profilePersistenceRepository,
+        generatedPlanPersistenceRepository:
+            widget.generatedPlanPersistenceRepository,
         enableForegroundGps: widget.enableForegroundGps,
         activeRunSessionCoordinator: _activeRunSessionCoordinator,
       ),

@@ -44,7 +44,11 @@ class YouPlansSurface extends StatelessWidget {
           const SizedBox(height: 12),
           ExpertPlansEntryCard(onViewExpertPlans: onViewExpertPlans),
         ] else ...[
-          GeneratedWeeklyPlanCard(plan: plan, onViewWorkout: onViewWorkout),
+          GeneratedWeeklyPlanCard(
+            plan: plan,
+            onViewWorkout: onViewWorkout,
+            onViewPlanDetail: onViewGoalPlan,
+          ),
           const SizedBox(height: 12),
           ExpertPlansEntryCard(onViewExpertPlans: onViewExpertPlans),
         ],

@@ -41,6 +41,13 @@ class PlanFamilyWorkoutBuilder {
     final intensity = _intensityFor(family, policy);
     final runMinutes = _mainEffortMinutes(durationMinutes, intensity, kind);
 
+    final description = BeginnerAdaptivePlanCopy.descriptionFor(draft, kind);
+    final supportiveNote = BeginnerAdaptivePlanCopy.supportiveNoteFor(
+      draft,
+      intensity,
+    );
+    final steps = _stepsFor(kind, durationMinutes, runMinutes);
+
     return BeginnerAdaptiveWorkout(
       dayLabel: dayLabel,
       title: BeginnerAdaptivePlanCopy.workoutTitleFor(
@@ -52,11 +59,28 @@ class PlanFamilyWorkoutBuilder {
       durationMinutes: durationMinutes,
       kind: kind,
       intensity: intensity,
-      description: BeginnerAdaptivePlanCopy.descriptionFor(draft, kind),
-      steps: _stepsFor(kind, durationMinutes, runMinutes),
-      supportiveNote: BeginnerAdaptivePlanCopy.supportiveNoteFor(
-        draft,
-        intensity,
+      description: description,
+      steps: steps,
+      supportiveNote: supportiveNote,
+      detail: BeginnerAdaptiveWorkoutDetail(
+        metrics: [
+          BeginnerAdaptiveWorkoutMetric(
+            label: 'Duration',
+            value: '$durationMinutes min',
+          ),
+          BeginnerAdaptiveWorkoutMetric(label: 'Type', value: _kindLabel(kind)),
+          BeginnerAdaptiveWorkoutMetric(
+            label: 'Effort',
+            value: _intensityLabel(intensity),
+          ),
+          const BeginnerAdaptiveWorkoutMetric(
+            label: 'Source',
+            value: 'Generated',
+          ),
+        ],
+        breakdown: [for (final step in steps) _detailStepFor(step, kind)],
+        effortGuide: description,
+        coachNotes: [supportiveNote, _adjustmentNoteFor(draft, intensity)],
       ),
     );
   }
@@ -175,6 +199,85 @@ class PlanFamilyWorkoutBuilder {
         'Cool-down walk · ${durationMinutes - mainEffortMinutes - 4} min',
       ],
       BeginnerWorkoutKind.restOrMobility => const ['Rest or light mobility'],
+    };
+  }
+
+  BeginnerAdaptiveWorkoutBreakdownStep _detailStepFor(
+    String step,
+    BeginnerWorkoutKind kind,
+  ) {
+    final parts = step.split(' · ');
+    final title = parts.first;
+    return BeginnerAdaptiveWorkoutBreakdownStep(
+      kind: _stepKindFor(title, kind),
+      title: title,
+      detail: parts.length > 1 ? parts.sublist(1).join(' · ') : step,
+    );
+  }
+
+  BeginnerAdaptiveWorkoutBreakdownStepKind _stepKindFor(
+    String title,
+    BeginnerWorkoutKind kind,
+  ) {
+    final normalized = title.toLowerCase();
+    if (normalized.contains('mobility') || normalized.contains('cool')) {
+      return BeginnerAdaptiveWorkoutBreakdownStepKind.mobility;
+    }
+    if (normalized.contains('run') ||
+        kind == BeginnerWorkoutKind.steadyRun ||
+        kind == BeginnerWorkoutKind.controlledSteadyRun ||
+        kind == BeginnerWorkoutKind.longerEasyRun ||
+        kind == BeginnerWorkoutKind.recoveryRun ||
+        kind == BeginnerWorkoutKind.easyRun) {
+      return BeginnerAdaptiveWorkoutBreakdownStepKind.run;
+    }
+    return BeginnerAdaptiveWorkoutBreakdownStepKind.walk;
+  }
+
+  String _adjustmentNoteFor(
+    LocalOnboardingDraft draft,
+    BeginnerPlanIntensity intensity,
+  ) {
+    final place = _placeLabelFor(draft.runningPlace);
+    return switch (intensity) {
+      BeginnerPlanIntensity.veryGentle =>
+        'Use a comfortable $place and keep this session easy enough to finish feeling steady.',
+      BeginnerPlanIntensity.gentle =>
+        'Choose a familiar $place and keep the effort conversational from start to finish.',
+      BeginnerPlanIntensity.balanced =>
+        'Stay controlled on your $place and reduce the run portions if the effort stops feeling comfortable.',
+    };
+  }
+
+  String _kindLabel(BeginnerWorkoutKind kind) {
+    return switch (kind) {
+      BeginnerWorkoutKind.easyRun => 'Easy run',
+      BeginnerWorkoutKind.runWalk => 'Run-walk',
+      BeginnerWorkoutKind.walkRun => 'Walk-run',
+      BeginnerWorkoutKind.recoveryWalk => 'Recovery walk',
+      BeginnerWorkoutKind.steadyRun => 'Steady run',
+      BeginnerWorkoutKind.controlledSteadyRun => 'Controlled steady run',
+      BeginnerWorkoutKind.longerEasyRun => 'Longer easy run',
+      BeginnerWorkoutKind.recoveryRun => 'Recovery run',
+      BeginnerWorkoutKind.restOrMobility => 'Rest or mobility',
+    };
+  }
+
+  String _intensityLabel(BeginnerPlanIntensity intensity) {
+    return switch (intensity) {
+      BeginnerPlanIntensity.veryGentle => 'Very gentle',
+      BeginnerPlanIntensity.gentle => 'Gentle',
+      BeginnerPlanIntensity.balanced => 'Balanced',
+    };
+  }
+
+  String _placeLabelFor(OnboardingRunningPlace place) {
+    return switch (place) {
+      OnboardingRunningPlace.park => 'park loop',
+      OnboardingRunningPlace.road => 'neighbourhood route',
+      OnboardingRunningPlace.track => 'track lane',
+      OnboardingRunningPlace.treadmill => 'treadmill setup',
+      OnboardingRunningPlace.mixed => 'route',
     };
   }
 }

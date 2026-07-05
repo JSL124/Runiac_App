@@ -4,15 +4,18 @@ import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/dashboard_card.dart';
 import '../../../core/widgets/runiac_back_header.dart';
 import 'data/goal_plan_demo_snapshots.dart';
+import 'data/weekly_workout_demo_snapshots.dart';
 
 class GoalPlanDetailScreen extends StatefulWidget {
   const GoalPlanDetailScreen({
     required this.onBack,
+    this.onWorkoutSelected,
     this.snapshot = goalPlanDisplaySnapshot,
     super.key,
   });
 
   final VoidCallback onBack;
+  final ValueChanged<WeeklyWorkoutDetailSnapshot>? onWorkoutSelected;
   final GoalPlanDisplaySnapshot snapshot;
 
   @override
@@ -53,6 +56,7 @@ class _GoalPlanDetailScreenState extends State<GoalPlanDetailScreen> {
                       _GoalPlanTimelineCard(
                         weeks: widget.snapshot.weeks,
                         expandedWeekIndexes: _expandedWeekIndexes,
+                        onWorkoutSelected: widget.onWorkoutSelected,
                         onWeekSelected: (index) {
                           setState(() {
                             if (_expandedWeekIndexes.contains(index)) {
@@ -190,6 +194,21 @@ class _GoalPlanProgress extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (!snapshot.showProgress) {
+      return Align(
+        alignment: Alignment.centerLeft,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF7FAFF),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: RuniacColors.cardBorder),
+          ),
+          child: Text(snapshot.progressLabel, style: _smallBodyStyle),
+        ),
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -222,11 +241,13 @@ class _GoalPlanTimelineCard extends StatelessWidget {
     required this.weeks,
     required this.expandedWeekIndexes,
     required this.onWeekSelected,
+    this.onWorkoutSelected,
   });
 
   final List<GoalPlanWeekDisplaySnapshot> weeks;
   final Set<int> expandedWeekIndexes;
   final ValueChanged<int> onWeekSelected;
+  final ValueChanged<WeeklyWorkoutDetailSnapshot>? onWorkoutSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -238,6 +259,7 @@ class _GoalPlanTimelineCard extends StatelessWidget {
               display: weeks[index],
               isExpanded: expandedWeekIndexes.contains(index),
               onSelected: () => onWeekSelected(index),
+              onWorkoutSelected: onWorkoutSelected,
             ),
             if (index < weeks.length - 1)
               const Divider(height: 1, color: RuniacColors.border),
@@ -253,11 +275,13 @@ class _GoalPlanTimelineRow extends StatelessWidget {
     required this.display,
     required this.isExpanded,
     required this.onSelected,
+    this.onWorkoutSelected,
   });
 
   final GoalPlanWeekDisplaySnapshot display;
   final bool isExpanded;
   final VoidCallback onSelected;
+  final ValueChanged<WeeklyWorkoutDetailSnapshot>? onWorkoutSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -350,6 +374,7 @@ class _GoalPlanTimelineRow extends StatelessWidget {
           _WeeklyDailyPlanRows(
             weekLabel: display.weekLabel,
             dailyPlan: display.dailyPlan,
+            onWorkoutSelected: onWorkoutSelected,
           ),
       ],
     );
@@ -360,10 +385,12 @@ class _WeeklyDailyPlanRows extends StatelessWidget {
   const _WeeklyDailyPlanRows({
     required this.weekLabel,
     required this.dailyPlan,
+    this.onWorkoutSelected,
   });
 
   final String weekLabel;
   final List<GoalPlanDayDisplaySnapshot> dailyPlan;
+  final ValueChanged<WeeklyWorkoutDetailSnapshot>? onWorkoutSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -373,22 +400,69 @@ class _WeeklyDailyPlanRows extends StatelessWidget {
       child: Column(
         children: [
           for (final day in dailyPlan)
-            Padding(
+            _GoalPlanDailyRow(
               key: ValueKey('goal_plan_detail_day_${weekLabel}_${day.weekday}'),
-              padding: const EdgeInsets.only(top: 8),
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: 82,
-                    child: Text(day.weekday, style: _smallBodyStyle),
-                  ),
-                  Expanded(child: Text(day.workoutType, style: _bodyStyle)),
-                  const SizedBox(width: 8),
-                  Text(day.distanceOrTime, style: _smallBodyStyle),
-                ],
-              ),
+              day: day,
+              onWorkoutSelected: onWorkoutSelected,
             ),
         ],
+      ),
+    );
+  }
+}
+
+class _GoalPlanDailyRow extends StatelessWidget {
+  const _GoalPlanDailyRow({
+    required this.day,
+    required this.onWorkoutSelected,
+    super.key,
+  });
+
+  final GoalPlanDayDisplaySnapshot day;
+  final ValueChanged<WeeklyWorkoutDetailSnapshot>? onWorkoutSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final workoutDetail = day.workoutDetail;
+    final canOpenWorkout = workoutDetail != null && onWorkoutSelected != null;
+    final row = Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          SizedBox(width: 82, child: Text(day.weekday, style: _smallBodyStyle)),
+          Expanded(
+            child: Text(
+              day.workoutType,
+              style: canOpenWorkout ? _bodyStrongStyle : _bodyStyle,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(day.distanceOrTime, style: _smallBodyStyle),
+          if (canOpenWorkout) ...[
+            const SizedBox(width: 6),
+            const Icon(
+              Icons.chevron_right,
+              size: 16,
+              color: RuniacColors.textSecondary,
+            ),
+          ],
+        ],
+      ),
+    );
+
+    if (!canOpenWorkout) {
+      return Padding(padding: const EdgeInsets.only(top: 0), child: row);
+    }
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => onWorkoutSelected!(workoutDetail),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6),
+          child: row,
+        ),
       ),
     );
   }

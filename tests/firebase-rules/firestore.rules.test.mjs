@@ -19,6 +19,7 @@ import {
 import {
   activityDraft,
   dbFor,
+  generatedPlanDocument,
   notificationPrefs,
   profileFields,
   seed,
@@ -146,6 +147,143 @@ describe('owner-owned client records', () => {
       }),
     );
     await assertSucceeds(deleteDoc(doc(alice, 'nicknameClaims/runner')));
+  });
+
+  it('allows only the owner to read and write generated plans', async () => {
+    const alice = dbFor('alice');
+
+    await assertSucceeds(
+      setDoc(doc(alice, 'generatedPlans/alice'), generatedPlanDocument),
+    );
+    await assertSucceeds(getDoc(doc(alice, 'generatedPlans/alice')));
+    await assertFails(getDoc(doc(dbFor('bob'), 'generatedPlans/alice')));
+    await assertFails(
+      setDoc(doc(dbFor('bob'), 'generatedPlans/alice'), generatedPlanDocument),
+    );
+  });
+
+  it('denies backend-owned and unapproved generated plan fields', async () => {
+    const alice = dbFor('alice');
+    const plan = doc(alice, 'generatedPlans/alice');
+
+    await assertFails(
+      setDoc(plan, {
+        ...generatedPlanDocument,
+        xp: 10,
+      }),
+    );
+    await assertFails(
+      setDoc(plan, {
+        ...generatedPlanDocument,
+        leaderboardScore: 100,
+      }),
+    );
+    await assertFails(
+      setDoc(plan, {
+        ...generatedPlanDocument,
+        completedRunCount: 1,
+      }),
+    );
+  });
+
+  it('denies nested backend-owned and unapproved generated plan fields', async () => {
+    const alice = dbFor('alice');
+    const plan = doc(alice, 'generatedPlans/alice');
+    const baseWeek = generatedPlanDocument.weeks[0];
+    const baseWorkout = baseWeek.workouts[0];
+
+    await assertFails(
+      setDoc(plan, {
+        ...generatedPlanDocument,
+        weeks: [
+          {
+            ...baseWeek,
+            workouts: [
+              {
+                ...baseWorkout,
+                completedRunCount: 1,
+              },
+            ],
+          },
+        ],
+      }),
+    );
+    await assertFails(
+      setDoc(plan, {
+        ...generatedPlanDocument,
+        weeks: [
+          {
+            ...baseWeek,
+            workouts: [
+              {
+                ...baseWorkout,
+                detail: {
+                  ...baseWorkout.detail,
+                  validationStatus: 'approved',
+                },
+              },
+            ],
+          },
+        ],
+      }),
+    );
+    await assertFails(
+      setDoc(plan, {
+        ...generatedPlanDocument,
+        weeks: [
+          {
+            ...baseWeek,
+            workouts: [
+              {
+                ...baseWorkout,
+                steps: [{ xp: 1 }],
+              },
+            ],
+          },
+        ],
+      }),
+    );
+    await assertFails(
+      setDoc(plan, {
+        ...generatedPlanDocument,
+        weeks: [
+          {
+            ...baseWeek,
+            workouts: [
+              {
+                ...baseWorkout,
+                detail: {
+                  ...baseWorkout.detail,
+                  coachNotes: [{ validationStatus: 'approved' }],
+                },
+              },
+            ],
+          },
+        ],
+      }),
+    );
+  });
+
+  it('allows owner to write safety readiness generated plan display', async () => {
+    const alice = dbFor('alice');
+
+    await assertSucceeds(
+      setDoc(doc(alice, 'generatedPlans/alice'), {
+        ...generatedPlanDocument,
+        title: 'Safety Readiness Plan',
+        subtitle: 'Check readiness before starting workouts.',
+        sourceLabel: 'Onboarding safety',
+        durationWeeks: 0,
+        family: null,
+        familyCategory: null,
+        familyReason: 'Medical clearance recommended before workouts.',
+        weeklyFrequencyLabel: '0 sessions / week',
+        preferredScheduleLabel: 'After clearance',
+        sessionDurationLabel: 'No workouts yet',
+        clientDisplayStatus: 'safetyReadiness',
+        weeks: [],
+      }),
+    );
   });
 
   it('requires a matching owner nickname claim before profile nickname writes', async () => {

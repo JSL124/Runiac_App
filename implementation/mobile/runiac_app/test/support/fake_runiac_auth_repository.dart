@@ -49,9 +49,12 @@ class FakeRuniacAuthRepository implements RuniacAuthRepository {
     _controller.close();
   }
 
-  void emitSignedIn({bool emailVerified = true}) {
+  void emitSignedIn({
+    bool emailVerified = true,
+    String uid = 'test-auth-user-1',
+  }) {
     _currentUser = RuniacAuthUser(
-      uid: 'test-auth-user-1',
+      uid: uid,
       email: 'runner@runiac.app',
       emailVerified: emailVerified,
     );

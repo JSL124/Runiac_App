@@ -17,6 +17,8 @@ Future<void> main() async {
       activityHistoryRepository: bootstrap.activityHistoryRepository,
       profileRepository: bootstrap.profileRepository,
       profilePersistenceRepository: bootstrap.profilePersistenceRepository,
+      generatedPlanPersistenceRepository:
+          bootstrap.generatedPlanPersistenceRepository,
       showAuth: true,
       showOnboarding: true,
     ),

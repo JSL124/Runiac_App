@@ -4,6 +4,7 @@ import '../../../plan/domain/models/beginner_adaptive_plan_snapshot.dart';
 import '../../../plan/domain/models/plan_family.dart';
 import '../../../run/presentation/models/planned_run_context.dart';
 import '../../../plan/presentation/current_session_generated_plan.dart';
+import '../data/goal_plan_demo_snapshots.dart';
 import '../data/weekly_workout_demo_snapshots.dart';
 import '../data/you_overview_demo_snapshots.dart';
 
@@ -126,6 +127,107 @@ SafetyReadinessYouPlanDisplay? safetyReadinessYouPlanDisplayFromSnapshot(
   );
 }
 
+GoalPlanDisplaySnapshot? generatedGoalPlanDisplayFromSnapshot(
+  BeginnerAdaptivePlanSnapshot? snapshot, {
+  DateTime? currentDate,
+}) {
+  if (snapshot == null || !isEligibleCurrentSessionGeneratedPlan(snapshot)) {
+    return null;
+  }
+
+  final currentWeekdayIndex = (currentDate ?? DateTime.now()).weekday;
+  return GoalPlanDisplaySnapshot(
+    title: snapshot.title,
+    planName: snapshot.title,
+    weekSummary:
+        '${snapshot.durationWeeks} weeks · ${snapshot.weeklyFrequencyLabel}',
+    progressValue: 0,
+    progressPercentLabel: '',
+    progressLabel: 'Generated onboarding plan',
+    currentPhaseLabel: 'Preferred days',
+    currentPhase: snapshot.preferredScheduleLabel,
+    showProgress: false,
+    weeks: [
+      for (final week in snapshot.weeks)
+        GoalPlanWeekDisplaySnapshot(
+          weekLabel: 'Week ${week.weekNumber}',
+          title: week.title,
+          status: _goalPlanWeekStatusFor(week, snapshot.weeks.length),
+          dailyPlan: _goalPlanDailyRowsFor(
+            week,
+            snapshot,
+            currentWeekdayIndex: currentWeekdayIndex,
+          ),
+        ),
+    ],
+  );
+}
+
+GoalPlanWeekStatus _goalPlanWeekStatusFor(
+  BeginnerAdaptivePlanWeek week,
+  int totalWeeks,
+) {
+  if (week.weekNumber == 1) {
+    return GoalPlanWeekStatus.current;
+  }
+  if (week.weekNumber == totalWeeks) {
+    return GoalPlanWeekStatus.goalWeek;
+  }
+  return GoalPlanWeekStatus.upcoming;
+}
+
+List<GoalPlanDayDisplaySnapshot> _goalPlanDailyRowsFor(
+  BeginnerAdaptivePlanWeek week,
+  BeginnerAdaptivePlanSnapshot snapshot, {
+  required int currentWeekdayIndex,
+}) {
+  final workoutsByDay = {
+    for (final workout in week.workouts) workout.dayLabel: workout,
+  };
+
+  return [
+    for (final dayLabel in _weeklyDisplayDayLabels)
+      _goalPlanDailyRowFor(
+        dayLabel,
+        workoutsByDay[dayLabel],
+        week,
+        snapshot,
+        currentWeekdayIndex: currentWeekdayIndex,
+      ),
+  ];
+}
+
+GoalPlanDayDisplaySnapshot _goalPlanDailyRowFor(
+  String dayLabel,
+  BeginnerAdaptiveWorkout? workout,
+  BeginnerAdaptivePlanWeek week,
+  BeginnerAdaptivePlanSnapshot snapshot, {
+  required int currentWeekdayIndex,
+}) {
+  if (workout == null || !isGeneratedPlanSession(workout)) {
+    return GoalPlanDayDisplaySnapshot(
+      weekday: _fullWeekdayLabelFor(dayLabel),
+      workoutType: 'Rest Day',
+      distanceOrTime: 'Recovery',
+    );
+  }
+
+  final weekdayIndex = _weekdayIndexFor(dayLabel);
+  final isCurrentWeekToday =
+      week.weekNumber == 1 && weekdayIndex == currentWeekdayIndex;
+  return GoalPlanDayDisplaySnapshot(
+    weekday: _fullWeekdayLabelFor(dayLabel),
+    workoutType: workout.title,
+    distanceOrTime: '${workout.durationMinutes} min',
+    workoutDetail: _workoutDetailFor(
+      workout,
+      snapshot,
+      canStart: isCurrentWeekToday,
+      canEditSchedule: !isCurrentWeekToday,
+    ),
+  );
+}
+
 List<YouPlanScheduleRow> _weeklyScheduleRowsFor(
   BeginnerAdaptivePlanWeek currentWeek,
   BeginnerAdaptivePlanSnapshot snapshot,
@@ -229,16 +331,14 @@ WeeklyWorkoutDetailSnapshot _workoutDetailFor(
     editScheduleCurrentLabel: workout.dayLabel,
     editSchedulePreviewLabel: 'Preview only',
     metrics: [
-      WorkoutMetricDisplay('Duration', '${workout.durationMinutes} min'),
-      WorkoutMetricDisplay('Type', _kindLabel(workout.kind)),
-      WorkoutMetricDisplay('Effort', _intensityLabel(workout.intensity)),
-      const WorkoutMetricDisplay('Source', 'Generated'),
+      for (final metric in workout.detail.metrics)
+        WorkoutMetricDisplay(metric.label, metric.value),
     ],
     breakdown: [
-      for (final step in workout.steps) _stepDisplayFor(step, workout.kind),
+      for (final step in workout.detail.breakdown) _stepDisplayFor(step),
     ],
-    effortGuide: workout.description,
-    coachNotes: [workout.supportiveNote, snapshot.safetyNote],
+    effortGuide: workout.detail.effortGuide,
+    coachNotes: [...workout.detail.coachNotes, snapshot.safetyNote],
     startActionLabel: canStartPlannedRun ? 'Start this run' : null,
     canEditSchedule: canEditGeneratedSchedule,
     plannedRunContext: canStartPlannedRun
@@ -272,24 +372,29 @@ int _weekdayIndexFor(String dayLabel) {
   return index + DateTime.monday;
 }
 
-WorkoutStepDisplay _stepDisplayFor(String step, BeginnerWorkoutKind kind) {
-  final parts = step.split(' · ');
-  return WorkoutStepDisplay(
-    _iconForStep(parts.first, kind),
-    parts.first,
-    parts.length > 1 ? parts.sublist(1).join(' · ') : step,
-  );
+String _fullWeekdayLabelFor(String dayLabel) {
+  return switch (dayLabel) {
+    'Mon' => 'Monday',
+    'Tue' => 'Tuesday',
+    'Wed' => 'Wednesday',
+    'Thu' => 'Thursday',
+    'Fri' => 'Friday',
+    'Sat' => 'Saturday',
+    'Sun' => 'Sunday',
+    _ => dayLabel,
+  };
 }
 
-IconData _iconForStep(String title, BeginnerWorkoutKind kind) {
-  final normalized = title.toLowerCase();
-  if (normalized.contains('warm') || normalized.contains('walk')) {
-    return Icons.directions_walk;
-  }
-  if (normalized.contains('cool') || normalized.contains('mobility')) {
-    return Icons.self_improvement;
-  }
-  return _iconForWorkout(kind);
+WorkoutStepDisplay _stepDisplayFor(BeginnerAdaptiveWorkoutBreakdownStep step) {
+  return WorkoutStepDisplay(_iconForStep(step.kind), step.title, step.detail);
+}
+
+IconData _iconForStep(BeginnerAdaptiveWorkoutBreakdownStepKind kind) {
+  return switch (kind) {
+    BeginnerAdaptiveWorkoutBreakdownStepKind.walk => Icons.directions_walk,
+    BeginnerAdaptiveWorkoutBreakdownStepKind.run => Icons.directions_run,
+    BeginnerAdaptiveWorkoutBreakdownStepKind.mobility => Icons.self_improvement,
+  };
 }
 
 IconData _iconForWorkout(BeginnerWorkoutKind kind) {

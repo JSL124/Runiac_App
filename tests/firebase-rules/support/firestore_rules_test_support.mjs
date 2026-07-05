@@ -84,6 +84,60 @@ export const pendingEnrollment = {
   requestedAt: 1,
 };
 
+export const generatedPlanDocument = {
+  planId: 'local-onboarding-beginner-plan',
+  planKind: 'onboardingBased',
+  title: 'Return to Movement',
+  subtitle: 'A gentle restart plan focused on comfort and consistency.',
+  sourceLabel: 'Onboarding based',
+  durationWeeks: 4,
+  safetyBand: 'highCaution',
+  templateKind: 'veryGentleStart',
+  family: 'returnToMovement',
+  familyCategory: 'starter',
+  familyReason: 'Beginner-safe starter plan',
+  supportStyleLabel: 'Gentle reminders',
+  weeklyFrequencyLabel: '3 sessions / week',
+  preferredScheduleLabel: 'Mon · Wed · Fri',
+  sessionDurationLabel: '20 min',
+  safetyNote: 'Start gently and keep effort comfortable.',
+  clientDisplayStatus: 'generatedPlan',
+  weeks: [
+    {
+      weekNumber: 1,
+      title: 'Week 1',
+      focus: 'Keep movement easy and comfortable',
+      workouts: [
+        {
+          dayLabel: 'Mon',
+          title: 'Easy Walk',
+          durationMinutes: 20,
+          kind: 'recoveryWalk',
+          intensity: 'veryGentle',
+          description: 'Choose a familiar park loop.',
+          steps: ['Easy walk · 15 min', 'Slow finish · 5 min'],
+          supportiveNote: 'Keep this light.',
+          detail: {
+            metrics: [
+              { label: 'Duration', value: '20 min' },
+              { label: 'Type', value: 'Recovery walk' },
+              { label: 'Effort', value: 'Very gentle' },
+              { label: 'Source', value: 'Generated' },
+            ],
+            breakdown: [
+              { kind: 'walk', title: 'Easy walk', detail: '15 min' },
+              { kind: 'mobility', title: 'Slow finish', detail: '5 min' },
+            ],
+            effortGuide: 'Choose a familiar park loop.',
+            coachNotes: ['Keep this light.'],
+          },
+        },
+      ],
+    },
+  ],
+  updatedAt: 1,
+};
+
 before(async () => {
   const rules = readFileSync(RULES_PATH, 'utf8');
 

@@ -10,6 +10,8 @@ import '../../features/account/domain/repositories/user_profile_repository.dart'
 import '../../features/auth/data/firebase_runiac_auth_repository.dart';
 import '../../features/auth/data/non_production_auth_repository.dart';
 import '../../features/auth/domain/runiac_auth_service.dart';
+import '../../features/plan/data/firestore_generated_plan_persistence_repository.dart';
+import '../../features/plan/domain/repositories/generated_plan_persistence_repository.dart';
 import '../../features/run/data/run_repository_factory.dart';
 import '../../features/run/domain/repositories/run_repository.dart';
 import '../../features/you/data/firestore_activity_history_repository.dart';
@@ -37,6 +39,8 @@ class RuniacFirebaseBootstrap {
           profileRepository: const StaticUserProfileRepository(),
           profilePersistenceRepository:
               const NoopUserProfilePersistenceRepository(),
+          generatedPlanPersistenceRepository:
+              const NoopGeneratedPlanPersistenceRepository(),
           firestoreGateway: RuniacFirestoreGateway.configure(
             useFirebaseEmulator: runtimeConfig.useFirebaseEmulator,
             emulatorHost: runtimeConfig.emulatorHost,
@@ -67,6 +71,8 @@ class RuniacFirebaseBootstrap {
         ),
         profilePersistenceRepository:
             FirestoreUserProfilePersistenceRepository(),
+        generatedPlanPersistenceRepository:
+            FirestoreGeneratedPlanPersistenceRepository(),
         firestoreGateway: firestoreGateway,
       );
     }
@@ -111,6 +117,8 @@ class RuniacFirebaseBootstrap {
         authRepository: authRepository,
       ),
       profilePersistenceRepository: FirestoreUserProfilePersistenceRepository(),
+      generatedPlanPersistenceRepository:
+          FirestoreGeneratedPlanPersistenceRepository(),
       firestoreGateway: firestoreGateway,
     );
   }
@@ -156,6 +164,7 @@ class RuniacFirebaseBootstrapResult {
     required this.activityHistoryRepository,
     required this.profileRepository,
     required this.profilePersistenceRepository,
+    required this.generatedPlanPersistenceRepository,
     required this.firestoreGateway,
   });
 
@@ -164,5 +173,6 @@ class RuniacFirebaseBootstrapResult {
   final ActivityHistoryRepository activityHistoryRepository;
   final UserProfileRepository profileRepository;
   final UserProfilePersistenceRepository profilePersistenceRepository;
+  final GeneratedPlanPersistenceRepository generatedPlanPersistenceRepository;
   final RuniacFirestoreGateway firestoreGateway;
 }

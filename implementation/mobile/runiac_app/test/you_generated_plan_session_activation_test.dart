@@ -154,6 +154,103 @@ void main() {
     },
   );
 
+  testWidgets(
+    'generated plan detail shows full onboarding-generated plan content',
+    (WidgetTester tester) async {
+      final generatedPlanStore = CurrentSessionGeneratedPlanStore();
+      final plan = _tenKPerformancePlan();
+      expect(generatedPlanStore.setActivePlan(plan), isTrue);
+
+      final detailDisplay = generatedGoalPlanDisplayFromSnapshot(plan);
+      expect(detailDisplay, isNotNull);
+      expect(detailDisplay!.title, plan.title);
+      expect(detailDisplay.planName, plan.title);
+      expect(detailDisplay.showProgress, isFalse);
+      expect(detailDisplay.weeks, hasLength(plan.weeks.length));
+      expect(detailDisplay.weeks.first.dailyPlan, hasLength(7));
+      expect(
+        detailDisplay.weeks.first.dailyPlan.where(
+          (row) => row.workoutDetail != null,
+        ),
+        hasLength(plan.weeks.first.workouts.length),
+      );
+
+      await _openYouPlansTab(tester, generatedPlanStore);
+
+      await tester.tap(find.text(plan.title));
+      await tester.pumpAndSettle();
+
+      expect(find.text(plan.title), findsWidgets);
+      expect(
+        find.text('${plan.durationWeeks} weeks · ${plan.weeklyFrequencyLabel}'),
+        findsOneWidget,
+      );
+      expect(find.text('Generated onboarding plan'), findsOneWidget);
+      expect(find.text('Preferred days'), findsOneWidget);
+      expect(find.text(plan.preferredScheduleLabel), findsOneWidget);
+      expect(find.text('10K Goal Plan'), findsNothing);
+      expect(find.text('10K Preparation'), findsNothing);
+      expect(find.text('43% completed'), findsNothing);
+      expect(find.text('43%'), findsNothing);
+      expect(find.text('Base Endurance'), findsNothing);
+
+      for (final week in plan.weeks) {
+        expect(
+          find.byKey(
+            ValueKey('goal_plan_detail_week_toggle_Week ${week.weekNumber}'),
+          ),
+          findsOneWidget,
+        );
+        expect(find.text(week.title), findsWidgets);
+      }
+
+      await tester.tap(
+        find.byKey(const ValueKey('goal_plan_detail_week_toggle_Week 1')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('goal_plan_detail_daily_plan_Week 1')),
+        findsOneWidget,
+      );
+      for (final weekday in const [
+        'Monday',
+        'Tuesday',
+        'Wednesday',
+        'Thursday',
+        'Friday',
+        'Saturday',
+        'Sunday',
+      ]) {
+        expect(
+          find.byKey(ValueKey('goal_plan_detail_day_Week 1_$weekday')),
+          findsOneWidget,
+        );
+      }
+
+      final firstWorkout = plan.weeks.first.workouts.first;
+      expect(find.text(firstWorkout.title), findsOneWidget);
+      expect(find.text('${firstWorkout.durationMinutes} min'), findsWidgets);
+      expect(find.text('Rest Day'), findsWidgets);
+      expect(find.text('Recovery'), findsWidgets);
+
+      await tester.tap(find.text(firstWorkout.title));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Workout detail'), findsOneWidget);
+      expect(
+        find.text('${firstWorkout.dayLabel} · ${firstWorkout.title}'),
+        findsOneWidget,
+      );
+      expect(find.text(plan.title), findsOneWidget);
+      expect(find.text('Duration'), findsOneWidget);
+      expect(find.text('${firstWorkout.durationMinutes} min'), findsWidgets);
+      expect(find.text('Generated'), findsOneWidget);
+      expect(find.text('Suggested pace'), findsNothing);
+      expect(find.text('7:30 /km'), findsNothing);
+    },
+  );
+
   testWidgets('generated weekly rest rows do not open workout detail', (
     WidgetTester tester,
   ) async {

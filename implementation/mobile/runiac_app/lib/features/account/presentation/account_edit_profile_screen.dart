@@ -8,6 +8,7 @@ import '../../../core/widgets/runiac_buttons.dart';
 import '../../auth/domain/runiac_auth_service.dart';
 import '../../onboarding/domain/models/local_onboarding_draft.dart';
 import '../../onboarding/presentation/onboarding_flow_screen.dart';
+import '../../plan/domain/repositories/generated_plan_persistence_repository.dart';
 import '../../plan/domain/services/beginner_adaptive_plan_generator.dart';
 import '../../plan/presentation/current_session_generated_plan.dart';
 import '../domain/models/user_profile_read_model.dart';
@@ -18,6 +19,7 @@ class AccountEditProfileScreen extends StatefulWidget {
   const AccountEditProfileScreen({
     required this.authRepository,
     required this.persistenceRepository,
+    required this.generatedPlanPersistenceRepository,
     required this.profile,
     required this.onBack,
     super.key,
@@ -25,6 +27,7 @@ class AccountEditProfileScreen extends StatefulWidget {
 
   final RuniacAuthRepository authRepository;
   final UserProfilePersistenceRepository persistenceRepository;
+  final GeneratedPlanPersistenceRepository generatedPlanPersistenceRepository;
   final UserProfileReadModel profile;
   final VoidCallback onBack;
 
@@ -270,6 +273,8 @@ class _AccountEditProfileScreenState extends State<AccountEditProfileScreen> {
         builder: (_) => _RetakeOnboardingScreen(
           authRepository: widget.authRepository,
           persistenceRepository: widget.persistenceRepository,
+          generatedPlanPersistenceRepository:
+              widget.generatedPlanPersistenceRepository,
           personalProfile: personalProfile,
         ),
       ),
@@ -438,11 +443,13 @@ class _RetakeOnboardingScreen extends StatefulWidget {
   const _RetakeOnboardingScreen({
     required this.authRepository,
     required this.persistenceRepository,
+    required this.generatedPlanPersistenceRepository,
     required this.personalProfile,
   });
 
   final RuniacAuthRepository authRepository;
   final UserProfilePersistenceRepository persistenceRepository;
+  final GeneratedPlanPersistenceRepository generatedPlanPersistenceRepository;
   final PersonalProfileDraft personalProfile;
 
   @override
@@ -498,6 +505,10 @@ class _RetakeOnboardingScreenState extends State<_RetakeOnboardingScreen> {
             'motivationStyle': draft.motivationStyle.value,
           },
         ),
+      );
+      await widget.generatedPlanPersistenceRepository.saveGeneratedPlan(
+        uid: user.uid,
+        plan: plan,
       );
       if (!mounted) {
         return true;

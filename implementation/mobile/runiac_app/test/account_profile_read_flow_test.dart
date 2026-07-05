@@ -9,6 +9,8 @@ import 'package:runiac_app/features/account/domain/models/user_profile_read_mode
 import 'package:runiac_app/features/account/domain/repositories/user_profile_persistence_repository.dart';
 import 'package:runiac_app/features/account/domain/repositories/user_profile_repository.dart';
 import 'package:runiac_app/features/auth/domain/runiac_auth_service.dart';
+import 'package:runiac_app/features/plan/domain/models/beginner_adaptive_plan_snapshot.dart';
+import 'package:runiac_app/features/plan/domain/repositories/generated_plan_persistence_repository.dart';
 import 'package:runiac_app/features/plan/presentation/current_session_generated_plan.dart';
 
 import 'support/fake_runiac_auth_repository.dart';
@@ -221,6 +223,8 @@ void main() {
           );
         },
       );
+      final generatedPlanPersistenceRepository =
+          _RecordingGeneratedPlanPersistenceRepository();
 
       await tester.pumpWidget(
         RuniacApp(
@@ -229,6 +233,8 @@ void main() {
           enableForegroundGps: false,
           authRepository: authRepository,
           profilePersistenceRepository: persistenceRepository,
+          generatedPlanPersistenceRepository:
+              generatedPlanPersistenceRepository,
           currentSessionGeneratedPlanStore: generatedPlanStore,
           profileRepository: profileRepository,
         ),
@@ -295,6 +301,22 @@ void main() {
         'performance',
       );
       expect(generatedPlanStore.activePlan?.title, '10K Performance Build');
+      expect(generatedPlanPersistenceRepository.savedUid, 'test-auth-user-1');
+      expect(
+        generatedPlanPersistenceRepository.savedPlan?.title,
+        '10K Performance Build',
+      );
+      expect(
+        generatedPlanPersistenceRepository
+            .savedPlan
+            ?.weeks
+            .first
+            .workouts
+            .first
+            .detail
+            .coachNotes,
+        isNotEmpty,
+      );
       expect(profileRepository.loadCount, 2);
       expect(find.text('Account'), findsOneWidget);
       expect(find.text('Edit profile'), findsOneWidget);
@@ -681,6 +703,28 @@ class _MutableProfileRepository implements UserProfileRepository {
   Future<UserProfileReadModel> loadUserProfile() async {
     loadCount += 1;
     return profile;
+  }
+}
+
+class _RecordingGeneratedPlanPersistenceRepository
+    implements GeneratedPlanPersistenceRepository {
+  String? savedUid;
+  BeginnerAdaptivePlanSnapshot? savedPlan;
+
+  @override
+  Future<BeginnerAdaptivePlanSnapshot?> loadGeneratedPlan({
+    required String uid,
+  }) async {
+    return null;
+  }
+
+  @override
+  Future<void> saveGeneratedPlan({
+    required String uid,
+    required BeginnerAdaptivePlanSnapshot plan,
+  }) async {
+    savedUid = uid;
+    savedPlan = plan;
   }
 }
 

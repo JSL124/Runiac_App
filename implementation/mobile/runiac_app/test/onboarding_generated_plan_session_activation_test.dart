@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/app.dart';
 import 'package:runiac_app/features/account/data/firestore_user_profile_repository.dart';
 import 'package:runiac_app/features/account/domain/repositories/user_profile_persistence_repository.dart';
+import 'package:runiac_app/features/plan/domain/models/beginner_adaptive_plan_snapshot.dart';
+import 'package:runiac_app/features/plan/domain/repositories/generated_plan_persistence_repository.dart';
 import 'package:runiac_app/features/plan/domain/services/beginner_adaptive_plan_generator.dart';
 import 'package:runiac_app/features/plan/presentation/current_session_generated_plan.dart';
 
@@ -89,11 +93,138 @@ void main() {
     },
   );
 
+  testWidgets(
+    'signed-in saved generated plan hydrates before regenerating from profile',
+    (tester) async {
+      final authRepository = FakeRuniacAuthRepository();
+      final generatedPlanStore = CurrentSessionGeneratedPlanStore();
+      final persistedPlan = const BeginnerAdaptivePlanGenerator().generate(
+        planFamilyStarterDraft(),
+      );
+      addTearDown(authRepository.dispose);
+      authRepository.emitSignedIn();
+
+      await tester.pumpWidget(
+        RuniacApp(
+          showSplash: false,
+          showAuth: true,
+          showOnboarding: true,
+          enableForegroundGps: false,
+          authRepository: authRepository,
+          currentSessionGeneratedPlanStore: generatedPlanStore,
+          generatedPlanPersistenceRepository:
+              _RecordingGeneratedPlanPersistenceRepository(
+                loadedPlan: persistedPlan,
+              ),
+          profileRepository: FirestoreUserProfileRepository(
+            authRepository: authRepository,
+            reader: const _SavedOnboardingProfileDocumentReader(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(generatedPlanStore.activePlan, isNotNull);
+      expect(generatedPlanStore.activePlan!.title, persistedPlan.title);
+      expect(
+        generatedPlanStore
+            .activePlan!
+            .weeks
+            .first
+            .workouts
+            .first
+            .detail
+            .breakdown
+            .first
+            .title,
+        isNotEmpty,
+      );
+    },
+  );
+
+  testWidgets(
+    'in-flight generated plan hydration does not activate after sign-out',
+    (tester) async {
+      final authRepository = FakeRuniacAuthRepository();
+      final generatedPlanStore = CurrentSessionGeneratedPlanStore();
+      final repository = _HoldingGeneratedPlanPersistenceRepository();
+      final persistedPlan = const BeginnerAdaptivePlanGenerator().generate(
+        planFamilyStarterDraft(),
+      );
+      addTearDown(authRepository.dispose);
+      authRepository.emitSignedIn();
+
+      await tester.pumpWidget(
+        RuniacApp(
+          showSplash: false,
+          showAuth: true,
+          showOnboarding: true,
+          enableForegroundGps: false,
+          authRepository: authRepository,
+          currentSessionGeneratedPlanStore: generatedPlanStore,
+          generatedPlanPersistenceRepository: repository,
+          profileRepository: FirestoreUserProfileRepository(
+            authRepository: authRepository,
+            reader: const _SavedOnboardingProfileDocumentReader(),
+          ),
+        ),
+      );
+      await repository.loadStarted.future;
+
+      authRepository.emitSignedOut();
+      await tester.pump();
+      repository.completeLoad(persistedPlan);
+      await tester.pumpAndSettle();
+
+      expect(repository.loadedUid, 'test-auth-user-1');
+      expect(generatedPlanStore.activePlan, isNull);
+    },
+  );
+
+  testWidgets('active generated plan clears after sign-out', (tester) async {
+    final authRepository = FakeRuniacAuthRepository();
+    final generatedPlanStore = CurrentSessionGeneratedPlanStore();
+    final persistedPlan = const BeginnerAdaptivePlanGenerator().generate(
+      planFamilyStarterDraft(),
+    );
+    addTearDown(authRepository.dispose);
+    authRepository.emitSignedIn();
+
+    await tester.pumpWidget(
+      RuniacApp(
+        showSplash: false,
+        showAuth: true,
+        showOnboarding: true,
+        enableForegroundGps: false,
+        authRepository: authRepository,
+        currentSessionGeneratedPlanStore: generatedPlanStore,
+        generatedPlanPersistenceRepository:
+            _RecordingGeneratedPlanPersistenceRepository(
+              loadedPlan: persistedPlan,
+            ),
+        profileRepository: FirestoreUserProfileRepository(
+          authRepository: authRepository,
+          reader: const _SavedOnboardingProfileDocumentReader(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(generatedPlanStore.activePlan?.title, persistedPlan.title);
+
+    authRepository.emitSignedOut();
+    await tester.pumpAndSettle();
+
+    expect(generatedPlanStore.activePlan, isNull);
+  });
+
   testWidgets('signed-in onboarding completion persists safe profile fields', (
     tester,
   ) async {
     final authRepository = FakeRuniacAuthRepository();
     final profileRepository = _RecordingUserProfilePersistenceRepository();
+    final generatedPlanRepository =
+        _RecordingGeneratedPlanPersistenceRepository();
     addTearDown(authRepository.dispose);
     authRepository.emitSignedIn();
 
@@ -104,6 +235,7 @@ void main() {
         enableForegroundGps: false,
         authRepository: authRepository,
         profilePersistenceRepository: profileRepository,
+        generatedPlanPersistenceRepository: generatedPlanRepository,
         initialPersonalProfileDraft: PersonalProfileDraft(
           fullName: 'Maya Tan',
           nickname: 'Maya',
@@ -146,6 +278,20 @@ void main() {
       'runningPlace': 'park',
       'motivationStyle': 'reminders',
     });
+    expect(generatedPlanRepository.savedUid, 'test-auth-user-1');
+    expect(generatedPlanRepository.savedPlan?.title, 'Return to Movement');
+    expect(
+      generatedPlanRepository
+          .savedPlan
+          ?.weeks
+          .first
+          .workouts
+          .first
+          .detail
+          .metrics
+          .map((metric) => metric.label),
+      <String>['Duration', 'Type', 'Effort', 'Source'],
+    );
   });
 
   testWidgets(
@@ -301,6 +447,62 @@ void main() {
     );
     expect(generatedPlanStore.currentWeekRunningSessionCount, 0);
   });
+}
+
+class _RecordingGeneratedPlanPersistenceRepository
+    implements GeneratedPlanPersistenceRepository {
+  _RecordingGeneratedPlanPersistenceRepository({this.loadedPlan});
+
+  final BeginnerAdaptivePlanSnapshot? loadedPlan;
+  String? savedUid;
+  BeginnerAdaptivePlanSnapshot? savedPlan;
+
+  @override
+  Future<BeginnerAdaptivePlanSnapshot?> loadGeneratedPlan({
+    required String uid,
+  }) async {
+    return loadedPlan;
+  }
+
+  @override
+  Future<void> saveGeneratedPlan({
+    required String uid,
+    required BeginnerAdaptivePlanSnapshot plan,
+  }) async {
+    savedUid = uid;
+    savedPlan = plan;
+  }
+}
+
+class _HoldingGeneratedPlanPersistenceRepository
+    implements GeneratedPlanPersistenceRepository {
+  final Completer<void> loadStarted = Completer<void>();
+  final Completer<BeginnerAdaptivePlanSnapshot?> _loadCompleter =
+      Completer<BeginnerAdaptivePlanSnapshot?>();
+  String? loadedUid;
+
+  void completeLoad(BeginnerAdaptivePlanSnapshot? plan) {
+    if (!_loadCompleter.isCompleted) {
+      _loadCompleter.complete(plan);
+    }
+  }
+
+  @override
+  Future<BeginnerAdaptivePlanSnapshot?> loadGeneratedPlan({
+    required String uid,
+  }) {
+    loadedUid = uid;
+    if (!loadStarted.isCompleted) {
+      loadStarted.complete();
+    }
+    return _loadCompleter.future;
+  }
+
+  @override
+  Future<void> saveGeneratedPlan({
+    required String uid,
+    required BeginnerAdaptivePlanSnapshot plan,
+  }) async {}
 }
 
 class _SavedOnboardingProfileDocumentReader

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/runiac_back_header.dart';
 import '../../auth/domain/runiac_auth_service.dart';
+import '../../plan/domain/repositories/generated_plan_persistence_repository.dart';
 import '../domain/models/user_profile_read_model.dart';
 import '../domain/repositories/user_profile_persistence_repository.dart';
 import '../domain/repositories/user_profile_repository.dart';
@@ -16,6 +17,7 @@ class AccountProfileScreen extends StatefulWidget {
     required this.authRepository,
     required this.profileRepository,
     required this.profilePersistenceRepository,
+    required this.generatedPlanPersistenceRepository,
     required this.onBack,
     this.snapshot = accountProfileDemoSnapshot,
     super.key,
@@ -24,6 +26,7 @@ class AccountProfileScreen extends StatefulWidget {
   final RuniacAuthRepository authRepository;
   final UserProfileRepository profileRepository;
   final UserProfilePersistenceRepository profilePersistenceRepository;
+  final GeneratedPlanPersistenceRepository generatedPlanPersistenceRepository;
   final VoidCallback onBack;
   final AccountProfileDemoSnapshot snapshot;
 
@@ -284,6 +287,8 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
         builder: (context) => AccountEditProfileScreen(
           authRepository: widget.authRepository,
           persistenceRepository: widget.profilePersistenceRepository,
+          generatedPlanPersistenceRepository:
+              widget.generatedPlanPersistenceRepository,
           profile: profile,
           onBack: () => Navigator.of(context).pop(false),
         ),

@@ -53,6 +53,21 @@ void main() {
           plan.weeks.first.workouts.first.description,
           contains('familiar park loop'),
         );
+        expect(
+          plan.weeks.first.workouts.first.detail.metrics.map(
+            (metric) => metric.label,
+          ),
+          <String>['Duration', 'Type', 'Effort', 'Source'],
+        );
+        expect(
+          plan.weeks.first.workouts.first.detail.breakdown.first.title,
+          isNotEmpty,
+        );
+        expect(
+          plan.weeks.first.workouts.first.detail.effortGuide,
+          contains('park'),
+        );
+        expect(plan.weeks.first.workouts.first.detail.coachNotes, isNotEmpty);
       },
     );
 
@@ -176,6 +191,37 @@ void main() {
         for (final week in plan.weeks)
           for (final workout in week.workouts) workout.title,
       ], isNot(contains('Easy Walk')));
+    });
+
+    test('generated workout detail avoids forbidden backend-owned fields', () {
+      final plan = generator.generate(_draft());
+      final detailCopy = [
+        for (final week in plan.weeks)
+          for (final workout in week.workouts) ...[
+            for (final metric in workout.detail.metrics) ...[
+              metric.label,
+              metric.value,
+            ],
+            for (final step in workout.detail.breakdown) ...[
+              step.title,
+              step.detail,
+            ],
+            workout.detail.effortGuide,
+            ...workout.detail.coachNotes,
+          ],
+      ].join(' ');
+
+      expect(
+        detailCopy,
+        isNot(
+          contains(
+            RegExp(
+              r'\bXP\b|leaderboard|subscription|rank|streak|validated',
+              caseSensitive: false,
+            ),
+          ),
+        ),
+      );
     });
 
     test('treats none symptom intent as a clear standard start', () {

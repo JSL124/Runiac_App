@@ -4,6 +4,7 @@ import '../../account/presentation/account_profile_screen.dart';
 import '../../account/domain/repositories/user_profile_persistence_repository.dart';
 import '../../account/domain/repositories/user_profile_repository.dart';
 import '../../auth/domain/runiac_auth_service.dart';
+import '../../plan/domain/repositories/generated_plan_persistence_repository.dart';
 import '../../run/presentation/active_run_session_coordinator.dart';
 import '../../run/presentation/run_launch_screen.dart';
 import '../../you/presentation/weekly_workout_detail_screen.dart';
@@ -19,6 +20,8 @@ class HomeTab extends StatelessWidget {
     required this.authRepository,
     required this.profileRepository,
     required this.profilePersistenceRepository,
+    this.generatedPlanPersistenceRepository =
+        const NoopGeneratedPlanPersistenceRepository(),
     super.key,
     this.enableForegroundGps = true,
     this.activeRunSessionCoordinator,
@@ -27,6 +30,7 @@ class HomeTab extends StatelessWidget {
   final RuniacAuthRepository authRepository;
   final UserProfileRepository profileRepository;
   final UserProfilePersistenceRepository profilePersistenceRepository;
+  final GeneratedPlanPersistenceRepository generatedPlanPersistenceRepository;
   final bool enableForegroundGps;
   final ActiveRunSessionCoordinator? activeRunSessionCoordinator;
 
@@ -78,6 +82,8 @@ class HomeTab extends StatelessWidget {
             authRepository: authRepository,
             profileRepository: profileRepository,
             profilePersistenceRepository: profilePersistenceRepository,
+            generatedPlanPersistenceRepository:
+                generatedPlanPersistenceRepository,
             onBack: () => Navigator.of(context).pop(),
           );
         },

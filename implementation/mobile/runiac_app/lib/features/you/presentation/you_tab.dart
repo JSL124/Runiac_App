@@ -11,6 +11,7 @@ import 'activity_history_display_controller.dart';
 import 'activity_history_screen.dart';
 import 'current_session_activity_history.dart';
 import 'adapters/generated_plan_you_display_adapter.dart';
+import 'data/goal_plan_demo_snapshots.dart';
 import 'data/weekly_workout_demo_snapshots.dart';
 import 'expert_plan_detail_screen.dart';
 import 'expert_plan_list_screen.dart';
@@ -106,6 +107,9 @@ class _YouTabState extends State<YouTab> {
     final generatedPlanDisplay = generatedYouPlanDisplayFromSnapshot(
       generatedPlanStore.activePlan,
     );
+    final generatedGoalPlanDetail = generatedGoalPlanDisplayFromSnapshot(
+      generatedPlanStore.activePlan,
+    );
     final safetyReadinessDisplay = safetyReadinessYouPlanDisplayFromSnapshot(
       generatedPlanStore.activePlan,
     );
@@ -137,6 +141,8 @@ class _YouTabState extends State<YouTab> {
 
     if (_goalPlanDetailVisible) {
       return GoalPlanDetailScreen(
+        snapshot: generatedGoalPlanDetail ?? goalPlanDisplaySnapshot,
+        onWorkoutSelected: _showWorkoutDetail,
         onBack: () {
           setState(() => _goalPlanDetailVisible = false);
         },
