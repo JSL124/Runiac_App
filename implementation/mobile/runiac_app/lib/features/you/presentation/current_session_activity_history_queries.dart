@@ -92,6 +92,18 @@ extension CurrentSessionActivityHistoryQueries
       return _formatMonth(parsedDate);
     }
 
+    // Matches the D/M/YY format produced by RunSummaryScalarMapper._formatDate
+    final dmyShort = RegExp(
+      r'^(\d{1,2})/(\d{1,2})/(\d{2})$',
+    ).firstMatch(dateLabel);
+    if (dmyShort != null) {
+      final month = int.tryParse(dmyShort.group(2)!);
+      final shortYear = int.tryParse(dmyShort.group(3)!);
+      if (month != null && shortYear != null) {
+        return _formatMonth(DateTime(2000 + shortYear, month));
+      }
+    }
+
     final dayMonthYear = RegExp(
       r'^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})$',
     ).firstMatch(dateLabel);

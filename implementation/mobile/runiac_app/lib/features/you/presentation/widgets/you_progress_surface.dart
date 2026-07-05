@@ -35,6 +35,7 @@ class YouProgressSurface extends StatefulWidget {
     required this.onRunSelected,
     required this.onMoreActivities,
     this.today,
+    this.restDayWeekdays = const <int>{},
     super.key,
   });
 
@@ -46,6 +47,7 @@ class YouProgressSurface extends StatefulWidget {
   final ValueChanged<RunActivityDisplayModel> onRunSelected;
   final VoidCallback onMoreActivities;
   final DateTime? today;
+  final Set<int> restDayWeekdays;
 
   @override
   State<YouProgressSurface> createState() => _YouProgressSurfaceState();
@@ -56,14 +58,22 @@ class _YouProgressSurfaceState extends State<YouProgressSurface> {
 
   @override
   Widget build(BuildContext context) {
+    final today = widget.today ?? DateTime.now();
     final summaries = _distancePeriodSummariesFor(
       widget.activityHistoryMonths,
-      widget.today ?? DateTime.now(),
+      today,
     );
     final selectedSummary = summaries[_selectedDistancePeriod];
     final graphData = _weeklyDistanceGraphDataFor(
       widget.activityHistoryMonths,
-      widget.today ?? DateTime.now(),
+      today,
+    );
+    final todayDate = DateTime(today.year, today.month, today.day);
+    final runDates = _collectRunDates(widget.activityHistoryMonths, todayDate);
+    final streakDays = _computeConsistencyStreak(
+      runDates: runDates,
+      restDayWeekdays: widget.restDayWeekdays,
+      today: todayDate,
     );
 
     return Column(
@@ -82,12 +92,14 @@ class _YouProgressSurfaceState extends State<YouProgressSurface> {
         const SizedBox(height: 12),
         _MonthlyDistanceSection(summary: selectedSummary, graphData: graphData),
         const SizedBox(height: 10),
-        const _StreakSection(),
+        _StreakSection(streakDays: streakDays),
         const SizedBox(height: 10),
         _CalendarSection(
           visibleMonth: widget.visibleCalendarMonth,
           onPreviousMonth: widget.onPreviousMonth,
           onNextMonth: widget.onNextMonth,
+          today: todayDate,
+          runDates: runDates,
         ),
         const SizedBox(height: 18),
         _RecentRunningHeader(onSeeAll: widget.onMoreActivities),
@@ -106,6 +118,64 @@ class _YouProgressSurfaceState extends State<YouProgressSurface> {
       ],
     );
   }
+}
+
+Set<DateTime> _collectRunDates(
+  List<ActivityHistoryMonth> months,
+  DateTime today,
+) {
+  final dates = <DateTime>{};
+  for (final month in months) {
+    for (final activity in month.activities) {
+      final date = _dateFor(activity.summary.dateLabel, today);
+      if (date != null) {
+        dates.add(date);
+      }
+    }
+  }
+  return dates;
+}
+
+/// Walks backwards from [today] counting consecutive days where the user ran
+/// or the plan designated that weekday as a rest day. Requires at least one
+/// actual run in the window; a sequence of only rest days returns 0.
+///
+/// Today is treated as "not yet over" — if the user hasn't run today and today
+/// isn't a rest day, the loop skips today and starts counting from yesterday,
+/// rather than breaking the streak for an in-progress day.
+int _computeConsistencyStreak({
+  required Set<DateTime> runDates,
+  required Set<int> restDayWeekdays,
+  required DateTime today,
+}) {
+  if (runDates.isEmpty) return 0;
+
+  var streak = 0;
+  var passedRun = false;
+  var isFirstDay = true;
+  var date = today;
+
+  while (true) {
+    final ran = runDates.contains(date);
+    final isRestDay = restDayWeekdays.contains(date.weekday);
+
+    if (ran) {
+      passedRun = true;
+      streak++;
+    } else if (isRestDay) {
+      // Protected: rest days keep the streak alive but do not add to the count.
+    } else if (isFirstDay) {
+      // Today hasn't been run yet and isn't a rest day — the day isn't over,
+      // so don't break the streak; just skip today and check from yesterday.
+    } else {
+      break;
+    }
+
+    isFirstDay = false;
+    date = date.subtract(const Duration(days: 1));
+  }
+
+  return passedRun ? streak : 0;
 }
 
 class _WeeklyDistanceGraphData {
@@ -458,10 +528,17 @@ class _SectionDivider extends StatelessWidget {
 }
 
 class _StreakSection extends StatelessWidget {
-  const _StreakSection();
+  const _StreakSection({required this.streakDays});
+
+  final int streakDays;
 
   @override
   Widget build(BuildContext context) {
+    final streakValue = '$streakDays ${streakDays == 1 ? 'day' : 'days'}';
+    final streakCopy = streakDays > 0
+        ? 'Planned rest days keep your streak protected.'
+        : 'Complete a run to start your streak.';
+
     return _DividerSection(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -471,12 +548,9 @@ class _StreakSection extends StatelessWidget {
             'Consistency Streak',
           ),
           const SizedBox(height: 10),
-          Text(
-            youProgressSnapshot.streakValue,
-            style: YouTextStyles.heroNumber,
-          ),
+          Text(streakValue, style: YouTextStyles.heroNumber),
           const SizedBox(height: 8),
-          Text(youProgressSnapshot.streakCopy, style: YouTextStyles.body),
+          Text(streakCopy, style: YouTextStyles.body),
         ],
       ),
     );
@@ -488,11 +562,15 @@ class _CalendarSection extends StatelessWidget {
     required this.visibleMonth,
     required this.onPreviousMonth,
     required this.onNextMonth,
+    required this.today,
+    required this.runDates,
   });
 
   final DateTime visibleMonth;
   final VoidCallback onPreviousMonth;
   final VoidCallback onNextMonth;
+  final DateTime today;
+  final Set<DateTime> runDates;
 
   @override
   Widget build(BuildContext context) {
@@ -542,7 +620,12 @@ class _CalendarSection extends StatelessWidget {
             Row(
               children: [
                 for (final day in calendarDays.skip(weekStart).take(7))
-                  _DateCell(day: day, visibleMonth: visibleMonth),
+                  _DateCell(
+                    day: day,
+                    visibleMonth: visibleMonth,
+                    today: today,
+                    runDates: runDates,
+                  ),
               ],
             ),
             const SizedBox(height: 8),
@@ -616,6 +699,9 @@ class _CalendarCell extends StatelessWidget {
           alignment: Alignment.center,
           child: Text(
             text,
+            softWrap: false,
+            maxLines: 1,
+            overflow: TextOverflow.clip,
             style: TextStyle(
               color: RuniacColors.textSecondary,
               fontSize: isLabel ? 11 : 12,
@@ -629,17 +715,46 @@ class _CalendarCell extends StatelessWidget {
 }
 
 class _DateCell extends StatelessWidget {
-  const _DateCell({required this.day, required this.visibleMonth});
+  const _DateCell({
+    required this.day,
+    required this.visibleMonth,
+    required this.today,
+    required this.runDates,
+  });
 
   final DateTime day;
   final DateTime visibleMonth;
+  final DateTime today;
+  final Set<DateTime> runDates;
 
   @override
   Widget build(BuildContext context) {
     final inVisibleMonth =
         day.year == visibleMonth.year && day.month == visibleMonth.month;
-    final marked =
-        inVisibleMonth && _runDaysFor(visibleMonth).contains(day.day);
+    final isToday =
+        day.year == today.year &&
+        day.month == today.month &&
+        day.day == today.day;
+    final marked = inVisibleMonth && runDates.contains(day);
+
+    BoxDecoration? decoration;
+    if (marked && isToday) {
+      decoration = BoxDecoration(
+        color: RuniacColors.accentOrange,
+        shape: BoxShape.circle,
+        border: Border.all(color: RuniacColors.primaryBlue, width: 2),
+      );
+    } else if (marked) {
+      decoration = const BoxDecoration(
+        color: RuniacColors.accentOrange,
+        shape: BoxShape.circle,
+      );
+    } else if (isToday && inVisibleMonth) {
+      decoration = BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: RuniacColors.primaryBlue, width: 2),
+      );
+    }
 
     return Expanded(
       child: Center(
@@ -647,12 +762,7 @@ class _DateCell extends StatelessWidget {
           width: 25,
           height: 25,
           alignment: Alignment.center,
-          decoration: marked
-              ? const BoxDecoration(
-                  color: RuniacColors.accentOrange,
-                  shape: BoxShape.circle,
-                )
-              : null,
+          decoration: decoration,
           child: Text(
             '${day.day}',
             style: TextStyle(
@@ -675,10 +785,4 @@ class _DateCell extends StatelessWidget {
 
 String _monthLabel(DateTime month) {
   return '${_monthNames[month.month - 1]} ${month.year}';
-}
-
-Set<int> _runDaysFor(DateTime month) {
-  return youProgressSnapshot
-          .runDayPlaceholders['${month.year}-${month.month}'] ??
-      const {};
 }

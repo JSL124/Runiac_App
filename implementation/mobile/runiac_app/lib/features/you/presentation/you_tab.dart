@@ -60,11 +60,13 @@ class _YouTabState extends State<YouTab> {
   late ActivityHistoryDisplayController _activityHistoryController;
   var _workoutDetailSnapshot = weeklyWorkoutDetailSnapshot;
   GeneratedYouPlanDisplay? _editedGeneratedPlanDisplay;
-  var _visibleCalendarMonth = DateTime(2026, 5);
+  late DateTime _visibleCalendarMonth;
 
   @override
   void initState() {
     super.initState();
+    final today = widget.progressToday ?? DateTime.now();
+    _visibleCalendarMonth = DateTime(today.year, today.month);
     _activityHistoryController = ActivityHistoryDisplayController(
       repository: widget.activityHistoryRepository,
     )..addListener(_handleActivityHistoryChanged);
@@ -220,6 +222,7 @@ class _YouTabState extends State<YouTab> {
                     onRunSelected: _showRunSummary,
                     onMoreActivities: _showActivityHistory,
                     today: widget.progressToday,
+                    restDayWeekdays: _restDayWeekdays(generatedPlanDisplay),
                   ),
               ],
             ),
@@ -341,6 +344,17 @@ class _YouTabState extends State<YouTab> {
         ),
       ),
     );
+  }
+
+  Set<int> _restDayWeekdays(GeneratedYouPlanDisplay? plan) {
+    if (plan == null) return const {};
+    final result = <int>{};
+    for (final row in plan.scheduleRows) {
+      if (!row.isRunningSession) {
+        result.add(row.weekdayIndex);
+      }
+    }
+    return result;
   }
 
   void _handleActivityHistoryChanged() {

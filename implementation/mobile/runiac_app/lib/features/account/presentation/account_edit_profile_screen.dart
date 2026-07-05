@@ -269,6 +269,32 @@ class _AccountEditProfileScreenState extends State<AccountEditProfileScreen> {
       });
       return;
     }
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Reset your plan?'),
+        content: const Text(
+          'Starting a new onboarding plan will reset your consistency streak. '
+          'Your run history will not be deleted.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: TextButton.styleFrom(
+              foregroundColor: RuniacColors.accentOrange,
+            ),
+            child: const Text('Reset streak & continue'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted || confirmed != true) {
+      return;
+    }
     final updated = await Navigator.of(context).push<bool>(
       MaterialPageRoute<bool>(
         builder: (_) => _RetakeOnboardingScreen(
