@@ -129,7 +129,11 @@ export const generatedPlanDocument = {
               { kind: 'mobility', title: 'Slow finish', detail: '5 min' },
             ],
             effortGuide: 'Choose a familiar park loop.',
-            coachNotes: ['Keep this light.'],
+            coachNotes: [
+              'Keep this light.',
+              'Build confidence before adding intensity.',
+              'Use an easier effort if anything feels uncomfortable.',
+            ],
           },
         },
       ],

@@ -611,7 +611,7 @@ void main() {
   });
 
   testWidgets(
-    'Edit profile retake completes when generated plan persistence fails',
+    'Edit profile retake waits when generated plan persistence fails',
     (tester) async {
       final authRepository = FakeRuniacAuthRepository();
       addTearDown(authRepository.dispose);
@@ -677,13 +677,13 @@ void main() {
       await tester.pumpAndSettle();
       final reportedError = tester.takeException();
 
-      expect(find.text('Account'), findsOneWidget);
-      expect(generatedPlanStore.activePlan?.title, 'Return to Movement');
+      expect(find.text('Account'), findsNothing);
+      expect(generatedPlanStore.activePlan, isNull);
       expect(persistenceRepository.onboardingProfile, isNotNull);
       expect(generatedPlanPersistenceRepository.saveCalls, 1);
       expect(
         find.text('We could not save your onboarding result. Try again.'),
-        findsNothing,
+        findsOneWidget,
       );
       expect(reportedError, isA<StateError>());
     },

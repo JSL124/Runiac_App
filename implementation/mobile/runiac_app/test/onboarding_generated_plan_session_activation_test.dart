@@ -295,7 +295,7 @@ void main() {
   });
 
   testWidgets(
-    'signed-in onboarding completion continues when generated plan persistence fails',
+    'signed-in onboarding completion waits when generated plan persistence fails',
     (tester) async {
       final authRepository = FakeRuniacAuthRepository();
       final profileRepository = _RecordingUserProfilePersistenceRepository();
@@ -329,13 +329,13 @@ void main() {
       await tester.pumpAndSettle();
       final reportedError = tester.takeException();
 
-      expect(find.text('Good to see you'), findsOneWidget);
+      expect(find.text('Good to see you'), findsNothing);
       expect(profileRepository.uid, 'test-auth-user-1');
       expect(generatedPlanRepository.saveCalls, 1);
-      expect(generatedPlanStore.activePlan?.title, 'Return to Movement');
+      expect(generatedPlanStore.activePlan, isNull);
       expect(
         find.text('We could not save your profile. Try again.'),
-        findsNothing,
+        findsOneWidget,
       );
       expect(reportedError, isA<StateError>());
     },

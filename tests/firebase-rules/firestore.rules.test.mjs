@@ -162,6 +162,27 @@ describe('owner-owned client records', () => {
     );
   });
 
+  it('allows owner to write a full generated plan payload', async () => {
+    const alice = dbFor('alice');
+    const baseWorkout = generatedPlanDocument.weeks[0].workouts[0];
+
+    await assertSucceeds(
+      setDoc(doc(alice, 'generatedPlans/alice'), {
+        ...generatedPlanDocument,
+        weeks: Array.from({ length: 4 }, (_, weekIndex) => ({
+          weekNumber: weekIndex + 1,
+          title: `Week ${weekIndex + 1}`,
+          focus: `Week ${weekIndex + 1} focus`,
+          workouts: ['Mon', 'Fri', 'Sat'].map((dayLabel, sessionIndex) => ({
+            ...baseWorkout,
+            dayLabel,
+            title: `${baseWorkout.title} ${sessionIndex + 1}`,
+          })),
+        })),
+      }),
+    );
+  });
+
   it('denies backend-owned and unapproved generated plan fields', async () => {
     const alice = dbFor('alice');
     const plan = doc(alice, 'generatedPlans/alice');

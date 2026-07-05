@@ -520,6 +520,12 @@ class _RetakeOnboardingScreenState extends State<_RetakeOnboardingScreen> {
             context: ErrorDescription('saving regenerated onboarding plan'),
           ),
         );
+        if (mounted) {
+          setState(() {
+            _error = 'We could not save your onboarding result. Try again.';
+          });
+        }
+        return false;
       }
       if (!mounted) {
         return true;

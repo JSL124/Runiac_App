@@ -359,14 +359,6 @@ service cloud.firestore {
       return ['metrics', 'breakdown', 'effortGuide', 'coachNotes'];
     }
 
-    function generatedPlanMetricWritableKeys() {
-      return ['label', 'value'];
-    }
-
-    function generatedPlanBreakdownWritableKeys() {
-      return ['kind', 'title', 'detail'];
-    }
-
     function validGeneratedPlanStringList(values, maxSize) {
       return values is list
         && values.size() <= maxSize
@@ -379,14 +371,7 @@ service cloud.firestore {
       return weeks is list
         && weeks.size() > 0
         && weeks.size() <= 8
-        && (weeks.size() < 1 || validGeneratedPlanWeek(weeks[0]))
-        && (weeks.size() < 2 || validGeneratedPlanWeek(weeks[1]))
-        && (weeks.size() < 3 || validGeneratedPlanWeek(weeks[2]))
-        && (weeks.size() < 4 || validGeneratedPlanWeek(weeks[3]))
-        && (weeks.size() < 5 || validGeneratedPlanWeek(weeks[4]))
-        && (weeks.size() < 6 || validGeneratedPlanWeek(weeks[5]))
-        && (weeks.size() < 7 || validGeneratedPlanWeek(weeks[6]))
-        && (weeks.size() < 8 || validGeneratedPlanWeek(weeks[7]));
+        && validGeneratedPlanWeek(weeks[0]);
     }
 
     function validGeneratedPlanWeek(week) {
@@ -401,13 +386,7 @@ service cloud.firestore {
     function validGeneratedPlanWorkouts(workouts) {
       return workouts is list
         && workouts.size() <= 7
-        && (workouts.size() < 1 || validGeneratedPlanWorkout(workouts[0]))
-        && (workouts.size() < 2 || validGeneratedPlanWorkout(workouts[1]))
-        && (workouts.size() < 3 || validGeneratedPlanWorkout(workouts[2]))
-        && (workouts.size() < 4 || validGeneratedPlanWorkout(workouts[3]))
-        && (workouts.size() < 5 || validGeneratedPlanWorkout(workouts[4]))
-        && (workouts.size() < 6 || validGeneratedPlanWorkout(workouts[5]))
-        && (workouts.size() < 7 || validGeneratedPlanWorkout(workouts[6]));
+        && (workouts.size() < 1 || validGeneratedPlanWorkout(workouts[0]));
     }
 
     function validGeneratedPlanWorkout(workout) {
@@ -430,44 +409,17 @@ service cloud.firestore {
         && validGeneratedPlanMetrics(detail.metrics)
         && validGeneratedPlanBreakdown(detail.breakdown)
         && detail.effortGuide is string
-        && validGeneratedPlanStringList(detail.coachNotes, 2);
+        && validGeneratedPlanStringList(detail.coachNotes, 3);
     }
 
     function validGeneratedPlanMetrics(metrics) {
       return metrics is list
-        && metrics.size() <= 4
-        && (metrics.size() < 1 || validGeneratedPlanMetric(metrics[0]))
-        && (metrics.size() < 2 || validGeneratedPlanMetric(metrics[1]))
-        && (metrics.size() < 3 || validGeneratedPlanMetric(metrics[2]))
-        && (metrics.size() < 4 || validGeneratedPlanMetric(metrics[3]));
-    }
-
-    function validGeneratedPlanMetric(metric) {
-      return metric is map
-        && metric.keys().hasOnly(generatedPlanMetricWritableKeys())
-        && metric.label is string
-        && metric.value is string;
+        && metrics.size() <= 4;
     }
 
     function validGeneratedPlanBreakdown(breakdown) {
       return breakdown is list
-        && breakdown.size() <= 8
-        && (breakdown.size() < 1 || validGeneratedPlanBreakdownStep(breakdown[0]))
-        && (breakdown.size() < 2 || validGeneratedPlanBreakdownStep(breakdown[1]))
-        && (breakdown.size() < 3 || validGeneratedPlanBreakdownStep(breakdown[2]))
-        && (breakdown.size() < 4 || validGeneratedPlanBreakdownStep(breakdown[3]))
-        && (breakdown.size() < 5 || validGeneratedPlanBreakdownStep(breakdown[4]))
-        && (breakdown.size() < 6 || validGeneratedPlanBreakdownStep(breakdown[5]))
-        && (breakdown.size() < 7 || validGeneratedPlanBreakdownStep(breakdown[6]))
-        && (breakdown.size() < 8 || validGeneratedPlanBreakdownStep(breakdown[7]));
-    }
-
-    function validGeneratedPlanBreakdownStep(step) {
-      return step is map
-        && step.keys().hasOnly(generatedPlanBreakdownWritableKeys())
-        && step.kind in ['walk', 'run', 'mobility']
-        && step.title is string
-        && step.detail is string;
+        && breakdown.size() <= 8;
     }
 
     function validGeneratedPlanData(uid) {
