@@ -610,6 +610,85 @@ void main() {
     expect(find.text('Maya'), findsOneWidget);
   });
 
+  testWidgets(
+    'Edit profile retake completes when generated plan persistence fails',
+    (tester) async {
+      final authRepository = FakeRuniacAuthRepository();
+      addTearDown(authRepository.dispose);
+      authRepository.emitSignedIn();
+      final generatedPlanStore = CurrentSessionGeneratedPlanStore();
+      final profileRepository = _MutableProfileRepository(_savedProfile());
+      final persistenceRepository = _RecordingUserProfilePersistenceRepository(
+        onSaveOnboardingProfile: (profile) {
+          profileRepository.profile = UserProfileReadModel(
+            userId: 'test-auth-user-1',
+            displayName: profile.displayName,
+            fullName: profile.fullName,
+            nickname: profile.nickname,
+            avatarInitials: profile.avatarInitials,
+            ageYears: profile.ageYears,
+            weightKg: profile.weightKg,
+            locationLabel: profile.locationLabel,
+            setupItems: <UserProfileInfoItemReadModel>[
+              UserProfileInfoItemReadModel(
+                title: 'Weekly rhythm',
+                value:
+                    '${profile.availability['weeklySessions']} sessions / week',
+              ),
+            ],
+            manageRows: const <UserProfileManageRowReadModel>[
+              UserProfileManageRowReadModel(
+                title: 'Edit profile',
+                subtitle: 'Email, personal details, and onboarding',
+                snackBarMessage: '',
+                action: UserProfileManageAction.editProfile,
+              ),
+            ],
+          );
+        },
+      );
+      final generatedPlanPersistenceRepository =
+          _RecordingGeneratedPlanPersistenceRepository()..failNextSave = true;
+
+      await tester.pumpWidget(
+        RuniacApp(
+          showSplash: false,
+          showAuth: true,
+          enableForegroundGps: false,
+          authRepository: authRepository,
+          profilePersistenceRepository: persistenceRepository,
+          generatedPlanPersistenceRepository:
+              generatedPlanPersistenceRepository,
+          currentSessionGeneratedPlanStore: generatedPlanStore,
+          profileRepository: profileRepository,
+        ),
+      );
+
+      await tester.tap(find.bySemanticsLabel('Profile'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Edit profile'));
+      await tester.tap(find.text('Edit profile'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Retake onboarding'));
+      await tester.tap(find.text('Retake onboarding'));
+      await tester.pumpAndSettle();
+      await completeOnboardingToPreview(tester);
+      await tapText(tester, 'Continue with this plan');
+      await tester.pumpAndSettle();
+      final reportedError = tester.takeException();
+
+      expect(find.text('Account'), findsOneWidget);
+      expect(generatedPlanStore.activePlan?.title, 'Return to Movement');
+      expect(persistenceRepository.onboardingProfile, isNotNull);
+      expect(generatedPlanPersistenceRepository.saveCalls, 1);
+      expect(
+        find.text('We could not save your onboarding result. Try again.'),
+        findsNothing,
+      );
+      expect(reportedError, isA<StateError>());
+    },
+  );
+
   testWidgets('Account profile falls back to the demo profile snapshot', (
     tester,
   ) async {
@@ -640,6 +719,7 @@ UserProfileReadModel _savedProfile() {
     fullName: 'Maya Tan',
     nickname: 'Maya',
     avatarInitials: 'MT',
+    dateOfBirthIso: '2002-06-28',
     ageYears: 24,
     weightKg: 58.5,
     locationLabel: 'Queenstown, Singapore',
@@ -710,6 +790,8 @@ class _RecordingGeneratedPlanPersistenceRepository
     implements GeneratedPlanPersistenceRepository {
   String? savedUid;
   BeginnerAdaptivePlanSnapshot? savedPlan;
+  bool failNextSave = false;
+  int saveCalls = 0;
 
   @override
   Future<BeginnerAdaptivePlanSnapshot?> loadGeneratedPlan({
@@ -723,6 +805,11 @@ class _RecordingGeneratedPlanPersistenceRepository
     required String uid,
     required BeginnerAdaptivePlanSnapshot plan,
   }) async {
+    saveCalls += 1;
+    if (failNextSave) {
+      failNextSave = false;
+      throw StateError('generated plan save failed');
+    }
     savedUid = uid;
     savedPlan = plan;
   }

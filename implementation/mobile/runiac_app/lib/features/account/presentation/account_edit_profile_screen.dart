@@ -506,10 +506,21 @@ class _RetakeOnboardingScreenState extends State<_RetakeOnboardingScreen> {
           },
         ),
       );
-      await widget.generatedPlanPersistenceRepository.saveGeneratedPlan(
-        uid: user.uid,
-        plan: plan,
-      );
+      try {
+        await widget.generatedPlanPersistenceRepository.saveGeneratedPlan(
+          uid: user.uid,
+          plan: plan,
+        );
+      } catch (error, stackTrace) {
+        FlutterError.reportError(
+          FlutterErrorDetails(
+            exception: error,
+            stack: stackTrace,
+            library: 'runiac account',
+            context: ErrorDescription('saving regenerated onboarding plan'),
+          ),
+        );
+      }
       if (!mounted) {
         return true;
       }

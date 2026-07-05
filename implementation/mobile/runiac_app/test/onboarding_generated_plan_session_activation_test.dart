@@ -295,6 +295,53 @@ void main() {
   });
 
   testWidgets(
+    'signed-in onboarding completion continues when generated plan persistence fails',
+    (tester) async {
+      final authRepository = FakeRuniacAuthRepository();
+      final profileRepository = _RecordingUserProfilePersistenceRepository();
+      final generatedPlanRepository =
+          _RecordingGeneratedPlanPersistenceRepository()..failNextSave = true;
+      final generatedPlanStore = CurrentSessionGeneratedPlanStore();
+      addTearDown(authRepository.dispose);
+      authRepository.emitSignedIn();
+
+      await tester.pumpWidget(
+        RuniacApp(
+          showSplash: false,
+          showOnboarding: true,
+          enableForegroundGps: false,
+          authRepository: authRepository,
+          profilePersistenceRepository: profileRepository,
+          generatedPlanPersistenceRepository: generatedPlanRepository,
+          currentSessionGeneratedPlanStore: generatedPlanStore,
+          initialPersonalProfileDraft: PersonalProfileDraft(
+            fullName: 'Maya Tan',
+            nickname: 'Maya',
+            dateOfBirthIso: '2002-06-28',
+            weightKg: 58.5,
+            locationLabel: 'Queenstown, Singapore',
+          ),
+        ),
+      );
+
+      await completeOnboardingToPreview(tester);
+      await tapText(tester, 'Continue with this plan');
+      await tester.pumpAndSettle();
+      final reportedError = tester.takeException();
+
+      expect(find.text('Good to see you'), findsOneWidget);
+      expect(profileRepository.uid, 'test-auth-user-1');
+      expect(generatedPlanRepository.saveCalls, 1);
+      expect(generatedPlanStore.activePlan?.title, 'Return to Movement');
+      expect(
+        find.text('We could not save your profile. Try again.'),
+        findsNothing,
+      );
+      expect(reportedError, isA<StateError>());
+    },
+  );
+
+  testWidgets(
     'signed-in onboarding completion waits when profile persistence fails',
     (tester) async {
       final authRepository = FakeRuniacAuthRepository();
@@ -456,6 +503,8 @@ class _RecordingGeneratedPlanPersistenceRepository
   final BeginnerAdaptivePlanSnapshot? loadedPlan;
   String? savedUid;
   BeginnerAdaptivePlanSnapshot? savedPlan;
+  bool failNextSave = false;
+  int saveCalls = 0;
 
   @override
   Future<BeginnerAdaptivePlanSnapshot?> loadGeneratedPlan({
@@ -469,6 +518,11 @@ class _RecordingGeneratedPlanPersistenceRepository
     required String uid,
     required BeginnerAdaptivePlanSnapshot plan,
   }) async {
+    saveCalls += 1;
+    if (failNextSave) {
+      failNextSave = false;
+      throw StateError('generated plan save failed');
+    }
     savedUid = uid;
     savedPlan = plan;
   }

@@ -323,13 +323,7 @@ class _RuniacAppState extends State<RuniacApp> {
       if (!saved) {
         return false;
       }
-      final generatedPlanSaved = await _saveGeneratedPlan(
-        currentUser.uid,
-        snapshot,
-      );
-      if (!generatedPlanSaved) {
-        return false;
-      }
+      await _saveGeneratedPlan(currentUser.uid, snapshot);
     }
     _setActiveGeneratedPlan(snapshot, ownerUid: currentUser?.uid);
     widget.onOnboardingCompleted?.call(draft);
@@ -362,7 +356,7 @@ class _RuniacAppState extends State<RuniacApp> {
     }
   }
 
-  Future<bool> _saveGeneratedPlan(
+  Future<void> _saveGeneratedPlan(
     String uid,
     BeginnerAdaptivePlanSnapshot snapshot,
   ) async {
@@ -371,9 +365,15 @@ class _RuniacAppState extends State<RuniacApp> {
         uid: uid,
         plan: snapshot,
       );
-      return true;
-    } catch (_) {
-      return false;
+    } catch (error, stackTrace) {
+      FlutterError.reportError(
+        FlutterErrorDetails(
+          exception: error,
+          stack: stackTrace,
+          library: 'runiac app',
+          context: ErrorDescription('saving generated onboarding plan'),
+        ),
+      );
     }
   }
 
