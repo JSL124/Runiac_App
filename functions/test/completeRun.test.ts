@@ -72,6 +72,43 @@ describe("completeRun callable boundary", () => {
     assert.equal(progressionEvent.get("countsTowardLeaderboard"), false);
   });
 
+  it("persists valid cadence analysis samples on activity and summary documents", async () => {
+    const cadenceAnalysisSeries = validCadenceAnalysisSeries();
+    const result = await callCompleteRun({
+      auth: { uid: USER_UID },
+      data: {
+        ...validPayload(),
+        clientRunSessionId: "local-session-cadence-persistence",
+        cadenceAnalysisSeries,
+      },
+    });
+
+    const activity = await firestore.doc(`activities/${result.activityId}`).get();
+    const summary = await firestore.doc(`runSummaries/${result.summaryId}`).get();
+
+    assert.deepEqual(activity.get("cadenceAnalysisSeries"), cadenceAnalysisSeries);
+    assert.deepEqual(summary.get("cadenceAnalysisSeries"), cadenceAnalysisSeries);
+  });
+
+  it("persists the maximum bounded cadence analysis sample count", async () => {
+    const cadenceAnalysisSeries = validCadenceAnalysisSeriesWithSampleCount(720);
+    const result = await callCompleteRun({
+      auth: { uid: USER_UID },
+      data: {
+        ...validPayload(),
+        clientRunSessionId: "local-session-cadence-max-samples",
+        cadenceAnalysisSeries,
+      },
+    });
+
+    const activity = await firestore.doc(`activities/${result.activityId}`).get();
+    const summary = await firestore.doc(`runSummaries/${result.summaryId}`).get();
+
+    assert.equal(activity.get("cadenceAnalysisSeries.samples").length, 720);
+    assert.deepEqual(activity.get("cadenceAnalysisSeries"), cadenceAnalysisSeries);
+    assert.deepEqual(summary.get("cadenceAnalysisSeries"), cadenceAnalysisSeries);
+  });
+
   it("accepts paused duration fields without using wall-clock time as active duration", async () => {
     const result = await callCompleteRun({
       auth: { uid: USER_UID },
@@ -321,6 +358,59 @@ describe("completeRun callable boundary", () => {
     );
   });
 
+  it("rejects malformed cadence analysis payloads", async () => {
+    await expectRejectsCode(
+      () =>
+        callCompleteRun({
+          auth: { uid: USER_UID },
+          data: {
+            ...validPayload(),
+            clientRunSessionId: "cadence-malformed-non-array-samples",
+            cadenceAnalysisSeries: {
+              ...validCadenceAnalysisSeries(),
+              samples: "not-samples",
+            },
+          },
+        }),
+      "invalid-argument",
+    );
+
+    await expectRejectsCode(
+      () =>
+        callCompleteRun({
+          auth: { uid: USER_UID },
+          data: {
+            ...validPayload(),
+            clientRunSessionId: "cadence-malformed-out-of-range-sample",
+            cadenceAnalysisSeries: {
+              ...validCadenceAnalysisSeries(),
+              samples: [
+                { elapsedSeconds: 30, cadenceSpm: 301, status: "accepted" },
+              ],
+            },
+          },
+        }),
+      "invalid-argument",
+    );
+
+    await expectRejectsCode(
+      () =>
+        callCompleteRun({
+          auth: { uid: USER_UID },
+          data: {
+            ...validPayload(),
+            clientRunSessionId: "cadence-malformed-too-many-samples",
+            cadenceAnalysisSeries: validCadenceAnalysisSeriesWithSampleCount(721),
+          },
+        }),
+      "invalid-argument",
+    );
+
+    assert.equal(await countDocuments("activities"), 0);
+    assert.equal(await countDocuments("runSummaries"), 0);
+    assert.equal(await countDocuments("progressionEvents"), 0);
+  });
+
   it("is idempotent for duplicate clientRunSessionId values", async () => {
     const first = await callCompleteRun({ auth: { uid: USER_UID }, data: validPayload() });
     const second = await callCompleteRun({ auth: { uid: USER_UID }, data: validPayload() });
@@ -412,6 +502,30 @@ function validPayload(): Record<string, unknown> {
     avgPaceSecondsPerKm: 469,
     source: "mobile",
     routePrivacy: "private",
+  };
+}
+
+function validCadenceAnalysisSeries(): Record<string, unknown> {
+  return {
+    source: "phoneSensorEstimated",
+    confidence: "low",
+    samples: [
+      { elapsedSeconds: 30, cadenceSpm: 95, status: "accepted" },
+      { elapsedSeconds: 90, cadenceSpm: 118, status: "accepted" },
+      { elapsedSeconds: 120, cadenceSpm: 120, status: "accepted" },
+    ],
+  };
+}
+
+function validCadenceAnalysisSeriesWithSampleCount(sampleCount: number): Record<string, unknown> {
+  return {
+    source: "phoneSensorEstimated",
+    confidence: "low",
+    samples: Array.from({ length: sampleCount }, (_, index) => ({
+      elapsedSeconds: index,
+      cadenceSpm: 95 + (index % 20),
+      status: "accepted",
+    })),
   };
 }
 

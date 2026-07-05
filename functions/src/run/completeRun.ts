@@ -74,6 +74,9 @@ export async function completeRunForCallable(
         validatedActivityContributionState: "deferred",
         countsTowardProgression: false,
         validationReason: "progression_formula_deferred",
+        ...(payload.cadenceAnalysisSeries === undefined
+          ? {}
+          : { cadenceAnalysisSeries: payload.cadenceAnalysisSeries }),
       });
     }
 
@@ -147,6 +150,9 @@ function buildRunSummary(payload: RawRunCompletionPayload): CompleteRunResult["r
     displayDuration: formatDuration(payload.durationSeconds),
     displayPace: `${Math.round(payload.avgPaceSecondsPerKm)} sec/km`,
     ...(payload.routeLabel === undefined ? {} : { routeLabel: payload.routeLabel }),
+    ...(payload.cadenceAnalysisSeries === undefined
+      ? {}
+      : { cadenceAnalysisSeries: payload.cadenceAnalysisSeries }),
   };
 }
 

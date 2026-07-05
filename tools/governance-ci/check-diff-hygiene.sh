@@ -38,7 +38,7 @@ is_running_activity_history_functions_path() {
 
 is_run_duration_fields_functions_path() {
   case "$1" in
-    functions/src/run/completeRun.ts|functions/src/run/runCompletionTypes.ts|functions/src/run/validateRunPayload.ts|functions/test/completeRun.test.ts|functions/test/completeRunCallableSurface.test.ts)
+    functions/src/run/completeRun.ts|functions/src/run/runCompletionTypes.ts|functions/src/run/validateCadenceAnalysisSeries.ts|functions/src/run/validateRunPayload.ts|functions/src/run/validateRunScalarFields.ts|functions/test/completeRun.test.ts|functions/test/completeRunCallableSurface.test.ts)
       return 0
       ;;
     *)
@@ -81,7 +81,7 @@ is_allowed_path() {
     tests/governance/backend_functions_scope_test.sh)
       return 0
       ;;
-    functions/.gitignore|functions/package-lock.json|functions/package.json|functions/tsconfig.json|functions/src/index.ts|functions/src/run/completeRun.ts|functions/src/run/runCompletionTypes.ts|functions/src/run/validateRunPayload.ts|functions/src/progression/progressionEventWriter.ts|functions/test/completeRun.test.ts|functions/test/completeRunCallableSurface.test.ts)
+    functions/.gitignore|functions/package-lock.json|functions/package.json|functions/tsconfig.json|functions/src/index.ts|functions/src/run/completeRun.ts|functions/src/run/runCompletionTypes.ts|functions/src/run/validateCadenceAnalysisSeries.ts|functions/src/run/validateRunPayload.ts|functions/src/run/validateRunScalarFields.ts|functions/src/progression/progressionEventWriter.ts|functions/test/completeRun.test.ts|functions/test/completeRunCallableSurface.test.ts)
       if is_complete_run_functions_capsule_active; then
         return 0
       fi
@@ -146,7 +146,7 @@ is_forbidden_path() {
     firebase/functions/*|firebase/functions/src/*)
       return 0
       ;;
-    functions/.gitignore|functions/package-lock.json|functions/package.json|functions/tsconfig.json|functions/src/index.ts|functions/src/run/completeRun.ts|functions/src/run/runCompletionTypes.ts|functions/src/run/validateRunPayload.ts|functions/src/progression/progressionEventWriter.ts|functions/test/completeRun.test.ts|functions/test/completeRunCallableSurface.test.ts)
+    functions/.gitignore|functions/package-lock.json|functions/package.json|functions/tsconfig.json|functions/src/index.ts|functions/src/run/completeRun.ts|functions/src/run/runCompletionTypes.ts|functions/src/run/validateCadenceAnalysisSeries.ts|functions/src/run/validateRunPayload.ts|functions/src/run/validateRunScalarFields.ts|functions/src/progression/progressionEventWriter.ts|functions/test/completeRun.test.ts|functions/test/completeRunCallableSurface.test.ts)
       if is_complete_run_functions_capsule_active; then
         return 1
       fi

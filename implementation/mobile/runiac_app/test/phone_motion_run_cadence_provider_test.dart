@@ -72,7 +72,7 @@ void main() {
       nativeEvents.add({
         'type': 'sample',
         'recordedAtMillis': 1782284400000,
-        'stepsPerMinute': 172,
+        'stepsPerMinute': 95,
         'confidence': 'estimated',
       });
       nativeEvents.add({'stepsPerMinute': double.nan});
@@ -81,7 +81,7 @@ void main() {
       expect(samples, hasLength(1));
       expect(samples.single.source, CadenceSource.phoneMotion);
       expect(samples.single.confidence, CadenceConfidence.estimated);
-      expect(samples.single.stepsPerMinute, 172);
+      expect(samples.single.stepsPerMinute, 95);
 
       await provider.pause();
       nativeEvents.add({

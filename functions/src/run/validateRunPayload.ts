@@ -1,5 +1,13 @@
 import { HttpsError } from "firebase-functions/v2/https";
-import type { RawRunCompletionPayload } from "./runCompletionTypes.js";
+import type { CadenceAnalysisSeriesPayload, RawRunCompletionPayload } from "./runCompletionTypes.js";
+import { readOptionalCadenceAnalysisSeries } from "./validateCadenceAnalysisSeries.js";
+import {
+  readDistanceMeters,
+  readDurationSeconds,
+  readOptionalDurationSeconds,
+  readOptionalPositiveNumber,
+  readPaceSecondsPerKm,
+} from "./validateRunScalarFields.js";
 
 const allowedKeys = new Set([
   "clientRunSessionId",
@@ -21,6 +29,7 @@ const allowedKeys = new Set([
   "scheduledWorkoutId",
   "deviceRecordedAt",
   "clientAppVersion",
+  "cadenceAnalysisSeries",
 ]);
 
 const protectedKeys = new Set([
@@ -50,10 +59,6 @@ const protectedKeys = new Set([
 ]);
 
 const isoDatePattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
-const maxDurationSeconds = 86_400;
-const maxDistanceMeters = 100_000;
-const minPaceSecondsPerKm = 120;
-const maxPaceSecondsPerKm = 3_600;
 
 export function parseRunCompletionPayload(data: unknown): RawRunCompletionPayload {
   if (!isRecord(data)) {
@@ -128,6 +133,7 @@ export function parseRunCompletionPayload(data: unknown): RawRunCompletionPayloa
     scheduledWorkoutId: readOptionalString(data, "scheduledWorkoutId"),
     deviceRecordedAt: readOptionalIsoDateString(data, "deviceRecordedAt"),
     clientAppVersion: readOptionalString(data, "clientAppVersion"),
+    cadenceAnalysisSeries: readOptionalCadenceAnalysisSeries(data),
   };
 
   return withoutUndefined(payload);
@@ -156,93 +162,6 @@ function readOptionalString(data: Readonly<Record<string, unknown>>, key: string
   return value;
 }
 
-function readPositiveNumber(data: Readonly<Record<string, unknown>>, key: string): number {
-  const value = data[key];
-  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
-    throw invalid(`${key} must be a positive number.`);
-  }
-  return value;
-}
-
-function readBoundedPositiveNumber(
-  data: Readonly<Record<string, unknown>>,
-  key: string,
-  maxValue: number,
-): number {
-  const value = readPositiveNumber(data, key);
-  if (value > maxValue) {
-    throw invalid(`${key} exceeds the emulator skeleton safety limit.`);
-  }
-  return value;
-}
-
-function readDurationSeconds(data: Readonly<Record<string, unknown>>, userConfirmedLowDataSave: boolean): number {
-  if (!userConfirmedLowDataSave) {
-    return readBoundedPositiveNumber(data, "durationSeconds", maxDurationSeconds);
-  }
-  const value = readNonNegativeNumber(data, "durationSeconds");
-  if (value > maxDurationSeconds) {
-    throw invalid("durationSeconds exceeds the emulator skeleton safety limit.");
-  }
-  return value;
-}
-
-function readOptionalDurationSeconds(
-  data: Readonly<Record<string, unknown>>,
-  key: string,
-  userConfirmedLowDataSave: boolean,
-): number | undefined {
-  if (data[key] === undefined) {
-    return undefined;
-  }
-  if (!userConfirmedLowDataSave) {
-    return readBoundedPositiveNumber(data, key, maxDurationSeconds);
-  }
-  const value = readNonNegativeNumber(data, key);
-  if (value > maxDurationSeconds) {
-    throw invalid(`${key} exceeds the emulator skeleton safety limit.`);
-  }
-  return value;
-}
-
-function readDistanceMeters(data: Readonly<Record<string, unknown>>, userConfirmedLowDataSave: boolean): number {
-  if (!userConfirmedLowDataSave) {
-    return readBoundedPositiveNumber(data, "distanceMeters", maxDistanceMeters);
-  }
-  const value = readNonNegativeNumber(data, "distanceMeters");
-  if (value > maxDistanceMeters) {
-    throw invalid("distanceMeters exceeds the emulator skeleton safety limit.");
-  }
-  return value;
-}
-
-function readPaceSecondsPerKm(
-  data: Readonly<Record<string, unknown>>,
-  options: { readonly userConfirmedLowDataSave: boolean; readonly distanceMeters: number },
-): number {
-  const value = options.userConfirmedLowDataSave
-    ? readNonNegativeNumber(data, "avgPaceSecondsPerKm")
-    : readPositiveNumber(data, "avgPaceSecondsPerKm");
-  if (value === 0) {
-    if (options.distanceMeters > 0) {
-      throw invalid("avgPaceSecondsPerKm must be positive when distanceMeters is positive.");
-    }
-    return value;
-  }
-  if (value < minPaceSecondsPerKm || value > maxPaceSecondsPerKm) {
-    throw invalid("avgPaceSecondsPerKm is outside the emulator skeleton safety limits.");
-  }
-  return value;
-}
-
-function readNonNegativeNumber(data: Readonly<Record<string, unknown>>, key: string): number {
-  const value = data[key];
-  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
-    throw invalid(`${key} must be a non-negative number.`);
-  }
-  return value;
-}
-
 function readUserConfirmedLowDataSave(data: Readonly<Record<string, unknown>>): boolean {
   const value = data["userConfirmedLowDataSave"];
   if (value === undefined) {
@@ -250,17 +169,6 @@ function readUserConfirmedLowDataSave(data: Readonly<Record<string, unknown>>): 
   }
   if (typeof value !== "boolean") {
     throw invalid("userConfirmedLowDataSave must be true or false when provided.");
-  }
-  return value;
-}
-
-function readOptionalPositiveNumber(data: Readonly<Record<string, unknown>>, key: string): number | undefined {
-  const value = data[key];
-  if (value === undefined) {
-    return undefined;
-  }
-  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
-    throw invalid(`${key} must be a positive number when provided.`);
   }
   return value;
 }
@@ -320,6 +228,7 @@ function withoutUndefined(payload: {
   readonly scheduledWorkoutId: string | undefined;
   readonly deviceRecordedAt: string | undefined;
   readonly clientAppVersion: string | undefined;
+  readonly cadenceAnalysisSeries: CadenceAnalysisSeriesPayload | undefined;
 }): RawRunCompletionPayload {
   return {
     clientRunSessionId: payload.clientRunSessionId,
@@ -341,6 +250,9 @@ function withoutUndefined(payload: {
     ...(payload.scheduledWorkoutId === undefined ? {} : { scheduledWorkoutId: payload.scheduledWorkoutId }),
     ...(payload.deviceRecordedAt === undefined ? {} : { deviceRecordedAt: payload.deviceRecordedAt }),
     ...(payload.clientAppVersion === undefined ? {} : { clientAppVersion: payload.clientAppVersion }),
+    ...(payload.cadenceAnalysisSeries === undefined
+      ? {}
+      : { cadenceAnalysisSeries: payload.cadenceAnalysisSeries }),
   };
 }
 

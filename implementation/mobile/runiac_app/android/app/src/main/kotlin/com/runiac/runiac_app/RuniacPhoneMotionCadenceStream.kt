@@ -10,14 +10,13 @@ import android.hardware.SensorManager
 import android.os.Build
 import androidx.core.content.ContextCompat
 import io.flutter.plugin.common.EventChannel
-import kotlin.math.roundToInt
 
 class RuniacPhoneMotionCadenceStream(
     private val context: Context,
 ) : EventChannel.StreamHandler, SensorEventListener {
     private val sensorManager =
         context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
-    private val stepTimestamps = ArrayDeque<Long>()
+    private val cadenceEstimator = RuniacStepCadenceEstimator()
     private var eventSink: EventChannel.EventSink? = null
 
     fun isAvailable(): Boolean {
@@ -36,7 +35,7 @@ class RuniacPhoneMotionCadenceStream(
             events?.endOfStream()
             return
         }
-        stepTimestamps.clear()
+        cadenceEstimator.reset()
         sensorManager.registerListener(
             this,
             stepDetector,
@@ -46,7 +45,7 @@ class RuniacPhoneMotionCadenceStream(
 
     override fun onCancel(arguments: Any?) {
         sensorManager.unregisterListener(this)
-        stepTimestamps.clear()
+        cadenceEstimator.reset()
         eventSink = null
     }
 
@@ -54,7 +53,7 @@ class RuniacPhoneMotionCadenceStream(
         if (event?.sensor?.type != Sensor.TYPE_STEP_DETECTOR) {
             return
         }
-        val cadence = cadenceFromStep(event.timestamp) ?: return
+        val cadence = cadenceEstimator.cadenceFromStep(event.timestamp) ?: return
         eventSink?.success(
             mapOf(
                 "recordedAtMillis" to System.currentTimeMillis(),
@@ -76,33 +75,4 @@ class RuniacPhoneMotionCadenceStream(
         ) == PackageManager.PERMISSION_GRANTED
     }
 
-    private fun cadenceFromStep(timestampNanos: Long): Int? {
-        stepTimestamps.addLast(timestampNanos)
-        val windowStart = timestampNanos - CADENCE_WINDOW_NANOS
-        while (stepTimestamps.isNotEmpty() && stepTimestamps.first() < windowStart) {
-            stepTimestamps.removeFirst()
-        }
-        if (stepTimestamps.size < MINIMUM_WINDOW_STEPS) {
-            return null
-        }
-        val firstTimestamp = stepTimestamps.first()
-        val elapsedMinutes = (timestampNanos - firstTimestamp).toDouble() /
-            NANOS_PER_MINUTE
-        if (elapsedMinutes <= 0) {
-            return null
-        }
-        val cadence = ((stepTimestamps.size - 1) / elapsedMinutes).roundToInt()
-        if (cadence < MINIMUM_CADENCE_SPM || cadence > MAXIMUM_CADENCE_SPM) {
-            return null
-        }
-        return cadence
-    }
-
-    companion object {
-        private const val CADENCE_WINDOW_NANOS = 15_000_000_000L
-        private const val NANOS_PER_MINUTE = 60_000_000_000.0
-        private const val MINIMUM_WINDOW_STEPS = 6
-        private const val MINIMUM_CADENCE_SPM = 120
-        private const val MAXIMUM_CADENCE_SPM = 220
-    }
 }

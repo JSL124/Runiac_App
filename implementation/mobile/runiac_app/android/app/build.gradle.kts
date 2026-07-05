@@ -1,10 +1,19 @@
 plugins {
     id("com.android.application")
-    // START: FlutterFire Configuration
-    id("com.google.gms.google-services")
-    // END: FlutterFire Configuration
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+}
+
+val hasGoogleServicesConfig =
+    listOf(
+        "google-services.json",
+        "src/debug/google-services.json",
+        "src/profile/google-services.json",
+        "src/release/google-services.json",
+    ).any { file(it).exists() }
+
+if (hasGoogleServicesConfig) {
+    apply(plugin = "com.google.gms.google-services")
 }
 
 android {
@@ -49,4 +58,5 @@ flutter {
 
 dependencies {
     implementation("androidx.core:core:1.16.0")
+    testImplementation("junit:junit:4.13.2")
 }

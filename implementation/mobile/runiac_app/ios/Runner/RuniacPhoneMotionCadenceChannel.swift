@@ -7,7 +7,7 @@ final class RuniacPhoneMotionCadenceChannel: NSObject, FlutterStreamHandler {
   private static let eventChannelName = "runiac/phone_motion_cadence_events"
   private static let cadenceWindowSeconds: TimeInterval = 15
   private static let minimumWindowSteps = 6
-  private static let minimumCadenceSpm = 120
+  private static let minimumCadenceSpm = 90
   private static let maximumCadenceSpm = 220
 
   private let pedometer: CMPedometer

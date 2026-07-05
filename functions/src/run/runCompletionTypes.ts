@@ -20,6 +20,19 @@ export type RawRunCompletionPayload = {
   readonly scheduledWorkoutId?: string;
   readonly deviceRecordedAt?: string;
   readonly clientAppVersion?: string;
+  readonly cadenceAnalysisSeries?: CadenceAnalysisSeriesPayload;
+};
+
+export type CadenceAnalysisSeriesPayload = {
+  readonly source: "phoneSensorEstimated";
+  readonly confidence: "low";
+  readonly samples: readonly CadenceAnalysisSamplePayload[];
+};
+
+export type CadenceAnalysisSamplePayload = {
+  readonly elapsedSeconds: number;
+  readonly cadenceSpm: number;
+  readonly status: "accepted";
 };
 
 export type CompleteRunIds = {
@@ -49,6 +62,7 @@ export type RunSummaryResult = {
   readonly displayDuration: string;
   readonly displayPace: string;
   readonly routeLabel?: string;
+  readonly cadenceAnalysisSeries?: CadenceAnalysisSeriesPayload;
 };
 
 export type CompleteRunResult = CompleteRunIds & {
