@@ -57,7 +57,7 @@ void main() {
           plan.weeks.first.workouts.first.detail.metrics.map(
             (metric) => metric.label,
           ),
-          <String>['Duration', 'Type', 'Effort', 'Source'],
+          <String>['Duration', 'Type', 'Effort'],
         );
         expect(
           plan.weeks.first.workouts.first.detail.breakdown.first.title,

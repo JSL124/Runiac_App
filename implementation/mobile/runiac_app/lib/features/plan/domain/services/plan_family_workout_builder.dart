@@ -75,10 +75,6 @@ class PlanFamilyWorkoutBuilder {
             label: 'Effort',
             value: _intensityLabel(intensity),
           ),
-          const BeginnerAdaptiveWorkoutMetric(
-            label: 'Source',
-            value: 'Generated',
-          ),
         ],
         breakdown: [for (final step in steps) _detailStepFor(step, kind)],
         effortGuide: description,

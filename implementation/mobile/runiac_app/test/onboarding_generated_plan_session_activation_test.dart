@@ -290,7 +290,7 @@ void main() {
           .detail
           .metrics
           .map((metric) => metric.label),
-      <String>['Duration', 'Type', 'Effort', 'Source'],
+      <String>['Duration', 'Type', 'Effort'],
     );
   });
 

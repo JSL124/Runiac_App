@@ -244,8 +244,11 @@ void main() {
       );
       expect(find.text(plan.title), findsOneWidget);
       expect(find.text('Duration'), findsOneWidget);
+      expect(find.text('Type'), findsOneWidget);
+      expect(find.text('Effort'), findsOneWidget);
       expect(find.text('${firstWorkout.durationMinutes} min'), findsWidgets);
-      expect(find.text('Generated'), findsOneWidget);
+      expect(find.text('Source'), findsNothing);
+      expect(find.text('Generated'), findsNothing);
       expect(find.text('Suggested pace'), findsNothing);
       expect(find.text('7:30 /km'), findsNothing);
     },
@@ -345,8 +348,11 @@ void main() {
     expect(find.text('Tue · Controlled Steady Run'), findsOneWidget);
     expect(find.text('10K Performance Build'), findsOneWidget);
     expect(find.text('Duration'), findsOneWidget);
+    expect(find.text('Type'), findsOneWidget);
+    expect(find.text('Effort'), findsOneWidget);
     expect(find.text('25 min'), findsWidgets);
-    expect(find.text('Generated'), findsOneWidget);
+    expect(find.text('Source'), findsNothing);
+    expect(find.text('Generated'), findsNothing);
     expect(find.text('Suggested pace'), findsNothing);
     expect(find.text('7:30 /km'), findsNothing);
   });
