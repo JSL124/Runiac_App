@@ -102,23 +102,20 @@ class FirestoreActivityHistoryRepository implements ActivityHistoryRepository {
       return fallbackRepository.loadActivityHistory();
     }
 
-    final summaryDocuments = await documentReader.loadRunSummaries(
-      ownerUid: currentUser.uid,
-      limit: limit,
-    );
-    final activityDocuments = await documentReader.loadActivities(
-      ownerUid: currentUser.uid,
-      limit: limit,
-    );
+    final summaryDocuments = await _loadSummariesSafely(currentUser.uid);
+    final activityDocuments = await _loadActivitiesSafely(currentUser.uid);
+    if (summaryDocuments == null && activityDocuments == null) {
+      throw StateError('Both activity history queries failed.');
+    }
     final activities = _dedupeByIdentity(<_MappedActivity>[
       ..._mapDocuments(
         currentUser.uid,
-        summaryDocuments,
+        summaryDocuments ?? const [],
         dateKeys: const ['endedAt', 'completedAt'],
       ),
       ..._mapDocuments(
         currentUser.uid,
-        activityDocuments,
+        activityDocuments ?? const [],
         dateKeys: const ['completedAt', 'endedAt'],
       ),
     ])..sort((left, right) => right.endedAt.compareTo(left.endedAt));
@@ -130,6 +127,32 @@ class FirestoreActivityHistoryRepository implements ActivityHistoryRepository {
           .toList(growable: false),
       months: _groupByMonth(activities),
     );
+  }
+
+  Future<List<ActivityHistorySummaryDocument>?> _loadSummariesSafely(
+    String ownerUid,
+  ) async {
+    try {
+      return await documentReader.loadRunSummaries(
+        ownerUid: ownerUid,
+        limit: limit,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<List<ActivityHistorySummaryDocument>?> _loadActivitiesSafely(
+    String ownerUid,
+  ) async {
+    try {
+      return await documentReader.loadActivities(
+        ownerUid: ownerUid,
+        limit: limit,
+      );
+    } catch (_) {
+      return null;
+    }
   }
 
   _MappedActivity? _mapDocument(
