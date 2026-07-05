@@ -220,10 +220,37 @@ forbidden_summary_from_policy() {
   ' "$policy_file"
 }
 
+inventory_include_regex() {
+  case "$selected_class" in
+    workflow)
+      printf '^(tools/agent-review/|\.claude/settings\.json$|AGENTS\.md$|CLAUDE\.md$)'
+      ;;
+    docs)
+      printf '^(docs/.*\.md$|README\.md$|AGENTS\.md$|CLAUDE\.md$)'
+      ;;
+    implementation_prep)
+      printf '^(implementation/traceability/|docs/pdd/.*\.md$|PRD\.md$|AGENTS\.md$|CLAUDE\.md$)'
+      ;;
+    feature)
+      printf '^(implementation/|firebase/|docs/pdd/.*\.md$|PRD\.md$|AGENTS\.md$|CLAUDE\.md$)'
+      ;;
+    security)
+      printf '^(firebase/|implementation/|\.claude/settings\.json$|AGENTS\.md$|CLAUDE\.md$)'
+      ;;
+    architecture)
+      printf '^(docs/pdd/.*\.md$|implementation/traceability/|AGENTS\.md$|CLAUDE\.md$)'
+      ;;
+    *)
+      printf '^(AGENTS\.md$|CLAUDE\.md$)'
+      ;;
+  esac
+}
+
 appears_excluded() {
   local path
   path="$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')"
   case "$path" in
+    .omo/*|*/.omo/*) return 0 ;;
     .env|.env.*|*.env|*/.env|*/.env.*) return 0 ;;
     secrets/*|*/secrets/*|docs/submissions/*|*/docs/submissions/*) return 0 ;;
     test-evidence/*|*/test-evidence/*) return 0 ;;
@@ -268,16 +295,20 @@ if [ -z "$inventory_status" ]; then
   inventory_status="(clean)"
 fi
 
-broad_exclusions="node_modules, build, .dart_tool, .git, docs/submissions, test-evidence, secrets, .env files, Firebase/mobile generated config, PDFs, images, SVGs"
+broad_exclusions=".omo, node_modules, build, .dart_tool, .git, docs/submissions, test-evidence, secrets, .env files, Firebase/mobile generated config, PDFs, images, SVGs"
+inventory_filter="$(inventory_include_regex)"
 
 if cd "$repo_root" && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   file_list="$(cd "$repo_root" && git ls-files \
-    | grep -Eiv '(^|/)(node_modules|build|\.dart_tool|\.git|secrets|test-evidence|\.firebase)(/|$)|^docs/submissions/|(^|/)\.env(\.|$)|(^|/)[^/]+\.env$|(^|/)firebase_options\.dart$|(^|/)google-services\.json$|(^|/)googleservice-info\.plist$|(^|/).*service-?account.*\.json$|(^|/)serviceaccount.*\.json$|(^|/).*\.credentials\.json$|(^|/)\.firebaserc$|(^|/)\.runtimeconfig\.json$|(^|/)firebase-export-[^/]+/|(^|/)android/(local|key)\.properties$|\.(jks|keystore|p12|cer|mobileprovision|p8)$|gps-private|private-gps|route-private|private-route|location-private|private-location|\.(pdf|png|jpg|jpeg|svg)$' \
+    | grep -E "$inventory_filter" \
+    | grep -Eiv '(^|/)(\.omo|node_modules|build|\.dart_tool|\.git|secrets|test-evidence|\.firebase)(/|$)|^docs/submissions/|(^|/)\.env(\.|$)|(^|/)[^/]+\.env$|(^|/)firebase_options\.dart$|(^|/)google-services\.json$|(^|/)googleservice-info\.plist$|(^|/).*service-?account.*\.json$|(^|/)serviceaccount.*\.json$|(^|/).*\.credentials\.json$|(^|/)\.firebaserc$|(^|/)\.runtimeconfig\.json$|(^|/)firebase-export-[^/]+/|(^|/)android/(local|key)\.properties$|\.(jks|keystore|p12|cer|mobileprovision|p8)$|gps-private|private-gps|route-private|private-route|location-private|private-location|\.(pdf|png|jpg|jpeg|svg)$' \
     | head -n "$max_listed_files")"
   inventory_source="git ls-files"
 else
   file_list="$(cd "$repo_root" && find . -maxdepth "$max_directory_depth" -type f \
-    | grep -Eiv '(^|/)(node_modules|build|\.dart_tool|\.git|secrets|test-evidence|\.firebase)(/|$)|^\./docs/submissions/|(^|/)\.env(\.|$)|(^|/)[^/]+\.env$|(^|/)firebase_options\.dart$|(^|/)google-services\.json$|(^|/)googleservice-info\.plist$|(^|/).*service-?account.*\.json$|(^|/)serviceaccount.*\.json$|(^|/).*\.credentials\.json$|(^|/)\.firebaserc$|(^|/)\.runtimeconfig\.json$|(^|/)firebase-export-[^/]+/|(^|/)android/(local|key)\.properties$|\.(jks|keystore|p12|cer|mobileprovision|p8)$|gps-private|private-gps|route-private|private-route|location-private|private-location|\.(pdf|png|jpg|jpeg|svg)$' \
+    | sed 's#^\./##' \
+    | grep -E "$inventory_filter" \
+    | grep -Eiv '(^|/)(\.omo|node_modules|build|\.dart_tool|\.git|secrets|test-evidence|\.firebase)(/|$)|^docs/submissions/|(^|/)\.env(\.|$)|(^|/)[^/]+\.env$|(^|/)firebase_options\.dart$|(^|/)google-services\.json$|(^|/)googleservice-info\.plist$|(^|/).*service-?account.*\.json$|(^|/)serviceaccount.*\.json$|(^|/).*\.credentials\.json$|(^|/)\.firebaserc$|(^|/)\.runtimeconfig\.json$|(^|/)firebase-export-[^/]+/|(^|/)android/(local|key)\.properties$|\.(jks|keystore|p12|cer|mobileprovision|p8)$|gps-private|private-gps|route-private|private-route|location-private|private-location|\.(pdf|png|jpg|jpeg|svg)$' \
     | head -n "$max_listed_files")"
   inventory_source="find -maxdepth $max_directory_depth"
 fi

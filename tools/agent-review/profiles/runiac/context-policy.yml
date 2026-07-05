@@ -67,6 +67,7 @@ excluded_paths:
     - "**/*.jpeg"
     - "**/*.svg"
   generated:
+    - ".omo/**"
     - "**/node_modules/**"
     - "**/build/**"
     - "**/.dart_tool/**"
@@ -128,9 +129,9 @@ review_file_budgets:
   default: 6
 
 inventory_limits:
-  max_listed_files: 200
+  max_listed_files: 60
   max_directory_depth: 3
-  max_inventory_bytes: 50000
+  max_inventory_bytes: 5000
 
 unknown_context_behavior: "reject"
 
