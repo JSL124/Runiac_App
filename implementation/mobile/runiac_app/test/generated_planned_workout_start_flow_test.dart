@@ -7,6 +7,7 @@ import 'package:runiac_app/features/plan/domain/services/beginner_adaptive_plan_
 import 'package:runiac_app/features/you/presentation/adapters/generated_plan_you_display_adapter.dart';
 import 'package:runiac_app/features/you/presentation/data/weekly_workout_demo_snapshots.dart';
 import 'package:runiac_app/features/you/presentation/data/you_overview_demo_snapshots.dart';
+import 'package:runiac_app/features/you/presentation/goal_plan_detail_screen.dart';
 import 'package:runiac_app/features/you/presentation/weekly_workout_detail_screen.dart';
 import 'package:runiac_app/features/you/presentation/widgets/weekly_plan_day_row.dart';
 import 'package:runiac_app/features/you/presentation/widgets/you_plans_surface.dart';
@@ -76,6 +77,34 @@ Future<void> _openWorkoutDetail(WidgetTester tester, String rowText) async {
   await tester.pumpAndSettle();
 }
 
+Future<void> _selectOneMinuteLaterFromWheel(WidgetTester tester) async {
+  expect(
+    find.byKey(const ValueKey('edit_schedule_time_hour_picker')),
+    findsOneWidget,
+  );
+  expect(
+    find.byKey(const ValueKey('edit_schedule_time_minute_picker')),
+    findsOneWidget,
+  );
+  expect(
+    find.byKey(const ValueKey('edit_schedule_time_period_picker')),
+    findsOneWidget,
+  );
+  expect(
+    find.byKey(const ValueKey('edit_schedule_time_option_0645')),
+    findsNothing,
+  );
+
+  await tester.timedDrag(
+    find.byKey(const ValueKey('edit_schedule_time_minute_picker')),
+    const Offset(0, -38),
+    const Duration(milliseconds: 500),
+  );
+  await tester.pumpAndSettle();
+  await tester.tapAt(const Offset(20, 20));
+  await tester.pumpAndSettle();
+}
+
 bool _rowWithTextHasColor(
   WidgetTester tester,
   String rowText,
@@ -111,6 +140,14 @@ class _GeneratedPlansHarness extends StatefulWidget {
 
 class _GeneratedPlansHarnessState extends State<_GeneratedPlansHarness> {
   WeeklyWorkoutDetailSnapshot? _detail;
+  GeneratedYouPlanDisplay? _generatedPlan;
+  var _goalPlanDetailVisible = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _generatedPlan = widget.generatedPlan;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -121,15 +158,32 @@ class _GeneratedPlansHarnessState extends State<_GeneratedPlansHarness> {
         onBack: () => setState(() => _detail = null),
         enableForegroundGps: false,
         showEditScheduleAction: detail.canEditSchedule,
+        onScheduleChanged: (selection) {
+          setState(() {
+            _generatedPlan = _generatedPlan?.rescheduleWorkout(
+              detail,
+              selection,
+            );
+            _detail = selection.updatedDetail(detail);
+          });
+        },
+      );
+    }
+
+    if (_goalPlanDetailVisible) {
+      return GoalPlanDetailScreen(
+        snapshot: generatedGoalPlanDisplayFromPlan(_generatedPlan)!,
+        onWorkoutSelected: (snapshot) => setState(() => _detail = snapshot),
+        onBack: () => setState(() => _goalPlanDetailVisible = false),
       );
     }
 
     return Scaffold(
       body: SingleChildScrollView(
         child: YouPlansSurface(
-          generatedPlan: widget.generatedPlan,
+          generatedPlan: _generatedPlan,
           safetyReadinessPlan: widget.safetyReadinessPlan,
-          onViewGoalPlan: () {},
+          onViewGoalPlan: () => setState(() => _goalPlanDetailVisible = true),
           onViewWorkout: (snapshot) => setState(() => _detail = snapshot),
           onViewExpertPlans: () {},
         ),
@@ -241,6 +295,165 @@ void main() {
       expect(find.text('Start this run'), findsNothing);
     },
   );
+
+  testWidgets('Workout detail edit schedule saves local schedule', (
+    tester,
+  ) async {
+    // Given: Tuesday is today and Thursday is a future generated workout.
+    await _pumpGeneratedPlans(
+      tester,
+      currentDate: _weekdayDate(DateTime.tuesday),
+    );
+    await _openWorkoutDetail(tester, '20 min Recovery Run');
+
+    // When: the future workout is moved to an open Friday time.
+    await tester.tap(find.byTooltip('Edit schedule'));
+    await tester.pumpAndSettle();
+    expect(find.text('New schedule'), findsOneWidget);
+    expect(find.text('Select a day and time'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('edit_schedule_day_Fri')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('edit_schedule_time_selector')));
+    await tester.pumpAndSettle();
+    expect(find.text('Select time'), findsWidgets);
+    expect(find.text('Use 06:45 AM'), findsNothing);
+    await _selectOneMinuteLaterFromWheel(tester);
+    expect(find.text('Fri · 7:01 PM'), findsOneWidget);
+
+    final saveButton = tester.widget<ElevatedButton>(
+      find.widgetWithText(ElevatedButton, 'Save New Schedule'),
+    );
+    expect(saveButton.onPressed, isNotNull);
+    await tester.tap(find.text('Save New Schedule'));
+    await tester.pumpAndSettle();
+
+    // Then: the sheet closes and the reopened weekly plan reflects the local move.
+    expect(find.byType(BottomSheet), findsNothing);
+    expect(find.text('Thu · Recovery Run'), findsNothing);
+    await tester.tap(find.byTooltip('Back to Plans'));
+    await tester.pumpAndSettle();
+    expect(find.text('20 min Recovery Run'), findsOneWidget);
+    expect(find.text('Upcoming · 7:01 PM'), findsOneWidget);
+    await _openWorkoutDetail(tester, '20 min Recovery Run');
+    expect(find.text('Fri · Recovery Run'), findsOneWidget);
+    await tester.tap(find.byTooltip('Edit schedule'));
+    await tester.pumpAndSettle();
+    expect(find.text('Fri · 7:01 PM'), findsOneWidget);
+  });
+
+  testWidgets('Workout detail edit schedule updates goal plan surface', (
+    tester,
+  ) async {
+    // Given: the workout detail is opened from the full generated plan view.
+    await _pumpGeneratedPlans(
+      tester,
+      currentDate: _weekdayDate(DateTime.tuesday),
+    );
+    await tester.tap(find.text('10K Performance Build'));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('goal_plan_detail_week_toggle_Week 1')),
+    );
+    await tester.pumpAndSettle();
+    await _openWorkoutDetail(tester, '20 min Recovery Run');
+
+    // When: the future workout is moved to an open Friday time.
+    await tester.tap(find.byTooltip('Edit schedule'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('edit_schedule_day_Fri')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('edit_schedule_time_selector')));
+    await tester.pumpAndSettle();
+    await _selectOneMinuteLaterFromWheel(tester);
+    await tester.tap(find.text('Save New Schedule'));
+    await tester.pumpAndSettle();
+
+    // Then: both the detail and the plan surface use the edited local plan.
+    expect(find.text('Fri · Recovery Run'), findsOneWidget);
+    await tester.tap(find.byTooltip('Back to Plans'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Back to Plans'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('10K Performance Build'));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('goal_plan_detail_week_toggle_Week 1')),
+    );
+    await tester.pumpAndSettle();
+    final thursdayRow = find.byKey(
+      const ValueKey('goal_plan_detail_day_Week 1_Thursday'),
+    );
+    final fridayRow = find.byKey(
+      const ValueKey('goal_plan_detail_day_Week 1_Friday'),
+    );
+    expect(
+      find.descendant(
+        of: thursdayRow,
+        matching: find.text('20 min Recovery Run'),
+      ),
+      findsNothing,
+    );
+    expect(
+      find.descendant(
+        of: fridayRow,
+        matching: find.text('20 min Recovery Run'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: fridayRow, matching: find.text('Upcoming · 7:01 PM')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('Workout detail edit schedule blocks occupied days', (
+    tester,
+  ) async {
+    // Given: Tuesday is today, with generated workouts already on Mon/Tue/Thu.
+    await _pumpGeneratedPlans(
+      tester,
+      currentDate: _weekdayDate(DateTime.tuesday),
+    );
+    await _openWorkoutDetail(tester, '20 min Recovery Run');
+
+    // When: the edit sheet opens.
+    await tester.tap(find.byTooltip('Edit schedule'));
+    await tester.pumpAndSettle();
+
+    // Then: suggested times are gone and occupied days cannot become targets.
+    for (final text in ['07:00 AM', '08:00 AM', '06:30 PM', '07:30 PM']) {
+      expect(find.text(text), findsNothing);
+    }
+    expect(
+      tester
+          .widget<Semantics>(
+            find.byKey(const ValueKey('edit_schedule_day_Mon')),
+          )
+          .properties
+          .enabled,
+      isFalse,
+    );
+    await tester.tap(find.byKey(const ValueKey('edit_schedule_day_Mon')));
+    await tester.pumpAndSettle();
+    expect(find.text('Mon · 7:30 AM'), findsNothing);
+
+    final blockedSaveButton = tester.widget<ElevatedButton>(
+      find.widgetWithText(ElevatedButton, 'Save New Schedule'),
+    );
+    expect(blockedSaveButton.onPressed, isNull);
+
+    // And: choosing an open day plus custom time enables save.
+    await tester.tap(find.byKey(const ValueKey('edit_schedule_day_Fri')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('edit_schedule_time_selector')));
+    await tester.pumpAndSettle();
+    expect(find.text('Use 06:45 AM'), findsNothing);
+    await _selectOneMinuteLaterFromWheel(tester);
+    final enabledSaveButton = tester.widget<ElevatedButton>(
+      find.widgetWithText(ElevatedButton, 'Save New Schedule'),
+    );
+    expect(enabledSaveButton.onPressed, isNotNull);
+  });
 
   testWidgets('past generated running row opens with Edit but without Start', (
     tester,

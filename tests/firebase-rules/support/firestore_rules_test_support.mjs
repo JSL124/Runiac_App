@@ -90,6 +90,7 @@ export const generatedPlanDocument = {
   title: 'Return to Movement',
   subtitle: 'A gentle restart plan focused on comfort and consistency.',
   sourceLabel: 'Onboarding based',
+  startsOnDate: '2026-07-05',
   durationWeeks: 4,
   safetyBand: 'highCaution',
   templateKind: 'veryGentleStart',
@@ -115,6 +116,7 @@ export const generatedPlanDocument = {
           kind: 'recoveryWalk',
           intensity: 'veryGentle',
           description: 'Choose a familiar park loop.',
+          scheduleTimeLabel: '7:01 PM',
           steps: ['Easy walk · 15 min', 'Slow finish · 5 min'],
           supportiveNote: 'Keep this light.',
           detail: {

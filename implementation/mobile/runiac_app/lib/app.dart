@@ -311,7 +311,9 @@ class _RuniacAppState extends State<RuniacApp> {
     if (draft == null) {
       return;
     }
-    final snapshot = const BeginnerAdaptivePlanGenerator().generate(draft);
+    final snapshot = const BeginnerAdaptivePlanGenerator()
+        .generate(draft)
+        .withStartsOnDate(generatedPlanDateLabel(DateTime.now()));
     _setActiveGeneratedPlan(snapshot, ownerUid: currentUser?.uid);
   }
 

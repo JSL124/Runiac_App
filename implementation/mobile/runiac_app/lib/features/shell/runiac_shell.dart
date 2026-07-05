@@ -196,6 +196,9 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
       const LeaderboardTab(),
       YouTab(
         activityHistoryRepository: widget.activityHistoryRepository,
+        authRepository: widget.authRepository,
+        generatedPlanPersistenceRepository:
+            widget.generatedPlanPersistenceRepository,
         enableForegroundGps: widget.enableForegroundGps,
         activeRunSessionCoordinator: _activeRunSessionCoordinator,
         progressToday: widget.youProgressToday,

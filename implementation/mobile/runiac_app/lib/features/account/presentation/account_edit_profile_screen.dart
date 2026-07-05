@@ -8,6 +8,7 @@ import '../../../core/widgets/runiac_buttons.dart';
 import '../../auth/domain/runiac_auth_service.dart';
 import '../../onboarding/domain/models/local_onboarding_draft.dart';
 import '../../onboarding/presentation/onboarding_flow_screen.dart';
+import '../../plan/domain/models/beginner_adaptive_plan_snapshot.dart';
 import '../../plan/domain/repositories/generated_plan_persistence_repository.dart';
 import '../../plan/domain/services/beginner_adaptive_plan_generator.dart';
 import '../../plan/presentation/current_session_generated_plan.dart';
@@ -468,7 +469,9 @@ class _RetakeOnboardingScreenState extends State<_RetakeOnboardingScreen> {
       });
       return false;
     }
-    final plan = const BeginnerAdaptivePlanGenerator().generate(draft);
+    final plan = const BeginnerAdaptivePlanGenerator()
+        .generate(draft)
+        .withStartsOnDate(generatedPlanDateLabel(DateTime.now()));
     try {
       await widget.persistenceRepository.saveOnboardingProfile(
         uid: user.uid,

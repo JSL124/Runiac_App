@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/features/onboarding/domain/models/local_onboarding_draft.dart';
 import 'package:runiac_app/features/plan/data/firestore_generated_plan_persistence_repository.dart';
+import 'package:runiac_app/features/plan/domain/models/beginner_adaptive_plan_snapshot.dart';
 import 'package:runiac_app/features/plan/domain/services/beginner_adaptive_plan_generator.dart';
 
 void main() {
@@ -12,7 +13,11 @@ void main() {
         documentStore: writer,
         updatedAt: () => 1,
       );
-      final plan = const BeginnerAdaptivePlanGenerator().generate(_draft());
+      final plan = _withFirstWorkoutSchedule(
+        const BeginnerAdaptivePlanGenerator()
+            .generate(_draft())
+            .withStartsOnDate('2026-07-05'),
+      );
 
       await repository.saveGeneratedPlan(uid: 'runner-1', plan: plan);
       final restored = await repository.loadGeneratedPlan(uid: 'runner-1');
@@ -20,6 +25,7 @@ void main() {
       expect(writer.uid, 'runner-1');
       expect(restored, isNotNull);
       expect(restored!.title, plan.title);
+      expect(restored.startsOnDate, '2026-07-05');
       expect(
         restored.weeks.first.workouts.first.detail.metrics.first.value,
         '20 min',
@@ -32,6 +38,8 @@ void main() {
         restored.weeks.first.workouts.first.detail.coachNotes,
         plan.weeks.first.workouts.first.detail.coachNotes,
       );
+      expect(restored.weeks.first.workouts.first.dayLabel, 'Fri');
+      expect(restored.weeks.first.workouts.first.scheduleTimeLabel, '7:01 PM');
     },
   );
 
@@ -63,6 +71,56 @@ void main() {
         ),
       );
     },
+  );
+}
+
+BeginnerAdaptivePlanSnapshot _withFirstWorkoutSchedule(
+  BeginnerAdaptivePlanSnapshot plan,
+) {
+  final firstWeek = plan.weeks.first;
+  final firstWorkout = firstWeek.workouts.first;
+  return BeginnerAdaptivePlanSnapshot(
+    id: plan.id,
+    title: plan.title,
+    subtitle: plan.subtitle,
+    planKind: plan.planKind,
+    sourceLabel: plan.sourceLabel,
+    startsOnDate: plan.startsOnDate,
+    durationWeeks: plan.durationWeeks,
+    safetyBand: plan.safetyBand,
+    templateKind: plan.templateKind,
+    family: plan.family,
+    familyCategory: plan.familyCategory,
+    familyReason: plan.familyReason,
+    supportStyleLabel: plan.supportStyleLabel,
+    weeklyFrequencyLabel: plan.weeklyFrequencyLabel,
+    preferredScheduleLabel: plan.preferredScheduleLabel,
+    sessionDurationLabel: plan.sessionDurationLabel,
+    safetyNote: plan.safetyNote,
+    clientDisplayStatus: plan.clientDisplayStatus,
+    weeks: [
+      BeginnerAdaptivePlanWeek(
+        weekNumber: firstWeek.weekNumber,
+        title: firstWeek.title,
+        focus: firstWeek.focus,
+        workouts: [
+          BeginnerAdaptiveWorkout(
+            dayLabel: 'Fri',
+            title: firstWorkout.title,
+            durationMinutes: firstWorkout.durationMinutes,
+            kind: firstWorkout.kind,
+            intensity: firstWorkout.intensity,
+            description: firstWorkout.description,
+            steps: firstWorkout.steps,
+            supportiveNote: firstWorkout.supportiveNote,
+            detail: firstWorkout.detail,
+            scheduleTimeLabel: '7:01 PM',
+          ),
+          ...firstWeek.workouts.skip(1),
+        ],
+      ),
+      ...plan.weeks.skip(1),
+    ],
   );
 }
 

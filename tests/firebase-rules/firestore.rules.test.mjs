@@ -283,6 +283,22 @@ describe('owner-owned client records', () => {
         ],
       }),
     );
+    await assertFails(
+      setDoc(plan, {
+        ...generatedPlanDocument,
+        weeks: [
+          {
+            ...baseWeek,
+            workouts: [
+              {
+                ...baseWorkout,
+                scheduleTimeLabel: { userRole: 'Platform Administrator' },
+              },
+            ],
+          },
+        ],
+      }),
+    );
   });
 
   it('allows owner to write safety readiness generated plan display', async () => {

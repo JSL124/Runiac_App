@@ -3071,7 +3071,7 @@ void main() {
     expect(find.text('Rest Day'), findsWidgets);
   });
 
-  testWidgets('Workout detail edit schedule is preview only', (
+  testWidgets('Workout detail edit schedule uses custom time only', (
     WidgetTester tester,
   ) async {
     // Given: the static Workout detail screen is open.
@@ -3086,11 +3086,12 @@ void main() {
     await tester.tap(find.text('Upcoming · 7:30 AM'));
     await tester.pumpAndSettle();
 
-    // When: the preview-only Edit schedule action is opened.
+    // When: the Edit schedule action is opened.
     await tester.tap(find.byTooltip('Edit schedule'));
     await tester.pumpAndSettle();
 
-    // Then: the bottom sheet presents a richer static preview without mutation.
+    // Then: the bottom sheet presents an actionable day/time picker without
+    // suggested time chips or preview-only copy.
     expect(find.byType(BottomSheet), findsOneWidget);
     expect(
       find.byKey(const ValueKey('edit_schedule_drag_handle')),
@@ -3108,26 +3109,12 @@ void main() {
     );
     expect(
       find.text('Preview only — changes are not saved yet.'),
-      findsOneWidget,
+      findsNothing,
     );
-    final titleBottom = tester
-        .getBottomLeft(find.text('Edit schedule').last)
-        .dy;
-    final accentTop = tester
-        .getTopLeft(find.byKey(const ValueKey('edit_schedule_brand_accent')))
-        .dy;
-    final accentBottom = tester
-        .getBottomLeft(find.byKey(const ValueKey('edit_schedule_brand_accent')))
-        .dy;
-    final previewTop = tester
-        .getTopLeft(find.text('Preview only — changes are not saved yet.'))
-        .dy;
-    expect(accentTop, greaterThan(titleBottom));
-    expect(accentBottom, lessThan(previewTop));
     expect(find.text('Current schedule'), findsOneWidget);
     expect(find.text('Thu · 7:30 AM'), findsOneWidget);
-    expect(find.text('Preview example'), findsOneWidget);
-    expect(find.text('Fri · 7:30 AM'), findsOneWidget);
+    expect(find.text('New schedule'), findsOneWidget);
+    expect(find.text('Select a day and time'), findsOneWidget);
     expect(find.text('Suggested time previews'), findsNothing);
     expect(
       find.byKey(const ValueKey('edit_schedule_suggested_preview_row')),
@@ -3136,30 +3123,54 @@ void main() {
     expect(find.text('Tonight · 6:30 PM'), findsNothing);
     expect(find.text('Tomorrow morning · 7:30 AM'), findsNothing);
     expect(find.text('Weekend morning · 8:00 AM'), findsNothing);
-    expect(find.text('Advanced preview'), findsOneWidget);
-    expect(find.text('These options are examples only.'), findsOneWidget);
+    expect(find.text('Advanced preview'), findsNothing);
+    expect(find.text('These options are examples only.'), findsNothing);
     expect(find.text('Select day'), findsOneWidget);
-    for (final text in [
-      'Mon',
-      'Tue',
-      'Wed',
-      'Thu',
-      'Fri',
-      'Sat',
-      'Sun',
-      '07:00 AM',
-      '08:00 AM',
-      '06:30 PM',
-      '07:30 PM',
-    ]) {
+    for (final text in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']) {
       expect(find.text(text), findsWidgets);
+    }
+    for (final text in ['07:00 AM', '08:00 AM', '06:30 PM', '07:30 PM']) {
+      expect(find.text(text), findsNothing);
     }
     expect(find.text('Select time'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('edit_schedule_time_preview_grid')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('edit_schedule_time_selector')),
       findsOneWidget,
     );
-    expect(find.text('Choose custom time'), findsOneWidget);
+    expect(find.text('Choose time'), findsOneWidget);
+    expect(find.text('Use 06:45 AM'), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('edit_schedule_time_selector')));
+    await tester.pumpAndSettle();
+    expect(find.text('Select time'), findsWidgets);
+    expect(
+      find.byKey(const ValueKey('edit_schedule_time_hour_picker')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('edit_schedule_time_minute_picker')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('edit_schedule_time_period_picker')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('edit_schedule_time_option_0645')),
+      findsNothing,
+    );
+    await tester.timedDrag(
+      find.byKey(const ValueKey('edit_schedule_time_minute_picker')),
+      const Offset(0, -38),
+      const Duration(milliseconds: 500),
+    );
+    await tester.pumpAndSettle();
+    await tester.tapAt(const Offset(20, 20));
+    await tester.pumpAndSettle();
+    expect(find.text('7:01 PM'), findsOneWidget);
     expect(find.text('Why might you move it later?'), findsNothing);
     for (final reason in [
       'Busy at original time',
@@ -3175,27 +3186,17 @@ void main() {
       find.text(
         'You’ll be able to add a reason when schedule changes are enabled.',
       ),
-      findsOneWidget,
+      findsNothing,
     );
     expect(
       find.text('Saving schedule changes will be available later.'),
-      findsOneWidget,
+      findsNothing,
     );
     final saveButton = tester.widget<ElevatedButton>(
       find.widgetWithText(ElevatedButton, 'Save New Schedule'),
     );
     expect(saveButton.onPressed, isNull);
     expect(find.text('Close'), findsOneWidget);
-
-    await Scrollable.ensureVisible(
-      tester.element(find.text('Save New Schedule')),
-      alignment: 0.5,
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Save New Schedule'));
-    await tester.pumpAndSettle();
-    expect(find.byType(BottomSheet), findsOneWidget);
-    expect(find.text('Saved'), findsNothing);
 
     await Scrollable.ensureVisible(tester.element(find.text('Close')));
     await tester.pumpAndSettle();

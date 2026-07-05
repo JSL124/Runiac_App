@@ -1,6 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/runiac_colors.dart';
+import '../../auth/domain/runiac_auth_service.dart';
+import '../../plan/domain/models/beginner_adaptive_plan_snapshot.dart';
+import '../../plan/domain/repositories/generated_plan_persistence_repository.dart';
 import '../../run/domain/models/run_activity_display_model.dart';
 import '../../run/presentation/active_run_session_coordinator.dart';
 import '../../run/presentation/view_summary_screen.dart';
@@ -26,12 +31,17 @@ class YouTab extends StatefulWidget {
   const YouTab({
     super.key,
     this.activityHistoryRepository = const StaticActivityHistoryRepository(),
+    this.authRepository,
+    this.generatedPlanPersistenceRepository =
+        const NoopGeneratedPlanPersistenceRepository(),
     this.enableForegroundGps = true,
     this.activeRunSessionCoordinator,
     this.progressToday,
   });
 
   final ActivityHistoryRepository activityHistoryRepository;
+  final RuniacAuthRepository? authRepository;
+  final GeneratedPlanPersistenceRepository generatedPlanPersistenceRepository;
   final bool enableForegroundGps;
   final ActiveRunSessionCoordinator? activeRunSessionCoordinator;
   final DateTime? progressToday;
@@ -49,6 +59,7 @@ class _YouTabState extends State<YouTab> {
   var _activityHistoryVisible = false;
   late ActivityHistoryDisplayController _activityHistoryController;
   var _workoutDetailSnapshot = weeklyWorkoutDetailSnapshot;
+  GeneratedYouPlanDisplay? _editedGeneratedPlanDisplay;
   var _visibleCalendarMonth = DateTime(2026, 5);
 
   @override
@@ -104,11 +115,12 @@ class _YouTabState extends State<YouTab> {
       activityHistoryStore,
     );
     final generatedPlanStore = CurrentSessionGeneratedPlanScope.of(context);
-    final generatedPlanDisplay = generatedYouPlanDisplayFromSnapshot(
-      generatedPlanStore.activePlan,
-    );
+    final generatedPlanDisplay =
+        _editedGeneratedPlanDisplay ??
+        generatedYouPlanDisplayFromSnapshot(generatedPlanStore.activePlan);
     final generatedGoalPlanDetail = generatedGoalPlanDisplayFromSnapshot(
       generatedPlanStore.activePlan,
+      currentWeekDisplay: _editedGeneratedPlanDisplay,
     );
     final safetyReadinessDisplay = safetyReadinessYouPlanDisplayFromSnapshot(
       generatedPlanStore.activePlan,
@@ -136,6 +148,7 @@ class _YouTabState extends State<YouTab> {
         },
         enableForegroundGps: widget.enableForegroundGps,
         activeRunSessionCoordinator: widget.activeRunSessionCoordinator,
+        onScheduleChanged: _handleWorkoutScheduleChanged,
       );
     }
 
@@ -250,6 +263,59 @@ class _YouTabState extends State<YouTab> {
       _workoutDetailSnapshot = snapshot;
       _workoutDetailVisible = true;
     });
+  }
+
+  void _handleWorkoutScheduleChanged(WorkoutScheduleEditSelection selection) {
+    final generatedPlanStore = CurrentSessionGeneratedPlanScope.of(context);
+    final activePlan = generatedPlanStore.activePlan;
+    final updatedPlan = activePlan == null
+        ? null
+        : rescheduleGeneratedPlanSnapshot(
+            activePlan,
+            _workoutDetailSnapshot,
+            selection,
+          );
+    setState(() {
+      final currentGeneratedPlan =
+          _editedGeneratedPlanDisplay ??
+          generatedYouPlanDisplayFromSnapshot(activePlan);
+      _editedGeneratedPlanDisplay = currentGeneratedPlan?.rescheduleWorkout(
+        _workoutDetailSnapshot,
+        selection,
+      );
+      _workoutDetailSnapshot = selection.updatedDetail(_workoutDetailSnapshot);
+    });
+    if (updatedPlan == null) {
+      return;
+    }
+
+    generatedPlanStore.setActivePlan(updatedPlan);
+    final uid = widget.authRepository?.currentUser?.uid;
+    if (uid == null) {
+      return;
+    }
+    unawaited(_saveGeneratedPlanSchedule(uid, updatedPlan));
+  }
+
+  Future<void> _saveGeneratedPlanSchedule(
+    String uid,
+    BeginnerAdaptivePlanSnapshot plan,
+  ) async {
+    try {
+      await widget.generatedPlanPersistenceRepository.saveGeneratedPlan(
+        uid: uid,
+        plan: plan,
+      );
+    } catch (error, stackTrace) {
+      FlutterError.reportError(
+        FlutterErrorDetails(
+          exception: error,
+          stack: stackTrace,
+          library: 'runiac',
+          context: ErrorDescription('saving generated plan schedule edit'),
+        ),
+      );
+    }
   }
 
   void _showExpertPlanList() {

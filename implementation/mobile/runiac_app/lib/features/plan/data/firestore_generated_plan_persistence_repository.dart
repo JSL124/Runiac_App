@@ -87,6 +87,7 @@ Map<String, Object?> _planToFirestore(
     'title': plan.title,
     'subtitle': plan.subtitle,
     'sourceLabel': plan.sourceLabel,
+    if (plan.startsOnDate != null) 'startsOnDate': plan.startsOnDate,
     'durationWeeks': plan.durationWeeks,
     'safetyBand': plan.safetyBand.name,
     'templateKind': plan.templateKind.name,
@@ -117,6 +118,8 @@ Map<String, Object?> _planToFirestore(
                 'steps': workout.steps,
                 'supportiveNote': workout.supportiveNote,
                 'detail': _detailToFirestore(workout.detail),
+                if (workout.scheduleTimeLabel != null)
+                  'scheduleTimeLabel': workout.scheduleTimeLabel,
               },
           ],
         },
@@ -154,6 +157,7 @@ BeginnerAdaptivePlanSnapshot _planFromFirestore(Map<String, Object?> data) {
       _string(data['planKind']),
     ),
     sourceLabel: _string(data['sourceLabel']),
+    startsOnDate: _nullableString(data['startsOnDate']),
     durationWeeks: _int(data['durationWeeks']),
     safetyBand: _enumByName(
       BeginnerPlanSafetyBand.values,
@@ -202,6 +206,9 @@ BeginnerAdaptivePlanSnapshot _planFromFirestore(Map<String, Object?> data) {
                 steps: _strings(workout['steps']),
                 supportiveNote: _string(workout['supportiveNote']),
                 detail: _detailFromFirestore(_map(workout['detail'])),
+                scheduleTimeLabel: _nullableString(
+                  workout['scheduleTimeLabel'],
+                ),
               ),
           ],
         ),
@@ -247,6 +254,10 @@ T? _nullableEnumByName<T extends Enum>(List<T> values, Object? value) {
 
 String _string(Object? value) {
   return value is String ? value : '';
+}
+
+String? _nullableString(Object? value) {
+  return value is String && value.isNotEmpty ? value : null;
 }
 
 int _int(Object? value) {

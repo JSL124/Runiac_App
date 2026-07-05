@@ -33,6 +33,100 @@ class GeneratedYouPlanDisplay {
   final String progressLabel;
   final double progressValue;
   final List<YouPlanScheduleRow> scheduleRows;
+
+  GeneratedYouPlanDisplay rescheduleWorkout(
+    WeeklyWorkoutDetailSnapshot currentDetail,
+    WorkoutScheduleEditSelection selection,
+  ) {
+    final updatedDetail = selection.updatedDetail(currentDetail);
+    final sourceIndex = scheduleRows.indexWhere((row) {
+      final rowDetail = row.detailSnapshot;
+      return rowDetail != null &&
+          (identical(rowDetail, currentDetail) ||
+              (row.weekdayIndex == currentDetail.scheduleWeekdayIndex &&
+                  rowDetail.title == currentDetail.title &&
+                  rowDetail.planTitle == currentDetail.planTitle));
+    });
+    if (sourceIndex == -1) {
+      return this;
+    }
+
+    final sourceRow = scheduleRows[sourceIndex];
+    final targetIndex = scheduleRows.indexWhere(
+      (row) => row.weekdayIndex == selection.weekdayIndex,
+    );
+    if (targetIndex == -1 || targetIndex == sourceIndex) {
+      return this;
+    }
+
+    final updatedRows = [...scheduleRows];
+    final oldRow = scheduleRows[sourceIndex];
+    updatedRows[sourceIndex] = _restRow(
+      oldRow.day,
+      weekdayIndex: oldRow.weekdayIndex,
+      isToday: oldRow.isToday,
+      isPast: oldRow.isPast,
+      isFuture: oldRow.isFuture,
+    );
+
+    final targetRow = scheduleRows[targetIndex];
+    updatedRows[targetIndex] = YouPlanScheduleRow(
+      targetRow.day,
+      sourceRow.title,
+      'Upcoming · ${selection.timeLabel}',
+      sourceRow.icon,
+      active: true,
+      opensWorkoutDetail: true,
+      detailSnapshot: updatedDetail,
+      weekdayIndex: targetRow.weekdayIndex,
+      isToday: targetRow.isToday,
+      isPast: targetRow.isPast,
+      isFuture: targetRow.isFuture,
+      isRunningSession: true,
+      canOpenDetail: true,
+      canStart: targetRow.isToday,
+      canEditSchedule: !targetRow.isToday,
+    );
+
+    return GeneratedYouPlanDisplay(
+      weeklyTitle: weeklyTitle,
+      subtitle: subtitle,
+      progressLabel: progressLabel,
+      progressValue: progressValue,
+      scheduleRows: updatedRows,
+    );
+  }
+}
+
+GoalPlanDisplaySnapshot? generatedGoalPlanDisplayFromPlan(
+  GeneratedYouPlanDisplay? plan,
+) {
+  if (plan == null) {
+    return null;
+  }
+
+  return GoalPlanDisplaySnapshot(
+    title: plan.weeklyTitle,
+    planName: plan.weeklyTitle,
+    weekSummary: plan.subtitle,
+    progressValue: plan.progressValue,
+    progressPercentLabel: '',
+    progressLabel: plan.progressLabel,
+    currentPhaseLabel: 'Current schedule',
+    currentPhase: plan.subtitle,
+    showProgress: false,
+    weeks: [
+      GoalPlanWeekDisplaySnapshot(
+        weekLabel: 'Week 1',
+        title: plan.weeklyTitle,
+        status: GoalPlanWeekStatus.current,
+        dailyPlan: [
+          for (final row in plan.scheduleRows)
+            _goalPlanDailyRowFromScheduleRow(row),
+        ],
+      ),
+    ],
+  );
 }
 
 class SafetyReadinessYouPlanDisplay {
@@ -69,7 +163,13 @@ GeneratedYouPlanDisplay? generatedYouPlanDisplayFromSnapshot(
     return null;
   }
 
-  final currentWeek = snapshot.weeks.first;
+  final currentWeek = activeGeneratedPlanWeekFor(
+    snapshot,
+    currentDate: currentDate,
+  );
+  if (currentWeek == null) {
+    return null;
+  }
   final currentWeekdayIndex = (currentDate ?? DateTime.now()).weekday;
   final runningSessionCount = currentWeek.workouts
       .where(isGeneratedPlanSession)
@@ -86,6 +186,121 @@ GeneratedYouPlanDisplay? generatedYouPlanDisplayFromSnapshot(
       currentWeekdayIndex,
     ),
   );
+}
+
+BeginnerAdaptivePlanSnapshot? rescheduleGeneratedPlanSnapshot(
+  BeginnerAdaptivePlanSnapshot snapshot,
+  WeeklyWorkoutDetailSnapshot currentDetail,
+  WorkoutScheduleEditSelection selection, {
+  DateTime? currentDate,
+}) {
+  if (!isEligibleCurrentSessionGeneratedPlan(snapshot) ||
+      snapshot.weeks.isEmpty) {
+    return null;
+  }
+
+  final currentWeek = activeGeneratedPlanWeekFor(
+    snapshot,
+    currentDate: currentDate,
+  );
+  if (currentWeek == null) {
+    return null;
+  }
+  final sourceIndex = currentWeek.workouts.indexWhere((workout) {
+    return workout.dayLabel == currentDetail.scheduleDayLabel &&
+        currentDetail.dayLabel.endsWith(workout.title);
+  });
+  if (sourceIndex == -1) {
+    return null;
+  }
+
+  final updatedWorkouts = [...currentWeek.workouts];
+  final sourceWorkout = currentWeek.workouts[sourceIndex];
+  updatedWorkouts[sourceIndex] = BeginnerAdaptiveWorkout(
+    dayLabel: selection.dayLabel,
+    title: sourceWorkout.title,
+    durationMinutes: sourceWorkout.durationMinutes,
+    kind: sourceWorkout.kind,
+    intensity: sourceWorkout.intensity,
+    description: sourceWorkout.description,
+    steps: sourceWorkout.steps,
+    supportiveNote: sourceWorkout.supportiveNote,
+    detail: sourceWorkout.detail,
+    scheduleTimeLabel: selection.timeLabel,
+  );
+
+  final updatedWeeks = [...snapshot.weeks];
+  final activeWeekIndex = snapshot.weeks.indexWhere(
+    (week) => week.weekNumber == currentWeek.weekNumber,
+  );
+  if (activeWeekIndex == -1) {
+    return null;
+  }
+  updatedWeeks[activeWeekIndex] = BeginnerAdaptivePlanWeek(
+    weekNumber: currentWeek.weekNumber,
+    title: currentWeek.title,
+    focus: currentWeek.focus,
+    workouts: updatedWorkouts,
+  );
+
+  return BeginnerAdaptivePlanSnapshot(
+    id: snapshot.id,
+    title: snapshot.title,
+    subtitle: snapshot.subtitle,
+    planKind: snapshot.planKind,
+    sourceLabel: snapshot.sourceLabel,
+    startsOnDate: snapshot.startsOnDate,
+    durationWeeks: snapshot.durationWeeks,
+    safetyBand: snapshot.safetyBand,
+    templateKind: snapshot.templateKind,
+    family: snapshot.family,
+    familyCategory: snapshot.familyCategory,
+    familyReason: snapshot.familyReason,
+    supportStyleLabel: snapshot.supportStyleLabel,
+    weeklyFrequencyLabel: snapshot.weeklyFrequencyLabel,
+    preferredScheduleLabel: _preferredScheduleLabelFor(updatedWorkouts),
+    sessionDurationLabel: snapshot.sessionDurationLabel,
+    safetyNote: snapshot.safetyNote,
+    weeks: updatedWeeks,
+    clientDisplayStatus: snapshot.clientDisplayStatus,
+  );
+}
+
+BeginnerAdaptivePlanWeek? activeGeneratedPlanWeekFor(
+  BeginnerAdaptivePlanSnapshot snapshot, {
+  DateTime? currentDate,
+}) {
+  if (snapshot.weeks.isEmpty) {
+    return null;
+  }
+  final startsOnDate = _dateFromPlanLabel(snapshot.startsOnDate);
+  if (startsOnDate == null) {
+    return snapshot.weeks.first;
+  }
+
+  final today = currentDate ?? DateTime.now();
+  final elapsedDays = DateTime(
+    today.year,
+    today.month,
+    today.day,
+  ).difference(startsOnDate).inDays;
+  if (elapsedDays <= 0) {
+    return snapshot.weeks.first;
+  }
+
+  final activeIndex = (elapsedDays ~/ 7).clamp(0, snapshot.weeks.length - 1);
+  return snapshot.weeks[activeIndex];
+}
+
+DateTime? _dateFromPlanLabel(String? value) {
+  if (value == null || value.length != 10) {
+    return null;
+  }
+  final parsed = DateTime.tryParse(value);
+  if (parsed == null) {
+    return null;
+  }
+  return DateTime(parsed.year, parsed.month, parsed.day);
 }
 
 SafetyReadinessYouPlanDisplay? safetyReadinessYouPlanDisplayFromSnapshot(
@@ -130,11 +345,16 @@ SafetyReadinessYouPlanDisplay? safetyReadinessYouPlanDisplayFromSnapshot(
 GoalPlanDisplaySnapshot? generatedGoalPlanDisplayFromSnapshot(
   BeginnerAdaptivePlanSnapshot? snapshot, {
   DateTime? currentDate,
+  GeneratedYouPlanDisplay? currentWeekDisplay,
 }) {
   if (snapshot == null || !isEligibleCurrentSessionGeneratedPlan(snapshot)) {
     return null;
   }
 
+  final activeWeek = activeGeneratedPlanWeekFor(
+    snapshot,
+    currentDate: currentDate,
+  );
   final currentWeekdayIndex = (currentDate ?? DateTime.now()).weekday;
   return GoalPlanDisplaySnapshot(
     title: snapshot.title,
@@ -152,22 +372,47 @@ GoalPlanDisplaySnapshot? generatedGoalPlanDisplayFromSnapshot(
         GoalPlanWeekDisplaySnapshot(
           weekLabel: 'Week ${week.weekNumber}',
           title: week.title,
-          status: _goalPlanWeekStatusFor(week, snapshot.weeks.length),
-          dailyPlan: _goalPlanDailyRowsFor(
+          status: _goalPlanWeekStatusFor(
             week,
-            snapshot,
-            currentWeekdayIndex: currentWeekdayIndex,
+            snapshot.weeks.length,
+            activeWeekNumber: activeWeek?.weekNumber,
           ),
+          dailyPlan:
+              activeWeek != null &&
+                  week.weekNumber == activeWeek.weekNumber &&
+                  currentWeekDisplay != null
+              ? [
+                  for (final row in currentWeekDisplay.scheduleRows)
+                    _goalPlanDailyRowFromScheduleRow(row),
+                ]
+              : _goalPlanDailyRowsFor(
+                  week,
+                  snapshot,
+                  currentWeekdayIndex: currentWeekdayIndex,
+                ),
         ),
     ],
   );
 }
 
+GoalPlanDayDisplaySnapshot _goalPlanDailyRowFromScheduleRow(
+  YouPlanScheduleRow row,
+) {
+  return GoalPlanDayDisplaySnapshot(
+    weekday: _fullWeekdayLabelFor(row.day),
+    workoutType: row.title,
+    distanceOrTime: row.status,
+    workoutDetail: row.detailSnapshot,
+  );
+}
+
 GoalPlanWeekStatus _goalPlanWeekStatusFor(
   BeginnerAdaptivePlanWeek week,
-  int totalWeeks,
-) {
-  if (week.weekNumber == 1) {
+  int totalWeeks, {
+  int? activeWeekNumber,
+}) {
+  final currentWeekNumber = activeWeekNumber ?? 1;
+  if (week.weekNumber == currentWeekNumber) {
     return GoalPlanWeekStatus.current;
   }
   if (week.weekNumber == totalWeeks) {
@@ -184,6 +429,10 @@ List<GoalPlanDayDisplaySnapshot> _goalPlanDailyRowsFor(
   final workoutsByDay = {
     for (final workout in week.workouts) workout.dayLabel: workout,
   };
+  final occupiedWeekdayIndexes = {
+    for (final workout in week.workouts)
+      if (isGeneratedPlanSession(workout)) _weekdayIndexFor(workout.dayLabel),
+  };
 
   return [
     for (final dayLabel in _weeklyDisplayDayLabels)
@@ -192,6 +441,7 @@ List<GoalPlanDayDisplaySnapshot> _goalPlanDailyRowsFor(
         workoutsByDay[dayLabel],
         week,
         snapshot,
+        occupiedWeekdayIndexes: occupiedWeekdayIndexes,
         currentWeekdayIndex: currentWeekdayIndex,
       ),
   ];
@@ -202,6 +452,7 @@ GoalPlanDayDisplaySnapshot _goalPlanDailyRowFor(
   BeginnerAdaptiveWorkout? workout,
   BeginnerAdaptivePlanWeek week,
   BeginnerAdaptivePlanSnapshot snapshot, {
+  required Set<int> occupiedWeekdayIndexes,
   required int currentWeekdayIndex,
 }) {
   if (workout == null || !isGeneratedPlanSession(workout)) {
@@ -224,6 +475,7 @@ GoalPlanDayDisplaySnapshot _goalPlanDailyRowFor(
       snapshot,
       canStart: isCurrentWeekToday,
       canEditSchedule: !isCurrentWeekToday,
+      occupiedWeekdayIndexes: occupiedWeekdayIndexes,
     ),
   );
 }
@@ -236,6 +488,10 @@ List<YouPlanScheduleRow> _weeklyScheduleRowsFor(
   final workoutsByDay = {
     for (final workout in currentWeek.workouts) workout.dayLabel: workout,
   };
+  final occupiedWeekdayIndexes = {
+    for (final workout in currentWeek.workouts)
+      if (isGeneratedPlanSession(workout)) _weekdayIndexFor(workout.dayLabel),
+  };
 
   return [
     for (final dayLabel in _weeklyDisplayDayLabels)
@@ -243,6 +499,7 @@ List<YouPlanScheduleRow> _weeklyScheduleRowsFor(
         dayLabel,
         workoutsByDay[dayLabel],
         snapshot,
+        occupiedWeekdayIndexes,
         currentWeekdayIndex,
       ),
   ];
@@ -252,6 +509,7 @@ YouPlanScheduleRow _scheduleRowForDay(
   String dayLabel,
   BeginnerAdaptiveWorkout? workout,
   BeginnerAdaptivePlanSnapshot snapshot,
+  Set<int> occupiedWeekdayIndexes,
   int currentWeekdayIndex,
 ) {
   final weekdayIndex = _weekdayIndexFor(dayLabel);
@@ -271,10 +529,12 @@ YouPlanScheduleRow _scheduleRowForDay(
 
   final canStart = isToday;
   final canEditSchedule = !isToday;
+  final scheduleTimeLabel =
+      workout.scheduleTimeLabel ?? _generatedPlanFallbackTime;
   return YouPlanScheduleRow(
     dayLabel,
     '${workout.durationMinutes} min ${workout.title}',
-    'Upcoming · $_generatedPlanFallbackTime',
+    'Upcoming · $scheduleTimeLabel',
     _iconForWorkout(workout.kind),
     active: true,
     opensWorkoutDetail: true,
@@ -283,6 +543,7 @@ YouPlanScheduleRow _scheduleRowForDay(
       snapshot,
       canStart: canStart,
       canEditSchedule: canEditSchedule,
+      occupiedWeekdayIndexes: occupiedWeekdayIndexes,
     ),
     weekdayIndex: weekdayIndex,
     isToday: isToday,
@@ -319,6 +580,7 @@ WeeklyWorkoutDetailSnapshot _workoutDetailFor(
   BeginnerAdaptivePlanSnapshot snapshot, {
   required bool canStart,
   required bool canEditSchedule,
+  Set<int> occupiedWeekdayIndexes = const <int>{},
 }) {
   final canStartPlannedRun = canStart && snapshot.canStartPlannedRun;
   final canEditGeneratedSchedule =
@@ -328,8 +590,13 @@ WeeklyWorkoutDetailSnapshot _workoutDetailFor(
     title: 'Workout detail',
     dayLabel: '${workout.dayLabel} · ${workout.title}',
     planTitle: snapshot.title,
-    editScheduleCurrentLabel: workout.dayLabel,
+    editScheduleCurrentLabel:
+        '${workout.dayLabel} · ${workout.scheduleTimeLabel ?? _generatedPlanFallbackTime}',
     editSchedulePreviewLabel: 'Preview only',
+    scheduleWeekdayIndex: _weekdayIndexFor(workout.dayLabel),
+    scheduleDayLabel: workout.dayLabel,
+    scheduleTimeLabel: workout.scheduleTimeLabel ?? _generatedPlanFallbackTime,
+    occupiedScheduleWeekdays: occupiedWeekdayIndexes,
     metrics: [
       for (final metric in workout.detail.metrics)
         WorkoutMetricDisplay(metric.label, metric.value),
@@ -345,6 +612,13 @@ WeeklyWorkoutDetailSnapshot _workoutDetailFor(
         ? _plannedRunContextFor(workout, snapshot)
         : null,
   );
+}
+
+String _preferredScheduleLabelFor(List<BeginnerAdaptiveWorkout> workouts) {
+  return [
+    for (final workout in workouts)
+      if (isGeneratedPlanSession(workout)) workout.dayLabel,
+  ].join(' · ');
 }
 
 PlannedRunContext _plannedRunContextFor(

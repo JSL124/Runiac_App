@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/runiac_colors.dart';
@@ -16,6 +17,7 @@ class WeeklyWorkoutDetailScreen extends StatelessWidget {
     this.showEditScheduleAction = true,
     this.enableForegroundGps = true,
     this.onStartRun,
+    this.onScheduleChanged,
     this.activeRunSessionCoordinator,
     super.key,
   });
@@ -25,6 +27,7 @@ class WeeklyWorkoutDetailScreen extends StatelessWidget {
   final bool showEditScheduleAction;
   final bool enableForegroundGps;
   final VoidCallback? onStartRun;
+  final ValueChanged<WorkoutScheduleEditSelection>? onScheduleChanged;
   final ActiveRunSessionCoordinator? activeRunSessionCoordinator;
 
   Future<void> _openRunLaunch(BuildContext context) async {
@@ -71,8 +74,11 @@ class WeeklyWorkoutDetailScreen extends StatelessWidget {
                     ? IconButton(
                         key: const ValueKey('edit_schedule_icon_action'),
                         tooltip: 'Edit schedule',
-                        onPressed: () =>
-                            _showEditScheduleSheet(context, snapshot),
+                        onPressed: () => _showEditScheduleSheet(
+                          context,
+                          snapshot,
+                          onScheduleChanged,
+                        ),
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints.tightFor(
                           width: 44,
@@ -466,6 +472,7 @@ class _StartRunAction extends StatelessWidget {
 void _showEditScheduleSheet(
   BuildContext context,
   WeeklyWorkoutDetailSnapshot snapshot,
+  ValueChanged<WorkoutScheduleEditSelection>? onScheduleChanged,
 ) {
   showModalBottomSheet<void>(
     context: context,
@@ -474,14 +481,49 @@ void _showEditScheduleSheet(
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
     ),
-    builder: (context) => _EditScheduleSheet(snapshot),
+    builder: (context) => _EditScheduleSheet(
+      snapshot: snapshot,
+      onScheduleChanged: onScheduleChanged,
+    ),
   );
 }
 
-class _EditScheduleSheet extends StatelessWidget {
-  const _EditScheduleSheet(this.snapshot);
+class _EditScheduleSheet extends StatefulWidget {
+  const _EditScheduleSheet({
+    required this.snapshot,
+    required this.onScheduleChanged,
+  });
 
   final WeeklyWorkoutDetailSnapshot snapshot;
+  final ValueChanged<WorkoutScheduleEditSelection>? onScheduleChanged;
+
+  @override
+  State<_EditScheduleSheet> createState() => _EditScheduleSheetState();
+}
+
+class _EditScheduleSheetState extends State<_EditScheduleSheet> {
+  int? _selectedWeekdayIndex;
+  String? _selectedDayLabel;
+  String? _selectedTimeLabel;
+
+  WeeklyWorkoutDetailSnapshot get snapshot => widget.snapshot;
+
+  bool get _canSave {
+    final selectedWeekdayIndex = _selectedWeekdayIndex;
+    return selectedWeekdayIndex != null &&
+        selectedWeekdayIndex != snapshot.scheduleWeekdayIndex &&
+        !snapshot.occupiedScheduleWeekdays.contains(selectedWeekdayIndex) &&
+        _selectedTimeLabel != null;
+  }
+
+  String get _newScheduleLabel {
+    final day = _selectedDayLabel;
+    final time = _selectedTimeLabel;
+    if (day == null || time == null) {
+      return 'Select a day and time';
+    }
+    return '$day · $time';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -506,23 +548,35 @@ class _EditScheduleSheet extends StatelessWidget {
                   Text('Edit schedule', style: _sheetTitleStyle),
                   const SizedBox(height: 10),
                   const _EditScheduleBrandAccent(),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Preview only — changes are not saved yet.',
-                    style: _smallBodyStyle,
+                  const SizedBox(height: 16),
+                  _ScheduleComparisonCard(
+                    currentLabel: snapshot.editScheduleCurrentLabel,
+                    newLabel: _newScheduleLabel,
                   ),
                   const SizedBox(height: 16),
-                  _ScheduleComparisonCard(snapshot),
-                  const SizedBox(height: 16),
-                  const _AdvancedSchedulePreview(),
-                  const SizedBox(height: 16),
-                  Text(
-                    'You’ll be able to add a reason when schedule changes are enabled.',
-                    style: _smallBodyStyle,
+                  _ScheduleEditorCard(
+                    snapshot: snapshot,
+                    selectedWeekdayIndex: _selectedWeekdayIndex,
+                    selectedTimeLabel: _selectedTimeLabel,
+                    onDaySelected: (day) {
+                      if (snapshot.occupiedScheduleWeekdays.contains(
+                            day.weekdayIndex,
+                          ) ||
+                          day.weekdayIndex == snapshot.scheduleWeekdayIndex) {
+                        return;
+                      }
+                      setState(() {
+                        _selectedWeekdayIndex = day.weekdayIndex;
+                        _selectedDayLabel = day.label;
+                      });
+                    },
+                    onTimePickerRequested: _showTimePicker,
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
                   Text(
-                    'Saving schedule changes will be available later.',
+                    _canSave
+                        ? 'This change updates the plan shown in this session.'
+                        : 'Choose an open day and a time to save this schedule.',
                     style: _smallBodyStyle,
                   ),
                   const SizedBox(height: 14),
@@ -530,7 +584,18 @@ class _EditScheduleSheet extends StatelessWidget {
                     width: double.infinity,
                     height: 48,
                     child: ElevatedButton(
-                      onPressed: null,
+                      onPressed: _canSave
+                          ? () {
+                              widget.onScheduleChanged?.call(
+                                WorkoutScheduleEditSelection(
+                                  weekdayIndex: _selectedWeekdayIndex!,
+                                  dayLabel: _selectedDayLabel!,
+                                  timeLabel: _selectedTimeLabel!,
+                                ),
+                              );
+                              Navigator.of(context).pop();
+                            }
+                          : null,
                       style: ElevatedButton.styleFrom(
                         disabledBackgroundColor:
                             RuniacColors.disabledButtonBackground,
@@ -566,6 +631,25 @@ class _EditScheduleSheet extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Future<void> _showTimePicker() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: RuniacColors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+      ),
+      builder: (context) => _TimePickerSheet(
+        selectedTimeLabel: _selectedTimeLabel,
+        onTimeChanged: (time) {
+          if (!mounted) {
+            return;
+          }
+          setState(() => _selectedTimeLabel = time);
+        },
       ),
     );
   }
@@ -617,9 +701,13 @@ class _EditScheduleBrandAccent extends StatelessWidget {
 }
 
 class _ScheduleComparisonCard extends StatelessWidget {
-  const _ScheduleComparisonCard(this.snapshot);
+  const _ScheduleComparisonCard({
+    required this.currentLabel,
+    required this.newLabel,
+  });
 
-  final WeeklyWorkoutDetailSnapshot snapshot;
+  final String currentLabel;
+  final String newLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -636,7 +724,7 @@ class _ScheduleComparisonCard extends StatelessWidget {
           Expanded(
             child: _ScheduleComparisonItem(
               label: 'Current schedule',
-              value: snapshot.editScheduleCurrentLabel,
+              value: currentLabel,
             ),
           ),
           const SizedBox(width: 12),
@@ -648,8 +736,8 @@ class _ScheduleComparisonCard extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: _ScheduleComparisonItem(
-              label: 'Preview example',
-              value: snapshot.editSchedulePreviewLabel,
+              label: 'New schedule',
+              value: newLabel,
             ),
           ),
         ],
@@ -681,8 +769,20 @@ class _ScheduleComparisonItem extends StatelessWidget {
   }
 }
 
-class _AdvancedSchedulePreview extends StatelessWidget {
-  const _AdvancedSchedulePreview();
+class _ScheduleEditorCard extends StatelessWidget {
+  const _ScheduleEditorCard({
+    required this.snapshot,
+    required this.selectedWeekdayIndex,
+    required this.selectedTimeLabel,
+    required this.onDaySelected,
+    required this.onTimePickerRequested,
+  });
+
+  final WeeklyWorkoutDetailSnapshot snapshot;
+  final int? selectedWeekdayIndex;
+  final String? selectedTimeLabel;
+  final ValueChanged<_ScheduleDayOption> onDaySelected;
+  final VoidCallback onTimePickerRequested;
 
   @override
   Widget build(BuildContext context) {
@@ -694,130 +794,442 @@ class _AdvancedSchedulePreview extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: RuniacColors.border),
       ),
-      child: const Column(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Advanced preview', style: _sheetLabelStyle),
-          SizedBox(height: 4),
-          Text('These options are examples only.', style: _smallBodyStyle),
-          SizedBox(height: 12),
-          Text('Select day', style: _sheetMutedLabelStyle),
-          SizedBox(height: 8),
-          _DayPreviewRow(),
-          SizedBox(height: 12),
-          Text('Select time', style: _sheetMutedLabelStyle),
-          SizedBox(height: 8),
-          _TimePreviewGrid(),
-          SizedBox(height: 12),
-          _CustomTimePreviewRow(),
+          const Text('Select day', style: _sheetMutedLabelStyle),
+          const SizedBox(height: 8),
+          _DaySelectionRow(
+            snapshot: snapshot,
+            selectedWeekdayIndex: selectedWeekdayIndex,
+            onDaySelected: onDaySelected,
+          ),
+          const SizedBox(height: 12),
+          const Text('Select time', style: _sheetMutedLabelStyle),
+          const SizedBox(height: 8),
+          _CustomTimeSelectionRow(
+            selectedTimeLabel: selectedTimeLabel,
+            onTimePickerRequested: onTimePickerRequested,
+          ),
         ],
       ),
     );
   }
 }
 
-class _DayPreviewRow extends StatelessWidget {
-  const _DayPreviewRow();
+class _DaySelectionRow extends StatelessWidget {
+  const _DaySelectionRow({
+    required this.snapshot,
+    required this.selectedWeekdayIndex,
+    required this.onDaySelected,
+  });
 
-  static const _days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  final WeeklyWorkoutDetailSnapshot snapshot;
+  final int? selectedWeekdayIndex;
+  final ValueChanged<_ScheduleDayOption> onDaySelected;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        for (var index = 0; index < _days.length; index++) ...[
-          Expanded(child: _PreviewChip(_days[index], compact: true)),
-          if (index < _days.length - 1) const SizedBox(width: 5),
+        for (var index = 0; index < _scheduleDayOptions.length; index++) ...[
+          Expanded(
+            child: _ScheduleDayChip(
+              option: _scheduleDayOptions[index],
+              selected:
+                  selectedWeekdayIndex ==
+                  _scheduleDayOptions[index].weekdayIndex,
+              current:
+                  snapshot.scheduleWeekdayIndex ==
+                  _scheduleDayOptions[index].weekdayIndex,
+              disabled: snapshot.occupiedScheduleWeekdays.contains(
+                _scheduleDayOptions[index].weekdayIndex,
+              ),
+              onSelected: onDaySelected,
+            ),
+          ),
+          if (index < _scheduleDayOptions.length - 1) const SizedBox(width: 5),
         ],
       ],
     );
   }
 }
 
-class _TimePreviewGrid extends StatelessWidget {
-  const _TimePreviewGrid();
+class _ScheduleDayChip extends StatelessWidget {
+  const _ScheduleDayChip({
+    required this.option,
+    required this.selected,
+    required this.current,
+    required this.disabled,
+    required this.onSelected,
+  });
 
-  static const _times = ['07:00 AM', '08:00 AM', '06:30 PM', '07:30 PM'];
+  final _ScheduleDayOption option;
+  final bool selected;
+  final bool current;
+  final bool disabled;
+  final ValueChanged<_ScheduleDayOption> onSelected;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      key: const ValueKey('edit_schedule_time_preview_grid'),
-      children: [
-        for (var row = 0; row < 2; row++) ...[
-          Row(
+    final foregroundColor = disabled
+        ? RuniacColors.textSecondary.withValues(alpha: 0.48)
+        : selected
+        ? RuniacColors.white
+        : RuniacColors.textPrimary;
+    final backgroundColor = selected
+        ? RuniacColors.primaryBlue
+        : disabled
+        ? const Color(0xFFEFF3F8)
+        : RuniacColors.white;
+
+    return Semantics(
+      key: ValueKey('edit_schedule_day_${option.label}'),
+      button: true,
+      enabled: !disabled,
+      selected: selected || current,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(999),
+          onTap: disabled ? null : () => onSelected(option),
+          child: Container(
+            alignment: Alignment.center,
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 7),
+            decoration: BoxDecoration(
+              color: backgroundColor,
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(
+                color: selected
+                    ? RuniacColors.primaryBlue
+                    : RuniacColors.border,
+              ),
+            ),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                option.label,
+                maxLines: 1,
+                style: _previewChipStyle.copyWith(color: foregroundColor),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CustomTimeSelectionRow extends StatelessWidget {
+  const _CustomTimeSelectionRow({
+    required this.selectedTimeLabel,
+    required this.onTimePickerRequested,
+  });
+
+  final String? selectedTimeLabel;
+  final VoidCallback onTimePickerRequested;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        key: const ValueKey('edit_schedule_time_selector'),
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTimePickerRequested,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+          decoration: BoxDecoration(
+            color: const Color(0xFFEFF3F8),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Row(
             children: [
-              for (var column = 0; column < 2; column++) ...[
-                Expanded(child: _PreviewChip(_times[row * 2 + column])),
-                if (column == 0) const SizedBox(width: 8),
-              ],
+              const Icon(
+                Icons.schedule_rounded,
+                color: RuniacColors.textSecondary,
+                size: 18,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  selectedTimeLabel ?? 'Choose time',
+                  style: _disabledRowStyle,
+                ),
+              ),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: RuniacColors.textSecondary,
+                size: 20,
+              ),
             ],
           ),
-          if (row == 0) const SizedBox(height: 8),
-        ],
-      ],
+        ),
+      ),
     );
   }
 }
 
-class _PreviewChip extends StatelessWidget {
-  const _PreviewChip(this.label, {this.compact = false});
+class _TimePickerSheet extends StatefulWidget {
+  const _TimePickerSheet({
+    required this.selectedTimeLabel,
+    required this.onTimeChanged,
+  });
+
+  final String? selectedTimeLabel;
+  final ValueChanged<String> onTimeChanged;
+
+  @override
+  State<_TimePickerSheet> createState() => _TimePickerSheetState();
+}
+
+class _TimePickerSheetState extends State<_TimePickerSheet> {
+  static const _hours = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+  static const _periods = ['AM', 'PM'];
+  static const _itemExtent = 38.0;
+
+  late final FixedExtentScrollController _hourController;
+  late final FixedExtentScrollController _minuteController;
+  late final FixedExtentScrollController _periodController;
+  late int _selectedHour;
+  late int _selectedMinute;
+  late String _selectedPeriod;
+
+  @override
+  void initState() {
+    super.initState();
+    final initialTime = _WheelTimeSelection.fromLabel(widget.selectedTimeLabel);
+    _selectedHour = initialTime.hour;
+    _selectedMinute = initialTime.minute;
+    _selectedPeriod = initialTime.period;
+    _hourController = FixedExtentScrollController(
+      initialItem: _selectedHour - 1,
+    );
+    _minuteController = FixedExtentScrollController(
+      initialItem: _selectedMinute,
+    );
+    _periodController = FixedExtentScrollController(
+      initialItem: _periods.indexOf(_selectedPeriod),
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      widget.onTimeChanged(_formattedSelection);
+    });
+  }
+
+  @override
+  void dispose() {
+    _hourController.dispose();
+    _minuteController.dispose();
+    _periodController.dispose();
+    super.dispose();
+  }
+
+  String get _formattedSelection {
+    final minute = _selectedMinute.toString().padLeft(2, '0');
+    return '$_selectedHour:$minute $_selectedPeriod';
+  }
+
+  void _notifySelectionChanged() {
+    widget.onTimeChanged(_formattedSelection);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * 0.62,
+        ),
+        child: SingleChildScrollView(
+          physics: const ClampingScrollPhysics(),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 22),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Center(child: _EditScheduleDragHandle()),
+                const SizedBox(height: 12),
+                Text('Select time', style: _sheetTitleStyle),
+                const SizedBox(height: 12),
+                SizedBox(
+                  key: const ValueKey('edit_schedule_time_wheel_picker'),
+                  height: 196,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _TimeWheelPicker(
+                          key: const ValueKey('edit_schedule_time_hour_picker'),
+                          controller: _hourController,
+                          itemExtent: _itemExtent,
+                          children: [
+                            for (final hour in _hours)
+                              Center(
+                                child: Text(
+                                  hour.toString(),
+                                  style: _timeWheelTextStyle,
+                                ),
+                              ),
+                          ],
+                          onSelectedItemChanged: (index) {
+                            setState(() => _selectedHour = _hours[index]);
+                            _notifySelectionChanged();
+                          },
+                        ),
+                      ),
+                      Expanded(
+                        child: _TimeWheelPicker(
+                          key: const ValueKey(
+                            'edit_schedule_time_minute_picker',
+                          ),
+                          controller: _minuteController,
+                          itemExtent: _itemExtent,
+                          children: [
+                            for (var minute = 0; minute < 60; minute++)
+                              Center(
+                                child: Text(
+                                  minute.toString().padLeft(2, '0'),
+                                  style: _timeWheelTextStyle,
+                                ),
+                              ),
+                          ],
+                          onSelectedItemChanged: (index) {
+                            setState(() => _selectedMinute = index);
+                            _notifySelectionChanged();
+                          },
+                        ),
+                      ),
+                      Expanded(
+                        child: _TimeWheelPicker(
+                          key: const ValueKey(
+                            'edit_schedule_time_period_picker',
+                          ),
+                          controller: _periodController,
+                          itemExtent: _itemExtent,
+                          children: [
+                            for (final period in _periods)
+                              Center(
+                                child: Text(period, style: _timeWheelTextStyle),
+                              ),
+                          ],
+                          onSelectedItemChanged: (index) {
+                            setState(() => _selectedPeriod = _periods[index]);
+                            _notifySelectionChanged();
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TimeWheelPicker extends StatelessWidget {
+  const _TimeWheelPicker({
+    required this.controller,
+    required this.itemExtent,
+    required this.children,
+    required this.onSelectedItemChanged,
+    super.key,
+  });
+
+  final FixedExtentScrollController controller;
+  final double itemExtent;
+  final List<Widget> children;
+  final ValueChanged<int> onSelectedItemChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return CupertinoPicker(
+      scrollController: controller,
+      itemExtent: itemExtent,
+      magnification: 1.08,
+      squeeze: 1.08,
+      useMagnifier: true,
+      selectionOverlay: const _TimePickerSelectionOverlay(),
+      onSelectedItemChanged: onSelectedItemChanged,
+      children: children,
+    );
+  }
+}
+
+class _TimePickerSelectionOverlay extends StatelessWidget {
+  const _TimePickerSelectionOverlay();
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: Column(
+        children: [
+          Container(height: 1, color: RuniacColors.border),
+          const Spacer(),
+          Container(height: 1, color: RuniacColors.border),
+        ],
+      ),
+    );
+  }
+}
+
+class _WheelTimeSelection {
+  const _WheelTimeSelection({
+    required this.hour,
+    required this.minute,
+    required this.period,
+  });
+
+  factory _WheelTimeSelection.fromLabel(String? label) {
+    if (label == null) {
+      return const _WheelTimeSelection(hour: 7, minute: 0, period: 'PM');
+    }
+    final match = RegExp(r'^(\d{1,2}):(\d{2}) (AM|PM)$').firstMatch(label);
+    if (match == null) {
+      return const _WheelTimeSelection(hour: 7, minute: 0, period: 'PM');
+    }
+    final hour = int.tryParse(match.group(1)!);
+    final minute = int.tryParse(match.group(2)!);
+    final period = match.group(3)!;
+    if (hour == null ||
+        hour < 1 ||
+        hour > 12 ||
+        minute == null ||
+        minute > 59) {
+      return const _WheelTimeSelection(hour: 7, minute: 0, period: 'PM');
+    }
+    return _WheelTimeSelection(hour: hour, minute: minute, period: period);
+  }
+
+  final int hour;
+  final int minute;
+  final String period;
+}
+
+class _ScheduleDayOption {
+  const _ScheduleDayOption(this.label, this.weekdayIndex);
 
   final String label;
-  final bool compact;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      alignment: Alignment.center,
-      padding: EdgeInsets.symmetric(
-        horizontal: compact ? 4 : 10,
-        vertical: compact ? 7 : 9,
-      ),
-      decoration: BoxDecoration(
-        color: RuniacColors.white,
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: RuniacColors.border),
-      ),
-      child: FittedBox(
-        fit: BoxFit.scaleDown,
-        child: Text(label, maxLines: 1, style: _previewChipStyle),
-      ),
-    );
-  }
+  final int weekdayIndex;
 }
 
-class _CustomTimePreviewRow extends StatelessWidget {
-  const _CustomTimePreviewRow();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-      decoration: BoxDecoration(
-        color: const Color(0xFFEFF3F8),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: const Row(
-        children: [
-          Icon(
-            Icons.schedule_rounded,
-            color: RuniacColors.textSecondary,
-            size: 18,
-          ),
-          SizedBox(width: 8),
-          Expanded(child: Text('Choose custom time', style: _disabledRowStyle)),
-          Icon(
-            Icons.chevron_right_rounded,
-            color: RuniacColors.textSecondary,
-            size: 20,
-          ),
-        ],
-      ),
-    );
-  }
-}
+const _scheduleDayOptions = [
+  _ScheduleDayOption('Mon', DateTime.monday),
+  _ScheduleDayOption('Tue', DateTime.tuesday),
+  _ScheduleDayOption('Wed', DateTime.wednesday),
+  _ScheduleDayOption('Thu', DateTime.thursday),
+  _ScheduleDayOption('Fri', DateTime.friday),
+  _ScheduleDayOption('Sat', DateTime.saturday),
+  _ScheduleDayOption('Sun', DateTime.sunday),
+];
 
 const _headerTitleStyle = TextStyle(
   color: RuniacColors.textPrimary,
@@ -895,12 +1307,6 @@ const _sheetTitleStyle = TextStyle(
   fontWeight: FontWeight.w900,
 );
 
-const _sheetLabelStyle = TextStyle(
-  color: RuniacColors.primaryBlue,
-  fontSize: 12,
-  fontWeight: FontWeight.w800,
-);
-
 const _sheetMutedLabelStyle = TextStyle(
   color: RuniacColors.textSecondary,
   fontSize: 11,
@@ -917,6 +1323,12 @@ const _disabledRowStyle = TextStyle(
   color: RuniacColors.textSecondary,
   fontSize: 13,
   fontWeight: FontWeight.w800,
+);
+
+const _timeWheelTextStyle = TextStyle(
+  color: RuniacColors.textPrimary,
+  fontSize: 24,
+  fontWeight: FontWeight.w500,
 );
 
 const _disabledSaveActionStyle = TextStyle(

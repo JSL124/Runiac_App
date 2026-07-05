@@ -1,22 +1,31 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/app.dart';
+import 'package:runiac_app/features/auth/domain/runiac_auth_service.dart';
 import 'package:runiac_app/features/plan/domain/models/beginner_adaptive_plan_snapshot.dart';
+import 'package:runiac_app/features/plan/domain/repositories/generated_plan_persistence_repository.dart';
 import 'package:runiac_app/features/plan/domain/services/beginner_adaptive_plan_generator.dart';
 import 'package:runiac_app/features/plan/presentation/current_session_generated_plan.dart';
 import 'package:runiac_app/features/you/presentation/adapters/generated_plan_you_display_adapter.dart';
+import 'package:runiac_app/features/you/presentation/data/goal_plan_demo_snapshots.dart';
 
 import 'support/plan_family_test_drafts.dart';
 
 Future<void> _openYouPlansTab(
   WidgetTester tester,
-  CurrentSessionGeneratedPlanStore generatedPlanStore,
-) async {
+  CurrentSessionGeneratedPlanStore generatedPlanStore, {
+  RuniacAuthRepository? authRepository,
+  GeneratedPlanPersistenceRepository? generatedPlanPersistenceRepository,
+}) async {
   await tester.pumpWidget(
     RuniacApp(
       showSplash: false,
       enableForegroundGps: false,
+      authRepository: authRepository ?? const NonSignedInAuthRepository(),
       currentSessionGeneratedPlanStore: generatedPlanStore,
+      generatedPlanPersistenceRepository:
+          generatedPlanPersistenceRepository ??
+          const NoopGeneratedPlanPersistenceRepository(),
     ),
   );
   await tester.tap(find.byTooltip('You'));
@@ -38,6 +47,10 @@ BeginnerAdaptivePlanSnapshot _tenKPerformancePlan() {
       ],
     ),
   );
+}
+
+BeginnerAdaptivePlanSnapshot _sundayStartedTenKPerformancePlan() {
+  return _tenKPerformancePlan().withStartsOnDate('2026-07-05');
 }
 
 BeginnerAdaptivePlanSnapshot _safetyReadinessPlan() {
@@ -254,6 +267,52 @@ void main() {
     },
   );
 
+  testWidgets('generated plan rolls to next week on start weekday midnight', (
+    WidgetTester tester,
+  ) async {
+    final plan = _sundayStartedTenKPerformancePlan();
+    final saturdayDisplay = generatedYouPlanDisplayFromSnapshot(
+      plan,
+      currentDate: DateTime(2026, 7, 11, 23, 59),
+    );
+    final sundayDisplay = generatedYouPlanDisplayFromSnapshot(
+      plan,
+      currentDate: DateTime(2026, 7, 12),
+    );
+    final saturdayGoal = generatedGoalPlanDisplayFromSnapshot(
+      plan,
+      currentDate: DateTime(2026, 7, 11, 23, 59),
+    );
+    final sundayGoal = generatedGoalPlanDisplayFromSnapshot(
+      plan,
+      currentDate: DateTime(2026, 7, 12),
+      currentWeekDisplay: sundayDisplay,
+    );
+
+    expect(saturdayDisplay, isNotNull);
+    expect(sundayDisplay, isNotNull);
+    expect(
+      saturdayDisplay!.scheduleRows
+          .where((row) => row.detailSnapshot != null)
+          .map((row) => row.detailSnapshot!.dayLabel),
+      containsAll([
+        for (final workout in plan.weeks.first.workouts)
+          '${workout.dayLabel} · ${workout.title}',
+      ]),
+    );
+    expect(
+      sundayDisplay!.scheduleRows
+          .where((row) => row.detailSnapshot != null)
+          .map((row) => row.detailSnapshot!.dayLabel),
+      containsAll([
+        for (final workout in plan.weeks[1].workouts)
+          '${workout.dayLabel} · ${workout.title}',
+      ]),
+    );
+    expect(saturdayGoal!.weeks.first.status, GoalPlanWeekStatus.current);
+    expect(sundayGoal!.weeks[1].status, GoalPlanWeekStatus.current);
+  });
+
   testWidgets('generated weekly rest rows do not open workout detail', (
     WidgetTester tester,
   ) async {
@@ -356,4 +415,132 @@ void main() {
     expect(find.text('Suggested pace'), findsNothing);
     expect(find.text('7:30 /km'), findsNothing);
   });
+
+  testWidgets('generated workout edit schedule persists updated plan', (
+    WidgetTester tester,
+  ) async {
+    final generatedPlanStore = CurrentSessionGeneratedPlanStore();
+    final plan = _tenKPerformancePlan();
+    final generatedPlanRepository = _RecordingGeneratedPlanRepository();
+    expect(generatedPlanStore.setActivePlan(plan), isTrue);
+
+    await _openYouPlansTab(
+      tester,
+      generatedPlanStore,
+      authRepository: const _SignedInAuthRepository('schedule-user'),
+      generatedPlanPersistenceRepository: generatedPlanRepository,
+    );
+
+    await tester.ensureVisible(find.text('25 min Controlled Steady Run'));
+    await tester.tap(find.text('25 min Controlled Steady Run'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Edit schedule'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('edit_schedule_day_Fri')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('edit_schedule_time_selector')));
+    await tester.pumpAndSettle();
+    await tester.timedDrag(
+      find.byKey(const ValueKey('edit_schedule_time_minute_picker')),
+      const Offset(0, -38),
+      const Duration(milliseconds: 500),
+    );
+    await tester.pumpAndSettle();
+    await tester.tapAt(const Offset(20, 20));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save New Schedule'));
+    await tester.pumpAndSettle();
+
+    expect(generatedPlanRepository.savedUid, 'schedule-user');
+    expect(generatedPlanRepository.savedPlan, isNotNull);
+    final savedWorkout = generatedPlanRepository.savedPlan!.weeks.first.workouts
+        .singleWhere((workout) => workout.title == 'Controlled Steady Run');
+    expect(savedWorkout.dayLabel, 'Fri');
+    expect(savedWorkout.scheduleTimeLabel, '7:01 PM');
+    expect(
+      generatedPlanStore.activePlan,
+      same(generatedPlanRepository.savedPlan),
+    );
+  });
+}
+
+class NonSignedInAuthRepository implements RuniacAuthRepository {
+  const NonSignedInAuthRepository();
+
+  @override
+  RuniacAuthUser? get currentUser => null;
+
+  @override
+  Stream<RuniacAuthUser?> authStateChanges() => Stream.value(null);
+
+  @override
+  Future<RuniacAuthUser> createUserWithEmailAndPassword({
+    required String email,
+    required String password,
+  }) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> sendEmailVerification() {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> sendPasswordResetEmail({required String email}) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<RuniacAuthUser> signInWithEmailAndPassword({
+    required String email,
+    required String password,
+  }) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<RuniacAuthUser> signInWithGoogle() {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> signOut() {
+    throw UnimplementedError();
+  }
+}
+
+class _SignedInAuthRepository extends NonSignedInAuthRepository {
+  const _SignedInAuthRepository(this.uid);
+
+  final String uid;
+
+  @override
+  RuniacAuthUser get currentUser =>
+      RuniacAuthUser(uid: uid, email: '$uid@example.test', emailVerified: true);
+
+  @override
+  Stream<RuniacAuthUser?> authStateChanges() => Stream.value(currentUser);
+}
+
+class _RecordingGeneratedPlanRepository
+    implements GeneratedPlanPersistenceRepository {
+  String? savedUid;
+  BeginnerAdaptivePlanSnapshot? savedPlan;
+
+  @override
+  Future<BeginnerAdaptivePlanSnapshot?> loadGeneratedPlan({
+    required String uid,
+  }) async {
+    return null;
+  }
+
+  @override
+  Future<void> saveGeneratedPlan({
+    required String uid,
+    required BeginnerAdaptivePlanSnapshot plan,
+  }) async {
+    savedUid = uid;
+    savedPlan = plan;
+  }
 }

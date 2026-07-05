@@ -320,6 +320,7 @@ service cloud.firestore {
         'title',
         'subtitle',
         'sourceLabel',
+        'startsOnDate',
         'durationWeeks',
         'safetyBand',
         'templateKind',
@@ -351,7 +352,8 @@ service cloud.firestore {
         'description',
         'steps',
         'supportiveNote',
-        'detail'
+        'detail',
+        'scheduleTimeLabel'
       ];
     }
 
@@ -400,7 +402,9 @@ service cloud.firestore {
         && workout.description is string
         && validGeneratedPlanStringList(workout.steps, 3)
         && workout.supportiveNote is string
-        && validGeneratedPlanDetail(workout.detail);
+        && validGeneratedPlanDetail(workout.detail)
+        && (!workout.keys().hasAny(['scheduleTimeLabel'])
+          || workout.scheduleTimeLabel is string);
     }
 
     function validGeneratedPlanDetail(detail) {
@@ -429,6 +433,8 @@ service cloud.firestore {
         && request.resource.data.title is string
         && request.resource.data.subtitle is string
         && request.resource.data.sourceLabel is string
+        && (!request.resource.data.keys().hasAny(['startsOnDate'])
+          || request.resource.data.startsOnDate is string)
         && request.resource.data.durationWeeks is int
         && request.resource.data.safetyBand is string
         && request.resource.data.templateKind is string

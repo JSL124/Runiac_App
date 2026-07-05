@@ -28,6 +28,7 @@ class BeginnerAdaptivePlanSnapshot {
     required this.subtitle,
     required this.planKind,
     required this.sourceLabel,
+    this.startsOnDate,
     required this.durationWeeks,
     required this.safetyBand,
     required this.templateKind,
@@ -49,6 +50,7 @@ class BeginnerAdaptivePlanSnapshot {
   final String subtitle;
   final BeginnerAdaptivePlanKind planKind;
   final String sourceLabel;
+  final String? startsOnDate;
   final int durationWeeks;
   final BeginnerPlanSafetyBand safetyBand;
   final BeginnerPlanTemplateKind templateKind;
@@ -76,6 +78,37 @@ class BeginnerAdaptivePlanSnapshot {
           BeginnerAdaptivePlanClientDisplayStatus.generatedPlan &&
       !isBlocked &&
       weeks.any((week) => week.workouts.isNotEmpty);
+
+  BeginnerAdaptivePlanSnapshot withStartsOnDate(String startsOnDate) {
+    return BeginnerAdaptivePlanSnapshot(
+      id: id,
+      title: title,
+      subtitle: subtitle,
+      planKind: planKind,
+      sourceLabel: sourceLabel,
+      startsOnDate: startsOnDate,
+      durationWeeks: durationWeeks,
+      safetyBand: safetyBand,
+      templateKind: templateKind,
+      family: family,
+      familyCategory: familyCategory,
+      familyReason: familyReason,
+      supportStyleLabel: supportStyleLabel,
+      weeklyFrequencyLabel: weeklyFrequencyLabel,
+      preferredScheduleLabel: preferredScheduleLabel,
+      sessionDurationLabel: sessionDurationLabel,
+      safetyNote: safetyNote,
+      weeks: weeks,
+      clientDisplayStatus: clientDisplayStatus,
+    );
+  }
+}
+
+String generatedPlanDateLabel(DateTime date) {
+  final year = date.year.toString().padLeft(4, '0');
+  final month = date.month.toString().padLeft(2, '0');
+  final day = date.day.toString().padLeft(2, '0');
+  return '$year-$month-$day';
 }
 
 class BeginnerAdaptivePlanWeek {
@@ -103,6 +136,7 @@ class BeginnerAdaptiveWorkout {
     required List<String> steps,
     required this.supportiveNote,
     required this.detail,
+    this.scheduleTimeLabel,
   }) : steps = List.unmodifiable(steps);
 
   final String dayLabel;
@@ -114,6 +148,7 @@ class BeginnerAdaptiveWorkout {
   final List<String> steps;
   final String supportiveNote;
   final BeginnerAdaptiveWorkoutDetail detail;
+  final String? scheduleTimeLabel;
 }
 
 class BeginnerAdaptiveWorkoutDetail {

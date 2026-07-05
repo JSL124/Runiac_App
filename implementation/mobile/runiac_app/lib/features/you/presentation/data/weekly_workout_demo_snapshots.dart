@@ -9,6 +9,10 @@ const weeklyWorkoutDetailSnapshot = WeeklyWorkoutDetailSnapshot(
   planTitle: '20 min easy run',
   editScheduleCurrentLabel: 'Thu · 7:30 AM',
   editSchedulePreviewLabel: 'Fri · 7:30 AM',
+  scheduleWeekdayIndex: DateTime.thursday,
+  scheduleDayLabel: 'Thu',
+  scheduleTimeLabel: '7:30 AM',
+  occupiedScheduleWeekdays: {DateTime.thursday, DateTime.saturday},
   metrics: [
     WorkoutMetricDisplay('Distance', '3.0 km'),
     WorkoutMetricDisplay('Time', '20 min'),
@@ -44,6 +48,10 @@ const saturdayWeeklyWorkoutDetailSnapshot = WeeklyWorkoutDetailSnapshot(
   planTitle: '20 min easy run',
   editScheduleCurrentLabel: 'Saturday',
   editSchedulePreviewLabel: 'Preview only',
+  scheduleWeekdayIndex: DateTime.saturday,
+  scheduleDayLabel: 'Sat',
+  scheduleTimeLabel: '7:30 AM',
+  occupiedScheduleWeekdays: {DateTime.thursday, DateTime.saturday},
   metrics: [
     WorkoutMetricDisplay('Distance', '3.0 km'),
     WorkoutMetricDisplay('Time', '20 min'),
@@ -90,6 +98,10 @@ class WeeklyWorkoutDetailSnapshot {
     this.startActionLabel,
     this.canEditSchedule = true,
     this.plannedRunContext,
+    this.scheduleWeekdayIndex,
+    this.scheduleDayLabel,
+    this.scheduleTimeLabel,
+    this.occupiedScheduleWeekdays = const <int>{},
   }) : planTitle = planTitle ?? heroTitle ?? '';
 
   final String title;
@@ -104,6 +116,82 @@ class WeeklyWorkoutDetailSnapshot {
   final String? startActionLabel;
   final bool canEditSchedule;
   final PlannedRunContext? plannedRunContext;
+  final int? scheduleWeekdayIndex;
+  final String? scheduleDayLabel;
+  final String? scheduleTimeLabel;
+  final Set<int> occupiedScheduleWeekdays;
+
+  WeeklyWorkoutDetailSnapshot copyWith({
+    String? dayLabel,
+    String? editScheduleCurrentLabel,
+    int? scheduleWeekdayIndex,
+    String? scheduleDayLabel,
+    String? scheduleTimeLabel,
+    Set<int>? occupiedScheduleWeekdays,
+  }) {
+    return WeeklyWorkoutDetailSnapshot(
+      title: title,
+      dayLabel: dayLabel ?? this.dayLabel,
+      planTitle: planTitle,
+      editScheduleCurrentLabel:
+          editScheduleCurrentLabel ?? this.editScheduleCurrentLabel,
+      editSchedulePreviewLabel: editSchedulePreviewLabel,
+      metrics: metrics,
+      breakdown: breakdown,
+      effortGuide: effortGuide,
+      coachNotes: coachNotes,
+      startActionLabel: startActionLabel,
+      canEditSchedule: canEditSchedule,
+      plannedRunContext: plannedRunContext,
+      scheduleWeekdayIndex: scheduleWeekdayIndex ?? this.scheduleWeekdayIndex,
+      scheduleDayLabel: scheduleDayLabel ?? this.scheduleDayLabel,
+      scheduleTimeLabel: scheduleTimeLabel ?? this.scheduleTimeLabel,
+      occupiedScheduleWeekdays:
+          occupiedScheduleWeekdays ?? this.occupiedScheduleWeekdays,
+    );
+  }
+}
+
+class WorkoutScheduleEditSelection {
+  const WorkoutScheduleEditSelection({
+    required this.weekdayIndex,
+    required this.dayLabel,
+    required this.timeLabel,
+  });
+
+  final int weekdayIndex;
+  final String dayLabel;
+  final String timeLabel;
+
+  WeeklyWorkoutDetailSnapshot updatedDetail(
+    WeeklyWorkoutDetailSnapshot snapshot,
+  ) {
+    final updatedOccupiedWeekdays = {
+      ...snapshot.occupiedScheduleWeekdays,
+      weekdayIndex,
+    };
+    final previousWeekday = snapshot.scheduleWeekdayIndex;
+    if (previousWeekday != null && previousWeekday != weekdayIndex) {
+      updatedOccupiedWeekdays.remove(previousWeekday);
+    }
+
+    return snapshot.copyWith(
+      dayLabel: '$dayLabel · ${_workoutTitleFrom(snapshot.dayLabel)}',
+      editScheduleCurrentLabel: '$dayLabel · $timeLabel',
+      scheduleWeekdayIndex: weekdayIndex,
+      scheduleDayLabel: dayLabel,
+      scheduleTimeLabel: timeLabel,
+      occupiedScheduleWeekdays: updatedOccupiedWeekdays,
+    );
+  }
+}
+
+String _workoutTitleFrom(String dayLabel) {
+  final separatorIndex = dayLabel.indexOf(' · ');
+  if (separatorIndex == -1) {
+    return dayLabel;
+  }
+  return dayLabel.substring(separatorIndex + 3);
 }
 
 class WorkoutMetricDisplay {
