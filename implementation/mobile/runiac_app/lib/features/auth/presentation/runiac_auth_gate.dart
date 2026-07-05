@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../splash/presentation/splash_three_soft_dots_screen.dart';
 import '../domain/runiac_auth_service.dart';
 import 'runiac_auth_flow_screen.dart';
 
@@ -95,14 +96,6 @@ class _RuniacAuthGateLoading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(
-        child: SizedBox.square(
-          key: ValueKey('auth_gate_loading'),
-          dimension: 28,
-          child: CircularProgressIndicator(strokeWidth: 3),
-        ),
-      ),
-    );
+    return const SplashThreeSoftDotsScreen();
   }
 }

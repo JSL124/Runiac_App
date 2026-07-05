@@ -49,8 +49,12 @@ void main() {
         ),
       );
 
-      expect(find.byKey(const ValueKey('auth_gate_loading')), findsOneWidget);
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('runiac_splash_screen')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('runiac_splash_logo')), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
       expect(find.text('Protected app shell'), findsNothing);
     },
   );
@@ -226,7 +230,11 @@ void main() {
       await tester.pump();
 
       expect(profileRepository.loadCalls, 1);
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('runiac_splash_screen')),
+        findsOneWidget,
+      );
+      expect(find.byType(CircularProgressIndicator), findsNothing);
 
       authRepository.emitSignedIn(uid: 'test-auth-user-2');
       await tester.pump();
