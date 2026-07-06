@@ -103,7 +103,11 @@ class _RunActiveScreenState extends State<RunActiveScreen> {
 
     final completedAt = _activeRunSessionCoordinator.now();
     _activeRunSessionCoordinator.syncTo(completedAt);
-    final payload = _controller.completionPayload(completedAt: completedAt);
+    final payload = _controller.completionPayload(
+      completedAt: completedAt,
+      planEnrollmentId: widget.plannedWorkout?.planEnrollmentId,
+      scheduledWorkoutId: widget.plannedWorkout?.scheduledWorkoutId,
+    );
     final route = RunRouteSnapshot.fromMapViewState(_controller.mapViewState);
     setState(() => _isCompletingRun = true);
 

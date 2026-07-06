@@ -99,7 +99,7 @@ void main() {
     expect(find.text('Start this run'), findsNothing);
     expect(find.text('Upcoming · 7:30 AM'), findsNothing);
     expect(find.text('Rest Day'), findsNothing);
-    expect(find.text('0 of 0 done'), findsNothing);
+    expect(find.textContaining(' done'), findsNothing);
     expect(find.text('Explore expert plans'), findsNothing);
     expect(find.text('Explore Expert Plans'), findsNothing);
     expect(
@@ -138,8 +138,8 @@ void main() {
         ),
         findsOneWidget,
       );
-      expect(find.text('0 of 4 done'), findsOneWidget);
-      expect(find.text('0 of 7 done'), findsNothing);
+      expect(find.textContaining('Week 1 of'), findsOneWidget);
+      expect(find.textContaining(' done'), findsNothing);
       expect(find.text('2 of 3 done'), findsNothing);
       expect(find.text('Week 3 of 8'), findsNothing);
       expect(find.text('43% completed'), findsNothing);
@@ -330,7 +330,7 @@ void main() {
 
     expect(find.text('Workout detail'), findsNothing);
     expect(find.text('10K Performance Build'), findsOneWidget);
-    expect(find.text('0 of 4 done'), findsOneWidget);
+    expect(find.textContaining('Week 1 of'), findsOneWidget);
   });
 
   testWidgets('You Plans keeps static fallback when no generated plan exists', (
@@ -358,7 +358,7 @@ void main() {
 
     expect(find.text('Current Goal'), findsNothing);
     expect(find.text('Return to Movement'), findsOneWidget);
-    expect(find.text('0 of 3 done'), findsOneWidget);
+    expect(find.textContaining('Week 1 of'), findsOneWidget);
     expect(find.textContaining('min Easy Walk'), findsNWidgets(3));
     expect(find.text('10K Base Builder'), findsNothing);
     expect(find.text('15 min walk-run'), findsNothing);
@@ -385,7 +385,7 @@ void main() {
         find.text('A gentle restart plan focused on comfort and consistency.'),
         findsOneWidget,
       );
-      expect(find.text('0 of 3 done'), findsOneWidget);
+      expect(find.textContaining('Week 1 of'), findsOneWidget);
       expect(find.text('20 min Easy Walk'), findsNWidgets(3));
       expect(find.text('10K Performance Build'), findsNothing);
     },

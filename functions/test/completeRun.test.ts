@@ -38,7 +38,14 @@ before(() => {
 });
 
 beforeEach(async () => {
-  await clearCollections(["activities", "runSummaries", "progressionEvents", "userProfiles", "generatedPlans"]);
+  await clearCollections([
+    "activities",
+    "runSummaries",
+    "progressionEvents",
+    "userProfiles",
+    "generatedPlans",
+    "planProgress",
+  ]);
 });
 
 describe("completeRun callable boundary", () => {
@@ -478,6 +485,275 @@ describe("completeRun callable boundary", () => {
     assert.equal(progressionEvent.get("nextStreakRunDate"), "2026-07-05");
   });
 
+  it("writes plan progress for an explicitly linked duration workout only after the full objective is completed", async () => {
+    await writeGeneratedPlanWithWorkouts([
+      durationWorkout({
+        scheduledWorkoutId: "week-1-thu-easy-run",
+        dayLabel: "Thu",
+        durationMinutes: 25,
+      }),
+    ]);
+
+    await callCompleteRun({
+      auth: { uid: USER_UID },
+      data: runPayloadForSession({
+        clientRunSessionId: "plan-thu-under-duration",
+        startedAt: "2026-06-18T09:00:00.000Z",
+        completedAt: "2026-06-18T09:20:00.000Z",
+        durationSeconds: 1200,
+        distanceMeters: 2500,
+        avgPaceSecondsPerKm: 480,
+      }),
+    });
+    assert.equal(await countDocuments("activities"), 1);
+    assert.equal((await firestore.doc(`planProgress/${USER_UID}`).get()).exists, false);
+
+    const result = await callCompleteRun({
+      auth: { uid: USER_UID },
+      data: {
+        ...runPayloadForSession({
+          clientRunSessionId: "plan-thu-full-duration",
+          startedAt: "2026-06-18T10:00:00.000Z",
+          completedAt: "2026-06-18T10:25:00.000Z",
+        }),
+        scheduledWorkoutId: "week-1-thu-easy-run",
+      },
+    });
+
+    const progress = await firestore.doc(`planProgress/${USER_UID}`).get();
+
+    assert.equal(progress.get("ownerUid"), USER_UID);
+    assert.equal(progress.get("completedWorkoutCount"), 1);
+    assert.equal(progress.get("updatedAt"), "2026-06-18T10:25:00.000Z");
+    assert.equal(progress.get("workouts.generated-plan-001__week-1-thu-easy-run.activityId"), result.activityId);
+    assert.equal(progress.get("workouts.generated-plan-001__week-1-thu-easy-run.clientRunSessionId"), "plan-thu-full-duration");
+    assert.equal(progress.get("workouts.generated-plan-001__week-1-thu-easy-run.completedAt"), "2026-06-18T10:25:00.000Z");
+    assert.equal(progress.get("workouts.generated-plan-001__week-1-thu-easy-run.objectiveKind"), "duration");
+    assert.equal(progress.get("workouts.generated-plan-001__week-1-thu-easy-run.objectiveSeconds"), 1500);
+    assert.equal(progress.get("workouts.generated-plan-001__week-1-thu-easy-run.matchedBy"), "explicit");
+  });
+
+  it("auto-matches only the active generated workout on the run completedAt date", async () => {
+    await writeGeneratedPlanWithWorkouts([
+      durationWorkout({
+        scheduledWorkoutId: "week-1-tue-easy-run",
+        dayLabel: "Tue",
+        durationMinutes: 20,
+      }),
+      durationWorkout({
+        scheduledWorkoutId: "week-1-thu-easy-run",
+        dayLabel: "Thu",
+        durationMinutes: 25,
+      }),
+    ]);
+
+    await callCompleteRun({
+      auth: { uid: USER_UID },
+      data: runPayloadForSession({
+        clientRunSessionId: "plan-thu-auto-match",
+        startedAt: "2026-06-18T09:00:00.000Z",
+        completedAt: "2026-06-18T09:25:00.000Z",
+      }),
+    });
+
+    const progress = await firestore.doc(`planProgress/${USER_UID}`).get();
+
+    assert.equal(progress.get("completedWorkoutCount"), 1);
+    assert.equal(progress.get("workouts.generated-plan-001__week-1-thu-easy-run.clientRunSessionId"), "plan-thu-auto-match");
+    assert.equal(progress.get("workouts.generated-plan-001__week-1-thu-easy-run.matchedBy"), "date");
+    assert.equal(progress.get("workouts.generated-plan-001__week-1-tue-easy-run"), undefined);
+  });
+
+  it("does not use closest-similarity or first-incomplete matching when no workout is active on the completedAt date", async () => {
+    await writeGeneratedPlanWithWorkouts([
+      durationWorkout({
+        scheduledWorkoutId: "week-1-tue-easy-run",
+        dayLabel: "Tue",
+        durationMinutes: 25,
+      }),
+      durationWorkout({
+        scheduledWorkoutId: "week-1-thu-easy-run",
+        dayLabel: "Thu",
+        durationMinutes: 25,
+      }),
+    ]);
+
+    await callCompleteRun({
+      auth: { uid: USER_UID },
+      data: runPayloadForSession({
+        clientRunSessionId: "plan-wed-no-auto-match",
+        startedAt: "2026-06-17T09:00:00.000Z",
+        completedAt: "2026-06-17T09:25:00.000Z",
+      }),
+    });
+
+    assert.equal(await countDocuments("activities"), 1);
+    assert.equal((await firestore.doc(`planProgress/${USER_UID}`).get()).exists, false);
+  });
+
+  it("keeps the first valid completion for a scheduled workout permanently", async () => {
+    await writeGeneratedPlanWithWorkouts([
+      distanceWorkout({
+        scheduledWorkoutId: "week-1-sat-long-run",
+        dayLabel: "Sat",
+        targetDistanceMeters: 3000,
+      }),
+    ]);
+
+    const firstResult = await callCompleteRun({
+      auth: { uid: USER_UID },
+      data: {
+        ...runPayloadForSession({
+          clientRunSessionId: "plan-sat-distance-first",
+          startedAt: "2026-06-20T09:00:00.000Z",
+          completedAt: "2026-06-20T09:25:00.000Z",
+        }),
+        scheduledWorkoutId: "week-1-sat-long-run",
+      },
+    });
+    await callCompleteRun({
+      auth: { uid: USER_UID },
+      data: {
+        ...runPayloadForSession({
+          clientRunSessionId: "plan-sat-distance-later",
+          startedAt: "2026-06-20T10:00:00.000Z",
+          completedAt: "2026-06-20T10:30:00.000Z",
+        }),
+        distanceMeters: 5000,
+        scheduledWorkoutId: "week-1-sat-long-run",
+      },
+    });
+
+    const progress = await firestore.doc(`planProgress/${USER_UID}`).get();
+
+    assert.equal(await countDocuments("activities"), 2);
+    assert.equal(progress.get("completedWorkoutCount"), 1);
+    assert.equal(progress.get("workouts.generated-plan-001__week-1-sat-long-run.activityId"), firstResult.activityId);
+    assert.equal(progress.get("workouts.generated-plan-001__week-1-sat-long-run.clientRunSessionId"), "plan-sat-distance-first");
+    assert.equal(progress.get("workouts.generated-plan-001__week-1-sat-long-run.actualDistanceMeters"), 3200);
+    assert.equal(progress.get("workouts.generated-plan-001__week-1-sat-long-run.objectiveKind"), "distance");
+    assert.equal(progress.get("workouts.generated-plan-001__week-1-sat-long-run.objectiveMeters"), 3000);
+  });
+
+  it("does not trust client plan enrollment ids to duplicate completion progress", async () => {
+    await writeGeneratedPlanWithWorkouts([
+      durationWorkout({
+        scheduledWorkoutId: "week-1-thu-easy-run",
+        dayLabel: "Thu",
+        durationMinutes: 25,
+      }),
+    ]);
+
+    await callCompleteRun({
+      auth: { uid: USER_UID },
+      data: {
+        ...runPayloadForSession({
+          clientRunSessionId: "plan-enrollment-first",
+          startedAt: "2026-06-18T09:00:00.000Z",
+          completedAt: "2026-06-18T09:25:00.000Z",
+        }),
+        planEnrollmentId: "generated-plan-001",
+        scheduledWorkoutId: "week-1-thu-easy-run",
+      },
+    });
+    await callCompleteRun({
+      auth: { uid: USER_UID },
+      data: {
+        ...runPayloadForSession({
+          clientRunSessionId: "plan-enrollment-second",
+          startedAt: "2026-06-18T10:00:00.000Z",
+          completedAt: "2026-06-18T10:25:00.000Z",
+        }),
+        planEnrollmentId: "generated-plan-v2",
+        scheduledWorkoutId: "week-1-thu-easy-run",
+      },
+    });
+
+    const progress = await firestore.doc(`planProgress/${USER_UID}`).get();
+
+    assert.equal(progress.get("completedWorkoutCount"), 1);
+    assert.equal(progress.get("workouts.generated-plan-001__week-1-thu-easy-run.planEnrollmentId"), "generated-plan-001");
+    assert.equal(progress.get("workouts.generated-plan-001__week-1-thu-easy-run.scheduledWorkoutId"), "week-1-thu-easy-run");
+  });
+
+  it("keeps progress separate when a server-trusted generated plan id changes", async () => {
+    await writeGeneratedPlanWithWorkouts([
+      durationWorkout({
+        scheduledWorkoutId: "week-1-thu-easy-run",
+        dayLabel: "Thu",
+        durationMinutes: 25,
+      }),
+    ]);
+
+    await callCompleteRun({
+      auth: { uid: USER_UID },
+      data: {
+        ...runPayloadForSession({
+          clientRunSessionId: "server-plan-first",
+          startedAt: "2026-06-18T09:00:00.000Z",
+          completedAt: "2026-06-18T09:25:00.000Z",
+        }),
+        scheduledWorkoutId: "week-1-thu-easy-run",
+      },
+    });
+    await writeGeneratedPlanWithWorkouts(
+      [
+        durationWorkout({
+          scheduledWorkoutId: "week-1-thu-easy-run",
+          dayLabel: "Thu",
+          durationMinutes: 25,
+        }),
+      ],
+      { planId: "generated-plan-002" },
+    );
+    await callCompleteRun({
+      auth: { uid: USER_UID },
+      data: {
+        ...runPayloadForSession({
+          clientRunSessionId: "server-plan-second",
+          startedAt: "2026-06-18T10:00:00.000Z",
+          completedAt: "2026-06-18T10:25:00.000Z",
+        }),
+        scheduledWorkoutId: "week-1-thu-easy-run",
+      },
+    });
+
+    const progress = await firestore.doc(`planProgress/${USER_UID}`).get();
+
+    assert.equal(progress.get("completedWorkoutCount"), 2);
+    assert.equal(progress.get("workouts.generated-plan-001__week-1-thu-easy-run.clientRunSessionId"), "server-plan-first");
+    assert.equal(progress.get("workouts.generated-plan-002__week-1-thu-easy-run.clientRunSessionId"), "server-plan-second");
+  });
+
+  it("uses actual completedAt date for late offline uploads instead of upload time", async () => {
+    await writeGeneratedPlanWithWorkouts([
+      durationWorkout({
+        scheduledWorkoutId: "week-1-thu-offline-run",
+        dayLabel: "Thu",
+        durationMinutes: 25,
+      }),
+    ]);
+
+    await callCompleteRun({
+      auth: { uid: USER_UID },
+      data: {
+        ...runPayloadForSession({
+          clientRunSessionId: "plan-late-offline-upload",
+          startedAt: "2026-06-18T22:30:00.000Z",
+          completedAt: "2026-06-18T22:55:00.000Z",
+        }),
+        deviceRecordedAt: "2026-06-19T08:00:00.000Z",
+      },
+    });
+
+    const progress = await firestore.doc(`planProgress/${USER_UID}`).get();
+
+    assert.equal(progress.get("completedWorkoutCount"), 1);
+    assert.equal(progress.get("workouts.generated-plan-001__week-1-thu-offline-run.clientRunSessionId"), "plan-late-offline-upload");
+    assert.equal(progress.get("workouts.generated-plan-001__week-1-thu-offline-run.completedAt"), "2026-06-18T22:55:00.000Z");
+    assert.equal(progress.get("workouts.generated-plan-001__week-1-thu-offline-run.matchedBy"), "date");
+  });
+
   it("fails when a required field is missing", async () => {
     const payload = validPayloadWithout("distanceMeters");
 
@@ -762,6 +1038,9 @@ function runPayloadForSession(fields: {
   readonly clientRunSessionId: string;
   readonly startedAt: string;
   readonly completedAt: string;
+  readonly durationSeconds?: number;
+  readonly distanceMeters?: number;
+  readonly avgPaceSecondsPerKm?: number;
 }): Record<string, unknown> {
   return {
     ...validPayload(),
@@ -773,6 +1052,73 @@ function validPayloadWithout(fieldName: string): Record<string, unknown> {
   const payload = validPayload();
   delete payload[fieldName];
   return payload;
+}
+
+type TestPlanWorkout = {
+  readonly scheduledWorkoutId: string;
+  readonly dayLabel: string;
+  readonly title: string;
+  readonly kind: string;
+  readonly durationMinutes?: number;
+  readonly targetDistanceMeters?: number;
+};
+
+function durationWorkout(fields: {
+  readonly scheduledWorkoutId: string;
+  readonly dayLabel: string;
+  readonly durationMinutes: number;
+}): TestPlanWorkout {
+  return {
+    scheduledWorkoutId: fields.scheduledWorkoutId,
+    dayLabel: fields.dayLabel,
+    durationMinutes: fields.durationMinutes,
+    title: "Easy Run",
+    kind: "run",
+  };
+}
+
+function distanceWorkout(fields: {
+  readonly scheduledWorkoutId: string;
+  readonly dayLabel: string;
+  readonly targetDistanceMeters: number;
+}): TestPlanWorkout {
+  return {
+    scheduledWorkoutId: fields.scheduledWorkoutId,
+    dayLabel: fields.dayLabel,
+    targetDistanceMeters: fields.targetDistanceMeters,
+    title: "Long Run",
+    kind: "run",
+  };
+}
+
+async function writeGeneratedPlanWithWorkouts(
+  workouts: readonly TestPlanWorkout[],
+  options: { readonly planId?: string } = {},
+): Promise<void> {
+  await firestore.doc(`generatedPlans/${USER_UID}`).set({
+    planId: options.planId ?? "generated-plan-001",
+    startsOnDate: "2026-06-15",
+    createdAt: "2026-06-15T00:05:00.000Z",
+    updatedAt: "2026-06-15T00:05:00.000Z",
+    weeks: [
+      {
+        weekNumber: 1,
+        workouts: workouts.map((workout) => ({
+          scheduledWorkoutId: workout.scheduledWorkoutId,
+          dayLabel: workout.dayLabel,
+          title: workout.title,
+          kind: workout.kind,
+          ...(workout.durationMinutes === undefined ? {} : { durationMinutes: workout.durationMinutes }),
+          ...(workout.targetDistanceMeters === undefined
+            ? {}
+            : {
+                objectiveKind: "distance",
+                targetDistanceMeters: workout.targetDistanceMeters,
+              }),
+        })),
+      },
+    ],
+  });
 }
 
 async function expectRejectsCode(action: () => Promise<unknown>, code: string): Promise<void> {

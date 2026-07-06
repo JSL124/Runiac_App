@@ -21,6 +21,7 @@ import {
   dbFor,
   generatedPlanDocument,
   notificationPrefs,
+  planProgressReadModel,
   profileFields,
   seed,
 } from './support/firestore_rules_test_support.mjs';
@@ -321,6 +322,27 @@ describe('owner-owned client records', () => {
         weeks: [],
       }),
     );
+  });
+
+  it('allows only the owner to read backend-owned plan progress', async () => {
+    await seed('planProgress/alice', planProgressReadModel);
+
+    const aliceProgress = await assertSucceeds(
+      getDoc(doc(dbFor('alice'), 'planProgress/alice')),
+    );
+    assert.equal(aliceProgress.data().ownerUid, 'alice');
+
+    await assertFails(getDoc(doc(dbFor('bob'), 'planProgress/alice')));
+  });
+
+  it('denies all client writes to backend-owned plan progress', async () => {
+    const aliceProgress = doc(dbFor('alice'), 'planProgress/alice');
+
+    await assertFails(setDoc(aliceProgress, planProgressReadModel));
+
+    await seed('planProgress/alice', planProgressReadModel);
+    await assertFails(updateDoc(aliceProgress, { completedWorkoutCount: 2 }));
+    await assertFails(deleteDoc(aliceProgress));
   });
 
   it('requires a matching owner nickname claim before profile nickname writes', async () => {

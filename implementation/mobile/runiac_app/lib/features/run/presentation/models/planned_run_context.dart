@@ -21,6 +21,8 @@ class PlannedRunContext {
     String? estimatedDistanceLabel,
     this.estimateConfidence = PlannedRunEstimateConfidence.none,
     this.targetDistanceMeters,
+    this.planEnrollmentId,
+    this.scheduledWorkoutId,
   }) : primaryValueLabel = primaryValueLabel ?? '$durationMinutes min',
        primaryUnitLabel = primaryUnitLabel ?? workoutKindLabel,
        estimatedDistanceLabel = estimatedDistanceLabel,
@@ -49,6 +51,8 @@ class PlannedRunContext {
   final String? estimatedDistanceLabel;
   final PlannedRunEstimateConfidence estimateConfidence;
   final int? targetDistanceMeters;
+  final String? planEnrollmentId;
+  final String? scheduledWorkoutId;
 
   String get durationLabel => '$durationMinutes min';
 

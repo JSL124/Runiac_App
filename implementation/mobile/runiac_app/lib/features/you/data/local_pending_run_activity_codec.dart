@@ -64,6 +64,10 @@ Map<String, Object?> _localPendingRunActivityToJson(
         'routeLabel': activity.payload.routeLabel,
       if (activity.payload.clientAppVersion != null)
         'clientAppVersion': activity.payload.clientAppVersion,
+      if (activity.payload.planEnrollmentId != null)
+        'planEnrollmentId': activity.payload.planEnrollmentId,
+      if (activity.payload.scheduledWorkoutId != null)
+        'scheduledWorkoutId': activity.payload.scheduledWorkoutId,
       if (activity.payload.paceGraphSamples.isNotEmpty)
         'paceGraphSamples': [
           for (final sample in activity.payload.paceGraphSamples)
@@ -212,6 +216,8 @@ LocalRunCompletionPayload _payloadFromJson(
         _readBool(source, 'userConfirmedLowDataSave') ?? false,
     routeLabel: _readString(source, 'routeLabel'),
     clientAppVersion: _readString(source, 'clientAppVersion'),
+    planEnrollmentId: _readString(source, 'planEnrollmentId'),
+    scheduledWorkoutId: _readString(source, 'scheduledWorkoutId'),
     paceGraphSamples: [
       for (final rawSample in _readList(source, 'paceGraphSamples'))
         ?_paceGraphSampleFromJson(_readObjectMap(rawSample)),

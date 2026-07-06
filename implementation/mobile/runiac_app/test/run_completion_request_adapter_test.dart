@@ -37,6 +37,44 @@ void main() {
       expect(request['clientAppVersion'], 'm3-test');
     });
 
+    test('includes planned workout identifiers for generated plan runs', () {
+      final payload = LocalRunCompletionPayload(
+        clientRunSessionId: 'local-session-planned-generated',
+        startedAt: DateTime.utc(2026, 6, 14, 7),
+        completedAt: DateTime.utc(2026, 6, 14, 7, 25),
+        durationSeconds: 1500,
+        distanceMeters: 3200,
+        avgPaceSecondsPerKm: 469,
+        source: 'local_simulation',
+        routePrivacy: 'private',
+        planEnrollmentId: 'generated-plan-10k-performance',
+        scheduledWorkoutId: 'week-1-tue-controlled-steady-run',
+      );
+
+      final request = RunCompletionRequestAdapter.toBackendRequest(payload);
+
+      expect(request['planEnrollmentId'], 'generated-plan-10k-performance');
+      expect(request['scheduledWorkoutId'], 'week-1-tue-controlled-steady-run');
+    });
+
+    test('omits planned workout identifiers for free runs', () {
+      final payload = LocalRunCompletionPayload(
+        clientRunSessionId: 'local-session-free-run',
+        startedAt: DateTime.utc(2026, 6, 14, 7),
+        completedAt: DateTime.utc(2026, 6, 14, 7, 25),
+        durationSeconds: 1500,
+        distanceMeters: 3200,
+        avgPaceSecondsPerKm: 469,
+        source: 'local_simulation',
+        routePrivacy: 'private',
+      );
+
+      final request = RunCompletionRequestAdapter.toBackendRequest(payload);
+
+      expect(request.keys, isNot(contains('planEnrollmentId')));
+      expect(request.keys, isNot(contains('scheduledWorkoutId')));
+    });
+
     test('excludes protected backend-owned and governance fields', () {
       final payload = LocalRunCompletionPayload(
         clientRunSessionId: 'local-session-protected-check',

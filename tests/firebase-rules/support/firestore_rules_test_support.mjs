@@ -145,6 +145,17 @@ export const generatedPlanDocument = {
   updatedAt: 1,
 };
 
+export const planProgressReadModel = {
+  ownerUid: 'alice',
+  planEnrollmentId: 'enrollment-alice-001',
+  sourceGeneratedPlanId: 'local-onboarding-beginner-plan',
+  currentWeekNumber: 1,
+  totalWeeks: 4,
+  completedWorkoutIds: ['week-1-mon'],
+  completedWorkoutCount: 1,
+  updatedAt: 2,
+};
+
 before(async () => {
   const rules = readFileSync(RULES_PATH, 'utf8');
 

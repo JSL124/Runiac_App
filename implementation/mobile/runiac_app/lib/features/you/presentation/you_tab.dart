@@ -40,6 +40,7 @@ class YouTab extends StatefulWidget {
     this.enableForegroundGps = true,
     this.activeRunSessionCoordinator,
     this.progressToday,
+    this.generatedPlanProgress,
   });
 
   final ActivityHistoryRepository activityHistoryRepository;
@@ -49,6 +50,7 @@ class YouTab extends StatefulWidget {
   final bool enableForegroundGps;
   final ActiveRunSessionCoordinator? activeRunSessionCoordinator;
   final DateTime? progressToday;
+  final GeneratedPlanProgressDisplay? generatedPlanProgress;
 
   @override
   State<YouTab> createState() => _YouTabState();
@@ -151,7 +153,10 @@ class _YouTabState extends State<YouTab> {
     final generatedPlanStore = CurrentSessionGeneratedPlanScope.of(context);
     final generatedPlanDisplay =
         _editedGeneratedPlanDisplay ??
-        generatedYouPlanDisplayFromSnapshot(generatedPlanStore.activePlan);
+        generatedYouPlanDisplayFromSnapshot(
+          generatedPlanStore.activePlan,
+          planProgress: widget.generatedPlanProgress,
+        );
     final generatedGoalPlanDetail = generatedGoalPlanDisplayFromSnapshot(
       generatedPlanStore.activePlan,
       currentWeekDisplay: _editedGeneratedPlanDisplay,

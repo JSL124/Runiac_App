@@ -25,6 +25,10 @@ class RunCompletionRequestAdapter {
       if (payload.routeLabel != null) 'routeLabel': payload.routeLabel,
       if (payload.clientAppVersion != null)
         'clientAppVersion': payload.clientAppVersion,
+      if (payload.planEnrollmentId != null)
+        'planEnrollmentId': payload.planEnrollmentId,
+      if (payload.scheduledWorkoutId != null)
+        'scheduledWorkoutId': payload.scheduledWorkoutId,
       if (payload.cadenceAnalysisSeries case final cadenceAnalysisSeries?
           when cadenceAnalysisSeries.validAcceptedSamples.isNotEmpty)
         'cadenceAnalysisSeries': _cadenceAnalysisSeriesToBackendMap(

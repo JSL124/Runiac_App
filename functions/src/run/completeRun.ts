@@ -2,23 +2,21 @@ import { createHash } from "node:crypto";
 import { getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
+import { persistCompletedWorkoutProgress } from "../plan/planProgress.js";
 import { deferredProgressionDisplay } from "../progression/progressionEventWriter.js";
 import { readTrustedStreakState } from "../progression/planBoundedStreakState.js";
 import { calculateStreakTransition, type StreakState } from "../progression/streakCalculator.js";
 import type { CompleteRunIds, CompleteRunResult, RawRunCompletionPayload } from "./runCompletionTypes.js";
 import { parseRunCompletionPayload } from "./validateRunPayload.js";
-
 type CallableRunRequest = {
   readonly auth?: {
     readonly uid: string;
   };
   readonly data: unknown;
 };
-
 if (getApps().length === 0) {
   initializeApp();
 }
-
 export const completeRun = onCall({ region: "asia-southeast1" }, async (request) =>
   completeRunForCallable(request, getFirestore()),
 );
@@ -44,14 +42,23 @@ export async function completeRunForCallable(
     const progressionRef = firestore.collection("progressionEvents").doc(ids.progressionEventId);
     const profileRef = firestore.collection("userProfiles").doc(uid);
     const generatedPlanRef = firestore.collection("generatedPlans").doc(uid);
+    const planProgressRef = firestore.collection("planProgress").doc(uid);
     const activitiesQuery = firestore.collection("activities").where("ownerUid", "==", uid);
-    const [activitySnapshot, summarySnapshot, progressionSnapshot, profileSnapshot, generatedPlanSnapshot, activitySnapshots] =
-      await Promise.all([
+    const [
+      activitySnapshot,
+      summarySnapshot,
+      progressionSnapshot,
+      profileSnapshot,
+      generatedPlanSnapshot,
+      planProgressSnapshot,
+      activitySnapshots,
+    ] = await Promise.all([
         transaction.get(activityRef),
         transaction.get(summaryRef),
         transaction.get(progressionRef),
         transaction.get(profileRef),
         transaction.get(generatedPlanRef),
+        transaction.get(planProgressRef),
         transaction.get(activitiesQuery),
       ]);
 
@@ -146,6 +153,18 @@ export async function completeRunForCallable(
         },
         { merge: true },
       );
+    }
+
+    if (shouldPersistProgression) {
+      persistCompletedWorkoutProgress({
+        transaction,
+        progressRef: planProgressRef,
+        uid,
+        ids,
+        payload,
+        generatedPlanData: generatedPlanSnapshot.data(),
+        progressData: planProgressSnapshot.data(),
+      });
     }
   });
 

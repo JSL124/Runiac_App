@@ -98,6 +98,20 @@ class GeneratedYouPlanDisplay {
   }
 }
 
+class GeneratedPlanProgressDisplay {
+  GeneratedPlanProgressDisplay({
+    required Iterable<String> completedScheduledWorkoutIds,
+  }) : completedScheduledWorkoutIds = Set.unmodifiable(
+         completedScheduledWorkoutIds,
+       );
+
+  final Set<String> completedScheduledWorkoutIds;
+
+  bool isCompleted(String scheduledWorkoutId) {
+    return completedScheduledWorkoutIds.contains(scheduledWorkoutId);
+  }
+}
+
 GoalPlanDisplaySnapshot? generatedGoalPlanDisplayFromPlan(
   GeneratedYouPlanDisplay? plan,
 ) {
@@ -158,6 +172,7 @@ class SafetyReadinessYouPlanRow {
 GeneratedYouPlanDisplay? generatedYouPlanDisplayFromSnapshot(
   BeginnerAdaptivePlanSnapshot? snapshot, {
   DateTime? currentDate,
+  GeneratedPlanProgressDisplay? planProgress,
 }) {
   if (snapshot == null || !isEligibleCurrentSessionGeneratedPlan(snapshot)) {
     return null;
@@ -171,19 +186,16 @@ GeneratedYouPlanDisplay? generatedYouPlanDisplayFromSnapshot(
     return null;
   }
   final currentWeekdayIndex = (currentDate ?? DateTime.now()).weekday;
-  final runningSessionCount = currentWeek.workouts
-      .where(isGeneratedPlanSession)
-      .length;
-
   return GeneratedYouPlanDisplay(
     weeklyTitle: snapshot.title,
     subtitle: snapshot.subtitle,
-    progressLabel: '0 of $runningSessionCount done',
+    progressLabel: 'Week ${currentWeek.weekNumber} of ${snapshot.weeks.length}',
     progressValue: 0,
     scheduleRows: _weeklyScheduleRowsFor(
       currentWeek,
       snapshot,
       currentWeekdayIndex,
+      planProgress: planProgress,
     ),
   );
 }
@@ -521,6 +533,7 @@ GoalPlanDayDisplaySnapshot _goalPlanDailyRowFor(
     workoutDetail: _workoutDetailFor(
       workout,
       snapshot,
+      weekNumber: week.weekNumber,
       canStart: isCurrentWeekToday,
       canEditSchedule: !isCurrentWeekToday,
       occupiedWeekdayIndexes: occupiedWeekdayIndexes,
@@ -531,8 +544,9 @@ GoalPlanDayDisplaySnapshot _goalPlanDailyRowFor(
 List<YouPlanScheduleRow> _weeklyScheduleRowsFor(
   BeginnerAdaptivePlanWeek currentWeek,
   BeginnerAdaptivePlanSnapshot snapshot,
-  int currentWeekdayIndex,
-) {
+  int currentWeekdayIndex, {
+  GeneratedPlanProgressDisplay? planProgress,
+}) {
   final workoutsByDay = {
     for (final workout in currentWeek.workouts) workout.dayLabel: workout,
   };
@@ -549,6 +563,8 @@ List<YouPlanScheduleRow> _weeklyScheduleRowsFor(
         snapshot,
         occupiedWeekdayIndexes,
         currentWeekdayIndex,
+        weekNumber: currentWeek.weekNumber,
+        planProgress: planProgress,
       ),
   ];
 }
@@ -558,8 +574,10 @@ YouPlanScheduleRow _scheduleRowForDay(
   BeginnerAdaptiveWorkout? workout,
   BeginnerAdaptivePlanSnapshot snapshot,
   Set<int> occupiedWeekdayIndexes,
-  int currentWeekdayIndex,
-) {
+  int currentWeekdayIndex, {
+  required int weekNumber,
+  GeneratedPlanProgressDisplay? planProgress,
+}) {
   final weekdayIndex = _weekdayIndexFor(dayLabel);
   final isToday = weekdayIndex == currentWeekdayIndex;
   final isPast = weekdayIndex < currentWeekdayIndex;
@@ -579,16 +597,23 @@ YouPlanScheduleRow _scheduleRowForDay(
   final canEditSchedule = !isToday;
   final scheduleTimeLabel =
       workout.scheduleTimeLabel ?? _generatedPlanFallbackTime;
+  final scheduledWorkoutId = _scheduledWorkoutIdFor(
+    weekNumber: weekNumber,
+    dayLabel: workout.dayLabel,
+    title: workout.title,
+  );
+  final completed = planProgress?.isCompleted(scheduledWorkoutId) ?? false;
   return YouPlanScheduleRow(
     dayLabel,
     '${workout.durationMinutes} min ${workout.title}',
-    'Upcoming · $scheduleTimeLabel',
+    completed ? 'Completed' : 'Upcoming · $scheduleTimeLabel',
     _iconForWorkout(workout.kind),
     active: true,
     opensWorkoutDetail: true,
     detailSnapshot: _workoutDetailFor(
       workout,
       snapshot,
+      weekNumber: weekNumber,
       canStart: canStart,
       canEditSchedule: canEditSchedule,
       occupiedWeekdayIndexes: occupiedWeekdayIndexes,
@@ -599,8 +624,8 @@ YouPlanScheduleRow _scheduleRowForDay(
     isFuture: isFuture,
     isRunningSession: true,
     canOpenDetail: true,
-    canStart: canStart,
-    canEditSchedule: canEditSchedule,
+    canStart: canStart && !completed,
+    canEditSchedule: canEditSchedule && !completed,
   );
 }
 
@@ -626,6 +651,7 @@ YouPlanScheduleRow _restRow(
 WeeklyWorkoutDetailSnapshot _workoutDetailFor(
   BeginnerAdaptiveWorkout workout,
   BeginnerAdaptivePlanSnapshot snapshot, {
+  required int weekNumber,
   required bool canStart,
   required bool canEditSchedule,
   Set<int> occupiedWeekdayIndexes = const <int>{},
@@ -657,7 +683,7 @@ WeeklyWorkoutDetailSnapshot _workoutDetailFor(
     startActionLabel: canStartPlannedRun ? 'Start this run' : null,
     canEditSchedule: canEditGeneratedSchedule,
     plannedRunContext: canStartPlannedRun
-        ? _plannedRunContextFor(workout, snapshot)
+        ? _plannedRunContextFor(workout, snapshot, weekNumber: weekNumber)
         : null,
   );
 }
@@ -671,8 +697,9 @@ String _preferredScheduleLabelFor(List<BeginnerAdaptiveWorkout> workouts) {
 
 PlannedRunContext _plannedRunContextFor(
   BeginnerAdaptiveWorkout workout,
-  BeginnerAdaptivePlanSnapshot snapshot,
-) {
+  BeginnerAdaptivePlanSnapshot snapshot, {
+  required int weekNumber,
+}) {
   final workoutKindLabel = _kindLabel(workout.kind);
   final intensityLabel = _intensityLabel(workout.intensity);
 
@@ -689,7 +716,26 @@ PlannedRunContext _plannedRunContextFor(
     objectiveKind: PlannedRunObjectiveKind.duration,
     primaryValueLabel: '${workout.durationMinutes} min',
     primaryUnitLabel: workoutKindLabel.toLowerCase(),
+    planEnrollmentId: snapshot.id,
+    scheduledWorkoutId: _scheduledWorkoutIdFor(
+      weekNumber: weekNumber,
+      dayLabel: workout.dayLabel,
+      title: workout.title,
+    ),
   );
+}
+
+String _scheduledWorkoutIdFor({
+  required int weekNumber,
+  required String dayLabel,
+  required String title,
+}) {
+  final titleSlug = title
+      .toLowerCase()
+      .replaceAll(RegExp('[^a-z0-9]+'), '-')
+      .replaceAll(RegExp(r'^-|-+$'), '');
+  final suffix = titleSlug.isEmpty ? 'workout' : titleSlug;
+  return 'week-$weekNumber-${dayLabel.toLowerCase()}-$suffix';
 }
 
 PlannedRunContext _restDayPlannedRunContext(

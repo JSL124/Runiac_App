@@ -160,26 +160,23 @@ class WeeklyPlanStatusNode extends StatelessWidget {
   Widget build(BuildContext context) {
     if (state == WeeklyPlanDayRowState.completed ||
         state == WeeklyPlanDayRowState.completedToday) {
-      final today = state == WeeklyPlanDayRowState.completedToday;
       return Container(
         width: 28,
         height: 28,
         decoration: BoxDecoration(
-          color: today ? RuniacColors.accentOrange : RuniacColors.primaryBlue,
+          color: RuniacColors.primaryBlue,
           borderRadius: BorderRadius.circular(999),
           boxShadow: [
             BoxShadow(
-              color:
-                  (today ? RuniacColors.accentOrange : RuniacColors.primaryBlue)
-                      .withValues(alpha: 0.24),
+              color: RuniacColors.primaryBlue.withValues(alpha: 0.24),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
           ],
         ),
-        child: Icon(
+        child: const Icon(
           Icons.check_rounded,
-          color: today ? RuniacColors.primaryBlue : RuniacColors.white,
+          color: RuniacColors.white,
           size: 17,
         ),
       );

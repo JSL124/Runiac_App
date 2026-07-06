@@ -558,6 +558,70 @@ void main() {
     expect(find.textContaining('completed', findRichText: true), findsNothing);
   });
 
+  testWidgets('generated plan card shows active week position', (tester) async {
+    // Given: the generated plan starts two weeks before the injected date.
+    final plan = _tenKPerformancePlan().withStartsOnDate(
+      generatedPlanDateLabel(DateTime(2026, 6, 8)),
+    );
+    final display = generatedYouPlanDisplayFromSnapshot(
+      plan,
+      currentDate: DateTime(2026, 6, 23),
+    );
+
+    // When: the generated weekly card is rendered.
+    await tester.pumpWidget(
+      MaterialApp(home: _GeneratedPlansHarness(generatedPlan: display!)),
+    );
+
+    // Then: the header reports the active week position, not workout count.
+    expect(find.text('Week 3 of ${plan.weeks.length}'), findsOneWidget);
+    expect(find.textContaining(' done'), findsNothing);
+  });
+
+  testWidgets('generated planned context carries backend plan identifiers', (
+    tester,
+  ) async {
+    // Given: Tuesday is today's generated workout in week 1.
+    final plan = _tenKPerformancePlan();
+    final detail = todayGeneratedWorkoutDetailFromSnapshot(
+      plan,
+      currentDate: _weekdayDate(DateTime.tuesday),
+    );
+
+    // Then: the planned run context can identify the backend plan row.
+    final plannedRunContext = detail?.plannedRunContext;
+    expect(plannedRunContext, isNotNull);
+    expect(plannedRunContext!.planEnrollmentId, plan.id);
+    expect(
+      plannedRunContext.scheduledWorkoutId,
+      'week-1-tue-controlled-steady-run',
+    );
+  });
+
+  testWidgets('backend plan progress marks generated weekly row completed', (
+    tester,
+  ) async {
+    final plan = _tenKPerformancePlan();
+    final display = generatedYouPlanDisplayFromSnapshot(
+      plan,
+      currentDate: _weekdayDate(DateTime.tuesday),
+      planProgress: GeneratedPlanProgressDisplay(
+        completedScheduledWorkoutIds: const [
+          'week-1-tue-controlled-steady-run',
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(home: _GeneratedPlansHarness(generatedPlan: display!)),
+    );
+
+    expect(find.text('25 min Controlled Steady Run'), findsOneWidget);
+    expect(find.text('Completed'), findsOneWidget);
+    final checkIcon = tester.widget<Icon>(find.byIcon(Icons.check_rounded));
+    expect(checkIcon.color, RuniacColors.white);
+  });
+
   testWidgets('normal Run tab launch keeps static fallback context', (
     tester,
   ) async {
@@ -692,7 +756,7 @@ void main() {
     expect(find.text('km easy run'), findsNothing);
   });
 
-  testWidgets('completed today row keeps orange treatment with blue check', (
+  testWidgets('completed today row uses blue circle with white check', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -724,7 +788,21 @@ void main() {
       ),
       isTrue,
     );
-    final checkIcon = tester.widget<Icon>(find.byIcon(Icons.check_rounded));
-    expect(checkIcon.color, RuniacColors.primaryBlue);
+    final checkIconFinder = find.byIcon(Icons.check_rounded);
+    final checkIcon = tester.widget<Icon>(checkIconFinder);
+    expect(checkIcon.color, RuniacColors.white);
+    final checkNode = tester
+        .widgetList<Container>(
+          find.ancestor(of: checkIconFinder, matching: find.byType(Container)),
+        )
+        .firstWhere((container) {
+          final decoration = container.decoration;
+          return decoration is BoxDecoration &&
+              decoration.color == RuniacColors.primaryBlue;
+        });
+    expect(
+      (checkNode.decoration! as BoxDecoration).color,
+      RuniacColors.primaryBlue,
+    );
   });
 }

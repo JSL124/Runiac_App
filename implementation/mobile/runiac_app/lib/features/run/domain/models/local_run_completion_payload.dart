@@ -15,6 +15,8 @@ class LocalRunCompletionPayload {
     this.userConfirmedLowDataSave = false,
     this.routeLabel,
     this.clientAppVersion,
+    this.planEnrollmentId,
+    this.scheduledWorkoutId,
     this.paceGraphSamples = const <PaceGraphSample>[],
     this.cadenceAnalysisSeries,
     this.elevationAnalysisSeries,
@@ -33,6 +35,8 @@ class LocalRunCompletionPayload {
   final bool userConfirmedLowDataSave;
   final String? routeLabel;
   final String? clientAppVersion;
+  final String? planEnrollmentId;
+  final String? scheduledWorkoutId;
   final List<PaceGraphSample> paceGraphSamples;
   final CadenceAnalysisSeries? cadenceAnalysisSeries;
   final ElevationAnalysisSeries? elevationAnalysisSeries;
@@ -73,6 +77,8 @@ class LocalRunCompletionPayload {
         'userConfirmedLowDataSave': userConfirmedLowDataSave,
       if (routeLabel != null) 'routeLabel': routeLabel,
       if (clientAppVersion != null) 'clientAppVersion': clientAppVersion,
+      if (planEnrollmentId != null) 'planEnrollmentId': planEnrollmentId,
+      if (scheduledWorkoutId != null) 'scheduledWorkoutId': scheduledWorkoutId,
     };
   }
 
@@ -90,6 +96,8 @@ class LocalRunCompletionPayload {
           userConfirmedLowDataSave ?? this.userConfirmedLowDataSave,
       routeLabel: routeLabel,
       clientAppVersion: clientAppVersion,
+      planEnrollmentId: planEnrollmentId,
+      scheduledWorkoutId: scheduledWorkoutId,
       paceGraphSamples: paceGraphSamples,
       cadenceAnalysisSeries: cadenceAnalysisSeries,
       elevationAnalysisSeries: elevationAnalysisSeries,

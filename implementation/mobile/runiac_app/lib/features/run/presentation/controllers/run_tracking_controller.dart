@@ -409,7 +409,11 @@ class RunTrackingController extends ChangeNotifier {
     notifyListeners();
   }
 
-  LocalRunCompletionPayload completionPayload({DateTime? completedAt}) {
+  LocalRunCompletionPayload completionPayload({
+    DateTime? completedAt,
+    String? planEnrollmentId,
+    String? scheduledWorkoutId,
+  }) {
     final startedAt = _state.startedAt;
     if (startedAt == null || _state.phase == RunTrackingPhase.idle) {
       throw StateError('Cannot finish a run before it starts.');
@@ -426,6 +430,8 @@ class RunTrackingController extends ChangeNotifier {
       source: _state.source,
       routePrivacy: _state.routePrivacy,
       routeLabel: _state.routeLabel,
+      planEnrollmentId: planEnrollmentId,
+      scheduledWorkoutId: scheduledWorkoutId,
       paceGraphSamples: _trackingSession?.paceGraphSamples() ?? const [],
       cadenceAnalysisSeries: _trackingSession?.cadenceAnalysisSeries(),
       elevationAnalysisSeries: _trackingSession?.elevationAnalysisSeries(),
@@ -435,8 +441,16 @@ class RunTrackingController extends ChangeNotifier {
     );
   }
 
-  LocalRunCompletionPayload finish({DateTime? completedAt}) {
-    final payload = completionPayload(completedAt: completedAt);
+  LocalRunCompletionPayload finish({
+    DateTime? completedAt,
+    String? planEnrollmentId,
+    String? scheduledWorkoutId,
+  }) {
+    final payload = completionPayload(
+      completedAt: completedAt,
+      planEnrollmentId: planEnrollmentId,
+      scheduledWorkoutId: scheduledWorkoutId,
+    );
     final previousPhase = _state.phase;
     unawaited(_locationProvider.stop());
     unawaited(_stopCadenceProvider());

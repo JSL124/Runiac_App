@@ -71,7 +71,7 @@ void main() {
 
     expect(find.text('Current Goal'), findsNothing);
     expect(find.text('Return to Movement'), findsOneWidget);
-    expect(find.text('0 of 3 done'), findsOneWidget);
+    expect(find.textContaining('Week 1 of'), findsOneWidget);
     expect(find.text('20 min Easy Walk'), findsNWidgets(3));
     expect(find.text('Upcoming · 7:30 AM'), findsNWidgets(3));
     expect(find.text('Rest Day'), findsNWidgets(4));
