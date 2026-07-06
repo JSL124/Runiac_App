@@ -819,6 +819,7 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
                                     builder: (context, _) {
                                       return RunTrackingSheetContent(
                                         state: _controller.state,
+                                        plannedWorkout: widget.plannedWorkout,
                                         onPause: _pauseRun,
                                         onResume: _resumeRun,
                                         onEnd: _finishRun,
@@ -1098,12 +1099,13 @@ class _PreRunSheetContent extends StatelessWidget {
         final planLabel =
             planned?.title.toUpperCase() ?? runLaunchDemoSnapshot.planLabel;
         final primaryValue =
-            planned?.durationLabel ?? runLaunchDemoSnapshot.distanceValue;
+            planned?.primaryValueLabel ?? runLaunchDemoSnapshot.distanceValue;
         final primaryUnit =
-            planned?.workoutKindLabel ??
+            planned?.primaryUnitLabel ??
             runLaunchDemoSnapshot.distanceUnitLabel;
         final supportLabel =
-            planned?.planTitle ?? runLaunchDemoSnapshot.paceLabel;
+            planned?.supportLabel ?? runLaunchDemoSnapshot.paceLabel;
+        final secondarySupportLabel = planned?.secondarySupportLabel;
 
         return Column(
           mainAxisSize: MainAxisSize.min,
@@ -1155,14 +1157,16 @@ class _PreRunSheetContent extends StatelessWidget {
                 ),
                 Padding(
                   padding: const EdgeInsets.only(bottom: 5),
-                  child: Text(
-                    primaryUnit,
-                    style: const TextStyle(
-                      color: _mutedBlue,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
+                  child: primaryUnit.isEmpty
+                      ? const SizedBox.shrink()
+                      : Text(
+                          primaryUnit,
+                          style: const TextStyle(
+                            color: _mutedBlue,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
                 ),
               ],
             ),
@@ -1175,6 +1179,17 @@ class _PreRunSheetContent extends StatelessWidget {
                 fontWeight: FontWeight.w700,
               ),
             ),
+            if (secondarySupportLabel case final label?) ...[
+              const SizedBox(height: 6),
+              Text(
+                label,
+                style: const TextStyle(
+                  color: _mutedBlue,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
             if (planned case final workout?) ...[
               const SizedBox(height: 8),
               Text(

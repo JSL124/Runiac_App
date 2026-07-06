@@ -281,6 +281,7 @@ void main() {
       await tester.ensureVisible(find.text('Retake onboarding'));
       await tester.tap(find.text('Retake onboarding'));
       await tester.pumpAndSettle();
+      await confirmOnboardingRetake(tester);
       await completeOnboardingToFourSessionPreview(tester);
       await tapText(tester, 'Continue with this plan');
       await tester.pumpAndSettle();
@@ -672,6 +673,7 @@ void main() {
       await tester.ensureVisible(find.text('Retake onboarding'));
       await tester.tap(find.text('Retake onboarding'));
       await tester.pumpAndSettle();
+      await confirmOnboardingRetake(tester);
       await completeOnboardingToPreview(tester);
       await tapText(tester, 'Continue with this plan');
       await tester.pumpAndSettle();

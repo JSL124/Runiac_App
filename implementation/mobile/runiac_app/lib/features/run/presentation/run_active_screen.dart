@@ -12,6 +12,7 @@ import '../domain/services/run_summary_local_analysis_merger.dart';
 import 'active_run_session_coordinator.dart';
 import 'controllers/run_tracking_controller.dart';
 import 'cool_down_screen.dart';
+import 'models/planned_run_context.dart';
 import 'run_repository_scope.dart';
 import 'widgets/run_map_placeholder.dart';
 import 'widgets/run_mapbox_follow_qa_overlay.dart';
@@ -36,6 +37,7 @@ class RunActiveScreen extends StatefulWidget {
     this.mapboxBuilder,
     this.enableMapboxFollowQa = runMapboxFollowQaEnabled,
     this.activeRunSessionCoordinator,
+    this.plannedWorkout,
   });
 
   final RunTrackingController? controller;
@@ -44,6 +46,7 @@ class RunActiveScreen extends StatefulWidget {
   final RunMapboxSurfaceBuilder? mapboxBuilder;
   final bool enableMapboxFollowQa;
   final ActiveRunSessionCoordinator? activeRunSessionCoordinator;
+  final PlannedRunContext? plannedWorkout;
 
   @override
   State<RunActiveScreen> createState() => _RunActiveScreenState();
@@ -277,6 +280,7 @@ class _RunActiveScreenState extends State<RunActiveScreen> {
                           return _RunActivePanel(
                             key: const Key('runActivePanel'),
                             state: _controller.state,
+                            plannedWorkout: widget.plannedWorkout,
                             onPause: _pauseRun,
                             onResume: _resumeRun,
                             onFinish: _finishRun,
@@ -368,9 +372,11 @@ class _RunActivePanel extends StatelessWidget {
     required this.onFinish,
     required this.isCompletingRun,
     required this.bottomInset,
+    this.plannedWorkout,
   });
 
   final RunTrackingState state;
+  final PlannedRunContext? plannedWorkout;
   final VoidCallback onPause;
   final VoidCallback onResume;
   final VoidCallback onFinish;
@@ -403,6 +409,7 @@ class _RunActivePanel extends StatelessWidget {
           ),
           child: RunTrackingSheetContent(
             state: state,
+            plannedWorkout: plannedWorkout,
             onPause: onPause,
             onResume: onResume,
             onEnd: onFinish,

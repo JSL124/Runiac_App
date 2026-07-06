@@ -67,6 +67,10 @@ Future<void> completeOnboardingToBodyConcernPreview(WidgetTester tester) async {
   await answerSingle(tester, 'Build steadily');
 }
 
+Future<void> confirmOnboardingRetake(WidgetTester tester) async {
+  await tapText(tester, 'Reset streak & continue');
+}
+
 Future<void> advanceToPreferredDays(
   WidgetTester tester,
   String availabilityLabel,
@@ -130,7 +134,9 @@ Future<void> answerSingle(WidgetTester tester, String option) async {
 }
 
 Future<void> tapText(WidgetTester tester, String text) async {
-  final finder = find.text(text).first;
+  final matches = find.text(text);
+  expect(matches, findsWidgets, reason: 'Expected to find text "$text".');
+  final finder = matches.first;
   await tester.ensureVisible(finder);
   await tester.tap(finder);
   await tester.pumpAndSettle();

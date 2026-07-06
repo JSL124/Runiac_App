@@ -8,13 +8,16 @@ import '../home/presentation/home_tab.dart';
 import '../leaderboard/presentation/leaderboard_tab.dart';
 import '../maps/presentation/maps_tab.dart';
 import '../plan/domain/repositories/generated_plan_persistence_repository.dart';
+import '../plan/presentation/current_session_generated_plan.dart';
 import '../run/domain/models/run_location_sample.dart';
 import '../run/presentation/active_run_session_coordinator.dart';
+import '../run/presentation/models/planned_run_context.dart';
 import '../run/presentation/run_launch_screen.dart';
 import '../run/presentation/run_open_intent.dart';
 import '../you/data/static_activity_history_repository.dart';
 import '../you/domain/repositories/activity_history_repository.dart';
 import '../you/domain/repositories/user_progress_repository.dart';
+import '../you/presentation/adapters/generated_plan_you_display_adapter.dart';
 import '../you/presentation/you_tab.dart';
 
 class RuniacShell extends StatefulWidget {
@@ -108,6 +111,7 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
       }
       _pushRunLaunchRoute(
         initialPreviewCurrentPosition: initialPreviewCurrentPosition,
+        plannedWorkout: _todayPlannedRunContext(),
       );
       return;
     }
@@ -126,7 +130,7 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
 
     _handledInitialRunOpenIntent = true;
     _activeRunSessionCoordinator.syncNow();
-    _pushRunLaunchRoute();
+    _pushRunLaunchRoute(plannedWorkout: _todayPlannedRunContext());
   }
 
   void _openActiveRunFromSystemReturn() {
@@ -143,16 +147,20 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
           !_activeRunSessionCoordinator.hasOpenRun) {
         return;
       }
-      _pushRunLaunchRoute();
+      _pushRunLaunchRoute(plannedWorkout: _todayPlannedRunContext());
     });
   }
 
-  void _pushRunLaunchRoute({RunLocationSample? initialPreviewCurrentPosition}) {
+  void _pushRunLaunchRoute({
+    RunLocationSample? initialPreviewCurrentPosition,
+    PlannedRunContext? plannedWorkout,
+  }) {
     _runLaunchRouteOpen = true;
     Navigator.of(context)
         .push(
           _buildRunLaunchRoute(
             initialPreviewCurrentPosition: initialPreviewCurrentPosition,
+            plannedWorkout: plannedWorkout,
           ),
         )
         .whenComplete(() {
@@ -162,6 +170,7 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
 
   PageRouteBuilder<void> _buildRunLaunchRoute({
     RunLocationSample? initialPreviewCurrentPosition,
+    PlannedRunContext? plannedWorkout,
   }) {
     return PageRouteBuilder<void>(
       pageBuilder: (context, animation, secondaryAnimation) {
@@ -169,6 +178,7 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
           enableForegroundGps: widget.enableForegroundGps,
           initialPreviewCurrentPosition: initialPreviewCurrentPosition,
           activeRunSessionCoordinator: _activeRunSessionCoordinator,
+          plannedWorkout: plannedWorkout,
         );
       },
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
@@ -184,6 +194,17 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    final activeGeneratedPlan = CurrentSessionGeneratedPlanScope.of(
+      context,
+    ).activePlan;
+    final todayWorkoutDetail = todayGeneratedWorkoutDetailFromSnapshot(
+      activeGeneratedPlan,
+      currentDate: widget.youProgressToday,
+    );
+    final todayPlannedRunContext = todayPlannedRunContextFromSnapshot(
+      activeGeneratedPlan,
+      currentDate: widget.youProgressToday,
+    );
     final tabs = [
       HomeTab(
         authRepository: widget.authRepository,
@@ -191,6 +212,8 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
         profilePersistenceRepository: widget.profilePersistenceRepository,
         generatedPlanPersistenceRepository:
             widget.generatedPlanPersistenceRepository,
+        todayWorkoutDetailSnapshot: todayWorkoutDetail,
+        todayPlannedRunContext: todayPlannedRunContext,
         enableForegroundGps: widget.enableForegroundGps,
         activeRunSessionCoordinator: _activeRunSessionCoordinator,
       ),
@@ -261,6 +284,16 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
           ),
         ],
       ),
+    );
+  }
+
+  PlannedRunContext? _todayPlannedRunContext() {
+    final generatedPlanStore = CurrentSessionGeneratedPlanScope.maybeOf(
+      context,
+    );
+    return todayPlannedRunContextFromSnapshot(
+      generatedPlanStore?.activePlan,
+      currentDate: widget.youProgressToday,
     );
   }
 }

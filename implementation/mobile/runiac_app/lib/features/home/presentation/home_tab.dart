@@ -6,7 +6,9 @@ import '../../account/domain/repositories/user_profile_repository.dart';
 import '../../auth/domain/runiac_auth_service.dart';
 import '../../plan/domain/repositories/generated_plan_persistence_repository.dart';
 import '../../run/presentation/active_run_session_coordinator.dart';
+import '../../run/presentation/models/planned_run_context.dart';
 import '../../run/presentation/run_launch_screen.dart';
+import '../../you/presentation/data/weekly_workout_demo_snapshots.dart';
 import '../../you/presentation/weekly_workout_detail_screen.dart';
 import 'widgets/home_header.dart';
 import 'widgets/home_progress_insight_section.dart';
@@ -22,6 +24,8 @@ class HomeTab extends StatelessWidget {
     required this.profilePersistenceRepository,
     this.generatedPlanPersistenceRepository =
         const NoopGeneratedPlanPersistenceRepository(),
+    this.todayWorkoutDetailSnapshot,
+    this.todayPlannedRunContext,
     super.key,
     this.enableForegroundGps = true,
     this.activeRunSessionCoordinator,
@@ -31,6 +35,8 @@ class HomeTab extends StatelessWidget {
   final UserProfileRepository profileRepository;
   final UserProfilePersistenceRepository profilePersistenceRepository;
   final GeneratedPlanPersistenceRepository generatedPlanPersistenceRepository;
+  final WeeklyWorkoutDetailSnapshot? todayWorkoutDetailSnapshot;
+  final PlannedRunContext? todayPlannedRunContext;
   final bool enableForegroundGps;
   final ActiveRunSessionCoordinator? activeRunSessionCoordinator;
 
@@ -46,6 +52,7 @@ class HomeTab extends StatelessWidget {
         builder: (context) {
           return WeeklyWorkoutDetailScreen(
             onBack: () => Navigator.of(context).pop(),
+            snapshot: todayWorkoutDetailSnapshot ?? weeklyWorkoutDetailSnapshot,
             showEditScheduleAction: false,
             enableForegroundGps: enableForegroundGps,
             activeRunSessionCoordinator: activeRunSessionCoordinator,
@@ -69,6 +76,7 @@ class HomeTab extends StatelessWidget {
           enableForegroundGps: enableForegroundGps,
           initialPreviewCurrentPosition: initialPreviewCurrentPosition,
           activeRunSessionCoordinator: activeRunSessionCoordinator,
+          plannedWorkout: todayPlannedRunContext,
         ),
       ),
     );

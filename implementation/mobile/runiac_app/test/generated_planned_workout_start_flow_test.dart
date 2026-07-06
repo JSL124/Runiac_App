@@ -4,6 +4,7 @@ import 'package:runiac_app/app.dart';
 import 'package:runiac_app/core/theme/runiac_colors.dart';
 import 'package:runiac_app/features/plan/domain/models/beginner_adaptive_plan_snapshot.dart';
 import 'package:runiac_app/features/plan/domain/services/beginner_adaptive_plan_generator.dart';
+import 'package:runiac_app/features/plan/presentation/current_session_generated_plan.dart';
 import 'package:runiac_app/features/you/presentation/adapters/generated_plan_you_display_adapter.dart';
 import 'package:runiac_app/features/you/presentation/data/weekly_workout_demo_snapshots.dart';
 import 'package:runiac_app/features/you/presentation/data/you_overview_demo_snapshots.dart';
@@ -548,8 +549,11 @@ void main() {
     // Then: Run launch opens with planned context and progress is unchanged.
     expect(find.text('CONTROLLED STEADY RUN'), findsOneWidget);
     expect(find.text('25 min'), findsOneWidget);
-    expect(find.text('10K Performance Build'), findsOneWidget);
+    expect(find.text('controlled steady run'), findsOneWidget);
+    expect(find.textContaining('no distance target'), findsOneWidget);
     expect(find.text('Start run'), findsOneWidget);
+    expect(find.text('4.5'), findsNothing);
+    expect(find.text('km easy run'), findsNothing);
     expect(find.text('0 of 4 done'), findsNothing);
     expect(find.textContaining('completed', findRichText: true), findsNothing);
   });
@@ -572,6 +576,120 @@ void main() {
     expect(find.text('km easy run'), findsOneWidget);
     expect(find.text('Start run'), findsOneWidget);
     expect(find.text('CONTROLLED STEADY RUN'), findsNothing);
+  });
+
+  testWidgets('Home Quick Start uses today generated planned workout context', (
+    tester,
+  ) async {
+    final generatedPlanStore = CurrentSessionGeneratedPlanStore()
+      ..setActivePlan(_tenKPerformancePlan());
+    addTearDown(generatedPlanStore.dispose);
+
+    await tester.pumpWidget(
+      RuniacApp(
+        showSplash: false,
+        enableForegroundGps: false,
+        currentSessionGeneratedPlanStore: generatedPlanStore,
+        youProgressToday: _weekdayDate(DateTime.tuesday),
+      ),
+    );
+
+    await tester.tap(find.text('Quick Start'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('CONTROLLED STEADY RUN'), findsOneWidget);
+    expect(find.text('25 min'), findsOneWidget);
+    expect(find.text('controlled steady run'), findsOneWidget);
+    expect(find.textContaining('no distance target'), findsOneWidget);
+    expect(find.text('4.5'), findsNothing);
+    expect(find.text('km easy run'), findsNothing);
+  });
+
+  testWidgets('Run tab uses today generated planned workout context', (
+    tester,
+  ) async {
+    final generatedPlanStore = CurrentSessionGeneratedPlanStore()
+      ..setActivePlan(_tenKPerformancePlan());
+    addTearDown(generatedPlanStore.dispose);
+
+    await tester.pumpWidget(
+      RuniacApp(
+        showSplash: false,
+        enableForegroundGps: false,
+        currentSessionGeneratedPlanStore: generatedPlanStore,
+        youProgressToday: _weekdayDate(DateTime.tuesday),
+      ),
+    );
+
+    await tester.tap(find.byTooltip('Run'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('CONTROLLED STEADY RUN'), findsOneWidget);
+    expect(find.text('25 min'), findsOneWidget);
+    expect(find.text('controlled steady run'), findsOneWidget);
+    expect(find.textContaining('no distance target'), findsOneWidget);
+    expect(find.text('4.5'), findsNothing);
+    expect(find.text('km easy run'), findsNothing);
+  });
+
+  testWidgets('Run tab shows rest day plan instead of fallback', (
+    tester,
+  ) async {
+    final generatedPlanStore = CurrentSessionGeneratedPlanStore()
+      ..setActivePlan(_tenKPerformancePlan());
+    addTearDown(generatedPlanStore.dispose);
+
+    await tester.pumpWidget(
+      RuniacApp(
+        showSplash: false,
+        enableForegroundGps: false,
+        currentSessionGeneratedPlanStore: generatedPlanStore,
+        youProgressToday: _weekdayDate(DateTime.sunday),
+      ),
+    );
+
+    await tester.tap(find.byTooltip('Run'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('TODAY\'S PLAN'), findsOneWidget);
+    expect(find.text('Rest day'), findsOneWidget);
+    expect(find.text('Recovery today · no run target'), findsOneWidget);
+    expect(
+      find.text('Optional easy run only if you feel fresh'),
+      findsOneWidget,
+    );
+    expect(find.text('4.5'), findsNothing);
+    expect(find.text('km easy run'), findsNothing);
+  });
+
+  testWidgets('Home Quick Start shows rest day plan instead of fallback', (
+    tester,
+  ) async {
+    final generatedPlanStore = CurrentSessionGeneratedPlanStore()
+      ..setActivePlan(_tenKPerformancePlan());
+    addTearDown(generatedPlanStore.dispose);
+
+    await tester.pumpWidget(
+      RuniacApp(
+        showSplash: false,
+        enableForegroundGps: false,
+        currentSessionGeneratedPlanStore: generatedPlanStore,
+        youProgressToday: _weekdayDate(DateTime.sunday),
+      ),
+    );
+
+    await tester.tap(find.text('Quick Start'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('TODAY\'S PLAN'), findsOneWidget);
+    expect(find.text('Rest day'), findsOneWidget);
+    expect(find.text('Recovery today · no run target'), findsOneWidget);
+    expect(
+      find.text('Optional easy run only if you feel fresh'),
+      findsOneWidget,
+    );
+    expect(find.text('4.5'), findsNothing);
+    expect(find.text('km easy run'), findsNothing);
   });
 
   testWidgets('completed today row keeps orange treatment with blue check', (

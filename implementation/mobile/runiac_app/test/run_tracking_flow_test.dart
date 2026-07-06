@@ -5,6 +5,9 @@ import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runiac_app/app.dart';
+import 'package:runiac_app/features/plan/domain/models/beginner_adaptive_plan_snapshot.dart';
+import 'package:runiac_app/features/plan/domain/services/beginner_adaptive_plan_generator.dart';
+import 'package:runiac_app/features/plan/presentation/current_session_generated_plan.dart';
 import 'package:runiac_app/features/run/domain/models/cadence_analysis_series.dart';
 import 'package:runiac_app/features/run/domain/models/complete_run_result.dart';
 import 'package:runiac_app/features/run/domain/models/elevation_analysis_series.dart';
@@ -20,6 +23,7 @@ import 'package:runiac_app/features/run/domain/models/run_summary_read_model.dar
 import 'package:runiac_app/features/run/domain/models/run_summary_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/run_tracking_diagnostics.dart';
 import 'package:runiac_app/features/run/domain/models/run_tracking_snapshot.dart';
+import 'package:runiac_app/features/run/domain/models/run_tracking_state.dart';
 import 'package:runiac_app/features/run/domain/models/xp_update_display_model.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_cadence_provider.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_location_permission_service.dart';
@@ -33,20 +37,42 @@ import 'package:runiac_app/features/run/domain/services/pace_graph_data_builder.
 import 'package:runiac_app/features/run/domain/services/run_summary_local_analysis_merger.dart';
 import 'package:runiac_app/features/run/presentation/active_run_session_coordinator.dart';
 import 'package:runiac_app/features/run/presentation/controllers/run_tracking_controller.dart';
+import 'package:runiac_app/features/run/presentation/models/planned_run_context.dart';
 import 'package:runiac_app/features/run/presentation/run_active_screen.dart';
 import 'package:runiac_app/features/run/presentation/run_launch_screen.dart';
 import 'package:runiac_app/features/run/presentation/run_repository_scope.dart';
 import 'package:runiac_app/features/run/presentation/view_summary_screen.dart';
 import 'package:runiac_app/features/run/presentation/widgets/run_map_placeholder.dart';
 import 'package:runiac_app/features/run/presentation/widgets/run_mapbox_surface_config.dart';
+import 'package:runiac_app/features/run/presentation/widgets/run_tracking_sheet_content.dart';
 import 'package:runiac_app/features/you/data/local_pending_run_activity_store.dart';
 import 'package:runiac_app/features/you/presentation/current_session_activity_history.dart';
 
 import 'support/fake_runiac_auth_repository.dart';
+import 'support/plan_family_test_drafts.dart';
 
 const _demoMapboxPublicToken =
     'p'
     'k.demo-public-token';
+
+BeginnerAdaptivePlanSnapshot _tenKPerformancePlan() {
+  return const BeginnerAdaptivePlanGenerator().generate(
+    planFamilyPerformanceDraft(
+      goal: OnboardingGoal.tenK,
+      style: OnboardingPlanStyle.performanceFocused,
+      days: const [
+        OnboardingPreferredDay.mon,
+        OnboardingPreferredDay.tue,
+        OnboardingPreferredDay.wed,
+        OnboardingPreferredDay.thu,
+      ],
+    ),
+  );
+}
+
+DateTime _weekdayDate(int weekday) {
+  return DateTime(2026, 6, 21 + weekday);
+}
 
 void _useMobileRunSurface(WidgetTester tester) {
   tester.view
@@ -808,6 +834,50 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets(
+    'Run launch renders duration objective with estimated distance as supporting copy',
+    (WidgetTester tester) async {
+      _useMobileRunSurface(tester);
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: RunLaunchScreen(
+            enableForegroundGps: false,
+            plannedWorkout: PlannedRunContext(
+              title: 'Easy run',
+              durationMinutes: 30,
+              planTitle: 'Base Builder',
+              planFamilyLabel: 'Beginner Base',
+              workoutKindLabel: 'Easy Run',
+              intensityLabel: 'Easy',
+              steps: ['Run relaxed for 30 minutes.'],
+              supportiveNote: 'Keep the effort conversational.',
+              sourceLabel: 'Generated onboarding plan',
+              objectiveKind: PlannedRunObjectiveKind.duration,
+              primaryValueLabel: '30 min',
+              primaryUnitLabel: 'easy run',
+              estimatedDistanceLabel: '~4.0 km',
+              estimateConfidence: PlannedRunEstimateConfidence.medium,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('EASY RUN'), findsOneWidget);
+      expect(find.text('30 min'), findsOneWidget);
+      expect(find.text('easy run'), findsOneWidget);
+      expect(find.text('Easy effort · About ~4.0 km estimate'), findsOneWidget);
+      expect(find.text('Start run'), findsOneWidget);
+      expect(find.text('4.5'), findsNothing);
+      expect(find.text('km easy run'), findsNothing);
+      expect(find.textContaining('Goal'), findsNothing);
+      expect(find.textContaining('target'), findsNothing);
+      expect(find.textContaining('required'), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('Run launch Start run updates sheet without pushing a route', (
     WidgetTester tester,
   ) async {
@@ -859,6 +929,108 @@ void main() {
     expect(find.text('Finish'), findsNothing);
     expect(find.text('End'), findsNothing);
     expect(find.text('Resume'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('duration planned run shows active time progress', (
+    WidgetTester tester,
+  ) async {
+    _useMobileRunSurface(tester);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: RunTrackingSheetContent(
+            state: const RunTrackingState(
+              phase: RunTrackingPhase.active,
+              clientRunSessionId: 'duration-progress-test',
+              startedAt: null,
+              completedAt: null,
+              elapsedSeconds: 754,
+              distanceMeters: 1200,
+              averagePaceSecondsPerKm: 628,
+              currentPaceSecondsPerKm: 620,
+              routePrivacy: 'private',
+              source: 'local_simulation',
+              locationStatus: RunTrackingLocationStatus.demo,
+              diagnostics: RunTrackingDiagnostics.initial(),
+            ),
+            plannedWorkout: const PlannedRunContext(
+              title: 'Easy run',
+              durationMinutes: 30,
+              planTitle: 'Base Builder',
+              planFamilyLabel: 'Beginner Base',
+              workoutKindLabel: 'Easy Run',
+              intensityLabel: 'Easy',
+              steps: ['Run relaxed for 30 minutes.'],
+              supportiveNote: 'Keep the effort conversational.',
+              sourceLabel: 'Generated onboarding plan',
+              objectiveKind: PlannedRunObjectiveKind.duration,
+              primaryValueLabel: '30 min',
+              primaryUnitLabel: 'easy run',
+            ),
+            onPause: () {},
+            onResume: () {},
+            onEnd: () {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('12:34 of 30:00'), findsOneWidget);
+    expect(find.text('42%'), findsOneWidget);
+    expect(find.byKey(const Key('run_plan_progress_bar')), findsOneWidget);
+    expect(find.text('TIME'), findsWidgets);
+    expect(find.text('12:34'), findsWidgets);
+    expect(find.text('DISTANCE'), findsNothing);
+    expect(find.text('0.00 of 4.50 km'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('rest day planned run hides plan progress bar', (
+    WidgetTester tester,
+  ) async {
+    _useMobileRunSurface(tester);
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: RunLaunchScreen(
+          enableForegroundGps: false,
+          plannedWorkout: PlannedRunContext(
+            title: 'Today\'s plan',
+            durationMinutes: 0,
+            planTitle: '10K Performance Build',
+            planFamilyLabel: 'Performance',
+            workoutKindLabel: 'Rest day',
+            intensityLabel: 'Recovery',
+            steps: ['Rest or light mobility.'],
+            supportiveNote: 'Let the body absorb the week.',
+            sourceLabel: 'Generated onboarding plan',
+            objectiveKind: PlannedRunObjectiveKind.restDay,
+            primaryValueLabel: 'Rest day',
+            primaryUnitLabel: '',
+            supportLabel: 'Recovery today · no run target',
+            secondarySupportLabel: 'Optional easy run only if you feel fresh',
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('TODAY\'S PLAN'), findsOneWidget);
+    expect(find.text('Rest day'), findsOneWidget);
+    expect(find.text('Recovery today · no run target'), findsOneWidget);
+    expect(find.text('4.5'), findsNothing);
+    expect(find.text('km easy run'), findsNothing);
+
+    await tester.tap(find.text('Start run'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('run_plan_progress_bar')), findsNothing);
+    expect(find.textContaining(' of '), findsNothing);
+    expect(find.text('DISTANCE'), findsOneWidget);
+    expect(find.text('TIME'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -2241,6 +2413,66 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+
+  testWidgets('notification reopen keeps duration planned run progress', (
+    WidgetTester tester,
+  ) async {
+    _useMobileRunSurface(tester);
+    var now = DateTime(2026, 6, 17, 8);
+    final activeRunSessionCoordinator = ActiveRunSessionCoordinator(
+      clock: () => now,
+      foregroundTickStep: const Duration(seconds: 1),
+    );
+    final generatedPlanStore = CurrentSessionGeneratedPlanStore()
+      ..setActivePlan(_tenKPerformancePlan());
+    addTearDown(activeRunSessionCoordinator.dispose);
+    addTearDown(generatedPlanStore.dispose);
+
+    await tester.pumpWidget(
+      RuniacApp(
+        showSplash: false,
+        enableForegroundGps: false,
+        activeRunSessionCoordinator: activeRunSessionCoordinator,
+        currentSessionGeneratedPlanStore: generatedPlanStore,
+        youProgressToday: _weekdayDate(DateTime.tuesday),
+      ),
+    );
+    await tester.tap(find.byTooltip('Run'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('25 min'), findsOneWidget);
+    expect(find.text('4.5'), findsNothing);
+
+    await tester.tap(find.text('Start run'));
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(seconds: 3));
+
+    expect(find.widgetWithText(FilledButton, 'Pause'), findsOneWidget);
+
+    final handled = await tester.binding.handlePopRoute();
+    expect(handled, isTrue);
+    await tester.pumpAndSettle();
+    now = now.add(const Duration(seconds: 10));
+
+    await tester.pumpWidget(
+      RuniacApp(
+        showSplash: false,
+        enableForegroundGps: false,
+        activeRunSessionCoordinator: activeRunSessionCoordinator,
+        currentSessionGeneratedPlanStore: generatedPlanStore,
+        initialRunOpenIntent: const RunOpenIntent.notification(),
+        youProgressToday: _weekdayDate(DateTime.tuesday),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(RunLaunchScreen), findsOneWidget);
+    expect(find.text('Start run'), findsNothing);
+    expect(find.widgetWithText(FilledButton, 'Pause'), findsOneWidget);
+    expect(find.text('00:10 of 25:00'), findsOneWidget);
+    expect(find.text('0.00 of 4.50 km'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets('system resume reopens an app-level active run from the shell', (
     WidgetTester tester,

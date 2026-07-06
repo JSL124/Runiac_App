@@ -188,6 +188,54 @@ GeneratedYouPlanDisplay? generatedYouPlanDisplayFromSnapshot(
   );
 }
 
+WeeklyWorkoutDetailSnapshot? todayGeneratedWorkoutDetailFromSnapshot(
+  BeginnerAdaptivePlanSnapshot? snapshot, {
+  DateTime? currentDate,
+}) {
+  final display = generatedYouPlanDisplayFromSnapshot(
+    snapshot,
+    currentDate: currentDate,
+  );
+  if (display == null) {
+    return null;
+  }
+
+  for (final row in display.scheduleRows) {
+    if (row.isToday && row.canStart && row.detailSnapshot != null) {
+      return row.detailSnapshot;
+    }
+  }
+  return null;
+}
+
+PlannedRunContext? todayPlannedRunContextFromSnapshot(
+  BeginnerAdaptivePlanSnapshot? snapshot, {
+  DateTime? currentDate,
+}) {
+  final detail = todayGeneratedWorkoutDetailFromSnapshot(
+    snapshot,
+    currentDate: currentDate,
+  );
+  if (detail != null) {
+    return detail.plannedRunContext;
+  }
+
+  final display = generatedYouPlanDisplayFromSnapshot(
+    snapshot,
+    currentDate: currentDate,
+  );
+  if (display == null || snapshot == null) {
+    return null;
+  }
+
+  for (final row in display.scheduleRows) {
+    if (row.isToday && row.title == 'Rest Day') {
+      return _restDayPlannedRunContext(snapshot);
+    }
+  }
+  return null;
+}
+
 BeginnerAdaptivePlanSnapshot? rescheduleGeneratedPlanSnapshot(
   BeginnerAdaptivePlanSnapshot snapshot,
   WeeklyWorkoutDetailSnapshot currentDetail,
@@ -625,16 +673,43 @@ PlannedRunContext _plannedRunContextFor(
   BeginnerAdaptiveWorkout workout,
   BeginnerAdaptivePlanSnapshot snapshot,
 ) {
+  final workoutKindLabel = _kindLabel(workout.kind);
+  final intensityLabel = _intensityLabel(workout.intensity);
+
   return PlannedRunContext(
     title: workout.title,
     durationMinutes: workout.durationMinutes,
     planTitle: snapshot.title,
     planFamilyLabel: snapshot.family?.title ?? snapshot.sourceLabel,
-    workoutKindLabel: _kindLabel(workout.kind),
-    intensityLabel: _intensityLabel(workout.intensity),
+    workoutKindLabel: workoutKindLabel,
+    intensityLabel: intensityLabel,
     steps: workout.steps,
     supportiveNote: workout.supportiveNote,
     sourceLabel: 'Generated onboarding plan',
+    objectiveKind: PlannedRunObjectiveKind.duration,
+    primaryValueLabel: '${workout.durationMinutes} min',
+    primaryUnitLabel: workoutKindLabel.toLowerCase(),
+  );
+}
+
+PlannedRunContext _restDayPlannedRunContext(
+  BeginnerAdaptivePlanSnapshot snapshot,
+) {
+  return PlannedRunContext(
+    title: 'Today\'s plan',
+    durationMinutes: 0,
+    planTitle: snapshot.title,
+    planFamilyLabel: snapshot.family?.title ?? snapshot.sourceLabel,
+    workoutKindLabel: 'Rest day',
+    intensityLabel: 'Recovery',
+    steps: const ['Rest or light mobility.'],
+    supportiveNote: 'Let the body absorb the week.',
+    sourceLabel: 'Generated onboarding plan',
+    objectiveKind: PlannedRunObjectiveKind.restDay,
+    primaryValueLabel: 'Rest day',
+    primaryUnitLabel: '',
+    supportLabel: 'Recovery today · no run target',
+    secondarySupportLabel: 'Optional easy run only if you feel fresh',
   );
 }
 

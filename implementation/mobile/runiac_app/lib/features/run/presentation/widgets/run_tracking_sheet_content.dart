@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/runiac_colors.dart';
 import '../../domain/models/run_tracking_snapshot.dart';
 import '../../domain/models/run_tracking_state.dart';
+import '../models/planned_run_context.dart';
 
 const _panelTextBlue = Color(0xFF3151C8);
 const _sportOrange = Color(0xFFFF7A1A);
@@ -19,6 +20,7 @@ class RunTrackingSheetContent extends StatelessWidget {
     required this.onPause,
     required this.onResume,
     required this.onEnd,
+    this.plannedWorkout,
     this.isCompletingRun = false,
   });
 
@@ -26,11 +28,17 @@ class RunTrackingSheetContent extends StatelessWidget {
   final VoidCallback onPause;
   final VoidCallback onResume;
   final VoidCallback onEnd;
+  final PlannedRunContext? plannedWorkout;
   final bool isCompletingRun;
 
   @override
   Widget build(BuildContext context) {
     final snapshot = RunTrackingSnapshot.fromState(state);
+    final progress = _RunPlanProgressDisplay.from(
+      state: state,
+      snapshot: snapshot,
+      plannedWorkout: plannedWorkout,
+    );
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -40,11 +48,13 @@ class RunTrackingSheetContent extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _ProgressSummaryRow(snapshot: snapshot),
-            const SizedBox(height: 8),
-            _RunProgressBar(progress: snapshot.planProgressValue),
-            SizedBox(height: compact ? 16 : 18),
-            _DistanceFocus(snapshot: snapshot),
+            if (progress != null) ...[
+              _ProgressSummaryRow(progress: progress),
+              const SizedBox(height: 8),
+              _RunProgressBar(progress: progress.value),
+              SizedBox(height: compact ? 16 : 18),
+            ],
+            _PrimaryMetricFocus(progress: progress, snapshot: snapshot),
             SizedBox(height: compact ? 14 : 16),
             const Divider(height: 1, color: _blueBorder),
             SizedBox(height: compact ? 12 : 14),
@@ -71,10 +81,92 @@ class RunTrackingSheetContent extends StatelessWidget {
   }
 }
 
-class _ProgressSummaryRow extends StatelessWidget {
-  const _ProgressSummaryRow({required this.snapshot});
+class _RunPlanProgressDisplay {
+  const _RunPlanProgressDisplay({
+    required this.label,
+    required this.percentLabel,
+    required this.value,
+    required this.focusLabel,
+    required this.focusValue,
+    required this.focusUnit,
+  });
 
-  final RunTrackingSnapshot snapshot;
+  factory _RunPlanProgressDisplay.distance({
+    required RunTrackingState state,
+    required RunTrackingSnapshot snapshot,
+    int targetDistanceMeters = 4500,
+  }) {
+    final progress = (state.distanceMeters / targetDistanceMeters).clamp(
+      0.0,
+      1.0,
+    );
+    final targetLabel = _formatDistanceTarget(targetDistanceMeters);
+    return _RunPlanProgressDisplay(
+      label: '${snapshot.distanceValueLabel} of $targetLabel km',
+      percentLabel: '${(progress * 100).round()}%',
+      value: progress,
+      focusLabel: 'DISTANCE',
+      focusValue: snapshot.distanceValueLabel,
+      focusUnit: snapshot.distanceUnitLabel,
+    );
+  }
+
+  factory _RunPlanProgressDisplay.duration({
+    required RunTrackingState state,
+    required RunTrackingSnapshot snapshot,
+    required int targetDurationSeconds,
+  }) {
+    final progress = targetDurationSeconds <= 0
+        ? 0.0
+        : (state.elapsedSeconds / targetDurationSeconds).clamp(0.0, 1.0);
+    return _RunPlanProgressDisplay(
+      label:
+          '${snapshot.elapsedTimeLabel} of ${_formatDurationTarget(targetDurationSeconds)}',
+      percentLabel: '${(progress * 100).round()}%',
+      value: progress,
+      focusLabel: 'TIME',
+      focusValue: snapshot.elapsedTimeLabel,
+      focusUnit: '',
+    );
+  }
+
+  static _RunPlanProgressDisplay? from({
+    required RunTrackingState state,
+    required RunTrackingSnapshot snapshot,
+    required PlannedRunContext? plannedWorkout,
+  }) {
+    final planned = plannedWorkout;
+    if (planned == null) {
+      return _RunPlanProgressDisplay.distance(state: state, snapshot: snapshot);
+    }
+
+    return switch (planned.objectiveKind) {
+      PlannedRunObjectiveKind.distance => _RunPlanProgressDisplay.distance(
+        state: state,
+        snapshot: snapshot,
+        targetDistanceMeters: planned.targetDistanceMeters ?? 4500,
+      ),
+      PlannedRunObjectiveKind.duration => _RunPlanProgressDisplay.duration(
+        state: state,
+        snapshot: snapshot,
+        targetDurationSeconds: planned.targetDurationSeconds,
+      ),
+      PlannedRunObjectiveKind.restDay => null,
+    };
+  }
+
+  final String label;
+  final String percentLabel;
+  final double value;
+  final String focusLabel;
+  final String focusValue;
+  final String focusUnit;
+}
+
+class _ProgressSummaryRow extends StatelessWidget {
+  const _ProgressSummaryRow({required this.progress});
+
+  final _RunPlanProgressDisplay progress;
 
   @override
   Widget build(BuildContext context) {
@@ -82,7 +174,7 @@ class _ProgressSummaryRow extends StatelessWidget {
       children: [
         Expanded(
           child: Text(
-            snapshot.planProgressLabel,
+            progress.label,
             style: const TextStyle(
               color: _mutedBlue,
               fontSize: 14,
@@ -91,7 +183,7 @@ class _ProgressSummaryRow extends StatelessWidget {
           ),
         ),
         Text(
-          snapshot.planProgressPercentLabel,
+          progress.percentLabel,
           style: const TextStyle(
             color: _panelTextBlue,
             fontSize: 14,
@@ -123,20 +215,26 @@ class _RunProgressBar extends StatelessWidget {
   }
 }
 
-class _DistanceFocus extends StatelessWidget {
-  const _DistanceFocus({required this.snapshot});
+class _PrimaryMetricFocus extends StatelessWidget {
+  const _PrimaryMetricFocus({required this.progress, required this.snapshot});
 
+  final _RunPlanProgressDisplay? progress;
   final RunTrackingSnapshot snapshot;
 
   @override
   Widget build(BuildContext context) {
+    final display = progress;
+    final focusLabel = display?.focusLabel ?? 'DISTANCE';
+    final focusValue = display?.focusValue ?? snapshot.distanceValueLabel;
+    final focusUnit = display?.focusUnit ?? snapshot.distanceUnitLabel;
+
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text(
-            'DISTANCE',
-            style: TextStyle(
+          Text(
+            focusLabel,
+            style: const TextStyle(
               color: _mutedBlue,
               fontSize: 12,
               fontWeight: FontWeight.w900,
@@ -149,7 +247,7 @@ class _DistanceFocus extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                snapshot.distanceValueLabel,
+                focusValue,
                 style: const TextStyle(
                   color: _panelTextBlue,
                   fontSize: 56,
@@ -157,24 +255,37 @@ class _DistanceFocus extends StatelessWidget {
                   height: 0.92,
                 ),
               ),
-              const SizedBox(width: 6),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 6),
-                child: Text(
-                  snapshot.distanceUnitLabel,
-                  style: const TextStyle(
-                    color: _mutedBlue,
-                    fontSize: 21,
-                    fontWeight: FontWeight.w800,
+              if (focusUnit.isNotEmpty) ...[
+                const SizedBox(width: 6),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Text(
+                    focusUnit,
+                    style: const TextStyle(
+                      color: _mutedBlue,
+                      fontSize: 21,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
-              ),
+              ],
             ],
           ),
         ],
       ),
     );
   }
+}
+
+String _formatDistanceTarget(int meters) {
+  return (meters / 1000).toStringAsFixed(2);
+}
+
+String _formatDurationTarget(int seconds) {
+  final minutes = seconds ~/ 60;
+  final remainder = seconds % 60;
+  return '${minutes.toString().padLeft(2, '0')}:'
+      '${remainder.toString().padLeft(2, '0')}';
 }
 
 class _SecondaryMetricRow extends StatelessWidget {

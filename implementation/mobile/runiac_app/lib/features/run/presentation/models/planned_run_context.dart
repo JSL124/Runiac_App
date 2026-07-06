@@ -1,3 +1,7 @@
+enum PlannedRunObjectiveKind { distance, duration, restDay }
+
+enum PlannedRunEstimateConfidence { none, low, medium, high }
+
 class PlannedRunContext {
   const PlannedRunContext({
     required this.title,
@@ -9,7 +13,24 @@ class PlannedRunContext {
     required this.steps,
     required this.supportiveNote,
     required this.sourceLabel,
-  });
+    this.objectiveKind = PlannedRunObjectiveKind.duration,
+    String? primaryValueLabel,
+    String? primaryUnitLabel,
+    String? supportLabel,
+    this.secondarySupportLabel,
+    String? estimatedDistanceLabel,
+    this.estimateConfidence = PlannedRunEstimateConfidence.none,
+    this.targetDistanceMeters,
+  }) : primaryValueLabel = primaryValueLabel ?? '$durationMinutes min',
+       primaryUnitLabel = primaryUnitLabel ?? workoutKindLabel,
+       estimatedDistanceLabel = estimatedDistanceLabel,
+       supportLabel =
+           supportLabel ??
+           (objectiveKind == PlannedRunObjectiveKind.duration
+               ? '$intensityLabel effort · ${estimateConfidence == PlannedRunEstimateConfidence.none || estimatedDistanceLabel == null ? 'no distance target' : 'About $estimatedDistanceLabel estimate'}'
+               : objectiveKind == PlannedRunObjectiveKind.distance
+               ? planTitle
+               : 'Recovery today · no run target');
 
   final String title;
   final int durationMinutes;
@@ -20,6 +41,16 @@ class PlannedRunContext {
   final List<String> steps;
   final String supportiveNote;
   final String sourceLabel;
+  final PlannedRunObjectiveKind objectiveKind;
+  final String primaryValueLabel;
+  final String primaryUnitLabel;
+  final String supportLabel;
+  final String? secondarySupportLabel;
+  final String? estimatedDistanceLabel;
+  final PlannedRunEstimateConfidence estimateConfidence;
+  final int? targetDistanceMeters;
 
   String get durationLabel => '$durationMinutes min';
+
+  int get targetDurationSeconds => durationMinutes * 60;
 }
