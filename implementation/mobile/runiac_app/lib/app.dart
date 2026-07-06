@@ -25,6 +25,7 @@ import 'features/run/presentation/run_repository_scope.dart';
 import 'features/you/data/static_activity_history_repository.dart';
 import 'features/you/data/local_pending_run_activity_store.dart';
 import 'features/you/domain/repositories/activity_history_repository.dart';
+import 'features/you/domain/repositories/user_progress_repository.dart';
 import 'features/onboarding/presentation/runiac_onboarding_gate.dart';
 import 'features/shell/runiac_shell.dart';
 import 'features/splash/presentation/runiac_splash_tokens.dart';
@@ -43,6 +44,7 @@ class RuniacApp extends StatefulWidget {
     this.authRepository = const NonProductionAuthRepository(),
     this.runRepository = const StaticRunRepository(),
     this.activityHistoryRepository = const StaticActivityHistoryRepository(),
+    this.userProgressRepository = const StaticUserProgressRepository(),
     this.profileRepository = const StaticUserProfileRepository(),
     this.profilePersistenceRepository =
         const NoopUserProfilePersistenceRepository(),
@@ -65,6 +67,7 @@ class RuniacApp extends StatefulWidget {
   final RuniacAuthRepository authRepository;
   final RunRepository runRepository;
   final ActivityHistoryRepository activityHistoryRepository;
+  final UserProgressRepository userProgressRepository;
   final UserProfileRepository profileRepository;
   final UserProfilePersistenceRepository profilePersistenceRepository;
   final GeneratedPlanPersistenceRepository generatedPlanPersistenceRepository;
@@ -259,6 +262,7 @@ class _RuniacAppState extends State<RuniacApp> {
       child: RuniacShell(
         authRepository: widget.authRepository,
         activityHistoryRepository: widget.activityHistoryRepository,
+        userProgressRepository: widget.userProgressRepository,
         profileRepository: widget.profileRepository,
         profilePersistenceRepository: widget.profilePersistenceRepository,
         generatedPlanPersistenceRepository:
@@ -369,6 +373,7 @@ class _RuniacAppState extends State<RuniacApp> {
       await widget.generatedPlanPersistenceRepository.saveGeneratedPlan(
         uid: uid,
         plan: snapshot,
+        resetCreatedAt: true,
       );
       return true;
     } catch (error, stackTrace) {

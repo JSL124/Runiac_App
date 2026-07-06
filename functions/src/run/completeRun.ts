@@ -3,6 +3,7 @@ import { getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { deferredProgressionDisplay } from "../progression/progressionEventWriter.js";
+import { readTrustedStreakState } from "../progression/planBoundedStreakState.js";
 import { calculateStreakTransition, type StreakState } from "../progression/streakCalculator.js";
 import type { CompleteRunIds, CompleteRunResult, RawRunCompletionPayload } from "./runCompletionTypes.js";
 import { parseRunCompletionPayload } from "./validateRunPayload.js";
@@ -42,12 +43,17 @@ export async function completeRunForCallable(
     const summaryRef = firestore.collection("runSummaries").doc(ids.summaryId);
     const progressionRef = firestore.collection("progressionEvents").doc(ids.progressionEventId);
     const profileRef = firestore.collection("userProfiles").doc(uid);
-    const [activitySnapshot, summarySnapshot, progressionSnapshot, profileSnapshot] = await Promise.all([
-      transaction.get(activityRef),
-      transaction.get(summaryRef),
-      transaction.get(progressionRef),
-      transaction.get(profileRef),
-    ]);
+    const generatedPlanRef = firestore.collection("generatedPlans").doc(uid);
+    const activitiesQuery = firestore.collection("activities").where("ownerUid", "==", uid);
+    const [activitySnapshot, summarySnapshot, progressionSnapshot, profileSnapshot, generatedPlanSnapshot, activitySnapshots] =
+      await Promise.all([
+        transaction.get(activityRef),
+        transaction.get(summaryRef),
+        transaction.get(progressionRef),
+        transaction.get(profileRef),
+        transaction.get(generatedPlanRef),
+        transaction.get(activitiesQuery),
+      ]);
 
     if (activitySnapshot.exists) {
       assertExistingActivityMatchesPayload(activitySnapshot.data(), payloadFingerprint);
@@ -55,7 +61,14 @@ export async function completeRunForCallable(
 
     const shouldPersistProgression = !activitySnapshot.exists;
     const streakTransition = shouldPersistProgression
-      ? calculateStreakTransition(readStreakState(profileSnapshot.data()), payload.completedAt)
+      ? calculateStreakTransition(
+          readTrustedStreakState({
+            profileState: readStreakState(profileSnapshot.data()),
+            generatedPlanData: generatedPlanSnapshot.data(),
+            activityDocuments: activitySnapshots.docs.map((document) => document.data()),
+          }),
+          payload.completedAt,
+        )
       : undefined;
 
     if (!activitySnapshot.exists) {

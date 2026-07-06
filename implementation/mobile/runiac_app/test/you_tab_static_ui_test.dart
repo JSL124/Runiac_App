@@ -26,7 +26,9 @@ import 'package:runiac_app/features/you/presentation/current_session_activity_hi
 import 'package:runiac_app/features/you/presentation/data/activity_history_demo_snapshots.dart';
 import 'package:runiac_app/features/you/presentation/data/you_overview_demo_snapshots.dart';
 import 'package:runiac_app/features/you/domain/models/activity_history_read_model.dart';
+import 'package:runiac_app/features/you/domain/models/user_progress_read_model.dart';
 import 'package:runiac_app/features/you/domain/repositories/activity_history_repository.dart';
+import 'package:runiac_app/features/you/domain/repositories/user_progress_repository.dart';
 import 'package:runiac_app/features/you/presentation/widgets/activity_route_preview.dart';
 import 'package:runiac_app/features/you/presentation/widgets/compact_run_activity_card.dart';
 import 'package:runiac_app/features/you/presentation/widgets/monthly_distance_graph.dart';
@@ -39,6 +41,8 @@ Future<void> _openYouTab(
   ActiveRunSessionCoordinator? activeRunSessionCoordinator,
   CurrentSessionActivityHistoryStore? activityHistoryStore,
   ActivityHistoryRepository? activityHistoryRepository,
+  UserProgressRepository userProgressRepository =
+      const _TestUserProgressRepository('1 day'),
 }) async {
   await tester.pumpWidget(
     RuniacApp(
@@ -48,11 +52,32 @@ Future<void> _openYouTab(
       currentSessionActivityHistoryStore: activityHistoryStore,
       activityHistoryRepository:
           activityHistoryRepository ?? const StaticActivityHistoryRepository(),
+      userProgressRepository: userProgressRepository,
       youProgressToday: _progressToday,
     ),
   );
   await tester.tap(find.byTooltip('You'));
   await tester.pumpAndSettle();
+}
+
+class _TestUserProgressRepository implements UserProgressRepository {
+  const _TestUserProgressRepository(this.officialStreakLabel);
+
+  final String officialStreakLabel;
+
+  @override
+  Future<UserProgressReadModel> loadUserProgress() async {
+    return UserProgressReadModel(
+      userId: 'test-user-progress',
+      officialStreakLabel: officialStreakLabel,
+      levelLabel: '',
+      totalXpLabel: '',
+      weeklyXpLabel: '',
+      monthlyXpLabel: '',
+      weeklyDistanceLabel: '',
+      goalProgressLabel: '',
+    );
+  }
 }
 
 class _AggregateProgressRepository implements ActivityHistoryRepository {
@@ -954,7 +979,7 @@ void main() {
     expect(find.text('82% of weekly goal'), findsNothing);
     expect(find.text('This Week'), findsNothing);
     expect(find.text('Consistency Streak'), findsOneWidget);
-    expect(find.text('17 days'), findsOneWidget);
+    expect(find.text('1 day'), findsOneWidget);
     expect(find.text('Running Calendar'), findsOneWidget);
     expect(find.text('June 2026'), findsOneWidget);
 
@@ -1098,7 +1123,7 @@ void main() {
     'You official streak display uses backend label instead of derived value',
     (WidgetTester tester) async {
       // Given: activity history can only derive a 2 day consistency streak,
-      // while the backend-produced official read model should display 17 days.
+      // while the backend-produced official read model should display 1 day.
       await _openYouTab(
         tester,
         activityHistoryRepository: const _OfficialStreakBoundaryRepository(),
@@ -1109,7 +1134,7 @@ void main() {
       // official progress.
       expect(find.text('Consistency Streak'), findsOneWidget);
       expect(
-        find.text('17 days'),
+        find.text('1 day'),
         findsOneWidget,
         reason:
             'Official You streak display must use a backend-produced '

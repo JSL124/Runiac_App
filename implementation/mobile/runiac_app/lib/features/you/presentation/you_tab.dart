@@ -12,6 +12,7 @@ import '../../run/presentation/view_summary_screen.dart';
 import '../data/static_activity_history_repository.dart';
 import '../domain/models/user_progress_read_model.dart';
 import '../domain/repositories/activity_history_repository.dart';
+import '../domain/repositories/user_progress_repository.dart';
 import '../../plan/presentation/current_session_generated_plan.dart';
 import 'activity_history_display_controller.dart';
 import 'activity_history_screen.dart';
@@ -28,21 +29,11 @@ import 'widgets/you_plans_surface.dart';
 import 'widgets/you_progress_surface.dart';
 import 'widgets/you_segmented_control.dart';
 
-const _staticUserProgressReadModel = UserProgressReadModel(
-  userId: 'static_you_progress',
-  officialStreakLabel: '17 days',
-  levelLabel: 'Level 12',
-  totalXpLabel: '2,520 XP',
-  weeklyXpLabel: '520 XP',
-  monthlyXpLabel: '1,240 XP',
-  weeklyDistanceLabel: '12.4 km',
-  goalProgressLabel: '43%',
-);
-
 class YouTab extends StatefulWidget {
   const YouTab({
     super.key,
     this.activityHistoryRepository = const StaticActivityHistoryRepository(),
+    this.userProgressRepository = const StaticUserProgressRepository(),
     this.authRepository,
     this.generatedPlanPersistenceRepository =
         const NoopGeneratedPlanPersistenceRepository(),
@@ -52,6 +43,7 @@ class YouTab extends StatefulWidget {
   });
 
   final ActivityHistoryRepository activityHistoryRepository;
+  final UserProgressRepository userProgressRepository;
   final RuniacAuthRepository? authRepository;
   final GeneratedPlanPersistenceRepository generatedPlanPersistenceRepository;
   final bool enableForegroundGps;
@@ -73,6 +65,7 @@ class _YouTabState extends State<YouTab> {
   var _workoutDetailSnapshot = weeklyWorkoutDetailSnapshot;
   GeneratedYouPlanDisplay? _editedGeneratedPlanDisplay;
   late DateTime _visibleCalendarMonth;
+  UserProgressReadModel? _userProgress;
 
   @override
   void initState() {
@@ -83,6 +76,7 @@ class _YouTabState extends State<YouTab> {
       repository: widget.activityHistoryRepository,
     )..addListener(_handleActivityHistoryChanged);
     _activityHistoryController.load();
+    unawaited(_loadUserProgress());
   }
 
   @override
@@ -108,6 +102,9 @@ class _YouTabState extends State<YouTab> {
         CurrentSessionActivityHistoryScope.of(context),
       );
       _activityHistoryController.load();
+    }
+    if (oldWidget.userProgressRepository != widget.userProgressRepository) {
+      unawaited(_loadUserProgress());
     }
   }
 
@@ -234,7 +231,7 @@ class _YouTabState extends State<YouTab> {
                     onRunSelected: _showRunSummary,
                     onMoreActivities: _showActivityHistory,
                     officialStreakLabel:
-                        _staticUserProgressReadModel.officialStreakLabel,
+                        _userProgress?.officialStreakLabel ?? '',
                     today: widget.progressToday,
                   ),
               ],
@@ -364,5 +361,20 @@ class _YouTabState extends State<YouTab> {
       return;
     }
     setState(() {});
+  }
+
+  Future<void> _loadUserProgress() async {
+    try {
+      final progress = await widget.userProgressRepository.loadUserProgress();
+      if (!mounted) {
+        return;
+      }
+      setState(() => _userProgress = progress);
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _userProgress = null);
+    }
   }
 }

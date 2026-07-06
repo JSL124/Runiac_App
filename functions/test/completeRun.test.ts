@@ -38,7 +38,7 @@ before(() => {
 });
 
 beforeEach(async () => {
-  await clearCollections(["activities", "runSummaries", "progressionEvents", "userProfiles"]);
+  await clearCollections(["activities", "runSummaries", "progressionEvents", "userProfiles", "generatedPlans"]);
 });
 
 describe("completeRun callable boundary", () => {
@@ -438,6 +438,44 @@ describe("completeRun callable boundary", () => {
     assert.equal(olderProgressionEvent.get("nextStreak"), 2);
     assert.equal(olderProgressionEvent.get("previousStreakRunDate"), "2026-06-15");
     assert.equal(olderProgressionEvent.get("nextStreakRunDate"), "2026-06-15");
+  });
+
+  it("recalculates streak from validated activities after the generated plan creation date", async () => {
+    await firestore.doc(`userProfiles/${USER_UID}`).set({
+      streakCount: 17,
+      lastStreakRunDate: "2026-07-04",
+      streakUpdatedAt: "2026-07-04T09:25:00.000Z",
+    });
+    await firestore.doc(`generatedPlans/${USER_UID}`).set({
+      createdAt: "2026-07-05T00:05:00.000Z",
+      updatedAt: "2026-07-05T00:05:00.000Z",
+    });
+    await firestore.doc("activities/pre-plan-run").set({
+      ownerUid: USER_UID,
+      activityType: "run",
+      validationStatus: "validated",
+      endedAt: "2026-07-04T09:25:00.000Z",
+    });
+
+    const result = await callCompleteRun({
+      auth: { uid: USER_UID },
+      data: runPayloadForSession({
+        clientRunSessionId: "streak-after-onboarding-plan",
+        startedAt: "2026-07-05T09:00:00.000Z",
+        completedAt: "2026-07-05T09:25:00.000Z",
+      }),
+    });
+
+    const profile = await firestore.doc(`userProfiles/${USER_UID}`).get();
+    const progressionEvent = await firestore.doc(`progressionEvents/${result.progressionEventId}`).get();
+
+    assert.equal(profile.get("streakCount"), 1);
+    assert.equal(profile.get("lastStreakRunDate"), "2026-07-05");
+    assert.equal(profile.get("streakUpdatedAt"), "2026-07-05T09:25:00.000Z");
+    assert.equal(progressionEvent.get("previousStreak"), 0);
+    assert.equal(progressionEvent.get("nextStreak"), 1);
+    assert.equal(progressionEvent.get("previousStreakRunDate"), null);
+    assert.equal(progressionEvent.get("nextStreakRunDate"), "2026-07-05");
   });
 
   it("fails when a required field is missing", async () => {

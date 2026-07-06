@@ -15,8 +15,10 @@ import '../../features/plan/domain/repositories/generated_plan_persistence_repos
 import '../../features/run/data/run_repository_factory.dart';
 import '../../features/run/domain/repositories/run_repository.dart';
 import '../../features/you/data/firestore_activity_history_repository.dart';
+import '../../features/you/data/firestore_user_progress_repository.dart';
 import '../../features/you/data/static_activity_history_repository.dart';
 import '../../features/you/domain/repositories/activity_history_repository.dart';
+import '../../features/you/domain/repositories/user_progress_repository.dart';
 import 'runiac_firestore_gateway.dart';
 
 class RuniacFirebaseBootstrap {
@@ -36,6 +38,7 @@ class RuniacFirebaseBootstrap {
           runRepository: RunRepositoryFactory.create(config: runtimeConfig),
           authRepository: const NonProductionAuthRepository(),
           activityHistoryRepository: const StaticActivityHistoryRepository(),
+          userProgressRepository: const StaticUserProgressRepository(),
           profileRepository: const StaticUserProfileRepository(),
           profilePersistenceRepository:
               const NoopUserProfilePersistenceRepository(),
@@ -64,6 +67,9 @@ class RuniacFirebaseBootstrap {
         runRepository: RunRepositoryFactory.create(config: runtimeConfig),
         authRepository: authRepository,
         activityHistoryRepository: FirestoreActivityHistoryRepository(
+          authRepository: authRepository,
+        ),
+        userProgressRepository: FirestoreUserProgressRepository(
           authRepository: authRepository,
         ),
         profileRepository: FirestoreUserProfileRepository(
@@ -111,6 +117,9 @@ class RuniacFirebaseBootstrap {
       runRepository: RunRepositoryFactory.create(config: runtimeConfig),
       authRepository: authRepository,
       activityHistoryRepository: FirestoreActivityHistoryRepository(
+        authRepository: authRepository,
+      ),
+      userProgressRepository: FirestoreUserProgressRepository(
         authRepository: authRepository,
       ),
       profileRepository: FirestoreUserProfileRepository(
@@ -162,6 +171,7 @@ class RuniacFirebaseBootstrapResult {
     required this.runRepository,
     required this.authRepository,
     required this.activityHistoryRepository,
+    required this.userProgressRepository,
     required this.profileRepository,
     required this.profilePersistenceRepository,
     required this.generatedPlanPersistenceRepository,
@@ -171,6 +181,7 @@ class RuniacFirebaseBootstrapResult {
   final RunRepository runRepository;
   final RuniacAuthRepository authRepository;
   final ActivityHistoryRepository activityHistoryRepository;
+  final UserProgressRepository userProgressRepository;
   final UserProfileRepository profileRepository;
   final UserProfilePersistenceRepository profilePersistenceRepository;
   final GeneratedPlanPersistenceRepository generatedPlanPersistenceRepository;

@@ -138,6 +138,7 @@ class _RecordingGeneratedPlanDocumentStore
   Future<void> saveGeneratedPlan({
     required String uid,
     required Map<String, Object?> data,
+    bool resetCreatedAt = false,
   }) async {
     this.uid = uid;
     document = data;

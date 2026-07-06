@@ -539,6 +539,7 @@ class _RetakeOnboardingScreenState extends State<_RetakeOnboardingScreen> {
         await widget.generatedPlanPersistenceRepository.saveGeneratedPlan(
           uid: user.uid,
           plan: plan,
+          resetCreatedAt: true,
         );
       } catch (error, stackTrace) {
         FlutterError.reportError(

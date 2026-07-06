@@ -12,6 +12,10 @@ export type StreakTransition = {
   readonly shouldUpdateProfile: boolean;
 };
 
+export type StreakRun = {
+  readonly completedAt: string;
+};
+
 type NextStreakState = {
   readonly streakCount: number;
   readonly lastStreakRunDate: string;
@@ -36,6 +40,21 @@ export function calculateStreakTransition(
     streakUpdatedAt: completedAt,
     shouldUpdateProfile: nextState.shouldUpdateProfile,
   };
+}
+
+export function calculateStreakStateFromRuns(runs: readonly StreakRun[]): StreakState {
+  const runDates = [...new Set(runs.map((run) => run.completedAt.slice(0, utcDateLength)))]
+    .sort((left, right) => left.localeCompare(right));
+  return runDates.reduce<StreakState>(
+    (state, runDate) => {
+      const nextState = nextStreakState(state, runDate);
+      return {
+        streakCount: nextState.streakCount,
+        lastStreakRunDate: nextState.lastStreakRunDate,
+      };
+    },
+    { streakCount: 0, lastStreakRunDate: null },
+  );
 }
 
 function nextStreakState(currentState: StreakState, runDate: string): NextStreakState {

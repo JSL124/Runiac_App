@@ -8,6 +8,7 @@ abstract interface class GeneratedPlanPersistenceRepository {
   Future<void> saveGeneratedPlan({
     required String uid,
     required BeginnerAdaptivePlanSnapshot plan,
+    bool resetCreatedAt = false,
   });
 }
 
@@ -26,5 +27,6 @@ class NoopGeneratedPlanPersistenceRepository
   Future<void> saveGeneratedPlan({
     required String uid,
     required BeginnerAdaptivePlanSnapshot plan,
+    bool resetCreatedAt = false,
   }) async {}
 }

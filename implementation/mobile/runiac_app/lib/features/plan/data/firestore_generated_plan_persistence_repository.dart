@@ -12,6 +12,7 @@ abstract interface class GeneratedPlanDocumentStore {
   Future<void> saveGeneratedPlan({
     required String uid,
     required Map<String, Object?> data,
+    bool resetCreatedAt = false,
   });
 }
 
@@ -35,11 +36,19 @@ class FirestoreGeneratedPlanDocumentStore
   Future<void> saveGeneratedPlan({
     required String uid,
     required Map<String, Object?> data,
-  }) {
-    return _firestore
-        .collection('generatedPlans')
-        .doc(uid)
-        .set(data, SetOptions(merge: true));
+    bool resetCreatedAt = false,
+  }) async {
+    final planRef = _firestore.collection('generatedPlans').doc(uid);
+    await _firestore.runTransaction((transaction) async {
+      final snapshot = await transaction.get(planRef);
+      final nextData = <String, Object?>{...data};
+      if (resetCreatedAt ||
+          !snapshot.exists ||
+          snapshot.data()?['createdAt'] == null) {
+        nextData['createdAt'] = data['updatedAt'];
+      }
+      transaction.set(planRef, nextData, SetOptions(merge: true));
+    });
   }
 }
 
@@ -69,10 +78,12 @@ class FirestoreGeneratedPlanPersistenceRepository
   Future<void> saveGeneratedPlan({
     required String uid,
     required BeginnerAdaptivePlanSnapshot plan,
+    bool resetCreatedAt = false,
   }) {
     return _documentStore.saveGeneratedPlan(
       uid: uid,
       data: _planToFirestore(plan, updatedAt: _updatedAt()),
+      resetCreatedAt: resetCreatedAt,
     );
   }
 }

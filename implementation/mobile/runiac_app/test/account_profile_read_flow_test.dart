@@ -804,6 +804,7 @@ class _RecordingGeneratedPlanPersistenceRepository
   Future<void> saveGeneratedPlan({
     required String uid,
     required BeginnerAdaptivePlanSnapshot plan,
+    bool resetCreatedAt = false,
   }) async {
     saveCalls += 1;
     if (failNextSave) {

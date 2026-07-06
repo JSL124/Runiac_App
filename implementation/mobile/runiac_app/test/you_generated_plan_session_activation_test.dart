@@ -539,6 +539,7 @@ class _RecordingGeneratedPlanRepository
   Future<void> saveGeneratedPlan({
     required String uid,
     required BeginnerAdaptivePlanSnapshot plan,
+    bool resetCreatedAt = false,
   }) async {
     savedUid = uid;
     savedPlan = plan;

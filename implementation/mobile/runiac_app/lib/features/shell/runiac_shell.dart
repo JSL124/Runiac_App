@@ -14,12 +14,14 @@ import '../run/presentation/run_launch_screen.dart';
 import '../run/presentation/run_open_intent.dart';
 import '../you/data/static_activity_history_repository.dart';
 import '../you/domain/repositories/activity_history_repository.dart';
+import '../you/domain/repositories/user_progress_repository.dart';
 import '../you/presentation/you_tab.dart';
 
 class RuniacShell extends StatefulWidget {
   const RuniacShell({
     required this.authRepository,
     this.activityHistoryRepository = const StaticActivityHistoryRepository(),
+    this.userProgressRepository = const StaticUserProgressRepository(),
     required this.profileRepository,
     required this.profilePersistenceRepository,
     this.generatedPlanPersistenceRepository =
@@ -33,6 +35,7 @@ class RuniacShell extends StatefulWidget {
 
   final RuniacAuthRepository authRepository;
   final ActivityHistoryRepository activityHistoryRepository;
+  final UserProgressRepository userProgressRepository;
   final UserProfileRepository profileRepository;
   final UserProfilePersistenceRepository profilePersistenceRepository;
   final GeneratedPlanPersistenceRepository generatedPlanPersistenceRepository;
@@ -196,6 +199,7 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
       const LeaderboardTab(),
       YouTab(
         activityHistoryRepository: widget.activityHistoryRepository,
+        userProgressRepository: widget.userProgressRepository,
         authRepository: widget.authRepository,
         generatedPlanPersistenceRepository:
             widget.generatedPlanPersistenceRepository,

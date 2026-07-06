@@ -340,6 +340,7 @@ service cloud.firestore {
         'safetyNote',
         'clientDisplayStatus',
         'weeks',
+        'createdAt',
         'updatedAt'
       ];
     }
@@ -456,8 +457,17 @@ service cloud.firestore {
           'safetyReadiness'
         ]
         && validGeneratedPlanWeeksForStatus()
+        && validGeneratedPlanTimestamp('createdAt')
+        && validGeneratedPlanTimestamp('updatedAt')
         && validProfileUpdatedAt()
         && doesNotTouchBackendOwnedKeys();
+    }
+
+    function validGeneratedPlanTimestamp(fieldName) {
+      return !request.resource.data.keys().hasAny([fieldName])
+        || request.resource.data[fieldName] is int
+        || request.resource.data[fieldName] is timestamp
+        || request.resource.data[fieldName] is string;
     }
 
     function validGeneratedPlanFamilyFields() {

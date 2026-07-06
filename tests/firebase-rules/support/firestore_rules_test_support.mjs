@@ -103,6 +103,7 @@ export const generatedPlanDocument = {
   sessionDurationLabel: '20 min',
   safetyNote: 'Start gently and keep effort comfortable.',
   clientDisplayStatus: 'generatedPlan',
+  createdAt: 1,
   weeks: [
     {
       weekNumber: 1,
