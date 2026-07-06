@@ -66,6 +66,10 @@ class _YouTabState extends State<YouTab> {
   GeneratedYouPlanDisplay? _editedGeneratedPlanDisplay;
   late DateTime _visibleCalendarMonth;
   UserProgressReadModel? _userProgress;
+  var _userProgressLoaded = false;
+  int? _observedUserProgressRefreshRevision;
+  var _userProgressLoadSerial = 0;
+  String? _observedUserProgressOwnerUid;
 
   @override
   void initState() {
@@ -76,15 +80,31 @@ class _YouTabState extends State<YouTab> {
       repository: widget.activityHistoryRepository,
     )..addListener(_handleActivityHistoryChanged);
     _activityHistoryController.load();
+    _observedUserProgressOwnerUid = _currentUserProgressOwnerUid;
     unawaited(_loadUserProgress());
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _activityHistoryController.attachActivityHistoryStore(
-      CurrentSessionActivityHistoryScope.of(context),
-    );
+    final activityHistoryStore = CurrentSessionActivityHistoryScope.of(context);
+    _activityHistoryController.attachActivityHistoryStore(activityHistoryStore);
+    _syncUserProgressOwner();
+    final revision = activityHistoryStore.userProgressRefreshRevision;
+    final observedRevision = _observedUserProgressRefreshRevision;
+    _observedUserProgressRefreshRevision = revision;
+    if (observedRevision != null && revision != observedRevision) {
+      final refreshedProgress = activityHistoryStore.latestUserProgressRefresh;
+      if (refreshedProgress != null) {
+        _userProgressLoadSerial += 1;
+        setState(() {
+          _userProgress = refreshedProgress;
+          _userProgressLoaded = true;
+        });
+      } else {
+        unawaited(_loadUserProgress());
+      }
+    }
   }
 
   @override
@@ -104,7 +124,10 @@ class _YouTabState extends State<YouTab> {
       _activityHistoryController.load();
     }
     if (oldWidget.userProgressRepository != widget.userProgressRepository) {
-      unawaited(_loadUserProgress());
+      _resetAndLoadUserProgress();
+    }
+    if (oldWidget.authRepository != widget.authRepository) {
+      _syncUserProgressOwner();
     }
   }
 
@@ -232,6 +255,7 @@ class _YouTabState extends State<YouTab> {
                     onMoreActivities: _showActivityHistory,
                     officialStreakLabel:
                         _userProgress?.officialStreakLabel ?? '',
+                    officialStreakLoading: !_userProgressLoaded,
                     today: widget.progressToday,
                   ),
               ],
@@ -363,18 +387,55 @@ class _YouTabState extends State<YouTab> {
     setState(() {});
   }
 
+  String? get _currentUserProgressOwnerUid =>
+      widget.authRepository?.currentUser?.uid;
+
+  void _syncUserProgressOwner() {
+    final ownerUid = _currentUserProgressOwnerUid;
+    if (_observedUserProgressOwnerUid == ownerUid) {
+      return;
+    }
+    _observedUserProgressOwnerUid = ownerUid;
+    _resetAndLoadUserProgress();
+  }
+
+  void _resetAndLoadUserProgress() {
+    _userProgressLoadSerial += 1;
+    setState(() {
+      _userProgress = null;
+      _userProgressLoaded = false;
+    });
+    unawaited(_loadUserProgress());
+  }
+
   Future<void> _loadUserProgress() async {
+    final loadSerial = _userProgressLoadSerial + 1;
+    _userProgressLoadSerial = loadSerial;
     try {
       final progress = await widget.userProgressRepository.loadUserProgress();
-      if (!mounted) {
+      if (!mounted || loadSerial != _userProgressLoadSerial) {
         return;
       }
-      setState(() => _userProgress = progress);
-    } catch (_) {
-      if (!mounted) {
+      setState(() {
+        _userProgress = progress;
+        _userProgressLoaded = true;
+      });
+    } catch (error, stackTrace) {
+      if (!mounted || loadSerial != _userProgressLoadSerial) {
         return;
       }
-      setState(() => _userProgress = null);
+      FlutterError.reportError(
+        FlutterErrorDetails(
+          exception: error,
+          stack: stackTrace,
+          library: 'runiac',
+          context: ErrorDescription('loading user progress for You tab'),
+        ),
+      );
+      setState(() {
+        _userProgress = null;
+        _userProgressLoaded = true;
+      });
     }
   }
 }

@@ -144,11 +144,40 @@ extension CurrentSessionActivityHistoryPersistence
             ownerUid: ownerUid,
             distanceMeters: syncedRecord.payload.distanceMeters,
           );
+          if (!syncedRecord.payload.userConfirmedLowDataSave) {
+            await _refreshUserProgressAfterRemoteSync(
+              ownerUid: ownerUid,
+              ownerGeneration: ownerGeneration,
+            );
+          }
         }
       } catch (error, stackTrace) {
         _reportAsyncError(error, stackTrace, 'saving pending run sync state');
         return;
       }
+    }
+  }
+
+  Future<void> _refreshUserProgressAfterRemoteSync({
+    required String ownerUid,
+    required int ownerGeneration,
+  }) async {
+    final refresh = onRemoteRunSynced;
+    if (refresh == null) {
+      return;
+    }
+    try {
+      final progress = await refresh();
+      if (_ownerUid != ownerUid || _ownerGeneration != ownerGeneration) {
+        return;
+      }
+      _notifyUserProgressRefreshed(progress);
+    } catch (error, stackTrace) {
+      _reportAsyncError(
+        error,
+        stackTrace,
+        'refreshing user progress after sync',
+      );
     }
   }
 

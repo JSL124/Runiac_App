@@ -2,6 +2,8 @@ import '../models/user_progress_read_model.dart';
 
 abstract interface class UserProgressRepository {
   Future<UserProgressReadModel> loadUserProgress();
+
+  Future<UserProgressReadModel> refreshUserProgress();
 }
 
 class StaticUserProgressRepository implements UserProgressRepository {
@@ -19,5 +21,10 @@ class StaticUserProgressRepository implements UserProgressRepository {
       weeklyDistanceLabel: '12.4 km',
       goalProgressLabel: '43%',
     );
+  }
+
+  @override
+  Future<UserProgressReadModel> refreshUserProgress() {
+    return loadUserProgress();
   }
 }

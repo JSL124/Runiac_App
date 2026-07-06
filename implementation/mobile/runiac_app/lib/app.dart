@@ -24,6 +24,7 @@ import 'features/run/presentation/run_open_intent.dart';
 import 'features/run/presentation/run_repository_scope.dart';
 import 'features/you/data/static_activity_history_repository.dart';
 import 'features/you/data/local_pending_run_activity_store.dart';
+import 'features/you/domain/models/user_progress_read_model.dart';
 import 'features/you/domain/repositories/activity_history_repository.dart';
 import 'features/you/domain/repositories/user_progress_repository.dart';
 import 'features/onboarding/presentation/runiac_onboarding_gate.dart';
@@ -104,6 +105,7 @@ class _RuniacAppState extends State<RuniacApp> {
         CurrentSessionActivityHistoryStore(
           ownerUid: widget.authRepository.currentUser?.uid,
           persistence: const SharedPreferencesLocalPendingRunActivityStore(),
+          onRemoteRunSynced: _refreshUserProgressAfterRunSync,
         );
     final initialOwnerUid = widget.authRepository.currentUser?.uid;
     if (initialOwnerUid != null) {
@@ -203,6 +205,22 @@ class _RuniacAppState extends State<RuniacApp> {
           context: ErrorDescription('restoring and syncing pending runs'),
         ),
       );
+    }
+  }
+
+  Future<UserProgressReadModel> _refreshUserProgressAfterRunSync() async {
+    try {
+      return widget.userProgressRepository.refreshUserProgress();
+    } catch (error, stackTrace) {
+      FlutterError.reportError(
+        FlutterErrorDetails(
+          exception: error,
+          stack: stackTrace,
+          library: 'runiac app',
+          context: ErrorDescription('refreshing user progress after run sync'),
+        ),
+      );
+      rethrow;
     }
   }
 

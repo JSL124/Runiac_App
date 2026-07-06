@@ -18,6 +18,7 @@ import 'package:runiac_app/features/run/domain/models/xp_update_display_model.da
 import 'package:runiac_app/features/run/domain/repositories/run_repository.dart';
 import 'package:runiac_app/features/run/domain/services/pace_graph_data_builder.dart';
 import 'package:runiac_app/features/you/data/local_pending_run_activity_store.dart';
+import 'package:runiac_app/features/you/domain/models/user_progress_read_model.dart';
 import 'package:runiac_app/features/you/presentation/current_session_activity_history.dart';
 
 void main() {
@@ -195,6 +196,69 @@ void main() {
       'activity_sync-client-session',
     ]);
   });
+
+  test(
+    'sync refreshes user progress after remote meaningful run is accepted',
+    () async {
+      final storage = MemoryLocalPendingRunActivityStore();
+      var progressRefreshCount = 0;
+      final store = CurrentSessionActivityHistoryStore(
+        ownerUid: ownerUid,
+        persistence: storage,
+        onRemoteRunSynced: () async {
+          progressRefreshCount += 1;
+          return _progress('2 days');
+        },
+      );
+      addTearDown(store.dispose);
+      final repository = _RecordingRunRepository();
+
+      await store.saveCompletedRun(
+        _completionResult('progress-refresh-client-session'),
+        payload: _payload('progress-refresh-client-session'),
+      );
+
+      await store.syncPendingRuns(repository);
+
+      expect(progressRefreshCount, 1);
+    },
+  );
+
+  test(
+    'sync ignores user progress refresh completed after owner changes',
+    () async {
+      final storage = MemoryLocalPendingRunActivityStore();
+      final refreshStarted = Completer<void>();
+      final refreshProgress = Completer<UserProgressReadModel>();
+      final store = CurrentSessionActivityHistoryStore(
+        ownerUid: ownerUid,
+        persistence: storage,
+        onRemoteRunSynced: () {
+          if (!refreshStarted.isCompleted) {
+            refreshStarted.complete();
+          }
+          return refreshProgress.future;
+        },
+      );
+      addTearDown(store.dispose);
+      final repository = _RecordingRunRepository();
+
+      await store.saveCompletedRun(
+        _completionResult('owner-switch-refresh-client-session'),
+        payload: _payload('owner-switch-refresh-client-session'),
+      );
+
+      final sync = store.syncPendingRuns(repository);
+      await refreshStarted.future;
+
+      store.updateOwnerUid(otherOwnerUid);
+      refreshProgress.complete(_progress('2 days'));
+      await sync;
+
+      expect(store.latestUserProgressRefresh, isNull);
+      expect(store.userProgressRefreshRevision, 1);
+    },
+  );
 
   test(
     'sync exposes pending state while repository call is in flight',
@@ -403,6 +467,56 @@ void main() {
     expect(repository.completedClientRunSessionIds, [
       'static-sync-client-session',
     ]);
+  });
+
+  test('deferred local-result sync does not refresh user progress', () async {
+    final storage = MemoryLocalPendingRunActivityStore();
+    var progressRefreshCount = 0;
+    final store = CurrentSessionActivityHistoryStore(
+      ownerUid: ownerUid,
+      persistence: storage,
+      onRemoteRunSynced: () async {
+        progressRefreshCount += 1;
+        return _progress('2 days');
+      },
+    );
+    addTearDown(store.dispose);
+    final repository = _LocalResultRunRepository();
+
+    await store.saveCompletedRun(
+      _completionResult('deferred-progress-client-session'),
+      payload: _payload('deferred-progress-client-session'),
+    );
+    await store.syncPendingRuns(repository);
+
+    expect(progressRefreshCount, 0);
+  });
+
+  test('accepted low-data save does not refresh user progress', () async {
+    final storage = MemoryLocalPendingRunActivityStore();
+    var progressRefreshCount = 0;
+    final store = CurrentSessionActivityHistoryStore(
+      ownerUid: ownerUid,
+      persistence: storage,
+      onRemoteRunSynced: () async {
+        progressRefreshCount += 1;
+        return _progress('2 days');
+      },
+    );
+    addTearDown(store.dispose);
+    final repository = _RecordingRunRepository();
+
+    await store.saveCompletedRun(
+      _completionResult('low-data-progress-client-session'),
+      payload: _payload(
+        'low-data-progress-client-session',
+        userConfirmedLowDataSave: true,
+      ),
+    );
+    await store.syncPendingRuns(repository);
+
+    expect((await storage.load()).single.syncAccepted, isTrue);
+    expect(progressRefreshCount, 0);
   });
 
   test('concurrent sync calls submit a pending run once', () async {
@@ -1053,6 +1167,19 @@ LocalRunCompletionPayload _payload(
     source: 'mobile',
     routePrivacy: 'private',
     userConfirmedLowDataSave: userConfirmedLowDataSave,
+  );
+}
+
+UserProgressReadModel _progress(String officialStreakLabel) {
+  return UserProgressReadModel(
+    userId: 'owner-1',
+    officialStreakLabel: officialStreakLabel,
+    levelLabel: '',
+    totalXpLabel: '',
+    weeklyXpLabel: '',
+    monthlyXpLabel: '',
+    weeklyDistanceLabel: '',
+    goalProgressLabel: '',
   );
 }
 

@@ -12,6 +12,7 @@ import '../../run/domain/models/run_completion_error.dart';
 import '../../run/domain/models/run_summary_snapshot.dart';
 import '../../run/domain/repositories/run_repository.dart';
 import '../data/local_pending_run_activity_store.dart';
+import '../domain/models/user_progress_read_model.dart';
 import 'data/activity_history_demo_snapshots.dart';
 
 part 'current_session_activity_history_persistence.dart';
@@ -60,11 +61,13 @@ class CurrentSessionActivityHistoryStore extends ChangeNotifier {
     DateTime Function()? now,
     String? ownerUid,
     this.persistence,
+    this.onRemoteRunSynced,
   }) : _now = now ?? DateTime.now,
        _ownerUid = ownerUid;
 
   final DateTime Function() _now;
   final LocalPendingRunActivityStore? persistence;
+  final Future<UserProgressReadModel> Function()? onRemoteRunSynced;
   final List<SessionCompletedRunActivity> _activities =
       <SessionCompletedRunActivity>[];
   final List<RunSyncDebugSnapshot> _syncDebugSnapshots =
@@ -74,6 +77,8 @@ class CurrentSessionActivityHistoryStore extends ChangeNotifier {
   String? _ownerUid;
   var _ownerGeneration = 0;
   var _syncRequestSerial = 0;
+  var _userProgressRefreshRevision = 0;
+  UserProgressReadModel? _latestUserProgressRefresh;
 
   UnmodifiableListView<SessionCompletedRunActivity> get activities {
     return UnmodifiableListView(_activities);
@@ -85,6 +90,12 @@ class CurrentSessionActivityHistoryStore extends ChangeNotifier {
     return UnmodifiableListView(_syncDebugSnapshots);
   }
 
+  int get userProgressRefreshRevision => _userProgressRefreshRevision;
+
+  UserProgressReadModel? get latestUserProgressRefresh {
+    return _latestUserProgressRefresh;
+  }
+
   void updateOwnerUid(String? ownerUid) {
     if (_ownerUid == ownerUid) {
       return;
@@ -92,11 +103,13 @@ class CurrentSessionActivityHistoryStore extends ChangeNotifier {
     _ownerUid = ownerUid;
     _ownerGeneration += 1;
     final hadState = _activities.isNotEmpty || _syncDebugSnapshots.isNotEmpty;
+    _latestUserProgressRefresh = null;
+    _userProgressRefreshRevision += 1;
     if (hadState) {
       _activities.clear();
       _syncDebugSnapshots.clear();
-      notifyListeners();
     }
+    notifyListeners();
   }
 
   void registerCompletedRun(
@@ -226,6 +239,12 @@ class CurrentSessionActivityHistoryStore extends ChangeNotifier {
   }
 
   void _notifyActivityHistoryChanged() {
+    notifyListeners();
+  }
+
+  void _notifyUserProgressRefreshed(UserProgressReadModel progress) {
+    _latestUserProgressRefresh = progress;
+    _userProgressRefreshRevision += 1;
     notifyListeners();
   }
 

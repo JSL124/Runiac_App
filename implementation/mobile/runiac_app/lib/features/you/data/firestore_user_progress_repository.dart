@@ -1,8 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../auth/domain/runiac_auth_service.dart';
 import '../domain/models/user_progress_read_model.dart';
 import '../domain/repositories/user_progress_repository.dart';
+import 'local_user_progress_cache_store.dart';
 
 abstract interface class UserProgressDocumentReader {
   Future<Map<String, Object?>?> readUserProgress({required String uid});
@@ -27,12 +29,20 @@ class FirestoreUserProgressRepository implements UserProgressRepository {
   FirestoreUserProgressRepository({
     required this.authRepository,
     UserProgressDocumentReader? reader,
+    LocalUserProgressCacheStore? cacheStore,
+    DateTime Function()? clock,
     this.fallbackRepository = const StaticUserProgressRepository(),
-  }) : _reader = reader ?? FirestoreUserProgressDocumentReader();
+  }) : _reader = reader ?? FirestoreUserProgressDocumentReader(),
+       _cacheStore =
+           cacheStore ?? const SharedPreferencesLocalUserProgressCacheStore(),
+       _clock = clock ?? DateTime.now;
 
   final RuniacAuthRepository authRepository;
   final UserProgressDocumentReader _reader;
+  final LocalUserProgressCacheStore _cacheStore;
+  final DateTime Function() _clock;
   final UserProgressRepository fallbackRepository;
+  var _cacheWriteGeneration = 0;
 
   @override
   Future<UserProgressReadModel> loadUserProgress() async {
@@ -41,13 +51,51 @@ class FirestoreUserProgressRepository implements UserProgressRepository {
       return fallbackRepository.loadUserProgress();
     }
 
-    final data = await _reader.readUserProgress(uid: currentUser.uid);
-    if (data == null) {
-      return _emptyProgress(currentUser.uid);
+    final cached = await _loadCacheSafely(currentUser.uid);
+    if (cached != null &&
+        cached.uid == currentUser.uid &&
+        cached.progress.userId == currentUser.uid &&
+        _isToday(cached.refreshedAt)) {
+      return cached.progress;
     }
 
-    return UserProgressReadModel(
-      userId: currentUser.uid,
+    final cacheWriteGeneration = _cacheWriteGeneration;
+    return _readAndCacheUserProgress(
+      currentUser.uid,
+      cacheWriteGeneration: cacheWriteGeneration,
+    );
+  }
+
+  @override
+  Future<UserProgressReadModel> refreshUserProgress() async {
+    final currentUser = authRepository.currentUser;
+    if (currentUser == null) {
+      return fallbackRepository.refreshUserProgress();
+    }
+
+    _cacheWriteGeneration += 1;
+    return _readAndCacheUserProgress(
+      currentUser.uid,
+      cacheWriteGeneration: _cacheWriteGeneration,
+    );
+  }
+
+  Future<UserProgressReadModel> _readAndCacheUserProgress(
+    String uid, {
+    required int cacheWriteGeneration,
+  }) async {
+    final data = await _reader.readUserProgress(uid: uid);
+    if (data == null) {
+      final emptyProgress = _emptyProgress(uid);
+      await _saveCacheSafely(
+        emptyProgress,
+        cacheWriteGeneration: cacheWriteGeneration,
+      );
+      return emptyProgress;
+    }
+
+    final progress = UserProgressReadModel(
+      userId: uid,
       officialStreakLabel: _streakLabel(data['streakCount']),
       levelLabel: _string(data['levelLabel']),
       totalXpLabel: _string(data['totalXpLabel']),
@@ -56,6 +104,11 @@ class FirestoreUserProgressRepository implements UserProgressRepository {
       weeklyDistanceLabel: _string(data['weeklyDistanceLabel']),
       goalProgressLabel: _string(data['goalProgressLabel']),
     );
+    await _saveCacheSafely(
+      progress,
+      cacheWriteGeneration: cacheWriteGeneration,
+    );
+    return progress;
   }
 
   UserProgressReadModel _emptyProgress(String uid) {
@@ -80,5 +133,57 @@ class FirestoreUserProgressRepository implements UserProgressRepository {
 
   String _string(Object? value) {
     return value is String ? value : '';
+  }
+
+  Future<LocalUserProgressCacheEntry?> _loadCacheSafely(String uid) async {
+    try {
+      return await _cacheStore.load(uid: uid);
+    } on Object catch (error, stackTrace) {
+      _reportCacheError(error, stackTrace, 'loading user progress cache');
+      return null;
+    }
+  }
+
+  Future<void> _saveCacheSafely(
+    UserProgressReadModel progress, {
+    required int cacheWriteGeneration,
+  }) async {
+    if (cacheWriteGeneration != _cacheWriteGeneration) {
+      return;
+    }
+    try {
+      await _cacheStore.save(
+        LocalUserProgressCacheEntry(
+          uid: progress.userId,
+          refreshedAt: _clock(),
+          progress: progress,
+        ),
+      );
+    } on Object catch (error, stackTrace) {
+      _reportCacheError(error, stackTrace, 'saving user progress cache');
+      return;
+    }
+  }
+
+  void _reportCacheError(
+    Object error,
+    StackTrace stackTrace,
+    String operation,
+  ) {
+    FlutterError.reportError(
+      FlutterErrorDetails(
+        exception: error,
+        stack: stackTrace,
+        library: 'runiac user progress repository',
+        context: ErrorDescription(operation),
+      ),
+    );
+  }
+
+  bool _isToday(DateTime refreshedAt) {
+    final now = _clock();
+    return refreshedAt.year == now.year &&
+        refreshedAt.month == now.month &&
+        refreshedAt.day == now.day;
   }
 }

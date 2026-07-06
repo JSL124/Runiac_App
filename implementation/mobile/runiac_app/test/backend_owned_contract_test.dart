@@ -270,6 +270,7 @@ void main() {
         'lib/features/plan/data/'
             'firestore_generated_plan_persistence_repository.dart',
         'lib/features/you/data/firestore_activity_history_repository.dart',
+        'lib/features/you/data/firestore_user_progress_repository.dart',
       };
       const forbiddenFeatureTerms = <String>[
         'package:cloud_firestore',
@@ -342,6 +343,29 @@ void main() {
       expect(source, isNot(contains('runTransaction')));
       expect(source, isNot(contains('writeBatch')));
     });
+
+    test(
+      'limits Firestore user progress access to read-only profile fields',
+      () {
+        final source = File(
+          'lib/features/you/data/firestore_user_progress_repository.dart',
+        ).readAsStringSync();
+
+        expect(source, contains("collection('userProfiles')"));
+        expect(source, contains('.get('));
+        expect(source, isNot(contains('.set(')));
+        expect(source, isNot(contains('.update(')));
+        expect(source, isNot(contains('.delete(')));
+        expect(source, isNot(contains('runTransaction')));
+        expect(source, isNot(contains('writeBatch')));
+        expect(source, isNot(contains('.batch(')));
+        expect(source, isNot(contains('FieldValue.')));
+        expect(source, isNot(contains("collection('users')")));
+        for (final field in BackendOwnedValueContract.protectedFieldNames) {
+          expect(source, isNot(contains("'$field'")), reason: field);
+        }
+      },
+    );
 
     test('limits generated plan persistence to plan content fields', () {
       final source = File(

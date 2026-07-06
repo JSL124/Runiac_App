@@ -7,13 +7,19 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runiac_app/app.dart';
 import 'package:runiac_app/core/theme/runiac_colors.dart';
+import 'package:runiac_app/features/auth/data/non_production_auth_repository.dart';
+import 'package:runiac_app/features/auth/domain/runiac_auth_service.dart';
 import 'package:runiac_app/features/run/domain/models/advanced_analysis_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/cadence_graph_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/complete_run_result.dart';
+import 'package:runiac_app/features/run/domain/models/local_run_completion_payload.dart';
 import 'package:runiac_app/features/run/domain/models/run_location_sample.dart';
 import 'package:runiac_app/features/run/domain/models/run_activity_display_model.dart';
+import 'package:runiac_app/features/run/domain/models/run_activity_read_model.dart';
 import 'package:runiac_app/features/run/domain/models/run_route_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/run_summary_snapshot.dart';
+import 'package:runiac_app/features/run/domain/models/run_summary_read_model.dart';
+import 'package:runiac_app/features/run/domain/repositories/run_repository.dart';
 import 'package:runiac_app/features/run/domain/services/advanced_analysis_snapshot_builder.dart';
 import 'package:runiac_app/features/run/presentation/advanced_analysis_screen.dart';
 import 'package:runiac_app/features/run/presentation/active_run_session_coordinator.dart';
@@ -22,6 +28,7 @@ import 'package:runiac_app/features/run/presentation/data/run_completion_demo_sn
 import 'package:runiac_app/features/run/presentation/view_summary_screen.dart';
 import 'package:runiac_app/features/run/presentation/widgets/advanced_analysis/advanced_analysis_charts.dart';
 import 'package:runiac_app/features/you/data/static_activity_history_repository.dart';
+import 'package:runiac_app/features/you/data/local_pending_run_activity_store.dart';
 import 'package:runiac_app/features/you/presentation/current_session_activity_history.dart';
 import 'package:runiac_app/features/you/presentation/data/activity_history_demo_snapshots.dart';
 import 'package:runiac_app/features/you/presentation/data/you_overview_demo_snapshots.dart';
@@ -34,6 +41,8 @@ import 'package:runiac_app/features/you/presentation/widgets/compact_run_activit
 import 'package:runiac_app/features/you/presentation/widgets/monthly_distance_graph.dart';
 import 'package:runiac_app/features/you/presentation/widgets/you_progress_surface.dart';
 
+import 'support/fake_runiac_auth_repository.dart';
+
 final _progressToday = DateTime(2026, 6, 30);
 
 Future<void> _openYouTab(
@@ -41,23 +50,57 @@ Future<void> _openYouTab(
   ActiveRunSessionCoordinator? activeRunSessionCoordinator,
   CurrentSessionActivityHistoryStore? activityHistoryStore,
   ActivityHistoryRepository? activityHistoryRepository,
+  RuniacAuthRepository? authRepository,
+  bool showAuth = false,
   UserProgressRepository userProgressRepository =
       const _TestUserProgressRepository('1 day'),
 }) async {
   await tester.pumpWidget(
     RuniacApp(
       showSplash: false,
+      showAuth: showAuth,
       enableForegroundGps: false,
       activeRunSessionCoordinator: activeRunSessionCoordinator,
       currentSessionActivityHistoryStore: activityHistoryStore,
       activityHistoryRepository:
           activityHistoryRepository ?? const StaticActivityHistoryRepository(),
+      authRepository: authRepository ?? const NonProductionAuthRepository(),
       userProgressRepository: userProgressRepository,
       youProgressToday: _progressToday,
     ),
   );
   await tester.tap(find.byTooltip('You'));
   await tester.pumpAndSettle();
+}
+
+class _AuthAwareUserProgressRepository implements UserProgressRepository {
+  const _AuthAwareUserProgressRepository({
+    required this.authRepository,
+    required this.labelsByUid,
+  });
+
+  final RuniacAuthRepository authRepository;
+  final Map<String, String> labelsByUid;
+
+  @override
+  Future<UserProgressReadModel> loadUserProgress() async {
+    final uid = authRepository.currentUser?.uid ?? 'signed-out';
+    return UserProgressReadModel(
+      userId: uid,
+      officialStreakLabel: labelsByUid[uid] ?? '',
+      levelLabel: '',
+      totalXpLabel: '',
+      weeklyXpLabel: '',
+      monthlyXpLabel: '',
+      weeklyDistanceLabel: '',
+      goalProgressLabel: '',
+    );
+  }
+
+  @override
+  Future<UserProgressReadModel> refreshUserProgress() {
+    return loadUserProgress();
+  }
 }
 
 class _TestUserProgressRepository implements UserProgressRepository {
@@ -77,6 +120,185 @@ class _TestUserProgressRepository implements UserProgressRepository {
       weeklyDistanceLabel: '',
       goalProgressLabel: '',
     );
+  }
+
+  @override
+  Future<UserProgressReadModel> refreshUserProgress() {
+    return loadUserProgress();
+  }
+}
+
+class _HoldingUserProgressRepository implements UserProgressRepository {
+  final Completer<UserProgressReadModel> _completer =
+      Completer<UserProgressReadModel>();
+
+  void complete(String officialStreakLabel) {
+    if (_completer.isCompleted) {
+      return;
+    }
+    _completer.complete(
+      UserProgressReadModel(
+        userId: 'test-user-progress',
+        officialStreakLabel: officialStreakLabel,
+        levelLabel: '',
+        totalXpLabel: '',
+        weeklyXpLabel: '',
+        monthlyXpLabel: '',
+        weeklyDistanceLabel: '',
+        goalProgressLabel: '',
+      ),
+    );
+  }
+
+  @override
+  Future<UserProgressReadModel> loadUserProgress() {
+    return _completer.future;
+  }
+
+  @override
+  Future<UserProgressReadModel> refreshUserProgress() {
+    return loadUserProgress();
+  }
+}
+
+class _MutableUserProgressRepository implements UserProgressRepository {
+  _MutableUserProgressRepository({
+    required this.initialLabel,
+    required this.refreshedLabel,
+  }) : _currentLabel = initialLabel;
+
+  final String initialLabel;
+  final String refreshedLabel;
+  String _currentLabel;
+  var refreshCount = 0;
+
+  @override
+  Future<UserProgressReadModel> loadUserProgress() async {
+    return _progress(_currentLabel);
+  }
+
+  @override
+  Future<UserProgressReadModel> refreshUserProgress() async {
+    refreshCount += 1;
+    _currentLabel = refreshedLabel;
+    return _progress(_currentLabel);
+  }
+
+  UserProgressReadModel _progress(String label) {
+    return UserProgressReadModel(
+      userId: 'test-user-progress',
+      officialStreakLabel: label,
+      levelLabel: '',
+      totalXpLabel: '',
+      weeklyXpLabel: '',
+      monthlyXpLabel: '',
+      weeklyDistanceLabel: '',
+      goalProgressLabel: '',
+    );
+  }
+}
+
+class _DelayedLoadUserProgressRepository implements UserProgressRepository {
+  _DelayedLoadUserProgressRepository({required this.refreshedLabel});
+
+  final String refreshedLabel;
+  final Completer<UserProgressReadModel> _loadCompleter =
+      Completer<UserProgressReadModel>();
+  var refreshCount = 0;
+
+  void completeLoad(String label) {
+    if (_loadCompleter.isCompleted) {
+      return;
+    }
+    _loadCompleter.complete(_progress(label));
+  }
+
+  @override
+  Future<UserProgressReadModel> loadUserProgress() {
+    return _loadCompleter.future;
+  }
+
+  @override
+  Future<UserProgressReadModel> refreshUserProgress() async {
+    refreshCount += 1;
+    return _progress(refreshedLabel);
+  }
+
+  UserProgressReadModel _progress(String label) {
+    return UserProgressReadModel(
+      userId: 'test-user-progress',
+      officialStreakLabel: label,
+      levelLabel: '',
+      totalXpLabel: '',
+      weeklyXpLabel: '',
+      monthlyXpLabel: '',
+      weeklyDistanceLabel: '',
+      goalProgressLabel: '',
+    );
+  }
+}
+
+class _RemoteAcceptingRunRepository implements RunRepository {
+  const _RemoteAcceptingRunRepository();
+
+  @override
+  Future<CompleteRunResult> completeRun(
+    LocalRunCompletionPayload payload,
+  ) async {
+    return _sessionCompletion(
+      activityId: 'activity_${payload.clientRunSessionId}',
+      title: 'Synced Run',
+      distanceKm: '3.00',
+    ).copyWith(
+      clientRunSessionId: payload.clientRunSessionId,
+      summaryId: 'summary_${payload.clientRunSessionId}',
+      progressionEventId: 'progression_${payload.clientRunSessionId}',
+    );
+  }
+
+  @override
+  Future<CompleteRunResult> loadLatestCompletionResult() {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<RunActivityReadModel> loadLatestRunActivity() {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<RunSummaryReadModel> loadLatestRunSummary() {
+    throw UnimplementedError();
+  }
+}
+
+class _LocalResultRunRepository implements RunRepository {
+  const _LocalResultRunRepository();
+
+  @override
+  Future<CompleteRunResult> completeRun(
+    LocalRunCompletionPayload payload,
+  ) async {
+    return _sessionCompletion(
+      activityId: 'local_${payload.clientRunSessionId}',
+      title: 'Local Result',
+      distanceKm: '3.00',
+    ).copyWith(clientRunSessionId: payload.clientRunSessionId);
+  }
+
+  @override
+  Future<CompleteRunResult> loadLatestCompletionResult() {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<RunActivityReadModel> loadLatestRunActivity() {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<RunSummaryReadModel> loadLatestRunSummary() {
+    throw UnimplementedError();
   }
 }
 
@@ -334,6 +556,23 @@ CompleteRunResult _sessionCompletion({
       route: route,
     ),
     xpUpdate: defaultXpUpdateDisplayModel,
+  );
+}
+
+LocalRunCompletionPayload _syncPayload(
+  String clientRunSessionId, {
+  bool userConfirmedLowDataSave = false,
+}) {
+  return LocalRunCompletionPayload(
+    clientRunSessionId: clientRunSessionId,
+    startedAt: DateTime.utc(2026, 6, 30, 8),
+    completedAt: DateTime.utc(2026, 6, 30, 8, 30),
+    durationSeconds: 1800,
+    distanceMeters: 3000,
+    avgPaceSecondsPerKm: 360,
+    source: 'mobile',
+    routePrivacy: 'private',
+    userConfirmedLowDataSave: userConfirmedLowDataSave,
   );
 }
 
@@ -1119,6 +1358,24 @@ void main() {
     );
   });
 
+  testWidgets('You streak section does not show Pending while progress loads', (
+    WidgetTester tester,
+  ) async {
+    final progressRepository = _HoldingUserProgressRepository();
+
+    await _openYouTab(tester, userProgressRepository: progressRepository);
+
+    expect(find.text('Consistency Streak'), findsOneWidget);
+    expect(find.text('Pending'), findsNothing);
+    expect(find.text('1 day'), findsNothing);
+
+    progressRepository.complete('1 day');
+    await tester.pumpAndSettle();
+
+    expect(find.text('1 day'), findsOneWidget);
+    expect(find.text('Pending'), findsNothing);
+  });
+
   testWidgets(
     'You official streak display uses backend label instead of derived value',
     (WidgetTester tester) async {
@@ -1148,6 +1405,177 @@ void main() {
       );
     },
   );
+
+  testWidgets(
+    'mounted You streak refreshes after meaningful remote sync only',
+    (WidgetTester tester) async {
+      final progressRepository = _MutableUserProgressRepository(
+        initialLabel: '1 day',
+        refreshedLabel: '2 days',
+      );
+      late CurrentSessionActivityHistoryStore historyStore;
+      historyStore = CurrentSessionActivityHistoryStore(
+        ownerUid: 'test-owner',
+        persistence: MemoryLocalPendingRunActivityStore(),
+        onRemoteRunSynced: progressRepository.refreshUserProgress,
+      );
+      addTearDown(historyStore.dispose);
+
+      await _openYouTab(
+        tester,
+        activityHistoryStore: historyStore,
+        userProgressRepository: progressRepository,
+      );
+
+      expect(find.text('1 day'), findsOneWidget);
+      expect(find.text('2 days'), findsNothing);
+      historyStore.updateOwnerUid('test-owner');
+
+      await historyStore.saveCompletedRun(
+        _sessionCompletion(
+          activityId: 'local-progress-refresh',
+          title: 'Progress Refresh Run',
+          distanceKm: '3.00',
+        ),
+        payload: _syncPayload('progress-refresh-session'),
+      );
+      await historyStore.syncPendingRuns(const _RemoteAcceptingRunRepository());
+      await tester.pumpAndSettle();
+
+      expect(progressRepository.refreshCount, 1);
+      expect(find.text('2 days'), findsOneWidget);
+      expect(find.text('1 day'), findsNothing);
+
+      await historyStore.saveCompletedRun(
+        _sessionCompletion(
+          activityId: 'local-low-data-no-refresh',
+          title: 'Low Data Save',
+          distanceKm: '0.00',
+          hasSufficientData: false,
+        ),
+        payload: _syncPayload(
+          'low-data-no-refresh-session',
+          userConfirmedLowDataSave: true,
+        ),
+      );
+      await historyStore.syncPendingRuns(const _RemoteAcceptingRunRepository());
+      await tester.pumpAndSettle();
+
+      expect(progressRepository.refreshCount, 1);
+      expect(find.text('2 days'), findsOneWidget);
+    },
+  );
+
+  testWidgets('mounted You ignores stale load after sync refresh', (
+    WidgetTester tester,
+  ) async {
+    final progressRepository = _DelayedLoadUserProgressRepository(
+      refreshedLabel: '2 days',
+    );
+    late CurrentSessionActivityHistoryStore historyStore;
+    historyStore = CurrentSessionActivityHistoryStore(
+      ownerUid: 'test-owner',
+      persistence: MemoryLocalPendingRunActivityStore(),
+      onRemoteRunSynced: progressRepository.refreshUserProgress,
+    );
+    addTearDown(historyStore.dispose);
+
+    await _openYouTab(
+      tester,
+      activityHistoryStore: historyStore,
+      userProgressRepository: progressRepository,
+    );
+    historyStore.updateOwnerUid('test-owner');
+
+    await historyStore.saveCompletedRun(
+      _sessionCompletion(
+        activityId: 'local-race-refresh',
+        title: 'Race Refresh Run',
+        distanceKm: '3.00',
+      ),
+      payload: _syncPayload('race-refresh-session'),
+    );
+    await historyStore.syncPendingRuns(const _RemoteAcceptingRunRepository());
+    await tester.pumpAndSettle();
+
+    expect(find.text('2 days'), findsOneWidget);
+
+    progressRepository.completeLoad('1 day');
+    await tester.pumpAndSettle();
+
+    expect(progressRepository.refreshCount, 1);
+    expect(find.text('2 days'), findsOneWidget);
+    expect(find.text('1 day'), findsNothing);
+  });
+
+  testWidgets('mounted You reloads official streak after auth owner changes', (
+    WidgetTester tester,
+  ) async {
+    final authRepository = FakeRuniacAuthRepository()
+      ..emitSignedIn(uid: 'owner-1');
+    addTearDown(authRepository.dispose);
+    final progressRepository = _AuthAwareUserProgressRepository(
+      authRepository: authRepository,
+      labelsByUid: const <String, String>{
+        'owner-1': '1 day',
+        'owner-2': '2 days',
+      },
+    );
+
+    await _openYouTab(
+      tester,
+      authRepository: authRepository,
+      showAuth: true,
+      userProgressRepository: progressRepository,
+    );
+
+    expect(find.text('1 day'), findsOneWidget);
+    expect(find.text('2 days'), findsNothing);
+
+    authRepository.emitSignedIn(uid: 'owner-2');
+    await tester.pumpAndSettle();
+
+    expect(find.text('2 days'), findsOneWidget);
+    expect(find.text('1 day'), findsNothing);
+  });
+
+  testWidgets('mounted You streak ignores deferred local-result sync refresh', (
+    WidgetTester tester,
+  ) async {
+    final progressRepository = _MutableUserProgressRepository(
+      initialLabel: '1 day',
+      refreshedLabel: '2 days',
+    );
+    late CurrentSessionActivityHistoryStore historyStore;
+    historyStore = CurrentSessionActivityHistoryStore(
+      ownerUid: 'test-owner',
+      persistence: MemoryLocalPendingRunActivityStore(),
+      onRemoteRunSynced: progressRepository.refreshUserProgress,
+    );
+    addTearDown(historyStore.dispose);
+
+    await _openYouTab(
+      tester,
+      activityHistoryStore: historyStore,
+      userProgressRepository: progressRepository,
+    );
+    historyStore.updateOwnerUid('test-owner');
+
+    await historyStore.saveCompletedRun(
+      _sessionCompletion(
+        activityId: 'local-deferred-no-refresh',
+        title: 'Deferred Local Result',
+        distanceKm: '3.00',
+      ),
+      payload: _syncPayload('deferred-no-refresh-session'),
+    );
+    await historyStore.syncPendingRuns(const _LocalResultRunRepository());
+    await tester.pumpAndSettle();
+
+    expect(progressRepository.refreshCount, 0);
+    expect(find.text('1 day'), findsOneWidget);
+    expect(find.text('2 days'), findsNothing);
+  });
 
   testWidgets(
     'current-session history keeps fallback cap and dedupes by activity id',

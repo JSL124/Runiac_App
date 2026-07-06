@@ -35,6 +35,7 @@ class YouProgressSurface extends StatefulWidget {
     required this.onRunSelected,
     required this.onMoreActivities,
     required this.officialStreakLabel,
+    this.officialStreakLoading = false,
     this.today,
     super.key,
   });
@@ -47,6 +48,7 @@ class YouProgressSurface extends StatefulWidget {
   final ValueChanged<RunActivityDisplayModel> onRunSelected;
   final VoidCallback onMoreActivities;
   final String officialStreakLabel;
+  final bool officialStreakLoading;
   final DateTime? today;
 
   @override
@@ -87,7 +89,10 @@ class _YouProgressSurfaceState extends State<YouProgressSurface> {
         const SizedBox(height: 12),
         _MonthlyDistanceSection(summary: selectedSummary, graphData: graphData),
         const SizedBox(height: 10),
-        _StreakSection(officialStreakLabel: widget.officialStreakLabel),
+        _StreakSection(
+          officialStreakLabel: widget.officialStreakLabel,
+          loading: widget.officialStreakLoading,
+        ),
         const SizedBox(height: 10),
         _CalendarSection(
           visibleMonth: widget.visibleCalendarMonth,
@@ -484,15 +489,25 @@ class _SectionDivider extends StatelessWidget {
 }
 
 class _StreakSection extends StatelessWidget {
-  const _StreakSection({required this.officialStreakLabel});
+  const _StreakSection({
+    required this.officialStreakLabel,
+    required this.loading,
+  });
 
   final String officialStreakLabel;
+  final bool loading;
 
   @override
   Widget build(BuildContext context) {
     final hasOfficialStreak = officialStreakLabel.trim().isNotEmpty;
-    final displayLabel = hasOfficialStreak ? officialStreakLabel : 'Pending';
-    final streakCopy = hasOfficialStreak
+    final displayLabel = loading
+        ? ''
+        : hasOfficialStreak
+        ? officialStreakLabel
+        : 'Pending';
+    final streakCopy = loading
+        ? ''
+        : hasOfficialStreak
         ? 'Backend validated streak.'
         : 'Complete a run to start your streak.';
 
