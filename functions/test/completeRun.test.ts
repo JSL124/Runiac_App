@@ -278,6 +278,168 @@ describe("completeRun callable boundary", () => {
     assert.equal(await countDocuments("progressionEvents"), 2);
   });
 
+  it("persists backend-owned streak state and progression audit for consecutive run days", async () => {
+    const firstResult = await callCompleteRun({
+      auth: { uid: USER_UID },
+      data: runPayloadForSession({
+        clientRunSessionId: "streak-day-20260614",
+        startedAt: "2026-06-14T09:00:00.000Z",
+        completedAt: "2026-06-14T09:25:00.000Z",
+      }),
+    });
+    const secondResult = await callCompleteRun({
+      auth: { uid: USER_UID },
+      data: runPayloadForSession({
+        clientRunSessionId: "streak-day-20260615",
+        startedAt: "2026-06-15T09:00:00.000Z",
+        completedAt: "2026-06-15T09:25:00.000Z",
+      }),
+    });
+
+    const profile = await firestore.doc(`userProfiles/${USER_UID}`).get();
+    const firstProgressionEvent = await firestore.doc(`progressionEvents/${firstResult.progressionEventId}`).get();
+    const secondProgressionEvent = await firestore.doc(`progressionEvents/${secondResult.progressionEventId}`).get();
+
+    assert.equal(profile.get("streakCount"), 2);
+    assert.equal(profile.get("lastStreakRunDate"), "2026-06-15");
+    assert.equal(profile.get("streakUpdatedAt"), "2026-06-15T09:25:00.000Z");
+    assert.equal(firstProgressionEvent.get("previousStreak"), 0);
+    assert.equal(firstProgressionEvent.get("nextStreak"), 1);
+    assert.equal(firstProgressionEvent.get("previousStreakRunDate"), null);
+    assert.equal(firstProgressionEvent.get("nextStreakRunDate"), "2026-06-14");
+    assert.equal(secondProgressionEvent.get("previousStreak"), 1);
+    assert.equal(secondProgressionEvent.get("nextStreak"), 2);
+    assert.equal(secondProgressionEvent.get("previousStreakRunDate"), "2026-06-14");
+    assert.equal(secondProgressionEvent.get("nextStreakRunDate"), "2026-06-15");
+  });
+
+  it("does not double increment streak state for duplicate clientRunSessionId values", async () => {
+    const payload = runPayloadForSession({
+      clientRunSessionId: "streak-duplicate-session",
+      startedAt: "2026-06-14T09:00:00.000Z",
+      completedAt: "2026-06-14T09:25:00.000Z",
+    });
+
+    const firstResult = await callCompleteRun({ auth: { uid: USER_UID }, data: payload });
+    const secondResult = await callCompleteRun({ auth: { uid: USER_UID }, data: payload });
+
+    const profile = await firestore.doc(`userProfiles/${USER_UID}`).get();
+    const progressionEvent = await firestore.doc(`progressionEvents/${firstResult.progressionEventId}`).get();
+
+    assert.deepEqual(secondResult, firstResult);
+    assert.equal(profile.get("streakCount"), 1);
+    assert.equal(profile.get("lastStreakRunDate"), "2026-06-14");
+    assert.equal(profile.get("streakUpdatedAt"), "2026-06-14T09:25:00.000Z");
+    assert.equal(progressionEvent.get("previousStreak"), 0);
+    assert.equal(progressionEvent.get("nextStreak"), 1);
+    assert.equal(progressionEvent.get("previousStreakRunDate"), null);
+    assert.equal(progressionEvent.get("nextStreakRunDate"), "2026-06-14");
+    assert.equal(await countDocuments("progressionEvents"), 1);
+  });
+
+  it("does not increment streak state beyond one for a second same-day valid run", async () => {
+    const firstResult = await callCompleteRun({
+      auth: { uid: USER_UID },
+      data: runPayloadForSession({
+        clientRunSessionId: "streak-same-day-first",
+        startedAt: "2026-06-14T09:00:00.000Z",
+        completedAt: "2026-06-14T09:25:00.000Z",
+      }),
+    });
+    const secondResult = await callCompleteRun({
+      auth: { uid: USER_UID },
+      data: runPayloadForSession({
+        clientRunSessionId: "streak-same-day-second",
+        startedAt: "2026-06-14T18:00:00.000Z",
+        completedAt: "2026-06-14T18:25:00.000Z",
+      }),
+    });
+
+    const profile = await firestore.doc(`userProfiles/${USER_UID}`).get();
+    const firstProgressionEvent = await firestore.doc(`progressionEvents/${firstResult.progressionEventId}`).get();
+    const secondProgressionEvent = await firestore.doc(`progressionEvents/${secondResult.progressionEventId}`).get();
+
+    assert.equal(profile.get("streakCount"), 1);
+    assert.equal(profile.get("lastStreakRunDate"), "2026-06-14");
+    assert.equal(profile.get("streakUpdatedAt"), "2026-06-14T18:25:00.000Z");
+    assert.equal(firstProgressionEvent.get("previousStreak"), 0);
+    assert.equal(firstProgressionEvent.get("nextStreak"), 1);
+    assert.equal(firstProgressionEvent.get("previousStreakRunDate"), null);
+    assert.equal(firstProgressionEvent.get("nextStreakRunDate"), "2026-06-14");
+    assert.equal(secondProgressionEvent.get("previousStreak"), 1);
+    assert.equal(secondProgressionEvent.get("nextStreak"), 1);
+    assert.equal(secondProgressionEvent.get("previousStreakRunDate"), "2026-06-14");
+    assert.equal(secondProgressionEvent.get("nextStreakRunDate"), "2026-06-14");
+  });
+
+  it("restarts streak state after a missed-day gap", async () => {
+    await callCompleteRun({
+      auth: { uid: USER_UID },
+      data: runPayloadForSession({
+        clientRunSessionId: "streak-gap-first",
+        startedAt: "2026-06-14T09:00:00.000Z",
+        completedAt: "2026-06-14T09:25:00.000Z",
+      }),
+    });
+    const secondResult = await callCompleteRun({
+      auth: { uid: USER_UID },
+      data: runPayloadForSession({
+        clientRunSessionId: "streak-gap-second",
+        startedAt: "2026-06-17T09:00:00.000Z",
+        completedAt: "2026-06-17T09:25:00.000Z",
+      }),
+    });
+
+    const profile = await firestore.doc(`userProfiles/${USER_UID}`).get();
+    const secondProgressionEvent = await firestore.doc(`progressionEvents/${secondResult.progressionEventId}`).get();
+
+    assert.equal(profile.get("streakCount"), 1);
+    assert.equal(profile.get("lastStreakRunDate"), "2026-06-17");
+    assert.equal(profile.get("streakUpdatedAt"), "2026-06-17T09:25:00.000Z");
+    assert.equal(secondProgressionEvent.get("previousStreak"), 1);
+    assert.equal(secondProgressionEvent.get("nextStreak"), 1);
+    assert.equal(secondProgressionEvent.get("previousStreakRunDate"), "2026-06-14");
+    assert.equal(secondProgressionEvent.get("nextStreakRunDate"), "2026-06-17");
+  });
+
+  it("does not regress persisted streak state when an older valid run syncs later", async () => {
+    await callCompleteRun({
+      auth: { uid: USER_UID },
+      data: runPayloadForSession({
+        clientRunSessionId: "streak-current-first",
+        startedAt: "2026-06-14T09:00:00.000Z",
+        completedAt: "2026-06-14T09:25:00.000Z",
+      }),
+    });
+    await callCompleteRun({
+      auth: { uid: USER_UID },
+      data: runPayloadForSession({
+        clientRunSessionId: "streak-current-second",
+        startedAt: "2026-06-15T09:00:00.000Z",
+        completedAt: "2026-06-15T09:25:00.000Z",
+      }),
+    });
+    const olderResult = await callCompleteRun({
+      auth: { uid: USER_UID },
+      data: runPayloadForSession({
+        clientRunSessionId: "streak-late-older-sync",
+        startedAt: "2026-06-13T09:00:00.000Z",
+        completedAt: "2026-06-13T09:25:00.000Z",
+      }),
+    });
+
+    const profile = await firestore.doc(`userProfiles/${USER_UID}`).get();
+    const olderProgressionEvent = await firestore.doc(`progressionEvents/${olderResult.progressionEventId}`).get();
+
+    assert.equal(profile.get("streakCount"), 2);
+    assert.equal(profile.get("lastStreakRunDate"), "2026-06-15");
+    assert.equal(profile.get("streakUpdatedAt"), "2026-06-15T09:25:00.000Z");
+    assert.equal(olderProgressionEvent.get("previousStreak"), 2);
+    assert.equal(olderProgressionEvent.get("nextStreak"), 2);
+    assert.equal(olderProgressionEvent.get("previousStreakRunDate"), "2026-06-15");
+    assert.equal(olderProgressionEvent.get("nextStreakRunDate"), "2026-06-15");
+  });
+
   it("fails when a required field is missing", async () => {
     const payload = validPayloadWithout("distanceMeters");
 
@@ -555,6 +717,17 @@ function pausedRunPayload(): Record<string, unknown> {
     avgPaceSecondsPerKm: 379,
     source: "mobile",
     routePrivacy: "private",
+  };
+}
+
+function runPayloadForSession(fields: {
+  readonly clientRunSessionId: string;
+  readonly startedAt: string;
+  readonly completedAt: string;
+}): Record<string, unknown> {
+  return {
+    ...validPayload(),
+    ...fields,
   };
 }
 

@@ -62,7 +62,7 @@ void main() {
       );
       const progress = UserProgressReadModel(
         userId: 'user_123',
-        streakLabel: '6 days',
+        officialStreakLabel: '6 days',
         levelLabel: 'Level 12',
         totalXpLabel: '2,520 XP',
         weeklyXpLabel: '520 XP',
@@ -165,7 +165,7 @@ void main() {
           className: 'UserProgressReadModel',
           fields: [
             'userId',
-            'streakLabel',
+            'officialStreakLabel',
             'levelLabel',
             'totalXpLabel',
             'weeklyXpLabel',
@@ -243,6 +243,32 @@ void main() {
       ]) {
         expect(payloadSource, isNot(contains(importName)));
       }
+    });
+
+    test('requires You official streak display to come from backend label', () {
+      // Given: the You progress surface currently renders an official-looking
+      // consistency streak in the user profile area.
+      final source = File(
+        'lib/features/you/presentation/widgets/you_progress_surface.dart',
+      ).readAsStringSync();
+
+      // When / Then: official streak display must have a backend-produced label
+      // input instead of relying only on UI-derived activity-history math.
+      expect(
+        source,
+        contains('officialStreakLabel'),
+        reason:
+            'YouProgressSurface must accept a backend-produced official '
+            'streak label/read model before displaying the official You '
+            'streak.',
+      );
+      expect(
+        source,
+        isNot(contains('_computeConsistencyStreak')),
+        reason:
+            'The You boundary must not calculate the official streak from '
+            'local activity history.',
+      );
     });
   });
 }

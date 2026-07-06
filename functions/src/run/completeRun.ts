@@ -3,6 +3,7 @@ import { getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { deferredProgressionDisplay } from "../progression/progressionEventWriter.js";
+import { calculateStreakTransition, type StreakState } from "../progression/streakCalculator.js";
 import type { CompleteRunIds, CompleteRunResult, RawRunCompletionPayload } from "./runCompletionTypes.js";
 import { parseRunCompletionPayload } from "./validateRunPayload.js";
 
@@ -40,15 +41,22 @@ export async function completeRunForCallable(
     const activityRef = firestore.collection("activities").doc(ids.activityId);
     const summaryRef = firestore.collection("runSummaries").doc(ids.summaryId);
     const progressionRef = firestore.collection("progressionEvents").doc(ids.progressionEventId);
-    const [activitySnapshot, summarySnapshot, progressionSnapshot] = await Promise.all([
+    const profileRef = firestore.collection("userProfiles").doc(uid);
+    const [activitySnapshot, summarySnapshot, progressionSnapshot, profileSnapshot] = await Promise.all([
       transaction.get(activityRef),
       transaction.get(summaryRef),
       transaction.get(progressionRef),
+      transaction.get(profileRef),
     ]);
 
     if (activitySnapshot.exists) {
       assertExistingActivityMatchesPayload(activitySnapshot.data(), payloadFingerprint);
     }
+
+    const shouldPersistProgression = !activitySnapshot.exists;
+    const streakTransition = shouldPersistProgression
+      ? calculateStreakTransition(readStreakState(profileSnapshot.data()), payload.completedAt)
+      : undefined;
 
     if (!activitySnapshot.exists) {
       transaction.set(activityRef, {
@@ -91,6 +99,10 @@ export async function completeRunForCallable(
     }
 
     if (!progressionSnapshot.exists) {
+      if (streakTransition === undefined) {
+        throw new HttpsError("already-exists", "Existing run completion progression state is unreadable.");
+      }
+
       transaction.set(progressionRef, {
         ownerUid: uid,
         activityId: ids.activityId,
@@ -102,11 +114,25 @@ export async function completeRunForCallable(
         nextTotalXp: 0,
         previousLevel: null,
         nextLevel: null,
-        previousStreak: null,
-        nextStreak: null,
+        previousStreak: streakTransition.previousStreak,
+        nextStreak: streakTransition.nextStreak,
+        previousStreakRunDate: streakTransition.previousStreakRunDate,
+        nextStreakRunDate: streakTransition.nextStreakRunDate,
         countsTowardLeaderboard: progressionDisplay.countsTowardLeaderboard,
         reason: progressionDisplay.reason,
       });
+    }
+
+    if (streakTransition?.shouldUpdateProfile === true) {
+      transaction.set(
+        profileRef,
+        {
+          streakCount: streakTransition.nextStreak,
+          lastStreakRunDate: streakTransition.nextStreakRunDate,
+          streakUpdatedAt: streakTransition.streakUpdatedAt,
+        },
+        { merge: true },
+      );
     }
   });
 
@@ -173,4 +199,19 @@ function assertExistingActivityMatchesPayload(
   if (activityData["payloadFingerprint"] !== payloadFingerprint) {
     throw new HttpsError("already-exists", "clientRunSessionId already exists with different run data.");
   }
+}
+
+function readStreakState(profileData: FirebaseFirestore.DocumentData | undefined): StreakState {
+  if (profileData === undefined) {
+    return { streakCount: 0, lastStreakRunDate: null };
+  }
+
+  const streakCount = profileData["streakCount"];
+  const lastStreakRunDate = profileData["lastStreakRunDate"];
+  const hasPersistedStreak = typeof streakCount === "number" && Number.isInteger(streakCount) && streakCount > 0;
+
+  return {
+    streakCount: hasPersistedStreak ? streakCount : 0,
+    lastStreakRunDate: hasPersistedStreak && typeof lastStreakRunDate === "string" ? lastStreakRunDate : null,
+  };
 }

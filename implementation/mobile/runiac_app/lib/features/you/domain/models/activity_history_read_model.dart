@@ -32,6 +32,7 @@ class ActivityHistoryItemReadModel {
     this.durationLabel = '',
     this.timeLabel = '',
     this.routeNameLabel = '',
+    this.hasSufficientData = true,
   });
 
   final String activityId;
@@ -44,4 +45,5 @@ class ActivityHistoryItemReadModel {
   final String durationLabel;
   final String timeLabel;
   final String routeNameLabel;
+  final bool hasSufficientData;
 }

@@ -23,6 +23,7 @@ class StaticActivityHistoryRepository implements ActivityHistoryRepository {
                     durationLabel: activity.durationLabel,
                     timeLabel: activity.summary.timeLabel,
                     routeNameLabel: activity.summary.routeName,
+                    hasSufficientData: activity.summary.hasSufficientData,
                   ),
                 )
                 .toList(growable: false),

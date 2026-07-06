@@ -5,7 +5,7 @@
 class UserProgressReadModel {
   const UserProgressReadModel({
     required this.userId,
-    required this.streakLabel,
+    required this.officialStreakLabel,
     required this.levelLabel,
     required this.totalXpLabel,
     required this.weeklyXpLabel,
@@ -15,7 +15,7 @@ class UserProgressReadModel {
   });
 
   final String userId;
-  final String streakLabel;
+  final String officialStreakLabel;
   final String levelLabel;
   final String totalXpLabel;
   final String weeklyXpLabel;

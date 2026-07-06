@@ -34,8 +34,8 @@ class YouProgressSurface extends StatefulWidget {
     required this.onNextMonth,
     required this.onRunSelected,
     required this.onMoreActivities,
+    required this.officialStreakLabel,
     this.today,
-    this.restDayWeekdays = const <int>{},
     super.key,
   });
 
@@ -46,8 +46,8 @@ class YouProgressSurface extends StatefulWidget {
   final VoidCallback onNextMonth;
   final ValueChanged<RunActivityDisplayModel> onRunSelected;
   final VoidCallback onMoreActivities;
+  final String officialStreakLabel;
   final DateTime? today;
-  final Set<int> restDayWeekdays;
 
   @override
   State<YouProgressSurface> createState() => _YouProgressSurfaceState();
@@ -70,11 +70,6 @@ class _YouProgressSurfaceState extends State<YouProgressSurface> {
     );
     final todayDate = DateTime(today.year, today.month, today.day);
     final runDates = _collectRunDates(widget.activityHistoryMonths, todayDate);
-    final streakDays = _computeConsistencyStreak(
-      runDates: runDates,
-      restDayWeekdays: widget.restDayWeekdays,
-      today: todayDate,
-    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -92,7 +87,7 @@ class _YouProgressSurfaceState extends State<YouProgressSurface> {
         const SizedBox(height: 12),
         _MonthlyDistanceSection(summary: selectedSummary, graphData: graphData),
         const SizedBox(height: 10),
-        _StreakSection(streakDays: streakDays),
+        _StreakSection(officialStreakLabel: widget.officialStreakLabel),
         const SizedBox(height: 10),
         _CalendarSection(
           visibleMonth: widget.visibleCalendarMonth,
@@ -127,6 +122,9 @@ Set<DateTime> _collectRunDates(
   final dates = <DateTime>{};
   for (final month in months) {
     for (final activity in month.activities) {
+      if (!activity.summary.hasSufficientData) {
+        continue;
+      }
       final date = _dateFor(activity.summary.dateLabel, today);
       if (date != null) {
         dates.add(date);
@@ -134,48 +132,6 @@ Set<DateTime> _collectRunDates(
     }
   }
   return dates;
-}
-
-/// Walks backwards from [today] counting consecutive days where the user ran
-/// or the plan designated that weekday as a rest day. Requires at least one
-/// actual run in the window; a sequence of only rest days returns 0.
-///
-/// Today is treated as "not yet over" — if the user hasn't run today and today
-/// isn't a rest day, the loop skips today and starts counting from yesterday,
-/// rather than breaking the streak for an in-progress day.
-int _computeConsistencyStreak({
-  required Set<DateTime> runDates,
-  required Set<int> restDayWeekdays,
-  required DateTime today,
-}) {
-  if (runDates.isEmpty) return 0;
-
-  var streak = 0;
-  var passedRun = false;
-  var isFirstDay = true;
-  var date = today;
-
-  while (true) {
-    final ran = runDates.contains(date);
-    final isRestDay = restDayWeekdays.contains(date.weekday);
-
-    if (ran) {
-      passedRun = true;
-      streak++;
-    } else if (isRestDay) {
-      // Protected: rest days keep the streak alive but do not add to the count.
-    } else if (isFirstDay) {
-      // Today hasn't been run yet and isn't a rest day — the day isn't over,
-      // so don't break the streak; just skip today and check from yesterday.
-    } else {
-      break;
-    }
-
-    isFirstDay = false;
-    date = date.subtract(const Duration(days: 1));
-  }
-
-  return passedRun ? streak : 0;
 }
 
 class _WeeklyDistanceGraphData {
@@ -528,15 +484,16 @@ class _SectionDivider extends StatelessWidget {
 }
 
 class _StreakSection extends StatelessWidget {
-  const _StreakSection({required this.streakDays});
+  const _StreakSection({required this.officialStreakLabel});
 
-  final int streakDays;
+  final String officialStreakLabel;
 
   @override
   Widget build(BuildContext context) {
-    final streakValue = '$streakDays ${streakDays == 1 ? 'day' : 'days'}';
-    final streakCopy = streakDays > 0
-        ? 'Planned rest days keep your streak protected.'
+    final hasOfficialStreak = officialStreakLabel.trim().isNotEmpty;
+    final displayLabel = hasOfficialStreak ? officialStreakLabel : 'Pending';
+    final streakCopy = hasOfficialStreak
+        ? 'Backend validated streak.'
         : 'Complete a run to start your streak.';
 
     return _DividerSection(
@@ -548,7 +505,7 @@ class _StreakSection extends StatelessWidget {
             'Consistency Streak',
           ),
           const SizedBox(height: 10),
-          Text(streakValue, style: YouTextStyles.heroNumber),
+          Text(displayLabel, style: YouTextStyles.heroNumber),
           const SizedBox(height: 8),
           Text(streakCopy, style: YouTextStyles.body),
         ],

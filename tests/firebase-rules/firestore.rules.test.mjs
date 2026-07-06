@@ -385,6 +385,9 @@ describe('owner-owned client records', () => {
       weeklyXP: 100,
       monthlyXP: 200,
       streak: 7,
+      streakCount: 7,
+      lastStreakRunDate: '2026-06-14',
+      streakUpdatedAt: 1,
       level: 3,
       rank: 1,
       leaderboardScore: 500,
@@ -414,6 +417,9 @@ describe('owner-owned client records', () => {
         weeklyXP: 0,
         monthlyXP: 0,
         streak: 0,
+        streakCount: 0,
+        lastStreakRunDate: '2026-06-14',
+        streakUpdatedAt: 1,
         level: 1,
         rank: 0,
         leaderboardScore: 0,
@@ -475,6 +481,30 @@ describe('owner-owned client records', () => {
     await assertFails(setDoc(activity, activityDraft));
     await assertFails(updateDoc(activity, { status: 'pending' }));
     await assertFails(updateDoc(activity, { validationStatus: deleteField() }));
+  });
+
+  it('denies client writes to backend-owned streak profile fields', async () => {
+    await seed('userProfiles/alice', {
+      ...profileFields,
+      streakCount: 2,
+      lastStreakRunDate: '2026-06-15',
+      streakUpdatedAt: 1,
+    });
+
+    const profile = doc(dbFor('alice'), 'userProfiles/alice');
+
+    await assertFails(
+      setDoc(profile, {
+        ...profileFields,
+        streakCount: 1,
+        lastStreakRunDate: '2026-06-14',
+        streakUpdatedAt: 1,
+      }),
+    );
+    await assertFails(updateDoc(profile, { streakCount: 3 }));
+    await assertFails(updateDoc(profile, { lastStreakRunDate: '2026-06-16' }));
+    await assertFails(updateDoc(profile, { streakUpdatedAt: 2 }));
+    await assertFails(updateDoc(profile, { streakCount: deleteField() }));
   });
 
   it('activity owner history list supports latest-first bounded queries', async () => {

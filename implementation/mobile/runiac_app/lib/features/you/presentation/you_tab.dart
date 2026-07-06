@@ -10,6 +10,7 @@ import '../../run/domain/models/run_activity_display_model.dart';
 import '../../run/presentation/active_run_session_coordinator.dart';
 import '../../run/presentation/view_summary_screen.dart';
 import '../data/static_activity_history_repository.dart';
+import '../domain/models/user_progress_read_model.dart';
 import '../domain/repositories/activity_history_repository.dart';
 import '../../plan/presentation/current_session_generated_plan.dart';
 import 'activity_history_display_controller.dart';
@@ -26,6 +27,17 @@ import 'widgets/you_header_overlay.dart';
 import 'widgets/you_plans_surface.dart';
 import 'widgets/you_progress_surface.dart';
 import 'widgets/you_segmented_control.dart';
+
+const _staticUserProgressReadModel = UserProgressReadModel(
+  userId: 'static_you_progress',
+  officialStreakLabel: '17 days',
+  levelLabel: 'Level 12',
+  totalXpLabel: '2,520 XP',
+  weeklyXpLabel: '520 XP',
+  monthlyXpLabel: '1,240 XP',
+  weeklyDistanceLabel: '12.4 km',
+  goalProgressLabel: '43%',
+);
 
 class YouTab extends StatefulWidget {
   const YouTab({
@@ -221,8 +233,9 @@ class _YouTabState extends State<YouTab> {
                     onNextMonth: _showNextCalendarMonth,
                     onRunSelected: _showRunSummary,
                     onMoreActivities: _showActivityHistory,
+                    officialStreakLabel:
+                        _staticUserProgressReadModel.officialStreakLabel,
                     today: widget.progressToday,
-                    restDayWeekdays: _restDayWeekdays(generatedPlanDisplay),
                   ),
               ],
             ),
@@ -344,17 +357,6 @@ class _YouTabState extends State<YouTab> {
         ),
       ),
     );
-  }
-
-  Set<int> _restDayWeekdays(GeneratedYouPlanDisplay? plan) {
-    if (plan == null) return const {};
-    final result = <int>{};
-    for (final row in plan.scheduleRows) {
-      if (!row.isRunningSession) {
-        result.add(row.weekdayIndex);
-      }
-    }
-    return result;
   }
 
   void _handleActivityHistoryChanged() {

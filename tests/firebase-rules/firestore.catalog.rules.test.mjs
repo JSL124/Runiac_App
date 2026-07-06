@@ -20,6 +20,15 @@ describe('backend-owned read models and public catalogue records', () => {
       setDoc(doc(alice, 'progressionEvents/event-001'), { ownerUid: 'alice' }),
     );
     await assertFails(
+      setDoc(doc(alice, 'progressionEvents/event-streak-001'), {
+        ownerUid: 'alice',
+        previousStreak: 1,
+        nextStreak: 2,
+        previousStreakRunDate: '2026-06-14',
+        nextStreakRunDate: '2026-06-15',
+      }),
+    );
+    await assertFails(
       setDoc(doc(alice, 'leaderboardSnapshots/weekly-sg'), { rank: 1 }),
     );
     await assertFails(

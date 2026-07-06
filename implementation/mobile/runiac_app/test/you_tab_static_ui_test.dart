@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runiac_app/app.dart';
+import 'package:runiac_app/core/theme/runiac_colors.dart';
 import 'package:runiac_app/features/run/domain/models/advanced_analysis_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/cadence_graph_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/complete_run_result.dart';
@@ -206,6 +207,54 @@ class _WeeklyBoundaryProgressRepository implements ActivityHistoryRepository {
       durationLabel: '22:56',
       timeLabel: '7:20 AM',
       routeNameLabel: 'Weekly Boundary Route',
+    );
+  }
+}
+
+class _OfficialStreakBoundaryRepository implements ActivityHistoryRepository {
+  const _OfficialStreakBoundaryRepository();
+
+  @override
+  Future<ActivityHistoryReadModel> loadActivityHistory() async {
+    final activities = [
+      _activity(
+        id: 'official-boundary-today',
+        title: 'Official Boundary Today',
+        date: '30/6/26',
+      ),
+      _activity(
+        id: 'official-boundary-yesterday',
+        title: 'Official Boundary Yesterday',
+        date: '29/6/26',
+      ),
+    ];
+
+    return ActivityHistoryReadModel(
+      recentRuns: activities.toList(growable: false),
+      months: [
+        ActivityHistoryMonthReadModel(
+          label: 'June 2026',
+          activities: activities,
+        ),
+      ],
+    );
+  }
+
+  ActivityHistoryItemReadModel _activity({
+    required String id,
+    required String title,
+    required String date,
+  }) {
+    return ActivityHistoryItemReadModel(
+      activityId: id,
+      title: title,
+      completedAtLabel: date,
+      distanceLabel: '3.20 km',
+      distanceMeters: 3200,
+      paceLabel: '7’10”',
+      durationLabel: '22:56',
+      timeLabel: '7:20 AM',
+      routeNameLabel: 'Official Boundary Route',
     );
   }
 }
@@ -905,9 +954,9 @@ void main() {
     expect(find.text('82% of weekly goal'), findsNothing);
     expect(find.text('This Week'), findsNothing);
     expect(find.text('Consistency Streak'), findsOneWidget);
-    expect(find.text('6 days'), findsOneWidget);
+    expect(find.text('17 days'), findsOneWidget);
     expect(find.text('Running Calendar'), findsOneWidget);
-    expect(find.text('May 2026'), findsOneWidget);
+    expect(find.text('June 2026'), findsOneWidget);
 
     await tester.drag(find.byType(ListView), const Offset(0, -700));
     await tester.pumpAndSettle();
@@ -1002,6 +1051,78 @@ void main() {
     expect(find.text('Level 12 Runner'), findsNothing);
     expect(find.text('Keep showing up at a comfortable pace.'), findsNothing);
   });
+
+  testWidgets('Running Calendar does not mark low-data-only run days', (
+    WidgetTester tester,
+  ) async {
+    final historyStore = CurrentSessionActivityHistoryStore(
+      now: () => DateTime(2026, 6, 30),
+    );
+    addTearDown(historyStore.dispose);
+
+    await _openYouTab(tester, activityHistoryStore: historyStore);
+
+    historyStore.registerCompletedRun(
+      _sessionCompletion(
+        activityId: 'low-data-calendar-only',
+        title: 'Low Data Calendar Run',
+        distanceKm: '0.08',
+        dateLabel: '29/6/26',
+        hasSufficientData: false,
+      ),
+    );
+    historyStore.registerCompletedRun(
+      _sessionCompletion(
+        activityId: 'sufficient-calendar-run',
+        title: 'Sufficient Calendar Run',
+        distanceKm: '3.20',
+        dateLabel: '28/6/26',
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Running Calendar'), findsOneWidget);
+    expect(_calendarDayTextColor(tester, '28'), RuniacColors.white);
+    expect(_calendarDayTextColor(tester, '29'), isNot(RuniacColors.white));
+
+    await tester.drag(find.byType(ListView), const Offset(0, -700));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('recent_running_card_low-data-calendar-only')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets(
+    'You official streak display uses backend label instead of derived value',
+    (WidgetTester tester) async {
+      // Given: activity history can only derive a 2 day consistency streak,
+      // while the backend-produced official read model should display 17 days.
+      await _openYouTab(
+        tester,
+        activityHistoryRepository: const _OfficialStreakBoundaryRepository(),
+      );
+
+      // When / Then: the official You streak surface must display the
+      // backend-owned label and must not present the UI-derived value as
+      // official progress.
+      expect(find.text('Consistency Streak'), findsOneWidget);
+      expect(
+        find.text('17 days'),
+        findsOneWidget,
+        reason:
+            'Official You streak display must use a backend-produced '
+            'streak label/read model, not activityHistoryMonths/rest days.',
+      );
+      expect(
+        find.text('2 days'),
+        findsNothing,
+        reason:
+            'The UI-derived consistency count may only be fallback/non-official.',
+      );
+    },
+  );
 
   testWidgets(
     'current-session history keeps fallback cap and dedupes by activity id',
@@ -1684,7 +1805,7 @@ void main() {
       expect(find.text('Review your runs at your own pace.'), findsNothing);
       expect(find.text('All years'), findsOneWidget);
       expect(find.text('All months'), findsOneWidget);
-      expect(find.text('Showing your recent activities'), findsOneWidget);
+      expect(find.text('Showing all activities'), findsOneWidget);
 
       for (final label in const ['Home', 'Maps', 'Run', 'Leaderboard', 'You']) {
         expect(find.byTooltip(label), findsOneWidget);
@@ -3605,4 +3726,9 @@ void main() {
 
     await tester.pump(const Duration(milliseconds: 100));
   });
+}
+
+Color? _calendarDayTextColor(WidgetTester tester, String dayLabel) {
+  final text = tester.widget<Text>(find.text(dayLabel));
+  return text.style?.color;
 }

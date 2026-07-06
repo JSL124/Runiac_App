@@ -160,6 +160,7 @@ class ActivityHistoryDisplayController extends ChangeNotifier {
         avgHeartRate: '--',
         calories: '--',
         routeName: routeName,
+        hasSufficientData: item.hasSufficientData,
       ),
     );
   }

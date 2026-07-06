@@ -201,6 +201,7 @@ class FirestoreActivityHistoryRepository implements ActivityHistoryRepository {
         durationLabel: scalar.duration,
         timeLabel: scalar.timeLabel,
         routeNameLabel: scalar.routeName,
+        hasSufficientData: scalar.hasSufficientData,
       ),
     );
   }
