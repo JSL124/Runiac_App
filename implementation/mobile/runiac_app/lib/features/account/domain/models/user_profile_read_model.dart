@@ -71,4 +71,9 @@ class UserProfileManageRowReadModel {
   final UserProfileManageAction action;
 }
 
-enum UserProfileManageAction { snackBar, editProfile, watchHealthApps }
+enum UserProfileManageAction {
+  snackBar,
+  editProfile,
+  notifications,
+  watchHealthApps,
+}

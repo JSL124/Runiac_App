@@ -43,6 +43,10 @@ is_historical_complete_run_functions_path() {
     functions/src/progression/planBoundedStreakState.ts|\
     functions/src/progression/progressionEventWriter.ts|\
     functions/src/progression/streakCalculator.ts|\
+    functions/src/plan/adaptiveEstimate.ts|\
+    functions/src/plan/planProgress.ts|\
+    functions/src/plan/planProgressParsing.ts|\
+    functions/src/plan/planProgressSnapshot.ts|\
     functions/test/completeRun.test.ts|\
     functions/test/completeRunZeroMetrics.test.ts|\
     functions/test/completeRunCallableSurface.test.ts)
@@ -91,7 +95,7 @@ is_forbidden_config_or_secret() {
     firebase/functions/*|firebase/functions/src/*)
       return 0
       ;;
-    functions/.gitignore|functions/package-lock.json|functions/package.json|functions/tsconfig.json|functions/src/index.ts|functions/src/run/completeRun.ts|functions/src/run/runCompletionTypes.ts|functions/src/run/validateCadenceAnalysisSeries.ts|functions/src/run/validateRunPayload.ts|functions/src/run/validateRunScalarFields.ts|functions/src/progression/planBoundedStreakState.ts|functions/src/progression/progressionEventWriter.ts|functions/src/progression/streakCalculator.ts|functions/test/completeRun.test.ts|functions/test/completeRunZeroMetrics.test.ts|functions/test/completeRunCallableSurface.test.ts)
+    functions/.gitignore|functions/package-lock.json|functions/package.json|functions/tsconfig.json|functions/src/index.ts|functions/src/run/completeRun.ts|functions/src/run/runCompletionTypes.ts|functions/src/run/validateCadenceAnalysisSeries.ts|functions/src/run/validateRunPayload.ts|functions/src/run/validateRunScalarFields.ts|functions/src/progression/planBoundedStreakState.ts|functions/src/progression/progressionEventWriter.ts|functions/src/progression/streakCalculator.ts|functions/src/plan/adaptiveEstimate.ts|functions/src/plan/planProgress.ts|functions/src/plan/planProgressParsing.ts|functions/src/plan/planProgressSnapshot.ts|functions/test/completeRun.test.ts|functions/test/completeRunZeroMetrics.test.ts|functions/test/completeRunCallableSurface.test.ts)
       if is_historical_complete_run_functions_path "$1"; then
         return 1
       fi

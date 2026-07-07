@@ -360,7 +360,6 @@ void main() {
     for (final row in <(String, String)>[
       ('Settings', 'Settings preview is coming soon.'),
       ('Privacy & Safety', 'Privacy & Safety preview is coming soon.'),
-      ('Notifications', 'Notification preferences preview is coming soon.'),
       ('About Runiac', 'About Runiac preview is coming soon.'),
     ]) {
       await tester.scrollUntilVisible(

@@ -5,6 +5,7 @@ import '../../../../core/widgets/runiac_buttons.dart';
 import '../../../auth/domain/runiac_auth_service.dart';
 import '../../domain/models/user_profile_read_model.dart';
 import '../data/account_profile_demo_snapshots.dart';
+import '../notification_center_screen.dart';
 import '../watch_health_apps_screen.dart';
 import 'account_sign_out_row.dart';
 
@@ -157,6 +158,14 @@ class _ManageRow extends StatelessWidget {
           Navigator.of(context).push(
             MaterialPageRoute<void>(
               builder: (_) => const WatchHealthAppsScreen(),
+            ),
+          );
+          return;
+        }
+        if (row.action == UserProfileManageAction.notifications) {
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => const NotificationCenterScreen(),
             ),
           );
           return;

@@ -62,6 +62,7 @@ const accountProfileDemoSnapshot = AccountProfileDemoSnapshot(
       title: 'Notifications',
       subtitle: 'Gentle running nudges and reminders',
       snackBarMessage: 'Notification preferences preview is coming soon.',
+      action: UserProfileManageAction.notifications,
     ),
     AccountProfileManageRow(
       icon: Icons.watch_outlined,

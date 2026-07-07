@@ -148,6 +148,7 @@ class FirestoreUserProfileRepository implements UserProfileRepository {
           title: 'Notifications',
           subtitle: 'Gentle running nudges and reminders',
           snackBarMessage: 'Notification preferences preview is coming soon.',
+          action: UserProfileManageAction.notifications,
         ),
         UserProfileManageRowReadModel(
           title: 'Watch & Health Apps',
