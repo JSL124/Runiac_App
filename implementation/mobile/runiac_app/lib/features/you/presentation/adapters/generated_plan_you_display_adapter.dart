@@ -193,8 +193,7 @@ GeneratedYouPlanDisplay? generatedYouPlanDisplayFromSnapshot(
     weeklyTitle: snapshot.title,
     subtitle: snapshot.subtitle,
     progressLabel:
-        progress?.label ??
-        'Week ${currentWeek.weekNumber} of ${snapshot.weeks.length}',
+        '${currentWeek.weekNumber} of ${snapshot.weeks.length} weeks',
     progressValue: progress?.value ?? 0,
     scheduleRows: _weeklyScheduleRowsFor(
       currentWeek,
@@ -224,29 +223,20 @@ _GeneratedPlanProgressSummary? _generatedPlanProgressFor(
         ),
   };
   if (plannedWorkoutIds.isEmpty) {
-    return const _GeneratedPlanProgressSummary(
-      label: '0 of 0 planned runs complete',
-      value: 0,
-    );
+    return const _GeneratedPlanProgressSummary(value: 0);
   }
 
   final completedCount = plannedWorkoutIds
       .where(planProgress.isCompleted)
       .length;
   return _GeneratedPlanProgressSummary(
-    label:
-        '$completedCount of ${plannedWorkoutIds.length} planned runs complete',
     value: completedCount / plannedWorkoutIds.length,
   );
 }
 
 class _GeneratedPlanProgressSummary {
-  const _GeneratedPlanProgressSummary({
-    required this.label,
-    required this.value,
-  });
+  const _GeneratedPlanProgressSummary({required this.value});
 
-  final String label;
   final double value;
 }
 

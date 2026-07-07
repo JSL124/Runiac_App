@@ -574,7 +574,7 @@ void main() {
     );
 
     // Then: the header reports the active week position, not workout count.
-    expect(find.text('Week 3 of ${plan.weeks.length}'), findsOneWidget);
+    expect(find.text('3 of ${plan.weeks.length} weeks'), findsOneWidget);
     expect(find.textContaining(' done'), findsNothing);
   });
 
@@ -645,7 +645,7 @@ void main() {
 
       // Then: progress is based only on generated plan running sessions.
       expect(display, isNotNull);
-      expect(display!.progressLabel, '1 of 4 planned runs complete');
+      expect(display!.progressLabel, '1 of ${plan.weeks.length} weeks');
       expect(display.progressValue, 0.25);
     },
   );
@@ -668,7 +668,7 @@ void main() {
 
       // Then: duplicate ids do not inflate the generated-plan progress.
       expect(display, isNotNull);
-      expect(display!.progressLabel, '1 of 4 planned runs complete');
+      expect(display!.progressLabel, '1 of ${plan.weeks.length} weeks');
       expect(display.progressValue, 0.25);
 
       // And: safety-readiness plans still never expose generated progress.

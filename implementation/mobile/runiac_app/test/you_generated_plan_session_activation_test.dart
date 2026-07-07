@@ -126,7 +126,8 @@ void main() {
     'You Plans shows generated onboarding plan before static fallback',
     (WidgetTester tester) async {
       final generatedPlanStore = CurrentSessionGeneratedPlanStore();
-      expect(generatedPlanStore.setActivePlan(_tenKPerformancePlan()), isTrue);
+      final plan = _tenKPerformancePlan();
+      expect(generatedPlanStore.setActivePlan(plan), isTrue);
 
       await _openYouPlansTab(tester, generatedPlanStore);
 
@@ -140,7 +141,7 @@ void main() {
         ),
         findsOneWidget,
       );
-      expect(find.textContaining('Week 1 of'), findsOneWidget);
+      expect(find.text('1 of ${plan.weeks.length} weeks'), findsOneWidget);
       expect(find.textContaining(' done'), findsNothing);
       expect(find.text('2 of 3 done'), findsNothing);
       expect(find.text('Week 3 of 8'), findsNothing);
@@ -319,7 +320,8 @@ void main() {
     WidgetTester tester,
   ) async {
     final generatedPlanStore = CurrentSessionGeneratedPlanStore();
-    expect(generatedPlanStore.setActivePlan(_tenKPerformancePlan()), isTrue);
+    final plan = _tenKPerformancePlan();
+    expect(generatedPlanStore.setActivePlan(plan), isTrue);
 
     await _openYouPlansTab(tester, generatedPlanStore);
 
@@ -332,7 +334,7 @@ void main() {
 
     expect(find.text('Workout detail'), findsNothing);
     expect(find.text('10K Performance Build'), findsOneWidget);
-    expect(find.textContaining('Week 1 of'), findsOneWidget);
+    expect(find.text('1 of ${plan.weeks.length} weeks'), findsOneWidget);
   });
 
   testWidgets('You Plans keeps static fallback when no generated plan exists', (
@@ -360,7 +362,7 @@ void main() {
 
     expect(find.text('Current Goal'), findsNothing);
     expect(find.text('Return to Movement'), findsOneWidget);
-    expect(find.textContaining('Week 1 of'), findsOneWidget);
+    expect(find.text('1 of ${starterPlan.weeks.length} weeks'), findsOneWidget);
     expect(find.textContaining('min Easy Walk'), findsNWidgets(3));
     expect(find.text('10K Base Builder'), findsNothing);
     expect(find.text('15 min walk-run'), findsNothing);
@@ -387,7 +389,10 @@ void main() {
         find.text('A gentle restart plan focused on comfort and consistency.'),
         findsOneWidget,
       );
-      expect(find.textContaining('Week 1 of'), findsOneWidget);
+      expect(
+        find.text('1 of ${recoveryPlan.weeks.length} weeks'),
+        findsOneWidget,
+      );
       expect(find.text('20 min Easy Walk'), findsNWidgets(3));
       expect(find.text('10K Performance Build'), findsNothing);
     },

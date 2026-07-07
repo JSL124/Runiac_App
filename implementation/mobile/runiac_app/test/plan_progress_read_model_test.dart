@@ -166,7 +166,7 @@ void main() {
 
       // Then: the generated snapshot renders with backend-owned completion.
       expect(find.text('10K Performance Build'), findsOneWidget);
-      expect(find.text('1 of 4 planned runs complete'), findsOneWidget);
+      expect(find.text('1 of ${plan.weeks.length} weeks'), findsOneWidget);
       expect(find.text('Completed'), findsOneWidget);
     },
   );
@@ -259,15 +259,16 @@ void main() {
     );
 
     // When: the existing generated-plan adapter receives the merged display.
+    final plan = _tenKPerformancePlan();
     final display = generatedYouPlanDisplayFromSnapshot(
-      _tenKPerformancePlan(),
+      plan,
       currentDate: _weekdayDate(DateTime.tuesday),
       planProgress: progress,
     );
 
     // Then: both completions count once against the generated snapshot.
     expect(display, isNotNull);
-    expect(display!.progressLabel, '2 of 4 planned runs complete');
+    expect(display!.progressLabel, '1 of ${plan.weeks.length} weeks');
     expect(display.progressValue, 0.5);
   });
 }
