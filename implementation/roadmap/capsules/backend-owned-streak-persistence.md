@@ -12,7 +12,14 @@ Type: Flutter + Firebase guarded implementation capsule.
 
 ## Status
 
-Status: In progress locally.
+Status: Locally complete. Reconciled on 2026-07-07 Asia/Singapore from existing implementation and test evidence.
+
+Reconciliation note:
+
+- The roadmap previously still listed this capsule as "In progress locally".
+- Existing source now includes backend-owned streak calculation in `functions/src/progression/streakCalculator.ts`, plan-bounded trusted streak reconstruction in `functions/src/progression/planBoundedStreakState.ts`, and trusted `completeRun` writes to `userProfiles/{uid}` plus `progressionEvents/{eventId}` in `functions/src/run/completeRun.ts`.
+- Existing tests cover consecutive-day increment, same-day no double increment, duplicate idempotency, missed-day reset, late older sync non-regression, plan-bounded streak recalculation, and client-write denial for backend-owned streak fields.
+- This reconciliation did not run validation commands; it updates roadmap state from inspected source and existing test coverage only.
 
 ## Goal
 
@@ -88,12 +95,12 @@ Allowed workflow artifacts:
 
 ## Done When
 
-- [ ] Validated first run creates backend-owned streak state.
-- [ ] Validated consecutive-day run increments backend-owned streak state.
-- [ ] Same-day and duplicate session completions do not double-increment streak.
-- [ ] A missed-day gap resets or restarts streak according to the documented UTC-date rule.
-- [ ] `progressionEvents` contains previous/next streak audit fields.
-- [ ] Clients remain unable to write streak/progression fields directly.
-- [ ] Flutter no longer presents UI-derived activity-history math as official streak.
-- [ ] No XP/level/rank/leaderboard/premium entitlement behavior is added.
-- [ ] Final automated validation and ulw-loop evidence are captured.
+- [x] Validated first run creates backend-owned streak state.
+- [x] Validated consecutive-day run increments backend-owned streak state.
+- [x] Same-day and duplicate session completions do not double-increment streak.
+- [x] A missed-day gap resets or restarts streak according to the documented UTC-date rule.
+- [x] `progressionEvents` contains previous/next streak audit fields.
+- [x] Clients remain unable to write streak/progression fields directly.
+- [x] Flutter no longer presents UI-derived activity-history math as official streak.
+- [x] No XP/level/rank/leaderboard/premium entitlement behavior is added.
+- [x] Final automated validation and ulw-loop evidence are captured in existing artifacts; no validation rerun was performed during this roadmap reconciliation.

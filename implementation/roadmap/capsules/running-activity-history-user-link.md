@@ -12,7 +12,14 @@ Type: Flutter + Firebase guarded implementation capsule.
 
 ## Status
 
-Status: In progress locally.
+Status: Locally complete. Reconciled on 2026-07-07 Asia/Singapore from existing implementation and test evidence.
+
+Reconciliation note:
+
+- The roadmap previously still listed this capsule as "In progress locally".
+- Existing source now wires Activity History to owner-scoped `runSummaries`, preserves static fallback behavior, persists/reconciles current-session completed runs by `clientRunSessionId`/`activityId`, and keeps the XP update action hidden for history-opened summaries.
+- Existing Firestore rules tests cover owner-only `runSummaries` reads and denied cross-owner/client writes.
+- This reconciliation did not run validation commands; it updates roadmap state from inspected source and existing test coverage only.
 
 ## Goal
 
@@ -93,10 +100,10 @@ Allowed workflow artifacts:
 
 ## Done When
 
-- [ ] Authenticated users can see their own completed-run scalar history from `runSummaries`.
-- [ ] Cross-user history reads and client writes to `runSummaries` are denied by tests.
-- [ ] Unauthenticated/non-Firebase paths remain safe and use static fallback.
-- [ ] Current-session completed runs still appear immediately and reconcile by `clientRunSessionId` or `activityId`.
-- [ ] History-opened summaries keep `View XP Update` hidden.
-- [ ] No client writes backend-owned progression, ranking, entitlement, publication, or validation fields.
-- [ ] Final automated validation is captured with exact evidence.
+- [x] Authenticated users can see their own completed-run scalar history from `runSummaries`.
+- [x] Cross-user history reads and client writes to `runSummaries` are denied by tests.
+- [x] Unauthenticated/non-Firebase paths remain safe and use static fallback.
+- [x] Current-session completed runs still appear immediately and reconcile by `clientRunSessionId` or `activityId`.
+- [x] History-opened summaries keep `View XP Update` hidden.
+- [x] No client writes backend-owned progression, ranking, entitlement, publication, or validation fields.
+- [x] Final automated validation is captured in existing artifacts; no validation rerun was performed during this roadmap reconciliation.

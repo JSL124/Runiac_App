@@ -12,7 +12,14 @@ Type: Flutter + Firebase guarded implementation capsule.
 
 ## Status
 
-Status: In progress locally.
+Status: Locally complete. Reconciled on 2026-07-07 Asia/Singapore from existing implementation and test evidence.
+
+Reconciliation note:
+
+- The roadmap previously still listed this capsule as "In progress locally".
+- Existing source now carries `durationSeconds`, `activeDurationSeconds`, `elapsedWallSeconds`, and `pausedDurationSeconds` through the Flutter completion payload, request adapter, Cloud Functions validation, `activities`, and `runSummaries`.
+- Existing Functions and Flutter tests cover paused-run acceptance, malformed duration rejection, callable HTTP surface persistence, active-duration summary semantics, and legacy duration compatibility.
+- This reconciliation did not run validation commands; it updates roadmap state from inspected source and existing test coverage only.
 
 ## Goal
 
@@ -82,11 +89,11 @@ Allowed workflow artifacts:
 
 ## Done When
 
-- [ ] A paused/rested run with active duration smaller than wall-clock elapsed duration is accepted by `completeRun`.
-- [ ] Malformed duration payloads are rejected before any Firestore write.
-- [ ] Firestore emulator activity and summary documents contain `durationSeconds`, `activeDurationSeconds`, `elapsedWallSeconds`, and `pausedDurationSeconds`.
-- [ ] Existing display duration and pace remain active-duration based.
-- [ ] Existing readers/tests remain compatible with old `durationSeconds`-only records or responses.
-- [ ] No client writes backend-owned progression, ranking, entitlement, publication, or validation contribution fields.
-- [ ] Route trace/private GPS sample persistence remains rejected/not persisted.
-- [ ] Final automated validation is captured with exact evidence.
+- [x] A paused/rested run with active duration smaller than wall-clock elapsed duration is accepted by `completeRun`.
+- [x] Malformed duration payloads are rejected before any Firestore write.
+- [x] Firestore emulator activity and summary documents contain `durationSeconds`, `activeDurationSeconds`, `elapsedWallSeconds`, and `pausedDurationSeconds`.
+- [x] Existing display duration and pace remain active-duration based.
+- [x] Existing readers/tests remain compatible with old `durationSeconds`-only records or responses.
+- [x] No client writes backend-owned progression, ranking, entitlement, publication, or validation contribution fields.
+- [x] Route trace/private GPS sample persistence remains rejected/not persisted.
+- [x] Final automated validation is captured in existing artifacts; no validation rerun was performed during this roadmap reconciliation.
