@@ -17,6 +17,7 @@ import {
 } from 'firebase/firestore';
 
 import {
+  adaptivePlanEstimateReadModel,
   activityDraft,
   dbFor,
   generatedPlanDocument,
@@ -343,6 +344,44 @@ describe('owner-owned client records', () => {
     await seed('planProgress/alice', planProgressReadModel);
     await assertFails(updateDoc(aliceProgress, { completedWorkoutCount: 2 }));
     await assertFails(deleteDoc(aliceProgress));
+  });
+
+  it('allows only the owner to read backend-owned adaptive plan estimates', async () => {
+    await seed('adaptivePlanEstimates/alice', adaptivePlanEstimateReadModel);
+
+    const aliceEstimate = await assertSucceeds(
+      getDoc(doc(dbFor('alice'), 'adaptivePlanEstimates/alice')),
+    );
+    assert.equal(aliceEstimate.data().ownerUid, 'alice');
+
+    await assertFails(getDoc(doc(dbFor('bob'), 'adaptivePlanEstimates/alice')));
+  });
+
+  it('denies all client writes to backend-owned adaptive plan estimates', async () => {
+    const aliceEstimate = doc(dbFor('alice'), 'adaptivePlanEstimates/alice');
+
+    await assertFails(setDoc(aliceEstimate, adaptivePlanEstimateReadModel));
+    await assertFails(
+      setDoc(aliceEstimate, {
+        ownerUid: 'alice',
+        completedRunCount: 1,
+        averageRecentPaceSecondsPerKm: 500,
+        readinessBand: 'building',
+        latestAcceptedActivityId: 'activity-client-write',
+        source: 'client',
+        updatedAt: 22,
+      }),
+    );
+
+    await seed('adaptivePlanEstimates/alice', adaptivePlanEstimateReadModel);
+    await assertFails(updateDoc(aliceEstimate, { completedRunCount: 2 }));
+    await assertFails(
+      updateDoc(aliceEstimate, {
+        averageRecentPaceSecondsPerKm: 480,
+        readinessBand: 'ready',
+      }),
+    );
+    await assertFails(deleteDoc(aliceEstimate));
   });
 
   it('requires a matching owner nickname claim before profile nickname writes', async () => {

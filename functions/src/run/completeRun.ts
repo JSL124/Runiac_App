@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
+import { persistAdaptiveEstimateLearning } from "../plan/adaptiveEstimate.js";
 import { persistCompletedWorkoutProgress } from "../plan/planProgress.js";
 import { deferredProgressionDisplay } from "../progression/progressionEventWriter.js";
 import { readTrustedStreakState } from "../progression/planBoundedStreakState.js";
@@ -43,6 +44,7 @@ export async function completeRunForCallable(
     const profileRef = firestore.collection("userProfiles").doc(uid);
     const generatedPlanRef = firestore.collection("generatedPlans").doc(uid);
     const planProgressRef = firestore.collection("planProgress").doc(uid);
+    const adaptiveEstimateRef = firestore.collection("adaptivePlanEstimates").doc(uid);
     const activitiesQuery = firestore.collection("activities").where("ownerUid", "==", uid);
     const [
       activitySnapshot,
@@ -51,6 +53,7 @@ export async function completeRunForCallable(
       profileSnapshot,
       generatedPlanSnapshot,
       planProgressSnapshot,
+      adaptiveEstimateSnapshot,
       activitySnapshots,
     ] = await Promise.all([
         transaction.get(activityRef),
@@ -59,6 +62,7 @@ export async function completeRunForCallable(
         transaction.get(profileRef),
         transaction.get(generatedPlanRef),
         transaction.get(planProgressRef),
+        transaction.get(adaptiveEstimateRef),
         transaction.get(activitiesQuery),
       ]);
 
@@ -164,6 +168,14 @@ export async function completeRunForCallable(
         payload,
         generatedPlanData: generatedPlanSnapshot.data(),
         progressData: planProgressSnapshot.data(),
+      });
+      persistAdaptiveEstimateLearning({
+        transaction,
+        estimateRef: adaptiveEstimateRef,
+        uid,
+        ids,
+        payload,
+        estimateData: adaptiveEstimateSnapshot.data(),
       });
     }
   });

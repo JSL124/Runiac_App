@@ -45,6 +45,7 @@ beforeEach(async () => {
     "userProfiles",
     "generatedPlans",
     "planProgress",
+    "adaptivePlanEstimates",
   ]);
 });
 
@@ -283,6 +284,161 @@ describe("completeRun callable boundary", () => {
     assert.equal(await countDocuments("activities"), 2);
     assert.equal(await countDocuments("runSummaries"), 2);
     assert.equal(await countDocuments("progressionEvents"), 2);
+  });
+
+  it("creates and updates backend-owned adaptive plan estimates for valid runs", async () => {
+    const firstResult = await callCompleteRun({
+      auth: { uid: USER_UID },
+      data: {
+        ...validPayload(),
+        clientRunSessionId: "adaptive-estimate-first-valid-run",
+      },
+    });
+
+    const firstEstimate = await firestore.doc(`adaptivePlanEstimates/${USER_UID}`).get();
+
+    assert.equal(firstEstimate.exists, true);
+    assert.equal(firstEstimate.get("ownerUid"), USER_UID);
+    assert.equal(firstEstimate.get("latestActivityId"), firstResult.activityId);
+    assert.equal(firstEstimate.get("completedRunCount"), 1);
+    assert.equal(firstEstimate.get("lastRunCompletedAt"), "2026-06-14T09:25:00.000Z");
+    assert.equal(firstEstimate.get("lastRunDistanceMeters"), 3200);
+    assert.equal(firstEstimate.get("lastRunDurationSeconds"), 1500);
+    assert.equal(firstEstimate.get("averageRecentPaceSecondsPerKm"), 469);
+    assert.equal(firstEstimate.get("readinessBand"), "learning");
+    assert.equal(firstEstimate.get("source"), "completeRun");
+    assert.equal(firstEstimate.get("updatedAt"), "2026-06-14T09:25:00.000Z");
+
+    const secondResult = await callCompleteRun({
+      auth: { uid: USER_UID },
+      data: runPayloadForSession({
+        clientRunSessionId: "adaptive-estimate-second-valid-run",
+        startedAt: "2026-06-16T09:00:00.000Z",
+        completedAt: "2026-06-16T09:27:21.000Z",
+        durationSeconds: 1641,
+        distanceMeters: 3500,
+        avgPaceSecondsPerKm: 469,
+      }),
+    });
+
+    const updatedEstimate = await firestore.doc(`adaptivePlanEstimates/${USER_UID}`).get();
+
+    assert.equal(updatedEstimate.get("ownerUid"), USER_UID);
+    assert.equal(updatedEstimate.get("latestActivityId"), secondResult.activityId);
+    assert.notEqual(updatedEstimate.get("latestActivityId"), firstResult.activityId);
+    assert.equal(updatedEstimate.get("completedRunCount"), 2);
+    assert.equal(updatedEstimate.get("lastRunCompletedAt"), "2026-06-16T09:27:21.000Z");
+    assert.equal(updatedEstimate.get("lastRunDistanceMeters"), 3500);
+    assert.equal(updatedEstimate.get("lastRunDurationSeconds"), 1641);
+    assert.equal(updatedEstimate.get("averageRecentPaceSecondsPerKm"), 469);
+    assert.equal(updatedEstimate.get("readinessBand"), "learning");
+    assert.equal(updatedEstimate.get("source"), "completeRun");
+    assert.equal(updatedEstimate.get("updatedAt"), "2026-06-16T09:27:21.000Z");
+  });
+
+  it("does not double count adaptive estimate learning for duplicate clientRunSessionId values", async () => {
+    const payload = runPayloadForSession({
+      clientRunSessionId: "adaptive-estimate-duplicate-session",
+      startedAt: "2026-06-14T09:00:00.000Z",
+      completedAt: "2026-06-14T09:25:00.000Z",
+    });
+
+    const firstResult = await callCompleteRun({ auth: { uid: USER_UID }, data: payload });
+    const secondResult = await callCompleteRun({ auth: { uid: USER_UID }, data: payload });
+
+    const estimate = await firestore.doc(`adaptivePlanEstimates/${USER_UID}`).get();
+
+    assert.deepEqual(secondResult, firstResult);
+    assert.equal(estimate.exists, true);
+    assert.equal(estimate.get("latestActivityId"), firstResult.activityId);
+    assert.equal(estimate.get("completedRunCount"), 1);
+    assert.equal(estimate.get("lastRunCompletedAt"), "2026-06-14T09:25:00.000Z");
+    assert.equal(estimate.get("lastRunDistanceMeters"), 3200);
+    assert.equal(estimate.get("lastRunDurationSeconds"), 1500);
+    assert.equal(estimate.get("averageRecentPaceSecondsPerKm"), 469);
+    assert.equal(estimate.get("readinessBand"), "learning");
+    assert.equal(estimate.get("source"), "completeRun");
+    assert.equal(estimate.get("updatedAt"), "2026-06-14T09:25:00.000Z");
+  });
+
+  it("keeps confirmed low-data adaptive estimates conservative without a positive pace estimate", async () => {
+    const result = await callCompleteRun({
+      auth: { uid: USER_UID },
+      data: {
+        ...lowDataPayload(),
+        clientRunSessionId: "adaptive-estimate-confirmed-low-data",
+        userConfirmedLowDataSave: true,
+      },
+    });
+
+    const estimate = await firestore.doc(`adaptivePlanEstimates/${USER_UID}`).get();
+
+    assert.equal(estimate.exists, true);
+    assert.equal(estimate.get("ownerUid"), USER_UID);
+    assert.equal(estimate.get("latestActivityId"), result.activityId);
+    assert.equal(estimate.get("completedRunCount"), 1);
+    assert.equal(estimate.get("lastRunCompletedAt"), "2026-06-14T09:00:02.000Z");
+    assert.equal(estimate.get("lastRunDistanceMeters"), 0);
+    assert.equal(estimate.get("lastRunDurationSeconds"), 2);
+    assert.equal(estimate.get("averageRecentPaceSecondsPerKm"), 0);
+    assert.equal(estimate.get("readinessBand"), "conservative");
+    assert.equal(estimate.get("source"), "completeRun");
+    assert.equal(estimate.get("updatedAt"), "2026-06-14T09:00:02.000Z");
+  });
+
+  it("does not let low-data adaptive estimates dilute the next positive pace estimate", async () => {
+    await callCompleteRun({
+      auth: { uid: USER_UID },
+      data: {
+        ...lowDataPayload(),
+        clientRunSessionId: "adaptive-estimate-low-data-before-positive-run",
+        userConfirmedLowDataSave: true,
+      },
+    });
+
+    const result = await callCompleteRun({
+      auth: { uid: USER_UID },
+      data: {
+        ...validPayload(),
+        clientRunSessionId: "adaptive-estimate-positive-run-after-low-data",
+      },
+    });
+
+    const estimate = await firestore.doc(`adaptivePlanEstimates/${USER_UID}`).get();
+
+    assert.equal(estimate.exists, true);
+    assert.equal(estimate.get("latestActivityId"), result.activityId);
+    assert.equal(estimate.get("completedRunCount"), 2);
+    assert.equal(estimate.get("averageRecentPaceSecondsPerKm"), 469);
+    assert.equal(estimate.get("readinessBand"), "learning");
+  });
+
+  it("does not let low-data adaptive estimates erase an existing positive pace estimate", async () => {
+    await callCompleteRun({
+      auth: { uid: USER_UID },
+      data: {
+        ...validPayload(),
+        clientRunSessionId: "adaptive-estimate-positive-run-before-low-data",
+      },
+    });
+
+    const result = await callCompleteRun({
+      auth: { uid: USER_UID },
+      data: {
+        ...lowDataPayload(),
+        clientRunSessionId: "adaptive-estimate-low-data-after-positive-run",
+        userConfirmedLowDataSave: true,
+      },
+    });
+
+    const estimate = await firestore.doc(`adaptivePlanEstimates/${USER_UID}`).get();
+
+    assert.equal(estimate.exists, true);
+    assert.equal(estimate.get("latestActivityId"), result.activityId);
+    assert.equal(estimate.get("completedRunCount"), 2);
+    assert.equal(estimate.get("averageRecentPaceSecondsPerKm"), 469);
+    assert.equal(estimate.get("positivePaceRunCount"), 1);
+    assert.equal(estimate.get("readinessBand"), "conservative");
   });
 
   it("persists backend-owned streak state and progression audit for consecutive run days", async () => {

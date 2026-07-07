@@ -156,6 +156,21 @@ export const planProgressReadModel = {
   updatedAt: 2,
 };
 
+export const adaptivePlanEstimateReadModel = {
+  ownerUid: 'alice',
+  latestAcceptedActivityId: 'activity-alice-001',
+  latestClientRunSessionId: 'session-alice-001',
+  completedRunCount: 1,
+  lastRunStartedAt: 10,
+  lastRunEndedAt: 20,
+  lastRunDistanceMeters: 1200,
+  lastRunDurationSeconds: 600,
+  averageRecentPaceSecondsPerKm: 500,
+  readinessBand: 'building',
+  source: 'completeRun',
+  updatedAt: 21,
+};
+
 before(async () => {
   const rules = readFileSync(RULES_PATH, 'utf8');
 
