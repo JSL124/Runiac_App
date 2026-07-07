@@ -1,3 +1,5 @@
+import '../../../run/domain/models/cadence_analysis_series.dart';
+
 class ActivityHistoryReadModel {
   ActivityHistoryReadModel({
     required List<ActivityHistoryItemReadModel> recentRuns,
@@ -33,6 +35,7 @@ class ActivityHistoryItemReadModel {
     this.timeLabel = '',
     this.routeNameLabel = '',
     this.hasSufficientData = true,
+    this.cadenceAnalysisSeries,
   });
 
   final String activityId;
@@ -46,4 +49,5 @@ class ActivityHistoryItemReadModel {
   final String timeLabel;
   final String routeNameLabel;
   final bool hasSufficientData;
+  final CadenceAnalysisSeries? cadenceAnalysisSeries;
 }

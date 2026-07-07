@@ -7,7 +7,9 @@ import '../auth/domain/runiac_auth_service.dart';
 import '../home/presentation/home_tab.dart';
 import '../leaderboard/presentation/leaderboard_tab.dart';
 import '../maps/presentation/maps_tab.dart';
+import '../plan/domain/models/beginner_adaptive_plan_snapshot.dart';
 import '../plan/domain/repositories/generated_plan_persistence_repository.dart';
+import '../plan/domain/models/plan_progress_read_model.dart';
 import '../plan/presentation/current_session_generated_plan.dart';
 import '../run/domain/models/run_location_sample.dart';
 import '../run/presentation/active_run_session_coordinator.dart';
@@ -18,6 +20,7 @@ import '../you/data/static_activity_history_repository.dart';
 import '../you/domain/repositories/activity_history_repository.dart';
 import '../you/domain/repositories/user_progress_repository.dart';
 import '../you/presentation/adapters/generated_plan_you_display_adapter.dart';
+import '../you/presentation/current_session_activity_history.dart';
 import '../you/presentation/you_tab.dart';
 
 class RuniacShell extends StatefulWidget {
@@ -29,6 +32,7 @@ class RuniacShell extends StatefulWidget {
     required this.profilePersistenceRepository,
     this.generatedPlanPersistenceRepository =
         const NoopGeneratedPlanPersistenceRepository(),
+    this.planProgress,
     super.key,
     this.enableForegroundGps = true,
     this.activeRunSessionCoordinator,
@@ -42,6 +46,7 @@ class RuniacShell extends StatefulWidget {
   final UserProfileRepository profileRepository;
   final UserProfilePersistenceRepository profilePersistenceRepository;
   final GeneratedPlanPersistenceRepository generatedPlanPersistenceRepository;
+  final PlanProgressReadModel? planProgress;
   final bool enableForegroundGps;
   final ActiveRunSessionCoordinator? activeRunSessionCoordinator;
   final RunOpenIntent? initialRunOpenIntent;
@@ -197,13 +202,16 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
     final activeGeneratedPlan = CurrentSessionGeneratedPlanScope.of(
       context,
     ).activePlan;
+    final generatedPlanProgress = _generatedPlanProgress(activeGeneratedPlan);
     final todayWorkoutDetail = todayGeneratedWorkoutDetailFromSnapshot(
       activeGeneratedPlan,
       currentDate: widget.youProgressToday,
+      planProgress: generatedPlanProgress,
     );
     final todayPlannedRunContext = todayPlannedRunContextFromSnapshot(
       activeGeneratedPlan,
       currentDate: widget.youProgressToday,
+      planProgress: generatedPlanProgress,
     );
     final tabs = [
       HomeTab(
@@ -229,6 +237,7 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
         enableForegroundGps: widget.enableForegroundGps,
         activeRunSessionCoordinator: _activeRunSessionCoordinator,
         progressToday: widget.youProgressToday,
+        generatedPlanProgress: generatedPlanProgress,
       ),
     ];
 
@@ -294,6 +303,25 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
     return todayPlannedRunContextFromSnapshot(
       generatedPlanStore?.activePlan,
       currentDate: widget.youProgressToday,
+      planProgress: _generatedPlanProgress(generatedPlanStore?.activePlan),
+    );
+  }
+
+  GeneratedPlanProgressDisplay? _generatedPlanProgress(
+    BeginnerAdaptivePlanSnapshot? activePlan,
+  ) {
+    final completedIds = <String>{
+      if (widget.planProgress != null)
+        ...widget.planProgress!.completedScheduledWorkoutIds,
+      ...?CurrentSessionActivityHistoryScope.maybeRead(
+        context,
+      )?.completedScheduledWorkoutIdsForPlan(activePlan?.id ?? ''),
+    };
+    if (completedIds.isEmpty) {
+      return null;
+    }
+    return GeneratedPlanProgressDisplay(
+      completedScheduledWorkoutIds: completedIds,
     );
   }
 }

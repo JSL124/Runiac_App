@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../auth/domain/runiac_auth_service.dart';
+import '../../run/domain/models/cadence_analysis_series.dart';
 import '../../run/domain/services/run_summary_scalar_mapper.dart';
 import '../domain/models/activity_history_read_model.dart';
 import '../domain/repositories/activity_history_repository.dart';
@@ -202,6 +203,7 @@ class FirestoreActivityHistoryRepository implements ActivityHistoryRepository {
         timeLabel: scalar.timeLabel,
         routeNameLabel: scalar.routeName,
         hasSufficientData: scalar.hasSufficientData,
+        cadenceAnalysisSeries: _readCadenceAnalysisSeries(data),
       ),
     );
   }
@@ -310,6 +312,114 @@ class FirestoreActivityHistoryRepository implements ActivityHistoryRepository {
       return value.round();
     }
     return null;
+  }
+
+  double? _readDouble(Map<String, Object?> source, String key) {
+    final value = source[key];
+    if (value is num && value.isFinite) {
+      return value.toDouble();
+    }
+    return null;
+  }
+
+  Map<String, Object?>? _readMap(Map<String, Object?> source, String key) {
+    final value = source[key];
+    if (value is Map<String, Object?>) {
+      return value;
+    }
+    if (value is Map) {
+      return value.map((key, value) => MapEntry(key.toString(), value));
+    }
+    return null;
+  }
+
+  List<Object?> _readList(Map<String, Object?> source, String key) {
+    final value = source[key];
+    if (value is List) {
+      return value;
+    }
+    return const <Object?>[];
+  }
+
+  T? _enumByName<T extends Enum>(List<T> values, Object? raw) {
+    if (raw is! String) {
+      return null;
+    }
+    for (final value in values) {
+      if (value.name == raw) {
+        return value;
+      }
+    }
+    return null;
+  }
+
+  CadenceAnalysisSeries? _readCadenceAnalysisSeries(
+    Map<String, Object?> source,
+  ) {
+    final cadence = _readMap(source, 'cadenceAnalysisSeries');
+    if (cadence == null) {
+      return null;
+    }
+    final cadenceSource = _enumByName(
+      CadenceAnalysisSource.values,
+      cadence['source'],
+    );
+    final confidence = _enumByName(
+      CadenceAnalysisConfidence.values,
+      cadence['confidence'],
+    );
+    if (cadenceSource == null || confidence == null) {
+      return null;
+    }
+    final samples = _readList(
+      cadence,
+      'samples',
+    ).map(_readCadenceSample).nonNulls.toList(growable: false);
+    try {
+      return CadenceAnalysisSeries(
+        source: cadenceSource,
+        confidence: confidence,
+        samples: samples,
+      );
+    } on ArgumentError {
+      return null;
+    }
+  }
+
+  CadenceAnalysisSample? _readCadenceSample(Object? value) {
+    final sample = value is Map<String, Object?>
+        ? value
+        : value is Map
+        ? value.map((key, value) => MapEntry(key.toString(), value))
+        : null;
+    if (sample == null) {
+      return null;
+    }
+    final elapsedSeconds = _readInt(sample, 'elapsedSeconds');
+    final cadenceSpm = _readDouble(sample, 'cadenceSpm');
+    final status = _enumByName(
+      CadenceAnalysisSampleStatus.values,
+      sample['status'],
+    );
+    final rejectionReason =
+        _enumByName(
+          CadenceAnalysisSampleRejectionReason.values,
+          sample['rejectionReason'],
+        ) ??
+        CadenceAnalysisSampleRejectionReason.none;
+    if (elapsedSeconds == null || cadenceSpm == null || status == null) {
+      return null;
+    }
+    try {
+      return CadenceAnalysisSample(
+        elapsedSeconds: elapsedSeconds,
+        cadenceSpm: cadenceSpm,
+        status: status,
+        rejectionReason: rejectionReason,
+      );
+    } on ArgumentError {
+      return null;
+    }
   }
 
   DateTime? _readDateTime(Map<String, Object?> source, String key) {

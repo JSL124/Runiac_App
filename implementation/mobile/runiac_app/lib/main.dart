@@ -20,6 +20,7 @@ Future<void> main() async {
       profilePersistenceRepository: bootstrap.profilePersistenceRepository,
       generatedPlanPersistenceRepository:
           bootstrap.generatedPlanPersistenceRepository,
+      planProgressRepository: bootstrap.planProgressRepository,
       showAuth: true,
       showOnboarding: true,
     ),

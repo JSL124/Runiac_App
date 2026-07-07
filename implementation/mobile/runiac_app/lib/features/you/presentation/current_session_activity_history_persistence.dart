@@ -30,6 +30,8 @@ extension CurrentSessionActivityHistoryPersistence
         record.result,
         ownerUid: record.ownerUid,
         distanceMeters: record.payload.distanceMeters,
+        planEnrollmentId: record.payload.planEnrollmentId,
+        scheduledWorkoutId: record.payload.scheduledWorkoutId,
       );
     }
   }
@@ -143,6 +145,8 @@ extension CurrentSessionActivityHistoryPersistence
             syncedRecord.result,
             ownerUid: ownerUid,
             distanceMeters: syncedRecord.payload.distanceMeters,
+            planEnrollmentId: syncedRecord.payload.planEnrollmentId,
+            scheduledWorkoutId: syncedRecord.payload.scheduledWorkoutId,
           );
           if (!syncedRecord.payload.userConfirmedLowDataSave) {
             await _refreshUserProgressAfterRemoteSync(
@@ -430,6 +434,8 @@ extension CurrentSessionActivityHistoryPersistence
     CompleteRunResult result, {
     String? ownerUid,
     int? distanceMeters,
+    String? planEnrollmentId,
+    String? scheduledWorkoutId,
   }) {
     final clientRunSessionId = result.clientRunSessionId;
     if (clientRunSessionId != null) {
@@ -443,6 +449,8 @@ extension CurrentSessionActivityHistoryPersistence
       result,
       ownerUid: ownerUid,
       distanceMeters: distanceMeters,
+      planEnrollmentId: planEnrollmentId,
+      scheduledWorkoutId: scheduledWorkoutId,
     );
   }
 
@@ -459,6 +467,8 @@ extension CurrentSessionActivityHistoryPersistence
     return SessionCompletedRunActivity(
       activityId: result.activityId,
       ownerUid: activity.ownerUid,
+      planEnrollmentId: activity.planEnrollmentId,
+      scheduledWorkoutId: activity.scheduledWorkoutId,
       display: RunActivityDisplayModel(
         activityId: result.activityId,
         clientRunSessionId: result.clientRunSessionId,

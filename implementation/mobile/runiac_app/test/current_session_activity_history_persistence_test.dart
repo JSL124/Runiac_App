@@ -50,6 +50,58 @@ void main() {
     ]);
   });
 
+  test(
+    'tracks completed scheduled workout ids for generated plan progress',
+    () async {
+      final storage = MemoryLocalPendingRunActivityStore();
+      final store = CurrentSessionActivityHistoryStore(
+        ownerUid: ownerUid,
+        persistence: storage,
+      );
+      addTearDown(store.dispose);
+
+      await store.saveCompletedRun(
+        _completionResult('planned-client-session'),
+        payload: _payload(
+          'planned-client-session',
+          scheduledWorkoutId: 'week-1-tue-controlled-steady-run',
+        ),
+      );
+
+      expect(store.completedScheduledWorkoutIds, {
+        'week-1-tue-controlled-steady-run',
+      });
+      expect(store.completedScheduledWorkoutIdsForPlan('generated-plan-10k'), {
+        'week-1-tue-controlled-steady-run',
+      });
+      expect(
+        store.completedScheduledWorkoutIdsForPlan('regenerated-plan-10k'),
+        isEmpty,
+      );
+
+      final restoredStore = CurrentSessionActivityHistoryStore(
+        ownerUid: ownerUid,
+        persistence: storage,
+      );
+      addTearDown(restoredStore.dispose);
+      await restoredStore.restoreSavedActivities();
+
+      expect(restoredStore.completedScheduledWorkoutIds, {
+        'week-1-tue-controlled-steady-run',
+      });
+      expect(
+        restoredStore.completedScheduledWorkoutIdsForPlan('generated-plan-10k'),
+        {'week-1-tue-controlled-steady-run'},
+      );
+      expect(
+        restoredStore.completedScheduledWorkoutIdsForPlan(
+          'regenerated-plan-10k',
+        ),
+        isEmpty,
+      );
+    },
+  );
+
   test('restores saved pending run from shared preferences storage', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     const storage = SharedPreferencesLocalPendingRunActivityStore(
@@ -1156,6 +1208,8 @@ ElevationAnalysisSeries _elevationAnalysisSeries() {
 LocalRunCompletionPayload _payload(
   String clientRunSessionId, {
   bool userConfirmedLowDataSave = false,
+  String? planEnrollmentId,
+  String? scheduledWorkoutId,
 }) {
   return LocalRunCompletionPayload(
     clientRunSessionId: clientRunSessionId,
@@ -1167,6 +1221,10 @@ LocalRunCompletionPayload _payload(
     source: 'mobile',
     routePrivacy: 'private',
     userConfirmedLowDataSave: userConfirmedLowDataSave,
+    planEnrollmentId:
+        planEnrollmentId ??
+        (scheduledWorkoutId == null ? null : 'generated-plan-10k'),
+    scheduledWorkoutId: scheduledWorkoutId,
   );
 }
 

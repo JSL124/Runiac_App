@@ -23,12 +23,15 @@ class PlannedRunContext {
     this.targetDistanceMeters,
     this.planEnrollmentId,
     this.scheduledWorkoutId,
+    this.alreadyCompletedToday = false,
   }) : primaryValueLabel = primaryValueLabel ?? '$durationMinutes min',
        primaryUnitLabel = primaryUnitLabel ?? workoutKindLabel,
        estimatedDistanceLabel = estimatedDistanceLabel,
        supportLabel =
            supportLabel ??
-           (objectiveKind == PlannedRunObjectiveKind.duration
+           (alreadyCompletedToday
+               ? "Today's planned run is already complete. Start an extra run? It will be saved to your activity history, but it will not count as another planned session."
+               : objectiveKind == PlannedRunObjectiveKind.duration
                ? '$intensityLabel effort · ${estimateConfidence == PlannedRunEstimateConfidence.none || estimatedDistanceLabel == null ? 'no distance target' : 'About $estimatedDistanceLabel estimate'}'
                : objectiveKind == PlannedRunObjectiveKind.distance
                ? planTitle
@@ -53,6 +56,7 @@ class PlannedRunContext {
   final int? targetDistanceMeters;
   final String? planEnrollmentId;
   final String? scheduledWorkoutId;
+  final bool alreadyCompletedToday;
 
   String get durationLabel => '$durationMinutes min';
 

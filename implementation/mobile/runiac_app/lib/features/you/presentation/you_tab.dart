@@ -151,18 +151,23 @@ class _YouTabState extends State<YouTab> {
       activityHistoryStore,
     );
     final generatedPlanStore = CurrentSessionGeneratedPlanScope.of(context);
+    final activeGeneratedPlan = generatedPlanStore.activePlan;
+    final generatedPlanProgress = _generatedPlanProgress(
+      activityHistoryStore,
+      activeGeneratedPlan,
+    );
     final generatedPlanDisplay =
         _editedGeneratedPlanDisplay ??
         generatedYouPlanDisplayFromSnapshot(
-          generatedPlanStore.activePlan,
-          planProgress: widget.generatedPlanProgress,
+          activeGeneratedPlan,
+          planProgress: generatedPlanProgress,
         );
     final generatedGoalPlanDetail = generatedGoalPlanDisplayFromSnapshot(
-      generatedPlanStore.activePlan,
+      activeGeneratedPlan,
       currentWeekDisplay: _editedGeneratedPlanDisplay,
     );
     final safetyReadinessDisplay = safetyReadinessYouPlanDisplayFromSnapshot(
-      generatedPlanStore.activePlan,
+      activeGeneratedPlan,
     );
 
     if (_activityHistoryVisible) {
@@ -275,6 +280,25 @@ class _YouTabState extends State<YouTab> {
           ),
         ],
       ),
+    );
+  }
+
+  GeneratedPlanProgressDisplay? _generatedPlanProgress(
+    CurrentSessionActivityHistoryStore activityHistoryStore,
+    BeginnerAdaptivePlanSnapshot? activeGeneratedPlan,
+  ) {
+    final completedIds = <String>{
+      if (widget.generatedPlanProgress != null)
+        ...widget.generatedPlanProgress!.completedScheduledWorkoutIds,
+      ...activityHistoryStore.completedScheduledWorkoutIdsForPlan(
+        activeGeneratedPlan?.id ?? '',
+      ),
+    };
+    if (completedIds.isEmpty) {
+      return null;
+    }
+    return GeneratedPlanProgressDisplay(
+      completedScheduledWorkoutIds: completedIds,
     );
   }
 

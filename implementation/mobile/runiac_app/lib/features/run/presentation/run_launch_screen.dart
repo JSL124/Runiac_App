@@ -400,10 +400,17 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
 
     final completedAt = _activeRunSessionCoordinator.now();
     _activeRunSessionCoordinator.syncTo(completedAt);
+    final plannedWorkout = widget.plannedWorkout;
+    final planEnrollmentId = plannedWorkout?.alreadyCompletedToday == true
+        ? null
+        : plannedWorkout?.planEnrollmentId;
+    final scheduledWorkoutId = plannedWorkout?.alreadyCompletedToday == true
+        ? null
+        : plannedWorkout?.scheduledWorkoutId;
     final payload = _controller.completionPayload(
       completedAt: completedAt,
-      planEnrollmentId: widget.plannedWorkout?.planEnrollmentId,
-      scheduledWorkoutId: widget.plannedWorkout?.scheduledWorkoutId,
+      planEnrollmentId: planEnrollmentId,
+      scheduledWorkoutId: scheduledWorkoutId,
     );
     final route = RunRouteSnapshot.fromMapViewState(_controller.mapViewState);
     setState(() => _isCompletingRun = true);
@@ -1100,8 +1107,11 @@ class _PreRunSheetContent extends StatelessWidget {
         final compact = constraints.maxWidth < 360;
         final startHeight = compact ? 56.0 : 66.0;
         final planned = plannedWorkout;
-        final planLabel =
-            planned?.title.toUpperCase() ?? runLaunchDemoSnapshot.planLabel;
+        final planLabel = planned == null
+            ? runLaunchDemoSnapshot.planLabel
+            : planned.alreadyCompletedToday
+            ? '${planned.title.toUpperCase()} COMPLETE'
+            : planned.title.toUpperCase();
         final primaryValue =
             planned?.primaryValueLabel ?? runLaunchDemoSnapshot.distanceValue;
         final primaryUnit =
@@ -1194,7 +1204,8 @@ class _PreRunSheetContent extends StatelessWidget {
                 ),
               ),
             ],
-            if (planned case final workout?) ...[
+            if (planned case final workout?
+                when !workout.alreadyCompletedToday) ...[
               const SizedBox(height: 8),
               Text(
                 workout.supportiveNote,

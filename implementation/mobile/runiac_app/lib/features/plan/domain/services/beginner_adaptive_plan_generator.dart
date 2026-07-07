@@ -44,7 +44,11 @@ class BeginnerAdaptivePlanGenerator {
     final family = resolvedFamily.family;
     if (family == null) {
       return BeginnerAdaptivePlanSnapshot(
-        id: 'local-onboarding-beginner-plan',
+        id: _stablePlanId('safety-readiness', [
+          policy.profile.safetyBand.name,
+          policy.profile.templateKind.name,
+          resolvedFamily.reason,
+        ]),
         title: 'Safety Readiness Plan',
         subtitle:
             'These answers need qualified professional guidance before Runiac '
@@ -91,7 +95,24 @@ class BeginnerAdaptivePlanGenerator {
     ];
 
     return BeginnerAdaptivePlanSnapshot(
-      id: 'local-onboarding-beginner-plan',
+      id: _stablePlanId('generated-onboarding', [
+        family.name,
+        category.name,
+        policy.profile.safetyBand.name,
+        policy.profile.templateKind.name,
+        '$requiredSessions',
+        '$durationWeeks',
+        for (final week in weeks)
+          for (final workout in week.workouts)
+            [
+              week.weekNumber,
+              workout.dayLabel,
+              workout.title,
+              workout.durationMinutes,
+              workout.kind.name,
+              workout.intensity.name,
+            ].join(':'),
+      ]),
       title: family.title,
       subtitle: BeginnerAdaptivePlanCopy.subtitleFor(
         draft: draft,
@@ -175,5 +196,14 @@ class BeginnerAdaptivePlanGenerator {
       for (var index = 0; index < requiredSessions; index++)
         selectedDays[index % selectedDays.length].value,
     ];
+  }
+
+  String _stablePlanId(String prefix, Iterable<String> parts) {
+    var hash = 0x811c9dc5;
+    for (final unit in parts.join('|').codeUnits) {
+      hash ^= unit;
+      hash = (hash * 0x01000193) & 0xffffffff;
+    }
+    return '$prefix-${hash.toRadixString(16).padLeft(8, '0')}';
   }
 }

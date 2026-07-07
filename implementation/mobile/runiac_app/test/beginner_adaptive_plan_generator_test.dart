@@ -30,7 +30,7 @@ void main() {
           ),
         );
 
-        expect(plan.id, 'local-onboarding-beginner-plan');
+        expect(plan.id, startsWith('generated-onboarding-'));
         expect(plan.planKind, BeginnerAdaptivePlanKind.onboardingBased);
         expect(plan.sourceLabel, 'Onboarding based');
         expect(plan.title, 'First Continuous Running Start');
@@ -70,6 +70,23 @@ void main() {
         expect(plan.weeks.first.workouts.first.detail.coachNotes, isNotEmpty);
       },
     );
+
+    test('uses stable generated plan ids that change with plan content', () {
+      final mondayPlan = generator.generate(
+        _draft(days: const [OnboardingPreferredDay.mon]),
+      );
+      final mondayPlanAgain = generator.generate(
+        _draft(days: const [OnboardingPreferredDay.mon]),
+      );
+      final tuesdayPlan = generator.generate(
+        _draft(days: const [OnboardingPreferredDay.tue]),
+      );
+
+      expect(mondayPlan.id, mondayPlanAgain.id);
+      expect(mondayPlan.id, isNot(tuesdayPlan.id));
+      expect(mondayPlan.id, startsWith('generated-onboarding-'));
+      expect(tuesdayPlan.id, startsWith('generated-onboarding-'));
+    });
 
     test(
       'defaults unsure availability and length to short gentle sessions',

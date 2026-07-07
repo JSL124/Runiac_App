@@ -186,11 +186,14 @@ GeneratedYouPlanDisplay? generatedYouPlanDisplayFromSnapshot(
     return null;
   }
   final currentWeekdayIndex = (currentDate ?? DateTime.now()).weekday;
+  final progress = _generatedPlanProgressFor(currentWeek, planProgress);
   return GeneratedYouPlanDisplay(
     weeklyTitle: snapshot.title,
     subtitle: snapshot.subtitle,
-    progressLabel: 'Week ${currentWeek.weekNumber} of ${snapshot.weeks.length}',
-    progressValue: 0,
+    progressLabel:
+        progress?.label ??
+        'Week ${currentWeek.weekNumber} of ${snapshot.weeks.length}',
+    progressValue: progress?.value ?? 0,
     scheduleRows: _weeklyScheduleRowsFor(
       currentWeek,
       snapshot,
@@ -200,20 +203,66 @@ GeneratedYouPlanDisplay? generatedYouPlanDisplayFromSnapshot(
   );
 }
 
+_GeneratedPlanProgressSummary? _generatedPlanProgressFor(
+  BeginnerAdaptivePlanWeek currentWeek,
+  GeneratedPlanProgressDisplay? planProgress,
+) {
+  if (planProgress == null) {
+    return null;
+  }
+
+  final plannedWorkoutIds = {
+    for (final workout in currentWeek.workouts)
+      if (isGeneratedPlanSession(workout))
+        _scheduledWorkoutIdFor(
+          weekNumber: currentWeek.weekNumber,
+          dayLabel: workout.dayLabel,
+          title: workout.title,
+        ),
+  };
+  if (plannedWorkoutIds.isEmpty) {
+    return const _GeneratedPlanProgressSummary(
+      label: '0 of 0 planned runs complete',
+      value: 0,
+    );
+  }
+
+  final completedCount = plannedWorkoutIds
+      .where(planProgress.isCompleted)
+      .length;
+  return _GeneratedPlanProgressSummary(
+    label:
+        '$completedCount of ${plannedWorkoutIds.length} planned runs complete',
+    value: completedCount / plannedWorkoutIds.length,
+  );
+}
+
+class _GeneratedPlanProgressSummary {
+  const _GeneratedPlanProgressSummary({
+    required this.label,
+    required this.value,
+  });
+
+  final String label;
+  final double value;
+}
+
 WeeklyWorkoutDetailSnapshot? todayGeneratedWorkoutDetailFromSnapshot(
   BeginnerAdaptivePlanSnapshot? snapshot, {
   DateTime? currentDate,
+  GeneratedPlanProgressDisplay? planProgress,
 }) {
   final display = generatedYouPlanDisplayFromSnapshot(
     snapshot,
     currentDate: currentDate,
+    planProgress: planProgress,
   );
   if (display == null) {
     return null;
   }
 
   for (final row in display.scheduleRows) {
-    if (row.isToday && row.canStart && row.detailSnapshot != null) {
+    if (row.isToday && row.detailSnapshot != null) {
       return row.detailSnapshot;
     }
   }
@@ -223,10 +272,12 @@ WeeklyWorkoutDetailSnapshot? todayGeneratedWorkoutDetailFromSnapshot(
 PlannedRunContext? todayPlannedRunContextFromSnapshot(
   BeginnerAdaptivePlanSnapshot? snapshot, {
   DateTime? currentDate,
+  GeneratedPlanProgressDisplay? planProgress,
 }) {
   final detail = todayGeneratedWorkoutDetailFromSnapshot(
     snapshot,
     currentDate: currentDate,
+    planProgress: planProgress,
   );
   if (detail != null) {
     return detail.plannedRunContext;
@@ -235,6 +286,7 @@ PlannedRunContext? todayPlannedRunContextFromSnapshot(
   final display = generatedYouPlanDisplayFromSnapshot(
     snapshot,
     currentDate: currentDate,
+    planProgress: planProgress,
   );
   if (display == null || snapshot == null) {
     return null;
@@ -616,6 +668,8 @@ YouPlanScheduleRow _scheduleRowForDay(
       weekNumber: weekNumber,
       canStart: canStart,
       canEditSchedule: canEditSchedule,
+      alreadyCompletedToday: completed && isToday,
+      keepPlannedRunContext: completed && isToday,
       occupiedWeekdayIndexes: occupiedWeekdayIndexes,
     ),
     weekdayIndex: weekdayIndex,
@@ -654,9 +708,12 @@ WeeklyWorkoutDetailSnapshot _workoutDetailFor(
   required int weekNumber,
   required bool canStart,
   required bool canEditSchedule,
+  bool alreadyCompletedToday = false,
+  bool keepPlannedRunContext = false,
   Set<int> occupiedWeekdayIndexes = const <int>{},
 }) {
-  final canStartPlannedRun = canStart && snapshot.canStartPlannedRun;
+  final canStartPlannedRun =
+      (canStart || keepPlannedRunContext) && snapshot.canStartPlannedRun;
   final canEditGeneratedSchedule =
       canEditSchedule && snapshot.canStartPlannedRun;
 
@@ -680,10 +737,17 @@ WeeklyWorkoutDetailSnapshot _workoutDetailFor(
     ],
     effortGuide: workout.detail.effortGuide,
     coachNotes: [...workout.detail.coachNotes, snapshot.safetyNote],
-    startActionLabel: canStartPlannedRun ? 'Start this run' : null,
+    startActionLabel: canStartPlannedRun && !alreadyCompletedToday
+        ? 'Start this run'
+        : null,
     canEditSchedule: canEditGeneratedSchedule,
     plannedRunContext: canStartPlannedRun
-        ? _plannedRunContextFor(workout, snapshot, weekNumber: weekNumber)
+        ? _plannedRunContextFor(
+            workout,
+            snapshot,
+            weekNumber: weekNumber,
+            alreadyCompletedToday: alreadyCompletedToday,
+          )
         : null,
   );
 }
@@ -699,6 +763,7 @@ PlannedRunContext _plannedRunContextFor(
   BeginnerAdaptiveWorkout workout,
   BeginnerAdaptivePlanSnapshot snapshot, {
   required int weekNumber,
+  bool alreadyCompletedToday = false,
 }) {
   final workoutKindLabel = _kindLabel(workout.kind);
   final intensityLabel = _intensityLabel(workout.intensity);
@@ -722,6 +787,7 @@ PlannedRunContext _plannedRunContextFor(
       dayLabel: workout.dayLabel,
       title: workout.title,
     ),
+    alreadyCompletedToday: alreadyCompletedToday,
   );
 }
 

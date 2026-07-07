@@ -161,6 +161,7 @@ class ActivityHistoryDisplayController extends ChangeNotifier {
         calories: '--',
         routeName: routeName,
         hasSufficientData: item.hasSufficientData,
+        cadenceAnalysisSeries: item.cadenceAnalysisSeries,
       ),
     );
   }

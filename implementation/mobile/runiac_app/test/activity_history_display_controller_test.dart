@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/features/run/domain/models/complete_run_result.dart';
+import 'package:runiac_app/features/run/domain/models/cadence_analysis_series.dart';
 import 'package:runiac_app/features/run/domain/models/local_run_completion_payload.dart';
 import 'package:runiac_app/features/run/domain/models/run_summary_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/xp_update_display_model.dart';
@@ -201,6 +202,52 @@ void main() {
 
       expect(controller.recentRuns(store).single.distanceMeters, 4250);
     });
+
+    test(
+      'projects cadence analysis into Firestore-backed summary rows',
+      () async {
+        final cadence = CadenceAnalysisSeries.phoneMotionEstimated(
+          samples: const [
+            CadenceAnalysisSample.accepted(elapsedSeconds: 30, cadenceSpm: 95),
+            CadenceAnalysisSample.accepted(elapsedSeconds: 90, cadenceSpm: 118),
+            CadenceAnalysisSample.accepted(
+              elapsedSeconds: 120,
+              cadenceSpm: 120,
+            ),
+          ],
+        );
+        final controller = ActivityHistoryDisplayController(
+          repository: _ImmediateActivityHistoryRepository(
+            ActivityHistoryReadModel(
+              recentRuns: <ActivityHistoryItemReadModel>[
+                ActivityHistoryItemReadModel(
+                  activityId: 'firestore-activity-cadence',
+                  title: 'Cadence Run',
+                  completedAtLabel: '14/6/26',
+                  distanceLabel: '3.20 km',
+                  distanceMeters: 3200,
+                  paceLabel: '7’49”',
+                  durationLabel: '25:00',
+                  cadenceAnalysisSeries: cadence,
+                ),
+              ],
+            ),
+          ),
+        );
+        addTearDown(controller.dispose);
+        final store = CurrentSessionActivityHistoryStore(ownerUid: ownerUid);
+        addTearDown(store.dispose);
+
+        await controller.load();
+
+        final summary = controller.recentRuns(store).single.summary;
+        expect(summary.cadenceAnalysisSeries, same(cadence));
+        expect(
+          summary.cadenceAnalysisSeries?.validAcceptedSamples,
+          hasLength(3),
+        );
+      },
+    );
   });
 }
 

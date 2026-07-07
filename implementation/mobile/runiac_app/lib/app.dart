@@ -14,7 +14,9 @@ import 'features/auth/presentation/runiac_auth_gate.dart';
 import 'features/auth/presentation/runiac_profile_setup_gate.dart';
 import 'features/onboarding/domain/models/local_onboarding_draft.dart';
 import 'features/plan/domain/models/beginner_adaptive_plan_snapshot.dart';
+import 'features/plan/domain/models/plan_progress_read_model.dart';
 import 'features/plan/domain/repositories/generated_plan_persistence_repository.dart';
+import 'features/plan/domain/repositories/plan_progress_repository.dart';
 import 'features/plan/domain/services/beginner_adaptive_plan_generator.dart';
 import 'features/plan/presentation/current_session_generated_plan.dart';
 import 'features/run/data/static_run_repository.dart';
@@ -51,6 +53,7 @@ class RuniacApp extends StatefulWidget {
         const NoopUserProfilePersistenceRepository(),
     this.generatedPlanPersistenceRepository =
         const NoopGeneratedPlanPersistenceRepository(),
+    this.planProgressRepository = const NoopPlanProgressRepository(),
     this.enableForegroundGps = true,
     this.activeRunSessionCoordinator,
     this.initialRunOpenIntent,
@@ -72,6 +75,7 @@ class RuniacApp extends StatefulWidget {
   final UserProfileRepository profileRepository;
   final UserProfilePersistenceRepository profilePersistenceRepository;
   final GeneratedPlanPersistenceRepository generatedPlanPersistenceRepository;
+  final PlanProgressRepository planProgressRepository;
   final bool enableForegroundGps;
   final ActiveRunSessionCoordinator? activeRunSessionCoordinator;
   final RunOpenIntent? initialRunOpenIntent;
@@ -93,6 +97,9 @@ class _RuniacAppState extends State<RuniacApp> {
   RuniacAuthCompletion? _authCompletion;
   PersonalProfileDraft? _personalProfileDraft;
   String? _generatedPlanOwnerUid;
+  String? _generatedPlanHydrationProbeUid;
+  PlanProgressReadModel? _planProgress;
+  var _planProgressLoadSerial = 0;
   String? _authStateError;
 
   @override
@@ -126,6 +133,13 @@ class _RuniacAppState extends State<RuniacApp> {
       _authCompletion = null;
       _personalProfileDraft = widget.initialPersonalProfileDraft;
       _scheduleActivityHistoryOwnerSync(widget.authRepository.currentUser?.uid);
+    }
+    if (oldWidget.planProgressRepository != widget.planProgressRepository) {
+      final ownerUid = _generatedPlanOwnerUid;
+      final activePlan = _generatedPlanStore.activePlan;
+      if (ownerUid != null && activePlan != null) {
+        unawaited(_loadPlanProgress(ownerUid, activePlan.id));
+      }
     }
   }
 
@@ -179,10 +193,15 @@ class _RuniacAppState extends State<RuniacApp> {
 
   void _clearGeneratedPlanForAuthChange(String? nextOwnerUid) {
     final currentPlanOwnerUid = _generatedPlanOwnerUid;
-    if (currentPlanOwnerUid == null || currentPlanOwnerUid == nextOwnerUid) {
+    final probeUid = _generatedPlanHydrationProbeUid;
+    if (currentPlanOwnerUid == nextOwnerUid &&
+        (probeUid == null || probeUid == nextOwnerUid)) {
       return;
     }
     _generatedPlanOwnerUid = null;
+    _generatedPlanHydrationProbeUid = null;
+    _planProgress = null;
+    _planProgressLoadSerial += 1;
     _generatedPlanStore.clear();
   }
 
@@ -225,10 +244,10 @@ class _RuniacAppState extends State<RuniacApp> {
   }
 
   Widget _buildPostAuthFlow() {
-    _scheduleActivityHistoryOwnerSync(widget.authRepository.currentUser?.uid);
+    final currentUser = widget.authRepository.currentUser;
+    _scheduleActivityHistoryOwnerSync(currentUser?.uid);
 
     if (_shouldShowPersonalProfile) {
-      final currentUser = widget.authRepository.currentUser;
       if (currentUser == null) {
         return _AuthStateErrorScreen(
           message:
@@ -239,7 +258,6 @@ class _RuniacAppState extends State<RuniacApp> {
       return _buildPersonalProfileCollection(currentUser);
     }
 
-    final currentUser = widget.authRepository.currentUser;
     if (_shouldProbeSignedInProfileSetup(currentUser)) {
       return RuniacProfileSetupGate(
         authRepository: widget.authRepository,
@@ -252,7 +270,41 @@ class _RuniacAppState extends State<RuniacApp> {
       );
     }
 
+    if (currentUser != null) {
+      _scheduleGeneratedPlanRepositoryHydration(currentUser.uid);
+    }
+
     return _buildOnboardingAndShell();
+  }
+
+  void _scheduleGeneratedPlanRepositoryHydration(String ownerUid) {
+    if (_generatedPlanHydrationProbeUid == ownerUid ||
+        _generatedPlanOwnerUid == ownerUid) {
+      return;
+    }
+    _generatedPlanHydrationProbeUid = ownerUid;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        unawaited(_restoreGeneratedPlanForOwner(ownerUid));
+      }
+    });
+  }
+
+  Future<void> _restoreGeneratedPlanForOwner(String ownerUid) async {
+    BeginnerAdaptivePlanSnapshot? persistedPlan;
+    try {
+      persistedPlan = await widget.generatedPlanPersistenceRepository
+          .loadGeneratedPlan(uid: ownerUid);
+    } catch (_) {
+      persistedPlan = null;
+    }
+    final stillCurrentUser = widget.authRepository.currentUser;
+    if (!mounted ||
+        stillCurrentUser?.uid != ownerUid ||
+        persistedPlan == null) {
+      return;
+    }
+    _setActiveGeneratedPlan(persistedPlan, ownerUid: ownerUid);
   }
 
   void _scheduleActivityHistoryOwnerSync(String? ownerUid) {
@@ -285,6 +337,7 @@ class _RuniacAppState extends State<RuniacApp> {
         profilePersistenceRepository: widget.profilePersistenceRepository,
         generatedPlanPersistenceRepository:
             widget.generatedPlanPersistenceRepository,
+        planProgress: _planProgress,
         enableForegroundGps: widget.enableForegroundGps,
         activeRunSessionCoordinator: widget.activeRunSessionCoordinator,
         initialRunOpenIntent: widget.initialRunOpenIntent,
@@ -364,8 +417,40 @@ class _RuniacAppState extends State<RuniacApp> {
     _generatedPlanOwnerUid = ownerUid;
     if (!_generatedPlanStore.setActivePlan(snapshot)) {
       _generatedPlanOwnerUid = null;
+      _planProgress = null;
+      _planProgressLoadSerial += 1;
       _generatedPlanStore.clear();
+      return;
     }
+    if (ownerUid == null) {
+      _planProgress = null;
+      _planProgressLoadSerial += 1;
+      return;
+    }
+    unawaited(_loadPlanProgress(ownerUid, snapshot.id));
+  }
+
+  Future<void> _loadPlanProgress(
+    String ownerUid,
+    String activeGeneratedPlanId,
+  ) async {
+    final loadSerial = _planProgressLoadSerial + 1;
+    _planProgressLoadSerial = loadSerial;
+    final progress = await widget.planProgressRepository.loadPlanProgress(
+      uid: ownerUid,
+      activeGeneratedPlanId: activeGeneratedPlanId,
+    );
+    if (!mounted ||
+        loadSerial != _planProgressLoadSerial ||
+        _generatedPlanOwnerUid != ownerUid ||
+        _generatedPlanStore.activePlan?.id != activeGeneratedPlanId) {
+      return;
+    }
+    setState(() {
+      _planProgress = progress.completedScheduledWorkoutIds.isEmpty
+          ? null
+          : progress;
+    });
   }
 
   Future<bool> _saveOnboardingProfile(

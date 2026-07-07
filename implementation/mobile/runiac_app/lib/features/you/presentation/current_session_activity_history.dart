@@ -22,12 +22,16 @@ class SessionCompletedRunActivity {
   const SessionCompletedRunActivity({
     required this.activityId,
     this.ownerUid,
+    this.planEnrollmentId,
+    this.scheduledWorkoutId,
     required this.display,
     required this.completionResult,
   });
 
   final String activityId;
   final String? ownerUid;
+  final String? planEnrollmentId;
+  final String? scheduledWorkoutId;
   final RunActivityDisplayModel display;
   final CompleteRunResult completionResult;
 }
@@ -84,6 +88,28 @@ class CurrentSessionActivityHistoryStore extends ChangeNotifier {
     return UnmodifiableListView(_activities);
   }
 
+  Set<String> get completedScheduledWorkoutIds {
+    return Set.unmodifiable(
+      _activities
+          .map((activity) => activity.scheduledWorkoutId)
+          .whereType<String>()
+          .where((value) => value.isNotEmpty),
+    );
+  }
+
+  Set<String> completedScheduledWorkoutIdsForPlan(String planEnrollmentId) {
+    if (planEnrollmentId.isEmpty) {
+      return const <String>{};
+    }
+    return Set.unmodifiable(
+      _activities
+          .where((activity) => activity.planEnrollmentId == planEnrollmentId)
+          .map((activity) => activity.scheduledWorkoutId)
+          .whereType<String>()
+          .where((value) => value.isNotEmpty),
+    );
+  }
+
   String? get ownerUid => _ownerUid;
 
   UnmodifiableListView<RunSyncDebugSnapshot> get syncDebugSnapshots {
@@ -116,10 +142,14 @@ class CurrentSessionActivityHistoryStore extends ChangeNotifier {
     CompleteRunResult result, {
     String? ownerUid,
     int? distanceMeters,
+    String? planEnrollmentId,
+    String? scheduledWorkoutId,
   }) {
     final activity = SessionCompletedRunActivity(
       activityId: result.activityId,
       ownerUid: ownerUid ?? _ownerUid,
+      planEnrollmentId: planEnrollmentId,
+      scheduledWorkoutId: scheduledWorkoutId,
       display: RunActivityDisplayModel(
         activityId: result.activityId,
         clientRunSessionId: result.clientRunSessionId,
@@ -160,6 +190,8 @@ class CurrentSessionActivityHistoryStore extends ChangeNotifier {
         record.result,
         ownerUid: record.ownerUid,
         distanceMeters: record.payload.distanceMeters,
+        planEnrollmentId: record.payload.planEnrollmentId,
+        scheduledWorkoutId: record.payload.scheduledWorkoutId,
       );
       return;
     }
@@ -184,6 +216,8 @@ class CurrentSessionActivityHistoryStore extends ChangeNotifier {
         record.result,
         ownerUid: record.ownerUid,
         distanceMeters: record.payload.distanceMeters,
+        planEnrollmentId: record.payload.planEnrollmentId,
+        scheduledWorkoutId: record.payload.scheduledWorkoutId,
       );
     } catch (error, stackTrace) {
       _reportAsyncError(error, stackTrace, 'saving a completed run locally');
@@ -291,6 +325,12 @@ class CurrentSessionActivityHistoryScope
         .dependOnInheritedWidgetOfExactType<
           CurrentSessionActivityHistoryScope
         >()
+        ?.notifier;
+  }
+
+  static CurrentSessionActivityHistoryStore? maybeRead(BuildContext context) {
+    return context
+        .getInheritedWidgetOfExactType<CurrentSessionActivityHistoryScope>()
         ?.notifier;
   }
 

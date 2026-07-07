@@ -878,6 +878,49 @@ void main() {
     },
   );
 
+  testWidgets('completed planned run launch explains extra run before starting', (
+    WidgetTester tester,
+  ) async {
+    _useMobileRunSurface(tester);
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: RunLaunchScreen(
+          enableForegroundGps: false,
+          plannedWorkout: PlannedRunContext(
+            title: 'Easy run',
+            durationMinutes: 30,
+            planTitle: 'Base Builder',
+            planFamilyLabel: 'Beginner Base',
+            workoutKindLabel: 'Easy Run',
+            intensityLabel: 'Easy',
+            steps: ['Run relaxed for 30 minutes.'],
+            supportiveNote: 'Extra run mode keeps this separate.',
+            sourceLabel: 'Generated onboarding plan',
+            objectiveKind: PlannedRunObjectiveKind.duration,
+            primaryValueLabel: '30 min',
+            primaryUnitLabel: 'easy run',
+            alreadyCompletedToday: true,
+            planEnrollmentId: 'generated-plan-base-builder',
+            scheduledWorkoutId: 'week-1-tue-easy-run',
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('EASY RUN COMPLETE'), findsOneWidget);
+    expect(
+      find.text(
+        "Today's planned run is already complete. Start an extra run? It will be saved to your activity history, but it will not count as another planned session.",
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Extra run mode keeps this separate.'), findsNothing);
+    expect(find.text('Start run'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('Run launch Start run updates sheet without pushing a route', (
     WidgetTester tester,
   ) async {
@@ -2742,6 +2785,69 @@ void main() {
       expect(find.text('-- kcal'), findsNothing);
       expect(find.text('Saturday Morning Run'), findsNothing);
       expect(find.text('4.03'), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'RunActiveScreen completed-plan extra runs do not register planned completion ids',
+    (WidgetTester tester) async {
+      _useMobileRunSurface(tester);
+      final historyStore = CurrentSessionActivityHistoryStore(
+        ownerUid: 'test-owner',
+        persistence: MemoryLocalPendingRunActivityStore(),
+      );
+      final runHarness = _testSufficientRunHarness(tester);
+      addTearDown(historyStore.dispose);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: CurrentSessionActivityHistoryScope(
+            store: historyStore,
+            child: RunActiveScreen(
+              controller: runHarness.controller,
+              activeRunSessionCoordinator: runHarness.coordinator,
+              plannedWorkout: const PlannedRunContext(
+                title: 'Easy run',
+                durationMinutes: 30,
+                planTitle: 'Base Builder',
+                planFamilyLabel: 'Beginner Base',
+                workoutKindLabel: 'Easy Run',
+                intensityLabel: 'Easy',
+                steps: ['Run relaxed for 30 minutes.'],
+                supportiveNote: 'Extra run mode keeps this separate.',
+                sourceLabel: 'Generated onboarding plan',
+                objectiveKind: PlannedRunObjectiveKind.duration,
+                alreadyCompletedToday: true,
+                planEnrollmentId: 'generated-plan-base-builder',
+                scheduledWorkoutId: 'week-1-tue-easy-run',
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await _pumpSufficientRun(tester);
+
+      runHarness.controller.pause(pausedAt: tester.binding.clock.now());
+      await tester.pumpAndSettle();
+
+      final endButton = find.byKey(const Key('hold_to_end_button'));
+      final holdGesture = await tester.startGesture(
+        tester.getCenter(endButton),
+      );
+      await tester.pump(const Duration(milliseconds: 1600));
+      await holdGesture.up();
+      await tester.pumpAndSettle();
+
+      expect(find.text('Cool down'), findsOneWidget);
+      expect(
+        historyStore.completedScheduledWorkoutIdsForPlan(
+          'generated-plan-base-builder',
+        ),
+        isEmpty,
+      );
+      expect(historyStore.completedScheduledWorkoutIds, isEmpty);
       expect(tester.takeException(), isNull);
     },
   );

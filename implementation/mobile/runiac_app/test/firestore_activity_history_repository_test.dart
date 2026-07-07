@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:runiac_app/features/run/domain/models/cadence_analysis_series.dart';
 import 'package:runiac_app/features/you/data/firestore_activity_history_repository.dart';
 
 import 'support/fake_runiac_auth_repository.dart';
@@ -366,6 +367,50 @@ void main() {
       ]);
     });
 
+    test('maps persisted cadence analysis series from summary docs', () async {
+      final authRepository = FakeRuniacAuthRepository()..emitSignedIn();
+      final repository = FirestoreActivityHistoryRepository(
+        authRepository: authRepository,
+        reader: _FakeActivityHistorySummaryDocumentReader(
+          documents: <ActivityHistorySummaryDocument>[
+            _runSummaryDocument(
+              id: 'cadence-summary',
+              ownerUid: 'test-auth-user-1',
+              endedAt: DateTime(2026, 6, 14, 7, 25),
+              cadenceAnalysisSeries: const <String, Object?>{
+                'source': 'phoneSensorEstimated',
+                'confidence': 'low',
+                'samples': <Object?>[
+                  {
+                    'elapsedSeconds': 30,
+                    'cadenceSpm': 95,
+                    'status': 'accepted',
+                  },
+                  {
+                    'elapsedSeconds': 90,
+                    'cadenceSpm': 118,
+                    'status': 'accepted',
+                  },
+                  {
+                    'elapsedSeconds': 120,
+                    'cadenceSpm': 120,
+                    'status': 'accepted',
+                  },
+                ],
+              },
+            ),
+          ],
+        ),
+      );
+
+      final history = await repository.loadActivityHistory();
+      final cadence = history.recentRuns.single.cadenceAnalysisSeries;
+
+      expect(cadence?.source, CadenceAnalysisSource.phoneSensorEstimated);
+      expect(cadence?.confidence, CadenceAnalysisConfidence.low);
+      expect(cadence?.validAcceptedSamples, hasLength(3));
+    });
+
     test('skips malformed and wrong-owner activity docs', () async {
       final authRepository = FakeRuniacAuthRepository()..emitSignedIn();
       final repository = FirestoreActivityHistoryRepository(
@@ -417,6 +462,7 @@ ActivityHistorySummaryDocument _runSummaryDocument({
   int averagePaceSecondsPerKm = 469,
   String? routeLabel = 'Private route',
   String? title,
+  Map<String, Object?>? cadenceAnalysisSeries,
 }) {
   final data = <String, Object?>{
     'ownerUid': ownerUid,
@@ -436,6 +482,9 @@ ActivityHistorySummaryDocument _runSummaryDocument({
   }
   if (routeLabel != null) {
     data['routeLabel'] = routeLabel;
+  }
+  if (cadenceAnalysisSeries != null) {
+    data['cadenceAnalysisSeries'] = cadenceAnalysisSeries;
   }
 
   return ActivityHistorySummaryDocument(id: id, data: data);

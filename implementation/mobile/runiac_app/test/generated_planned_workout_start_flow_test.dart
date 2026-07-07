@@ -601,6 +601,7 @@ void main() {
   testWidgets('backend plan progress marks generated weekly row completed', (
     tester,
   ) async {
+    // Given: the backend has accepted today's generated scheduled workout.
     final plan = _tenKPerformancePlan();
     final display = generatedYouPlanDisplayFromSnapshot(
       plan,
@@ -612,15 +613,80 @@ void main() {
       ),
     );
 
+    // When: the generated weekly card is rendered.
     await tester.pumpWidget(
       MaterialApp(home: _GeneratedPlansHarness(generatedPlan: display!)),
     );
 
+    // Then: only the matching planned workout row is marked complete.
     expect(find.text('25 min Controlled Steady Run'), findsOneWidget);
     expect(find.text('Completed'), findsOneWidget);
     final checkIcon = tester.widget<Icon>(find.byIcon(Icons.check_rounded));
     expect(checkIcon.color, RuniacColors.white);
   });
+
+  testWidgets(
+    'generated plan progress uses completed non-rest workout denominator',
+    (tester) async {
+      // Given: one scheduled generated workout is complete and rest/unknown
+      // backend ids are also present in the client-side read model.
+      final plan = _tenKPerformancePlan();
+      final display = generatedYouPlanDisplayFromSnapshot(
+        plan,
+        currentDate: _weekdayDate(DateTime.tuesday),
+        planProgress: GeneratedPlanProgressDisplay(
+          completedScheduledWorkoutIds: const [
+            'week-1-tue-controlled-steady-run',
+            'week-1-sun-rest-day',
+            'unknown-scheduled-workout',
+          ],
+        ),
+      );
+
+      // Then: progress is based only on generated plan running sessions.
+      expect(display, isNotNull);
+      expect(display!.progressLabel, '1 of 4 planned runs complete');
+      expect(display.progressValue, 0.25);
+    },
+  );
+
+  testWidgets(
+    'generated plan progress ignores duplicate ids and blocked plans',
+    (tester) async {
+      // Given: duplicate completed ids arrive from session history.
+      final plan = _tenKPerformancePlan();
+      final display = generatedYouPlanDisplayFromSnapshot(
+        plan,
+        currentDate: _weekdayDate(DateTime.tuesday),
+        planProgress: GeneratedPlanProgressDisplay(
+          completedScheduledWorkoutIds: const [
+            'week-1-tue-controlled-steady-run',
+            'week-1-tue-controlled-steady-run',
+          ],
+        ),
+      );
+
+      // Then: duplicate ids do not inflate the generated-plan progress.
+      expect(display, isNotNull);
+      expect(display!.progressLabel, '1 of 4 planned runs complete');
+      expect(display.progressValue, 0.25);
+
+      // And: safety-readiness plans still never expose generated progress.
+      final blockedDisplay = generatedYouPlanDisplayFromSnapshot(
+        _safetyReadinessPlanWithStaleWorkoutRows(),
+        currentDate: _weekdayDate(DateTime.tuesday),
+        planProgress: GeneratedPlanProgressDisplay(
+          completedScheduledWorkoutIds: const [
+            'week-1-mon-comfortable-run',
+            'week-1-tue-controlled-steady-run',
+            'week-1-thu-recovery-run',
+            'week-1-sat-recovery-run',
+          ],
+        ),
+      );
+      expect(blockedDisplay, isNull);
+    },
+  );
 
   testWidgets('normal Run tab launch keeps static fallback context', (
     tester,
