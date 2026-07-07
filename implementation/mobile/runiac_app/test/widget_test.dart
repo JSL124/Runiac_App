@@ -104,17 +104,31 @@ void main() {
       await openNotificationCenter(tester);
 
       expect(find.text('Notification Center'), findsOneWidget);
+      expect(find.text('4 of 4 reminders on'), findsOneWidget);
+      expect(find.text('BEFORE YOUR RUN'), findsOneWidget);
+      expect(find.text('AFTER YOUR RUN'), findsOneWidget);
+      expect(find.text('Plan-start reminder'), findsOneWidget);
       expect(
-        find.widgetWithText(SwitchListTile, 'Notifications'),
+        find.text('Notifies you 2 hours, 1 hour, and 10 min before your run.'),
         findsOneWidget,
       );
-      expect(find.text('Plan-start reminder'), findsOneWidget);
-      expect(find.text('30 min before'), findsOneWidget);
       expect(find.text("Today's plan reminder"), findsOneWidget);
-      expect(find.text('8:00 AM'), findsOneWidget);
+      expect(
+        find.text('Notifies you at 12:00 AM if a plan is scheduled for today.'),
+        findsOneWidget,
+      );
       expect(find.text('Missed run nudge'), findsOneWidget);
-      expect(find.text('2 hours after'), findsOneWidget);
+      expect(
+        find.text(
+          "Notifies you 1 hour and 2 hours after today's plan time if you haven't run.",
+        ),
+        findsOneWidget,
+      );
       expect(find.text('Plan updates'), findsOneWidget);
+      expect(
+        find.text('Know when your coach adjusts an upcoming plan.'),
+        findsOneWidget,
+      );
     },
   );
 
@@ -125,11 +139,7 @@ void main() {
 
       expect(find.text('Notification Center'), findsOneWidget);
 
-      final masterNotificationsSwitch = find.widgetWithText(
-        SwitchListTile,
-        'Notifications',
-      );
-      expect(masterNotificationsSwitch, findsOneWidget);
+      final masterNotificationsSwitch = find.byType(Switch).first;
 
       await tester.tap(masterNotificationsSwitch);
       await tester.pump();
@@ -138,62 +148,79 @@ void main() {
         find.text('Turn Notifications on to edit reminder controls.'),
         findsOneWidget,
       );
+      expect(find.text('All reminders paused'), findsOneWidget);
       expect(find.text('Plan-start reminder'), findsOneWidget);
-      expect(find.text('30 min before'), findsNothing);
       expect(find.text("Today's plan reminder"), findsOneWidget);
-      expect(find.text('8:00 AM'), findsNothing);
       expect(find.text('Missed run nudge'), findsOneWidget);
-      expect(find.text('2 hours after'), findsNothing);
       expect(find.text('Plan updates'), findsOneWidget);
+
+      for (
+        var index = 1;
+        index < find.byType(Switch).evaluate().length;
+        index++
+      ) {
+        final childSwitch = tester.widget<Switch>(
+          find.byType(Switch).at(index),
+        );
+        expect(childSwitch.value, isFalse);
+        expect(childSwitch.onChanged, isNull);
+      }
     },
   );
 
-  testWidgets('Notification Center child toggle hides only its timing option', (
+  testWidgets('Notification Center child toggle updates only that reminder', (
     WidgetTester tester,
   ) async {
     await openNotificationCenter(tester);
 
     expect(find.text('Notification Center'), findsOneWidget);
-    expect(find.text('30 min before'), findsOneWidget);
-    expect(find.text('8:00 AM'), findsOneWidget);
+    expect(find.text('4 of 4 reminders on'), findsOneWidget);
 
     await tester.tap(find.byType(Switch).at(1));
     await tester.pump();
 
+    expect(find.text('3 of 4 reminders on'), findsOneWidget);
     expect(find.text('Plan-start reminder'), findsOneWidget);
-    expect(find.text('30 min before'), findsNothing);
     expect(find.text("Today's plan reminder"), findsOneWidget);
-    expect(find.text('8:00 AM'), findsOneWidget);
     expect(find.text('Missed run nudge'), findsOneWidget);
-    expect(find.text('2 hours after'), findsOneWidget);
     expect(find.text('Plan updates'), findsOneWidget);
+
+    final disabledPlanStartSwitch = tester.widget<Switch>(
+      find.byType(Switch).at(1),
+    );
+    final todayReminderSwitch = tester.widget<Switch>(
+      find.byType(Switch).at(2),
+    );
+    expect(disabledPlanStartSwitch.value, isFalse);
+    expect(todayReminderSwitch.value, isTrue);
   });
 
-  testWidgets(
-    'Notification Center exposes timing options when reminder controls are on',
-    (WidgetTester tester) async {
-      await openNotificationCenter(tester);
+  testWidgets('Notification Center exposes concrete reminder delivery copy', (
+    WidgetTester tester,
+  ) async {
+    await openNotificationCenter(tester);
 
-      expect(find.text('Notification Center'), findsOneWidget);
-      expect(find.text('Plan-start reminder'), findsOneWidget);
-      expect(find.text("Today's plan reminder"), findsOneWidget);
-      expect(find.text('Missed run nudge'), findsOneWidget);
-
-      for (final option in [
-        '10 min before',
-        '30 min before',
-        '1 hour before',
-        '2 hours before',
-        '7:00 AM',
-        '8:00 AM',
-        '9:00 AM',
-        'Custom',
-        '1 hour after',
-        '2 hours after',
-        'Evening reminder',
-      ]) {
-        expect(find.text(option), findsOneWidget);
-      }
-    },
-  );
+    expect(find.text('Notification Center'), findsOneWidget);
+    expect(find.text('Plan-start reminder'), findsOneWidget);
+    expect(find.text("Today's plan reminder"), findsOneWidget);
+    expect(find.text('Missed run nudge'), findsOneWidget);
+    expect(
+      find.text('Notifies you 2 hours, 1 hour, and 10 min before your run.'),
+      findsOneWidget,
+    );
+    expect(
+      find.text('Notifies you at 12:00 AM if a plan is scheduled for today.'),
+      findsOneWidget,
+    );
+    expect(
+      find.text(
+        "Notifies you 1 hour and 2 hours after today's plan time if you haven't run.",
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.text('Know when your coach adjusts an upcoming plan.'),
+      findsOneWidget,
+    );
+  });
 }
