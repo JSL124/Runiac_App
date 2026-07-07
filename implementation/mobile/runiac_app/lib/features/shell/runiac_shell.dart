@@ -7,6 +7,9 @@ import '../auth/domain/runiac_auth_service.dart';
 import '../home/presentation/home_tab.dart';
 import '../leaderboard/presentation/leaderboard_tab.dart';
 import '../maps/presentation/maps_tab.dart';
+import '../notifications/data/method_channel_plan_notification_scheduler.dart';
+import '../notifications/data/shared_preferences_notification_center_settings_repository.dart';
+import '../notifications/domain/services/plan_notification_sync_service.dart';
 import '../plan/domain/models/adaptive_plan_estimate_read_model.dart';
 import '../plan/domain/models/beginner_adaptive_plan_snapshot.dart';
 import '../plan/domain/repositories/generated_plan_persistence_repository.dart';
@@ -67,6 +70,17 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
       widget.activeRunSessionCoordinator ?? ActiveRunSessionCoordinator();
   bool _handledInitialRunOpenIntent = false;
   bool _runLaunchRouteOpen = false;
+  String? _lastPlanNotificationSyncSignature;
+  var _planNotificationSyncInFlight = false;
+  var _pendingPlanNotificationSync = false;
+  BeginnerAdaptivePlanSnapshot? _pendingPlanNotificationPlan;
+  GeneratedPlanProgressDisplay? _pendingPlanNotificationProgress;
+  late final PlanNotificationSyncService _planNotificationSyncService =
+      const PlanNotificationSyncService(
+        settingsRepository:
+            SharedPreferencesNotificationCenterSettingsRepository(),
+        scheduler: MethodChannelPlanNotificationScheduler(),
+      );
 
   @override
   void initState() {
@@ -218,6 +232,11 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
       planProgress: generatedPlanProgress,
       adaptiveEstimate: widget.adaptivePlanEstimate,
     );
+    _syncGeneratedPlanNotifications(
+      activeGeneratedPlan,
+      generatedPlanProgress,
+      force: false,
+    );
     final tabs = [
       HomeTab(
         authRepository: widget.authRepository,
@@ -229,6 +248,13 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
         todayPlannedRunContext: todayPlannedRunContext,
         enableForegroundGps: widget.enableForegroundGps,
         activeRunSessionCoordinator: _activeRunSessionCoordinator,
+        onNotificationSettingsChanged: () {
+          _syncGeneratedPlanNotifications(
+            activeGeneratedPlan,
+            generatedPlanProgress,
+            force: true,
+          );
+        },
       ),
       const MapsTab(),
       const SizedBox.shrink(),
@@ -330,5 +356,73 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
     return GeneratedPlanProgressDisplay(
       completedScheduledWorkoutIds: completedIds,
     );
+  }
+
+  void _syncGeneratedPlanNotifications(
+    BeginnerAdaptivePlanSnapshot? activeGeneratedPlan,
+    GeneratedPlanProgressDisplay? generatedPlanProgress, {
+    required bool force,
+  }) {
+    final signature = _planNotificationSyncSignature(
+      activeGeneratedPlan,
+      generatedPlanProgress,
+    );
+    if (!force && signature == _lastPlanNotificationSyncSignature) {
+      return;
+    }
+    if (_planNotificationSyncInFlight) {
+      _pendingPlanNotificationSync = true;
+      _pendingPlanNotificationPlan = activeGeneratedPlan;
+      _pendingPlanNotificationProgress = generatedPlanProgress;
+      return;
+    }
+    _lastPlanNotificationSyncSignature = signature;
+    _planNotificationSyncInFlight = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      try {
+        await _planNotificationSyncService.syncGeneratedPlan(
+          activeGeneratedPlan,
+          now: widget.youProgressToday ?? DateTime.now(),
+          completedScheduledWorkoutIds:
+              generatedPlanProgress?.completedScheduledWorkoutIds ??
+              const <String>{},
+        );
+      } catch (_) {
+        // Notification sync should not block the primary app shell.
+      } finally {
+        _planNotificationSyncInFlight = false;
+        if (_pendingPlanNotificationSync && mounted) {
+          final pendingPlan = _pendingPlanNotificationPlan;
+          final pendingProgress = _pendingPlanNotificationProgress;
+          _pendingPlanNotificationSync = false;
+          _pendingPlanNotificationPlan = null;
+          _pendingPlanNotificationProgress = null;
+          _syncGeneratedPlanNotifications(
+            pendingPlan,
+            pendingProgress,
+            force: true,
+          );
+        }
+      }
+    });
+  }
+
+  String _planNotificationSyncSignature(
+    BeginnerAdaptivePlanSnapshot? activeGeneratedPlan,
+    GeneratedPlanProgressDisplay? generatedPlanProgress,
+  ) {
+    final completedIds = [
+      ...?generatedPlanProgress?.completedScheduledWorkoutIds,
+    ]..sort();
+    final currentDate = widget.youProgressToday;
+    final dayKey = currentDate == null
+        ? 'today'
+        : '${currentDate.year}-${currentDate.month}-${currentDate.day}';
+    return [
+      activeGeneratedPlan?.id ?? 'none',
+      activeGeneratedPlan?.startsOnDate ?? 'no-start',
+      dayKey,
+      ...completedIds,
+    ].join('|');
   }
 }

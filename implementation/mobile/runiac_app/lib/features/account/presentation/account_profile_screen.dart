@@ -20,6 +20,7 @@ class AccountProfileScreen extends StatefulWidget {
     required this.generatedPlanPersistenceRepository,
     required this.onBack,
     this.snapshot = accountProfileDemoSnapshot,
+    this.onNotificationSettingsChanged,
     super.key,
   });
 
@@ -29,6 +30,7 @@ class AccountProfileScreen extends StatefulWidget {
   final GeneratedPlanPersistenceRepository generatedPlanPersistenceRepository;
   final VoidCallback onBack;
   final AccountProfileDemoSnapshot snapshot;
+  final VoidCallback? onNotificationSettingsChanged;
 
   @override
   State<AccountProfileScreen> createState() => _AccountProfileScreenState();
@@ -129,6 +131,8 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
             AccountManageSection(
               rows: snapshot.manageRows,
               authRepository: widget.authRepository,
+              onNotificationSettingsChanged:
+                  widget.onNotificationSettingsChanged,
               onEditProfile: profile == null
                   ? null
                   : () => _openEditProfile(profile),

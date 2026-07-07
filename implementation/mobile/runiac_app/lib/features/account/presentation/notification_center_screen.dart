@@ -2,17 +2,30 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/runiac_back_header.dart';
+import '../../notifications/data/shared_preferences_notification_center_settings_repository.dart';
+import '../../notifications/domain/models/notification_center_settings.dart';
+import '../../notifications/domain/repositories/notification_center_settings_repository.dart';
 
 class NotificationCenterScreen extends StatefulWidget {
-  const NotificationCenterScreen({super.key});
+  const NotificationCenterScreen({
+    this.settingsRepository =
+        const SharedPreferencesNotificationCenterSettingsRepository(),
+    this.onSettingsChanged,
+    super.key,
+  });
+
+  final NotificationCenterSettingsRepository settingsRepository;
+  final ValueChanged<NotificationCenterSettings>? onSettingsChanged;
 
   static const _beforeRunRows = <_NotificationPreferenceRowData>[
     _NotificationPreferenceRowData(
+      preference: NotificationPreference.planStartReminder,
       icon: Icons.event_available_outlined,
       title: 'Plan-start reminder',
       subtitle: 'Notifies you 2 hours, 1 hour, and 10 min before your run.',
     ),
     _NotificationPreferenceRowData(
+      preference: NotificationPreference.todaysPlanReminder,
       icon: Icons.today_outlined,
       title: "Today's plan reminder",
       subtitle: 'Notifies you at 12:00 AM if a plan is scheduled for today.',
@@ -21,12 +34,14 @@ class NotificationCenterScreen extends StatefulWidget {
 
   static const _afterRunRows = <_NotificationPreferenceRowData>[
     _NotificationPreferenceRowData(
+      preference: NotificationPreference.missedRunNudge,
       icon: Icons.directions_run_outlined,
       title: 'Missed run nudge',
       subtitle:
           "Notifies you 1 hour and 2 hours after today's plan time if you haven't run.",
     ),
     _NotificationPreferenceRowData(
+      preference: NotificationPreference.planUpdates,
       icon: Icons.update_outlined,
       title: 'Plan updates',
       subtitle: 'Know when your coach adjusts an upcoming plan.',
@@ -41,16 +56,35 @@ class NotificationCenterScreen extends StatefulWidget {
 }
 
 class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
-  bool _notificationsEnabled = true;
-  late final List<bool> _notificationRowEnabled = List<bool>.filled(
-    NotificationCenterScreen._notificationRows.length,
-    true,
-  );
+  NotificationCenterSettings _settings = NotificationCenterSettings.defaults;
+
+  @override
+  void initState() {
+    super.initState();
+    _restoreSettings();
+  }
+
+  Future<void> _restoreSettings() async {
+    final settings = await widget.settingsRepository.loadSettings();
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _settings = settings;
+    });
+  }
+
+  Future<void> _setSettings(NotificationCenterSettings settings) async {
+    setState(() {
+      _settings = settings;
+    });
+    await widget.settingsRepository.saveSettings(settings);
+    widget.onSettingsChanged?.call(settings);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final enabledCount = _notificationRowEnabled
-        .where((enabled) => enabled)
-        .length;
+    final notificationsEnabled = _settings.notificationsEnabled;
     return Scaffold(
       backgroundColor: RuniacColors.background,
       body: SafeArea(
@@ -74,16 +108,17 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       _MasterNotificationsCard(
-                        enabled: _notificationsEnabled,
-                        enabledCount: enabledCount,
-                        totalCount: _notificationRowEnabled.length,
+                        enabled: notificationsEnabled,
+                        enabledCount: _settings.enabledPreferenceCount,
+                        totalCount:
+                            NotificationCenterScreen._notificationRows.length,
                         onChanged: (value) {
-                          setState(() {
-                            _notificationsEnabled = value;
-                          });
+                          _setSettings(
+                            _settings.copyWith(notificationsEnabled: value),
+                          );
                         },
                       ),
-                      if (!_notificationsEnabled) ...[
+                      if (!notificationsEnabled) ...[
                         const SizedBox(height: 10),
                         const _DisabledHelper(),
                       ],
@@ -91,26 +126,22 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
                       _NotificationGroup(
                         label: 'BEFORE YOUR RUN',
                         rows: NotificationCenterScreen._beforeRunRows,
-                        rowOffset: 0,
-                        notificationsEnabled: _notificationsEnabled,
-                        rowEnabled: _notificationRowEnabled,
-                        onRowChanged: (index, value) {
-                          setState(() {
-                            _notificationRowEnabled[index] = value;
-                          });
+                        settings: _settings,
+                        onRowChanged: (preference, value) {
+                          _setSettings(
+                            _settings.withPreference(preference, value),
+                          );
                         },
                       ),
                       const SizedBox(height: 20),
                       _NotificationGroup(
                         label: 'AFTER YOUR RUN',
                         rows: NotificationCenterScreen._afterRunRows,
-                        rowOffset: NotificationCenterScreen._beforeRunRows.length,
-                        notificationsEnabled: _notificationsEnabled,
-                        rowEnabled: _notificationRowEnabled,
-                        onRowChanged: (index, value) {
-                          setState(() {
-                            _notificationRowEnabled[index] = value;
-                          });
+                        settings: _settings,
+                        onRowChanged: (preference, value) {
+                          _setSettings(
+                            _settings.withPreference(preference, value),
+                          );
                         },
                       ),
                     ],
@@ -225,18 +256,15 @@ class _NotificationGroup extends StatelessWidget {
   const _NotificationGroup({
     required this.label,
     required this.rows,
-    required this.rowOffset,
-    required this.notificationsEnabled,
-    required this.rowEnabled,
+    required this.settings,
     required this.onRowChanged,
   });
 
   final String label;
   final List<_NotificationPreferenceRowData> rows;
-  final int rowOffset;
-  final bool notificationsEnabled;
-  final List<bool> rowEnabled;
-  final void Function(int index, bool value) onRowChanged;
+  final NotificationCenterSettings settings;
+  final void Function(NotificationPreference preference, bool value)
+  onRowChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -246,10 +274,8 @@ class _NotificationGroup extends StatelessWidget {
         _SectionLabel(label),
         const SizedBox(height: 8),
         _NotificationPreferenceSection(
-          notificationsEnabled: notificationsEnabled,
+          settings: settings,
           rows: rows,
-          rowEnabled: rowEnabled,
-          rowOffset: rowOffset,
           onRowChanged: onRowChanged,
         ),
       ],
@@ -259,18 +285,15 @@ class _NotificationGroup extends StatelessWidget {
 
 class _NotificationPreferenceSection extends StatelessWidget {
   const _NotificationPreferenceSection({
-    required this.notificationsEnabled,
+    required this.settings,
     required this.rows,
-    required this.rowEnabled,
-    required this.rowOffset,
     required this.onRowChanged,
   });
 
-  final bool notificationsEnabled;
+  final NotificationCenterSettings settings;
   final List<_NotificationPreferenceRowData> rows;
-  final List<bool> rowEnabled;
-  final int rowOffset;
-  final void Function(int index, bool value) onRowChanged;
+  final void Function(NotificationPreference preference, bool value)
+  onRowChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -285,9 +308,9 @@ class _NotificationPreferenceSection extends StatelessWidget {
           for (var index = 0; index < rows.length; index++) ...[
             _NotificationPreferenceRow(
               row: rows[index],
-              notificationsEnabled: notificationsEnabled,
-              rowEnabled: rowEnabled[rowOffset + index],
-              onChanged: (value) => onRowChanged(rowOffset + index, value),
+              notificationsEnabled: settings.notificationsEnabled,
+              rowEnabled: settings.isPreferenceEnabled(rows[index].preference),
+              onChanged: (value) => onRowChanged(rows[index].preference, value),
             ),
             if (index != rows.length - 1)
               const Divider(
@@ -418,11 +441,13 @@ class _SectionLabel extends StatelessWidget {
 
 class _NotificationPreferenceRowData {
   const _NotificationPreferenceRowData({
+    required this.preference,
     required this.icon,
     required this.title,
     required this.subtitle,
   });
 
+  final NotificationPreference preference;
   final IconData icon;
   final String title;
   final String subtitle;

@@ -29,6 +29,7 @@ class HomeTab extends StatelessWidget {
     super.key,
     this.enableForegroundGps = true,
     this.activeRunSessionCoordinator,
+    this.onNotificationSettingsChanged,
   });
 
   final RuniacAuthRepository authRepository;
@@ -39,6 +40,7 @@ class HomeTab extends StatelessWidget {
   final PlannedRunContext? todayPlannedRunContext;
   final bool enableForegroundGps;
   final ActiveRunSessionCoordinator? activeRunSessionCoordinator;
+  final VoidCallback? onNotificationSettingsChanged;
 
   void _showPreviewMessage(BuildContext context, String message) {
     ScaffoldMessenger.of(context)
@@ -92,6 +94,7 @@ class HomeTab extends StatelessWidget {
             profilePersistenceRepository: profilePersistenceRepository,
             generatedPlanPersistenceRepository:
                 generatedPlanPersistenceRepository,
+            onNotificationSettingsChanged: onNotificationSettingsChanged,
             onBack: () => Navigator.of(context).pop(),
           );
         },

@@ -13,6 +13,9 @@ import io.flutter.plugin.common.MethodChannel
 class MainActivity : FlutterActivity() {
     private var pendingNotificationPermissionResult: MethodChannel.Result? = null
     private var pendingActivityRecognitionPermissionResult: MethodChannel.Result? = null
+    private val planNotificationScheduler: RuniacPlanNotificationScheduler by lazy {
+        RuniacPlanNotificationScheduler(this)
+    }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -23,6 +26,24 @@ class MainActivity : FlutterActivity() {
             when (call.method) {
                 REQUEST_POST_NOTIFICATIONS_PERMISSION_METHOD ->
                     requestPostNotificationsPermission(result)
+                else -> result.notImplemented()
+            }
+        }
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            PLAN_NOTIFICATIONS_CHANNEL,
+        ).setMethodCallHandler { call, result ->
+            when (call.method) {
+                PLAN_NOTIFICATIONS_REQUEST_PERMISSION_METHOD ->
+                    requestPostNotificationsPermission(result)
+                SYNC_PLAN_NOTIFICATIONS_METHOD -> {
+                    planNotificationScheduler.syncPlanNotifications(call.arguments)
+                    result.success(null)
+                }
+                CANCEL_PLAN_NOTIFICATIONS_METHOD -> {
+                    planNotificationScheduler.cancelPlanNotifications()
+                    result.success(null)
+                }
                 else -> result.notImplemented()
             }
         }
@@ -189,6 +210,7 @@ class MainActivity : FlutterActivity() {
     companion object {
         private const val NOTIFICATION_PERMISSION_CHANNEL =
             "runiac/notification_permissions"
+        private const val PLAN_NOTIFICATIONS_CHANNEL = "runiac/plan_notifications"
         private const val PHONE_MOTION_CADENCE_CHANNEL =
             "runiac/phone_motion_cadence"
         private const val PHONE_MOTION_CADENCE_EVENTS_CHANNEL =
@@ -197,6 +219,12 @@ class MainActivity : FlutterActivity() {
             "runiac/run_foreground_service"
         private const val REQUEST_POST_NOTIFICATIONS_PERMISSION_METHOD =
             "requestPostNotificationsPermission"
+        private const val PLAN_NOTIFICATIONS_REQUEST_PERMISSION_METHOD =
+            "requestPermission"
+        private const val SYNC_PLAN_NOTIFICATIONS_METHOD =
+            "syncPlanNotifications"
+        private const val CANCEL_PLAN_NOTIFICATIONS_METHOD =
+            "cancelPlanNotifications"
         private const val START_RUN_FOREGROUND_SERVICE_METHOD = "start"
         private const val UPDATE_RUN_NOTIFICATION_METHOD = "update"
         private const val STOP_RUN_FOREGROUND_SERVICE_METHOD = "stop"

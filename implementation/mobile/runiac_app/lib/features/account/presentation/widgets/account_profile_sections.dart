@@ -64,19 +64,25 @@ class AccountManageSection extends StatelessWidget {
     required this.rows,
     required this.authRepository,
     this.onEditProfile,
+    this.onNotificationSettingsChanged,
     super.key,
   });
 
   final List<AccountProfileManageRow> rows;
   final RuniacAuthRepository authRepository;
   final VoidCallback? onEditProfile;
+  final VoidCallback? onNotificationSettingsChanged;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
         for (final row in rows) ...[
-          _ManageRow(row: row, onEditProfile: onEditProfile),
+          _ManageRow(
+            row: row,
+            onEditProfile: onEditProfile,
+            onNotificationSettingsChanged: onNotificationSettingsChanged,
+          ),
           const SizedBox(height: 8),
         ],
         AccountSignOutRow(authRepository: authRepository),
@@ -133,10 +139,15 @@ class _SetupRow extends StatelessWidget {
 }
 
 class _ManageRow extends StatelessWidget {
-  const _ManageRow({required this.row, this.onEditProfile});
+  const _ManageRow({
+    required this.row,
+    this.onEditProfile,
+    this.onNotificationSettingsChanged,
+  });
 
   final AccountProfileManageRow row;
   final VoidCallback? onEditProfile;
+  final VoidCallback? onNotificationSettingsChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -165,7 +176,11 @@ class _ManageRow extends StatelessWidget {
         if (row.action == UserProfileManageAction.notifications) {
           Navigator.of(context).push(
             MaterialPageRoute<void>(
-              builder: (_) => const NotificationCenterScreen(),
+              builder: (_) => NotificationCenterScreen(
+                onSettingsChanged: (_) {
+                  onNotificationSettingsChanged?.call();
+                },
+              ),
             ),
           );
           return;
