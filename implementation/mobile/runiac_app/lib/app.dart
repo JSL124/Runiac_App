@@ -13,8 +13,10 @@ import 'features/auth/domain/runiac_auth_service.dart';
 import 'features/auth/presentation/runiac_auth_gate.dart';
 import 'features/auth/presentation/runiac_profile_setup_gate.dart';
 import 'features/onboarding/domain/models/local_onboarding_draft.dart';
+import 'features/plan/domain/models/adaptive_plan_estimate_read_model.dart';
 import 'features/plan/domain/models/beginner_adaptive_plan_snapshot.dart';
 import 'features/plan/domain/models/plan_progress_read_model.dart';
+import 'features/plan/domain/repositories/adaptive_plan_estimate_repository.dart';
 import 'features/plan/domain/repositories/generated_plan_persistence_repository.dart';
 import 'features/plan/domain/repositories/plan_progress_repository.dart';
 import 'features/plan/domain/services/beginner_adaptive_plan_generator.dart';
@@ -54,6 +56,8 @@ class RuniacApp extends StatefulWidget {
     this.generatedPlanPersistenceRepository =
         const NoopGeneratedPlanPersistenceRepository(),
     this.planProgressRepository = const NoopPlanProgressRepository(),
+    this.adaptivePlanEstimateRepository =
+        const NoopAdaptivePlanEstimateRepository(),
     this.enableForegroundGps = true,
     this.activeRunSessionCoordinator,
     this.initialRunOpenIntent,
@@ -76,6 +80,7 @@ class RuniacApp extends StatefulWidget {
   final UserProfilePersistenceRepository profilePersistenceRepository;
   final GeneratedPlanPersistenceRepository generatedPlanPersistenceRepository;
   final PlanProgressRepository planProgressRepository;
+  final AdaptivePlanEstimateRepository adaptivePlanEstimateRepository;
   final bool enableForegroundGps;
   final ActiveRunSessionCoordinator? activeRunSessionCoordinator;
   final RunOpenIntent? initialRunOpenIntent;
@@ -100,6 +105,8 @@ class _RuniacAppState extends State<RuniacApp> {
   String? _generatedPlanHydrationProbeUid;
   PlanProgressReadModel? _planProgress;
   var _planProgressLoadSerial = 0;
+  AdaptivePlanEstimateReadModel? _adaptivePlanEstimate;
+  var _adaptivePlanEstimateLoadSerial = 0;
   String? _authStateError;
 
   @override
@@ -139,6 +146,14 @@ class _RuniacAppState extends State<RuniacApp> {
       final activePlan = _generatedPlanStore.activePlan;
       if (ownerUid != null && activePlan != null) {
         unawaited(_loadPlanProgress(ownerUid, activePlan.id));
+      }
+    }
+    if (oldWidget.adaptivePlanEstimateRepository !=
+        widget.adaptivePlanEstimateRepository) {
+      final ownerUid = _generatedPlanOwnerUid;
+      final activePlan = _generatedPlanStore.activePlan;
+      if (ownerUid != null && activePlan != null) {
+        unawaited(_loadAdaptivePlanEstimate(ownerUid, activePlan.id));
       }
     }
   }
@@ -202,6 +217,8 @@ class _RuniacAppState extends State<RuniacApp> {
     _generatedPlanHydrationProbeUid = null;
     _planProgress = null;
     _planProgressLoadSerial += 1;
+    _adaptivePlanEstimate = null;
+    _adaptivePlanEstimateLoadSerial += 1;
     _generatedPlanStore.clear();
   }
 
@@ -338,6 +355,7 @@ class _RuniacAppState extends State<RuniacApp> {
         generatedPlanPersistenceRepository:
             widget.generatedPlanPersistenceRepository,
         planProgress: _planProgress,
+        adaptivePlanEstimate: _adaptivePlanEstimate,
         enableForegroundGps: widget.enableForegroundGps,
         activeRunSessionCoordinator: widget.activeRunSessionCoordinator,
         initialRunOpenIntent: widget.initialRunOpenIntent,
@@ -419,15 +437,20 @@ class _RuniacAppState extends State<RuniacApp> {
       _generatedPlanOwnerUid = null;
       _planProgress = null;
       _planProgressLoadSerial += 1;
+      _adaptivePlanEstimate = null;
+      _adaptivePlanEstimateLoadSerial += 1;
       _generatedPlanStore.clear();
       return;
     }
     if (ownerUid == null) {
       _planProgress = null;
       _planProgressLoadSerial += 1;
+      _adaptivePlanEstimate = null;
+      _adaptivePlanEstimateLoadSerial += 1;
       return;
     }
     unawaited(_loadPlanProgress(ownerUid, snapshot.id));
+    unawaited(_loadAdaptivePlanEstimate(ownerUid, snapshot.id));
   }
 
   Future<void> _loadPlanProgress(
@@ -450,6 +473,25 @@ class _RuniacAppState extends State<RuniacApp> {
       _planProgress = progress.completedScheduledWorkoutIds.isEmpty
           ? null
           : progress;
+    });
+  }
+
+  Future<void> _loadAdaptivePlanEstimate(
+    String ownerUid,
+    String activeGeneratedPlanId,
+  ) async {
+    final loadSerial = _adaptivePlanEstimateLoadSerial + 1;
+    _adaptivePlanEstimateLoadSerial = loadSerial;
+    final estimate = await widget.adaptivePlanEstimateRepository
+        .loadAdaptivePlanEstimate(uid: ownerUid);
+    if (!mounted ||
+        loadSerial != _adaptivePlanEstimateLoadSerial ||
+        _generatedPlanOwnerUid != ownerUid ||
+        _generatedPlanStore.activePlan?.id != activeGeneratedPlanId) {
+      return;
+    }
+    setState(() {
+      _adaptivePlanEstimate = estimate.isUsableForPlannedRun ? estimate : null;
     });
   }
 

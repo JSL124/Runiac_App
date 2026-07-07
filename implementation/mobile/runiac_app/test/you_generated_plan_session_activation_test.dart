@@ -16,6 +16,7 @@ Future<void> _openYouPlansTab(
   CurrentSessionGeneratedPlanStore generatedPlanStore, {
   RuniacAuthRepository? authRepository,
   GeneratedPlanPersistenceRepository? generatedPlanPersistenceRepository,
+  DateTime? currentDate,
 }) async {
   await tester.pumpWidget(
     RuniacApp(
@@ -26,6 +27,7 @@ Future<void> _openYouPlansTab(
       generatedPlanPersistenceRepository:
           generatedPlanPersistenceRepository ??
           const NoopGeneratedPlanPersistenceRepository(),
+      youProgressToday: currentDate,
     ),
   );
   await tester.tap(find.byTooltip('You'));
@@ -429,6 +431,7 @@ void main() {
       generatedPlanStore,
       authRepository: const _SignedInAuthRepository('schedule-user'),
       generatedPlanPersistenceRepository: generatedPlanRepository,
+      currentDate: DateTime(2026, 7, 6),
     );
 
     await tester.ensureVisible(find.text('25 min Controlled Steady Run'));

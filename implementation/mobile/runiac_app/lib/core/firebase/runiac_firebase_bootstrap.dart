@@ -10,8 +10,10 @@ import '../../features/account/domain/repositories/user_profile_repository.dart'
 import '../../features/auth/data/firebase_runiac_auth_repository.dart';
 import '../../features/auth/data/non_production_auth_repository.dart';
 import '../../features/auth/domain/runiac_auth_service.dart';
+import '../../features/plan/data/firestore_adaptive_plan_estimate_repository.dart';
 import '../../features/plan/data/firestore_generated_plan_persistence_repository.dart';
 import '../../features/plan/data/firestore_plan_progress_repository.dart';
+import '../../features/plan/domain/repositories/adaptive_plan_estimate_repository.dart';
 import '../../features/plan/domain/repositories/generated_plan_persistence_repository.dart';
 import '../../features/plan/domain/repositories/plan_progress_repository.dart';
 import '../../features/run/data/run_repository_factory.dart';
@@ -47,6 +49,8 @@ class RuniacFirebaseBootstrap {
           generatedPlanPersistenceRepository:
               const NoopGeneratedPlanPersistenceRepository(),
           planProgressRepository: const NoopPlanProgressRepository(),
+          adaptivePlanEstimateRepository:
+              const NoopAdaptivePlanEstimateRepository(),
           firestoreGateway: RuniacFirestoreGateway.configure(
             useFirebaseEmulator: runtimeConfig.useFirebaseEmulator,
             emulatorHost: runtimeConfig.emulatorHost,
@@ -83,6 +87,8 @@ class RuniacFirebaseBootstrap {
         generatedPlanPersistenceRepository:
             FirestoreGeneratedPlanPersistenceRepository(),
         planProgressRepository: FirestorePlanProgressRepository(),
+        adaptivePlanEstimateRepository:
+            FirestoreAdaptivePlanEstimateRepository(),
         firestoreGateway: firestoreGateway,
       );
     }
@@ -133,6 +139,7 @@ class RuniacFirebaseBootstrap {
       generatedPlanPersistenceRepository:
           FirestoreGeneratedPlanPersistenceRepository(),
       planProgressRepository: FirestorePlanProgressRepository(),
+      adaptivePlanEstimateRepository: FirestoreAdaptivePlanEstimateRepository(),
       firestoreGateway: firestoreGateway,
     );
   }
@@ -181,6 +188,7 @@ class RuniacFirebaseBootstrapResult {
     required this.profilePersistenceRepository,
     required this.generatedPlanPersistenceRepository,
     required this.planProgressRepository,
+    required this.adaptivePlanEstimateRepository,
     required this.firestoreGateway,
   });
 
@@ -192,5 +200,6 @@ class RuniacFirebaseBootstrapResult {
   final UserProfilePersistenceRepository profilePersistenceRepository;
   final GeneratedPlanPersistenceRepository generatedPlanPersistenceRepository;
   final PlanProgressRepository planProgressRepository;
+  final AdaptivePlanEstimateRepository adaptivePlanEstimateRepository;
   final RuniacFirestoreGateway firestoreGateway;
 }

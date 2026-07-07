@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/runiac_colors.dart';
 import '../../auth/domain/runiac_auth_service.dart';
+import '../../plan/domain/models/adaptive_plan_estimate_read_model.dart';
 import '../../plan/domain/models/beginner_adaptive_plan_snapshot.dart';
 import '../../plan/domain/repositories/generated_plan_persistence_repository.dart';
 import '../../run/domain/models/run_activity_display_model.dart';
@@ -41,6 +42,7 @@ class YouTab extends StatefulWidget {
     this.activeRunSessionCoordinator,
     this.progressToday,
     this.generatedPlanProgress,
+    this.adaptivePlanEstimate,
   });
 
   final ActivityHistoryRepository activityHistoryRepository;
@@ -51,6 +53,7 @@ class YouTab extends StatefulWidget {
   final ActiveRunSessionCoordinator? activeRunSessionCoordinator;
   final DateTime? progressToday;
   final GeneratedPlanProgressDisplay? generatedPlanProgress;
+  final AdaptivePlanEstimateReadModel? adaptivePlanEstimate;
 
   @override
   State<YouTab> createState() => _YouTabState();
@@ -161,10 +164,13 @@ class _YouTabState extends State<YouTab> {
         generatedYouPlanDisplayFromSnapshot(
           activeGeneratedPlan,
           planProgress: generatedPlanProgress,
+          currentDate: widget.progressToday,
+          adaptiveEstimate: widget.adaptivePlanEstimate,
         );
     final generatedGoalPlanDetail = generatedGoalPlanDisplayFromSnapshot(
       activeGeneratedPlan,
       currentWeekDisplay: _editedGeneratedPlanDisplay,
+      currentDate: widget.progressToday,
     );
     final safetyReadinessDisplay = safetyReadinessYouPlanDisplayFromSnapshot(
       activeGeneratedPlan,

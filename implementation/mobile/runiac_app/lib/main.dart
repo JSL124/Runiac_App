@@ -21,6 +21,7 @@ Future<void> main() async {
       generatedPlanPersistenceRepository:
           bootstrap.generatedPlanPersistenceRepository,
       planProgressRepository: bootstrap.planProgressRepository,
+      adaptivePlanEstimateRepository: bootstrap.adaptivePlanEstimateRepository,
       showAuth: true,
       showOnboarding: true,
     ),

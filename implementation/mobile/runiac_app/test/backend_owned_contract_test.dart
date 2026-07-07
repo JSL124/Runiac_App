@@ -269,6 +269,8 @@ void main() {
         'lib/features/account/data/firestore_user_profile_repository.dart',
         'lib/features/plan/data/'
             'firestore_generated_plan_persistence_repository.dart',
+        'lib/features/plan/data/firestore_adaptive_plan_estimate_repository.dart',
+        'lib/features/plan/data/firestore_plan_progress_repository.dart',
         'lib/features/you/data/firestore_activity_history_repository.dart',
         'lib/features/you/data/firestore_user_progress_repository.dart',
       };

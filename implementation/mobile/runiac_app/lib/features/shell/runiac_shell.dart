@@ -7,6 +7,7 @@ import '../auth/domain/runiac_auth_service.dart';
 import '../home/presentation/home_tab.dart';
 import '../leaderboard/presentation/leaderboard_tab.dart';
 import '../maps/presentation/maps_tab.dart';
+import '../plan/domain/models/adaptive_plan_estimate_read_model.dart';
 import '../plan/domain/models/beginner_adaptive_plan_snapshot.dart';
 import '../plan/domain/repositories/generated_plan_persistence_repository.dart';
 import '../plan/domain/models/plan_progress_read_model.dart';
@@ -33,6 +34,7 @@ class RuniacShell extends StatefulWidget {
     this.generatedPlanPersistenceRepository =
         const NoopGeneratedPlanPersistenceRepository(),
     this.planProgress,
+    this.adaptivePlanEstimate,
     super.key,
     this.enableForegroundGps = true,
     this.activeRunSessionCoordinator,
@@ -47,6 +49,7 @@ class RuniacShell extends StatefulWidget {
   final UserProfilePersistenceRepository profilePersistenceRepository;
   final GeneratedPlanPersistenceRepository generatedPlanPersistenceRepository;
   final PlanProgressReadModel? planProgress;
+  final AdaptivePlanEstimateReadModel? adaptivePlanEstimate;
   final bool enableForegroundGps;
   final ActiveRunSessionCoordinator? activeRunSessionCoordinator;
   final RunOpenIntent? initialRunOpenIntent;
@@ -207,11 +210,13 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
       activeGeneratedPlan,
       currentDate: widget.youProgressToday,
       planProgress: generatedPlanProgress,
+      adaptiveEstimate: widget.adaptivePlanEstimate,
     );
     final todayPlannedRunContext = todayPlannedRunContextFromSnapshot(
       activeGeneratedPlan,
       currentDate: widget.youProgressToday,
       planProgress: generatedPlanProgress,
+      adaptiveEstimate: widget.adaptivePlanEstimate,
     );
     final tabs = [
       HomeTab(
@@ -238,6 +243,7 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
         activeRunSessionCoordinator: _activeRunSessionCoordinator,
         progressToday: widget.youProgressToday,
         generatedPlanProgress: generatedPlanProgress,
+        adaptivePlanEstimate: widget.adaptivePlanEstimate,
       ),
     ];
 
@@ -304,6 +310,7 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
       generatedPlanStore?.activePlan,
       currentDate: widget.youProgressToday,
       planProgress: _generatedPlanProgress(generatedPlanStore?.activePlan),
+      adaptiveEstimate: widget.adaptivePlanEstimate,
     );
   }
 

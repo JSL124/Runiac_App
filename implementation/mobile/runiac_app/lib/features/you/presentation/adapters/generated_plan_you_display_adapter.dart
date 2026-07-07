@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../plan/domain/models/adaptive_plan_estimate_read_model.dart';
 import '../../../plan/domain/models/beginner_adaptive_plan_snapshot.dart';
 import '../../../plan/domain/models/plan_family.dart';
 import '../../../run/presentation/models/planned_run_context.dart';
@@ -173,6 +174,7 @@ GeneratedYouPlanDisplay? generatedYouPlanDisplayFromSnapshot(
   BeginnerAdaptivePlanSnapshot? snapshot, {
   DateTime? currentDate,
   GeneratedPlanProgressDisplay? planProgress,
+  AdaptivePlanEstimateReadModel? adaptiveEstimate,
 }) {
   if (snapshot == null || !isEligibleCurrentSessionGeneratedPlan(snapshot)) {
     return null;
@@ -199,6 +201,7 @@ GeneratedYouPlanDisplay? generatedYouPlanDisplayFromSnapshot(
       snapshot,
       currentWeekdayIndex,
       planProgress: planProgress,
+      adaptiveEstimate: adaptiveEstimate,
     ),
   );
 }
@@ -251,11 +254,13 @@ WeeklyWorkoutDetailSnapshot? todayGeneratedWorkoutDetailFromSnapshot(
   BeginnerAdaptivePlanSnapshot? snapshot, {
   DateTime? currentDate,
   GeneratedPlanProgressDisplay? planProgress,
+  AdaptivePlanEstimateReadModel? adaptiveEstimate,
 }) {
   final display = generatedYouPlanDisplayFromSnapshot(
     snapshot,
     currentDate: currentDate,
     planProgress: planProgress,
+    adaptiveEstimate: adaptiveEstimate,
   );
   if (display == null) {
     return null;
@@ -273,11 +278,13 @@ PlannedRunContext? todayPlannedRunContextFromSnapshot(
   BeginnerAdaptivePlanSnapshot? snapshot, {
   DateTime? currentDate,
   GeneratedPlanProgressDisplay? planProgress,
+  AdaptivePlanEstimateReadModel? adaptiveEstimate,
 }) {
   final detail = todayGeneratedWorkoutDetailFromSnapshot(
     snapshot,
     currentDate: currentDate,
     planProgress: planProgress,
+    adaptiveEstimate: adaptiveEstimate,
   );
   if (detail != null) {
     return detail.plannedRunContext;
@@ -287,6 +294,7 @@ PlannedRunContext? todayPlannedRunContextFromSnapshot(
     snapshot,
     currentDate: currentDate,
     planProgress: planProgress,
+    adaptiveEstimate: adaptiveEstimate,
   );
   if (display == null || snapshot == null) {
     return null;
@@ -598,6 +606,7 @@ List<YouPlanScheduleRow> _weeklyScheduleRowsFor(
   BeginnerAdaptivePlanSnapshot snapshot,
   int currentWeekdayIndex, {
   GeneratedPlanProgressDisplay? planProgress,
+  AdaptivePlanEstimateReadModel? adaptiveEstimate,
 }) {
   final workoutsByDay = {
     for (final workout in currentWeek.workouts) workout.dayLabel: workout,
@@ -617,6 +626,7 @@ List<YouPlanScheduleRow> _weeklyScheduleRowsFor(
         currentWeekdayIndex,
         weekNumber: currentWeek.weekNumber,
         planProgress: planProgress,
+        adaptiveEstimate: adaptiveEstimate,
       ),
   ];
 }
@@ -629,6 +639,7 @@ YouPlanScheduleRow _scheduleRowForDay(
   int currentWeekdayIndex, {
   required int weekNumber,
   GeneratedPlanProgressDisplay? planProgress,
+  AdaptivePlanEstimateReadModel? adaptiveEstimate,
 }) {
   final weekdayIndex = _weekdayIndexFor(dayLabel);
   final isToday = weekdayIndex == currentWeekdayIndex;
@@ -670,6 +681,7 @@ YouPlanScheduleRow _scheduleRowForDay(
       canEditSchedule: canEditSchedule,
       alreadyCompletedToday: completed && isToday,
       keepPlannedRunContext: completed && isToday,
+      adaptiveEstimate: adaptiveEstimate,
       occupiedWeekdayIndexes: occupiedWeekdayIndexes,
     ),
     weekdayIndex: weekdayIndex,
@@ -710,6 +722,7 @@ WeeklyWorkoutDetailSnapshot _workoutDetailFor(
   required bool canEditSchedule,
   bool alreadyCompletedToday = false,
   bool keepPlannedRunContext = false,
+  AdaptivePlanEstimateReadModel? adaptiveEstimate,
   Set<int> occupiedWeekdayIndexes = const <int>{},
 }) {
   final canStartPlannedRun =
@@ -747,6 +760,7 @@ WeeklyWorkoutDetailSnapshot _workoutDetailFor(
             snapshot,
             weekNumber: weekNumber,
             alreadyCompletedToday: alreadyCompletedToday,
+            adaptiveEstimate: adaptiveEstimate,
           )
         : null,
   );
@@ -764,9 +778,15 @@ PlannedRunContext _plannedRunContextFor(
   BeginnerAdaptivePlanSnapshot snapshot, {
   required int weekNumber,
   bool alreadyCompletedToday = false,
+  AdaptivePlanEstimateReadModel? adaptiveEstimate,
 }) {
   final workoutKindLabel = _kindLabel(workout.kind);
   final intensityLabel = _intensityLabel(workout.intensity);
+  final distanceLabel = adaptiveEstimate?.distanceLabelForDurationMinutes(
+    workout.durationMinutes,
+  );
+  final targetDistanceMeters = adaptiveEstimate
+      ?.targetDistanceMetersForDurationMinutes(workout.durationMinutes);
 
   return PlannedRunContext(
     title: workout.title,
@@ -781,6 +801,9 @@ PlannedRunContext _plannedRunContextFor(
     objectiveKind: PlannedRunObjectiveKind.duration,
     primaryValueLabel: '${workout.durationMinutes} min',
     primaryUnitLabel: workoutKindLabel.toLowerCase(),
+    estimatedDistanceLabel: distanceLabel,
+    estimateConfidence: _plannedRunConfidenceFor(adaptiveEstimate),
+    targetDistanceMeters: targetDistanceMeters,
     planEnrollmentId: snapshot.id,
     scheduledWorkoutId: _scheduledWorkoutIdFor(
       weekNumber: weekNumber,
@@ -789,6 +812,18 @@ PlannedRunContext _plannedRunContextFor(
     ),
     alreadyCompletedToday: alreadyCompletedToday,
   );
+}
+
+PlannedRunEstimateConfidence _plannedRunConfidenceFor(
+  AdaptivePlanEstimateReadModel? adaptiveEstimate,
+) {
+  return switch (adaptiveEstimate?.estimateConfidence) {
+    AdaptivePlanEstimateConfidence.low => PlannedRunEstimateConfidence.low,
+    AdaptivePlanEstimateConfidence.medium =>
+      PlannedRunEstimateConfidence.medium,
+    AdaptivePlanEstimateConfidence.none ||
+    null => PlannedRunEstimateConfidence.none,
+  };
 }
 
 String _scheduledWorkoutIdFor({
