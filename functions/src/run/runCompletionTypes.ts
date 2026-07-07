@@ -42,10 +42,18 @@ export type CompleteRunIds = {
 };
 
 export type ProgressionDisplay = {
-  readonly xpDelta: 0;
+  readonly xpDelta: number;
   readonly countsTowardLeaderboard: false;
-  readonly status: "deferred";
-  readonly reason: "progression_formula_deferred";
+  readonly status: "awarded" | "not_awarded" | "deferred";
+  readonly reason:
+    | "run_completion_xp_awarded"
+    | "low_data_no_xp"
+    | "daily_cap_reached"
+    | "premium_no_progression"
+    | "progression_formula_deferred";
+  readonly totalXp?: number;
+  readonly level?: number;
+  readonly divisionKey?: string;
 };
 
 export type RunSummaryResult = {

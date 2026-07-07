@@ -16,15 +16,32 @@ void main() {
         BackendOwnedValueContract.protectedFieldNames,
         containsAll(<String>[
           'xp',
+          'totalXp',
+          'totalXP',
           'level',
+          'divisionTier',
+          'divisionKey',
+          'divisionLabel',
+          'levelLabel',
+          'totalXpLabel',
+          'nextLevelXp',
+          'xpToNextLevel',
+          'levelProgressPercent',
+          'progressionUpdatedAt',
           'rank',
           'streak',
+          'streakCount',
+          'lastStreakRunDate',
+          'streakUpdatedAt',
           'leaderboardScore',
           'weeklyXp',
+          'weeklyXP',
           'monthlyXp',
+          'monthlyXP',
           'subscriptionPrivilegeState',
           'expertPlanPublicationState',
           'validatedActivityContributionState',
+          'countsTowardProgression',
         ]),
       );
     });
@@ -363,7 +380,14 @@ void main() {
         expect(source, isNot(contains('.batch(')));
         expect(source, isNot(contains('FieldValue.')));
         expect(source, isNot(contains("collection('users')")));
-        for (final field in BackendOwnedValueContract.protectedFieldNames) {
+        const allowedReadOnlyProgressFields = <String>{
+          'streakCount',
+          'levelLabel',
+          'totalXpLabel',
+        };
+        for (final field in BackendOwnedValueContract.protectedFieldNames.where(
+          (field) => !allowedReadOnlyProgressFields.contains(field),
+        )) {
           expect(source, isNot(contains("'$field'")), reason: field);
         }
       },

@@ -41,19 +41,24 @@ type PersistPlanProgressInput = {
   readonly generatedPlanData: DocumentData | undefined;
   readonly progressData: DocumentData | undefined;
 };
+export type PersistPlanProgressResult = {
+  readonly completedWorkoutRecorded: boolean;
+  readonly scheduledWorkoutId: string | null;
+  readonly matchedBy: MatchKind | null;
+};
 
-export function persistCompletedWorkoutProgress(input: PersistPlanProgressInput): void {
+export function persistCompletedWorkoutProgress(input: PersistPlanProgressInput): PersistPlanProgressResult {
   const planData = trustedPlanData(input.generatedPlanData, input.progressData, input.payload);
   const matchedWorkout = findMatchedWorkout(planData, input.payload);
   if (matchedWorkout === null || !meetsObjective(matchedWorkout.workout.objective, input.payload)) {
-    return;
+    return noCompletedWorkoutRecorded();
   }
 
   const completedWorkouts = readCompletedWorkouts(input.progressData);
   const sourceGeneratedPlanId = readGeneratedPlanId(planData);
   const progressKey = progressWorkoutKey(sourceGeneratedPlanId, matchedWorkout.workout.scheduledWorkoutId);
   if (completedWorkouts[progressKey] !== undefined) {
-    return;
+    return noCompletedWorkoutRecorded();
   }
 
   const completedWorkoutCount = readCompletedWorkoutCount(input.progressData, completedWorkouts) + 1;
@@ -71,6 +76,19 @@ export function persistCompletedWorkoutProgress(input: PersistPlanProgressInput)
     },
     { merge: true },
   );
+  return {
+    completedWorkoutRecorded: true,
+    scheduledWorkoutId: matchedWorkout.workout.scheduledWorkoutId,
+    matchedBy: matchedWorkout.matchedBy,
+  };
+}
+
+function noCompletedWorkoutRecorded(): PersistPlanProgressResult {
+  return {
+    completedWorkoutRecorded: false,
+    scheduledWorkoutId: null,
+    matchedBy: null,
+  };
 }
 
 function completionReadModel(

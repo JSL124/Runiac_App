@@ -7,15 +7,32 @@ class BackendOwnedValueContract {
 
   static const protectedFieldNames = <String>[
     'xp',
+    'totalXp',
+    'totalXP',
     'level',
+    'divisionTier',
+    'divisionKey',
+    'divisionLabel',
+    'levelLabel',
+    'totalXpLabel',
+    'nextLevelXp',
+    'xpToNextLevel',
+    'levelProgressPercent',
+    'progressionUpdatedAt',
     'rank',
     'streak',
+    'streakCount',
+    'lastStreakRunDate',
+    'streakUpdatedAt',
     'leaderboardScore',
     'weeklyXp',
+    'weeklyXP',
     'monthlyXp',
+    'monthlyXP',
     'subscriptionPrivilegeState',
     'expertPlanPublicationState',
     'validatedActivityContributionState',
+    'countsTowardProgression',
   ];
 
   static const forbiddenClientMutationVerbs = <String>[

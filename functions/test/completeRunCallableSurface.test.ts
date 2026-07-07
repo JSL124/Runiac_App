@@ -38,7 +38,7 @@ describe("completeRun callable emulator surface", () => {
 
     assert.equal(response.status, 200);
     assert.equal(result.validationStatus, "validated");
-    assert.equal(result.progressionDisplay.xpDelta, 0);
+    assert.equal(result.progressionDisplay.xpDelta, 60);
     assert.equal(result.progressionDisplay.countsTowardLeaderboard, false);
 
     const activity = await firestore.doc(`activities/${result.activityId}`).get();
@@ -48,7 +48,7 @@ describe("completeRun callable emulator surface", () => {
     assert.equal(activity.get("ownerUid"), USER_UID);
     assert.equal(activity.get("validationStatus"), "validated");
     assert.equal(summary.get("ownerUid"), USER_UID);
-    assert.equal(progressionEvent.get("xpDelta"), 0);
+    assert.equal(progressionEvent.get("xpDelta"), 60);
     assert.equal(progressionEvent.get("countsTowardLeaderboard"), false);
   });
 

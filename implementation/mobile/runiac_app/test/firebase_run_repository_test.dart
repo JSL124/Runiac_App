@@ -26,10 +26,10 @@ void main() {
             'routeLabel': 'Repository Result Route',
           },
           'progressionDisplay': <String, Object?>{
-            'xpDelta': 0,
+            'xpDelta': 60,
             'countsTowardLeaderboard': false,
-            'status': 'deferred',
-            'reason': 'progression_formula_deferred',
+            'status': 'awarded',
+            'reason': 'run_completion_xp_awarded',
           },
           'message': 'Run completion accepted by emulator backend skeleton.',
         },
@@ -51,10 +51,10 @@ void main() {
       expect(result.summary.hasSufficientData, isTrue);
       expect(result.summary.paceGraph.isAvailable, isFalse);
       expect(result.summary.paceGraph.points, isEmpty);
-      expect(result.progressionDisplay.xpDelta, 0);
+      expect(result.progressionDisplay.xpDelta, 60);
       expect(result.progressionDisplay.countsTowardLeaderboard, isFalse);
-      expect(result.progressionDisplay.status, 'deferred');
-      expect(result.progressionDisplay.reason, 'progression_formula_deferred');
+      expect(result.progressionDisplay.status, 'awarded');
+      expect(result.progressionDisplay.reason, 'run_completion_xp_awarded');
       expect(
         result.message,
         'Run completion accepted by emulator backend skeleton.',
@@ -350,10 +350,10 @@ Map<String, Object?> _minimalCallableResponse() {
       'displayPace': '469 sec/km',
     },
     'progressionDisplay': <String, Object?>{
-      'xpDelta': 0,
+      'xpDelta': 60,
       'countsTowardLeaderboard': false,
-      'status': 'deferred',
-      'reason': 'progression_formula_deferred',
+      'status': 'awarded',
+      'reason': 'run_completion_xp_awarded',
     },
     'message': 'Accepted.',
   };

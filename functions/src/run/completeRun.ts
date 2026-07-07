@@ -1,13 +1,26 @@
-import { createHash } from "node:crypto";
 import { getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { persistAdaptiveEstimateLearning } from "../plan/adaptiveEstimate.js";
 import { persistCompletedWorkoutProgress } from "../plan/planProgress.js";
+import {
+  calculateProgressionAudit,
+  noCompletedWorkoutRecorded,
+  profileProgressionData,
+  progressionEventData,
+  progressionDisplayFromEvent,
+} from "../progression/progressionAudit.js";
+import { dailyCapDateForCompletedAt } from "../progression/progressionCalculator.js";
 import { deferredProgressionDisplay } from "../progression/progressionEventWriter.js";
 import { readTrustedStreakState } from "../progression/planBoundedStreakState.js";
 import { calculateStreakTransition, type StreakState } from "../progression/streakCalculator.js";
-import type { CompleteRunIds, CompleteRunResult, RawRunCompletionPayload } from "./runCompletionTypes.js";
+import {
+  assertExistingActivityMatchesPayload,
+  buildRunSummary,
+  deterministicIds,
+  fingerprintPayload,
+} from "./runCompletionArtifacts.js";
+import type { CompleteRunResult, ProgressionDisplay } from "./runCompletionTypes.js";
 import { parseRunCompletionPayload } from "./validateRunPayload.js";
 type CallableRunRequest = {
   readonly auth?: {
@@ -35,35 +48,45 @@ export async function completeRunForCallable(
   const ids = deterministicIds(uid, payload.clientRunSessionId);
   const payloadFingerprint = fingerprintPayload(payload);
   const runSummary = buildRunSummary(payload);
-  const progressionDisplay = deferredProgressionDisplay();
+  const dailyCapDate = dailyCapDateForCompletedAt(payload.completedAt);
+  let progressionDisplay: ProgressionDisplay = deferredProgressionDisplay();
 
   await firestore.runTransaction(async (transaction) => {
     const activityRef = firestore.collection("activities").doc(ids.activityId);
     const summaryRef = firestore.collection("runSummaries").doc(ids.summaryId);
     const progressionRef = firestore.collection("progressionEvents").doc(ids.progressionEventId);
+    const userRef = firestore.collection("users").doc(uid);
     const profileRef = firestore.collection("userProfiles").doc(uid);
     const generatedPlanRef = firestore.collection("generatedPlans").doc(uid);
     const planProgressRef = firestore.collection("planProgress").doc(uid);
     const adaptiveEstimateRef = firestore.collection("adaptivePlanEstimates").doc(uid);
     const activitiesQuery = firestore.collection("activities").where("ownerUid", "==", uid);
+    const progressionEventsQuery = firestore
+      .collection("progressionEvents")
+      .where("ownerUid", "==", uid)
+      .where("dailyCapDate", "==", dailyCapDate);
     const [
       activitySnapshot,
       summarySnapshot,
       progressionSnapshot,
+      userSnapshot,
       profileSnapshot,
       generatedPlanSnapshot,
       planProgressSnapshot,
       adaptiveEstimateSnapshot,
       activitySnapshots,
+      progressionEventSnapshots,
     ] = await Promise.all([
         transaction.get(activityRef),
         transaction.get(summaryRef),
         transaction.get(progressionRef),
+        transaction.get(userRef),
         transaction.get(profileRef),
         transaction.get(generatedPlanRef),
         transaction.get(planProgressRef),
         transaction.get(adaptiveEstimateRef),
         transaction.get(activitiesQuery),
+        transaction.get(progressionEventsQuery),
       ]);
 
     if (activitySnapshot.exists) {
@@ -81,6 +104,30 @@ export async function completeRunForCallable(
           payload.completedAt,
         )
       : undefined;
+
+    let planProgressResult = noCompletedWorkoutRecorded();
+    if (shouldPersistProgression) {
+      planProgressResult = persistCompletedWorkoutProgress({
+        transaction,
+        progressRef: planProgressRef,
+        uid,
+        ids,
+        payload,
+        generatedPlanData: generatedPlanSnapshot.data(),
+        progressData: planProgressSnapshot.data(),
+      });
+    }
+
+    const xpAudit = shouldPersistProgression
+      ? calculateProgressionAudit({
+          payload,
+          profileData: profileSnapshot.data(),
+          subscriptionData: userSnapshot.data(),
+          dailyCapDate,
+          sameDayProgressionEventDocuments: progressionEventSnapshots.docs.map((document) => document.data()),
+          planProgressResult,
+        })
+      : null;
 
     if (!activitySnapshot.exists) {
       transaction.set(activityRef, {
@@ -103,9 +150,9 @@ export async function completeRunForCallable(
         updatedAt: payload.completedAt,
         processedAt: payload.completedAt,
         validationStatus: "validated",
-        validatedActivityContributionState: "deferred",
-        countsTowardProgression: false,
-        validationReason: "progression_formula_deferred",
+        validatedActivityContributionState: xpAudit?.xpDelta === 0 ? "not_awarded" : "awarded",
+        countsTowardProgression: (xpAudit?.xpDelta ?? 0) > 0,
+        validationReason: xpAudit?.reason ?? "progression_formula_deferred",
         ...(payload.cadenceAnalysisSeries === undefined
           ? {}
           : { cadenceAnalysisSeries: payload.cadenceAnalysisSeries }),
@@ -126,25 +173,17 @@ export async function completeRunForCallable(
       if (streakTransition === undefined) {
         throw new HttpsError("already-exists", "Existing run completion progression state is unreadable.");
       }
+      if (xpAudit === null) {
+        throw new HttpsError("already-exists", "Existing run completion XP state is unreadable.");
+      }
 
-      transaction.set(progressionRef, {
-        ownerUid: uid,
-        activityId: ids.activityId,
-        eventType: "run_completion_placeholder",
-        status: progressionDisplay.status,
-        createdAt: payload.completedAt,
-        xpDelta: progressionDisplay.xpDelta,
-        previousTotalXp: 0,
-        nextTotalXp: 0,
-        previousLevel: null,
-        nextLevel: null,
-        previousStreak: streakTransition.previousStreak,
-        nextStreak: streakTransition.nextStreak,
-        previousStreakRunDate: streakTransition.previousStreakRunDate,
-        nextStreakRunDate: streakTransition.nextStreakRunDate,
-        countsTowardLeaderboard: progressionDisplay.countsTowardLeaderboard,
-        reason: progressionDisplay.reason,
-      });
+      progressionDisplay = xpAudit.progressionDisplay;
+      transaction.set(
+        progressionRef,
+        progressionEventData({ uid, ids, payload, audit: xpAudit, streakTransition, planProgressResult }),
+      );
+    } else {
+      progressionDisplay = progressionDisplayFromEvent(progressionSnapshot.data());
     }
 
     if (streakTransition?.shouldUpdateProfile === true) {
@@ -159,16 +198,11 @@ export async function completeRunForCallable(
       );
     }
 
+    if (shouldPersistProgression && xpAudit !== null && xpAudit.xpDelta > 0) {
+      transaction.set(profileRef, profileProgressionData(xpAudit, payload.completedAt), { merge: true });
+    }
+
     if (shouldPersistProgression) {
-      persistCompletedWorkoutProgress({
-        transaction,
-        progressRef: planProgressRef,
-        uid,
-        ids,
-        payload,
-        generatedPlanData: generatedPlanSnapshot.data(),
-        progressData: planProgressSnapshot.data(),
-      });
       persistAdaptiveEstimateLearning({
         transaction,
         estimateRef: adaptiveEstimateRef,
@@ -187,62 +221,6 @@ export async function completeRunForCallable(
     progressionDisplay,
     message: "Run completion accepted by emulator backend skeleton.",
   };
-}
-
-function deterministicIds(uid: string, clientRunSessionId: string): CompleteRunIds {
-  const digest = createHash("sha256").update(`${uid}:${clientRunSessionId}`).digest("hex").slice(0, 24);
-  return {
-    activityId: `activity_${digest}`,
-    summaryId: `summary_${digest}`,
-    progressionEventId: `progression_${digest}`,
-  };
-}
-
-function fingerprintPayload(payload: RawRunCompletionPayload): string {
-  const sortedPayload = Object.fromEntries(
-    Object.entries(payload).sort(([left], [right]) => left.localeCompare(right)),
-  );
-  return createHash("sha256").update(JSON.stringify(sortedPayload)).digest("hex");
-}
-
-function buildRunSummary(payload: RawRunCompletionPayload): CompleteRunResult["runSummary"] {
-  return {
-    title: payload.routeLabel ?? "Completed Run",
-    startedAt: payload.startedAt,
-    endedAt: payload.completedAt,
-    distanceMeters: payload.distanceMeters,
-    durationSeconds: payload.durationSeconds,
-    activeDurationSeconds: payload.activeDurationSeconds,
-    elapsedWallSeconds: payload.elapsedWallSeconds,
-    pausedDurationSeconds: payload.pausedDurationSeconds,
-    averagePaceSecondsPerKm: payload.avgPaceSecondsPerKm,
-    displayDistance: `${(payload.distanceMeters / 1000).toFixed(2)} km`,
-    displayDuration: formatDuration(payload.durationSeconds),
-    displayPace: `${Math.round(payload.avgPaceSecondsPerKm)} sec/km`,
-    ...(payload.routeLabel === undefined ? {} : { routeLabel: payload.routeLabel }),
-    ...(payload.cadenceAnalysisSeries === undefined
-      ? {}
-      : { cadenceAnalysisSeries: payload.cadenceAnalysisSeries }),
-  };
-}
-
-function formatDuration(totalSeconds: number): string {
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
-}
-
-function assertExistingActivityMatchesPayload(
-  activityData: FirebaseFirestore.DocumentData | undefined,
-  payloadFingerprint: string,
-): void {
-  if (activityData === undefined) {
-    throw new HttpsError("already-exists", "Existing run completion state is unreadable.");
-  }
-
-  if (activityData["payloadFingerprint"] !== payloadFingerprint) {
-    throw new HttpsError("already-exists", "clientRunSessionId already exists with different run data.");
-  }
 }
 
 function readStreakState(profileData: FirebaseFirestore.DocumentData | undefined): StreakState {

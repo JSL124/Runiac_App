@@ -46,14 +46,26 @@ describe('owner-owned client records', () => {
     await seed('userProfiles/alice', {
       ...profileFields,
       xp: 10,
+      totalXp: 75,
       level: 2,
+      divisionKey: 'tier_01',
+      divisionLabel: 'Trailborn League',
+      levelLabel: 'Level 2',
+      totalXpLabel: '75 XP',
+      nextLevelXp: 100,
+      xpToNextLevel: 25,
+      levelProgressPercent: 75,
+      progressionUpdatedAt: 1,
     });
 
     const profile = doc(dbFor('alice'), 'userProfiles/alice');
 
     await assertSucceeds(updateDoc(profile, { displayName: 'Updated Runner' }));
     await assertFails(updateDoc(profile, { xp: deleteField() }));
+    await assertFails(updateDoc(profile, { totalXp: 80 }));
     await assertFails(updateDoc(profile, { level: 3 }));
+    await assertFails(updateDoc(profile, { divisionKey: 'tier_02' }));
+    await assertFails(updateDoc(profile, { totalXpLabel: deleteField() }));
   });
 
   it('denies userRole and subscriptionStatus writes from clients', async () => {

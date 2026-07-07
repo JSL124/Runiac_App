@@ -42,6 +42,7 @@ beforeEach(async () => {
     "activities",
     "runSummaries",
     "progressionEvents",
+    "users",
     "userProfiles",
     "generatedPlans",
     "planProgress",
@@ -61,10 +62,10 @@ describe("completeRun callable boundary", () => {
     const result = await callCompleteRun({ auth: { uid: USER_UID }, data: validPayload() });
 
     assert.equal(result.validationStatus, "validated");
-    assert.equal(result.progressionDisplay.xpDelta, 0);
+    assert.equal(result.progressionDisplay.xpDelta, 60);
     assert.equal(result.progressionDisplay.countsTowardLeaderboard, false);
-    assert.equal(result.progressionDisplay.status, "deferred");
-    assert.equal(result.progressionDisplay.reason, "progression_formula_deferred");
+    assert.equal(result.progressionDisplay.status, "awarded");
+    assert.equal(result.progressionDisplay.reason, "run_completion_xp_awarded");
 
     const activity = await firestore.doc(`activities/${result.activityId}`).get();
     const summary = await firestore.doc(`runSummaries/${result.summaryId}`).get();
@@ -72,12 +73,49 @@ describe("completeRun callable boundary", () => {
 
     assert.equal(activity.get("ownerUid"), USER_UID);
     assert.equal(activity.get("validationStatus"), "validated");
-    assert.equal(activity.get("validatedActivityContributionState"), "deferred");
-    assert.equal(activity.get("countsTowardProgression"), false);
-    assert.equal(activity.get("validationReason"), "progression_formula_deferred");
+    assert.equal(activity.get("validatedActivityContributionState"), "awarded");
+    assert.equal(activity.get("countsTowardProgression"), true);
+    assert.equal(activity.get("validationReason"), "run_completion_xp_awarded");
     assert.equal(summary.get("ownerUid"), USER_UID);
-    assert.equal(progressionEvent.get("xpDelta"), 0);
+    assert.equal(progressionEvent.get("xpDelta"), 60);
     assert.equal(progressionEvent.get("countsTowardLeaderboard"), false);
+  });
+
+  it("awards official XP and level progression for an accepted run", async () => {
+    const result = await callCompleteRun({
+      auth: { uid: USER_UID },
+      data: runPayloadForSession({
+        clientRunSessionId: "xp-level-accepted-run",
+        startedAt: "2026-06-14T09:00:00.000Z",
+        completedAt: "2026-06-14T09:31:00.000Z",
+        durationSeconds: 1860,
+        distanceMeters: 4200,
+        avgPaceSecondsPerKm: 443,
+      }),
+    });
+
+    const profile = await firestore.doc(`userProfiles/${USER_UID}`).get();
+    const progressionEvent = await firestore.doc(`progressionEvents/${result.progressionEventId}`).get();
+
+    assert.equal(result.progressionDisplay.xpDelta, 75);
+    assert.equal(result.progressionDisplay.status, "awarded");
+    assert.equal(result.progressionDisplay.reason, "run_completion_xp_awarded");
+    assert.equal(profile.get("totalXp"), 75);
+    assert.equal(profile.get("level"), 1);
+    assert.equal(profile.get("divisionKey"), "tier_01");
+    assert.equal(profile.get("levelLabel"), "Level 1");
+    assert.equal(profile.get("totalXpLabel"), "75 XP");
+    assert.equal(progressionEvent.get("xpDelta"), 75);
+    assert.equal(progressionEvent.get("baseCompletionXp"), 20);
+    assert.equal(progressionEvent.get("distanceXp"), 40);
+    assert.equal(progressionEvent.get("durationXp"), 15);
+    assert.equal(progressionEvent.get("dailyCapDate"), "2026-06-14");
+    assert.equal(progressionEvent.get("dailyXpBefore"), 0);
+    assert.equal(progressionEvent.get("dailyXpAfter"), 75);
+    assert.equal(progressionEvent.get("previousTotalXp"), 0);
+    assert.equal(progressionEvent.get("nextTotalXp"), 75);
+    assert.equal(progressionEvent.get("previousLevel"), 1);
+    assert.equal(progressionEvent.get("nextLevel"), 1);
   });
 
   it("persists valid cadence analysis samples on activity and summary documents", async () => {
@@ -203,6 +241,8 @@ describe("completeRun callable boundary", () => {
     assert.equal(result.validationStatus, "validated");
     assert.equal(result.progressionDisplay.xpDelta, 0);
     assert.equal(result.progressionDisplay.countsTowardLeaderboard, false);
+    assert.equal(result.progressionDisplay.status, "not_awarded");
+    assert.equal(result.progressionDisplay.reason, "low_data_no_xp");
 
     const activity = await firestore.doc(`activities/${result.activityId}`).get();
     const summary = await firestore.doc(`runSummaries/${result.summaryId}`).get();
@@ -677,6 +717,7 @@ describe("completeRun callable boundary", () => {
     });
 
     const progress = await firestore.doc(`planProgress/${USER_UID}`).get();
+    const progressionEvent = await firestore.doc(`progressionEvents/${result.progressionEventId}`).get();
 
     assert.equal(progress.get("ownerUid"), USER_UID);
     assert.equal(progress.get("completedWorkoutCount"), 1);
@@ -687,6 +728,10 @@ describe("completeRun callable boundary", () => {
     assert.equal(progress.get("workouts.generated-plan-001__week-1-thu-easy-run.objectiveKind"), "duration");
     assert.equal(progress.get("workouts.generated-plan-001__week-1-thu-easy-run.objectiveSeconds"), 1500);
     assert.equal(progress.get("workouts.generated-plan-001__week-1-thu-easy-run.matchedBy"), "explicit");
+    assert.equal(progressionEvent.get("plannedWorkoutRecorded"), true);
+    assert.equal(progressionEvent.get("plannedWorkoutBonusApplied"), true);
+    assert.equal(progressionEvent.get("planCompletionBonusXp"), 20);
+    assert.equal(progressionEvent.get("xpDelta"), 80);
   });
 
   it("auto-matches only the active generated workout on the run completedAt date", async () => {
@@ -767,7 +812,7 @@ describe("completeRun callable boundary", () => {
         scheduledWorkoutId: "week-1-sat-long-run",
       },
     });
-    await callCompleteRun({
+    const secondResult = await callCompleteRun({
       auth: { uid: USER_UID },
       data: {
         ...runPayloadForSession({
@@ -781,6 +826,8 @@ describe("completeRun callable boundary", () => {
     });
 
     const progress = await firestore.doc(`planProgress/${USER_UID}`).get();
+    const firstProgressionEvent = await firestore.doc(`progressionEvents/${firstResult.progressionEventId}`).get();
+    const secondProgressionEvent = await firestore.doc(`progressionEvents/${secondResult.progressionEventId}`).get();
 
     assert.equal(await countDocuments("activities"), 2);
     assert.equal(progress.get("completedWorkoutCount"), 1);
@@ -789,6 +836,10 @@ describe("completeRun callable boundary", () => {
     assert.equal(progress.get("workouts.generated-plan-001__week-1-sat-long-run.actualDistanceMeters"), 3200);
     assert.equal(progress.get("workouts.generated-plan-001__week-1-sat-long-run.objectiveKind"), "distance");
     assert.equal(progress.get("workouts.generated-plan-001__week-1-sat-long-run.objectiveMeters"), 3000);
+    assert.equal(firstProgressionEvent.get("plannedWorkoutRecorded"), true);
+    assert.equal(firstProgressionEvent.get("planCompletionBonusXp"), 20);
+    assert.equal(secondProgressionEvent.get("plannedWorkoutRecorded"), false);
+    assert.equal(secondProgressionEvent.get("planCompletionBonusXp"), 0);
   });
 
   it("does not trust client plan enrollment ids to duplicate completion progress", async () => {
@@ -1046,11 +1097,79 @@ describe("completeRun callable boundary", () => {
   it("is idempotent for duplicate clientRunSessionId values", async () => {
     const first = await callCompleteRun({ auth: { uid: USER_UID }, data: validPayload() });
     const second = await callCompleteRun({ auth: { uid: USER_UID }, data: validPayload() });
+    const profile = await firestore.doc(`userProfiles/${USER_UID}`).get();
 
     assert.deepEqual(second, first);
     assert.equal(await countDocuments("activities"), 1);
     assert.equal(await countDocuments("runSummaries"), 1);
     assert.equal(await countDocuments("progressionEvents"), 1);
+    assert.equal(profile.get("totalXp"), 60);
+  });
+
+  it("caps same-day XP at 200 using the Asia Singapore local date", async () => {
+    const first = await callCompleteRun({
+      auth: { uid: USER_UID },
+      data: runPayloadForSession({
+        clientRunSessionId: "daily-cap-first",
+        startedAt: "2026-06-14T08:00:00.000Z",
+        completedAt: "2026-06-14T08:31:00.000Z",
+        durationSeconds: 1860,
+        distanceMeters: 4200,
+        avgPaceSecondsPerKm: 443,
+      }),
+    });
+    const second = await callCompleteRun({
+      auth: { uid: USER_UID },
+      data: runPayloadForSession({
+        clientRunSessionId: "daily-cap-second",
+        startedAt: "2026-06-14T10:00:00.000Z",
+        completedAt: "2026-06-14T10:31:00.000Z",
+        durationSeconds: 1860,
+        distanceMeters: 4200,
+        avgPaceSecondsPerKm: 443,
+      }),
+    });
+    const third = await callCompleteRun({
+      auth: { uid: USER_UID },
+      data: runPayloadForSession({
+        clientRunSessionId: "daily-cap-third",
+        startedAt: "2026-06-14T12:00:00.000Z",
+        completedAt: "2026-06-14T12:31:00.000Z",
+        durationSeconds: 1860,
+        distanceMeters: 4200,
+        avgPaceSecondsPerKm: 443,
+      }),
+    });
+    const exhausted = await callCompleteRun({
+      auth: { uid: USER_UID },
+      data: runPayloadForSession({
+        clientRunSessionId: "daily-cap-exhausted",
+        startedAt: "2026-06-14T14:00:00.000Z",
+        completedAt: "2026-06-14T14:31:00.000Z",
+        durationSeconds: 1860,
+        distanceMeters: 4200,
+        avgPaceSecondsPerKm: 443,
+      }),
+    });
+
+    const firstEvent = await firestore.doc(`progressionEvents/${first.progressionEventId}`).get();
+    const secondEvent = await firestore.doc(`progressionEvents/${second.progressionEventId}`).get();
+    const thirdEvent = await firestore.doc(`progressionEvents/${third.progressionEventId}`).get();
+    const exhaustedEvent = await firestore.doc(`progressionEvents/${exhausted.progressionEventId}`).get();
+    const profile = await firestore.doc(`userProfiles/${USER_UID}`).get();
+
+    assert.equal(firstEvent.get("xpDelta"), 75);
+    assert.equal(secondEvent.get("xpDelta"), 75);
+    assert.equal(thirdEvent.get("xpDelta"), 50);
+    assert.equal(thirdEvent.get("dailyXpBefore"), 150);
+    assert.equal(thirdEvent.get("dailyXpAfter"), 200);
+    assert.equal(thirdEvent.get("dailyCapApplied"), true);
+    assert.equal(thirdEvent.get("dailyCapDate"), "2026-06-14");
+    assert.equal(exhausted.progressionDisplay.xpDelta, 0);
+    assert.equal(exhausted.progressionDisplay.reason, "daily_cap_reached");
+    assert.equal(exhaustedEvent.get("dailyXpBefore"), 200);
+    assert.equal(exhaustedEvent.get("dailyXpAfter"), 200);
+    assert.equal(profile.get("totalXp"), 200);
   });
 
   it("rejects duplicate clientRunSessionId values with changed payload content", async () => {
@@ -1084,8 +1203,10 @@ describe("completeRun callable boundary", () => {
   });
 
   it("gives premium users no XP, rank, or leaderboard advantage", async () => {
-    await firestore.doc(`userProfiles/${USER_UID}`).set({
+    await firestore.doc(`users/${USER_UID}`).set({
       subscriptionStatus: "premium",
+    });
+    await firestore.doc(`userProfiles/${USER_UID}`).set({
       xp: 999,
       rank: 3,
       leaderboardScore: 999,
@@ -1096,6 +1217,8 @@ describe("completeRun callable boundary", () => {
 
     assert.equal(result.progressionDisplay.xpDelta, 0);
     assert.equal(result.progressionDisplay.countsTowardLeaderboard, false);
+    assert.equal(result.progressionDisplay.status, "not_awarded");
+    assert.equal(result.progressionDisplay.reason, "premium_no_progression");
     assert.equal(profileAfter.get("xp"), 999);
     assert.equal(profileAfter.get("rank"), 3);
     assert.equal(profileAfter.get("leaderboardScore"), 999);
