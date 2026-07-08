@@ -900,7 +900,7 @@ void main() {
     expect(find.text('XP & Streak Update'), findsOneWidget);
     expect(find.text('Nice work, Jinseo!'), findsOneWidget);
     expect(find.text('+120 XP'), findsOneWidget);
-    expect(find.text('Earned from this run'), findsOneWidget);
+    expect(find.text('Earned from this run'), findsNothing);
   });
 
   testWidgets('View summary accepts selected static run summary data', (
@@ -2521,7 +2521,7 @@ void main() {
     expect(find.text('Total XP'), findsOneWidget);
     expect(find.text('2,520 XP'), findsOneWidget);
     expect(find.text('5 \u2192 6 days'), findsOneWidget);
-    expect(find.text('Great consistency!'), findsOneWidget);
+    expect(find.text('Great consistency!'), findsNothing);
     expect(find.widgetWithText(FilledButton, 'Home'), findsOneWidget);
     expect(
       find.textContaining(_forbiddenXpUpdateCompetitiveCopy),
@@ -2772,7 +2772,7 @@ void main() {
     expect(find.text('Progress to Lv.10'), findsOneWidget);
     expect(find.text('220 XP to go'), findsOneWidget);
     expect(find.text('2 \u2192 3 days'), findsOneWidget);
-    expect(find.text('Steady return!'), findsOneWidget);
+    expect(find.text('Steady return!'), findsNothing);
     expect(find.widgetWithText(FilledButton, 'Home'), findsOneWidget);
     expect(find.text('Nice work, Jinseo!'), findsNothing);
     expect(find.text('+120 XP'), findsNothing);

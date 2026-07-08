@@ -2,9 +2,16 @@ import 'package:flutter/material.dart';
 
 import 'app.dart';
 import 'core/firebase/runiac_firebase_bootstrap.dart';
+import 'features/run/presentation/qa/xp_update_qa_launcher.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  final qaApp = buildXpUpdateQaAppFromEnvironment();
+  if (qaApp != null) {
+    runApp(qaApp);
+    return;
+  }
 
   final bootstrap = await RuniacFirebaseBootstrap.initialize(
     enableAnonymousEmulatorSignIn: false,

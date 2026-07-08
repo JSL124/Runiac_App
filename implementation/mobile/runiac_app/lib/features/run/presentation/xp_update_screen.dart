@@ -10,7 +10,6 @@ import 'data/run_completion_demo_snapshots.dart';
 const _blue = Color(0xFF2F51C8);
 const _orange = Color(0xFFFB6414);
 const _pureWhite = Color(0xFFFFFFFF);
-const _priorSolid = Color(0xFFBBC7EE);
 const _lightBlue = Color(0xFF7C95E8);
 const _blue60 = Color(0x992F51C8);
 const _blue45 = Color(0x732F51C8);
@@ -72,7 +71,7 @@ class _XpUpdateScreenState extends State<XpUpdateScreen>
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final compact = constraints.maxHeight < 700;
+            final compact = constraints.maxHeight < 820;
             final tokens = _XpLayoutTokens.fromCompact(compact);
 
             return Center(
@@ -184,9 +183,11 @@ class _XpStage {
       math.sin(_iv(0.78, 0.96, Curves.easeInOut) * math.pi);
 
   int get earnedXpShown => _lerp(0, model.earnedXp.toDouble(), earned).round();
-  int get totalXpShown =>
-      _lerp(model.previousTotalXp.toDouble(), model.totalXp.toDouble(), total)
-          .round();
+  int get totalXpShown => _lerp(
+    model.previousTotalXp.toDouble(),
+    model.totalXp.toDouble(),
+    total,
+  ).round();
   int get streakShown => _lerp(
     model.previousStreakCount.toDouble(),
     model.streakCount.toDouble(),
@@ -206,9 +207,6 @@ class _XpStage {
     }
     return _lerp(0.0, cur, (ring - 0.6) / 0.4);
   }
-
-  /// Prior fraction still shown as the muted "already earned" band.
-  double get priorFraction => model.didLevelUp ? 0.0 : model.previousProgressFraction;
 
   bool get showNewLevelBadge => model.didLevelUp && ring >= 0.6;
 
@@ -289,9 +287,8 @@ class _HeroRewardCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final confettiExtent = tokens.ring + 104;
-    final showConfetti =
-        !reduceMotion && model.isAwarded && stage.confetti < 1;
+    final confettiExtent = tokens.ring + 76;
+    final showConfetti = !reduceMotion && model.isAwarded && stage.confetti < 1;
 
     return _XpCardSurface(
       radius: 24,
@@ -360,50 +357,21 @@ class _HeroRewardCard extends StatelessWidget {
 
   Widget _heroBody() {
     if (!model.isAwarded) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        child: Text(
-          model.heroMessage,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: _blue,
-            fontSize: 17,
-            fontWeight: FontWeight.w700,
-            letterSpacing: -0.3,
-            height: 1.3,
-          ),
-        ),
-      );
+      return const SizedBox.shrink();
     }
 
-    return Column(
-      children: [
-        Transform.scale(
-          scale: 1 + 0.06 * stage.earnedPop,
-          child: Text(
-            '+${_formatThousands(stage.earnedXpShown)} XP',
-            style: TextStyle(
-              color: _orange,
-              fontSize: tokens.xpGainSize,
-              fontWeight: FontWeight.w800,
-              letterSpacing: -2.4,
-              height: 1,
-            ),
-          ),
+    return Transform.scale(
+      scale: 1 + 0.06 * stage.earnedPop,
+      child: Text(
+        '+${_formatThousands(stage.earnedXpShown)} XP',
+        style: TextStyle(
+          color: _orange,
+          fontSize: tokens.xpGainSize,
+          fontWeight: FontWeight.w800,
+          letterSpacing: -2.4,
+          height: 1,
         ),
-        const SizedBox(height: 7),
-        Text(
-          model.heroMessage,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: _blue60,
-            fontSize: 13.5,
-            fontWeight: FontWeight.w500,
-            letterSpacing: -0.1,
-            height: 1.4,
-          ),
-        ),
-      ],
+      ),
     );
   }
 
@@ -427,7 +395,7 @@ class _HeroRewardCard extends StatelessWidget {
     return 'Lv.${model.levelLabel}';
   }
 
-  double get compactBottom => tokens.heroY == 16 ? 16 : 20;
+  double get compactBottom => tokens.heroY == 14 ? 14 : 18;
 }
 
 class _LevelUpChip extends StatelessWidget {
@@ -470,7 +438,6 @@ class _TotalXpCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final priorPct = stage.priorFraction;
     final shownPct = stage.progressFraction;
     final valueLabel = model.totalXp > 0
         ? '${_formatThousands(stage.totalXpShown)} XP'
@@ -520,7 +487,7 @@ class _TotalXpCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 13),
-          _RewardProgressBar(priorPct: priorPct, shownPct: shownPct),
+          _RewardProgressBar(shownPct: shownPct),
           const SizedBox(height: 10),
           Row(
             children: [
@@ -618,22 +585,6 @@ class _StreakCard extends StatelessWidget {
                   ),
                 ),
               ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
-            decoration: BoxDecoration(
-              color: _blue06,
-              borderRadius: BorderRadius.circular(99),
-            ),
-            child: Text(
-              model.streakNote,
-              style: const TextStyle(
-                color: _blue60,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                letterSpacing: -0.1,
-              ),
             ),
           ),
         ],
@@ -805,9 +756,8 @@ class _LevelRingPainter extends CustomPainter {
 }
 
 class _RewardProgressBar extends StatelessWidget {
-  const _RewardProgressBar({required this.priorPct, required this.shownPct});
+  const _RewardProgressBar({required this.shownPct});
 
-  final double priorPct;
   final double shownPct;
 
   @override
@@ -824,11 +774,6 @@ class _RewardProgressBar extends StatelessWidget {
               alignment: Alignment.centerLeft,
               widthFactor: shownPct.clamp(0, 1),
               child: const ColoredBox(color: _orange),
-            ),
-            FractionallySizedBox(
-              alignment: Alignment.centerLeft,
-              widthFactor: priorPct.clamp(0, 1),
-              child: const ColoredBox(color: _priorSolid),
             ),
           ],
         ),
@@ -910,22 +855,22 @@ class _XpLayoutTokens {
   factory _XpLayoutTokens.fromCompact(bool compact) {
     if (compact) {
       return const _XpLayoutTokens(
-        ring: 88,
-        avatar: 66,
-        heroY: 16,
-        titleGap: 13,
-        xpTopGap: 18,
-        xpGainSize: 46,
+        ring: 78,
+        avatar: 58,
+        heroY: 14,
+        titleGap: 10,
+        xpTopGap: 14,
+        xpGainSize: 44,
       );
     }
 
     return const _XpLayoutTokens(
-      ring: 104,
-      avatar: 78,
-      heroY: 22,
-      titleGap: 16,
-      xpTopGap: 22,
-      xpGainSize: 56,
+      ring: 92,
+      avatar: 68,
+      heroY: 18,
+      titleGap: 12,
+      xpTopGap: 16,
+      xpGainSize: 52,
     );
   }
 

@@ -102,7 +102,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('not-awarded model shows a supportive reason and no celebration', (
+  testWidgets('not-awarded model hides note copy and no celebration', (
     tester,
   ) async {
     await pumpScreen(
@@ -134,7 +134,7 @@ void main() {
 
     expect(
       find.text('Daily XP cap reached — great effort today'),
-      findsOneWidget,
+      findsNothing,
     );
     expect(find.text('+0 XP'), findsNothing);
     expect(find.text('200 XP'), findsOneWidget);
