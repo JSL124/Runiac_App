@@ -516,6 +516,66 @@ describe("completeRun callable boundary", () => {
     assert.equal(secondProgressionEvent.get("nextStreakRunDate"), "2026-06-15");
   });
 
+  it("continues streak across a scheduled generated-plan rest day", async () => {
+    await writeGeneratedPlanWithWorkouts([
+      durationWorkout({
+        scheduledWorkoutId: "week-1-mon-easy-run",
+        dayLabel: "Mon",
+        durationMinutes: 25,
+      }),
+      durationWorkout({
+        scheduledWorkoutId: "week-1-tue-easy-run",
+        dayLabel: "Tue",
+        durationMinutes: 25,
+      }),
+      restWorkout({
+        scheduledWorkoutId: "week-1-wed-rest-day",
+        dayLabel: "Wed",
+      }),
+      durationWorkout({
+        scheduledWorkoutId: "week-1-thu-easy-run",
+        dayLabel: "Thu",
+        durationMinutes: 25,
+      }),
+    ]);
+    await callCompleteRun({
+      auth: { uid: USER_UID },
+      data: runPayloadForSession({
+        clientRunSessionId: "streak-rest-bridge-day-one",
+        startedAt: "2026-06-15T09:00:00.000Z",
+        completedAt: "2026-06-15T09:25:00.000Z",
+      }),
+    });
+    await callCompleteRun({
+      auth: { uid: USER_UID },
+      data: runPayloadForSession({
+        clientRunSessionId: "streak-rest-bridge-day-two",
+        startedAt: "2026-06-16T09:00:00.000Z",
+        completedAt: "2026-06-16T09:25:00.000Z",
+      }),
+    });
+
+    const result = await callCompleteRun({
+      auth: { uid: USER_UID },
+      data: runPayloadForSession({
+        clientRunSessionId: "streak-rest-bridge-after-rest",
+        startedAt: "2026-06-18T09:00:00.000Z",
+        completedAt: "2026-06-18T09:25:00.000Z",
+      }),
+    });
+
+    const profile = await firestore.doc(`userProfiles/${USER_UID}`).get();
+    const progressionEvent = await firestore.doc(`progressionEvents/${result.progressionEventId}`).get();
+
+    assert.equal(profile.get("streakCount"), 3);
+    assert.equal(profile.get("lastStreakRunDate"), "2026-06-18");
+    assert.equal(profile.get("streakUpdatedAt"), "2026-06-18T09:25:00.000Z");
+    assert.equal(progressionEvent.get("previousStreak"), 2);
+    assert.equal(progressionEvent.get("nextStreak"), 3);
+    assert.equal(progressionEvent.get("previousStreakRunDate"), "2026-06-16");
+    assert.equal(progressionEvent.get("nextStreakRunDate"), "2026-06-18");
+  });
+
   it("does not double increment streak state for duplicate clientRunSessionId values", async () => {
     const payload = runPayloadForSession({
       clientRunSessionId: "streak-duplicate-session",
@@ -1367,6 +1427,18 @@ function distanceWorkout(fields: {
     targetDistanceMeters: fields.targetDistanceMeters,
     title: "Long Run",
     kind: "run",
+  };
+}
+
+function restWorkout(fields: {
+  readonly scheduledWorkoutId: string;
+  readonly dayLabel: string;
+}): TestPlanWorkout {
+  return {
+    scheduledWorkoutId: fields.scheduledWorkoutId,
+    dayLabel: fields.dayLabel,
+    title: "Rest Day",
+    kind: "rest",
   };
 }
 

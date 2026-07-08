@@ -51,19 +51,20 @@ class FirestoreUserProgressRepository implements UserProgressRepository {
       return fallbackRepository.loadUserProgress();
     }
 
-    final cached = await _loadCacheSafely(currentUser.uid);
-    if (cached != null &&
-        cached.uid == currentUser.uid &&
-        cached.progress.userId == currentUser.uid &&
-        _isToday(cached.refreshedAt)) {
-      return cached.progress;
-    }
-
     final cacheWriteGeneration = _cacheWriteGeneration;
-    return _readAndCacheUserProgress(
-      currentUser.uid,
-      cacheWriteGeneration: cacheWriteGeneration,
-    );
+    try {
+      return await _readAndCacheUserProgress(
+        currentUser.uid,
+        cacheWriteGeneration: cacheWriteGeneration,
+      );
+    } on Object catch (error, stackTrace) {
+      final cached = await _loadCacheSafely(currentUser.uid);
+      if (_isUsableCacheForCurrentUser(cached, currentUser.uid)) {
+        return cached!.progress;
+      }
+      _reportCacheError(error, stackTrace, 'loading user progress from backend');
+      rethrow;
+    }
   }
 
   @override
@@ -195,5 +196,15 @@ class FirestoreUserProgressRepository implements UserProgressRepository {
     return refreshedAt.year == now.year &&
         refreshedAt.month == now.month &&
         refreshedAt.day == now.day;
+  }
+
+  bool _isUsableCacheForCurrentUser(
+    LocalUserProgressCacheEntry? cached,
+    String uid,
+  ) {
+    return cached != null &&
+        cached.uid == uid &&
+        cached.progress.userId == uid &&
+        _isToday(cached.refreshedAt);
   }
 }

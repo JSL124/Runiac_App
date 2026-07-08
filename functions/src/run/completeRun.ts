@@ -12,7 +12,7 @@ import {
 } from "../progression/progressionAudit.js";
 import { dailyCapDateForCompletedAt } from "../progression/progressionCalculator.js";
 import { deferredProgressionDisplay } from "../progression/progressionEventWriter.js";
-import { readTrustedStreakState } from "../progression/planBoundedStreakState.js";
+import { readTrustedProtectedRestDates, readTrustedStreakState } from "../progression/planBoundedStreakState.js";
 import { calculateStreakTransition, type StreakState } from "../progression/streakCalculator.js";
 import {
   assertExistingActivityMatchesPayload,
@@ -96,12 +96,15 @@ export async function completeRunForCallable(
     const shouldPersistProgression = !activitySnapshot.exists;
     const streakTransition = shouldPersistProgression
       ? calculateStreakTransition(
-          readTrustedStreakState({
-            profileState: readStreakState(profileSnapshot.data()),
-            generatedPlanData: generatedPlanSnapshot.data(),
-            activityDocuments: activitySnapshots.docs.map((document) => document.data()),
-          }),
-          payload.completedAt,
+          {
+            currentState: readTrustedStreakState({
+              profileState: readStreakState(profileSnapshot.data()),
+              generatedPlanData: generatedPlanSnapshot.data(),
+              activityDocuments: activitySnapshots.docs.map((document) => document.data()),
+            }),
+            completedAt: payload.completedAt,
+            protectedRestDates: readTrustedProtectedRestDates(generatedPlanSnapshot.data()),
+          },
         )
       : undefined;
 

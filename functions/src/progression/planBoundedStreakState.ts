@@ -1,4 +1,11 @@
 import { calculateStreakStateFromRuns, type StreakRun, type StreakState } from "./streakCalculator.js";
+import {
+  isRecord,
+  isRestWorkout,
+  readOptionalInteger,
+  readOptionalString,
+  scheduledDateFor,
+} from "../plan/planProgressParsing.js";
 
 export type TrustedStreakStateInput = {
   readonly profileState: StreakState;
@@ -12,7 +19,21 @@ export function readTrustedStreakState(input: TrustedStreakStateInput): StreakSt
     return input.profileState;
   }
 
-  return calculateStreakStateFromRuns(readPlanBoundedValidatedRuns(input.activityDocuments, generatedPlanStartedAt));
+  return calculateStreakStateFromRuns(
+    readPlanBoundedValidatedRuns(input.activityDocuments, generatedPlanStartedAt),
+    readPlanBoundedRestDates(input.generatedPlanData, generatedPlanStartedAt),
+  );
+}
+
+export function readTrustedProtectedRestDates(
+  generatedPlanData: FirebaseFirestore.DocumentData | undefined,
+): readonly string[] {
+  const generatedPlanStartedAt = readGeneratedPlanStartedAt(generatedPlanData);
+  if (generatedPlanStartedAt === null) {
+    return [];
+  }
+
+  return readPlanBoundedRestDates(generatedPlanData, generatedPlanStartedAt);
 }
 
 function readPlanBoundedValidatedRuns(
@@ -41,6 +62,52 @@ function readActivityCompletedAt(activityData: FirebaseFirestore.DocumentData): 
 
   const completedAt = activityData["completedAt"];
   return typeof completedAt === "string" ? completedAt : null;
+}
+
+function readPlanBoundedRestDates(
+  generatedPlanData: FirebaseFirestore.DocumentData | undefined,
+  generatedPlanStartedAt: string,
+): readonly string[] {
+  if (generatedPlanData === undefined) {
+    return [];
+  }
+
+  const startsOnDate = readOptionalString(generatedPlanData["startsOnDate"]);
+  const weeks = generatedPlanData["weeks"];
+  if (startsOnDate === undefined || !Array.isArray(weeks)) {
+    return [];
+  }
+
+  return weeks.flatMap((week) => {
+    if (!isRecord(week)) {
+      return [];
+    }
+
+    const weekNumber = readOptionalInteger(week["weekNumber"]);
+    const workouts = week["workouts"];
+    if (weekNumber === undefined || !Array.isArray(workouts)) {
+      return [];
+    }
+
+    return workouts.flatMap((workout) => {
+      if (!isRecord(workout) || !isRestWorkout(workout)) {
+        return [];
+      }
+
+      const dayLabel = readOptionalString(workout["dayLabel"]);
+      const scheduledDate = dayLabel === undefined
+        ? null
+        : scheduledDateFor(startsOnDate, weekNumber, dayLabel);
+      if (
+        scheduledDate === null ||
+        Date.parse(`${scheduledDate}T00:00:00.000Z`) < Date.parse(generatedPlanStartedAt)
+      ) {
+        return [];
+      }
+
+      return [scheduledDate];
+    });
+  });
 }
 
 function readGeneratedPlanStartedAt(generatedPlanData: FirebaseFirestore.DocumentData | undefined): string | null {

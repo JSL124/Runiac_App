@@ -55,13 +55,13 @@ void main() {
   });
 
   test(
-    'loadUserProgress returns fresh same-day cache without reader call',
+    'loadUserProgress refreshes same-day cache from backend-owned document',
     () async {
       final authRepository = FakeRuniacAuthRepository()
         ..emitSignedIn(uid: 'cache-user-1');
       final reader = _CountingUserProgressDocumentReader({
-        'streakCount': 17,
-        'levelLabel': 'Level 17',
+        'streakCount': 3,
+        'levelLabel': 'Level 3',
       });
       final cacheStore = _MemoryUserProgressCacheStore(
         LocalUserProgressCacheEntry(
@@ -69,8 +69,8 @@ void main() {
           refreshedAt: DateTime.utc(2026, 7, 6, 8),
           progress: const UserProgressReadModel(
             userId: 'cache-user-1',
-            officialStreakLabel: '3 days',
-            levelLabel: 'Level 3',
+            officialStreakLabel: '1 day',
+            levelLabel: 'Level 1',
             totalXpLabel: '300 XP',
             weeklyXpLabel: '90 XP',
             monthlyXpLabel: '210 XP',
@@ -90,7 +90,42 @@ void main() {
 
       expect(progress.officialStreakLabel, '3 days');
       expect(progress.levelLabel, 'Level 3');
-      expect(reader.readCount, 0);
+      expect(reader.readCount, 1);
+      expect(cacheStore.entry?.progress.officialStreakLabel, '3 days');
+    },
+  );
+
+  test(
+    'loadUserProgress falls back to same-day cache when backend read fails',
+    () async {
+      final authRepository = FakeRuniacAuthRepository()
+        ..emitSignedIn(uid: 'cache-user-1');
+      final cacheStore = _MemoryUserProgressCacheStore(
+        LocalUserProgressCacheEntry(
+          uid: 'cache-user-1',
+          refreshedAt: DateTime.utc(2026, 7, 6, 8),
+          progress: const UserProgressReadModel(
+            userId: 'cache-user-1',
+            officialStreakLabel: '2 days',
+            levelLabel: 'Level 2',
+            totalXpLabel: '200 XP',
+            weeklyXpLabel: '70 XP',
+            monthlyXpLabel: '160 XP',
+            weeklyDistanceLabel: '6.0 km',
+            goalProgressLabel: '20%',
+          ),
+        ),
+      );
+      final repository = FirestoreUserProgressRepository(
+        authRepository: authRepository,
+        reader: const _ThrowingUserProgressDocumentReader(),
+        cacheStore: cacheStore,
+        clock: () => DateTime.utc(2026, 7, 6, 22),
+      );
+
+      final progress = await repository.loadUserProgress();
+
+      expect(progress.officialStreakLabel, '2 days');
     },
   );
 
@@ -300,7 +335,7 @@ void main() {
   );
 
   test(
-    'shared preferences corrupt cache reports through repository fallback',
+    'shared preferences corrupt cache is ignored after backend read succeeds',
     () async {
       SharedPreferences.setMockInitialValues(<String, Object>{
         'test.userProgressCache.cache-user-1': '{bad json',
@@ -325,11 +360,7 @@ void main() {
 
       expect(progress.officialStreakLabel, '3 days');
       expect(reader.readCount, 1);
-      expect(reportedErrors, hasLength(1));
-      expect(
-        reportedErrors.single.context.toString(),
-        contains('loading user progress cache'),
-      );
+      expect(reportedErrors, isEmpty);
     },
   );
 }
@@ -356,6 +387,16 @@ class _CountingUserProgressDocumentReader
   Future<Map<String, Object?>?> readUserProgress({required String uid}) async {
     readCount += 1;
     return document;
+  }
+}
+
+class _ThrowingUserProgressDocumentReader
+    implements UserProgressDocumentReader {
+  const _ThrowingUserProgressDocumentReader();
+
+  @override
+  Future<Map<String, Object?>?> readUserProgress({required String uid}) async {
+    throw StateError('Backend read failed.');
   }
 }
 

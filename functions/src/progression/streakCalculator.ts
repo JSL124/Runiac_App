@@ -26,28 +26,39 @@ const utcDateLength = 10;
 const millisecondsPerDay = 24 * 60 * 60 * 1000;
 
 export function calculateStreakTransition(
-  currentState: StreakState,
-  completedAt: string,
+  input: {
+    readonly currentState: StreakState;
+    readonly completedAt: string;
+    readonly protectedRestDates?: readonly string[];
+  },
 ): StreakTransition {
-  const runDate = completedAt.slice(0, utcDateLength);
-  const nextState = nextStreakState(currentState, runDate);
+  const runDate = input.completedAt.slice(0, utcDateLength);
+  const nextState = nextStreakState(
+    input.currentState,
+    runDate,
+    new Set(input.protectedRestDates ?? []),
+  );
 
   return {
-    previousStreak: currentState.streakCount,
+    previousStreak: input.currentState.streakCount,
     nextStreak: nextState.streakCount,
-    previousStreakRunDate: currentState.lastStreakRunDate,
+    previousStreakRunDate: input.currentState.lastStreakRunDate,
     nextStreakRunDate: nextState.lastStreakRunDate,
-    streakUpdatedAt: completedAt,
+    streakUpdatedAt: input.completedAt,
     shouldUpdateProfile: nextState.shouldUpdateProfile,
   };
 }
 
-export function calculateStreakStateFromRuns(runs: readonly StreakRun[]): StreakState {
+export function calculateStreakStateFromRuns(
+  runs: readonly StreakRun[],
+  protectedRestDates: readonly string[] = [],
+): StreakState {
   const runDates = [...new Set(runs.map((run) => run.completedAt.slice(0, utcDateLength)))]
     .sort((left, right) => left.localeCompare(right));
+  const protectedRestDateSet = new Set(protectedRestDates);
   return runDates.reduce<StreakState>(
     (state, runDate) => {
-      const nextState = nextStreakState(state, runDate);
+      const nextState = nextStreakState(state, runDate, protectedRestDateSet);
       return {
         streakCount: nextState.streakCount,
         lastStreakRunDate: nextState.lastStreakRunDate,
@@ -57,7 +68,11 @@ export function calculateStreakStateFromRuns(runs: readonly StreakRun[]): Streak
   );
 }
 
-function nextStreakState(currentState: StreakState, runDate: string): NextStreakState {
+function nextStreakState(
+  currentState: StreakState,
+  runDate: string,
+  protectedRestDates: ReadonlySet<string>,
+): NextStreakState {
   const previousDate = currentState.lastStreakRunDate;
   if (previousDate === null) {
     return { streakCount: 1, lastStreakRunDate: runDate, shouldUpdateProfile: true };
@@ -80,6 +95,14 @@ function nextStreakState(currentState: StreakState, runDate: string): NextStreak
     };
   }
 
+  if (dayDelta > 1 && isProtectedRestGap(previousDate, runDate, protectedRestDates)) {
+    return {
+      streakCount: currentState.streakCount + 1,
+      lastStreakRunDate: runDate,
+      shouldUpdateProfile: true,
+    };
+  }
+
   if (dayDelta > 1) {
     return { streakCount: 1, lastStreakRunDate: runDate, shouldUpdateProfile: true };
   }
@@ -94,4 +117,22 @@ function nextStreakState(currentState: StreakState, runDate: string): NextStreak
 function daysBetween(previousDate: string, nextDate: string): number {
   return (Date.parse(`${nextDate}T00:00:00.000Z`) - Date.parse(`${previousDate}T00:00:00.000Z`)) /
     millisecondsPerDay;
+}
+
+function isProtectedRestGap(
+  previousDate: string,
+  nextDate: string,
+  protectedRestDates: ReadonlySet<string>,
+): boolean {
+  for (
+    let time = Date.parse(`${previousDate}T00:00:00.000Z`) + millisecondsPerDay;
+    time < Date.parse(`${nextDate}T00:00:00.000Z`);
+    time += millisecondsPerDay
+  ) {
+    if (!protectedRestDates.has(new Date(time).toISOString().slice(0, utcDateLength))) {
+      return false;
+    }
+  }
+
+  return true;
 }
