@@ -13,6 +13,7 @@ class RuniacProfileSetupGate extends StatefulWidget {
     required this.currentUser,
     required this.child,
     this.onLoadedProfile,
+    this.onRecoverableProfileMissing,
     super.key,
   });
 
@@ -21,6 +22,7 @@ class RuniacProfileSetupGate extends StatefulWidget {
   final RuniacAuthUser currentUser;
   final Widget child;
   final ValueChanged<UserProfileReadModel>? onLoadedProfile;
+  final VoidCallback? onRecoverableProfileMissing;
 
   @override
   State<RuniacProfileSetupGate> createState() => _RuniacProfileSetupGateState();
@@ -87,6 +89,7 @@ class _RuniacProfileSetupGateState extends State<RuniacProfileSetupGate> {
         rethrow;
       }
       if (authRepository.currentUser?.uid == probedUid) {
+        widget.onRecoverableProfileMissing?.call();
         await authRepository.signOut();
         return false;
       }

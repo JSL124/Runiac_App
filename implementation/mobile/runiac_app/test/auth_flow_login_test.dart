@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/app.dart';
+import 'package:runiac_app/features/account/data/firestore_user_profile_repository.dart';
+import 'package:runiac_app/features/account/domain/models/user_profile_read_model.dart';
+import 'package:runiac_app/features/account/domain/repositories/user_profile_repository.dart';
 import 'package:runiac_app/features/auth/domain/runiac_auth_service.dart';
 import 'package:runiac_app/features/auth/presentation/runiac_auth_flow_screen.dart';
 
@@ -140,6 +143,43 @@ void main() {
     expect(find.text('Good to see you'), findsOneWidget);
   });
 
+  testWidgets('Google login with missing profile returns to signup guidance', (
+    tester,
+  ) async {
+    final repository = FakeRuniacAuthRepository();
+    addTearDown(repository.dispose);
+
+    await tester.pumpWidget(
+      RuniacApp(
+        showSplash: false,
+        showAuth: true,
+        showOnboarding: true,
+        enableForegroundGps: false,
+        authRepository: repository,
+        profileRepository: const _MissingCurrentUserProfileRepository(),
+      ),
+    );
+    repository.emitSignedOut();
+    await tester.pumpAndSettle();
+
+    await tapVisibleText(tester, 'Log in');
+    await tapVisibleText(tester, 'Continue with Google');
+    await tester.pumpAndSettle();
+
+    expect(repository.googleSignInCalls, 1);
+    expect(repository.signOutCalls, 1);
+    expect(find.text('Create your account'), findsOneWidget);
+    expect(
+      find.text(
+        'No Runiac account setup exists for this account. Sign up to create your profile and start onboarding.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Good to see you'), findsNothing);
+    expect(find.text('Welcome to Runiac'), findsNothing);
+    expect(find.text('Step 1 of 16'), findsNothing);
+  });
+
   testWidgets('Google login error shows auth repository message', (
     tester,
   ) async {
@@ -230,4 +270,16 @@ void main() {
     expect(find.text('Step 1 of 16'), findsNothing);
     expect(find.text('Good to see you'), findsOneWidget);
   });
+}
+
+class _MissingCurrentUserProfileRepository implements UserProfileRepository {
+  const _MissingCurrentUserProfileRepository();
+
+  @override
+  Future<UserProfileReadModel> loadUserProfile() async {
+    throw const CurrentUserProfileException(
+      uid: 'test-auth-user-1',
+      reason: CurrentUserProfileFailureReason.missing,
+    );
+  }
 }

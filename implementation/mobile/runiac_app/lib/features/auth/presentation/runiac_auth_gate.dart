@@ -4,7 +4,8 @@ import '../../splash/presentation/splash_three_soft_dots_screen.dart';
 import '../domain/runiac_auth_service.dart';
 import 'runiac_auth_flow_screen.dart';
 
-export 'runiac_auth_flow_screen.dart' show RuniacAuthCompletion;
+export 'runiac_auth_flow_screen.dart'
+    show RuniacAuthCompletion, RuniacAuthRecoveryPrompt;
 
 class RuniacAuthGate extends StatefulWidget {
   const RuniacAuthGate({
@@ -14,6 +15,7 @@ class RuniacAuthGate extends StatefulWidget {
     this.showAuth = false,
     this.onAuthenticated,
     this.onAuthStateChanged,
+    this.recoveryPrompt,
     super.key,
   }) : assert(child != null || childBuilder != null);
 
@@ -23,6 +25,7 @@ class RuniacAuthGate extends StatefulWidget {
   final bool showAuth;
   final ValueChanged<RuniacAuthCompletion>? onAuthenticated;
   final ValueChanged<RuniacAuthUser?>? onAuthStateChanged;
+  final RuniacAuthRecoveryPrompt? recoveryPrompt;
 
   @override
   State<RuniacAuthGate> createState() => _RuniacAuthGateState();
@@ -66,6 +69,7 @@ class _RuniacAuthGateState extends State<RuniacAuthGate> {
 
         return RuniacAuthFlowScreen(
           authRepository: widget.authRepository,
+          recoveryPrompt: widget.recoveryPrompt,
           onAuthenticated: (completion) {
             widget.onAuthenticated?.call(completion);
           },

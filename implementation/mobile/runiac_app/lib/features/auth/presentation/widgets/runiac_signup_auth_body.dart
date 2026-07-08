@@ -10,12 +10,14 @@ class RuniacSignupAuthBody extends StatefulWidget {
     required this.authRepository,
     required this.onAuthenticated,
     required this.onLogin,
+    this.recoveryMessage,
     super.key,
   });
 
   final RuniacAuthRepository authRepository;
   final VoidCallback onAuthenticated;
   final VoidCallback onLogin;
+  final String? recoveryMessage;
 
   @override
   State<RuniacSignupAuthBody> createState() => _RuniacSignupAuthBodyState();
@@ -130,6 +132,13 @@ class _RuniacSignupAuthBodyState extends State<RuniacSignupAuthBody> {
             title: 'Create your account',
             subtitle: 'No pressure. Start at your own pace.',
           ),
+          if (widget.recoveryMessage != null) ...[
+            const SizedBox(height: 14),
+            RuniacAuthFeedback(
+              message: widget.recoveryMessage!,
+              isError: false,
+            ),
+          ],
           const SizedBox(height: 24),
           RuniacAuthTextField(
             controller: _emailController,

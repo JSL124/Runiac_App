@@ -115,6 +115,7 @@ class _RuniacAppState extends State<RuniacApp> {
   AdaptivePlanEstimateReadModel? _adaptivePlanEstimate;
   var _adaptivePlanEstimateLoadSerial = 0;
   String? _authStateError;
+  bool _showMissingProfileSignupPrompt = false;
 
   @override
   void initState() {
@@ -204,6 +205,7 @@ class _RuniacAppState extends State<RuniacApp> {
                   setState(() {
                     _authCompletion = completion;
                     _authStateError = null;
+                    _showMissingProfileSignupPrompt = false;
                   });
                   _startPushNotificationsForCurrentUser();
                 },
@@ -217,6 +219,12 @@ class _RuniacAppState extends State<RuniacApp> {
                   _scheduleActivityHistoryOwnerSync(user?.uid);
                   _clearGeneratedPlanForAuthChange(user?.uid);
                 },
+                recoveryPrompt: _showMissingProfileSignupPrompt
+                    ? const RuniacAuthRecoveryPrompt.signup(
+                        message:
+                            'No Runiac account setup exists for this account. Sign up to create your profile and start onboarding.',
+                      )
+                    : null,
                 childBuilder: (_) => _buildPostAuthFlow(),
               ),
             ),
@@ -309,6 +317,16 @@ class _RuniacAppState extends State<RuniacApp> {
         currentUser: currentUser!,
         onLoadedProfile: (profile) {
           unawaited(_hydrateGeneratedPlanFromProfile(profile));
+        },
+        onRecoverableProfileMissing: () {
+          if (!mounted) {
+            return;
+          }
+          setState(() {
+            _authCompletion = null;
+            _personalProfileDraft = null;
+            _showMissingProfileSignupPrompt = true;
+          });
         },
         child: _buildOnboardingAndShell(),
       );
@@ -632,7 +650,7 @@ class _RuniacAppState extends State<RuniacApp> {
     return widget.showAuth &&
         widget.showOnboarding &&
         currentUser != null &&
-        _authCompletion == null &&
+        _authCompletion != RuniacAuthCompletion.signup &&
         _personalProfileDraft == null;
   }
 }

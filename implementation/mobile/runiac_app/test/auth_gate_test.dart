@@ -196,12 +196,13 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(repository.signOutCalls, 1);
+      expect(find.text('Create your account'), findsOneWidget);
       expect(
-        find.byKey(const ValueKey('auth_welcome_runiac_logo')),
+        find.text(
+          'No Runiac account setup exists for this account. Sign up to create your profile and start onboarding.',
+        ),
         findsOneWidget,
       );
-      expect(find.text('Log in'), findsOneWidget);
-      expect(find.text('Sign up'), findsOneWidget);
       expect(find.text('Tell us about you'), findsNothing);
       expect(find.text('Good to see you'), findsNothing);
       expect(find.text('Profile setup was not found'), findsNothing);
@@ -300,7 +301,7 @@ void main() {
     },
   );
 
-  testWidgets('login reaches app shell without waiting for profile probe', (
+  testWidgets('login waits for signed-in profile probe before app shell', (
     tester,
   ) async {
     final repository = FakeRuniacAuthRepository();
@@ -325,11 +326,13 @@ void main() {
       email: 'runner@runiac.app',
       password: 'password123',
     );
-    await tapVisibleText(tester, 'Sign in');
-    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Sign in'));
+    await tester.tap(find.text('Sign in'));
+    await tester.pump();
 
     expect(repository.signInCalls, 1);
-    expect(find.text('Good to see you'), findsOneWidget);
+    expect(find.byKey(const ValueKey('runiac_splash_screen')), findsOneWidget);
+    expect(find.text('Good to see you'), findsNothing);
     expect(find.text('Welcome back'), findsNothing);
     expect(find.byType(CircularProgressIndicator), findsNothing);
   });
