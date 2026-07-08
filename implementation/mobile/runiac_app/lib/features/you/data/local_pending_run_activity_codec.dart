@@ -137,6 +137,8 @@ LocalPendingRunActivity? _localPendingRunActivityFromJson(
         streakChangeLabel: 'Deferred',
         streakNote: 'Backend validation accepted the run.',
         didLevelUp: false,
+        xpAwardState: XpAwardState.deferred,
+        heroMessage: 'This run is saved. XP is being finalized.',
       ),
       message: _readString(source, 'message') ?? 'Saved locally.',
     ),

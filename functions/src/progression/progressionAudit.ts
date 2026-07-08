@@ -72,6 +72,12 @@ export function calculateProgressionAudit(input: {
       totalXp: nextTotalXp,
       level: nextProgression.level,
       divisionKey: nextProgression.divisionKey,
+      previousTotalXp,
+      previousLevel: previousProgression.level,
+      previousLevelProgressPercent: previousProgression.levelProgressPercent,
+      levelProgressPercent: nextProgression.levelProgressPercent,
+      nextLevelXp: nextProgression.nextLevelXp,
+      xpToNextLevel: nextProgression.xpToNextLevel,
     },
     baseCompletionXp: activityXp.baseCompletionXp,
     distanceXp: activityXp.distanceXp,
@@ -105,6 +111,12 @@ export function progressionDisplayFromEvent(
   const totalXp = eventData["nextTotalXp"];
   const level = eventData["nextLevel"];
   const divisionKey = eventData["nextDivisionKey"];
+  const previousTotalXp = eventData["previousTotalXp"];
+  const previousLevel = eventData["previousLevel"];
+  const previousLevelProgressPercent = eventData["previousLevelProgressPercent"];
+  const levelProgressPercent = eventData["nextLevelProgressPercent"];
+  const previousStreak = eventData["previousStreak"];
+  const streak = eventData["nextStreak"];
   if (typeof xpDelta !== "number" || !isProgressionStatus(status) || !isProgressionReason(reason)) {
     throw new HttpsError("already-exists", "Existing run completion progression display is unreadable.");
   }
@@ -117,7 +129,35 @@ export function progressionDisplayFromEvent(
     ...(typeof totalXp === "number" ? { totalXp } : {}),
     ...(typeof level === "number" ? { level } : {}),
     ...(typeof divisionKey === "string" ? { divisionKey } : {}),
+    ...(typeof previousTotalXp === "number" ? { previousTotalXp } : {}),
+    ...(typeof previousLevel === "number" ? { previousLevel } : {}),
+    ...(typeof previousLevelProgressPercent === "number"
+      ? { previousLevelProgressPercent }
+      : {}),
+    ...(typeof levelProgressPercent === "number" ? { levelProgressPercent } : {}),
+    ...(readNullableNumberField(eventData, "nextLevelXpTarget", "nextLevelXp") ?? {}),
+    ...(readNullableNumberField(eventData, "nextXpToNextLevel", "xpToNextLevel") ?? {}),
+    ...(typeof previousStreak === "number" ? { previousStreak } : {}),
+    ...(typeof streak === "number" ? { streak } : {}),
   };
+}
+
+function readNullableNumberField(
+  eventData: FirebaseFirestore.DocumentData,
+  storedKey: string,
+  displayKey: "nextLevelXp" | "xpToNextLevel",
+): Record<string, number | null> | undefined {
+  if (!(storedKey in eventData)) {
+    return undefined;
+  }
+  const value = eventData[storedKey];
+  if (typeof value === "number") {
+    return { [displayKey]: value };
+  }
+  if (value === null) {
+    return { [displayKey]: null };
+  }
+  return undefined;
 }
 
 export function progressionEventData(input: {
@@ -153,6 +193,10 @@ export function progressionEventData(input: {
     nextLevel: input.audit.nextProgression.level,
     previousDivisionKey: input.audit.previousProgression.divisionKey,
     nextDivisionKey: input.audit.nextProgression.divisionKey,
+    previousLevelProgressPercent: input.audit.previousProgression.levelProgressPercent,
+    nextLevelProgressPercent: input.audit.nextProgression.levelProgressPercent,
+    nextLevelXpTarget: input.audit.nextProgression.nextLevelXp,
+    nextXpToNextLevel: input.audit.nextProgression.xpToNextLevel,
     previousStreak: input.streakTransition.previousStreak,
     nextStreak: input.streakTransition.nextStreak,
     previousStreakRunDate: input.streakTransition.previousStreakRunDate,

@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/features/run/data/firebase_run_repository.dart';
 import 'package:runiac_app/features/run/domain/models/local_run_completion_payload.dart';
 import 'package:runiac_app/features/run/domain/models/run_completion_error.dart';
+import 'package:runiac_app/features/run/domain/models/xp_update_display_model.dart';
 import 'package:runiac_app/features/run/domain/services/pace_graph_data_builder.dart';
 
 void main() {
@@ -312,6 +313,173 @@ void main() {
       },
     );
   });
+
+  group('FirebaseRunRepository xp update mapping', () {
+    test('maps an awarded progression block into display numerics', () async {
+      final repository = FirebaseRunRepository(
+        callable: _FakeCompleteRunCallable(
+          response: _responseWithProgression(<String, Object?>{
+            'xpDelta': 75,
+            'countsTowardLeaderboard': false,
+            'status': 'awarded',
+            'reason': 'run_completion_xp_awarded',
+            'totalXp': 1240,
+            'previousTotalXp': 1165,
+            'level': 4,
+            'previousLevel': 4,
+            'previousLevelProgressPercent': 30,
+            'levelProgressPercent': 62,
+            'nextLevelXp': 1500,
+            'xpToNextLevel': 260,
+            'previousStreak': 3,
+            'streak': 4,
+          }),
+        ),
+      );
+
+      final xp = (await repository.completeRun(_payload())).xpUpdate;
+
+      expect(xp.xpAwardState, XpAwardState.awarded);
+      expect(xp.didLevelUp, isFalse);
+      expect(xp.earnedXp, 75);
+      expect(xp.earnedXpLabel, '+75 XP');
+      expect(xp.totalXp, 1240);
+      expect(xp.totalXpLabel, '1,240 XP');
+      expect(xp.previousTotalXp, 1165);
+      expect(xp.level, 4);
+      expect(xp.previousLevel, 4);
+      expect(xp.levelLabel, '4');
+      expect(xp.progressTargetLabel, 'Progress to Level 5');
+      expect(xp.xpRemainingLabel, '260 XP to Level 5');
+      expect(xp.previousProgressFraction, closeTo(0.30, 1e-9));
+      expect(xp.currentProgressFraction, closeTo(0.62, 1e-9));
+      expect(xp.streakCount, 4);
+      expect(xp.previousStreakCount, 3);
+      expect(xp.streakChangeLabel, '3 → 4 days');
+    });
+
+    test('flags a level-up when level exceeds previous level', () async {
+      final repository = FirebaseRunRepository(
+        callable: _FakeCompleteRunCallable(
+          response: _responseWithProgression(<String, Object?>{
+            'xpDelta': 60,
+            'countsTowardLeaderboard': false,
+            'status': 'awarded',
+            'reason': 'run_completion_xp_awarded',
+            'totalXp': 120,
+            'previousTotalXp': 60,
+            'level': 2,
+            'previousLevel': 1,
+            'previousLevelProgressPercent': 60,
+            'levelProgressPercent': 20,
+            'nextLevelXp': 300,
+            'xpToNextLevel': 180,
+            'previousStreak': 1,
+            'streak': 2,
+          }),
+        ),
+      );
+
+      final xp = (await repository.completeRun(_payload())).xpUpdate;
+
+      expect(xp.xpAwardState, XpAwardState.awarded);
+      expect(xp.didLevelUp, isTrue);
+      expect(xp.level, 2);
+      expect(xp.previousLevel, 1);
+      expect(xp.levelLabel, '2');
+      expect(xp.xpRemainingLabel, '180 XP to Level 3');
+    });
+
+    test('renders a friendly not-awarded reason without fake numbers', () async {
+      final repository = FirebaseRunRepository(
+        callable: _FakeCompleteRunCallable(
+          response: _responseWithProgression(<String, Object?>{
+            'xpDelta': 0,
+            'countsTowardLeaderboard': false,
+            'status': 'not_awarded',
+            'reason': 'daily_cap_reached',
+            'totalXp': 200,
+            'previousTotalXp': 200,
+            'level': 3,
+            'previousLevel': 3,
+            'previousLevelProgressPercent': 40,
+            'levelProgressPercent': 40,
+            'nextLevelXp': 300,
+            'xpToNextLevel': 100,
+            'previousStreak': 5,
+            'streak': 5,
+          }),
+        ),
+      );
+
+      final xp = (await repository.completeRun(_payload())).xpUpdate;
+
+      expect(xp.xpAwardState, XpAwardState.notAwarded);
+      expect(xp.earnedXp, 0);
+      expect(xp.heroMessage, 'Daily XP cap reached — great effort today');
+      expect(xp.totalXp, 200);
+      expect(xp.streakCount, 5);
+    });
+
+    test('maps a deferred progression block into a saved fallback', () async {
+      final repository = FirebaseRunRepository(
+        callable: _FakeCompleteRunCallable(
+          response: _responseWithProgression(<String, Object?>{
+            'xpDelta': 0,
+            'countsTowardLeaderboard': false,
+            'status': 'deferred',
+            'reason': 'progression_formula_deferred',
+          }),
+        ),
+      );
+
+      final xp = (await repository.completeRun(_payload())).xpUpdate;
+
+      expect(xp.xpAwardState, XpAwardState.deferred);
+      expect(xp.earnedXp, 0);
+      expect(xp.totalXp, 0);
+      expect(xp.heroMessage, 'This run is saved. XP is being finalized.');
+    });
+
+    test('handles a max-level null next-level target', () async {
+      final repository = FirebaseRunRepository(
+        callable: _FakeCompleteRunCallable(
+          response: _responseWithProgression(<String, Object?>{
+            'xpDelta': 40,
+            'countsTowardLeaderboard': false,
+            'status': 'awarded',
+            'reason': 'run_completion_xp_awarded',
+            'totalXp': 999999,
+            'previousTotalXp': 999959,
+            'level': 100,
+            'previousLevel': 100,
+            'previousLevelProgressPercent': 100,
+            'levelProgressPercent': 100,
+            'nextLevelXp': null,
+            'xpToNextLevel': null,
+            'previousStreak': 9,
+            'streak': 10,
+          }),
+        ),
+      );
+
+      final xp = (await repository.completeRun(_payload())).xpUpdate;
+
+      expect(xp.xpAwardState, XpAwardState.awarded);
+      expect(xp.progressTargetLabel, 'Max level reached');
+      expect(xp.xpRemainingLabel, 'Max level reached');
+      expect(xp.currentProgressFraction, closeTo(1.0, 1e-9));
+    });
+  });
+}
+
+Map<String, Object?> _responseWithProgression(
+  Map<String, Object?> progression,
+) {
+  return <String, Object?>{
+    ..._minimalCallableResponse(),
+    'progressionDisplay': progression,
+  };
 }
 
 LocalRunCompletionPayload _payload({

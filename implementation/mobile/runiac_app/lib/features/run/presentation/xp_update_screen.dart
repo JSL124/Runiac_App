@@ -11,6 +11,7 @@ const _blue = Color(0xFF2F51C8);
 const _orange = Color(0xFFFB6414);
 const _pureWhite = Color(0xFFFFFFFF);
 const _priorSolid = Color(0xFFBBC7EE);
+const _lightBlue = Color(0xFF7C95E8);
 const _blue60 = Color(0x992F51C8);
 const _blue45 = Color(0x732F51C8);
 const _blue12 = Color(0x1F2F51C8);
@@ -30,16 +31,16 @@ class XpUpdateScreen extends StatefulWidget {
 class _XpUpdateScreenState extends State<XpUpdateScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
-  late final Animation<double> _ease;
+  late final List<_ConfettiParticle> _particles;
 
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1100),
+      duration: const Duration(milliseconds: 2600),
     );
-    _ease = CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic);
+    _particles = _ConfettiParticle.deterministicBurst();
   }
 
   @override
@@ -64,6 +65,8 @@ class _XpUpdateScreenState extends State<XpUpdateScreen>
 
   @override
   Widget build(BuildContext context) {
+    final reduceMotion = MediaQuery.disableAnimationsOf(context);
+
     return Scaffold(
       backgroundColor: RuniacColors.background,
       body: SafeArea(
@@ -76,9 +79,12 @@ class _XpUpdateScreenState extends State<XpUpdateScreen>
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 430),
                 child: AnimatedBuilder(
-                  animation: _ease,
+                  animation: _controller,
                   builder: (context, child) {
-                    final value = _ease.value;
+                    final stage = _XpStage(
+                      t: _controller.value,
+                      model: widget.model,
+                    );
 
                     return Column(
                       children: [
@@ -104,18 +110,32 @@ class _XpUpdateScreenState extends State<XpUpdateScreen>
                                   crossAxisAlignment:
                                       CrossAxisAlignment.stretch,
                                   children: [
-                                    _HeroRewardCard(
-                                      model: widget.model,
-                                      animationValue: value,
-                                      tokens: tokens,
+                                    Opacity(
+                                      opacity: stage.entrance,
+                                      child: Transform.translate(
+                                        offset: Offset(
+                                          0,
+                                          (1 - stage.entrance) * 18,
+                                        ),
+                                        child: _HeroRewardCard(
+                                          model: widget.model,
+                                          stage: stage,
+                                          tokens: tokens,
+                                          particles: _particles,
+                                          reduceMotion: reduceMotion,
+                                        ),
+                                      ),
                                     ),
                                     SizedBox(height: compact ? 10 : 12),
                                     _TotalXpCard(
                                       model: widget.model,
-                                      animationValue: value,
+                                      stage: stage,
                                     ),
                                     SizedBox(height: compact ? 10 : 12),
-                                    _StreakCard(model: widget.model),
+                                    _StreakCard(
+                                      model: widget.model,
+                                      stage: stage,
+                                    ),
                                     SizedBox(height: compact ? 12 : 18),
                                     const Spacer(),
                                     _GoHomeButton(
@@ -138,6 +158,73 @@ class _XpUpdateScreenState extends State<XpUpdateScreen>
         ),
       ),
     );
+  }
+}
+
+/// Staged animation clock. All sub-stages are derived from a single controller
+/// value so the celebration reads as one choreographed sequence.
+class _XpStage {
+  const _XpStage({required this.t, required this.model});
+
+  final double t;
+  final XpUpdateDisplayModel model;
+
+  double _iv(double a, double b, [Curve curve = Curves.linear]) {
+    return Interval(a, b, curve: curve).transform(t);
+  }
+
+  double get entrance => _iv(0.0, 0.15, Curves.easeOut);
+  double get confetti => _iv(0.10, 0.45, Curves.easeOut);
+  double get earned => _iv(0.15, 0.55, Curves.easeOutCubic);
+  double get earnedPop => math.sin(_iv(0.42, 0.58, Curves.easeInOut) * math.pi);
+  double get ring => _iv(0.45, 0.85, Curves.easeInOutCubic);
+  double get total => _iv(0.70, 1.0, Curves.easeOutCubic);
+  double get streakTick => _iv(0.72, 0.95, Curves.easeOut);
+  double get streakPulse =>
+      math.sin(_iv(0.78, 0.96, Curves.easeInOut) * math.pi);
+
+  int get earnedXpShown => _lerp(0, model.earnedXp.toDouble(), earned).round();
+  int get totalXpShown =>
+      _lerp(model.previousTotalXp.toDouble(), model.totalXp.toDouble(), total)
+          .round();
+  int get streakShown => _lerp(
+    model.previousStreakCount.toDouble(),
+    model.streakCount.toDouble(),
+    streakTick,
+  ).round();
+
+  /// Ring / bar fill fraction. Level-up fills to full then restarts into the
+  /// new level's remainder inside the same fill window.
+  double get progressFraction {
+    final prev = model.previousProgressFraction;
+    final cur = model.currentProgressFraction;
+    if (!model.didLevelUp) {
+      return _lerp(prev, cur, ring);
+    }
+    if (ring < 0.6) {
+      return _lerp(prev, 1.0, ring / 0.6);
+    }
+    return _lerp(0.0, cur, (ring - 0.6) / 0.4);
+  }
+
+  /// Prior fraction still shown as the muted "already earned" band.
+  double get priorFraction => model.didLevelUp ? 0.0 : model.previousProgressFraction;
+
+  bool get showNewLevelBadge => model.didLevelUp && ring >= 0.6;
+
+  double get levelBadgeScale {
+    if (!model.didLevelUp || ring < 0.6) {
+      return 1;
+    }
+    final p = ((ring - 0.6) / 0.4).clamp(0.0, 1.0);
+    return 1 + 0.22 * math.sin(p * math.pi);
+  }
+
+  double get levelUpChipOpacity {
+    if (!model.didLevelUp) {
+      return 0;
+    }
+    return ((ring - 0.6) / 0.18).clamp(0.0, 1.0);
   }
 }
 
@@ -188,23 +275,23 @@ class _XpHeader extends StatelessWidget {
 class _HeroRewardCard extends StatelessWidget {
   const _HeroRewardCard({
     required this.model,
-    required this.animationValue,
+    required this.stage,
     required this.tokens,
+    required this.particles,
+    required this.reduceMotion,
   });
 
   final XpUpdateDisplayModel model;
-  final double animationValue;
+  final _XpStage stage;
   final _XpLayoutTokens tokens;
+  final List<_ConfettiParticle> particles;
+  final bool reduceMotion;
 
   @override
   Widget build(BuildContext context) {
-    final ringPct = model.didLevelUp
-        ? 1.0
-        : _lerp(
-            model.previousProgressFraction,
-            model.currentProgressFraction,
-            animationValue,
-          );
+    final confettiExtent = tokens.ring + 104;
+    final showConfetti =
+        !reduceMotion && model.isAwarded && stage.confetti < 1;
 
     return _XpCardSurface(
       radius: 24,
@@ -217,9 +304,7 @@ class _HeroRewardCard extends StatelessWidget {
       child: Column(
         children: [
           Text(
-            model.didLevelUp
-                ? 'Level ${model.nextLevelLabel}, ${model.runnerName}!'
-                : 'Nice work, ${model.runnerName}!',
+            _heroTitle(),
             textAlign: TextAlign.center,
             style: const TextStyle(
               color: _blue,
@@ -230,15 +315,73 @@ class _HeroRewardCard extends StatelessWidget {
             ),
           ),
           SizedBox(height: tokens.titleGap),
-          _LevelRing(
-            model: model,
-            progress: ringPct,
-            ringSize: tokens.ring,
-            avatarSize: tokens.avatar,
+          SizedBox(
+            width: confettiExtent,
+            height: confettiExtent,
+            child: Stack(
+              clipBehavior: Clip.none,
+              alignment: Alignment.center,
+              children: [
+                if (showConfetti)
+                  Positioned.fill(
+                    child: CustomPaint(
+                      painter: _ConfettiPainter(
+                        particles: particles,
+                        progress: stage.confetti,
+                      ),
+                    ),
+                  ),
+                _LevelRing(
+                  model: model,
+                  progress: stage.progressFraction,
+                  ringSize: tokens.ring,
+                  avatarSize: tokens.avatar,
+                  showBadge: model.level > 0,
+                  badgeLabel: _badgeLabel(),
+                  badgeScale: stage.levelBadgeScale,
+                ),
+                if (model.didLevelUp)
+                  Positioned(
+                    top: 0,
+                    child: Opacity(
+                      opacity: stage.levelUpChipOpacity,
+                      child: const _LevelUpChip(),
+                    ),
+                  ),
+              ],
+            ),
           ),
           SizedBox(height: tokens.xpTopGap),
-          Text(
-            model.earnedXpLabel,
+          _heroBody(),
+        ],
+      ),
+    );
+  }
+
+  Widget _heroBody() {
+    if (!model.isAwarded) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        child: Text(
+          model.heroMessage,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: _blue,
+            fontSize: 17,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.3,
+            height: 1.3,
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        Transform.scale(
+          scale: 1 + 0.06 * stage.earnedPop,
+          child: Text(
+            '+${_formatThousands(stage.earnedXpShown)} XP',
             style: TextStyle(
               color: _orange,
               fontSize: tokens.xpGainSize,
@@ -247,39 +390,91 @@ class _HeroRewardCard extends StatelessWidget {
               height: 1,
             ),
           ),
-          const SizedBox(height: 7),
-          Text(
-            model.didLevelUp
-                ? 'You reached a new level. Keep it up.'
-                : 'Earned from this run',
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: _blue60,
-              fontSize: 13.5,
-              fontWeight: FontWeight.w500,
-              letterSpacing: -0.1,
-              height: 1.4,
-            ),
+        ),
+        const SizedBox(height: 7),
+        Text(
+          model.heroMessage,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: _blue60,
+            fontSize: 13.5,
+            fontWeight: FontWeight.w500,
+            letterSpacing: -0.1,
+            height: 1.4,
           ),
-        ],
-      ),
+        ),
+      ],
     );
+  }
+
+  String _heroTitle() {
+    switch (model.xpAwardState) {
+      case XpAwardState.awarded:
+        return model.didLevelUp
+            ? 'Level ${model.levelLabel}, ${model.runnerName}!'
+            : 'Nice work, ${model.runnerName}!';
+      case XpAwardState.notAwarded:
+        return 'Good effort, ${model.runnerName}!';
+      case XpAwardState.deferred:
+        return 'Run saved, ${model.runnerName}!';
+    }
+  }
+
+  String _badgeLabel() {
+    if (model.didLevelUp && !stage.showNewLevelBadge) {
+      return 'Lv.${model.previousLevel}';
+    }
+    return 'Lv.${model.levelLabel}';
   }
 
   double get compactBottom => tokens.heroY == 16 ? 16 : 20;
 }
 
-class _TotalXpCard extends StatelessWidget {
-  const _TotalXpCard({required this.model, required this.animationValue});
-
-  final XpUpdateDisplayModel model;
-  final double animationValue;
+class _LevelUpChip extends StatelessWidget {
+  const _LevelUpChip();
 
   @override
   Widget build(BuildContext context) {
-    final priorPct = model.didLevelUp ? 0.0 : model.previousProgressFraction;
-    final newPct = model.didLevelUp ? 0.08 : model.currentProgressFraction;
-    final shownPct = _lerp(priorPct, newPct, animationValue);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+      decoration: BoxDecoration(
+        color: _orange,
+        borderRadius: BorderRadius.circular(99),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x33FB6414),
+            blurRadius: 12,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: const Text(
+        'Level up!',
+        style: TextStyle(
+          color: _pureWhite,
+          fontSize: 12,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0.2,
+          height: 1,
+        ),
+      ),
+    );
+  }
+}
+
+class _TotalXpCard extends StatelessWidget {
+  const _TotalXpCard({required this.model, required this.stage});
+
+  final XpUpdateDisplayModel model;
+  final _XpStage stage;
+
+  @override
+  Widget build(BuildContext context) {
+    final priorPct = stage.priorFraction;
+    final shownPct = stage.progressFraction;
+    final valueLabel = model.totalXp > 0
+        ? '${_formatThousands(stage.totalXpShown)} XP'
+        : model.totalXpLabel;
 
     return _XpCardSurface(
       padding: const EdgeInsets.all(16),
@@ -310,7 +505,7 @@ class _TotalXpCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      model.totalXpLabel,
+                      valueLabel,
                       style: const TextStyle(
                         color: _blue,
                         fontSize: 26,
@@ -353,7 +548,7 @@ class _TotalXpCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 5),
                   Text(
-                    model.didLevelUp
+                    model.didLevelUp && stage.showNewLevelBadge
                         ? 'Just leveled up'
                         : model.xpRemainingLabel,
                     style: const TextStyle(
@@ -374,21 +569,28 @@ class _TotalXpCard extends StatelessWidget {
 }
 
 class _StreakCard extends StatelessWidget {
-  const _StreakCard({required this.model});
+  const _StreakCard({required this.model, required this.stage});
 
   final XpUpdateDisplayModel model;
+  final _XpStage stage;
 
   @override
   Widget build(BuildContext context) {
+    final increased = model.streakCount > model.previousStreakCount;
+    final flameScale = increased ? 1 + 0.15 * stage.streakPulse : 1.0;
+
     return _XpCardSurface(
       padding: const EdgeInsets.all(16),
       radius: 18,
       child: Row(
         children: [
-          const _IconChip(
-            color: _orange12,
-            icon: Icons.local_fire_department_rounded,
-            iconColor: _orange,
+          Transform.scale(
+            scale: flameScale,
+            child: const _IconChip(
+              color: _orange12,
+              icon: Icons.local_fire_department_rounded,
+              iconColor: _orange,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -406,7 +608,7 @@ class _StreakCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  model.streakChangeLabel,
+                  _streakText(),
                   style: const TextStyle(
                     color: _blue,
                     fontSize: 26,
@@ -437,6 +639,17 @@ class _StreakCard extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _streakText() {
+    if (model.streakCount <= 0) {
+      return model.streakChangeLabel;
+    }
+    final unit = model.streakCount == 1 ? 'day' : 'days';
+    if (model.streakCount > model.previousStreakCount) {
+      return '${model.previousStreakCount} → ${stage.streakShown} $unit';
+    }
+    return '${model.streakCount} $unit';
   }
 }
 
@@ -475,12 +688,18 @@ class _LevelRing extends StatelessWidget {
     required this.progress,
     required this.ringSize,
     required this.avatarSize,
+    required this.showBadge,
+    required this.badgeLabel,
+    required this.badgeScale,
   });
 
   final XpUpdateDisplayModel model;
   final double progress;
   final double ringSize;
   final double avatarSize;
+  final bool showBadge;
+  final String badgeLabel;
+  final double badgeScale;
 
   @override
   Widget build(BuildContext context) {
@@ -515,30 +734,34 @@ class _LevelRing extends StatelessWidget {
               ),
             ),
           ),
-          Positioned(
-            bottom: -4,
-            child: Container(
-              height: 20,
-              padding: const EdgeInsets.symmetric(horizontal: 9),
-              decoration: BoxDecoration(
-                color: _orange,
-                borderRadius: BorderRadius.circular(99),
-                border: Border.all(color: _pureWhite, width: 2),
-              ),
-              child: Center(
-                child: Text(
-                  'Lv.${model.didLevelUp ? model.nextLevelLabel : model.levelLabel}',
-                  style: const TextStyle(
-                    color: _pureWhite,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.2,
-                    height: 1,
+          if (showBadge)
+            Positioned(
+              bottom: -4,
+              child: Transform.scale(
+                scale: badgeScale,
+                child: Container(
+                  height: 20,
+                  padding: const EdgeInsets.symmetric(horizontal: 9),
+                  decoration: BoxDecoration(
+                    color: _orange,
+                    borderRadius: BorderRadius.circular(99),
+                    border: Border.all(color: _pureWhite, width: 2),
+                  ),
+                  child: Center(
+                    child: Text(
+                      badgeLabel,
+                      style: const TextStyle(
+                        color: _pureWhite,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.2,
+                        height: 1,
+                      ),
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
         ],
       ),
     );
@@ -714,6 +937,105 @@ class _XpLayoutTokens {
   final double xpGainSize;
 }
 
+/// A single confetti fleck. The burst is deterministic (seeded) so the
+/// animation is stable across rebuilds and reproducible in tests.
+class _ConfettiParticle {
+  const _ConfettiParticle({
+    required this.angle,
+    required this.distance,
+    required this.size,
+    required this.color,
+    required this.isRect,
+    required this.spin,
+  });
+
+  final double angle;
+  final double distance;
+  final double size;
+  final Color color;
+  final bool isRect;
+  final double spin;
+
+  static List<_ConfettiParticle> deterministicBurst() {
+    final random = math.Random(0x8151);
+    const colors = [_blue, _orange, _lightBlue];
+    const count = 26;
+    return List<_ConfettiParticle>.generate(count, (index) {
+      final angle = (index / count) * math.pi * 2 + random.nextDouble() * 0.5;
+      return _ConfettiParticle(
+        angle: angle,
+        distance: 46 + random.nextDouble() * 62,
+        size: 4 + random.nextDouble() * 5,
+        color: colors[index % colors.length],
+        isRect: random.nextBool(),
+        spin: random.nextDouble() * math.pi,
+      );
+    });
+  }
+}
+
+class _ConfettiPainter extends CustomPainter {
+  const _ConfettiPainter({required this.particles, required this.progress});
+
+  final List<_ConfettiParticle> particles;
+  final double progress;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = size.center(Offset.zero);
+    final travel = Curves.easeOut.transform(progress.clamp(0, 1));
+    final opacity = (1 - progress).clamp(0.0, 1.0);
+    if (opacity <= 0) {
+      return;
+    }
+
+    for (final particle in particles) {
+      final radius = particle.distance * travel;
+      final dx = math.cos(particle.angle) * radius;
+      final dy = math.sin(particle.angle) * radius + travel * travel * 14;
+      final offset = center + Offset(dx, dy);
+      final paint = Paint()..color = particle.color.withValues(alpha: opacity);
+
+      if (particle.isRect) {
+        canvas.save();
+        canvas.translate(offset.dx, offset.dy);
+        canvas.rotate(particle.spin + travel * 3);
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(
+            Rect.fromCenter(
+              center: Offset.zero,
+              width: particle.size * 1.6,
+              height: particle.size,
+            ),
+            const Radius.circular(1.5),
+          ),
+          paint,
+        );
+        canvas.restore();
+      } else {
+        canvas.drawCircle(offset, particle.size / 2, paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _ConfettiPainter oldDelegate) {
+    return oldDelegate.progress != progress;
+  }
+}
+
 double _lerp(double from, double to, double value) {
   return from + (to - from) * value.clamp(0, 1);
+}
+
+String _formatThousands(int value) {
+  final digits = value.abs().toString();
+  final buffer = StringBuffer();
+  for (var index = 0; index < digits.length; index += 1) {
+    if (index != 0 && (digits.length - index) % 3 == 0) {
+      buffer.write(',');
+    }
+    buffer.write(digits[index]);
+  }
+  return '${value < 0 ? '-' : ''}$buffer';
 }

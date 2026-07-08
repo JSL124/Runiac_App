@@ -54,6 +54,14 @@ export type ProgressionDisplay = {
   readonly totalXp?: number;
   readonly level?: number;
   readonly divisionKey?: string;
+  readonly previousTotalXp?: number;
+  readonly previousLevel?: number;
+  readonly previousLevelProgressPercent?: number;
+  readonly levelProgressPercent?: number;
+  readonly nextLevelXp?: number | null;
+  readonly xpToNextLevel?: number | null;
+  readonly previousStreak?: number;
+  readonly streak?: number;
 };
 
 export type RunSummaryResult = {

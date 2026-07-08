@@ -24,6 +24,16 @@ type CompletionResult = {
     readonly countsTowardLeaderboard: boolean;
     readonly status: string;
     readonly reason: string;
+    readonly totalXp?: number;
+    readonly level?: number;
+    readonly previousTotalXp?: number;
+    readonly previousLevel?: number;
+    readonly previousLevelProgressPercent?: number;
+    readonly levelProgressPercent?: number;
+    readonly nextLevelXp?: number | null;
+    readonly xpToNextLevel?: number | null;
+    readonly previousStreak?: number;
+    readonly streak?: number;
   };
 };
 
@@ -116,6 +126,69 @@ describe("completeRun callable boundary", () => {
     assert.equal(progressionEvent.get("nextTotalXp"), 75);
     assert.equal(progressionEvent.get("previousLevel"), 1);
     assert.equal(progressionEvent.get("nextLevel"), 1);
+  });
+
+  it("surfaces display-ready progression fields on the fresh and replayed paths", async () => {
+    const request = {
+      auth: { uid: USER_UID },
+      data: runPayloadForSession({
+        clientRunSessionId: "display-fields-run",
+        startedAt: "2026-06-14T09:00:00.000Z",
+        completedAt: "2026-06-14T09:31:00.000Z",
+        durationSeconds: 1860,
+        distanceMeters: 4200,
+        avgPaceSecondsPerKm: 443,
+      }),
+    };
+
+    const fresh = await callCompleteRun(request);
+    const replay = await callCompleteRun(request);
+
+    for (const result of [fresh, replay]) {
+      const display = result.progressionDisplay;
+      assert.equal(display.status, "awarded");
+      assert.equal(display.totalXp, 75);
+      assert.equal(display.previousTotalXp, 0);
+      assert.equal(display.level, 1);
+      assert.equal(display.previousLevel, 1);
+      assert.equal(display.previousLevelProgressPercent, 0);
+      assert.equal(display.levelProgressPercent, 75);
+      assert.equal(display.nextLevelXp, 100);
+      assert.equal(display.xpToNextLevel, 25);
+      assert.equal(display.previousStreak, 0);
+      assert.equal(display.streak, 1);
+    }
+
+    // Fresh (audit) and replayed (event doc) paths must be identical.
+    assert.deepEqual(replay, fresh);
+
+    const progressionEvent = await firestore
+      .doc(`progressionEvents/${fresh.progressionEventId}`)
+      .get();
+    assert.equal(progressionEvent.get("previousLevelProgressPercent"), 0);
+    assert.equal(progressionEvent.get("nextLevelProgressPercent"), 75);
+    assert.equal(progressionEvent.get("nextLevelXpTarget"), 100);
+    assert.equal(progressionEvent.get("nextXpToNextLevel"), 25);
+  });
+
+  it("still surfaces streak and total progression fields when no XP is awarded", async () => {
+    const result = await callCompleteRun({
+      auth: { uid: USER_UID },
+      data: {
+        ...lowDataPayload(),
+        userConfirmedLowDataSave: true,
+      },
+    });
+
+    const display = result.progressionDisplay;
+    assert.equal(display.status, "not_awarded");
+    assert.equal(display.reason, "low_data_no_xp");
+    assert.equal(display.xpDelta, 0);
+    assert.equal(display.totalXp, 0);
+    assert.equal(display.previousTotalXp, 0);
+    assert.equal(display.levelProgressPercent, 0);
+    assert.equal(display.previousStreak, 0);
+    assert.equal(display.streak, 1);
   });
 
   it("persists valid cadence analysis samples on activity and summary documents", async () => {

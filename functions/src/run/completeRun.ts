@@ -180,7 +180,11 @@ export async function completeRunForCallable(
         throw new HttpsError("already-exists", "Existing run completion XP state is unreadable.");
       }
 
-      progressionDisplay = xpAudit.progressionDisplay;
+      progressionDisplay = {
+        ...xpAudit.progressionDisplay,
+        previousStreak: streakTransition.previousStreak,
+        streak: streakTransition.nextStreak,
+      };
       transaction.set(
         progressionRef,
         progressionEventData({ uid, ids, payload, audit: xpAudit, streakTransition, planProgressResult }),

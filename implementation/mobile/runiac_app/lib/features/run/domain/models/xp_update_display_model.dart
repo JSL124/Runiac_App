@@ -1,3 +1,11 @@
+/// Honest render state for the post-run XP & Streak surface.
+///
+/// The client never calculates progression. It only renders values the backend
+/// returns, and this discriminator keeps the celebration honest: full XP
+/// choreography only for [awarded], supportive copy for [notAwarded] and
+/// [deferred].
+enum XpAwardState { awarded, notAwarded, deferred }
+
 class XpUpdateDisplayModel {
   const XpUpdateDisplayModel({
     required this.runnerName,
@@ -12,6 +20,15 @@ class XpUpdateDisplayModel {
     required this.streakChangeLabel,
     required this.streakNote,
     required this.didLevelUp,
+    this.xpAwardState = XpAwardState.deferred,
+    this.heroMessage = '',
+    this.earnedXp = 0,
+    this.totalXp = 0,
+    this.previousTotalXp = 0,
+    this.level = 0,
+    this.previousLevel = 0,
+    this.streakCount = 0,
+    this.previousStreakCount = 0,
   });
 
   final String runnerName;
@@ -26,4 +43,23 @@ class XpUpdateDisplayModel {
   final String streakChangeLabel;
   final String streakNote;
   final bool didLevelUp;
+
+  /// Which honest render mode the screen should use.
+  final XpAwardState xpAwardState;
+
+  /// Supportive subtitle rendered under the hero. Carries the friendly reason
+  /// line for [XpAwardState.notAwarded] / [XpAwardState.deferred] states.
+  final String heroMessage;
+
+  /// Backend-owned numeric values used for count-up choreography. These are
+  /// only display copies of trusted values; the client never derives them.
+  final int earnedXp;
+  final int totalXp;
+  final int previousTotalXp;
+  final int level;
+  final int previousLevel;
+  final int streakCount;
+  final int previousStreakCount;
+
+  bool get isAwarded => xpAwardState == XpAwardState.awarded;
 }
