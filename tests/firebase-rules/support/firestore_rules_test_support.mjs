@@ -63,6 +63,44 @@ export const notificationPrefs = {
   updatedAt: 1,
 };
 
+export const notificationInboxItem = {
+  ownerUid: 'alice',
+  title: 'Run reminder',
+  body: 'Synthetic reminder copy only.',
+  type: 'runReminder',
+  target: {
+    screen: 'run',
+    planId: 'local-onboarding-beginner-plan',
+  },
+  deliveryState: 'delivered',
+  serverManagedTokenState: 'active',
+  backendSchedulingStatus: 'sent',
+  createdAt: 1,
+  deliveredAt: 2,
+  readAt: null,
+  deletedAt: null,
+  updatedAt: 2,
+};
+
+export const notificationDeviceTokenRecord = {
+  ownerUid: 'alice',
+  tokenFingerprint: 'tokenFingerprint',
+  platform: 'ios',
+  serverManagedTokenState: 'active',
+  createdAt: 1,
+  updatedAt: 1,
+};
+
+export const notificationDeliveryRecord = {
+  ownerUid: 'alice',
+  notificationId: 'notification-001',
+  tokenFingerprint: 'tokenFingerprint',
+  deliveryState: 'queued',
+  backendSchedulingStatus: 'scheduled',
+  createdAt: 1,
+  updatedAt: 1,
+};
+
 export const sharedRouteDraft = {
   ownerUid: 'alice',
   title: 'Masked Synthetic Park Loop',

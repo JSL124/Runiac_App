@@ -10,6 +10,12 @@ import '../../features/account/domain/repositories/user_profile_repository.dart'
 import '../../features/auth/data/firebase_runiac_auth_repository.dart';
 import '../../features/auth/data/non_production_auth_repository.dart';
 import '../../features/auth/domain/runiac_auth_service.dart';
+import '../../features/notifications/data/cloud_firestore_notification_inbox_document_store.dart';
+import '../../features/notifications/data/cloud_functions_notification_device_callable.dart';
+import '../../features/notifications/data/firebase_messaging_push_notification_client.dart';
+import '../../features/notifications/data/firestore_notification_inbox_repository.dart';
+import '../../features/notifications/domain/repositories/notification_inbox_repository.dart';
+import '../../features/notifications/domain/services/notification_registration_service.dart';
 import '../../features/plan/data/firestore_adaptive_plan_estimate_repository.dart';
 import '../../features/plan/data/firestore_generated_plan_persistence_repository.dart';
 import '../../features/plan/data/firestore_plan_progress_repository.dart';
@@ -51,6 +57,9 @@ class RuniacFirebaseBootstrap {
           planProgressRepository: const NoopPlanProgressRepository(),
           adaptivePlanEstimateRepository:
               const NoopAdaptivePlanEstimateRepository(),
+          notificationInboxRepository:
+              const StaticNotificationInboxRepository(),
+          notificationRegistrationService: null,
           firestoreGateway: RuniacFirestoreGateway.configure(
             useFirebaseEmulator: runtimeConfig.useFirebaseEmulator,
             emulatorHost: runtimeConfig.emulatorHost,
@@ -89,6 +98,15 @@ class RuniacFirebaseBootstrap {
         planProgressRepository: FirestorePlanProgressRepository(),
         adaptivePlanEstimateRepository:
             FirestoreAdaptivePlanEstimateRepository(),
+        notificationInboxRepository: FirestoreNotificationInboxRepository(
+          ownerUidProvider: () => authRepository.currentUser?.uid,
+          documentStore: CloudFirestoreNotificationInboxDocumentStore(),
+        ),
+        notificationRegistrationService: NotificationRegistrationService(
+          client: FirebaseMessagingPushNotificationClient(),
+          callable: CloudFunctionsNotificationDeviceCallable(),
+          ownerUidProvider: () => authRepository.currentUser?.uid,
+        ),
         firestoreGateway: firestoreGateway,
       );
     }
@@ -140,6 +158,15 @@ class RuniacFirebaseBootstrap {
           FirestoreGeneratedPlanPersistenceRepository(),
       planProgressRepository: FirestorePlanProgressRepository(),
       adaptivePlanEstimateRepository: FirestoreAdaptivePlanEstimateRepository(),
+      notificationInboxRepository: FirestoreNotificationInboxRepository(
+        ownerUidProvider: () => authRepository.currentUser?.uid,
+        documentStore: CloudFirestoreNotificationInboxDocumentStore(),
+      ),
+      notificationRegistrationService: NotificationRegistrationService(
+        client: FirebaseMessagingPushNotificationClient(),
+        callable: CloudFunctionsNotificationDeviceCallable(),
+        ownerUidProvider: () => authRepository.currentUser?.uid,
+      ),
       firestoreGateway: firestoreGateway,
     );
   }
@@ -189,6 +216,8 @@ class RuniacFirebaseBootstrapResult {
     required this.generatedPlanPersistenceRepository,
     required this.planProgressRepository,
     required this.adaptivePlanEstimateRepository,
+    required this.notificationInboxRepository,
+    required this.notificationRegistrationService,
     required this.firestoreGateway,
   });
 
@@ -201,5 +230,7 @@ class RuniacFirebaseBootstrapResult {
   final GeneratedPlanPersistenceRepository generatedPlanPersistenceRepository;
   final PlanProgressRepository planProgressRepository;
   final AdaptivePlanEstimateRepository adaptivePlanEstimateRepository;
+  final NotificationInboxRepository notificationInboxRepository;
+  final NotificationRegistrationService? notificationRegistrationService;
   final RuniacFirestoreGateway firestoreGateway;
 }

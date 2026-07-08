@@ -9,6 +9,7 @@ import '../leaderboard/presentation/leaderboard_tab.dart';
 import '../maps/presentation/maps_tab.dart';
 import '../notifications/data/method_channel_plan_notification_scheduler.dart';
 import '../notifications/data/shared_preferences_notification_center_settings_repository.dart';
+import '../notifications/domain/repositories/notification_inbox_repository.dart';
 import '../notifications/domain/services/plan_notification_sync_service.dart';
 import '../plan/domain/models/adaptive_plan_estimate_read_model.dart';
 import '../plan/domain/models/beginner_adaptive_plan_snapshot.dart';
@@ -36,6 +37,8 @@ class RuniacShell extends StatefulWidget {
     required this.profilePersistenceRepository,
     this.generatedPlanPersistenceRepository =
         const NoopGeneratedPlanPersistenceRepository(),
+    this.notificationInboxRepository =
+        const StaticNotificationInboxRepository(),
     this.planProgress,
     this.adaptivePlanEstimate,
     super.key,
@@ -43,6 +46,7 @@ class RuniacShell extends StatefulWidget {
     this.activeRunSessionCoordinator,
     this.initialRunOpenIntent,
     this.youProgressToday,
+    this.enableLocalPlanNotifications = false,
   });
 
   final RuniacAuthRepository authRepository;
@@ -51,12 +55,14 @@ class RuniacShell extends StatefulWidget {
   final UserProfileRepository profileRepository;
   final UserProfilePersistenceRepository profilePersistenceRepository;
   final GeneratedPlanPersistenceRepository generatedPlanPersistenceRepository;
+  final NotificationInboxRepository notificationInboxRepository;
   final PlanProgressReadModel? planProgress;
   final AdaptivePlanEstimateReadModel? adaptivePlanEstimate;
   final bool enableForegroundGps;
   final ActiveRunSessionCoordinator? activeRunSessionCoordinator;
   final RunOpenIntent? initialRunOpenIntent;
   final DateTime? youProgressToday;
+  final bool enableLocalPlanNotifications;
 
   @override
   State<RuniacShell> createState() => _RuniacShellState();
@@ -244,6 +250,7 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
         profilePersistenceRepository: widget.profilePersistenceRepository,
         generatedPlanPersistenceRepository:
             widget.generatedPlanPersistenceRepository,
+        notificationInboxRepository: widget.notificationInboxRepository,
         todayWorkoutDetailSnapshot: todayWorkoutDetail,
         todayPlannedRunContext: todayPlannedRunContext,
         enableForegroundGps: widget.enableForegroundGps,
@@ -363,6 +370,9 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
     GeneratedPlanProgressDisplay? generatedPlanProgress, {
     required bool force,
   }) {
+    if (!widget.enableLocalPlanNotifications) {
+      return;
+    }
     final signature = _planNotificationSyncSignature(
       activeGeneratedPlan,
       generatedPlanProgress,

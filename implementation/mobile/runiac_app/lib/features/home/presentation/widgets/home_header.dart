@@ -10,11 +10,13 @@ class HomeHeader extends StatelessWidget {
   const HomeHeader({
     required this.onNotifications,
     required this.onProfile,
+    this.unreadNotificationCount = 0,
     super.key,
   });
 
   final VoidCallback onNotifications;
   final VoidCallback onProfile;
+  final int unreadNotificationCount;
 
   @override
   Widget build(BuildContext context) {
@@ -52,6 +54,7 @@ class HomeHeader extends StatelessWidget {
         _HomeProfilePlaceholder(
           onNotifications: onNotifications,
           onProfile: onProfile,
+          unreadNotificationCount: unreadNotificationCount,
         ),
       ],
     );
@@ -62,10 +65,12 @@ class _HomeProfilePlaceholder extends StatelessWidget {
   const _HomeProfilePlaceholder({
     required this.onNotifications,
     required this.onProfile,
+    required this.unreadNotificationCount,
   });
 
   final VoidCallback onNotifications;
   final VoidCallback onProfile;
+  final int unreadNotificationCount;
 
   @override
   Widget build(BuildContext context) {
@@ -77,13 +82,26 @@ class _HomeProfilePlaceholder extends StatelessWidget {
           Positioned(
             left: 0,
             top: 7,
-            child: RuniacIconTileButton(
-              icon: Icons.notifications_none,
-              onPressed: onNotifications,
-              semanticLabel: 'Notifications',
-              size: 44,
-              iconColor: RuniacColors.textPrimary,
-              backgroundColor: Colors.transparent,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                RuniacIconTileButton(
+                  icon: Icons.notifications_none,
+                  onPressed: onNotifications,
+                  semanticLabel: 'Notifications',
+                  size: 44,
+                  iconColor: RuniacColors.textPrimary,
+                  backgroundColor: Colors.transparent,
+                ),
+                if (unreadNotificationCount > 0)
+                  Positioned(
+                    right: -2,
+                    top: -3,
+                    child: _UnreadNotificationBadge(
+                      count: unreadNotificationCount,
+                    ),
+                  ),
+              ],
             ),
           ),
           Positioned(
@@ -100,6 +118,36 @@ class _HomeProfilePlaceholder extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _UnreadNotificationBadge extends StatelessWidget {
+  const _UnreadNotificationBadge({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = count > 99 ? '99+' : '$count';
+    return Container(
+      constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
+      alignment: Alignment.center,
+      padding: const EdgeInsets.symmetric(horizontal: 5),
+      decoration: BoxDecoration(
+        color: RuniacColors.errorRed,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: RuniacColors.white, width: 2),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: RuniacColors.white,
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
+          height: 1,
+        ),
       ),
     );
   }

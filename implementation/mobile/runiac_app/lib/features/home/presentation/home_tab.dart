@@ -4,6 +4,8 @@ import '../../account/presentation/account_profile_screen.dart';
 import '../../account/domain/repositories/user_profile_persistence_repository.dart';
 import '../../account/domain/repositories/user_profile_repository.dart';
 import '../../auth/domain/runiac_auth_service.dart';
+import '../../notifications/domain/repositories/notification_inbox_repository.dart';
+import '../../notifications/presentation/notification_inbox_page.dart';
 import '../../plan/domain/repositories/generated_plan_persistence_repository.dart';
 import '../../run/presentation/active_run_session_coordinator.dart';
 import '../../run/presentation/models/planned_run_context.dart';
@@ -24,6 +26,8 @@ class HomeTab extends StatelessWidget {
     required this.profilePersistenceRepository,
     this.generatedPlanPersistenceRepository =
         const NoopGeneratedPlanPersistenceRepository(),
+    this.notificationInboxRepository =
+        const StaticNotificationInboxRepository(),
     this.todayWorkoutDetailSnapshot,
     this.todayPlannedRunContext,
     super.key,
@@ -36,17 +40,12 @@ class HomeTab extends StatelessWidget {
   final UserProfileRepository profileRepository;
   final UserProfilePersistenceRepository profilePersistenceRepository;
   final GeneratedPlanPersistenceRepository generatedPlanPersistenceRepository;
+  final NotificationInboxRepository notificationInboxRepository;
   final WeeklyWorkoutDetailSnapshot? todayWorkoutDetailSnapshot;
   final PlannedRunContext? todayPlannedRunContext;
   final bool enableForegroundGps;
   final ActiveRunSessionCoordinator? activeRunSessionCoordinator;
   final VoidCallback? onNotificationSettingsChanged;
-
-  void _showPreviewMessage(BuildContext context, String message) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
-  }
 
   void _openTodayWorkout(BuildContext context) {
     Navigator.of(context).push(
@@ -102,6 +101,16 @@ class HomeTab extends StatelessWidget {
     );
   }
 
+  void _openNotificationInbox(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) {
+          return NotificationInboxPage(repository: notificationInboxRepository);
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -114,12 +123,16 @@ class HomeTab extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(0, 8, 0, 28),
             children: [
               _HomeContentPadding(
-                child: HomeHeader(
-                  onNotifications: () => _showPreviewMessage(
-                    context,
-                    'Notifications preview is coming soon.',
-                  ),
-                  onProfile: () => _openAccountProfile(context),
+                child: StreamBuilder<int>(
+                  stream: notificationInboxRepository.watchUnreadCount(),
+                  initialData: 0,
+                  builder: (context, snapshot) {
+                    return HomeHeader(
+                      unreadNotificationCount: snapshot.data ?? 0,
+                      onNotifications: () => _openNotificationInbox(context),
+                      onProfile: () => _openAccountProfile(context),
+                    );
+                  },
                 ),
               ),
               const SizedBox(height: 12),

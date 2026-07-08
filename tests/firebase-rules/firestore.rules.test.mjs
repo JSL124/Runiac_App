@@ -12,6 +12,7 @@ import {
   orderBy,
   query,
   setDoc,
+  Timestamp,
   updateDoc,
   where,
 } from 'firebase/firestore';
@@ -21,6 +22,9 @@ import {
   activityDraft,
   dbFor,
   generatedPlanDocument,
+  notificationDeliveryRecord,
+  notificationDeviceTokenRecord,
+  notificationInboxItem,
   notificationPrefs,
   planProgressReadModel,
   profileFields,
@@ -795,5 +799,142 @@ describe('owner-owned client records', () => {
     await assertFails(updateDoc(prefs, { lastScheduledAt: deleteField() }));
     await assertFails(updateDoc(prefs, { deliveryState: 'sent' }));
     await assertFails(updateDoc(prefs, { serverManagedTokenState: deleteField() }));
+  });
+
+  it('allows notification inbox owners to read and list their items', async () => {
+    await seed('notificationInbox/alice/items/notification-001', notificationInboxItem);
+
+    const alice = dbFor('alice');
+    const inboxItem = await assertSucceeds(
+      getDoc(doc(alice, 'notificationInbox/alice/items/notification-001')),
+    );
+    assert.equal(inboxItem.data().ownerUid, 'alice');
+
+    const inboxSnapshot = await assertSucceeds(
+      getDocs(collection(alice, 'notificationInbox/alice/items')),
+    );
+    assert.deepEqual(
+      inboxSnapshot.docs.map((notification) => notification.id),
+      ['notification-001'],
+    );
+  });
+
+  it('allows notification inbox owners to soft-update read metadata only', async () => {
+    await seed('notificationInbox/alice/items/notification-001', notificationInboxItem);
+
+    const inboxItem = doc(
+      dbFor('alice'),
+      'notificationInbox/alice/items/notification-001',
+    );
+
+    await assertSucceeds(
+      updateDoc(inboxItem, {
+        readAt: Timestamp.fromDate(new Date('2026-07-08T10:00:00.000Z')),
+        deletedAt: Timestamp.fromDate(new Date('2026-07-08T10:01:00.000Z')),
+        updatedAt: Timestamp.fromDate(new Date('2026-07-08T10:01:00.000Z')),
+      }),
+    );
+  });
+
+  it('allows unread notification inbox soft delete without changing read state', async () => {
+    await seed('notificationInbox/alice/items/notification-001', notificationInboxItem);
+
+    const inboxItem = doc(
+      dbFor('alice'),
+      'notificationInbox/alice/items/notification-001',
+    );
+
+    await assertSucceeds(
+      updateDoc(inboxItem, {
+        deletedAt: Timestamp.fromDate(new Date('2026-07-08T10:01:00.000Z')),
+        updatedAt: Timestamp.fromDate(new Date('2026-07-08T10:01:00.000Z')),
+      }),
+    );
+  });
+
+  it('denies invalid notification inbox metadata values', async () => {
+    await seed('notificationInbox/alice/items/notification-001', notificationInboxItem);
+
+    const inboxItem = doc(
+      dbFor('alice'),
+      'notificationInbox/alice/items/notification-001',
+    );
+
+    await assertFails(updateDoc(inboxItem, { readAt: 3 }));
+    await assertFails(updateDoc(inboxItem, { deletedAt: '2026-07-08T10:01:00.000Z' }));
+    await assertFails(updateDoc(inboxItem, { updatedAt: null }));
+    await assertFails(updateDoc(inboxItem, { readAt: deleteField() }));
+    await assertFails(updateDoc(inboxItem, { deletedAt: deleteField() }));
+    await assertFails(updateDoc(inboxItem, { updatedAt: deleteField() }));
+  });
+
+  it('denies client notification inbox create and delete operations', async () => {
+    const inboxItem = doc(
+      dbFor('alice'),
+      'notificationInbox/alice/items/notification-001',
+    );
+
+    await assertFails(setDoc(inboxItem, notificationInboxItem));
+
+    await seed('notificationInbox/alice/items/notification-001', notificationInboxItem);
+    await assertFails(deleteDoc(inboxItem));
+  });
+
+  it('denies notification inbox owner mutation of server-owned fields', async () => {
+    await seed('notificationInbox/alice/items/notification-001', notificationInboxItem);
+
+    const inboxItem = doc(
+      dbFor('alice'),
+      'notificationInbox/alice/items/notification-001',
+    );
+
+    await assertFails(updateDoc(inboxItem, { ownerUid: 'bob' }));
+    await assertFails(updateDoc(inboxItem, { title: 'Changed title' }));
+    await assertFails(updateDoc(inboxItem, { body: 'Changed body' }));
+    await assertFails(updateDoc(inboxItem, { type: 'system' }));
+    await assertFails(updateDoc(inboxItem, { target: { screen: 'leaderboard' } }));
+    await assertFails(updateDoc(inboxItem, { deliveryState: 'opened' }));
+    await assertFails(updateDoc(inboxItem, { serverManagedTokenState: 'inactive' }));
+    await assertFails(updateDoc(inboxItem, { backendSchedulingStatus: 'retrying' }));
+    await assertFails(updateDoc(inboxItem, { deliveredAt: deleteField() }));
+  });
+
+  it('denies notification inbox reads and updates from other users', async () => {
+    await seed('notificationInbox/alice/items/notification-001', notificationInboxItem);
+
+    const bob = dbFor('bob');
+    const aliceItemForBob = doc(
+      bob,
+      'notificationInbox/alice/items/notification-001',
+    );
+
+    await assertFails(getDoc(aliceItemForBob));
+    await assertFails(getDocs(collection(bob, 'notificationInbox/alice/items')));
+    await assertFails(updateDoc(aliceItemForBob, { readAt: 3, updatedAt: 3 }));
+  });
+
+  it('denies client direct notification device and delivery writes', async () => {
+    const alice = dbFor('alice');
+    const deviceToken = doc(
+      alice,
+      'notificationDevices/alice/tokens/tokenFingerprint',
+    );
+    const delivery = doc(alice, 'notificationDeliveries/delivery-001');
+
+    await assertFails(setDoc(deviceToken, notificationDeviceTokenRecord));
+    await assertFails(setDoc(delivery, notificationDeliveryRecord));
+
+    await seed(
+      'notificationDevices/alice/tokens/tokenFingerprint',
+      notificationDeviceTokenRecord,
+    );
+    await seed('notificationDeliveries/delivery-001', notificationDeliveryRecord);
+
+    await assertFails(getDoc(deviceToken));
+    await assertFails(getDoc(delivery));
+    await assertFails(updateDoc(deviceToken, { serverManagedTokenState: 'inactive' }));
+    await assertFails(updateDoc(delivery, { deliveryState: 'sent' }));
+    await assertFails(deleteDoc(deviceToken));
+    await assertFails(deleteDoc(delivery));
   });
 });

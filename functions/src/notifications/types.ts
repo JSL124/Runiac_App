@@ -1,0 +1,92 @@
+export type NotificationDispatchKind =
+  | "today_plan_midnight"
+  | "plan_start_minus_120"
+  | "plan_start_minus_60"
+  | "plan_start_minus_10"
+  | "missed_run_plus_60"
+  | "missed_run_plus_120"
+  | "streak_risk_22"
+  | "streak_risk_23";
+
+export type PlannedWorkoutReminder = {
+  readonly scheduledWorkoutId: string;
+  readonly title: string;
+  readonly scheduledDate: string;
+  readonly startTime: string;
+};
+
+export type NotificationPreferences = {
+  readonly planRemindersEnabled: boolean;
+  readonly streakRiskEnabled: boolean;
+};
+
+export type NotificationStreakState = {
+  readonly streakCount: number;
+  readonly lastStreakRunDate: string | null;
+};
+
+export type NotificationPlanningContext = {
+  readonly now: string;
+  readonly uid: string;
+  readonly notificationPreferences: NotificationPreferences;
+  readonly plannedWorkouts: readonly PlannedWorkoutReminder[];
+  readonly completedWorkoutIds: readonly string[];
+  readonly streakState: NotificationStreakState;
+};
+
+export type NotificationDispatch = {
+  readonly uid: string;
+  readonly kind: NotificationDispatchKind;
+  readonly deliveryKey: string;
+  readonly scheduledWorkoutId: string | null;
+  readonly scheduledDate: string;
+  readonly title: string;
+  readonly body: string;
+};
+
+export type NotificationInboxPayload = {
+  readonly ownerUid: string;
+  readonly deliveryKey: string;
+  readonly tokenFingerprint: string;
+  readonly kind: NotificationDispatchKind;
+  readonly scheduledWorkoutId: string | null;
+  readonly scheduledDate: string;
+  readonly title: string;
+  readonly body: string;
+  readonly createdAt: string;
+  readonly readAt: null;
+};
+
+export type NotificationDeviceRecord = {
+  readonly uid: string;
+  readonly tokenFingerprint: string;
+  readonly fcmToken: string;
+};
+
+export type NotificationSendResult = {
+  readonly status: "sent" | "invalid-token" | "skipped-duplicate";
+  readonly disabledAt?: string;
+};
+
+export type NotificationSendAdapter = {
+  readonly send: (
+    dispatch: NotificationDispatch,
+    device: NotificationDeviceRecord,
+    inboxPayload: NotificationInboxPayload,
+  ) => Promise<NotificationSendResult>;
+  readonly disableToken: (device: NotificationDeviceRecord, disabledAt: string) => Promise<void>;
+};
+
+export type SendNotificationDispatchesInput = {
+  readonly dispatches: readonly NotificationDispatch[];
+  readonly devices: readonly NotificationDeviceRecord[];
+  readonly adapter: NotificationSendAdapter;
+  readonly sentDeliveryKeys: ReadonlySet<string>;
+  readonly now: string;
+};
+
+export type NotificationDispatchSendResult = {
+  readonly deliveryKey: string;
+  readonly tokenFingerprint: string;
+  readonly status: NotificationSendResult["status"];
+};

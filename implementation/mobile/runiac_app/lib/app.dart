@@ -13,6 +13,8 @@ import 'features/auth/domain/runiac_auth_service.dart';
 import 'features/auth/presentation/runiac_auth_gate.dart';
 import 'features/auth/presentation/runiac_profile_setup_gate.dart';
 import 'features/onboarding/domain/models/local_onboarding_draft.dart';
+import 'features/notifications/domain/repositories/notification_inbox_repository.dart';
+import 'features/notifications/domain/services/notification_registration_service.dart';
 import 'features/plan/domain/models/adaptive_plan_estimate_read_model.dart';
 import 'features/plan/domain/models/beginner_adaptive_plan_snapshot.dart';
 import 'features/plan/domain/models/plan_progress_read_model.dart';
@@ -58,6 +60,9 @@ class RuniacApp extends StatefulWidget {
     this.planProgressRepository = const NoopPlanProgressRepository(),
     this.adaptivePlanEstimateRepository =
         const NoopAdaptivePlanEstimateRepository(),
+    this.notificationInboxRepository =
+        const StaticNotificationInboxRepository(),
+    this.notificationRegistrationService,
     this.enableForegroundGps = true,
     this.activeRunSessionCoordinator,
     this.initialRunOpenIntent,
@@ -81,6 +86,8 @@ class RuniacApp extends StatefulWidget {
   final GeneratedPlanPersistenceRepository generatedPlanPersistenceRepository;
   final PlanProgressRepository planProgressRepository;
   final AdaptivePlanEstimateRepository adaptivePlanEstimateRepository;
+  final NotificationInboxRepository notificationInboxRepository;
+  final NotificationRegistrationService? notificationRegistrationService;
   final bool enableForegroundGps;
   final ActiveRunSessionCoordinator? activeRunSessionCoordinator;
   final RunOpenIntent? initialRunOpenIntent;
@@ -130,6 +137,7 @@ class _RuniacAppState extends State<RuniacApp> {
         widget.currentSessionGeneratedPlanStore ??
         CurrentSessionGeneratedPlanStore();
     _personalProfileDraft = widget.initialPersonalProfileDraft;
+    _startPushNotificationsForCurrentUser();
   }
 
   @override
@@ -156,6 +164,10 @@ class _RuniacAppState extends State<RuniacApp> {
         unawaited(_loadAdaptivePlanEstimate(ownerUid, activePlan.id));
       }
     }
+    if (oldWidget.notificationRegistrationService !=
+        widget.notificationRegistrationService) {
+      _startPushNotificationsForCurrentUser();
+    }
   }
 
   @override
@@ -166,6 +178,7 @@ class _RuniacAppState extends State<RuniacApp> {
     if (_ownsGeneratedPlanStore) {
       _generatedPlanStore.dispose();
     }
+    unawaited(widget.notificationRegistrationService?.dispose());
     super.dispose();
   }
 
@@ -192,8 +205,15 @@ class _RuniacAppState extends State<RuniacApp> {
                     _authCompletion = completion;
                     _authStateError = null;
                   });
+                  _startPushNotificationsForCurrentUser();
                 },
                 onAuthStateChanged: (user) {
+                  if (user == null) {
+                    unawaited(
+                      widget.notificationRegistrationService
+                          ?.unregisterCurrentDevice(),
+                    );
+                  }
                   _scheduleActivityHistoryOwnerSync(user?.uid);
                   _clearGeneratedPlanForAuthChange(user?.uid);
                 },
@@ -220,6 +240,13 @@ class _RuniacAppState extends State<RuniacApp> {
     _adaptivePlanEstimate = null;
     _adaptivePlanEstimateLoadSerial += 1;
     _generatedPlanStore.clear();
+  }
+
+  void _startPushNotificationsForCurrentUser() {
+    if (widget.authRepository.currentUser == null) {
+      return;
+    }
+    unawaited(widget.notificationRegistrationService?.start());
   }
 
   Future<void> _restoreAndSyncPendingRuns({required String ownerUid}) async {
@@ -354,6 +381,7 @@ class _RuniacAppState extends State<RuniacApp> {
         profilePersistenceRepository: widget.profilePersistenceRepository,
         generatedPlanPersistenceRepository:
             widget.generatedPlanPersistenceRepository,
+        notificationInboxRepository: widget.notificationInboxRepository,
         planProgress: _planProgress,
         adaptivePlanEstimate: _adaptivePlanEstimate,
         enableForegroundGps: widget.enableForegroundGps,
