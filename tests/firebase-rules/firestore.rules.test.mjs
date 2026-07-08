@@ -852,6 +852,95 @@ describe('owner-owned client records', () => {
     );
   });
 
+  it('allows notification inbox owners to create local client-managed items', async () => {
+    const inboxItem = doc(
+      dbFor('alice'),
+      'notificationInbox/alice/items/local-notification-smoke-test',
+    );
+
+    await assertSucceeds(
+      setDoc(inboxItem, {
+        ownerUid: 'alice',
+        clientManaged: true,
+        title: 'Runiac local notification test',
+        body: 'If you can see this, iOS local notifications are working.',
+        createdAt: Timestamp.fromDate(new Date('2026-07-08T10:13:18.000Z')),
+        data: {
+          kind: 'localNotificationSmokeTest',
+        },
+        updatedAt: Timestamp.fromDate(new Date('2026-07-08T10:13:18.000Z')),
+      }),
+    );
+  });
+
+  it('allows notification inbox owners to refresh local client-managed items', async () => {
+    await seed('notificationInbox/alice/items/local-notification-smoke-test', {
+      ownerUid: 'alice',
+      clientManaged: true,
+      title: 'Runiac local notification test',
+      body: 'If you can see this, iOS local notifications are working.',
+      createdAt: Timestamp.fromDate(new Date('2026-07-08T10:13:18.000Z')),
+      data: {
+        kind: 'localNotificationSmokeTest',
+      },
+      updatedAt: Timestamp.fromDate(new Date('2026-07-08T10:13:18.000Z')),
+    });
+
+    await assertSucceeds(
+      setDoc(
+        doc(dbFor('alice'), 'notificationInbox/alice/items/local-notification-smoke-test'),
+        {
+          ownerUid: 'alice',
+          clientManaged: true,
+          title: 'Runiac local notification test',
+          body: 'If you can see this, iOS local notifications are working.',
+          createdAt: Timestamp.fromDate(new Date('2026-07-08T10:15:18.000Z')),
+          data: {
+            kind: 'localNotificationSmokeTest',
+          },
+          updatedAt: Timestamp.fromDate(new Date('2026-07-08T10:15:18.000Z')),
+        },
+        { merge: true },
+      ),
+    );
+  });
+
+  it('allows notification inbox owners to restore deleted local client-managed items', async () => {
+    await seed('notificationInbox/alice/items/local-notification-smoke-test', {
+      ownerUid: 'alice',
+      clientManaged: true,
+      title: 'Runiac local notification test',
+      body: 'If you can see this, iOS local notifications are working.',
+      createdAt: Timestamp.fromDate(new Date('2026-07-08T10:13:18.000Z')),
+      readAt: Timestamp.fromDate(new Date('2026-07-08T10:14:00.000Z')),
+      deletedAt: Timestamp.fromDate(new Date('2026-07-08T10:14:30.000Z')),
+      data: {
+        kind: 'localNotificationSmokeTest',
+      },
+      updatedAt: Timestamp.fromDate(new Date('2026-07-08T10:14:30.000Z')),
+    });
+
+    await assertSucceeds(
+      setDoc(
+        doc(dbFor('alice'), 'notificationInbox/alice/items/local-notification-smoke-test'),
+        {
+          ownerUid: 'alice',
+          clientManaged: true,
+          title: 'Runiac local notification test',
+          body: 'If you can see this, iOS local notifications are working.',
+          createdAt: Timestamp.fromDate(new Date('2026-07-08T10:15:18.000Z')),
+          readAt: deleteField(),
+          deletedAt: deleteField(),
+          data: {
+            kind: 'localNotificationSmokeTest',
+          },
+          updatedAt: Timestamp.fromDate(new Date('2026-07-08T10:15:18.000Z')),
+        },
+        { merge: true },
+      ),
+    );
+  });
+
   it('denies invalid notification inbox metadata values', async () => {
     await seed('notificationInbox/alice/items/notification-001', notificationInboxItem);
 
@@ -868,7 +957,7 @@ describe('owner-owned client records', () => {
     await assertFails(updateDoc(inboxItem, { updatedAt: deleteField() }));
   });
 
-  it('denies client notification inbox create and delete operations', async () => {
+  it('denies server-owned notification inbox create and client delete operations', async () => {
     const inboxItem = doc(
       dbFor('alice'),
       'notificationInbox/alice/items/notification-001',
@@ -897,6 +986,38 @@ describe('owner-owned client records', () => {
     await assertFails(updateDoc(inboxItem, { serverManagedTokenState: 'inactive' }));
     await assertFails(updateDoc(inboxItem, { backendSchedulingStatus: 'retrying' }));
     await assertFails(updateDoc(inboxItem, { deliveredAt: deleteField() }));
+  });
+
+  it('denies invalid local client-managed notification inbox creates', async () => {
+    const alice = dbFor('alice');
+
+    await assertFails(
+      setDoc(doc(alice, 'notificationInbox/bob/items/local-notification-smoke-test'), {
+        ownerUid: 'bob',
+        clientManaged: true,
+        title: 'Runiac local notification test',
+        body: 'If you can see this, iOS local notifications are working.',
+        createdAt: Timestamp.fromDate(new Date('2026-07-08T10:13:18.000Z')),
+        data: {
+          kind: 'localNotificationSmokeTest',
+        },
+        updatedAt: Timestamp.fromDate(new Date('2026-07-08T10:13:18.000Z')),
+      }),
+    );
+    await assertFails(
+      setDoc(doc(alice, 'notificationInbox/alice/items/local-bad-xp'), {
+        ownerUid: 'alice',
+        clientManaged: true,
+        title: 'Runiac local notification test',
+        body: 'If you can see this, iOS local notifications are working.',
+        createdAt: Timestamp.fromDate(new Date('2026-07-08T10:13:18.000Z')),
+        data: {
+          kind: 'localNotificationSmokeTest',
+        },
+        updatedAt: Timestamp.fromDate(new Date('2026-07-08T10:13:18.000Z')),
+        xp: 10,
+      }),
+    );
   });
 
   it('denies notification inbox reads and updates from other users', async () => {

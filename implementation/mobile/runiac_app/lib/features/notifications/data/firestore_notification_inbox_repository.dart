@@ -1,5 +1,11 @@
+import 'package:flutter/foundation.dart';
+
 import '../domain/models/notification_inbox_item.dart';
 import '../domain/repositories/notification_inbox_repository.dart';
+
+const _debugNotificationInboxWrites = bool.fromEnvironment(
+  'RUNIAC_LOCAL_NOTIFICATION_DEBUG_LOGS',
+);
 
 class NotificationInboxDocument {
   const NotificationInboxDocument({
@@ -44,6 +50,11 @@ abstract class NotificationInboxDocumentStore {
     required DateTime readAt,
   });
 
+  Future<void> saveInboxItem({
+    required String uid,
+    required NotificationInboxDocument item,
+  });
+
   Future<void> softDelete({
     required String uid,
     required String itemId,
@@ -82,6 +93,38 @@ class FirestoreNotificationInboxRepository
   @override
   Future<List<NotificationInboxItem>> listInboxItems() {
     return watchInboxItems().first;
+  }
+
+  @override
+  Future<void> saveInboxItem(NotificationInboxItem item) {
+    final uid = ownerUid;
+    if (uid.isEmpty) {
+      if (_debugNotificationInboxWrites) {
+        debugPrint(
+          '[RuniacLocalNotifications][Dart] '
+          'saveInboxItem skipped id=${item.id}: empty owner uid',
+        );
+      }
+      return Future<void>.value();
+    }
+    if (_debugNotificationInboxWrites) {
+      debugPrint(
+        '[RuniacLocalNotifications][Dart] '
+        'saveInboxItem Firestore uid=$uid id=${item.id}',
+      );
+    }
+    return documentStore.saveInboxItem(
+      uid: uid,
+      item: NotificationInboxDocument(
+        id: item.id,
+        title: item.title,
+        body: item.body,
+        createdAt: item.createdAt,
+        readAt: item.readAt,
+        deletedAt: item.deletedAt,
+        data: item.data,
+      ),
+    );
   }
 
   @override

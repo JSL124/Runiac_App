@@ -9,6 +9,8 @@ abstract interface class PlanNotificationScheduler {
     List<ScheduledPlanNotification> notifications,
   );
 
+  Future<void> schedulePlanNotification(ScheduledPlanNotification notification);
+
   Future<void> cancelPlanNotifications();
 }
 
@@ -23,6 +25,11 @@ class NoopPlanNotificationScheduler implements PlanNotificationScheduler {
   @override
   Future<void> syncPlanNotifications(
     List<ScheduledPlanNotification> notifications,
+  ) async {}
+
+  @override
+  Future<void> schedulePlanNotification(
+    ScheduledPlanNotification notification,
   ) async {}
 
   @override

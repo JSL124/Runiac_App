@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/runiac_colors.dart';
+import '../../../core/widgets/runiac_back_header.dart';
 import '../domain/models/notification_inbox_item.dart';
 import '../domain/repositories/notification_inbox_repository.dart';
 
@@ -16,37 +17,42 @@ class NotificationInboxPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: RuniacColors.background,
-      appBar: AppBar(
-        title: const Text('Notifications'),
-        backgroundColor: RuniacColors.background,
-        foregroundColor: RuniacColors.textPrimary,
-        surfaceTintColor: RuniacColors.background,
-        elevation: 0,
-      ),
-      body: StreamBuilder<List<NotificationInboxItem>>(
-        stream: repository.watchInboxItems(),
-        builder: (context, snapshot) {
-          final items = snapshot.data ?? const <NotificationInboxItem>[];
-          if (items.isEmpty) {
-            return const _NotificationInboxEmptyState();
-          }
-          return ListView.separated(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
-            itemCount: items.length,
-            separatorBuilder: (context, index) => const SizedBox(height: 10),
-            itemBuilder: (context, index) {
-              return _NotificationInboxTile(
-                item: items[index],
-                relativeTime: _formatRelativeTime(
-                  items[index].createdAt,
-                  _currentTime,
-                ),
-                onRead: () => repository.markRead(items[index].id),
-                onDelete: () => repository.softDelete(items[index].id),
-              );
-            },
-          );
-        },
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            const RuniacBackHeader(title: 'Notifications'),
+            Expanded(
+              child: StreamBuilder<List<NotificationInboxItem>>(
+                stream: repository.watchInboxItems(),
+                builder: (context, snapshot) {
+                  final items =
+                      snapshot.data ?? const <NotificationInboxItem>[];
+                  if (items.isEmpty) {
+                    return const _NotificationInboxEmptyState();
+                  }
+                  return ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+                    itemCount: items.length,
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(height: 10),
+                    itemBuilder: (context, index) {
+                      return _NotificationInboxTile(
+                        item: items[index],
+                        relativeTime: _formatRelativeTime(
+                          items[index].createdAt,
+                          _currentTime,
+                        ),
+                        onRead: () => repository.markRead(items[index].id),
+                        onDelete: () => repository.softDelete(items[index].id),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

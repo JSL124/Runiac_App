@@ -71,6 +71,17 @@ class RuniacShell extends StatefulWidget {
 }
 
 class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
+  static const _localNotificationSmokeTestEnabled = bool.fromEnvironment(
+    'RUNIAC_LOCAL_NOTIFICATION_SMOKE_TEST',
+  );
+  static const _localNotificationSmokeTestDelaySeconds = int.fromEnvironment(
+    'RUNIAC_LOCAL_NOTIFICATION_SMOKE_TEST_DELAY_SECONDS',
+    defaultValue: 60,
+  );
+  static const _localNotificationDebugLogs = bool.fromEnvironment(
+    'RUNIAC_LOCAL_NOTIFICATION_DEBUG_LOGS',
+  );
+
   int _selectedIndex = 0;
   late final bool _ownsActiveRunSessionCoordinator =
       widget.activeRunSessionCoordinator == null;
@@ -81,20 +92,30 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
   String? _lastPlanNotificationSyncSignature;
   var _planNotificationSyncInFlight = false;
   var _pendingPlanNotificationSync = false;
+  var _localNotificationSmokeTestScheduled = false;
   BeginnerAdaptivePlanSnapshot? _pendingPlanNotificationPlan;
   GeneratedPlanProgressDisplay? _pendingPlanNotificationProgress;
   late final PlanNotificationSyncService _planNotificationSyncService =
-      const PlanNotificationSyncService(
+      PlanNotificationSyncService(
         settingsRepository:
-            SharedPreferencesNotificationCenterSettingsRepository(),
-        scheduler: MethodChannelPlanNotificationScheduler(),
+            const SharedPreferencesNotificationCenterSettingsRepository(),
+        scheduler: const MethodChannelPlanNotificationScheduler(),
+        inboxRepository: widget.notificationInboxRepository,
+        debugLog: _localNotificationDebugLogs
+            ? _logLocalNotificationDebug
+            : null,
       );
+
+  static void _logLocalNotificationDebug(String message) {
+    debugPrint('[RuniacLocalNotifications][Dart] $message');
+  }
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _scheduleInitialRunOpenIntent();
+    _scheduleLocalNotificationSmokeTestIfEnabled();
   }
 
   @override
@@ -112,6 +133,32 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
         _openInitialRunIntent();
       });
     }
+  }
+
+  void _scheduleLocalNotificationSmokeTestIfEnabled() {
+    if (!widget.enableLocalPlanNotifications ||
+        !_localNotificationSmokeTestEnabled ||
+        _localNotificationSmokeTestScheduled) {
+      return;
+    }
+    _localNotificationSmokeTestScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      try {
+        await _planNotificationSyncService.scheduleSmokeTestNotification(
+          now: widget.youProgressToday ?? DateTime.now(),
+          delay: Duration(seconds: _localNotificationSmokeTestDelaySeconds),
+        );
+      } catch (error, stackTrace) {
+        // QA smoke notification must not block the app shell.
+        if (_localNotificationDebugLogs) {
+          debugPrint(
+            '[RuniacLocalNotifications][Dart] '
+            'scheduleSmokeTestNotification failed: $error',
+          );
+          debugPrint(stackTrace.toString());
+        }
+      }
+    });
   }
 
   @override

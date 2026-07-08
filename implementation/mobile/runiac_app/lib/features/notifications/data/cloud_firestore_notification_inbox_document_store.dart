@@ -33,6 +33,28 @@ class CloudFirestoreNotificationInboxDocumentStore
   }
 
   @override
+  Future<void> saveInboxItem({
+    required String uid,
+    required NotificationInboxDocument item,
+  }) {
+    return _items(uid).doc(item.id).set({
+      'ownerUid': uid,
+      'clientManaged': true,
+      'title': item.title,
+      'body': item.body,
+      'createdAt': Timestamp.fromDate(item.createdAt.toUtc()),
+      'readAt': item.readAt == null
+          ? FieldValue.delete()
+          : Timestamp.fromDate(item.readAt!.toUtc()),
+      'deletedAt': item.deletedAt == null
+          ? FieldValue.delete()
+          : Timestamp.fromDate(item.deletedAt!.toUtc()),
+      'data': item.data,
+      'updatedAt': Timestamp.fromDate(DateTime.now().toUtc()),
+    }, SetOptions(merge: true));
+  }
+
+  @override
   Future<void> markRead({
     required String uid,
     required String itemId,

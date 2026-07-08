@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/features/notifications/data/firestore_notification_inbox_repository.dart';
+import 'package:runiac_app/features/notifications/domain/models/notification_inbox_item.dart';
 
 void main() {
   group('FirestoreNotificationInboxRepository', () {
@@ -69,6 +70,39 @@ void main() {
       ]);
     });
 
+    test(
+      'saves a received local notification through the owner-scoped store',
+      () async {
+        final store = _FakeNotificationInboxDocumentStore();
+        final repository = FirestoreNotificationInboxRepository(
+          ownerUid: 'runner-1',
+          documentStore: store,
+        );
+        final item = _document(
+          id: 'local-notification-smoke-test',
+          title: 'Runiac local notification test',
+          body: 'If you can see this, iOS local notifications are working.',
+          createdAt: DateTime.utc(2026, 7, 8, 10, 13, 18),
+        ).toReadModel();
+
+        await repository.saveInboxItem(item);
+
+        expect(store.savedItems, [_SaveCall('runner-1', item)]);
+      },
+    );
+
+    test('does not save a local notification without an owner uid', () async {
+      final store = _FakeNotificationInboxDocumentStore();
+      final repository = FirestoreNotificationInboxRepository(
+        ownerUid: '',
+        documentStore: store,
+      );
+
+      await repository.saveInboxItem(_document().toReadModel());
+
+      expect(store.savedItems, isEmpty);
+    });
+
     test('soft deletes an inbox item by writing deletedAt', () async {
       final store = _FakeNotificationInboxDocumentStore();
       final repository = FirestoreNotificationInboxRepository(
@@ -111,6 +145,7 @@ class _FakeNotificationInboxDocumentStore
 
   final List<NotificationInboxDocument> items;
   final watchedUids = <String>[];
+  final savedItems = <_SaveCall>[];
   final markReadCalls = <_WriteCall>[];
   final softDeleteCalls = <_WriteCall>[];
 
@@ -120,6 +155,14 @@ class _FakeNotificationInboxDocumentStore
   }) {
     watchedUids.add(uid);
     return Stream.value(items);
+  }
+
+  @override
+  Future<void> saveInboxItem({
+    required String uid,
+    required NotificationInboxDocument item,
+  }) async {
+    savedItems.add(_SaveCall(uid, item.toReadModel()));
   }
 
   @override
@@ -139,6 +182,44 @@ class _FakeNotificationInboxDocumentStore
   }) async {
     softDeleteCalls.add(_WriteCall(uid, itemId, deletedAt));
   }
+}
+
+class _SaveCall {
+  const _SaveCall(this.uid, this.item);
+
+  final String uid;
+  final NotificationInboxItem item;
+
+  @override
+  bool operator ==(Object other) {
+    return other is _SaveCall &&
+        other.uid == uid &&
+        other.item.id == item.id &&
+        other.item.title == item.title &&
+        other.item.body == item.body &&
+        other.item.createdAt == item.createdAt &&
+        other.item.readAt == item.readAt &&
+        other.item.deletedAt == item.deletedAt &&
+        _mapsEqual(other.item.data, item.data);
+  }
+
+  @override
+  int get hashCode => Object.hash(uid, item);
+
+  @override
+  String toString() => '_SaveCall($uid, $item)';
+}
+
+bool _mapsEqual(Map<String, Object?> left, Map<String, Object?> right) {
+  if (left.length != right.length) {
+    return false;
+  }
+  for (final entry in left.entries) {
+    if (!right.containsKey(entry.key) || right[entry.key] != entry.value) {
+      return false;
+    }
+  }
+  return true;
 }
 
 class _WriteCall {

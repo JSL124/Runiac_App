@@ -40,6 +40,10 @@ class MainActivity : FlutterActivity() {
                     planNotificationScheduler.syncPlanNotifications(call.arguments)
                     result.success(null)
                 }
+                SCHEDULE_PLAN_NOTIFICATION_METHOD -> {
+                    planNotificationScheduler.schedulePlanNotification(call.arguments)
+                    result.success(null)
+                }
                 CANCEL_PLAN_NOTIFICATIONS_METHOD -> {
                     planNotificationScheduler.cancelPlanNotifications()
                     result.success(null)
@@ -223,6 +227,8 @@ class MainActivity : FlutterActivity() {
             "requestPermission"
         private const val SYNC_PLAN_NOTIFICATIONS_METHOD =
             "syncPlanNotifications"
+        private const val SCHEDULE_PLAN_NOTIFICATION_METHOD =
+            "schedulePlanNotification"
         private const val CANCEL_PLAN_NOTIFICATIONS_METHOD =
             "cancelPlanNotifications"
         private const val START_RUN_FOREGROUND_SERVICE_METHOD = "start"

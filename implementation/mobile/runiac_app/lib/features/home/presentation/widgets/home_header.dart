@@ -95,8 +95,8 @@ class _HomeProfilePlaceholder extends StatelessWidget {
                 ),
                 if (unreadNotificationCount > 0)
                   Positioned(
-                    right: -2,
-                    top: -3,
+                    right: 0,
+                    top: 0,
                     child: _UnreadNotificationBadge(
                       count: unreadNotificationCount,
                     ),
@@ -132,7 +132,7 @@ class _UnreadNotificationBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final label = count > 99 ? '99+' : '$count';
     return Container(
-      constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
+      constraints: const BoxConstraints(minWidth: 22, minHeight: 22),
       alignment: Alignment.center,
       padding: const EdgeInsets.symmetric(horizontal: 5),
       decoration: BoxDecoration(

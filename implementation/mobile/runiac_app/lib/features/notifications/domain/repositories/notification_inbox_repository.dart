@@ -11,6 +11,8 @@ abstract class NotificationInboxRepository {
 
   Stream<int> watchUnreadCount();
 
+  Future<void> saveInboxItem(NotificationInboxItem item);
+
   Future<void> markRead(String itemId);
 
   Future<void> softDelete(String itemId);
@@ -31,6 +33,9 @@ class StaticNotificationInboxRepository implements NotificationInboxRepository {
 
   @override
   Future<List<NotificationInboxItem>> listInboxItems() async => _visibleItems;
+
+  @override
+  Future<void> saveInboxItem(NotificationInboxItem item) async {}
 
   @override
   Future<void> markRead(String itemId) async {}
@@ -83,6 +88,17 @@ class InMemoryNotificationInboxRepository
 
   @override
   Future<List<NotificationInboxItem>> listInboxItems() async => _visibleItems;
+
+  @override
+  Future<void> saveInboxItem(NotificationInboxItem item) async {
+    final index = _items.indexWhere((existing) => existing.id == item.id);
+    if (index == -1) {
+      _items.add(item);
+    } else {
+      _items[index] = item;
+    }
+    _emit();
+  }
 
   @override
   Future<void> markRead(String itemId) async {

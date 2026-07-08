@@ -91,6 +91,83 @@ void main() {
       },
     );
 
+    test(
+      'schedules one notification without replacing existing native requests',
+      () async {
+        // Given
+        final calls = <MethodCall>[];
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(channel, (call) async {
+              calls.add(call);
+              return null;
+            });
+        const scheduler = MethodChannelPlanNotificationScheduler(
+          channel: channel,
+        );
+
+        // When
+        await scheduler.schedulePlanNotification(
+          ScheduledPlanNotification(
+            id: 'local-notification-smoke-test',
+            kind: PlanNotificationKind.planUpdate,
+            scheduledAt: DateTime(2026, 7, 8, 12, 1),
+            title: 'Runiac local notification test',
+            body: 'If you can see this, iOS local notifications are working.',
+            payload: const {'kind': 'localNotificationSmokeTest'},
+          ),
+        );
+
+        // Then
+        expect(calls.single.method, 'schedulePlanNotification');
+        expect(calls.single.arguments, {
+          'id': 'local-notification-smoke-test',
+          'kind': 'planUpdate',
+          'scheduledAtMillis': DateTime(
+            2026,
+            7,
+            8,
+            12,
+            1,
+          ).millisecondsSinceEpoch,
+          'title': 'Runiac local notification test',
+          'body': 'If you can see this, iOS local notifications are working.',
+          'payload': {'kind': 'localNotificationSmokeTest'},
+        });
+      },
+    );
+
+    test('passes debug flag to native scheduling when enabled', () async {
+      // Given
+      final calls = <MethodCall>[];
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+            calls.add(call);
+            return null;
+          });
+      const scheduler = MethodChannelPlanNotificationScheduler(
+        channel: channel,
+        debugLogs: true,
+      );
+
+      // When
+      await scheduler.requestPermission();
+      await scheduler.schedulePlanNotification(
+        ScheduledPlanNotification(
+          id: 'local-notification-smoke-test',
+          kind: PlanNotificationKind.planUpdate,
+          scheduledAt: DateTime(2026, 7, 8, 12, 1),
+          title: 'Runiac local notification test',
+          body: 'If you can see this, iOS local notifications are working.',
+        ),
+      );
+
+      // Then
+      expect(calls.first.method, 'requestPermission');
+      expect(calls.first.arguments, {'debugLogs': true});
+      expect(calls.last.method, 'schedulePlanNotification');
+      expect(calls.last.arguments, containsPair('debugLogs', true));
+    });
+
     test('skips native calls on unsupported desktop test platforms', () async {
       // Given
       debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
@@ -106,6 +183,15 @@ void main() {
 
       // When
       await scheduler.syncPlanNotifications(const []);
+      await scheduler.schedulePlanNotification(
+        ScheduledPlanNotification(
+          id: 'local-notification-smoke-test',
+          kind: PlanNotificationKind.planUpdate,
+          scheduledAt: DateTime(2026, 7, 8, 12, 1),
+          title: 'Runiac local notification test',
+          body: 'If you can see this, iOS local notifications are working.',
+        ),
+      );
       await scheduler.cancelPlanNotifications();
 
       // Then

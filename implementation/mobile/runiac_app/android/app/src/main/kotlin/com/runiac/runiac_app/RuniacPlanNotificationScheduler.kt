@@ -23,6 +23,11 @@ class RuniacPlanNotificationScheduler(private val context: Context) {
         }
     }
 
+    fun schedulePlanNotification(arguments: Any?) {
+        val notification = notificationFromItem(arguments) ?: return
+        scheduleNotification(notification)
+    }
+
     fun cancelPlanNotifications() {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val notificationManager =
@@ -140,20 +145,21 @@ class RuniacPlanNotificationScheduler(private val context: Context) {
     private fun notificationsFromArguments(arguments: Any?): List<PlanNotificationPayload> {
         val root = arguments as? Map<*, *> ?: return emptyList()
         val rawNotifications = root["notifications"] as? List<*> ?: return emptyList()
-        return rawNotifications.mapNotNull { rawNotification ->
-            val item = rawNotification as? Map<*, *> ?: return@mapNotNull null
-            val id = item["id"] as? String ?: return@mapNotNull null
-            val title = item["title"] as? String ?: return@mapNotNull null
-            val body = item["body"] as? String ?: return@mapNotNull null
-            val scheduledAtMillis = item["scheduledAtMillis"] as? Number
-                ?: return@mapNotNull null
-            PlanNotificationPayload(
-                id = id,
-                title = title,
-                body = body,
-                scheduledAtMillis = scheduledAtMillis.toLong(),
-            )
-        }
+        return rawNotifications.mapNotNull(::notificationFromItem)
+    }
+
+    private fun notificationFromItem(item: Any?): PlanNotificationPayload? {
+        val rawNotification = item as? Map<*, *> ?: return null
+        val id = rawNotification["id"] as? String ?: return null
+        val title = rawNotification["title"] as? String ?: return null
+        val body = rawNotification["body"] as? String ?: return null
+        val scheduledAtMillis = rawNotification["scheduledAtMillis"] as? Number ?: return null
+        return PlanNotificationPayload(
+            id = id,
+            title = title,
+            body = body,
+            scheduledAtMillis = scheduledAtMillis.toLong(),
+        )
     }
 
     private fun scheduledIds(): Set<String> {

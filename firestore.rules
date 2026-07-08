@@ -532,6 +532,38 @@ service cloud.firestore {
       return ['readAt', 'deletedAt', 'updatedAt'];
     }
 
+    function notificationInboxClientManagedKeys() {
+      return [
+        'ownerUid',
+        'clientManaged',
+        'title',
+        'body',
+        'createdAt',
+        'data',
+        'readAt',
+        'deletedAt',
+        'updatedAt'
+      ];
+    }
+
+    function validNotificationInboxClientManagedData(uid) {
+      return request.resource.data.ownerUid == uid
+        && request.resource.data.clientManaged == true
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.title.size() <= 120
+        && request.resource.data.body is string
+        && request.resource.data.body.size() > 0
+        && request.resource.data.body.size() <= 500
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.updatedAt is timestamp
+        && (!('data' in request.resource.data) || request.resource.data.data is map)
+        && (!('readAt' in request.resource.data) || request.resource.data.readAt is timestamp)
+        && (!('deletedAt' in request.resource.data) || request.resource.data.deletedAt is timestamp)
+        && hasOnlyAllowedKeys(notificationInboxClientManagedKeys())
+        && doesNotTouchBackendOwnedKeys();
+    }
+
     function validNotificationInboxMutableValues() {
       return validNotificationInboxMutableValue('readAt')
         && validNotificationInboxMutableValue('deletedAt')
@@ -728,12 +760,22 @@ service cloud.firestore {
 
     match /notificationInbox/{uid}/items/{notificationId} {
       allow read: if isOwner(uid);
-      allow create: if false;
+      allow create: if isOwner(uid)
+        && validNotificationInboxClientManagedData(uid);
       allow update: if isOwner(uid)
-        && resource.data.ownerUid == uid
-        && request.resource.data.ownerUid == uid
-        && changesOnlyAllowedKeys(notificationInboxMutableKeys())
-        && validNotificationInboxMutableValues();
+        && (
+          (
+            resource.data.ownerUid == uid
+            && request.resource.data.ownerUid == uid
+            && changesOnlyAllowedKeys(notificationInboxMutableKeys())
+            && validNotificationInboxMutableValues()
+          )
+          || (
+            resource.data.ownerUid == uid
+            && resource.data.clientManaged == true
+            && validNotificationInboxClientManagedData(uid)
+          )
+        );
       allow delete: if false;
     }
 

@@ -1,6 +1,7 @@
 import Flutter
 import GoogleSignIn
 import UIKit
+import UserNotifications
 
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
@@ -8,6 +9,7 @@ import UIKit
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
+    UNUserNotificationCenter.current().delegate = self
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 
@@ -32,5 +34,31 @@ import UIKit
     RuniacHealthKitImportChannel.register(with: registrar.messenger())
     RuniacPhoneMotionCadenceChannel.register(with: registrar.messenger())
     RuniacPlanNotificationChannel.register(with: registrar.messenger())
+  }
+
+  override func userNotificationCenter(
+    _ center: UNUserNotificationCenter,
+    willPresent notification: UNNotification,
+    withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+  ) {
+    NSLog(
+      "[RuniacLocalNotifications][iOS] willPresent id=\(notification.request.identifier)"
+    )
+    if #available(iOS 14.0, *) {
+      completionHandler([.banner, .list, .sound, .badge])
+    } else {
+      completionHandler([.alert, .sound, .badge])
+    }
+  }
+
+  override func userNotificationCenter(
+    _ center: UNUserNotificationCenter,
+    didReceive response: UNNotificationResponse,
+    withCompletionHandler completionHandler: @escaping () -> Void
+  ) {
+    NSLog(
+      "[RuniacLocalNotifications][iOS] didReceive id=\(response.notification.request.identifier)"
+    )
+    completionHandler()
   }
 }
