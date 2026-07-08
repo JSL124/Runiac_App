@@ -2520,7 +2520,9 @@ void main() {
     expect(find.text('+120 XP'), findsOneWidget);
     expect(find.text('Total XP'), findsOneWidget);
     expect(find.text('2,520 XP'), findsOneWidget);
-    expect(find.text('5 \u2192 6 days'), findsOneWidget);
+    // The stamped-in new streak fully replaces the old value.
+    expect(find.text('6 days'), findsOneWidget);
+    expect(find.text('5 days'), findsNothing);
     expect(find.text('Great consistency!'), findsNothing);
     expect(find.widgetWithText(FilledButton, 'Home'), findsOneWidget);
     expect(
@@ -2771,7 +2773,9 @@ void main() {
     expect(find.text('Lv.9'), findsOneWidget);
     expect(find.text('Progress to Lv.10'), findsOneWidget);
     expect(find.text('220 XP to go'), findsOneWidget);
-    expect(find.text('2 \u2192 3 days'), findsOneWidget);
+    // The stamped-in new streak fully replaces the old value.
+    expect(find.text('3 days'), findsOneWidget);
+    expect(find.text('2 days'), findsNothing);
     expect(find.text('Steady return!'), findsNothing);
     expect(find.widgetWithText(FilledButton, 'Home'), findsOneWidget);
     expect(find.text('Nice work, Jinseo!'), findsNothing);

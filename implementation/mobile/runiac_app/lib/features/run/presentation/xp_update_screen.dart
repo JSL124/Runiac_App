@@ -188,11 +188,6 @@ class _XpStage {
     model.totalXp.toDouble(),
     total,
   ).round();
-  int get streakShown => _lerp(
-    model.previousStreakCount.toDouble(),
-    model.streakCount.toDouble(),
-    streakTick,
-  ).round();
 
   /// Ring / bar fill fraction. Level-up fills to full then restarts into the
   /// new level's remainder inside the same fill window.
@@ -574,16 +569,7 @@ class _StreakCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 3),
-                Text(
-                  _streakText(),
-                  style: const TextStyle(
-                    color: _blue,
-                    fontSize: 26,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.8,
-                    height: 1.08,
-                  ),
-                ),
+                _streakValue(),
               ],
             ),
           ),
@@ -592,15 +578,70 @@ class _StreakCard extends StatelessWidget {
     );
   }
 
-  String _streakText() {
+  /// The streak value starts as the previous streak ("2 days"); the new value
+  /// then stamps down over it — slamming in from a larger scale, squashing the
+  /// old label flat on impact, and settling in as the replacement ("3 days").
+  Widget _streakValue() {
+    const style = TextStyle(
+      color: _blue,
+      fontSize: 26,
+      fontWeight: FontWeight.w800,
+      letterSpacing: -0.8,
+      height: 1.08,
+    );
+
     if (model.streakCount <= 0) {
-      return model.streakChangeLabel;
+      return Text(model.streakChangeLabel, style: style);
     }
+
     final unit = model.streakCount == 1 ? 'day' : 'days';
-    if (model.streakCount > model.previousStreakCount) {
-      return '${model.previousStreakCount} → ${stage.streakShown} $unit';
+    if (model.streakCount <= model.previousStreakCount) {
+      return Text('${model.streakCount} $unit', style: style);
     }
-    return '${model.streakCount} $unit';
+
+    final prevUnit = model.previousStreakCount == 1 ? 'day' : 'days';
+    final s = stage.streakTick;
+
+    // Stamp choreography: slam in (0–0.6), crush the old label at impact
+    // (0.45–0.65), then a small settle dip (0.7–1.0).
+    final slam = Curves.easeInCubic.transform((s / 0.6).clamp(0.0, 1.0));
+    final settle = ((s - 0.7) / 0.3).clamp(0.0, 1.0);
+    final stampScale =
+        _lerp(1.9, 1.0, slam) * (1 - 0.06 * math.sin(settle * math.pi));
+    final stampOpacity = (s / 0.35).clamp(0.0, 1.0);
+    final crushed = ((s - 0.45) / 0.2).clamp(0.0, 1.0);
+
+    return Stack(
+      clipBehavior: Clip.none,
+      alignment: Alignment.centerLeft,
+      children: [
+        if (crushed < 1)
+          Opacity(
+            opacity: 1 - crushed,
+            child: Transform(
+              transform: Matrix4.diagonal3Values(
+                1 + 0.15 * crushed,
+                1 - 0.55 * crushed,
+                1,
+              ),
+              alignment: Alignment.bottomLeft,
+              child: Text(
+                '${model.previousStreakCount} $prevUnit',
+                style: style,
+              ),
+            ),
+          ),
+        if (stampOpacity > 0)
+          Opacity(
+            opacity: stampOpacity,
+            child: Transform.scale(
+              scale: stampScale,
+              alignment: Alignment.centerLeft,
+              child: Text('${model.streakCount} $unit', style: style),
+            ),
+          ),
+      ],
+    );
   }
 }
 
@@ -687,23 +728,23 @@ class _LevelRing extends StatelessWidget {
           ),
           if (showBadge)
             Positioned(
-              bottom: -4,
+              bottom: -5,
               child: Transform.scale(
                 scale: badgeScale,
                 child: Container(
-                  height: 20,
-                  padding: const EdgeInsets.symmetric(horizontal: 9),
+                  height: 24,
+                  padding: const EdgeInsets.symmetric(horizontal: 11),
                   decoration: BoxDecoration(
                     color: _orange,
                     borderRadius: BorderRadius.circular(99),
-                    border: Border.all(color: _pureWhite, width: 2),
+                    border: Border.all(color: _orange, width: 2),
                   ),
                   child: Center(
                     child: Text(
                       badgeLabel,
                       style: const TextStyle(
                         color: _pureWhite,
-                        fontSize: 11,
+                        fontSize: 12.5,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 0.2,
                         height: 1,
@@ -722,12 +763,14 @@ class _LevelRing extends StatelessWidget {
 class _LevelRingPainter extends CustomPainter {
   const _LevelRingPainter({required this.progress});
 
+  static const _startAngle = math.pi * 0.68;
+
   final double progress;
 
   @override
   void paint(Canvas canvas, Size size) {
     final center = size.center(Offset.zero);
-    final strokeWidth = size.width < 100 ? 6.5 : 7.0;
+    final strokeWidth = size.width < 100 ? 7.0 : 8.0;
     final radius = (size.width - strokeWidth) / 2;
     final trackPaint = Paint()
       ..color = _blue12
@@ -742,7 +785,7 @@ class _LevelRingPainter extends CustomPainter {
     canvas.drawCircle(center, radius, trackPaint);
     canvas.drawArc(
       Rect.fromCircle(center: center, radius: radius),
-      -math.pi / 2,
+      _startAngle,
       math.pi * 2 * progress.clamp(0, 1),
       false,
       progressPaint,
@@ -855,8 +898,8 @@ class _XpLayoutTokens {
   factory _XpLayoutTokens.fromCompact(bool compact) {
     if (compact) {
       return const _XpLayoutTokens(
-        ring: 78,
-        avatar: 58,
+        ring: 92,
+        avatar: 68,
         heroY: 14,
         titleGap: 10,
         xpTopGap: 14,
@@ -865,8 +908,8 @@ class _XpLayoutTokens {
     }
 
     return const _XpLayoutTokens(
-      ring: 92,
-      avatar: 68,
+      ring: 110,
+      avatar: 82,
       heroY: 18,
       titleGap: 12,
       xpTopGap: 16,

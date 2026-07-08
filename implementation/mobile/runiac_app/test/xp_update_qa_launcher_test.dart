@@ -48,7 +48,8 @@ void main() {
 
     expect(find.text('Nice work, QA Runner!'), findsOneWidget);
     expect(find.text('+80 XP'), findsOneWidget);
-    expect(find.text('2 → 3 days'), findsOneWidget);
+    expect(find.text('3 days'), findsOneWidget);
+    expect(find.text('2 days'), findsNothing);
     expect(find.textContaining('Rest day'), findsNothing);
     expect(find.textContaining('backend progression'), findsNothing);
     expect(tester.takeException(), isNull);

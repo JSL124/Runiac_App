@@ -58,7 +58,9 @@ void main() {
     expect(find.text('Nice work, Ada!'), findsOneWidget);
     expect(find.text('+75 XP'), findsOneWidget);
     expect(find.text('1,240 XP'), findsOneWidget);
-    expect(find.text('3 → 4 days'), findsOneWidget);
+    // The stamped-in new streak fully replaces the old value.
+    expect(find.text('4 days'), findsOneWidget);
+    expect(find.text('3 days'), findsNothing);
     expect(find.text('Lv.4'), findsOneWidget);
     expect(find.text('Level up!'), findsNothing);
     expect(tester.takeException(), isNull);
