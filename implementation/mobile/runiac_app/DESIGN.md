@@ -112,6 +112,16 @@ All spacing derives from a base of 4px.
 - **Accessibility**: text label is always visible and high contrast.
 - **Motion**: Material press feedback only.
 
+### Level Profile Badge
+
+- **Structure**: circular pale-blue profile disc, blue-tinted ring track, orange progress arc, centered runner initial, and an overlapping orange level pill.
+- **Variants**: compact Home dashboard trigger and larger Account identity profile mark.
+- **Colors**: `RuniacColors.primaryBlue` for the initial/ring track, `RuniacColors.accentOrange` for progress and level pill, `RuniacColors.white` for pill text.
+- **Spacing**: stable square ring sizing; the pill overlaps the lower ring edge and keeps a minimum readable width.
+- **States**: display-only in the current UI; tap behavior belongs to the surrounding Home profile trigger.
+- **Accessibility**: profile trigger keeps the `Profile` semantic action, and the visual badge exposes the level label as supportive profile context.
+- **Boundary**: level and progress are read-only display values. The Flutter client must not calculate or write trusted XP, level, rank, streak, or leaderboard progression.
+
 ## 6. Motion & Interaction
 
 ### Timing

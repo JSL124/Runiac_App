@@ -257,7 +257,11 @@ void main() {
     await tester.tap(find.bySemanticsLabel('Notifications'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Notifications preview is coming soon.'), findsOneWidget);
+    expect(find.text('Notifications'), findsOneWidget);
+    expect(find.text('No notifications yet'), findsOneWidget);
+
+    await tester.tap(find.bySemanticsLabel('Back'));
+    await tester.pumpAndSettle();
 
     await tester.tap(find.bySemanticsLabel('Profile'));
     await tester.pumpAndSettle();
@@ -269,7 +273,7 @@ void main() {
     expect(displayName.maxLines, 2);
     expect(displayName.overflow, TextOverflow.ellipsis);
     expect(find.text('Jurong East, Singapore'), findsOneWidget);
-    expect(find.text('Lv. 12'), findsOneWidget);
+    expect(find.text('Lv.12'), findsWidgets);
     expect(find.text('Preview only'), findsNothing);
     expect(find.text('Goal'), findsNothing);
     expect(find.text('Lv. 1'), findsNothing);
@@ -482,7 +486,7 @@ void main() {
 
     expect(find.text('Account'), findsOneWidget);
     expect(find.text('Runiac Runner'), findsOneWidget);
-    expect(find.text('Lv. 12'), findsOneWidget);
+    expect(find.text('Lv.12'), findsWidgets);
   });
 
   testWidgets('Apple Health row checks repository and reports found runs', (
@@ -692,7 +696,7 @@ void main() {
     expect(find.text('Runiac'), findsNothing);
     expect(find.text('Runiac Runner'), findsOneWidget);
     expect(find.text('Jurong East, Singapore'), findsOneWidget);
-    expect(find.text('Lv. 12'), findsOneWidget);
+    expect(find.text('Lv.12'), findsWidgets);
     expect(find.text('Preview only'), findsNothing);
     expect(find.text('Goal'), findsNothing);
     expect(find.text('Lv. 1'), findsNothing);

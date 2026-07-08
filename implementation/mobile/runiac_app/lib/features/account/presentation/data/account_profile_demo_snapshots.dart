@@ -10,7 +10,7 @@ const accountProfileDemoSnapshot = AccountProfileDemoSnapshot(
   regionLabel: 'Jurong East, Singapore',
   // Static decorative preview only. Real level/progression display is
   // backend-owned and must come from approved read paths later.
-  previewLevelBadge: 'Lv. 12',
+  previewLevelBadge: 'Lv.12',
   previewNote: 'Account changes are not saved in this prototype.',
   setupSectionLabel: 'RUNNING SETUP',
   manageSectionLabel: 'MANAGE',

@@ -71,9 +71,9 @@ void main() {
 
       expect(find.text('Account'), findsOneWidget);
       expect(find.text('Maya'), findsOneWidget);
-      expect(find.text('MT'), findsOneWidget);
+      expect(find.text('M'), findsWidgets);
       expect(find.text('Queenstown, Singapore'), findsOneWidget);
-      expect(find.text('Lv. 12'), findsNothing);
+      expect(find.text('Lv.12'), findsNothing);
       expect(find.text('First relaxed 5K'), findsOneWidget);
       expect(find.text('4 sessions / week'), findsOneWidget);
       expect(find.text('Returning runner'), findsOneWidget);
@@ -703,9 +703,9 @@ void main() {
 
     expect(find.text('Account'), findsOneWidget);
     expect(find.text('Runiac Runner'), findsOneWidget);
-    expect(find.text('RR'), findsOneWidget);
+    expect(find.text('R'), findsWidgets);
     expect(find.text('Jurong East, Singapore'), findsOneWidget);
-    expect(find.text('Lv. 12'), findsOneWidget);
+    expect(find.text('Lv.12'), findsOneWidget);
     expect(find.text('Build a consistent 10K habit'), findsOneWidget);
   });
 }

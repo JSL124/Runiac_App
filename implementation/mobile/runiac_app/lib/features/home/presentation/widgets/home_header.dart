@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/runiac_colors.dart';
-import '../../../../core/widgets/runiac_buttons.dart';
+import '../../../../core/widgets/runiac_level_profile_badge.dart';
 
 const _brandBlue = RuniacColors.primaryBlue;
 const _sportOrange = RuniacColors.accentOrange;
@@ -75,23 +75,33 @@ class _HomeProfilePlaceholder extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 98,
-      height: 58,
+      width: 118,
+      height: 78,
       child: Stack(
+        clipBehavior: Clip.none,
         children: [
           Positioned(
             left: 0,
-            top: 7,
+            top: 16,
             child: Stack(
               clipBehavior: Clip.none,
               children: [
-                RuniacIconTileButton(
-                  icon: Icons.notifications_none,
-                  onPressed: onNotifications,
-                  semanticLabel: 'Notifications',
-                  size: 44,
-                  iconColor: RuniacColors.textPrimary,
-                  backgroundColor: Colors.transparent,
+                Semantics(
+                  container: true,
+                  label: 'Notifications',
+                  button: true,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: onNotifications,
+                    child: const SizedBox.square(
+                      dimension: 44,
+                      child: Icon(
+                        Icons.notifications_none,
+                        color: RuniacColors.textPrimary,
+                        size: 24,
+                      ),
+                    ),
+                  ),
                 ),
                 if (unreadNotificationCount > 0)
                   Positioned(
@@ -106,15 +116,27 @@ class _HomeProfilePlaceholder extends StatelessWidget {
           ),
           Positioned(
             right: 0,
-            top: 2,
-            child: RuniacIconTileButton(
-              icon: Icons.person_outline,
-              onPressed: onProfile,
-              semanticLabel: 'Profile',
-              size: 54,
-              iconSize: 30,
-              iconColor: RuniacColors.textSecondary,
-              borderColor: RuniacColors.border,
+            top: 0,
+            child: Semantics(
+              container: true,
+              label: 'Profile',
+              button: true,
+              child: ExcludeSemantics(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: onProfile,
+                  child: const Padding(
+                    padding: EdgeInsets.all(2),
+                    child: RuniacLevelProfileBadge(
+                      initials: 'R',
+                      levelLabel: 'Lv.12',
+                      progressFraction: 0.68,
+                      size: 74,
+                      badgeHeight: 24,
+                    ),
+                  ),
+                ),
+              ),
             ),
           ),
         ],

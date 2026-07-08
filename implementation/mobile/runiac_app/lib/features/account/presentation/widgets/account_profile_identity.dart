@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/runiac_colors.dart';
+import '../../../../core/widgets/runiac_level_profile_badge.dart';
 import '../data/account_profile_demo_snapshots.dart';
 
 class AccountIdentityCard extends StatelessWidget {
@@ -20,9 +21,12 @@ class AccountIdentityCard extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              _AvatarWithLevelBadge(
+              RuniacLevelProfileBadge(
                 initials: snapshot.avatarInitials,
-                levelBadge: snapshot.previewLevelBadge,
+                levelLabel: snapshot.previewLevelBadge,
+                progressFraction: 0.68,
+                size: 104,
+                badgeHeight: 34,
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -132,103 +136,6 @@ class _IdentityAccentStrip extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _AvatarWithLevelBadge extends StatelessWidget {
-  const _AvatarWithLevelBadge({
-    required this.initials,
-    required this.levelBadge,
-  });
-
-  final String initials;
-  final String levelBadge;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 98,
-      height: 98,
-      child: Stack(
-        clipBehavior: Clip.none,
-        alignment: Alignment.topCenter,
-        children: [
-          _AccountAvatar(initials: initials),
-          if (levelBadge.isNotEmpty)
-            Positioned(
-              top: 69,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: RuniacColors.primaryBlue,
-                  borderRadius: BorderRadius.circular(7),
-                  border: Border.all(color: RuniacColors.white, width: 2),
-                  boxShadow: [
-                    BoxShadow(
-                      color: RuniacColors.primaryBlue.withValues(alpha: 0.18),
-                      blurRadius: 8,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  child: Text(
-                    levelBadge,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: RuniacColors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w900,
-                      height: 1.05,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _AccountAvatar extends StatelessWidget {
-  const _AccountAvatar({required this.initials});
-
-  final String initials;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 84,
-      height: 84,
-      padding: const EdgeInsets.all(5),
-      alignment: Alignment.center,
-      decoration: const BoxDecoration(
-        color: RuniacColors.accentOrange,
-        shape: BoxShape.circle,
-      ),
-      child: DecoratedBox(
-        decoration: const BoxDecoration(
-          color: RuniacColors.primaryBlue,
-          shape: BoxShape.circle,
-        ),
-        child: Center(
-          child: Text(
-            initials,
-            style: const TextStyle(
-              color: RuniacColors.white,
-              fontSize: 28,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-        ),
-      ),
     );
   }
 }
