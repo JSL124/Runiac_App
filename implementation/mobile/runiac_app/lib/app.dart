@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'core/theme/runiac_theme.dart';
@@ -406,6 +407,8 @@ class _RuniacAppState extends State<RuniacApp> {
         activeRunSessionCoordinator: widget.activeRunSessionCoordinator,
         initialRunOpenIntent: widget.initialRunOpenIntent,
         youProgressToday: widget.youProgressToday,
+        enableLocalPlanNotifications:
+            defaultTargetPlatform == TargetPlatform.iOS,
       ),
     );
   }

@@ -71,6 +71,41 @@ class FixedTimePlanNotificationPolicy {
     );
   }
 
+  List<ScheduledPlanNotification> streakRiskNotifications({
+    required String planId,
+    required DateTime riskDate,
+    required bool streakWouldBreakWithoutValidatedRun,
+    required NotificationCenterSettings settings,
+    required DateTime now,
+  }) {
+    if (!settings.notificationsEnabled ||
+        !settings.missedRunNudgeEnabled ||
+        !streakWouldBreakWithoutValidatedRun) {
+      return const <ScheduledPlanNotification>[];
+    }
+
+    final riskDay = DateTime(riskDate.year, riskDate.month, riskDate.day);
+    final notifications = [
+      _streakRiskNotification(
+        planId: planId,
+        riskDay: riskDay,
+        hour: 22,
+        suffix: '2200',
+      ),
+      _streakRiskNotification(
+        planId: planId,
+        riskDay: riskDay,
+        hour: 23,
+        suffix: '2300',
+      ),
+    ];
+
+    return [
+      for (final notification in notifications)
+        if (notification.scheduledAt.isAfter(now)) notification,
+    ]..sort((left, right) => left.scheduledAt.compareTo(right.scheduledAt));
+  }
+
   ScheduledPlanNotification _beforeStart(
     PlanNotificationWorkoutInput workout, {
     required int minutesBeforeStart,
@@ -124,6 +159,23 @@ class FixedTimePlanNotificationPolicy {
         'scheduledWorkoutId': workout.scheduledWorkoutId,
         'kind': kind.name,
       },
+    );
+  }
+
+  ScheduledPlanNotification _streakRiskNotification({
+    required String planId,
+    required DateTime riskDay,
+    required int hour,
+    required String suffix,
+  }) {
+    const kind = PlanNotificationKind.streakRiskNudge;
+    return ScheduledPlanNotification(
+      id: '$planId-streak-risk-${riskDay.year}-${riskDay.month}-${riskDay.day}-$suffix',
+      kind: kind,
+      scheduledAt: DateTime(riskDay.year, riskDay.month, riskDay.day, hour),
+      title: 'Your streak may need a validated run',
+      body: 'Log a completed run before midnight if you want to keep it going.',
+      payload: <String, String>{'planId': planId, 'kind': kind.name},
     );
   }
 }

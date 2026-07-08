@@ -37,6 +37,7 @@ class GeneratedPlanNotificationScheduleBuilder {
     required NotificationCenterSettings settings,
     required DateTime now,
     required Set<String> completedScheduledWorkoutIds,
+    StreakRiskNotificationInput? streakRisk,
   }) {
     return [
       for (final workout in workoutsForPlan(
@@ -46,6 +47,15 @@ class GeneratedPlanNotificationScheduleBuilder {
       ))
         ...policy.notificationsForWorkout(
           workout,
+          settings: settings,
+          now: now,
+        ),
+      if (streakRisk != null)
+        ...policy.streakRiskNotifications(
+          planId: streakRisk.planId,
+          riskDate: streakRisk.riskDate,
+          streakWouldBreakWithoutValidatedRun:
+              streakRisk.streakWouldBreakWithoutValidatedRun,
           settings: settings,
           now: now,
         ),

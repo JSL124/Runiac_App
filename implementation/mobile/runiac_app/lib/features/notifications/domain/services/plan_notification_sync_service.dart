@@ -1,4 +1,5 @@
 import '../../../plan/domain/models/beginner_adaptive_plan_snapshot.dart';
+import '../models/plan_notification_schedule.dart';
 import '../repositories/notification_center_settings_repository.dart';
 import '../repositories/plan_notification_scheduler.dart';
 import 'generated_plan_notification_schedule_builder.dart';
@@ -18,6 +19,7 @@ class PlanNotificationSyncService {
     BeginnerAdaptivePlanSnapshot? snapshot, {
     required DateTime now,
     Set<String> completedScheduledWorkoutIds = const <String>{},
+    StreakRiskNotificationInput? streakRisk,
   }) async {
     final settings = await settingsRepository.loadSettings();
     if (!settings.notificationsEnabled || snapshot == null) {
@@ -35,6 +37,7 @@ class PlanNotificationSyncService {
       settings: settings,
       now: now,
       completedScheduledWorkoutIds: completedScheduledWorkoutIds,
+      streakRisk: streakRisk,
     );
     await scheduler.syncPlanNotifications(notifications);
   }

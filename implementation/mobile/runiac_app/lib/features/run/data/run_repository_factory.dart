@@ -14,6 +14,7 @@ class RuniacFirebaseRuntimeConfig {
     this.productionAppId = '',
     this.productionMessagingSenderId = '',
     this.productionProjectId = '',
+    this.enableIosPushNotifications = false,
   });
 
   factory RuniacFirebaseRuntimeConfig.fromEnvironment() {
@@ -30,6 +31,9 @@ class RuniacFirebaseRuntimeConfig {
         'RUNIAC_FIREBASE_MESSAGING_SENDER_ID',
       ),
       productionProjectId: String.fromEnvironment('RUNIAC_FIREBASE_PROJECT_ID'),
+      enableIosPushNotifications: bool.fromEnvironment(
+        'RUNIAC_ENABLE_IOS_PUSH',
+      ),
     );
   }
 
@@ -42,6 +46,7 @@ class RuniacFirebaseRuntimeConfig {
   final String productionAppId;
   final String productionMessagingSenderId;
   final String productionProjectId;
+  final bool enableIosPushNotifications;
 }
 
 class RunRepositoryFactory {

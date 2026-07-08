@@ -2,6 +2,7 @@ enum PlanNotificationKind {
   planStartReminder,
   todaysPlanReminder,
   missedRunNudge,
+  streakRiskNudge,
   planUpdate,
 }
 
@@ -48,4 +49,16 @@ class ScheduledPlanNotification {
       'payload': payload,
     };
   }
+}
+
+class StreakRiskNotificationInput {
+  const StreakRiskNotificationInput({
+    required this.planId,
+    required this.riskDate,
+    required this.streakWouldBreakWithoutValidatedRun,
+  });
+
+  final String planId;
+  final DateTime riskDate;
+  final bool streakWouldBreakWithoutValidatedRun;
 }

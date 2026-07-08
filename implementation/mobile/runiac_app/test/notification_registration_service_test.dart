@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/features/notifications/domain/services/notification_registration_service.dart';
 
@@ -19,6 +21,7 @@ void main() {
           client: client,
           callable: callable,
           ownerUidProvider: () => 'runner-1',
+          applePushRegistrationEnabled: true,
         );
 
         await service.registerCurrentDevice();
@@ -50,11 +53,38 @@ void main() {
           client: client,
           callable: callable,
           ownerUidProvider: () => 'runner-1',
+          applePushRegistrationEnabled: true,
         );
 
         await service.registerCurrentDevice();
 
         expect(client.apnsTokenRequests, 1);
+        expect(client.tokenRequests, 0);
+        expect(callable.registerCalls, isEmpty);
+      },
+    );
+
+    test(
+      'skips Apple push registration when Apple push is not available for the build',
+      () async {
+        final client = FakePushNotificationClient(
+          platform: PushNotificationPlatform.apple,
+          permissionStatus: PushNotificationPermissionStatus.authorized,
+          apnsToken: 'apns-token',
+          token: 'fcm-token',
+        );
+        final callable = FakeNotificationDeviceCallable();
+        final service = NotificationRegistrationService(
+          client: client,
+          callable: callable,
+          ownerUidProvider: () => 'runner-1',
+        );
+
+        final registered = await service.registerCurrentDevice();
+
+        expect(registered, isFalse);
+        expect(client.permissionRequests, 0);
+        expect(client.apnsTokenRequests, 0);
         expect(client.tokenRequests, 0);
         expect(callable.registerCalls, isEmpty);
       },
@@ -74,6 +104,7 @@ void main() {
           client: client,
           callable: callable,
           ownerUidProvider: () => 'runner-1',
+          applePushRegistrationEnabled: true,
         );
 
         await service.start();
@@ -105,6 +136,7 @@ void main() {
           client: client,
           callable: callable,
           ownerUidProvider: () => 'runner-1',
+          applePushRegistrationEnabled: true,
         );
 
         await service.start();
@@ -197,5 +229,13 @@ void main() {
         await service.dispose();
       },
     );
+
+    test('iOS entitlements do not require Apple Push Notifications', () {
+      final entitlement = File(
+        'ios/Runner/Runner.entitlements',
+      ).readAsStringSync();
+
+      expect(entitlement, isNot(contains('aps-environment')));
+    });
   });
 }

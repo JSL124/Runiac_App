@@ -28,6 +28,8 @@ class LocalUserProgressCacheEntry {
         'monthlyXpLabel': progress.monthlyXpLabel,
         'weeklyDistanceLabel': progress.weeklyDistanceLabel,
         'goalProgressLabel': progress.goalProgressLabel,
+        'officialStreakCount': progress.officialStreakCount,
+        'lastStreakRunDate': progress.lastStreakRunDate,
       },
     });
   }
@@ -62,6 +64,10 @@ class LocalUserProgressCacheEntry {
           monthlyXpLabel: _string(progress['monthlyXpLabel']),
           weeklyDistanceLabel: _string(progress['weeklyDistanceLabel']),
           goalProgressLabel: _string(progress['goalProgressLabel']),
+          officialStreakCount: _positiveInteger(
+            progress['officialStreakCount'],
+          ),
+          lastStreakRunDate: _stringOrNull(progress['lastStreakRunDate']),
         ),
       );
     } on TypeError {
@@ -71,6 +77,14 @@ class LocalUserProgressCacheEntry {
 
   static String _string(Object? value) {
     return value is String ? value : '';
+  }
+
+  static String? _stringOrNull(Object? value) {
+    return value is String && value.isNotEmpty ? value : null;
+  }
+
+  static int? _positiveInteger(Object? value) {
+    return value is int && value > 0 ? value : null;
   }
 }
 

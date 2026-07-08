@@ -90,5 +90,40 @@ void main() {
         isNot(contains(PlanNotificationKind.missedRunNudge)),
       );
     });
+
+    test(
+      'builds 22:00 and 23:00 streak-risk reminders only from explicit risk input',
+      () {
+        // Given
+        final dynamic streakRiskPolicy = policy;
+
+        // When
+        final notifications =
+            streakRiskPolicy.streakRiskNotifications(
+                  planId: 'generated-plan',
+                  riskDate: DateTime(2026, 7, 8),
+                  streakWouldBreakWithoutValidatedRun: true,
+                  settings: NotificationCenterSettings.defaults,
+                  now: DateTime(2026, 7, 8, 21),
+                )
+                as List<ScheduledPlanNotification>;
+
+        // Then
+        expect(notifications.map((notification) => notification.scheduledAt), [
+          DateTime(2026, 7, 8, 22),
+          DateTime(2026, 7, 8, 23),
+        ]);
+        expect(
+          notifications.every(
+            (notification) =>
+                notification.payload['kind'] == 'streakRiskNudge' &&
+                !notification.payload.containsKey('xp') &&
+                !notification.payload.containsKey('streak') &&
+                !notification.payload.containsKey('leaderboardScore'),
+          ),
+          isTrue,
+        );
+      },
+    );
   });
 }

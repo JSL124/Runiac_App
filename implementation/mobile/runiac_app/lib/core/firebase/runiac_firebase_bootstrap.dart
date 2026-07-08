@@ -106,6 +106,8 @@ class RuniacFirebaseBootstrap {
           client: FirebaseMessagingPushNotificationClient(),
           callable: CloudFunctionsNotificationDeviceCallable(),
           ownerUidProvider: () => authRepository.currentUser?.uid,
+          applePushRegistrationEnabled:
+              runtimeConfig.enableIosPushNotifications,
         ),
         firestoreGateway: firestoreGateway,
       );
@@ -166,6 +168,7 @@ class RuniacFirebaseBootstrap {
         client: FirebaseMessagingPushNotificationClient(),
         callable: CloudFunctionsNotificationDeviceCallable(),
         ownerUidProvider: () => authRepository.currentUser?.uid,
+        applePushRegistrationEnabled: runtimeConfig.enableIosPushNotifications,
       ),
       firestoreGateway: firestoreGateway,
     );

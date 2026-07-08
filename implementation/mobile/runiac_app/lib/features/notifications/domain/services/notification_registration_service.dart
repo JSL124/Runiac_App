@@ -98,11 +98,13 @@ class NotificationRegistrationService {
     required this.client,
     required this.callable,
     required this.ownerUidProvider,
+    this.applePushRegistrationEnabled = false,
   });
 
   final PushNotificationClient client;
   final NotificationDeviceCallable callable;
   final String? Function() ownerUidProvider;
+  final bool applePushRegistrationEnabled;
   final _messageController =
       StreamController<PushNotificationMessage>.broadcast();
   final _subscriptions = <StreamSubscription<Object?>>[];
@@ -145,6 +147,11 @@ class NotificationRegistrationService {
   }
 
   Future<bool> registerCurrentDevice() async {
+    if (client.platform == PushNotificationPlatform.apple &&
+        !applePushRegistrationEnabled) {
+      return false;
+    }
+
     final permission = await client.requestPermission();
     if (!_canRegister(permission)) {
       return false;

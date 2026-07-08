@@ -97,6 +97,8 @@ class FirestoreUserProgressRepository implements UserProgressRepository {
     final progress = UserProgressReadModel(
       userId: uid,
       officialStreakLabel: _streakLabel(data['streakCount']),
+      officialStreakCount: _positiveInteger(data['streakCount']),
+      lastStreakRunDate: _stringOrNull(data['lastStreakRunDate']),
       levelLabel: _string(data['levelLabel']),
       totalXpLabel: _string(data['totalXpLabel']),
       weeklyXpLabel: _string(data['weeklyXpLabel']),
@@ -133,6 +135,14 @@ class FirestoreUserProgressRepository implements UserProgressRepository {
 
   String _string(Object? value) {
     return value is String ? value : '';
+  }
+
+  String? _stringOrNull(Object? value) {
+    return value is String && value.isNotEmpty ? value : null;
+  }
+
+  int? _positiveInteger(Object? value) {
+    return value is int && value > 0 ? value : null;
   }
 
   Future<LocalUserProgressCacheEntry?> _loadCacheSafely(String uid) async {

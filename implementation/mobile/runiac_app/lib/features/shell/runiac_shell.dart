@@ -9,6 +9,7 @@ import '../leaderboard/presentation/leaderboard_tab.dart';
 import '../maps/presentation/maps_tab.dart';
 import '../notifications/data/method_channel_plan_notification_scheduler.dart';
 import '../notifications/data/shared_preferences_notification_center_settings_repository.dart';
+import '../notifications/domain/models/plan_notification_schedule.dart';
 import '../notifications/domain/repositories/notification_inbox_repository.dart';
 import '../notifications/domain/services/plan_notification_sync_service.dart';
 import '../plan/domain/models/adaptive_plan_estimate_read_model.dart';
@@ -22,6 +23,7 @@ import '../run/presentation/models/planned_run_context.dart';
 import '../run/presentation/run_launch_screen.dart';
 import '../run/presentation/run_open_intent.dart';
 import '../you/data/static_activity_history_repository.dart';
+import '../you/domain/models/user_progress_read_model.dart';
 import '../you/domain/repositories/activity_history_repository.dart';
 import '../you/domain/repositories/user_progress_repository.dart';
 import '../you/presentation/adapters/generated_plan_you_display_adapter.dart';
@@ -390,12 +392,17 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
     _planNotificationSyncInFlight = true;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       try {
+        final now = widget.youProgressToday ?? DateTime.now();
         await _planNotificationSyncService.syncGeneratedPlan(
           activeGeneratedPlan,
-          now: widget.youProgressToday ?? DateTime.now(),
+          now: now,
           completedScheduledWorkoutIds:
               generatedPlanProgress?.completedScheduledWorkoutIds ??
               const <String>{},
+          streakRisk: await _streakRiskInputForPlan(
+            activeGeneratedPlan,
+            now: now,
+          ),
         );
       } catch (_) {
         // Notification sync should not block the primary app shell.
@@ -434,5 +441,42 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
       dayKey,
       ...completedIds,
     ].join('|');
+  }
+
+  Future<StreakRiskNotificationInput?> _streakRiskInputForPlan(
+    BeginnerAdaptivePlanSnapshot? activeGeneratedPlan, {
+    required DateTime now,
+  }) async {
+    if (activeGeneratedPlan == null) {
+      return null;
+    }
+    final progress = await widget.userProgressRepository.loadUserProgress();
+    if (!_isStreakAtRisk(progress, now: now)) {
+      return null;
+    }
+    return StreakRiskNotificationInput(
+      planId: activeGeneratedPlan.id,
+      riskDate: now,
+      streakWouldBreakWithoutValidatedRun: true,
+    );
+  }
+
+  bool _isStreakAtRisk(
+    UserProgressReadModel progress, {
+    required DateTime now,
+  }) {
+    final streakCount = progress.officialStreakCount;
+    if (streakCount == null || streakCount <= 0) {
+      return false;
+    }
+    return progress.lastStreakRunDate != _dateKey(now);
+  }
+
+  String _dateKey(DateTime date) {
+    return [
+      date.year.toString().padLeft(4, '0'),
+      date.month.toString().padLeft(2, '0'),
+      date.day.toString().padLeft(2, '0'),
+    ].join('-');
   }
 }

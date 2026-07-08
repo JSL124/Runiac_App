@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:runiac_app/features/notifications/domain/models/notification_center_settings.dart';
 import 'package:runiac_app/features/notifications/domain/services/generated_plan_notification_schedule_builder.dart';
 import 'package:runiac_app/features/plan/domain/models/beginner_adaptive_plan_snapshot.dart';
 
@@ -46,6 +47,29 @@ void main() {
         expect(workouts.single.startsAt, DateTime(2026, 7, 9, 7, 30));
       },
     );
+
+    test('does not infer streak-risk reminders from completed workout ids', () {
+      // Given
+      const builder = GeneratedPlanNotificationScheduleBuilder();
+      final snapshot = _snapshot(
+        startsOnDate: '2026-07-06',
+        workout: _workout(dayLabel: 'Wed', scheduleTimeLabel: '6:15 PM'),
+      );
+
+      // When
+      final notifications = builder.notificationsForPlan(
+        snapshot,
+        settings: NotificationCenterSettings.defaults,
+        now: DateTime(2026, 7, 8, 21),
+        completedScheduledWorkoutIds: const <String>{},
+      );
+
+      // Then
+      expect(
+        notifications.map((notification) => notification.kind.name),
+        isNot(contains('streakRiskNudge')),
+      );
+    });
   });
 }
 

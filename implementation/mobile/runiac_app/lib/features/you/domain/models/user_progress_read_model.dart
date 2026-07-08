@@ -12,6 +12,8 @@ class UserProgressReadModel {
     required this.monthlyXpLabel,
     required this.weeklyDistanceLabel,
     required this.goalProgressLabel,
+    this.officialStreakCount,
+    this.lastStreakRunDate,
   });
 
   final String userId;
@@ -22,4 +24,6 @@ class UserProgressReadModel {
   final String monthlyXpLabel;
   final String weeklyDistanceLabel;
   final String goalProgressLabel;
+  final int? officialStreakCount;
+  final String? lastStreakRunDate;
 }

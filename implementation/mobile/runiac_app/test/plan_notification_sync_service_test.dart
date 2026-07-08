@@ -39,6 +39,57 @@ void main() {
         expect(scheduler.syncedNotifications, isEmpty);
       },
     );
+
+    test(
+      'syncs explicit streak-risk notifications with generated plan reminders',
+      () async {
+        // Given: backend-owned/read streak-risk state is supplied explicitly.
+        final settingsRepository = InMemoryNotificationCenterSettingsRepository(
+          initialSettings: NotificationCenterSettings.defaults,
+        );
+        final scheduler = _RecordingPlanNotificationScheduler();
+        final service = PlanNotificationSyncService(
+          settingsRepository: settingsRepository,
+          scheduler: scheduler,
+        );
+
+        // When: notification sync receives the explicit read-only risk input.
+        await service.syncGeneratedPlan(
+          _snapshot(
+            startsOnDate: '2026-07-06',
+            workout: _workout(dayLabel: 'Wed', scheduleTimeLabel: '7:30 AM'),
+          ),
+          now: DateTime(2026, 7, 8, 21),
+          streakRisk: StreakRiskNotificationInput(
+            planId: 'generated-plan',
+            riskDate: DateTime(2026, 7, 8),
+            streakWouldBreakWithoutValidatedRun: true,
+          ),
+        );
+
+        // Then: local notifications include streak-risk nudges without client
+        // writes or trusted XP/streak/leaderboard payload fields.
+        final streakRiskNotifications = scheduler.syncedNotifications.where(
+          (notification) =>
+              notification.kind == PlanNotificationKind.streakRiskNudge,
+        );
+        expect(
+          streakRiskNotifications.map(
+            (notification) => notification.scheduledAt,
+          ),
+          [DateTime(2026, 7, 8, 22), DateTime(2026, 7, 8, 23)],
+        );
+        expect(
+          streakRiskNotifications.every(
+            (notification) =>
+                !notification.payload.containsKey('xp') &&
+                !notification.payload.containsKey('streak') &&
+                !notification.payload.containsKey('leaderboardScore'),
+          ),
+          isTrue,
+        );
+      },
+    );
   });
 }
 
