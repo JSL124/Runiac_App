@@ -2,24 +2,23 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/runiac_colors.dart';
 import '../../../../core/widgets/runiac_back_header.dart';
-import '../data/leaderboard_demo_snapshots.dart';
 import '../models/leaderboard_display_models.dart';
 import 'leaderboard_rank_row_helpers.dart';
 
 class LeaderboardDetailScreen extends StatelessWidget {
   const LeaderboardDetailScreen({
     super.key,
+    required this.snapshot,
     required this.onBack,
     required this.onProfileSelected,
   });
 
+  final LeaderboardDetailDisplaySnapshot snapshot;
   final VoidCallback onBack;
   final ValueChanged<RunnerAchievementProfileSnapshot> onProfileSelected;
 
   @override
   Widget build(BuildContext context) {
-    const snapshot = leaderboardDetailDemoSnapshot;
-
     return ColoredBox(
       color: RuniacColors.background,
       child: SafeArea(
@@ -54,26 +53,20 @@ class LeaderboardDetailScreen extends StatelessWidget {
                             keyPrefix: 'leaderboard_detail_top_rank_row',
                             onProfileSelected: onProfileSelected,
                           ),
-                          const SizedBox(height: 14),
-                          _LeaderboardNearbyDivider(
-                            title: snapshot.nearbyRanksTitle,
-                          ),
-                          const SizedBox(height: 10),
-                          _LeaderboardRankListCard(
-                            rows: snapshot.nearbyRanks,
-                            keyPrefix: 'leaderboard_detail_nearby_rank_row',
-                            onProfileSelected: onProfileSelected,
-                          ),
+                          if (snapshot.isUserRegion) ...[
+                            const SizedBox(height: 14),
+                            _LeaderboardNearbyDivider(
+                              title: snapshot.nearbyRanksTitle,
+                            ),
+                            const SizedBox(height: 10),
+                            _LeaderboardRankListCard(
+                              rows: snapshot.nearbyRanks,
+                              keyPrefix: 'leaderboard_detail_nearby_rank_row',
+                              onProfileSelected: onProfileSelected,
+                            ),
+                          ],
                         ],
                       ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 24,
-                    right: 24,
-                    bottom: 18,
-                    child: _CurrentUserFloatingRankBar(
-                      summary: snapshot.currentUser,
                     ),
                   ),
                 ],
@@ -157,6 +150,16 @@ class _LeaderboardDetailSummary extends StatelessWidget {
                     color: RuniacColors.textSecondary,
                     fontSize: 12,
                     fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  snapshot.monthlyResetLabel,
+                  style: const TextStyle(
+                    color: RuniacColors.textSecondary,
+                    fontSize: 12,
+                    height: 1.25,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ],
@@ -276,6 +279,7 @@ class _LeaderboardRankRow extends StatelessWidget {
                 const SizedBox(width: 12),
                 LeaderboardInitialBadge(
                   name: row.name,
+                  levelLabel: row.levelBadgeLabel,
                   isCurrentUser: row.isCurrentUser,
                 ),
                 const SizedBox(width: 12),
@@ -293,17 +297,6 @@ class _LeaderboardRankRow extends StatelessWidget {
                               : RuniacColors.textPrimary,
                           fontSize: 16,
                           fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        row.levelLabel,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: RuniacColors.textSecondary,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
                         ),
                       ),
                     ],
@@ -414,77 +407,6 @@ class _LeaderboardNearbyDivider extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _CurrentUserFloatingRankBar extends StatelessWidget {
-  const _CurrentUserFloatingRankBar({required this.summary});
-
-  final CurrentUserRankSummaryDisplaySnapshot summary;
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      key: const Key('leaderboard_current_user_floating_bar'),
-      decoration: BoxDecoration(
-        color: RuniacColors.primaryBlue,
-        borderRadius: BorderRadius.circular(26),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x33172033),
-            blurRadius: 20,
-            offset: Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-        child: Row(
-          children: [
-            Container(
-              width: 54,
-              height: 54,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: RuniacColors.accentOrange,
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: Text(
-                summary.rankLabel,
-                style: const TextStyle(
-                  color: RuniacColors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Text(
-                summary.title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: RuniacColors.white,
-                  fontSize: 15,
-                  height: 1.18,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              summary.xpLabel,
-              style: const TextStyle(
-                color: RuniacColors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

@@ -71,17 +71,21 @@ const leaderboardRegionDemoSnapshot = LeaderboardRegionSnapshot(
 );
 
 const leaderboardDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
+  regionId: 'jurong-east',
   regionName: 'Jurong East',
-  periodLabel: 'June 2026',
+  isUserRegion: true,
+  periodLabel: 'July 2026',
   fallbackPeriodLabel: 'Monthly board',
   refreshLabel: 'Refreshes in 24:14:05:45',
   fallbackRefreshLabel: 'Refreshes in 00:00:00:00',
+  monthlyResetLabel:
+      'Monthly gained XP resets to 0 XP next month. Your level stays the same.',
   divisionLabel: 'Rising Runner Division',
   topRanksTitle: 'Regional ranking',
   nearbyRanksTitle: 'Nearby your rank',
   currentUser: CurrentUserRankSummaryDisplaySnapshot(
     rankLabel: '#18',
-    title: 'You · Monthly ranking preview',
+    title: 'Nearby monthly rank',
     xpLabel: '520 XP',
   ),
   topRanks: [
@@ -89,6 +93,7 @@ const leaderboardDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       rankLabel: '#1',
       name: 'Alex T.',
       levelLabel: 'Level 18',
+      levelBadgeLabel: 'Lv.18',
       xpLabel: '1,240 XP',
       profile: RunnerAchievementProfileSnapshot(
         name: 'Alex T.',
@@ -107,6 +112,7 @@ const leaderboardDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       rankLabel: '#2',
       name: 'Maya L.',
       levelLabel: 'Level 17',
+      levelBadgeLabel: 'Lv.17',
       xpLabel: '1,180 XP',
       profile: RunnerAchievementProfileSnapshot(
         name: 'Maya L.',
@@ -124,6 +130,7 @@ const leaderboardDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       rankLabel: '#3',
       name: 'Ryan K.',
       levelLabel: 'Level 16',
+      levelBadgeLabel: 'Lv.16',
       xpLabel: '1,050 XP',
       profile: RunnerAchievementProfileSnapshot(
         name: 'Ryan K.',
@@ -141,6 +148,7 @@ const leaderboardDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       rankLabel: '#4',
       name: 'Ethan G.',
       levelLabel: 'Level 15',
+      levelBadgeLabel: 'Lv.15',
       xpLabel: '870 XP',
       profile: RunnerAchievementProfileSnapshot(
         name: 'Ethan G.',
@@ -157,6 +165,7 @@ const leaderboardDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       rankLabel: '#5',
       name: 'Sarah C.',
       levelLabel: 'Level 14',
+      levelBadgeLabel: 'Lv.14',
       xpLabel: '760 XP',
       profile: RunnerAchievementProfileSnapshot(
         name: 'Sarah C.',
@@ -173,6 +182,7 @@ const leaderboardDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       rankLabel: '#6',
       name: 'Priya N.',
       levelLabel: 'Level 14',
+      levelBadgeLabel: 'Lv.14',
       xpLabel: '735 XP',
       profile: RunnerAchievementProfileSnapshot(
         name: 'Priya N.',
@@ -189,6 +199,7 @@ const leaderboardDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       rankLabel: '#7',
       name: 'Omar R.',
       levelLabel: 'Level 13',
+      levelBadgeLabel: 'Lv.13',
       xpLabel: '710 XP',
       profile: RunnerAchievementProfileSnapshot(
         name: 'Omar R.',
@@ -205,6 +216,7 @@ const leaderboardDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       rankLabel: '#8',
       name: 'Hana S.',
       levelLabel: 'Level 13',
+      levelBadgeLabel: 'Lv.13',
       xpLabel: '690 XP',
       profile: RunnerAchievementProfileSnapshot(
         name: 'Hana S.',
@@ -221,6 +233,7 @@ const leaderboardDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       rankLabel: '#9',
       name: 'Leo P.',
       levelLabel: 'Level 13',
+      levelBadgeLabel: 'Lv.13',
       xpLabel: '675 XP',
       profile: RunnerAchievementProfileSnapshot(
         name: 'Leo P.',
@@ -237,6 +250,7 @@ const leaderboardDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       rankLabel: '#10',
       name: 'Grace L.',
       levelLabel: 'Level 13',
+      levelBadgeLabel: 'Lv.13',
       xpLabel: '660 XP',
       profile: RunnerAchievementProfileSnapshot(
         name: 'Grace L.',
@@ -255,6 +269,7 @@ const leaderboardDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       rankLabel: '#16',
       name: 'Chloe B.',
       levelLabel: 'Level 13',
+      levelBadgeLabel: 'Lv.13',
       xpLabel: '650 XP',
       profile: RunnerAchievementProfileSnapshot(
         name: 'Chloe B.',
@@ -271,6 +286,7 @@ const leaderboardDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       rankLabel: '#17',
       name: 'Daniel W.',
       levelLabel: 'Level 13',
+      levelBadgeLabel: 'Lv.13',
       xpLabel: '640 XP',
       profile: RunnerAchievementProfileSnapshot(
         name: 'Daniel W.',
@@ -287,6 +303,7 @@ const leaderboardDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       rankLabel: '#18',
       name: 'Jinseo (You)',
       levelLabel: 'Level 12',
+      levelBadgeLabel: 'Lv.12',
       xpLabel: '520 XP',
       profile: RunnerAchievementProfileSnapshot(
         name: 'Jinseo',
@@ -305,6 +322,7 @@ const leaderboardDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       rankLabel: '#19',
       name: 'Noah K.',
       levelLabel: 'Level 12',
+      levelBadgeLabel: 'Lv.12',
       xpLabel: '505 XP',
       profile: RunnerAchievementProfileSnapshot(
         name: 'Noah K.',
@@ -321,6 +339,7 @@ const leaderboardDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       rankLabel: '#20',
       name: 'Aisha P.',
       levelLabel: 'Level 12',
+      levelBadgeLabel: 'Lv.12',
       xpLabel: '492 XP',
       profile: RunnerAchievementProfileSnapshot(
         name: 'Aisha P.',
@@ -335,3 +354,376 @@ const leaderboardDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
     ),
   ],
 );
+
+const leaderboardTampinesDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
+  regionId: 'tampines',
+  regionName: 'Tampines',
+  isUserRegion: false,
+  periodLabel: 'July 2026',
+  fallbackPeriodLabel: 'Monthly board',
+  refreshLabel: 'Refreshes in 18:09:32:10',
+  fallbackRefreshLabel: 'Refreshes in 00:00:00:00',
+  monthlyResetLabel:
+      'Monthly gained XP resets to 0 XP next month. Your level stays the same.',
+  divisionLabel: 'Rising Runner Division',
+  topRanksTitle: 'Regional ranking',
+  nearbyRanksTitle: 'Nearby your rank',
+  currentUser: CurrentUserRankSummaryDisplaySnapshot(
+    rankLabel: '#--',
+    title: 'Monthly ranking context',
+    xpLabel: '0 XP',
+  ),
+  topRanks: [
+    LeaderboardRankRowDisplaySnapshot(
+      rankLabel: '#1',
+      name: 'Nadia R.',
+      levelLabel: 'Level 19',
+      levelBadgeLabel: 'Lv.19',
+      xpLabel: '1,330 XP',
+      profile: RunnerAchievementProfileSnapshot(
+        name: 'Nadia R.',
+        initial: 'N',
+        regionRankLabel: 'Tampines · Rank #1',
+        levelBadgeLabel: 'Lv.19',
+        divisionLevelLabel: 'Rising Runner Division · Level 19',
+        totalDistanceLabel: '210.4 km',
+        bestStreakLabel: '22 days',
+        badges: leaderboardRunnerAchievementDemoBadges,
+      ),
+      trophy: true,
+      medalTone: RegionPreviewMedalTone.gold,
+    ),
+    LeaderboardRankRowDisplaySnapshot(
+      rankLabel: '#2',
+      name: 'Wei H.',
+      levelLabel: 'Level 18',
+      levelBadgeLabel: 'Lv.18',
+      xpLabel: '1,210 XP',
+      profile: RunnerAchievementProfileSnapshot(
+        name: 'Wei H.',
+        initial: 'W',
+        regionRankLabel: 'Tampines · Rank #2',
+        levelBadgeLabel: 'Lv.18',
+        divisionLevelLabel: 'Rising Runner Division · Level 18',
+        totalDistanceLabel: '188.7 km',
+        bestStreakLabel: '20 days',
+        badges: leaderboardRunnerAchievementDemoBadges,
+      ),
+      medalTone: RegionPreviewMedalTone.silver,
+    ),
+    LeaderboardRankRowDisplaySnapshot(
+      rankLabel: '#3',
+      name: 'Anika S.',
+      levelLabel: 'Level 16',
+      levelBadgeLabel: 'Lv.16',
+      xpLabel: '980 XP',
+      profile: RunnerAchievementProfileSnapshot(
+        name: 'Anika S.',
+        initial: 'A',
+        regionRankLabel: 'Tampines · Rank #3',
+        levelBadgeLabel: 'Lv.16',
+        divisionLevelLabel: 'Rising Runner Division · Level 16',
+        totalDistanceLabel: '166.2 km',
+        bestStreakLabel: '17 days',
+        badges: leaderboardRunnerAchievementDemoBadges,
+      ),
+      medalTone: RegionPreviewMedalTone.bronze,
+    ),
+  ],
+  nearbyRanks: [],
+);
+
+const leaderboardWoodlandsDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
+  regionId: 'woodlands',
+  regionName: 'Woodlands',
+  isUserRegion: false,
+  periodLabel: 'July 2026',
+  fallbackPeriodLabel: 'Monthly board',
+  refreshLabel: 'Refreshes in 18:09:32:10',
+  fallbackRefreshLabel: 'Refreshes in 00:00:00:00',
+  monthlyResetLabel:
+      'Monthly gained XP resets to 0 XP next month. Your level stays the same.',
+  divisionLabel: 'Rising Runner Division',
+  topRanksTitle: 'Regional ranking',
+  nearbyRanksTitle: 'Nearby your rank',
+  currentUser: CurrentUserRankSummaryDisplaySnapshot(
+    rankLabel: '#--',
+    title: 'Monthly ranking context',
+    xpLabel: '0 XP',
+  ),
+  topRanks: [
+    LeaderboardRankRowDisplaySnapshot(
+      rankLabel: '#1',
+      name: 'Farah M.',
+      levelLabel: 'Level 17',
+      levelBadgeLabel: 'Lv.17',
+      xpLabel: '1,090 XP',
+      profile: RunnerAchievementProfileSnapshot(
+        name: 'Farah M.',
+        initial: 'F',
+        regionRankLabel: 'Woodlands · Rank #1',
+        levelBadgeLabel: 'Lv.17',
+        divisionLevelLabel: 'Rising Runner Division · Level 17',
+        totalDistanceLabel: '174.0 km',
+        bestStreakLabel: '18 days',
+        badges: leaderboardRunnerAchievementDemoBadges,
+      ),
+      trophy: true,
+      medalTone: RegionPreviewMedalTone.gold,
+    ),
+    LeaderboardRankRowDisplaySnapshot(
+      rankLabel: '#2',
+      name: 'Jun P.',
+      levelLabel: 'Level 16',
+      levelBadgeLabel: 'Lv.16',
+      xpLabel: '970 XP',
+      profile: RunnerAchievementProfileSnapshot(
+        name: 'Jun P.',
+        initial: 'J',
+        regionRankLabel: 'Woodlands · Rank #2',
+        levelBadgeLabel: 'Lv.16',
+        divisionLevelLabel: 'Rising Runner Division · Level 16',
+        totalDistanceLabel: '160.5 km',
+        bestStreakLabel: '16 days',
+        badges: leaderboardRunnerAchievementDemoBadges,
+      ),
+      medalTone: RegionPreviewMedalTone.silver,
+    ),
+    LeaderboardRankRowDisplaySnapshot(
+      rankLabel: '#3',
+      name: 'Iris C.',
+      levelLabel: 'Level 15',
+      levelBadgeLabel: 'Lv.15',
+      xpLabel: '880 XP',
+      profile: RunnerAchievementProfileSnapshot(
+        name: 'Iris C.',
+        initial: 'I',
+        regionRankLabel: 'Woodlands · Rank #3',
+        levelBadgeLabel: 'Lv.15',
+        divisionLevelLabel: 'Rising Runner Division · Level 15',
+        totalDistanceLabel: '150.2 km',
+        bestStreakLabel: '14 days',
+        badges: leaderboardRunnerAchievementDemoBadges,
+      ),
+      medalTone: RegionPreviewMedalTone.bronze,
+    ),
+  ],
+  nearbyRanks: [],
+);
+
+const leaderboardMarinaBayDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
+  regionId: 'marina-bay',
+  regionName: 'Marina Bay',
+  isUserRegion: false,
+  periodLabel: 'July 2026',
+  fallbackPeriodLabel: 'Monthly board',
+  refreshLabel: 'Refreshes in 18:09:32:10',
+  fallbackRefreshLabel: 'Refreshes in 00:00:00:00',
+  monthlyResetLabel:
+      'Monthly gained XP resets to 0 XP next month. Your level stays the same.',
+  divisionLabel: 'Rising Runner Division',
+  topRanksTitle: 'Regional ranking',
+  nearbyRanksTitle: 'Nearby your rank',
+  currentUser: CurrentUserRankSummaryDisplaySnapshot(
+    rankLabel: '#--',
+    title: 'Monthly ranking context',
+    xpLabel: '0 XP',
+  ),
+  topRanks: [
+    LeaderboardRankRowDisplaySnapshot(
+      rankLabel: '#1',
+      name: 'Kai V.',
+      levelLabel: 'Level 20',
+      levelBadgeLabel: 'Lv.20',
+      xpLabel: '1,450 XP',
+      profile: RunnerAchievementProfileSnapshot(
+        name: 'Kai V.',
+        initial: 'K',
+        regionRankLabel: 'Marina Bay · Rank #1',
+        levelBadgeLabel: 'Lv.20',
+        divisionLevelLabel: 'Rising Runner Division · Level 20',
+        totalDistanceLabel: '226.8 km',
+        bestStreakLabel: '25 days',
+        badges: leaderboardRunnerAchievementDemoBadges,
+      ),
+      trophy: true,
+      medalTone: RegionPreviewMedalTone.gold,
+    ),
+    LeaderboardRankRowDisplaySnapshot(
+      rankLabel: '#2',
+      name: 'Lina Q.',
+      levelLabel: 'Level 18',
+      levelBadgeLabel: 'Lv.18',
+      xpLabel: '1,260 XP',
+      profile: RunnerAchievementProfileSnapshot(
+        name: 'Lina Q.',
+        initial: 'L',
+        regionRankLabel: 'Marina Bay · Rank #2',
+        levelBadgeLabel: 'Lv.18',
+        divisionLevelLabel: 'Rising Runner Division · Level 18',
+        totalDistanceLabel: '190.0 km',
+        bestStreakLabel: '19 days',
+        badges: leaderboardRunnerAchievementDemoBadges,
+      ),
+      medalTone: RegionPreviewMedalTone.silver,
+    ),
+    LeaderboardRankRowDisplaySnapshot(
+      rankLabel: '#3',
+      name: 'Sam D.',
+      levelLabel: 'Level 17',
+      levelBadgeLabel: 'Lv.17',
+      xpLabel: '1,080 XP',
+      profile: RunnerAchievementProfileSnapshot(
+        name: 'Sam D.',
+        initial: 'S',
+        regionRankLabel: 'Marina Bay · Rank #3',
+        levelBadgeLabel: 'Lv.17',
+        divisionLevelLabel: 'Rising Runner Division · Level 17',
+        totalDistanceLabel: '171.2 km',
+        bestStreakLabel: '18 days',
+        badges: leaderboardRunnerAchievementDemoBadges,
+      ),
+      medalTone: RegionPreviewMedalTone.bronze,
+    ),
+  ],
+  nearbyRanks: [],
+);
+
+const leaderboardAngMoKioDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
+  regionId: 'ang-mo-kio',
+  regionName: 'Ang Mo Kio',
+  isUserRegion: false,
+  periodLabel: 'July 2026',
+  fallbackPeriodLabel: 'Monthly board',
+  refreshLabel: 'Refreshes in 18:09:32:10',
+  fallbackRefreshLabel: 'Refreshes in 00:00:00:00',
+  monthlyResetLabel:
+      'Monthly gained XP resets to 0 XP next month. Your level stays the same.',
+  divisionLabel: 'Rising Runner Division',
+  topRanksTitle: 'Regional ranking',
+  nearbyRanksTitle: 'Nearby your rank',
+  currentUser: CurrentUserRankSummaryDisplaySnapshot(
+    rankLabel: '#--',
+    title: 'Monthly ranking context',
+    xpLabel: '0 XP',
+  ),
+  topRanks: [
+    LeaderboardRankRowDisplaySnapshot(
+      rankLabel: '#1',
+      name: 'Mei T.',
+      levelLabel: 'Level 18',
+      levelBadgeLabel: 'Lv.18',
+      xpLabel: '1,190 XP',
+      profile: RunnerAchievementProfileSnapshot(
+        name: 'Mei T.',
+        initial: 'M',
+        regionRankLabel: 'Ang Mo Kio · Rank #1',
+        levelBadgeLabel: 'Lv.18',
+        divisionLevelLabel: 'Rising Runner Division · Level 18',
+        totalDistanceLabel: '184.3 km',
+        bestStreakLabel: '20 days',
+        badges: leaderboardRunnerAchievementDemoBadges,
+      ),
+      trophy: true,
+      medalTone: RegionPreviewMedalTone.gold,
+    ),
+    LeaderboardRankRowDisplaySnapshot(
+      rankLabel: '#2',
+      name: 'Arun B.',
+      levelLabel: 'Level 16',
+      levelBadgeLabel: 'Lv.16',
+      xpLabel: '940 XP',
+      profile: RunnerAchievementProfileSnapshot(
+        name: 'Arun B.',
+        initial: 'A',
+        regionRankLabel: 'Ang Mo Kio · Rank #2',
+        levelBadgeLabel: 'Lv.16',
+        divisionLevelLabel: 'Rising Runner Division · Level 16',
+        totalDistanceLabel: '158.9 km',
+        bestStreakLabel: '15 days',
+        badges: leaderboardRunnerAchievementDemoBadges,
+      ),
+      medalTone: RegionPreviewMedalTone.silver,
+    ),
+    LeaderboardRankRowDisplaySnapshot(
+      rankLabel: '#3',
+      name: 'Tara J.',
+      levelLabel: 'Level 15',
+      levelBadgeLabel: 'Lv.15',
+      xpLabel: '860 XP',
+      profile: RunnerAchievementProfileSnapshot(
+        name: 'Tara J.',
+        initial: 'T',
+        regionRankLabel: 'Ang Mo Kio · Rank #3',
+        levelBadgeLabel: 'Lv.15',
+        divisionLevelLabel: 'Rising Runner Division · Level 15',
+        totalDistanceLabel: '148.4 km',
+        bestStreakLabel: '13 days',
+        badges: leaderboardRunnerAchievementDemoBadges,
+      ),
+      medalTone: RegionPreviewMedalTone.bronze,
+    ),
+  ],
+  nearbyRanks: [],
+);
+
+const leaderboardRegionalDemoSnapshots = [
+  leaderboardDetailDemoSnapshot,
+  leaderboardTampinesDetailDemoSnapshot,
+  leaderboardWoodlandsDetailDemoSnapshot,
+  leaderboardMarinaBayDetailDemoSnapshot,
+  leaderboardAngMoKioDetailDemoSnapshot,
+];
+
+const leaderboardMapRegionDemoSnapshots = [
+  LeaderboardMapRegionDisplaySnapshot(
+    regionId: 'woodlands',
+    regionName: 'Woodlands',
+    semanticLabel: 'Woodlands region ranking polygon',
+    alignment: Alignment(-0.62, -0.58),
+    color: Color(0xFF2F50C7),
+  ),
+  LeaderboardMapRegionDisplaySnapshot(
+    regionId: 'jurong-east',
+    regionName: 'Jurong East',
+    semanticLabel: 'Jurong East user region ranking polygon',
+    alignment: Alignment(-0.42, 0.28),
+    color: Color(0xFFFC6818),
+    isUserRegion: true,
+  ),
+  LeaderboardMapRegionDisplaySnapshot(
+    regionId: 'tampines',
+    regionName: 'Tampines',
+    semanticLabel: 'Tampines region ranking polygon',
+    alignment: Alignment(0.72, -0.72),
+    color: Color(0xFF15803D),
+  ),
+  LeaderboardMapRegionDisplaySnapshot(
+    regionId: 'marina-bay',
+    regionName: 'Marina Bay',
+    semanticLabel: 'Marina Bay region ranking polygon',
+    alignment: Alignment(0.18, 0.48),
+    color: Color(0xFF805AD5),
+  ),
+  LeaderboardMapRegionDisplaySnapshot(
+    regionId: 'ang-mo-kio',
+    regionName: 'Ang Mo Kio',
+    semanticLabel: 'Ang Mo Kio region ranking polygon',
+    alignment: Alignment(0.02, -0.46),
+    color: Color(0xFF0EA5E9),
+  ),
+];
+
+LeaderboardDetailDisplaySnapshot defaultLeaderboardRegionRankingSnapshot =
+    leaderboardRegionalDemoSnapshots.firstWhere((snapshot) {
+      return snapshot.isUserRegion;
+    });
+
+LeaderboardDetailDisplaySnapshot leaderboardRegionRankingSnapshotById(
+  String regionId,
+) {
+  return leaderboardRegionalDemoSnapshots.firstWhere(
+    (snapshot) => snapshot.regionId == regionId,
+    orElse: () => defaultLeaderboardRegionRankingSnapshot,
+  );
+}

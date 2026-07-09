@@ -28,11 +28,20 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
 
   double _sheetProgress = 1;
   bool _showingDetail = false;
+  LeaderboardDetailDisplaySnapshot _selectedRegion =
+      defaultLeaderboardRegionRankingSnapshot;
   RunnerAchievementProfileSnapshot? _selectedProfile;
 
   void _openDetail() {
     setState(() {
       _showingDetail = true;
+    });
+  }
+
+  void _selectRegion(String regionId) {
+    setState(() {
+      _selectedRegion = leaderboardRegionRankingSnapshotById(regionId);
+      _sheetProgress = 1;
     });
   }
 
@@ -57,12 +66,13 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
       backgroundColor: Colors.transparent,
       barrierColor: RuniacColors.textPrimary.withValues(alpha: 0.48),
       builder: (context) {
-        final currentUserRow = leaderboardDetailDemoSnapshot.nearbyRanks
-            .firstWhere((row) => row.isCurrentUser);
+        final currentUserRow = _selectedRegion.nearbyRanks.firstWhere(
+          (row) => row.isCurrentUser,
+        );
 
         return ShareRankFloatingPanel(
-          regionName: leaderboardRegionDemoSnapshot.regionName,
-          divisionName: leaderboardDetailDemoSnapshot.divisionLabel,
+          regionName: _selectedRegion.regionName,
+          divisionName: _selectedRegion.divisionLabel,
           rankLabel: currentUserRow.rankLabel,
         );
       },
@@ -72,12 +82,6 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
   void _closeRunnerProfile() {
     setState(() {
       _selectedProfile = null;
-    });
-  }
-
-  void _expandSheet() {
-    setState(() {
-      _sheetProgress = 1;
     });
   }
 
@@ -117,6 +121,7 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
 
     if (_showingDetail) {
       return LeaderboardDetailScreen(
+        snapshot: _selectedRegion,
         onBack: _closeDetail,
         onProfileSelected: _openRunnerProfile,
       );
@@ -130,10 +135,10 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
       child: Stack(
         children: [
           Positioned.fill(
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: _expandSheet,
-              child: const LeaderboardMapBackground(),
+            child: LeaderboardMapBackground(
+              regions: leaderboardMapRegionDemoSnapshots,
+              selectedRegionId: _selectedRegion.regionId,
+              onRegionSelected: _selectRegion,
             ),
           ),
           Positioned(
@@ -156,6 +161,7 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
             bottom: -hiddenSheetHeight,
             child: LeaderboardRegionPreviewSheet(
               height: _expandedSheetHeight,
+              snapshot: _selectedRegion,
               onVerticalDragUpdate: _handleSheetDragUpdate,
               onVerticalDragEnd: _handleSheetDragEnd,
               onViewMoreRanking: _openDetail,

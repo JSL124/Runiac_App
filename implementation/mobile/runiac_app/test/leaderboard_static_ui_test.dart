@@ -74,10 +74,14 @@ void main() {
     expect(find.text('Maya L.'), findsOneWidget);
     expect(find.text('Ryan K.'), findsOneWidget);
     expect(find.text('Jinseo (You)'), findsOneWidget);
-    expect(find.text('Level 18'), findsOneWidget);
-    expect(find.text('Level 17'), findsOneWidget);
-    expect(find.text('Level 16'), findsOneWidget);
-    expect(find.text('Level 12'), findsOneWidget);
+    expect(find.text('Level 18'), findsNothing);
+    expect(find.text('Level 17'), findsNothing);
+    expect(find.text('Level 16'), findsNothing);
+    expect(find.text('Level 12'), findsNothing);
+    expect(
+      find.byKey(const Key('leaderboard_profile_level_badge')),
+      findsWidgets,
+    );
     expect(find.text('1,240 XP'), findsOneWidget);
     expect(find.text('1,180 XP'), findsOneWidget);
     expect(find.text('1,050 XP'), findsOneWidget);
@@ -168,7 +172,6 @@ void main() {
     expect(find.text('Community motivation'), findsNothing);
     expect(find.text('No live ranking data yet'), findsNothing);
     expect(find.text('Top 3 Runners'), findsNothing);
-    expect(find.textContaining('Lv.18'), findsNothing);
 
     await tester.tap(find.byTooltip('Close tips'));
     await tester.pumpAndSettle();
@@ -244,6 +247,139 @@ void main() {
     expect(find.text('Jinseo'), findsOneWidget);
     expect(find.text('Jurong East · Rank #18'), findsOneWidget);
     expect(find.text('520 XP'), findsNothing);
+  });
+
+  testWidgets(
+    'Leaderboard regional map defaults to the user region and exposes region polygons',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(
+        const RuniacApp(showSplash: false, enableForegroundGps: false),
+      );
+
+      await tester.tap(find.byTooltip('Leaderboard'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const Key('leaderboard_region_polygon_jurong-east')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('leaderboard_region_polygon_tampines')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('leaderboard_region_polygon_woodlands')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('leaderboard_region_polygon_marina-bay')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('leaderboard_region_polygon_ang-mo-kio')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('leaderboard_user_region_highlight')),
+        findsOneWidget,
+      );
+      expect(find.text('Jurong East'), findsOneWidget);
+      expect(find.text('My Rank Preview'), findsOneWidget);
+      expect(find.text('Share My Rank'), findsOneWidget);
+      expect(find.text('View More Ranking'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'Leaderboard non-user region hides personal actions and opens selected monthly detail',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(
+        const RuniacApp(showSplash: false, enableForegroundGps: false),
+      );
+
+      await tester.tap(find.byTooltip('Leaderboard'));
+      await tester.pumpAndSettle();
+      await tester.drag(
+        find.byKey(const Key('leaderboard_sheet_handle')),
+        const Offset(0, 420),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const Key('leaderboard_region_polygon_tampines')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Tampines'), findsOneWidget);
+      expect(find.text('My Rank Preview'), findsNothing);
+      expect(find.text('Share My Rank'), findsNothing);
+      expect(
+        find.byKey(const Key('leaderboard_share_my_rank_button')),
+        findsNothing,
+      );
+
+      final sheetWidth = tester
+          .getSize(find.byKey(const Key('leaderboard_sheet_surface')))
+          .width;
+      final viewMoreWidth = tester
+          .getSize(
+            find.byKey(const Key('leaderboard_view_more_ranking_button')),
+          )
+          .width;
+      expect(viewMoreWidth, greaterThan(sheetWidth * 0.84));
+
+      await tester.tap(
+        find.byKey(const Key('leaderboard_view_more_ranking_button')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byTooltip('Back to Leaderboard'), findsOneWidget);
+      expect(find.text('Tampines'), findsOneWidget);
+      expect(find.text('July 2026'), findsOneWidget);
+      expect(find.textContaining('Refreshes in'), findsOneWidget);
+      expect(
+        find.text(
+          'Monthly gained XP resets to 0 XP next month. Your level stays the same.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('You · Monthly ranking preview'), findsNothing);
+      expect(find.text('NEARBY YOUR RANK'), findsNothing);
+    },
+  );
+
+  testWidgets('Leaderboard visible region polygons select matching snapshots', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      const RuniacApp(showSplash: false, enableForegroundGps: false),
+    );
+
+    await tester.tap(find.byTooltip('Leaderboard'));
+    await tester.pumpAndSettle();
+
+    for (final region in <({String id, String title})>[
+      (id: 'woodlands', title: 'Woodlands'),
+      (id: 'tampines', title: 'Tampines'),
+      (id: 'marina-bay', title: 'Marina Bay'),
+      (id: 'ang-mo-kio', title: 'Ang Mo Kio'),
+    ]) {
+      await tester.drag(
+        find.byKey(const Key('leaderboard_sheet_handle')),
+        const Offset(0, 420),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(Key('leaderboard_region_polygon_${region.id}')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text(region.title), findsOneWidget);
+      expect(find.text('My Rank Preview'), findsNothing);
+      expect(
+        find.byKey(const Key('leaderboard_share_my_rank_button')),
+        findsNothing,
+      );
+    }
   });
 
   testWidgets('Share My Rank opens floating share card panel', (
@@ -364,7 +500,7 @@ void main() {
     expect(find.byIcon(Icons.chevron_left_rounded), findsOneWidget);
     expect(find.byIcon(Icons.arrow_back), findsNothing);
     expect(find.text('Jurong East'), findsOneWidget);
-    expect(find.text('June 2026'), findsOneWidget);
+    expect(find.text('July 2026'), findsOneWidget);
     expect(find.text('Monthly board'), findsNothing);
     expect(find.text('Refreshes in 24:14:05:45'), findsOneWidget);
     expect(find.text('Refreshes in 12 days'), findsNothing);
@@ -422,26 +558,19 @@ void main() {
     expect(find.text('Grace L.'), findsOneWidget);
     expect(find.text('Daniel W.'), findsOneWidget);
     expect(find.text('Jinseo (You)'), findsOneWidget);
-    expect(find.text('#18'), findsNWidgets(2));
-    expect(find.text('520 XP'), findsNWidgets(2));
+    expect(find.text('#18'), findsOneWidget);
+    expect(find.text('520 XP'), findsOneWidget);
     expect(
       find.byKey(const Key('leaderboard_detail_current_user_row')),
       findsOneWidget,
     );
     expect(
       find.byKey(const Key('leaderboard_current_user_floating_bar')),
-      findsOneWidget,
+      findsNothing,
     );
+    expect(find.text('You · Monthly ranking preview'), findsNothing);
     expect(find.textContaining('to reach'), findsNothing);
     expect(find.textContaining('progress'), findsNothing);
-
-    final floatingBarBottom = tester
-        .getBottomLeft(
-          find.byKey(const Key('leaderboard_current_user_floating_bar')),
-        )
-        .dy;
-    final bottomNavTop = tester.getTopLeft(find.byType(BottomNavigationBar)).dy;
-    expect(floatingBarBottom, lessThan(bottomNavTop));
     expect(find.byTooltip('Home'), findsOneWidget);
     expect(find.byTooltip('Maps'), findsOneWidget);
     expect(find.byTooltip('Run'), findsOneWidget);
@@ -585,7 +714,7 @@ void main() {
     expect(demoSource, contains('const leaderboardLeagueDemoSnapshot'));
     expect(demoSource, contains('const leaderboardRegionDemoSnapshot'));
     expect(demoSource, contains('const leaderboardDetailDemoSnapshot'));
-    expect(demoSource, contains('periodLabel: \'June 2026\''));
+    expect(demoSource, contains('periodLabel: \'July 2026\''));
     expect(demoSource, contains('fallbackPeriodLabel: \'Monthly board\''));
     expect(demoSource, contains('Refreshes in 24:14:05:45'));
     expect(demoSource, contains('Refreshes in 00:00:00:00'));
@@ -659,10 +788,10 @@ void main() {
   test('Leaderboard period label falls back without date derivation', () {
     expect(
       resolveLeaderboardPeriodLabelForDisplay(
-        periodLabel: 'June 2026',
+        periodLabel: 'July 2026',
         fallbackPeriodLabel: 'Monthly board',
       ),
-      'June 2026',
+      'July 2026',
     );
     expect(
       resolveLeaderboardPeriodLabelForDisplay(

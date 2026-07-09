@@ -1,151 +1,231 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Visibility;
+import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mapbox;
 
 import '../../../../core/theme/runiac_colors.dart';
-import '../data/leaderboard_demo_snapshots.dart';
+import '../../../run/presentation/widgets/mapbox_runtime_config.dart';
+import '../models/leaderboard_display_models.dart';
 
 class LeaderboardMapBackground extends StatelessWidget {
-  const LeaderboardMapBackground({super.key});
+  const LeaderboardMapBackground({
+    super.key,
+    required this.regions,
+    required this.selectedRegionId,
+    required this.onRegionSelected,
+  });
+
+  final List<LeaderboardMapRegionDisplaySnapshot> regions;
+  final String selectedRegionId;
+  final ValueChanged<String> onRegionSelected;
 
   @override
   Widget build(BuildContext context) {
+    final mapboxConfig = MapboxRuntimeConfig.fromEnvironment();
     return Stack(
+      key: Key(
+        mapboxConfig.hasPublicAccessToken
+            ? 'leaderboard_mapbox_surface'
+            : 'leaderboard_mapbox_fallback_surface',
+      ),
       children: [
-        const Positioned.fill(
-          child: CustomPaint(painter: _LeaderboardMapPainter()),
+        Positioned.fill(
+          child: mapboxConfig.hasPublicAccessToken
+              ? _LeaderboardSingaporeMapboxBackground(config: mapboxConfig)
+              : const CustomPaint(painter: _LeaderboardMapPainter()),
         ),
-        Positioned(
-          left: 22,
-          top: 192,
-          child: _RegionMarker(
-            color: RuniacColors.primaryBlue,
-            label: 'North park area',
+        for (final region in regions)
+          Align(
+            alignment: region.alignment,
+            child: _RegionMarker(
+              markerKey: Key('leaderboard_region_polygon_${region.regionId}'),
+              region: region,
+              selected: region.regionId == selectedRegionId,
+              onTap: () => onRegionSelected(region.regionId),
+            ),
           ),
-        ),
-        const Positioned(right: 32, top: 255, child: _UserAreaMarker()),
-        Positioned(
-          left: 70,
-          bottom: 150,
-          child: _RegionMarker(
-            color: RuniacColors.primaryBlue.withValues(alpha: 0.74),
-            label: 'Canal area',
-          ),
-        ),
-        Positioned(
-          right: 48,
-          bottom: 92,
-          child: _RegionMarker(
-            color: RuniacColors.primaryBlue.withValues(alpha: 0.62),
-            label: 'Track area',
-          ),
-        ),
       ],
     );
   }
 }
 
-class _RegionMarker extends StatelessWidget {
-  const _RegionMarker({required this.color, required this.label});
+class _LeaderboardSingaporeMapboxBackground extends StatefulWidget {
+  const _LeaderboardSingaporeMapboxBackground({required this.config});
 
-  final Color color;
-  final String label;
+  final MapboxRuntimeConfig config;
+
+  @override
+  State<_LeaderboardSingaporeMapboxBackground> createState() {
+    return _LeaderboardSingaporeMapboxBackgroundState();
+  }
+}
+
+class _LeaderboardSingaporeMapboxBackgroundState
+    extends State<_LeaderboardSingaporeMapboxBackground> {
+  static final mapbox.CameraViewportState _singaporeViewport =
+      mapbox.CameraViewportState(
+        center: mapbox.Point(coordinates: mapbox.Position(103.8198, 1.3521)),
+        zoom: 10.25,
+        pitch: 0,
+        bearing: 0,
+      );
+
+  @override
+  void initState() {
+    super.initState();
+    mapbox.MapboxOptions.setAccessToken(widget.config.accessToken);
+  }
+
+  @override
+  void didUpdateWidget(
+    covariant _LeaderboardSingaporeMapboxBackground oldWidget,
+  ) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.config.accessToken != widget.config.accessToken) {
+      mapbox.MapboxOptions.setAccessToken(widget.config.accessToken);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return mapbox.MapWidget(
+      key: const Key('leaderboard_mapbox_widget'),
+      styleUri: mapbox.MapboxStyles.MAPBOX_STREETS,
+      viewport: _singaporeViewport,
+    );
+  }
+}
+
+class _RegionMarker extends StatelessWidget {
+  const _RegionMarker({
+    required this.markerKey,
+    required this.region,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final Key markerKey;
+  final LeaderboardMapRegionDisplaySnapshot region;
+  final bool selected;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      label: label,
-      child: Container(
-        width: 58,
-        height: 58,
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: color.withValues(alpha: 0.18), width: 2),
-        ),
-        child: Center(
-          child: Container(
-            width: 18,
-            height: 18,
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(999),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x24172033),
-                  blurRadius: 8,
-                  offset: Offset(0, 4),
+      button: true,
+      label: region.semanticLabel,
+      child: GestureDetector(
+        key: markerKey,
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              key: region.isUserRegion
+                  ? const Key('leaderboard_user_region_highlight')
+                  : null,
+              width: selected || region.isUserRegion ? 86 : 70,
+              height: selected || region.isUserRegion ? 86 : 70,
+              child: CustomPaint(
+                painter: _RegionPolygonPainter(
+                  region: region,
+                  selected: selected,
                 ),
-              ],
+                child: Center(
+                  child: Container(
+                    width: selected || region.isUserRegion ? 24 : 18,
+                    height: selected || region.isUserRegion ? 24 : 18,
+                    decoration: BoxDecoration(
+                      color: region.color,
+                      borderRadius: BorderRadius.circular(999),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x24172033),
+                          blurRadius: 8,
+                          offset: Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ),
-          ),
+            if (region.isUserRegion) ...[
+              const SizedBox(height: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xF7FFFFFF),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(color: const Color(0xFFFFD1BC)),
+                ),
+                child: const Text(
+                  'Your ranked area',
+                  style: TextStyle(
+                    color: RuniacColors.accentOrange,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ],
+          ],
         ),
       ),
     );
   }
 }
 
-class _UserAreaMarker extends StatelessWidget {
-  const _UserAreaMarker();
+class _RegionPolygonPainter extends CustomPainter {
+  const _RegionPolygonPainter({required this.region, required this.selected});
+
+  final LeaderboardMapRegionDisplaySnapshot region;
+  final bool selected;
 
   @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      label: leaderboardRegionDemoSnapshot.userAreaLabel,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 76,
-            height: 76,
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFF3EC),
-              borderRadius: BorderRadius.circular(999),
-              border: Border.all(color: const Color(0xFFFFD1BC), width: 2),
-            ),
-            child: Center(
-              child: Container(
-                width: 24,
-                height: 24,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFF6B00),
-                  borderRadius: BorderRadius.circular(999),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x33FC6818),
-                      blurRadius: 12,
-                      offset: Offset(0, 5),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-            decoration: BoxDecoration(
-              color: const Color(0xF7FFFFFF),
-              borderRadius: BorderRadius.circular(999),
-              border: Border.all(color: const Color(0xFFFFD1BC)),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x17172033),
-                  blurRadius: 10,
-                  offset: Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Text(
-              leaderboardRegionDemoSnapshot.userAreaLabel,
-              style: const TextStyle(
-                color: Color(0xFFFF6B00),
-                fontSize: 13,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+  void paint(Canvas canvas, Size size) {
+    final path = Path()
+      ..moveTo(size.width * 0.16, size.height * 0.28)
+      ..quadraticBezierTo(
+        size.width * 0.54,
+        0,
+        size.width * 0.88,
+        size.height * 0.24,
+      )
+      ..quadraticBezierTo(
+        size.width,
+        size.height * 0.58,
+        size.width * 0.70,
+        size.height * 0.86,
+      )
+      ..quadraticBezierTo(
+        size.width * 0.32,
+        size.height,
+        size.width * 0.08,
+        size.height * 0.62,
+      )
+      ..close();
+    final fillPaint = Paint()
+      ..color = region.color.withValues(
+        alpha: selected || region.isUserRegion ? 0.26 : 0.16,
+      )
+      ..style = PaintingStyle.fill;
+    final borderPaint = Paint()
+      ..color = region.color.withValues(
+        alpha: selected || region.isUserRegion ? 0.72 : 0.36,
+      )
+      ..strokeWidth = selected || region.isUserRegion ? 3 : 2
+      ..style = PaintingStyle.stroke;
+
+    canvas.drawPath(path, fillPaint);
+    canvas.drawPath(path, borderPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _RegionPolygonPainter oldDelegate) {
+    return oldDelegate.region != region || oldDelegate.selected != selected;
   }
 }
 
