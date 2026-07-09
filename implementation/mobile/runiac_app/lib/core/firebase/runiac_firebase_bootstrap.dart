@@ -10,6 +10,8 @@ import '../../features/account/domain/repositories/user_profile_repository.dart'
 import '../../features/auth/data/firebase_runiac_auth_repository.dart';
 import '../../features/auth/data/non_production_auth_repository.dart';
 import '../../features/auth/domain/runiac_auth_service.dart';
+import '../../features/home/data/home_guide_agent_factory.dart';
+import '../../features/home/domain/guide/home_guide_agent.dart';
 import '../../features/leaderboard/data/firestore_leaderboard_repository.dart';
 import '../../features/leaderboard/data/static_leaderboard_repository.dart';
 import '../../features/leaderboard/domain/repositories/leaderboard_repository.dart';
@@ -49,6 +51,7 @@ class RuniacFirebaseBootstrap {
       if (productionOptions == null) {
         return RuniacFirebaseBootstrapResult(
           runRepository: RunRepositoryFactory.create(config: runtimeConfig),
+          homeGuideAgent: HomeGuideAgentFactory.create(config: runtimeConfig),
           authRepository: const NonProductionAuthRepository(),
           activityHistoryRepository: const StaticActivityHistoryRepository(),
           userProgressRepository: const StaticUserProgressRepository(),
@@ -85,6 +88,7 @@ class RuniacFirebaseBootstrap {
       );
       return RuniacFirebaseBootstrapResult(
         runRepository: RunRepositoryFactory.create(config: runtimeConfig),
+        homeGuideAgent: HomeGuideAgentFactory.create(config: runtimeConfig),
         authRepository: authRepository,
         activityHistoryRepository: FirestoreActivityHistoryRepository(
           authRepository: authRepository,
@@ -152,6 +156,7 @@ class RuniacFirebaseBootstrap {
 
     return RuniacFirebaseBootstrapResult(
       runRepository: RunRepositoryFactory.create(config: runtimeConfig),
+      homeGuideAgent: HomeGuideAgentFactory.create(config: runtimeConfig),
       authRepository: authRepository,
       activityHistoryRepository: FirestoreActivityHistoryRepository(
         authRepository: authRepository,
@@ -221,6 +226,7 @@ class RuniacFirebaseBootstrap {
 class RuniacFirebaseBootstrapResult {
   const RuniacFirebaseBootstrapResult({
     required this.runRepository,
+    required this.homeGuideAgent,
     required this.authRepository,
     required this.activityHistoryRepository,
     required this.userProgressRepository,
@@ -236,6 +242,7 @@ class RuniacFirebaseBootstrapResult {
   });
 
   final RunRepository runRepository;
+  final HomeGuideAgent homeGuideAgent;
   final RuniacAuthRepository authRepository;
   final ActivityHistoryRepository activityHistoryRepository;
   final UserProgressRepository userProgressRepository;

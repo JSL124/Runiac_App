@@ -21,6 +21,7 @@ Future<void> main() async {
     RuniacApp(
       authRepository: bootstrap.authRepository,
       runRepository: bootstrap.runRepository,
+      homeGuideAgent: bootstrap.homeGuideAgent,
       activityHistoryRepository: bootstrap.activityHistoryRepository,
       userProgressRepository: bootstrap.userProgressRepository,
       leaderboardRepository: bootstrap.leaderboardRepository,

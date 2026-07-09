@@ -15,6 +15,8 @@ import 'features/auth/data/non_production_auth_repository.dart';
 import 'features/auth/domain/runiac_auth_service.dart';
 import 'features/auth/presentation/runiac_auth_gate.dart';
 import 'features/auth/presentation/runiac_profile_setup_gate.dart';
+import 'features/home/domain/guide/home_guide_agent.dart';
+import 'features/home/domain/guide/rule_based_home_guide_agent.dart';
 import 'features/onboarding/domain/models/local_onboarding_draft.dart';
 import 'features/notifications/domain/models/notification_inbox_item.dart';
 import 'features/notifications/domain/repositories/notification_inbox_repository.dart';
@@ -71,6 +73,7 @@ class RuniacApp extends StatefulWidget {
     this.notificationInboxRepository =
         const StaticNotificationInboxRepository(),
     this.notificationRegistrationService,
+    this.homeGuideAgent = const RuleBasedHomeGuideAgent(),
     this.enableForegroundGps = true,
     this.activeRunSessionCoordinator,
     this.initialRunOpenIntent,
@@ -97,6 +100,9 @@ class RuniacApp extends StatefulWidget {
   final AdaptivePlanEstimateRepository adaptivePlanEstimateRepository;
   final NotificationInboxRepository notificationInboxRepository;
   final NotificationRegistrationService? notificationRegistrationService;
+
+  /// Guide seam forwarded down to `HomeTab`'s stage-map speech bubble.
+  final HomeGuideAgent homeGuideAgent;
   final bool enableForegroundGps;
   final ActiveRunSessionCoordinator? activeRunSessionCoordinator;
   final RunOpenIntent? initialRunOpenIntent;
@@ -506,6 +512,7 @@ class _RuniacAppState extends State<RuniacApp> {
         notificationInboxRepository: widget.notificationInboxRepository,
         planProgress: _planProgress,
         adaptivePlanEstimate: _adaptivePlanEstimate,
+        homeGuideAgent: widget.homeGuideAgent,
         enableForegroundGps: widget.enableForegroundGps,
         activeRunSessionCoordinator: widget.activeRunSessionCoordinator,
         initialRunOpenIntent: widget.initialRunOpenIntent,

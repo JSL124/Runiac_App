@@ -24,6 +24,7 @@ class HomeStageStone {
     required this.state,
     this.scheduledWorkoutId,
     this.workoutTitle,
+    this.dayLabel,
   });
 
   final int weekNumber;
@@ -32,6 +33,15 @@ class HomeStageStone {
   final HomeStageStoneState state;
   final String? scheduledWorkoutId;
   final String? workoutTitle;
+
+  /// Display-only English weekday caption for this stone (e.g. `'Mon'`).
+  ///
+  /// For plans whose workouts carry real weekday labels, every slot in the
+  /// week (run and rest) gets its weekday. For synthetic/positional plans
+  /// (e.g. `'Day 1'` labels), only run stones carry a label, copied verbatim
+  /// from the workout's `dayLabel`; rest stones are left null. This is purely
+  /// cosmetic layout metadata, not a backend-owned schedule value.
+  final String? dayLabel;
 
   bool get isRun => kind == HomeStageStoneKind.run;
   bool get isCurrent => state == HomeStageStoneState.current;
@@ -101,6 +111,47 @@ String homeStageScheduledWorkoutId({
   return 'week-$weekNumber-${dayLabel.toLowerCase()}-$suffix';
 }
 
+/// Canonical 3-letter English weekday labels, Monday-first, matching the
+/// labels onboarding writes onto generated-plan workouts
+/// (`onboardingDayNames` in the onboarding step config).
+const List<String> kHomeStageWeekdayLabels = <String>[
+  'Mon',
+  'Tue',
+  'Wed',
+  'Thu',
+  'Fri',
+  'Sat',
+  'Sun',
+];
+
+/// Matches [label] against [kHomeStageWeekdayLabels] case-insensitively,
+/// returning the Mon=0..Sun=6 slot index, or null when [label] is not one of
+/// the 7 weekday labels (e.g. a synthetic `'Day 1'` fallback label).
+int? _weekdaySlotIndexFor(String label) {
+  final normalized = label.trim().toLowerCase();
+  for (var i = 0; i < kHomeStageWeekdayLabels.length; i++) {
+    if (kHomeStageWeekdayLabels[i].toLowerCase() == normalized) {
+      return i;
+    }
+  }
+  return null;
+}
+
+/// True when every workout in [plan] carries a real weekday `dayLabel`
+/// (Mon..Sun). When false, at least one week uses synthetic labels (e.g.
+/// `'Day 1'`), and the whole plan must fall back to positional day-slot
+/// layout instead of scattering stones by weekday.
+bool _planUsesWeekdayLabels(BeginnerAdaptivePlanSnapshot plan) {
+  for (final week in plan.weeks) {
+    for (final workout in week.workouts) {
+      if (_weekdaySlotIndexFor(workout.dayLabel) == null) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
 class _RawStone {
   const _RawStone({
     required this.kind,
@@ -136,42 +187,25 @@ HomeStageMapModel buildHomeStageMapModel({
     );
   }
 
+  // Whole-plan decision: only lay stones out by real weekday when every
+  // workout in every week carries a Mon..Sun label. Mixed/synthetic-label
+  // plans keep the positional layout so they never scatter randomly.
+  final useWeekdaySlots = _planUsesWeekdayLabels(plan);
+
   final rawByWeek = <List<_RawStone>>[];
   for (var w = 0; w < plan.weeks.length; w++) {
     final week = plan.weeks[w];
-    final rawStones = <_RawStone>[];
-    for (var d = 0; d < kHomeStageDaysPerWeek; d++) {
-      if (d < week.workouts.length) {
-        final workout = week.workouts[d];
-        if (isGeneratedPlanSession(workout)) {
-          final id = homeStageScheduledWorkoutId(
-            weekNumber: week.weekNumber,
-            dayLabel: workout.dayLabel,
-            title: workout.title,
-          );
-          rawStones.add(
-            _RawStone(
-              kind: HomeStageStoneKind.run,
-              completed: completedScheduledWorkoutIds.contains(id),
-              dayLabel: workout.dayLabel,
-              scheduledWorkoutId: id,
-              workoutTitle: workout.title,
+    rawByWeek.add(
+      useWeekdaySlots
+          ? _weekdaySlottedRawStones(
+              week: week,
+              completedScheduledWorkoutIds: completedScheduledWorkoutIds,
+            )
+          : _positionalRawStones(
+              week: week,
+              completedScheduledWorkoutIds: completedScheduledWorkoutIds,
             ),
-          );
-          continue;
-        }
-      }
-      rawStones.add(
-        const _RawStone(
-          kind: HomeStageStoneKind.rest,
-          completed: false,
-          dayLabel: null,
-          scheduledWorkoutId: null,
-          workoutTitle: null,
-        ),
-      );
-    }
-    rawByWeek.add(rawStones);
+    );
   }
 
   // Resolve the active week section index.
@@ -236,6 +270,7 @@ HomeStageMapModel buildHomeStageMapModel({
           state: state,
           scheduledWorkoutId: stone.scheduledWorkoutId,
           workoutTitle: stone.workoutTitle,
+          dayLabel: stone.dayLabel,
         ),
       );
     }
@@ -258,4 +293,101 @@ HomeStageMapModel buildHomeStageMapModel({
       characterDayIndex,
     ),
   );
+}
+
+/// Builds one week's 7 raw stones keyed by real weekday slot (Mon=0..Sun=6).
+///
+/// Every slot always gets a weekday [dayLabel]. Run stones from
+/// [week.workouts] are placed at their weekday's slot; if two workouts map
+/// to the same weekday (e.g. a duplicated preferred-day cycle), the later one
+/// is shifted forward to the next free slot, wrapping around the week. Any
+/// slot left unclaimed by a run workout becomes a rest stone.
+List<_RawStone> _weekdaySlottedRawStones({
+  required BeginnerAdaptivePlanWeek week,
+  required Set<String> completedScheduledWorkoutIds,
+}) {
+  final slots = List<_RawStone?>.filled(kHomeStageDaysPerWeek, null);
+  for (final workout in week.workouts) {
+    if (!isGeneratedPlanSession(workout)) {
+      continue;
+    }
+    final id = homeStageScheduledWorkoutId(
+      weekNumber: week.weekNumber,
+      dayLabel: workout.dayLabel,
+      title: workout.title,
+    );
+    var slot = _weekdaySlotIndexFor(workout.dayLabel);
+    if (slot == null) {
+      // Guarded by _planUsesWeekdayLabels, but stay defensive.
+      continue;
+    }
+    var attempts = 0;
+    while (slots[slot!] != null && attempts < kHomeStageDaysPerWeek) {
+      slot = (slot + 1) % kHomeStageDaysPerWeek;
+      attempts++;
+    }
+    if (slots[slot] != null) {
+      // Week already has 7 run workouts claiming every slot; drop overflow.
+      continue;
+    }
+    slots[slot] = _RawStone(
+      kind: HomeStageStoneKind.run,
+      completed: completedScheduledWorkoutIds.contains(id),
+      dayLabel: kHomeStageWeekdayLabels[slot],
+      scheduledWorkoutId: id,
+      workoutTitle: workout.title,
+    );
+  }
+  return [
+    for (var d = 0; d < kHomeStageDaysPerWeek; d++)
+      slots[d] ??
+          _RawStone(
+            kind: HomeStageStoneKind.rest,
+            completed: false,
+            dayLabel: kHomeStageWeekdayLabels[d],
+            scheduledWorkoutId: null,
+            workoutTitle: null,
+          ),
+  ];
+}
+
+/// Builds one week's 7 raw stones by workout position (fallback for
+/// synthetic labels like `'Day 1'`), matching the original day-slot layout.
+List<_RawStone> _positionalRawStones({
+  required BeginnerAdaptivePlanWeek week,
+  required Set<String> completedScheduledWorkoutIds,
+}) {
+  final rawStones = <_RawStone>[];
+  for (var d = 0; d < kHomeStageDaysPerWeek; d++) {
+    if (d < week.workouts.length) {
+      final workout = week.workouts[d];
+      if (isGeneratedPlanSession(workout)) {
+        final id = homeStageScheduledWorkoutId(
+          weekNumber: week.weekNumber,
+          dayLabel: workout.dayLabel,
+          title: workout.title,
+        );
+        rawStones.add(
+          _RawStone(
+            kind: HomeStageStoneKind.run,
+            completed: completedScheduledWorkoutIds.contains(id),
+            dayLabel: workout.dayLabel,
+            scheduledWorkoutId: id,
+            workoutTitle: workout.title,
+          ),
+        );
+        continue;
+      }
+    }
+    rawStones.add(
+      const _RawStone(
+        kind: HomeStageStoneKind.rest,
+        completed: false,
+        dayLabel: null,
+        scheduledWorkoutId: null,
+        workoutTitle: null,
+      ),
+    );
+  }
+  return rawStones;
 }

@@ -4,6 +4,8 @@ import '../../core/theme/runiac_colors.dart';
 import '../account/domain/repositories/user_profile_repository.dart';
 import '../account/domain/repositories/user_profile_persistence_repository.dart';
 import '../auth/domain/runiac_auth_service.dart';
+import '../home/domain/guide/home_guide_agent.dart';
+import '../home/domain/guide/rule_based_home_guide_agent.dart';
 import '../home/presentation/home_tab.dart';
 import '../leaderboard/data/static_leaderboard_repository.dart';
 import '../leaderboard/domain/repositories/leaderboard_repository.dart';
@@ -46,6 +48,7 @@ class RuniacShell extends StatefulWidget {
         const StaticNotificationInboxRepository(),
     this.planProgress,
     this.adaptivePlanEstimate,
+    this.homeGuideAgent = const RuleBasedHomeGuideAgent(),
     super.key,
     this.enableForegroundGps = true,
     this.activeRunSessionCoordinator,
@@ -64,6 +67,10 @@ class RuniacShell extends StatefulWidget {
   final NotificationInboxRepository notificationInboxRepository;
   final PlanProgressReadModel? planProgress;
   final AdaptivePlanEstimateReadModel? adaptivePlanEstimate;
+
+  /// Guide seam forwarded to [HomeTab]'s stage-map speech bubble. See
+  /// `HomeTab.homeGuideAgent` for the trust-boundary contract.
+  final HomeGuideAgent homeGuideAgent;
   final bool enableForegroundGps;
   final ActiveRunSessionCoordinator? activeRunSessionCoordinator;
   final RunOpenIntent? initialRunOpenIntent;
@@ -309,6 +316,7 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
         todayPlannedRunContext: todayPlannedRunContext,
         generatedPlanProgress: generatedPlanProgress,
         currentDate: widget.youProgressToday,
+        homeGuideAgent: widget.homeGuideAgent,
         enableForegroundGps: widget.enableForegroundGps,
         activeRunSessionCoordinator: _activeRunSessionCoordinator,
         onNotificationSettingsChanged: () {

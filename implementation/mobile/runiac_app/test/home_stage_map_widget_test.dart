@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/app.dart';
+import 'package:runiac_app/features/home/domain/guide/home_guide_agent.dart';
+import 'package:runiac_app/features/home/domain/guide/rule_based_home_guide_agent.dart';
 import 'package:runiac_app/features/home/presentation/stage_map/home_stage_background_sequence.dart';
 import 'package:runiac_app/features/home/presentation/stage_map/home_stage_map.dart';
 import 'package:runiac_app/features/home/presentation/stage_map/home_stage_map_model.dart';
@@ -9,6 +11,18 @@ import 'package:runiac_app/features/plan/domain/services/beginner_adaptive_plan_
 import 'package:runiac_app/features/plan/presentation/current_session_generated_plan.dart';
 
 import 'support/plan_family_test_drafts.dart';
+
+const HomeGuideRequest _guideRequest = HomeGuideRequest(
+  planTitle: 'First 10K Preparation',
+  weekNumber: 1,
+  weekFocus: 'Build a steady habit',
+  dayLabel: 'Mon',
+  workoutTitle: 'Easy Run',
+  durationMinutes: 20,
+  intensityLabel: 'Gentle',
+  description: 'A relaxed run to build your habit.',
+  supportiveNote: 'Keep the pace conversational.',
+);
 
 BeginnerAdaptivePlanSnapshot _plan() {
   return const BeginnerAdaptivePlanGenerator().generate(
@@ -130,6 +144,9 @@ void main() {
     await tester.tap(todayStage);
     await tester.pump();
     expect(todayTaps, 1);
+
+    // At least one weekday caption (e.g. MON) renders near the stones.
+    expect(find.text('MON'), findsWidgets);
   });
 
   testWidgets('tapping today stage in the app opens the workout detail', (
@@ -160,5 +177,107 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
 
     expect(find.text('Workout detail'), findsOneWidget);
+  });
+
+  group('guide speech bubble', () {
+    const characterTapTarget = ValueKey<String>('homeGuideCharacterTapTarget');
+
+    testWidgets(
+      'auto-appears with the rule-based message when there is a today stage',
+      (WidgetTester tester) async {
+        final plan = _plan();
+        final model = _model(plan);
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: HomeStageMap(
+                model: model,
+                onNotifications: () {},
+                onProfile: () {},
+                onTapTodayStage: () {},
+                guideAgent: const RuleBasedHomeGuideAgent(),
+                guideRequest: _guideRequest,
+              ),
+            ),
+          ),
+        );
+        await tester.pump();
+        await tester.pump(); // resolve the guide agent future
+        await tester.pump(const Duration(milliseconds: 50));
+
+        // The bubble auto-opens once the guide message resolves, and the
+        // character's tap target only exists while a bubble can be shown.
+        expect(find.byKey(characterTapTarget), findsOneWidget);
+        expect(find.textContaining('Easy Run'), findsWidgets);
+        expect(find.byIcon(Icons.close_rounded), findsOneWidget);
+      },
+    );
+
+    testWidgets('dismissing hides it, tapping the character re-opens it', (
+      WidgetTester tester,
+    ) async {
+      final plan = _plan();
+      final model = _model(plan);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: HomeStageMap(
+              model: model,
+              onNotifications: () {},
+              onProfile: () {},
+              onTapTodayStage: () {},
+              guideAgent: const RuleBasedHomeGuideAgent(),
+              guideRequest: _guideRequest,
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(find.byIcon(Icons.close_rounded), findsOneWidget);
+
+      await tester.ensureVisible(find.byIcon(Icons.close_rounded));
+      await tester.tap(find.byIcon(Icons.close_rounded));
+      await tester.pump();
+
+      expect(find.byIcon(Icons.close_rounded), findsNothing);
+
+      await tester.ensureVisible(find.byKey(characterTapTarget));
+      await tester.tap(find.byKey(characterTapTarget));
+      await tester.pump();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(find.byIcon(Icons.close_rounded), findsOneWidget);
+      expect(find.textContaining('Easy Run'), findsWidgets);
+    });
+
+    testWidgets('never shows without an active plan', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: HomeStageMap(
+              model: null,
+              onNotifications: () {},
+              onProfile: () {},
+              onTapTodayStage: () {},
+              guideAgent: const RuleBasedHomeGuideAgent(),
+              guideRequest: _guideRequest,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(characterTapTarget), findsNothing);
+      expect(find.byIcon(Icons.close_rounded), findsNothing);
+      expect(find.textContaining('Easy Run'), findsNothing);
+    });
   });
 }

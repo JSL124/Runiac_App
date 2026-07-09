@@ -18,97 +18,67 @@ const List<String> kHomeStageBackgroundAssets = <String>[
 /// Aspect ratio (height / width) of every background asset (1672 / 941).
 const double kHomeStageBackgroundAspect = 1672 / 941;
 
-/// Hand-tuned normalized path anchors per background.
+/// Shared vertical (dy) sequence for the seven day-slot anchors, day 1 (near
+/// the bottom foreground) to day 7 (further up the receding path).
 ///
-/// Each list holds the seven day-slot anchor points in 0..1 space, ordered
-/// day 1 (near the bottom foreground) to day 7 (further up the receding path).
-/// The coordinates were tuned by eye against each rendered background so the
-/// stage stones sit visually on the drawn road/path.
-const Map<String, List<Offset>> _kHomeStageAnchorsByAsset =
-    <String, List<Offset>>{
-  'assets/images/home/backgrounds/bg_gardens_by_the_bay.webp': <Offset>[
-    Offset(0.40, 0.95),
-    Offset(0.45, 0.85),
-    Offset(0.54, 0.74),
-    Offset(0.47, 0.64),
-    Offset(0.42, 0.56),
-    Offset(0.48, 0.50),
-    Offset(0.53, 0.45),
-  ],
-  'assets/images/home/backgrounds/bg_east_coast_beach.webp': <Offset>[
-    Offset(0.40, 0.95),
-    Offset(0.34, 0.84),
-    Offset(0.29, 0.72),
-    Offset(0.37, 0.61),
-    Offset(0.43, 0.51),
-    Offset(0.43, 0.42),
-    Offset(0.42, 0.33),
-  ],
-  'assets/images/home/backgrounds/bg_kampong_glam.webp': <Offset>[
-    Offset(0.45, 0.93),
-    Offset(0.47, 0.82),
-    Offset(0.52, 0.70),
-    Offset(0.45, 0.60),
-    Offset(0.44, 0.50),
-    Offset(0.50, 0.41),
-    Offset(0.53, 0.32),
-  ],
-  'assets/images/home/backgrounds/bg_clarke_quay_night.webp': <Offset>[
-    Offset(0.38, 0.94),
-    Offset(0.29, 0.83),
-    Offset(0.40, 0.71),
-    Offset(0.51, 0.60),
-    Offset(0.56, 0.50),
-    Offset(0.55, 0.41),
-    Offset(0.52, 0.33),
-  ],
-  'assets/images/home/backgrounds/bg_supertree_grove.webp': <Offset>[
-    Offset(0.45, 0.94),
-    Offset(0.38, 0.83),
-    Offset(0.42, 0.72),
-    Offset(0.39, 0.62),
-    Offset(0.35, 0.53),
-    Offset(0.33, 0.47),
-    Offset(0.34, 0.43),
-  ],
-  'assets/images/home/backgrounds/bg_marina_bay_sunset.webp': <Offset>[
-    Offset(0.31, 0.94),
-    Offset(0.28, 0.83),
-    Offset(0.38, 0.72),
-    Offset(0.47, 0.61),
-    Offset(0.51, 0.52),
-    Offset(0.51, 0.44),
-    Offset(0.50, 0.39),
-  ],
-  'assets/images/home/backgrounds/bg_jewel_waterfall.webp': <Offset>[
-    Offset(0.34, 0.94),
-    Offset(0.35, 0.84),
-    Offset(0.41, 0.74),
-    Offset(0.45, 0.65),
-    Offset(0.44, 0.57),
-    Offset(0.41, 0.51),
-    Offset(0.44, 0.47),
-  ],
-  'assets/images/home/backgrounds/bg_palawan_sunset.webp': <Offset>[
-    Offset(0.34, 0.94),
-    Offset(0.27, 0.83),
-    Offset(0.35, 0.72),
-    Offset(0.42, 0.61),
-    Offset(0.44, 0.52),
-    Offset(0.44, 0.44),
-    Offset(0.43, 0.37),
-  ],
+/// Spacing is uniform by design (equal 0.095 steps) so stage stones sit at
+/// consistent vertical intervals on every background, regardless of how
+/// winding that background's path is. Horizontal (dx) placement below stays
+/// hand-tuned per background so the path itself keeps its natural curve.
+const List<double> _kHomeStageAnchorDys = <double>[
+  0.94,
+  0.845,
+  0.75,
+  0.655,
+  0.56,
+  0.465,
+  0.37,
+];
+
+/// Builds the 7 anchor points for a background from its hand-tuned dx values,
+/// pairing each with the shared uniform [_kHomeStageAnchorDys] sequence.
+List<Offset> _anchorsFromDx(List<double> dxValues) {
+  return [
+    for (var i = 0; i < dxValues.length; i++)
+      Offset(dxValues[i], _kHomeStageAnchorDys[i]),
+  ];
+}
+
+/// Hand-tuned horizontal (dx) path anchors per background, in 0..1 space.
+///
+/// The dx coordinates were tuned by eye against each rendered background so
+/// the stage stones sit visually on the drawn road/path; dy is uniform (see
+/// [_kHomeStageAnchorDys]) and shared across every background.
+final Map<String, List<Offset>> _kHomeStageAnchorsByAsset = <String, List<Offset>>{
+  'assets/images/home/backgrounds/bg_gardens_by_the_bay.webp': _anchorsFromDx(
+    const <double>[0.40, 0.45, 0.54, 0.47, 0.42, 0.48, 0.53],
+  ),
+  'assets/images/home/backgrounds/bg_east_coast_beach.webp': _anchorsFromDx(
+    const <double>[0.40, 0.34, 0.29, 0.37, 0.43, 0.43, 0.42],
+  ),
+  'assets/images/home/backgrounds/bg_kampong_glam.webp': _anchorsFromDx(
+    const <double>[0.45, 0.47, 0.52, 0.45, 0.44, 0.50, 0.53],
+  ),
+  'assets/images/home/backgrounds/bg_clarke_quay_night.webp': _anchorsFromDx(
+    const <double>[0.38, 0.29, 0.40, 0.51, 0.56, 0.55, 0.52],
+  ),
+  'assets/images/home/backgrounds/bg_supertree_grove.webp': _anchorsFromDx(
+    const <double>[0.45, 0.38, 0.42, 0.39, 0.35, 0.33, 0.34],
+  ),
+  'assets/images/home/backgrounds/bg_marina_bay_sunset.webp': _anchorsFromDx(
+    const <double>[0.31, 0.28, 0.38, 0.47, 0.51, 0.51, 0.50],
+  ),
+  'assets/images/home/backgrounds/bg_jewel_waterfall.webp': _anchorsFromDx(
+    const <double>[0.34, 0.35, 0.41, 0.45, 0.44, 0.41, 0.44],
+  ),
+  'assets/images/home/backgrounds/bg_palawan_sunset.webp': _anchorsFromDx(
+    const <double>[0.34, 0.27, 0.35, 0.42, 0.44, 0.44, 0.43],
+  ),
 };
 
-const List<Offset> _kFallbackStageAnchors = <Offset>[
-  Offset(0.38, 0.94),
-  Offset(0.34, 0.83),
-  Offset(0.42, 0.72),
-  Offset(0.47, 0.61),
-  Offset(0.45, 0.52),
-  Offset(0.43, 0.44),
-  Offset(0.44, 0.37),
-];
+final List<Offset> _kFallbackStageAnchors = _anchorsFromDx(
+  const <double>[0.38, 0.34, 0.42, 0.47, 0.45, 0.43, 0.44],
+);
 
 /// Normalized 7-point path anchors for [backgroundAsset].
 List<Offset> homeStageAnchorsForBackground(String backgroundAsset) {
