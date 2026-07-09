@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/app.dart';
 import 'package:runiac_app/features/plan/data/firestore_plan_progress_repository.dart';
@@ -171,6 +172,65 @@ void main() {
     },
   );
 
+  testWidgets('RuniacApp preserves generated plan progress after reschedule', (
+    tester,
+  ) async {
+    // Given: generatedPlans owns the snapshot and planProgress owns a
+    // completed workout in this week's schedule.
+    final plan = _tenKPerformancePlan();
+    final authRepository = FakeRuniacAuthRepository()
+      ..emitSignedIn(uid: 'runner-1');
+    addTearDown(authRepository.dispose);
+
+    await tester.pumpWidget(
+      RuniacApp(
+        showSplash: false,
+        showAuth: true,
+        enableForegroundGps: false,
+        authRepository: authRepository,
+        generatedPlanPersistenceRepository: _LoadedGeneratedPlanRepository(
+          plan,
+        ),
+        planProgressRepository: _LoadedPlanProgressRepository(
+          completedIds: const ['week-1-tue-controlled-steady-run'],
+        ),
+        youProgressToday: _weekdayDate(DateTime.tuesday),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('You'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Plans'));
+    await tester.pumpAndSettle();
+    expect(find.text('Completed'), findsOneWidget);
+
+    // When: a different future workout is rescheduled.
+    await tester.ensureVisible(find.text('20 min Recovery Run'));
+    await tester.tap(find.text('20 min Recovery Run'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Edit schedule'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('edit_schedule_day_Fri')));
+    await tester.pumpAndSettle();
+    await _selectOneMinuteLaterFromWheel(tester);
+    final saveButton = tester.widget<ElevatedButton>(
+      find.widgetWithText(ElevatedButton, 'Save New Schedule'),
+    );
+    expect(saveButton.onPressed, isNotNull);
+    await tester.tap(find.widgetWithText(ElevatedButton, 'Save New Schedule'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Back to Plans'));
+    await tester.pumpAndSettle();
+
+    // Then: the backend-owned completed state is still visible and the
+    // progress bar remains hydrated instead of resetting to zero.
+    expect(find.text('Completed'), findsOneWidget);
+    final progressIndicator = tester.widget<LinearProgressIndicator>(
+      find.byType(LinearProgressIndicator),
+    );
+    expect(progressIndicator.value, 0.25);
+  });
+
   testWidgets(
     'RuniacApp Run launch combines generated snapshot with backend progress',
     (tester) async {
@@ -271,6 +331,19 @@ void main() {
     expect(display!.progressLabel, '1 of ${plan.weeks.length} weeks');
     expect(display.progressValue, 0.5);
   });
+}
+
+Future<void> _selectOneMinuteLaterFromWheel(WidgetTester tester) async {
+  await tester.tap(find.byKey(const ValueKey('edit_schedule_time_selector')));
+  await tester.pumpAndSettle();
+  await tester.timedDrag(
+    find.byKey(const ValueKey('edit_schedule_time_minute_picker')),
+    const Offset(0, -38),
+    const Duration(milliseconds: 500),
+  );
+  await tester.pumpAndSettle();
+  await tester.tapAt(const Offset(20, 20));
+  await tester.pumpAndSettle();
 }
 
 class _ThrowingPlanProgressDocumentStore implements PlanProgressDocumentStore {

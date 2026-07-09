@@ -339,7 +339,12 @@ class _YouTabState extends State<YouTab> {
 
   void _handleWorkoutScheduleChanged(WorkoutScheduleEditSelection selection) {
     final generatedPlanStore = CurrentSessionGeneratedPlanScope.of(context);
+    final activityHistoryStore = CurrentSessionActivityHistoryScope.of(context);
     final activePlan = generatedPlanStore.activePlan;
+    final generatedPlanProgress = _generatedPlanProgress(
+      activityHistoryStore,
+      activePlan,
+    );
     final updatedPlan = activePlan == null
         ? null
         : rescheduleGeneratedPlanSnapshot(
@@ -350,7 +355,12 @@ class _YouTabState extends State<YouTab> {
     setState(() {
       final currentGeneratedPlan =
           _editedGeneratedPlanDisplay ??
-          generatedYouPlanDisplayFromSnapshot(activePlan);
+          generatedYouPlanDisplayFromSnapshot(
+            activePlan,
+            currentDate: widget.progressToday,
+            planProgress: generatedPlanProgress,
+            adaptiveEstimate: widget.adaptivePlanEstimate,
+          );
       _editedGeneratedPlanDisplay = currentGeneratedPlan?.rescheduleWorkout(
         _workoutDetailSnapshot,
         selection,
