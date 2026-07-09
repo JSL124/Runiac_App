@@ -27,6 +27,10 @@ void main() {
           'nextLevelXp',
           'xpToNextLevel',
           'levelProgressPercent',
+          'previousLevelProgressPercent',
+          'nextLevelProgressPercent',
+          'nextLevelXpTarget',
+          'nextXpToNextLevel',
           'progressionUpdatedAt',
           'rank',
           'streak',
@@ -38,6 +42,10 @@ void main() {
           'weeklyXP',
           'monthlyXp',
           'monthlyXP',
+          'monthlyXpLabel',
+          'monthlyPeriod',
+          'monthlyXpBefore',
+          'monthlyXpAfter',
           'subscriptionPrivilegeState',
           'expertPlanPublicationState',
           'validatedActivityContributionState',
@@ -382,8 +390,12 @@ void main() {
         expect(source, isNot(contains("collection('users')")));
         const allowedReadOnlyProgressFields = <String>{
           'streakCount',
+          'lastStreakRunDate',
+          'level',
           'levelLabel',
+          'levelProgressPercent',
           'totalXpLabel',
+          'monthlyXpLabel',
         };
         for (final field in BackendOwnedValueContract.protectedFieldNames.where(
           (field) => !allowedReadOnlyProgressFields.contains(field),

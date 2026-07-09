@@ -11,6 +11,10 @@ class RuniacLevelProfileBadge extends StatelessWidget {
     required this.progressFraction,
     this.size = 96,
     this.badgeHeight = 30,
+    this.badgeMinWidth = 72,
+    this.badgeHorizontalPadding = 13,
+    this.badgeFontSize = 13,
+    this.ringStrokeWidth,
     super.key,
   });
 
@@ -19,11 +23,15 @@ class RuniacLevelProfileBadge extends StatelessWidget {
   final double progressFraction;
   final double size;
   final double badgeHeight;
+  final double badgeMinWidth;
+  final double badgeHorizontalPadding;
+  final double badgeFontSize;
+  final double? ringStrokeWidth;
 
   @override
   Widget build(BuildContext context) {
     final avatarSize = size * 0.74;
-    final ringStroke = size < 80 ? 7.0 : 8.0;
+    final ringStroke = ringStrokeWidth ?? (size < 80 ? 7.0 : 8.0);
     final badgeTop = size - (badgeHeight * 0.85);
     return Semantics(
       label: levelLabel.isEmpty
@@ -55,7 +63,13 @@ class RuniacLevelProfileBadge extends StatelessWidget {
             if (levelLabel.isNotEmpty)
               Positioned(
                 top: badgeTop,
-                child: _LevelPill(label: levelLabel, height: badgeHeight),
+                child: _LevelPill(
+                  label: levelLabel,
+                  height: badgeHeight,
+                  minWidth: badgeMinWidth,
+                  horizontalPadding: badgeHorizontalPadding,
+                  fontSize: badgeFontSize,
+                ),
               ),
           ],
         ),
@@ -113,18 +127,27 @@ class _ProfileInitialsDisc extends StatelessWidget {
 }
 
 class _LevelPill extends StatelessWidget {
-  const _LevelPill({required this.label, required this.height});
+  const _LevelPill({
+    required this.label,
+    required this.height,
+    required this.minWidth,
+    required this.horizontalPadding,
+    required this.fontSize,
+  });
 
   final String label;
   final double height;
+  final double minWidth;
+  final double horizontalPadding;
+  final double fontSize;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       height: height,
-      constraints: const BoxConstraints(minWidth: 72),
+      constraints: BoxConstraints(minWidth: minWidth),
       alignment: Alignment.center,
-      padding: const EdgeInsets.symmetric(horizontal: 13),
+      padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
       decoration: BoxDecoration(
         color: RuniacColors.accentOrange,
         borderRadius: BorderRadius.circular(999),
@@ -141,9 +164,9 @@ class _LevelPill extends StatelessWidget {
         label,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: const TextStyle(
+        style: TextStyle(
           color: RuniacColors.white,
-          fontSize: 13,
+          fontSize: fontSize,
           fontWeight: FontWeight.w900,
           height: 1,
         ),

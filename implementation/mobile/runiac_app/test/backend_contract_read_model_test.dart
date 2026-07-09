@@ -173,6 +173,13 @@ void main() {
             'weeklyDistanceLabel',
             'goalProgressLabel',
           ],
+          nonStringFields: [
+            'level',
+            'levelProgressFraction',
+            'officialStreakCount',
+            'lastStreakRunDate',
+          ],
+          allowedGetters: ['levelBadgeLabel'],
         ),
       ];
       const forbiddenTerms = [
@@ -278,11 +285,15 @@ class _ReadModelContract {
     required this.path,
     required this.className,
     required this.fields,
+    this.nonStringFields = const <String>[],
+    this.allowedGetters = const <String>[],
   });
 
   final String path;
   final String className;
   final List<String> fields;
+  final List<String> nonStringFields;
+  final List<String> allowedGetters;
 }
 
 void _expectReadModelContract(String source, _ReadModelContract contract) {
@@ -301,27 +312,45 @@ void _expectReadModelContract(String source, _ReadModelContract contract) {
         multiLine: true,
       ).allMatches(source).where((match) {
         final line = match.group(0) ?? '';
-        return !line.trim().startsWith('final String ');
+        final trimmed = line.trim();
+        if (trimmed.startsWith('final String ')) {
+          return false;
+        }
+        if (contract.allowedGetters.any(
+          (getter) => trimmed.startsWith('String get $getter '),
+        )) {
+          return false;
+        }
+        return !contract.nonStringFields.any(
+          (field) =>
+              trimmed == 'final int $field;' ||
+              trimmed == 'final int? $field;' ||
+              trimmed == 'final double $field;' ||
+              trimmed == 'final String? $field;',
+        );
       }).toList();
   expect(disallowedFieldDeclarations, isEmpty, reason: contract.path);
 
-  expect(
-    source,
-    isNot(
-      matches(
-        RegExp(
-          r'^[ \t]*(?:set[ \t]+[A-Za-z0-9_]+\(|[A-Za-z0-9_<>,? ]+[ \t]+get[ \t]+[A-Za-z0-9_]+)',
-          multiLine: true,
-        ),
-      ),
-    ),
-    reason: contract.path,
-  );
+  final disallowedAccessors =
+      RegExp(
+        r'^[ \t]*(?:set[ \t]+[A-Za-z0-9_]+\(|[A-Za-z0-9_<>,? ]+[ \t]+get[ \t]+([A-Za-z0-9_]+))',
+        multiLine: true,
+      ).allMatches(source).where((match) {
+        final getter = match.group(1);
+        return getter == null || !contract.allowedGetters.contains(getter);
+      }).toList();
+  expect(disallowedAccessors, isEmpty, reason: contract.path);
   final methodLikeLines = source.split('\n').where((line) {
     final trimmed = line.trim();
     final isConstructor = trimmed.startsWith('const ${contract.className}(');
     final isParameter = trimmed.startsWith('required this.');
-    return trimmed.contains('(') && !isConstructor && !isParameter;
+    final isAllowedGetter = contract.allowedGetters.any(
+      (getter) => trimmed == 'String get $getter => \'Lv.\$level\';',
+    );
+    return trimmed.contains('(') &&
+        !isConstructor &&
+        !isParameter &&
+        !isAllowedGetter;
   }).toList();
   expect(methodLikeLines, isEmpty, reason: contract.path);
 }

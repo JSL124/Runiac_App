@@ -8,9 +8,9 @@ const accountProfileDemoSnapshot = AccountProfileDemoSnapshot(
   displayName: 'Runiac Runner',
   avatarInitials: 'RR',
   regionLabel: 'Jurong East, Singapore',
-  // Static decorative preview only. Real level/progression display is
-  // backend-owned and must come from approved read paths later.
-  previewLevelBadge: 'Lv.12',
+  // Fallback display only. Real level/progression values come from the
+  // backend-owned user progress read path.
+  previewLevelBadge: 'Lv.0',
   previewNote: 'Account changes are not saved in this prototype.',
   setupSectionLabel: 'RUNNING SETUP',
   manageSectionLabel: 'MANAGE',
@@ -92,12 +92,14 @@ class AccountProfileDemoSnapshot {
     required this.footerCaption,
     required this.setupItems,
     required this.manageRows,
+    this.levelProgressFraction = 0,
   });
 
   final String displayName;
   final String avatarInitials;
   final String regionLabel;
   final String previewLevelBadge;
+  final double levelProgressFraction;
   final String previewNote;
   final String setupSectionLabel;
   final String manageSectionLabel;

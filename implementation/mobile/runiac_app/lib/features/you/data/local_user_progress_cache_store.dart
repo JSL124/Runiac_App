@@ -22,6 +22,8 @@ class LocalUserProgressCacheEntry {
       'progress': <String, Object?>{
         'userId': progress.userId,
         'officialStreakLabel': progress.officialStreakLabel,
+        'level': progress.level,
+        'levelProgressFraction': progress.levelProgressFraction,
         'levelLabel': progress.levelLabel,
         'totalXpLabel': progress.totalXpLabel,
         'weeklyXpLabel': progress.weeklyXpLabel,
@@ -58,6 +60,10 @@ class LocalUserProgressCacheEntry {
         progress: UserProgressReadModel(
           userId: _string(progress['userId']),
           officialStreakLabel: _string(progress['officialStreakLabel']),
+          level: _nonNegativeInteger(progress['level']),
+          levelProgressFraction: _progressFraction(
+            progress['levelProgressFraction'],
+          ),
           levelLabel: _string(progress['levelLabel']),
           totalXpLabel: _string(progress['totalXpLabel']),
           weeklyXpLabel: _string(progress['weeklyXpLabel']),
@@ -85,6 +91,20 @@ class LocalUserProgressCacheEntry {
 
   static int? _positiveInteger(Object? value) {
     return value is int && value > 0 ? value : null;
+  }
+
+  static int _nonNegativeInteger(Object? value) {
+    return value is int && value >= 0 ? value : 0;
+  }
+
+  static double _progressFraction(Object? value) {
+    if (value is int) {
+      return value.clamp(0, 1).toDouble();
+    }
+    if (value is double) {
+      return value.clamp(0, 1);
+    }
+    return 0;
   }
 }
 

@@ -12,6 +12,8 @@ import 'package:runiac_app/features/auth/domain/runiac_auth_service.dart';
 import 'package:runiac_app/features/plan/domain/models/beginner_adaptive_plan_snapshot.dart';
 import 'package:runiac_app/features/plan/domain/repositories/generated_plan_persistence_repository.dart';
 import 'package:runiac_app/features/plan/presentation/current_session_generated_plan.dart';
+import 'package:runiac_app/features/you/domain/models/user_progress_read_model.dart';
+import 'package:runiac_app/features/you/domain/repositories/user_progress_repository.dart';
 
 import 'support/fake_runiac_auth_repository.dart';
 import 'support/onboarding_flow_test_helpers.dart';
@@ -63,6 +65,20 @@ void main() {
               ],
             ),
           ),
+          userProgressRepository: const _SingleUserProgressRepository(
+            UserProgressReadModel(
+              userId: 'test-auth-user-1',
+              officialStreakLabel: '3 days',
+              level: 6,
+              levelProgressFraction: 0.2,
+              levelLabel: 'Level 6',
+              totalXpLabel: '520 XP',
+              weeklyXpLabel: '',
+              monthlyXpLabel: '520 XP',
+              weeklyDistanceLabel: '',
+              goalProgressLabel: '',
+            ),
+          ),
         ),
       );
 
@@ -73,7 +89,7 @@ void main() {
       expect(find.text('Maya'), findsOneWidget);
       expect(find.text('M'), findsWidgets);
       expect(find.text('Queenstown, Singapore'), findsOneWidget);
-      expect(find.text('Lv.12'), findsNothing);
+      expect(find.text('Lv.6'), findsOneWidget);
       expect(find.text('First relaxed 5K'), findsOneWidget);
       expect(find.text('4 sessions / week'), findsOneWidget);
       expect(find.text('Returning runner'), findsOneWidget);
@@ -705,7 +721,7 @@ void main() {
     expect(find.text('Runiac Runner'), findsOneWidget);
     expect(find.text('R'), findsWidgets);
     expect(find.text('Jurong East, Singapore'), findsOneWidget);
-    expect(find.text('Lv.12'), findsOneWidget);
+    expect(find.text('Lv.0'), findsOneWidget);
     expect(find.text('Build a consistent 10K habit'), findsOneWidget);
   });
 }
@@ -753,6 +769,18 @@ class _SingleProfileRepository implements UserProfileRepository {
 
   @override
   Future<UserProfileReadModel> loadUserProfile() async => profile;
+}
+
+class _SingleUserProgressRepository implements UserProgressRepository {
+  const _SingleUserProgressRepository(this.progress);
+
+  final UserProgressReadModel progress;
+
+  @override
+  Future<UserProgressReadModel> loadUserProgress() async => progress;
+
+  @override
+  Future<UserProgressReadModel> refreshUserProgress() async => progress;
 }
 
 class _CompletingProfileRepository implements UserProfileRepository {

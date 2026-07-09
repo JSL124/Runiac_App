@@ -10,6 +10,8 @@ import '../../plan/domain/repositories/generated_plan_persistence_repository.dar
 import '../../run/presentation/active_run_session_coordinator.dart';
 import '../../run/presentation/models/planned_run_context.dart';
 import '../../run/presentation/run_launch_screen.dart';
+import '../../you/domain/models/user_progress_read_model.dart';
+import '../../you/domain/repositories/user_progress_repository.dart';
 import '../../you/presentation/data/weekly_workout_demo_snapshots.dart';
 import '../../you/presentation/weekly_workout_detail_screen.dart';
 import 'widgets/home_header.dart';
@@ -19,7 +21,7 @@ import 'widgets/today_plan_card.dart';
 
 const _homeScreenBackground = Colors.white;
 
-class HomeTab extends StatelessWidget {
+class HomeTab extends StatefulWidget {
   const HomeTab({
     required this.authRepository,
     required this.profileRepository,
@@ -28,6 +30,7 @@ class HomeTab extends StatelessWidget {
         const NoopGeneratedPlanPersistenceRepository(),
     this.notificationInboxRepository =
         const StaticNotificationInboxRepository(),
+    this.userProgressRepository = const StaticUserProgressRepository(),
     this.todayWorkoutDetailSnapshot,
     this.todayPlannedRunContext,
     super.key,
@@ -41,11 +44,82 @@ class HomeTab extends StatelessWidget {
   final UserProfilePersistenceRepository profilePersistenceRepository;
   final GeneratedPlanPersistenceRepository generatedPlanPersistenceRepository;
   final NotificationInboxRepository notificationInboxRepository;
+  final UserProgressRepository userProgressRepository;
   final WeeklyWorkoutDetailSnapshot? todayWorkoutDetailSnapshot;
   final PlannedRunContext? todayPlannedRunContext;
   final bool enableForegroundGps;
   final ActiveRunSessionCoordinator? activeRunSessionCoordinator;
   final VoidCallback? onNotificationSettingsChanged;
+
+  @override
+  State<HomeTab> createState() => _HomeTabState();
+}
+
+class _HomeTabState extends State<HomeTab> {
+  late Future<UserProgressReadModel> _userProgressFuture;
+  String? _userProgressOwnerUid;
+  UserProgressReadModel? _lastUserProgress;
+
+  @override
+  void initState() {
+    super.initState();
+    _setUserProgressFuture(refresh: false);
+  }
+
+  @override
+  void didUpdateWidget(covariant HomeTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.userProgressRepository != widget.userProgressRepository ||
+        _currentOwnerUid != _userProgressOwnerUid) {
+      _setUserProgressFuture(refresh: false);
+    }
+  }
+
+  String? get _currentOwnerUid => widget.authRepository.currentUser?.uid;
+
+  void _ensureUserProgressFutureForCurrentOwner() {
+    if (_currentOwnerUid != _userProgressOwnerUid) {
+      _setUserProgressFuture(refresh: false);
+    }
+  }
+
+  void _setUserProgressFuture({required bool refresh}) {
+    final ownerUid = _currentOwnerUid;
+    if (ownerUid != _userProgressOwnerUid) {
+      _lastUserProgress = null;
+    }
+    _userProgressOwnerUid = ownerUid;
+    final source = refresh
+        ? widget.userProgressRepository.refreshUserProgress()
+        : widget.userProgressRepository.loadUserProgress();
+    _userProgressFuture = _progressFutureForOwner(
+      ownerUid: ownerUid,
+      source: source,
+      keepLastOnError: refresh,
+    );
+  }
+
+  Future<UserProgressReadModel> _progressFutureForOwner({
+    required String? ownerUid,
+    required Future<UserProgressReadModel> source,
+    required bool keepLastOnError,
+  }) async {
+    try {
+      final progress = await source;
+      if (_userProgressOwnerUid == ownerUid) {
+        _lastUserProgress = progress;
+      }
+      return progress;
+    } catch (_) {
+      final fallback = _lastUserProgress;
+      if (keepLastOnError &&
+          fallback != null &&
+          _userProgressOwnerUid == ownerUid) {
+        return fallback;
+      }
+      rethrow;
+    }
+  }
 
   void _openTodayWorkout(BuildContext context) {
     Navigator.of(context).push(
@@ -53,10 +127,12 @@ class HomeTab extends StatelessWidget {
         builder: (context) {
           return WeeklyWorkoutDetailScreen(
             onBack: () => Navigator.of(context).pop(),
-            snapshot: todayWorkoutDetailSnapshot ?? weeklyWorkoutDetailSnapshot,
+            snapshot:
+                widget.todayWorkoutDetailSnapshot ??
+                weeklyWorkoutDetailSnapshot,
             showEditScheduleAction: false,
-            enableForegroundGps: enableForegroundGps,
-            activeRunSessionCoordinator: activeRunSessionCoordinator,
+            enableForegroundGps: widget.enableForegroundGps,
+            activeRunSessionCoordinator: widget.activeRunSessionCoordinator,
           );
         },
       ),
@@ -66,7 +142,7 @@ class HomeTab extends StatelessWidget {
   Future<void> _openQuickStart(BuildContext context) async {
     final initialPreviewCurrentPosition =
         await prewarmRunLaunchPreviewCurrentPosition(
-          enableForegroundGps: enableForegroundGps,
+          enableForegroundGps: widget.enableForegroundGps,
         );
     if (!context.mounted) {
       return;
@@ -74,38 +150,47 @@ class HomeTab extends StatelessWidget {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (context) => RunLaunchScreen(
-          enableForegroundGps: enableForegroundGps,
+          enableForegroundGps: widget.enableForegroundGps,
           initialPreviewCurrentPosition: initialPreviewCurrentPosition,
-          activeRunSessionCoordinator: activeRunSessionCoordinator,
-          plannedWorkout: todayPlannedRunContext,
+          activeRunSessionCoordinator: widget.activeRunSessionCoordinator,
+          plannedWorkout: widget.todayPlannedRunContext,
         ),
       ),
     );
   }
 
-  void _openAccountProfile(BuildContext context) {
-    Navigator.of(context).push(
+  Future<void> _openAccountProfile(BuildContext context) async {
+    await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (context) {
           return AccountProfileScreen(
-            authRepository: authRepository,
-            profileRepository: profileRepository,
-            profilePersistenceRepository: profilePersistenceRepository,
+            authRepository: widget.authRepository,
+            profileRepository: widget.profileRepository,
+            profilePersistenceRepository: widget.profilePersistenceRepository,
             generatedPlanPersistenceRepository:
-                generatedPlanPersistenceRepository,
-            onNotificationSettingsChanged: onNotificationSettingsChanged,
+                widget.generatedPlanPersistenceRepository,
+            userProgressRepository: widget.userProgressRepository,
+            onNotificationSettingsChanged: widget.onNotificationSettingsChanged,
             onBack: () => Navigator.of(context).pop(),
           );
         },
       ),
     );
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _setUserProgressFuture(refresh: true);
+    });
   }
 
   void _openNotificationInbox(BuildContext context) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (context) {
-          return NotificationInboxPage(repository: notificationInboxRepository);
+          return NotificationInboxPage(
+            repository: widget.notificationInboxRepository,
+          );
         },
       ),
     );
@@ -113,6 +198,7 @@ class HomeTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    _ensureUserProgressFutureForCurrentOwner();
     return SafeArea(
       child: ColoredBox(
         color: _homeScreenBackground,
@@ -124,13 +210,24 @@ class HomeTab extends StatelessWidget {
             children: [
               _HomeContentPadding(
                 child: StreamBuilder<int>(
-                  stream: notificationInboxRepository.watchUnreadCount(),
+                  stream: widget.notificationInboxRepository.watchUnreadCount(),
                   initialData: 0,
                   builder: (context, snapshot) {
-                    return HomeHeader(
-                      unreadNotificationCount: snapshot.data ?? 0,
-                      onNotifications: () => _openNotificationInbox(context),
-                      onProfile: () => _openAccountProfile(context),
+                    return FutureBuilder<UserProgressReadModel>(
+                      future: _userProgressFuture,
+                      builder: (context, progressSnapshot) {
+                        final progress =
+                            progressSnapshot.data ?? _lastUserProgress;
+                        return HomeHeader(
+                          unreadNotificationCount: snapshot.data ?? 0,
+                          levelBadgeLabel: progress?.levelBadgeLabel ?? 'Lv.0',
+                          levelProgressFraction:
+                              progress?.levelProgressFraction ?? 0,
+                          onNotifications: () =>
+                              _openNotificationInbox(context),
+                          onProfile: () => _openAccountProfile(context),
+                        );
+                      },
                     );
                   },
                 ),

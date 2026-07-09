@@ -61,6 +61,8 @@ void main() {
         ..emitSignedIn(uid: 'cache-user-1');
       final reader = _CountingUserProgressDocumentReader({
         'streakCount': 3,
+        'level': 6,
+        'levelProgressPercent': 42,
         'levelLabel': 'Level 3',
       });
       final cacheStore = _MemoryUserProgressCacheStore(
@@ -89,6 +91,9 @@ void main() {
       final progress = await repository.loadUserProgress();
 
       expect(progress.officialStreakLabel, '3 days');
+      expect(progress.level, 6);
+      expect(progress.levelBadgeLabel, 'Lv.6');
+      expect(progress.levelProgressFraction, 0.42);
       expect(progress.levelLabel, 'Level 3');
       expect(reader.readCount, 1);
       expect(cacheStore.entry?.progress.officialStreakLabel, '3 days');

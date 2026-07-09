@@ -11,12 +11,16 @@ class HomeHeader extends StatelessWidget {
     required this.onNotifications,
     required this.onProfile,
     this.unreadNotificationCount = 0,
+    this.levelBadgeLabel = 'Lv.0',
+    this.levelProgressFraction = 0,
     super.key,
   });
 
   final VoidCallback onNotifications;
   final VoidCallback onProfile;
   final int unreadNotificationCount;
+  final String levelBadgeLabel;
+  final double levelProgressFraction;
 
   @override
   Widget build(BuildContext context) {
@@ -55,6 +59,8 @@ class HomeHeader extends StatelessWidget {
           onNotifications: onNotifications,
           onProfile: onProfile,
           unreadNotificationCount: unreadNotificationCount,
+          levelBadgeLabel: levelBadgeLabel,
+          levelProgressFraction: levelProgressFraction,
         ),
       ],
     );
@@ -66,23 +72,27 @@ class _HomeProfilePlaceholder extends StatelessWidget {
     required this.onNotifications,
     required this.onProfile,
     required this.unreadNotificationCount,
+    required this.levelBadgeLabel,
+    required this.levelProgressFraction,
   });
 
   final VoidCallback onNotifications;
   final VoidCallback onProfile;
   final int unreadNotificationCount;
+  final String levelBadgeLabel;
+  final double levelProgressFraction;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 118,
-      height: 78,
+      width: 108,
+      height: 66,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
           Positioned(
             left: 0,
-            top: 16,
+            top: 11,
             child: Stack(
               clipBehavior: Clip.none,
               children: [
@@ -125,14 +135,18 @@ class _HomeProfilePlaceholder extends StatelessWidget {
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTap: onProfile,
-                  child: const Padding(
-                    padding: EdgeInsets.all(2),
+                  child: Padding(
+                    padding: const EdgeInsets.all(2),
                     child: RuniacLevelProfileBadge(
                       initials: 'R',
-                      levelLabel: 'Lv.12',
-                      progressFraction: 0.68,
-                      size: 74,
-                      badgeHeight: 24,
+                      levelLabel: levelBadgeLabel,
+                      progressFraction: levelProgressFraction,
+                      size: 62,
+                      badgeHeight: 18,
+                      badgeMinWidth: 48,
+                      badgeHorizontalPadding: 8,
+                      badgeFontSize: 10.5,
+                      ringStrokeWidth: 5,
                     ),
                   ),
                 ),

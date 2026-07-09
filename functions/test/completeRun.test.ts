@@ -115,6 +115,8 @@ describe("completeRun callable boundary", () => {
     assert.equal(profile.get("divisionKey"), "tier_01");
     assert.equal(profile.get("levelLabel"), "Level 1");
     assert.equal(profile.get("totalXpLabel"), "75 XP");
+    assert.equal(profile.get("monthlyXp"), 75);
+    assert.equal(profile.get("monthlyXpLabel"), "75 XP");
     assert.equal(progressionEvent.get("xpDelta"), 75);
     assert.equal(progressionEvent.get("baseCompletionXp"), 20);
     assert.equal(progressionEvent.get("distanceXp"), 40);
@@ -124,8 +126,44 @@ describe("completeRun callable boundary", () => {
     assert.equal(progressionEvent.get("dailyXpAfter"), 75);
     assert.equal(progressionEvent.get("previousTotalXp"), 0);
     assert.equal(progressionEvent.get("nextTotalXp"), 75);
+    assert.equal(progressionEvent.get("monthlyPeriod"), "2026-06");
+    assert.equal(progressionEvent.get("monthlyXpBefore"), 0);
+    assert.equal(progressionEvent.get("monthlyXpAfter"), 75);
     assert.equal(progressionEvent.get("previousLevel"), 1);
     assert.equal(progressionEvent.get("nextLevel"), 1);
+  });
+
+  it("starts monthly XP from zero across an Asia Singapore month boundary", async () => {
+    const juneResult = await callCompleteRun({
+      auth: { uid: USER_UID },
+      data: runPayloadForSession({
+        clientRunSessionId: "monthly-rollover-june",
+        startedAt: "2026-06-30T14:35:00.000Z",
+        completedAt: "2026-06-30T15:00:00.000Z",
+      }),
+    });
+    const julyResult = await callCompleteRun({
+      auth: { uid: USER_UID },
+      data: runPayloadForSession({
+        clientRunSessionId: "monthly-rollover-july",
+        startedAt: "2026-06-30T16:05:00.000Z",
+        completedAt: "2026-06-30T16:30:00.000Z",
+      }),
+    });
+
+    const juneEvent = await firestore.doc(`progressionEvents/${juneResult.progressionEventId}`).get();
+    const julyEvent = await firestore.doc(`progressionEvents/${julyResult.progressionEventId}`).get();
+    const profile = await firestore.doc(`userProfiles/${USER_UID}`).get();
+
+    assert.equal(juneEvent.get("monthlyPeriod"), "2026-06");
+    assert.equal(juneEvent.get("monthlyXpBefore"), 0);
+    assert.equal(juneEvent.get("monthlyXpAfter"), 60);
+    assert.equal(julyEvent.get("monthlyPeriod"), "2026-07");
+    assert.equal(julyEvent.get("monthlyXpBefore"), 0);
+    assert.equal(julyEvent.get("monthlyXpAfter"), 60);
+    assert.equal(profile.get("totalXp"), 120);
+    assert.equal(profile.get("monthlyXp"), 60);
+    assert.equal(profile.get("monthlyXpLabel"), "60 XP");
   });
 
   it("surfaces display-ready progression fields on the fresh and replayed paths", async () => {
@@ -1303,6 +1341,8 @@ describe("completeRun callable boundary", () => {
     assert.equal(exhaustedEvent.get("dailyXpBefore"), 200);
     assert.equal(exhaustedEvent.get("dailyXpAfter"), 200);
     assert.equal(profile.get("totalXp"), 200);
+    assert.equal(profile.get("monthlyXp"), 200);
+    assert.equal(profile.get("monthlyXpLabel"), "200 XP");
   });
 
   it("rejects duplicate clientRunSessionId values with changed payload content", async () => {
@@ -1355,6 +1395,8 @@ describe("completeRun callable boundary", () => {
     assert.equal(profileAfter.get("xp"), 999);
     assert.equal(profileAfter.get("rank"), 3);
     assert.equal(profileAfter.get("leaderboardScore"), 999);
+    assert.equal(profileAfter.get("monthlyXp"), undefined);
+    assert.equal(profileAfter.get("monthlyXpLabel"), undefined);
   });
 
   it("rejects precise route traces and does not persist them", async () => {

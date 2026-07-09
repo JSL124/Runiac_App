@@ -62,7 +62,11 @@ class FirestoreUserProgressRepository implements UserProgressRepository {
       if (_isUsableCacheForCurrentUser(cached, currentUser.uid)) {
         return cached!.progress;
       }
-      _reportCacheError(error, stackTrace, 'loading user progress from backend');
+      _reportCacheError(
+        error,
+        stackTrace,
+        'loading user progress from backend',
+      );
       rethrow;
     }
   }
@@ -100,10 +104,12 @@ class FirestoreUserProgressRepository implements UserProgressRepository {
       officialStreakLabel: _streakLabel(data['streakCount']),
       officialStreakCount: _positiveInteger(data['streakCount']),
       lastStreakRunDate: _stringOrNull(data['lastStreakRunDate']),
+      level: _nonNegativeInteger(data['level']),
+      levelProgressFraction: _progressFraction(data['levelProgressPercent']),
       levelLabel: _string(data['levelLabel']),
       totalXpLabel: _string(data['totalXpLabel']),
-      weeklyXpLabel: _string(data['weeklyXpLabel']),
       monthlyXpLabel: _string(data['monthlyXpLabel']),
+      weeklyXpLabel: '',
       weeklyDistanceLabel: _string(data['weeklyDistanceLabel']),
       goalProgressLabel: _string(data['goalProgressLabel']),
     );
@@ -144,6 +150,20 @@ class FirestoreUserProgressRepository implements UserProgressRepository {
 
   int? _positiveInteger(Object? value) {
     return value is int && value > 0 ? value : null;
+  }
+
+  int _nonNegativeInteger(Object? value) {
+    return value is int && value >= 0 ? value : 0;
+  }
+
+  double _progressFraction(Object? value) {
+    if (value is int) {
+      return value.clamp(0, 100) / 100;
+    }
+    if (value is double) {
+      return value.clamp(0, 100) / 100;
+    }
+    return 0;
   }
 
   Future<LocalUserProgressCacheEntry?> _loadCacheSafely(String uid) async {

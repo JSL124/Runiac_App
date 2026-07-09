@@ -108,11 +108,19 @@ export function applyDailyXpCap(input: DailyXpCapInput): DailyXpCapResult {
 }
 
 export function dailyCapDateForCompletedAt(completedAt: string): string {
+  return singaporeDateForCompletedAt(completedAt).slice(0, 10);
+}
+
+export function monthlyPeriodForCompletedAt(completedAt: string): string {
+  return singaporeDateForCompletedAt(completedAt).slice(0, 7);
+}
+
+function singaporeDateForCompletedAt(completedAt: string): string {
   const completedAtDate = new Date(completedAt);
   const singaporeTime = new Date(
     completedAtDate.getTime() + singaporeUtcOffsetHours * 60 * 60 * 1000,
   );
-  return singaporeTime.toISOString().slice(0, 10);
+  return singaporeTime.toISOString();
 }
 
 export function resolveLevelProgression(totalXp: number): LevelProgression {

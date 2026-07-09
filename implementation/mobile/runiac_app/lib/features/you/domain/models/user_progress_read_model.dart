@@ -12,6 +12,8 @@ class UserProgressReadModel {
     required this.monthlyXpLabel,
     required this.weeklyDistanceLabel,
     required this.goalProgressLabel,
+    this.level = 0,
+    this.levelProgressFraction = 0,
     this.officialStreakCount,
     this.lastStreakRunDate,
   });
@@ -24,6 +26,10 @@ class UserProgressReadModel {
   final String monthlyXpLabel;
   final String weeklyDistanceLabel;
   final String goalProgressLabel;
+  final int level;
+  final double levelProgressFraction;
   final int? officialStreakCount;
   final String? lastStreakRunDate;
+
+  String get levelBadgeLabel => 'Lv.$level';
 }

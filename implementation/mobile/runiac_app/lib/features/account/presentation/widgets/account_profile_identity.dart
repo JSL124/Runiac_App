@@ -24,9 +24,12 @@ class AccountIdentityCard extends StatelessWidget {
               RuniacLevelProfileBadge(
                 initials: snapshot.avatarInitials,
                 levelLabel: snapshot.previewLevelBadge,
-                progressFraction: 0.68,
+                progressFraction: snapshot.levelProgressFraction,
                 size: 104,
-                badgeHeight: 34,
+                badgeHeight: 28,
+                badgeMinWidth: 64,
+                badgeHorizontalPadding: 11,
+                badgeFontSize: 12,
               ),
               const SizedBox(width: 14),
               Expanded(

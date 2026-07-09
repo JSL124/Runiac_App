@@ -4,6 +4,8 @@ import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/runiac_back_header.dart';
 import '../../auth/domain/runiac_auth_service.dart';
 import '../../plan/domain/repositories/generated_plan_persistence_repository.dart';
+import '../../you/domain/models/user_progress_read_model.dart';
+import '../../you/domain/repositories/user_progress_repository.dart';
 import '../domain/models/user_profile_read_model.dart';
 import '../domain/repositories/user_profile_persistence_repository.dart';
 import '../domain/repositories/user_profile_repository.dart';
@@ -19,6 +21,7 @@ class AccountProfileScreen extends StatefulWidget {
     required this.profilePersistenceRepository,
     required this.generatedPlanPersistenceRepository,
     required this.onBack,
+    this.userProgressRepository = const StaticUserProgressRepository(),
     this.snapshot = accountProfileDemoSnapshot,
     this.onNotificationSettingsChanged,
     super.key,
@@ -28,6 +31,7 @@ class AccountProfileScreen extends StatefulWidget {
   final UserProfileRepository profileRepository;
   final UserProfilePersistenceRepository profilePersistenceRepository;
   final GeneratedPlanPersistenceRepository generatedPlanPersistenceRepository;
+  final UserProgressRepository userProgressRepository;
   final VoidCallback onBack;
   final AccountProfileDemoSnapshot snapshot;
   final VoidCallback? onNotificationSettingsChanged;
@@ -38,6 +42,7 @@ class AccountProfileScreen extends StatefulWidget {
 
 class _AccountProfileScreenState extends State<AccountProfileScreen> {
   late Future<UserProfileReadModel> _profileFuture;
+  late Future<UserProgressReadModel> _progressFuture;
   bool _verificationSendPending = false;
   String? _verificationFeedbackMessage;
 
@@ -45,6 +50,7 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
   void initState() {
     super.initState();
     _profileFuture = widget.profileRepository.loadUserProfile();
+    _progressFuture = widget.userProgressRepository.loadUserProgress();
   }
 
   @override
@@ -52,6 +58,9 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.profileRepository != widget.profileRepository) {
       _profileFuture = widget.profileRepository.loadUserProfile();
+    }
+    if (oldWidget.userProgressRepository != widget.userProgressRepository) {
+      _progressFuture = widget.userProgressRepository.loadUserProgress();
     }
   }
 
@@ -80,7 +89,15 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
                       onSetupProfile: _showProfileRecoveryUnavailable,
                     );
                   }
-                  return _buildProfileBody(asyncProfile.data);
+                  return FutureBuilder<UserProgressReadModel>(
+                    future: _progressFuture,
+                    builder: (context, asyncProgress) {
+                      return _buildProfileBody(
+                        asyncProfile.data,
+                        asyncProgress.data,
+                      );
+                    },
+                  );
                 },
               ),
             ),
@@ -90,8 +107,11 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
     );
   }
 
-  Widget _buildProfileBody(UserProfileReadModel? profile) {
-    final snapshot = _snapshotFromProfile(profile, widget.snapshot);
+  Widget _buildProfileBody(
+    UserProfileReadModel? profile,
+    UserProgressReadModel? progress,
+  ) {
+    final snapshot = _snapshotFromProfile(profile, progress, widget.snapshot);
     final currentUser = widget.authRepository.currentUser;
     final showVerificationPrompt =
         currentUser != null &&
@@ -223,10 +243,11 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
 
   AccountProfileDemoSnapshot _snapshotFromProfile(
     UserProfileReadModel? profile,
+    UserProgressReadModel? progress,
     AccountProfileDemoSnapshot fallback,
   ) {
     if (profile == null) {
-      return fallback;
+      return _snapshotWithProgress(fallback, progress);
     }
     return AccountProfileDemoSnapshot(
       displayName: profile.nickname.isEmpty
@@ -234,7 +255,12 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
           : profile.nickname,
       avatarInitials: profile.avatarInitials,
       regionLabel: profile.locationLabel,
-      previewLevelBadge: profile.previewLevelBadge,
+      previewLevelBadge:
+          progress?.levelBadgeLabel ??
+          (profile.previewLevelBadge.isEmpty
+              ? fallback.previewLevelBadge
+              : profile.previewLevelBadge),
+      levelProgressFraction: progress?.levelProgressFraction ?? 0,
       previewNote: profile.previewNote,
       setupSectionLabel: profile.setupSectionLabel.isEmpty
           ? fallback.setupSectionLabel
@@ -255,6 +281,26 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
           : profile.manageRows
                 .map((row) => _manageRowFromProfileRow(row, fallback))
                 .toList(growable: false),
+    );
+  }
+
+  AccountProfileDemoSnapshot _snapshotWithProgress(
+    AccountProfileDemoSnapshot fallback,
+    UserProgressReadModel? progress,
+  ) {
+    return AccountProfileDemoSnapshot(
+      displayName: fallback.displayName,
+      avatarInitials: fallback.avatarInitials,
+      regionLabel: fallback.regionLabel,
+      previewLevelBadge:
+          progress?.levelBadgeLabel ?? fallback.previewLevelBadge,
+      levelProgressFraction: progress?.levelProgressFraction ?? 0,
+      previewNote: fallback.previewNote,
+      setupSectionLabel: fallback.setupSectionLabel,
+      manageSectionLabel: fallback.manageSectionLabel,
+      footerCaption: fallback.footerCaption,
+      setupItems: fallback.setupItems,
+      manageRows: fallback.manageRows,
     );
   }
 

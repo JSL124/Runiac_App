@@ -51,6 +51,8 @@ describe('owner-owned client records', () => {
       ...profileFields,
       xp: 10,
       totalXp: 75,
+      monthlyXp: 75,
+      monthlyXpLabel: '75 XP',
       level: 2,
       divisionKey: 'tier_01',
       divisionLabel: 'Trailborn League',
@@ -59,6 +61,13 @@ describe('owner-owned client records', () => {
       nextLevelXp: 100,
       xpToNextLevel: 25,
       levelProgressPercent: 75,
+      previousLevelProgressPercent: 0,
+      nextLevelProgressPercent: 75,
+      nextLevelXpTarget: 100,
+      nextXpToNextLevel: 25,
+      monthlyPeriod: '2026-06',
+      monthlyXpBefore: 0,
+      monthlyXpAfter: 75,
       progressionUpdatedAt: 1,
     });
 
@@ -67,9 +76,13 @@ describe('owner-owned client records', () => {
     await assertSucceeds(updateDoc(profile, { displayName: 'Updated Runner' }));
     await assertFails(updateDoc(profile, { xp: deleteField() }));
     await assertFails(updateDoc(profile, { totalXp: 80 }));
+    await assertFails(updateDoc(profile, { monthlyXp: 80 }));
+    await assertFails(updateDoc(profile, { monthlyXpLabel: '80 XP' }));
     await assertFails(updateDoc(profile, { level: 3 }));
     await assertFails(updateDoc(profile, { divisionKey: 'tier_02' }));
     await assertFails(updateDoc(profile, { totalXpLabel: deleteField() }));
+    await assertFails(updateDoc(profile, { nextLevelProgressPercent: 80 }));
+    await assertFails(updateDoc(profile, { monthlyXpAfter: 80 }));
   });
 
   it('denies userRole and subscriptionStatus writes from clients', async () => {

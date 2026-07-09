@@ -4,6 +4,7 @@ import {
   applyDailyXpCap,
   calculateActivityXp,
   dailyCapDateForCompletedAt,
+  monthlyPeriodForCompletedAt,
   resolveLevelProgression,
 } from "../src/progression/progressionCalculator.js";
 
@@ -75,6 +76,13 @@ describe("progression calculator", () => {
     assert.equal(
       dailyCapDateForCompletedAt("2026-06-14T16:30:00.000Z"),
       "2026-06-15",
+    );
+  });
+
+  it("derives monthly leaderboard period from Asia Singapore local date", () => {
+    assert.equal(
+      monthlyPeriodForCompletedAt("2026-06-30T16:30:00.000Z"),
+      "2026-07",
     );
   });
 

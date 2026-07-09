@@ -10,7 +10,10 @@ import {
   progressionEventData,
   progressionDisplayFromEvent,
 } from "../progression/progressionAudit.js";
-import { dailyCapDateForCompletedAt } from "../progression/progressionCalculator.js";
+import {
+  dailyCapDateForCompletedAt,
+  monthlyPeriodForCompletedAt,
+} from "../progression/progressionCalculator.js";
 import { deferredProgressionDisplay } from "../progression/progressionEventWriter.js";
 import { readTrustedProtectedRestDates, readTrustedStreakState } from "../progression/planBoundedStreakState.js";
 import { calculateStreakTransition, type StreakState } from "../progression/streakCalculator.js";
@@ -49,6 +52,7 @@ export async function completeRunForCallable(
   const payloadFingerprint = fingerprintPayload(payload);
   const runSummary = buildRunSummary(payload);
   const dailyCapDate = dailyCapDateForCompletedAt(payload.completedAt);
+  const monthlyPeriod = monthlyPeriodForCompletedAt(payload.completedAt);
   let progressionDisplay: ProgressionDisplay = deferredProgressionDisplay();
 
   await firestore.runTransaction(async (transaction) => {
@@ -65,6 +69,10 @@ export async function completeRunForCallable(
       .collection("progressionEvents")
       .where("ownerUid", "==", uid)
       .where("dailyCapDate", "==", dailyCapDate);
+    const monthlyProgressionEventsQuery = firestore
+      .collection("progressionEvents")
+      .where("ownerUid", "==", uid)
+      .where("monthlyPeriod", "==", monthlyPeriod);
     const [
       activitySnapshot,
       summarySnapshot,
@@ -76,6 +84,7 @@ export async function completeRunForCallable(
       adaptiveEstimateSnapshot,
       activitySnapshots,
       progressionEventSnapshots,
+      monthlyProgressionEventSnapshots,
     ] = await Promise.all([
         transaction.get(activityRef),
         transaction.get(summaryRef),
@@ -87,6 +96,7 @@ export async function completeRunForCallable(
         transaction.get(adaptiveEstimateRef),
         transaction.get(activitiesQuery),
         transaction.get(progressionEventsQuery),
+        transaction.get(monthlyProgressionEventsQuery),
       ]);
 
     if (activitySnapshot.exists) {
@@ -127,7 +137,9 @@ export async function completeRunForCallable(
           profileData: profileSnapshot.data(),
           subscriptionData: userSnapshot.data(),
           dailyCapDate,
+          monthlyPeriod,
           sameDayProgressionEventDocuments: progressionEventSnapshots.docs.map((document) => document.data()),
+          sameMonthProgressionEventDocuments: monthlyProgressionEventSnapshots.docs.map((document) => document.data()),
           planProgressResult,
         })
       : null;

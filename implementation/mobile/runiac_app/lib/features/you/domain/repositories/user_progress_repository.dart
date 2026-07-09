@@ -14,10 +14,10 @@ class StaticUserProgressRepository implements UserProgressRepository {
     return const UserProgressReadModel(
       userId: 'static_you_progress',
       officialStreakLabel: '',
-      levelLabel: 'Level 12',
-      totalXpLabel: '2,520 XP',
-      weeklyXpLabel: '520 XP',
-      monthlyXpLabel: '1,240 XP',
+      levelLabel: 'Level 0',
+      totalXpLabel: '0 XP',
+      weeklyXpLabel: '',
+      monthlyXpLabel: '0 XP',
       weeklyDistanceLabel: '12.4 km',
       goalProgressLabel: '43%',
     );
