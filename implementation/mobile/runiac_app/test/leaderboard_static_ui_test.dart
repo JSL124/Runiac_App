@@ -7,6 +7,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/app.dart';
 import 'package:runiac_app/core/widgets/runiac_share_bottom_sheet.dart';
 import 'package:runiac_app/features/account/domain/singapore_region_options.dart';
+import 'package:runiac_app/features/leaderboard/domain/models/leaderboard_read_model.dart';
+import 'package:runiac_app/features/leaderboard/domain/repositories/leaderboard_repository.dart';
 import 'package:runiac_app/features/leaderboard/presentation/data/leaderboard_demo_snapshots.dart';
 import 'package:runiac_app/features/leaderboard/presentation/leaderboard_tab.dart';
 import 'package:runiac_app/features/leaderboard/presentation/models/leaderboard_display_models.dart';
@@ -25,6 +27,99 @@ final _isWithinMetricFontRange = allOf(
 );
 
 void main() {
+  testWidgets('Leaderboard tab displays backend-owned repository rows', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: LeaderboardTab(
+          repository: _FakeLeaderboardRepository(
+            LeaderboardReadModel(
+              regionLabel: 'Jurong East',
+              currentRunnerRankLabel: '#2',
+              entries: [
+                LeaderboardRowReadModel(
+                  userId: 'runner-2',
+                  displayName: 'Ari S.',
+                  rankLabel: '#1',
+                  scoreLabel: '1,480 XP',
+                  levelLabel: 'Level 19',
+                  divisionLabel: 'Bronze',
+                  regionLabel: 'Jurong East',
+                ),
+                LeaderboardRowReadModel(
+                  userId: 'runner-1',
+                  displayName: 'Jinseo (You)',
+                  rankLabel: '#2',
+                  scoreLabel: '1,320 XP',
+                  levelLabel: 'Level 18',
+                  divisionLabel: 'Bronze',
+                  regionLabel: 'Jurong East',
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('Ari S.'), findsOneWidget);
+    expect(find.text('1,480 XP'), findsOneWidget);
+    expect(find.text('Jinseo (You)'), findsWidgets);
+    expect(find.text('1,320 XP'), findsWidgets);
+    expect(find.text('Alex T.'), findsNothing);
+  });
+
+  testWidgets('Leaderboard tab refreshes reads when countdown has ended', (
+    WidgetTester tester,
+  ) async {
+    final repository = _QueuedLeaderboardRepository([
+      LeaderboardReadModel(
+        regionLabel: 'Jurong East',
+        currentRunnerRankLabel: '#1',
+        periodEndsAt: DateTime.utc(2026, 7, 31, 16),
+        entries: const [
+          LeaderboardRowReadModel(
+            userId: 'runner-old',
+            displayName: 'Old Rank',
+            rankLabel: '#1',
+            scoreLabel: '900 XP',
+            levelLabel: 'Level 9',
+          ),
+        ],
+      ),
+      LeaderboardReadModel(
+        regionLabel: 'Jurong East',
+        currentRunnerRankLabel: '#1',
+        entries: const [
+          LeaderboardRowReadModel(
+            userId: 'runner-new',
+            displayName: 'New Rank',
+            rankLabel: '#1',
+            scoreLabel: '1,100 XP',
+            levelLabel: 'Level 11',
+          ),
+        ],
+      ),
+    ]);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: LeaderboardTab(
+          repository: repository,
+          clock: () => DateTime.utc(2026, 7, 31, 16),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(repository.loadCount, 2);
+    expect(find.text('New Rank'), findsWidgets);
+    expect(find.text('Old Rank'), findsNothing);
+  });
+
   testWidgets('Leaderboard tab shows static map-first landing shell', (
     WidgetTester tester,
   ) async {
@@ -123,9 +218,11 @@ void main() {
       ),
     );
     expect(
-      tester.getTopLeft(
-        find.byKey(const Key('leaderboard_region_current_user_rank_badge')),
-      ).dx,
+      tester
+          .getTopLeft(
+            find.byKey(const Key('leaderboard_region_current_user_rank_badge')),
+          )
+          .dx,
       tester
           .getTopLeft(
             find.byKey(const ValueKey('leaderboard_region_rank_badge_#1')),
@@ -1080,4 +1177,29 @@ void main() {
       findsNothing,
     );
   });
+}
+
+class _FakeLeaderboardRepository implements LeaderboardRepository {
+  const _FakeLeaderboardRepository(this.model);
+
+  final LeaderboardReadModel model;
+
+  @override
+  Future<LeaderboardReadModel> loadLeaderboard() async {
+    return model;
+  }
+}
+
+class _QueuedLeaderboardRepository implements LeaderboardRepository {
+  _QueuedLeaderboardRepository(this.models);
+
+  final List<LeaderboardReadModel> models;
+  int loadCount = 0;
+
+  @override
+  Future<LeaderboardReadModel> loadLeaderboard() async {
+    final index = loadCount >= models.length ? models.length - 1 : loadCount;
+    loadCount += 1;
+    return models[index];
+  }
 }

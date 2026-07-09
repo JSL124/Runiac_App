@@ -7,11 +7,15 @@ class LeaderboardReadModel {
     required this.regionLabel,
     required this.currentRunnerRankLabel,
     required List<LeaderboardRowReadModel> entries,
+    this.periodEndsAt,
+    this.periodLabel,
   }) : entries = List.unmodifiable(entries);
 
   final String regionLabel;
   final String currentRunnerRankLabel;
   final List<LeaderboardRowReadModel> entries;
+  final DateTime? periodEndsAt;
+  final String? periodLabel;
 }
 
 /// Backend-produced leaderboard row display contract.

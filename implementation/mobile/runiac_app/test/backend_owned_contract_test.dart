@@ -298,6 +298,7 @@ void main() {
         'lib/features/plan/data/firestore_plan_progress_repository.dart',
         'lib/features/notifications/data/'
             'cloud_firestore_notification_inbox_document_store.dart',
+        'lib/features/leaderboard/data/firestore_leaderboard_repository.dart',
         'lib/features/you/data/firestore_activity_history_repository.dart',
         'lib/features/you/data/firestore_user_progress_repository.dart',
       };
@@ -371,6 +372,30 @@ void main() {
       expect(source, isNot(contains('.delete(')));
       expect(source, isNot(contains('runTransaction')));
       expect(source, isNot(contains('writeBatch')));
+    });
+
+    test('limits leaderboard access to backend-owned read projections', () {
+      final source = File(
+        'lib/features/leaderboard/data/firestore_leaderboard_repository.dart',
+      ).readAsStringSync();
+
+      expect(source, contains(r'leaderboardCurrentViews/$uid'));
+      expect(source, contains(r'leaderboardSnapshots/$snapshotId'));
+      expect(source, contains(r'leaderboardUserRanks/$rankId'));
+      expect(source, contains('.get('));
+      expect(source, isNot(contains('.set(')));
+      expect(source, isNot(contains('.update(')));
+      expect(source, isNot(contains('.delete(')));
+      expect(source, isNot(contains('runTransaction')));
+      expect(source, isNot(contains('writeBatch')));
+      expect(source, isNot(contains('.batch(')));
+      expect(source, isNot(contains('FieldValue.')));
+      expect(source, isNot(contains("collection('users')")));
+      expect(source, isNot(contains("collection('leaderboardContributions')")));
+      expect(
+        source,
+        isNot(contains("collection('leaderboardAggregationLocks')")),
+      );
     });
 
     test(

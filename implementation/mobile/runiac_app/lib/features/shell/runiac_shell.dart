@@ -5,6 +5,8 @@ import '../account/domain/repositories/user_profile_repository.dart';
 import '../account/domain/repositories/user_profile_persistence_repository.dart';
 import '../auth/domain/runiac_auth_service.dart';
 import '../home/presentation/home_tab.dart';
+import '../leaderboard/data/static_leaderboard_repository.dart';
+import '../leaderboard/domain/repositories/leaderboard_repository.dart';
 import '../leaderboard/presentation/leaderboard_tab.dart';
 import '../maps/presentation/maps_tab.dart';
 import '../notifications/data/method_channel_plan_notification_scheduler.dart';
@@ -35,6 +37,7 @@ class RuniacShell extends StatefulWidget {
     required this.authRepository,
     this.activityHistoryRepository = const StaticActivityHistoryRepository(),
     this.userProgressRepository = const StaticUserProgressRepository(),
+    this.leaderboardRepository = const StaticLeaderboardRepository(),
     required this.profileRepository,
     required this.profilePersistenceRepository,
     this.generatedPlanPersistenceRepository =
@@ -54,6 +57,7 @@ class RuniacShell extends StatefulWidget {
   final RuniacAuthRepository authRepository;
   final ActivityHistoryRepository activityHistoryRepository;
   final UserProgressRepository userProgressRepository;
+  final LeaderboardRepository leaderboardRepository;
   final UserProfileRepository profileRepository;
   final UserProfilePersistenceRepository profilePersistenceRepository;
   final GeneratedPlanPersistenceRepository generatedPlanPersistenceRepository;
@@ -317,7 +321,7 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
       ),
       const MapsTab(),
       const SizedBox.shrink(),
-      const LeaderboardTab(),
+      LeaderboardTab(repository: widget.leaderboardRepository),
       YouTab(
         activityHistoryRepository: widget.activityHistoryRepository,
         userProgressRepository: widget.userProgressRepository,

@@ -19,6 +19,8 @@ import 'features/onboarding/domain/models/local_onboarding_draft.dart';
 import 'features/notifications/domain/models/notification_inbox_item.dart';
 import 'features/notifications/domain/repositories/notification_inbox_repository.dart';
 import 'features/notifications/domain/services/notification_registration_service.dart';
+import 'features/leaderboard/data/static_leaderboard_repository.dart';
+import 'features/leaderboard/domain/repositories/leaderboard_repository.dart';
 import 'features/plan/domain/models/adaptive_plan_estimate_read_model.dart';
 import 'features/plan/domain/models/beginner_adaptive_plan_snapshot.dart';
 import 'features/plan/domain/models/plan_progress_read_model.dart';
@@ -57,6 +59,7 @@ class RuniacApp extends StatefulWidget {
     this.runRepository = const StaticRunRepository(),
     this.activityHistoryRepository = const StaticActivityHistoryRepository(),
     this.userProgressRepository = const StaticUserProgressRepository(),
+    this.leaderboardRepository = const StaticLeaderboardRepository(),
     this.profileRepository = const StaticUserProfileRepository(),
     this.profilePersistenceRepository =
         const NoopUserProfilePersistenceRepository(),
@@ -86,6 +89,7 @@ class RuniacApp extends StatefulWidget {
   final RunRepository runRepository;
   final ActivityHistoryRepository activityHistoryRepository;
   final UserProgressRepository userProgressRepository;
+  final LeaderboardRepository leaderboardRepository;
   final UserProfileRepository profileRepository;
   final UserProfilePersistenceRepository profilePersistenceRepository;
   final GeneratedPlanPersistenceRepository generatedPlanPersistenceRepository;
@@ -494,6 +498,7 @@ class _RuniacAppState extends State<RuniacApp> {
         authRepository: widget.authRepository,
         activityHistoryRepository: widget.activityHistoryRepository,
         userProgressRepository: widget.userProgressRepository,
+        leaderboardRepository: widget.leaderboardRepository,
         profileRepository: widget.profileRepository,
         profilePersistenceRepository: widget.profilePersistenceRepository,
         generatedPlanPersistenceRepository:

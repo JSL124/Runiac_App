@@ -4,6 +4,8 @@ import '../presentation/data/leaderboard_demo_snapshots.dart';
 import '../presentation/models/leaderboard_display_models.dart';
 
 class StaticLeaderboardRepository implements LeaderboardRepository {
+  const StaticLeaderboardRepository();
+
   @override
   Future<LeaderboardReadModel> loadLeaderboard() async {
     return LeaderboardReadModel(
