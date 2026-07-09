@@ -1,6 +1,7 @@
 import { getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
+import { writeLeaderboardContribution } from "../leaderboard/monthlyLeaderboard.js";
 import { persistAdaptiveEstimateLearning } from "../plan/adaptiveEstimate.js";
 import { persistCompletedWorkoutProgress } from "../plan/planProgress.js";
 import {
@@ -201,6 +202,19 @@ export async function completeRunForCallable(
         progressionRef,
         progressionEventData({ uid, ids, payload, audit: xpAudit, streakTransition, planProgressResult }),
       );
+      writeLeaderboardContribution({
+        transaction,
+        firestore,
+        uid,
+        progressionEventId: ids.progressionEventId,
+        completedAt: payload.completedAt,
+        periodKey: xpAudit.monthlyPeriod,
+        scoreXp: xpAudit.xpDelta,
+        divisionKey: xpAudit.nextProgression.divisionKey,
+        divisionLabel: xpAudit.nextProgression.divisionLabel,
+        levelLabel: xpAudit.nextProgression.levelLabel,
+        profileData: profileSnapshot.data(),
+      });
     } else {
       progressionDisplay = progressionDisplayFromEvent(progressionSnapshot.data());
     }

@@ -19,13 +19,15 @@ export function progressionDisplayFromEvent(
   const levelProgressPercent = eventData["nextLevelProgressPercent"];
   const previousStreak = eventData["previousStreak"];
   const streak = eventData["nextStreak"];
+  const countsTowardLeaderboard =
+    eventData["countsTowardLeaderboard"] === true;
   if (typeof xpDelta !== "number" || !isProgressionStatus(status) || !isProgressionReason(reason)) {
     throw new HttpsError("already-exists", "Existing run completion progression display is unreadable.");
   }
 
   return {
     xpDelta,
-    countsTowardLeaderboard: false,
+    countsTowardLeaderboard,
     status,
     reason,
     ...(typeof totalXp === "number" ? { totalXp } : {}),

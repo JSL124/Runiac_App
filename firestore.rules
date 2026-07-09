@@ -696,6 +696,24 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
+    match /leaderboardCurrentViews/{uid} {
+      allow read: if isSignedIn() && uid == request.auth.uid;
+      allow create, update, delete: if false;
+    }
+
+    match /leaderboardUserRanks/{rankId} {
+      allow read: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow create, update, delete: if false;
+    }
+
+    match /leaderboardContributions/{contributionId} {
+      allow read, create, update, delete: if false;
+    }
+
+    match /leaderboardAggregationLocks/{snapshotId} {
+      allow read, create, update, delete: if false;
+    }
+
     match /sharedRoutes/{routeId} {
       allow read: if isSignedIn()
         && (resource.data.ownerUid == request.auth.uid

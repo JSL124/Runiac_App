@@ -19,7 +19,12 @@ before(() => {
 });
 
 beforeEach(async () => {
-  await clearCollections(["activities", "runSummaries", "progressionEvents"]);
+  await clearCollections([
+    "activities",
+    "runSummaries",
+    "progressionEvents",
+    "leaderboardContributions",
+  ]);
 });
 
 describe("completeRun callable emulator surface", () => {
@@ -39,17 +44,22 @@ describe("completeRun callable emulator surface", () => {
     assert.equal(response.status, 200);
     assert.equal(result.validationStatus, "validated");
     assert.equal(result.progressionDisplay.xpDelta, 60);
-    assert.equal(result.progressionDisplay.countsTowardLeaderboard, false);
+    assert.equal(result.progressionDisplay.countsTowardLeaderboard, true);
 
     const activity = await firestore.doc(`activities/${result.activityId}`).get();
     const summary = await firestore.doc(`runSummaries/${result.summaryId}`).get();
     const progressionEvent = await firestore.doc(`progressionEvents/${result.progressionEventId}`).get();
+    const contribution = await firestore
+      .doc(`leaderboardContributions/${USER_UID}_monthly_sg_tier_01_2026-06`)
+      .get();
 
     assert.equal(activity.get("ownerUid"), USER_UID);
     assert.equal(activity.get("validationStatus"), "validated");
     assert.equal(summary.get("ownerUid"), USER_UID);
     assert.equal(progressionEvent.get("xpDelta"), 60);
-    assert.equal(progressionEvent.get("countsTowardLeaderboard"), false);
+    assert.equal(progressionEvent.get("countsTowardLeaderboard"), true);
+    assert.equal(contribution.get("ownerUid"), USER_UID);
+    assert.equal(contribution.get("scoreXp"), 60);
   });
 
   it("accepts paused duration fields through the callable HTTP surface", async () => {

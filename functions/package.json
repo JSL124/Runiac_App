@@ -9,7 +9,7 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "test": "npm run build && firebase emulators:exec --only functions,firestore --project runiac-functions-test \"node --test --test-concurrency=1 lib/test/progressionCalculator.test.js lib/test/completeRun.test.js lib/test/completeRunCallableSurface.test.js lib/test/notificationDevices.test.js lib/test/notificationDispatch.test.js lib/test/notificationScheduledDispatch.test.js\""
+    "test": "npm run build && firebase emulators:exec --only functions,firestore --project runiac-functions-test \"node --test --test-concurrency=1 lib/test/progressionCalculator.test.js lib/test/completeRun.test.js lib/test/completeRunCallableSurface.test.js lib/test/monthlyLeaderboard.test.js lib/test/notificationDevices.test.js lib/test/notificationDispatch.test.js lib/test/notificationScheduledDispatch.test.js\""
   },
   "dependencies": {
     "firebase-admin": "13.6.0",

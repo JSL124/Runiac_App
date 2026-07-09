@@ -149,6 +149,51 @@ describe('owner-owned client records', () => {
     );
   });
 
+  it('allows read-only leaderboard views for signed-in users', async () => {
+    await seed('leaderboardSnapshots/monthly_sg_tier_01_2026-07', {
+      periodKey: '2026-07',
+      regionId: 'sg',
+      divisionKey: 'tier_01',
+      entries: [],
+    });
+    await seed('leaderboardCurrentViews/alice', {
+      uid: 'alice',
+      snapshotId: 'monthly_sg_tier_01_2026-07',
+      rankId: 'alice_monthly_sg_tier_01_2026-07',
+    });
+    await seed('leaderboardUserRanks/alice_monthly_sg_tier_01_2026-07', {
+      uid: 'alice',
+      rankLabel: '#1',
+      score: 120,
+    });
+
+    const alice = dbFor('alice');
+    const bob = dbFor('bob');
+
+    await assertSucceeds(
+      getDoc(doc(alice, 'leaderboardSnapshots/monthly_sg_tier_01_2026-07')),
+    );
+    await assertSucceeds(getDoc(doc(alice, 'leaderboardCurrentViews/alice')));
+    await assertFails(getDoc(doc(bob, 'leaderboardCurrentViews/alice')));
+    await assertSucceeds(
+      getDoc(doc(alice, 'leaderboardUserRanks/alice_monthly_sg_tier_01_2026-07')),
+    );
+    await assertFails(
+      getDoc(doc(bob, 'leaderboardUserRanks/alice_monthly_sg_tier_01_2026-07')),
+    );
+    await assertFails(
+      setDoc(doc(alice, 'leaderboardCurrentViews/alice'), {
+        uid: 'alice',
+        snapshotId: 'client-write',
+      }),
+    );
+    await assertFails(
+      setDoc(doc(alice, 'leaderboardAggregationLocks/monthly_sg_tier_01_2026-07'), {
+        status: 'completed',
+      }),
+    );
+  });
+
   it('allows nickname claims only for the authenticated owner', async () => {
     const alice = dbFor('alice');
 
