@@ -1,12 +1,17 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../../../core/regions/singapore_planning_area_catalog.dart';
 import '../../auth/domain/runiac_auth_service.dart';
+import '../domain/models/leaderboard_league_catalog.dart';
 import '../domain/models/leaderboard_read_model.dart';
 import '../domain/repositories/leaderboard_repository.dart';
-import 'static_leaderboard_repository.dart';
 
 abstract interface class LeaderboardDocumentReader {
+  Future<Map<String, Object?>?> readCurrentPeriod();
+
   Future<Map<String, Object?>?> readCurrentView({required String uid});
+
+  Future<Map<String, Object?>?> readProfile({required String uid});
 
   Future<Map<String, Object?>?> readSnapshot({required String snapshotId});
 
@@ -20,8 +25,18 @@ class FirestoreLeaderboardDocumentReader implements LeaderboardDocumentReader {
   final FirebaseFirestore _firestore;
 
   @override
+  Future<Map<String, Object?>?> readCurrentPeriod() {
+    return _readDocument('leaderboardPeriods/monthly_current');
+  }
+
+  @override
   Future<Map<String, Object?>?> readCurrentView({required String uid}) {
     return _readDocument('leaderboardCurrentViews/$uid');
+  }
+
+  @override
+  Future<Map<String, Object?>?> readProfile({required String uid}) {
+    return _readDocument('userProfiles/$uid');
   }
 
   @override
@@ -45,85 +60,188 @@ class FirestoreLeaderboardRepository implements LeaderboardRepository {
   FirestoreLeaderboardRepository({
     required this.authRepository,
     LeaderboardDocumentReader? reader,
-    this.fallbackRepository = const StaticLeaderboardRepository(),
   }) : _reader = reader ?? FirestoreLeaderboardDocumentReader();
 
   final RuniacAuthRepository authRepository;
   final LeaderboardDocumentReader _reader;
-  final LeaderboardRepository fallbackRepository;
 
   @override
-  Future<LeaderboardReadModel> loadLeaderboard() async {
+  Future<LeaderboardReadModel> loadLeaderboard() {
+    return _load();
+  }
+
+  @override
+  Future<LeaderboardReadModel> loadRegion({required String regionId}) {
+    final area = singaporePlanningAreaForRegionId(regionId);
+    if (area == null) {
+      throw ArgumentError.value(regionId, 'regionId', 'Unsupported region');
+    }
+    return _load(selectedRegionId: area.regionId);
+  }
+
+  Future<LeaderboardReadModel> _load({String? selectedRegionId}) async {
     final currentUser = authRepository.currentUser;
-    final fallback = await fallbackRepository.loadLeaderboard();
     if (currentUser == null) {
-      return fallback;
+      throw StateError('Authentication is required to load Leaderboard.');
     }
-
-    final currentView = await _reader.readCurrentView(uid: currentUser.uid);
-    final snapshotId = _firstString([
-      currentView?['activeSnapshotId'],
-      currentView?['snapshotId'],
+    final documents = await Future.wait([
+      _reader.readCurrentPeriod(),
+      _reader.readCurrentView(uid: currentUser.uid),
+      _reader.readProfile(uid: currentUser.uid),
     ]);
-    if (snapshotId.isEmpty) {
-      return fallback;
+    final period = documents[0];
+    final currentView = documents[1];
+    final profile = documents[2];
+    final homeArea =
+        singaporePlanningAreaForRegionId(
+          _firstString([
+            currentView?['homeRegionId'],
+            currentView?['regionId'],
+          ]),
+        ) ??
+        singaporePlanningAreaForLocationLabel(
+          _string(profile?['locationLabel']),
+        );
+    if (homeArea == null) {
+      return LeaderboardReadModel(
+        status: LeaderboardReadStatus.regionRequired,
+        regionLabel: '',
+        currentRunnerRankLabel: '',
+        entries: const [],
+      );
     }
-
-    final snapshot = await _reader.readSnapshot(snapshotId: snapshotId);
-    if (snapshot == null) {
-      return fallback;
+    final selectedArea =
+        singaporePlanningAreaForRegionId(
+          selectedRegionId ?? homeArea.regionId,
+        ) ??
+        homeArea;
+    final league =
+        leaderboardLeagueForKey(
+          _firstString([currentView?['divisionKey'], profile?['divisionKey']]),
+        ) ??
+        leaderboardLeagueDefinitions.first;
+    final periodKey = _string(period?['periodKey']);
+    final periodLabel = _stringOrNull(period?['periodLabel']);
+    final periodEndsAt = _dateTimeOrNull(period?['refreshesAt']);
+    if (periodKey.isEmpty) {
+      return LeaderboardReadModel(
+        status: LeaderboardReadStatus.updating,
+        regionId: selectedArea.regionId,
+        homeRegionId: homeArea.regionId,
+        regionLabel: selectedArea.regionName,
+        divisionKey: league.key,
+        divisionLabel: league.label,
+        isHomeRegion: selectedArea.regionId == homeArea.regionId,
+        currentRunnerRankLabel: '',
+        entries: const [],
+        periodLabel: periodLabel,
+        periodEndsAt: periodEndsAt,
+      );
     }
-
-    final rankId = _firstString([
-      currentView?['activeRankProjectionId'],
-      currentView?['rankId'],
+    final isHomeRegion = selectedArea.regionId == homeArea.regionId;
+    final deterministicSnapshotId =
+        'monthly_${selectedArea.regionId}_${league.key}_$periodKey';
+    final activeSnapshotId = isHomeRegion
+        ? _firstString([
+            currentView?['activeSnapshotId'],
+            currentView?['snapshotId'],
+          ])
+        : '';
+    final snapshotId = activeSnapshotId.isEmpty
+        ? deterministicSnapshotId
+        : activeSnapshotId;
+    final rankId = isHomeRegion
+        ? _firstString([
+            currentView?['activeRankProjectionId'],
+            currentView?['rankId'],
+          ])
+        : '';
+    final loaded = await Future.wait([
+      _reader.readSnapshot(snapshotId: snapshotId),
+      rankId.isEmpty ? Future.value(null) : _reader.readRank(rankId: rankId),
     ]);
-    final rank = rankId.isEmpty ? null : await _reader.readRank(rankId: rankId);
-    final entries = _entriesFromSnapshot(snapshot);
-
+    final snapshot = loaded[0];
+    final rank = loaded[1];
+    final currentEntry = _map(rank?['currentEntry']);
+    final topEntries = _rowsFromList(
+      snapshot?['topEntries'],
+      currentEntry: currentEntry,
+    );
+    final nearbyEntries = _rowsFromList(
+      rank?['nearbyEntries'],
+      currentEntry: currentEntry,
+    );
+    final currentRankLabel = _string(rank?['rankLabel']);
+    final backendStatus = currentView == null
+        ? LeaderboardReadStatus.unranked
+        : _status(currentView['status']);
+    final status = selectedRegionId != null && !isHomeRegion
+        ? (topEntries.isEmpty
+              ? LeaderboardReadStatus.empty
+              : LeaderboardReadStatus.data)
+        : backendStatus == LeaderboardReadStatus.data && topEntries.isEmpty
+        ? LeaderboardReadStatus.unranked
+        : backendStatus;
     return LeaderboardReadModel(
-      regionLabel: _stringOrFallback(
-        snapshot['regionLabel'],
-        fallback: fallback.regionLabel,
-      ),
-      currentRunnerRankLabel: _stringOrFallback(
-        rank?['rankLabel'],
-        fallback: fallback.currentRunnerRankLabel,
-      ),
-      entries: entries.isEmpty ? fallback.entries : entries,
-      periodEndsAt:
-          _dateTimeOrNull(snapshot['refreshesAt']) ??
-          _dateTimeOrNull(snapshot['periodEndAt']),
-      periodLabel: _stringOrNull(snapshot['periodLabel']),
+      status: status,
+      regionId: selectedArea.regionId,
+      homeRegionId: homeArea.regionId,
+      regionLabel: selectedArea.regionName,
+      divisionKey: league.key,
+      divisionLabel: _string(snapshot?['divisionLabel']).isEmpty
+          ? league.label
+          : _string(snapshot?['divisionLabel']),
+      isHomeRegion: isHomeRegion,
+      currentRunnerRankLabel: currentRankLabel,
+      entries: topEntries,
+      nearbyEntries: nearbyEntries,
+      periodEndsAt: periodEndsAt,
+      periodLabel: periodLabel,
     );
   }
 
-  List<LeaderboardRowReadModel> _entriesFromSnapshot(
-    Map<String, Object?> snapshot,
-  ) {
-    final rawEntries = snapshot['entries'];
-    if (rawEntries is! List<Object?>) {
-      return const <LeaderboardRowReadModel>[];
+  List<LeaderboardRowReadModel> _rowsFromList(
+    Object? value, {
+    required Map<Object?, Object?>? currentEntry,
+  }) {
+    if (value is! List) {
+      return const [];
     }
+    return [
+      for (final rawEntry in value)
+        if (_map(rawEntry) case final entry?)
+          LeaderboardRowReadModel(
+            userId: '',
+            displayName: _string(entry['publicAlias']).isEmpty
+                ? 'Runiac Runner'
+                : _string(entry['publicAlias']),
+            rankLabel: _string(entry['rankLabel']),
+            scoreLabel: _string(entry['scoreLabel']),
+            levelLabel: _string(entry['levelLabel']),
+            divisionLabel: _string(entry['divisionLabel']),
+            regionLabel: _string(entry['regionLabel']),
+            isCurrentUser:
+                currentEntry != null &&
+                _string(entry['rankLabel']) ==
+                    _string(currentEntry['rankLabel']) &&
+                _string(entry['publicAlias']) ==
+                    _string(currentEntry['publicAlias']),
+          ),
+    ];
+  }
 
-    final entries = <LeaderboardRowReadModel>[];
-    for (final rawEntry in rawEntries) {
-      if (rawEntry is! Map) {
-        continue;
-      }
-      entries.add(
-        LeaderboardRowReadModel(
-          userId: _string(rawEntry['userId']),
-          displayName: _string(rawEntry['displayName']),
-          rankLabel: _string(rawEntry['rankLabel']),
-          scoreLabel: _string(rawEntry['scoreLabel']),
-          levelLabel: _string(rawEntry['levelLabel']),
-          divisionLabel: _string(rawEntry['divisionLabel']),
-          regionLabel: _string(rawEntry['regionLabel']),
-        ),
-      );
-    }
-    return entries;
+  LeaderboardReadStatus _status(Object? value) {
+    return switch (_string(value)) {
+      'ranked' => LeaderboardReadStatus.data,
+      'unranked' => LeaderboardReadStatus.unranked,
+      'region_required' => LeaderboardReadStatus.regionRequired,
+      'ineligible_premium' => LeaderboardReadStatus.ineligiblePremium,
+      _ => LeaderboardReadStatus.empty,
+    };
+  }
+
+  Map<Object?, Object?>? _map(Object? value) {
+    return value is Map ? value : null;
   }
 
   String _string(Object? value) {
@@ -140,20 +258,15 @@ class FirestoreLeaderboardRepository implements LeaderboardRepository {
     return '';
   }
 
-  String _stringOrFallback(Object? value, {required String fallback}) {
-    final parsed = _string(value);
-    return parsed.isEmpty ? fallback : parsed;
-  }
-
   String? _stringOrNull(Object? value) {
     final parsed = _string(value);
     return parsed.isEmpty ? null : parsed;
   }
 
   DateTime? _dateTimeOrNull(Object? value) {
-    if (value is! String) {
-      return null;
+    if (value is Timestamp) {
+      return value.toDate();
     }
-    return DateTime.tryParse(value);
+    return value is String ? DateTime.tryParse(value) : null;
   }
 }

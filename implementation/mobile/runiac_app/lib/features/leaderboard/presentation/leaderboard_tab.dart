@@ -2,9 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../../core/assets/runiac_assets.dart';
 import '../../../core/theme/runiac_colors.dart';
-
 import '../data/static_leaderboard_repository.dart';
+import '../domain/models/leaderboard_league_catalog.dart';
+import '../domain/models/leaderboard_read_model.dart';
 import '../domain/repositories/leaderboard_repository.dart';
 import 'data/leaderboard_demo_snapshots.dart';
 import 'leaderboard_read_model_display_adapter.dart';
@@ -40,20 +42,29 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
   static const double _userRegionExpandedSheetHeight = 464;
   static const double _regionalExpandedSheetHeight = 374;
   static const double _collapsedSheetHeight = 46;
+  static const _expiredRetryDelays = [
+    Duration.zero,
+    Duration(seconds: 5),
+    Duration(seconds: 15),
+    Duration(seconds: 30),
+    Duration(seconds: 60),
+  ];
 
   double _sheetProgress = 1;
   bool _showingDetail = false;
-  LeaderboardDetailDisplaySnapshot _selectedRegion =
-      defaultLeaderboardRegionRankingSnapshot;
+  bool _loading = true;
+  Object? _loadError;
+  LeaderboardReadModel? _readModel;
+  LeaderboardDetailDisplaySnapshot? _selectedRegion;
   RunnerAchievementProfileSnapshot? _selectedProfile;
   Timer? _periodRefreshTimer;
-  DateTime? _lastExpiredPeriodEndAt;
+  var _expiredRetryAttempt = 0;
   var _loadSerial = 0;
 
   @override
   void initState() {
     super.initState();
-    _loadLeaderboard();
+    unawaited(_loadLeaderboard());
   }
 
   @override
@@ -61,7 +72,8 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.repository != widget.repository ||
         oldWidget.clock != widget.clock) {
-      _loadLeaderboard();
+      _expiredRetryAttempt = 0;
+      unawaited(_loadLeaderboard());
     }
   }
 
@@ -73,16 +85,27 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
 
   Future<void> _loadLeaderboard() async {
     final loadSerial = ++_loadSerial;
+    if (mounted) {
+      setState(() {
+        _loading = true;
+        _loadError = null;
+      });
+    }
     try {
       final leaderboard = await widget.repository.loadLeaderboard();
       if (!mounted || loadSerial != _loadSerial) {
         return;
       }
       setState(() {
-        _selectedRegion = leaderboardDisplaySnapshotFromReadModel(
-          leaderboard,
-          widget.clock(),
-        );
+        _readModel = leaderboard;
+        _selectedRegion =
+            leaderboard.status == LeaderboardReadStatus.regionRequired
+            ? null
+            : leaderboardDisplaySnapshotFromReadModel(
+                leaderboard,
+                widget.clock(),
+              );
+        _loading = false;
       });
       _schedulePeriodRefresh(leaderboard.periodEndsAt);
     } catch (error, stackTrace) {
@@ -94,6 +117,54 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
           context: ErrorDescription('loading leaderboard read model'),
         ),
       );
+      if (!mounted || loadSerial != _loadSerial) {
+        return;
+      }
+      setState(() {
+        _loading = false;
+        _loadError = error;
+      });
+    }
+  }
+
+  Future<void> _selectRegion(String regionId) async {
+    final loadSerial = ++_loadSerial;
+    setState(() {
+      _loading = true;
+      _loadError = null;
+      _sheetProgress = 1;
+    });
+    try {
+      final leaderboard = await widget.repository.loadRegion(
+        regionId: regionId,
+      );
+      if (!mounted || loadSerial != _loadSerial) {
+        return;
+      }
+      setState(() {
+        _readModel = leaderboard;
+        _selectedRegion = leaderboardDisplaySnapshotFromReadModel(
+          leaderboard,
+          widget.clock(),
+        );
+        _loading = false;
+      });
+    } catch (error, stackTrace) {
+      FlutterError.reportError(
+        FlutterErrorDetails(
+          exception: error,
+          stack: stackTrace,
+          library: 'runiac leaderboard',
+          context: ErrorDescription('loading selected Leaderboard region'),
+        ),
+      );
+      if (!mounted || loadSerial != _loadSerial) {
+        return;
+      }
+      setState(() {
+        _loading = false;
+        _loadError = error;
+      });
     }
   }
 
@@ -102,30 +173,30 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
     if (periodEndsAt == null) {
       return;
     }
-
     final remaining = periodEndsAt.difference(widget.clock());
     if (!remaining.isNegative && remaining > Duration.zero) {
+      _expiredRetryAttempt = 0;
       _periodRefreshTimer = Timer(remaining, _loadLeaderboard);
       return;
     }
-
-    if (_lastExpiredPeriodEndAt == periodEndsAt) {
+    if (_expiredRetryAttempt >= _expiredRetryDelays.length) {
       return;
     }
-    _lastExpiredPeriodEndAt = periodEndsAt;
-    scheduleMicrotask(_loadLeaderboard);
+    final delay = _expiredRetryDelays[_expiredRetryAttempt];
+    _expiredRetryAttempt += 1;
+    if (delay == Duration.zero) {
+      scheduleMicrotask(_loadLeaderboard);
+    } else {
+      _periodRefreshTimer = Timer(delay, _loadLeaderboard);
+    }
   }
 
   void _openDetail() {
+    if (_selectedRegion == null) {
+      return;
+    }
     setState(() {
       _showingDetail = true;
-    });
-  }
-
-  void _selectRegion(String regionId) {
-    setState(() {
-      _selectedRegion = leaderboardRegionRankingSnapshotById(regionId);
-      _sheetProgress = 1;
     });
   }
 
@@ -143,6 +214,13 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
   }
 
   void _openShareRankPanel() {
+    final snapshot = _selectedRegion;
+    final currentUserRow = snapshot?.nearbyRanks
+        .where((row) => row.isCurrentUser)
+        .firstOrNull;
+    if (snapshot == null || currentUserRow == null) {
+      return;
+    }
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -150,13 +228,9 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
       backgroundColor: Colors.transparent,
       barrierColor: RuniacColors.textPrimary.withValues(alpha: 0.48),
       builder: (context) {
-        final currentUserRow = _selectedRegion.nearbyRanks.firstWhere(
-          (row) => row.isCurrentUser,
-        );
-
         return ShareRankFloatingPanel(
-          regionName: _selectedRegion.regionName,
-          divisionName: _selectedRegion.divisionLabel,
+          regionName: snapshot.regionName,
+          divisionName: snapshot.divisionLabel,
           rankLabel: currentUserRow.rankLabel,
         );
       },
@@ -182,7 +256,6 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
 
   void _handleSheetDragEnd(DragEndDetails details) {
     final velocity = details.primaryVelocity ?? 0;
-
     setState(() {
       if (velocity > 260) {
         _sheetProgress = 0;
@@ -203,18 +276,44 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
         onBack: _closeRunnerProfile,
       );
     }
-
-    if (_showingDetail) {
+    final snapshot = _selectedRegion;
+    if (_showingDetail && snapshot != null) {
       return LeaderboardDetailScreen(
-        snapshot: _selectedRegion,
+        snapshot: snapshot,
         onBack: _closeDetail,
         onProfileSelected: _openRunnerProfile,
       );
     }
-
+    final readModel = _readModel;
+    if (readModel?.status == LeaderboardReadStatus.regionRequired) {
+      return _LeaderboardStateMessage(
+        key: const Key('leaderboard_region_required_state'),
+        message:
+            'Choose your planning area in Profile to join the monthly leaderboard.',
+        actionLabel: 'Retry',
+        onAction: _loadLeaderboard,
+      );
+    }
+    if (snapshot == null) {
+      return _LeaderboardStateMessage(
+        key: const Key('leaderboard_initial_state'),
+        message: _loadError == null
+            ? 'Loading monthly leaderboard…'
+            : 'Leaderboard could not be loaded.',
+        actionLabel: _loadError == null ? null : 'Retry',
+        onAction: _loadError == null ? null : _loadLeaderboard,
+        loading: _loading && _loadError == null,
+      );
+    }
     final expandedSheetHeight = _expandedSheetHeight;
     final hiddenSheetHeight =
         (expandedSheetHeight - _collapsedSheetHeight) * (1 - _sheetProgress);
+    final league =
+        leaderboardLeagueForKey(readModel?.divisionKey ?? '') ??
+        leaderboardLeagueDefinitions.first;
+    final mapRegions = leaderboardMapRegionsForHomeRegion(
+      readModel?.homeRegionId ?? '',
+    );
 
     return ColoredBox(
       color: const Color(0xFFEAE6DD),
@@ -222,8 +321,8 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
         children: [
           Positioned.fill(
             child: LeaderboardMapBackground(
-              regions: leaderboardMapRegionDemoSnapshots,
-              selectedRegionId: _selectedRegion.regionId,
+              regions: mapRegions,
+              selectedRegionId: snapshot.regionId,
               onRegionSelected: _selectRegion,
             ),
           ),
@@ -234,6 +333,9 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
             child: SafeArea(
               minimum: const EdgeInsets.only(top: 14),
               child: LeaderboardTopOverlay(
+                divisionName: league.name,
+                levelRange: league.levelRangeLabel,
+                assetPath: _leagueAssetPath(league.key),
                 onShowLeagues: () => showLeaderboardLeaguesDialog(context),
                 onShowTips: () => showLeaderboardTipsDialog(context),
               ),
@@ -247,7 +349,7 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
             bottom: -hiddenSheetHeight,
             child: LeaderboardRegionPreviewSheet(
               height: expandedSheetHeight,
-              snapshot: _selectedRegion,
+              snapshot: snapshot,
               onVerticalDragUpdate: _handleSheetDragUpdate,
               onVerticalDragEnd: _handleSheetDragEnd,
               onViewMoreRanking: _openDetail,
@@ -255,14 +357,106 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
               onProfileSelected: _openRunnerProfile,
             ),
           ),
+          if (_loading)
+            const Positioned(
+              right: 18,
+              top: 84,
+              child: SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(strokeWidth: 3),
+              ),
+            ),
+          if (_loadError != null)
+            Positioned(
+              left: 16,
+              right: 16,
+              top: 82,
+              child: Material(
+                color: RuniacColors.white,
+                borderRadius: BorderRadius.circular(14),
+                child: ListTile(
+                  title: const Text('Leaderboard could not be refreshed.'),
+                  trailing: TextButton(
+                    onPressed: _loadLeaderboard,
+                    child: const Text('Retry'),
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
   }
 
   double get _expandedSheetHeight {
-    return _selectedRegion.isUserRegion
+    return _selectedRegion?.isUserRegion == true
         ? _userRegionExpandedSheetHeight
         : _regionalExpandedSheetHeight;
   }
+}
+
+class _LeaderboardStateMessage extends StatelessWidget {
+  const _LeaderboardStateMessage({
+    super.key,
+    required this.message,
+    this.actionLabel,
+    this.onAction,
+    this.loading = false,
+  });
+
+  final String message;
+  final String? actionLabel;
+  final VoidCallback? onAction;
+  final bool loading;
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: RuniacColors.background,
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (loading) ...[
+                const CircularProgressIndicator(),
+                const SizedBox(height: 18),
+              ],
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: RuniacColors.textPrimary,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              if (actionLabel != null && onAction != null) ...[
+                const SizedBox(height: 14),
+                FilledButton(onPressed: onAction, child: Text(actionLabel!)),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+String _leagueAssetPath(String key) {
+  return switch (key) {
+    'tier_01' => RuniacAssets.leaderboardLeagueIron,
+    'tier_02' => RuniacAssets.leaderboardLeagueBronze,
+    'tier_03' => RuniacAssets.leaderboardLeagueSilver,
+    'tier_04' => RuniacAssets.leaderboardLeagueGold,
+    'tier_05' => RuniacAssets.leaderboardLeaguePlatinum,
+    'tier_06' => RuniacAssets.leaderboardLeagueEmerald,
+    'tier_07' => RuniacAssets.leaderboardLeagueDiamond,
+    'tier_08' => RuniacAssets.leaderboardLeagueMaster,
+    'tier_09' => RuniacAssets.leaderboardLeagueGrandmaster,
+    'tier_10' => RuniacAssets.leaderboardLeagueChallenger,
+    _ => RuniacAssets.leaderboardLeagueIron,
+  };
 }

@@ -170,6 +170,26 @@ class _RegionPreviewList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (snapshot.topRanks.isEmpty) {
+      return const DecoratedBox(
+        decoration: BoxDecoration(
+          color: RuniacColors.white,
+          borderRadius: BorderRadius.all(Radius.circular(20)),
+          border: Border.fromBorderSide(BorderSide(color: Color(0xFFDDE3F8))),
+        ),
+        child: Padding(
+          padding: EdgeInsets.all(18),
+          child: Text(
+            'No ranked runners yet.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: RuniacColors.textSecondary,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      );
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

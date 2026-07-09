@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/assets/runiac_assets.dart';
+import '../../../../core/regions/singapore_planning_area_catalog.dart';
 import '../models/leaderboard_display_models.dart';
 
 // Display-only demo snapshots. In production, rank, XP, level, and
@@ -1168,44 +1169,22 @@ const leaderboardMapRegionDemoSnapshots = [
   ),
 ];
 
-String? leaderboardPlanningAreaIdForLocationLabel(String locationLabel) {
-  final normalizedLocationLabel = _normalizeLocationLabel(locationLabel);
-  final aliasLocationLabel =
-      _planningAreaAliasByLocationLabel[normalizedLocationLabel];
-  for (final region in leaderboardMapRegionDemoSnapshots) {
-    final normalizedRegionLabel = _normalizeLocationLabel(region.locationLabel);
-    if (normalizedRegionLabel == normalizedLocationLabel ||
-        normalizedRegionLabel == aliasLocationLabel) {
-      return region.regionId;
-    }
-  }
+List<LeaderboardMapRegionDisplaySnapshot> leaderboardMapRegionsForHomeRegion(
+  String homeRegionId,
+) {
+  return [
+    for (final region in leaderboardMapRegionDemoSnapshots)
+      region.copyWith(isUserRegion: region.regionId == homeRegionId),
+  ];
+}
 
-  return null;
+String? leaderboardPlanningAreaIdForLocationLabel(String locationLabel) {
+  return singaporePlanningAreaForLocationLabel(locationLabel)?.regionId;
 }
 
 String? leaderboardPlanningAreaNameForLocationLabel(String locationLabel) {
-  final normalizedLocationLabel = _normalizeLocationLabel(locationLabel);
-  final aliasLocationLabel =
-      _planningAreaAliasByLocationLabel[normalizedLocationLabel];
-  for (final region in leaderboardMapRegionDemoSnapshots) {
-    final normalizedRegionLabel = _normalizeLocationLabel(region.locationLabel);
-    if (normalizedRegionLabel == normalizedLocationLabel ||
-        normalizedRegionLabel == aliasLocationLabel) {
-      return region.planningAreaName;
-    }
-  }
-
-  return null;
+  return singaporePlanningAreaForLocationLabel(locationLabel)?.planningAreaName;
 }
-
-String _normalizeLocationLabel(String value) {
-  return value.trim().toLowerCase();
-}
-
-const _planningAreaAliasByLocationLabel = {
-  'central area, singapore': 'downtown core, singapore',
-  'tiong bahru, singapore': 'bukit merah, singapore',
-};
 
 LeaderboardDetailDisplaySnapshot defaultLeaderboardRegionRankingSnapshot =
     leaderboardRegionalDemoSnapshots.firstWhere((snapshot) {

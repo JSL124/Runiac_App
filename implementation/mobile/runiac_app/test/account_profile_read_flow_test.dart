@@ -290,8 +290,8 @@ void main() {
       await tester.ensureVisible(find.bySemanticsLabel('Region'));
       await tester.tap(find.bySemanticsLabel('Region'));
       await tester.pumpAndSettle();
-      expect(find.text('Tiong Bahru, Singapore'), findsOneWidget);
-      await tapText(tester, 'Tiong Bahru, Singapore');
+      expect(find.text('Bedok, Singapore'), findsOneWidget);
+      await tapText(tester, 'Bedok, Singapore');
       await tester.pumpAndSettle();
 
       await tester.ensureVisible(find.text('Retake onboarding'));
@@ -311,7 +311,7 @@ void main() {
       expect(persistenceRepository.onboardingProfile?.weightKg, 59);
       expect(
         persistenceRepository.onboardingProfile?.locationLabel,
-        'Tiong Bahru, Singapore',
+        'Bedok, Singapore',
       );
       expect(
         persistenceRepository.onboardingProfile?.planCautiousness,

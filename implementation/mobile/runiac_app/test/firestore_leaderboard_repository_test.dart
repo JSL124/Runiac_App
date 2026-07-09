@@ -1,120 +1,211 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/features/leaderboard/data/firestore_leaderboard_repository.dart';
-import 'package:runiac_app/features/leaderboard/data/static_leaderboard_repository.dart';
+import 'package:runiac_app/features/leaderboard/domain/models/leaderboard_read_model.dart';
 
 import 'support/fake_runiac_auth_repository.dart';
 
 void main() {
-  test(
-    'loadLeaderboard reads backend-owned current view snapshot and rank docs',
-    () async {
-      final authRepository = FakeRuniacAuthRepository()
-        ..emitSignedIn(uid: 'runner-1');
-      final reader = _FakeLeaderboardDocumentReader(
-        currentView: const {
-          'activeSnapshotId': 'monthly_sg_bronze_2026-07',
-          'activeRankProjectionId': 'runner-1_monthly_sg_bronze_2026-07',
+  test('loads bounded live top and owner-nearby monthly projections', () async {
+    final authRepository = FakeRuniacAuthRepository()
+      ..emitSignedIn(uid: 'runner-1');
+    final reader = _FakeLeaderboardDocumentReader(
+      period: const {
+        'periodKey': '2026-07',
+        'periodLabel': 'July 2026',
+        'refreshesAt': '2026-07-31T16:00:00.000Z',
+      },
+      currentView: const {
+        'homeRegionId': 'jurong-east',
+        'divisionKey': 'tier_02',
+        'status': 'ranked',
+        'activeSnapshotId': 'monthly_jurong-east_tier_02_2026-07',
+        'activeRankProjectionId': 'runner-1_monthly_2026-07',
+      },
+      profile: const {
+        'locationLabel': 'Jurong East, Singapore',
+        'divisionKey': 'tier_02',
+      },
+      snapshots: const {
+        'monthly_jurong-east_tier_02_2026-07': {
+          'regionLabel': 'Jurong East',
+          'divisionLabel': 'Bronze League',
+          'topEntries': [
+            {
+              'publicAlias': 'Ari S.',
+              'rankLabel': '#1',
+              'scoreLabel': '1,480 XP',
+              'levelLabel': 'Level 19',
+              'divisionLabel': 'Bronze League',
+              'regionLabel': 'Jurong East',
+            },
+          ],
         },
-        snapshots: const {
-          'monthly_sg_bronze_2026-07': {
-            'regionLabel': 'Jurong East',
-            'divisionLabel': 'Bronze',
-            'periodLabel': 'July 2026',
-            'refreshesAt': '2026-07-31T16:00:00.000Z',
-            'entries': [
-              {
-                'userId': 'runner-2',
-                'displayName': 'Ari S.',
-                'rankLabel': '#1',
-                'scoreLabel': '1,480 XP',
-                'levelLabel': 'Level 19',
-              },
-              {
-                'userId': 'runner-1',
-                'displayName': 'Jinseo (You)',
-                'rankLabel': '#2',
-                'scoreLabel': '1,320 XP',
-                'levelLabel': 'Level 18',
-              },
-            ],
-          },
+      },
+      ranks: const {
+        'runner-1_monthly_2026-07': {
+          'rankLabel': '#12',
+          'currentEntry': {'publicAlias': 'Jinseo', 'rankLabel': '#12'},
+          'nearbyEntries': [
+            {
+              'publicAlias': 'Jinseo',
+              'rankLabel': '#12',
+              'scoreLabel': '1,320 XP',
+              'levelLabel': 'Level 18',
+              'divisionLabel': 'Bronze League',
+              'regionLabel': 'Jurong East',
+            },
+          ],
         },
-        ranks: const {
-          'runner-1_monthly_sg_bronze_2026-07': {'rankLabel': '#2'},
-        },
-      );
-      final repository = FirestoreLeaderboardRepository(
-        authRepository: authRepository,
-        reader: reader,
-      );
-
-      final leaderboard = await repository.loadLeaderboard();
-
-      expect(leaderboard.regionLabel, 'Jurong East');
-      expect(leaderboard.currentRunnerRankLabel, '#2');
-      expect(leaderboard.periodLabel, 'July 2026');
-      expect(leaderboard.periodEndsAt, DateTime.utc(2026, 7, 31, 16));
-      expect(leaderboard.entries.map((entry) => entry.displayName), [
-        'Ari S.',
-        'Jinseo (You)',
-      ]);
-      expect(leaderboard.entries.last.scoreLabel, '1,320 XP');
-      expect(reader.writes, isEmpty);
-    },
-  );
-
-  test(
-    'loadLeaderboard falls back when no current view is available',
-    () async {
-      final authRepository = FakeRuniacAuthRepository()
-        ..emitSignedIn(uid: 'runner-1');
-      final repository = FirestoreLeaderboardRepository(
-        authRepository: authRepository,
-        reader: const _FakeLeaderboardDocumentReader(currentView: null),
-      );
-      final fallback = await const StaticLeaderboardRepository()
-          .loadLeaderboard();
-
-      final leaderboard = await repository.loadLeaderboard();
-
-      expect(leaderboard.regionLabel, fallback.regionLabel);
-      expect(leaderboard.entries.map((entry) => entry.displayName), [
-        for (final entry in fallback.entries) entry.displayName,
-      ]);
-    },
-  );
-
-  test('loadLeaderboard uses fallback when no user is signed in', () async {
-    final repository = FirestoreLeaderboardRepository(
-      authRepository: FakeRuniacAuthRepository(),
-      reader: const _FakeLeaderboardDocumentReader(
-        currentView: {'snapshotId': 'ignored', 'rankId': 'ignored'},
-      ),
+      },
     );
-    final fallback = await const StaticLeaderboardRepository()
-        .loadLeaderboard();
+    final repository = FirestoreLeaderboardRepository(
+      authRepository: authRepository,
+      reader: reader,
+    );
 
     final leaderboard = await repository.loadLeaderboard();
 
-    expect(leaderboard.currentRunnerRankLabel, fallback.currentRunnerRankLabel);
+    expect(leaderboard.status, LeaderboardReadStatus.data);
+    expect(leaderboard.regionId, 'jurong-east');
+    expect(leaderboard.divisionLabel, 'Bronze League');
+    expect(leaderboard.currentRunnerRankLabel, '#12');
+    expect(leaderboard.entries.single.displayName, 'Ari S.');
+    expect(leaderboard.nearbyEntries.single.displayName, 'Jinseo');
+    expect(leaderboard.nearbyEntries.single.isCurrentUser, isTrue);
+    expect(leaderboard.periodLabel, 'July 2026');
+    expect(leaderboard.periodEndsAt, DateTime.utc(2026, 7, 31, 16));
+  });
+
+  test('uses selected profile planning area for an unranked owner', () async {
+    final authRepository = FakeRuniacAuthRepository()
+      ..emitSignedIn(uid: 'runner-1');
+    final reader = _FakeLeaderboardDocumentReader(
+      period: const {'periodKey': '2026-07', 'periodLabel': 'July 2026'},
+      currentView: null,
+      profile: const {
+        'locationLabel': 'Tampines, Singapore',
+        'divisionKey': 'tier_01',
+      },
+      snapshots: const {
+        'monthly_tampines_tier_01_2026-07': {
+          'divisionLabel': 'Iron League',
+          'topEntries': [],
+        },
+      },
+    );
+    final repository = FirestoreLeaderboardRepository(
+      authRepository: authRepository,
+      reader: reader,
+    );
+
+    final leaderboard = await repository.loadLeaderboard();
+
+    expect(leaderboard.status, LeaderboardReadStatus.unranked);
+    expect(leaderboard.homeRegionId, 'tampines');
+    expect(leaderboard.regionLabel, 'Tampines');
+    expect(leaderboard.entries, isEmpty);
+  });
+
+  test('returns region-required without demo fallback', () async {
+    final authRepository = FakeRuniacAuthRepository()
+      ..emitSignedIn(uid: 'runner-1');
+    final repository = FirestoreLeaderboardRepository(
+      authRepository: authRepository,
+      reader: const _FakeLeaderboardDocumentReader(
+        period: {'periodKey': '2026-07'},
+        currentView: null,
+        profile: {'locationLabel': 'Tuas, Singapore'},
+      ),
+    );
+
+    final leaderboard = await repository.loadLeaderboard();
+
+    expect(leaderboard.status, LeaderboardReadStatus.regionRequired);
+    expect(leaderboard.entries, isEmpty);
+    expect(leaderboard.regionLabel, isEmpty);
+  });
+
+  test('loads a tapped supported region from the live snapshot path', () async {
+    final authRepository = FakeRuniacAuthRepository()
+      ..emitSignedIn(uid: 'runner-1');
+    final reader = _FakeLeaderboardDocumentReader(
+      period: const {'periodKey': '2026-07'},
+      currentView: const {
+        'homeRegionId': 'jurong-east',
+        'divisionKey': 'tier_01',
+        'status': 'ranked',
+      },
+      profile: const {'locationLabel': 'Jurong East, Singapore'},
+      snapshots: const {
+        'monthly_tampines_tier_01_2026-07': {
+          'divisionLabel': 'Iron League',
+          'topEntries': [
+            {
+              'publicAlias': 'Tampines Runner',
+              'rankLabel': '#1',
+              'scoreLabel': '900 XP',
+              'levelLabel': 'Level 3',
+              'divisionLabel': 'Iron League',
+              'regionLabel': 'Tampines',
+            },
+          ],
+        },
+      },
+    );
+    final repository = FirestoreLeaderboardRepository(
+      authRepository: authRepository,
+      reader: reader,
+    );
+
+    final leaderboard = await repository.loadRegion(regionId: 'tampines');
+
+    expect(leaderboard.regionId, 'tampines');
+    expect(leaderboard.isHomeRegion, isFalse);
+    expect(leaderboard.entries.single.displayName, 'Tampines Runner');
+    expect(reader.snapshotReads, contains('monthly_tampines_tier_01_2026-07'));
+  });
+
+  test('requires authentication instead of returning static people', () async {
+    final repository = FirestoreLeaderboardRepository(
+      authRepository: FakeRuniacAuthRepository(),
+      reader: const _FakeLeaderboardDocumentReader(
+        period: {'periodKey': '2026-07'},
+        currentView: null,
+      ),
+    );
+
+    await expectLater(repository.loadLeaderboard(), throwsStateError);
   });
 }
 
 class _FakeLeaderboardDocumentReader implements LeaderboardDocumentReader {
   const _FakeLeaderboardDocumentReader({
+    required this.period,
     required this.currentView,
+    this.profile,
     this.snapshots = const <String, Map<String, Object?>>{},
     this.ranks = const <String, Map<String, Object?>>{},
   });
 
+  final Map<String, Object?>? period;
   final Map<String, Object?>? currentView;
+  final Map<String, Object?>? profile;
   final Map<String, Map<String, Object?>> snapshots;
   final Map<String, Map<String, Object?>> ranks;
-  List<String> get writes => const <String>[];
+  static final List<String> _snapshotReads = [];
+  List<String> get snapshotReads => List.unmodifiable(_snapshotReads);
+
+  @override
+  Future<Map<String, Object?>?> readCurrentPeriod() async => period;
 
   @override
   Future<Map<String, Object?>?> readCurrentView({required String uid}) async {
     return currentView;
+  }
+
+  @override
+  Future<Map<String, Object?>?> readProfile({required String uid}) async {
+    return profile;
   }
 
   @override
@@ -126,6 +217,7 @@ class _FakeLeaderboardDocumentReader implements LeaderboardDocumentReader {
   Future<Map<String, Object?>?> readSnapshot({
     required String snapshotId,
   }) async {
+    _snapshotReads.add(snapshotId);
     return snapshots[snapshotId];
   }
 }

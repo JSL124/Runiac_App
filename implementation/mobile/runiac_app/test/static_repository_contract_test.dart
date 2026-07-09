@@ -72,6 +72,7 @@ void main() {
               'leaderboard_repository.dart',
           declarations: <String>[
             'Future<LeaderboardReadModel> loadLeaderboard();',
+            'Future<LeaderboardReadModel> loadRegion({required String regionId});',
           ],
         ),
         _RepositoryContract(

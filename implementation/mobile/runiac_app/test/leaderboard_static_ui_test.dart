@@ -35,7 +35,11 @@ void main() {
         home: LeaderboardTab(
           repository: _FakeLeaderboardRepository(
             LeaderboardReadModel(
+              regionId: 'jurong-east',
+              homeRegionId: 'jurong-east',
               regionLabel: 'Jurong East',
+              divisionKey: 'tier_02',
+              divisionLabel: 'Bronze League',
               currentRunnerRankLabel: '#2',
               entries: [
                 LeaderboardRowReadModel(
@@ -55,6 +59,18 @@ void main() {
                   levelLabel: 'Level 18',
                   divisionLabel: 'Bronze',
                   regionLabel: 'Jurong East',
+                ),
+              ],
+              nearbyEntries: const [
+                LeaderboardRowReadModel(
+                  userId: 'runner-1',
+                  displayName: 'Jinseo (You)',
+                  rankLabel: '#2',
+                  scoreLabel: '1,320 XP',
+                  levelLabel: 'Level 18',
+                  divisionLabel: 'Bronze League',
+                  regionLabel: 'Jurong East',
+                  isCurrentUser: true,
                 ),
               ],
             ),
@@ -412,7 +428,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Runner profile'), findsOneWidget);
-    expect(find.text('Jinseo'), findsOneWidget);
+    expect(find.text('Jinseo (You)'), findsOneWidget);
     expect(find.text('Jurong East · Rank #18'), findsOneWidget);
     expect(find.text('520 XP'), findsNothing);
   });
@@ -937,21 +953,15 @@ void main() {
       find.byKey(const Key('runner_profile_best_streak_metric')),
       findsOneWidget,
     );
-    expect(find.text('10000 km'), findsOneWidget);
-    expect(find.text('365 days'), findsOneWidget);
+    expect(find.text('Not shared'), findsNWidgets(2));
     expect(find.text('Total distance'), findsOneWidget);
     expect(find.text('Total distance (km)'), findsNothing);
     expect(find.text('Best streak'), findsOneWidget);
     expect(find.text('Achievements'), findsOneWidget);
-    expect(find.text('6 earned'), findsOneWidget);
-    expect(find.text('First 5K'), findsOneWidget);
-    expect(find.text('Consistency Starter'), findsOneWidget);
-    expect(find.text('Weekend Runner'), findsOneWidget);
-    expect(find.text('Morning Miles'), findsOneWidget);
-    expect(find.text('Steady Builder'), findsOneWidget);
-    expect(find.text('Park Route Fan'), findsOneWidget);
+    expect(find.text('0 earned'), findsOneWidget);
+    expect(find.text('First 5K'), findsNothing);
     expect(
-      find.text('Only public running achievements are shown.'),
+      find.text('Only monthly ranking details are shown.'),
       findsOneWidget,
     );
     expect(find.text('Experience'), findsNothing);
@@ -993,7 +1003,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Runner profile'), findsOneWidget);
-    expect(find.text('Jinseo'), findsOneWidget);
+    expect(find.text('Jinseo (You)'), findsOneWidget);
     expect(find.text('Jurong East · Rank #18'), findsOneWidget);
     expect(find.text('520 XP'), findsNothing);
     expect(find.byTooltip('You'), findsOneWidget);
@@ -1188,6 +1198,11 @@ class _FakeLeaderboardRepository implements LeaderboardRepository {
   Future<LeaderboardReadModel> loadLeaderboard() async {
     return model;
   }
+
+  @override
+  Future<LeaderboardReadModel> loadRegion({required String regionId}) async {
+    return model;
+  }
 }
 
 class _QueuedLeaderboardRepository implements LeaderboardRepository {
@@ -1201,5 +1216,10 @@ class _QueuedLeaderboardRepository implements LeaderboardRepository {
     final index = loadCount >= models.length ? models.length - 1 : loadCount;
     loadCount += 1;
     return models[index];
+  }
+
+  @override
+  Future<LeaderboardReadModel> loadRegion({required String regionId}) {
+    return loadLeaderboard();
   }
 }

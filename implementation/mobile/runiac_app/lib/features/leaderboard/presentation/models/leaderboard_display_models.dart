@@ -112,6 +112,21 @@ class LeaderboardMapRegionDisplaySnapshot {
   final Alignment fallbackAlignment;
   final Color color;
   final bool isUserRegion;
+
+  LeaderboardMapRegionDisplaySnapshot copyWith({bool? isUserRegion}) {
+    return LeaderboardMapRegionDisplaySnapshot(
+      regionId: regionId,
+      regionName: regionName,
+      semanticLabel: semanticLabel,
+      locationLabel: locationLabel,
+      planningAreaName: planningAreaName,
+      planningAreaCode: planningAreaCode,
+      planningRegionCode: planningRegionCode,
+      fallbackAlignment: fallbackAlignment,
+      color: color,
+      isUserRegion: isUserRegion ?? this.isUserRegion,
+    );
+  }
 }
 
 String resolveLeaderboardPeriodLabelForDisplay({
