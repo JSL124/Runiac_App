@@ -23,8 +23,14 @@ beforeEach(async () => {
     "activities",
     "runSummaries",
     "progressionEvents",
+    "users",
+    "userProfiles",
     "leaderboardContributions",
   ]);
+  await firestore.doc(`userProfiles/${USER_UID}`).set({
+    nickname: "Surface Runner",
+    locationLabel: "Jurong East, Singapore",
+  });
 });
 
 describe("completeRun callable emulator surface", () => {
@@ -50,7 +56,7 @@ describe("completeRun callable emulator surface", () => {
     const summary = await firestore.doc(`runSummaries/${result.summaryId}`).get();
     const progressionEvent = await firestore.doc(`progressionEvents/${result.progressionEventId}`).get();
     const contribution = await firestore
-      .doc(`leaderboardContributions/${USER_UID}_monthly_sg_tier_01_2026-06`)
+      .doc(`leaderboardContributions/${USER_UID}_monthly_2026-06`)
       .get();
 
     assert.equal(activity.get("ownerUid"), USER_UID);
@@ -60,6 +66,7 @@ describe("completeRun callable emulator surface", () => {
     assert.equal(progressionEvent.get("countsTowardLeaderboard"), true);
     assert.equal(contribution.get("ownerUid"), USER_UID);
     assert.equal(contribution.get("scoreXp"), 60);
+    assert.equal(contribution.get("regionId"), "jurong-east");
   });
 
   it("accepts paused duration fields through the callable HTTP surface", async () => {

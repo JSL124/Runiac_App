@@ -59,6 +59,10 @@ beforeEach(async () => {
     "adaptivePlanEstimates",
     "leaderboardContributions",
   ]);
+  await firestore.doc(`userProfiles/${USER_UID}`).set({
+    nickname: "Test Runner",
+    locationLabel: "Jurong East, Singapore",
+  });
 });
 
 describe("completeRun callable boundary", () => {
@@ -82,7 +86,7 @@ describe("completeRun callable boundary", () => {
     const summary = await firestore.doc(`runSummaries/${result.summaryId}`).get();
     const progressionEvent = await firestore.doc(`progressionEvents/${result.progressionEventId}`).get();
     const contribution = await firestore
-      .doc(`leaderboardContributions/${USER_UID}_monthly_sg_tier_01_2026-06`)
+      .doc(`leaderboardContributions/${USER_UID}_monthly_2026-06`)
       .get();
 
     assert.equal(activity.get("ownerUid"), USER_UID);
@@ -97,6 +101,9 @@ describe("completeRun callable boundary", () => {
     assert.equal(contribution.get("periodType"), "monthly");
     assert.equal(contribution.get("periodKey"), "2026-06");
     assert.equal(contribution.get("timezone"), "Asia/Singapore");
+    assert.equal(contribution.get("schemaVersion"), 2);
+    assert.equal(contribution.get("regionId"), "jurong-east");
+    assert.equal(contribution.get("publicAlias"), "Test Runner");
     assert.equal(contribution.get("scoreXp"), 60);
     assert.equal(contribution.get("eligible"), true);
     assert.deepEqual(contribution.get("sourceProgressionEventIds"), [
@@ -217,7 +224,7 @@ describe("completeRun callable boundary", () => {
       .doc(`progressionEvents/${fresh.progressionEventId}`)
       .get();
     const contribution = await firestore
-      .doc(`leaderboardContributions/${USER_UID}_monthly_sg_tier_01_2026-06`)
+      .doc(`leaderboardContributions/${USER_UID}_monthly_2026-06`)
       .get();
     assert.equal(progressionEvent.get("previousLevelProgressPercent"), 0);
     assert.equal(progressionEvent.get("nextLevelProgressPercent"), 75);

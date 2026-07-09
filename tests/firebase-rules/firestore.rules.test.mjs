@@ -150,19 +150,26 @@ describe('owner-owned client records', () => {
   });
 
   it('allows read-only leaderboard views for signed-in users', async () => {
-    await seed('leaderboardSnapshots/monthly_sg_tier_01_2026-07', {
+    await seed('leaderboardPeriods/monthly_current', {
+      periodType: 'monthly',
       periodKey: '2026-07',
-      regionId: 'sg',
+      periodLabel: 'July 2026',
+    });
+    await seed('leaderboardSnapshots/monthly_jurong-east_tier_01_2026-07', {
+      periodType: 'monthly',
+      periodKey: '2026-07',
+      regionId: 'jurong-east',
       divisionKey: 'tier_01',
-      entries: [],
+      entryCount: 0,
+      topEntries: [],
     });
     await seed('leaderboardCurrentViews/alice', {
-      uid: 'alice',
-      snapshotId: 'monthly_sg_tier_01_2026-07',
-      rankId: 'alice_monthly_sg_tier_01_2026-07',
+      ownerUid: 'alice',
+      snapshotId: 'monthly_jurong-east_tier_01_2026-07',
+      rankId: 'alice_monthly_2026-07',
     });
-    await seed('leaderboardUserRanks/alice_monthly_sg_tier_01_2026-07', {
-      uid: 'alice',
+    await seed('leaderboardUserRanks/alice_monthly_2026-07', {
+      ownerUid: 'alice',
       rankLabel: '#1',
       score: 120,
     });
@@ -171,15 +178,23 @@ describe('owner-owned client records', () => {
     const bob = dbFor('bob');
 
     await assertSucceeds(
-      getDoc(doc(alice, 'leaderboardSnapshots/monthly_sg_tier_01_2026-07')),
+      getDoc(doc(alice, 'leaderboardPeriods/monthly_current')),
+    );
+    await assertSucceeds(
+      getDoc(
+        doc(
+          alice,
+          'leaderboardSnapshots/monthly_jurong-east_tier_01_2026-07',
+        ),
+      ),
     );
     await assertSucceeds(getDoc(doc(alice, 'leaderboardCurrentViews/alice')));
     await assertFails(getDoc(doc(bob, 'leaderboardCurrentViews/alice')));
     await assertSucceeds(
-      getDoc(doc(alice, 'leaderboardUserRanks/alice_monthly_sg_tier_01_2026-07')),
+      getDoc(doc(alice, 'leaderboardUserRanks/alice_monthly_2026-07')),
     );
     await assertFails(
-      getDoc(doc(bob, 'leaderboardUserRanks/alice_monthly_sg_tier_01_2026-07')),
+      getDoc(doc(bob, 'leaderboardUserRanks/alice_monthly_2026-07')),
     );
     await assertFails(
       setDoc(doc(alice, 'leaderboardCurrentViews/alice'), {
@@ -188,8 +203,13 @@ describe('owner-owned client records', () => {
       }),
     );
     await assertFails(
-      setDoc(doc(alice, 'leaderboardAggregationLocks/monthly_sg_tier_01_2026-07'), {
+      setDoc(doc(alice, 'leaderboardAggregationLocks/monthly_2026-07'), {
         status: 'completed',
+      }),
+    );
+    await assertFails(
+      setDoc(doc(alice, 'leaderboardSeedRuns/test-seed'), {
+        status: 'seeded',
       }),
     );
   });

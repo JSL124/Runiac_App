@@ -1,7 +1,10 @@
 import { getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
-import { writeLeaderboardContribution } from "../leaderboard/monthlyLeaderboard.js";
+import {
+  leaderboardContributionId,
+  writeLeaderboardContribution,
+} from "../leaderboard/monthlyLeaderboard.js";
 import { persistAdaptiveEstimateLearning } from "../plan/adaptiveEstimate.js";
 import { persistCompletedWorkoutProgress } from "../plan/planProgress.js";
 import {
@@ -65,6 +68,9 @@ export async function completeRunForCallable(
     const generatedPlanRef = firestore.collection("generatedPlans").doc(uid);
     const planProgressRef = firestore.collection("planProgress").doc(uid);
     const adaptiveEstimateRef = firestore.collection("adaptivePlanEstimates").doc(uid);
+    const leaderboardContributionRef = firestore
+      .collection("leaderboardContributions")
+      .doc(leaderboardContributionId(uid, monthlyPeriod));
     const activitiesQuery = firestore.collection("activities").where("ownerUid", "==", uid);
     const progressionEventsQuery = firestore
       .collection("progressionEvents")
@@ -83,6 +89,7 @@ export async function completeRunForCallable(
       generatedPlanSnapshot,
       planProgressSnapshot,
       adaptiveEstimateSnapshot,
+      leaderboardContributionSnapshot,
       activitySnapshots,
       progressionEventSnapshots,
       monthlyProgressionEventSnapshots,
@@ -95,6 +102,7 @@ export async function completeRunForCallable(
         transaction.get(generatedPlanRef),
         transaction.get(planProgressRef),
         transaction.get(adaptiveEstimateRef),
+        transaction.get(leaderboardContributionRef),
         transaction.get(activitiesQuery),
         transaction.get(progressionEventsQuery),
         transaction.get(monthlyProgressionEventsQuery),
@@ -214,6 +222,7 @@ export async function completeRunForCallable(
         divisionLabel: xpAudit.nextProgression.divisionLabel,
         levelLabel: xpAudit.nextProgression.levelLabel,
         profileData: profileSnapshot.data(),
+        existingContributionData: leaderboardContributionSnapshot.data(),
       });
     } else {
       progressionDisplay = progressionDisplayFromEvent(progressionSnapshot.data());

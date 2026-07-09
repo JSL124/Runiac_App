@@ -93,11 +93,14 @@ describe("progression calculator", () => {
 
     assert.equal(initial.level, 1);
     assert.equal(initial.divisionKey, "tier_01");
+    assert.equal(initial.divisionLabel, "Iron League");
     assert.equal(initial.nextLevelXp, 100);
     assert.equal(mid.level, 99);
     assert.equal(mid.divisionKey, "tier_10");
+    assert.equal(mid.divisionLabel, "Challenger League");
     assert.equal(max.level, 100);
     assert.equal(max.divisionKey, "tier_10");
+    assert.equal(max.divisionLabel, "Challenger League");
     assert.equal(max.nextLevelXp, null);
     assert.equal(max.xpToNextLevel, null);
     assert.equal(max.levelProgressPercent, 100);

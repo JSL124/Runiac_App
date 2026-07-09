@@ -696,13 +696,18 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
+    match /leaderboardPeriods/{periodId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if false;
+    }
+
     match /leaderboardCurrentViews/{uid} {
       allow read: if isSignedIn() && uid == request.auth.uid;
       allow create, update, delete: if false;
     }
 
     match /leaderboardUserRanks/{rankId} {
-      allow read: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow read: if isSignedIn() && resource.data.ownerUid == request.auth.uid;
       allow create, update, delete: if false;
     }
 
@@ -711,6 +716,10 @@ service cloud.firestore {
     }
 
     match /leaderboardAggregationLocks/{snapshotId} {
+      allow read, create, update, delete: if false;
+    }
+
+    match /leaderboardSeedRuns/{runId} {
       allow read, create, update, delete: if false;
     }
 
