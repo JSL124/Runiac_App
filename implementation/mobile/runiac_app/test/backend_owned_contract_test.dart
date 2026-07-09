@@ -296,6 +296,8 @@ void main() {
             'firestore_generated_plan_persistence_repository.dart',
         'lib/features/plan/data/firestore_adaptive_plan_estimate_repository.dart',
         'lib/features/plan/data/firestore_plan_progress_repository.dart',
+        'lib/features/notifications/data/'
+            'cloud_firestore_notification_inbox_document_store.dart',
         'lib/features/you/data/firestore_activity_history_repository.dart',
         'lib/features/you/data/firestore_user_progress_repository.dart',
       };
@@ -421,6 +423,26 @@ void main() {
       expect(source, isNot(contains("'completedRunCount'")));
       expect(source, isNot(contains("'remainingRunCount'")));
       expect(source, isNot(contains("'planCompletion'")));
+    });
+
+    test('limits notification inbox access to owner-scoped client items', () {
+      final source = File(
+        'lib/features/notifications/data/'
+        'cloud_firestore_notification_inbox_document_store.dart',
+      ).readAsStringSync();
+
+      expect(source, contains("collection('notificationInbox')"));
+      expect(source, contains("collection('items')"));
+      expect(source, contains("'ownerUid'"));
+      expect(source, contains("'clientManaged'"));
+      expect(source, contains('.set('));
+      expect(source, contains('.update('));
+      expect(source, isNot(contains("collection('users')")));
+      expect(source, isNot(contains('runTransaction')));
+      expect(source, isNot(contains('writeBatch')));
+      for (final field in BackendOwnedValueContract.protectedFieldNames) {
+        expect(source, isNot(contains("'$field'")), reason: field);
+      }
     });
   });
 }

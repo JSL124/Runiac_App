@@ -167,7 +167,7 @@ void main() {
 
       // Then: the generated snapshot renders with backend-owned completion.
       expect(find.text('10K Performance Build'), findsOneWidget);
-      expect(find.text('1 of ${plan.weeks.length} weeks'), findsOneWidget);
+      expect(find.text('Week 1 of ${plan.weeks.length}'), findsOneWidget);
       expect(find.text('Completed'), findsOneWidget);
     },
   );
@@ -328,7 +328,7 @@ void main() {
 
     // Then: both completions count once against the generated snapshot.
     expect(display, isNotNull);
-    expect(display!.progressLabel, '1 of ${plan.weeks.length} weeks');
+    expect(display!.progressLabel, 'Week 1 of ${plan.weeks.length}');
     expect(display.progressValue, 0.5);
   });
 }

@@ -28,28 +28,43 @@ is_approved_auth_mobile_config_path() {
   esac
 }
 
-is_historical_complete_run_functions_path() {
+is_historical_backend_functions_path() {
   case "$1" in
     functions/.gitignore|\
     functions/package-lock.json|\
     functions/package.json|\
     functions/tsconfig.json|\
     functions/src/index.ts|\
-    functions/src/run/completeRun.ts|\
-    functions/src/run/runCompletionTypes.ts|\
-    functions/src/run/validateCadenceAnalysisSeries.ts|\
-    functions/src/run/validateRunPayload.ts|\
-    functions/src/run/validateRunScalarFields.ts|\
-    functions/src/progression/planBoundedStreakState.ts|\
-    functions/src/progression/progressionEventWriter.ts|\
-    functions/src/progression/streakCalculator.ts|\
+    functions/src/notifications/deviceRegistry.ts|\
+    functions/src/notifications/dispatchPlanner.ts|\
+    functions/src/notifications/scheduledPushDispatch.ts|\
+    functions/src/notifications/scheduledPushFirestore.ts|\
+    functions/src/notifications/scheduledPushMessagingAdapter.ts|\
+    functions/src/notifications/scheduledPushReaders.ts|\
+    functions/src/notifications/types.ts|\
     functions/src/plan/adaptiveEstimate.ts|\
     functions/src/plan/planProgress.ts|\
     functions/src/plan/planProgressParsing.ts|\
     functions/src/plan/planProgressSnapshot.ts|\
+    functions/src/progression/planBoundedStreakState.ts|\
+    functions/src/progression/progressionAudit.ts|\
+    functions/src/progression/progressionAuditHelpers.ts|\
+    functions/src/progression/progressionCalculator.ts|\
+    functions/src/progression/progressionDisplayReader.ts|\
+    functions/src/progression/progressionEventWriter.ts|\
+    functions/src/progression/streakCalculator.ts|\
+    functions/src/run/completeRun.ts|\
+    functions/src/run/runCompletionArtifacts.ts|\
+    functions/src/run/runCompletionTypes.ts|\
+    functions/src/run/validateCadenceAnalysisSeries.ts|\
+    functions/src/run/validateRunPayload.ts|\
+    functions/src/run/validateRunScalarFields.ts|\
     functions/test/completeRun.test.ts|\
-    functions/test/completeRunZeroMetrics.test.ts|\
-    functions/test/completeRunCallableSurface.test.ts)
+    functions/test/completeRunCallableSurface.test.ts|\
+    functions/test/notificationDevices.test.ts|\
+    functions/test/notificationDispatch.test.ts|\
+    functions/test/notificationScheduledDispatch.test.ts|\
+    functions/test/progressionCalculator.test.ts)
       return 0
       ;;
     *)
@@ -95,13 +110,10 @@ is_forbidden_config_or_secret() {
     firebase/functions/*|firebase/functions/src/*)
       return 0
       ;;
-    functions/.gitignore|functions/package-lock.json|functions/package.json|functions/tsconfig.json|functions/src/index.ts|functions/src/run/completeRun.ts|functions/src/run/runCompletionTypes.ts|functions/src/run/validateCadenceAnalysisSeries.ts|functions/src/run/validateRunPayload.ts|functions/src/run/validateRunScalarFields.ts|functions/src/progression/planBoundedStreakState.ts|functions/src/progression/progressionEventWriter.ts|functions/src/progression/streakCalculator.ts|functions/src/plan/adaptiveEstimate.ts|functions/src/plan/planProgress.ts|functions/src/plan/planProgressParsing.ts|functions/src/plan/planProgressSnapshot.ts|functions/test/completeRun.test.ts|functions/test/completeRunZeroMetrics.test.ts|functions/test/completeRunCallableSurface.test.ts)
-      if is_historical_complete_run_functions_path "$1"; then
+    functions/*)
+      if is_historical_backend_functions_path "$1"; then
         return 1
       fi
-      return 0
-      ;;
-    functions/*)
       return 0
       ;;
   esac
@@ -126,7 +138,7 @@ while IFS= read -r path; do
     *package.json)
       case "$path" in
         functions/package.json)
-          if is_historical_complete_run_functions_path "$path"; then
+          if is_historical_backend_functions_path "$path"; then
             continue
           fi
           fail "Forbidden app package marker found: $path"

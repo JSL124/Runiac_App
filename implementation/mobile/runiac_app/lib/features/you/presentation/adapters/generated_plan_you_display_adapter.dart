@@ -192,8 +192,7 @@ GeneratedYouPlanDisplay? generatedYouPlanDisplayFromSnapshot(
   return GeneratedYouPlanDisplay(
     weeklyTitle: snapshot.title,
     subtitle: snapshot.subtitle,
-    progressLabel:
-        '${currentWeek.weekNumber} of ${snapshot.weeks.length} weeks',
+    progressLabel: 'Week ${currentWeek.weekNumber} of ${snapshot.weeks.length}',
     progressValue: progress?.value ?? 0,
     scheduleRows: _weeklyScheduleRowsFor(
       currentWeek,
