@@ -16,6 +16,7 @@ import 'features/auth/domain/runiac_auth_service.dart';
 import 'features/auth/presentation/runiac_auth_gate.dart';
 import 'features/auth/presentation/runiac_profile_setup_gate.dart';
 import 'features/onboarding/domain/models/local_onboarding_draft.dart';
+import 'features/notifications/domain/models/notification_inbox_item.dart';
 import 'features/notifications/domain/repositories/notification_inbox_repository.dart';
 import 'features/notifications/domain/services/notification_registration_service.dart';
 import 'features/plan/domain/models/adaptive_plan_estimate_read_model.dart';
@@ -120,6 +121,7 @@ class _RuniacAppState extends State<RuniacApp> {
   var _adaptivePlanEstimateLoadSerial = 0;
   String? _authStateError;
   bool _showMissingProfileSignupPrompt = false;
+  StreamSubscription<PushNotificationMessage>? _pushNotificationSubscription;
   final SelectedRunnerCharacterStore _selectedCharacterStore =
       SelectedRunnerCharacterStore();
   final LocalSelectedRunnerCharacterStorage _selectedCharacterStorage =
@@ -204,6 +206,7 @@ class _RuniacAppState extends State<RuniacApp> {
     }
     if (oldWidget.notificationRegistrationService !=
         widget.notificationRegistrationService) {
+      unawaited(_cancelPushNotificationSubscription());
       _startPushNotificationsForCurrentUser();
     }
   }
@@ -216,6 +219,7 @@ class _RuniacAppState extends State<RuniacApp> {
     if (_ownsGeneratedPlanStore) {
       _generatedPlanStore.dispose();
     }
+    unawaited(_cancelPushNotificationSubscription());
     unawaited(widget.notificationRegistrationService?.dispose());
     _selectedCharacterStore.dispose();
     super.dispose();
@@ -256,6 +260,7 @@ class _RuniacAppState extends State<RuniacApp> {
                 },
                 onAuthStateChanged: (user) {
                   if (user == null) {
+                    unawaited(_cancelPushNotificationSubscription());
                     unawaited(
                       widget.notificationRegistrationService
                           ?.unregisterCurrentDevice(),
@@ -298,10 +303,53 @@ class _RuniacAppState extends State<RuniacApp> {
   }
 
   void _startPushNotificationsForCurrentUser() {
-    if (widget.authRepository.currentUser == null) {
+    final service = widget.notificationRegistrationService;
+    if (widget.authRepository.currentUser == null || service == null) {
       return;
     }
-    unawaited(widget.notificationRegistrationService?.start());
+    _pushNotificationSubscription ??= service.messages.listen(
+      _saveReceivedPushNotification,
+    );
+    unawaited(service.start());
+  }
+
+  Future<void> _cancelPushNotificationSubscription() async {
+    final subscription = _pushNotificationSubscription;
+    _pushNotificationSubscription = null;
+    await subscription?.cancel();
+  }
+
+  void _saveReceivedPushNotification(PushNotificationMessage message) {
+    final title = message.title?.trim();
+    final body = message.body?.trim();
+    if (message.id.isEmpty || title == null || title.isEmpty) {
+      return;
+    }
+
+    unawaited(
+      widget.notificationInboxRepository
+          .saveInboxItem(
+            NotificationInboxItem(
+              id: message.id,
+              title: title,
+              body: body == null || body.isEmpty ? title : body,
+              createdAt: DateTime.now(),
+              data: message.data,
+            ),
+          )
+          .catchError((Object error, StackTrace stackTrace) {
+            FlutterError.reportError(
+              FlutterErrorDetails(
+                exception: error,
+                stack: stackTrace,
+                library: 'runiac app',
+                context: ErrorDescription(
+                  'saving received push notification to inbox',
+                ),
+              ),
+            );
+          }),
+    );
   }
 
   Future<void> _restoreAndSyncPendingRuns({required String ownerUid}) async {

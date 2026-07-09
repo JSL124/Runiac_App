@@ -47,7 +47,11 @@ class PlanNotificationSyncService {
       completedScheduledWorkoutIds: completedScheduledWorkoutIds,
       streakRisk: streakRisk,
     );
-    await scheduler.syncPlanNotifications(_nearestNotifications(notifications));
+    final nearestNotifications = _nearestNotifications(notifications);
+    await scheduler.syncPlanNotifications(nearestNotifications);
+    for (final notification in nearestNotifications) {
+      await _saveInboxItem(notification);
+    }
   }
 
   Future<void> scheduleSmokeTestNotification({

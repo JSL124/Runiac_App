@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runiac_app/app.dart';
+import 'package:runiac_app/features/notifications/domain/repositories/notification_inbox_repository.dart';
+import 'package:runiac_app/features/notifications/domain/services/notification_registration_service.dart';
+
+import 'support/fake_notification_services.dart';
+import 'support/fake_runiac_auth_repository.dart';
 
 void main() {
   Future<void> openNotificationCenter(WidgetTester tester) async {
@@ -31,6 +36,53 @@ void main() {
     expect(find.byTooltip('Run'), findsOneWidget);
     expect(find.byTooltip('Leaderboard'), findsOneWidget);
     expect(find.byTooltip('You'), findsOneWidget);
+  });
+
+  testWidgets('received push notifications are saved to the inbox', (
+    WidgetTester tester,
+  ) async {
+    final authRepository = FakeRuniacAuthRepository()
+      ..emitSignedIn(uid: 'runner-1');
+    addTearDown(authRepository.dispose);
+    final pushClient = FakePushNotificationClient(
+      permissionStatus: PushNotificationPermissionStatus.authorized,
+      token: 'fcm-token',
+    );
+    final notificationService = NotificationRegistrationService(
+      client: pushClient,
+      callable: FakeNotificationDeviceCallable(),
+      ownerUidProvider: () => authRepository.currentUser?.uid,
+    );
+    final inboxRepository = InMemoryNotificationInboxRepository();
+
+    await tester.pumpWidget(
+      RuniacApp(
+        showSplash: false,
+        showAuth: false,
+        enableForegroundGps: false,
+        authRepository: authRepository,
+        notificationInboxRepository: inboxRepository,
+        notificationRegistrationService: notificationService,
+      ),
+    );
+    await tester.pump();
+
+    pushClient.emitForegroundMessage(
+      const PushNotificationMessage(
+        id: 'push-message-1',
+        title: 'Run reminder',
+        body: 'Your easy run is ready.',
+        data: {'route': '/run'},
+      ),
+    );
+    await tester.pump();
+
+    final inboxItems = await inboxRepository.listInboxItems();
+    expect(inboxItems, hasLength(1));
+    expect(inboxItems.single.id, 'push-message-1');
+    expect(inboxItems.single.title, 'Run reminder');
+    expect(inboxItems.single.body, 'Your easy run is ready.');
+    expect(inboxItems.single.data, {'route': '/run'});
   });
 
   testWidgets('bottom navigation uses icon-only tabs and preserves routing', (

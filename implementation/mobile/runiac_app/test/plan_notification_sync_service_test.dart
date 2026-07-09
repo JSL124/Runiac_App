@@ -93,6 +93,45 @@ void main() {
       },
     );
 
+    test(
+      'saves generated local plan reminders to the notification inbox',
+      () async {
+        // Given: local plan notifications are enabled and an inbox repository is
+        // available for the signed-in runner.
+        final settingsRepository = InMemoryNotificationCenterSettingsRepository(
+          initialSettings: NotificationCenterSettings.defaults,
+        );
+        final scheduler = _RecordingPlanNotificationScheduler();
+        final inboxRepository = InMemoryNotificationInboxRepository();
+        final service = PlanNotificationSyncService(
+          settingsRepository: settingsRepository,
+          scheduler: scheduler,
+          inboxRepository: inboxRepository,
+        );
+
+        // When: the generated plan reminders are synced to the native scheduler.
+        await service.syncGeneratedPlan(
+          _snapshot(
+            startsOnDate: '2026-07-06',
+            workout: _workout(dayLabel: 'Wed', scheduleTimeLabel: '7:30 AM'),
+          ),
+          now: DateTime(2026, 7, 8, 5),
+        );
+
+        // Then: the same local reminders are available from the in-app inbox.
+        final inboxItems = await inboxRepository.listInboxItems();
+        expect(inboxItems.map((item) => item.id), [
+          for (final notification in scheduler.syncedNotifications.reversed)
+            notification.id,
+        ]);
+        expect(
+          inboxItems.first.title,
+          scheduler.syncedNotifications.last.title,
+        );
+        expect(inboxItems.first.data, containsPair('kind', 'missedRunNudge'));
+      },
+    );
+
     test('schedules a QA smoke notification after a short delay', () async {
       // Given
       final settingsRepository = InMemoryNotificationCenterSettingsRepository(
