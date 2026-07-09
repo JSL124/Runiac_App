@@ -1395,8 +1395,11 @@ describe("completeRun callable boundary", () => {
     assert.equal(profileAfter.get("xp"), 999);
     assert.equal(profileAfter.get("rank"), 3);
     assert.equal(profileAfter.get("leaderboardScore"), 999);
-    assert.equal(profileAfter.get("monthlyXp"), undefined);
-    assert.equal(profileAfter.get("monthlyXpLabel"), undefined);
+    assert.equal(profileAfter.get("totalXp"), 0);
+    assert.equal(profileAfter.get("level"), 1);
+    assert.equal(profileAfter.get("levelProgressPercent"), 0);
+    assert.equal(profileAfter.get("monthlyXp"), 0);
+    assert.equal(profileAfter.get("monthlyXpLabel"), "0 XP");
   });
 
   it("rejects precise route traces and does not persist them", async () => {

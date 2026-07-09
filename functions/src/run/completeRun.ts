@@ -217,7 +217,7 @@ export async function completeRunForCallable(
       );
     }
 
-    if (shouldPersistProgression && xpAudit !== null && xpAudit.xpDelta > 0) {
+    if (shouldPersistProgression && xpAudit !== null) {
       transaction.set(profileRef, profileProgressionData(xpAudit, payload.completedAt), { merge: true });
     }
 
