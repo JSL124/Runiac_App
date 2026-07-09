@@ -694,6 +694,8 @@ const _hougangColor = Color(0xFF0284C7);
 const _jurongWestColor = Color(0xFFDC2626);
 const _kallangColor = Color(0xFF4F46E5);
 const _marineParadeColor = Color(0xFF14B8A6);
+const _museumColor = Color(0xFF65A30D);
+const _newtonColor = Color(0xFF64748B);
 const _novenaColor = Color(0xFFA855F7);
 const _outramColor = Color(0xFFF43F5E);
 const _pasirRisColor = Color(0xFF22C55E);
@@ -704,6 +706,7 @@ const _rochorColor = Color(0xFFB45309);
 const _sembawangColor = Color(0xFF1D4ED8);
 const _sengkangColor = Color(0xFF06B6D4);
 const _serangoonColor = Color(0xFF0EA5E9);
+const _singaporeRiverColor = Color(0xFF0F766E);
 const _tampinesColor = Color(0xFF15803D);
 const _tanglinColor = Color(0xFFC026D3);
 const _toaPayohColor = Color(0xFF7E22CE);
@@ -922,6 +925,28 @@ const leaderboardMapRegionDemoSnapshots = [
     color: _marineParadeColor,
   ),
   LeaderboardMapRegionDisplaySnapshot(
+    regionId: 'museum',
+    regionName: 'Museum',
+    locationLabel: 'Museum, Singapore',
+    semanticLabel: 'Museum region ranking polygon',
+    planningAreaName: 'MUSEUM',
+    planningAreaCode: 'MU',
+    planningRegionCode: 'CR',
+    fallbackAlignment: Alignment(0.02, 0.18),
+    color: _museumColor,
+  ),
+  LeaderboardMapRegionDisplaySnapshot(
+    regionId: 'newton',
+    regionName: 'Newton',
+    locationLabel: 'Newton, Singapore',
+    semanticLabel: 'Newton region ranking polygon',
+    planningAreaName: 'NEWTON',
+    planningAreaCode: 'NT',
+    planningRegionCode: 'CR',
+    fallbackAlignment: Alignment(-0.02, -0.02),
+    color: _newtonColor,
+  ),
+  LeaderboardMapRegionDisplaySnapshot(
     regionId: 'novena',
     regionName: 'Novena',
     locationLabel: 'Novena, Singapore',
@@ -1032,6 +1057,17 @@ const leaderboardMapRegionDemoSnapshots = [
     color: _serangoonColor,
   ),
   LeaderboardMapRegionDisplaySnapshot(
+    regionId: 'singapore-river',
+    regionName: 'Singapore River',
+    locationLabel: 'Singapore River, Singapore',
+    semanticLabel: 'Singapore River region ranking polygon',
+    planningAreaName: 'SINGAPORE RIVER',
+    planningAreaCode: 'SR',
+    planningRegionCode: 'CR',
+    fallbackAlignment: Alignment(0.02, 0.30),
+    color: _singaporeRiverColor,
+  ),
+  LeaderboardMapRegionDisplaySnapshot(
     regionId: 'tampines',
     regionName: 'Tampines',
     locationLabel: 'Tampines, Singapore',
@@ -1137,6 +1173,35 @@ LeaderboardDetailDisplaySnapshot leaderboardRegionRankingSnapshotById(
 ) {
   return leaderboardRegionalDemoSnapshots.firstWhere(
     (snapshot) => snapshot.regionId == regionId,
-    orElse: () => defaultLeaderboardRegionRankingSnapshot,
+    orElse: () {
+      for (final region in leaderboardMapRegionDemoSnapshots) {
+        if (region.regionId == regionId) {
+          return _genericLeaderboardRegionRankingSnapshot(region);
+        }
+      }
+
+      return defaultLeaderboardRegionRankingSnapshot;
+    },
+  );
+}
+
+LeaderboardDetailDisplaySnapshot _genericLeaderboardRegionRankingSnapshot(
+  LeaderboardMapRegionDisplaySnapshot region,
+) {
+  return LeaderboardDetailDisplaySnapshot(
+    regionId: region.regionId,
+    regionName: region.regionName,
+    isUserRegion: false,
+    periodLabel: leaderboardDetailDemoSnapshot.periodLabel,
+    fallbackPeriodLabel: leaderboardDetailDemoSnapshot.fallbackPeriodLabel,
+    refreshLabel: leaderboardDetailDemoSnapshot.refreshLabel,
+    fallbackRefreshLabel: leaderboardDetailDemoSnapshot.fallbackRefreshLabel,
+    monthlyResetLabel: leaderboardDetailDemoSnapshot.monthlyResetLabel,
+    divisionLabel: leaderboardDetailDemoSnapshot.divisionLabel,
+    topRanksTitle: leaderboardDetailDemoSnapshot.topRanksTitle,
+    nearbyRanksTitle: leaderboardDetailDemoSnapshot.nearbyRanksTitle,
+    currentUser: leaderboardDetailDemoSnapshot.currentUser,
+    topRanks: leaderboardDetailDemoSnapshot.topRanks,
+    nearbyRanks: const [],
   );
 }

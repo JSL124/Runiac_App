@@ -279,6 +279,20 @@ void main() {
         findsOneWidget,
       );
       expect(
+        find.byKey(const Key('leaderboard_planning_area_touch_newton')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('leaderboard_planning_area_touch_museum')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const Key('leaderboard_planning_area_touch_singapore-river'),
+        ),
+        findsOneWidget,
+      );
+      expect(
         find.byKey(const Key('leaderboard_user_planning_area_highlight')),
         findsOneWidget,
       );
@@ -309,13 +323,27 @@ void main() {
       );
       expect(
         leaderboardMapRegionDemoSnapshots.map((region) => region.regionId),
-        containsAll(<String>['jurong-east', 'tampines', 'woodlands']),
+        containsAll(<String>[
+          'jurong-east',
+          'museum',
+          'newton',
+          'singapore-river',
+          'tampines',
+          'woodlands',
+        ]),
       );
       expect(
         leaderboardMapRegionDemoSnapshots.map(
           (region) => region.planningAreaName,
         ),
-        containsAll(<String>['JURONG EAST', 'TAMPINES', 'WOODLANDS']),
+        containsAll(<String>[
+          'JURONG EAST',
+          'MUSEUM',
+          'NEWTON',
+          'SINGAPORE RIVER',
+          'TAMPINES',
+          'WOODLANDS',
+        ]),
       );
       expect(
         leaderboardMapRegionDemoSnapshots
@@ -392,6 +420,22 @@ void main() {
         leaderboardRegionRankingSnapshotById('not-a-supported-region').regionId,
         'jurong-east',
       );
+      expect(
+        leaderboardRegionRankingSnapshotById('newton').regionName,
+        'Newton',
+      );
+      expect(
+        leaderboardRegionRankingSnapshotById('newton').isUserRegion,
+        false,
+      );
+      expect(
+        leaderboardRegionRankingSnapshotById('museum').regionName,
+        'Museum',
+      );
+      expect(
+        leaderboardRegionRankingSnapshotById('singapore-river').regionName,
+        'Singapore River',
+      );
     },
   );
 
@@ -466,6 +510,9 @@ void main() {
       (id: 'woodlands', title: 'Woodlands'),
       (id: 'tampines', title: 'Tampines'),
       (id: 'ang-mo-kio', title: 'Ang Mo Kio'),
+      (id: 'newton', title: 'Newton'),
+      (id: 'museum', title: 'Museum'),
+      (id: 'singapore-river', title: 'Singapore River'),
     ]) {
       await tester.drag(
         find.byKey(const Key('leaderboard_sheet_handle')),
