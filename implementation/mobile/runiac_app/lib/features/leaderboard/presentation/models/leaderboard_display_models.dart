@@ -26,12 +26,14 @@ class LeaderboardLeagueSnapshot {
   const LeaderboardLeagueSnapshot({
     required this.selectedDivision,
     required this.selectedLevelRange,
+    required this.selectedDivisionAssetPath,
     required this.dialogTitle,
     required this.entries,
   });
 
   final String selectedDivision;
   final String selectedLevelRange;
+  final String selectedDivisionAssetPath;
   final String dialogTitle;
   final List<LeagueTaxonomyEntry> entries;
 }
@@ -201,8 +203,9 @@ class CurrentUserRankSummaryDisplaySnapshot {
 enum RegionPreviewMedalTone { gold, silver, bronze }
 
 class LeagueTaxonomyEntry {
-  const LeagueTaxonomyEntry(this.name, this.range);
+  const LeagueTaxonomyEntry(this.name, this.range, this.assetPath);
 
   final String name;
   final String range;
+  final String assetPath;
 }

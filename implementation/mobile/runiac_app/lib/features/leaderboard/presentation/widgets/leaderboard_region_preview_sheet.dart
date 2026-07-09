@@ -254,7 +254,7 @@ class _RegionPreviewRankRow extends StatelessWidget {
     final rankGap = useDetailRowSizing ? 12.0 : 10.0;
     final nameGap = useDetailRowSizing ? 12.0 : 10.0;
     final xpGap = useDetailRowSizing ? 12.0 : 8.0;
-    final badgeSize = useDetailRowSizing ? 42.0 : 38.0;
+    const badgeSize = 38.0;
     final nameFontSize = useDetailRowSizing ? 16.0 : 14.0;
     final xpFontSize = useDetailRowSizing ? 16.0 : 14.0;
 
@@ -347,6 +347,7 @@ class _RegionPreviewRankBadge extends StatelessWidget {
       final colors = resolveRegionPreviewMedalColors(tone);
 
       return Container(
+        key: ValueKey<String>('leaderboard_region_rank_badge_${row.rankLabel}'),
         width: size,
         height: size,
         alignment: Alignment.center,
@@ -363,6 +364,9 @@ class _RegionPreviewRankBadge extends StatelessWidget {
     }
 
     return Container(
+      key: row.isCurrentUser
+          ? const Key('leaderboard_region_current_user_rank_badge')
+          : ValueKey<String>('leaderboard_region_rank_badge_${row.rankLabel}'),
       width: size,
       height: size,
       alignment: Alignment.center,

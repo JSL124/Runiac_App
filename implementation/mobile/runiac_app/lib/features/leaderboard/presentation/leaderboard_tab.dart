@@ -23,7 +23,8 @@ class LeaderboardTab extends StatefulWidget {
 }
 
 class _LeaderboardTabState extends State<LeaderboardTab> {
-  static const double _expandedSheetHeight = 464;
+  static const double _userRegionExpandedSheetHeight = 464;
+  static const double _regionalExpandedSheetHeight = 374;
   static const double _collapsedSheetHeight = 46;
 
   double _sheetProgress = 1;
@@ -86,11 +87,12 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
   }
 
   void _handleSheetDragUpdate(DragUpdateDetails details) {
+    final expandedSheetHeight = _expandedSheetHeight;
     setState(() {
       _sheetProgress =
           (_sheetProgress -
                   details.delta.dy /
-                      (_expandedSheetHeight - _collapsedSheetHeight))
+                      (expandedSheetHeight - _collapsedSheetHeight))
               .clamp(0, 1);
     });
   }
@@ -127,8 +129,9 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
       );
     }
 
+    final expandedSheetHeight = _expandedSheetHeight;
     final hiddenSheetHeight =
-        (_expandedSheetHeight - _collapsedSheetHeight) * (1 - _sheetProgress);
+        (expandedSheetHeight - _collapsedSheetHeight) * (1 - _sheetProgress);
 
     return ColoredBox(
       color: const Color(0xFFEAE6DD),
@@ -160,7 +163,7 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
             right: 0,
             bottom: -hiddenSheetHeight,
             child: LeaderboardRegionPreviewSheet(
-              height: _expandedSheetHeight,
+              height: expandedSheetHeight,
               snapshot: _selectedRegion,
               onVerticalDragUpdate: _handleSheetDragUpdate,
               onVerticalDragEnd: _handleSheetDragEnd,
@@ -172,5 +175,11 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
         ],
       ),
     );
+  }
+
+  double get _expandedSheetHeight {
+    return _selectedRegion.isUserRegion
+        ? _userRegionExpandedSheetHeight
+        : _regionalExpandedSheetHeight;
   }
 }

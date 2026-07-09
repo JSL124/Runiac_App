@@ -1,9 +1,93 @@
 abstract final class RuniacAssets {
+  static const characterBlueRunnerBack =
+      'assets/images/characters/blue_runner_back.png';
+
+  static const characterBlueRunnerFront =
+      'assets/images/characters/blue_runner_front.png';
+
+  static const characterBlueRunnerLeft =
+      'assets/images/characters/blue_runner_left.png';
+
+  static const characterBlueRunnerRight =
+      'assets/images/characters/blue_runner_right.png';
+
+  static const characterCapRunnerBack =
+      'assets/images/characters/cap_runner_back.png';
+
+  static const characterCapRunnerFront =
+      'assets/images/characters/cap_runner_front.png';
+
+  static const characterCapRunnerLeft =
+      'assets/images/characters/cap_runner_left.png';
+
+  static const characterCapRunnerRight =
+      'assets/images/characters/cap_runner_right.png';
+
+  static const characterPinkRunnerBack =
+      'assets/images/characters/pink_runner_back.png';
+
+  static const characterPinkRunnerFront =
+      'assets/images/characters/pink_runner_front.png';
+
+  static const characterPinkRunnerLeft =
+      'assets/images/characters/pink_runner_left.png';
+
+  static const characterPinkRunnerRight =
+      'assets/images/characters/pink_runner_right.png';
+
+  static const characterPurpleRunnerBack =
+      'assets/images/characters/purple_runner_back.png';
+
+  static const characterPurpleRunnerFront =
+      'assets/images/characters/purple_runner_front.png';
+
+  static const characterPurpleRunnerLeft =
+      'assets/images/characters/purple_runner_left.png';
+
+  static const characterPurpleRunnerRight =
+      'assets/images/characters/purple_runner_right.png';
+
   static const homeTodayPlanRunner =
       'assets/images/home/todays_plan_runner.png';
 
+  static const homeDashboardStageRest =
+      'assets/images/home/stages/dashboard_stage_rest.png';
+
+  static const homeDashboardStageRun =
+      'assets/images/home/stages/dashboard_stage_run.png';
+
   static const leaderboardShareRankCardBackground =
       'assets/images/leaderboard/share_rank_card_background.png';
+
+  static const leaderboardLeagueIron =
+      'assets/images/leaderboard/leagues/league_iron.png';
+
+  static const leaderboardLeagueBronze =
+      'assets/images/leaderboard/leagues/league_bronze.png';
+
+  static const leaderboardLeagueSilver =
+      'assets/images/leaderboard/leagues/league_silver.png';
+
+  static const leaderboardLeagueGold =
+      'assets/images/leaderboard/leagues/league_gold.png';
+
+  static const leaderboardLeaguePlatinum =
+      'assets/images/leaderboard/leagues/league_platinum.png';
+
+  static const leaderboardLeagueEmerald =
+      'assets/images/leaderboard/leagues/league_emerald.png';
+
+  static const leaderboardLeagueDiamond =
+      'assets/images/leaderboard/leagues/league_diamond.png';
+
+  static const leaderboardLeagueMaster =
+      'assets/images/leaderboard/leagues/league_master.png';
+
+  static const leaderboardLeagueGrandmaster =
+      'assets/images/leaderboard/leagues/league_grandmaster.png';
+
+  static const leaderboardLeagueChallenger =
+      'assets/images/leaderboard/leagues/league_challenger.png';
 
   static const instagramStoriesIcon = 'assets/icons/instagram_stories.png';
 }
