@@ -4,7 +4,6 @@ class SingaporeRegionOptions {
   static const values = <String>[
     'Jurong East, Singapore',
     'Orchard, Singapore',
-    'Tiong Bahru, Singapore',
     'Ang Mo Kio, Singapore',
     'Bedok, Singapore',
     'Bishan, Singapore',
@@ -13,7 +12,6 @@ class SingaporeRegionOptions {
     'Bukit Merah, Singapore',
     'Bukit Panjang, Singapore',
     'Bukit Timah, Singapore',
-    'Central Area, Singapore',
     'Changi, Singapore',
     'Choa Chu Kang, Singapore',
     'Clementi, Singapore',

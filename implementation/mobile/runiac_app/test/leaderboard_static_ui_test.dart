@@ -6,8 +6,11 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runiac_app/app.dart';
 import 'package:runiac_app/core/widgets/runiac_share_bottom_sheet.dart';
+import 'package:runiac_app/features/account/domain/singapore_region_options.dart';
+import 'package:runiac_app/features/leaderboard/presentation/data/leaderboard_demo_snapshots.dart';
 import 'package:runiac_app/features/leaderboard/presentation/leaderboard_tab.dart';
 import 'package:runiac_app/features/leaderboard/presentation/models/leaderboard_display_models.dart';
+import 'package:runiac_app/features/leaderboard/presentation/widgets/leaderboard_map_background.dart';
 
 void _useCompactShareSheetSurface(WidgetTester tester) {
   tester.view
@@ -260,33 +263,135 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.byKey(const Key('leaderboard_region_polygon_jurong-east')),
+        find.byKey(const Key('leaderboard_planning_area_touch_jurong-east')),
         findsOneWidget,
       );
       expect(
-        find.byKey(const Key('leaderboard_region_polygon_tampines')),
+        find.byKey(const Key('leaderboard_planning_area_touch_tampines')),
         findsOneWidget,
       );
       expect(
-        find.byKey(const Key('leaderboard_region_polygon_woodlands')),
+        find.byKey(const Key('leaderboard_planning_area_touch_woodlands')),
         findsOneWidget,
       );
       expect(
-        find.byKey(const Key('leaderboard_region_polygon_marina-bay')),
+        find.byKey(const Key('leaderboard_planning_area_touch_ang-mo-kio')),
         findsOneWidget,
       );
       expect(
-        find.byKey(const Key('leaderboard_region_polygon_ang-mo-kio')),
-        findsOneWidget,
-      );
-      expect(
-        find.byKey(const Key('leaderboard_user_region_highlight')),
+        find.byKey(const Key('leaderboard_user_planning_area_highlight')),
         findsOneWidget,
       );
       expect(find.text('Jurong East'), findsOneWidget);
       expect(find.text('My Rank Preview'), findsOneWidget);
       expect(find.text('Share My Rank'), findsOneWidget);
       expect(find.text('View More Ranking'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'Leaderboard planning-area map exposes app region polygons and highlights the user planning area',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(
+        const RuniacApp(showSplash: false, enableForegroundGps: false),
+      );
+
+      await tester.tap(find.byTooltip('Leaderboard'));
+      await tester.pumpAndSettle();
+
+      expect(leaderboardPlanningAreaGeoJsonAsset, contains('2025'));
+      expect(leaderboardPlanningAreaLabelLayerId, contains('label'));
+      expect(
+        leaderboardMapRegionDemoSnapshots
+            .map((region) => region.color.toARGB32())
+            .toSet(),
+        hasLength(leaderboardMapRegionDemoSnapshots.length),
+      );
+      expect(
+        leaderboardMapRegionDemoSnapshots.map((region) => region.regionId),
+        containsAll(<String>['jurong-east', 'tampines', 'woodlands']),
+      );
+      expect(
+        leaderboardMapRegionDemoSnapshots.map(
+          (region) => region.planningAreaName,
+        ),
+        containsAll(<String>['JURONG EAST', 'TAMPINES', 'WOODLANDS']),
+      );
+      expect(
+        leaderboardMapRegionDemoSnapshots
+            .where((region) => region.isUserRegion)
+            .single
+            .regionId,
+        'jurong-east',
+      );
+      expect(
+        find.byKey(const Key('leaderboard_user_planning_area_highlight')),
+        findsOneWidget,
+      );
+      final userPlanningAreaHighlight = tester.widget<Container>(
+        find.byKey(const Key('leaderboard_user_planning_area_highlight')),
+      );
+      expect(userPlanningAreaHighlight.constraints?.maxWidth, 34);
+      expect(userPlanningAreaHighlight.constraints?.maxHeight, 34);
+      final userHighlightDecoration =
+          userPlanningAreaHighlight.decoration as BoxDecoration;
+      expect(userHighlightDecoration.color, isNotNull);
+      expect(userHighlightDecoration.border?.top.color, Colors.white);
+      expect(userHighlightDecoration.border?.top.width, 3);
+      expect(
+        find.byKey(const Key('leaderboard_region_polygon_jurong-east')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const Key('leaderboard_region_polygon_tampines')),
+        findsNothing,
+      );
+    },
+  );
+
+  test(
+    'Leaderboard planning areas match selectable Singapore regions one-to-one',
+    () {
+      final mappedRegionIds = <String>{};
+      final mappedPlanningAreas = <String>{};
+      for (final option in SingaporeRegionOptions.values) {
+        final regionId = leaderboardPlanningAreaIdForLocationLabel(option);
+        final planningAreaName = leaderboardPlanningAreaNameForLocationLabel(
+          option,
+        );
+
+        expect(regionId, isNotNull, reason: '$option needs a map polygon');
+        expect(
+          planningAreaName,
+          isNotNull,
+          reason: '$option needs a planning area label',
+        );
+        expect(
+          mappedRegionIds.add(regionId!),
+          isTrue,
+          reason: '$option must not share a polygon with another option',
+        );
+        expect(
+          mappedPlanningAreas.add(planningAreaName!),
+          isTrue,
+          reason: '$option must not share a planning area with another option',
+        );
+      }
+
+      expect(mappedRegionIds, hasLength(SingaporeRegionOptions.values.length));
+      expect(
+        mappedPlanningAreas,
+        hasLength(SingaporeRegionOptions.values.length),
+      );
+      expect(
+        leaderboardMapRegionDemoSnapshots,
+        hasLength(SingaporeRegionOptions.values.length),
+      );
+
+      expect(
+        leaderboardRegionRankingSnapshotById('not-a-supported-region').regionId,
+        'jurong-east',
+      );
     },
   );
 
@@ -305,7 +410,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       await tester.tap(
-        find.byKey(const Key('leaderboard_region_polygon_tampines')),
+        find.byKey(const Key('leaderboard_planning_area_touch_tampines')),
       );
       await tester.pumpAndSettle();
 
@@ -360,7 +465,6 @@ void main() {
     for (final region in <({String id, String title})>[
       (id: 'woodlands', title: 'Woodlands'),
       (id: 'tampines', title: 'Tampines'),
-      (id: 'marina-bay', title: 'Marina Bay'),
       (id: 'ang-mo-kio', title: 'Ang Mo Kio'),
     ]) {
       await tester.drag(
@@ -369,7 +473,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       await tester.tap(
-        find.byKey(Key('leaderboard_region_polygon_${region.id}')),
+        find.byKey(Key('leaderboard_planning_area_touch_${region.id}')),
       );
       await tester.pumpAndSettle();
 

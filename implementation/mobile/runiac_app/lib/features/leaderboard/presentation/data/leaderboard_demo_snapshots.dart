@@ -675,44 +675,457 @@ const leaderboardRegionalDemoSnapshots = [
   leaderboardAngMoKioDetailDemoSnapshot,
 ];
 
+const _jurongEastColor = Color(0xFFFF5A1F);
+const _orchardColor = Color(0xFF7C3AED);
+const _angMoKioColor = Color(0xFF0891B2);
+const _bedokColor = Color(0xFF16A34A);
+const _bishanColor = Color(0xFFD946EF);
+const _boonLayColor = Color(0xFFEA580C);
+const _bukitBatokColor = Color(0xFFF59E0B);
+const _bukitMerahColor = Color(0xFFE11D48);
+const _bukitPanjangColor = Color(0xFF84CC16);
+const _bukitTimahColor = Color(0xFF8B5CF6);
+const _changiColor = Color(0xFF0D9488);
+const _choaChuKangColor = Color(0xFFCA8A04);
+const _clementiColor = Color(0xFFF97316);
+const _downtownCoreColor = Color(0xFFDB2777);
+const _geylangColor = Color(0xFF9333EA);
+const _hougangColor = Color(0xFF0284C7);
+const _jurongWestColor = Color(0xFFDC2626);
+const _kallangColor = Color(0xFF4F46E5);
+const _marineParadeColor = Color(0xFF14B8A6);
+const _novenaColor = Color(0xFFA855F7);
+const _outramColor = Color(0xFFF43F5E);
+const _pasirRisColor = Color(0xFF22C55E);
+const _punggolColor = Color(0xFF2563EB);
+const _queenstownColor = Color(0xFFBE185D);
+const _riverValleyColor = Color(0xFF6D28D9);
+const _rochorColor = Color(0xFFB45309);
+const _sembawangColor = Color(0xFF1D4ED8);
+const _sengkangColor = Color(0xFF06B6D4);
+const _serangoonColor = Color(0xFF0EA5E9);
+const _tampinesColor = Color(0xFF15803D);
+const _tanglinColor = Color(0xFFC026D3);
+const _toaPayohColor = Color(0xFF7E22CE);
+const _woodlandsColor = Color(0xFF1E40AF);
+const _yishunColor = Color(0xFF3B82F6);
+
 const leaderboardMapRegionDemoSnapshots = [
-  LeaderboardMapRegionDisplaySnapshot(
-    regionId: 'woodlands',
-    regionName: 'Woodlands',
-    semanticLabel: 'Woodlands region ranking polygon',
-    alignment: Alignment(-0.62, -0.58),
-    color: Color(0xFF2F50C7),
-  ),
   LeaderboardMapRegionDisplaySnapshot(
     regionId: 'jurong-east',
     regionName: 'Jurong East',
+    locationLabel: 'Jurong East, Singapore',
     semanticLabel: 'Jurong East user region ranking polygon',
-    alignment: Alignment(-0.42, 0.28),
-    color: Color(0xFFFC6818),
+    planningAreaName: 'JURONG EAST',
+    planningAreaCode: 'JE',
+    planningRegionCode: 'WR',
+    fallbackAlignment: Alignment(-0.56, 0.22),
+    color: _jurongEastColor,
     isUserRegion: true,
   ),
   LeaderboardMapRegionDisplaySnapshot(
-    regionId: 'tampines',
-    regionName: 'Tampines',
-    semanticLabel: 'Tampines region ranking polygon',
-    alignment: Alignment(0.72, -0.72),
-    color: Color(0xFF15803D),
-  ),
-  LeaderboardMapRegionDisplaySnapshot(
-    regionId: 'marina-bay',
-    regionName: 'Marina Bay',
-    semanticLabel: 'Marina Bay region ranking polygon',
-    alignment: Alignment(0.18, 0.48),
-    color: Color(0xFF805AD5),
+    regionId: 'orchard',
+    regionName: 'Orchard',
+    locationLabel: 'Orchard, Singapore',
+    semanticLabel: 'Orchard region ranking polygon',
+    planningAreaName: 'ORCHARD',
+    planningAreaCode: 'OR',
+    planningRegionCode: 'CR',
+    fallbackAlignment: Alignment(-0.02, 0.12),
+    color: _orchardColor,
   ),
   LeaderboardMapRegionDisplaySnapshot(
     regionId: 'ang-mo-kio',
     regionName: 'Ang Mo Kio',
+    locationLabel: 'Ang Mo Kio, Singapore',
     semanticLabel: 'Ang Mo Kio region ranking polygon',
-    alignment: Alignment(0.02, -0.46),
-    color: Color(0xFF0EA5E9),
+    planningAreaName: 'ANG MO KIO',
+    planningAreaCode: 'AM',
+    planningRegionCode: 'NER',
+    fallbackAlignment: Alignment(0.05, -0.44),
+    color: _angMoKioColor,
+  ),
+  LeaderboardMapRegionDisplaySnapshot(
+    regionId: 'bedok',
+    regionName: 'Bedok',
+    locationLabel: 'Bedok, Singapore',
+    semanticLabel: 'Bedok region ranking polygon',
+    planningAreaName: 'BEDOK',
+    planningAreaCode: 'BD',
+    planningRegionCode: 'ER',
+    fallbackAlignment: Alignment(0.62, 0.12),
+    color: _bedokColor,
+  ),
+  LeaderboardMapRegionDisplaySnapshot(
+    regionId: 'bishan',
+    regionName: 'Bishan',
+    locationLabel: 'Bishan, Singapore',
+    semanticLabel: 'Bishan region ranking polygon',
+    planningAreaName: 'BISHAN',
+    planningAreaCode: 'BS',
+    planningRegionCode: 'CR',
+    fallbackAlignment: Alignment(0.04, -0.28),
+    color: _bishanColor,
+  ),
+  LeaderboardMapRegionDisplaySnapshot(
+    regionId: 'boon-lay',
+    regionName: 'Boon Lay',
+    locationLabel: 'Boon Lay, Singapore',
+    semanticLabel: 'Boon Lay region ranking polygon',
+    planningAreaName: 'BOON LAY',
+    planningAreaCode: 'BL',
+    planningRegionCode: 'WR',
+    fallbackAlignment: Alignment(-0.82, 0.08),
+    color: _boonLayColor,
+  ),
+  LeaderboardMapRegionDisplaySnapshot(
+    regionId: 'bukit-batok',
+    regionName: 'Bukit Batok',
+    locationLabel: 'Bukit Batok, Singapore',
+    semanticLabel: 'Bukit Batok region ranking polygon',
+    planningAreaName: 'BUKIT BATOK',
+    planningAreaCode: 'BK',
+    planningRegionCode: 'WR',
+    fallbackAlignment: Alignment(-0.48, -0.16),
+    color: _bukitBatokColor,
+  ),
+  LeaderboardMapRegionDisplaySnapshot(
+    regionId: 'bukit-merah',
+    regionName: 'Bukit Merah',
+    locationLabel: 'Bukit Merah, Singapore',
+    semanticLabel: 'Bukit Merah region ranking polygon',
+    planningAreaName: 'BUKIT MERAH',
+    planningAreaCode: 'BM',
+    planningRegionCode: 'CR',
+    fallbackAlignment: Alignment(-0.14, 0.36),
+    color: _bukitMerahColor,
+  ),
+  LeaderboardMapRegionDisplaySnapshot(
+    regionId: 'bukit-panjang',
+    regionName: 'Bukit Panjang',
+    locationLabel: 'Bukit Panjang, Singapore',
+    semanticLabel: 'Bukit Panjang region ranking polygon',
+    planningAreaName: 'BUKIT PANJANG',
+    planningAreaCode: 'BP',
+    planningRegionCode: 'WR',
+    fallbackAlignment: Alignment(-0.56, -0.34),
+    color: _bukitPanjangColor,
+  ),
+  LeaderboardMapRegionDisplaySnapshot(
+    regionId: 'bukit-timah',
+    regionName: 'Bukit Timah',
+    locationLabel: 'Bukit Timah, Singapore',
+    semanticLabel: 'Bukit Timah region ranking polygon',
+    planningAreaName: 'BUKIT TIMAH',
+    planningAreaCode: 'BT',
+    planningRegionCode: 'CR',
+    fallbackAlignment: Alignment(-0.26, -0.14),
+    color: _bukitTimahColor,
+  ),
+  LeaderboardMapRegionDisplaySnapshot(
+    regionId: 'changi',
+    regionName: 'Changi',
+    locationLabel: 'Changi, Singapore',
+    semanticLabel: 'Changi region ranking polygon',
+    planningAreaName: 'CHANGI',
+    planningAreaCode: 'CH',
+    planningRegionCode: 'ER',
+    fallbackAlignment: Alignment(0.86, -0.02),
+    color: _changiColor,
+  ),
+  LeaderboardMapRegionDisplaySnapshot(
+    regionId: 'choa-chu-kang',
+    regionName: 'Choa Chu Kang',
+    locationLabel: 'Choa Chu Kang, Singapore',
+    semanticLabel: 'Choa Chu Kang region ranking polygon',
+    planningAreaName: 'CHOA CHU KANG',
+    planningAreaCode: 'CK',
+    planningRegionCode: 'WR',
+    fallbackAlignment: Alignment(-0.68, -0.28),
+    color: _choaChuKangColor,
+  ),
+  LeaderboardMapRegionDisplaySnapshot(
+    regionId: 'clementi',
+    regionName: 'Clementi',
+    locationLabel: 'Clementi, Singapore',
+    semanticLabel: 'Clementi region ranking polygon',
+    planningAreaName: 'CLEMENTI',
+    planningAreaCode: 'CL',
+    planningRegionCode: 'WR',
+    fallbackAlignment: Alignment(-0.44, 0.16),
+    color: _clementiColor,
+  ),
+  LeaderboardMapRegionDisplaySnapshot(
+    regionId: 'downtown-core',
+    regionName: 'Downtown Core',
+    locationLabel: 'Downtown Core, Singapore',
+    semanticLabel: 'Downtown Core region ranking polygon',
+    planningAreaName: 'DOWNTOWN CORE',
+    planningAreaCode: 'DT',
+    planningRegionCode: 'CR',
+    fallbackAlignment: Alignment(0.16, 0.36),
+    color: _downtownCoreColor,
+  ),
+  LeaderboardMapRegionDisplaySnapshot(
+    regionId: 'geylang',
+    regionName: 'Geylang',
+    locationLabel: 'Geylang, Singapore',
+    semanticLabel: 'Geylang region ranking polygon',
+    planningAreaName: 'GEYLANG',
+    planningAreaCode: 'GL',
+    planningRegionCode: 'CR',
+    fallbackAlignment: Alignment(0.32, 0.16),
+    color: _geylangColor,
+  ),
+  LeaderboardMapRegionDisplaySnapshot(
+    regionId: 'hougang',
+    regionName: 'Hougang',
+    locationLabel: 'Hougang, Singapore',
+    semanticLabel: 'Hougang region ranking polygon',
+    planningAreaName: 'HOUGANG',
+    planningAreaCode: 'HG',
+    planningRegionCode: 'NER',
+    fallbackAlignment: Alignment(0.30, -0.40),
+    color: _hougangColor,
+  ),
+  LeaderboardMapRegionDisplaySnapshot(
+    regionId: 'jurong-west',
+    regionName: 'Jurong West',
+    locationLabel: 'Jurong West, Singapore',
+    semanticLabel: 'Jurong West region ranking polygon',
+    planningAreaName: 'JURONG WEST',
+    planningAreaCode: 'JW',
+    planningRegionCode: 'WR',
+    fallbackAlignment: Alignment(-0.74, 0.00),
+    color: _jurongWestColor,
+  ),
+  LeaderboardMapRegionDisplaySnapshot(
+    regionId: 'kallang',
+    regionName: 'Kallang',
+    locationLabel: 'Kallang, Singapore',
+    semanticLabel: 'Kallang region ranking polygon',
+    planningAreaName: 'KALLANG',
+    planningAreaCode: 'KL',
+    planningRegionCode: 'CR',
+    fallbackAlignment: Alignment(0.20, 0.18),
+    color: _kallangColor,
+  ),
+  LeaderboardMapRegionDisplaySnapshot(
+    regionId: 'marine-parade',
+    regionName: 'Marine Parade',
+    locationLabel: 'Marine Parade, Singapore',
+    semanticLabel: 'Marine Parade region ranking polygon',
+    planningAreaName: 'MARINE PARADE',
+    planningAreaCode: 'MP',
+    planningRegionCode: 'CR',
+    fallbackAlignment: Alignment(0.42, 0.34),
+    color: _marineParadeColor,
+  ),
+  LeaderboardMapRegionDisplaySnapshot(
+    regionId: 'novena',
+    regionName: 'Novena',
+    locationLabel: 'Novena, Singapore',
+    semanticLabel: 'Novena region ranking polygon',
+    planningAreaName: 'NOVENA',
+    planningAreaCode: 'NV',
+    planningRegionCode: 'CR',
+    fallbackAlignment: Alignment(0.02, -0.10),
+    color: _novenaColor,
+  ),
+  LeaderboardMapRegionDisplaySnapshot(
+    regionId: 'outram',
+    regionName: 'Outram',
+    locationLabel: 'Outram, Singapore',
+    semanticLabel: 'Outram region ranking polygon',
+    planningAreaName: 'OUTRAM',
+    planningAreaCode: 'OT',
+    planningRegionCode: 'CR',
+    fallbackAlignment: Alignment(0.04, 0.36),
+    color: _outramColor,
+  ),
+  LeaderboardMapRegionDisplaySnapshot(
+    regionId: 'pasir-ris',
+    regionName: 'Pasir Ris',
+    locationLabel: 'Pasir Ris, Singapore',
+    semanticLabel: 'Pasir Ris region ranking polygon',
+    planningAreaName: 'PASIR RIS',
+    planningAreaCode: 'PR',
+    planningRegionCode: 'ER',
+    fallbackAlignment: Alignment(0.66, -0.30),
+    color: _pasirRisColor,
+  ),
+  LeaderboardMapRegionDisplaySnapshot(
+    regionId: 'punggol',
+    regionName: 'Punggol',
+    locationLabel: 'Punggol, Singapore',
+    semanticLabel: 'Punggol region ranking polygon',
+    planningAreaName: 'PUNGGOL',
+    planningAreaCode: 'PG',
+    planningRegionCode: 'NER',
+    fallbackAlignment: Alignment(0.44, -0.58),
+    color: _punggolColor,
+  ),
+  LeaderboardMapRegionDisplaySnapshot(
+    regionId: 'queenstown',
+    regionName: 'Queenstown',
+    locationLabel: 'Queenstown, Singapore',
+    semanticLabel: 'Queenstown region ranking polygon',
+    planningAreaName: 'QUEENSTOWN',
+    planningAreaCode: 'QT',
+    planningRegionCode: 'CR',
+    fallbackAlignment: Alignment(-0.26, 0.20),
+    color: _queenstownColor,
+  ),
+  LeaderboardMapRegionDisplaySnapshot(
+    regionId: 'river-valley',
+    regionName: 'River Valley',
+    locationLabel: 'River Valley, Singapore',
+    semanticLabel: 'River Valley region ranking polygon',
+    planningAreaName: 'RIVER VALLEY',
+    planningAreaCode: 'RV',
+    planningRegionCode: 'CR',
+    fallbackAlignment: Alignment(-0.04, 0.20),
+    color: _riverValleyColor,
+  ),
+  LeaderboardMapRegionDisplaySnapshot(
+    regionId: 'rochor',
+    regionName: 'Rochor',
+    locationLabel: 'Rochor, Singapore',
+    semanticLabel: 'Rochor region ranking polygon',
+    planningAreaName: 'ROCHOR',
+    planningAreaCode: 'RC',
+    planningRegionCode: 'CR',
+    fallbackAlignment: Alignment(0.14, 0.10),
+    color: _rochorColor,
+  ),
+  LeaderboardMapRegionDisplaySnapshot(
+    regionId: 'sembawang',
+    regionName: 'Sembawang',
+    locationLabel: 'Sembawang, Singapore',
+    semanticLabel: 'Sembawang region ranking polygon',
+    planningAreaName: 'SEMBAWANG',
+    planningAreaCode: 'SB',
+    planningRegionCode: 'NR',
+    fallbackAlignment: Alignment(-0.18, -0.78),
+    color: _sembawangColor,
+  ),
+  LeaderboardMapRegionDisplaySnapshot(
+    regionId: 'sengkang',
+    regionName: 'Sengkang',
+    locationLabel: 'Sengkang, Singapore',
+    semanticLabel: 'Sengkang region ranking polygon',
+    planningAreaName: 'SENGKANG',
+    planningAreaCode: 'SE',
+    planningRegionCode: 'NER',
+    fallbackAlignment: Alignment(0.36, -0.52),
+    color: _sengkangColor,
+  ),
+  LeaderboardMapRegionDisplaySnapshot(
+    regionId: 'serangoon',
+    regionName: 'Serangoon',
+    locationLabel: 'Serangoon, Singapore',
+    semanticLabel: 'Serangoon region ranking polygon',
+    planningAreaName: 'SERANGOON',
+    planningAreaCode: 'SG',
+    planningRegionCode: 'NER',
+    fallbackAlignment: Alignment(0.22, -0.30),
+    color: _serangoonColor,
+  ),
+  LeaderboardMapRegionDisplaySnapshot(
+    regionId: 'tampines',
+    regionName: 'Tampines',
+    locationLabel: 'Tampines, Singapore',
+    semanticLabel: 'Tampines region ranking polygon',
+    planningAreaName: 'TAMPINES',
+    planningAreaCode: 'TM',
+    planningRegionCode: 'ER',
+    fallbackAlignment: Alignment(0.62, -0.14),
+    color: _tampinesColor,
+  ),
+  LeaderboardMapRegionDisplaySnapshot(
+    regionId: 'tanglin',
+    regionName: 'Tanglin',
+    locationLabel: 'Tanglin, Singapore',
+    semanticLabel: 'Tanglin region ranking polygon',
+    planningAreaName: 'TANGLIN',
+    planningAreaCode: 'TN',
+    planningRegionCode: 'CR',
+    fallbackAlignment: Alignment(-0.12, 0.04),
+    color: _tanglinColor,
+  ),
+  LeaderboardMapRegionDisplaySnapshot(
+    regionId: 'toa-payoh',
+    regionName: 'Toa Payoh',
+    locationLabel: 'Toa Payoh, Singapore',
+    semanticLabel: 'Toa Payoh region ranking polygon',
+    planningAreaName: 'TOA PAYOH',
+    planningAreaCode: 'TP',
+    planningRegionCode: 'CR',
+    fallbackAlignment: Alignment(0.12, -0.18),
+    color: _toaPayohColor,
+  ),
+  LeaderboardMapRegionDisplaySnapshot(
+    regionId: 'woodlands',
+    regionName: 'Woodlands',
+    locationLabel: 'Woodlands, Singapore',
+    semanticLabel: 'Woodlands region ranking polygon',
+    planningAreaName: 'WOODLANDS',
+    planningAreaCode: 'WD',
+    planningRegionCode: 'NR',
+    fallbackAlignment: Alignment(-0.34, -0.72),
+    color: _woodlandsColor,
+  ),
+  LeaderboardMapRegionDisplaySnapshot(
+    regionId: 'yishun',
+    regionName: 'Yishun',
+    locationLabel: 'Yishun, Singapore',
+    semanticLabel: 'Yishun region ranking polygon',
+    planningAreaName: 'YISHUN',
+    planningAreaCode: 'YS',
+    planningRegionCode: 'NR',
+    fallbackAlignment: Alignment(0.02, -0.68),
+    color: _yishunColor,
   ),
 ];
+
+String? leaderboardPlanningAreaIdForLocationLabel(String locationLabel) {
+  final normalizedLocationLabel = _normalizeLocationLabel(locationLabel);
+  final aliasLocationLabel =
+      _planningAreaAliasByLocationLabel[normalizedLocationLabel];
+  for (final region in leaderboardMapRegionDemoSnapshots) {
+    final normalizedRegionLabel = _normalizeLocationLabel(region.locationLabel);
+    if (normalizedRegionLabel == normalizedLocationLabel ||
+        normalizedRegionLabel == aliasLocationLabel) {
+      return region.regionId;
+    }
+  }
+
+  return null;
+}
+
+String? leaderboardPlanningAreaNameForLocationLabel(String locationLabel) {
+  final normalizedLocationLabel = _normalizeLocationLabel(locationLabel);
+  final aliasLocationLabel =
+      _planningAreaAliasByLocationLabel[normalizedLocationLabel];
+  for (final region in leaderboardMapRegionDemoSnapshots) {
+    final normalizedRegionLabel = _normalizeLocationLabel(region.locationLabel);
+    if (normalizedRegionLabel == normalizedLocationLabel ||
+        normalizedRegionLabel == aliasLocationLabel) {
+      return region.planningAreaName;
+    }
+  }
+
+  return null;
+}
+
+String _normalizeLocationLabel(String value) {
+  return value.trim().toLowerCase();
+}
+
+const _planningAreaAliasByLocationLabel = {
+  'central area, singapore': 'downtown core, singapore',
+  'tiong bahru, singapore': 'bukit merah, singapore',
+};
 
 LeaderboardDetailDisplaySnapshot defaultLeaderboardRegionRankingSnapshot =
     leaderboardRegionalDemoSnapshots.firstWhere((snapshot) {

@@ -91,7 +91,11 @@ class LeaderboardMapRegionDisplaySnapshot {
     required this.regionId,
     required this.regionName,
     required this.semanticLabel,
-    required this.alignment,
+    required this.locationLabel,
+    required this.planningAreaName,
+    required this.planningAreaCode,
+    required this.planningRegionCode,
+    required this.fallbackAlignment,
     required this.color,
     this.isUserRegion = false,
   });
@@ -99,7 +103,11 @@ class LeaderboardMapRegionDisplaySnapshot {
   final String regionId;
   final String regionName;
   final String semanticLabel;
-  final Alignment alignment;
+  final String locationLabel;
+  final String planningAreaName;
+  final String planningAreaCode;
+  final String planningRegionCode;
+  final Alignment fallbackAlignment;
   final Color color;
   final bool isUserRegion;
 }
