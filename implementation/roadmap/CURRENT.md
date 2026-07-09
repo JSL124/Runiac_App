@@ -4,13 +4,13 @@
 
 - Current track: Track A - Governance and implementation readiness
 - Current phase: `implementation/roadmap/phases/phase-01-governance-ci.md`
-- Current active capsule: none. The monthly territorial Leaderboard production-completion capsule closed on 2026-07-10 Asia/Singapore after deployment, production read-back verification, and reversible seed run `leaderboard-qa-20260710`; Weekly Leaderboard and unrelated Phase 02 work remain unselected.
+- Current active capsule: `implementation/roadmap/capsules/home-stage-map-density-polish.md`, ready for commit after user-owned final visual acceptance. It implements seven enlarged stones per Home background as connected `<`, `>`, `<` chevrons, proportional guide scaling, and first-background bottom-navigation clearance. It does not authorize Home Guide behavior, plan semantics, backend, or unrelated UI changes.
 - Most recent pushed / hosted-CI-verified completed capsule: `goal-plan-detail-header-timeline-alignment` implemented, pushed at `7798f058ae1b272e8eca6dd8a31cba4490c8faa1 feat(you): refine goal plan detail week list`, and verified by hosted Governance CI #65 PASS for run ID `27160664756`.
 - Most recent locally closed implementation milestone: `personalized-adaptive-estimate-learning` completed locally after RED/GREEN Functions and Firestore rules evidence on 2026-07-07 Asia/Singapore.
 - Current status: Phase 01 governance CI closed; existing Run/Plan milestones remain reconciled; the monthly territorial Leaderboard is now deployed for `runiac-fypp` with live Firestore reads, backend-owned contribution/aggregation, hourly snapshot refresh, rules, and a verified reversible synthetic seed run across the 37 supported planning areas. Weekly Leaderboard remains excluded.
 - Current state: The Flutter mobile UI has live monthly Leaderboard reads backed by the deployed `completeRun` contribution path and hourly `refreshLeaderboardSnapshots` aggregation for the supported 37 planning areas. The 3,700-profile seed run is reversible and verified; 37 Premium mock profiles remain ineligible for rank. Weekly Leaderboard, GPS/route persistence, background tracking, Auto Pause, and Moving Time remain future scope.
 - Current governance decision record: ADR-003 Governance Lite Execution Lanes is adopted as a decision record only. It documents UI Fast Lane, Backend Guarded Lane, and Governance/Architecture Lane for future routed work, but does not activate or enforce a new workflow, change CI, change AGENTS instructions, authorize Flutter/Firebase/backend implementation, or select Phase 02.
-- Current active milestone: none. The latest closed implementation milestone is monthly territorial Leaderboard production completion; Phase 02 remains unselected.
+- Current active milestone: Home Stage Map density polish under `implementation/roadmap/capsules/home-stage-map-density-polish.md`, awaiting only the user's final simulator acceptance; Phase 02 remains unselected.
 
 Run Tracking M4-A/M4-B/M4-C1/M4-C2 reconciliation:
 
@@ -97,7 +97,7 @@ Next gate is explicit token-backed Mapbox QA with a real demo public token, expl
 
 ## Operational TODO / Active Capsule
 
-Active capsule: none. `implementation/roadmap/capsules/leaderboard-production-completion.md` is closed after production deployment and verified seed run `leaderboard-qa-20260710`; its cleanup remains explicitly user-directed. Weekly Leaderboard and unrelated Phase 02 work remain excluded.
+Active capsule: `implementation/roadmap/capsules/home-stage-map-density-polish.md`. The prior Leaderboard capsule remains closed; Weekly Leaderboard and unrelated Phase 02 work remain excluded.
 
 Required next-session checklist:
 
