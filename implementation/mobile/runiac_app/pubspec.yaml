@@ -88,6 +88,7 @@ flutter:
     - assets/images/characters/purple_runner_front.png
     - assets/images/characters/purple_runner_left.png
     - assets/images/characters/purple_runner_right.png
+    - assets/images/characters/blue_idle/blue_runner_idle.gif
     - assets/images/home/todays_plan_runner.png
     - assets/images/home/stages/
     - assets/images/home/backgrounds/

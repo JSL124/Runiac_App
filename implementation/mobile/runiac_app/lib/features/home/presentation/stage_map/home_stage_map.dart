@@ -10,12 +10,43 @@ import 'home_stage_background_sequence.dart';
 import 'home_stage_map_model.dart';
 
 const double _kFadeFraction = 0.08;
+const double _kMinimumStageStoneSize = 92;
+const double _kMaximumStageStoneSize = 108;
+const double _kStageStoneWidthFraction = 0.255;
+const double _kCharacterToStoneScale = 1.32;
 const String _kEmptyStateBackground =
     'assets/images/home/backgrounds/bg_gardens_by_the_bay.webp';
 const String _kStageRunAsset =
     'assets/images/home/stages/dashboard_stage_run.png';
 const String _kStageRestAsset =
     'assets/images/home/stages/dashboard_stage_rest.png';
+const String kBlueRunnerIdleGifAsset =
+    'assets/images/characters/blue_idle/blue_runner_idle.gif';
+
+/// Chooses the guide sprite for the Home stage map.
+///
+/// When Blue is selected, this supplied runner GIF represents the guide in
+/// both the resting and plan-to-plan movement states. The other characters
+/// retain their existing direction-specific PNG sprites.
+String homeStageGuideAssetPath({
+  required RunnerCharacter character,
+  required RunnerCharacterFacing facing,
+}) {
+  if (character == RunnerCharacter.blue) {
+    return kBlueRunnerIdleGifAsset;
+  }
+  return character.assetPath(facing);
+}
+
+double homeStageGuideHeightForWidth({
+  required RunnerCharacter character,
+  required double width,
+}) {
+  return character == RunnerCharacter.blue
+      ? width * 289 / 193
+      : width * 280 / 350;
+}
+
 /// Duolingo-style vertical stage map for the Home tab.
 ///
 /// Renders one full-bleed background per plan week (week 1 at the bottom,
@@ -326,9 +357,7 @@ class _HomeStageMapState extends State<HomeStageMap>
     final n = model.sections.length;
     if (from.$1 == to.$1) {
       final week = from.$1;
-      final anchors = homeStageAnchorsForBackground(
-        model.sections[week].backgroundAsset,
-      );
+      final anchors = homeStageAnchorsForSection(week);
       final step = to.$2 >= from.$2 ? 1 : -1;
       final points = <Offset>[];
       for (var d = from.$2; d != to.$2 + step; d += step) {
@@ -350,9 +379,7 @@ class _HomeStageMapState extends State<HomeStageMap>
     (int, int) stage,
     int n,
   ) {
-    final anchors = homeStageAnchorsForBackground(
-      model.sections[stage.$1].backgroundAsset,
-    );
+    final anchors = homeStageAnchorsForSection(stage.$1);
     final day = stage.$2.clamp(0, anchors.length - 1);
     return _stoneCenter(stage.$1, n, anchors, day);
   }
@@ -374,7 +401,18 @@ class _HomeStageMapState extends State<HomeStageMap>
     );
   }
 
-  double _stoneSize(int dayIndex) => 78 - 2.4 * dayIndex;
+  double get _stageStoneSize => (_sectionWidth * _kStageStoneWidthFraction)
+      .clamp(_kMinimumStageStoneSize, _kMaximumStageStoneSize)
+      .toDouble();
+
+  double get _characterWidth => _stageStoneSize * _kCharacterToStoneScale;
+
+  double _characterHeightFor(RunnerCharacter character) {
+    return homeStageGuideHeightForWidth(
+      character: character,
+      width: _characterWidth,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -436,11 +474,11 @@ class _HomeStageMapState extends State<HomeStageMap>
     // Stones above every background.
     for (var w = 0; w < n; w++) {
       final section = model.sections[w];
-      final anchors = homeStageAnchorsForBackground(section.backgroundAsset);
+      final anchors = homeStageAnchorsForSection(w);
       for (var d = 0; d < section.stones.length; d++) {
         final stone = section.stones[d];
         final center = _stoneCenter(w, n, anchors, d);
-        final size = _stoneSize(d);
+        final size = _stageStoneSize;
         children.add(
           Positioned(
             left: center.dx - size / 2,
@@ -448,6 +486,7 @@ class _HomeStageMapState extends State<HomeStageMap>
             width: size,
             height: size,
             child: _StageStoneWidget(
+              key: ValueKey<String>('homeStageStone-${section.weekNumber}-$d'),
               stone: stone,
               size: size,
               pulse: stone.isCurrent ? _pulseController : null,
@@ -515,10 +554,9 @@ class _HomeStageMapState extends State<HomeStageMap>
       return null;
     }
 
-    const charHeight = 104.0 * 280 / 350;
     const bubbleWidth = 232.0;
     const gap = 10.0;
-    final charTopY = anchor.dy - charHeight * 0.84;
+    final charTopY = anchor.dy - _characterHeightFor(_selectedCharacter) * 0.84;
     final left = (anchor.dx - bubbleWidth / 2)
         .clamp(12.0, math.max(12.0, _sectionWidth - bubbleWidth - 12.0))
         .toDouble();
@@ -543,9 +581,7 @@ class _HomeStageMapState extends State<HomeStageMap>
     _initialScrollDone = true;
     final weekIndex = model.currentWeekIndex ?? 0;
     final dayIndex = model.characterDayIndex ?? 0;
-    final anchors = homeStageAnchorsForBackground(
-      model.sections[weekIndex].backgroundAsset,
-    );
+    final anchors = homeStageAnchorsForSection(weekIndex);
     final centerY = _stoneCenter(weekIndex, n, anchors, dayIndex).dy;
     final maxScroll = math.max(0.0, total - _viewportHeight);
     final target = (centerY - _viewportHeight * 0.6).clamp(0.0, maxScroll);
@@ -576,18 +612,18 @@ class _HomeStageMapState extends State<HomeStageMap>
           math.sin(_walkController.value * math.pi * 6) *
           math.min(6, _sectionHeight * 0.01);
     } else {
-      final anchors = homeStageAnchorsForBackground(
-        model.sections[weekIndex].backgroundAsset,
-      );
+      final anchors = homeStageAnchorsForSection(weekIndex);
       center = _stoneCenter(weekIndex, n, anchors, dayIndex);
       facing = RunnerCharacterFacing.front;
     }
 
-    const charWidth = 104.0;
-    const charHeight = charWidth * 280 / 350;
+    final charWidth = _characterWidth;
+    final charHeight = _characterHeightFor(character);
+    final asset = homeStageGuideAssetPath(character: character, facing: facing);
     final canTapCharacter =
         !_walking && widget.guideAgent != null && widget.guideRequest != null;
     return Positioned(
+      key: const ValueKey<String>('homeStageCharacter'),
       left: center.dx - charWidth / 2,
       top: center.dy - bob - charHeight * 0.84,
       width: charWidth,
@@ -597,7 +633,7 @@ class _HomeStageMapState extends State<HomeStageMap>
         children: [
           IgnorePointer(
             child: Image.asset(
-              character.assetPath(facing),
+              asset,
               fit: BoxFit.contain,
               filterQuality: FilterQuality.medium,
               errorBuilder: (context, error, stackTrace) =>
@@ -640,9 +676,7 @@ class _HomeStageMapState extends State<HomeStageMap>
     if (weekIndex == null || dayIndex == null) {
       return null;
     }
-    final anchors = homeStageAnchorsForBackground(
-      model.sections[weekIndex].backgroundAsset,
-    );
+    final anchors = homeStageAnchorsForSection(weekIndex);
     return _stoneCenter(weekIndex, n, anchors, dayIndex);
   }
 
@@ -710,6 +744,7 @@ class _FadingBackground extends StatelessWidget {
 
 class _StageStoneWidget extends StatelessWidget {
   const _StageStoneWidget({
+    super.key,
     required this.stone,
     required this.size,
     this.pulse,

@@ -29,7 +29,10 @@ void main() {
     });
 
     test('is identical for the same plan id (pure, no storage)', () {
-      final first = homeStageBackgroundSequence(planId: 'plan-x', weekCount: 12);
+      final first = homeStageBackgroundSequence(
+        planId: 'plan-x',
+        weekCount: 12,
+      );
       final second = homeStageBackgroundSequence(
         planId: 'plan-x',
         weekCount: 12,
@@ -39,10 +42,7 @@ void main() {
 
     test('never repeats within the last two used backgrounds', () {
       for (final id in <String>['a', 'plan-42', 'runiac-999', 'zzz']) {
-        final sequence = homeStageBackgroundSequence(
-          planId: id,
-          weekCount: 16,
-        );
+        final sequence = homeStageBackgroundSequence(planId: id, weekCount: 16);
         for (var i = 0; i < sequence.length; i++) {
           if (i >= 1) {
             expect(
@@ -69,10 +69,7 @@ void main() {
     });
 
     test('handles a single-background palette and zero weeks', () {
-      expect(
-        homeStageBackgroundSequence(planId: 'p', weekCount: 0),
-        isEmpty,
-      );
+      expect(homeStageBackgroundSequence(planId: 'p', weekCount: 0), isEmpty);
       final single = homeStageBackgroundSequence(
         planId: 'p',
         weekCount: 4,
@@ -82,22 +79,39 @@ void main() {
     });
   });
 
-  group('homeStageAnchorsForBackground', () {
-    test('every declared background has 7 in-range anchors', () {
-      for (final asset in kHomeStageBackgroundAssets) {
-        final anchors = homeStageAnchorsForBackground(asset);
-        expect(anchors, hasLength(7), reason: asset);
+  group('homeStageAnchorsForSection', () {
+    test('sections alternate connected left and right chevrons', () {
+      for (var sectionIndex = 0; sectionIndex < 4; sectionIndex++) {
+        final anchors = homeStageAnchorsForSection(sectionIndex);
+        expect(anchors, hasLength(7), reason: 'section $sectionIndex');
         for (final anchor in anchors) {
-          expect(anchor.dx, inInclusiveRange(0.0, 1.0), reason: asset);
-          expect(anchor.dy, inInclusiveRange(0.0, 1.0), reason: asset);
+          expect(
+            anchor.dx,
+            inInclusiveRange(0.0, 1.0),
+            reason: 'section $sectionIndex',
+          );
+          expect(
+            anchor.dy,
+            inInclusiveRange(0.0, 1.0),
+            reason: 'section $sectionIndex',
+          );
         }
-        // Day 1 (index 0) sits lower on the image than day 7 (index 6).
-        expect(anchors.first.dy, greaterThan(anchors.last.dy), reason: asset);
+        expect(anchors.first.dx, closeTo(0.5, 0.0001));
+        expect(anchors.last.dx, closeTo(0.5, 0.0001));
+        expect(anchors.first.dy, greaterThan(anchors.last.dy));
+        expect(
+          anchors[3].dx,
+          sectionIndex.isEven ? lessThan(0.5) : greaterThan(0.5),
+        );
       }
     });
 
-    test('falls back to a default anchor set for unknown assets', () {
-      expect(homeStageAnchorsForBackground('missing.webp'), hasLength(7));
+    test('adjacent section endpoints join at the same horizontal lane', () {
+      for (var sectionIndex = 0; sectionIndex < 3; sectionIndex++) {
+        final lower = homeStageAnchorsForSection(sectionIndex);
+        final upper = homeStageAnchorsForSection(sectionIndex + 1);
+        expect(lower.last.dx, closeTo(upper.first.dx, 0.0001));
+      }
     });
   });
 }

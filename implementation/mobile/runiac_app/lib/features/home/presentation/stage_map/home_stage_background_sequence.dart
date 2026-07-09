@@ -18,71 +18,70 @@ const List<String> kHomeStageBackgroundAssets = <String>[
 /// Aspect ratio (height / width) of every background asset (1672 / 941).
 const double kHomeStageBackgroundAspect = 1672 / 941;
 
-/// Shared vertical (dy) sequence for the seven day-slot anchors, day 1 (near
-/// the bottom foreground) to day 7 (further up the receding path).
-///
-/// Spacing is uniform by design (equal 0.095 steps) so stage stones sit at
-/// consistent vertical intervals on every background, regardless of how
-/// winding that background's path is. Horizontal (dx) placement below stays
-/// hand-tuned per background so the path itself keeps its natural curve.
-const List<double> _kHomeStageAnchorDys = <double>[
-  0.94,
-  0.845,
-  0.75,
-  0.655,
-  0.56,
-  0.465,
-  0.37,
-];
-
-/// Builds the 7 anchor points for a background from its hand-tuned dx values,
-/// pairing each with the shared uniform [_kHomeStageAnchorDys] sequence.
-List<Offset> _anchorsFromDx(List<double> dxValues) {
-  return [
-    for (var i = 0; i < dxValues.length; i++)
-      Offset(dxValues[i], _kHomeStageAnchorDys[i]),
+List<double> _uniformAnchorDys({required double bottom, required double top}) {
+  return <double>[
+    for (var index = 0; index < 7; index++) bottom - (bottom - top) * index / 6,
   ];
 }
 
-/// Hand-tuned horizontal (dx) path anchors per background, in 0..1 space.
-///
-/// The dx coordinates were tuned by eye against each rendered background so
-/// the stage stones sit visually on the drawn road/path; dy is uniform (see
-/// [_kHomeStageAnchorDys]) and shared across every background.
-final Map<String, List<Offset>> _kHomeStageAnchorsByAsset = <String, List<Offset>>{
-  'assets/images/home/backgrounds/bg_gardens_by_the_bay.webp': _anchorsFromDx(
-    const <double>[0.40, 0.45, 0.54, 0.47, 0.42, 0.48, 0.53],
-  ),
-  'assets/images/home/backgrounds/bg_east_coast_beach.webp': _anchorsFromDx(
-    const <double>[0.40, 0.34, 0.29, 0.37, 0.43, 0.43, 0.42],
-  ),
-  'assets/images/home/backgrounds/bg_kampong_glam.webp': _anchorsFromDx(
-    const <double>[0.45, 0.47, 0.52, 0.45, 0.44, 0.50, 0.53],
-  ),
-  'assets/images/home/backgrounds/bg_clarke_quay_night.webp': _anchorsFromDx(
-    const <double>[0.38, 0.29, 0.40, 0.51, 0.56, 0.55, 0.52],
-  ),
-  'assets/images/home/backgrounds/bg_supertree_grove.webp': _anchorsFromDx(
-    const <double>[0.45, 0.38, 0.42, 0.39, 0.35, 0.33, 0.34],
-  ),
-  'assets/images/home/backgrounds/bg_marina_bay_sunset.webp': _anchorsFromDx(
-    const <double>[0.31, 0.28, 0.38, 0.47, 0.51, 0.51, 0.50],
-  ),
-  'assets/images/home/backgrounds/bg_jewel_waterfall.webp': _anchorsFromDx(
-    const <double>[0.34, 0.35, 0.41, 0.45, 0.44, 0.41, 0.44],
-  ),
-  'assets/images/home/backgrounds/bg_palawan_sunset.webp': _anchorsFromDx(
-    const <double>[0.34, 0.27, 0.35, 0.42, 0.44, 0.44, 0.43],
-  ),
-};
-
-final List<Offset> _kFallbackStageAnchors = _anchorsFromDx(
-  const <double>[0.38, 0.34, 0.42, 0.47, 0.45, 0.43, 0.44],
+/// The first/bottom background lifts day 1 above the bottom navigation.
+final List<double> _kFirstSectionAnchorDys = _uniformAnchorDys(
+  bottom: 0.86,
+  top: 0.19,
 );
 
-/// Normalized 7-point path anchors for [backgroundAsset].
-List<Offset> homeStageAnchorsForBackground(String backgroundAsset) {
-  return _kHomeStageAnchorsByAsset[backgroundAsset] ?? _kFallbackStageAnchors;
+/// Later backgrounds can use their full height. With the 8% section overlap,
+/// the 0.97 -> 0.19 span also makes the cross-background gap approximately
+/// equal to the within-background interval.
+final List<double> _kContinuingSectionAnchorDys = _uniformAnchorDys(
+  bottom: 0.97,
+  top: 0.19,
+);
+
+List<Offset> _anchorsFromDx(List<double> dxValues, List<double> dyValues) {
+  return [
+    for (var i = 0; i < dxValues.length; i++) Offset(dxValues[i], dyValues[i]),
+  ];
+}
+
+/// Seven anchors that draw a `<` across one complete background.
+///
+/// Both ends meet at the horizontal centre so the path connects cleanly to
+/// the next background. The middle day forms the left-facing point.
+const List<double> _kLeftChevronDx = <double>[
+  0.50,
+  0.43,
+  0.35,
+  0.27,
+  0.35,
+  0.43,
+  0.50,
+];
+
+/// Seven anchors that draw a `>` across one complete background.
+const List<double> _kRightChevronDx = <double>[
+  0.50,
+  0.57,
+  0.65,
+  0.73,
+  0.65,
+  0.57,
+  0.50,
+];
+
+/// Normalized 7-point anchors for a vertically stacked background section.
+///
+/// Even sections draw `<`, odd sections draw `>`, and every section begins
+/// and ends at x=0.5. The result is one connected `< > < >` stage path across
+/// the full scrolling map regardless of the randomized background assets.
+List<Offset> homeStageAnchorsForSection(int sectionIndex) {
+  final dyValues = sectionIndex == 0
+      ? _kFirstSectionAnchorDys
+      : _kContinuingSectionAnchorDys;
+  return _anchorsFromDx(
+    sectionIndex.isEven ? _kLeftChevronDx : _kRightChevronDx,
+    dyValues,
+  );
 }
 
 /// Stable 32-bit FNV-1a hash over the UTF-16 code units of [input].

@@ -92,6 +92,35 @@ BeginnerAdaptivePlanSnapshot _manualPlan(List<BeginnerAdaptivePlanWeek> weeks) {
 }
 
 void main() {
+  test('each section has seven evenly spaced connected chevron anchors', () {
+    for (var sectionIndex = 0; sectionIndex < 4; sectionIndex++) {
+      final anchors = homeStageAnchorsForSection(sectionIndex);
+      expect(anchors, hasLength(kHomeStageDaysPerWeek));
+      expect(anchors.first.dx, closeTo(0.5, 0.0001));
+      expect(anchors.last.dx, closeTo(0.5, 0.0001));
+      expect(anchors.last.dy, closeTo(0.19, 0.0001));
+      if (sectionIndex == 0) {
+        expect(anchors.first.dy, closeTo(0.86, 0.0001));
+      } else {
+        expect(anchors.first.dy, closeTo(0.97, 0.0001));
+      }
+
+      final verticalInterval =
+          (anchors.first.dy - anchors.last.dy) / (kHomeStageDaysPerWeek - 1);
+      for (var index = 1; index < anchors.length; index++) {
+        expect(
+          anchors[index - 1].dy - anchors[index].dy,
+          closeTo(verticalInterval, 0.0001),
+          reason: 'section $sectionIndex vertical interval $index',
+        );
+      }
+      expect(
+        anchors[3].dx,
+        sectionIndex.isEven ? lessThan(0.5) : greaterThan(0.5),
+      );
+    }
+  });
+
   test('every section has exactly 7 stones padded with rest', () {
     final plan = _plan();
     final model = buildHomeStageMapModel(
@@ -181,8 +210,9 @@ void main() {
     );
 
     expect(model.currentWeekIndex, 0);
-    final firstRunIndex = model.sections.first.stones
-        .indexWhere((stone) => stone.isRun);
+    final firstRunIndex = model.sections.first.stones.indexWhere(
+      (stone) => stone.isRun,
+    );
     expect(model.todayDayIndex, firstRunIndex);
     expect(model.characterDayIndex, firstRunIndex);
     expect(model.currentStageId, HomeStageMapModel.stageId(0, firstRunIndex));
@@ -220,72 +250,82 @@ void main() {
     expect(model.currentStageId, isNull);
   });
 
-  test('runs on Tue/Thu/Sat land at weekday slots 1/3/5 with rest elsewhere', () {
-    final week = _manualWeek(1, [
-      _workout(dayLabel: 'Tue', title: 'Tuesday Run'),
-      _workout(dayLabel: 'Thu', title: 'Thursday Run'),
-      _workout(dayLabel: 'Sat', title: 'Saturday Run'),
-    ]);
-    final plan = _manualPlan([week]);
+  test(
+    'runs on Tue/Thu/Sat land at weekday slots 1/3/5 with rest elsewhere',
+    () {
+      final week = _manualWeek(1, [
+        _workout(dayLabel: 'Tue', title: 'Tuesday Run'),
+        _workout(dayLabel: 'Thu', title: 'Thursday Run'),
+        _workout(dayLabel: 'Sat', title: 'Saturday Run'),
+      ]);
+      final plan = _manualPlan([week]);
 
-    final model = buildHomeStageMapModel(
-      plan: plan,
-      completedScheduledWorkoutIds: const <String>{},
-      activeWeekNumber: 1,
-      backgroundSequence: const <String>['bg.webp'],
-    );
-
-    final stones = model.sections.single.stones;
-    expect(stones, hasLength(kHomeStageDaysPerWeek));
-    for (var d = 0; d < kHomeStageDaysPerWeek; d++) {
-      final expectRun = d == 1 || d == 3 || d == 5;
-      expect(
-        stones[d].kind,
-        expectRun ? HomeStageStoneKind.run : HomeStageStoneKind.rest,
-        reason: 'slot $d',
+      final model = buildHomeStageMapModel(
+        plan: plan,
+        completedScheduledWorkoutIds: const <String>{},
+        activeWeekNumber: 1,
+        backgroundSequence: const <String>['bg.webp'],
       );
-      expect(
-        stones[d].dayLabel,
-        kHomeStageWeekdayLabels[d],
-        reason: 'slot $d label',
+
+      final stones = model.sections.single.stones;
+      expect(stones, hasLength(kHomeStageDaysPerWeek));
+      for (var d = 0; d < kHomeStageDaysPerWeek; d++) {
+        final expectRun = d == 1 || d == 3 || d == 5;
+        expect(
+          stones[d].kind,
+          expectRun ? HomeStageStoneKind.run : HomeStageStoneKind.rest,
+          reason: 'slot $d',
+        );
+        expect(
+          stones[d].dayLabel,
+          kHomeStageWeekdayLabels[d],
+          reason: 'slot $d label',
+        );
+      }
+      expect(stones[1].workoutTitle, 'Tuesday Run');
+      expect(stones[3].workoutTitle, 'Thursday Run');
+      expect(stones[5].workoutTitle, 'Saturday Run');
+    },
+  );
+
+  test(
+    'duplicate weekday labels shift the later workout to the next free slot',
+    () {
+      final week = _manualWeek(1, [
+        _workout(dayLabel: 'Mon', title: 'First Monday Run'),
+        _workout(dayLabel: 'Mon', title: 'Second Monday Run'),
+      ]);
+      final plan = _manualPlan([week]);
+
+      final model = buildHomeStageMapModel(
+        plan: plan,
+        completedScheduledWorkoutIds: const <String>{},
+        activeWeekNumber: 1,
+        backgroundSequence: const <String>['bg.webp'],
       );
-    }
-    expect(stones[1].workoutTitle, 'Tuesday Run');
-    expect(stones[3].workoutTitle, 'Thursday Run');
-    expect(stones[5].workoutTitle, 'Saturday Run');
-  });
 
-  test('duplicate weekday labels shift the later workout to the next free slot', () {
-    final week = _manualWeek(1, [
-      _workout(dayLabel: 'Mon', title: 'First Monday Run'),
-      _workout(dayLabel: 'Mon', title: 'Second Monday Run'),
-    ]);
-    final plan = _manualPlan([week]);
-
-    final model = buildHomeStageMapModel(
-      plan: plan,
-      completedScheduledWorkoutIds: const <String>{},
-      activeWeekNumber: 1,
-      backgroundSequence: const <String>['bg.webp'],
-    );
-
-    final stones = model.sections.single.stones;
-    expect(stones[0].kind, HomeStageStoneKind.run);
-    expect(stones[0].workoutTitle, 'First Monday Run');
-    expect(stones[0].dayLabel, 'Mon');
-    // Tuesday's slot was free, so the second Monday workout shifts there.
-    expect(stones[1].kind, HomeStageStoneKind.run);
-    expect(stones[1].workoutTitle, 'Second Monday Run');
-    expect(stones[1].dayLabel, 'Tue');
-    for (var d = 2; d < kHomeStageDaysPerWeek; d++) {
-      expect(stones[d].kind, HomeStageStoneKind.rest, reason: 'slot $d');
-    }
-  });
+      final stones = model.sections.single.stones;
+      expect(stones[0].kind, HomeStageStoneKind.run);
+      expect(stones[0].workoutTitle, 'First Monday Run');
+      expect(stones[0].dayLabel, 'Mon');
+      // Tuesday's slot was free, so the second Monday workout shifts there.
+      expect(stones[1].kind, HomeStageStoneKind.run);
+      expect(stones[1].workoutTitle, 'Second Monday Run');
+      expect(stones[1].dayLabel, 'Tue');
+      for (var d = 2; d < kHomeStageDaysPerWeek; d++) {
+        expect(stones[d].kind, HomeStageStoneKind.rest, reason: 'slot $d');
+      }
+    },
+  );
 
   test('synthetic Day N labels keep positional layout for the whole plan', () {
     final week = _manualWeek(1, [
       _workout(dayLabel: 'Day 1', title: 'Session A'),
-      _workout(dayLabel: 'Day 2', title: 'Session B', kind: BeginnerWorkoutKind.restOrMobility),
+      _workout(
+        dayLabel: 'Day 2',
+        title: 'Session B',
+        kind: BeginnerWorkoutKind.restOrMobility,
+      ),
       _workout(dayLabel: 'Day 3', title: 'Session C'),
     ]);
     final plan = _manualPlan([week]);
@@ -313,57 +353,63 @@ void main() {
     }
   });
 
-  test(
-    'a single non-weekday label anywhere in the plan forces positional '
-    'layout for every week',
-    () {
-      final weekdayWeek = _manualWeek(1, [
-        _workout(dayLabel: 'Mon', title: 'Week 1 Run'),
-      ]);
-      final syntheticWeek = _manualWeek(2, [
-        _workout(dayLabel: 'Day 1', title: 'Week 2 Run'),
-      ]);
-      final plan = _manualPlan([weekdayWeek, syntheticWeek]);
-
-      final model = buildHomeStageMapModel(
-        plan: plan,
-        completedScheduledWorkoutIds: const <String>{},
-        activeWeekNumber: 1,
-        backgroundSequence: const <String>['bg.webp', 'bg2.webp'],
-      );
-
-      // Positional fallback: the single Monday-labeled run still lands at
-      // slot 0 (its workout index), but its dayLabel is the literal 'Mon'
-      // string rather than a slot-derived weekday.
-      final firstWeekStones = model.sections.first.stones;
-      expect(firstWeekStones[0].kind, HomeStageStoneKind.run);
-      expect(firstWeekStones[0].dayLabel, 'Mon');
-    },
-  );
-
-  test('todayDayIndex still picks the first uncompleted run slot after weekday mapping', () {
-    final week = _manualWeek(1, [
-      _workout(dayLabel: 'Tue', title: 'Tuesday Run'),
-      _workout(dayLabel: 'Thu', title: 'Thursday Run'),
-      _workout(dayLabel: 'Sat', title: 'Saturday Run'),
+  test('a single non-weekday label anywhere in the plan forces positional '
+      'layout for every week', () {
+    final weekdayWeek = _manualWeek(1, [
+      _workout(dayLabel: 'Mon', title: 'Week 1 Run'),
     ]);
-    final plan = _manualPlan([week]);
-    final tuesdayId = homeStageScheduledWorkoutId(
-      weekNumber: 1,
-      dayLabel: 'Tue',
-      title: 'Tuesday Run',
-    );
+    final syntheticWeek = _manualWeek(2, [
+      _workout(dayLabel: 'Day 1', title: 'Week 2 Run'),
+    ]);
+    final plan = _manualPlan([weekdayWeek, syntheticWeek]);
 
     final model = buildHomeStageMapModel(
       plan: plan,
-      completedScheduledWorkoutIds: {tuesdayId},
+      completedScheduledWorkoutIds: const <String>{},
       activeWeekNumber: 1,
-      backgroundSequence: const <String>['bg.webp'],
+      backgroundSequence: const <String>['bg.webp', 'bg2.webp'],
     );
 
-    // Tuesday (slot 1) is completed, so today should be Thursday (slot 3).
-    expect(model.todayDayIndex, 3);
-    expect(model.sections.single.stones[1].state, HomeStageStoneState.completed);
-    expect(model.sections.single.stones[3].state, HomeStageStoneState.current);
+    // Positional fallback: the single Monday-labeled run still lands at
+    // slot 0 (its workout index), but its dayLabel is the literal 'Mon'
+    // string rather than a slot-derived weekday.
+    final firstWeekStones = model.sections.first.stones;
+    expect(firstWeekStones[0].kind, HomeStageStoneKind.run);
+    expect(firstWeekStones[0].dayLabel, 'Mon');
   });
+
+  test(
+    'todayDayIndex still picks the first uncompleted run slot after weekday mapping',
+    () {
+      final week = _manualWeek(1, [
+        _workout(dayLabel: 'Tue', title: 'Tuesday Run'),
+        _workout(dayLabel: 'Thu', title: 'Thursday Run'),
+        _workout(dayLabel: 'Sat', title: 'Saturday Run'),
+      ]);
+      final plan = _manualPlan([week]);
+      final tuesdayId = homeStageScheduledWorkoutId(
+        weekNumber: 1,
+        dayLabel: 'Tue',
+        title: 'Tuesday Run',
+      );
+
+      final model = buildHomeStageMapModel(
+        plan: plan,
+        completedScheduledWorkoutIds: {tuesdayId},
+        activeWeekNumber: 1,
+        backgroundSequence: const <String>['bg.webp'],
+      );
+
+      // Tuesday (slot 1) is completed, so today should be Thursday (slot 3).
+      expect(model.todayDayIndex, 3);
+      expect(
+        model.sections.single.stones[1].state,
+        HomeStageStoneState.completed,
+      );
+      expect(
+        model.sections.single.stones[3].state,
+        HomeStageStoneState.current,
+      );
+    },
+  );
 }
