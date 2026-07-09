@@ -123,6 +123,46 @@ void main() {
       ),
     );
     expect(
+      tester.getTopLeft(
+        find.byKey(const Key('leaderboard_region_current_user_rank_badge')),
+      ).dx,
+      tester
+          .getTopLeft(
+            find.byKey(const ValueKey('leaderboard_region_rank_badge_#1')),
+          )
+          .dx,
+    );
+    expect(
+      tester
+          .getTopLeft(
+            find.descendant(
+              of: find.byKey(
+                const ValueKey('leaderboard_region_my_rank_row_0'),
+              ),
+              matching: find.byKey(
+                const Key('leaderboard_profile_level_badge'),
+              ),
+            ),
+          )
+          .dx,
+      tester
+          .getTopLeft(
+            find.descendant(
+              of: find.byKey(
+                const ValueKey('leaderboard_region_top_rank_row_0'),
+              ),
+              matching: find.byKey(
+                const Key('leaderboard_profile_level_badge'),
+              ),
+            ),
+          )
+          .dx,
+    );
+    expect(
+      tester.getTopLeft(find.text('Jinseo (You)')).dx,
+      tester.getTopLeft(find.text('Alex T.')).dx,
+    );
+    expect(
       find.byKey(const Key('leaderboard_region_current_user_row')),
       findsOneWidget,
     );

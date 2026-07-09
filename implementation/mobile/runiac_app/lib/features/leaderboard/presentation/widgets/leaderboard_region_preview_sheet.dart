@@ -249,10 +249,10 @@ class _RegionPreviewRankRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final rowMinHeight = useDetailRowSizing ? 64.0 : 56.0;
-    final horizontalPadding = useDetailRowSizing ? 12.0 : 10.0;
+    const horizontalPadding = 10.0;
     final verticalPadding = useDetailRowSizing ? 10.0 : 7.0;
-    final rankGap = useDetailRowSizing ? 12.0 : 10.0;
-    final nameGap = useDetailRowSizing ? 12.0 : 10.0;
+    const rankGap = 10.0;
+    const nameGap = 10.0;
     final xpGap = useDetailRowSizing ? 12.0 : 8.0;
     const badgeSize = 38.0;
     final nameFontSize = useDetailRowSizing ? 16.0 : 14.0;
