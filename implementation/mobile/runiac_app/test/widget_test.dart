@@ -25,7 +25,7 @@ void main() {
       const RuniacApp(showSplash: false, enableForegroundGps: false),
     );
 
-    expect(find.text('Good to see you'), findsOneWidget);
+    expect(find.text('Your journey map is waiting'), findsOneWidget);
     expect(find.byTooltip('Home'), findsOneWidget);
     expect(find.byTooltip('Maps'), findsOneWidget);
     expect(find.byTooltip('Run'), findsOneWidget);

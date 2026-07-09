@@ -7,19 +7,17 @@ import '../../auth/domain/runiac_auth_service.dart';
 import '../../notifications/domain/repositories/notification_inbox_repository.dart';
 import '../../notifications/presentation/notification_inbox_page.dart';
 import '../../plan/domain/repositories/generated_plan_persistence_repository.dart';
+import '../../plan/presentation/current_session_generated_plan.dart';
 import '../../run/presentation/active_run_session_coordinator.dart';
 import '../../run/presentation/models/planned_run_context.dart';
-import '../../run/presentation/run_launch_screen.dart';
 import '../../you/domain/models/user_progress_read_model.dart';
 import '../../you/domain/repositories/user_progress_repository.dart';
+import '../../you/presentation/adapters/generated_plan_you_display_adapter.dart';
 import '../../you/presentation/data/weekly_workout_demo_snapshots.dart';
 import '../../you/presentation/weekly_workout_detail_screen.dart';
-import 'widgets/home_header.dart';
-import 'widgets/home_progress_insight_section.dart';
-import 'widgets/explore_routes_section.dart';
-import 'widgets/today_plan_card.dart';
-
-const _homeScreenBackground = Colors.white;
+import 'stage_map/home_stage_background_sequence.dart';
+import 'stage_map/home_stage_map.dart';
+import 'stage_map/home_stage_map_model.dart';
 
 class HomeTab extends StatefulWidget {
   const HomeTab({
@@ -33,6 +31,8 @@ class HomeTab extends StatefulWidget {
     this.userProgressRepository = const StaticUserProgressRepository(),
     this.todayWorkoutDetailSnapshot,
     this.todayPlannedRunContext,
+    this.generatedPlanProgress,
+    this.currentDate,
     super.key,
     this.enableForegroundGps = true,
     this.activeRunSessionCoordinator,
@@ -47,6 +47,13 @@ class HomeTab extends StatefulWidget {
   final UserProgressRepository userProgressRepository;
   final WeeklyWorkoutDetailSnapshot? todayWorkoutDetailSnapshot;
   final PlannedRunContext? todayPlannedRunContext;
+
+  /// Backend-owned generated-plan progress (completed scheduled-workout ids),
+  /// forwarded from the shell. Display-only.
+  final GeneratedPlanProgressDisplay? generatedPlanProgress;
+
+  /// Injected "today" for deterministic active-week resolution in tests.
+  final DateTime? currentDate;
   final bool enableForegroundGps;
   final ActiveRunSessionCoordinator? activeRunSessionCoordinator;
   final VoidCallback? onNotificationSettingsChanged;
@@ -139,26 +146,6 @@ class _HomeTabState extends State<HomeTab> {
     );
   }
 
-  Future<void> _openQuickStart(BuildContext context) async {
-    final initialPreviewCurrentPosition =
-        await prewarmRunLaunchPreviewCurrentPosition(
-          enableForegroundGps: widget.enableForegroundGps,
-        );
-    if (!context.mounted) {
-      return;
-    }
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (context) => RunLaunchScreen(
-          enableForegroundGps: widget.enableForegroundGps,
-          initialPreviewCurrentPosition: initialPreviewCurrentPosition,
-          activeRunSessionCoordinator: widget.activeRunSessionCoordinator,
-          plannedWorkout: widget.todayPlannedRunContext,
-        ),
-      ),
-    );
-  }
-
   Future<void> _openAccountProfile(BuildContext context) async {
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
@@ -196,69 +183,58 @@ class _HomeTabState extends State<HomeTab> {
     );
   }
 
+  HomeStageMapModel? _buildStageMapModel() {
+    final plan = CurrentSessionGeneratedPlanScope.maybeOf(context)?.activePlan;
+    if (plan == null || !isEligibleCurrentSessionGeneratedPlan(plan)) {
+      return null;
+    }
+    final activeWeek = activeGeneratedPlanWeekFor(
+      plan,
+      currentDate: widget.currentDate,
+    );
+    final activeWeekNumber =
+        activeWeek?.weekNumber ?? plan.weeks.first.weekNumber;
+    final completedIds =
+        widget.generatedPlanProgress?.completedScheduledWorkoutIds ??
+        const <String>{};
+    final backgroundSequence = homeStageBackgroundSequence(
+      planId: plan.id,
+      weekCount: plan.weeks.length,
+    );
+    return buildHomeStageMapModel(
+      plan: plan,
+      completedScheduledWorkoutIds: completedIds,
+      activeWeekNumber: activeWeekNumber,
+      backgroundSequence: backgroundSequence,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     _ensureUserProgressFutureForCurrentOwner();
-    return SafeArea(
-      child: ColoredBox(
-        color: _homeScreenBackground,
-        child: ScrollConfiguration(
-          behavior: ScrollConfiguration.of(context).copyWith(overscroll: false),
-          child: ListView(
-            physics: const ClampingScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(0, 8, 0, 28),
-            children: [
-              _HomeContentPadding(
-                child: StreamBuilder<int>(
-                  stream: widget.notificationInboxRepository.watchUnreadCount(),
-                  initialData: 0,
-                  builder: (context, snapshot) {
-                    return FutureBuilder<UserProgressReadModel>(
-                      future: _userProgressFuture,
-                      builder: (context, progressSnapshot) {
-                        final progress =
-                            progressSnapshot.data ?? _lastUserProgress;
-                        return HomeHeader(
-                          unreadNotificationCount: snapshot.data ?? 0,
-                          levelBadgeLabel: progress?.levelBadgeLabel ?? 'Lv.0',
-                          levelProgressFraction:
-                              progress?.levelProgressFraction ?? 0,
-                          onNotifications: () =>
-                              _openNotificationInbox(context),
-                          onProfile: () => _openAccountProfile(context),
-                        );
-                      },
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 12),
-              TodayPlanCard(
-                onViewPlan: () => _openTodayWorkout(context),
-                onQuickStart: () => _openQuickStart(context),
-              ),
-              const SizedBox(height: 10),
-              const _HomeContentPadding(child: HomeProgressInsightSection()),
-              const SizedBox(height: 10),
-              const _HomeContentPadding(child: ExploreRoutesSection()),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
+    final model = _buildStageMapModel();
 
-class _HomeContentPadding extends StatelessWidget {
-  const _HomeContentPadding({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: child,
+    return StreamBuilder<int>(
+      stream: widget.notificationInboxRepository.watchUnreadCount(),
+      initialData: 0,
+      builder: (context, unreadSnapshot) {
+        return FutureBuilder<UserProgressReadModel>(
+          future: _userProgressFuture,
+          builder: (context, progressSnapshot) {
+            final progress = progressSnapshot.data ?? _lastUserProgress;
+            return HomeStageMap(
+              model: model,
+              streakCount: progress?.officialStreakCount ?? 0,
+              unreadNotificationCount: unreadSnapshot.data ?? 0,
+              levelBadgeLabel: progress?.levelBadgeLabel ?? 'Lv.0',
+              levelProgressFraction: progress?.levelProgressFraction ?? 0,
+              onNotifications: () => _openNotificationInbox(context),
+              onProfile: () => _openAccountProfile(context),
+              onTapTodayStage: () => _openTodayWorkout(context),
+            );
+          },
+        );
+      },
     );
   }
 }

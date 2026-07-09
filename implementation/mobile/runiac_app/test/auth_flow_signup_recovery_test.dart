@@ -233,6 +233,12 @@ void main() {
       await tester.pumpAndSettle();
       await tapVisibleText(tester, 'Continue to onboarding');
 
+      // Guide-character selection now sits between profile setup and the
+      // onboarding question flow.
+      expect(find.text('Choose your running buddy'), findsOneWidget);
+      await tapVisibleText(tester, 'Bolt');
+      await tapVisibleText(tester, "Let's go with Bolt");
+
       expect(find.text('Welcome to Runiac'), findsOneWidget);
       expect(find.text('Step 1 of 16'), findsOneWidget);
     },

@@ -105,7 +105,7 @@ void main() {
     expect(find.text('Edit answers'), findsOneWidget);
 
     await tapText(tester, 'Continue with this plan');
-    expect(find.text('Good to see you'), findsOneWidget);
+    expect(find.byTooltip('Home'), findsOneWidget);
     expect(find.byTooltip('Home'), findsOneWidget);
   });
 
@@ -156,7 +156,7 @@ void main() {
     expect(completedDraft!.experience, OnboardingExperience.newRunner);
     expect(completedDraft!.availability, OnboardingAvailability.three);
     expect(completedDraft!.activitySymptoms, [OnboardingActivitySymptom.none]);
-    expect(find.text('Good to see you'), findsOneWidget);
+    expect(find.byTooltip('Home'), findsOneWidget);
   });
 
   testWidgets('symptom none option clears other local selections', (

@@ -708,33 +708,6 @@ void main() {
     expect(find.text('CONTROLLED STEADY RUN'), findsNothing);
   });
 
-  testWidgets('Home Quick Start uses today generated planned workout context', (
-    tester,
-  ) async {
-    final generatedPlanStore = CurrentSessionGeneratedPlanStore()
-      ..setActivePlan(_tenKPerformancePlan());
-    addTearDown(generatedPlanStore.dispose);
-
-    await tester.pumpWidget(
-      RuniacApp(
-        showSplash: false,
-        enableForegroundGps: false,
-        currentSessionGeneratedPlanStore: generatedPlanStore,
-        youProgressToday: _weekdayDate(DateTime.tuesday),
-      ),
-    );
-
-    await tester.tap(find.text('Quick Start'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('CONTROLLED STEADY RUN'), findsOneWidget);
-    expect(find.text('25 min'), findsOneWidget);
-    expect(find.text('controlled steady run'), findsOneWidget);
-    expect(find.textContaining('no distance target'), findsOneWidget);
-    expect(find.text('4.5'), findsNothing);
-    expect(find.text('km easy run'), findsNothing);
-  });
-
   testWidgets('Run tab uses today generated planned workout context', (
     tester,
   ) async {
@@ -779,36 +752,6 @@ void main() {
     );
 
     await tester.tap(find.byTooltip('Run'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('TODAY\'S PLAN'), findsOneWidget);
-    expect(find.text('Rest day'), findsOneWidget);
-    expect(find.text('Recovery today · no run target'), findsOneWidget);
-    expect(
-      find.text('Optional easy run only if you feel fresh'),
-      findsOneWidget,
-    );
-    expect(find.text('4.5'), findsNothing);
-    expect(find.text('km easy run'), findsNothing);
-  });
-
-  testWidgets('Home Quick Start shows rest day plan instead of fallback', (
-    tester,
-  ) async {
-    final generatedPlanStore = CurrentSessionGeneratedPlanStore()
-      ..setActivePlan(_tenKPerformancePlan());
-    addTearDown(generatedPlanStore.dispose);
-
-    await tester.pumpWidget(
-      RuniacApp(
-        showSplash: false,
-        enableForegroundGps: false,
-        currentSessionGeneratedPlanStore: generatedPlanStore,
-        youProgressToday: _weekdayDate(DateTime.sunday),
-      ),
-    );
-
-    await tester.tap(find.text('Quick Start'));
     await tester.pumpAndSettle();
 
     expect(find.text('TODAY\'S PLAN'), findsOneWidget);

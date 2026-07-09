@@ -4135,8 +4135,7 @@ void main() {
     await tester.tap(find.byTooltip('Home'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Good to see you'), findsOneWidget);
-    expect(find.text('Quick Start'), findsOneWidget);
+    expect(find.text('Your journey map is waiting'), findsOneWidget);
     expect(find.text('Weekly Distance'), findsNothing);
   });
 

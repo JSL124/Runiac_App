@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runiac_app/app.dart';
-import 'package:runiac_app/core/assets/runiac_assets.dart';
 import 'package:runiac_app/features/account/data/static_user_profile_repository.dart';
 import 'package:runiac_app/features/account/domain/repositories/user_profile_persistence_repository.dart';
 import 'package:runiac_app/features/account/presentation/watch_health_apps_screen.dart';
@@ -12,6 +11,9 @@ import 'package:runiac_app/features/home/presentation/home_tab.dart';
 import 'package:runiac_app/features/home/presentation/data/home_dashboard_demo_snapshots.dart';
 import 'package:runiac_app/features/home/presentation/widgets/home_progress_insight_section.dart';
 import 'package:runiac_app/features/home/presentation/widgets/today_plan_card.dart';
+import 'package:runiac_app/features/plan/domain/models/beginner_adaptive_plan_snapshot.dart';
+import 'package:runiac_app/features/plan/domain/services/beginner_adaptive_plan_generator.dart';
+import 'package:runiac_app/features/plan/presentation/current_session_generated_plan.dart';
 import 'package:runiac_app/features/notifications/domain/models/notification_inbox_item.dart';
 import 'package:runiac_app/features/notifications/domain/repositories/notification_inbox_repository.dart';
 import 'package:runiac_app/features/run/domain/models/imported_workout_candidate.dart';
@@ -21,8 +23,7 @@ import 'package:runiac_app/features/you/domain/models/user_progress_read_model.d
 import 'package:runiac_app/features/you/domain/repositories/user_progress_repository.dart';
 
 import 'support/fake_runiac_auth_repository.dart';
-
-const _todayPlanHeroAssetPath = RuniacAssets.homeTodayPlanRunner;
+import 'support/plan_family_test_drafts.dart';
 
 final _forbiddenTrustedStateCopy = RegExp(
   r'leaderboard score|saved count|popularity|owned|territory owned|'
@@ -30,13 +31,6 @@ final _forbiddenTrustedStateCopy = RegExp(
   r'validated|eligible|enrolled|official',
   caseSensitive: false,
 );
-
-TextStyle? _effectiveTextStyle(Finder textFinder, WidgetTester tester) {
-  final richText = tester.widget<RichText>(
-    find.descendant(of: textFinder, matching: find.byType(RichText)).first,
-  );
-  return richText.text.style;
-}
 
 Finder _nearestDecoratedBoxContaining(String text) {
   return find
@@ -277,79 +271,64 @@ const _longXpHomeSnapshot = HomeDashboardDemoSnapshot(
   exploreRoutes: homeExploreRouteDemoSnapshots,
 );
 
+/// A generated beginner plan whose active week has run sessions on Mon–Thu, so
+/// the stage map renders a tappable "today" stage when today is that Monday.
+BeginnerAdaptivePlanSnapshot _generatedRunPlan(DateTime startDate) {
+  final plan = const BeginnerAdaptivePlanGenerator().generate(
+    planFamilyPerformanceDraft(
+      goal: OnboardingGoal.tenK,
+      style: OnboardingPlanStyle.performanceFocused,
+      days: const [
+        OnboardingPreferredDay.mon,
+        OnboardingPreferredDay.tue,
+        OnboardingPreferredDay.wed,
+        OnboardingPreferredDay.thu,
+      ],
+    ),
+  );
+  return plan.withStartsOnDate(generatedPlanDateLabel(startDate));
+}
+
+int _stageAssetCount(WidgetTester tester, String assetName) {
+  return tester
+      .widgetList<Image>(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is Image &&
+              widget.image is AssetImage &&
+              (widget.image as AssetImage).assetName == assetName,
+        ),
+      )
+      .length;
+}
+
 void main() {
-  testWidgets('Home dashboard keeps a calm primary quick start', (
+  testWidgets('Home stage map shows the empty journey state and a live header', (
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(
       const RuniacApp(showSplash: false, enableForegroundGps: false),
     );
+    await tester.pumpAndSettle();
 
-    expect(
-      RuniacAssets.homeTodayPlanRunner,
-      'assets/images/home/todays_plan_runner.png',
-    );
-    expect(find.text('Good to see you'), findsOneWidget);
-    expect(
-      find.text('Your Home dashboard is ready for a calm start.'),
-      findsOneWidget,
-    );
-    expect(find.text('Today\'s Plan'), findsOneWidget);
-    expect(find.text('20 min easy run'), findsOneWidget);
-    expect(find.text('Goal Mode: First 5K'), findsOneWidget);
-    expect(
-      find.text('Build consistency with an easy, comfortable effort.'),
-      findsOneWidget,
-    );
-    expect(
-      find.byWidgetPredicate((widget) {
-        if (widget is! Image || widget.image is! AssetImage) {
-          return false;
-        }
-        final image = widget.image as AssetImage;
-        return image.assetName == _todayPlanHeroAssetPath;
-      }),
-      findsOneWidget,
-    );
-    expect(find.text('View Plan'), findsOneWidget);
-    expect(find.text('Quick Start'), findsOneWidget);
-    expect(find.text('First 10K Preparation'), findsOneWidget);
-    expect(find.text('Week 3 of 8'), findsOneWidget);
-    expect(find.text('43%'), findsWidgets);
-    expect(find.text('Next Milestone'), findsOneWidget);
-    expect(find.text('Complete 6 km comfortably'), findsOneWidget);
-    expect(find.text('Readiness'), findsNothing);
-    expect(find.text('+5% vs last week'), findsNothing);
-    expect(find.text('Streak'), findsOneWidget);
-    expect(find.text('6 days'), findsOneWidget);
-    expect(find.text('Keep it going!'), findsOneWidget);
-    expect(find.text('XP'), findsOneWidget);
-    expect(find.text('1,240 xp'), findsOneWidget);
-    expect(find.text('360 XP to Lv.13'), findsOneWidget);
-    expect(find.text('Advanced Insight'), findsOneWidget);
-    expect(find.text('Pace rhythm'), findsOneWidget);
-    expect(find.text('Improved'), findsOneWidget);
-    expect(find.text('Effort balance'), findsOneWidget);
-    expect(find.text('Balanced'), findsOneWidget);
-    expect(find.text('Goal progress'), findsOneWidget);
-    expect(find.text('On track'), findsOneWidget);
-    expect(
-      find.text('Your training preparation will appear here.'),
-      findsNothing,
-    );
-    expect(
-      find.text('Progress summaries will appear after verified runs.'),
-      findsNothing,
-    );
+    // The default app has no active plan, so the stage map shows its friendly
+    // empty state instead of the retired dashboard cards.
+    expect(find.text('Your journey map is waiting'), findsOneWidget);
+    expect(find.text('Good to see you'), findsNothing);
+    expect(find.text('Today\'s Plan'), findsNothing);
+    expect(find.text('Quick Start'), findsNothing);
+    expect(find.text('View Plan'), findsNothing);
+    expect(find.text('Advanced Insight'), findsNothing);
+    expect(find.byType(TodayPlanCard), findsNothing);
+    expect(find.byType(HomeProgressInsightSection), findsNothing);
+
+    // The header streak shows only the backend-owned number (0 with no
+    // progress) and never a fabricated "days" label.
+    expect(find.byIcon(Icons.local_fire_department), findsOneWidget);
+    expect(find.text('0'), findsOneWidget);
+    expect(find.textContaining('days'), findsNothing);
     expect(find.bySemanticsLabel('Notifications'), findsOneWidget);
     expect(find.bySemanticsLabel('Profile'), findsOneWidget);
-
-    final todayPlanRect = tester.getRect(find.byType(TodayPlanCard));
-    final progressSectionRect = tester.getRect(
-      find.byType(HomeProgressInsightSection),
-    );
-    expect(todayPlanRect.left, lessThan(progressSectionRect.left));
-    expect(todayPlanRect.right, greaterThan(progressSectionRect.right));
 
     await tester.tap(find.bySemanticsLabel('Notifications'));
     await tester.pumpAndSettle();
@@ -429,7 +408,7 @@ void main() {
     await tester.tap(find.bySemanticsLabel('Back to Home'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Good to see you'), findsOneWidget);
+    expect(find.text('Your journey map is waiting'), findsOneWidget);
     expect(find.text('Account'), findsNothing);
 
     expect(find.text('This Week\'s Plan'), findsNothing);
@@ -561,7 +540,7 @@ void main() {
     await tester.tap(find.bySemanticsLabel('Back to Home'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Good to see you'), findsOneWidget);
+    expect(find.text('Your journey map is waiting'), findsOneWidget);
     expect(progressRepository.loadCalls, 2);
     expect(progressRepository.refreshCalls, 1);
   });
@@ -983,60 +962,49 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('Home progress insight section fits a narrow mobile surface', (
-    WidgetTester tester,
-  ) async {
-    tester.view.physicalSize = const Size(360, 760);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
+  testWidgets(
+    'Home stage map fits a narrow surface and shows the streak number',
+    (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(360, 760);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(
-      const RuniacApp(showSplash: false, enableForegroundGps: false),
-    );
+      await tester.pumpWidget(
+        const RuniacApp(
+          showSplash: false,
+          enableForegroundGps: false,
+          userProgressRepository: _SingleUserProgressRepository(
+            UserProgressReadModel(
+              userId: 'runner-7',
+              officialStreakLabel: '5 days',
+              officialStreakCount: 5,
+              level: 4,
+              levelProgressFraction: 0.4,
+              levelLabel: 'Level 4',
+              totalXpLabel: '410 XP',
+              weeklyXpLabel: '',
+              monthlyXpLabel: '410 XP',
+              weeklyDistanceLabel: '',
+              goalProgressLabel: '',
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
 
-    expect(find.text('First 10K Preparation'), findsOneWidget);
-    expect(find.text('Readiness'), findsNothing);
-    expect(find.text('Streak'), findsOneWidget);
-    expect(find.text('6 days'), findsOneWidget);
-    expect(find.text('Keep it going!'), findsOneWidget);
-    expect(find.text('XP'), findsOneWidget);
-    expect(find.text('1,240 xp'), findsOneWidget);
-    expect(find.text('360 XP to Lv.13'), findsOneWidget);
-    expect(find.text('Advanced Insight'), findsOneWidget);
-
-    final streakTitleRect = tester.getRect(find.text('Streak'));
-    final xpTitleRect = tester.getRect(find.text('XP'));
-    final streakValueRect = tester.getRect(find.text('6 days'));
-    final xpValueRect = tester.getRect(find.text('1,240 xp'));
-    final streakCaptionRect = tester.getRect(find.text('Keep it going!'));
-    final xpCaptionRect = tester.getRect(find.text('360 XP to Lv.13'));
-
-    expect(streakTitleRect.center.dx, lessThan(xpTitleRect.center.dx));
-    expect(
-      (streakTitleRect.center.dy - xpTitleRect.center.dy).abs(),
-      lessThan(1),
-    );
-    expect(
-      (streakValueRect.center.dy - xpValueRect.center.dy).abs(),
-      lessThan(1),
-    );
-    expect(
-      (streakCaptionRect.center.dy - xpCaptionRect.center.dy).abs(),
-      lessThan(1),
-    );
-    expect(
-      tester
-          .widget<Icon>(find.byIcon(Icons.local_fire_department_rounded))
-          .size,
-      lessThanOrEqualTo(27),
-    );
-    expect(
-      tester.widget<Icon>(find.byIcon(Icons.star_rounded)).size,
-      lessThanOrEqualTo(27),
-    );
-    expect(tester.takeException(), isNull);
-  });
+      // The empty-state map lays out on a narrow device without overflowing.
+      expect(find.text('Your journey map is waiting'), findsOneWidget);
+      // The header shows only the backend-owned streak number, never a label.
+      expect(find.text('5'), findsOneWidget);
+      expect(find.text('5 days'), findsNothing);
+      expect(find.textContaining('days'), findsNothing);
+      expect(find.text('Lv.4'), findsOneWidget);
+      expect(find.text('Streak'), findsNothing);
+      expect(find.text('Advanced Insight'), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets('Home goal progress percentage is vertically centered', (
     WidgetTester tester,
@@ -1064,7 +1032,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('Home Explore Routes replaces the old routes empty state', (
+  testWidgets('Home stage map removes the retired dashboard sections', (
     WidgetTester tester,
   ) async {
     tester.view.physicalSize = const Size(360, 760);
@@ -1075,38 +1043,25 @@ void main() {
     await tester.pumpWidget(
       const RuniacApp(showSplash: false, enableForegroundGps: false),
     );
-
-    expect(find.text('Recommended Routes'), findsNothing);
-    expect(find.text('Community routes will appear here.'), findsNothing);
-
-    await tester.scrollUntilVisible(
-      find.text('Explore Routes'),
-      260,
-      scrollable: find.byType(Scrollable).last,
-    );
     await tester.pumpAndSettle();
 
-    expect(find.text('Explore Routes'), findsOneWidget);
-    expect(find.text('View All'), findsOneWidget);
-    expect(find.text('Haneul Park Trail'), findsOneWidget);
-    expect(find.text('3.2 km · 25 min · Easy'), findsOneWidget);
-    expect(find.text('Flat • Popular for Sunset'), findsNothing);
-    expect(find.text('3.2 km'), findsWidgets);
-
-    await tester.tap(find.text('View All'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Route explorer preview'), findsOneWidget);
-
-    await tester.drag(
+    expect(find.text('Your journey map is waiting'), findsOneWidget);
+    for (final removed in <String>[
+      'Explore Routes',
+      'Recommended Routes',
+      'Community routes will appear here.',
+      'View All',
+      'Haneul Park Trail',
+      'First 10K Preparation',
+      'Next Milestone',
+      'Route explorer preview',
+    ]) {
+      expect(find.text(removed), findsNothing);
+    }
+    expect(
       find.byKey(const ValueKey('home_explore_routes_carousel')),
-      const Offset(-220, 0),
+      findsNothing,
     );
-    await tester.pumpAndSettle();
-
-    expect(find.text('Olympic Park Loop'), findsOneWidget);
-    expect(find.text('5.0 km · 40 min · Moderate'), findsOneWidget);
-    expect(find.text('Moderate • Wide Paths'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
@@ -1187,83 +1142,77 @@ void main() {
     },
   );
 
-  testWidgets('Home Quick Start opens the existing run launch screen', (
+  testWidgets('Home stage map renders run and rest stones for an active plan', (
     WidgetTester tester,
   ) async {
+    final monday = DateTime(2026, 6, 22); // a Monday
+    final store = CurrentSessionGeneratedPlanStore();
+    expect(store.setActivePlan(_generatedRunPlan(monday)), isTrue);
+    addTearDown(store.dispose);
+
     await tester.pumpWidget(
-      const RuniacApp(showSplash: false, enableForegroundGps: false),
+      RuniacApp(
+        showSplash: false,
+        enableForegroundGps: false,
+        youProgressToday: monday,
+        currentSessionGeneratedPlanStore: store,
+      ),
     );
+    // Do not settle: today's stage runs a gentle repeating pulse.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
 
-    await tester.tap(find.text('Quick Start'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Demo mode'), findsOneWidget);
-    expect(find.text('Waiting for GPS'), findsNothing);
-    expect(find.text('Start run'), findsOneWidget);
-    expect(find.text('Good to see you'), findsNothing);
-    expect(find.text('Home'), findsNothing);
+    expect(find.text('Your journey map is waiting'), findsNothing);
+    expect(
+      _stageAssetCount(
+        tester,
+        'assets/images/home/stages/dashboard_stage_run.png',
+      ),
+      greaterThan(0),
+    );
+    expect(
+      _stageAssetCount(
+        tester,
+        'assets/images/home/stages/dashboard_stage_rest.png',
+      ),
+      greaterThan(0),
+    );
+    expect(find.bySemanticsLabel("Today's stage"), findsOneWidget);
   });
 
-  testWidgets('Home View Plan opens today workout detail without editing', (
+  testWidgets('Home today stage opens the workout detail without editing', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(
-      const RuniacApp(showSplash: false, enableForegroundGps: false),
-    );
+    final monday = DateTime(2026, 6, 22); // a Monday
+    final store = CurrentSessionGeneratedPlanStore();
+    expect(store.setActivePlan(_generatedRunPlan(monday)), isTrue);
+    addTearDown(store.dispose);
 
-    await tester.tap(find.text('View Plan'));
-    await tester.pumpAndSettle();
+    await tester.pumpWidget(
+      RuniacApp(
+        showSplash: false,
+        enableForegroundGps: false,
+        youProgressToday: monday,
+        currentSessionGeneratedPlanStore: store,
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    final todayStage = find.bySemanticsLabel("Today's stage");
+    expect(todayStage, findsOneWidget);
+
+    await tester.tap(todayStage);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
 
     expect(find.text('Workout detail'), findsOneWidget);
-    expect(find.text('Thursday · Easy Run'), findsOneWidget);
-    expect(find.text('20 min easy run'), findsOneWidget);
     expect(find.text('Edit schedule'), findsNothing);
-    expect(find.text('10K Goal Plan'), findsNothing);
 
     final headerTitle = tester.widget<Text>(
       find.byKey(const ValueKey('workout_detail_header_title')),
     );
-
     expect(headerTitle.style?.fontSize, 20);
-    expect(headerTitle.style?.fontFamily, isNull);
     expect(headerTitle.style?.decoration, isNot(TextDecoration.underline));
-
-    final effectiveHeaderTitleStyle = _effectiveTextStyle(
-      find.byKey(const ValueKey('workout_detail_header_title')),
-      tester,
-    );
-    final effectiveDayLabelStyle = _effectiveTextStyle(
-      find.text('Thursday · Easy Run'),
-      tester,
-    );
-    final effectivePlanTitleStyle = _effectiveTextStyle(
-      find.text('20 min easy run'),
-      tester,
-    );
-    expect(effectiveHeaderTitleStyle?.fontFamily, isNot('monospace'));
-    expect(
-      effectiveHeaderTitleStyle?.decoration,
-      isNot(TextDecoration.underline),
-    );
-    expect(effectiveDayLabelStyle?.fontFamily, isNot('monospace'));
-    expect(effectiveDayLabelStyle?.decoration, isNot(TextDecoration.underline));
-    expect(effectivePlanTitleStyle?.fontFamily, isNot('monospace'));
-    expect(
-      effectivePlanTitleStyle?.decoration,
-      isNot(TextDecoration.underline),
-    );
-
-    await tester.scrollUntilVisible(
-      find.text('Start This Run'),
-      220,
-      scrollable: find.byType(Scrollable).last,
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Start This Run'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Demo mode'), findsOneWidget);
-    expect(find.text('Waiting for GPS'), findsNothing);
-    expect(find.text('Start run'), findsOneWidget);
   });
 }

@@ -303,6 +303,8 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
         userProgressRepository: widget.userProgressRepository,
         todayWorkoutDetailSnapshot: todayWorkoutDetail,
         todayPlannedRunContext: todayPlannedRunContext,
+        generatedPlanProgress: generatedPlanProgress,
+        currentDate: widget.youProgressToday,
         enableForegroundGps: widget.enableForegroundGps,
         activeRunSessionCoordinator: _activeRunSessionCoordinator,
         onNotificationSettingsChanged: () {

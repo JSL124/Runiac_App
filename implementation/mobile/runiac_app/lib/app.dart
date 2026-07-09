@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import 'core/characters/local_selected_runner_character_storage.dart';
+import 'core/characters/runner_character.dart';
 import 'core/theme/runiac_theme.dart';
 import 'features/account/data/static_user_profile_repository.dart';
 import 'features/account/domain/models/user_profile_read_model.dart';
@@ -34,6 +36,7 @@ import 'features/you/data/local_pending_run_activity_store.dart';
 import 'features/you/domain/models/user_progress_read_model.dart';
 import 'features/you/domain/repositories/activity_history_repository.dart';
 import 'features/you/domain/repositories/user_progress_repository.dart';
+import 'features/onboarding/presentation/runiac_character_selection_gate.dart';
 import 'features/onboarding/presentation/runiac_onboarding_gate.dart';
 import 'features/shell/runiac_shell.dart';
 import 'features/splash/presentation/runiac_splash_tokens.dart';
@@ -117,6 +120,10 @@ class _RuniacAppState extends State<RuniacApp> {
   var _adaptivePlanEstimateLoadSerial = 0;
   String? _authStateError;
   bool _showMissingProfileSignupPrompt = false;
+  final SelectedRunnerCharacterStore _selectedCharacterStore =
+      SelectedRunnerCharacterStore();
+  final LocalSelectedRunnerCharacterStorage _selectedCharacterStorage =
+      const SharedPreferencesSelectedRunnerCharacterStorage();
 
   @override
   void initState() {
@@ -140,7 +147,36 @@ class _RuniacAppState extends State<RuniacApp> {
         CurrentSessionGeneratedPlanStore();
     _personalProfileDraft = widget.initialPersonalProfileDraft;
     _startPushNotificationsForCurrentUser();
+    unawaited(
+      _restoreSelectedCharacter(widget.authRepository.currentUser?.uid),
+    );
   }
+
+  Future<void> _restoreSelectedCharacter(String? uid) async {
+    final stored = await _selectedCharacterStorage.readSelectedCharacter(
+      uid: uid,
+    );
+    if (!mounted) {
+      return;
+    }
+    if (stored != null) {
+      _selectedCharacterStore.select(stored);
+    } else {
+      _selectedCharacterStore.clear();
+    }
+  }
+
+  void _persistSelectedCharacter(RunnerCharacter character) {
+    unawaited(
+      _selectedCharacterStorage.writeSelectedCharacter(
+        uid: widget.authRepository.currentUser?.uid,
+        character: character,
+      ),
+    );
+  }
+
+  bool get _shouldShowCharacterSelection =>
+      widget.showAuth && _shouldShowOnboarding;
 
   @override
   void didUpdateWidget(covariant RuniacApp oldWidget) {
@@ -181,12 +217,15 @@ class _RuniacAppState extends State<RuniacApp> {
       _generatedPlanStore.dispose();
     }
     unawaited(widget.notificationRegistrationService?.dispose());
+    _selectedCharacterStore.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return CurrentSessionActivityHistoryScope(
+    return SelectedRunnerCharacterScope(
+      store: _selectedCharacterStore,
+      child: CurrentSessionActivityHistoryScope(
       store: _activityHistoryStore,
       child: CurrentSessionGeneratedPlanScope(
         store: _generatedPlanStore,
@@ -209,6 +248,11 @@ class _RuniacAppState extends State<RuniacApp> {
                     _showMissingProfileSignupPrompt = false;
                   });
                   _startPushNotificationsForCurrentUser();
+                  unawaited(
+                    _restoreSelectedCharacter(
+                      widget.authRepository.currentUser?.uid,
+                    ),
+                  );
                 },
                 onAuthStateChanged: (user) {
                   if (user == null) {
@@ -219,6 +263,7 @@ class _RuniacAppState extends State<RuniacApp> {
                   }
                   _scheduleActivityHistoryOwnerSync(user?.uid);
                   _clearGeneratedPlanForAuthChange(user?.uid);
+                  unawaited(_restoreSelectedCharacter(user?.uid));
                 },
                 recoveryPrompt: _showMissingProfileSignupPrompt
                     ? const RuniacAuthRecoveryPrompt.signup(
@@ -231,6 +276,7 @@ class _RuniacAppState extends State<RuniacApp> {
             ),
           ),
         ),
+      ),
       ),
     );
   }
@@ -389,10 +435,14 @@ class _RuniacAppState extends State<RuniacApp> {
   }
 
   Widget _buildOnboardingAndShell() {
-    return RuniacOnboardingGate(
-      showOnboarding: _shouldShowOnboarding,
-      onCompletedDraft: _completeOnboarding,
-      child: RuniacShell(
+    return RuniacCharacterSelectionGate(
+      active: _shouldShowCharacterSelection,
+      store: _selectedCharacterStore,
+      onCharacterConfirmed: _persistSelectedCharacter,
+      child: RuniacOnboardingGate(
+        showOnboarding: _shouldShowOnboarding,
+        onCompletedDraft: _completeOnboarding,
+        child: RuniacShell(
         authRepository: widget.authRepository,
         activityHistoryRepository: widget.activityHistoryRepository,
         userProgressRepository: widget.userProgressRepository,
@@ -409,6 +459,7 @@ class _RuniacAppState extends State<RuniacApp> {
         youProgressToday: widget.youProgressToday,
         enableLocalPlanNotifications:
             defaultTargetPlatform == TargetPlatform.iOS,
+      ),
       ),
     );
   }

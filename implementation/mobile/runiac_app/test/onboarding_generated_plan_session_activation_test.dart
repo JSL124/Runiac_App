@@ -31,7 +31,7 @@ void main() {
       await completeOnboardingToFourSessionPreview(tester);
       await tapText(tester, 'Continue with this plan');
 
-      expect(find.text('Good to see you'), findsOneWidget);
+      expect(find.byTooltip('Home'), findsOneWidget);
       expect(generatedPlanStore.activePlan, isNotNull);
       expect(generatedPlanStore.activePlan!.title, '10K Performance Build');
       expect(generatedPlanStore.currentWeekRunningSessionCount, 4);
@@ -55,7 +55,7 @@ void main() {
       await completeOnboardingToPreview(tester);
       await tapText(tester, 'Continue with this plan');
 
-      expect(find.text('Good to see you'), findsOneWidget);
+      expect(find.byTooltip('Home'), findsOneWidget);
       expect(generatedPlanStore.activePlan, isNotNull);
       expect(generatedPlanStore.activePlan!.title, 'Return to Movement');
       expect(generatedPlanStore.currentWeekRunningSessionCount, 3);
@@ -89,7 +89,7 @@ void main() {
       expect(generatedPlanStore.activePlan, isNotNull);
       expect(generatedPlanStore.activePlan!.title, '10K Performance Build');
       expect(generatedPlanStore.currentWeekRunningSessionCount, 4);
-      expect(find.text('Good to see you'), findsOneWidget);
+      expect(find.byTooltip('Home'), findsOneWidget);
     },
   );
 
@@ -249,7 +249,7 @@ void main() {
     await completeOnboardingToPreview(tester);
     await tapText(tester, 'Continue with this plan');
 
-    expect(find.text('Good to see you'), findsOneWidget);
+    expect(find.byTooltip('Home'), findsOneWidget);
     expect(profileRepository.uid, 'test-auth-user-1');
     expect(profileRepository.profile?.displayName, 'Maya');
     expect(profileRepository.profile?.fullName, 'Maya Tan');
@@ -376,7 +376,7 @@ void main() {
 
       await tapText(tester, 'Continue with this plan');
 
-      expect(find.text('Good to see you'), findsOneWidget);
+      expect(find.byTooltip('Home'), findsOneWidget);
       expect(profileRepository.saveCalls, 2);
     },
   );
@@ -398,7 +398,7 @@ void main() {
       await completeOnboardingToBodyConcernPreview(tester);
       await tapText(tester, 'Continue with this plan');
 
-      expect(find.text('Good to see you'), findsOneWidget);
+      expect(find.byTooltip('Home'), findsOneWidget);
       expect(generatedPlanStore.activePlan, isNotNull);
       expect(generatedPlanStore.activePlan!.title, 'Return to Movement');
       expect(generatedPlanStore.currentWeekRunningSessionCount, 3);
@@ -437,7 +437,7 @@ void main() {
 
     await tapText(tester, 'Finish for now');
 
-    expect(find.text('Good to see you'), findsOneWidget);
+    expect(find.byTooltip('Home'), findsOneWidget);
     expect(generatedPlanStore.activePlan, isNotNull);
     expect(generatedPlanStore.activePlan!.isSafetyReadinessDisplay, isTrue);
     expect(generatedPlanStore.activePlan!.canStartPlannedRun, isFalse);
@@ -484,7 +484,7 @@ void main() {
 
     await tapText(tester, 'Finish for now');
 
-    expect(find.text('Good to see you'), findsOneWidget);
+    expect(find.byTooltip('Home'), findsOneWidget);
     expect(generatedPlanStore.activePlan, isNotNull);
     expect(generatedPlanStore.activePlan, isNot(same(stalePlan)));
     expect(generatedPlanStore.activePlan!.isSafetyReadinessDisplay, isTrue);

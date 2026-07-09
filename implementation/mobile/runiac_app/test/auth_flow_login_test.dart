@@ -99,7 +99,7 @@ void main() {
 
     expect(find.text('Welcome to Runiac'), findsNothing);
     expect(find.text('Step 1 of 16'), findsNothing);
-    expect(find.text('Good to see you'), findsOneWidget);
+    expect(find.byTooltip('Home'), findsOneWidget);
   });
 
   testWidgets('Google login calls auth repository and opens app shell', (
@@ -140,7 +140,7 @@ void main() {
 
     expect(find.text('Welcome to Runiac'), findsNothing);
     expect(find.text('Step 1 of 16'), findsNothing);
-    expect(find.text('Good to see you'), findsOneWidget);
+    expect(find.byTooltip('Home'), findsOneWidget);
   });
 
   testWidgets('Google login with missing profile returns to signup guidance', (
@@ -268,7 +268,7 @@ void main() {
     expect(repository.signInCalls, 1);
     expect(find.text('Welcome to Runiac'), findsNothing);
     expect(find.text('Step 1 of 16'), findsNothing);
-    expect(find.text('Good to see you'), findsOneWidget);
+    expect(find.byTooltip('Home'), findsOneWidget);
   });
 }
 

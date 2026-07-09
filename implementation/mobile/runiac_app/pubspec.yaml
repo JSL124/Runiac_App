@@ -90,6 +90,7 @@ flutter:
     - assets/images/characters/purple_runner_right.png
     - assets/images/home/todays_plan_runner.png
     - assets/images/home/stages/
+    - assets/images/home/backgrounds/
     - assets/images/leaderboard/share_rank_card_background.png
     - assets/images/leaderboard/leagues/
     - assets/maps/master_plan_2025_planning_area_boundary_no_sea.geojson

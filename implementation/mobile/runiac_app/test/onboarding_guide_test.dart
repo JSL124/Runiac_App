@@ -1,0 +1,122 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:runiac_app/core/characters/runner_character.dart';
+import 'package:runiac_app/features/onboarding/domain/guide/onboarding_guide_agent.dart';
+import 'package:runiac_app/features/onboarding/domain/guide/rule_based_onboarding_guide_agent.dart';
+import 'package:runiac_app/features/onboarding/presentation/onboarding_flow_screen.dart';
+
+Future<void> _pumpFlow(
+  WidgetTester tester, {
+  Duration threshold = const Duration(seconds: 12),
+}) async {
+  final store = SelectedRunnerCharacterStore()..select(RunnerCharacter.pink);
+  addTearDown(store.dispose);
+  await tester.pumpWidget(
+    MaterialApp(
+      home: SelectedRunnerCharacterScope(
+        store: store,
+        child: OnboardingFlowScreen(
+          guideStallThreshold: threshold,
+          onComplete: (_) async => true,
+        ),
+      ),
+    ),
+  );
+}
+
+/// Advances time past the stall threshold and lets the guide agent future
+/// resolve and the entrance/typing animations complete.
+Future<void> _stall(WidgetTester tester) async {
+  await tester.pump(const Duration(seconds: 12));
+  await tester.pump(); // resolve the guide agent future + setState
+  await tester.pump(const Duration(seconds: 3)); // entrance + typing
+}
+
+void main() {
+  group('RuleBasedOnboardingGuideAgent', () {
+    test('returns tailored copy for every onboarding step id', () async {
+      const agent = RuleBasedOnboardingGuideAgent();
+      const stepIds = [
+        'welcome',
+        'goal',
+        'consistency',
+        'frequency',
+        'capacity',
+        'experience',
+        'availability',
+        'days',
+        'time',
+        'length',
+        'place',
+        'motivation',
+        'health',
+        'symptoms',
+        'style',
+        'preview',
+      ];
+
+      final messages = <String>{};
+      for (final stepId in stepIds) {
+        final message = await agent.guide(
+          OnboardingGuideRequest(stepId: stepId),
+        );
+        expect(message.text.trim(), isNotEmpty, reason: 'empty for $stepId');
+        messages.add(message.text);
+      }
+
+      // Every step has genuinely distinct hint copy.
+      expect(messages.length, stepIds.length);
+    });
+
+    test('falls back gracefully for an unknown step', () async {
+      const agent = RuleBasedOnboardingGuideAgent();
+      final message = await agent.guide(
+        const OnboardingGuideRequest(stepId: 'does-not-exist'),
+      );
+      expect(message.text.trim(), isNotEmpty);
+    });
+  });
+
+  group('Onboarding guide overlay', () {
+    testWidgets('appears after the stall threshold with step-specific copy', (
+      tester,
+    ) async {
+      await _pumpFlow(tester);
+
+      // Before the threshold, the guide is not shown.
+      await tester.pump(const Duration(seconds: 5));
+      expect(find.textContaining('running buddy'), findsNothing);
+
+      await _stall(tester);
+
+      // Welcome-step hint from RuleBasedOnboardingGuideAgent.
+      expect(find.textContaining('running buddy'), findsOneWidget);
+      // Spoken by the selected character (pink => Mila).
+      expect(find.text('Mila'), findsOneWidget);
+    });
+
+    testWidgets('can be dismissed and does not reappear on the same step', (
+      tester,
+    ) async {
+      await _pumpFlow(tester);
+      await _stall(tester);
+      expect(find.textContaining('running buddy'), findsOneWidget);
+
+      await tester.tap(find.byTooltip('Dismiss'));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.textContaining('running buddy'), findsNothing);
+
+      // Idling again on the same step must not nag the user.
+      await _stall(tester);
+      expect(find.textContaining('running buddy'), findsNothing);
+    });
+
+    testWidgets('does not appear when the threshold is disabled', (
+      tester,
+    ) async {
+      await _pumpFlow(tester, threshold: Duration.zero);
+      await _stall(tester);
+      expect(find.textContaining('running buddy'), findsNothing);
+    });
+  });
+}

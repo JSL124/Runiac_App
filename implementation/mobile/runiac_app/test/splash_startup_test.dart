@@ -29,7 +29,7 @@ void main() {
     );
 
     expect(find.byKey(const ValueKey('runiac_splash_screen')), findsNothing);
-    expect(find.text('Good to see you'), findsOneWidget);
+    expect(find.byTooltip('Home'), findsOneWidget);
     expect(find.byTooltip('Home'), findsOneWidget);
   });
 
@@ -41,7 +41,7 @@ void main() {
     );
 
     expect(find.byKey(const ValueKey('runiac_splash_screen')), findsNothing);
-    expect(find.text('Good to see you'), findsOneWidget);
+    expect(find.byTooltip('Home'), findsOneWidget);
     expect(find.byTooltip('Home'), findsOneWidget);
   });
 
