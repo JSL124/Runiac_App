@@ -14,6 +14,7 @@ Desktop.ini
 # Environment and local configuration
 .env
 .env.*
+.secret.local
 !.env.example
 !.env.*.example
 secrets/
