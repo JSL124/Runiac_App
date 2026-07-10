@@ -10,7 +10,7 @@
         },
         {
           "fieldPath": "endedAt",
-          "order": "DESCENDING"
+          "order": "ASCENDING"
         }
       ]
     },
