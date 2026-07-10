@@ -4,13 +4,13 @@
 
 - Current track: Track A - Governance and implementation readiness
 - Current phase: `implementation/roadmap/phases/phase-01-governance-ci.md`
-- Current active capsule: none. `implementation/roadmap/capsules/home-stage-map-density-polish.md` completed locally at `74f9c219 feat(home): refine stage map density and guide` after full Flutter validation and explicit user authorization to include the Blue idle GIF. It does not authorize Home Guide request/response behavior, plan semantics, backend, or unrelated UI changes.
+- Current active capsule: `implementation/roadmap/capsules/leaderboard-jurong-east-seed-verification.md`. It is a user-approved, bounded IMPLEMENTATION_MODE follow-up to replace existing marker-owned Leaderboard mock runs in `runiac-fypp` with exactly 100 Jurong East-only synthetic profiles for `2026-07`; it is routing-only until its emulator and explicit production confirmation gates are satisfied.
 - Most recent pushed / hosted-CI-verified completed capsule: `goal-plan-detail-header-timeline-alignment` implemented, pushed at `7798f058ae1b272e8eca6dd8a31cba4490c8faa1 feat(you): refine goal plan detail week list`, and verified by hosted Governance CI #65 PASS for run ID `27160664756`.
 - Most recent locally closed implementation milestone: `personalized-adaptive-estimate-learning` completed locally after RED/GREEN Functions and Firestore rules evidence on 2026-07-07 Asia/Singapore.
-- Current status: Phase 01 governance CI closed; existing Run/Plan milestones remain reconciled; the monthly territorial Leaderboard is now deployed for `runiac-fypp` with live Firestore reads, backend-owned contribution/aggregation, hourly snapshot refresh, rules, and a verified reversible synthetic seed run across the 37 supported planning areas. Weekly Leaderboard remains excluded.
-- Current state: The Flutter mobile UI has live monthly Leaderboard reads backed by the deployed `completeRun` contribution path and hourly `refreshLeaderboardSnapshots` aggregation for the supported 37 planning areas. The 3,700-profile seed run is reversible and verified; 37 Premium mock profiles remain ineligible for rank. Weekly Leaderboard, GPS/route persistence, background tracking, Auto Pause, and Moving Time remain future scope.
+- Current status: Phase 01 governance CI closed; existing Run/Plan milestones remain reconciled; the monthly territorial Leaderboard is deployed for `runiac-fypp` with live Firestore reads, backend-owned contribution/aggregation, hourly snapshot refresh, and rules. The optimized seed tooling is locally complete and Ready for commit after five-lane review PASS, Functions 121/121, Rules 47/47, post-review focused 25/25, and a full emulator lifecycle ending with zero run-owned documents. The production read-only inventory/preview found one verified old run (`leaderboard-qa-20260710`) with 3,700 source profiles and no reported issues; its transcribed evidence and limitations are recorded in the active capsule. No production-data mutation occurred during optimization. A fresh inventory and the exact user seed confirmation are required before the blue-green mutation sequence. Weekly Leaderboard remains excluded.
+- Current state: The Flutter mobile UI has live monthly Leaderboard reads backed by the deployed `completeRun` contribution path and hourly `refreshLeaderboardSnapshots` aggregation. The prior 3,700-profile, 37-area mock seed state is not a current acceptance target; it is subject only to the active capsule's marker-only inventory and confirmed cleanup. The new acceptance target is exactly 100 Jurong East-only synthetic profiles for `2026-07`: 99 Basic ranked and one Premium ineligible. Weekly Leaderboard, GPS/route persistence, background tracking, Auto Pause, and Moving Time remain future scope.
 - Current governance decision record: ADR-003 Governance Lite Execution Lanes is adopted as a decision record only. It documents UI Fast Lane, Backend Guarded Lane, and Governance/Architecture Lane for future routed work, but does not activate or enforce a new workflow, change CI, change AGENTS instructions, authorize Flutter/Firebase/backend implementation, or select Phase 02.
-- Current active milestone: none. Home Stage Map density polish is completed locally at `74f9c219`; Phase 02 remains unselected.
+- Current active milestone: `leaderboard-jurong-east-seed-verification`. Phase 02 remains unselected.
 
 Run Tracking M4-A/M4-B/M4-C1/M4-C2 reconciliation:
 
@@ -81,8 +81,7 @@ Do not load future phase documents unless explicitly requested.
 ## Forbidden Work
 
 - Do not run Flutter, Firebase, npm, build, test, deploy, scaffold, or init commands unless the current task explicitly authorizes validation commands.
-- Do not create production implementation code.
-- Do not modify existing implementation logic.
+- Do not create production implementation code or modify implementation logic outside the explicitly selected active capsule.
 - Do not expand the generated Flutter scaffold into Runiac production features or tests without separate approval.
 - Do not run or expand `flutterfire configure`; do not add production Firebase config beyond the committed `runiac-fypp` Auth/mobile config at `478898c0` without separate approval.
 - Do not treat Safe Visible Product Acceleration as approval for further production Firebase/Auth/Firestore/Cloud Functions setup, `flutterfire configure`, Google Maps or Mapbox SDK integration, GPS/native configuration, new dependencies without explicit approval, client-side mutation or calculation of backend-owned values, XP/streak/level/rank/leaderboard score/weekly XP/monthly XP/subscription privilege state/expert plan publication state logic, unrelated refactors, roadmap expansion, or new ADRs unless a real architecture decision is unavoidable.
@@ -93,11 +92,11 @@ Do not load future phase documents unless explicitly requested.
 
 ## Next Gate
 
-Next gate is explicit token-backed Mapbox QA with a real demo public token, explicit next capsule selection, or push/remote verification decision. M4-C2 Mapbox Run Map Surface is complete locally at `4ac294c`, but token-backed demo readiness remains pending real-token QA. Mapbox token-backed QA must keep the token runtime-only via `--dart-define=MAPBOX_PUBLIC_ACCESS_TOKEN=...`; must not store the token in source, `.env`, README, plist, Android resources, or git; and must not stage SwiftPM `Package.resolved` artifacts. Required Mapbox QA evidence: token-backed Android emulator QA, token-backed physical iPhone QA, map render, route polyline render, camera/recenter behavior, attribution/logo visibility, startup/default camera behavior before GPS, no token leakage, and no `Package.resolved` staging. No Phase 02 selection, Firestore rules/index deploy, `flutterfire configure`, build, init, deploy, route trace backend upload, GPS trace persistence, shared route auto-generation, background tracking, real XP/level/rank/leaderboard formulas, leaderboard aggregation, or additional Flutter/backend implementation outside a separately selected capsule is authorized without separate explicit approval.
+Next gate is the active `leaderboard-jurong-east-seed-verification` capsule: rerun and retain a fresh read-only production inventory/preview, then obtain the exact new-run user confirmation before seed/refresh/read-back. The required blue-green order remains confirmed new Jurong East seed/refresh/read-back first, confirmed exact old-run cleanup second using the fresh fingerprint and verified replacement binding, then final refresh/verification/inventory. No production mutation may run until the applicable explicit seed or cleanup confirmation is obtained. Token-backed Mapbox QA remains separately pending and does not authorize this capsule's production work. No Phase 02 selection, `flutterfire configure`, GPS/route persistence, background tracking, or unrelated Flutter/backend implementation is authorized.
 
 ## Operational TODO / Active Capsule
 
-Active capsule: none. `implementation/roadmap/capsules/home-stage-map-density-polish.md` is closed at `74f9c219`; Weekly Leaderboard and unrelated Phase 02 work remain excluded.
+Active capsule: `implementation/roadmap/capsules/leaderboard-jurong-east-seed-verification.md`. It is the sole active implementation scope. `implementation/roadmap/capsules/home-stage-map-density-polish.md` remains closed at `74f9c219`; Weekly Leaderboard and unrelated Phase 02 work remain excluded.
 
 Required next-session checklist:
 
@@ -109,8 +108,8 @@ Required next-session checklist:
 6. Treat the Goal Plan Detail, Weekly Workout Detail, Expert Plan List, Expert Plan Detail, and Goal Plan Detail header/timeline alignment capsules as closed unless a future explicit task reopens one of them.
 7. If committing, stage only the task-relevant files listed by the final status.
 8. Do not touch unrelated dirty files if any appear.
-9. Do not add fake users/ranks/XP/scores/levels, plan completion calculations, completed-run calculations, remaining-run calculations, expert eligibility logic, further production Firebase/backend/GPS/native/dependency work, sharing integration, premium gating, subscription logic, or Phase 02 selection.
-10. Do not select or implement another capsule, Phase 02 work, feature-level Firestore reads/writes beyond already reconciled local Plan/Run/Profile scope, FlutterFire production config expansion beyond the existing Firebase config, GPS/native work, dependency work, or any new product scope without separate explicit approval.
+9. For the active Leaderboard capsule only, synthetic marker-owned users/profiles/contributions and their backend-owned projections may be implemented and verified within the capsule's exact scope; all production cleanup/seed/refresh commands remain blocked until explicit per-gate user confirmation.
+10. Do not select or implement another capsule, Phase 02 work, feature-level Firestore reads/writes outside the active capsule, FlutterFire production config expansion beyond the existing Firebase config, GPS/native work, dependency work, or any new product scope without separate explicit approval.
 11. `goal-plan-detail-header-timeline-alignment` closure preserves static sample daily rows as preview-only display data; they must not create enrollment, persistence, onboarding mutation, trusted current-week calculation, or backend-owned plan progress behavior.
 
 Closure validation for `leaderboard-leagues-popup-shell`:
