@@ -42,6 +42,26 @@ is_historical_backend_functions_path() {
     functions/src/notifications/scheduledPushMessagingAdapter.ts|\
     functions/src/notifications/scheduledPushReaders.ts|\
     functions/src/notifications/types.ts|\
+    functions/src/leaderboard/leaderboardMockDataset.ts|\
+    functions/src/leaderboard/leaderboardMockProfiles.ts|\
+    functions/src/leaderboard/leaderboardSeedArguments.ts|\
+    functions/src/leaderboard/leaderboardSeedCleanupAuthorization.ts|\
+    functions/src/leaderboard/leaderboardSeedCleanupLease.ts|\
+    functions/src/leaderboard/leaderboardSeedCommandTypes.ts|\
+    functions/src/leaderboard/leaderboardSeedDataset.ts|\
+    functions/src/leaderboard/leaderboardSeedFirestore.ts|\
+    functions/src/leaderboard/leaderboardSeedInventory.ts|\
+    functions/src/leaderboard/leaderboardSeedInventoryFingerprint.ts|\
+    functions/src/leaderboard/leaderboardSeedMutation.ts|\
+    functions/src/leaderboard/leaderboardSeedOwnership.ts|\
+    functions/src/leaderboard/leaderboardSeedVerification.ts|\
+    functions/src/leaderboard/leaderboardSeedWriteRecovery.ts|\
+    functions/src/leaderboard/leaderboardTypes.ts|\
+    functions/src/leaderboard/monthlyLeaderboard.ts|\
+    functions/src/leaderboard/monthlyLeaderboardPlanner.ts|\
+    functions/src/leaderboard/monthlyLeaderboardWriter.ts|\
+    functions/src/leaderboard/seedLeaderboardMockData.ts|\
+    functions/src/leaderboard/singaporePlanningAreas.ts|\
     functions/src/plan/adaptiveEstimate.ts|\
     functions/src/plan/planProgress.ts|\
     functions/src/plan/planProgressParsing.ts|\
@@ -53,6 +73,7 @@ is_historical_backend_functions_path() {
     functions/src/progression/progressionDisplayReader.ts|\
     functions/src/progression/progressionEventWriter.ts|\
     functions/src/progression/streakCalculator.ts|\
+    functions/src/progression/leaderboardLeagues.ts|\
     functions/src/run/completeRun.ts|\
     functions/src/run/runCompletionArtifacts.ts|\
     functions/src/run/runCompletionTypes.ts|\
@@ -64,7 +85,46 @@ is_historical_backend_functions_path() {
     functions/test/notificationDevices.test.ts|\
     functions/test/notificationDispatch.test.ts|\
     functions/test/notificationScheduledDispatch.test.ts|\
+    functions/test/leaderboardMockDataset.test.ts|\
+    functions/test/leaderboardSeedAuthorization.test.ts|\
+    functions/test/leaderboardSeedFirestore.test.ts|\
+    functions/test/leaderboardSeedVerification.test.ts|\
+    functions/test/monthlyLeaderboard.test.ts|\
+    functions/test/monthlyLeaderboardWriter.test.ts|\
+    functions/test/seedLeaderboardCleanup.test.ts|\
+    functions/test/seedLeaderboardInventory.test.ts|\
+    functions/test/seedLeaderboardMockData.test.ts|\
+    functions/test/seedLeaderboardSafety.test.ts|\
     functions/test/progressionCalculator.test.ts)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+is_adaptive_character_guidance_capsule_active() {
+  grep -Eq '^- Current active capsule( in this isolated worktree)?: `implementation/roadmap/capsules/adaptive-character-guidance\.md`' implementation/roadmap/CURRENT.md
+}
+
+is_adaptive_character_guidance_functions_path() {
+  case "$1" in
+    functions/src/agent/homeGuideAgent.ts|\
+    functions/src/agent/homeGuideAgentHandler.ts|\
+    functions/src/agent/homeGuideContracts.ts|\
+    functions/src/agent/homeGuideEvidence.ts|\
+    functions/src/agent/homeGuideModel.ts|\
+    functions/src/agent/homeGuideModelOutput.ts|\
+    functions/src/agent/homeGuideQuotaCache.ts|\
+    functions/src/agent/homeGuideQuotaFingerprint.ts|\
+    functions/test/homeGuideAgentCallableSurface.test.ts|\
+    functions/test/homeGuideAgentSurface.test.ts|\
+    functions/test/homeGuideEvidence.test.ts|\
+    functions/test/homeGuideEvidenceFixtures.ts|\
+    functions/test/homeGuideModel.test.ts|\
+    functions/test/homeGuideModelFixtures.ts|\
+    functions/test/homeGuideQuotaCache.test.ts)
       return 0
       ;;
     *)
@@ -112,6 +172,9 @@ is_forbidden_config_or_secret() {
       ;;
     functions/*)
       if is_historical_backend_functions_path "$1"; then
+        return 1
+      fi
+      if is_adaptive_character_guidance_functions_path "$1" && is_adaptive_character_guidance_capsule_active; then
         return 1
       fi
       return 0

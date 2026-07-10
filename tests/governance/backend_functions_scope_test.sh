@@ -63,10 +63,16 @@ if ! grep -q 'functions/src/.runiac-governance-probe.ts' <<<"$pre_scaffold_outpu
 fi
 
 cp "$current_backup" implementation/roadmap/CURRENT.md
-perl -0pi -e 's/- Current active capsule: `implementation\/roadmap\/capsules\/complete-run-cloud-functions-emulator-skeleton\.md`\.[^\n]*/- Current active capsule: none. Historical reference: complete run functions capsule is not active./' implementation/roadmap/CURRENT.md
+perl -0pi -e 's/- Current active capsule in this isolated worktree: `implementation\/roadmap\/capsules\/adaptive-character-guidance\.md`\.[^\n]*/- Current active capsule: none. Historical reference: adaptive character guidance is not active./' implementation/roadmap/CURRENT.md
 
 inactive_diff_hygiene_output="$(./tools/governance-ci/check-diff-hygiene.sh 2>&1 || true)"
 inactive_pre_scaffold_output="$(./tools/governance-ci/check-pre-scaffold-scope.sh 2>&1 || true)"
+
+if ! grep -q 'functions/src/agent/homeGuideAgent.ts' <<<"$inactive_pre_scaffold_output"; then
+  printf '%s\n' "$inactive_pre_scaffold_output"
+  printf '%s\n' 'Expected check-pre-scaffold-scope to reject adaptive character guidance Functions files when the capsule is not active'
+  exit 1
+fi
 
 if ! grep -q 'functions/.runiac-governance-probe.js' <<<"$inactive_diff_hygiene_output"; then
   printf '%s\n' "$inactive_diff_hygiene_output"

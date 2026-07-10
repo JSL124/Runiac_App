@@ -1,5 +1,25 @@
 # Runiac AGENTS.md Changelog
 
+## 2026-07-10 - Route Adaptive Character Guidance Governance Checks
+
+### Files modified
+- `tools/governance-ci/check-diff-hygiene.sh`
+- `tools/governance-ci/check-pre-scaffold-scope.sh`
+- `tests/governance/backend_functions_scope_test.sh`
+- `docs/pdd/AGENTS_CHANGELOG.md`
+
+### Reason
+The active, emulator-only `adaptive-character-guidance` capsule adds a bounded Home guide Functions surface, but the pre-scaffold governance checks did not recognize its explicit paths and blocked hosted CI.
+
+### Summary of changes
+- Permit only the declared Home guide Functions and tests while the adaptive-character-guidance capsule is active.
+- Preserve rejection of those same paths when the capsule is not active.
+- Restore the historical Leaderboard Functions allowlist already tracked by the repository.
+- Preserve all secret, generated-artifact, and unrelated Functions-path denials.
+
+### Final status
+Pending validation.
+
 ## 2026-05-27 - Streamline Context Loading
 
 ### Files modified
