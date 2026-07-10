@@ -21,6 +21,7 @@ const UNSUPPLIED_CLAIM = /\b(?:you|your|improv(?:e|ed|ing|ement)?|declin(?:e|ed|
 const INSTRUCTIONAL_TERMS = /\b(?:ignore|disregard|previous instructions?|system prompt)\b/iu;
 const MARKDOWN = /(?:^|\s)(?:#{1,6}\s|[-*+]\s|>\s)|[*_`~\[\]]/u;
 const URL = /(?:https?:\/\/|www\.)/iu;
+const MAX_MODEL_TEXT_LENGTH = 128;
 
 export type HomeGuideActionCode = (typeof ACTION_CODES)[number];
 export type HomeGuideProgressionLead = "baseline" | "improving" | "steady" | "mixed" | "needs_attention";
@@ -85,8 +86,8 @@ export function renderHomeGuideBundle(input: HomeGuideRenderInput): HomeGuideBun
   const lead = deriveHomeGuideProgressionLead(facts);
   if (!isCoherentAction(lead, input.output.nextActionCode)) return null;
   const bundle = {
-    planSummary: `Today's plan is ready. ${input.output.planSummaryText}`,
-    runningTip: `Running tip: ${input.output.runningTipText}`,
+    planSummary: `Your plan is ready, superstar! ${input.output.planSummaryText}`,
+    runningTip: `Tiny trainer tip: ${input.output.runningTipText}`,
     progressionCheckIn: renderProgression(facts, input.output.nextActionCode),
   };
   return Object.values(bundle).every(isSafeFinalMessage) ? bundle : null;
@@ -104,11 +105,11 @@ function renderProgression(
 
 function actionSentence(action: HomeGuideActionCode): string {
   switch (action) {
-    case "build_baseline": return "Build your baseline with one comfortable session at a time.";
-    case "maintain_easy_consistency": return "Keep your easy sessions consistent and comfortable.";
-    case "add_one_easy_session": return "Add one easy session only when you feel ready.";
-    case "keep_effort_conversational": return "Keep the effort conversational and repeat this pattern.";
-    case "recover_and_repeat": return "Recover well, then repeat an easy session when ready.";
+    case "build_baseline": return "You've got this; one comfy session at a time is plenty.";
+    case "maintain_easy_consistency": return "You've got this; keep your easy sessions gentle and steady.";
+    case "add_one_easy_session": return "You've got this; add one easy session only when you feel ready.";
+    case "keep_effort_conversational": return "You've got this; keep the effort conversational and enjoy the rhythm.";
+    case "recover_and_repeat": return "You've got this; rest kindly, then repeat an easy session when ready.";
     default: return assertNever(action);
   }
 }
@@ -138,7 +139,7 @@ function isSelectedFactIds(value: unknown, evidence: HomeGuideEvidence): value i
 function isSafeModelText(value: unknown): value is string {
   return typeof value === "string" &&
     value.trim().length > 0 &&
-    codePointLength(value) <= 160 &&
+    codePointLength(value) <= MAX_MODEL_TEXT_LENGTH &&
     sentenceCount(value) <= 2 &&
     !/[\r\n%\p{N}]/u.test(value) &&
     !MARKDOWN.test(value) &&

@@ -42,6 +42,8 @@ void main() {
         bundle.messages.map((message) => message.kind).toSet(),
         hasLength(3),
       );
+      expect(bundle.runningTip.text, startsWith('Tiny trainer tip:'));
+      expect(bundle.progressionCheckIn.text, contains("You've got this"));
     });
 
     test('keeps the deterministic local fallback stable and compact', () async {

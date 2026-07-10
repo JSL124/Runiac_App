@@ -15,7 +15,8 @@ class RuleBasedHomeGuideAgent implements HomeGuideAgent {
     final bundle = HomeGuideBundle.tryCreate(
       planSummary: _planSummary(request),
       runningTip: _runningTip(request),
-      progressionCheckIn: 'A steady baseline is a strong start.',
+      progressionCheckIn:
+          "You've got this! A steady baseline is a strong start.",
       isFromRemoteAgent: false,
     );
     return bundle ?? _safeLocalBundle();
@@ -28,15 +29,16 @@ class RuleBasedHomeGuideAgent implements HomeGuideAgent {
     return HomeGuideBundle(
       planSummary: const HomeGuideMessage(
         kind: HomeGuideMessageKind.planSummary,
-        text: 'Your gentle running session is ready.',
+        text: 'Your gentle running session is ready, superstar!',
       ),
       runningTip: const HomeGuideMessage(
         kind: HomeGuideMessageKind.runningTip,
-        text: 'Keep the effort conversational and comfortable.',
+        text:
+            'Tiny trainer tip: Keep the effort conversational and comfortable.',
       ),
       progressionCheckIn: const HomeGuideMessage(
         kind: HomeGuideMessageKind.progressionCheckIn,
-        text: 'A steady baseline is a strong start.',
+        text: "You've got this! A steady baseline is a strong start.",
       ),
       isFromRemoteAgent: false,
     );
@@ -49,15 +51,15 @@ class RuleBasedHomeGuideAgent implements HomeGuideAgent {
         ? ' for about ${request.durationMinutes} minutes'
         : '';
     final dayPart = day.isEmpty ? 'Today' : "Today's $day session";
-    return '$dayPart is $title$durationPart.';
+    return "$dayPart is $title$durationPart. You've got this!";
   }
 
   String _runningTip(HomeGuideRequest request) {
     final note = _bounded(request.supportiveNote, 120);
     if (note.isNotEmpty && _sentenceCount(note) <= 2) {
-      return _asSentence(note);
+      return 'Tiny trainer tip: ${_asSentence(note)}';
     }
-    return 'Keep the effort conversational and comfortable.';
+    return 'Tiny trainer tip: Keep the effort conversational and comfortable.';
   }
 
   String _asSentence(String text) {

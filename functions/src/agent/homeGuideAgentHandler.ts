@@ -18,9 +18,9 @@ import {
 } from "./homeGuideQuotaCache.js";
 
 const FALLBACK_MESSAGES: HomeGuideBundle = {
-  planSummary: "Today's plan is ready. Take it at a comfortable pace.",
-  runningTip: "Running tip: Keep the effort relaxed and conversational.",
-  progressionCheckIn: "You are building a running baseline. One comfortable session at a time is enough.",
+  planSummary: "Your plan is ready, superstar! Let's keep today comfy and fun.",
+  runningTip: "Tiny trainer tip: Keep the effort relaxed and conversational.",
+  progressionCheckIn: "You've got this! One comfy session at a time is plenty.",
 };
 
 export type CallableGuideRequest = {
