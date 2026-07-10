@@ -447,8 +447,8 @@ void main() {
         lessThan(scrollable.position.maxScrollExtent - 1.0),
       );
 
-      // The landing scroll centres the character's current stage node at
-      // one-third of the viewport height.
+      // The landing scroll centres the rendered character box at one-third
+      // of the viewport height, rather than centring its stage stone.
       final homeMapSize = tester.getSize(find.byType(HomeStageMap));
       final middleWeekNumber = plan.weeks[plan.weeks.length ~/ 2].weekNumber;
       final stoneRect = tester.getRect(
@@ -458,12 +458,12 @@ void main() {
           ),
         ),
       );
-      expect(stoneRect.center.dy, closeTo(homeMapSize.height / 3, 2.0));
-
-      // The character stands on that stone, feet within its vertical span.
       final characterRect = tester.getRect(
         find.byKey(const ValueKey<String>('homeStageCharacter')),
       );
+      expect(characterRect.center.dy, closeTo(homeMapSize.height / 3, 2.0));
+
+      // The character remains feet-anchored to that stone.
       expect(characterRect.bottom, greaterThan(stoneRect.top));
       expect(characterRect.bottom, lessThan(stoneRect.bottom));
     },
