@@ -208,6 +208,50 @@ void main() {
     expect(find.text('MON'), findsWidgets);
   });
 
+  testWidgets('weekday captions stay attached to their stage stones', (
+    WidgetTester tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final plan = _plan();
+    final model = _model(plan);
+    final firstWeekNumber = model.sections.first.weekNumber;
+    const dayIndex = 1;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: HomeStageMap(
+            model: model,
+            onNotifications: () {},
+            onProfile: () {},
+            onTapTodayStage: () {},
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump();
+
+    final stoneRect = tester.getRect(
+      find.byKey(ValueKey<String>('homeStageStone-$firstWeekNumber-$dayIndex')),
+    );
+    final labelRect = tester.getRect(
+      find.byKey(
+        ValueKey<String>('homeStageDayLabel-$firstWeekNumber-$dayIndex'),
+      ),
+    );
+
+    expect(labelRect.center.dx, closeTo(stoneRect.center.dx, 0.5));
+    expect(labelRect.top, greaterThan(stoneRect.center.dy));
+    expect(labelRect.top, lessThan(stoneRect.bottom));
+    expect(labelRect.bottom, closeTo(stoneRect.bottom, 6));
+  });
+
   testWidgets(
     'guide scales to its stone and starts at the nearest valid Home-map '
     'scroll position',

@@ -15,6 +15,8 @@ const double _kMinimumStageStoneSize = 92;
 const double _kMaximumStageStoneSize = 108;
 const double _kStageStoneWidthFraction = 0.255;
 const double _kCharacterToStoneScale = 0.86;
+const double _kStageDayLabelWidth = 56;
+const double _kStageDayLabelTopFraction = 0.82;
 
 /// The initial camera composition keeps the guide in the lower visual third,
 /// leaving room above for upcoming stages and the Home header.
@@ -542,14 +544,16 @@ class _HomeStageMapState extends State<HomeStageMap>
           ),
         );
         if (stone.dayLabel != null) {
-          const labelWidth = 56.0;
           children.add(
             Positioned(
-              left: center.dx - labelWidth / 2,
-              top: center.dy + size / 2 - 2,
-              width: labelWidth,
+              left: center.dx - _kStageDayLabelWidth / 2,
+              top: center.dy - size / 2 + size * _kStageDayLabelTopFraction,
+              width: _kStageDayLabelWidth,
               child: IgnorePointer(
                 child: _StageDayLabel(
+                  key: ValueKey<String>(
+                    'homeStageDayLabel-${section.weekNumber}-$d',
+                  ),
                   label: stone.dayLabel!,
                   dimmed: stone.state == HomeStageStoneState.future,
                 ),
@@ -961,12 +965,12 @@ class _StageStoneWidget extends StatelessWidget {
   }
 }
 
-/// Small English weekday caption pinned just below a stage stone.
+/// Small English weekday caption pinned to the lower edge of a stage stone.
 ///
 /// Purely cosmetic/display layer: it never intercepts taps (the caller wraps
 /// it in [IgnorePointer]) and carries no backend-owned scheduling meaning.
 class _StageDayLabel extends StatelessWidget {
-  const _StageDayLabel({required this.label, required this.dimmed});
+  const _StageDayLabel({required this.label, required this.dimmed, super.key});
 
   final String label;
   final bool dimmed;
