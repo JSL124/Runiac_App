@@ -1037,11 +1037,15 @@ class _HomeStageHeader extends StatelessWidget {
       ignoring: false,
       child: Container(
         padding: EdgeInsets.fromLTRB(16, topPadding + 8, 12, 18),
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0x66000000), Color(0x00000000)],
+            colors: [
+              RuniacColors.textPrimary.withValues(alpha: 0.72),
+              RuniacColors.textPrimary.withValues(alpha: 0.08),
+              Colors.transparent,
+            ],
           ),
         ),
         child: Row(
@@ -1062,16 +1066,36 @@ class _HomeStageHeader extends StatelessWidget {
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTap: onProfile,
-                  child: RuniacLevelProfileBadge(
-                    initials: 'R',
-                    levelLabel: levelBadgeLabel,
-                    progressFraction: levelProgressFraction,
-                    size: 54,
-                    badgeHeight: 17,
-                    badgeMinWidth: 44,
-                    badgeHorizontalPadding: 7,
-                    badgeFontSize: 10,
-                    ringStrokeWidth: 4.5,
+                  child: SizedBox(
+                    width: 60,
+                    height: 62,
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      alignment: Alignment.topCenter,
+                      children: [
+                        Container(
+                          width: 54,
+                          height: 54,
+                          decoration: _homeStageControlDecoration(
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        RuniacLevelProfileBadge(
+                          initials: 'R',
+                          levelLabel: levelBadgeLabel,
+                          progressFraction: levelProgressFraction,
+                          size: 54,
+                          badgeHeight: 17,
+                          badgeMinWidth: 44,
+                          badgeHorizontalPadding: 7,
+                          badgeFontSize: 10,
+                          ringStrokeWidth: 4.5,
+                          discColor: RuniacColors.primaryBlue,
+                          discBorderColor: RuniacColors.white,
+                          initialsColor: RuniacColors.white,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -1092,8 +1116,7 @@ class _StreakPill extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.30),
+      decoration: _homeStageControlDecoration(
         borderRadius: BorderRadius.circular(999),
       ),
       child: Row(
@@ -1145,10 +1168,7 @@ class _NotificationButton extends StatelessWidget {
               Container(
                 width: 44,
                 height: 44,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.black.withValues(alpha: 0.28),
-                ),
+                decoration: _homeStageControlDecoration(shape: BoxShape.circle),
                 child: const Icon(
                   Icons.notifications_none,
                   color: Colors.white,
@@ -1167,6 +1187,25 @@ class _NotificationButton extends StatelessWidget {
       ),
     );
   }
+}
+
+BoxDecoration _homeStageControlDecoration({
+  BorderRadius? borderRadius,
+  BoxShape shape = BoxShape.rectangle,
+}) {
+  return BoxDecoration(
+    color: RuniacColors.textPrimary.withValues(alpha: 0.92),
+    borderRadius: borderRadius,
+    shape: shape,
+    border: Border.all(color: RuniacColors.white.withValues(alpha: 0.42)),
+    boxShadow: [
+      BoxShadow(
+        color: RuniacColors.textPrimary.withValues(alpha: 0.42),
+        blurRadius: 10,
+        offset: const Offset(0, 3),
+      ),
+    ],
+  );
 }
 
 class _UnreadBadge extends StatelessWidget {
