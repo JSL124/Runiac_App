@@ -463,6 +463,15 @@ void main() {
       );
       expect(characterRect.center.dy, closeTo(homeMapSize.height / 3, 2.0));
 
+      final initialPixels = scrollable.position.pixels;
+      await tester.drag(
+        find.byType(SingleChildScrollView),
+        const Offset(0, 96),
+      );
+      await tester.pump();
+      await tester.pump();
+      expect(scrollable.position.pixels, lessThan(initialPixels - 20));
+
       // The character remains feet-anchored to that stone.
       expect(characterRect.bottom, greaterThan(stoneRect.top));
       expect(characterRect.bottom, lessThan(stoneRect.bottom));
