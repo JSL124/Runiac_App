@@ -31,6 +31,7 @@ import '../../features/run/data/run_repository_factory.dart';
 import '../../features/run/domain/repositories/run_repository.dart';
 import '../../features/you/data/firestore_activity_history_repository.dart';
 import '../../features/you/data/firestore_user_progress_repository.dart';
+import '../../features/you/data/user_streak_refresh_service.dart';
 import '../../features/you/data/static_activity_history_repository.dart';
 import '../../features/you/domain/repositories/activity_history_repository.dart';
 import '../../features/you/domain/repositories/user_progress_repository.dart';
@@ -95,6 +96,7 @@ class RuniacFirebaseBootstrap {
         ),
         userProgressRepository: FirestoreUserProgressRepository(
           authRepository: authRepository,
+          streakRefreshService: CloudFunctionUserStreakRefreshService(),
         ),
         leaderboardRepository: FirestoreLeaderboardRepository(
           authRepository: authRepository,
@@ -163,6 +165,7 @@ class RuniacFirebaseBootstrap {
       ),
       userProgressRepository: FirestoreUserProgressRepository(
         authRepository: authRepository,
+        streakRefreshService: CloudFunctionUserStreakRefreshService(),
       ),
       leaderboardRepository: FirestoreLeaderboardRepository(
         authRepository: authRepository,

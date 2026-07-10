@@ -135,7 +135,10 @@ All spacing derives from a base of 4px.
 - **Layout**: each complete background draws one seven-stone chevron, alternating `<`, `>`, `<` as backgrounds stack. Every chevron starts and ends at the horizontal centre so the path is continuous across background seams. Vertical intervals stay uniform, and the bottom/first background reserves at least one bottom-navigation-height of visual clearance beneath the lowest stone caption.
 - **Sizing**: stone diameter is responsive within a 92–108px mobile range. The guide character is 0.86 times its stone width and is anchored by its feet, which rest on the stone's visible standing surface (just above the plate's vertical centre) so the body rises above the plate and the plate stays visible beneath. Foot anchoring is character-agnostic: it derives from the rendered sprite height plus one shared transparent foot-inset allowance, never per-asset pixel offsets.
 - **Landing**: on first Home-dashboard entry, the map scrolls toward the rendered guide-character box centre one-third up from the viewport bottom when that location is reachable; otherwise it stops at the nearest valid map position. Runners can then scroll freely to inspect every stage.
-- **States**: completed, current, future, run, and rest visuals retain their existing assets and backend-read-only meaning.
+- **States**: completed, current, missed, future, run, and rest visuals retain their existing assets and backend-read-only meaning. The character follows the real local weekday slot rather than the first unfinished workout.
+- **Missed treatment**: an incomplete run stone before today's weekday is desaturated and darkened, with a neutral dash badge and `Missed stage` semantics. This avoids shame-oriented copy and does not rely on color alone.
+- **Date rollover**: the app shell refreshes its local calendar day at midnight and on app resume, then reloads the trusted streak projection and rebuilds Home/You plan displays for the new date.
+- **Reschedule sync**: schedule edits update the shared generated-plan store, so Home rebuilds the same week from the new weekday assignment without duplicating plan state.
 - **Accessibility**: the current stage keeps its semantic button target; weekday captions remain display-only; the character's interactive upper-body target must not steal the stage tap target.
 - **Motion**: current-stage pulse and guide walking behavior keep the existing reduced-motion handling and animate only transform/opacity-compatible properties. The Blue Home guide uses the supplied animated GIF at rest and during plan-to-plan movement; other characters retain their direction-specific PNG sprites.
 - **Boundary**: layout and decoration are display-only. Plan completion and current-stage state remain derived from trusted completed scheduled-workout IDs.
@@ -148,6 +151,14 @@ All spacing derives from a base of 4px.
 - **Accessibility**: the bubble body announces message kind and its next action, such as `Plan summary. Tap to hear a running tip.` The close control has a visible 44×44px target and the semantic label `Close guide message`. The character retains its upper-body-only semantic action so the current-stage target remains available.
 - **Motion**: message readability never depends on typing or transition animation. Reduced motion keeps the existing guide/pulse behavior disabled and shows the full resolved bubble copy immediately.
 - **Boundary**: the bubble only renders server/local-agent supplied display copy. Flutter does not calculate progression, activity facts, XP, level, rank, streak, or leaderboard data, and does not persist guide-cycle state.
+
+### Weekly Plan Day Row
+
+- **Structure**: aligned weekday, status node, workout title/status copy, and an optional detail chevron.
+- **States**: completed, completed today, today upcoming, future upcoming, rest, missed, and inactive.
+- **Missed treatment**: an incomplete running session whose scheduled day has passed uses a muted `textSecondary` surface, a neutral dash node, and the explicit status label `Missed`. The treatment stays non-judgmental and never relies on color alone.
+- **Interaction**: missed workouts may still open their read-only workout detail, but do not expose Start or Edit schedule actions. Only future workouts may be rescheduled.
+- **Boundary**: missed is a date-and-read-model display state only. The client does not change trusted completion, streak, XP, rank, or leaderboard values.
 
 ## 6. Motion & Interaction
 

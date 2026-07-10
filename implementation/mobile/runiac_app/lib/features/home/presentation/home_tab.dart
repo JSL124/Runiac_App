@@ -90,6 +90,8 @@ class _HomeTabState extends State<HomeTab> {
     if (oldWidget.userProgressRepository != widget.userProgressRepository ||
         _currentOwnerUid != _userProgressOwnerUid) {
       _setUserProgressFuture(refresh: false);
+    } else if (!_isSameDate(oldWidget.currentDate, widget.currentDate)) {
+      _setUserProgressFuture(refresh: true);
     }
   }
 
@@ -215,6 +217,7 @@ class _HomeTabState extends State<HomeTab> {
       plan: plan,
       completedScheduledWorkoutIds: completedIds,
       activeWeekNumber: activeWeekNumber,
+      currentWeekdayIndex: widget.currentDate?.weekday,
       backgroundSequence: backgroundSequence,
     );
   }
@@ -330,4 +333,10 @@ class _HomeTabState extends State<HomeTab> {
       },
     );
   }
+}
+
+bool _isSameDate(DateTime? left, DateTime? right) {
+  return left?.year == right?.year &&
+      left?.month == right?.month &&
+      left?.day == right?.day;
 }

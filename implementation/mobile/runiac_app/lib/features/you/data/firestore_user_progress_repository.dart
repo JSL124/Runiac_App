@@ -5,6 +5,7 @@ import '../../auth/domain/runiac_auth_service.dart';
 import '../domain/models/user_progress_read_model.dart';
 import '../domain/repositories/user_progress_repository.dart';
 import 'local_user_progress_cache_store.dart';
+import 'user_streak_refresh_service.dart';
 
 abstract interface class UserProgressDocumentReader {
   Future<Map<String, Object?>?> readUserProgress({required String uid});
@@ -30,6 +31,7 @@ class FirestoreUserProgressRepository implements UserProgressRepository {
     required this.authRepository,
     UserProgressDocumentReader? reader,
     LocalUserProgressCacheStore? cacheStore,
+    this.streakRefreshService = const NoopUserStreakRefreshService(),
     DateTime Function()? clock,
     this.fallbackRepository = const StaticUserProgressRepository(),
   }) : _reader = reader ?? FirestoreUserProgressDocumentReader(),
@@ -41,6 +43,7 @@ class FirestoreUserProgressRepository implements UserProgressRepository {
   final UserProgressDocumentReader _reader;
   final LocalUserProgressCacheStore _cacheStore;
   final DateTime Function() _clock;
+  final UserStreakRefreshService streakRefreshService;
   final UserProgressRepository fallbackRepository;
   var _cacheWriteGeneration = 0;
 
@@ -53,6 +56,7 @@ class FirestoreUserProgressRepository implements UserProgressRepository {
 
     final cacheWriteGeneration = _cacheWriteGeneration;
     try {
+      await _refreshStreakSafely();
       return await _readAndCacheUserProgress(
         currentUser.uid,
         cacheWriteGeneration: cacheWriteGeneration,
@@ -79,10 +83,19 @@ class FirestoreUserProgressRepository implements UserProgressRepository {
     }
 
     _cacheWriteGeneration += 1;
+    await _refreshStreakSafely();
     return _readAndCacheUserProgress(
       currentUser.uid,
       cacheWriteGeneration: _cacheWriteGeneration,
     );
+  }
+
+  Future<void> _refreshStreakSafely() async {
+    try {
+      await streakRefreshService.refreshStreakStatus();
+    } on Object catch (error, stackTrace) {
+      _reportCacheError(error, stackTrace, 'refreshing streak status');
+    }
   }
 
   Future<UserProgressReadModel> _readAndCacheUserProgress(

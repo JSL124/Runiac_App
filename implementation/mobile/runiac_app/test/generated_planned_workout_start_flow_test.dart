@@ -456,7 +456,7 @@ void main() {
     expect(enabledSaveButton.onPressed, isNotNull);
   });
 
-  testWidgets('past generated running row opens with Edit but without Start', (
+  testWidgets('past generated running row opens without Edit or Start', (
     tester,
   ) async {
     // Given: Thursday is today and Monday is a past generated workout.
@@ -465,13 +465,16 @@ void main() {
       currentDate: _weekdayDate(DateTime.thursday),
     );
 
+    expect(find.text('Missed'), findsWidgets);
+
     // When: a past generated running row is opened.
     await _openWorkoutDetail(tester, '25 min Comfortable Run');
 
-    // Then: the past detail can be rescheduled, but cannot start today.
+    // Then: the past detail remains readable, but cannot be rescheduled or
+    // started after its scheduled day.
     expect(find.text('Workout detail'), findsOneWidget);
     expect(find.text('Mon · Comfortable Run'), findsOneWidget);
-    expect(find.byTooltip('Edit schedule'), findsOneWidget);
+    expect(find.byTooltip('Edit schedule'), findsNothing);
     expect(find.text('Edit schedule'), findsNothing);
     await tester.drag(find.byType(ListView), const Offset(0, -700));
     await tester.pumpAndSettle();

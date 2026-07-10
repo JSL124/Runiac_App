@@ -57,10 +57,11 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      const RuniacApp(
+      RuniacApp(
         showSplash: false,
         showOnboarding: true,
         enableForegroundGps: false,
+        youProgressToday: DateTime(2026, 7, 6),
       ),
     );
 

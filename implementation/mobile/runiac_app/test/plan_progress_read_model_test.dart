@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/app.dart';
+import 'package:runiac_app/features/home/presentation/stage_map/home_stage_map.dart';
+import 'package:runiac_app/features/home/presentation/stage_map/home_stage_map_model.dart';
 import 'package:runiac_app/features/plan/data/firestore_plan_progress_repository.dart';
 import 'package:runiac_app/features/plan/domain/models/beginner_adaptive_plan_snapshot.dart';
 import 'package:runiac_app/features/plan/domain/models/plan_progress_read_model.dart';
@@ -229,6 +231,18 @@ void main() {
       find.byType(LinearProgressIndicator),
     );
     expect(progressIndicator.value, 0.25);
+
+    await tester.tap(find.byTooltip('Home'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    final homeStageMap = tester.widget<HomeStageMap>(find.byType(HomeStageMap));
+    final firstWeekStones = homeStageMap.model!.sections.first.stones;
+    expect(
+      firstWeekStones[DateTime.thursday - 1].kind,
+      HomeStageStoneKind.rest,
+    );
+    expect(firstWeekStones[DateTime.friday - 1].workoutTitle, 'Recovery Run');
   });
 
   testWidgets(

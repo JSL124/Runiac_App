@@ -751,8 +751,8 @@ describe("completeRun callable boundary", () => {
       auth: { uid: USER_UID },
       data: runPayloadForSession({
         clientRunSessionId: "streak-same-day-second",
-        startedAt: "2026-06-14T18:00:00.000Z",
-        completedAt: "2026-06-14T18:25:00.000Z",
+        startedAt: "2026-06-14T14:00:00.000Z",
+        completedAt: "2026-06-14T14:25:00.000Z",
       }),
     });
 
@@ -762,7 +762,7 @@ describe("completeRun callable boundary", () => {
 
     assert.equal(profile.get("streakCount"), 1);
     assert.equal(profile.get("lastStreakRunDate"), "2026-06-14");
-    assert.equal(profile.get("streakUpdatedAt"), "2026-06-14T18:25:00.000Z");
+    assert.equal(profile.get("streakUpdatedAt"), "2026-06-14T14:25:00.000Z");
     assert.equal(firstProgressionEvent.get("previousStreak"), 0);
     assert.equal(firstProgressionEvent.get("nextStreak"), 1);
     assert.equal(firstProgressionEvent.get("previousStreakRunDate"), null);

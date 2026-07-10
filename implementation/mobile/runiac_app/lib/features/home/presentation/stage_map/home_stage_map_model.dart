@@ -14,7 +14,7 @@ enum HomeStageStoneKind { run, rest }
 /// backend-owned completed scheduled-workout ids; no XP/streak/level value is
 /// computed here. Rest-stone states are purely cosmetic dimming based on
 /// position and carry no trusted meaning.
-enum HomeStageStoneState { completed, current, future }
+enum HomeStageStoneState { completed, current, missed, future }
 
 class HomeStageStone {
   const HomeStageStone({
@@ -46,6 +46,7 @@ class HomeStageStone {
   bool get isRun => kind == HomeStageStoneKind.run;
   bool get isCurrent => state == HomeStageStoneState.current;
   bool get isCompleted => state == HomeStageStoneState.completed;
+  bool get isMissed => state == HomeStageStoneState.missed;
 }
 
 class HomeStageWeekSection {
@@ -175,6 +176,7 @@ HomeStageMapModel buildHomeStageMapModel({
   required BeginnerAdaptivePlanSnapshot plan,
   required Set<String> completedScheduledWorkoutIds,
   required int activeWeekNumber,
+  int? currentWeekdayIndex,
   required List<String> backgroundSequence,
 }) {
   if (plan.weeks.isEmpty) {
@@ -217,7 +219,9 @@ HomeStageMapModel buildHomeStageMapModel({
   }
 
   final activeRaw = rawByWeek[currentWeekIndex];
-  int? todayDayIndex;
+  int? todayDayIndex = useWeekdaySlots && currentWeekdayIndex != null
+      ? currentWeekdayIndex.clamp(DateTime.monday, DateTime.sunday) - 1
+      : null;
   int? characterDayIndex;
   int? lastRunIndex;
   for (var d = 0; d < activeRaw.length; d++) {
@@ -241,7 +245,8 @@ HomeStageMapModel buildHomeStageMapModel({
     final background = backgroundSequence.length > w
         ? backgroundSequence[w]
         : (backgroundSequence.isEmpty
-              ? kHomeStageBackgroundAssets[w % kHomeStageBackgroundAssets.length]
+              ? kHomeStageBackgroundAssets[w %
+                    kHomeStageBackgroundAssets.length]
               : backgroundSequence[w % backgroundSequence.length]);
     final raw = rawByWeek[w];
     final stones = <HomeStageStone>[];
@@ -253,14 +258,24 @@ HomeStageMapModel buildHomeStageMapModel({
           state = HomeStageStoneState.completed;
         } else if (w == currentWeekIndex && d == todayDayIndex) {
           state = HomeStageStoneState.current;
+        } else if (useWeekdaySlots &&
+            currentWeekdayIndex != null &&
+            todayDayIndex != null &&
+            (w < currentWeekIndex ||
+                (w == currentWeekIndex && d < todayDayIndex))) {
+          state = HomeStageStoneState.missed;
         } else {
           state = HomeStageStoneState.future;
         }
       } else {
-        final ordinal = w * kHomeStageDaysPerWeek + d;
-        state = ordinal < characterOrdinal
-            ? HomeStageStoneState.completed
-            : HomeStageStoneState.future;
+        if (w == currentWeekIndex && d == todayDayIndex) {
+          state = HomeStageStoneState.current;
+        } else {
+          final ordinal = w * kHomeStageDaysPerWeek + d;
+          state = ordinal < characterOrdinal
+              ? HomeStageStoneState.completed
+              : HomeStageStoneState.future;
+        }
       }
       stones.add(
         HomeStageStone(

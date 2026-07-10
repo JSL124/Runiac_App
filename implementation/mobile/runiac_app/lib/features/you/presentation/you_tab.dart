@@ -130,6 +130,8 @@ class _YouTabState extends State<YouTab> {
     }
     if (oldWidget.userProgressRepository != widget.userProgressRepository) {
       _resetAndLoadUserProgress();
+    } else if (!_isSameDate(oldWidget.progressToday, widget.progressToday)) {
+      _resetAndLoadUserProgress();
     }
     if (oldWidget.authRepository != widget.authRepository) {
       _syncUserProgressOwner();
@@ -351,6 +353,7 @@ class _YouTabState extends State<YouTab> {
             activePlan,
             _workoutDetailSnapshot,
             selection,
+            currentDate: widget.progressToday,
           );
     setState(() {
       final currentGeneratedPlan =
@@ -483,4 +486,10 @@ class _YouTabState extends State<YouTab> {
       });
     }
   }
+}
+
+bool _isSameDate(DateTime? left, DateTime? right) {
+  return left?.year == right?.year &&
+      left?.month == right?.month &&
+      left?.day == right?.day;
 }

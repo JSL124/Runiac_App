@@ -33,6 +33,7 @@ import '../you/domain/repositories/user_progress_repository.dart';
 import '../you/presentation/adapters/generated_plan_you_display_adapter.dart';
 import '../you/presentation/current_session_activity_history.dart';
 import '../you/presentation/you_tab.dart';
+import 'current_day_rollover.dart';
 
 class RuniacShell extends StatefulWidget {
   const RuniacShell({
@@ -104,6 +105,7 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
   var _planNotificationSyncInFlight = false;
   var _pendingPlanNotificationSync = false;
   var _localNotificationSmokeTestScheduled = false;
+  late final CurrentDayRolloverController _currentDayController;
   BeginnerAdaptivePlanSnapshot? _pendingPlanNotificationPlan;
   GeneratedPlanProgressDisplay? _pendingPlanNotificationProgress;
   late final PlanNotificationSyncService _planNotificationSyncService =
@@ -125,6 +127,11 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _currentDayController = CurrentDayRolloverController()
+      ..addListener(_handleCurrentDayChanged);
+    if (widget.youProgressToday == null) {
+      _currentDayController.start();
+    }
     _scheduleInitialRunOpenIntent();
     _scheduleLocalNotificationSmokeTestIfEnabled();
   }
@@ -175,6 +182,9 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _currentDayController
+      ..removeListener(_handleCurrentDayChanged)
+      ..dispose();
     if (_ownsActiveRunSessionCoordinator) {
       _activeRunSessionCoordinator.dispose();
     }
@@ -184,7 +194,14 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
+      _currentDayController.refresh();
       _openActiveRunFromSystemReturn();
+    }
+  }
+
+  void _handleCurrentDayChanged() {
+    if (mounted) {
+      setState(() {});
     }
   }
 
@@ -282,19 +299,20 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    final currentDate = widget.youProgressToday ?? _currentDayController.today;
     final activeGeneratedPlan = CurrentSessionGeneratedPlanScope.of(
       context,
     ).activePlan;
     final generatedPlanProgress = _generatedPlanProgress(activeGeneratedPlan);
     final todayWorkoutDetail = todayGeneratedWorkoutDetailFromSnapshot(
       activeGeneratedPlan,
-      currentDate: widget.youProgressToday,
+      currentDate: currentDate,
       planProgress: generatedPlanProgress,
       adaptiveEstimate: widget.adaptivePlanEstimate,
     );
     final todayPlannedRunContext = todayPlannedRunContextFromSnapshot(
       activeGeneratedPlan,
-      currentDate: widget.youProgressToday,
+      currentDate: currentDate,
       planProgress: generatedPlanProgress,
       adaptiveEstimate: widget.adaptivePlanEstimate,
     );
@@ -315,7 +333,7 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
         todayWorkoutDetailSnapshot: todayWorkoutDetail,
         todayPlannedRunContext: todayPlannedRunContext,
         generatedPlanProgress: generatedPlanProgress,
-        currentDate: widget.youProgressToday,
+        currentDate: currentDate,
         homeGuideAgent: widget.homeGuideAgent,
         enableForegroundGps: widget.enableForegroundGps,
         activeRunSessionCoordinator: _activeRunSessionCoordinator,
@@ -338,7 +356,7 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
             widget.generatedPlanPersistenceRepository,
         enableForegroundGps: widget.enableForegroundGps,
         activeRunSessionCoordinator: _activeRunSessionCoordinator,
-        progressToday: widget.youProgressToday,
+        progressToday: currentDate,
         generatedPlanProgress: generatedPlanProgress,
         adaptivePlanEstimate: widget.adaptivePlanEstimate,
       ),

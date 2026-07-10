@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:runiac_app/features/you/data/firestore_user_progress_repository.dart';
 import 'package:runiac_app/features/you/data/local_user_progress_cache_store.dart';
+import 'package:runiac_app/features/you/data/user_streak_refresh_service.dart';
 import 'package:runiac_app/features/you/domain/models/user_progress_read_model.dart';
 import 'package:runiac_app/features/you/domain/repositories/user_progress_repository.dart';
 
@@ -41,6 +42,27 @@ void main() {
 
     expect(progress.officialStreakLabel, '17 days');
   });
+
+  test(
+    'refreshes backend-owned streak before reading official progress',
+    () async {
+      final authRepository = FakeRuniacAuthRepository()
+        ..emitSignedIn(uid: 'streak-refresh-user');
+      final refreshService = _RecordingUserStreakRefreshService();
+      final reader = _RefreshOrderedUserProgressDocumentReader(refreshService);
+      final repository = FirestoreUserProgressRepository(
+        authRepository: authRepository,
+        reader: reader,
+        streakRefreshService: refreshService,
+      );
+
+      final progress = await repository.loadUserProgress();
+
+      expect(refreshService.refreshCount, 1);
+      expect(reader.readAfterRefresh, isTrue);
+      expect(progress.officialStreakLabel, isEmpty);
+    },
+  );
 
   test('uses fallback progress when no user is signed in', () async {
     final repository = FirestoreUserProgressRepository(
@@ -178,6 +200,29 @@ void main() {
       expect(reader.readCount, 1);
       expect(cacheStore.entry?.progress.officialStreakLabel, '4 days');
       expect(cacheStore.entry?.refreshedAt, DateTime.utc(2026, 7, 6, 1));
+    },
+  );
+
+  test(
+    'loadUserProgress still reads progress when streak refresh fails',
+    () async {
+      final authRepository = FakeRuniacAuthRepository()
+        ..emitSignedIn(uid: 'refresh-fallback-user');
+      final reader = _CountingUserProgressDocumentReader({
+        'streakCount': 2,
+        'levelLabel': 'Level 2',
+      });
+      final repository = FirestoreUserProgressRepository(
+        authRepository: authRepository,
+        reader: reader,
+        cacheStore: _MemoryUserProgressCacheStore(null),
+        streakRefreshService: const _ThrowingUserStreakRefreshService(),
+      );
+
+      final progress = await repository.loadUserProgress();
+
+      expect(progress.officialStreakCount, 2);
+      expect(reader.readCount, 1);
     },
   );
 
@@ -378,6 +423,38 @@ class _FakeUserProgressDocumentReader implements UserProgressDocumentReader {
   @override
   Future<Map<String, Object?>?> readUserProgress({required String uid}) async {
     return document;
+  }
+}
+
+class _RecordingUserStreakRefreshService implements UserStreakRefreshService {
+  int refreshCount = 0;
+
+  @override
+  Future<void> refreshStreakStatus() async {
+    refreshCount += 1;
+  }
+}
+
+class _ThrowingUserStreakRefreshService implements UserStreakRefreshService {
+  const _ThrowingUserStreakRefreshService();
+
+  @override
+  Future<void> refreshStreakStatus() async {
+    throw StateError('Streak refresh failed.');
+  }
+}
+
+class _RefreshOrderedUserProgressDocumentReader
+    implements UserProgressDocumentReader {
+  _RefreshOrderedUserProgressDocumentReader(this.refreshService);
+
+  final _RecordingUserStreakRefreshService refreshService;
+  bool readAfterRefresh = false;
+
+  @override
+  Future<Map<String, Object?>?> readUserProgress({required String uid}) async {
+    readAfterRefresh = refreshService.refreshCount == 1;
+    return const {'streakCount': 0};
   }
 }
 

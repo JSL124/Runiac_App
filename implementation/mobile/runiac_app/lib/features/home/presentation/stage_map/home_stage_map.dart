@@ -535,7 +535,9 @@ class _HomeStageMapState extends State<HomeStageMap>
               stone: stone,
               size: size,
               pulse: stone.isCurrent ? _pulseController : null,
-              onTap: stone.isCurrent ? widget.onTapTodayStage : null,
+              onTap: stone.isCurrent && stone.isRun
+                  ? widget.onTapTodayStage
+                  : null,
             ),
           ),
         );
@@ -834,6 +836,7 @@ class _StageStoneWidget extends StatelessWidget {
     final asset = stone.isRun ? _kStageRunAsset : _kStageRestAsset;
     final isFuture = stone.state == HomeStageStoneState.future;
     final isCompleted = stone.state == HomeStageStoneState.completed;
+    final isMissed = stone.state == HomeStageStoneState.missed;
 
     Widget image = Image.asset(
       asset,
@@ -851,9 +854,9 @@ class _StageStoneWidget extends StatelessWidget {
       },
     );
 
-    if (isFuture) {
+    if (isFuture || isMissed) {
       image = Opacity(
-        opacity: 0.62,
+        opacity: isMissed ? 0.48 : 0.62,
         child: ColorFiltered(
           colorFilter: const ColorFilter.matrix(<double>[
             0.45,
@@ -898,6 +901,16 @@ class _StageStoneWidget extends StatelessWidget {
       );
     }
 
+    if (isMissed && stone.isRun) {
+      content = Stack(
+        clipBehavior: Clip.none,
+        children: [
+          content,
+          Positioned(right: -2, top: -2, child: _MissedMark(size: size * 0.34)),
+        ],
+      );
+    }
+
     if (stone.isCurrent && pulse != null) {
       content = AnimatedBuilder(
         animation: pulse!,
@@ -931,6 +944,9 @@ class _StageStoneWidget extends StatelessWidget {
     }
 
     if (onTap == null) {
+      if (isMissed) {
+        return Semantics(label: 'Missed stage', child: content);
+      }
       return content;
     }
     return Semantics(
@@ -1009,6 +1025,28 @@ class _CompletedCheck extends StatelessWidget {
         ],
       ),
       child: Icon(Icons.check_rounded, size: size * 0.72, color: Colors.white),
+    );
+  }
+}
+
+class _MissedMark extends StatelessWidget {
+  const _MissedMark({required this.size});
+
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: const BoxDecoration(
+        shape: BoxShape.circle,
+        color: RuniacColors.textSecondary,
+        boxShadow: [
+          BoxShadow(color: Colors.black26, blurRadius: 3, offset: Offset(0, 1)),
+        ],
+      ),
+      child: Icon(Icons.remove_rounded, size: size * 0.72, color: Colors.white),
     );
   }
 }
