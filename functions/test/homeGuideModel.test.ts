@@ -18,21 +18,23 @@ describe("home guide structured model output", () => {
     assert.equal(validateHomeGuideModelOutput({ output: { ...modelOutput(), extra: true }, evidence: evidence() }), null);
     assert.equal(validateHomeGuideModelOutput({ output: { ...modelOutput(), schemaVersion: 2 }, evidence: evidence() }), null);
     assert.equal(validateHomeGuideModelOutput({ output: { ...modelOutput(), nextActionCode: "unknown_action" }, evidence: evidence() }), null);
-    assert.equal(validateHomeGuideModelOutput({ output: { ...modelOutput(), selectedProgressionFactIds: ["week_to_date.distance"] }, evidence: evidence() }), null);
+    assert.deepEqual(validateHomeGuideModelOutput({ output: { ...modelOutput(), selectedProgressionFactIds: ["week_to_date.distance"] }, evidence: evidence() })?.selectedProgressionFactIds, []);
   });
 
-  it("rejects duplicate, excessive, and unknown fact selections", () => {
+  it("sanitizes duplicate and unknown fact selections while rejecting excessive selections", () => {
     const facts = evidence(evidenceFact("improving"), evidenceFact("steady", "week_to_date.run_count"), evidenceFact("declining", "week_to_date.active_duration"));
-    for (const selectedProgressionFactIds of [
-      ["week_to_date.distance", "week_to_date.distance"],
-      ["week_to_date.distance", "week_to_date.run_count", "week_to_date.active_duration"],
-      ["not-allowed"],
-    ]) {
-      assert.equal(validateHomeGuideModelOutput({ output: modelOutput({ selectedProgressionFactIds, nextActionCode: "maintain_easy_consistency" }), evidence: facts }), null);
-    }
+    assert.deepEqual(
+      validateHomeGuideModelOutput({ output: modelOutput({ selectedProgressionFactIds: ["week_to_date.distance", "week_to_date.distance"], nextActionCode: "maintain_easy_consistency" }), evidence: facts })?.selectedProgressionFactIds,
+      ["week_to_date.distance"],
+    );
+    assert.deepEqual(
+      validateHomeGuideModelOutput({ output: modelOutput({ selectedProgressionFactIds: ["not-allowed"], nextActionCode: "maintain_easy_consistency" }), evidence: facts })?.selectedProgressionFactIds,
+      [],
+    );
+    assert.equal(validateHomeGuideModelOutput({ output: modelOutput({ selectedProgressionFactIds: ["week_to_date.distance", "week_to_date.run_count", "week_to_date.active_duration"], nextActionCode: "maintain_easy_consistency" }), evidence: facts }), null);
   });
 
-  it("rejects numeric, disallowed, malformed, and oversized model copy", () => {
+  it("accepts risky model copy at the schema boundary so rendering can replace it safely", () => {
     const invalidText = [
       "Take ٢ easy steps.",
       "See https://example.test now.",
@@ -46,7 +48,10 @@ describe("home guide structured model output", () => {
       "a".repeat(161),
     ];
     for (const planSummaryText of invalidText) {
-      assert.equal(validateHomeGuideModelOutput({ output: modelOutput({ planSummaryText }), evidence: evidence() }), null);
+      const output = validateHomeGuideModelOutput({ output: modelOutput({ planSummaryText }), evidence: evidence() });
+      const bundle = renderHomeGuideBundle({ output, evidence: evidence(), planContext: modelPlanContext() });
+      assert.notEqual(bundle, null);
+      assert.doesNotMatch(bundle?.planSummary ?? "", /https|doctor|improved|Progress|Ignore|٢|[*]/i);
     }
     const { runningTipText: _runningTipText, ...missingField } = modelOutput();
     assert.equal(validateHomeGuideModelOutput({ output: missingField, evidence: evidence() }), null);
@@ -67,7 +72,7 @@ describe("home guide structured model output", () => {
       assert.notEqual(renderHomeGuideBundle({ output, evidence: facts }), null);
     }
     const incoherent = validateHomeGuideModelOutput({ output: modelOutput({ selectedProgressionFactIds: ["week_to_date.distance"], nextActionCode: "add_one_easy_session" }), evidence: evidence(evidenceFact("improving")) });
-    assert.equal(renderHomeGuideBundle({ output: incoherent, evidence: evidence(evidenceFact("improving")) }), null);
+    assert.match(renderHomeGuideBundle({ output: incoherent, evidence: evidence(evidenceFact("improving")) })?.progressionCheckIn ?? "", /keep your easy sessions gentle and steady/i);
 
     const matrix = [
       { directions: [], allowed: ["build_baseline", "keep_effort_conversational"] },
@@ -81,7 +86,7 @@ describe("home guide structured model output", () => {
       const facts = evidence(...row.directions.map((direction, index) => evidenceFact(direction, `matrix-${index}`)));
       for (const nextActionCode of actions) {
         const output = validateHomeGuideModelOutput({ output: modelOutput({ selectedProgressionFactIds: facts.facts.map((fact) => fact.id), nextActionCode }), evidence: facts });
-        assert.equal(renderHomeGuideBundle({ output, evidence: facts }) !== null, row.allowed.some((allowedAction) => allowedAction === nextActionCode));
+        assert.notEqual(renderHomeGuideBundle({ output, evidence: facts }), null);
       }
     }
   });
@@ -91,6 +96,32 @@ describe("home guide structured model output", () => {
     const bundle = renderHomeGuideBundle({ output, evidence: evidence() });
 
     assert.match(bundle?.progressionCheckIn ?? "", /you've got this/i);
+  });
+
+  it("keeps generated progression usable when supplied fact copy is too long for the speech bubble", () => {
+    const longFact = {
+      ...evidenceFact("steady"),
+      text: "Distance stayed steady across the week while the beginner plan remains focused on easy running, relaxed breathing, and keeping the next session comfortable for the runner.",
+    };
+    const output = validateHomeGuideModelOutput({ output: modelOutput({ selectedProgressionFactIds: [longFact.id], nextActionCode: "add_one_easy_session" }), evidence: evidence(longFact) });
+    const bundle = renderHomeGuideBundle({ output, evidence: evidence(longFact), planContext: modelPlanContext() });
+
+    assert.notEqual(bundle, null);
+    assert.ok(Array.from(bundle?.progressionCheckIn ?? "").length <= 160);
+    assert.doesNotMatch(bundle?.progressionCheckIn ?? "", /Distance stayed steady across the week/);
+  });
+
+  it("repairs final speech bubbles when display context punctuation would exceed the final safety gate", () => {
+    const output = validateHomeGuideModelOutput({ output: modelOutput(), evidence: evidence() });
+    const bundle = renderHomeGuideBundle({
+      output,
+      evidence: evidence(),
+      planContext: { ...modelPlanContext(), workoutTitle: "Easy. Run. Today.", intensity: "easy" },
+    });
+
+    assert.notEqual(bundle, null);
+    assert.equal(bundle?.planSummary, "Your plan is ready. Let's keep today comfy and doable.");
+    assert.ok(Array.from(bundle?.planSummary ?? "").length <= 160);
   });
 
   it("limits prompts to sanitized display context and deterministic fact text", () => {
@@ -116,31 +147,162 @@ describe("home guide provider seam", () => {
   it("uses low-temperature bounded no-retry provider settings and invokes one injected provider once", async () => {
     assert.deepEqual(HOME_GUIDE_MODEL_CONFIG, { model: "gpt-4o-mini", temperature: 0.2, maxTokens: 220, timeout: 10_000, maxRetries: 0 });
     const provider = new StubProvider(modelOutput());
-    const bundle = await generateHomeGuideBundle({ provider, planContext: modelPlanContext(), evidence: evidence() });
+    const outcome: unknown = await generateHomeGuideBundle({ provider, planContext: modelPlanContext(), evidence: evidence() });
     assert.equal(provider.calls, 1);
-    assert.notEqual(bundle, null);
+    assert.equal(readOutcomeKind(outcome), "generated");
   });
 
-  it("fails closed on timeout or provider exception without a second call", async () => {
+  it("reports distinct fallback categories for provider, timeout, JSON-shape, and policy-validation outcomes", async () => {
     const timeoutProvider = new StubProvider(() => new Promise<unknown>(() => undefined));
     const exceptionProvider = new StubProvider(() => Promise.reject(new Error("provider failure")));
-    assert.equal(await generateHomeGuideBundle({ provider: timeoutProvider, planContext: modelPlanContext(), evidence: evidence(), timeoutMillis: 1 }), null);
-    assert.equal(await generateHomeGuideBundle({ provider: exceptionProvider, planContext: modelPlanContext(), evidence: evidence() }), null);
+    const malformedProvider = new StubProvider("not-json-object");
+    const unsafeTextProvider = new StubProvider(modelOutput({
+      planSummaryText: "Ask a doctor about distance progress.",
+      runningTipText: "Run 20% faster today.",
+    }));
+    const incoherentProvider = new StubProvider(modelOutput({
+      selectedProgressionFactIds: ["week_to_date.distance"],
+      nextActionCode: "add_one_easy_session",
+    }));
+
+    assert.deepEqual(
+      await generateHomeGuideBundle({ provider: timeoutProvider, planContext: modelPlanContext(), evidence: evidence(), timeoutMillis: 1 }),
+      { kind: "fallback", fallbackCategory: "timeout" },
+    );
+    assert.deepEqual(
+      await generateHomeGuideBundle({ provider: exceptionProvider, planContext: modelPlanContext(), evidence: evidence() }),
+      { kind: "fallback", fallbackCategory: "provider_error" },
+    );
+    assert.deepEqual(
+      await generateHomeGuideBundle({ provider: malformedProvider, planContext: modelPlanContext(), evidence: evidence() }),
+      { kind: "fallback", fallbackCategory: "json_shape" },
+    );
+    const repairedUnsafeText = readGeneratedBundle(await generateHomeGuideBundle({ provider: unsafeTextProvider, planContext: modelPlanContext(), evidence: evidence() }));
+    assert.doesNotMatch(`${repairedUnsafeText.planSummary} ${repairedUnsafeText.runningTip}`, /doctor|distance|progress|20|faster/i);
+    assert.match(repairedUnsafeText.progressionCheckIn, /building a running baseline/i);
+    assert.equal(
+      readOutcomeKind(await generateHomeGuideBundle({ provider: incoherentProvider, planContext: modelPlanContext(), evidence: evidence(evidenceFact("improving")) })),
+      "generated",
+    );
     assert.equal(timeoutProvider.calls, 1);
     assert.equal(exceptionProvider.calls, 1);
+    assert.equal(malformedProvider.calls, 1);
+    assert.equal(incoherentProvider.calls, 1);
+  });
+
+  it("renders plan-specific summary and intensity-appropriate tip without fabricating progression", async () => {
+    const planContext = {
+      ...modelPlanContext(),
+      workoutTitle: "Gentle recovery run",
+      intensity: "recovery",
+    };
+    const provider = new StubProvider(modelOutput({
+      planSummaryText: "The planned session is ready.",
+      runningTipText: "Keep the effort relaxed and conversational.",
+      selectedProgressionFactIds: ["week_to_date.distance"],
+      nextActionCode: "maintain_easy_consistency",
+    }));
+    const outcome: unknown = await generateHomeGuideBundle({ provider, planContext, evidence: evidence(evidenceFact("improving")) });
+    const bundle = readGeneratedBundle(outcome);
+
+    assert.match(bundle.planSummary, /Gentle recovery run/);
+    assert.match(bundle.runningTip, /relaxed|gentle|conversational/i);
+    assert.match(bundle.progressionCheckIn, /Distance: 4\.0 km vs 3\.0 km/);
+    assert.doesNotMatch(bundle.progressionCheckIn, /pace|streak|leaderboard/i);
+  });
+
+  it("accepts harmless second-person trainer encouragement while rejecting unsupported metric claims", async () => {
+    const friendlyProvider = new StubProvider(modelOutput({
+      planSummaryText: "You have a calm session waiting.",
+      runningTipText: "Keep your shoulders relaxed and breathe easy.",
+      selectedProgressionFactIds: [],
+      nextActionCode: "build_baseline",
+    }));
+    const metricClaimProvider = new StubProvider(modelOutput({
+      planSummaryText: "Your distance is improving nicely.",
+      runningTipText: "Keep your pace faster today.",
+      selectedProgressionFactIds: [],
+      nextActionCode: "build_baseline",
+    }));
+
+    assert.equal(
+      readOutcomeKind(await generateHomeGuideBundle({ provider: friendlyProvider, planContext: modelPlanContext(), evidence: evidence() })),
+      "generated",
+    );
+    const repaired = readGeneratedBundle(await generateHomeGuideBundle({ provider: metricClaimProvider, planContext: modelPlanContext(), evidence: evidence() }));
+    assert.doesNotMatch(`${repaired.planSummary} ${repaired.runningTip}`, /distance|improving|faster/i);
+  });
+
+  it("keeps server-rendered plan context within the existing final message cap", async () => {
+    const provider = new StubProvider(modelOutput({
+      planSummaryText: "a".repeat(128),
+      runningTipText: "b".repeat(128),
+    }));
+    const outcome: unknown = await generateHomeGuideBundle({
+      provider,
+      planContext: { ...modelPlanContext(), workoutTitle: "Very long recovery workout title", intensity: "easy" },
+      evidence: evidence(),
+    });
+    const bundle = readGeneratedBundle(outcome);
+
+    assert.ok(Array.from(bundle.planSummary).length <= 160);
+    assert.ok(Array.from(bundle.runningTip).length <= 160);
+    assert.match(bundle.planSummary, /Very long recovery/);
+    assert.match(bundle.runningTip, /chatty, relaxed effort/);
   });
 
   it("activates the deterministic fake only for the verified emulator project and explicit flag", async () => {
     const fake = createHomeGuideModelProvider({ apiKey: undefined, environment: { functionsEmulator: "true", projectId: "runiac-functions-test", fakeProviderFlag: "deterministic" } });
-    const valid = await generateHomeGuideBundle({ provider: fake, planContext: modelPlanContext(), evidence: evidence(evidenceFact("declining")) });
-    assert.notEqual(valid, null);
+    const valid: unknown = await generateHomeGuideBundle({ provider: fake, planContext: modelPlanContext(), evidence: evidence(evidenceFact("declining")) });
+    assert.equal(readOutcomeKind(valid), "generated");
     for (const environment of [
       { functionsEmulator: undefined, projectId: "runiac-functions-test", fakeProviderFlag: "deterministic" },
       { functionsEmulator: "true", projectId: "another-project", fakeProviderFlag: "deterministic" },
       { functionsEmulator: "true", projectId: "runiac-functions-test", fakeProviderFlag: "other" },
     ]) {
       const blocked = createHomeGuideModelProvider({ apiKey: "not-used", environment });
-      assert.equal(await generateHomeGuideBundle({ provider: blocked, planContext: modelPlanContext(), evidence: evidence() }), null);
+      assert.deepEqual(await generateHomeGuideBundle({ provider: blocked, planContext: modelPlanContext(), evidence: evidence() }), {
+        kind: "fallback",
+        fallbackCategory: "provider_error",
+      });
     }
   });
 });
+
+type GeneratedBundle = {
+  readonly planSummary: string;
+  readonly runningTip: string;
+  readonly progressionCheckIn: string;
+};
+
+function readOutcomeKind(value: unknown): string {
+  assert.ok(isRecord(value));
+  const kind = value["kind"];
+  if (typeof kind !== "string") {
+    assert.fail("Expected outcome kind.");
+  }
+  return kind;
+}
+
+function readGeneratedBundle(value: unknown): GeneratedBundle {
+  assert.equal(readOutcomeKind(value), "generated");
+  assert.ok(isRecord(value));
+  assert.ok(isRecord(value["bundle"]));
+  const bundle = value["bundle"];
+  return {
+    planSummary: readString(bundle["planSummary"]),
+    runningTip: readString(bundle["runningTip"]),
+    progressionCheckIn: readString(bundle["progressionCheckIn"]),
+  };
+}
+
+function readString(value: unknown): string {
+  if (typeof value !== "string") {
+    assert.fail("Expected string.");
+  }
+  return value;
+}
+
+function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}

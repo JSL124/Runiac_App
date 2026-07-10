@@ -1,4 +1,4 @@
-import type { HomeGuideEvidence, HomeGuideEvidenceFact } from "./homeGuideContracts.js";
+import type { HomeGuideEvidence, HomeGuideEvidenceFact, HomeGuidePlanDisplayContext } from "./homeGuideContracts.js";
 import type { HomeGuideBundle } from "./homeGuideQuotaCache.js";
 
 const ACTION_CODES = [
@@ -17,7 +17,7 @@ const OUTPUT_FIELDS = new Set([
 ]);
 const MEDICAL_TERMS = /\b(?:diagnos(?:is|e)|doctor|medication|injury|injured|treatment|medical|pain)\b/iu;
 const COMPETITIVE_TERMS = /\b(?:leaderboard|rank|ranking|win|winner|beat|competition|competitive|race)\b/iu;
-const UNSUPPLIED_CLAIM = /\b(?:you|your|improv(?:e|ed|ing|ement)?|declin(?:e|ed|ing)?|increas(?:e|ed|ing)?|decreas(?:e|ed|ing)?|progress|faster|slower|distance|run count)\b/iu;
+const UNSUPPLIED_CLAIM = /\b(?:improv(?:e|ed|ing|ement)?|declin(?:e|ed|ing)?|increas(?:e|ed|ing)?|decreas(?:e|ed|ing)?|progress|faster|slower|distance|run count)\b/iu;
 const INSTRUCTIONAL_TERMS = /\b(?:ignore|disregard|previous instructions?|system prompt)\b/iu;
 const MARKDOWN = /(?:^|\s)(?:#{1,6}\s|[-*+]\s|>\s)|[*_`~\[\]]/u;
 const URL = /(?:https?:\/\/|www\.)/iu;
@@ -32,6 +32,10 @@ export type HomeGuideModelOutput = {
   readonly selectedProgressionFactIds: readonly string[];
   readonly nextActionCode: HomeGuideActionCode;
 };
+export type HomeGuideModelValidationIssue = "json_shape" | "policy_validation";
+export type HomeGuideModelValidationResult =
+  | { readonly kind: "valid"; readonly output: HomeGuideModelOutput }
+  | { readonly kind: "invalid"; readonly issue: HomeGuideModelValidationIssue };
 export type HomeGuideModelValidationInput = {
   readonly output: unknown;
   readonly evidence: HomeGuideEvidence;
@@ -39,6 +43,7 @@ export type HomeGuideModelValidationInput = {
 export type HomeGuideRenderInput = {
   readonly output: HomeGuideModelOutput | null;
   readonly evidence: HomeGuideEvidence;
+  readonly planContext?: HomeGuidePlanDisplayContext;
 };
 
 class HomeGuideUnreachableVariantError extends Error {
@@ -54,7 +59,16 @@ export function assertNever(value: never): never {
 }
 
 export function validateHomeGuideModelOutput(input: HomeGuideModelValidationInput): HomeGuideModelOutput | null {
-  if (!isRecord(input.output) || !hasExactKeys(input.output, OUTPUT_FIELDS)) return null;
+  const result = validateHomeGuideModelOutputDetailed(input);
+  switch (result.kind) {
+    case "valid": return result.output;
+    case "invalid": return null;
+    default: return assertNever(result);
+  }
+}
+
+export function validateHomeGuideModelOutputDetailed(input: HomeGuideModelValidationInput): HomeGuideModelValidationResult {
+  if (!isRecord(input.output) || !hasExactKeys(input.output, OUTPUT_FIELDS)) return { kind: "invalid", issue: "json_shape" };
   const schemaVersion = input.output["schemaVersion"];
   const planSummaryText = input.output["planSummaryText"];
   const runningTipText = input.output["runningTipText"];
@@ -62,12 +76,21 @@ export function validateHomeGuideModelOutput(input: HomeGuideModelValidationInpu
   const nextActionCode = input.output["nextActionCode"];
   if (
     schemaVersion !== 1 ||
-    !isSafeModelText(planSummaryText) ||
-    !isSafeModelText(runningTipText) ||
     !isActionCode(nextActionCode) ||
-    !isSelectedFactIds(selectedProgressionFactIds, input.evidence)
-  ) return null;
-  return { schemaVersion, planSummaryText, runningTipText, selectedProgressionFactIds, nextActionCode };
+    typeof planSummaryText !== "string" ||
+    typeof runningTipText !== "string" ||
+    !isSelectedFactIdArray(selectedProgressionFactIds)
+  ) return { kind: "invalid", issue: "json_shape" };
+  return {
+    kind: "valid",
+    output: {
+      schemaVersion,
+      planSummaryText,
+      runningTipText,
+      selectedProgressionFactIds: allowedSelectedFactIds(selectedProgressionFactIds, input.evidence),
+      nextActionCode,
+    },
+  };
 }
 
 export function deriveHomeGuideProgressionLead(facts: readonly HomeGuideEvidenceFact[]): HomeGuideProgressionLead {
@@ -84,13 +107,42 @@ export function renderHomeGuideBundle(input: HomeGuideRenderInput): HomeGuideBun
   if (input.output === null) return null;
   const facts = selectedFacts(input.output.selectedProgressionFactIds, input.evidence.facts);
   const lead = deriveHomeGuideProgressionLead(facts);
-  if (!isCoherentAction(lead, input.output.nextActionCode)) return null;
+  const action = coherentAction(lead, input.output.nextActionCode);
   const bundle = {
-    planSummary: `Your plan is ready, superstar! ${input.output.planSummaryText}`,
-    runningTip: `Tiny trainer tip: ${input.output.runningTipText}`,
-    progressionCheckIn: renderProgression(facts, input.output.nextActionCode),
+    planSummary: safeFinalMessage(
+      renderPlanSummary(input.output.planSummaryText, input.planContext),
+      "Your plan is ready. Let's keep today comfy and doable.",
+    ),
+    runningTip: safeFinalMessage(
+      renderRunningTip(input.output.runningTipText, input.planContext),
+      "Tiny trainer tip: Start gently and keep effort smooth.",
+    ),
+    progressionCheckIn: safeFinalMessage(
+      renderProgression(facts, action),
+      actionSentence(action),
+    ),
   };
-  return Object.values(bundle).every(isSafeFinalMessage) ? bundle : null;
+  return bundle;
+}
+
+function renderPlanSummary(text: string, planContext: HomeGuidePlanDisplayContext | undefined): string {
+  const safeText = isSafeModelText(text) ? text : "Your plan is ready.";
+  if (planContext === undefined) return `Your plan is ready, superstar! ${safeText}`;
+  return `${compactText(planContext.workoutTitle, 21)} is ready. ${safeText}`;
+}
+
+function renderRunningTip(text: string, planContext: HomeGuidePlanDisplayContext | undefined): string {
+  const safeText = isSafeModelText(text) ? text : "";
+  if (planContext === undefined) return `Tiny trainer tip:${safeText.length === 0 ? "" : ` ${safeText}`}`;
+  const practicalTip = `Tiny trainer tip: ${intensityCue(planContext.intensity)}${safeText.length === 0 ? "" : ` ${safeText}`}`;
+  return isSafeFinalMessage(practicalTip) ? practicalTip : `Tiny trainer tip: ${intensityCue(planContext.intensity)}`;
+}
+
+function intensityCue(intensity: string): string {
+  const normalized = intensity.toLocaleLowerCase("en-SG");
+  if (/\b(?:easy|recovery|rest|gentle|light)\b/u.test(normalized)) return "Keep a chatty, relaxed effort.";
+  if (/\b(?:tempo|interval|hard|speed|hill)\b/u.test(normalized)) return "Warm up, then stay controlled.";
+  return "Start gently and keep effort smooth.";
 }
 
 function renderProgression(
@@ -100,7 +152,8 @@ function renderProgression(
   const actionText = actionSentence(action);
   if (facts.length === 0) return `You are building a running baseline. ${actionText}`;
   const detail = facts.map((fact) => fact.text.replace(/[.!?]+$/u, "")).join("; ");
-  return `${detail}. ${actionText}`;
+  const detailed = `${detail}. ${actionText}`;
+  return isSafeFinalMessage(detailed) ? detailed : actionText;
 }
 
 function actionSentence(action: HomeGuideActionCode): string {
@@ -129,11 +182,30 @@ function isCoherentAction(lead: HomeGuideProgressionLead, action: HomeGuideActio
   }
 }
 
-function isSelectedFactIds(value: unknown, evidence: HomeGuideEvidence): value is readonly string[] {
-  if (!Array.isArray(value) || value.length > 2 || !value.every((id) => typeof id === "string")) return false;
-  if (new Set(value).size !== value.length) return false;
+function coherentAction(lead: HomeGuideProgressionLead, action: HomeGuideActionCode): HomeGuideActionCode {
+  if (isCoherentAction(lead, action)) return action;
+  switch (lead) {
+    case "baseline": return "keep_effort_conversational";
+    case "improving": return "maintain_easy_consistency";
+    case "steady": return "maintain_easy_consistency";
+    case "mixed":
+    case "needs_attention": return "recover_and_repeat";
+    default: return assertNever(lead);
+  }
+}
+
+function isSelectedFactIdArray(value: unknown): value is readonly string[] {
+  return Array.isArray(value) && value.length <= 2 && value.every((id) => typeof id === "string");
+}
+
+function allowedSelectedFactIds(value: readonly string[], evidence: HomeGuideEvidence): readonly string[] {
   const allowedIds = new Set(evidence.facts.map((fact) => fact.id));
-  return value.every((id) => allowedIds.has(id));
+  const result: string[] = [];
+  for (const id of value) {
+    if (allowedIds.has(id) && !result.includes(id)) result.push(id);
+    if (result.length === 2) return result;
+  }
+  return result;
 }
 
 function isSafeModelText(value: unknown): value is string {
@@ -154,6 +226,10 @@ function isSafeFinalMessage(value: string): boolean {
   return value.trim().length > 0 && codePointLength(value) <= 160 && sentenceCount(value) <= 2;
 }
 
+function safeFinalMessage(value: string, fallback: string): string {
+  return isSafeFinalMessage(value) ? value : fallback;
+}
+
 function sentenceCount(value: string): number {
   const punctuation = value.match(/(?:[!?]+|\.(?=\s|$))/gu)?.length ?? 0;
   return punctuation === 0 ? 1 : punctuation;
@@ -161,6 +237,11 @@ function sentenceCount(value: string): number {
 
 function codePointLength(value: string): number {
   return Array.from(value).length;
+}
+
+function compactText(value: string, maximumLength: number): string {
+  const characters = Array.from(value);
+  return characters.length <= maximumLength ? value : `${characters.slice(0, maximumLength - 3).join("")}...`;
 }
 
 function isActionCode(value: unknown): value is HomeGuideActionCode {

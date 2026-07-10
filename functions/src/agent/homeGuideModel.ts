@@ -5,9 +5,11 @@ import type { HomeGuideBundle } from "./homeGuideQuotaCache.js";
 import {
   assertNever,
   renderHomeGuideBundle,
+  validateHomeGuideModelOutputDetailed,
   validateHomeGuideModelOutput,
   type HomeGuideActionCode,
   type HomeGuideModelOutput,
+  type HomeGuideModelValidationIssue,
 } from "./homeGuideModelOutput.js";
 
 export {
@@ -15,8 +17,10 @@ export {
   deriveHomeGuideProgressionLead,
   renderHomeGuideBundle,
   validateHomeGuideModelOutput,
+  validateHomeGuideModelOutputDetailed,
   type HomeGuideActionCode,
   type HomeGuideModelOutput,
+  type HomeGuideModelValidationIssue,
   type HomeGuideProgressionLead,
 } from "./homeGuideModelOutput.js";
 
@@ -57,6 +61,13 @@ export type HomeGuideModelGenerationInput = HomeGuideModelPromptInput & {
   readonly provider: HomeGuideModelProvider;
   readonly timeoutMillis?: number;
 };
+export type HomeGuideGenerationFallbackCategory =
+  | "provider_error"
+  | "timeout"
+  | HomeGuideModelValidationIssue;
+export type HomeGuideGenerationOutcome =
+  | { readonly kind: "generated"; readonly bundle: HomeGuideBundle }
+  | { readonly kind: "fallback"; readonly fallbackCategory: HomeGuideGenerationFallbackCategory };
 export type HomeGuideModelEnvironment = {
   readonly functionsEmulator: string | undefined;
   readonly projectId: string | undefined;
@@ -78,7 +89,7 @@ export function buildHomeGuideModelPrompt(input: HomeGuideModelPromptInput): Hom
   };
 }
 
-export async function generateHomeGuideBundle(input: HomeGuideModelGenerationInput): Promise<HomeGuideBundle | null> {
+export async function generateHomeGuideBundle(input: HomeGuideModelGenerationInput): Promise<HomeGuideGenerationOutcome> {
   const prompt = buildHomeGuideModelPrompt(input);
   const request = {
     ...prompt,
@@ -86,10 +97,28 @@ export async function generateHomeGuideBundle(input: HomeGuideModelGenerationInp
     progressionFacts: input.evidence.facts,
   };
   const timeoutMillis = input.timeoutMillis ?? HOME_GUIDE_MODEL_CONFIG.timeout;
-  return invokeWithTimeout(input.provider, request, timeoutMillis).then(
-    (output) => renderHomeGuideBundle({ output: validateHomeGuideModelOutput({ output, evidence: input.evidence }), evidence: input.evidence }),
-    () => null,
-  );
+  let output: unknown;
+  try {
+    output = await invokeWithTimeout(input.provider, request, timeoutMillis);
+  } catch (error) {
+    if (error instanceof HomeGuideModelTimeoutError) {
+      return { kind: "fallback", fallbackCategory: "timeout" };
+    }
+    return { kind: "fallback", fallbackCategory: "provider_error" };
+  }
+  const validation = validateHomeGuideModelOutputDetailed({ output, evidence: input.evidence });
+  switch (validation.kind) {
+    case "invalid":
+      return { kind: "fallback", fallbackCategory: validation.issue };
+    case "valid": {
+      const bundle = renderHomeGuideBundle({ output: validation.output, evidence: input.evidence, planContext: input.planContext });
+      return bundle === null
+        ? { kind: "fallback", fallbackCategory: "policy_validation" }
+        : { kind: "generated", bundle };
+    }
+    default:
+      return assertNever(validation);
+  }
 }
 
 export function createHomeGuideModelProvider(input: HomeGuideProviderFactoryInput): HomeGuideModelProvider {
@@ -148,6 +177,13 @@ class HomeGuideModelUnavailableError extends Error {
   }
 }
 
+class HomeGuideModelTimeoutError extends Error {
+  public constructor() {
+    super("Home guide model provider timed out.");
+    this.name = "HomeGuideModelTimeoutError";
+  }
+}
+
 function isVerifiedFakeEnvironment(environment: HomeGuideModelEnvironment): boolean {
   return environment.functionsEmulator === "true" &&
     environment.projectId === "runiac-functions-test" &&
@@ -172,7 +208,7 @@ async function invokeWithTimeout(
   if (!Number.isFinite(timeoutMillis) || timeoutMillis <= 0) return Promise.reject(new HomeGuideModelUnavailableError());
   let timeout: NodeJS.Timeout | undefined;
   const deadline = new Promise<never>((_resolve, reject) => {
-    timeout = setTimeout(() => reject(new HomeGuideModelUnavailableError()), timeoutMillis);
+    timeout = setTimeout(() => reject(new HomeGuideModelTimeoutError()), timeoutMillis);
   });
   try {
     return await Promise.race([provider.invoke(request), deadline]);

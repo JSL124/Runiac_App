@@ -1,4 +1,5 @@
 import type { Firestore } from "firebase-admin/firestore";
+import * as logger from "firebase-functions/logger";
 import { HttpsError } from "firebase-functions/v2/https";
 import {
   activePlanMarker,
@@ -7,7 +8,12 @@ import {
   readTrustedHomeGuideActivities,
 } from "./homeGuideContracts.js";
 import { buildHomeGuideEvidence } from "./homeGuideEvidence.js";
-import { assertNever, type HomeGuideModelProvider, generateHomeGuideBundle } from "./homeGuideModel.js";
+import {
+  assertNever,
+  generateHomeGuideBundle,
+  type HomeGuideGenerationFallbackCategory,
+  type HomeGuideModelProvider,
+} from "./homeGuideModel.js";
 import {
   createHomeGuideContextFingerprint,
   finalizeHomeGuideAttemptFailure,
@@ -40,6 +46,12 @@ export type HomeGuideAgentDependencies = {
   readonly now: () => Date;
   readonly providerFactory: () => HomeGuideModelProvider;
 };
+type HomeGuideDecisionFallbackCategory =
+  | "none"
+  | HomeGuideGenerationFallbackCategory
+  | "lease_active"
+  | "quota_unavailable"
+  | "finalize_conflict";
 
 export function createHomeGuideAgentHandler(
   dependencies: HomeGuideAgentDependencies,
@@ -70,34 +82,72 @@ export function createHomeGuideAgentHandler(
     });
 
     switch (outcome.kind) {
-      case "cache":
-        return availableResult("cache", outcome.bundle);
+      case "cache": {
+        const result = availableResult("cache", outcome.bundle);
+        emitHomeGuideDecisionLog(result, "none");
+        return result;
+      }
       case "leased":
+        return loggedFallbackResult(outcome.fallback, "lease_active");
       case "fallback":
-        return fallbackResult(outcome.fallback);
+        return loggedFallbackResult(outcome.fallback, "quota_unavailable");
       case "reserved": {
         const generated = await generateHomeGuideBundle({
           provider: dependencies.providerFactory(),
           planContext,
           evidence,
         });
-        if (generated === null) {
-          await finalizeHomeGuideAttemptFailure({ firestore, uid, now, reservation: outcome.reservation });
-          return fallbackResult(outcome.fallback);
+        switch (generated.kind) {
+          case "fallback":
+            await finalizeHomeGuideAttemptFailure({ firestore, uid, now, reservation: outcome.reservation });
+            return loggedFallbackResult(outcome.fallback, generated.fallbackCategory);
+          case "generated": {
+            const finalized = await finalizeHomeGuideAttemptReady({
+              firestore,
+              uid,
+              now,
+              reservation: outcome.reservation,
+              bundle: generated.bundle,
+            });
+            if (!finalized) return loggedFallbackResult(outcome.fallback, "finalize_conflict");
+            const result = availableResult("generated", generated.bundle);
+            emitHomeGuideDecisionLog(result, "none");
+            return result;
+          }
+          default:
+            return assertNever(generated);
         }
-        const finalized = await finalizeHomeGuideAttemptReady({
-          firestore,
-          uid,
-          now,
-          reservation: outcome.reservation,
-          bundle: generated,
-        });
-        return finalized ? availableResult("generated", generated) : fallbackResult(outcome.fallback);
       }
       default:
         return assertNever(outcome);
     }
   };
+}
+
+function loggedFallbackResult(
+  messages: HomeGuideBundle,
+  fallbackCategory: Exclude<HomeGuideDecisionFallbackCategory, "none">,
+): HomeGuideAgentResult {
+  const result = fallbackResult(messages);
+  emitHomeGuideDecisionLog(result, fallbackCategory);
+  return result;
+}
+
+function emitHomeGuideDecisionLog(
+  result: HomeGuideAgentResult,
+  fallbackCategory: HomeGuideDecisionFallbackCategory,
+): void {
+  const fields = {
+    event: "home_guide_agent_result",
+    delivery: result.delivery,
+    source: result.source,
+    fallbackCategory,
+  } as const;
+  if (result.delivery === "fallback") {
+    logger.warn(fields);
+  } else {
+    logger.info(fields);
+  }
 }
 
 function authenticatedUid(request: CallableGuideRequest): string {

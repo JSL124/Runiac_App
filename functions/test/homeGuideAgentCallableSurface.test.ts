@@ -7,6 +7,7 @@ import {
   type CallableGuideRequest,
 } from "../src/agent/homeGuideAgentHandler.js";
 import type { HomeGuideModelProvider, HomeGuideProviderRequest } from "../src/agent/homeGuideModel.js";
+import { captureStructuredLogger } from "./homeGuideLoggerCapture.js";
 
 const PROJECT_ID = "runiac-functions-test";
 const USER_UID = "guide-callable-runner";
@@ -85,6 +86,30 @@ describe("homeGuideAgent callable emulator surface", { skip: process.env["FIREST
     assert.notDeepEqual(failed.messages, generated.messages);
     assert.deepEqual((await dailyDocument()).get("readyBundle"), generated.messages);
     assert.equal(failedProvider.calls, 1);
+  });
+
+  it("emits one privacy-safe Firebase structured decision log for generated, cache, and fallback results", async () => {
+    const generatedProvider = new CountingProvider(validModelOutput()),
+      failedProvider = new CountingProvider(() => Promise.reject(new Error("test provider failure with raw detail")));
+    const generatedHandler = injectableHandler(generatedProvider),
+      failedHandler = injectableHandler(failedProvider);
+
+    const captured = await captureStructuredLogger(async () => {
+      const generated = await generatedHandler(authenticatedRequest(validPayload()));
+      const cached = await generatedHandler(authenticatedRequest(validPayload()));
+      const fallback = await failedHandler(authenticatedRequest({ ...validPayload(), planTitle: "Changed plan" }));
+      return { generated, cached, fallback };
+    });
+
+    assert.deepEqual(captured.entries, [
+      { stream: "stdout", severity: "INFO", fields: { event: "home_guide_agent_result", delivery: "generated", source: "agent", fallbackCategory: "none" } },
+      { stream: "stdout", severity: "INFO", fields: { event: "home_guide_agent_result", delivery: "cache", source: "agent", fallbackCategory: "none" } },
+      { stream: "stderr", severity: "WARNING", fields: { event: "home_guide_agent_result", delivery: "fallback", source: "unavailable", fallbackCategory: "provider_error" } },
+    ]);
+    const serializedLogs = JSON.stringify(captured.entries);
+    for (const forbidden of [USER_UID, "Beginner plan", "Changed plan", "raw detail"]) {
+      assert.equal(serializedLogs.includes(forbidden), false);
+    }
   });
 
   it("caps changed fingerprints at three provider dispatches and falls back on the fourth", async () => {
