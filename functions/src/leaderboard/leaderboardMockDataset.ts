@@ -1,5 +1,7 @@
 import { leaderboardLeagueDefinitions } from "../progression/leaderboardLeagues.js";
+import { syntheticProfileDetails } from "./leaderboardMockProfiles.js";
 import {
+  singaporePlanningAreaForRegionId,
   supportedSingaporePlanningAreas,
   type SingaporePlanningArea,
 } from "./singaporePlanningAreas.js";
@@ -29,6 +31,7 @@ export function generateMockLeaderboardDataset(input: {
   readonly runId: string;
   readonly periodKey: string;
   readonly usersPerRegion?: number;
+  readonly regionId?: string;
 }): MockLeaderboardDataset {
   const runId = validateRunId(input.runId);
   const periodKey = validatePeriodKey(input.periodKey);
@@ -40,7 +43,8 @@ export function generateMockLeaderboardDataset(input: {
   ) {
     throw new Error("usersPerRegion must be an integer from 1 to 500");
   }
-  const records = supportedSingaporePlanningAreas.flatMap(
+  const areas = planningAreasForMockDataset(input.regionId);
+  const records = areas.flatMap(
     (area, regionIndex) =>
       Array.from({ length: usersPerRegion }, (_, userIndex) =>
         mockRecord({
@@ -57,9 +61,22 @@ export function generateMockLeaderboardDataset(input: {
     runId,
     periodKey,
     usersPerRegion,
-    regionCount: supportedSingaporePlanningAreas.length,
+    regionCount: areas.length,
     records,
   };
+}
+
+function planningAreasForMockDataset(
+  regionId: string | undefined,
+): readonly SingaporePlanningArea[] {
+  if (regionId === undefined) {
+    return supportedSingaporePlanningAreas;
+  }
+  const area = singaporePlanningAreaForRegionId(regionId);
+  if (area === null) {
+    throw new Error(`unsupported regionId: ${regionId.trim()}`);
+  }
+  return [area];
 }
 
 function mockRecord(input: {
@@ -81,13 +98,15 @@ function mockRecord(input: {
   const level = Math.min(league.maxLevel, league.minLevel + levelOffset);
   const sequence = input.userIndex + 1;
   const uid = `lbmock_${input.runId}_${input.area.regionId}_${String(sequence).padStart(3, "0")}`;
-  const publicAlias = `Mock ${input.area.regionName} ${String(sequence).padStart(3, "0")}`;
+  const profileDetails = syntheticProfileDetails(input.userIndex);
+  const publicAlias = profileDetails.nickname;
   const isPremium = input.userIndex === input.usersPerRegion - 1;
-  const scoreXp =
-    1_000_000 -
-    input.regionIndex * 10_000 -
-    leagueIndex * 500 -
-    input.userIndex;
+  const scoreXp = isPremium
+    ? 0
+    : 1_000_000 -
+      input.regionIndex * 10_000 -
+      leagueIndex * 500 -
+      input.userIndex;
   const marker = {
     isMockData: true,
     mockSeedRunId: input.runId,
@@ -101,8 +120,7 @@ function mockRecord(input: {
     },
     profile: {
       ...marker,
-      displayName: publicAlias,
-      nickname: publicAlias,
+      ...profileDetails,
       locationLabel: input.area.locationLabel,
       level,
       levelLabel: `Level ${level}`,
@@ -128,8 +146,10 @@ function mockRecord(input: {
       periodKey: input.periodKey,
       timezone: leaderboardTimezone,
       scoreXp,
-      eligible: true,
-      eligibilityReason: "mock_seed_basic_awarded_xp",
+      eligible: !isPremium,
+      eligibilityReason: isPremium
+        ? "ineligible_premium"
+        : "mock_seed_basic_awarded_xp",
       lastProgressionAt: `${input.periodKey}-15T04:00:00.000Z`,
       sourceProgressionEventIds: [
         `mock_${input.runId}_${input.area.regionId}_${sequence}`,

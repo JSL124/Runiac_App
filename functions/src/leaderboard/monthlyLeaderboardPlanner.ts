@@ -172,7 +172,7 @@ function parseContribution(
     contribution["timezone"] !== leaderboardTimezone ||
     typeof scoreXp !== "number" ||
     !Number.isFinite(scoreXp) ||
-    scoreXp <= 0 ||
+    scoreXp < 0 ||
     area === null ||
     league === null
   ) {
