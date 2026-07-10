@@ -208,6 +208,48 @@ void main() {
     expect(find.text('MON'), findsWidgets);
   });
 
+  testWidgets('weekday labels sit directly below their stage stones', (
+    WidgetTester tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final plan = _plan();
+    final model = _model(plan);
+    final firstWeekNumber = model.sections.first.weekNumber;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: HomeStageMap(
+            model: model,
+            onNotifications: () {},
+            onProfile: () {},
+            onTapTodayStage: () {},
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final stone = find.byKey(
+      ValueKey<String>('homeStageStone-$firstWeekNumber-0'),
+    );
+    final label = find.byKey(
+      ValueKey<String>('homeStageDayLabel-$firstWeekNumber-0'),
+    );
+    final stoneRect = tester.getRect(stone);
+    final labelRect = tester.getRect(label);
+
+    // The label overlaps only the asset's transparent lower inset. Its
+    // widget starts 16 logical pixels above the stone's box bottom, keeping
+    // the visible chip immediately under the rendered plate.
+    expect(labelRect.top, closeTo(stoneRect.bottom - 16, 0.1));
+    expect(labelRect.top, greaterThan(stoneRect.center.dy));
+  });
+
   testWidgets(
     'guide scales to its stone and starts at the nearest valid Home-map '
     'scroll position',

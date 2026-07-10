@@ -111,7 +111,7 @@ describe("home guide structured model output", () => {
     assert.doesNotMatch(bundle?.progressionCheckIn ?? "", /Distance stayed steady across the week/);
   });
 
-  it("repairs final speech bubbles when display context punctuation would exceed the final safety gate", () => {
+  it("allows natural five-sentence plan summaries before using the meaningful plan fallback", () => {
     const output = validateHomeGuideModelOutput({ output: modelOutput(), evidence: evidence() });
     const bundle = renderHomeGuideBundle({
       output,
@@ -120,8 +120,15 @@ describe("home guide structured model output", () => {
     });
 
     assert.notEqual(bundle, null);
-    assert.equal(bundle?.planSummary, "Your plan is ready. Let's keep today comfy and doable.");
+    assert.equal(bundle?.planSummary, "Today's Easy Run Today is a 25 min easy session for Build endurance. The planned session is ready.");
     assert.ok(Array.from(bundle?.planSummary ?? "").length <= 160);
+
+    const verbose = validateHomeGuideModelOutput({
+      output: modelOutput({ planSummaryText: "One. Two. Three. Four. Five." }),
+      evidence: evidence(),
+    });
+    const repaired = renderHomeGuideBundle({ output: verbose, evidence: evidence(), planContext: modelPlanContext() });
+    assert.equal(repaired?.planSummary, "Easy Run is ready for a 25 min easy session focused on Build endurance.");
   });
 
   it("limits prompts to sanitized display context and deterministic fact text", () => {
@@ -139,13 +146,17 @@ describe("home guide structured model output", () => {
     assert.match(prompt.systemPrompt, /friendly/i);
     assert.match(prompt.systemPrompt, /cute/i);
     assert.match(prompt.systemPrompt, /beginner.*trainer/i);
+    assert.match(prompt.systemPrompt, /planSummaryText.*under 90 characters/i);
+    assert.match(prompt.systemPrompt, /runningTipText.*under 105 characters/i);
     assert.match(prompt.systemPrompt, /do not make medical, competitive, numeric, or unsupported factual claims/i);
+    assert.match(prompt.userPrompt, /90 characters max/i);
+    assert.match(prompt.userPrompt, /105 characters max/i);
   });
 });
 
 describe("home guide provider seam", () => {
   it("uses low-temperature bounded no-retry provider settings and invokes one injected provider once", async () => {
-    assert.deepEqual(HOME_GUIDE_MODEL_CONFIG, { model: "gpt-4o-mini", temperature: 0.2, maxTokens: 220, timeout: 10_000, maxRetries: 0 });
+    assert.deepEqual(HOME_GUIDE_MODEL_CONFIG, { model: "gpt-4o-mini", temperature: 0.2, maxTokens: 150, timeout: 10_000, maxRetries: 0 });
     const provider = new StubProvider(modelOutput());
     const outcome: unknown = await generateHomeGuideBundle({ provider, planContext: modelPlanContext(), evidence: evidence() });
     assert.equal(provider.calls, 1);
@@ -205,7 +216,7 @@ describe("home guide provider seam", () => {
     const outcome: unknown = await generateHomeGuideBundle({ provider, planContext, evidence: evidence(evidenceFact("improving")) });
     const bundle = readGeneratedBundle(outcome);
 
-    assert.match(bundle.planSummary, /Gentle recovery run/);
+    assert.match(bundle.planSummary, /Today's Gentle Recovery Run is a 25 min recovery session for Build endurance/);
     assert.match(bundle.runningTip, /relaxed|gentle|conversational/i);
     assert.match(bundle.progressionCheckIn, /Distance: 4\.0 km vs 3\.0 km/);
     assert.doesNotMatch(bundle.progressionCheckIn, /pace|streak|leaderboard/i);
@@ -247,7 +258,7 @@ describe("home guide provider seam", () => {
 
     assert.ok(Array.from(bundle.planSummary).length <= 160);
     assert.ok(Array.from(bundle.runningTip).length <= 160);
-    assert.match(bundle.planSummary, /Very long recovery/);
+    assert.match(bundle.planSummary, /Very Long Recovery/);
     assert.match(bundle.runningTip, /chatty, relaxed effort/);
   });
 

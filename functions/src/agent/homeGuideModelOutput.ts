@@ -111,7 +111,8 @@ export function renderHomeGuideBundle(input: HomeGuideRenderInput): HomeGuideBun
   const bundle = {
     planSummary: safeFinalMessage(
       renderPlanSummary(input.output.planSummaryText, input.planContext),
-      "Your plan is ready. Let's keep today comfy and doable.",
+      meaningfulPlanSummary(input.planContext),
+      5,
     ),
     runningTip: safeFinalMessage(
       renderRunningTip(input.output.runningTipText, input.planContext),
@@ -126,9 +127,25 @@ export function renderHomeGuideBundle(input: HomeGuideRenderInput): HomeGuideBun
 }
 
 function renderPlanSummary(text: string, planContext: HomeGuidePlanDisplayContext | undefined): string {
-  const safeText = isSafeModelText(text) ? text : "Your plan is ready.";
+  const safeText = isSafePlanSummaryText(text) ? text : "Your plan is ready.";
   if (planContext === undefined) return `Your plan is ready, superstar! ${safeText}`;
-  return `${compactText(planContext.workoutTitle, 21)} is ready. ${safeText}`;
+  const schedule = todayScheduleSummary(planContext);
+  return safeText === "Your plan is ready." ? schedule : `${schedule} ${safeText}`;
+}
+
+function meaningfulPlanSummary(planContext: HomeGuidePlanDisplayContext | undefined): string {
+  if (planContext === undefined) return "Your plan is ready. Keep the first few minutes easy.";
+  const title = titleCase(compactText(cleanSentenceFragment(planContext.workoutTitle), 32));
+  const intensity = cleanSentenceFragment(planContext.intensity).toLocaleLowerCase("en-SG");
+  const focus = cleanSentenceFragment(planContext.weekFocus);
+  return `${title} is ready for a ${planContext.durationMinutes} min ${intensity} session focused on ${focus}.`;
+}
+
+function todayScheduleSummary(planContext: HomeGuidePlanDisplayContext): string {
+  const title = titleCase(compactText(cleanSentenceFragment(planContext.workoutTitle), 32));
+  const intensity = cleanSentenceFragment(planContext.intensity).toLocaleLowerCase("en-SG");
+  const focus = cleanSentenceFragment(planContext.weekFocus);
+  return `Today's ${title} is a ${planContext.durationMinutes} min ${intensity} session for ${focus}.`;
 }
 
 function renderRunningTip(text: string, planContext: HomeGuidePlanDisplayContext | undefined): string {
@@ -222,12 +239,30 @@ function isSafeModelText(value: unknown): value is string {
     !UNSUPPLIED_CLAIM.test(value);
 }
 
-function isSafeFinalMessage(value: string): boolean {
-  return value.trim().length > 0 && codePointLength(value) <= 160 && sentenceCount(value) <= 2;
+function isSafePlanSummaryText(value: unknown): value is string {
+  return typeof value === "string" &&
+    value.trim().length > 0 &&
+    codePointLength(value) <= MAX_MODEL_TEXT_LENGTH &&
+    sentenceCount(value) <= 5 &&
+    !/[\r\n%\p{N}]/u.test(value) &&
+    !MARKDOWN.test(value) &&
+    !URL.test(value) &&
+    !MEDICAL_TERMS.test(value) &&
+    !COMPETITIVE_TERMS.test(value) &&
+    !INSTRUCTIONAL_TERMS.test(value) &&
+    !UNSUPPLIED_CLAIM.test(value);
 }
 
-function safeFinalMessage(value: string, fallback: string): string {
-  return isSafeFinalMessage(value) ? value : fallback;
+function isSafeFinalMessage(value: string): boolean {
+  return isSafeFinalMessageWithSentenceLimit(value, 2);
+}
+
+function isSafeFinalMessageWithSentenceLimit(value: string, sentenceLimit: number): boolean {
+  return value.trim().length > 0 && codePointLength(value) <= 160 && sentenceCount(value) <= sentenceLimit;
+}
+
+function safeFinalMessage(value: string, fallback: string, sentenceLimit: number = 2): string {
+  return isSafeFinalMessageWithSentenceLimit(value, sentenceLimit) ? value : fallback;
 }
 
 function sentenceCount(value: string): number {
@@ -242,6 +277,18 @@ function codePointLength(value: string): number {
 function compactText(value: string, maximumLength: number): string {
   const characters = Array.from(value);
   return characters.length <= maximumLength ? value : `${characters.slice(0, maximumLength - 3).join("")}...`;
+}
+
+function cleanSentenceFragment(value: string): string {
+  return value.replace(/[.!?]+/gu, " ").replace(/\s+/gu, " ").trim();
+}
+
+function titleCase(value: string): string {
+  return value
+    .split(" ")
+    .filter((word) => word.length > 0)
+    .map((word) => `${word.slice(0, 1).toLocaleUpperCase("en-SG")}${word.slice(1)}`)
+    .join(" ");
 }
 
 function isActionCode(value: unknown): value is HomeGuideActionCode {

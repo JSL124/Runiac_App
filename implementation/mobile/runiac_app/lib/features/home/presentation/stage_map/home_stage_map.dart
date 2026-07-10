@@ -15,6 +15,10 @@ const double _kMinimumStageStoneSize = 92;
 const double _kMaximumStageStoneSize = 108;
 const double _kStageStoneWidthFraction = 0.255;
 const double _kCharacterToStoneScale = 0.86;
+// Stage PNGs include transparent pixels beneath the visible plate. Pull the
+// weekday chip into that space so it reads as attached directly below the
+// rendered stage instead of floating in the path gap.
+const double _kStageDayLabelVisualOverlap = 16;
 
 /// The initial camera composition keeps the guide in the lower visual third,
 /// leaving room above for upcoming stages and the Home header.
@@ -544,9 +548,12 @@ class _HomeStageMapState extends State<HomeStageMap>
           children.add(
             Positioned(
               left: center.dx - labelWidth / 2,
-              top: center.dy + size / 2 - 2,
+              top: center.dy + size / 2 - _kStageDayLabelVisualOverlap,
               width: labelWidth,
               child: IgnorePointer(
+                key: ValueKey<String>(
+                  'homeStageDayLabel-${section.weekNumber}-$d',
+                ),
                 child: _StageDayLabel(
                   label: stone.dayLabel!,
                   dimmed: stone.state == HomeStageStoneState.future,
@@ -962,17 +969,21 @@ class _StageDayLabel extends StatelessWidget {
       child: Opacity(
         opacity: dimmed ? 0.55 : 1.0,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
           decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.32),
+            color: Colors.black.withValues(alpha: 0.56),
             borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.28),
+              width: 0.75,
+            ),
           ),
           child: Text(
             label.toUpperCase(),
             textAlign: TextAlign.center,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 10.5,
+              fontSize: 11,
               fontWeight: FontWeight.w800,
               height: 1,
               letterSpacing: 0.3,
