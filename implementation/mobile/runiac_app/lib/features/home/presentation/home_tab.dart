@@ -4,6 +4,8 @@ import '../../account/presentation/account_profile_screen.dart';
 import '../../account/domain/repositories/user_profile_persistence_repository.dart';
 import '../../account/domain/repositories/user_profile_repository.dart';
 import '../../auth/domain/runiac_auth_service.dart';
+import '../../leaderboard/data/static_leaderboard_repository.dart';
+import '../../leaderboard/domain/repositories/leaderboard_repository.dart';
 import '../../notifications/domain/repositories/notification_inbox_repository.dart';
 import '../../notifications/presentation/notification_inbox_page.dart';
 import '../../plan/domain/models/beginner_adaptive_plan_snapshot.dart';
@@ -32,6 +34,7 @@ class HomeTab extends StatefulWidget {
     this.notificationInboxRepository =
         const StaticNotificationInboxRepository(),
     this.userProgressRepository = const StaticUserProgressRepository(),
+    this.leaderboardRepository = const StaticLeaderboardRepository(),
     this.todayWorkoutDetailSnapshot,
     this.todayPlannedRunContext,
     this.generatedPlanProgress,
@@ -49,6 +52,7 @@ class HomeTab extends StatefulWidget {
   final GeneratedPlanPersistenceRepository generatedPlanPersistenceRepository;
   final NotificationInboxRepository notificationInboxRepository;
   final UserProgressRepository userProgressRepository;
+  final LeaderboardRepository leaderboardRepository;
   final WeeklyWorkoutDetailSnapshot? todayWorkoutDetailSnapshot;
   final PlannedRunContext? todayPlannedRunContext;
 
@@ -170,6 +174,7 @@ class _HomeTabState extends State<HomeTab> {
             generatedPlanPersistenceRepository:
                 widget.generatedPlanPersistenceRepository,
             userProgressRepository: widget.userProgressRepository,
+            leaderboardRepository: widget.leaderboardRepository,
             onNotificationSettingsChanged: widget.onNotificationSettingsChanged,
             onBack: () => Navigator.of(context).pop(),
           );

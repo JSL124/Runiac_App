@@ -176,6 +176,10 @@ void main() {
           nonStringFields: [
             'level',
             'levelProgressFraction',
+            'totalXp',
+            'nextLevelXp',
+            'xpToNextLevel',
+            'isMaxLevel',
             'officialStreakCount',
             'lastStreakRunDate',
           ],
@@ -326,6 +330,7 @@ void _expectReadModelContract(String source, _ReadModelContract contract) {
               trimmed == 'final int $field;' ||
               trimmed == 'final int? $field;' ||
               trimmed == 'final double $field;' ||
+              trimmed == 'final bool $field;' ||
               trimmed == 'final String? $field;',
         );
       }).toList();

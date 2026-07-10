@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/runiac_back_header.dart';
 import '../../auth/domain/runiac_auth_service.dart';
+import '../../leaderboard/data/static_leaderboard_repository.dart';
+import '../../leaderboard/domain/models/leaderboard_read_model.dart';
+import '../../leaderboard/domain/repositories/leaderboard_repository.dart';
 import '../../plan/domain/repositories/generated_plan_persistence_repository.dart';
 import '../../you/domain/models/user_progress_read_model.dart';
 import '../../you/domain/repositories/user_progress_repository.dart';
@@ -22,6 +25,7 @@ class AccountProfileScreen extends StatefulWidget {
     required this.generatedPlanPersistenceRepository,
     required this.onBack,
     this.userProgressRepository = const StaticUserProgressRepository(),
+    this.leaderboardRepository = const StaticLeaderboardRepository(),
     this.snapshot = accountProfileDemoSnapshot,
     this.onNotificationSettingsChanged,
     super.key,
@@ -32,6 +36,7 @@ class AccountProfileScreen extends StatefulWidget {
   final UserProfilePersistenceRepository profilePersistenceRepository;
   final GeneratedPlanPersistenceRepository generatedPlanPersistenceRepository;
   final UserProgressRepository userProgressRepository;
+  final LeaderboardRepository leaderboardRepository;
   final VoidCallback onBack;
   final AccountProfileDemoSnapshot snapshot;
   final VoidCallback? onNotificationSettingsChanged;
@@ -43,6 +48,7 @@ class AccountProfileScreen extends StatefulWidget {
 class _AccountProfileScreenState extends State<AccountProfileScreen> {
   late Future<UserProfileReadModel> _profileFuture;
   late Future<UserProgressReadModel> _progressFuture;
+  late Future<LeaderboardReadModel> _leaderboardFuture;
   bool _verificationSendPending = false;
   String? _verificationFeedbackMessage;
 
@@ -51,6 +57,7 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
     super.initState();
     _profileFuture = widget.profileRepository.loadUserProfile();
     _progressFuture = widget.userProgressRepository.loadUserProgress();
+    _leaderboardFuture = widget.leaderboardRepository.loadLeaderboard();
   }
 
   @override
@@ -61,6 +68,9 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
     }
     if (oldWidget.userProgressRepository != widget.userProgressRepository) {
       _progressFuture = widget.userProgressRepository.loadUserProgress();
+    }
+    if (oldWidget.leaderboardRepository != widget.leaderboardRepository) {
+      _leaderboardFuture = widget.leaderboardRepository.loadLeaderboard();
     }
   }
 
@@ -92,9 +102,15 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
                   return FutureBuilder<UserProgressReadModel>(
                     future: _progressFuture,
                     builder: (context, asyncProgress) {
-                      return _buildProfileBody(
-                        asyncProfile.data,
-                        asyncProgress.data,
+                      return FutureBuilder<LeaderboardReadModel>(
+                        future: _leaderboardFuture,
+                        builder: (context, asyncLeaderboard) {
+                          return _buildProfileBody(
+                            asyncProfile.data,
+                            asyncProgress.data,
+                            asyncLeaderboard.data,
+                          );
+                        },
                       );
                     },
                   );
@@ -110,8 +126,14 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
   Widget _buildProfileBody(
     UserProfileReadModel? profile,
     UserProgressReadModel? progress,
+    LeaderboardReadModel? leaderboard,
   ) {
-    final snapshot = _snapshotFromProfile(profile, progress, widget.snapshot);
+    final snapshot = _snapshotFromProfile(
+      profile,
+      progress,
+      leaderboard,
+      widget.snapshot,
+    );
     final currentUser = widget.authRepository.currentUser;
     final showVerificationPrompt =
         currentUser != null &&
@@ -137,6 +159,8 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
               const SizedBox(height: 14),
             ],
             AccountIdentityCard(snapshot: snapshot),
+            const SizedBox(height: 14),
+            AccountLevelUpGauge(snapshot: snapshot),
             if (snapshot.previewNote.isNotEmpty) ...[
               const SizedBox(height: 14),
               AccountPreviewNote(message: snapshot.previewNote),
@@ -244,10 +268,11 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
   AccountProfileDemoSnapshot _snapshotFromProfile(
     UserProfileReadModel? profile,
     UserProgressReadModel? progress,
+    LeaderboardReadModel? leaderboard,
     AccountProfileDemoSnapshot fallback,
   ) {
     if (profile == null) {
-      return _snapshotWithProgress(fallback, progress);
+      return _snapshotWithProgress(fallback, progress, leaderboard);
     }
     return AccountProfileDemoSnapshot(
       displayName: profile.nickname.isEmpty
@@ -255,12 +280,17 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
           : profile.nickname,
       avatarInitials: profile.avatarInitials,
       regionLabel: profile.locationLabel,
+      divisionKey: _accountDivisionKey(leaderboard),
+      divisionLabel: _accountDivisionLabel(leaderboard),
       previewLevelBadge:
           progress?.levelBadgeLabel ??
           (profile.previewLevelBadge.isEmpty
               ? fallback.previewLevelBadge
               : profile.previewLevelBadge),
       levelProgressFraction: progress?.levelProgressFraction ?? 0,
+      nextLevelBadge: _nextLevelBadge(progress),
+      levelUpCaption: _levelUpCaption(progress),
+      levelXpSummary: _levelXpSummary(progress),
       previewNote: profile.previewNote,
       setupSectionLabel: profile.setupSectionLabel.isEmpty
           ? fallback.setupSectionLabel
@@ -287,14 +317,20 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
   AccountProfileDemoSnapshot _snapshotWithProgress(
     AccountProfileDemoSnapshot fallback,
     UserProgressReadModel? progress,
+    LeaderboardReadModel? leaderboard,
   ) {
     return AccountProfileDemoSnapshot(
       displayName: fallback.displayName,
       avatarInitials: fallback.avatarInitials,
       regionLabel: fallback.regionLabel,
+      divisionKey: _accountDivisionKey(leaderboard),
+      divisionLabel: _accountDivisionLabel(leaderboard),
       previewLevelBadge:
           progress?.levelBadgeLabel ?? fallback.previewLevelBadge,
       levelProgressFraction: progress?.levelProgressFraction ?? 0,
+      nextLevelBadge: _nextLevelBadge(progress),
+      levelUpCaption: _levelUpCaption(progress),
+      levelXpSummary: _levelXpSummary(progress),
       previewNote: fallback.previewNote,
       setupSectionLabel: fallback.setupSectionLabel,
       manageSectionLabel: fallback.manageSectionLabel,
@@ -302,6 +338,74 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
       setupItems: fallback.setupItems,
       manageRows: fallback.manageRows,
     );
+  }
+
+  String _nextLevelBadge(UserProgressReadModel? progress) {
+    if (progress == null || progress.isMaxLevel) {
+      return '';
+    }
+    return 'Lv.${progress.level + 1}';
+  }
+
+  // Displays the backend-owned XP-to-next-level value only; the client never
+  // derives it from other XP fields.
+  String _levelUpCaption(UserProgressReadModel? progress) {
+    if (progress == null) {
+      return '';
+    }
+    if (progress.isMaxLevel) {
+      return 'Max level reached';
+    }
+    final xpToNextLevel = progress.xpToNextLevel;
+    if (xpToNextLevel == null) {
+      return '';
+    }
+    return '${_formatThousands(xpToNextLevel)} XP to level up';
+  }
+
+  // Joins the backend-owned lifetime XP total and next-level XP target;
+  // the client never derives either value.
+  String _levelXpSummary(UserProgressReadModel? progress) {
+    final totalXp = progress?.totalXp;
+    if (progress == null || totalXp == null) {
+      return '';
+    }
+    if (progress.isMaxLevel) {
+      return '${_formatThousands(totalXp)} XP';
+    }
+    final nextLevelXp = progress.nextLevelXp;
+    if (nextLevelXp == null) {
+      return '';
+    }
+    return '${_formatThousands(totalXp)} / ${_formatThousands(nextLevelXp)} XP';
+  }
+
+  static String _formatThousands(int value) {
+    final digits = value.abs().toString();
+    final buffer = StringBuffer();
+    for (var index = 0; index < digits.length; index += 1) {
+      if (index != 0 && (digits.length - index) % 3 == 0) {
+        buffer.write(',');
+      }
+      buffer.write(digits[index]);
+    }
+    return '${value < 0 ? '-' : ''}$buffer';
+  }
+
+  String _accountDivisionKey(LeaderboardReadModel? leaderboard) {
+    if (leaderboard == null ||
+        leaderboard.status == LeaderboardReadStatus.unranked) {
+      return '';
+    }
+    return leaderboard.divisionKey;
+  }
+
+  String _accountDivisionLabel(LeaderboardReadModel? leaderboard) {
+    if (leaderboard == null ||
+        leaderboard.status == LeaderboardReadStatus.unranked) {
+      return 'Unranked';
+    }
+    return leaderboard.divisionLabel;
   }
 
   AccountProfileInfoItem _setupItemFromProfileItem(

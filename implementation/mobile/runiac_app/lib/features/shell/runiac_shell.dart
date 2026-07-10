@@ -330,6 +330,7 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
             widget.generatedPlanPersistenceRepository,
         notificationInboxRepository: widget.notificationInboxRepository,
         userProgressRepository: widget.userProgressRepository,
+        leaderboardRepository: widget.leaderboardRepository,
         todayWorkoutDetailSnapshot: todayWorkoutDetail,
         todayPlannedRunContext: todayPlannedRunContext,
         generatedPlanProgress: generatedPlanProgress,

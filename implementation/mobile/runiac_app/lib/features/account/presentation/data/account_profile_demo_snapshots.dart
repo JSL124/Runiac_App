@@ -8,6 +8,8 @@ const accountProfileDemoSnapshot = AccountProfileDemoSnapshot(
   displayName: 'Runiac Runner',
   avatarInitials: 'RR',
   regionLabel: 'Jurong East, Singapore',
+  divisionKey: '',
+  divisionLabel: 'Unranked',
   // Fallback display only. Real level/progression values come from the
   // backend-owned user progress read path.
   previewLevelBadge: 'Lv.0',
@@ -92,14 +94,33 @@ class AccountProfileDemoSnapshot {
     required this.footerCaption,
     required this.setupItems,
     required this.manageRows,
+    this.divisionKey = '',
+    this.divisionLabel = 'Unranked',
     this.levelProgressFraction = 0,
+    this.nextLevelBadge = '',
+    this.levelUpCaption = '',
+    this.levelXpSummary = '',
   });
 
   final String displayName;
   final String avatarInitials;
   final String regionLabel;
+  final String divisionKey;
+  final String divisionLabel;
   final String previewLevelBadge;
   final double levelProgressFraction;
+
+  /// Backend-provided next level badge (e.g. 'Lv.4'); empty when unknown or
+  /// at max level.
+  final String nextLevelBadge;
+
+  /// Backend-provided XP-to-level-up caption (e.g. '320 XP to level up');
+  /// empty when the backend has not published progression data yet.
+  final String levelUpCaption;
+
+  /// Backend-provided current/target XP summary (e.g. '520 / 600 XP');
+  /// empty when the backend has not published both values yet.
+  final String levelXpSummary;
   final String previewNote;
   final String setupSectionLabel;
   final String manageSectionLabel;

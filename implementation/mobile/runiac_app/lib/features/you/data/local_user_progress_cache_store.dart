@@ -24,6 +24,10 @@ class LocalUserProgressCacheEntry {
         'officialStreakLabel': progress.officialStreakLabel,
         'level': progress.level,
         'levelProgressFraction': progress.levelProgressFraction,
+        'totalXp': progress.totalXp,
+        'nextLevelXp': progress.nextLevelXp,
+        'xpToNextLevel': progress.xpToNextLevel,
+        'isMaxLevel': progress.isMaxLevel,
         'levelLabel': progress.levelLabel,
         'totalXpLabel': progress.totalXpLabel,
         'weeklyXpLabel': progress.weeklyXpLabel,
@@ -64,6 +68,10 @@ class LocalUserProgressCacheEntry {
           levelProgressFraction: _progressFraction(
             progress['levelProgressFraction'],
           ),
+          totalXp: _nonNegativeIntegerOrNull(progress['totalXp']),
+          nextLevelXp: _nonNegativeIntegerOrNull(progress['nextLevelXp']),
+          xpToNextLevel: _nonNegativeIntegerOrNull(progress['xpToNextLevel']),
+          isMaxLevel: progress['isMaxLevel'] == true,
           levelLabel: _string(progress['levelLabel']),
           totalXpLabel: _string(progress['totalXpLabel']),
           weeklyXpLabel: _string(progress['weeklyXpLabel']),
@@ -95,6 +103,10 @@ class LocalUserProgressCacheEntry {
 
   static int _nonNegativeInteger(Object? value) {
     return value is int && value >= 0 ? value : 0;
+  }
+
+  static int? _nonNegativeIntegerOrNull(Object? value) {
+    return value is int && value >= 0 ? value : null;
   }
 
   static double _progressFraction(Object? value) {

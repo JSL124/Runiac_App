@@ -456,6 +456,9 @@ void main() {
           'level',
           'levelLabel',
           'levelProgressPercent',
+          'totalXp',
+          'nextLevelXp',
+          'xpToNextLevel',
           'totalXpLabel',
           'monthlyXpLabel',
         };

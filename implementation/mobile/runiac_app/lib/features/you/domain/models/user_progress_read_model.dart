@@ -14,6 +14,10 @@ class UserProgressReadModel {
     required this.goalProgressLabel,
     this.level = 0,
     this.levelProgressFraction = 0,
+    this.totalXp,
+    this.nextLevelXp,
+    this.xpToNextLevel,
+    this.isMaxLevel = false,
     this.officialStreakCount,
     this.lastStreakRunDate,
   });
@@ -28,6 +32,21 @@ class UserProgressReadModel {
   final String goalProgressLabel;
   final int level;
   final double levelProgressFraction;
+
+  /// Backend-computed lifetime XP total, displayed as-is.
+  /// `null` when the backend has not published the value for this user yet.
+  final int? totalXp;
+
+  /// Backend-computed total XP threshold that unlocks the next level,
+  /// displayed as-is. `null` when unpublished or at max level.
+  final int? nextLevelXp;
+
+  /// Backend-computed XP remaining before the next level, displayed as-is.
+  /// `null` when the backend has not published the value for this user yet.
+  final int? xpToNextLevel;
+
+  /// True only when the backend explicitly reported the max level was reached.
+  final bool isMaxLevel;
   final int? officialStreakCount;
   final String? lastStreakRunDate;
 

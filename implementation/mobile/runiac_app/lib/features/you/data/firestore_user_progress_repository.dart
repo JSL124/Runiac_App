@@ -119,6 +119,11 @@ class FirestoreUserProgressRepository implements UserProgressRepository {
       lastStreakRunDate: _stringOrNull(data['lastStreakRunDate']),
       level: _nonNegativeInteger(data['level']),
       levelProgressFraction: _progressFraction(data['levelProgressPercent']),
+      totalXp: _nonNegativeIntegerOrNull(data['totalXp']),
+      nextLevelXp: _nonNegativeIntegerOrNull(data['nextLevelXp']),
+      xpToNextLevel: _nonNegativeIntegerOrNull(data['xpToNextLevel']),
+      isMaxLevel:
+          data.containsKey('xpToNextLevel') && data['xpToNextLevel'] == null,
       levelLabel: _string(data['levelLabel']),
       totalXpLabel: _string(data['totalXpLabel']),
       monthlyXpLabel: _string(data['monthlyXpLabel']),
@@ -167,6 +172,10 @@ class FirestoreUserProgressRepository implements UserProgressRepository {
 
   int _nonNegativeInteger(Object? value) {
     return value is int && value >= 0 ? value : 0;
+  }
+
+  int? _nonNegativeIntegerOrNull(Object? value) {
+    return value is int && value >= 0 ? value : null;
   }
 
   double _progressFraction(Object? value) {
