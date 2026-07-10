@@ -47,8 +47,16 @@ class ShareRankFloatingPanel extends StatelessWidget {
       title: 'Share your rank',
       preview: LayoutBuilder(
         builder: (context, constraints) {
+          // Cap the card width by the available preview height too, so the
+          // fixed-aspect card plus page indicator always fit without a bottom
+          // overflow on shorter screens.
+          const cardAspectRatio = 1122 / 1402;
+          const belowCardExtent = 24.0 + 8.0 + 7.0;
+          final availableCardHeight = (constraints.maxHeight - belowCardExtent)
+              .clamp(0.0, double.infinity);
           final cardWidth = (MediaQuery.sizeOf(context).width * 0.88)
               .clamp(0.0, constraints.maxWidth)
+              .clamp(0.0, availableCardHeight * cardAspectRatio)
               .toDouble();
 
           return SizedBox(
@@ -259,31 +267,34 @@ class _ShareRankNumber extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final rankNumber = rankLabel.startsWith('#')
-        ? rankLabel.substring(1)
-        : rankLabel;
+    // Numeric ranks arrive as '#18'; a rank-less runner arrives as the plain
+    // backend summary word (e.g. 'Unranked'), which reads wrong with the
+    // decorative '#' glyph in front of it.
+    final hasRankNumber = rankLabel.startsWith('#');
+    final rankNumber = hasRankNumber ? rankLabel.substring(1) : rankLabel;
 
     return Row(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.baseline,
       textBaseline: TextBaseline.alphabetic,
       children: [
-        const Text(
-          '#',
-          style: TextStyle(
-            color: RuniacColors.accentOrange,
-            fontSize: 122,
-            fontWeight: FontWeight.w900,
-            height: 0.94,
-            shadows: [
-              Shadow(
-                color: Color(0xAA000000),
-                blurRadius: 16,
-                offset: Offset(0, 3),
-              ),
-            ],
+        if (hasRankNumber)
+          const Text(
+            '#',
+            style: TextStyle(
+              color: RuniacColors.accentOrange,
+              fontSize: 122,
+              fontWeight: FontWeight.w900,
+              height: 0.94,
+              shadows: [
+                Shadow(
+                  color: Color(0xAA000000),
+                  blurRadius: 16,
+                  offset: Offset(0, 3),
+                ),
+              ],
+            ),
           ),
-        ),
         Text(
           rankNumber,
           style: const TextStyle(

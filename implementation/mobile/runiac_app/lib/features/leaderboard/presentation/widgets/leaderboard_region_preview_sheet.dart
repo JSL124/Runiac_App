@@ -2,10 +2,18 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/runiac_colors.dart';
 import '../../../../core/widgets/runiac_bottom_sheet_handle.dart';
-import '../data/leaderboard_demo_snapshots.dart';
+import '../../domain/models/leaderboard_read_model.dart';
+import '../leaderboard_status_copy.dart';
 import '../models/leaderboard_display_models.dart';
+import 'leaderboard_empty_state.dart';
 import 'leaderboard_rank_row_helpers.dart';
 import 'leaderboard_visual_cta.dart';
+
+// Display-only sheet copy. These labels never encode backend-owned rank, XP,
+// or score values; the numeric values still come from the read model.
+const String _rankPreviewTitle = 'My Rank Preview';
+const String _primaryActionLabel = 'View More Ranking';
+const String _secondaryActionLabel = 'Share My Rank';
 
 class LeaderboardRegionPreviewSheet extends StatelessWidget {
   const LeaderboardRegionPreviewSheet({
@@ -29,6 +37,15 @@ class LeaderboardRegionPreviewSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final currentUserRow = snapshot.nearbyRanks
+        .where((row) => row.isCurrentUser)
+        .firstOrNull;
+    final hasMyRank = snapshot.hasCurrentUserRank && currentUserRow != null;
+    final showMyRankSection =
+        snapshot.isUserRegion &&
+        (snapshot.status == LeaderboardReadStatus.data ||
+            snapshot.status == LeaderboardReadStatus.unranked);
+
     return GestureDetector(
       key: const Key('leaderboard_sheet_surface'),
       behavior: HitTestBehavior.opaque,
@@ -79,10 +96,11 @@ class LeaderboardRegionPreviewSheet extends StatelessWidget {
                   snapshot: snapshot,
                   onProfileSelected: onProfileSelected,
                 ),
-                if (snapshot.isUserRegion) ...[
+                if (showMyRankSection) ...[
                   const SizedBox(height: 12),
                   _MyRankPreviewCard(
                     snapshot: snapshot,
+                    currentUserRow: hasMyRank ? currentUserRow : null,
                     onProfileSelected: onProfileSelected,
                   ),
                 ],
@@ -170,24 +188,29 @@ class _RegionPreviewList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    switch (snapshot.status) {
+      case LeaderboardReadStatus.updating:
+        return const _RegionPreviewMessageCard(
+          message: leaderboardUpdatingBody,
+        );
+      case LeaderboardReadStatus.ineligiblePremium:
+        return const _RegionPreviewMessageCard(
+          message: leaderboardIneligibleBody,
+        );
+      case LeaderboardReadStatus.data:
+      // Unranked keeps the real board visible; the My Rank Preview section
+      // below carries the encouragement copy instead of hiding the rows.
+      case LeaderboardReadStatus.unranked:
+      case LeaderboardReadStatus.empty:
+      case LeaderboardReadStatus.regionRequired:
+        break;
+    }
+
     if (snapshot.topRanks.isEmpty) {
-      return const DecoratedBox(
-        decoration: BoxDecoration(
-          color: RuniacColors.white,
-          borderRadius: BorderRadius.all(Radius.circular(20)),
-          border: Border.fromBorderSide(BorderSide(color: Color(0xFFDDE3F8))),
-        ),
-        child: Padding(
-          padding: EdgeInsets.all(18),
-          child: Text(
-            'No ranked runners yet.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: RuniacColors.textSecondary,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ),
+      return LeaderboardEmptyState(
+        compact: true,
+        title: leaderboardEmptyStateTitle,
+        body: leaderboardEmptyStateBody(snapshot.regionName),
       );
     }
     return Column(
@@ -413,23 +436,26 @@ class _RegionPreviewRankBadge extends StatelessWidget {
 class _MyRankPreviewCard extends StatelessWidget {
   const _MyRankPreviewCard({
     required this.snapshot,
+    required this.currentUserRow,
     required this.onProfileSelected,
   });
 
   final LeaderboardDetailDisplaySnapshot snapshot;
+
+  // Backend-provided current-user row, or null when the runner has no rank.
+  // Presence check only — no rank or score is computed on the client.
+  final LeaderboardRankRowDisplaySnapshot? currentUserRow;
   final ValueChanged<RunnerAchievementProfileSnapshot> onProfileSelected;
 
   @override
   Widget build(BuildContext context) {
-    final currentUserRow = snapshot.nearbyRanks.firstWhere(
-      (row) => row.isCurrentUser,
-    );
+    final row = currentUserRow;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          leaderboardRegionDemoSnapshot.rankPreviewTitle,
+          _rankPreviewTitle,
           style: const TextStyle(
             color: RuniacColors.textPrimary,
             fontSize: 14,
@@ -437,13 +463,48 @@ class _MyRankPreviewCard extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 7),
-        _RegionPreviewRankCard(
-          rows: [currentUserRow],
-          onProfileSelected: onProfileSelected,
-          keyPrefix: 'leaderboard_region_my_rank_row',
-          useDetailRowSizing: true,
-        ),
+        if (row == null)
+          const _RegionPreviewMessageCard(
+            key: Key('leaderboard_region_my_rank_encouragement'),
+            message: leaderboardUnrankedBody,
+          )
+        else
+          _RegionPreviewRankCard(
+            rows: [row],
+            onProfileSelected: onProfileSelected,
+            keyPrefix: 'leaderboard_region_my_rank_row',
+            useDetailRowSizing: true,
+          ),
       ],
+    );
+  }
+}
+
+class _RegionPreviewMessageCard extends StatelessWidget {
+  const _RegionPreviewMessageCard({super.key, required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: RuniacColors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFDDE3F8)),
+      ),
+      child: Text(
+        message,
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          color: RuniacColors.textSecondary,
+          fontSize: 13,
+          height: 1.35,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
     );
   }
 }
@@ -467,7 +528,7 @@ class _RegionPreviewActions extends StatelessWidget {
           flex: showShareMyRank ? 1 : 2,
           child: LeaderboardVisualCta(
             key: const Key('leaderboard_view_more_ranking_button'),
-            label: leaderboardRegionDemoSnapshot.primaryActionLabel,
+            label: _primaryActionLabel,
             filled: true,
             onTap: onViewMoreRanking,
           ),
@@ -477,7 +538,7 @@ class _RegionPreviewActions extends StatelessWidget {
           Expanded(
             child: LeaderboardVisualCta(
               key: const Key('leaderboard_share_my_rank_button'),
-              label: leaderboardRegionDemoSnapshot.secondaryActionLabel,
+              label: _secondaryActionLabel,
               filled: false,
               onTap: onShareMyRank,
             ),

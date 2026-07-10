@@ -1,5 +1,7 @@
 import 'package:flutter/widgets.dart';
 
+import '../../domain/models/leaderboard_read_model.dart';
+
 // Presentation-only display models for static leaderboard UI.
 // Backend-owned values are read-only labels here, not client calculations.
 class LeaderboardPreviewSnapshot {
@@ -70,6 +72,8 @@ class LeaderboardDetailDisplaySnapshot {
     required this.currentUser,
     required this.topRanks,
     required this.nearbyRanks,
+    this.status = LeaderboardReadStatus.data,
+    this.hasCurrentUserRank = true,
   });
 
   final String regionId;
@@ -86,6 +90,15 @@ class LeaderboardDetailDisplaySnapshot {
   final CurrentUserRankSummaryDisplaySnapshot currentUser;
   final List<LeaderboardRankRowDisplaySnapshot> topRanks;
   final List<LeaderboardRankRowDisplaySnapshot> nearbyRanks;
+
+  // Backend-owned read status. Display-only; the client renders empty,
+  // unranked, updating, and ineligible states from this signal without
+  // computing any rank or score.
+  final LeaderboardReadStatus status;
+
+  // True when the backend reported a rank for the current user. Detected
+  // from presence in the read model, never computed on the client.
+  final bool hasCurrentUserRank;
 }
 
 class LeaderboardMapRegionDisplaySnapshot {

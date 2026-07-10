@@ -317,23 +317,27 @@ void main() {
 
     expect(find.text('Tips'), findsOneWidget);
     expect(find.text('Leagues'), findsOneWidget);
-    expect(find.text('Board timing'), findsOneWidget);
-    expect(find.text('Static sample data'), findsOneWidget);
+    expect(find.text('Monthly refresh'), findsOneWidget);
+    expect(find.text('Getting ranked'), findsOneWidget);
+    expect(find.text('Static sample data'), findsNothing);
     expect(
       find.text(
-        'Leagues group runners by broad progress bands so the board feels fair and beginner-friendly.',
+        'Leagues group runners into broad progress bands so every board stays '
+        'fair and beginner-friendly.',
       ),
       findsOneWidget,
     );
     expect(
       find.text(
-        'This static preview keeps one monthly board context for a calmer comparison.',
+        'Rankings refresh every month. Your monthly XP resets at the start of a '
+        'new month, while your level stays the same.',
       ),
       findsOneWidget,
     );
     expect(
       find.text(
-        'Leaderboard values shown here are display-only sample rows for this UI milestone.',
+        'Finish a run in your planning area this month to appear on its '
+        'leaderboard.',
       ),
       findsOneWidget,
     );
@@ -668,16 +672,31 @@ void main() {
 
       expect(find.byTooltip('Back to Leaderboard'), findsOneWidget);
       expect(find.text('Tampines'), findsOneWidget);
-      expect(find.text('July 2026'), findsOneWidget);
-      expect(find.textContaining('Refreshes in'), findsOneWidget);
+      expect(find.text('Monthly — July 2026'), findsOneWidget);
       expect(
-        find.text(
-          'Monthly gained XP resets to 0 XP next month. Your level stays the same.',
-        ),
+        find.byKey(const ValueKey('leaderboard_podium_rank_1')),
         findsOneWidget,
       );
+      expect(
+        find.byKey(const ValueKey('leaderboard_podium_rank_2')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('leaderboard_podium_rank_3')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const Key('leaderboard_podium_crown')), findsOneWidget);
+      // Non-user region keeps the restored regional ranking card below the
+      // podium but never shows the personal nearby-rank section.
+      expect(find.text('Regional ranking'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('leaderboard_detail_top_rank_row_0')),
+        findsOneWidget,
+      );
+      expect(find.text('RANKS NEAR YOU'), findsNothing);
+      expect(find.text('Ranks near you'), findsNothing);
+      expect(find.text('Top runners'), findsNothing);
       expect(find.text('You · Monthly ranking preview'), findsNothing);
-      expect(find.text('NEARBY YOUR RANK'), findsNothing);
     },
   );
 
@@ -818,6 +837,34 @@ void main() {
     expect(find.byKey(const Key('leaderboard_share_rank_panel')), findsNothing);
   });
 
+  testWidgets('Share rank card fits shorter screens without overflow', (
+    WidgetTester tester,
+  ) async {
+    tester.view
+      ..physicalSize = const Size(390, 700)
+      ..devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      const RuniacApp(showSplash: false, enableForegroundGps: false),
+    );
+
+    await tester.tap(find.byTooltip('Leaderboard'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('leaderboard_share_my_rank_button')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('leaderboard_share_rank_panel')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('leaderboard_share_rank_card_background')),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('View More Ranking opens static monthly detail board', (
     WidgetTester tester,
   ) async {
@@ -836,51 +883,28 @@ void main() {
     expect(find.byIcon(Icons.chevron_left_rounded), findsOneWidget);
     expect(find.byIcon(Icons.arrow_back), findsNothing);
     expect(find.text('Jurong East'), findsOneWidget);
-    expect(find.text('July 2026'), findsOneWidget);
+    expect(find.text('Monthly — July 2026'), findsOneWidget);
     expect(find.text('Monthly board'), findsNothing);
-    expect(find.text('Refreshes in 24:14:05:45'), findsOneWidget);
-    expect(find.text('Refreshes in 12 days'), findsNothing);
-    expect(find.text('Refreshes in 24D : 14H : 05M : 45S'), findsNothing);
-    expect(find.text('24:14:05:45'), findsNothing);
-    expect(find.text('Bronze'), findsOneWidget);
     expect(find.text('Weekly XP'), findsNothing);
     expect(find.text('Monthly XP'), findsNothing);
+    // The routed ranking page keeps the podium on top and restores the
+    // original "Regional ranking" list card plus the nearby-rank divider.
     expect(find.text('Regional ranking'), findsOneWidget);
-    expect(find.text('NEARBY YOUR RANK'), findsOneWidget);
+    expect(find.text('RANKS NEAR YOU'), findsOneWidget);
+
     expect(
-      find.byKey(const ValueKey('leaderboard_detail_header_accent_strip')),
+      find.byKey(const ValueKey('leaderboard_podium_rank_1')),
       findsOneWidget,
     );
     expect(
-      tester
-          .getSize(
-            find.byKey(
-              const ValueKey('leaderboard_detail_header_accent_strip'),
-            ),
-          )
-          .width,
-      greaterThan(650),
+      find.byKey(const ValueKey('leaderboard_podium_rank_2')),
+      findsOneWidget,
     );
-
-    for (var index = 0; index < 10; index++) {
-      expect(
-        find.byKey(ValueKey('leaderboard_detail_top_rank_row_$index')),
-        findsOneWidget,
-      );
-    }
     expect(
-      find.byKey(const ValueKey('leaderboard_detail_top_rank_row_10')),
-      findsNothing,
+      find.byKey(const ValueKey('leaderboard_podium_rank_3')),
+      findsOneWidget,
     );
-    for (var index = 0; index < 3; index++) {
-      expect(
-        find.descendant(
-          of: find.byKey(ValueKey('leaderboard_detail_top_rank_row_$index')),
-          matching: find.byIcon(Icons.emoji_events_outlined),
-        ),
-        findsOneWidget,
-      );
-    }
+    expect(find.byKey(const Key('leaderboard_podium_crown')), findsOneWidget);
     expect(find.text('#2'), findsNothing);
     expect(find.text('#3'), findsNothing);
 
@@ -890,7 +914,14 @@ void main() {
         findsOneWidget,
       );
     }
-    expect(find.text('Alex T.'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('leaderboard_detail_nearby_rank_row_5')),
+      findsNothing,
+    );
+    // Alex T. leads the podium AND opens the regional ranking card; the full
+    // top list (including Grace at #10) is restored below the podium, and the
+    // current runner (#18) appears in the nearby list.
+    expect(find.text('Alex T.'), findsNWidgets(2));
     expect(find.text('Grace L.'), findsOneWidget);
     expect(find.text('Daniel W.'), findsOneWidget);
     expect(find.text('Jinseo (You)'), findsOneWidget);
@@ -907,11 +938,12 @@ void main() {
     expect(find.text('You · Monthly ranking preview'), findsNothing);
     expect(find.textContaining('to reach'), findsNothing);
     expect(find.textContaining('progress'), findsNothing);
-    expect(find.byTooltip('Home'), findsOneWidget);
-    expect(find.byTooltip('Feed'), findsOneWidget);
-    expect(find.byTooltip('Run'), findsOneWidget);
-    expect(find.byTooltip('Leaderboard'), findsOneWidget);
-    expect(find.byTooltip('You'), findsOneWidget);
+    // The routed page covers the shell, so the bottom navigation is hidden.
+    expect(find.byTooltip('Home'), findsNothing);
+    expect(find.byTooltip('Feed'), findsNothing);
+    expect(find.byTooltip('Run'), findsNothing);
+    expect(find.byTooltip('Leaderboard'), findsNothing);
+    expect(find.byTooltip('You'), findsNothing);
 
     await tester.tap(find.byTooltip('Back to Leaderboard'));
     await tester.pumpAndSettle();
@@ -935,9 +967,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(
-      find.byKey(const ValueKey('leaderboard_detail_top_rank_row_0')),
-    );
+    await tester.tap(find.byKey(const ValueKey('leaderboard_podium_avatar_1')));
     await tester.pumpAndSettle();
 
     expect(find.text('Runner profile'), findsOneWidget);
@@ -976,7 +1006,7 @@ void main() {
     await tester.tap(find.byTooltip('Back to Rankings'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Regional ranking'), findsOneWidget);
+    expect(find.text('RANKS NEAR YOU'), findsOneWidget);
 
     final nearbyRow = find.byKey(
       const ValueKey('leaderboard_detail_nearby_rank_row_1'),
@@ -1006,13 +1036,14 @@ void main() {
     expect(find.text('Jinseo (You)'), findsOneWidget);
     expect(find.text('Jurong East · Rank #18'), findsOneWidget);
     expect(find.text('520 XP'), findsNothing);
-    expect(find.byTooltip('You'), findsOneWidget);
+    // Pushed profile route covers the shell bottom navigation.
+    expect(find.byTooltip('You'), findsNothing);
 
     await tester.tap(find.byTooltip('Back to Rankings'));
     await tester.pumpAndSettle();
 
     expect(find.text('Runner profile'), findsNothing);
-    expect(find.text('Regional ranking'), findsOneWidget);
+    expect(find.text('RANKS NEAR YOU'), findsOneWidget);
   });
 
   test('Leaderboard source isolates static display snapshots', () {

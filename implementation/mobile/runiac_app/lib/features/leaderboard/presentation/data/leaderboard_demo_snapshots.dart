@@ -38,14 +38,17 @@ const leaderboardRunnerAchievementDemoBadges = [
 const leaderboardPreviewDemoSnapshot = LeaderboardPreviewSnapshot(
   tipsTitle: 'Tips',
   leaguesTipTitle: 'Leagues',
-  cadenceTipTitle: 'Board timing',
-  readinessTipTitle: 'Static sample data',
+  cadenceTipTitle: 'Monthly refresh',
+  readinessTipTitle: 'Getting ranked',
   leaguesTipBody:
-      'Leagues group runners by broad progress bands so the board feels fair and beginner-friendly.',
+      'Leagues group runners into broad progress bands so every board stays '
+      'fair and beginner-friendly.',
   cadenceTipBody:
-      'This static preview keeps one monthly board context for a calmer comparison.',
+      'Rankings refresh every month. Your monthly XP resets at the start of a '
+      'new month, while your level stays the same.',
   readinessTipBody:
-      'Leaderboard values shown here are display-only sample rows for this UI milestone.',
+      'Finish a run in your planning area this month to appear on its '
+      'leaderboard.',
 );
 
 const leaderboardLeagueDemoSnapshot = LeaderboardLeagueSnapshot(

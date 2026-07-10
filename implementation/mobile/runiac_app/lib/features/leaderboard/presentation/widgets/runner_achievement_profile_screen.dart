@@ -16,9 +16,12 @@ class RunnerAchievementProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ColoredBox(
-      color: RuniacColors.background,
-      child: SafeArea(
+    // Scaffold (not a bare ColoredBox) so this screen keeps a Material
+    // ancestor when pushed as its own route; without one, every Text renders
+    // with debug yellow underlines.
+    return Scaffold(
+      backgroundColor: RuniacColors.background,
+      body: SafeArea(
         bottom: false,
         child: Column(
           children: [

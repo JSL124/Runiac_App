@@ -6,10 +6,11 @@ LeaderboardDetailDisplaySnapshot leaderboardDisplaySnapshotFromReadModel(
   DateTime now,
 ) {
   final topRows = [
-    for (final entry in model.entries)
+    for (final (index, entry) in model.entries.indexed)
       leaderboardRankRowDisplaySnapshotFromReadModel(
         entry,
         regionLabel: model.regionLabel,
+        ordinal: index,
       ),
   ];
   final nearbyRows = [
@@ -26,7 +27,10 @@ LeaderboardDetailDisplaySnapshot leaderboardDisplaySnapshotFromReadModel(
   return LeaderboardDetailDisplaySnapshot(
     regionId: model.regionId,
     regionName: model.regionLabel.isEmpty ? 'Leaderboard' : model.regionLabel,
-    isUserRegion: model.isHomeRegion && hasCurrentRank,
+    // Home-region treatment is independent of whether the runner already has
+    // a rank: an unranked runner still sees their own board with
+    // encouragement instead of the visitor layout.
+    isUserRegion: model.isHomeRegion,
     periodLabel: model.periodLabel ?? '',
     fallbackPeriodLabel: 'Monthly leaderboard',
     refreshLabel: model.refreshLabel?.trim().isNotEmpty == true
@@ -37,7 +41,7 @@ LeaderboardDetailDisplaySnapshot leaderboardDisplaySnapshotFromReadModel(
         'Monthly gained XP resets to 0 XP next month. Your level stays the same.',
     divisionLabel: model.divisionLabel,
     topRanksTitle: 'Regional ranking',
-    nearbyRanksTitle: 'NEARBY YOUR RANK',
+    nearbyRanksTitle: 'Ranks near you',
     currentUser: CurrentUserRankSummaryDisplaySnapshot(
       rankLabel: hasCurrentRank ? model.currentRunnerRankLabel : 'Unranked',
       title: 'My monthly rank',
@@ -45,6 +49,8 @@ LeaderboardDetailDisplaySnapshot leaderboardDisplaySnapshotFromReadModel(
     ),
     topRanks: topRows,
     nearbyRanks: nearbyRows,
+    status: model.status,
+    hasCurrentUserRank: hasCurrentRank,
   );
 }
 
@@ -68,6 +74,7 @@ LeaderboardRankRowDisplaySnapshot
 leaderboardRankRowDisplaySnapshotFromReadModel(
   LeaderboardRowReadModel entry, {
   required String regionLabel,
+  int? ordinal,
 }) {
   final displayName = entry.displayName.trim().isEmpty
       ? 'Runiac Runner'
@@ -81,8 +88,8 @@ leaderboardRankRowDisplaySnapshotFromReadModel(
     levelLabel: levelLabel,
     levelBadgeLabel: _levelBadgeLabel(levelLabel),
     xpLabel: entry.scoreLabel.trim(),
-    trophy: rankLabel == '#1',
-    medalTone: _medalTone(rankLabel),
+    trophy: ordinal == 0,
+    medalTone: _medalToneForOrdinal(ordinal),
     isCurrentUser: entry.isCurrentUser,
     profile: RunnerAchievementProfileSnapshot(
       name: displayName,
@@ -101,11 +108,14 @@ leaderboardRankRowDisplaySnapshotFromReadModel(
   );
 }
 
-RegionPreviewMedalTone? _medalTone(String rankLabel) {
-  return switch (rankLabel) {
-    '#1' => RegionPreviewMedalTone.gold,
-    '#2' => RegionPreviewMedalTone.silver,
-    '#3' => RegionPreviewMedalTone.bronze,
+// Medal tone follows the ordinal position within the backend-provided top
+// entries list, not the rank label string. Index 0/1/2 map to gold/silver/
+// bronze; a null ordinal (nearby rows) gets no medal tone.
+RegionPreviewMedalTone? _medalToneForOrdinal(int? ordinal) {
+  return switch (ordinal) {
+    0 => RegionPreviewMedalTone.gold,
+    1 => RegionPreviewMedalTone.silver,
+    2 => RegionPreviewMedalTone.bronze,
     _ => null,
   };
 }
