@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 
 import '../../../core/characters/runner_character.dart';
@@ -5,9 +7,10 @@ import '../../../core/theme/runiac_colors.dart';
 
 /// Animated guide overlay shown when the user stalls on an onboarding step.
 ///
-/// The selected [character] pops in from the bottom (scale + slide with
-/// easing), keeps a gentle idle bob, and a speech bubble types its [message]
-/// in. It can be dismissed with the close button or by tapping away.
+/// The Blue guide runs in from a random horizontal direction, then settles in
+/// the lower safe area before its speech bubble appears. Other selected guide
+/// characters retain the existing static presentation until matching running
+/// and idle assets are available.
 ///
 /// Display-only: the overlay renders sprites and hint copy and never touches
 /// XP, level, rank, streak, or leaderboard values.
@@ -16,6 +19,7 @@ class OnboardingGuideOverlay extends StatefulWidget {
     required this.character,
     required this.message,
     required this.onDismiss,
+    this.enterFromLeft,
     super.key,
   });
 
@@ -23,23 +27,44 @@ class OnboardingGuideOverlay extends StatefulWidget {
   final String message;
   final VoidCallback onDismiss;
 
+  /// Test seam for a deterministic entrance direction. Production uses a
+  /// random side for each newly shown guide.
+  final bool? enterFromLeft;
+
   @override
   State<OnboardingGuideOverlay> createState() => _OnboardingGuideOverlayState();
 }
 
+/// Long enough for the running GIF to read as movement without delaying help.
+const onboardingGuideRunInDuration = Duration(milliseconds: 800);
+
+const _blueIdleAsset =
+    'assets/images/characters/blue_idle/blue_runner_idle.gif';
+const _blueRunLeftAsset = 'assets/images/characters/cap_runner_run_left.gif';
+const _blueRunRightAsset = 'assets/images/characters/cap_runner_run_right.gif';
+
 class _OnboardingGuideOverlayState extends State<OnboardingGuideOverlay>
     with TickerProviderStateMixin {
   late final AnimationController _entrance;
+  late final AnimationController _runIn;
   late final AnimationController _bob;
   late final AnimationController _type;
   late final Animation<int> _typedLength;
+  late final bool _entersFromLeft;
+  bool _hasArrived = false;
+  bool _motionInitialized = false;
 
   @override
   void initState() {
     super.initState();
+    _entersFromLeft = widget.enterFromLeft ?? Random().nextBool();
     _entrance = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 420),
+    );
+    _runIn = AnimationController(
+      vsync: this,
+      duration: onboardingGuideRunInDuration,
     );
     _bob = AnimationController(
       vsync: this,
@@ -54,14 +79,47 @@ class _OnboardingGuideOverlayState extends State<OnboardingGuideOverlay>
       begin: 0,
       end: widget.message.length,
     ).animate(CurvedAnimation(parent: _type, curve: Curves.easeOut));
-    _entrance.forward();
     _bob.repeat(reverse: true);
     _type.forward();
+    _hasArrived = widget.character != RunnerCharacter.blue;
+    _runIn.addStatusListener((status) {
+      if (status == AnimationStatus.completed && mounted) {
+        setState(() {
+          _hasArrived = true;
+        });
+      }
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_motionInitialized) {
+      return;
+    }
+    _motionInitialized = true;
+    final reduceMotion =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    if (widget.character != RunnerCharacter.blue) {
+      if (reduceMotion) {
+        _entrance.value = 1;
+      } else {
+        _entrance.forward();
+      }
+      return;
+    }
+    if (reduceMotion) {
+      _runIn.value = 1;
+      _hasArrived = true;
+      return;
+    }
+    _runIn.forward();
   }
 
   @override
   void dispose() {
     _entrance.dispose();
+    _runIn.dispose();
     _bob.dispose();
     _type.dispose();
     super.dispose();
@@ -69,7 +127,8 @@ class _OnboardingGuideOverlayState extends State<OnboardingGuideOverlay>
 
   @override
   Widget build(BuildContext context) {
-    final slide = CurvedAnimation(parent: _entrance, curve: Curves.easeOutBack);
+    final isBlueGuide = widget.character == RunnerCharacter.blue;
+    final runIn = CurvedAnimation(parent: _runIn, curve: Curves.easeOutCubic);
     return Stack(
       children: [
         // Tap-away dismiss layer behind the guide card.
@@ -82,31 +141,61 @@ class _OnboardingGuideOverlayState extends State<OnboardingGuideOverlay>
         Positioned(
           left: 16,
           right: 16,
-          bottom: 16,
-          child: AnimatedBuilder(
-            animation: Listenable.merge([_entrance, _bob]),
-            builder: (context, child) {
-              final entrance = slide.value;
-              final bob = (_bob.value - 0.5) * 6;
-              return Opacity(
-                opacity: _entrance.value.clamp(0.0, 1.0),
-                child: Transform.translate(
-                  offset: Offset(0, (1 - entrance) * 120 + bob),
-                  child: Transform.scale(
-                    scale: 0.9 + entrance * 0.1,
-                    alignment: Alignment.bottomCenter,
-                    child: child,
-                  ),
+          bottom: 20,
+          child: isBlueGuide
+              ? LayoutBuilder(
+                  builder: (context, constraints) {
+                    return AnimatedBuilder(
+                      animation: Listenable.merge([_runIn, _bob]),
+                      builder: (context, _) {
+                        final horizontalDistance = constraints.maxWidth + 112;
+                        final direction = _entersFromLeft ? -1.0 : 1.0;
+                        final bob = _hasArrived ? (_bob.value - 0.5) * 4 : 0.0;
+                        return Transform.translate(
+                          offset: Offset(
+                            direction * (1 - runIn.value) * horizontalDistance,
+                            bob,
+                          ),
+                          child: _GuideCard(
+                            character: widget.character,
+                            message: widget.message,
+                            typedLength: _typedLength,
+                            enterFromLeft: _entersFromLeft,
+                            hasArrived: _hasArrived,
+                            onDismiss: widget.onDismiss,
+                          ),
+                        );
+                      },
+                    );
+                  },
+                )
+              : AnimatedBuilder(
+                  animation: Listenable.merge([_entrance, _bob]),
+                  builder: (context, _) {
+                    final entrance = Curves.easeOutBack.transform(
+                      _entrance.value,
+                    );
+                    final bob = (_bob.value - 0.5) * 6;
+                    return Opacity(
+                      opacity: _entrance.value.clamp(0.0, 1.0),
+                      child: Transform.translate(
+                        offset: Offset(0, (1 - entrance) * 120 + bob),
+                        child: Transform.scale(
+                          scale: 0.9 + entrance * 0.1,
+                          alignment: Alignment.bottomCenter,
+                          child: _GuideCard(
+                            character: widget.character,
+                            message: widget.message,
+                            typedLength: _typedLength,
+                            enterFromLeft: true,
+                            hasArrived: true,
+                            onDismiss: widget.onDismiss,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
                 ),
-              );
-            },
-            child: _GuideCard(
-              character: widget.character,
-              message: widget.message,
-              typedLength: _typedLength,
-              onDismiss: widget.onDismiss,
-            ),
-          ),
         ),
       ],
     );
@@ -118,29 +207,106 @@ class _GuideCard extends StatelessWidget {
     required this.character,
     required this.message,
     required this.typedLength,
+    required this.enterFromLeft,
+    required this.hasArrived,
     required this.onDismiss,
   });
 
   final RunnerCharacter character;
   final String message;
   final Animation<int> typedLength;
+  final bool enterFromLeft;
+  final bool hasArrived;
   final VoidCallback onDismiss;
 
   @override
   Widget build(BuildContext context) {
+    final character = _GuideCharacter(
+      character: this.character,
+      facing: enterFromLeft
+          ? RunnerCharacterFacing.right
+          : RunnerCharacterFacing.left,
+      isRunning: !hasArrived,
+    );
+    final bubble = _GuideBubble(
+      character: this.character,
+      message: message,
+      typedLength: typedLength,
+      visible: hasArrived,
+      onDismiss: onDismiss,
+    );
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        SizedBox(
-          width: 92,
-          height: 104,
-          child: Image.asset(
-            character.assetPath(RunnerCharacterFacing.right),
-            fit: BoxFit.contain,
-          ),
+      children: enterFromLeft
+          ? [character, const SizedBox(width: 8), bubble]
+          : [bubble, const SizedBox(width: 8), character],
+    );
+  }
+}
+
+class _GuideCharacter extends StatelessWidget {
+  const _GuideCharacter({
+    required this.character,
+    required this.facing,
+    required this.isRunning,
+  });
+
+  final RunnerCharacter character;
+  final RunnerCharacterFacing facing;
+  final bool isRunning;
+
+  @override
+  Widget build(BuildContext context) {
+    final isBlueGuide = character == RunnerCharacter.blue;
+    final assetPath = isBlueGuide
+        ? isRunning
+              ? facing == RunnerCharacterFacing.left
+                    ? _blueRunLeftAsset
+                    : _blueRunRightAsset
+              : _blueIdleAsset
+        : character.assetPath(facing);
+    return SizedBox(
+      width: 92,
+      height: 104,
+      child: Image.asset(
+        assetPath,
+        key: ValueKey(
+          isBlueGuide && isRunning
+              ? 'onboarding_guide_running_character'
+              : 'onboarding_guide_idle_character',
         ),
-        const SizedBox(width: 6),
-        Expanded(
+        fit: BoxFit.contain,
+      ),
+    );
+  }
+}
+
+class _GuideBubble extends StatelessWidget {
+  const _GuideBubble({
+    required this.character,
+    required this.message,
+    required this.typedLength,
+    required this.visible,
+    required this.onDismiss,
+  });
+
+  final RunnerCharacter character;
+  final String message;
+  final Animation<int> typedLength;
+  final bool visible;
+  final VoidCallback onDismiss;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: IgnorePointer(
+        ignoring: !visible,
+        child: AnimatedOpacity(
+          key: const ValueKey('onboarding_guide_bubble'),
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+          opacity: visible ? 1 : 0,
           child: Container(
             padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
             decoration: BoxDecoration(
@@ -212,7 +378,7 @@ class _GuideCard extends StatelessWidget {
             ),
           ),
         ),
-      ],
+      ),
     );
   }
 }

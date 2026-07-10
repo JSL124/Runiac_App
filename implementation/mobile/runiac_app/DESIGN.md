@@ -112,6 +112,13 @@ All spacing derives from a base of 4px.
 - **Accessibility**: text label is always visible and high contrast.
 - **Motion**: Material press feedback only.
 
+### Onboarding Guide Overlay
+
+- **Structure**: selected guide character beside a compact support bubble, anchored 20px above the safe-area bottom.
+- **Blue-guide motion**: the Blue guide enters from a randomly selected left or right edge using the matching eight-frame running GIF, then switches to the supplied Blue idle GIF after an 800ms transform-only run-in. The bubble fades in only after arrival; other character selections retain their static facing sprite.
+- **Placement**: when entering from the left the character rests at the lower-left with the bubble to its right; when entering from the right this layout mirrors. This keeps the guidance surface in the lower safe area instead of obscuring the active question.
+- **Accessibility**: reduced-motion users see the final idle pose and readable bubble immediately. The bubble remains dismissible by its close control or a tap away.
+
 ### Level Profile Badge
 
 - **Structure**: circular pale-blue profile disc, blue-tinted ring track, orange progress arc, centered runner initial, and an overlapping orange level pill.

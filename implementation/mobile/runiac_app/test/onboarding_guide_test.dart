@@ -4,6 +4,7 @@ import 'package:runiac_app/core/characters/runner_character.dart';
 import 'package:runiac_app/features/onboarding/domain/guide/onboarding_guide_agent.dart';
 import 'package:runiac_app/features/onboarding/domain/guide/rule_based_onboarding_guide_agent.dart';
 import 'package:runiac_app/features/onboarding/presentation/onboarding_flow_screen.dart';
+import 'package:runiac_app/features/onboarding/presentation/onboarding_guide_overlay.dart';
 
 Future<void> _pumpFlow(
   WidgetTester tester, {
@@ -118,5 +119,88 @@ void main() {
       await _stall(tester);
       expect(find.textContaining('running buddy'), findsNothing);
     });
+
+    testWidgets('Blue guide runs in before showing its idle help state', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: OnboardingGuideOverlay(
+              character: RunnerCharacter.blue,
+              message: 'Pick the closest answer for now.',
+              enterFromLeft: true,
+              onDismiss: _noop,
+            ),
+          ),
+        ),
+      );
+
+      expect(
+        find.byKey(const ValueKey('onboarding_guide_running_character')),
+        findsOneWidget,
+      );
+      expect(
+        tester
+            .widget<AnimatedOpacity>(
+              find.byKey(const ValueKey('onboarding_guide_bubble')),
+            )
+            .opacity,
+        0,
+      );
+
+      await tester.pump(onboardingGuideRunInDuration);
+      await tester.pump(const Duration(milliseconds: 250));
+
+      expect(
+        find.byKey(const ValueKey('onboarding_guide_idle_character')),
+        findsOneWidget,
+      );
+      expect(
+        tester
+            .widget<AnimatedOpacity>(
+              find.byKey(const ValueKey('onboarding_guide_bubble')),
+            )
+            .opacity,
+        1,
+      );
+    });
+
+    testWidgets('non-Blue guides retain the existing static guide state', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: OnboardingGuideOverlay(
+              character: RunnerCharacter.pink,
+              message: 'Pick the closest answer for now.',
+              enterFromLeft: false,
+              onDismiss: _noop,
+            ),
+          ),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 500));
+
+      expect(
+        find.byKey(const ValueKey('onboarding_guide_running_character')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey('onboarding_guide_idle_character')),
+        findsOneWidget,
+      );
+      expect(
+        tester
+            .widget<AnimatedOpacity>(
+              find.byKey(const ValueKey('onboarding_guide_bubble')),
+            )
+            .opacity,
+        1,
+      );
+    });
   });
 }
+
+void _noop() {}
