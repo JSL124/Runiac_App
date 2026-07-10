@@ -303,127 +303,131 @@ int _stageAssetCount(WidgetTester tester, String assetName) {
 }
 
 void main() {
-  testWidgets('Home stage map shows the empty journey state and a live header', (
-    WidgetTester tester,
-  ) async {
-    await tester.pumpWidget(
-      const RuniacApp(showSplash: false, enableForegroundGps: false),
-    );
-    await tester.pumpAndSettle();
+  testWidgets(
+    'Home stage map shows the empty journey state and a live header',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(
+        const RuniacApp(showSplash: false, enableForegroundGps: false),
+      );
+      await tester.pumpAndSettle();
 
-    // The default app has no active plan, so the stage map shows its friendly
-    // empty state instead of the retired dashboard cards.
-    expect(find.text('Your journey map is waiting'), findsOneWidget);
-    expect(find.text('Good to see you'), findsNothing);
-    expect(find.text('Today\'s Plan'), findsNothing);
-    expect(find.text('Quick Start'), findsNothing);
-    expect(find.text('View Plan'), findsNothing);
-    expect(find.text('Advanced Insight'), findsNothing);
-    expect(find.byType(TodayPlanCard), findsNothing);
-    expect(find.byType(HomeProgressInsightSection), findsNothing);
+      // The default app has no active plan, so the stage map shows its friendly
+      // empty state instead of the retired dashboard cards.
+      expect(find.text('Your journey map is waiting'), findsOneWidget);
+      expect(find.text('Good to see you'), findsNothing);
+      expect(find.text('Today\'s Plan'), findsNothing);
+      expect(find.text('Quick Start'), findsNothing);
+      expect(find.text('View Plan'), findsNothing);
+      expect(find.text('Advanced Insight'), findsNothing);
+      expect(find.byType(TodayPlanCard), findsNothing);
+      expect(find.byType(HomeProgressInsightSection), findsNothing);
 
-    // The header streak shows only the backend-owned number (0 with no
-    // progress) and never a fabricated "days" label.
-    expect(find.byIcon(Icons.local_fire_department), findsOneWidget);
-    expect(find.text('0'), findsOneWidget);
-    expect(find.textContaining('days'), findsNothing);
-    expect(find.bySemanticsLabel('Notifications'), findsOneWidget);
-    expect(find.bySemanticsLabel('Profile'), findsOneWidget);
+      // The header streak shows only the backend-owned number (0 with no
+      // progress) and never a fabricated "days" label.
+      expect(find.byIcon(Icons.local_fire_department), findsOneWidget);
+      expect(find.text('0'), findsOneWidget);
+      expect(find.textContaining('days'), findsNothing);
+      expect(find.bySemanticsLabel('Notifications'), findsOneWidget);
+      expect(find.bySemanticsLabel('Profile'), findsOneWidget);
 
-    await tester.tap(find.bySemanticsLabel('Notifications'));
-    await tester.pumpAndSettle();
+      await tester.tap(find.bySemanticsLabel('Notifications'));
+      await tester.pumpAndSettle();
 
-    expect(find.text('Notifications'), findsOneWidget);
-    expect(find.text('No notifications yet'), findsOneWidget);
+      expect(find.text('Notifications'), findsOneWidget);
+      expect(find.text('No notifications yet'), findsOneWidget);
 
-    await tester.tap(find.bySemanticsLabel('Back'));
-    await tester.pumpAndSettle();
+      await tester.tap(find.bySemanticsLabel('Back'));
+      await tester.pumpAndSettle();
 
-    await tester.tap(find.bySemanticsLabel('Profile'));
-    await tester.pumpAndSettle();
+      await tester.tap(find.bySemanticsLabel('Profile'));
+      await tester.pumpAndSettle();
 
-    expect(find.text('Account'), findsOneWidget);
-    expect(find.text('Runiac'), findsNothing);
-    expect(find.text('Runiac Runner'), findsOneWidget);
-    final displayName = tester.widget<Text>(find.text('Runiac Runner'));
-    expect(displayName.maxLines, 2);
-    expect(displayName.overflow, TextOverflow.ellipsis);
-    expect(find.text('Jurong East, Singapore'), findsOneWidget);
-    expect(find.text('Lv.0'), findsWidgets);
-    expect(find.text('Preview only'), findsNothing);
-    expect(find.text('Goal'), findsNothing);
-    expect(find.text('Lv. 1'), findsNothing);
-    expect(find.text('Beginner 10K preparation'), findsNothing);
-    expect(find.text('Building consistency'), findsNothing);
-    expect(
-      find.text('Account changes are not saved in this prototype.'),
-      findsOneWidget,
-    );
-    expect(find.text('RUNNING SETUP'), findsOneWidget);
-    expect(find.text('Current goal'), findsOneWidget);
-    expect(find.text('Build a consistent 10K habit'), findsOneWidget);
-    expect(find.text('Preferred unit'), findsOneWidget);
-    expect(find.text('Kilometers'), findsOneWidget);
-    expect(find.text('Weekly rhythm'), findsOneWidget);
-    expect(find.text('3 gentle sessions / week'), findsOneWidget);
-    expect(find.text('Experience'), findsOneWidget);
-    expect(find.text('Beginner runner'), findsOneWidget);
-    expect(find.text('Settings'), findsOneWidget);
-    expect(find.text('Privacy & Safety'), findsOneWidget);
-    expect(find.text('Notifications'), findsOneWidget);
-    expect(find.text('Watch & Health Apps'), findsOneWidget);
-    expect(find.text('Connect watch runs and health apps'), findsOneWidget);
-    expect(find.text('About Runiac'), findsOneWidget);
-    expect(find.text('Connect watch runs later'), findsNothing);
-    expect(find.text('Profile settings preview is coming soon.'), findsNothing);
-    for (final forbiddenCopy in <String>[
-      'Synced',
-      'HealthKit',
-      'Connected',
-      'logout',
-      'delete account',
-      'Firebase',
-      'Auth',
-      'Signed in',
-      'signed in',
-      'verified account',
-      'location permission',
-      'GPS',
-      'subscription',
-      'entitlement',
-      'XP',
-      'streak',
-      'level',
-      'Level',
-      'rank',
-      'leaderboard',
-      'published',
-      'approved',
-      'expert publication',
-      'admin review',
-    ]) {
-      expect(find.textContaining(forbiddenCopy), findsNothing);
-    }
+      expect(find.text('Account'), findsOneWidget);
+      expect(find.text('Runiac'), findsNothing);
+      expect(find.text('Runiac Runner'), findsOneWidget);
+      final displayName = tester.widget<Text>(find.text('Runiac Runner'));
+      expect(displayName.maxLines, 2);
+      expect(displayName.overflow, TextOverflow.ellipsis);
+      expect(find.text('Jurong East, Singapore'), findsOneWidget);
+      expect(find.text('Lv.0'), findsWidgets);
+      expect(find.text('Preview only'), findsNothing);
+      expect(find.text('Goal'), findsNothing);
+      expect(find.text('Lv. 1'), findsNothing);
+      expect(find.text('Beginner 10K preparation'), findsNothing);
+      expect(find.text('Building consistency'), findsNothing);
+      expect(
+        find.text('Account changes are not saved in this prototype.'),
+        findsOneWidget,
+      );
+      expect(find.text('RUNNING SETUP'), findsOneWidget);
+      expect(find.text('Current goal'), findsOneWidget);
+      expect(find.text('Build a consistent 10K habit'), findsOneWidget);
+      expect(find.text('Preferred unit'), findsOneWidget);
+      expect(find.text('Kilometers'), findsOneWidget);
+      expect(find.text('Weekly rhythm'), findsOneWidget);
+      expect(find.text('3 gentle sessions / week'), findsOneWidget);
+      expect(find.text('Experience'), findsOneWidget);
+      expect(find.text('Beginner runner'), findsOneWidget);
+      expect(find.text('Settings'), findsOneWidget);
+      expect(find.text('Privacy & Safety'), findsOneWidget);
+      expect(find.text('Notifications'), findsOneWidget);
+      expect(find.text('Watch & Health Apps'), findsOneWidget);
+      expect(find.text('Connect watch runs and health apps'), findsOneWidget);
+      expect(find.text('About Runiac'), findsOneWidget);
+      expect(find.text('Connect watch runs later'), findsNothing);
+      expect(
+        find.text('Profile settings preview is coming soon.'),
+        findsNothing,
+      );
+      for (final forbiddenCopy in <String>[
+        'Synced',
+        'HealthKit',
+        'Connected',
+        'logout',
+        'delete account',
+        'Firebase',
+        'Auth',
+        'Signed in',
+        'signed in',
+        'verified account',
+        'location permission',
+        'GPS',
+        'subscription',
+        'entitlement',
+        'XP',
+        'streak',
+        'level',
+        'Level',
+        'rank',
+        'leaderboard',
+        'published',
+        'approved',
+        'expert publication',
+        'admin review',
+      ]) {
+        expect(find.textContaining(forbiddenCopy), findsNothing);
+      }
 
-    await tester.tap(find.bySemanticsLabel('Back to Home'));
-    await tester.pumpAndSettle();
+      await tester.tap(find.bySemanticsLabel('Back to Home'));
+      await tester.pumpAndSettle();
 
-    expect(find.text('Your journey map is waiting'), findsOneWidget);
-    expect(find.text('Account'), findsNothing);
+      expect(find.text('Your journey map is waiting'), findsOneWidget);
+      expect(find.text('Account'), findsNothing);
 
-    expect(find.text('This Week\'s Plan'), findsNothing);
-    expect(find.text('Last Run'), findsNothing);
-    expect(find.text('Post-run Feedback'), findsNothing);
-    expect(find.text('Complete a run to see your summary.'), findsNothing);
-    expect(
-      find.text('Feedback will appear after a completed run.'),
-      findsNothing,
-    );
-    expect(find.text('View Details'), findsNothing);
-    expect(find.text('Ready for an easy run?'), findsNothing);
-    expect(find.text('Start small and keep it comfortable.'), findsNothing);
-    expect(find.textContaining(_forbiddenTrustedStateCopy), findsNothing);
-  });
+      expect(find.text('This Week\'s Plan'), findsNothing);
+      expect(find.text('Last Run'), findsNothing);
+      expect(find.text('Post-run Feedback'), findsNothing);
+      expect(find.text('Complete a run to see your summary.'), findsNothing);
+      expect(
+        find.text('Feedback will appear after a completed run.'),
+        findsNothing,
+      );
+      expect(find.text('View Details'), findsNothing);
+      expect(find.text('Ready for an easy run?'), findsNothing);
+      expect(find.text('Start small and keep it comfortable.'), findsNothing);
+      expect(find.textContaining(_forbiddenTrustedStateCopy), findsNothing);
+    },
+  );
 
   testWidgets('Home profile badge reads backend-owned level progress', (
     WidgetTester tester,
