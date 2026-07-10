@@ -354,4 +354,97 @@ calculated by backend logic. The Flutter client
 only displays trusted results.
 end note
 
+' Feed/Friends additive data-security classes
+package "Friends Feed Data-Security Extension" {
+ class AcceptedFriend <<Trusted>> {
+  friendUid: String
+  createdAt: DateTime
+  updatedAt: DateTime
+ }
+ class BlockedUser <<Trusted>> {
+  blockedUid: String
+  createdAt: DateTime
+  reasonCode: String [optional]
+ }
+ class FeedPost <<Immutable server snapshot>> {
+  authorUid: String
+  activityId: String
+  authorDisplayName: String
+  authorAvatarInitials: String
+  completedAt: DateTime
+  distanceMeters: Double
+  durationSeconds: Int
+  averagePaceSecondsPerKm: Double
+  thumbnailStoragePath: String
+  thumbnailObjectGeneration: String
+  thumbnailSha256: String
+  likeCount: Int [server]
+  commentCount: Int [server]
+  status: published|deleting|deleted
+  schemaVersion: Int
+  createdAt: DateTime
+  updatedAt: DateTime
+ }
+ class FeedThumbnail <<Storage binding>> {
+  stagingPath: String
+  finalPath: String
+  generation: String
+  sha256: String
+ }
+ class FeedLike <<User-owned>> {
+  userUid: String
+  createdAt: DateTime
+ }
+ class FeedComment <<User-owned flat>> {
+  authorUid: String
+  authorDisplayName: String
+  authorAvatarInitials: String
+  body: trimmed 1..500
+  createdAt: DateTime
+  updatedAt: DateTime
+ }
+ class HiddenFeedPost <<Reporter-private>> {
+  postId: String
+  createdAt: DateTime
+ }
+ class FeedReport <<Reporter-owned>> {
+  reporterUid: String
+  targetType: feedPost
+  targetId: String
+  reason: feed_inappropriate
+  description: ''
+  createdAt: DateTime
+ }
+ class PublishActivityToFeed <<Cloud Function>>
+ class ReadFeedThumbnail <<Cloud Function>>
+ class FeedLifecycleService <<Cloud Functions>>
+}
+User "1" -- "0..*" AcceptedFriend : friends/{friendUid}
+User "1" -- "0..*" BlockedUser : blockedUsers/{blockedUid}
+Activity "1" --> "0..1" FeedPost : validated activity publishes once
+FeedPost "1" *-- "1" FeedThumbnail
+FeedPost "1" *-- "0..*" FeedLike
+FeedPost "1" *-- "0..*" FeedComment
+User "1" -- "0..*" HiddenFeedPost
+User "1" -- "0..*" FeedReport
+PublishActivityToFeed ..> Activity : requires owner + validated
+PublishActivityToFeed ..> FeedPost : creates immutable snapshot
+ReadFeedThumbnail ..> FeedPost : active/bound post + caller hidden check
+ReadFeedThumbnail ..> AcceptedFriend : accepted friendship check
+ReadFeedThumbnail ..> BlockedUser : both directional block checks
+FeedLifecycleService ..> FeedPost : counts and cascade
+note right of FeedPost
+No raw GPS, route arrays, coordinates, addresses, private profile dependency,
+progression, entitlement, expert-plan or competitive fields.
+end note
+note right of FeedThumbnail
+Exact Running History PNG: 88 logical pixels, DPR <= 3, 12-logical-pixel
+start/end masks, metadata-free; Function bytes, never signed URL.
+end note
+note bottom of ReadFeedThumbnail
+Every friend request performs three current Firestore relationship/block checks:
+accepted friendship plus author-to-caller and caller-to-author blocks, in addition
+to active-post, caller-hidden, and exact path/generation/SHA-256 binding validation.
+end note
+
 @enduml

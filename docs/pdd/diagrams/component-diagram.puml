@@ -167,4 +167,40 @@ note right of BEExpertPlanAdmin
   before Premium Users can select them.
 end note
 
+' Feed/Friends additive component contract
+package "Friends Feed Extension" <<subsystem>> {
+ component "Feed Component" as FeedUI
+ component "Per-author Feed Query\nbuffers/cursors; k-way merge" as FeedQuery
+ component "Comments Bottom Sheet\nflat newest-first comments" as FeedComments
+ component "Feed Data Service\nfeedPosts, likes, comments, reports" as FeedData
+ component "Relationship Data Service\nreciprocal friends / directional blocks" as FeedRelationships
+ component "Feed Thumbnail Store\nstaging and immutable final object" as FeedStorage
+ component "publishActivityToFeed" as FeedPublish
+ component "readFeedThumbnail" as FeedRead
+ component "report/delete/count/cascade" as FeedLifecycle
+}
+FEHome --> FeedUI
+FeedUI --> FeedQuery
+FeedUI --> FeedComments
+FeedQuery --> FeedData : one authorUid query\nper owner/current friend
+FeedQuery --> FeedRelationships : current authorization
+FeedUI --> FeedPublish : explicit confirmation
+FeedUI --> FeedRead : bounded PNG bytes
+FeedUI --> FeedLifecycle : report / owner delete
+FeedUI --> FeedData : own like/comment online only
+FeedComments --> FeedData : 20-item cursor pages
+FeedPublish --> BEActivity : owner + validated activity
+FeedPublish --> FeedStorage : promote shared masked PNG
+FeedPublish --> FeedData : one immutable snapshot
+FeedRead --> FeedRelationships : hidden/friend/both blocks
+FeedRead --> FeedStorage : exact generation/hash bytes
+FeedLifecycle --> FeedData : trusted counts and cascade
+note bottom of FeedLifecycle
+No client writes friendship/block/hidden/status/count/progression values; no replies.
+Reporter-only hide has no penalty; source-activity cleanup is retry-safe.
+end note
+note bottom of FeedRead
+No signed URL or direct friend Storage read. Offline Feed cached/read-only.
+end note
+
 @enduml

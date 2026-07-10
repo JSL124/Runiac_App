@@ -61,4 +61,31 @@ weekly XP, monthly XP,
 or leaderboard score.
 end note
 
+' Feed/Friends additive architecture
+rectangle "Friends Feed Extension" {
+ component "Feed Component\npresentation and local cache" as FeedUI
+ component "Per-author Query Coordinator\nbuffers/cursors; k-way merge" as FeedQuery
+ component "Comments Bottom Sheet\nflat comments" as FeedComments
+}
+database "Feed Firestore Data\nfriends, blockedUsers, validated activities,\nfeedPosts, likes, comments, hidden markers, reports" as FeedStore
+component "Trusted Feed Functions\npublishActivityToFeed; readFeedThumbnail;\nreport/delete/count/cascade" as FeedFunctions
+database "Feed Thumbnail Storage\nowner staging / immutable final object" as FeedStorage
+UI --> FeedUI
+FeedUI --> FeedQuery
+FeedUI --> FeedComments
+FeedQuery --> FeedStore : one authorUid query\nper owner/current friend
+FeedUI --> FeedFunctions : explicit publish, bytes,\nreport and owner delete
+FeedUI --> FeedStore : own likes/comments\nwhen online
+FeedFunctions --> FeedStore : immutable snapshot,\ntrusted counts and cleanup
+FeedFunctions --> FeedStorage : promote/bind exact PNG
+note bottom of FeedFunctions
+completeRun never posts; publish needs an owned validated activity.
+readFeedThumbnail checks active/hidden/friend/both blocks/binding; returns bytes, never signed URL.
+Cloud Functions retain XP/streak/level/rank/leaderboard authority.
+end note
+note bottom of FeedStorage
+Exact privacy-masked Running History PNG: 88 logical pixels, DPR <= 3,
+12-logical-pixel start/end masks, metadata-free, <= 1 MiB; no direct friend Storage read.
+end note
+
 @enduml
