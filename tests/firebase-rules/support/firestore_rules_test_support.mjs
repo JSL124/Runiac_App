@@ -232,6 +232,10 @@ export function dbFor(uid) {
   return testEnv.authenticatedContext(uid).firestore();
 }
 
+export function unauthenticatedDb() {
+  return testEnv.unauthenticatedContext().firestore();
+}
+
 export async function seed(path, data) {
   await testEnv.withSecurityRulesDisabled(async (context) => {
     await setDoc(doc(context.firestore(), path), data);

@@ -4,9 +4,13 @@ import '../../core/theme/runiac_colors.dart';
 import '../account/domain/repositories/user_profile_repository.dart';
 import '../account/domain/repositories/user_profile_persistence_repository.dart';
 import '../auth/domain/runiac_auth_service.dart';
+import '../feed/presentation/current_session_feed.dart';
+import '../home/domain/guide/home_guide_agent.dart';
+import '../home/domain/guide/rule_based_home_guide_agent.dart';
 import '../home/presentation/home_tab.dart';
+import '../leaderboard/data/static_leaderboard_repository.dart';
+import '../leaderboard/domain/repositories/leaderboard_repository.dart';
 import '../leaderboard/presentation/leaderboard_tab.dart';
-import '../maps/presentation/maps_tab.dart';
 import '../notifications/data/method_channel_plan_notification_scheduler.dart';
 import '../notifications/data/shared_preferences_notification_center_settings_repository.dart';
 import '../notifications/domain/models/plan_notification_schedule.dart';
@@ -35,6 +39,7 @@ class RuniacShell extends StatefulWidget {
     required this.authRepository,
     this.activityHistoryRepository = const StaticActivityHistoryRepository(),
     this.userProgressRepository = const StaticUserProgressRepository(),
+    this.leaderboardRepository = const StaticLeaderboardRepository(),
     required this.profileRepository,
     required this.profilePersistenceRepository,
     this.generatedPlanPersistenceRepository =
@@ -43,6 +48,7 @@ class RuniacShell extends StatefulWidget {
         const StaticNotificationInboxRepository(),
     this.planProgress,
     this.adaptivePlanEstimate,
+    this.homeGuideAgent = const RuleBasedHomeGuideAgent(),
     super.key,
     this.enableForegroundGps = true,
     this.activeRunSessionCoordinator,
@@ -54,12 +60,17 @@ class RuniacShell extends StatefulWidget {
   final RuniacAuthRepository authRepository;
   final ActivityHistoryRepository activityHistoryRepository;
   final UserProgressRepository userProgressRepository;
+  final LeaderboardRepository leaderboardRepository;
   final UserProfileRepository profileRepository;
   final UserProfilePersistenceRepository profilePersistenceRepository;
   final GeneratedPlanPersistenceRepository generatedPlanPersistenceRepository;
   final NotificationInboxRepository notificationInboxRepository;
   final PlanProgressReadModel? planProgress;
   final AdaptivePlanEstimateReadModel? adaptivePlanEstimate;
+
+  /// Guide seam forwarded to [HomeTab]'s stage-map speech bubble. See
+  /// `HomeTab.homeGuideAgent` for the trust-boundary contract.
+  final HomeGuideAgent homeGuideAgent;
   final bool enableForegroundGps;
   final ActiveRunSessionCoordinator? activeRunSessionCoordinator;
   final RunOpenIntent? initialRunOpenIntent;
@@ -303,6 +314,9 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
         userProgressRepository: widget.userProgressRepository,
         todayWorkoutDetailSnapshot: todayWorkoutDetail,
         todayPlannedRunContext: todayPlannedRunContext,
+        generatedPlanProgress: generatedPlanProgress,
+        currentDate: widget.youProgressToday,
+        homeGuideAgent: widget.homeGuideAgent,
         enableForegroundGps: widget.enableForegroundGps,
         activeRunSessionCoordinator: _activeRunSessionCoordinator,
         onNotificationSettingsChanged: () {
@@ -313,9 +327,9 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
           );
         },
       ),
-      const MapsTab(),
+      const CurrentSessionFeed(),
       const SizedBox.shrink(),
-      const LeaderboardTab(),
+      LeaderboardTab(repository: widget.leaderboardRepository),
       YouTab(
         activityHistoryRepository: widget.activityHistoryRepository,
         userProgressRepository: widget.userProgressRepository,
@@ -361,9 +375,9 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
             tooltip: 'Home',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.map),
+            icon: Icon(Icons.dynamic_feed),
             label: '',
-            tooltip: 'Maps',
+            tooltip: 'Feed',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.directions_run),

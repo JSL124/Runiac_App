@@ -11,6 +11,7 @@ class LeaderboardRegionPreviewSheet extends StatelessWidget {
   const LeaderboardRegionPreviewSheet({
     super.key,
     required this.height,
+    required this.snapshot,
     required this.onVerticalDragUpdate,
     required this.onVerticalDragEnd,
     required this.onViewMoreRanking,
@@ -19,6 +20,7 @@ class LeaderboardRegionPreviewSheet extends StatelessWidget {
   });
 
   final double height;
+  final LeaderboardDetailDisplaySnapshot snapshot;
   final GestureDragUpdateCallback onVerticalDragUpdate;
   final GestureDragEndCallback onVerticalDragEnd;
   final VoidCallback onViewMoreRanking;
@@ -56,7 +58,7 @@ class LeaderboardRegionPreviewSheet extends StatelessWidget {
                 const _LeaderboardAccentStrip(),
                 const SizedBox(height: 10),
                 Text(
-                  leaderboardRegionDemoSnapshot.regionName,
+                  snapshot.regionName,
                   style: const TextStyle(
                     color: RuniacColors.textPrimary,
                     fontSize: 21,
@@ -65,7 +67,7 @@ class LeaderboardRegionPreviewSheet extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  leaderboardDetailDemoSnapshot.refreshLabel,
+                  snapshot.refreshLabel,
                   style: const TextStyle(
                     color: RuniacColors.primaryBlue,
                     fontSize: 12,
@@ -73,11 +75,20 @@ class LeaderboardRegionPreviewSheet extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 12),
-                _RegionPreviewList(onProfileSelected: onProfileSelected),
-                const SizedBox(height: 12),
-                _MyRankPreviewCard(onProfileSelected: onProfileSelected),
+                _RegionPreviewList(
+                  snapshot: snapshot,
+                  onProfileSelected: onProfileSelected,
+                ),
+                if (snapshot.isUserRegion) ...[
+                  const SizedBox(height: 12),
+                  _MyRankPreviewCard(
+                    snapshot: snapshot,
+                    onProfileSelected: onProfileSelected,
+                  ),
+                ],
                 const SizedBox(height: 12),
                 _RegionPreviewActions(
+                  showShareMyRank: snapshot.isUserRegion,
                   onViewMoreRanking: onViewMoreRanking,
                   onShareMyRank: onShareMyRank,
                 ),
@@ -149,17 +160,41 @@ class _SheetHandle extends StatelessWidget {
 }
 
 class _RegionPreviewList extends StatelessWidget {
-  const _RegionPreviewList({required this.onProfileSelected});
+  const _RegionPreviewList({
+    required this.snapshot,
+    required this.onProfileSelected,
+  });
 
+  final LeaderboardDetailDisplaySnapshot snapshot;
   final ValueChanged<RunnerAchievementProfileSnapshot> onProfileSelected;
 
   @override
   Widget build(BuildContext context) {
+    if (snapshot.topRanks.isEmpty) {
+      return const DecoratedBox(
+        decoration: BoxDecoration(
+          color: RuniacColors.white,
+          borderRadius: BorderRadius.all(Radius.circular(20)),
+          border: Border.fromBorderSide(BorderSide(color: Color(0xFFDDE3F8))),
+        ),
+        child: Padding(
+          padding: EdgeInsets.all(18),
+          child: Text(
+            'No ranked runners yet.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: RuniacColors.textSecondary,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      );
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _RegionPreviewRankCard(
-          rows: leaderboardDetailDemoSnapshot.topRanks.take(3).toList(),
+          rows: snapshot.topRanks.take(3).toList(),
           onProfileSelected: onProfileSelected,
           keyPrefix: 'leaderboard_region_top_rank_row',
           useTopMedals: true,
@@ -234,14 +269,13 @@ class _RegionPreviewRankRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final rowMinHeight = useDetailRowSizing ? 64.0 : 56.0;
-    final horizontalPadding = useDetailRowSizing ? 12.0 : 10.0;
+    const horizontalPadding = 10.0;
     final verticalPadding = useDetailRowSizing ? 10.0 : 7.0;
-    final rankGap = useDetailRowSizing ? 12.0 : 10.0;
-    final nameGap = useDetailRowSizing ? 12.0 : 10.0;
+    const rankGap = 10.0;
+    const nameGap = 10.0;
     final xpGap = useDetailRowSizing ? 12.0 : 8.0;
-    final badgeSize = useDetailRowSizing ? 42.0 : 38.0;
+    const badgeSize = 38.0;
     final nameFontSize = useDetailRowSizing ? 16.0 : 14.0;
-    final levelFontSize = useDetailRowSizing ? 12.0 : 11.0;
     final xpFontSize = useDetailRowSizing ? 16.0 : 14.0;
 
     return Semantics(
@@ -271,6 +305,7 @@ class _RegionPreviewRankRow extends StatelessWidget {
                 SizedBox(width: rankGap),
                 LeaderboardInitialBadge(
                   name: row.name,
+                  levelLabel: row.levelBadgeLabel,
                   isCurrentUser: row.isCurrentUser,
                 ),
                 SizedBox(width: nameGap),
@@ -289,17 +324,6 @@ class _RegionPreviewRankRow extends StatelessWidget {
                               : RuniacColors.textPrimary,
                           fontSize: nameFontSize,
                           fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        row.levelLabel,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: RuniacColors.textSecondary,
-                          fontSize: levelFontSize,
-                          fontWeight: FontWeight.w800,
                         ),
                       ),
                     ],
@@ -343,6 +367,7 @@ class _RegionPreviewRankBadge extends StatelessWidget {
       final colors = resolveRegionPreviewMedalColors(tone);
 
       return Container(
+        key: ValueKey<String>('leaderboard_region_rank_badge_${row.rankLabel}'),
         width: size,
         height: size,
         alignment: Alignment.center,
@@ -359,6 +384,9 @@ class _RegionPreviewRankBadge extends StatelessWidget {
     }
 
     return Container(
+      key: row.isCurrentUser
+          ? const Key('leaderboard_region_current_user_rank_badge')
+          : ValueKey<String>('leaderboard_region_rank_badge_${row.rankLabel}'),
       width: size,
       height: size,
       alignment: Alignment.center,
@@ -383,13 +411,17 @@ class _RegionPreviewRankBadge extends StatelessWidget {
 }
 
 class _MyRankPreviewCard extends StatelessWidget {
-  const _MyRankPreviewCard({required this.onProfileSelected});
+  const _MyRankPreviewCard({
+    required this.snapshot,
+    required this.onProfileSelected,
+  });
 
+  final LeaderboardDetailDisplaySnapshot snapshot;
   final ValueChanged<RunnerAchievementProfileSnapshot> onProfileSelected;
 
   @override
   Widget build(BuildContext context) {
-    final currentUserRow = leaderboardDetailDemoSnapshot.nearbyRanks.firstWhere(
+    final currentUserRow = snapshot.nearbyRanks.firstWhere(
       (row) => row.isCurrentUser,
     );
 
@@ -418,10 +450,12 @@ class _MyRankPreviewCard extends StatelessWidget {
 
 class _RegionPreviewActions extends StatelessWidget {
   const _RegionPreviewActions({
+    required this.showShareMyRank,
     required this.onViewMoreRanking,
     required this.onShareMyRank,
   });
 
+  final bool showShareMyRank;
   final VoidCallback onViewMoreRanking;
   final VoidCallback onShareMyRank;
 
@@ -430,6 +464,7 @@ class _RegionPreviewActions extends StatelessWidget {
     return Row(
       children: [
         Expanded(
+          flex: showShareMyRank ? 1 : 2,
           child: LeaderboardVisualCta(
             key: const Key('leaderboard_view_more_ranking_button'),
             label: leaderboardRegionDemoSnapshot.primaryActionLabel,
@@ -437,15 +472,17 @@ class _RegionPreviewActions extends StatelessWidget {
             onTap: onViewMoreRanking,
           ),
         ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: LeaderboardVisualCta(
-            key: const Key('leaderboard_share_my_rank_button'),
-            label: leaderboardRegionDemoSnapshot.secondaryActionLabel,
-            filled: false,
-            onTap: onShareMyRank,
+        if (showShareMyRank) ...[
+          const SizedBox(width: 10),
+          Expanded(
+            child: LeaderboardVisualCta(
+              key: const Key('leaderboard_share_my_rank_button'),
+              label: leaderboardRegionDemoSnapshot.secondaryActionLabel,
+              filled: false,
+              onTap: onShareMyRank,
+            ),
           ),
-        ),
+        ],
       ],
     );
   }

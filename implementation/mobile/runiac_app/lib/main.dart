@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'app.dart';
 import 'core/firebase/runiac_firebase_bootstrap.dart';
+import 'features/feed/presentation/qa/feed_mvp_qa_launcher.dart';
 import 'features/run/presentation/qa/xp_update_qa_launcher.dart';
 
 Future<void> main() async {
@@ -10,6 +11,11 @@ Future<void> main() async {
   final qaApp = buildXpUpdateQaAppFromEnvironment();
   if (qaApp != null) {
     runApp(qaApp);
+    return;
+  }
+  final feedQaApp = buildFeedMvpQaAppFromEnvironment();
+  if (feedQaApp != null) {
+    runApp(feedQaApp);
     return;
   }
 
@@ -21,8 +27,10 @@ Future<void> main() async {
     RuniacApp(
       authRepository: bootstrap.authRepository,
       runRepository: bootstrap.runRepository,
+      homeGuideAgent: bootstrap.homeGuideAgent,
       activityHistoryRepository: bootstrap.activityHistoryRepository,
       userProgressRepository: bootstrap.userProgressRepository,
+      leaderboardRepository: bootstrap.leaderboardRepository,
       profileRepository: bootstrap.profileRepository,
       profilePersistenceRepository: bootstrap.profilePersistenceRepository,
       generatedPlanPersistenceRepository:

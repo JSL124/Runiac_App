@@ -2,6 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runiac_app/app.dart';
+import 'package:runiac_app/features/feed/presentation/current_session_feed.dart';
+import 'package:runiac_app/features/notifications/domain/repositories/notification_inbox_repository.dart';
+import 'package:runiac_app/features/notifications/domain/services/notification_registration_service.dart';
+import 'package:runiac_app/features/run/presentation/data/run_completion_demo_snapshots.dart';
+
+import 'support/fake_notification_services.dart';
+import 'support/fake_runiac_auth_repository.dart';
 
 void main() {
   Future<void> openNotificationCenter(WidgetTester tester) async {
@@ -25,12 +32,59 @@ void main() {
       const RuniacApp(showSplash: false, enableForegroundGps: false),
     );
 
-    expect(find.text('Good to see you'), findsOneWidget);
+    expect(find.text('Your journey map is waiting'), findsOneWidget);
     expect(find.byTooltip('Home'), findsOneWidget);
-    expect(find.byTooltip('Maps'), findsOneWidget);
+    expect(find.byTooltip('Feed'), findsOneWidget);
     expect(find.byTooltip('Run'), findsOneWidget);
     expect(find.byTooltip('Leaderboard'), findsOneWidget);
     expect(find.byTooltip('You'), findsOneWidget);
+  });
+
+  testWidgets('received push notifications are saved to the inbox', (
+    WidgetTester tester,
+  ) async {
+    final authRepository = FakeRuniacAuthRepository()
+      ..emitSignedIn(uid: 'runner-1');
+    addTearDown(authRepository.dispose);
+    final pushClient = FakePushNotificationClient(
+      permissionStatus: PushNotificationPermissionStatus.authorized,
+      token: 'fcm-token',
+    );
+    final notificationService = NotificationRegistrationService(
+      client: pushClient,
+      callable: FakeNotificationDeviceCallable(),
+      ownerUidProvider: () => authRepository.currentUser?.uid,
+    );
+    final inboxRepository = InMemoryNotificationInboxRepository();
+
+    await tester.pumpWidget(
+      RuniacApp(
+        showSplash: false,
+        showAuth: false,
+        enableForegroundGps: false,
+        authRepository: authRepository,
+        notificationInboxRepository: inboxRepository,
+        notificationRegistrationService: notificationService,
+      ),
+    );
+    await tester.pump();
+
+    pushClient.emitForegroundMessage(
+      const PushNotificationMessage(
+        id: 'push-message-1',
+        title: 'Run reminder',
+        body: 'Your easy run is ready.',
+        data: {'route': '/run'},
+      ),
+    );
+    await tester.pump();
+
+    final inboxItems = await inboxRepository.listInboxItems();
+    expect(inboxItems, hasLength(1));
+    expect(inboxItems.single.id, 'push-message-1');
+    expect(inboxItems.single.title, 'Run reminder');
+    expect(inboxItems.single.body, 'Your easy run is ready.');
+    expect(inboxItems.single.data, {'route': '/run'});
   });
 
   testWidgets('bottom navigation uses icon-only tabs and preserves routing', (
@@ -56,7 +110,7 @@ void main() {
       everyElement(isEmpty),
     );
 
-    for (final label in ['Home', 'Maps', 'Run', 'Leaderboard', 'You']) {
+    for (final label in ['Home', 'Feed', 'Run', 'Leaderboard', 'You']) {
       expect(
         find.descendant(of: bottomNavigation, matching: find.text(label)),
         findsNothing,
@@ -68,6 +122,52 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Your ranked area'), findsOneWidget);
+  });
+
+  testWidgets('Feed replaces Maps in the bottom navigation', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      const RuniacApp(showSplash: false, enableForegroundGps: false),
+    );
+
+    final bottomNavigation = find.byType(BottomNavigationBar);
+
+    expect(find.byTooltip('Feed'), findsOneWidget);
+    expect(
+      find.descendant(of: bottomNavigation, matching: find.text('Feed')),
+      findsNothing,
+    );
+    expect(find.byTooltip('Maps'), findsNothing);
+  });
+
+  testWidgets('session Feed posts clear when the authenticated user changes', (
+    WidgetTester tester,
+  ) async {
+    final authRepository = FakeRuniacAuthRepository()
+      ..emitSignedIn(uid: 'runner-a');
+    addTearDown(authRepository.dispose);
+    final feedStore = CurrentSessionFeedStore(ownerUid: 'runner-a');
+    addTearDown(feedStore.dispose);
+    feedStore.shareRunSummary(defaultRunSummarySnapshot);
+
+    await tester.pumpWidget(
+      RuniacApp(
+        showSplash: false,
+        showAuth: true,
+        enableForegroundGps: false,
+        authRepository: authRepository,
+        currentSessionFeedStore: feedStore,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(feedStore.sessionPosts, hasLength(1));
+
+    authRepository.emitSignedIn(uid: 'runner-b');
+    await tester.pumpAndSettle();
+
+    expect(feedStore.sessionPosts, isEmpty);
   });
 
   testWidgets(

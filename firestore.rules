@@ -633,6 +633,10 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
+    match /agentGuidanceDaily/{document} {
+      allow read, write: if false;
+    }
+
     match /activities/{activityId} {
       allow read: if isSignedIn() && resource.data.ownerUid == request.auth.uid;
       allow create: if isSignedIn()
@@ -694,6 +698,33 @@ service cloud.firestore {
     match /leaderboardSnapshots/{snapshotId} {
       allow read: if isSignedIn();
       allow create, update, delete: if false;
+    }
+
+    match /leaderboardPeriods/{periodId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if false;
+    }
+
+    match /leaderboardCurrentViews/{uid} {
+      allow read: if isSignedIn() && uid == request.auth.uid;
+      allow create, update, delete: if false;
+    }
+
+    match /leaderboardUserRanks/{rankId} {
+      allow read: if isSignedIn() && resource.data.ownerUid == request.auth.uid;
+      allow create, update, delete: if false;
+    }
+
+    match /leaderboardContributions/{contributionId} {
+      allow read, create, update, delete: if false;
+    }
+
+    match /leaderboardAggregationLocks/{snapshotId} {
+      allow read, create, update, delete: if false;
+    }
+
+    match /leaderboardSeedRuns/{runId} {
+      allow read, create, update, delete: if false;
     }
 
     match /sharedRoutes/{routeId} {

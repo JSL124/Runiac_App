@@ -26,12 +26,14 @@ class LeaderboardLeagueSnapshot {
   const LeaderboardLeagueSnapshot({
     required this.selectedDivision,
     required this.selectedLevelRange,
+    required this.selectedDivisionAssetPath,
     required this.dialogTitle,
     required this.entries,
   });
 
   final String selectedDivision;
   final String selectedLevelRange;
+  final String selectedDivisionAssetPath;
   final String dialogTitle;
   final List<LeagueTaxonomyEntry> entries;
 }
@@ -54,11 +56,14 @@ class LeaderboardRegionSnapshot {
 
 class LeaderboardDetailDisplaySnapshot {
   const LeaderboardDetailDisplaySnapshot({
+    required this.regionId,
     required this.regionName,
+    required this.isUserRegion,
     required this.periodLabel,
     required this.fallbackPeriodLabel,
     required this.refreshLabel,
     required this.fallbackRefreshLabel,
+    required this.monthlyResetLabel,
     required this.divisionLabel,
     required this.topRanksTitle,
     required this.nearbyRanksTitle,
@@ -67,17 +72,61 @@ class LeaderboardDetailDisplaySnapshot {
     required this.nearbyRanks,
   });
 
+  final String regionId;
   final String regionName;
+  final bool isUserRegion;
   final String periodLabel;
   final String fallbackPeriodLabel;
   final String refreshLabel;
   final String fallbackRefreshLabel;
+  final String monthlyResetLabel;
   final String divisionLabel;
   final String topRanksTitle;
   final String nearbyRanksTitle;
   final CurrentUserRankSummaryDisplaySnapshot currentUser;
   final List<LeaderboardRankRowDisplaySnapshot> topRanks;
   final List<LeaderboardRankRowDisplaySnapshot> nearbyRanks;
+}
+
+class LeaderboardMapRegionDisplaySnapshot {
+  const LeaderboardMapRegionDisplaySnapshot({
+    required this.regionId,
+    required this.regionName,
+    required this.semanticLabel,
+    required this.locationLabel,
+    required this.planningAreaName,
+    required this.planningAreaCode,
+    required this.planningRegionCode,
+    required this.fallbackAlignment,
+    required this.color,
+    this.isUserRegion = false,
+  });
+
+  final String regionId;
+  final String regionName;
+  final String semanticLabel;
+  final String locationLabel;
+  final String planningAreaName;
+  final String planningAreaCode;
+  final String planningRegionCode;
+  final Alignment fallbackAlignment;
+  final Color color;
+  final bool isUserRegion;
+
+  LeaderboardMapRegionDisplaySnapshot copyWith({bool? isUserRegion}) {
+    return LeaderboardMapRegionDisplaySnapshot(
+      regionId: regionId,
+      regionName: regionName,
+      semanticLabel: semanticLabel,
+      locationLabel: locationLabel,
+      planningAreaName: planningAreaName,
+      planningAreaCode: planningAreaCode,
+      planningRegionCode: planningRegionCode,
+      fallbackAlignment: fallbackAlignment,
+      color: color,
+      isUserRegion: isUserRegion ?? this.isUserRegion,
+    );
+  }
 }
 
 String resolveLeaderboardPeriodLabelForDisplay({
@@ -97,6 +146,7 @@ class LeaderboardRankRowDisplaySnapshot {
     required this.rankLabel,
     required this.name,
     required this.levelLabel,
+    required this.levelBadgeLabel,
     required this.xpLabel,
     required this.profile,
     this.trophy = false,
@@ -107,6 +157,7 @@ class LeaderboardRankRowDisplaySnapshot {
   final String rankLabel;
   final String name;
   final String levelLabel;
+  final String levelBadgeLabel;
   final String xpLabel;
   final RunnerAchievementProfileSnapshot profile;
   final bool trophy;
@@ -167,8 +218,9 @@ class CurrentUserRankSummaryDisplaySnapshot {
 enum RegionPreviewMedalTone { gold, silver, bronze }
 
 class LeagueTaxonomyEntry {
-  const LeagueTaxonomyEntry(this.name, this.range);
+  const LeagueTaxonomyEntry(this.name, this.range, this.assetPath);
 
   final String name;
   final String range;
+  final String assetPath;
 }

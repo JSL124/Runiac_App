@@ -57,7 +57,12 @@ beforeEach(async () => {
     "generatedPlans",
     "planProgress",
     "adaptivePlanEstimates",
+    "leaderboardContributions",
   ]);
+  await firestore.doc(`userProfiles/${USER_UID}`).set({
+    nickname: "Test Runner",
+    locationLabel: "Jurong East, Singapore",
+  });
 });
 
 describe("completeRun callable boundary", () => {
@@ -73,13 +78,16 @@ describe("completeRun callable boundary", () => {
 
     assert.equal(result.validationStatus, "validated");
     assert.equal(result.progressionDisplay.xpDelta, 60);
-    assert.equal(result.progressionDisplay.countsTowardLeaderboard, false);
+    assert.equal(result.progressionDisplay.countsTowardLeaderboard, true);
     assert.equal(result.progressionDisplay.status, "awarded");
     assert.equal(result.progressionDisplay.reason, "run_completion_xp_awarded");
 
     const activity = await firestore.doc(`activities/${result.activityId}`).get();
     const summary = await firestore.doc(`runSummaries/${result.summaryId}`).get();
     const progressionEvent = await firestore.doc(`progressionEvents/${result.progressionEventId}`).get();
+    const contribution = await firestore
+      .doc(`leaderboardContributions/${USER_UID}_monthly_2026-06`)
+      .get();
 
     assert.equal(activity.get("ownerUid"), USER_UID);
     assert.equal(activity.get("validationStatus"), "validated");
@@ -88,7 +96,19 @@ describe("completeRun callable boundary", () => {
     assert.equal(activity.get("validationReason"), "run_completion_xp_awarded");
     assert.equal(summary.get("ownerUid"), USER_UID);
     assert.equal(progressionEvent.get("xpDelta"), 60);
-    assert.equal(progressionEvent.get("countsTowardLeaderboard"), false);
+    assert.equal(progressionEvent.get("countsTowardLeaderboard"), true);
+    assert.equal(contribution.get("ownerUid"), USER_UID);
+    assert.equal(contribution.get("periodType"), "monthly");
+    assert.equal(contribution.get("periodKey"), "2026-06");
+    assert.equal(contribution.get("timezone"), "Asia/Singapore");
+    assert.equal(contribution.get("schemaVersion"), 2);
+    assert.equal(contribution.get("regionId"), "jurong-east");
+    assert.equal(contribution.get("publicAlias"), "Test Runner");
+    assert.equal(contribution.get("scoreXp"), 60);
+    assert.equal(contribution.get("eligible"), true);
+    assert.deepEqual(contribution.get("sourceProgressionEventIds"), [
+      result.progressionEventId,
+    ]);
   });
 
   it("awards official XP and level progression for an accepted run", async () => {
@@ -203,10 +223,17 @@ describe("completeRun callable boundary", () => {
     const progressionEvent = await firestore
       .doc(`progressionEvents/${fresh.progressionEventId}`)
       .get();
+    const contribution = await firestore
+      .doc(`leaderboardContributions/${USER_UID}_monthly_2026-06`)
+      .get();
     assert.equal(progressionEvent.get("previousLevelProgressPercent"), 0);
     assert.equal(progressionEvent.get("nextLevelProgressPercent"), 75);
     assert.equal(progressionEvent.get("nextLevelXpTarget"), 100);
     assert.equal(progressionEvent.get("nextXpToNextLevel"), 25);
+    assert.equal(contribution.get("scoreXp"), 75);
+    assert.deepEqual(contribution.get("sourceProgressionEventIds"), [
+      fresh.progressionEventId,
+    ]);
   });
 
   it("still surfaces streak and total progression fields when no XP is awarded", async () => {
@@ -1395,8 +1422,11 @@ describe("completeRun callable boundary", () => {
     assert.equal(profileAfter.get("xp"), 999);
     assert.equal(profileAfter.get("rank"), 3);
     assert.equal(profileAfter.get("leaderboardScore"), 999);
-    assert.equal(profileAfter.get("monthlyXp"), undefined);
-    assert.equal(profileAfter.get("monthlyXpLabel"), undefined);
+    assert.equal(profileAfter.get("totalXp"), 0);
+    assert.equal(profileAfter.get("level"), 1);
+    assert.equal(profileAfter.get("levelProgressPercent"), 0);
+    assert.equal(profileAfter.get("monthlyXp"), 0);
+    assert.equal(profileAfter.get("monthlyXpLabel"), "0 XP");
   });
 
   it("rejects precise route traces and does not persist them", async () => {

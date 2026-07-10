@@ -5,6 +5,9 @@ import 'package:runiac_app/features/account/data/static_user_profile_repository.
 import 'package:runiac_app/features/account/data/static_viewer_access_repository.dart';
 import 'package:runiac_app/features/account/domain/repositories/user_profile_repository.dart';
 import 'package:runiac_app/features/account/domain/repositories/viewer_access_repository.dart';
+import 'package:runiac_app/features/feed/data/static_feed_repository.dart';
+import 'package:runiac_app/features/feed/domain/models/feed_display_models.dart';
+import 'package:runiac_app/features/feed/domain/repositories/feed_repository.dart';
 import 'package:runiac_app/features/home/data/static_home_dashboard_repository.dart';
 import 'package:runiac_app/features/home/domain/repositories/home_dashboard_repository.dart';
 import 'package:runiac_app/features/leaderboard/data/static_leaderboard_repository.dart';
@@ -46,6 +49,24 @@ void main() {
       expect(ViewerAccessRepository, isA<Type>());
       expect(HomeDashboardRepository, isA<Type>());
       expect(RunRepository, isA<Type>());
+      expect(FeedRepository, isA<Type>());
+    });
+
+    test('Feed repository reads through a viewer-scoped context', () async {
+      const repository = StaticFeedRepository();
+      final feedRepository = repository as FeedRepository;
+
+      final feed = await feedRepository.loadFeed(
+        const FeedViewerContext(
+          currentUserId: 'runner-current',
+          acceptedFriendUserIds: <String>{'runner-friend'},
+        ),
+      );
+
+      expect(feed.posts.map((post) => post.authorUserId), [
+        'runner-current',
+        'runner-friend',
+      ]);
     });
 
     test('repository interfaces expose only approved methods', () {
@@ -72,6 +93,7 @@ void main() {
               'leaderboard_repository.dart',
           declarations: <String>[
             'Future<LeaderboardReadModel> loadLeaderboard();',
+            'Future<LeaderboardReadModel> loadRegion({required String regionId});',
           ],
         ),
         _RepositoryContract(
@@ -172,6 +194,28 @@ void main() {
   });
 
   group('Static repositories', () {
+    test(
+      'Feed repository returns posts visible to the current user or friends',
+      () async {
+        const viewerContext = FeedViewerContext(
+          currentUserId: 'runner-current',
+          acceptedFriendUserIds: <String>{'runner-friend'},
+        );
+
+        final feed = await StaticFeedRepository().loadFeed(viewerContext);
+        final visibleAuthorIds = feed.posts
+            .map((post) => post.authorUserId)
+            .toSet();
+
+        expect(visibleAuthorIds, contains('runner-current'));
+        expect(visibleAuthorIds, contains('runner-friend'));
+        expect(
+          visibleAuthorIds,
+          everyElement(isIn(<String>{'runner-current', 'runner-friend'})),
+        );
+      },
+    );
+
     test('return demo-preserving profile values', () async {
       final repository = StaticUserProfileRepository();
 

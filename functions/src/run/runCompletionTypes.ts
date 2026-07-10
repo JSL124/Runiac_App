@@ -43,7 +43,7 @@ export type CompleteRunIds = {
 
 export type ProgressionDisplay = {
   readonly xpDelta: number;
-  readonly countsTowardLeaderboard: false;
+  readonly countsTowardLeaderboard: boolean;
   readonly status: "awarded" | "not_awarded" | "deferred";
   readonly reason:
     | "run_completion_xp_awarded"

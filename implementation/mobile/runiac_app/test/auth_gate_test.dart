@@ -170,7 +170,7 @@ void main() {
     repository.emitSignedIn();
     await tester.pumpAndSettle();
 
-    expect(find.text('Good to see you'), findsOneWidget);
+    expect(find.byTooltip('Home'), findsOneWidget);
     expect(find.text('Welcome to Runiac'), findsNothing);
     expect(find.text('Step 1 of 16'), findsNothing);
   });
@@ -242,7 +242,7 @@ void main() {
       await tester.pump();
 
       expect(profileRepository.loadCalls, 2);
-      expect(find.text('Good to see you'), findsOneWidget);
+      expect(find.byTooltip('Home'), findsOneWidget);
       expect(
         find.byKey(const ValueKey('auth_welcome_runiac_logo')),
         findsNothing,
@@ -254,7 +254,7 @@ void main() {
 
       expect(authRepository.signOutCalls, 0);
       expect(authRepository.currentUser?.uid, 'test-auth-user-2');
-      expect(find.text('Good to see you'), findsOneWidget);
+      expect(find.byTooltip('Home'), findsOneWidget);
       expect(
         find.byKey(const ValueKey('auth_welcome_runiac_logo')),
         findsNothing,
@@ -386,7 +386,7 @@ void main() {
     repository.emitSignedIn();
     await tester.pumpAndSettle();
 
-    expect(find.text('Good to see you'), findsOneWidget);
+    expect(find.byTooltip('Home'), findsOneWidget);
 
     await tester.tap(find.bySemanticsLabel('Profile'));
     await tester.pumpAndSettle();
@@ -449,7 +449,7 @@ void main() {
     await tapVisibleText(tester, 'Sign in');
 
     expect(repository.signInCalls, 1);
-    expect(find.text('Good to see you'), findsOneWidget);
+    expect(find.byTooltip('Home'), findsOneWidget);
     expect(find.text('Welcome back'), findsNothing);
   });
 

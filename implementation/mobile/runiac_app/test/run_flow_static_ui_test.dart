@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runiac_app/app.dart';
 import 'package:runiac_app/core/theme/runiac_colors.dart';
+import 'package:runiac_app/features/feed/presentation/current_session_feed.dart';
 import 'package:runiac_app/features/run/domain/models/advanced_analysis_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/cadence_graph_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/coaching_summary_snapshot.dart';
@@ -887,9 +888,11 @@ void main() {
     await tester.tap(find.widgetWithText(OutlinedButton, 'Share Route'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Route sharing will be available soon.'), findsOneWidget);
+    expect(find.text('Share route to Feed'), findsOneWidget);
+    expect(find.text('Post to Feed'), findsOneWidget);
+    expect(find.text('Route sharing will be available soon.'), findsNothing);
 
-    await tester.pump(const Duration(seconds: 5));
+    await tester.tap(find.widgetWithText(FilledButton, 'Post to Feed'));
     await tester.pumpAndSettle();
     await tester.ensureVisible(
       find.widgetWithText(FilledButton, 'View XP Update'),
@@ -901,6 +904,62 @@ void main() {
     expect(find.text('Nice work, Jinseo!'), findsOneWidget);
     expect(find.text('+120 XP'), findsOneWidget);
     expect(find.text('Earned from this run'), findsNothing);
+  });
+
+  testWidgets('Share Route opens a Feed confirmation preview', (
+    WidgetTester tester,
+  ) async {
+    _useTallSummarySurface(tester);
+    final feedStore = CurrentSessionFeedStore();
+    addTearDown(feedStore.dispose);
+    await tester.pumpWidget(
+      CurrentSessionFeedScope(
+        store: feedStore,
+        child: const MaterialApp(home: ViewSummaryScreen()),
+      ),
+    );
+
+    await tester.ensureVisible(
+      find.widgetWithText(OutlinedButton, 'Share Route'),
+    );
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Share Route'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Share route to Feed'), findsOneWidget);
+    expect(find.text('Post to Feed'), findsOneWidget);
+    expect(find.text('East Coast Park Loop'), findsOneWidget);
+    expect(find.text('4.03 km'), findsOneWidget);
+    expect(find.text('6’30” / km'), findsOneWidget);
+    expect(find.text('30:15'), findsAtLeastNWidgets(2));
+    expect(find.text('Route sharing will be available soon.'), findsNothing);
+
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Cancel'));
+    await tester.pumpAndSettle();
+    expect(feedStore.sessionPosts, isEmpty);
+
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Share Route'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Post to Feed'));
+    await tester.pumpAndSettle();
+
+    expect(feedStore.sessionPosts, hasLength(1));
+    expect(feedStore.sessionPosts.single.activityTitle, 'Saturday Morning Run');
+    expect(feedStore.sessionPosts.single.routeName, 'East Coast Park Loop');
+
+    await tester.pumpWidget(
+      CurrentSessionFeedScope(
+        store: feedStore,
+        child: const MaterialApp(home: Scaffold(body: CurrentSessionFeed())),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Saturday Morning Run'), findsOneWidget);
+    expect(find.text('East Coast Park Loop'), findsOneWidget);
+    expect(find.text('Today · 7:06 AM'), findsOneWidget);
+    expect(find.text('4.03 km'), findsOneWidget);
+    expect(find.text('6’30” / km'), findsOneWidget);
+    expect(find.text('30:15'), findsOneWidget);
   });
 
   testWidgets('View summary accepts selected static run summary data', (
@@ -3095,23 +3154,23 @@ void main() {
       const RuniacApp(showSplash: false, enableForegroundGps: false),
     );
 
-    await tester.tap(find.byTooltip('Maps'));
+    await tester.tap(find.byTooltip('Feed'));
     await tester.pumpAndSettle();
-    expect(find.text('Shared Routes'), findsOneWidget);
+    expect(find.text('Feed'), findsOneWidget);
 
     await tester.tap(find.byTooltip('Run'));
     await tester.pumpAndSettle();
     expect(find.text('Demo mode'), findsOneWidget);
-    expect(find.text('Maps'), findsNothing);
+    expect(find.text('Feed'), findsNothing);
 
     final handled = await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
 
     expect(handled, isTrue);
     expect(find.text('Demo mode'), findsNothing);
-    expect(find.text('Shared Routes'), findsOneWidget);
+    expect(find.text('Feed'), findsOneWidget);
     expect(find.byTooltip('Home'), findsOneWidget);
-    expect(find.byTooltip('Maps'), findsOneWidget);
+    expect(find.byTooltip('Feed'), findsOneWidget);
     expect(find.byTooltip('Run'), findsOneWidget);
     expect(find.byTooltip('Leaderboard'), findsOneWidget);
     expect(find.byTooltip('You'), findsOneWidget);

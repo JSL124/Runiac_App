@@ -1,23 +1,35 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/runiac_colors.dart';
-import '../data/leaderboard_demo_snapshots.dart';
 
 class LeaderboardTopOverlay extends StatelessWidget {
   const LeaderboardTopOverlay({
     super.key,
     required this.onShowLeagues,
     required this.onShowTips,
+    required this.divisionName,
+    required this.levelRange,
+    required this.assetPath,
   });
 
   final VoidCallback onShowLeagues;
   final VoidCallback onShowTips;
+  final String divisionName;
+  final String levelRange;
+  final String assetPath;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Expanded(child: _LeagueSelector(onTap: onShowLeagues)),
+        Expanded(
+          child: _LeagueSelector(
+            onTap: onShowLeagues,
+            divisionName: divisionName,
+            levelRange: levelRange,
+            assetPath: assetPath,
+          ),
+        ),
         const SizedBox(width: 10),
         _InfoBadge(onTap: onShowTips),
       ],
@@ -26,9 +38,17 @@ class LeaderboardTopOverlay extends StatelessWidget {
 }
 
 class _LeagueSelector extends StatelessWidget {
-  const _LeagueSelector({required this.onTap});
+  const _LeagueSelector({
+    required this.onTap,
+    required this.divisionName,
+    required this.levelRange,
+    required this.assetPath,
+  });
 
   final VoidCallback onTap;
+  final String divisionName;
+  final String levelRange;
+  final String assetPath;
 
   @override
   Widget build(BuildContext context) {
@@ -59,11 +79,16 @@ class _LeagueSelector extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  const LeaderboardLeagueMedalIcon(),
+                  LeaderboardLeagueMedalIcon(
+                    key: const Key('leaderboard_current_league_emblem'),
+                    assetPath: assetPath,
+                    width: 38,
+                    height: 38,
+                  ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      leaderboardLeagueDemoSnapshot.selectedDivision,
+                      divisionName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
@@ -75,7 +100,7 @@ class _LeagueSelector extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    leaderboardLeagueDemoSnapshot.selectedLevelRange,
+                    levelRange,
                     style: const TextStyle(
                       color: RuniacColors.textSecondary,
                       fontSize: 14,
@@ -95,10 +120,12 @@ class _LeagueSelector extends StatelessWidget {
 class LeaderboardLeagueMedalIcon extends StatelessWidget {
   const LeaderboardLeagueMedalIcon({
     super.key,
+    required this.assetPath,
     this.width = 30,
     this.height = 34,
   });
 
+  final String assetPath;
   final double width;
   final double height;
 
@@ -107,7 +134,11 @@ class LeaderboardLeagueMedalIcon extends StatelessWidget {
     return SizedBox(
       width: width,
       height: height,
-      child: CustomPaint(painter: _LeagueMedalPainter()),
+      child: Image.asset(
+        assetPath,
+        fit: BoxFit.contain,
+        filterQuality: FilterQuality.high,
+      ),
     );
   }
 }
@@ -154,33 +185,4 @@ class _InfoBadge extends StatelessWidget {
       ),
     );
   }
-}
-
-class _LeagueMedalPainter extends CustomPainter {
-  const _LeagueMedalPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = const Color(0xFF96999C);
-    final center = Offset(size.width * 0.48, size.height * 0.34);
-    canvas.drawCircle(center, size.width * 0.34, paint);
-
-    final ribbonPath = Path()
-      ..moveTo(size.width * 0.26, size.height * 0.50)
-      ..lineTo(size.width * 0.28, size.height * 0.96)
-      ..lineTo(size.width * 0.48, size.height * 0.78)
-      ..lineTo(size.width * 0.68, size.height * 0.96)
-      ..lineTo(size.width * 0.70, size.height * 0.50)
-      ..quadraticBezierTo(
-        size.width * 0.48,
-        size.height * 0.66,
-        size.width * 0.26,
-        size.height * 0.50,
-      );
-
-    canvas.drawPath(ribbonPath, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

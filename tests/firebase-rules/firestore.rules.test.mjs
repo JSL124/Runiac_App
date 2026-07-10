@@ -29,6 +29,7 @@ import {
   planProgressReadModel,
   profileFields,
   seed,
+  unauthenticatedDb,
 } from './support/firestore_rules_test_support.mjs';
 
 describe('owner-owned client records', () => {
@@ -145,6 +146,71 @@ describe('owner-owned client records', () => {
       setDoc(doc(alice, 'userProfiles/alice'), {
         ...profileFields,
         locationLabel: 'London, United Kingdom',
+      }),
+    );
+  });
+
+  it('allows read-only leaderboard views for signed-in users', async () => {
+    await seed('leaderboardPeriods/monthly_current', {
+      periodType: 'monthly',
+      periodKey: '2026-07',
+      periodLabel: 'July 2026',
+    });
+    await seed('leaderboardSnapshots/monthly_jurong-east_tier_01_2026-07', {
+      periodType: 'monthly',
+      periodKey: '2026-07',
+      regionId: 'jurong-east',
+      divisionKey: 'tier_01',
+      entryCount: 0,
+      topEntries: [],
+    });
+    await seed('leaderboardCurrentViews/alice', {
+      ownerUid: 'alice',
+      snapshotId: 'monthly_jurong-east_tier_01_2026-07',
+      rankId: 'alice_monthly_2026-07',
+    });
+    await seed('leaderboardUserRanks/alice_monthly_2026-07', {
+      ownerUid: 'alice',
+      rankLabel: '#1',
+      score: 120,
+    });
+
+    const alice = dbFor('alice');
+    const bob = dbFor('bob');
+
+    await assertSucceeds(
+      getDoc(doc(alice, 'leaderboardPeriods/monthly_current')),
+    );
+    await assertSucceeds(
+      getDoc(
+        doc(
+          alice,
+          'leaderboardSnapshots/monthly_jurong-east_tier_01_2026-07',
+        ),
+      ),
+    );
+    await assertSucceeds(getDoc(doc(alice, 'leaderboardCurrentViews/alice')));
+    await assertFails(getDoc(doc(bob, 'leaderboardCurrentViews/alice')));
+    await assertSucceeds(
+      getDoc(doc(alice, 'leaderboardUserRanks/alice_monthly_2026-07')),
+    );
+    await assertFails(
+      getDoc(doc(bob, 'leaderboardUserRanks/alice_monthly_2026-07')),
+    );
+    await assertFails(
+      setDoc(doc(alice, 'leaderboardCurrentViews/alice'), {
+        uid: 'alice',
+        snapshotId: 'client-write',
+      }),
+    );
+    await assertFails(
+      setDoc(doc(alice, 'leaderboardAggregationLocks/monthly_2026-07'), {
+        status: 'completed',
+      }),
+    );
+    await assertFails(
+      setDoc(doc(alice, 'leaderboardSeedRuns/test-seed'), {
+        status: 'seeded',
       }),
     );
   });
@@ -1070,5 +1136,40 @@ describe('owner-owned client records', () => {
     await assertFails(updateDoc(delivery, { deliveryState: 'sent' }));
     await assertFails(deleteDoc(deviceToken));
     await assertFails(deleteDoc(delivery));
+  });
+
+  it('denies every client identity all access to server-only daily agent guidance', async () => {
+    const dailyGuidancePath = 'agentGuidanceDaily/alice_2026-07-10';
+    const dailyGuidanceDocument = {
+      ownerUid: 'alice',
+      dayKey: '2026-07-10',
+      attemptCount: 1,
+      cacheState: 'ready',
+    };
+    const malformedClientGuidance = { clientOnly: true };
+
+    await seed(dailyGuidancePath, dailyGuidanceDocument);
+
+    for (const [identity, client] of [
+      ['unauthenticated', unauthenticatedDb()],
+      ['owner', dbFor('alice')],
+      ['cross-owner', dbFor('bob')],
+    ]) {
+      const existingGuidance = doc(client, dailyGuidancePath);
+      const clientCreatedGuidance = doc(
+        client,
+        `agentGuidanceDaily/${identity}-client-created`,
+      );
+      const ownerGuidanceQuery = query(
+        collection(client, 'agentGuidanceDaily'),
+        where('ownerUid', '==', 'alice'),
+      );
+
+      await assertFails(getDoc(existingGuidance));
+      await assertFails(getDocs(ownerGuidanceQuery));
+      await assertFails(setDoc(clientCreatedGuidance, malformedClientGuidance));
+      await assertFails(updateDoc(existingGuidance, { cacheState: 'client-write' }));
+      await assertFails(deleteDoc(existingGuidance));
+    }
   });
 });

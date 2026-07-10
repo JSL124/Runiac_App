@@ -1,0 +1,640 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:runiac_app/app.dart';
+import 'package:runiac_app/core/characters/runner_character.dart';
+import 'package:runiac_app/features/home/domain/guide/home_guide_agent.dart';
+import 'package:runiac_app/features/home/presentation/stage_map/home_stage_background_sequence.dart';
+import 'package:runiac_app/features/home/presentation/stage_map/home_stage_map.dart';
+import 'package:runiac_app/features/home/presentation/stage_map/home_stage_map_model.dart';
+import 'package:runiac_app/features/plan/domain/models/beginner_adaptive_plan_snapshot.dart';
+import 'package:runiac_app/features/plan/domain/services/beginner_adaptive_plan_generator.dart';
+import 'package:runiac_app/features/plan/presentation/current_session_generated_plan.dart';
+
+import 'support/plan_family_test_drafts.dart';
+
+const HomeGuideRequest _guideRequest = HomeGuideRequest(
+  planTitle: 'First 10K Preparation',
+  weekNumber: 1,
+  weekFocus: 'Build a steady habit',
+  dayLabel: 'Mon',
+  workoutTitle: 'Easy Run',
+  durationMinutes: 20,
+  intensityLabel: 'Gentle',
+  description: 'A relaxed run to build your habit.',
+  supportiveNote: 'Keep the pace conversational.',
+);
+
+BeginnerAdaptivePlanSnapshot _plan() {
+  return const BeginnerAdaptivePlanGenerator().generate(
+    planFamilyPerformanceDraft(
+      goal: OnboardingGoal.tenK,
+      style: OnboardingPlanStyle.performanceFocused,
+      days: const [
+        OnboardingPreferredDay.mon,
+        OnboardingPreferredDay.tue,
+        OnboardingPreferredDay.wed,
+        OnboardingPreferredDay.thu,
+      ],
+    ),
+  );
+}
+
+HomeStageMapModel _model(BeginnerAdaptivePlanSnapshot plan) {
+  return buildHomeStageMapModel(
+    plan: plan,
+    completedScheduledWorkoutIds: const <String>{},
+    activeWeekNumber: plan.weeks.first.weekNumber,
+    backgroundSequence: homeStageBackgroundSequence(
+      planId: plan.id,
+      weekCount: plan.weeks.length,
+    ),
+  );
+}
+
+int _assetImageCount(WidgetTester tester, String assetName) {
+  return tester
+      .widgetList<Image>(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is Image &&
+              widget.image is AssetImage &&
+              (widget.image as AssetImage).assetName == assetName,
+        ),
+      )
+      .length;
+}
+
+void main() {
+  test(
+    'Blue guide uses the supplied GIF while resting and walking on Home',
+    () {
+      expect(
+        homeStageGuideAssetPath(
+          character: RunnerCharacter.blue,
+          facing: RunnerCharacterFacing.front,
+        ),
+        kBlueRunnerIdleGifAsset,
+      );
+
+      expect(
+        homeStageGuideAssetPath(
+          character: RunnerCharacter.blue,
+          facing: RunnerCharacterFacing.right,
+        ),
+        kBlueRunnerIdleGifAsset,
+      );
+
+      expect(
+        homeStageGuideAssetPath(
+          character: RunnerCharacter.cap,
+          facing: RunnerCharacterFacing.front,
+        ),
+        'assets/images/characters/cap_runner_front.png',
+      );
+    },
+  );
+
+  test('guide height preserves the selected asset aspect ratio', () {
+    expect(
+      homeStageGuideHeightForWidth(character: RunnerCharacter.blue, width: 193),
+      closeTo(289, 0.0001),
+    );
+    expect(
+      homeStageGuideHeightForWidth(character: RunnerCharacter.cap, width: 350),
+      closeTo(280, 0.0001),
+    );
+  });
+
+  testWidgets('empty state keeps a working header with the streak number', (
+    WidgetTester tester,
+  ) async {
+    var notifications = 0;
+    var profile = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: HomeStageMap(
+            model: null,
+            streakCount: 4,
+            unreadNotificationCount: 2,
+            levelBadgeLabel: 'Lv.3',
+            levelProgressFraction: 0.5,
+            onNotifications: () => notifications++,
+            onProfile: () => profile++,
+            onTapTodayStage: () {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Your journey map is waiting'), findsOneWidget);
+    expect(find.text('4'), findsOneWidget); // streak number only, no "days"
+    expect(find.textContaining('days'), findsNothing);
+    expect(find.bySemanticsLabel('Notifications'), findsOneWidget);
+    expect(find.bySemanticsLabel('Profile'), findsOneWidget);
+
+    await tester.tap(find.bySemanticsLabel('Notifications'));
+    await tester.tap(find.bySemanticsLabel('Profile'));
+    expect(notifications, 1);
+    expect(profile, 1);
+  });
+
+  testWidgets('active plan renders stage stones and a tappable today stage', (
+    WidgetTester tester,
+  ) async {
+    final plan = _plan();
+    final model = _model(plan);
+    var todayTaps = 0;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: HomeStageMap(
+            model: model,
+            streakCount: 0,
+            onNotifications: () {},
+            onProfile: () {},
+            onTapTodayStage: () => todayTaps++,
+          ),
+        ),
+      ),
+    );
+    // Do not settle: today's stage runs a gentle repeating pulse.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(
+      _assetImageCount(
+        tester,
+        'assets/images/home/stages/dashboard_stage_run.png',
+      ),
+      greaterThan(0),
+    );
+    expect(
+      _assetImageCount(
+        tester,
+        'assets/images/home/stages/dashboard_stage_rest.png',
+      ),
+      greaterThan(0),
+    );
+
+    final todayStage = find.bySemanticsLabel("Today's stage");
+    expect(todayStage, findsOneWidget);
+    await tester.tap(todayStage);
+    await tester.pump();
+    expect(todayTaps, 1);
+
+    // At least one weekday caption (e.g. MON) renders near the stones.
+    expect(find.text('MON'), findsWidgets);
+  });
+
+  testWidgets('seven enlarged stones and guide fill one background zigzag', (
+    WidgetTester tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final plan = _plan();
+    final model = _model(plan);
+    final firstWeekNumber = model.sections.first.weekNumber;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: HomeStageMap(
+            model: model,
+            onNotifications: () {},
+            onProfile: () {},
+            onTapTodayStage: () {},
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    final stoneFinders = <Finder>[
+      for (var dayIndex = 0; dayIndex < kHomeStageDaysPerWeek; dayIndex++)
+        find.byKey(
+          ValueKey<String>('homeStageStone-$firstWeekNumber-$dayIndex'),
+        ),
+    ];
+    for (final stoneFinder in stoneFinders) {
+      expect(stoneFinder, findsOneWidget);
+    }
+
+    final stoneSize = tester.getSize(stoneFinders.first);
+    expect(stoneSize.width, inInclusiveRange(92, 108));
+    expect(stoneSize.height, stoneSize.width);
+    for (final stoneFinder in stoneFinders.skip(1)) {
+      expect(tester.getSize(stoneFinder), stoneSize);
+    }
+
+    final centers = [
+      for (final stoneFinder in stoneFinders) tester.getCenter(stoneFinder),
+    ];
+    expect(centers.first.dx, closeTo(centers.last.dx, 1));
+    expect(centers.first.dx - centers[3].dx, greaterThan(80));
+    expect(centers[0].dx, greaterThan(centers[1].dx));
+    expect(centers[1].dx, greaterThan(centers[2].dx));
+    expect(centers[2].dx, greaterThan(centers[3].dx));
+    expect(centers[4].dx, greaterThan(centers[3].dx));
+    expect(centers[5].dx, greaterThan(centers[4].dx));
+    expect(centers[6].dx, greaterThan(centers[5].dx));
+
+    final secondWeekNumber = model.sections[1].weekNumber;
+    final lowerEnd = tester.getCenter(stoneFinders.last);
+    final upperStart = tester.getCenter(
+      find.byKey(ValueKey<String>('homeStageStone-$secondWeekNumber-0')),
+    );
+    expect(lowerEnd.dx, closeTo(upperStart.dx, 1));
+
+    final characterSize = tester.getSize(
+      find.byKey(const ValueKey<String>('homeStageCharacter')),
+    );
+    expect(characterSize.width, greaterThan(stoneSize.width * 1.3));
+    expect(
+      characterSize.height / characterSize.width,
+      closeTo(289 / 193, 0.01),
+    );
+  });
+
+  testWidgets('tapping today stage in the app opens the workout detail', (
+    WidgetTester tester,
+  ) async {
+    final monday = DateTime(2026, 6, 22); // a Monday
+    final plan = _plan().withStartsOnDate(generatedPlanDateLabel(monday));
+    final store = CurrentSessionGeneratedPlanStore();
+    expect(store.setActivePlan(plan), isTrue);
+    addTearDown(store.dispose);
+
+    await tester.pumpWidget(
+      RuniacApp(
+        showSplash: false,
+        enableForegroundGps: false,
+        youProgressToday: monday,
+        currentSessionGeneratedPlanStore: store,
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+
+    final todayStage = find.bySemanticsLabel("Today's stage");
+    expect(todayStage, findsOneWidget);
+
+    await tester.tap(todayStage);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(find.text('Workout detail'), findsOneWidget);
+  });
+
+  group('guide speech bubble', () {
+    const characterTapTarget = ValueKey<String>('homeGuideCharacterTapTarget');
+    const bubbleBody = ValueKey<String>('homeGuideBubbleBody');
+    const bubble = ValueKey<String>('homeGuideBubble');
+
+    testWidgets(
+      'auto-opens summary and cycles tip, progression, then summary once',
+      (WidgetTester tester) async {
+        final plan = _plan();
+        final model = _model(plan);
+        final agent = _ControlledGuideAgent();
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: HomeStageMap(
+                model: model,
+                onNotifications: () {},
+                onProfile: () {},
+                onTapTodayStage: () {},
+                guideAgent: agent,
+                guideRequest: _guideRequest,
+              ),
+            ),
+          ),
+        );
+        await tester.pump();
+        agent.completeNext(_guideBundle());
+        await tester.pump();
+        await tester.pump();
+
+        expect(find.byKey(characterTapTarget), findsOneWidget);
+        expect(find.text('Summary is ready.'), findsOneWidget);
+
+        await tester.tap(find.byKey(bubbleBody));
+        await tester.pump();
+        expect(find.text('Tip is ready.'), findsOneWidget);
+
+        await tester.tap(find.byKey(bubbleBody));
+        await tester.pump();
+        expect(find.text('Progression is ready.'), findsOneWidget);
+
+        await tester.tap(find.byKey(bubbleBody));
+        await tester.pump();
+        expect(find.text('Summary is ready.'), findsOneWidget);
+        expect(agent.invocationCount, 1);
+      },
+    );
+
+    testWidgets('dismissing hides it and character reopens the current tip', (
+      WidgetTester tester,
+    ) async {
+      final plan = _plan();
+      final model = _model(plan);
+      final agent = _ControlledGuideAgent();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: HomeStageMap(
+              model: model,
+              onNotifications: () {},
+              onProfile: () {},
+              onTapTodayStage: () {},
+              guideAgent: agent,
+              guideRequest: _guideRequest,
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      agent.completeNext(_guideBundle());
+      await tester.pump();
+      await tester.pump();
+
+      await tester.tap(find.byKey(bubbleBody));
+      await tester.pump();
+      expect(find.text('Tip is ready.'), findsOneWidget);
+
+      await Scrollable.ensureVisible(
+        tester.element(find.bySemanticsLabel('Close guide message')),
+        alignment: 0.35,
+      );
+      await tester.tap(find.bySemanticsLabel('Close guide message'));
+      await tester.pump();
+
+      expect(find.byKey(bubble), findsNothing);
+
+      await Scrollable.ensureVisible(
+        tester.element(find.byKey(characterTapTarget)),
+        alignment: 0.5,
+      );
+      await tester.tap(find.byKey(characterTapTarget));
+      await tester.pump();
+
+      expect(find.text('Tip is ready.'), findsOneWidget);
+      expect(agent.invocationCount, 1);
+    });
+
+    testWidgets(
+      'resets to summary for a changed stage and suppresses no plan',
+      (WidgetTester tester) async {
+        final plan = _plan();
+        final initialModel = _model(plan);
+        final nextModel = HomeStageMapModel(
+          sections: initialModel.sections,
+          currentWeekIndex: initialModel.currentWeekIndex,
+          todayDayIndex: 2,
+          characterDayIndex: 2,
+          currentStageId: '0:2',
+        );
+        final agent = _ControlledGuideAgent();
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: HomeStageMap(
+                model: initialModel,
+                onNotifications: () {},
+                onProfile: () {},
+                onTapTodayStage: () {},
+                guideAgent: agent,
+                guideRequest: _guideRequest,
+              ),
+            ),
+          ),
+        );
+        await tester.pump();
+        agent.completeNext(_guideBundle());
+        await tester.pump();
+        await tester.pump();
+        await tester.tap(find.byKey(bubbleBody));
+        await tester.pump();
+        expect(find.text('Tip is ready.'), findsOneWidget);
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: HomeStageMap(
+                model: nextModel,
+                onNotifications: () {},
+                onProfile: () {},
+                onTapTodayStage: () {},
+                guideAgent: agent,
+                guideRequest: _guideRequest,
+              ),
+            ),
+          ),
+        );
+        await tester.pump();
+        agent.completeNext(_guideBundle(planSummary: 'New summary is ready.'));
+        await tester.pump();
+        await tester.pump();
+        expect(find.text('New summary is ready.'), findsOneWidget);
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: HomeStageMap(
+                model: null,
+                onNotifications: () {},
+                onProfile: () {},
+                onTapTodayStage: () {},
+                guideAgent: agent,
+                guideRequest: _guideRequest,
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.byKey(characterTapTarget), findsNothing);
+        expect(find.byKey(bubble), findsNothing);
+        expect(agent.invocationCount, 2);
+      },
+    );
+
+    testWidgets('loading disables advance and error shows the fallback', (
+      WidgetTester tester,
+    ) async {
+      final agent = _ControlledGuideAgent();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: HomeStageMap(
+              model: _model(_plan()),
+              onNotifications: () {},
+              onProfile: () {},
+              onTapTodayStage: () {},
+              guideAgent: agent,
+              guideRequest: _guideRequest,
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.text('Preparing your guide...'), findsOneWidget);
+      await tester.tap(find.byKey(bubbleBody));
+      await tester.pump();
+      expect(agent.invocationCount, 1);
+
+      agent.completeNextError(StateError('unavailable'));
+      await tester.pump();
+      await tester.pump();
+      expect(
+        find.text("Let's get moving — you've got this today."),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('renders valid near-limit copy at narrow large-text widths', (
+      WidgetTester tester,
+    ) async {
+      final semantics = tester.ensureSemantics();
+      tester.view
+        ..physicalSize = const Size(320, 844)
+        ..devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final agent = _ControlledGuideAgent();
+
+      await tester.pumpWidget(
+        MediaQuery(
+          data: const MediaQueryData(
+            disableAnimations: true,
+            textScaler: TextScaler.linear(1.3),
+          ),
+          child: MaterialApp(
+            home: Scaffold(
+              body: HomeStageMap(
+                model: _model(_plan()),
+                onNotifications: () {},
+                onProfile: () {},
+                onTapTodayStage: () {},
+                guideAgent: agent,
+                guideRequest: _guideRequest,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      agent.completeNext(_nearLimitGuideBundle());
+      await tester.pump();
+      await tester.pump();
+
+      expect(tester.getSize(find.byKey(bubble)).width, lessThanOrEqualTo(280));
+      expect(find.text(_nearLimitPlanSummary), findsOneWidget);
+      expect(
+        find.bySemanticsLabel('Plan summary. Tap to hear a running tip.'),
+        findsOneWidget,
+      );
+      expect(find.bySemanticsLabel('Close guide message'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+
+      await tester.tap(find.bySemanticsLabel('Close guide message'));
+      await tester.pump();
+      expect(find.byKey(bubble), findsNothing);
+      await Scrollable.ensureVisible(
+        tester.element(find.byKey(characterTapTarget)),
+        alignment: 0.5,
+      );
+      await tester.tap(find.byKey(characterTapTarget));
+      await tester.pump();
+      expect(find.text(_nearLimitPlanSummary), findsOneWidget);
+      expect(agent.invocationCount, 1);
+
+      tester.view.physicalSize = const Size(360, 844);
+      await tester.pump();
+      expect(tester.getSize(find.byKey(bubble)).width, lessThanOrEqualTo(280));
+      expect(find.text(_nearLimitPlanSummary), findsOneWidget);
+      expect(
+        find.bySemanticsLabel('Plan summary. Tap to hear a running tip.'),
+        findsOneWidget,
+      );
+      expect(find.bySemanticsLabel('Close guide message'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      await tester.tap(find.bySemanticsLabel('Close guide message'));
+      await tester.pump();
+      expect(find.byKey(bubble), findsNothing);
+      await tester.pump();
+      expect(tester.binding.hasScheduledFrame, isFalse);
+      semantics.dispose();
+    });
+  });
+}
+
+const String _nearLimitPlanSummary =
+    'Take an easy rhythm, let your breath stay calm, and follow today’s plan with patience. If the pace feels demanding, slow down and finish feeling comfortable.';
+
+HomeGuideBundle _nearLimitGuideBundle() {
+  final bundle = HomeGuideBundle.tryCreate(
+    planSummary: _nearLimitPlanSummary,
+    runningTip: 'Relax your shoulders and keep each step light.',
+    progressionCheckIn: 'A calm baseline gives your next run a strong start.',
+    isFromRemoteAgent: false,
+  );
+  if (bundle == null) {
+    throw StateError('Near-limit fixture must satisfy the display contract.');
+  }
+  return bundle;
+}
+
+HomeGuideBundle _guideBundle({String planSummary = 'Summary is ready.'}) {
+  return HomeGuideBundle(
+    planSummary: HomeGuideMessage(
+      kind: HomeGuideMessageKind.planSummary,
+      text: planSummary,
+    ),
+    runningTip: const HomeGuideMessage(
+      kind: HomeGuideMessageKind.runningTip,
+      text: 'Tip is ready.',
+    ),
+    progressionCheckIn: const HomeGuideMessage(
+      kind: HomeGuideMessageKind.progressionCheckIn,
+      text: 'Progression is ready.',
+    ),
+    isFromRemoteAgent: false,
+  );
+}
+
+class _ControlledGuideAgent implements HomeGuideAgent {
+  final List<Completer<HomeGuideBundle>> _pending =
+      <Completer<HomeGuideBundle>>[];
+
+  int invocationCount = 0;
+
+  @override
+  Future<HomeGuideBundle> explainTodayPlan(HomeGuideRequest request) {
+    invocationCount += 1;
+    final completer = Completer<HomeGuideBundle>();
+    _pending.add(completer);
+    return completer.future;
+  }
+
+  void completeNext(HomeGuideBundle bundle) {
+    _pending.removeAt(0).complete(bundle);
+  }
+
+  void completeNextError(Object error) {
+    _pending.removeAt(0).completeError(error);
+  }
+}

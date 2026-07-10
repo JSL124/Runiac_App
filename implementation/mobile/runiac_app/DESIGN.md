@@ -122,6 +122,25 @@ All spacing derives from a base of 4px.
 - **Accessibility**: profile trigger keeps the `Profile` semantic action, and the visual badge exposes the level label as supportive profile context.
 - **Boundary**: level and progress are read-only display values. The Flutter client must not calculate or write trusted XP, level, rank, streak, or leaderboard progression.
 
+### Home Stage Map
+
+- **Structure**: one full-width illustrated background per plan week with exactly seven stage stones, a weekday caption per real weekday slot, and one guide character attached to the active stone.
+- **Layout**: each complete background draws one seven-stone chevron, alternating `<`, `>`, `<` as backgrounds stack. Every chevron starts and ends at the horizontal centre so the path is continuous across background seams. Vertical intervals stay uniform, and the bottom/first background reserves at least one bottom-navigation-height of visual clearance beneath the lowest stone caption.
+- **Sizing**: stone diameter is responsive within a 92–108px mobile range. The guide character is approximately 1.3 times the stone width so both remain legible without blocking adjacent stages.
+- **States**: completed, current, future, run, and rest visuals retain their existing assets and backend-read-only meaning.
+- **Accessibility**: the current stage keeps its semantic button target; weekday captions remain display-only; the character's interactive upper-body target must not steal the stage tap target.
+- **Motion**: current-stage pulse and guide walking behavior keep the existing reduced-motion handling and animate only transform/opacity-compatible properties. The Blue Home guide uses the supplied animated GIF at rest and during plan-to-plan movement; other characters retain their direction-specific PNG sprites.
+- **Boundary**: layout and decoration are display-only. Plan completion and current-stage state remain derived from trusted completed scheduled-workout IDs.
+
+### Home Guide Bubble
+
+- **Structure**: an eligible current stage opens a compact white guide bubble above the character. Once its bundle resolves, it presents the local sequence plan summary, running tip, progression check-in, then returns to the summary. The bubble body advances only after a bundle message resolves; close hides it; the character reopens the current message.
+- **Sizing and layout**: width is the smaller of 280px and viewport width minus 24px, with a 12px horizontal safe inset. The bubble clamps above the character within the available safe area, uses `space3`-adjacent compact padding, and keeps all accepted copy visible rather than truncating it. Three lines is the normal target for the approved short-copy budget, including text scale 1.3.
+- **States**: loading says `Preparing your guide...` and does not advance. An unavailable bundle uses the existing supportive fallback copy. A changed stage/request restarts at the summary; hide/reopen and repeated taps reuse the same in-memory bundle without a new request.
+- **Accessibility**: the bubble body announces message kind and its next action, such as `Plan summary. Tap to hear a running tip.` The close control has a visible 44×44px target and the semantic label `Close guide message`. The character retains its upper-body-only semantic action so the current-stage target remains available.
+- **Motion**: message readability never depends on typing or transition animation. Reduced motion keeps the existing guide/pulse behavior disabled and shows the full resolved bubble copy immediately.
+- **Boundary**: the bubble only renders server/local-agent supplied display copy. Flutter does not calculate progression, activity facts, XP, level, rank, streak, or leaderboard data, and does not persist guide-cycle state.
+
 ## 6. Motion & Interaction
 
 ### Timing

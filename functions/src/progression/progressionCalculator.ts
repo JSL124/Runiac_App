@@ -1,3 +1,5 @@
+import { leaderboardLeagueForLevel } from "./leaderboardLeagues.js";
+
 const baseCompletionXp = 20;
 const xpPerKilometer = 10;
 const xpPerTenActiveMinutes = 5;
@@ -6,21 +8,6 @@ const activityXpCap = 100;
 const dailyXpCap = 200;
 const singaporeUtcOffsetHours = 8;
 const maxLevel = 100;
-
-const divisionDefinitions = [
-  { tier: 1, key: "tier_01", label: "Trailborn League" },
-  { tier: 2, key: "tier_02", label: "Strideforge League" },
-  { tier: 3, key: "tier_03", label: "Pacebreaker League" },
-  { tier: 4, key: "tier_04", label: "Milehunter League" },
-  { tier: 5, key: "tier_05", label: "Endurancer League" },
-  { tier: 6, key: "tier_06", label: "Roadrunner League" },
-  { tier: 7, key: "tier_07", label: "Tier 7 League" },
-  { tier: 8, key: "tier_08", label: "Summitborn League" },
-  { tier: 9, key: "tier_09", label: "Apex Runner League" },
-  { tier: 10, key: "tier_10", label: "Tier 10 League" },
-] as const;
-
-type DivisionDefinition = (typeof divisionDefinitions)[number];
 
 export type ActivityXpInput = {
   readonly distanceMeters: number;
@@ -134,7 +121,7 @@ export function resolveLevelProgression(totalXp: number): LevelProgression {
     }
   }
 
-  const division = divisionForLevel(level);
+  const division = leaderboardLeagueForLevel(level);
   const currentLevelXp = thresholds[level - 1] ?? 0;
   const nextLevelXp = level >= maxLevel ? null : thresholds[level] ?? null;
   const xpToNextLevel = nextLevelXp === null ? null : nextLevelXp - boundedTotalXp;
@@ -201,9 +188,4 @@ function incrementForLevel(level: number): number {
     return 1000;
   }
   return 1200;
-}
-
-function divisionForLevel(level: number): DivisionDefinition {
-  const divisionIndex = Math.min(divisionDefinitions.length - 1, Math.floor((level - 1) / 10));
-  return divisionDefinitions[divisionIndex] ?? divisionDefinitions[0];
 }

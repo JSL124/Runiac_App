@@ -195,7 +195,12 @@ class _LeagueTaxonomyRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       child: Row(
         children: [
-          const LeaderboardLeagueMedalIcon(width: 28, height: 32),
+          LeaderboardLeagueMedalIcon(
+            key: ValueKey<String>('leaderboard_league_emblem_${entry.name}'),
+            assetPath: entry.assetPath,
+            width: 32,
+            height: 32,
+          ),
           const SizedBox(width: 14),
           Expanded(
             child: Text(

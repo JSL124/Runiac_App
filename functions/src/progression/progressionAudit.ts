@@ -85,7 +85,7 @@ export function calculateProgressionAudit(input: {
   return {
     progressionDisplay: {
       xpDelta: capped.xpDelta,
-      countsTowardLeaderboard: false,
+      countsTowardLeaderboard: !isPremium && capped.xpDelta > 0,
       status: capped.xpDelta > 0 ? "awarded" : "not_awarded",
       reason,
       totalXp: nextTotalXp,

@@ -4,6 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/core/contracts/backend_owned_value_contract.dart';
 import 'package:runiac_app/features/account/domain/models/user_profile_read_model.dart';
 import 'package:runiac_app/features/account/domain/models/viewer_access_read_model.dart';
+import 'package:runiac_app/features/feed/data/static_feed_repository.dart';
+import 'package:runiac_app/features/feed/domain/models/feed_display_models.dart';
 import 'package:runiac_app/features/leaderboard/domain/models/leaderboard_read_model.dart';
 import 'package:runiac_app/features/maps/domain/models/shared_routes_read_model.dart';
 import 'package:runiac_app/features/you/domain/models/activity_history_read_model.dart';
@@ -287,6 +289,39 @@ void main() {
   });
 
   group('Firestore base boundary', () {
+    test(
+      'Feed repository returns display-only posts scoped by viewer context',
+      () async {
+        const repository = StaticFeedRepository();
+        final feed = await repository.loadFeed(
+          const FeedViewerContext(
+            currentUserId: 'runner-current',
+            acceptedFriendUserIds: <String>{'runner-friend'},
+          ),
+        );
+
+        expect(feed.posts.map((post) => post.authorUserId), [
+          'runner-current',
+          'runner-friend',
+        ]);
+        for (final post in feed.posts) {
+          expect(post.distanceLabel, isNotEmpty);
+          expect(post.paceLabel, isNotEmpty);
+          expect(post.durationLabel, isNotEmpty);
+          expect(post.routeThumbnail.thumbnailKey, isNotEmpty);
+
+          for (final protectedField
+              in BackendOwnedValueContract.protectedFieldNames) {
+            expect(post.activityTitle ?? '', isNot(protectedField));
+            expect(post.routeName ?? '', isNot(protectedField));
+            expect(post.distanceLabel, isNot(protectedField));
+            expect(post.paceLabel, isNot(protectedField));
+            expect(post.durationLabel, isNot(protectedField));
+          }
+        }
+      },
+    );
+
     test('keeps feature code free of Firestore data access APIs', () {
       const allowedProfileFirestorePaths = <String>{
         'lib/features/account/data/'
@@ -298,6 +333,7 @@ void main() {
         'lib/features/plan/data/firestore_plan_progress_repository.dart',
         'lib/features/notifications/data/'
             'cloud_firestore_notification_inbox_document_store.dart',
+        'lib/features/leaderboard/data/firestore_leaderboard_repository.dart',
         'lib/features/you/data/firestore_activity_history_repository.dart',
         'lib/features/you/data/firestore_user_progress_repository.dart',
       };
@@ -371,6 +407,30 @@ void main() {
       expect(source, isNot(contains('.delete(')));
       expect(source, isNot(contains('runTransaction')));
       expect(source, isNot(contains('writeBatch')));
+    });
+
+    test('limits leaderboard access to backend-owned read projections', () {
+      final source = File(
+        'lib/features/leaderboard/data/firestore_leaderboard_repository.dart',
+      ).readAsStringSync();
+
+      expect(source, contains(r'leaderboardCurrentViews/$uid'));
+      expect(source, contains(r'leaderboardSnapshots/$snapshotId'));
+      expect(source, contains(r'leaderboardUserRanks/$rankId'));
+      expect(source, contains('.get('));
+      expect(source, isNot(contains('.set(')));
+      expect(source, isNot(contains('.update(')));
+      expect(source, isNot(contains('.delete(')));
+      expect(source, isNot(contains('runTransaction')));
+      expect(source, isNot(contains('writeBatch')));
+      expect(source, isNot(contains('.batch(')));
+      expect(source, isNot(contains('FieldValue.')));
+      expect(source, isNot(contains("collection('users')")));
+      expect(source, isNot(contains("collection('leaderboardContributions')")));
+      expect(
+        source,
+        isNot(contains("collection('leaderboardAggregationLocks')")),
+      );
     });
 
     test(
