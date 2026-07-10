@@ -76,6 +76,50 @@ void main() {
     expect(leaderboard.periodEndsAt, DateTime.utc(2026, 7, 31, 16));
   });
 
+  test('shows the current rank when nearby projections omit its entry', () async {
+    final authRepository = FakeRuniacAuthRepository()
+      ..emitSignedIn(uid: 'runner-1');
+    final reader = _FakeLeaderboardDocumentReader(
+      period: const {'periodKey': '2026-07'},
+      currentView: const {
+        'homeRegionId': 'jurong-east',
+        'divisionKey': 'tier_02',
+        'status': 'ranked',
+        'activeSnapshotId': 'monthly_jurong-east_tier_02_2026-07',
+        'activeRankProjectionId': 'runner-1_monthly_2026-07',
+      },
+      profile: const {'locationLabel': 'Jurong East, Singapore'},
+      snapshots: const {
+        'monthly_jurong-east_tier_02_2026-07': {'topEntries': []},
+      },
+      ranks: const {
+        'runner-1_monthly_2026-07': {
+          'rankLabel': '#12',
+          'currentEntry': {
+            'publicAlias': 'Jinseo',
+            'rankLabel': '#12',
+            'scoreLabel': '1,320 XP',
+            'levelLabel': 'Level 18',
+            'divisionLabel': 'Bronze League',
+            'regionLabel': 'Jurong East',
+          },
+          'nearbyEntries': [],
+        },
+      },
+    );
+    final repository = FirestoreLeaderboardRepository(
+      authRepository: authRepository,
+      reader: reader,
+    );
+
+    final leaderboard = await repository.loadLeaderboard();
+
+    expect(leaderboard.currentRunnerRankLabel, '#12');
+    expect(leaderboard.nearbyEntries, hasLength(1));
+    expect(leaderboard.nearbyEntries.single.displayName, 'Jinseo');
+    expect(leaderboard.nearbyEntries.single.isCurrentUser, isTrue);
+  });
+
   test('uses selected profile planning area for an unranked owner', () async {
     final authRepository = FakeRuniacAuthRepository()
       ..emitSignedIn(uid: 'runner-1');
