@@ -4,13 +4,13 @@ import '../../core/theme/runiac_colors.dart';
 import '../account/domain/repositories/user_profile_repository.dart';
 import '../account/domain/repositories/user_profile_persistence_repository.dart';
 import '../auth/domain/runiac_auth_service.dart';
+import '../feed/presentation/current_session_feed.dart';
 import '../home/domain/guide/home_guide_agent.dart';
 import '../home/domain/guide/rule_based_home_guide_agent.dart';
 import '../home/presentation/home_tab.dart';
 import '../leaderboard/data/static_leaderboard_repository.dart';
 import '../leaderboard/domain/repositories/leaderboard_repository.dart';
 import '../leaderboard/presentation/leaderboard_tab.dart';
-import '../maps/presentation/maps_tab.dart';
 import '../notifications/data/method_channel_plan_notification_scheduler.dart';
 import '../notifications/data/shared_preferences_notification_center_settings_repository.dart';
 import '../notifications/domain/models/plan_notification_schedule.dart';
@@ -327,7 +327,7 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
           );
         },
       ),
-      const MapsTab(),
+      const CurrentSessionFeed(),
       const SizedBox.shrink(),
       LeaderboardTab(repository: widget.leaderboardRepository),
       YouTab(
@@ -375,9 +375,9 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
             tooltip: 'Home',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.map),
+            icon: Icon(Icons.dynamic_feed),
             label: '',
-            tooltip: 'Maps',
+            tooltip: 'Feed',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.directions_run),

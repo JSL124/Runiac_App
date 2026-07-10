@@ -158,7 +158,7 @@ void main() {
     expect(find.textContaining('Division'), findsNothing);
     expect(find.text('Your ranked area'), findsOneWidget);
     expect(find.byTooltip('Home'), findsOneWidget);
-    expect(find.byTooltip('Maps'), findsOneWidget);
+    expect(find.byTooltip('Feed'), findsOneWidget);
     expect(find.byTooltip('Run'), findsOneWidget);
     expect(find.byTooltip('Leaderboard'), findsOneWidget);
     expect(find.byTooltip('You'), findsOneWidget);
@@ -378,7 +378,7 @@ void main() {
     );
     expect(find.textContaining('Division'), findsNothing);
     expect(find.byTooltip('Home'), findsOneWidget);
-    expect(find.byTooltip('Maps'), findsOneWidget);
+    expect(find.byTooltip('Feed'), findsOneWidget);
     expect(find.byTooltip('Run'), findsOneWidget);
     expect(find.byTooltip('Leaderboard'), findsOneWidget);
     expect(find.byTooltip('You'), findsOneWidget);
@@ -908,7 +908,7 @@ void main() {
     expect(find.textContaining('to reach'), findsNothing);
     expect(find.textContaining('progress'), findsNothing);
     expect(find.byTooltip('Home'), findsOneWidget);
-    expect(find.byTooltip('Maps'), findsOneWidget);
+    expect(find.byTooltip('Feed'), findsOneWidget);
     expect(find.byTooltip('Run'), findsOneWidget);
     expect(find.byTooltip('Leaderboard'), findsOneWidget);
     expect(find.byTooltip('You'), findsOneWidget);

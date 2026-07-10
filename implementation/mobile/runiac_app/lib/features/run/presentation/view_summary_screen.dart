@@ -16,12 +16,14 @@ import '../domain/models/run_location_sample.dart';
 import '../domain/models/run_route_snapshot.dart';
 import '../domain/models/run_summary_snapshot.dart';
 import '../domain/services/advanced_analysis_snapshot_builder.dart';
+import '../../feed/presentation/current_session_feed.dart';
 import '../../you/presentation/current_session_activity_history.dart';
 import 'run_repository_scope.dart';
 import 'data/run_completion_demo_snapshots.dart';
 import 'widgets/completed_route_map_surface.dart';
 import 'widgets/advanced_analysis/advanced_analysis_splits_table.dart';
 import 'widgets/share_achievement_sheet.dart';
+import 'widgets/share_route_to_feed_sheet.dart';
 import 'xp_update_screen.dart';
 
 const _rBlue = Color(0xFF2F51C8);
@@ -80,6 +82,31 @@ class ViewSummaryScreen extends StatelessWidget {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void _showShareRouteToFeed(BuildContext context, RunSummarySnapshot summary) {
+    final feedStore = CurrentSessionFeedScope.maybeRead(context);
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.48),
+      builder: (sheetContext) => ShareRouteToFeedSheet(
+        summary: summary,
+        onCancel: () => Navigator.of(sheetContext).pop(),
+        onConfirm: () {
+          if (feedStore == null) {
+            Navigator.of(sheetContext).pop();
+            _showSoonMessage(context, 'Feed sharing is unavailable.');
+            return;
+          }
+          feedStore.shareRunSummary(summary);
+          Navigator.of(sheetContext).pop();
+          _showSoonMessage(context, 'Route shared to Feed.');
+        },
+      ),
+    );
   }
 
   Future<void> _goHomeFromSummary(
@@ -264,10 +291,7 @@ class ViewSummaryScreen extends StatelessWidget {
                   showXpUpdateAction: showXpUpdateAction,
                   showLowDataSaveAction: showLowDataSaveAction,
                   onShareRoute: () {
-                    _showSoonMessage(
-                      context,
-                      'Route sharing will be available soon.',
-                    );
+                    _showShareRouteToFeed(context, displayedSummary);
                   },
                   onXpUpdate: () {
                     Navigator.of(context).push(

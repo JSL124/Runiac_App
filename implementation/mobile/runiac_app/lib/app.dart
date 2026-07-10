@@ -15,6 +15,7 @@ import 'features/auth/data/non_production_auth_repository.dart';
 import 'features/auth/domain/runiac_auth_service.dart';
 import 'features/auth/presentation/runiac_auth_gate.dart';
 import 'features/auth/presentation/runiac_profile_setup_gate.dart';
+import 'features/feed/presentation/current_session_feed.dart';
 import 'features/home/domain/guide/home_guide_agent.dart';
 import 'features/home/domain/guide/rule_based_home_guide_agent.dart';
 import 'features/onboarding/domain/models/local_onboarding_draft.dart';
@@ -78,6 +79,7 @@ class RuniacApp extends StatefulWidget {
     this.activeRunSessionCoordinator,
     this.initialRunOpenIntent,
     this.currentSessionActivityHistoryStore,
+    this.currentSessionFeedStore,
     this.currentSessionGeneratedPlanStore,
     this.initialPersonalProfileDraft,
     this.onOnboardingCompleted,
@@ -107,6 +109,7 @@ class RuniacApp extends StatefulWidget {
   final ActiveRunSessionCoordinator? activeRunSessionCoordinator;
   final RunOpenIntent? initialRunOpenIntent;
   final CurrentSessionActivityHistoryStore? currentSessionActivityHistoryStore;
+  final CurrentSessionFeedStore? currentSessionFeedStore;
   final CurrentSessionGeneratedPlanStore? currentSessionGeneratedPlanStore;
   final PersonalProfileDraft? initialPersonalProfileDraft;
   final ValueChanged<LocalOnboardingDraft>? onOnboardingCompleted;
@@ -119,6 +122,8 @@ class RuniacApp extends StatefulWidget {
 class _RuniacAppState extends State<RuniacApp> {
   late final CurrentSessionActivityHistoryStore _activityHistoryStore;
   late final bool _ownsActivityHistoryStore;
+  late final CurrentSessionFeedStore _feedStore;
+  late final bool _ownsFeedStore;
   late final CurrentSessionGeneratedPlanStore _generatedPlanStore;
   late final bool _ownsGeneratedPlanStore;
   RuniacAuthCompletion? _authCompletion;
@@ -150,6 +155,13 @@ class _RuniacAppState extends State<RuniacApp> {
           onRemoteRunSynced: _refreshUserProgressAfterRunSync,
         );
     final initialOwnerUid = widget.authRepository.currentUser?.uid;
+    _ownsFeedStore = widget.currentSessionFeedStore == null;
+    _feedStore =
+        widget.currentSessionFeedStore ??
+        CurrentSessionFeedStore(ownerUid: initialOwnerUid);
+    if (!_ownsFeedStore) {
+      _feedStore.syncOwner(initialOwnerUid);
+    }
     if (initialOwnerUid != null) {
       unawaited(_restoreAndSyncPendingRuns(ownerUid: initialOwnerUid));
     }
@@ -197,7 +209,9 @@ class _RuniacAppState extends State<RuniacApp> {
         oldWidget.profileRepository != widget.profileRepository) {
       _authCompletion = null;
       _personalProfileDraft = widget.initialPersonalProfileDraft;
-      _scheduleActivityHistoryOwnerSync(widget.authRepository.currentUser?.uid);
+      final nextOwnerUid = widget.authRepository.currentUser?.uid;
+      _scheduleActivityHistoryOwnerSync(nextOwnerUid);
+      _feedStore.syncOwner(nextOwnerUid);
     }
     if (oldWidget.planProgressRepository != widget.planProgressRepository) {
       final ownerUid = _generatedPlanOwnerUid;
@@ -226,6 +240,9 @@ class _RuniacAppState extends State<RuniacApp> {
     if (_ownsActivityHistoryStore) {
       _activityHistoryStore.dispose();
     }
+    if (_ownsFeedStore) {
+      _feedStore.dispose();
+    }
     if (_ownsGeneratedPlanStore) {
       _generatedPlanStore.dispose();
     }
@@ -237,61 +254,65 @@ class _RuniacAppState extends State<RuniacApp> {
 
   @override
   Widget build(BuildContext context) {
-    return SelectedRunnerCharacterScope(
-      store: _selectedCharacterStore,
-      child: CurrentSessionActivityHistoryScope(
-      store: _activityHistoryStore,
-      child: CurrentSessionGeneratedPlanScope(
-        store: _generatedPlanStore,
-        child: RunRepositoryScope(
-          repository: widget.runRepository,
-          child: MaterialApp(
-            debugShowCheckedModeBanner: false,
-            title: 'Runiac',
-            theme: buildRuniacTheme(),
-            home: RuniacStartupGate(
-              showSplash: widget.showSplash,
-              splashDuration: widget.splashDuration,
-              child: RuniacAuthGate(
-                authRepository: widget.authRepository,
-                showAuth: widget.showAuth,
-                onAuthenticated: (completion) {
-                  setState(() {
-                    _authCompletion = completion;
-                    _authStateError = null;
-                    _showMissingProfileSignupPrompt = false;
-                  });
-                  _startPushNotificationsForCurrentUser();
-                  unawaited(
-                    _restoreSelectedCharacter(
-                      widget.authRepository.currentUser?.uid,
-                    ),
-                  );
-                },
-                onAuthStateChanged: (user) {
-                  if (user == null) {
-                    unawaited(_cancelPushNotificationSubscription());
-                    unawaited(
-                      widget.notificationRegistrationService
-                          ?.unregisterCurrentDevice(),
-                    );
-                  }
-                  _scheduleActivityHistoryOwnerSync(user?.uid);
-                  _clearGeneratedPlanForAuthChange(user?.uid);
-                  unawaited(_restoreSelectedCharacter(user?.uid));
-                },
-                recoveryPrompt: _showMissingProfileSignupPrompt
-                    ? const RuniacAuthRecoveryPrompt.signup(
-                        message:
-                            'No Runiac account setup exists for this account. Sign up to create your profile and start onboarding.',
-                      )
-                    : null,
-                childBuilder: (_) => _buildPostAuthFlow(),
+    return CurrentSessionFeedScope(
+      store: _feedStore,
+      child: SelectedRunnerCharacterScope(
+        store: _selectedCharacterStore,
+        child: CurrentSessionActivityHistoryScope(
+          store: _activityHistoryStore,
+          child: CurrentSessionGeneratedPlanScope(
+            store: _generatedPlanStore,
+            child: RunRepositoryScope(
+              repository: widget.runRepository,
+              child: MaterialApp(
+                debugShowCheckedModeBanner: false,
+                title: 'Runiac',
+                theme: buildRuniacTheme(),
+                home: RuniacStartupGate(
+                  showSplash: widget.showSplash,
+                  splashDuration: widget.splashDuration,
+                  child: RuniacAuthGate(
+                    authRepository: widget.authRepository,
+                    showAuth: widget.showAuth,
+                    onAuthenticated: (completion) {
+                      setState(() {
+                        _authCompletion = completion;
+                        _authStateError = null;
+                        _showMissingProfileSignupPrompt = false;
+                      });
+                      _startPushNotificationsForCurrentUser();
+                      unawaited(
+                        _restoreSelectedCharacter(
+                          widget.authRepository.currentUser?.uid,
+                        ),
+                      );
+                    },
+                    onAuthStateChanged: (user) {
+                      if (user == null) {
+                        unawaited(_cancelPushNotificationSubscription());
+                        unawaited(
+                          widget.notificationRegistrationService
+                              ?.unregisterCurrentDevice(),
+                        );
+                      }
+                      _scheduleActivityHistoryOwnerSync(user?.uid);
+                      _feedStore.syncOwner(user?.uid);
+                      _clearGeneratedPlanForAuthChange(user?.uid);
+                      unawaited(_restoreSelectedCharacter(user?.uid));
+                    },
+                    recoveryPrompt: _showMissingProfileSignupPrompt
+                        ? const RuniacAuthRecoveryPrompt.signup(
+                            message:
+                                'No Runiac account setup exists for this account. Sign up to create your profile and start onboarding.',
+                          )
+                        : null,
+                    childBuilder: (_) => _buildPostAuthFlow(),
+                  ),
+                ),
               ),
             ),
           ),
         ),
-      ),
       ),
     );
   }
@@ -501,25 +522,25 @@ class _RuniacAppState extends State<RuniacApp> {
         showOnboarding: _shouldShowOnboarding,
         onCompletedDraft: _completeOnboarding,
         child: RuniacShell(
-        authRepository: widget.authRepository,
-        activityHistoryRepository: widget.activityHistoryRepository,
-        userProgressRepository: widget.userProgressRepository,
-        leaderboardRepository: widget.leaderboardRepository,
-        profileRepository: widget.profileRepository,
-        profilePersistenceRepository: widget.profilePersistenceRepository,
-        generatedPlanPersistenceRepository:
-            widget.generatedPlanPersistenceRepository,
-        notificationInboxRepository: widget.notificationInboxRepository,
-        planProgress: _planProgress,
-        adaptivePlanEstimate: _adaptivePlanEstimate,
-        homeGuideAgent: widget.homeGuideAgent,
-        enableForegroundGps: widget.enableForegroundGps,
-        activeRunSessionCoordinator: widget.activeRunSessionCoordinator,
-        initialRunOpenIntent: widget.initialRunOpenIntent,
-        youProgressToday: widget.youProgressToday,
-        enableLocalPlanNotifications:
-            defaultTargetPlatform == TargetPlatform.iOS,
-      ),
+          authRepository: widget.authRepository,
+          activityHistoryRepository: widget.activityHistoryRepository,
+          userProgressRepository: widget.userProgressRepository,
+          leaderboardRepository: widget.leaderboardRepository,
+          profileRepository: widget.profileRepository,
+          profilePersistenceRepository: widget.profilePersistenceRepository,
+          generatedPlanPersistenceRepository:
+              widget.generatedPlanPersistenceRepository,
+          notificationInboxRepository: widget.notificationInboxRepository,
+          planProgress: _planProgress,
+          adaptivePlanEstimate: _adaptivePlanEstimate,
+          homeGuideAgent: widget.homeGuideAgent,
+          enableForegroundGps: widget.enableForegroundGps,
+          activeRunSessionCoordinator: widget.activeRunSessionCoordinator,
+          initialRunOpenIntent: widget.initialRunOpenIntent,
+          youProgressToday: widget.youProgressToday,
+          enableLocalPlanNotifications:
+              defaultTargetPlatform == TargetPlatform.iOS,
+        ),
       ),
     );
   }

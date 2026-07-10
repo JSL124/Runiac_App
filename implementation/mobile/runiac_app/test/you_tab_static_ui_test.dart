@@ -2260,7 +2260,7 @@ void main() {
       expect(find.text('All months'), findsOneWidget);
       expect(find.text('Showing all activities'), findsOneWidget);
 
-      for (final label in const ['Home', 'Maps', 'Run', 'Leaderboard', 'You']) {
+      for (final label in const ['Home', 'Feed', 'Run', 'Leaderboard', 'You']) {
         expect(find.byTooltip(label), findsOneWidget);
       }
     },
@@ -4008,7 +4008,7 @@ void main() {
       expect(find.text('Current Phase'), findsOneWidget);
       expect(find.text('Base Endurance'), findsWidgets);
       expect(find.byTooltip('Home'), findsOneWidget);
-      expect(find.byTooltip('Maps'), findsOneWidget);
+      expect(find.byTooltip('Feed'), findsOneWidget);
       expect(find.byTooltip('Run'), findsOneWidget);
       expect(find.byTooltip('Leaderboard'), findsOneWidget);
       expect(find.byTooltip('You'), findsOneWidget);
@@ -4125,7 +4125,7 @@ void main() {
     await _openYouTab(tester);
 
     expect(find.byTooltip('Home'), findsOneWidget);
-    expect(find.byTooltip('Maps'), findsOneWidget);
+    expect(find.byTooltip('Feed'), findsOneWidget);
     expect(find.byTooltip('Run'), findsOneWidget);
     expect(find.byTooltip('Leaderboard'), findsOneWidget);
     expect(find.byTooltip('You'), findsOneWidget);
