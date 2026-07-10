@@ -209,7 +209,8 @@ void main() {
   });
 
   testWidgets(
-    'guide fits its stone and starts at the nearest valid Home-map scroll position',
+    'guide scales to its stone and starts at the nearest valid Home-map '
+    'scroll position',
     (WidgetTester tester) async {
       tester.view.physicalSize = const Size(390, 844);
       tester.view.devicePixelRatio = 1;
@@ -275,8 +276,10 @@ void main() {
       final characterSize = tester.getSize(
         find.byKey(const ValueKey<String>('homeStageCharacter')),
       );
-      expect(characterSize.width, closeTo(stoneSize.width * 0.62, 0.1));
-      expect(characterSize.height, lessThanOrEqualTo(stoneSize.height));
+      expect(characterSize.width, closeTo(stoneSize.width * 0.86, 0.1));
+      // Feet-anchored standing pose: the body rises above the stone, so the
+      // sprite is taller than the stone while staying narrower than it.
+      expect(characterSize.height, greaterThan(stoneSize.height));
       expect(
         characterSize.height / characterSize.width,
         closeTo(289 / 193, 0.01),
@@ -294,59 +297,64 @@ void main() {
     },
   );
 
-  testWidgets(
-    'guide character renders anchored on top of its current stage stone',
-    (WidgetTester tester) async {
-      tester.view.physicalSize = const Size(390, 844);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
+  testWidgets('guide character stands on top of its current stage stone', (
+    WidgetTester tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
 
-      final plan = _plan();
-      final model = _model(plan);
-      final firstWeekNumber = model.sections.first.weekNumber;
+    final plan = _plan();
+    final model = _model(plan);
+    final firstWeekNumber = model.sections.first.weekNumber;
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: HomeStageMap(
-              model: model,
-              onNotifications: () {},
-              onProfile: () {},
-              onTapTodayStage: () {},
-            ),
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: HomeStageMap(
+            model: model,
+            onNotifications: () {},
+            onProfile: () {},
+            onTapTodayStage: () {},
           ),
         ),
-      );
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
-      await tester.pump();
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump();
 
-      final currentStoneFinder = find.byKey(
-        ValueKey<String>(
-          'homeStageStone-$firstWeekNumber-${model.characterDayIndex}',
-        ),
-      );
-      final characterFinder = find.byKey(
-        const ValueKey<String>('homeStageCharacter'),
-      );
+    final currentStoneFinder = find.byKey(
+      ValueKey<String>(
+        'homeStageStone-$firstWeekNumber-${model.characterDayIndex}',
+      ),
+    );
+    final characterFinder = find.byKey(
+      const ValueKey<String>('homeStageCharacter'),
+    );
 
-      final stoneCenter = tester.getCenter(currentStoneFinder);
-      final characterCenter = tester.getCenter(characterFinder);
-      // The character is centered on its stage stone (standing on it), not
-      // offset to one side or floating above/below it.
-      expect(characterCenter.dx, closeTo(stoneCenter.dx, 0.5));
-      expect(characterCenter.dy, closeTo(stoneCenter.dy, 0.5));
+    final stoneRect = tester.getRect(currentStoneFinder);
+    final characterRect = tester.getRect(characterFinder);
 
-      final stoneRect = tester.getRect(currentStoneFinder);
-      final characterRect = tester.getRect(characterFinder);
-      // The character's footprint stays within the stone's footprint on both
-      // axes so it visually reads as standing on the stone asset.
-      expect(characterRect.width, lessThanOrEqualTo(stoneRect.width));
-      expect(characterRect.left, greaterThanOrEqualTo(stoneRect.left));
-      expect(characterRect.right, lessThanOrEqualTo(stoneRect.right));
-    },
-  );
+    // The character stands centred on its stage stone horizontally, inside
+    // the stone's footprint so it never blocks adjacent stages.
+    expect(characterRect.center.dx, closeTo(stoneRect.center.dx, 0.5));
+    expect(characterRect.width, lessThanOrEqualTo(stoneRect.width));
+
+    // Feet-anchored: the sprite bottom, minus the shared transparent foot
+    // inset (2% of sprite height), rests on the stone's standing surface —
+    // 46% of the stone's height down from its top edge (the visible face
+    // of the perspective plate).
+    final expectedFootY = stoneRect.top + stoneRect.height * 0.46;
+    final footY = characterRect.bottom - characterRect.height * 0.02;
+    expect(footY, closeTo(expectedFootY, 1.0));
+
+    // The body rises above the stone, and the feet stay above the stone's
+    // bottom edge so the plate remains visible beneath the character.
+    expect(characterRect.top, lessThan(stoneRect.top));
+    expect(characterRect.bottom, lessThan(stoneRect.bottom));
+  });
 
   testWidgets(
     'an early current stage clamps the landing scroll instead of forcing the '
@@ -396,10 +404,7 @@ void main() {
       );
       // Because the scroll was clamped, the character does not land exactly
       // at the one-third mark; it rests further down the viewport instead.
-      expect(
-        characterCenter.dy,
-        greaterThan(homeMapSize.height / 3 + 20),
-      );
+      expect(characterCenter.dy, greaterThan(homeMapSize.height / 3 + 20));
     },
   );
 
@@ -442,11 +447,25 @@ void main() {
         lessThan(scrollable.position.maxScrollExtent - 1.0),
       );
 
+      // The landing scroll centres the character's current stage node at
+      // one-third of the viewport height.
       final homeMapSize = tester.getSize(find.byType(HomeStageMap));
-      final characterCenter = tester.getCenter(
+      final middleWeekNumber = plan.weeks[plan.weeks.length ~/ 2].weekNumber;
+      final stoneRect = tester.getRect(
+        find.byKey(
+          ValueKey<String>(
+            'homeStageStone-$middleWeekNumber-${model.characterDayIndex}',
+          ),
+        ),
+      );
+      expect(stoneRect.center.dy, closeTo(homeMapSize.height / 3, 2.0));
+
+      // The character stands on that stone, feet within its vertical span.
+      final characterRect = tester.getRect(
         find.byKey(const ValueKey<String>('homeStageCharacter')),
       );
-      expect(characterCenter.dy, closeTo(homeMapSize.height / 3, 2.0));
+      expect(characterRect.bottom, greaterThan(stoneRect.top));
+      expect(characterRect.bottom, lessThan(stoneRect.bottom));
     },
   );
 

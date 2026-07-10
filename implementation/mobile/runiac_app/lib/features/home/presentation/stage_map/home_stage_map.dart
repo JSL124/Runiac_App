@@ -17,11 +17,17 @@ const double _kStageStoneWidthFraction = 0.255;
 const double _kCharacterToStoneScale = 0.86;
 
 /// Where the guide's feet rest on a stage stone, as a fraction of the stone's
-/// height measured down from the stone's top edge.
+/// height measured down from the stone's top edge. The stones are drawn as
+/// perspective plates whose visible standing surface sits near the middle of
+/// the asset, so slightly above centre keeps the plate's front face visible
+/// beneath the feet.
 const double _kCharacterFootAnchorStoneHeightFraction = 0.46;
 
 /// Transparent padding below the feet inside the character sprites, as a
-/// fraction of the sprite's rendered height.
+/// fraction of the sprite's rendered height. Every bundled character asset
+/// carries a small (up to ~3.6% of height) band of fully transparent rows
+/// under the feet, so one shared allowance keeps the bottom-anchored feet on
+/// the standing surface without per-asset pixel offsets.
 const double _kCharacterFootInsetFraction = 0.02;
 const String _kEmptyStateBackground =
     'assets/images/home/backgrounds/bg_gardens_by_the_bay.webp';
@@ -213,6 +219,7 @@ class _HomeStageMapState extends State<HomeStageMap>
       cycle.show();
     }
   }
+
   void _dismissGuideBubble() {
     _guideCycle?.hide();
   }
@@ -431,6 +438,12 @@ class _HomeStageMapState extends State<HomeStageMap>
 
   /// Top edge of the character sprite when its feet stand on the stone (or
   /// walk-path point) centred at [anchorCenter].
+  ///
+  /// The character is anchored by its feet — the bottom of the rendered box
+  /// minus the shared transparent foot inset — so any character sprite,
+  /// whatever its height, keeps its feet on the same standing surface. The
+  /// rendered box always matches the sprite's own aspect ratio (see
+  /// [homeStageGuideHeightForWidth]), so the box bottom is the sprite bottom.
   double _characterTopForAnchor(
     Offset anchorCenter,
     RunnerCharacter character,
@@ -633,9 +646,15 @@ class _HomeStageMapState extends State<HomeStageMap>
     final weekIndex = model.currentWeekIndex ?? 0;
     final dayIndex = model.characterDayIndex ?? 0;
     final anchors = homeStageAnchorsForSection(weekIndex);
-    final centerY = _stoneCenter(weekIndex, n, anchors, dayIndex).dy;
+    final anchor = _stoneCenter(weekIndex, n, anchors, dayIndex);
+    final characterCenterY =
+        _characterTopForAnchor(anchor, _selectedCharacter) +
+        _characterHeightFor(_selectedCharacter) / 2;
     final maxScroll = math.max(0.0, total - _viewportHeight);
-    final target = (centerY - _viewportHeight / 3).clamp(0.0, maxScroll);
+    final target = (characterCenterY - _viewportHeight / 3).clamp(
+      0.0,
+      maxScroll,
+    );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && _scrollController.hasClients) {
@@ -672,6 +691,8 @@ class _HomeStageMapState extends State<HomeStageMap>
     final charWidth = _characterWidth;
     final charHeight = _characterHeightFor(character);
     final asset = homeStageGuideAssetPath(character: character, facing: facing);
+    final canTapCharacter =
+        !_walking && widget.guideAgent != null && widget.guideRequest != null;
     return Positioned(
       key: const ValueKey<String>('homeStageCharacter'),
       left: center.dx - charWidth / 2,
@@ -690,6 +711,23 @@ class _HomeStageMapState extends State<HomeStageMap>
                   const SizedBox.shrink(),
             ),
           ),
+          if (canTapCharacter)
+            Positioned(
+              left: 0,
+              right: 0,
+              top: 0,
+              height: charHeight * 0.72,
+              child: Semantics(
+                button: true,
+                label: '${character.displayName} guide',
+                child: GestureDetector(
+                  key: const ValueKey<String>('homeGuideCharacterTapTarget'),
+                  behavior: HitTestBehavior.opaque,
+                  onTap: _toggleGuideBubble,
+                  child: const SizedBox.expand(),
+                ),
+              ),
+            ),
         ],
       ),
     );
