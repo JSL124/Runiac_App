@@ -15,6 +15,9 @@ class RuniacLevelProfileBadge extends StatelessWidget {
     this.badgeHorizontalPadding = 13,
     this.badgeFontSize = 13,
     this.ringStrokeWidth,
+    this.discColor,
+    this.discBorderColor,
+    this.initialsColor,
     super.key,
   });
 
@@ -27,6 +30,9 @@ class RuniacLevelProfileBadge extends StatelessWidget {
   final double badgeHorizontalPadding;
   final double badgeFontSize;
   final double? ringStrokeWidth;
+  final Color? discColor;
+  final Color? discBorderColor;
+  final Color? initialsColor;
 
   @override
   Widget build(BuildContext context) {
@@ -58,6 +64,11 @@ class RuniacLevelProfileBadge extends StatelessWidget {
                 initials: initials,
                 size: avatarSize,
                 fontSize: size < 80 ? 24 : 30,
+                fillColor: discColor ??
+                    RuniacColors.primaryBlue.withValues(alpha: 0.06),
+                borderColor: discBorderColor ??
+                    RuniacColors.primaryBlue.withValues(alpha: 0.10),
+                textColor: initialsColor ?? RuniacColors.primaryBlue,
               ),
             ),
             if (levelLabel.isNotEmpty)
@@ -83,11 +94,17 @@ class _ProfileInitialsDisc extends StatelessWidget {
     required this.initials,
     required this.size,
     required this.fontSize,
+    required this.fillColor,
+    required this.borderColor,
+    required this.textColor,
   });
 
   final String initials;
   final double size;
   final double fontSize;
+  final Color fillColor;
+  final Color borderColor;
+  final Color textColor;
 
   @override
   Widget build(BuildContext context) {
@@ -96,19 +113,16 @@ class _ProfileInitialsDisc extends StatelessWidget {
       height: size,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: RuniacColors.primaryBlue.withValues(alpha: 0.06),
+        color: fillColor,
         shape: BoxShape.circle,
-        border: Border.all(
-          color: RuniacColors.primaryBlue.withValues(alpha: 0.10),
-          width: 2,
-        ),
+        border: Border.all(color: borderColor, width: 2),
       ),
       child: Text(
         _initialLabel(initials),
         maxLines: 1,
         overflow: TextOverflow.clip,
         style: TextStyle(
-          color: RuniacColors.primaryBlue,
+          color: textColor,
           fontSize: fontSize,
           fontWeight: FontWeight.w900,
           height: 1,
