@@ -53,6 +53,23 @@ HomeStageMapModel _model(BeginnerAdaptivePlanSnapshot plan) {
   );
 }
 
+/// Same generated plan, but with the active/current stage moved to a middle
+/// week (not the plan's first or last), so the current stage sits far enough
+/// from both scroll extremes for the one-third landing target to be reachable
+/// without clamping.
+HomeStageMapModel _modelAtMiddleWeek(BeginnerAdaptivePlanSnapshot plan) {
+  final middleWeekNumber = plan.weeks[plan.weeks.length ~/ 2].weekNumber;
+  return buildHomeStageMapModel(
+    plan: plan,
+    completedScheduledWorkoutIds: const <String>{},
+    activeWeekNumber: middleWeekNumber,
+    backgroundSequence: homeStageBackgroundSequence(
+      planId: plan.id,
+      weekCount: plan.weeks.length,
+    ),
+  );
+}
+
 int _assetImageCount(WidgetTester tester, String assetName) {
   return tester
       .widgetList<Image>(
@@ -191,78 +208,247 @@ void main() {
     expect(find.text('MON'), findsWidgets);
   });
 
-  testWidgets('seven enlarged stones and guide fill one background zigzag', (
-    WidgetTester tester,
-  ) async {
-    tester.view.physicalSize = const Size(390, 844);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
+  testWidgets(
+    'guide fits its stone and starts at the nearest valid Home-map scroll position',
+    (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
 
-    final plan = _plan();
-    final model = _model(plan);
-    final firstWeekNumber = model.sections.first.weekNumber;
+      final plan = _plan();
+      final model = _model(plan);
+      final firstWeekNumber = model.sections.first.weekNumber;
 
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: HomeStageMap(
-            model: model,
-            onNotifications: () {},
-            onProfile: () {},
-            onTapTodayStage: () {},
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: HomeStageMap(
+              model: model,
+              onNotifications: () {},
+              onProfile: () {},
+              onTapTodayStage: () {},
+            ),
           ),
         ),
-      ),
-    );
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pump();
 
-    final stoneFinders = <Finder>[
-      for (var dayIndex = 0; dayIndex < kHomeStageDaysPerWeek; dayIndex++)
-        find.byKey(
-          ValueKey<String>('homeStageStone-$firstWeekNumber-$dayIndex'),
+      final stoneFinders = <Finder>[
+        for (var dayIndex = 0; dayIndex < kHomeStageDaysPerWeek; dayIndex++)
+          find.byKey(
+            ValueKey<String>('homeStageStone-$firstWeekNumber-$dayIndex'),
+          ),
+      ];
+      for (final stoneFinder in stoneFinders) {
+        expect(stoneFinder, findsOneWidget);
+      }
+
+      final stoneSize = tester.getSize(stoneFinders.first);
+      expect(stoneSize.width, inInclusiveRange(92, 108));
+      expect(stoneSize.height, stoneSize.width);
+      for (final stoneFinder in stoneFinders.skip(1)) {
+        expect(tester.getSize(stoneFinder), stoneSize);
+      }
+
+      final centers = [
+        for (final stoneFinder in stoneFinders) tester.getCenter(stoneFinder),
+      ];
+      expect(centers.first.dx, closeTo(centers.last.dx, 1));
+      expect(centers.first.dx - centers[3].dx, greaterThan(80));
+      expect(centers[0].dx, greaterThan(centers[1].dx));
+      expect(centers[1].dx, greaterThan(centers[2].dx));
+      expect(centers[2].dx, greaterThan(centers[3].dx));
+      expect(centers[4].dx, greaterThan(centers[3].dx));
+      expect(centers[5].dx, greaterThan(centers[4].dx));
+      expect(centers[6].dx, greaterThan(centers[5].dx));
+
+      final secondWeekNumber = model.sections[1].weekNumber;
+      final lowerEnd = tester.getCenter(stoneFinders.last);
+      final upperStart = tester.getCenter(
+        find.byKey(ValueKey<String>('homeStageStone-$secondWeekNumber-0')),
+      );
+      expect(lowerEnd.dx, closeTo(upperStart.dx, 1));
+
+      final characterSize = tester.getSize(
+        find.byKey(const ValueKey<String>('homeStageCharacter')),
+      );
+      expect(characterSize.width, closeTo(stoneSize.width * 0.62, 0.1));
+      expect(characterSize.height, lessThanOrEqualTo(stoneSize.height));
+      expect(
+        characterSize.height / characterSize.width,
+        closeTo(289 / 193, 0.01),
+      );
+      final scrollable = tester.state<ScrollableState>(
+        find.byType(Scrollable).first,
+      );
+      expect(scrollable.position.pixels, greaterThan(0));
+      final homeMapSize = tester.getSize(find.byType(HomeStageMap));
+      final characterCenter = tester.getCenter(
+        find.byKey(const ValueKey<String>('homeStageCharacter')),
+      );
+      expect(characterCenter.dy, greaterThanOrEqualTo(homeMapSize.height / 3));
+      expect(characterCenter.dy, lessThan(homeMapSize.height));
+    },
+  );
+
+  testWidgets(
+    'guide character renders anchored on top of its current stage stone',
+    (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final plan = _plan();
+      final model = _model(plan);
+      final firstWeekNumber = model.sections.first.weekNumber;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: HomeStageMap(
+              model: model,
+              onNotifications: () {},
+              onProfile: () {},
+              onTapTodayStage: () {},
+            ),
+          ),
         ),
-    ];
-    for (final stoneFinder in stoneFinders) {
-      expect(stoneFinder, findsOneWidget);
-    }
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pump();
 
-    final stoneSize = tester.getSize(stoneFinders.first);
-    expect(stoneSize.width, inInclusiveRange(92, 108));
-    expect(stoneSize.height, stoneSize.width);
-    for (final stoneFinder in stoneFinders.skip(1)) {
-      expect(tester.getSize(stoneFinder), stoneSize);
-    }
+      final currentStoneFinder = find.byKey(
+        ValueKey<String>(
+          'homeStageStone-$firstWeekNumber-${model.characterDayIndex}',
+        ),
+      );
+      final characterFinder = find.byKey(
+        const ValueKey<String>('homeStageCharacter'),
+      );
 
-    final centers = [
-      for (final stoneFinder in stoneFinders) tester.getCenter(stoneFinder),
-    ];
-    expect(centers.first.dx, closeTo(centers.last.dx, 1));
-    expect(centers.first.dx - centers[3].dx, greaterThan(80));
-    expect(centers[0].dx, greaterThan(centers[1].dx));
-    expect(centers[1].dx, greaterThan(centers[2].dx));
-    expect(centers[2].dx, greaterThan(centers[3].dx));
-    expect(centers[4].dx, greaterThan(centers[3].dx));
-    expect(centers[5].dx, greaterThan(centers[4].dx));
-    expect(centers[6].dx, greaterThan(centers[5].dx));
+      final stoneCenter = tester.getCenter(currentStoneFinder);
+      final characterCenter = tester.getCenter(characterFinder);
+      // The character is centered on its stage stone (standing on it), not
+      // offset to one side or floating above/below it.
+      expect(characterCenter.dx, closeTo(stoneCenter.dx, 0.5));
+      expect(characterCenter.dy, closeTo(stoneCenter.dy, 0.5));
 
-    final secondWeekNumber = model.sections[1].weekNumber;
-    final lowerEnd = tester.getCenter(stoneFinders.last);
-    final upperStart = tester.getCenter(
-      find.byKey(ValueKey<String>('homeStageStone-$secondWeekNumber-0')),
-    );
-    expect(lowerEnd.dx, closeTo(upperStart.dx, 1));
+      final stoneRect = tester.getRect(currentStoneFinder);
+      final characterRect = tester.getRect(characterFinder);
+      // The character's footprint stays within the stone's footprint on both
+      // axes so it visually reads as standing on the stone asset.
+      expect(characterRect.width, lessThanOrEqualTo(stoneRect.width));
+      expect(characterRect.left, greaterThanOrEqualTo(stoneRect.left));
+      expect(characterRect.right, lessThanOrEqualTo(stoneRect.right));
+    },
+  );
 
-    final characterSize = tester.getSize(
-      find.byKey(const ValueKey<String>('homeStageCharacter')),
-    );
-    expect(characterSize.width, greaterThan(stoneSize.width * 1.3));
-    expect(
-      characterSize.height / characterSize.width,
-      closeTo(289 / 193, 0.01),
-    );
-  });
+  testWidgets(
+    'an early current stage clamps the landing scroll instead of forcing the '
+    'one-third position',
+    (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      // The default plan's current stage is the very first stage (week 1,
+      // day 1), which sits too close to the map's natural start for the
+      // one-third landing target to be reachable.
+      final plan = _plan();
+      final model = _model(plan);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: HomeStageMap(
+              model: model,
+              onNotifications: () {},
+              onProfile: () {},
+              onTapTodayStage: () {},
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pump();
+
+      final scrollable = tester.state<ScrollableState>(
+        find.byType(Scrollable).first,
+      );
+      // The requested one-third target is unreachable this close to the
+      // map's start, so the scroll rests at its clamped natural extreme
+      // rather than being forced past it.
+      expect(
+        scrollable.position.pixels,
+        closeTo(scrollable.position.maxScrollExtent, 1.0),
+      );
+
+      final homeMapSize = tester.getSize(find.byType(HomeStageMap));
+      final characterCenter = tester.getCenter(
+        find.byKey(const ValueKey<String>('homeStageCharacter')),
+      );
+      // Because the scroll was clamped, the character does not land exactly
+      // at the one-third mark; it rests further down the viewport instead.
+      expect(
+        characterCenter.dy,
+        greaterThan(homeMapSize.height / 3 + 20),
+      );
+    },
+  );
+
+  testWidgets(
+    'a later current stage lands the character at one-third of the viewport '
+    'without clamping',
+    (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final plan = _plan();
+      final model = _modelAtMiddleWeek(plan);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: HomeStageMap(
+              model: model,
+              onNotifications: () {},
+              onProfile: () {},
+              onTapTodayStage: () {},
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pump();
+
+      final scrollable = tester.state<ScrollableState>(
+        find.byType(Scrollable).first,
+      );
+      // A middle-plan stage is far from both scroll extremes, so the
+      // requested one-third target is fully reachable and not clamped.
+      expect(scrollable.position.pixels, greaterThan(1.0));
+      expect(
+        scrollable.position.pixels,
+        lessThan(scrollable.position.maxScrollExtent - 1.0),
+      );
+
+      final homeMapSize = tester.getSize(find.byType(HomeStageMap));
+      final characterCenter = tester.getCenter(
+        find.byKey(const ValueKey<String>('homeStageCharacter')),
+      );
+      expect(characterCenter.dy, closeTo(homeMapSize.height / 3, 2.0));
+    },
+  );
 
   testWidgets('tapping today stage in the app opens the workout detail', (
     WidgetTester tester,
@@ -298,7 +484,6 @@ void main() {
     const characterTapTarget = ValueKey<String>('homeGuideCharacterTapTarget');
     const bubbleBody = ValueKey<String>('homeGuideBubbleBody');
     const bubble = ValueKey<String>('homeGuideBubble');
-
     testWidgets(
       'auto-opens summary and cycles tip, progression, then summary once',
       (WidgetTester tester) async {

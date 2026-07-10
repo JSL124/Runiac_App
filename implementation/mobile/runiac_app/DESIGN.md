@@ -126,7 +126,8 @@ All spacing derives from a base of 4px.
 
 - **Structure**: one full-width illustrated background per plan week with exactly seven stage stones, a weekday caption per real weekday slot, and one guide character attached to the active stone.
 - **Layout**: each complete background draws one seven-stone chevron, alternating `<`, `>`, `<` as backgrounds stack. Every chevron starts and ends at the horizontal centre so the path is continuous across background seams. Vertical intervals stay uniform, and the bottom/first background reserves at least one bottom-navigation-height of visual clearance beneath the lowest stone caption.
-- **Sizing**: stone diameter is responsive within a 92–108px mobile range. The guide character is approximately 1.3 times the stone width so both remain legible without blocking adjacent stages.
+- **Sizing**: stone diameter is responsive within a 92–108px mobile range. The guide character fits inside its current stone, remaining legible without obscuring adjacent stages.
+- **Landing**: on first Home-dashboard entry, the map scrolls toward a guide position about one-third of the viewport height from the top when that location is reachable; otherwise it stops at the nearest valid map position. Runners can then scroll to inspect every stage.
 - **States**: completed, current, future, run, and rest visuals retain their existing assets and backend-read-only meaning.
 - **Accessibility**: the current stage keeps its semantic button target; weekday captions remain display-only; the character's interactive upper-body target must not steal the stage tap target.
 - **Motion**: current-stage pulse and guide walking behavior keep the existing reduced-motion handling and animate only transform/opacity-compatible properties. The Blue Home guide uses the supplied animated GIF at rest and during plan-to-plan movement; other characters retain their direction-specific PNG sprites.

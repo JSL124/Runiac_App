@@ -14,7 +14,15 @@ const double _kFadeFraction = 0.08;
 const double _kMinimumStageStoneSize = 92;
 const double _kMaximumStageStoneSize = 108;
 const double _kStageStoneWidthFraction = 0.255;
-const double _kCharacterToStoneScale = 1.32;
+const double _kCharacterToStoneScale = 0.86;
+
+/// Where the guide's feet rest on a stage stone, as a fraction of the stone's
+/// height measured down from the stone's top edge.
+const double _kCharacterFootAnchorStoneHeightFraction = 0.46;
+
+/// Transparent padding below the feet inside the character sprites, as a
+/// fraction of the sprite's rendered height.
+const double _kCharacterFootInsetFraction = 0.02;
 const String _kEmptyStateBackground =
     'assets/images/home/backgrounds/bg_gardens_by_the_bay.webp';
 const String _kStageRunAsset =
@@ -205,7 +213,6 @@ class _HomeStageMapState extends State<HomeStageMap>
       cycle.show();
     }
   }
-
   void _dismissGuideBubble() {
     _guideCycle?.hide();
   }
@@ -422,6 +429,19 @@ class _HomeStageMapState extends State<HomeStageMap>
     );
   }
 
+  /// Top edge of the character sprite when its feet stand on the stone (or
+  /// walk-path point) centred at [anchorCenter].
+  double _characterTopForAnchor(
+    Offset anchorCenter,
+    RunnerCharacter character,
+  ) {
+    final footY =
+        anchorCenter.dy +
+        _stageStoneSize * (_kCharacterFootAnchorStoneHeightFraction - 0.5);
+    return footY -
+        _characterHeightFor(character) * (1 - _kCharacterFootInsetFraction);
+  }
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
@@ -575,7 +595,7 @@ class _HomeStageMapState extends State<HomeStageMap>
     if (bubbleWidth <= 0) {
       return null;
     }
-    final charTopY = anchor.dy - _characterHeightFor(_selectedCharacter) * 0.84;
+    final charTopY = _characterTopForAnchor(anchor, _selectedCharacter);
     final left = (anchor.dx - bubbleWidth / 2)
         .clamp(
           horizontalSafeInset,
@@ -609,12 +629,14 @@ class _HomeStageMapState extends State<HomeStageMap>
       return;
     }
     _initialScrollDone = true;
+
     final weekIndex = model.currentWeekIndex ?? 0;
     final dayIndex = model.characterDayIndex ?? 0;
     final anchors = homeStageAnchorsForSection(weekIndex);
     final centerY = _stoneCenter(weekIndex, n, anchors, dayIndex).dy;
     final maxScroll = math.max(0.0, total - _viewportHeight);
-    final target = (centerY - _viewportHeight * 0.6).clamp(0.0, maxScroll);
+    final target = (centerY - _viewportHeight / 3).clamp(0.0, maxScroll);
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && _scrollController.hasClients) {
         _scrollController.jumpTo(target);
@@ -650,12 +672,10 @@ class _HomeStageMapState extends State<HomeStageMap>
     final charWidth = _characterWidth;
     final charHeight = _characterHeightFor(character);
     final asset = homeStageGuideAssetPath(character: character, facing: facing);
-    final canTapCharacter =
-        !_walking && widget.guideAgent != null && widget.guideRequest != null;
     return Positioned(
       key: const ValueKey<String>('homeStageCharacter'),
       left: center.dx - charWidth / 2,
-      top: center.dy - bob - charHeight * 0.84,
+      top: _characterTopForAnchor(center, character) - bob,
       width: charWidth,
       height: charHeight,
       child: Stack(
@@ -670,25 +690,6 @@ class _HomeStageMapState extends State<HomeStageMap>
                   const SizedBox.shrink(),
             ),
           ),
-          // Only the upper portion of the character is tappable, so this
-          // never steals the "Today's stage" tap target on the stone below.
-          if (canTapCharacter)
-            Positioned(
-              left: 0,
-              right: 0,
-              top: 0,
-              height: charHeight * 0.72,
-              child: Semantics(
-                button: true,
-                label: '${character.displayName} guide',
-                child: GestureDetector(
-                  key: const ValueKey<String>('homeGuideCharacterTapTarget'),
-                  behavior: HitTestBehavior.opaque,
-                  onTap: _toggleGuideBubble,
-                  child: const SizedBox.expand(),
-                ),
-              ),
-            ),
         ],
       ),
     );
