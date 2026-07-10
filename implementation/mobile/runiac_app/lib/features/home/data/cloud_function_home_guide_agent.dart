@@ -3,6 +3,10 @@ import 'package:cloud_functions/cloud_functions.dart';
 import '../domain/guide/home_guide_agent.dart';
 import '../domain/guide/rule_based_home_guide_agent.dart';
 
+/// Injectable callable boundary used by the adapter and deterministic tests.
+typedef HomeGuideCallable =
+    Future<Object?> Function(Map<String, Object?> payload);
+
 /// Remote [HomeGuideAgent] backed by the `homeGuideAgent` Cloud Function.
 ///
 /// The callable is expected to run an OpenAI/LangGraph-backed agent whose API
@@ -18,25 +22,29 @@ import '../domain/guide/rule_based_home_guide_agent.dart';
 class CloudFunctionHomeGuideAgent implements HomeGuideAgent {
   CloudFunctionHomeGuideAgent({
     FirebaseFunctions? functions,
+    HomeGuideCallable? callable,
     this.fallbackAgent = const RuleBasedHomeGuideAgent(),
-  }) : _functions =
-           functions ?? FirebaseFunctions.instanceFor(region: 'asia-southeast1');
+  }) : _callable =
+           callable ??
+           _firebaseCallable(
+             functions ??
+                 FirebaseFunctions.instanceFor(region: 'asia-southeast1'),
+           );
 
-  final FirebaseFunctions _functions;
+  final HomeGuideCallable _callable;
 
   /// Local agent used whenever the remote callable is unavailable, errors,
   /// or returns a response this adapter cannot use.
   final HomeGuideAgent fallbackAgent;
 
   @override
-  Future<HomeGuideMessage> explainTodayPlan(HomeGuideRequest request) async {
+  Future<HomeGuideBundle> explainTodayPlan(HomeGuideRequest request) async {
     try {
-      final result = await _functions
-          .httpsCallable('homeGuideAgent')
-          .call(_requestPayload(request));
-      final message = _messageFromResponse(result.data);
-      if (message != null) {
-        return message;
+      final bundle = _bundleFromResponse(
+        await _callable(_requestPayload(request)),
+      );
+      if (bundle != null) {
+        return bundle;
       }
     } catch (_) {
       // Network error, callable error, or malformed response: compose a
@@ -45,33 +53,70 @@ class CloudFunctionHomeGuideAgent implements HomeGuideAgent {
     return fallbackAgent.explainTodayPlan(request);
   }
 
-  Map<String, Object?> _requestPayload(HomeGuideRequest request) {
-    return <String, Object?>{
-      'planTitle': request.planTitle,
-      'weekNumber': request.weekNumber,
-      'weekFocus': request.weekFocus,
-      'dayLabel': request.dayLabel,
-      'workoutTitle': request.workoutTitle,
-      'durationMinutes': request.durationMinutes,
-      'intensity': request.intensityLabel,
-      'description': request.description,
-      'steps': request.steps,
-      'supportiveNote': request.supportiveNote,
+  static HomeGuideCallable _firebaseCallable(FirebaseFunctions functions) {
+    return (payload) async {
+      final result = await functions
+          .httpsCallable('homeGuideAgent')
+          .call(payload);
+      return result.data;
     };
   }
 
-  HomeGuideMessage? _messageFromResponse(Object? data) {
-    final Map<Object?, Object?>? map;
-    if (data is Map<Object?, Object?>) {
-      map = data;
-    } else {
+  Map<String, Object?> _requestPayload(HomeGuideRequest request) {
+    return <String, Object?>{
+      'planTitle': _bounded(request.planTitle, 200),
+      'weekNumber': request.weekNumber,
+      'weekFocus': _bounded(request.weekFocus, 200),
+      'dayLabel': _bounded(request.dayLabel, 200),
+      'workoutTitle': _bounded(request.workoutTitle, 200),
+      'durationMinutes': request.durationMinutes,
+      'intensity': _bounded(request.intensityLabel, 200),
+      'description': _bounded(request.description, 800),
+      'steps': request.steps
+          .map((step) => _bounded(step, 200))
+          .where((step) => step.isNotEmpty)
+          .take(12)
+          .toList(growable: false),
+      'supportiveNote': _bounded(request.supportiveNote, 200),
+    };
+  }
+
+  HomeGuideBundle? _bundleFromResponse(Object? data) {
+    if (data is! Map<Object?, Object?>) {
       return null;
     }
-    final source = map['source'];
-    final message = map['message'];
-    if (source == 'agent' && message is String && message.trim().isNotEmpty) {
-      return HomeGuideMessage(text: message.trim(), isFromRemoteAgent: true);
+    final source = data['source'];
+    final delivery = data['delivery'];
+    final messages = data['messages'];
+    final isGenerated =
+        source == 'agent' && (delivery == 'generated' || delivery == 'cache');
+    final isUnavailableFallback =
+        source == 'unavailable' && delivery == 'fallback';
+    if ((!isGenerated && !isUnavailableFallback) ||
+        messages is! Map<Object?, Object?>) {
+      return null;
     }
-    return null;
+    final planSummary = messages['planSummary'];
+    final runningTip = messages['runningTip'];
+    final progressionCheckIn = messages['progressionCheckIn'];
+    if (planSummary is! String ||
+        runningTip is! String ||
+        progressionCheckIn is! String) {
+      return null;
+    }
+    return HomeGuideBundle.tryCreate(
+      planSummary: planSummary,
+      runningTip: runningTip,
+      progressionCheckIn: progressionCheckIn,
+      isFromRemoteAgent: isGenerated,
+    );
+  }
+
+  String _bounded(String value, int maxRunes) {
+    final trimmed = value.trim();
+    final runes = trimmed.runes;
+    return runes.length <= maxRunes
+        ? trimmed
+        : String.fromCharCodes(runes.take(maxRunes));
   }
 }

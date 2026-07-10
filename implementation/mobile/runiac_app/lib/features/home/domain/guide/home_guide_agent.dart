@@ -53,10 +53,24 @@ class HomeGuideRequest {
   final String supportiveNote;
 }
 
-/// A short, friendly guide message explaining today's plan.
+/// The three named messages the guide can present in its local cycle.
+///
+/// These values deliberately describe presentation purpose, not progression
+/// state. The client receives already-rendered copy and never calculates any
+/// activity, XP, rank, streak, or other protected value.
+enum HomeGuideMessageKind { planSummary, runningTip, progressionCheckIn }
+
+/// A short, friendly guide message explaining one part of today's plan.
 @immutable
 class HomeGuideMessage {
-  const HomeGuideMessage({required this.text, this.isFromRemoteAgent = false});
+  const HomeGuideMessage({
+    required this.kind,
+    required this.text,
+    this.isFromRemoteAgent = false,
+  });
+
+  /// The fixed purpose of this message in the three-message guide bundle.
+  final HomeGuideMessageKind kind;
 
   /// Beginner-friendly copy to render inside the guide character's speech
   /// bubble.
@@ -65,6 +79,99 @@ class HomeGuideMessage {
   /// True when [text] came from the remote Cloud Function-backed agent
   /// rather than the local rule-based fallback. Display/debug metadata only.
   final bool isFromRemoteAgent;
+}
+
+/// Immutable, complete guide content for one Home request.
+///
+/// [HomeGuideBundle] extends [HomeGuideMessage] temporarily so the existing
+/// stage-map seam can render [planSummary] until its dedicated cycle migration
+/// consumes [messages]. The named fields remain the only source of content
+/// for new callers.
+@immutable
+class HomeGuideBundle extends HomeGuideMessage {
+  HomeGuideBundle({
+    required this.planSummary,
+    required this.runningTip,
+    required this.progressionCheckIn,
+    required super.isFromRemoteAgent,
+  }) : assert(planSummary.kind == HomeGuideMessageKind.planSummary),
+       assert(runningTip.kind == HomeGuideMessageKind.runningTip),
+       assert(
+         progressionCheckIn.kind == HomeGuideMessageKind.progressionCheckIn,
+       ),
+       super(kind: HomeGuideMessageKind.planSummary, text: planSummary.text);
+
+  /// Strict constructor used at the network boundary. It rejects, rather than
+  /// truncates, copy that would overflow the approved compact bubble contract.
+  static HomeGuideBundle? tryCreate({
+    required String planSummary,
+    required String runningTip,
+    required String progressionCheckIn,
+    required bool isFromRemoteAgent,
+  }) {
+    if (!_isDisplaySafe(planSummary) ||
+        !_isDisplaySafe(runningTip) ||
+        !_isDisplaySafe(progressionCheckIn)) {
+      return null;
+    }
+    final normalizedPlanSummary = _normalizedPurpose(planSummary);
+    final normalizedRunningTip = _normalizedPurpose(runningTip);
+    final normalizedProgressionCheckIn = _normalizedPurpose(progressionCheckIn);
+    if (normalizedPlanSummary == normalizedRunningTip ||
+        normalizedPlanSummary == normalizedProgressionCheckIn ||
+        normalizedRunningTip == normalizedProgressionCheckIn) {
+      return null;
+    }
+    return HomeGuideBundle(
+      planSummary: HomeGuideMessage(
+        kind: HomeGuideMessageKind.planSummary,
+        text: planSummary,
+        isFromRemoteAgent: isFromRemoteAgent,
+      ),
+      runningTip: HomeGuideMessage(
+        kind: HomeGuideMessageKind.runningTip,
+        text: runningTip,
+        isFromRemoteAgent: isFromRemoteAgent,
+      ),
+      progressionCheckIn: HomeGuideMessage(
+        kind: HomeGuideMessageKind.progressionCheckIn,
+        text: progressionCheckIn,
+        isFromRemoteAgent: isFromRemoteAgent,
+      ),
+      isFromRemoteAgent: isFromRemoteAgent,
+    );
+  }
+
+  /// Summary copy, shown first when the character guide opens.
+  final HomeGuideMessage planSummary;
+
+  /// A single actionable running cue, shown second.
+  final HomeGuideMessage runningTip;
+
+  /// A calm evidence-backed or baseline check-in, shown third.
+  final HomeGuideMessage progressionCheckIn;
+
+  /// The ordered presentation sequence. The returned list cannot be mutated.
+  List<HomeGuideMessage> get messages => List<HomeGuideMessage>.unmodifiable(
+    <HomeGuideMessage>[planSummary, runningTip, progressionCheckIn],
+  );
+
+  static bool _isDisplaySafe(String text) {
+    if (text.isEmpty || text != text.trim() || text.contains('\n')) {
+      return false;
+    }
+    if (text.runes.length > 160) {
+      return false;
+    }
+    return _sentenceEndingPattern.allMatches(text).length <= 2;
+  }
+
+  static final RegExp _sentenceEndingPattern = RegExp(r'[.!?。！？]+');
+
+  static final RegExp _whitespacePattern = RegExp(r'\s+');
+
+  static String _normalizedPurpose(String text) =>
+      text.toLowerCase().replaceAll(_whitespacePattern, ' ');
 }
 
 /// Seam for the Home guide "brain" that explains today's plan.
@@ -77,7 +184,7 @@ class HomeGuideMessage {
 /// offline, deterministic default and the fallback whenever the remote agent
 /// is unavailable, errors, or returns an unusable response.
 abstract interface class HomeGuideAgent {
-  /// Produces a guide message that explains the workout described by
+  /// Produces a complete named guide bundle for the workout described by
   /// [request].
-  Future<HomeGuideMessage> explainTodayPlan(HomeGuideRequest request);
+  Future<HomeGuideBundle> explainTodayPlan(HomeGuideRequest request);
 }

@@ -29,6 +29,7 @@ import {
   planProgressReadModel,
   profileFields,
   seed,
+  unauthenticatedDb,
 } from './support/firestore_rules_test_support.mjs';
 
 describe('owner-owned client records', () => {
@@ -1135,5 +1136,40 @@ describe('owner-owned client records', () => {
     await assertFails(updateDoc(delivery, { deliveryState: 'sent' }));
     await assertFails(deleteDoc(deviceToken));
     await assertFails(deleteDoc(delivery));
+  });
+
+  it('denies every client identity all access to server-only daily agent guidance', async () => {
+    const dailyGuidancePath = 'agentGuidanceDaily/alice_2026-07-10';
+    const dailyGuidanceDocument = {
+      ownerUid: 'alice',
+      dayKey: '2026-07-10',
+      attemptCount: 1,
+      cacheState: 'ready',
+    };
+    const malformedClientGuidance = { clientOnly: true };
+
+    await seed(dailyGuidancePath, dailyGuidanceDocument);
+
+    for (const [identity, client] of [
+      ['unauthenticated', unauthenticatedDb()],
+      ['owner', dbFor('alice')],
+      ['cross-owner', dbFor('bob')],
+    ]) {
+      const existingGuidance = doc(client, dailyGuidancePath);
+      const clientCreatedGuidance = doc(
+        client,
+        `agentGuidanceDaily/${identity}-client-created`,
+      );
+      const ownerGuidanceQuery = query(
+        collection(client, 'agentGuidanceDaily'),
+        where('ownerUid', '==', 'alice'),
+      );
+
+      await assertFails(getDoc(existingGuidance));
+      await assertFails(getDocs(ownerGuidanceQuery));
+      await assertFails(setDoc(clientCreatedGuidance, malformedClientGuidance));
+      await assertFails(updateDoc(existingGuidance, { cacheState: 'client-write' }));
+      await assertFails(deleteDoc(existingGuidance));
+    }
   });
 });

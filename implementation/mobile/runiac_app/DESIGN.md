@@ -132,6 +132,15 @@ All spacing derives from a base of 4px.
 - **Motion**: current-stage pulse and guide walking behavior keep the existing reduced-motion handling and animate only transform/opacity-compatible properties. The Blue Home guide uses the supplied animated GIF at rest and during plan-to-plan movement; other characters retain their direction-specific PNG sprites.
 - **Boundary**: layout and decoration are display-only. Plan completion and current-stage state remain derived from trusted completed scheduled-workout IDs.
 
+### Home Guide Bubble
+
+- **Structure**: an eligible current stage opens a compact white guide bubble above the character. Once its bundle resolves, it presents the local sequence plan summary, running tip, progression check-in, then returns to the summary. The bubble body advances only after a bundle message resolves; close hides it; the character reopens the current message.
+- **Sizing and layout**: width is the smaller of 280px and viewport width minus 24px, with a 12px horizontal safe inset. The bubble clamps above the character within the available safe area, uses `space3`-adjacent compact padding, and keeps all accepted copy visible rather than truncating it. Three lines is the normal target for the approved short-copy budget, including text scale 1.3.
+- **States**: loading says `Preparing your guide...` and does not advance. An unavailable bundle uses the existing supportive fallback copy. A changed stage/request restarts at the summary; hide/reopen and repeated taps reuse the same in-memory bundle without a new request.
+- **Accessibility**: the bubble body announces message kind and its next action, such as `Plan summary. Tap to hear a running tip.` The close control has a visible 44×44px target and the semantic label `Close guide message`. The character retains its upper-body-only semantic action so the current-stage target remains available.
+- **Motion**: message readability never depends on typing or transition animation. Reduced motion keeps the existing guide/pulse behavior disabled and shows the full resolved bubble copy immediately.
+- **Boundary**: the bubble only renders server/local-agent supplied display copy. Flutter does not calculate progression, activity facts, XP, level, rank, streak, or leaderboard data, and does not persist guide-cycle state.
+
 ## 6. Motion & Interaction
 
 ### Timing

@@ -7,6 +7,7 @@ import '../../../../core/theme/runiac_colors.dart';
 import '../../../../core/widgets/runiac_level_profile_badge.dart';
 import '../../domain/guide/home_guide_agent.dart';
 import 'home_stage_background_sequence.dart';
+import 'home_guide_cycle.dart';
 import 'home_stage_map_model.dart';
 
 const double _kFadeFraction = 0.08;
@@ -117,12 +118,11 @@ class _HomeStageMapState extends State<HomeStageMap>
   List<double> _walkSegmentLengths = const <double>[];
   double _walkTotalLength = 0;
 
-  // Guide speech-bubble state. The bubble auto-opens once per stage id for
-  // the lifetime of this widget, can be dismissed, and can be re-opened by
-  // tapping the character. It never shows while the character is walking.
-  bool _guideBubbleVisible = false;
-  String? _guideBubbleAutoShownForStageId;
-  Future<HomeGuideMessage>? _guideMessageFuture;
+  // The cycle owns bundle caching, the summary/tip/progression order, and
+  // close/reopen state. This surface only supplies the eligible stage/request
+  // signature and renders its display-only state.
+  HomeGuideCycleController? _guideCycle;
+  HomeGuideAgent? _guideCycleAgent;
 
   @override
   void initState() {
@@ -152,59 +152,66 @@ class _HomeStageMapState extends State<HomeStageMap>
     }
   }
 
-  /// Auto-opens the guide speech bubble the first time a given today-stage
-  /// id becomes current, as long as a guide seam is wired in. Once dismissed
-  /// by the user, the same stage id does not re-trigger auto-show; tapping
-  /// the character is the only way to bring it back for that stage.
   void _syncGuideBubble() {
     final model = widget.model;
     final stageId = _hasTodayStage(model) ? model!.currentStageId : null;
-    if (stageId == null) {
-      _guideBubbleAutoShownForStageId = null;
-      _guideBubbleVisible = false;
-      _guideMessageFuture = null;
-      return;
-    }
-    if (widget.guideAgent == null || widget.guideRequest == null) {
-      _guideBubbleVisible = false;
-      return;
-    }
-    if (_guideBubbleAutoShownForStageId != stageId) {
-      _guideBubbleAutoShownForStageId = stageId;
-      _guideBubbleVisible = true;
-      _ensureGuideMessageFuture(refresh: true);
-    }
-  }
-
-  void _ensureGuideMessageFuture({bool refresh = false}) {
     final agent = widget.guideAgent;
     final request = widget.guideRequest;
-    if (agent == null || request == null) {
-      _guideMessageFuture = null;
+    if (stageId == null || agent == null || request == null) {
+      _clearGuideCycle();
       return;
     }
-    if (!refresh && _guideMessageFuture != null) {
+    final signature = HomeGuideCycleSignature.forRequest(
+      stageId: stageId,
+      request: request,
+    );
+    final cycle = _guideCycle;
+    if (cycle == null || !identical(agent, _guideCycleAgent)) {
+      _clearGuideCycle();
+      _guideCycle = HomeGuideCycleController(agent: agent, signature: signature)
+        ..addListener(_onGuideCycleChanged);
+      _guideCycleAgent = agent;
       return;
     }
-    _guideMessageFuture = agent.explainTodayPlan(request);
+    cycle.updateSignature(signature);
+  }
+
+  void _clearGuideCycle() {
+    final cycle = _guideCycle;
+    if (cycle == null) {
+      return;
+    }
+    cycle
+      ..removeListener(_onGuideCycleChanged)
+      ..dispose();
+    _guideCycle = null;
+    _guideCycleAgent = null;
+  }
+
+  void _onGuideCycleChanged() {
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   void _toggleGuideBubble() {
-    if (widget.guideAgent == null || widget.guideRequest == null) {
+    final cycle = _guideCycle;
+    if (cycle == null) {
       return;
     }
-    setState(() {
-      _guideBubbleVisible = !_guideBubbleVisible;
-      if (_guideBubbleVisible) {
-        _ensureGuideMessageFuture();
-      }
-    });
+    if (cycle.state.isVisible) {
+      cycle.hide();
+    } else {
+      cycle.show();
+    }
   }
 
   void _dismissGuideBubble() {
-    setState(() {
-      _guideBubbleVisible = false;
-    });
+    _guideCycle?.hide();
+  }
+
+  void _advanceGuideBubble() {
+    _guideCycle?.advance();
   }
 
   /// True when the indefinite pulse/walk should stay idle: either the platform
@@ -248,6 +255,7 @@ class _HomeStageMapState extends State<HomeStageMap>
 
   @override
   void dispose() {
+    _clearGuideCycle();
     _walkController
       ..removeListener(_onWalkTick)
       ..removeStatusListener(_onWalkStatus)
@@ -543,7 +551,11 @@ class _HomeStageMapState extends State<HomeStageMap>
     int n,
     double totalHeight,
   ) {
-    if (!_guideBubbleVisible || _walking || !_hasTodayStage(model)) {
+    final cycle = _guideCycle;
+    if (cycle == null ||
+        !cycle.state.isVisible ||
+        _walking ||
+        !_hasTodayStage(model)) {
       return null;
     }
     if (widget.guideAgent == null || widget.guideRequest == null) {
@@ -554,22 +566,40 @@ class _HomeStageMapState extends State<HomeStageMap>
       return null;
     }
 
-    const bubbleWidth = 232.0;
     const gap = 10.0;
+    const horizontalSafeInset = 12.0;
+    final bubbleWidth = math.min(
+      280.0,
+      math.max(0.0, _sectionWidth - horizontalSafeInset * 2),
+    );
+    if (bubbleWidth <= 0) {
+      return null;
+    }
     final charTopY = anchor.dy - _characterHeightFor(_selectedCharacter) * 0.84;
     final left = (anchor.dx - bubbleWidth / 2)
-        .clamp(12.0, math.max(12.0, _sectionWidth - bubbleWidth - 12.0))
+        .clamp(
+          horizontalSafeInset,
+          math.max(
+            horizontalSafeInset,
+            _sectionWidth - bubbleWidth - horizontalSafeInset,
+          ),
+        )
         .toDouble();
+    final safeTop = MediaQuery.paddingOf(context).top + horizontalSafeInset;
+    final maxBubbleHeight = math.max(1.0, charTopY - gap - safeTop);
 
     return Positioned(
       left: left,
       width: bubbleWidth,
-      bottom: totalHeight - (charTopY - gap),
-      child: _GuideSpeechBubble(
-        key: ValueKey<String?>(model.currentStageId),
-        messageFuture: _guideMessageFuture,
-        reduceMotion: _reduceMotion,
-        onDismiss: _dismissGuideBubble,
+      bottom: (totalHeight - (charTopY - gap)).clamp(0.0, totalHeight),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: maxBubbleHeight),
+        child: _GuideSpeechBubble(
+          key: ValueKey<String?>(model.currentStageId),
+          state: cycle.state,
+          onAdvance: _advanceGuideBubble,
+          onDismiss: _dismissGuideBubble,
+        ),
       ),
     );
   }
@@ -1188,21 +1218,20 @@ class _HomeStageEmptyState extends StatelessWidget {
   }
 }
 
-/// Speech-bubble card for the Home guide character: shows a brief loading
-/// state while [messageFuture] resolves, then types the resolved message in.
+/// Speech-bubble card for the Home guide character.
 ///
-/// Display-only: renders guide copy and never touches XP, level, rank,
-/// streak, or leaderboard values.
+/// Display-only: renders the current local guide-cycle message and never
+/// touches XP, level, rank, streak, or leaderboard values.
 class _GuideSpeechBubble extends StatelessWidget {
   const _GuideSpeechBubble({
-    required this.messageFuture,
-    required this.reduceMotion,
+    required this.state,
+    required this.onAdvance,
     required this.onDismiss,
     super.key,
   });
 
-  final Future<HomeGuideMessage>? messageFuture;
-  final bool reduceMotion;
+  final HomeGuideCycleState state;
+  final VoidCallback onAdvance;
   final VoidCallback onDismiss;
 
   static const String _fallbackErrorText =
@@ -1210,143 +1239,128 @@ class _GuideSpeechBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<HomeGuideMessage>(
-      future: messageFuture,
-      builder: (context, snapshot) {
-        final isLoading = snapshot.connectionState != ConnectionState.done;
-        final text = isLoading
-            ? '...'
-            : (snapshot.hasData ? snapshot.data!.text : _fallbackErrorText);
-        return _GuideBubbleCard(
-          key: ValueKey<String>('$isLoading:$text'),
-          text: text,
-          isLoading: isLoading,
-          reduceMotion: reduceMotion,
-          onDismiss: onDismiss,
-        );
-      },
+    final message = state.currentMessage;
+    return _GuideBubbleCard(
+      key: ValueKey<String>('${state.isLoading}:${message?.text}'),
+      message: message,
+      isLoading: state.isLoading,
+      isUnavailable: !state.isLoading && message == null,
+      fallbackText: _fallbackErrorText,
+      onAdvance: onAdvance,
+      onDismiss: onDismiss,
     );
   }
 }
 
-class _GuideBubbleCard extends StatefulWidget {
+class _GuideBubbleCard extends StatelessWidget {
   const _GuideBubbleCard({
-    required this.text,
+    required this.message,
     required this.isLoading,
-    required this.reduceMotion,
+    required this.isUnavailable,
+    required this.fallbackText,
+    required this.onAdvance,
     required this.onDismiss,
     super.key,
   });
 
-  final String text;
+  final HomeGuideMessage? message;
   final bool isLoading;
-  final bool reduceMotion;
+  final bool isUnavailable;
+  final String fallbackText;
+  final VoidCallback onAdvance;
   final VoidCallback onDismiss;
 
-  @override
-  State<_GuideBubbleCard> createState() => _GuideBubbleCardState();
-}
-
-class _GuideBubbleCardState extends State<_GuideBubbleCard>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _type;
-  late final Animation<int> _typedLength;
-
-  @override
-  void initState() {
-    super.initState();
-    final typeMillis = (widget.text.length * 16).clamp(200, 1800);
-    _type = AnimationController(
-      vsync: this,
-      duration: Duration(milliseconds: typeMillis),
-    );
-    _typedLength = IntTween(
-      begin: 0,
-      end: widget.text.length,
-    ).animate(CurvedAnimation(parent: _type, curve: Curves.easeOut));
-    if (widget.reduceMotion) {
-      // Jump straight to the fully typed text: no repeating/long-running
-      // controller is left scheduling frames under the test binding.
-      _type.value = 1.0;
-    } else {
-      _type.forward();
+  String get _bodyText {
+    if (isLoading) {
+      return 'Preparing your guide...';
     }
+    return message?.text ?? fallbackText;
   }
 
-  @override
-  void dispose() {
-    _type.dispose();
-    super.dispose();
+  String get _bodySemanticsLabel {
+    if (isLoading) {
+      return 'Guide message loading. Please wait.';
+    }
+    if (isUnavailable) {
+      return 'Guide message unavailable.';
+    }
+    return switch (message!.kind) {
+      HomeGuideMessageKind.planSummary =>
+        'Plan summary. Tap to hear a running tip.',
+      HomeGuideMessageKind.runningTip =>
+        'Running tip. Tap to hear a progression check-in.',
+      HomeGuideMessageKind.progressionCheckIn =>
+        'Progression check-in. Tap to return to your plan summary.',
+    };
   }
+
+  bool get _canAdvance => !isLoading && !isUnavailable;
 
   @override
   Widget build(BuildContext context) {
-    return Semantics(
-      container: true,
-      label: 'Guide message',
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
-        decoration: BoxDecoration(
-          color: RuniacColors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: RuniacColors.cardBorder, width: 1.2),
-          boxShadow: const [
-            BoxShadow(
-              color: RuniacColors.softCardShadow,
-              blurRadius: 16,
-              offset: Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: widget.isLoading
-                  ? const Text(
-                      '...',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        color: RuniacColors.textSecondary,
-                      ),
-                    )
-                  : AnimatedBuilder(
-                      animation: _typedLength,
-                      builder: (context, _) {
-                        final count = _typedLength.value.clamp(
-                          0,
-                          widget.text.length,
-                        );
-                        return Text(
-                          widget.text.substring(0, count),
-                          style: const TextStyle(
-                            fontSize: 13.5,
-                            height: 1.4,
-                            fontWeight: FontWeight.w500,
-                            color: RuniacColors.textPrimary,
-                          ),
-                        );
-                      },
+    return Container(
+      key: const ValueKey<String>('homeGuideBubble'),
+      padding: const EdgeInsets.fromLTRB(12, 10, 4, 10),
+      decoration: BoxDecoration(
+        color: RuniacColors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: RuniacColors.cardBorder, width: 1.2),
+        boxShadow: const [
+          BoxShadow(
+            color: RuniacColors.softCardShadow,
+            blurRadius: 16,
+            offset: Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Semantics(
+              button: _canAdvance,
+              label: _bodySemanticsLabel,
+              child: ExcludeSemantics(
+                child: GestureDetector(
+                  key: const ValueKey<String>('homeGuideBubbleBody'),
+                  behavior: HitTestBehavior.opaque,
+                  onTap: _canAdvance ? onAdvance : null,
+                  child: Text(
+                    _bodyText,
+                    style: TextStyle(
+                      fontSize: isLoading ? 14 : 13,
+                      height: 1.35,
+                      fontWeight: isLoading ? FontWeight.w700 : FontWeight.w600,
+                      color: isLoading
+                          ? RuniacColors.textSecondary
+                          : RuniacColors.textPrimary,
                     ),
+                  ),
+                ),
+              ),
             ),
-            GestureDetector(
-              onTap: widget.onDismiss,
-              behavior: HitTestBehavior.opaque,
-              child: const Padding(
-                padding: EdgeInsets.only(left: 6, top: 1),
-                child: Tooltip(
-                  message: 'Dismiss',
+          ),
+          SizedBox(
+            width: 44,
+            height: 44,
+            child: Semantics(
+              button: true,
+              label: 'Close guide message',
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: onDismiss,
+                child: const Tooltip(
+                  message: 'Close guide message',
                   child: Icon(
                     Icons.close_rounded,
-                    size: 16,
+                    size: 20,
                     color: RuniacColors.textSecondary,
                   ),
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
