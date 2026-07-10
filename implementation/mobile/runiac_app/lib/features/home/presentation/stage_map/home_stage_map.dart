@@ -16,6 +16,10 @@ const double _kMaximumStageStoneSize = 108;
 const double _kStageStoneWidthFraction = 0.255;
 const double _kCharacterToStoneScale = 0.86;
 
+/// The initial camera composition keeps the guide in the lower visual third,
+/// leaving room above for upcoming stages and the Home header.
+const double _kInitialCharacterViewportFraction = 2 / 3;
+
 /// Where the guide's feet rest on a stage stone, as a fraction of the stone's
 /// height measured down from the stone's top edge. The stones are drawn as
 /// perspective plates whose visible standing surface sits near the middle of
@@ -651,10 +655,10 @@ class _HomeStageMapState extends State<HomeStageMap>
         _characterTopForAnchor(anchor, _selectedCharacter) +
         _characterHeightFor(_selectedCharacter) / 2;
     final maxScroll = math.max(0.0, total - _viewportHeight);
-    final target = (characterCenterY - _viewportHeight / 3).clamp(
-      0.0,
-      maxScroll,
-    );
+    final target =
+        (characterCenterY -
+                _viewportHeight * _kInitialCharacterViewportFraction)
+            .clamp(0.0, maxScroll);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && _scrollController.hasClients) {

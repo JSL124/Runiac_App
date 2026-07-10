@@ -55,8 +55,8 @@ HomeStageMapModel _model(BeginnerAdaptivePlanSnapshot plan) {
 
 /// Same generated plan, but with the active/current stage moved to a middle
 /// week (not the plan's first or last), so the current stage sits far enough
-/// from both scroll extremes for the one-third landing target to be reachable
-/// without clamping.
+/// from both scroll extremes for the lower-third landing target to be
+/// reachable without clamping.
 HomeStageMapModel _modelAtMiddleWeek(BeginnerAdaptivePlanSnapshot plan) {
   final middleWeekNumber = plan.weeks[plan.weeks.length ~/ 2].weekNumber;
   return buildHomeStageMapModel(
@@ -358,7 +358,7 @@ void main() {
 
   testWidgets(
     'an early current stage clamps the landing scroll instead of forcing the '
-    'one-third position',
+    'lower-third position',
     (WidgetTester tester) async {
       tester.view.physicalSize = const Size(390, 844);
       tester.view.devicePixelRatio = 1;
@@ -367,7 +367,7 @@ void main() {
 
       // The default plan's current stage is the very first stage (week 1,
       // day 1), which sits too close to the map's natural start for the
-      // one-third landing target to be reachable.
+      // lower-third landing target to be reachable.
       final plan = _plan();
       final model = _model(plan);
 
@@ -390,7 +390,7 @@ void main() {
       final scrollable = tester.state<ScrollableState>(
         find.byType(Scrollable).first,
       );
-      // The requested one-third target is unreachable this close to the
+      // The requested lower-third target is unreachable this close to the
       // map's start, so the scroll rests at its clamped natural extreme
       // rather than being forced past it.
       expect(
@@ -403,13 +403,14 @@ void main() {
         find.byKey(const ValueKey<String>('homeStageCharacter')),
       );
       // Because the scroll was clamped, the character does not land exactly
-      // at the one-third mark; it rests further down the viewport instead.
-      expect(characterCenter.dy, greaterThan(homeMapSize.height / 3 + 20));
+      // at the lower-third mark; it rests further down the viewport instead.
+      expect(characterCenter.dy, greaterThan(homeMapSize.height * 2 / 3 + 20));
     },
   );
 
   testWidgets(
-    'a later current stage lands the character at one-third of the viewport '
+    'a later current stage lands the character at the lower third of the '
+    'viewport '
     'without clamping',
     (WidgetTester tester) async {
       tester.view.physicalSize = const Size(390, 844);
@@ -440,15 +441,15 @@ void main() {
         find.byType(Scrollable).first,
       );
       // A middle-plan stage is far from both scroll extremes, so the
-      // requested one-third target is fully reachable and not clamped.
+      // requested lower-third target is fully reachable and not clamped.
       expect(scrollable.position.pixels, greaterThan(1.0));
       expect(
         scrollable.position.pixels,
         lessThan(scrollable.position.maxScrollExtent - 1.0),
       );
 
-      // The landing scroll centres the rendered character box at one-third
-      // of the viewport height, rather than centring its stage stone.
+      // The landing scroll centres the rendered character box one-third up
+      // from the viewport bottom, rather than centring its stage stone.
       final homeMapSize = tester.getSize(find.byType(HomeStageMap));
       final middleWeekNumber = plan.weeks[plan.weeks.length ~/ 2].weekNumber;
       final stoneRect = tester.getRect(
@@ -461,7 +462,7 @@ void main() {
       final characterRect = tester.getRect(
         find.byKey(const ValueKey<String>('homeStageCharacter')),
       );
-      expect(characterRect.center.dy, closeTo(homeMapSize.height / 3, 2.0));
+      expect(characterRect.center.dy, closeTo(homeMapSize.height * 2 / 3, 2.0));
 
       final initialPixels = scrollable.position.pixels;
       await tester.drag(
