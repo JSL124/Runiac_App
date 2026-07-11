@@ -2422,6 +2422,7 @@ void main() {
         ),
         findsNothing,
       );
+      expect(tester.takeException(), isNull);
 
       await tester.tap(find.text('Copy Image'));
       await tester.pump();
@@ -2432,6 +2433,26 @@ void main() {
       );
     },
   );
+
+  testWidgets('Share achievement sheet fits iPhone-height surfaces', (
+    WidgetTester tester,
+  ) async {
+    tester.view
+      ..physicalSize = const Size(390, 844)
+      ..devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(_shareSheetHarness());
+
+    await tester.tap(find.text('Open share sheet'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Share Your Achievement'), findsOneWidget);
+    expect(find.text('Change theme'), findsOneWidget);
+    expect(find.text('Instagram Stories'), findsOneWidget);
+    expect(find.text('More'), findsWidgets);
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets(
     'Share achievement sheet close dismisses without leaving summary',

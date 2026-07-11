@@ -84,12 +84,29 @@ class SharePreviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        const _ShareCardSurface(),
-        const SizedBox(height: 8),
-        const _ThemeDots(),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cardWidth = math.min(
+          MediaQuery.sizeOf(context).width * 0.66,
+          258.0,
+        );
+
+        return SizedBox(
+          height: constraints.maxHeight,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.topCenter,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _ShareCardSurface(width: cardWidth),
+                const SizedBox(height: 8),
+                const _ThemeDots(),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -126,14 +143,14 @@ class _ShareUtilityActions extends StatelessWidget {
 }
 
 class _ShareCardSurface extends StatelessWidget {
-  const _ShareCardSurface();
+  const _ShareCardSurface({required this.width});
+
+  final double width;
 
   @override
   Widget build(BuildContext context) {
-    final cardWidth = math.min(MediaQuery.sizeOf(context).width * 0.66, 258.0);
-
     return Container(
-      width: cardWidth,
+      width: width,
       padding: const EdgeInsets.fromLTRB(18, 22, 18, 20),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(26),
