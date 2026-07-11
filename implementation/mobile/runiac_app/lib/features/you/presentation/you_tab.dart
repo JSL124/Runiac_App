@@ -421,6 +421,7 @@ class _YouTabState extends State<YouTab> {
         builder: (context) => ViewSummaryScreen(
           completionResult: run.completionResult,
           summary: run.summary,
+          feedPublishSource: run.feedPublishSource,
           showXpUpdateAction: false,
           showLowDataSaveAction: false,
         ),

@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../auth/domain/runiac_auth_service.dart';
 import '../../run/domain/models/cadence_analysis_series.dart';
+import '../../run/domain/models/run_feed_publish_source.dart';
 import '../../run/domain/services/run_summary_scalar_mapper.dart';
 import '../domain/models/activity_history_read_model.dart';
 import '../domain/repositories/activity_history_repository.dart';
@@ -113,11 +114,13 @@ class FirestoreActivityHistoryRepository implements ActivityHistoryRepository {
         currentUser.uid,
         summaryDocuments ?? const [],
         dateKeys: const ['endedAt', 'completedAt'],
+        source: _ActivityHistoryDocumentSource.summary,
       ),
       ..._mapDocuments(
         currentUser.uid,
         activityDocuments ?? const [],
         dateKeys: const ['completedAt', 'endedAt'],
+        source: _ActivityHistoryDocumentSource.activity,
       ),
     ])..sort((left, right) => right.endedAt.compareTo(left.endedAt));
 
@@ -160,6 +163,7 @@ class FirestoreActivityHistoryRepository implements ActivityHistoryRepository {
     String ownerUid,
     ActivityHistorySummaryDocument document, {
     required List<String> dateKeys,
+    required _ActivityHistoryDocumentSource source,
   }) {
     final data = document.data;
     if (_readRequiredString(data, 'ownerUid') != ownerUid) {
@@ -204,6 +208,13 @@ class FirestoreActivityHistoryRepository implements ActivityHistoryRepository {
         routeNameLabel: scalar.routeName,
         hasSufficientData: scalar.hasSufficientData,
         cadenceAnalysisSeries: _readCadenceAnalysisSeries(data),
+        feedPublishSource: _feedPublishSourceFor(
+          data,
+          activityId: activityId,
+          cacheIdentity: clientRunSessionId,
+          hasSufficientData: scalar.hasSufficientData,
+          source: source,
+        ),
       ),
     );
   }
@@ -212,9 +223,17 @@ class FirestoreActivityHistoryRepository implements ActivityHistoryRepository {
     String ownerUid,
     List<ActivityHistorySummaryDocument> documents, {
     required List<String> dateKeys,
+    required _ActivityHistoryDocumentSource source,
   }) {
     return documents
-        .map((document) => _mapDocument(ownerUid, document, dateKeys: dateKeys))
+        .map(
+          (document) => _mapDocument(
+            ownerUid,
+            document,
+            dateKeys: dateKeys,
+            source: source,
+          ),
+        )
         .nonNulls
         .toList(growable: false);
   }
@@ -222,9 +241,50 @@ class FirestoreActivityHistoryRepository implements ActivityHistoryRepository {
   List<_MappedActivity> _dedupeByIdentity(List<_MappedActivity> activities) {
     final byIdentity = <String, _MappedActivity>{};
     for (final activity in activities) {
-      byIdentity.putIfAbsent(activity.identityKey, () => activity);
+      final existing = byIdentity[activity.identityKey];
+      if (existing == null) {
+        byIdentity[activity.identityKey] = activity;
+        continue;
+      }
+      byIdentity[activity.identityKey] = existing.mergeFeedPublishSource(
+        activity.item.feedPublishSource,
+      );
     }
     return byIdentity.values.toList(growable: false);
+  }
+
+  RunFeedPublishSource _feedPublishSourceFor(
+    Map<String, Object?> data, {
+    required String activityId,
+    required String? cacheIdentity,
+    required bool hasSufficientData,
+    required _ActivityHistoryDocumentSource source,
+  }) {
+    if (!hasSufficientData) {
+      return const RunFeedPublishSource.disabled(
+        FeedPublishDisabledReason.insufficientData,
+      );
+    }
+    if (activityId.startsWith('local-') || activityId.startsWith('local_')) {
+      return const RunFeedPublishSource.disabled(
+        FeedPublishDisabledReason.localOnly,
+      );
+    }
+    if (source == _ActivityHistoryDocumentSource.summary) {
+      return const RunFeedPublishSource.disabled(
+        FeedPublishDisabledReason.orphanSummary,
+      );
+    }
+    if (_readOptionalString(data, 'status') != 'validated' ||
+        _readOptionalString(data, 'validationStatus') != 'validated') {
+      return const RunFeedPublishSource.disabled(
+        FeedPublishDisabledReason.notValidated,
+      );
+    }
+    return RunFeedPublishSource.enabled(
+      activityId: activityId,
+      cacheIdentity: cacheIdentity,
+    );
   }
 
   DateTime? _readDateTimeFromAny(
@@ -447,4 +507,21 @@ class _MappedActivity {
   final DateTime endedAt;
   final String identityKey;
   final ActivityHistoryItemReadModel item;
+
+  _MappedActivity mergeFeedPublishSource(RunFeedPublishSource candidate) {
+    final current = item.feedPublishSource;
+    if (!candidate.isPublishable &&
+        (current.isPublishable ||
+            current.disabledReason !=
+                FeedPublishDisabledReason.orphanSummary)) {
+      return this;
+    }
+    return _MappedActivity(
+      endedAt: endedAt,
+      identityKey: identityKey,
+      item: item.copyWith(feedPublishSource: candidate),
+    );
+  }
 }
+
+enum _ActivityHistoryDocumentSource { summary, activity }

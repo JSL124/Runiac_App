@@ -4,13 +4,13 @@
 
 - Current track: Track A - Governance and implementation readiness
 - Current phase: `implementation/roadmap/phases/phase-01-governance-ci.md`
-- Current active capsule in this isolated worktree: `implementation/roadmap/capsules/feed-friends-emulator-backend.md`. Package A is committed at `c8bdc039`; this explicitly approved Backend Guarded Lane route is limited to emulator-only Feed/Friends Auth, Firestore, Functions, Storage, and Flutter work. It does not close, supersede, or mutate the open `adaptive-character-guidance` capsule, and it does not authorize or alter unrelated concurrent Leaderboard/You/design/test work.
+- Current active capsule in this isolated worktree: `implementation/roadmap/capsules/activity-history-feed-upload.md`. This explicitly routed Flutter client integration capsule allows Activity History to Feed publishing through the existing callable-backed Feed contract, Share Your Achievement-style Feed upload sheet work, privacy-safe thumbnail resolution, and route thumbnail marker removal. It does not close, supersede, or mutate the prior `feed-friends-emulator-backend` package, the open `adaptive-character-guidance` capsule, or unrelated concurrent Leaderboard/You/design/test work.
 - Most recent pushed / hosted-CI-verified completed capsule: `goal-plan-detail-header-timeline-alignment` implemented, pushed at `7798f058ae1b272e8eca6dd8a31cba4490c8faa1 feat(you): refine goal plan detail week list`, and verified by hosted Governance CI #65 PASS for run ID `27160664756`.
 - Most recent locally closed implementation milestone: `personalized-adaptive-estimate-learning` completed locally after RED/GREEN Functions and Firestore rules evidence on 2026-07-07 Asia/Singapore.
-- Current status: Feed/Friends implementation package B is `Ready for user screen QA` and `Ready for manual commit` after committed PDD package A. Backend/Rules and isolated package-B Flutter automation are proven green; production connections/deploy, agent staging/commit, and agent-performed real-screen QA remain blocked.
+- Current status: Activity History Feed upload implementation is `In progress`. Prior Feed/Friends implementation package B remains `Ready for user screen QA` and `Ready for manual commit` after committed PDD package A; production connections/deploy, agent staging/commit, and agent-performed real-screen QA remain blocked.
 - Current state: real-screen QA is explicitly user-owned and unexecuted. Shared-tree Flutter retains five proven unrelated dirty failures, while the isolated 95-path task-only suite passed 1,348/1,348. Binding same-oracle governance review is APPROVE with high confidence: immutable Adaptive OIDs verified, actual staged/unstaged real-path mutations rejected, direct/targeted/full Governance CI passed, and cleanup left the index empty. The open adaptive-character capsule and concurrent user-owned Leaderboard/You/design/test changes remain unrelated and untouched.
 - Current governance decision record: ADR-003 classifies this work as Backend Guarded Lane; ADR-002 requires Emulator First. Project `demo-runiac-feed` and explicit Auth/Firestore/Functions/Storage host guards are mandatory before any fixture mutation.
-- Current active milestone in this isolated worktree: `feed-friends-emulator-backend`. Phase 02 remains unselected.
+- Current active milestone in this isolated worktree: `activity-history-feed-upload`. Phase 02 remains unselected.
 
 Run Tracking M4-A/M4-B/M4-C1/M4-C2 reconciliation:
 
@@ -96,7 +96,7 @@ Next gate is the user-owned real-screen emulator checklist. Package B is exactly
 
 ## Operational TODO / Active Capsule
 
-Current capsule package in this isolated worktree: `implementation/roadmap/capsules/feed-friends-emulator-backend.md`. It authorizes only its exact emulator-only package-B allowlist and requires worker RED/GREEN evidence plus Sol approval before dependency release. `implementation/roadmap/capsules/adaptive-character-guidance.md` remains open and byte-for-byte unchanged. Existing Leaderboard, You, design-system, test, and debug-journal dirt remains unrelated, user-owned, unstaged, and untouched; later concurrent writes do not alter the Feed allowlist.
+Current capsule package in this isolated worktree: `implementation/roadmap/capsules/activity-history-feed-upload.md`. It authorizes only Activity History provenance, existing View Summary / Feed publish integration, Share Your Achievement-style Feed upload sheet work, privacy-safe thumbnail resolution, route thumbnail marker removal, focused tests, and evidence. `implementation/roadmap/capsules/feed-friends-emulator-backend.md` remains a prior package at `Ready for user screen QA` and `Ready for manual commit`; `implementation/roadmap/capsules/adaptive-character-guidance.md` remains open and byte-for-byte unchanged. Existing Leaderboard, unrelated design/test, and debug-journal dirt remains unrelated, unstaged, and untouched.
 
 Required next-session checklist:
 

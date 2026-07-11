@@ -163,6 +163,7 @@ class ActivityHistoryDisplayController extends ChangeNotifier {
         hasSufficientData: item.hasSufficientData,
         cadenceAnalysisSeries: item.cadenceAnalysisSeries,
       ),
+      feedPublishSource: item.feedPublishSource,
     );
   }
 

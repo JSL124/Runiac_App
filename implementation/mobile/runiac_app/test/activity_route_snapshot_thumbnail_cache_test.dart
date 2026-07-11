@@ -151,6 +151,23 @@ class _FakeSnapshotThumbnailGenerator
 
 void main() {
   test(
+    'snapshot generation request does not carry endpoint marker overlays',
+    () {
+      final request = _request(route: _turnRouteFixture());
+
+      final generation =
+          ActivityRouteSnapshotThumbnailGenerationRequest.fromThumbnailRequest(
+            request,
+            styleId: 'test',
+          );
+
+      expect(generation, isNotNull);
+      expect(generation!.projectedStart, Offset.zero);
+      expect(generation.projectedEnd, Offset.zero);
+    },
+  );
+
+  test(
     'owner-scoped cache-only lookup never generates or leaks another owner artifact',
     () async {
       final cache = ActivityRouteSnapshotThumbnailMemoryCache();

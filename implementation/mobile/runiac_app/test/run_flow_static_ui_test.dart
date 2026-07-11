@@ -22,6 +22,7 @@ import 'package:runiac_app/features/run/domain/models/run_activity_read_model.da
 import 'package:runiac_app/features/run/domain/models/run_location_sample.dart';
 import 'package:runiac_app/features/run/domain/models/run_route_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/run_source_display.dart';
+import 'package:runiac_app/features/run/domain/models/run_feed_publish_source.dart';
 import 'package:runiac_app/features/run/presentation/advanced_analysis_screen.dart';
 import 'package:runiac_app/features/run/presentation/cool_down_guide_screen.dart';
 import 'package:runiac_app/features/run/presentation/cool_down_screen.dart';
@@ -268,6 +269,38 @@ final _runFlowHistoryPng = base64Decode(
   'iVBORw0KGgoAAAANSUhEUgAAAFgAAABYCAYAAABxlTA0AAAAjElEQVR42u3QMQEAAAQAMI1U0VosLhF8O1ZgkdXDn5AgWDCCBQtGsGDBCBaMYMGCESxYMIIFC5YgWDCCBQtGsGDBCBaMYMGCESxYMIIFC5YgWDCCBQtGsGDBCBaMYMGCESxYMIIFCxYhWDCCBQtGsGDBCBaMYMGCESxYMIIFC0awYAQLFoxgwYIRLJizDhyrPSUd4x4AAAAASUVORK5CYII=',
 );
 
+RunSummarySnapshot _summaryWithRoute() {
+  final startedAt = DateTime.utc(2026, 6, 14, 7);
+  return defaultRunSummarySnapshot.copyWith(
+    route: RunRouteSnapshot(
+      segments: [
+        [
+          RunLocationSample(
+            recordedAt: startedAt,
+            latitude: 1.300000,
+            longitude: 103.800000,
+          ),
+          RunLocationSample(
+            recordedAt: startedAt.add(const Duration(seconds: 60)),
+            latitude: 1.300500,
+            longitude: 103.800850,
+          ),
+          RunLocationSample(
+            recordedAt: startedAt.add(const Duration(seconds: 120)),
+            latitude: 1.300899,
+            longitude: 103.801250,
+          ),
+        ],
+      ],
+      lastKnownLocation: RunLocationSample(
+        recordedAt: startedAt.add(const Duration(seconds: 120)),
+        latitude: 1.300899,
+        longitude: 103.801250,
+      ),
+    ),
+  );
+}
+
 class _RunFlowFeedPublishFixture {
   _RunFlowFeedPublishFixture()
     : cache = ActivityRouteSnapshotThumbnailMemoryCache(),
@@ -312,6 +345,8 @@ class _RecordingFeedPublishGateway implements FeedPublishGateway {
   Uint8List? stagedPngBytes;
   var stageCalls = 0;
   var publishCalls = 0;
+  final stageActivityIds = <String>[];
+  final publishActivityIds = <String>[];
 
   @override
   Future<String> stage({
@@ -319,6 +354,7 @@ class _RecordingFeedPublishGateway implements FeedPublishGateway {
     required Uint8List pngBytes,
   }) async {
     stageCalls += 1;
+    stageActivityIds.add(activityId);
     stagedPngBytes = pngBytes;
     return 'feed-thumbnail-staging/test/$activityId/thumbnail.png';
   }
@@ -329,6 +365,7 @@ class _RecordingFeedPublishGateway implements FeedPublishGateway {
     required String stagingPath,
   }) async {
     publishCalls += 1;
+    publishActivityIds.add(activityId);
     return const FeedPublishResponse(postId: 'run-flow-feed-post');
   }
 }
@@ -976,13 +1013,14 @@ void main() {
     await tester.tap(find.widgetWithText(OutlinedButton, 'Share Route'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Share route to Feed'), findsOneWidget);
+    expect(find.text('Share Your Achievement'), findsOneWidget);
+    expect(find.widgetWithText(TextButton, 'Close'), findsNothing);
     expect(find.text('Post to Feed'), findsOneWidget);
     expect(find.text('Route sharing will be available soon.'), findsNothing);
 
     await tester.tap(find.widgetWithText(FilledButton, 'Post to Feed'));
     await tester.pumpAndSettle();
-    expect(find.text('Share route to Feed'), findsNothing);
+    expect(find.text('Share Your Achievement'), findsNothing);
     expect(feedFixture.gateway.stagedPngBytes, same(_runFlowHistoryPng));
     expect(feedFixture.gateway.publishCalls, 1);
     await tester.ensureVisible(
@@ -1019,9 +1057,9 @@ void main() {
     await tester.tap(find.widgetWithText(OutlinedButton, 'Share Route'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Share route to Feed'), findsOneWidget);
+    expect(find.text('Share Your Achievement'), findsOneWidget);
     expect(find.text('Post to Feed'), findsOneWidget);
-    expect(find.text('East Coast Park Loop'), findsOneWidget);
+    expect(find.text('East Coast Park Loop'), findsNothing);
     expect(find.text('4.03 km'), findsOneWidget);
     expect(find.text('6’30” / km'), findsOneWidget);
     expect(find.text('30:15'), findsAtLeastNWidgets(2));
@@ -1039,11 +1077,102 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, 'Post to Feed'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Share route to Feed'), findsNothing);
+    expect(find.text('Share Your Achievement'), findsNothing);
     expect(feedFixture.gateway.stageCalls, 1);
     expect(feedFixture.gateway.publishCalls, 1);
     expect(feedFixture.gateway.stagedPngBytes, same(_runFlowHistoryPng));
   });
+
+  testWidgets(
+    'Share Route uses a summary route thumbnail when no artifact resolver is injected',
+    (WidgetTester tester) async {
+      _useTallSummarySurface(tester);
+      final gateway = _RecordingFeedPublishGateway();
+      final routeSummary = _summaryWithRoute();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ViewSummaryScreen(
+            completionResult: CompleteRunResult(
+              clientRunSessionId: _runFlowFeedClientSessionId,
+              activityId: _runFlowFeedActivityId,
+              summary: routeSummary,
+              xpUpdate: defaultXpUpdateDisplayModel,
+            ),
+            feedPublishService: FeedPublishService(gateway: gateway),
+          ),
+        ),
+      );
+
+      await tester.ensureVisible(
+        find.widgetWithText(OutlinedButton, 'Share Route'),
+      );
+      await tester.pump();
+      await tester.tap(find.widgetWithText(OutlinedButton, 'Share Route'));
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 100)),
+      );
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('Share Your Achievement'), findsOneWidget);
+      expect(
+        find.text(
+          'Your private route preview is unavailable. Your run is still saved.',
+        ),
+        findsNothing,
+      );
+      final preview = tester.widget<Image>(find.byType(Image));
+      final bytes = (preview.image as MemoryImage).bytes;
+      expect(bytes, isNot(same(_runFlowHistoryPng)));
+      expect(bytes.sublist(0, 8), const <int>[137, 80, 78, 71, 13, 10, 26, 10]);
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Post to Feed'));
+      await tester.pumpAndSettle();
+
+      expect(gateway.stageCalls, 1);
+      expect(gateway.publishCalls, 1);
+      expect(gateway.stagedPngBytes, same(bytes));
+    },
+  );
+
+  testWidgets(
+    'Activity History Share Route uses canonical backend activity id',
+    (WidgetTester tester) async {
+      _useTallSummarySurface(tester);
+      final feedFixture = _RunFlowFeedPublishFixture();
+      addTearDown(feedFixture.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ViewSummaryScreen(
+            feedPublishSource: const RunFeedPublishSource.enabled(
+              activityId: 'history-backend-activity',
+              cacheIdentity: _runFlowFeedClientSessionId,
+              allowsCurrentSessionRouteCapture: true,
+            ),
+            feedPublishService: feedFixture.feedPublishService,
+            historyArtifactResolver: feedFixture.historyArtifactResolver,
+          ),
+        ),
+      );
+
+      await tester.ensureVisible(
+        find.widgetWithText(OutlinedButton, 'Share Route'),
+      );
+      await tester.tap(find.widgetWithText(OutlinedButton, 'Share Route'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Post to Feed'));
+      await tester.pumpAndSettle();
+
+      expect(feedFixture.gateway.stageActivityIds, <String>[
+        'history-backend-activity',
+      ]);
+      expect(feedFixture.gateway.publishActivityIds, <String>[
+        'history-backend-activity',
+      ]);
+      expect(feedFixture.gateway.stagedPngBytes, same(_runFlowHistoryPng));
+    },
+  );
 
   testWidgets('View summary accepts selected static run summary data', (
     WidgetTester tester,

@@ -479,12 +479,6 @@ class _RoutePolylinePreviewPainter extends CustomPainter {
         canvas.drawPath(segmentPath, pathPaint);
       }
     }
-
-    _paintRouteDots(
-      canvas,
-      start: viewport.project(viewport.drawablePoints.first),
-      end: viewport.project(viewport.drawablePoints.last),
-    );
   }
 
   @override
@@ -552,25 +546,6 @@ Paint _routePathPaint(Color color, double strokeWidth) {
     ..style = PaintingStyle.stroke
     ..strokeCap = StrokeCap.round
     ..strokeJoin = StrokeJoin.round;
-}
-
-void _paintRouteDots(
-  Canvas canvas, {
-  required Offset start,
-  required Offset end,
-}) {
-  final endPaint = Paint()..color = RuniacColors.accentOrange;
-  final startPaint = Paint()
-    ..color = RuniacColors.white
-    ..style = PaintingStyle.fill;
-  final startBorderPaint = Paint()
-    ..color = RuniacColors.primaryBlue
-    ..strokeWidth = 2
-    ..style = PaintingStyle.stroke;
-
-  canvas.drawCircle(start, 4, startPaint);
-  canvas.drawCircle(start, 4, startBorderPaint);
-  canvas.drawCircle(end, 5, endPaint);
 }
 
 const _previewSlotSize = 88.0;

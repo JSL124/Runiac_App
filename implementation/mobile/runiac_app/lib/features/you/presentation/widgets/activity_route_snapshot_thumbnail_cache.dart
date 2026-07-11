@@ -172,6 +172,8 @@ class ActivityRouteSnapshotThumbnailGenerationRequest {
     required this.devicePixelRatio,
     required this.styleId,
     required this.camera,
+    required this.route,
+    required this.viewport,
     this.projectedStart = Offset.zero,
     this.projectedEnd = Offset.zero,
     this.activityId,
@@ -194,8 +196,8 @@ class ActivityRouteSnapshotThumbnailGenerationRequest {
       devicePixelRatio: request.canonicalDevicePixelRatio.toDouble(),
       styleId: styleId,
       camera: camera,
-      projectedStart: viewport.project(viewport.drawablePoints.first),
-      projectedEnd: viewport.project(viewport.drawablePoints.last),
+      route: request.route,
+      viewport: viewport,
       activityId: request.activityId,
     );
   }
@@ -204,11 +206,15 @@ class ActivityRouteSnapshotThumbnailGenerationRequest {
   final double devicePixelRatio;
   final String styleId;
   final ActivityRouteSnapshotCamera camera;
+  final RunRouteSnapshot route;
+  final ActivityRouteThumbnailViewport viewport;
   final Offset projectedStart;
   final Offset projectedEnd;
   final String? activityId;
 
   int get outputPixels => (logicalSize.width * devicePixelRatio).round();
+  int get outputWidthPixels => (logicalSize.width * devicePixelRatio).round();
+  int get outputHeightPixels => (logicalSize.height * devicePixelRatio).round();
 }
 
 class ActivityRouteSnapshotCamera {

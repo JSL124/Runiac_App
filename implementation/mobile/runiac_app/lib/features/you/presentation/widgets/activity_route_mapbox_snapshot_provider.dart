@@ -4,9 +4,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart' as widgets;
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mapbox;
 
-import '../../../../core/theme/runiac_colors.dart';
+import '../../../run/domain/models/run_location_sample.dart';
 import 'activity_route_preview.dart';
 import 'activity_route_snapshot_thumbnail_cache.dart';
+import 'activity_route_thumbnail_viewport.dart';
 
 class ActivityRouteMapboxSnapshotStyle {
   const ActivityRouteMapboxSnapshotStyle._();
@@ -192,15 +193,16 @@ Future<Uint8List> encodePrivacyMaskedPng(
   final frame = await codec.getNextFrame();
   codec.dispose();
   final image = frame.image;
-  final pixels = request.outputPixels;
+  final width = request.outputWidthPixels;
+  final height = request.outputHeightPixels;
   final recorder = ui.PictureRecorder();
   final canvas = ui.Canvas(recorder);
   try {
     final destination = ui.Rect.fromLTWH(
       0,
       0,
-      pixels.toDouble(),
-      pixels.toDouble(),
+      width.toDouble(),
+      height.toDouble(),
     );
     canvas.drawImageRect(
       image,
@@ -208,23 +210,8 @@ Future<Uint8List> encodePrivacyMaskedPng(
       destination,
       ui.Paint(),
     );
-    final scale = pixels / request.logicalSize.width;
-    final maskPaint = ui.Paint()..color = RuniacColors.primaryBlue;
-    final maskSize = 12 * scale;
-    for (final point in <widgets.Offset>[
-      request.projectedStart,
-      request.projectedEnd,
-    ]) {
-      canvas.drawRect(
-        ui.Rect.fromCenter(
-          center: ui.Offset(point.dx * scale, point.dy * scale),
-          width: maskSize,
-          height: maskSize,
-        ),
-        maskPaint,
-      );
-    }
-    final output = await recorder.endRecording().toImage(pixels, pixels);
+    _paintRouteOverlay(canvas, request);
+    final output = await recorder.endRecording().toImage(width, height);
     try {
       final data = await output.toByteData(format: ui.ImageByteFormat.png);
       if (data == null) throw StateError('PNG encoding was unavailable.');
@@ -235,6 +222,57 @@ Future<Uint8List> encodePrivacyMaskedPng(
   } finally {
     image.dispose();
   }
+}
+
+void _paintRouteOverlay(
+  ui.Canvas canvas,
+  ActivityRouteSnapshotThumbnailGenerationRequest request,
+) {
+  if (request.route.segments.isEmpty) {
+    return;
+  }
+  canvas.save();
+  canvas.scale(request.devicePixelRatio, request.devicePixelRatio);
+  final shadowPaint = ui.Paint()
+    ..color = const ui.Color(0xCCFFFFFF)
+    ..strokeWidth = 8
+    ..style = ui.PaintingStyle.stroke
+    ..strokeCap = ui.StrokeCap.round
+    ..strokeJoin = ui.StrokeJoin.round;
+  final routePaint = ui.Paint()
+    ..color = const ui.Color(0xFFC85A09)
+    ..strokeWidth = 5
+    ..style = ui.PaintingStyle.stroke
+    ..strokeCap = ui.StrokeCap.round
+    ..strokeJoin = ui.StrokeJoin.round;
+  for (final segment in request.route.segments) {
+    final path = _routePathForSegment(segment, request.viewport);
+    if (path == null) {
+      continue;
+    }
+    canvas.drawPath(path, shadowPaint);
+    canvas.drawPath(path, routePaint);
+  }
+  canvas.restore();
+}
+
+ui.Path? _routePathForSegment(
+  List<RunLocationSample> segment,
+  ActivityRouteThumbnailViewport viewport,
+) {
+  final points = segment
+      .where((point) => point.latitude.isFinite && point.longitude.isFinite)
+      .toList(growable: false);
+  if (points.length < 2) {
+    return null;
+  }
+  final start = viewport.project(points.first);
+  final path = ui.Path()..moveTo(start.dx, start.dy);
+  for (final point in points.skip(1)) {
+    final projected = viewport.project(point);
+    path.lineTo(projected.dx, projected.dy);
+  }
+  return path;
 }
 
 typedef ActivityRouteSnapshotterLifecycleSink =

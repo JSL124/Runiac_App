@@ -4,9 +4,13 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/features/feed/data/feed_publish/feed_thumbnail_capture.dart';
+import 'package:runiac_app/features/feed/data/feed_publish/history_artifact_resolver.dart';
+import 'package:runiac_app/features/run/presentation/data/run_completion_demo_snapshots.dart';
 import 'package:runiac_app/features/you/presentation/widgets/activity_route_mapbox_snapshot_provider.dart';
 import 'package:runiac_app/features/you/presentation/widgets/activity_route_preview.dart';
 import 'package:runiac_app/features/you/presentation/widgets/activity_route_snapshot_thumbnail_cache.dart';
+import 'package:runiac_app/features/you/presentation/widgets/activity_route_thumbnail_viewport.dart';
+import 'package:runiac_app/features/run/domain/models/run_location_sample.dart';
 import 'package:runiac_app/features/run/domain/models/run_route_snapshot.dart';
 
 void main() {
@@ -129,33 +133,90 @@ void main() {
     );
   });
 
-  test('encoder paints opaque 12-logical-pixel privacy masks', () async {
-    final encoded = await encodePrivacyMaskedPng(
-      await _solidPng(),
-      const ActivityRouteSnapshotThumbnailGenerationRequest(
-        logicalSize: Size(88, 88),
-        devicePixelRatio: 2,
-        styleId: 'test',
-        camera: ActivityRouteSnapshotCamera(
-          centerLatitude: 0,
-          centerLongitude: 0,
-          zoom: 1,
+  test(
+    'encoder preserves snapshot pixels without endpoint marker masks',
+    () async {
+      final emptyViewport = ActivityRouteThumbnailViewport.fromRoute(
+        RunRouteSnapshot.empty,
+        logicalSize: const Size(88, 88),
+      );
+      final encoded = await encodePrivacyMaskedPng(
+        await _solidPng(),
+        ActivityRouteSnapshotThumbnailGenerationRequest(
+          logicalSize: Size(88, 88),
+          devicePixelRatio: 2,
+          styleId: 'test',
+          camera: const ActivityRouteSnapshotCamera(
+            centerLatitude: 0,
+            centerLongitude: 0,
+            zoom: 1,
+          ),
+          route: RunRouteSnapshot.empty,
+          viewport: emptyViewport,
+          projectedStart: const Offset(20, 20),
+          projectedEnd: const Offset(60, 60),
         ),
-        projectedStart: Offset(20, 20),
-        projectedEnd: Offset(60, 60),
+      );
+      final codec = await ui.instantiateImageCodec(encoded);
+      final image = (await codec.getNextFrame()).image;
+      codec.dispose();
+      final pixels = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+
+      expect(image.width, 176);
+      expect(image.height, 176);
+      final values = pixels!.buffer.asUint8List();
+      expect(_rgbaAt(values, 176, 40, 40), const <int>[255, 255, 255, 255]);
+      expect(_rgbaAt(values, 176, 120, 120), const <int>[255, 255, 255, 255]);
+      image.dispose();
+    },
+  );
+
+  test(
+    'metric-only legacy thumbnail artifact uses canonical PNG dimensions',
+    () async {
+      final artifact = await const MetricHistoryThumbnailGenerator().generate(
+        summary: defaultRunSummarySnapshot,
+        devicePixelRatio: 2.625,
+      );
+
+      final details = _readPngDetailsForTest(artifact.pngBytes);
+      expect(details, const Size(264, 264));
+      expect(artifact.pngBytes.lengthInBytes, lessThan(1024 * 1024));
+    },
+  );
+
+  test('route history thumbnail artifact uses route PNG dimensions', () async {
+    final startedAt = DateTime.utc(2026, 6, 14, 7);
+    final artifact = await const RouteHistoryThumbnailGenerator().generate(
+      request: ActivityRouteThumbnailRequest(
+        route: RunRouteSnapshot(
+          segments: [
+            [
+              RunLocationSample(
+                recordedAt: startedAt,
+                latitude: 1.300000,
+                longitude: 103.800000,
+              ),
+              RunLocationSample(
+                recordedAt: startedAt.add(const Duration(seconds: 60)),
+                latitude: 1.300899,
+                longitude: 103.801250,
+              ),
+            ],
+          ],
+        ),
+        logicalSize: const Size(344, 184),
+        devicePixelRatio: 2.625,
+        allowExternalStaticMap: true,
+        isDemoRoute: false,
+        isCurrentSessionRoute: true,
+        activityId: 'activity-a',
       ),
     );
-    final codec = await ui.instantiateImageCodec(encoded);
-    final image = (await codec.getNextFrame()).image;
-    codec.dispose();
-    final pixels = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
 
-    expect(image.width, 176);
-    expect(image.height, 176);
-    final values = pixels!.buffer.asUint8List();
-    expect(_rgbaAt(values, 176, 40, 40), const <int>[47, 80, 199, 255]);
-    expect(_rgbaAt(values, 176, 120, 120), const <int>[47, 80, 199, 255]);
-    image.dispose();
+    final details = _readPngDetailsForTest(artifact.pngBytes);
+    expect(details, const Size(1032, 552));
+    expect(artifact.pngBytes.lengthInBytes, lessThan(1024 * 1024));
   });
 }
 
@@ -181,6 +242,20 @@ Future<Uint8List> _solidPngSized(int size) async {
 List<int> _rgbaAt(Uint8List values, int width, int x, int y) {
   final offset = (y * width + x) * 4;
   return values.sublist(offset, offset + 4);
+}
+
+Size _readPngDetailsForTest(Uint8List bytes) {
+  expect(bytes.sublist(0, 8), const <int>[137, 80, 78, 71, 13, 10, 26, 10]);
+  final width = _readU32ForTest(bytes, 16);
+  final height = _readU32ForTest(bytes, 20);
+  return Size(width.toDouble(), height.toDouble());
+}
+
+int _readU32ForTest(Uint8List bytes, int offset) {
+  return (bytes[offset] << 24) |
+      (bytes[offset + 1] << 16) |
+      (bytes[offset + 2] << 8) |
+      bytes[offset + 3];
 }
 
 class _PngProvider implements ActivityRouteThumbnailProvider {

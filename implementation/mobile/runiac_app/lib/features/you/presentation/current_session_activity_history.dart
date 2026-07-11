@@ -8,6 +8,7 @@ import 'package:flutter/widgets.dart';
 import '../../run/domain/models/complete_run_result.dart';
 import '../../run/domain/models/local_run_completion_payload.dart';
 import '../../run/domain/models/run_activity_display_model.dart';
+import '../../run/domain/models/run_feed_publish_source.dart';
 import '../../run/domain/models/run_completion_error.dart';
 import '../../run/domain/models/run_summary_snapshot.dart';
 import '../../run/domain/repositories/run_repository.dart';
@@ -161,6 +162,15 @@ class CurrentSessionActivityHistoryStore extends ChangeNotifier {
         durationLabel: result.summary.duration,
         summary: result.summary,
         completionResult: result,
+        feedPublishSource: result.activityId.isEmpty
+            ? const RunFeedPublishSource.disabled(
+                FeedPublishDisabledReason.notAvailable,
+              )
+            : RunFeedPublishSource.enabled(
+                activityId: result.activityId,
+                cacheIdentity: result.clientRunSessionId,
+                allowsCurrentSessionRouteCapture: true,
+              ),
       ),
       completionResult: result,
     );

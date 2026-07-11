@@ -12,6 +12,7 @@ import '../domain/models/complete_run_result.dart';
 import '../domain/models/local_run_completion_payload.dart';
 import '../domain/models/coaching_summary_snapshot.dart';
 import '../domain/models/pace_graph_snapshot.dart';
+import '../domain/models/run_feed_publish_source.dart';
 import '../domain/models/run_location_sample.dart';
 import '../domain/models/run_route_snapshot.dart';
 import '../domain/models/run_summary_snapshot.dart';
@@ -22,10 +23,12 @@ import '../../feed/data/feed_publish/feed_thumbnail_capture.dart';
 import '../../feed/data/feed_publish/history_artifact_resolver.dart';
 import '../../feed/data/feed_publish/firebase_feed_publish_gateway.dart';
 import '../../you/presentation/widgets/activity_route_preview.dart';
+import '../../you/presentation/widgets/activity_route_mapbox_snapshot_provider.dart';
 import '../../you/presentation/current_session_activity_history.dart';
 import 'run_repository_scope.dart';
 import 'data/run_completion_demo_snapshots.dart';
 import 'widgets/completed_route_map_surface.dart';
+import 'widgets/mapbox_runtime_config.dart';
 import 'widgets/advanced_analysis/advanced_analysis_splits_table.dart';
 import 'widgets/share_achievement_sheet.dart';
 import 'widgets/share_route_to_feed_sheet.dart';
@@ -75,6 +78,7 @@ class ViewSummaryScreen extends StatelessWidget {
     this.mapboxBuilder,
     this.feedPublishService,
     this.historyArtifactResolver,
+    this.feedPublishSource,
   });
 
   final RunSummarySnapshot summary;
@@ -86,6 +90,7 @@ class ViewSummaryScreen extends StatelessWidget {
   final CompletedRouteMapboxBuilder? mapboxBuilder;
   final FeedPublishService? feedPublishService;
   final HistoryArtifactResolver? historyArtifactResolver;
+  final RunFeedPublishSource? feedPublishSource;
 
   void _showSoonMessage(BuildContext context, String message) {
     ScaffoldMessenger.of(context)
@@ -110,7 +115,7 @@ class ViewSummaryScreen extends StatelessWidget {
         artifact: artifact,
         onCancel: () => Navigator.of(sheetContext).pop(),
         onConfirm: () async {
-          final activityId = completionResult?.activityId;
+          final activityId = _effectiveFeedPublishSource.activityId;
           if (activityId == null || activityId.isEmpty || artifact == null) {
             throw StateError('This run is not ready to post yet.');
           }
@@ -132,27 +137,93 @@ class ViewSummaryScreen extends StatelessWidget {
     BuildContext context,
     RunSummarySnapshot summary,
   ) async {
-    final activityId = completionResult?.activityId;
+    final source = _effectiveFeedPublishSource;
+    final activityId = source.activityId;
     if (activityId == null || activityId.isEmpty) return null;
-    final cacheIdentity = completionResult?.clientRunSessionId;
+    final cacheIdentity = source.cacheIdentity;
+    final devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
     final request = ActivityRouteThumbnailRequest(
       route: summary.route,
       logicalSize: const Size(88, 88),
-      devicePixelRatio: MediaQuery.devicePixelRatioOf(context),
+      devicePixelRatio: devicePixelRatio,
       allowExternalStaticMap: true,
       isDemoRoute: false,
-      isCurrentSessionRoute: true,
+      isCurrentSessionRoute: source.allowsCurrentSessionRouteCapture,
       activityId: cacheIdentity == null || cacheIdentity.isEmpty
           ? activityId
           : cacheIdentity,
     );
-    try {
-      return await (historyArtifactResolver ??
-              CacheOnlyHistoryArtifactResolver())
-          .resolve(request);
-    } on FeedThumbnailCaptureException {
-      return null;
+    final injectedResolver = historyArtifactResolver;
+    if (injectedResolver != null) {
+      try {
+        final resolved = await injectedResolver.resolve(request);
+        if (resolved != null) {
+          return resolved;
+        }
+      } on FeedThumbnailCaptureException {
+        // Fall through to the rendered summary preview capture below.
+      }
     }
+    if (summary.route.hasRoute) {
+      final runtimeConfig = mapboxAccessToken == null
+          ? MapboxRuntimeConfig.fromEnvironment()
+          : MapboxRuntimeConfig(accessToken: mapboxAccessToken!.trim());
+      final snapshotGenerator =
+          runtimeConfig.accessToken.isNotEmpty &&
+              runtimeConfig.hasPublicAccessToken
+          ? MapboxActivityRouteSnapshotThumbnailGenerator(
+              accessToken: runtimeConfig.accessToken,
+            )
+          : null;
+      return RouteHistoryThumbnailGenerator(
+        snapshotGenerator: snapshotGenerator,
+      ).generate(
+        request: ActivityRouteThumbnailRequest(
+          route: summary.route,
+          logicalSize: Size(344, 184),
+          devicePixelRatio: devicePixelRatio,
+          allowExternalStaticMap: true,
+          isDemoRoute: false,
+          isCurrentSessionRoute: true,
+          activityId: activityId,
+        ),
+      );
+    }
+    try {
+      final resolved = await CacheOnlyHistoryArtifactResolver().resolve(
+        request,
+      );
+      if (resolved != null) {
+        return resolved;
+      }
+    } on FeedThumbnailCaptureException {
+      // Fall through to the scalar-only fallback below when safe.
+    }
+    if (!summary.route.hasRoute && source.allowsMetricThumbnailFallback) {
+      return const MetricHistoryThumbnailGenerator().generate(
+        summary: summary,
+        devicePixelRatio: devicePixelRatio,
+      );
+    }
+    return null;
+  }
+
+  RunFeedPublishSource get _effectiveFeedPublishSource {
+    final explicit = feedPublishSource;
+    if (explicit != null) {
+      return explicit;
+    }
+    final result = completionResult;
+    if (result == null || result.activityId.isEmpty) {
+      return const RunFeedPublishSource.disabled(
+        FeedPublishDisabledReason.notAvailable,
+      );
+    }
+    return RunFeedPublishSource.enabled(
+      activityId: result.activityId,
+      cacheIdentity: result.clientRunSessionId,
+      allowsCurrentSessionRouteCapture: true,
+    );
   }
 
   Future<void> _goHomeFromSummary(

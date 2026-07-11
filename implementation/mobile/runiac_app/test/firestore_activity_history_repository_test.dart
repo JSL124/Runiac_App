@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/features/run/domain/models/cadence_analysis_series.dart';
+import 'package:runiac_app/features/run/domain/models/run_feed_publish_source.dart';
 import 'package:runiac_app/features/you/data/firestore_activity_history_repository.dart';
 
 import 'support/fake_runiac_auth_repository.dart';
@@ -186,6 +187,115 @@ void main() {
             (total, activity) => total + activity.distanceMeters,
           ),
           7250,
+        );
+      },
+    );
+
+    test('validated activity history row is feed publishable', () async {
+      final authRepository = FakeRuniacAuthRepository()..emitSignedIn();
+      final repository = FirestoreActivityHistoryRepository(
+        authRepository: authRepository,
+        reader: _FakeActivityHistorySummaryDocumentReader(
+          documents: <ActivityHistorySummaryDocument>[
+            _runSummaryDocument(
+              id: 'summary-publishable',
+              activityId: 'activity-publishable',
+              ownerUid: 'test-auth-user-1',
+              clientRunSessionId: 'client-session-publishable',
+              endedAt: DateTime(2026, 6, 30, 7, 25),
+              title: 'Summary Display Title',
+            ),
+          ],
+          activityDocuments: <ActivityHistorySummaryDocument>[
+            _activityDocument(
+              id: 'activity-publishable',
+              ownerUid: 'test-auth-user-1',
+              clientRunSessionId: 'client-session-publishable',
+              completedAt: DateTime(2026, 6, 30, 7, 25),
+              status: 'validated',
+              validationStatus: 'validated',
+              title: 'Activity Backend Title',
+            ),
+          ],
+        ),
+      );
+
+      final history = await repository.loadActivityHistory();
+      final run = history.recentRuns.single;
+
+      expect(run.title, 'Summary Display Title');
+      expect(run.feedPublishSource.isPublishable, isTrue);
+      expect(run.feedPublishSource.activityId, 'activity-publishable');
+      expect(run.feedPublishSource.cacheIdentity, 'client-session-publishable');
+    });
+
+    test(
+      'pending unvalidated orphan and insufficient history rows are not feed publishable',
+      () async {
+        final authRepository = FakeRuniacAuthRepository()..emitSignedIn();
+        final repository = FirestoreActivityHistoryRepository(
+          authRepository: authRepository,
+          reader: _FakeActivityHistorySummaryDocumentReader(
+            documents: <ActivityHistorySummaryDocument>[
+              _runSummaryDocument(
+                id: 'orphan-summary',
+                ownerUid: 'test-auth-user-1',
+                endedAt: DateTime(2026, 6, 30, 7, 25),
+              ),
+            ],
+            activityDocuments: <ActivityHistorySummaryDocument>[
+              _activityDocument(
+                id: 'pending-activity',
+                ownerUid: 'test-auth-user-1',
+                completedAt: DateTime(2026, 6, 29, 7, 25),
+                status: 'pending',
+                validationStatus: 'pending',
+              ),
+              _activityDocument(
+                id: 'unvalidated-activity',
+                ownerUid: 'test-auth-user-1',
+                completedAt: DateTime(2026, 6, 28, 7, 25),
+                status: 'validated',
+                validationStatus: 'rejected',
+              ),
+              _activityDocument(
+                id: 'insufficient-activity',
+                ownerUid: 'test-auth-user-1',
+                completedAt: DateTime(2026, 6, 27, 7, 25),
+                status: 'validated',
+                validationStatus: 'validated',
+                distanceMeters: 0,
+              ),
+              _activityDocument(
+                id: 'local-activity',
+                ownerUid: 'test-auth-user-1',
+                completedAt: DateTime(2026, 6, 26, 7, 25),
+                status: 'validated',
+                validationStatus: 'validated',
+                activityId: 'local-client-session',
+              ),
+            ],
+          ),
+        );
+
+        final history = await repository.loadActivityHistory();
+
+        expect(
+          history.months.single.activities.map(
+            (run) => run.feedPublishSource.isPublishable,
+          ),
+          everyElement(isFalse),
+        );
+        expect(
+          history.months.single.activities.map(
+            (run) => run.feedPublishSource.disabledReason,
+          ),
+          containsAll([
+            FeedPublishDisabledReason.orphanSummary,
+            FeedPublishDisabledReason.notValidated,
+            FeedPublishDisabledReason.insufficientData,
+            FeedPublishDisabledReason.localOnly,
+          ]),
         );
       },
     );
@@ -502,6 +612,8 @@ ActivityHistorySummaryDocument _activityDocument({
   int averagePaceSecondsPerKm = 469,
   String? routeLabel = 'Private route',
   String? title,
+  String? status,
+  String? validationStatus,
 }) {
   final data = <String, Object?>{
     'ownerUid': ownerUid,
@@ -526,6 +638,12 @@ ActivityHistorySummaryDocument _activityDocument({
   }
   if (routeLabel != null) {
     data['routeLabel'] = routeLabel;
+  }
+  if (status != null) {
+    data['status'] = status;
+  }
+  if (validationStatus != null) {
+    data['validationStatus'] = validationStatus;
   }
 
   return ActivityHistorySummaryDocument(id: id, data: data);
