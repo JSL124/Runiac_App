@@ -11,6 +11,7 @@ class HomeHeader extends StatelessWidget {
     required this.onNotifications,
     required this.onProfile,
     this.unreadNotificationCount = 0,
+    this.profileInitials = 'R',
     this.levelBadgeLabel = 'Lv.0',
     this.levelProgressFraction = 0,
     super.key,
@@ -19,6 +20,7 @@ class HomeHeader extends StatelessWidget {
   final VoidCallback onNotifications;
   final VoidCallback onProfile;
   final int unreadNotificationCount;
+  final String profileInitials;
   final String levelBadgeLabel;
   final double levelProgressFraction;
 
@@ -59,6 +61,7 @@ class HomeHeader extends StatelessWidget {
           onNotifications: onNotifications,
           onProfile: onProfile,
           unreadNotificationCount: unreadNotificationCount,
+          profileInitials: profileInitials,
           levelBadgeLabel: levelBadgeLabel,
           levelProgressFraction: levelProgressFraction,
         ),
@@ -72,6 +75,7 @@ class _HomeProfilePlaceholder extends StatelessWidget {
     required this.onNotifications,
     required this.onProfile,
     required this.unreadNotificationCount,
+    required this.profileInitials,
     required this.levelBadgeLabel,
     required this.levelProgressFraction,
   });
@@ -79,6 +83,7 @@ class _HomeProfilePlaceholder extends StatelessWidget {
   final VoidCallback onNotifications;
   final VoidCallback onProfile;
   final int unreadNotificationCount;
+  final String profileInitials;
   final String levelBadgeLabel;
   final double levelProgressFraction;
 
@@ -138,7 +143,7 @@ class _HomeProfilePlaceholder extends StatelessWidget {
                   child: Padding(
                     padding: const EdgeInsets.all(2),
                     child: RuniacLevelProfileBadge(
-                      initials: 'R',
+                      initials: profileInitials,
                       levelLabel: levelBadgeLabel,
                       progressFraction: levelProgressFraction,
                       size: 62,

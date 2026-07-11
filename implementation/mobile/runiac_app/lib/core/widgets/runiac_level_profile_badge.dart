@@ -64,9 +64,11 @@ class RuniacLevelProfileBadge extends StatelessWidget {
                 initials: initials,
                 size: avatarSize,
                 fontSize: size < 80 ? 24 : 30,
-                fillColor: discColor ??
+                fillColor:
+                    discColor ??
                     RuniacColors.primaryBlue.withValues(alpha: 0.06),
-                borderColor: discBorderColor ??
+                borderColor:
+                    discBorderColor ??
                     RuniacColors.primaryBlue.withValues(alpha: 0.10),
                 textColor: initialsColor ?? RuniacColors.primaryBlue,
               ),
@@ -136,7 +138,7 @@ class _ProfileInitialsDisc extends StatelessWidget {
     if (trimmed.isEmpty) {
       return 'R';
     }
-    return trimmed.characters.first.toUpperCase();
+    return trimmed.characters.take(2).toString().toUpperCase();
   }
 }
 

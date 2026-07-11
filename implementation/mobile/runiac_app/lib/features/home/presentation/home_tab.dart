@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../account/presentation/account_profile_screen.dart';
+import '../../account/domain/models/user_profile_read_model.dart';
 import '../../account/domain/repositories/user_profile_persistence_repository.dart';
 import '../../account/domain/repositories/user_profile_repository.dart';
 import '../../auth/domain/runiac_auth_service.dart';
@@ -79,13 +80,17 @@ class HomeTab extends StatefulWidget {
 
 class _HomeTabState extends State<HomeTab> {
   late Future<UserProgressReadModel> _userProgressFuture;
+  late Future<UserProfileReadModel?> _userProfileFuture;
   String? _userProgressOwnerUid;
+  String? _userProfileOwnerUid;
   UserProgressReadModel? _lastUserProgress;
+  UserProfileReadModel? _lastUserProfile;
 
   @override
   void initState() {
     super.initState();
     _setUserProgressFuture(refresh: false);
+    _setUserProfileFuture(refresh: false);
   }
 
   @override
@@ -97,6 +102,10 @@ class _HomeTabState extends State<HomeTab> {
     } else if (!_isSameDate(oldWidget.currentDate, widget.currentDate)) {
       _setUserProgressFuture(refresh: true);
     }
+    if (oldWidget.profileRepository != widget.profileRepository ||
+        _currentOwnerUid != _userProfileOwnerUid) {
+      _setUserProfileFuture(refresh: false);
+    }
   }
 
   String? get _currentOwnerUid => widget.authRepository.currentUser?.uid;
@@ -104,6 +113,12 @@ class _HomeTabState extends State<HomeTab> {
   void _ensureUserProgressFutureForCurrentOwner() {
     if (_currentOwnerUid != _userProgressOwnerUid) {
       _setUserProgressFuture(refresh: false);
+    }
+  }
+
+  void _ensureUserProfileFutureForCurrentOwner() {
+    if (_currentOwnerUid != _userProfileOwnerUid) {
+      _setUserProfileFuture(refresh: false);
     }
   }
 
@@ -119,6 +134,18 @@ class _HomeTabState extends State<HomeTab> {
     _userProgressFuture = _progressFutureForOwner(
       ownerUid: ownerUid,
       source: source,
+      keepLastOnError: refresh,
+    );
+  }
+
+  void _setUserProfileFuture({required bool refresh}) {
+    final ownerUid = _currentOwnerUid;
+    if (ownerUid != _userProfileOwnerUid) {
+      _lastUserProfile = null;
+    }
+    _userProfileOwnerUid = ownerUid;
+    _userProfileFuture = _profileFutureForOwner(
+      ownerUid: ownerUid,
       keepLastOnError: refresh,
     );
   }
@@ -142,6 +169,27 @@ class _HomeTabState extends State<HomeTab> {
         return fallback;
       }
       rethrow;
+    }
+  }
+
+  Future<UserProfileReadModel?> _profileFutureForOwner({
+    required String? ownerUid,
+    required bool keepLastOnError,
+  }) async {
+    try {
+      final profile = await widget.profileRepository.loadUserProfile();
+      if (_userProfileOwnerUid == ownerUid) {
+        _lastUserProfile = profile;
+      }
+      return profile;
+    } catch (_) {
+      final fallback = _lastUserProfile;
+      if (keepLastOnError &&
+          fallback != null &&
+          _userProfileOwnerUid == ownerUid) {
+        return fallback;
+      }
+      return null;
     }
   }
 
@@ -186,6 +234,7 @@ class _HomeTabState extends State<HomeTab> {
     }
     setState(() {
       _setUserProgressFuture(refresh: true);
+      _setUserProfileFuture(refresh: true);
     });
   }
 
@@ -309,35 +358,51 @@ class _HomeTabState extends State<HomeTab> {
   @override
   Widget build(BuildContext context) {
     _ensureUserProgressFutureForCurrentOwner();
+    _ensureUserProfileFutureForCurrentOwner();
     final plan = CurrentSessionGeneratedPlanScope.maybeOf(context)?.activePlan;
     final model = _buildStageMapModel(plan);
     final guideRequest = _buildGuideRequest(plan, model);
 
-    return StreamBuilder<int>(
-      stream: widget.notificationInboxRepository.watchUnreadCount(),
-      initialData: 0,
-      builder: (context, unreadSnapshot) {
-        return FutureBuilder<UserProgressReadModel>(
-          future: _userProgressFuture,
-          builder: (context, progressSnapshot) {
-            final progress = progressSnapshot.data ?? _lastUserProgress;
-            return HomeStageMap(
-              model: model,
-              streakCount: progress?.officialStreakCount ?? 0,
-              unreadNotificationCount: unreadSnapshot.data ?? 0,
-              levelBadgeLabel: progress?.levelBadgeLabel ?? 'Lv.0',
-              levelProgressFraction: progress?.levelProgressFraction ?? 0,
-              onNotifications: () => _openNotificationInbox(context),
-              onProfile: () => _openAccountProfile(context),
-              onTapTodayStage: () => _openTodayWorkout(context),
-              guideAgent: widget.homeGuideAgent,
-              guideRequest: guideRequest,
+    return FutureBuilder<UserProfileReadModel?>(
+      future: _userProfileFuture,
+      builder: (context, profileSnapshot) {
+        final profile = profileSnapshot.data ?? _lastUserProfile;
+        return StreamBuilder<int>(
+          stream: widget.notificationInboxRepository.watchUnreadCount(),
+          initialData: 0,
+          builder: (context, unreadSnapshot) {
+            return FutureBuilder<UserProgressReadModel>(
+              future: _userProgressFuture,
+              builder: (context, progressSnapshot) {
+                final progress = progressSnapshot.data ?? _lastUserProgress;
+                return HomeStageMap(
+                  model: model,
+                  streakCount: progress?.officialStreakCount ?? 0,
+                  unreadNotificationCount: unreadSnapshot.data ?? 0,
+                  profileInitials: _homeProfileInitials(profile),
+                  levelBadgeLabel: progress?.levelBadgeLabel ?? 'Lv.0',
+                  levelProgressFraction: progress?.levelProgressFraction ?? 0,
+                  onNotifications: () => _openNotificationInbox(context),
+                  onProfile: () => _openAccountProfile(context),
+                  onTapTodayStage: () => _openTodayWorkout(context),
+                  guideAgent: widget.homeGuideAgent,
+                  guideRequest: guideRequest,
+                );
+              },
             );
           },
         );
       },
     );
   }
+}
+
+String _homeProfileInitials(UserProfileReadModel? profile) {
+  final initials = profile?.avatarInitials.trim();
+  if (initials == null || initials.isEmpty) {
+    return 'R';
+  }
+  return initials;
 }
 
 bool _isSameDate(DateTime? left, DateTime? right) {

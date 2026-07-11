@@ -82,6 +82,7 @@ class HomeStageMap extends StatefulWidget {
     this.model,
     this.streakCount = 0,
     this.unreadNotificationCount = 0,
+    this.profileInitials = 'R',
     this.levelBadgeLabel = 'Lv.0',
     this.levelProgressFraction = 0,
     this.guideAgent,
@@ -93,6 +94,7 @@ class HomeStageMap extends StatefulWidget {
   final HomeStageMapModel? model;
   final int streakCount;
   final int unreadNotificationCount;
+  final String profileInitials;
   final String levelBadgeLabel;
   final double levelProgressFraction;
   final VoidCallback onNotifications;
@@ -488,6 +490,7 @@ class _HomeStageMapState extends State<HomeStageMap>
                 unreadNotificationCount: widget.unreadNotificationCount,
                 levelBadgeLabel: widget.levelBadgeLabel,
                 levelProgressFraction: widget.levelProgressFraction,
+                profileInitials: widget.profileInitials,
                 onNotifications: widget.onNotifications,
                 onProfile: widget.onProfile,
               ),
@@ -1061,6 +1064,7 @@ class _HomeStageHeader extends StatelessWidget {
     required this.unreadNotificationCount,
     required this.levelBadgeLabel,
     required this.levelProgressFraction,
+    required this.profileInitials,
     required this.onNotifications,
     required this.onProfile,
   });
@@ -1069,6 +1073,7 @@ class _HomeStageHeader extends StatelessWidget {
   final int unreadNotificationCount;
   final String levelBadgeLabel;
   final double levelProgressFraction;
+  final String profileInitials;
   final VoidCallback onNotifications;
   final VoidCallback onProfile;
 
@@ -1123,7 +1128,7 @@ class _HomeStageHeader extends StatelessWidget {
                           ),
                         ),
                         RuniacLevelProfileBadge(
-                          initials: 'R',
+                          initials: profileInitials,
                           levelLabel: levelBadgeLabel,
                           progressFraction: levelProgressFraction,
                           size: 54,

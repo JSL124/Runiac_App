@@ -5,6 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runiac_app/app.dart';
 import 'package:runiac_app/features/account/data/static_user_profile_repository.dart';
+import 'package:runiac_app/features/account/domain/models/user_profile_read_model.dart';
+import 'package:runiac_app/features/account/domain/repositories/user_profile_repository.dart';
 import 'package:runiac_app/features/account/domain/repositories/user_profile_persistence_repository.dart';
 import 'package:runiac_app/features/account/presentation/watch_health_apps_screen.dart';
 import 'package:runiac_app/features/home/presentation/home_tab.dart';
@@ -151,6 +153,15 @@ class _SingleUserProgressRepository implements UserProgressRepository {
   Future<UserProgressReadModel> refreshUserProgress() async => progress;
 }
 
+class _SingleUserProfileRepository implements UserProfileRepository {
+  const _SingleUserProfileRepository(this.profile);
+
+  final UserProfileReadModel profile;
+
+  @override
+  Future<UserProfileReadModel> loadUserProfile() async => profile;
+}
+
 class _CountingUserProgressRepository implements UserProgressRepository {
   _CountingUserProgressRepository(this.progress);
 
@@ -212,12 +223,13 @@ Future<void> _pumpHomeTab(
   WidgetTester tester, {
   required FakeRuniacAuthRepository authRepository,
   required UserProgressRepository userProgressRepository,
+  UserProfileRepository profileRepository = const StaticUserProfileRepository(),
 }) async {
   await tester.pumpWidget(
     MaterialApp(
       home: HomeTab(
         authRepository: authRepository,
-        profileRepository: const StaticUserProfileRepository(),
+        profileRepository: profileRepository,
         profilePersistenceRepository:
             const NoopUserProfilePersistenceRepository(),
         userProgressRepository: userProgressRepository,
@@ -303,6 +315,40 @@ int _stageAssetCount(WidgetTester tester, String assetName) {
 }
 
 void main() {
+  testWidgets('Home profile badge matches the account profile source', (
+    WidgetTester tester,
+  ) async {
+    final profileRepository = _SingleUserProfileRepository(
+      UserProfileReadModel(
+        userId: 'runner-profile',
+        displayName: 'Lee Runner',
+        nickname: 'Lee Runner',
+        avatarInitials: 'LR',
+        locationLabel: 'Tampines, Singapore',
+      ),
+    );
+    final authRepository = FakeRuniacAuthRepository()
+      ..emitSignedIn(uid: 'runner-profile');
+
+    await _pumpHomeTab(
+      tester,
+      authRepository: authRepository,
+      userProgressRepository: const StaticUserProgressRepository(),
+      profileRepository: profileRepository,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('LR'), findsOneWidget);
+
+    await tester.tap(find.bySemanticsLabel('Profile'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Account'), findsOneWidget);
+    expect(find.text('Lee Runner'), findsOneWidget);
+    expect(find.text('Tampines, Singapore'), findsOneWidget);
+    expect(find.text('LR'), findsOneWidget);
+  });
+
   testWidgets(
     'Home stage map shows the empty journey state and a live header',
     (WidgetTester tester) async {
