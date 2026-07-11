@@ -5,7 +5,7 @@ repo_root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 cd "$repo_root"
 
 check_name="check-pre-scaffold-scope"
-scanned_paths="."
+scanned_paths="git ls-files --cached --others --exclude-standard"
 failures=0
 approved_scaffold_prefix="implementation/mobile/runiac_app/"
 
@@ -35,6 +35,14 @@ is_historical_backend_functions_path() {
     functions/package.json|\
     functions/tsconfig.json|\
     functions/src/index.ts|\
+    functions/src/agent/homeGuideAgent.ts|\
+    functions/src/agent/homeGuideAgentHandler.ts|\
+    functions/src/agent/homeGuideContracts.ts|\
+    functions/src/agent/homeGuideEvidence.ts|\
+    functions/src/agent/homeGuideModel.ts|\
+    functions/src/agent/homeGuideModelOutput.ts|\
+    functions/src/agent/homeGuideQuotaCache.ts|\
+    functions/src/agent/homeGuideQuotaFingerprint.ts|\
     functions/src/notifications/deviceRegistry.ts|\
     functions/src/notifications/dispatchPlanner.ts|\
     functions/src/notifications/scheduledPushDispatch.ts|\
@@ -82,6 +90,13 @@ is_historical_backend_functions_path() {
     functions/src/run/validateRunScalarFields.ts|\
     functions/test/completeRun.test.ts|\
     functions/test/completeRunCallableSurface.test.ts|\
+    functions/test/homeGuideAgentCallableSurface.test.ts|\
+    functions/test/homeGuideAgentSurface.test.ts|\
+    functions/test/homeGuideEvidence.test.ts|\
+    functions/test/homeGuideEvidenceFixtures.ts|\
+    functions/test/homeGuideModel.test.ts|\
+    functions/test/homeGuideModelFixtures.ts|\
+    functions/test/homeGuideQuotaCache.test.ts|\
     functions/test/notificationDevices.test.ts|\
     functions/test/notificationDispatch.test.ts|\
     functions/test/notificationScheduledDispatch.test.ts|\
@@ -108,6 +123,87 @@ is_adaptive_character_guidance_capsule_active() {
   grep -Eq '^- Current active capsule( in this isolated worktree)?: `implementation/roadmap/capsules/adaptive-character-guidance\.md`' implementation/roadmap/CURRENT.md
 }
 
+is_feed_friends_emulator_backend_capsule_active() {
+  grep -Eq '^- Current active capsule in this isolated worktree: `implementation/roadmap/capsules/feed-friends-emulator-backend\.md`\.' implementation/roadmap/CURRENT.md
+}
+
+is_feed_friends_emulator_backend_rules_test_path() {
+  local path="$1"
+  local relative_path
+  local basename
+
+  case "$path" in
+    tests/firebase-rules/*) relative_path="${path#tests/firebase-rules/}" ;;
+    *) return 1 ;;
+  esac
+  case "$relative_path" in
+    */*) return 1 ;;
+  esac
+
+  basename="${relative_path##*/}"
+  case "$basename" in
+    *feed*.mjs) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+is_feed_friends_emulator_backend_rules_test_candidate_path() {
+  local path="$1"
+  local basename
+
+  case "$path" in
+    tests/firebase-rules/*) basename="${path##*/}" ;;
+    *) return 1 ;;
+  esac
+
+  case "$basename" in
+    *feed*.mjs) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+is_feed_friends_emulator_backend_functions_test_path() {
+  local path="$1"
+  local relative_path
+  local basename
+
+  case "$path" in
+    functions/test/*) relative_path="${path#functions/test/}" ;;
+    *) return 1 ;;
+  esac
+  case "$relative_path" in
+    */*) return 1 ;;
+  esac
+
+  basename="${relative_path##*/}"
+  case "$basename" in
+    feed*.ts) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+is_feed_friends_emulator_backend_path() {
+  if is_feed_friends_emulator_backend_rules_test_path "$1" || is_feed_friends_emulator_backend_functions_test_path "$1"; then
+    return 0
+  fi
+
+  case "$1" in
+    implementation/roadmap/capsules/feed-friends-emulator-backend.md|\
+    implementation/roadmap/CURRENT.md|\
+    implementation/roadmap/snapshots/latest.md|\
+    firebase.json|firestore.rules|firestore.indexes.json|storage.rules|\
+    tests/firebase-rules/package.json|tests/firebase-rules/package-lock.json|\
+    functions/src/feed/*|\
+    functions/src/index.ts|functions/package.json|functions/package-lock.json)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+
+}
+
 is_adaptive_character_guidance_functions_path() {
   case "$1" in
     functions/src/agent/homeGuideAgent.ts|\
@@ -118,19 +214,64 @@ is_adaptive_character_guidance_functions_path() {
     functions/src/agent/homeGuideModelOutput.ts|\
     functions/src/agent/homeGuideQuotaCache.ts|\
     functions/src/agent/homeGuideQuotaFingerprint.ts|\
+    functions/src/progression/refreshStreakStatus.ts|\
     functions/test/homeGuideAgentCallableSurface.test.ts|\
     functions/test/homeGuideAgentSurface.test.ts|\
     functions/test/homeGuideEvidence.test.ts|\
     functions/test/homeGuideEvidenceFixtures.ts|\
+    functions/test/homeGuideLoggerCapture.ts|\
     functions/test/homeGuideModel.test.ts|\
     functions/test/homeGuideModelFixtures.ts|\
-    functions/test/homeGuideQuotaCache.test.ts)
+    functions/test/homeGuideQuotaCache.test.ts|\
+    functions/test/streakExpiry.test.ts)
       return 0
       ;;
     *)
       return 1
       ;;
   esac
+}
+
+approved_adaptive_inactive_baseline_blob() {
+  case "$1" in
+    functions/src/progression/refreshStreakStatus.ts)
+      printf '%s\n' '26ec88d24e4f28415cbef6b473fa9d98d0e9f842'
+      ;;
+    functions/test/streakExpiry.test.ts)
+      printf '%s\n' 'ca432a704997422ba9e8e3f96abad33ffc1c1e1e'
+      ;;
+    functions/test/homeGuideLoggerCapture.ts)
+      printf '%s\n' 'b5e8340a755b33bb4fb1d8f425649bd4172e3af7'
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+check_approved_adaptive_inactive_baselines() {
+  local path
+  local expected_blob
+  local index_blob
+  local worktree_blob
+
+  if is_adaptive_character_guidance_capsule_active; then
+    return 0
+  fi
+
+  while IFS= read -r path; do
+    expected_blob="$(approved_adaptive_inactive_baseline_blob "$path")"
+    index_blob="$(git rev-parse ":$path" 2>/dev/null || true)"
+    worktree_blob="$(git hash-object -- "$path" 2>/dev/null || true)"
+
+    if [ "$index_blob" != "$expected_blob" ] || [ "$worktree_blob" != "$expected_blob" ]; then
+      fail "Adaptive inactive immutable baseline mismatch: $path (expected_blob=$expected_blob index_blob=${index_blob:-missing} worktree_blob=${worktree_blob:-missing})"
+    fi
+  done <<'PATHS'
+functions/src/progression/refreshStreakStatus.ts
+functions/test/streakExpiry.test.ts
+functions/test/homeGuideLoggerCapture.ts
+PATHS
 }
 
 is_approved_scaffold_path() {
@@ -145,6 +286,20 @@ is_approved_scaffold_path() {
 }
 
 is_forbidden_config_or_secret() {
+  if is_feed_friends_emulator_backend_rules_test_candidate_path "$1"; then
+    if is_feed_friends_emulator_backend_path "$1" && is_feed_friends_emulator_backend_capsule_active; then
+      return 1
+    fi
+    return 0
+  fi
+
+  if is_feed_friends_emulator_backend_path "$1"; then
+    if is_feed_friends_emulator_backend_capsule_active; then
+      return 1
+    fi
+    return 0
+  fi
+
   case "$1" in
     firebase.json|firestore.rules)
       return 1
@@ -177,12 +332,17 @@ is_forbidden_config_or_secret() {
       if is_adaptive_character_guidance_functions_path "$1" && is_adaptive_character_guidance_capsule_active; then
         return 1
       fi
+      if approved_adaptive_inactive_baseline_blob "$1" >/dev/null; then
+        return 1
+      fi
       return 0
       ;;
   esac
 
   return 1
 }
+
+check_approved_adaptive_inactive_baselines
 
 while IFS= read -r path; do
   [ -n "$path" ] || continue

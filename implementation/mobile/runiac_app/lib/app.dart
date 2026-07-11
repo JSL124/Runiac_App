@@ -15,6 +15,9 @@ import 'features/auth/data/non_production_auth_repository.dart';
 import 'features/auth/domain/runiac_auth_service.dart';
 import 'features/auth/presentation/runiac_auth_gate.dart';
 import 'features/auth/presentation/runiac_profile_setup_gate.dart';
+import 'features/feed/data/firebase_feed_repository/firebase_feed_data_port.dart';
+import 'features/feed/data/firebase_feed_repository/firebase_feed_repository.dart';
+import 'features/feed/domain/repositories/feed_repository.dart';
 import 'features/feed/presentation/current_session_feed.dart';
 import 'features/home/domain/guide/home_guide_agent.dart';
 import 'features/home/domain/guide/rule_based_home_guide_agent.dart';
@@ -48,6 +51,7 @@ import 'features/shell/runiac_shell.dart';
 import 'features/splash/presentation/runiac_splash_tokens.dart';
 import 'features/splash/presentation/runiac_startup_gate.dart';
 import 'features/you/presentation/current_session_activity_history.dart';
+import 'features/you/presentation/widgets/activity_route_snapshot_thumbnail_cache.dart';
 
 export 'features/run/presentation/run_open_intent.dart';
 
@@ -80,6 +84,7 @@ class RuniacApp extends StatefulWidget {
     this.initialRunOpenIntent,
     this.currentSessionActivityHistoryStore,
     this.currentSessionFeedStore,
+    this.feedRepository,
     this.currentSessionGeneratedPlanStore,
     this.initialPersonalProfileDraft,
     this.onOnboardingCompleted,
@@ -110,6 +115,7 @@ class RuniacApp extends StatefulWidget {
   final RunOpenIntent? initialRunOpenIntent;
   final CurrentSessionActivityHistoryStore? currentSessionActivityHistoryStore;
   final CurrentSessionFeedStore? currentSessionFeedStore;
+  final FeedRepository? feedRepository;
   final CurrentSessionGeneratedPlanStore? currentSessionGeneratedPlanStore;
   final PersonalProfileDraft? initialPersonalProfileDraft;
   final ValueChanged<LocalOnboardingDraft>? onOnboardingCompleted;
@@ -124,6 +130,8 @@ class _RuniacAppState extends State<RuniacApp> {
   late final bool _ownsActivityHistoryStore;
   late final CurrentSessionFeedStore _feedStore;
   late final bool _ownsFeedStore;
+  late FeedRepository _feedRepository;
+  var _ownsFeedRepository = false;
   late final CurrentSessionGeneratedPlanStore _generatedPlanStore;
   late final bool _ownsGeneratedPlanStore;
   RuniacAuthCompletion? _authCompletion;
@@ -141,6 +149,8 @@ class _RuniacAppState extends State<RuniacApp> {
       SelectedRunnerCharacterStore();
   final LocalSelectedRunnerCharacterStorage _selectedCharacterStorage =
       const SharedPreferencesSelectedRunnerCharacterStorage();
+  late final ActivityRouteSnapshotThumbnailArtifactLifecycle
+  _thumbnailArtifactLifecycle;
 
   @override
   void initState() {
@@ -155,6 +165,10 @@ class _RuniacAppState extends State<RuniacApp> {
           onRemoteRunSynced: _refreshUserProgressAfterRunSync,
         );
     final initialOwnerUid = widget.authRepository.currentUser?.uid;
+    _thumbnailArtifactLifecycle =
+        ActivityRouteSnapshotThumbnailArtifactLifecycle(
+          initialOwnerUid: initialOwnerUid,
+        );
     _ownsFeedStore = widget.currentSessionFeedStore == null;
     _feedStore =
         widget.currentSessionFeedStore ??
@@ -162,6 +176,7 @@ class _RuniacAppState extends State<RuniacApp> {
     if (!_ownsFeedStore) {
       _feedStore.syncOwner(initialOwnerUid);
     }
+    _configureFeedRepository(widget.feedRepository);
     if (initialOwnerUid != null) {
       unawaited(_restoreAndSyncPendingRuns(ownerUid: initialOwnerUid));
     }
@@ -210,8 +225,12 @@ class _RuniacAppState extends State<RuniacApp> {
       _authCompletion = null;
       _personalProfileDraft = widget.initialPersonalProfileDraft;
       final nextOwnerUid = widget.authRepository.currentUser?.uid;
+      _thumbnailArtifactLifecycle.syncOwner(nextOwnerUid);
       _scheduleActivityHistoryOwnerSync(nextOwnerUid);
       _feedStore.syncOwner(nextOwnerUid);
+    }
+    if (oldWidget.feedRepository != widget.feedRepository) {
+      _configureFeedRepository(widget.feedRepository);
     }
     if (oldWidget.planProgressRepository != widget.planProgressRepository) {
       final ownerUid = _generatedPlanOwnerUid;
@@ -243,6 +262,7 @@ class _RuniacAppState extends State<RuniacApp> {
     if (_ownsFeedStore) {
       _feedStore.dispose();
     }
+    _disposeOwnedFeedRepository();
     if (_ownsGeneratedPlanStore) {
       _generatedPlanStore.dispose();
     }
@@ -250,6 +270,19 @@ class _RuniacAppState extends State<RuniacApp> {
     unawaited(widget.notificationRegistrationService?.dispose());
     _selectedCharacterStore.dispose();
     super.dispose();
+  }
+
+  void _configureFeedRepository(FeedRepository? repository) {
+    _disposeOwnedFeedRepository();
+    _ownsFeedRepository = repository == null;
+    _feedRepository =
+        repository ?? FirebaseFeedRepository(port: FirebaseFeedDataPort());
+  }
+
+  void _disposeOwnedFeedRepository() {
+    if (_ownsFeedRepository && _feedRepository is FeedTimelineRepository) {
+      (_feedRepository as FeedTimelineRepository).dispose();
+    }
   }
 
   @override
@@ -288,6 +321,7 @@ class _RuniacAppState extends State<RuniacApp> {
                       );
                     },
                     onAuthStateChanged: (user) {
+                      _thumbnailArtifactLifecycle.syncOwner(user?.uid);
                       if (user == null) {
                         unawaited(_cancelPushNotificationSubscription());
                         unawaited(
@@ -524,6 +558,7 @@ class _RuniacAppState extends State<RuniacApp> {
         child: RuniacShell(
           authRepository: widget.authRepository,
           activityHistoryRepository: widget.activityHistoryRepository,
+          feedRepository: _feedRepository,
           userProgressRepository: widget.userProgressRepository,
           leaderboardRepository: widget.leaderboardRepository,
           profileRepository: widget.profileRepository,

@@ -1,7 +1,10 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart' as widgets;
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mapbox;
 
+import '../../../../core/theme/runiac_colors.dart';
 import 'activity_route_preview.dart';
 import 'activity_route_snapshot_thumbnail_cache.dart';
 
@@ -135,9 +138,16 @@ class MapboxActivityRouteSnapshotThumbnailGenerator
           byteLength: bytes.lengthInBytes,
         ),
       );
-      return ActivityRouteThumbnailResult.readyImage(
-        widgets.MemoryImage(bytes),
-      );
+      try {
+        final maskedBytes = await encodePrivacyMaskedPng(bytes, request);
+        return ActivityRouteThumbnailResult.readyPng(maskedBytes);
+      } on Object {
+        // Legacy/UI-only consumers can still render an invalid test double,
+        // but Feed capture refuses results without verified PNG bytes.
+        return ActivityRouteThumbnailResult.readyImage(
+          widgets.MemoryImage(bytes),
+        );
+      }
     } on PlatformException catch (error) {
       _reportDiagnostic(
         _snapshotWasCancelled(error)
@@ -171,6 +181,59 @@ class MapboxActivityRouteSnapshotThumbnailGenerator
       return;
     }
     onDiagnostic(diagnostic);
+  }
+}
+
+Future<Uint8List> encodePrivacyMaskedPng(
+  Uint8List sourceBytes,
+  ActivityRouteSnapshotThumbnailGenerationRequest request,
+) async {
+  final codec = await ui.instantiateImageCodec(sourceBytes);
+  final frame = await codec.getNextFrame();
+  codec.dispose();
+  final image = frame.image;
+  final pixels = request.outputPixels;
+  final recorder = ui.PictureRecorder();
+  final canvas = ui.Canvas(recorder);
+  try {
+    final destination = ui.Rect.fromLTWH(
+      0,
+      0,
+      pixels.toDouble(),
+      pixels.toDouble(),
+    );
+    canvas.drawImageRect(
+      image,
+      ui.Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
+      destination,
+      ui.Paint(),
+    );
+    final scale = pixels / request.logicalSize.width;
+    final maskPaint = ui.Paint()..color = RuniacColors.primaryBlue;
+    final maskSize = 12 * scale;
+    for (final point in <widgets.Offset>[
+      request.projectedStart,
+      request.projectedEnd,
+    ]) {
+      canvas.drawRect(
+        ui.Rect.fromCenter(
+          center: ui.Offset(point.dx * scale, point.dy * scale),
+          width: maskSize,
+          height: maskSize,
+        ),
+        maskPaint,
+      );
+    }
+    final output = await recorder.endRecording().toImage(pixels, pixels);
+    try {
+      final data = await output.toByteData(format: ui.ImageByteFormat.png);
+      if (data == null) throw StateError('PNG encoding was unavailable.');
+      return data.buffer.asUint8List();
+    } finally {
+      output.dispose();
+    }
+  } finally {
+    image.dispose();
   }
 }
 

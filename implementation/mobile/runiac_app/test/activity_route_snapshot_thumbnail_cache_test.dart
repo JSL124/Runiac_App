@@ -150,6 +150,345 @@ class _FakeSnapshotThumbnailGenerator
 }
 
 void main() {
+  test(
+    'owner-scoped cache-only lookup never generates or leaks another owner artifact',
+    () async {
+      final cache = ActivityRouteSnapshotThumbnailMemoryCache();
+      final request = _request(route: _routeFixture());
+      final key = ActivityRouteSnapshotThumbnailCacheKey.fromRequest(request);
+      final bytes = Uint8List.fromList(const <int>[137, 80, 78, 71]);
+      final stored = ActivityRouteThumbnailResult.readyPng(bytes);
+      cache.store(key, stored, ownerUid: 'owner-a');
+
+      final ownerA = CachedActivityRouteThumbnailProvider(
+        cache: ActivityRouteSnapshotThumbnailMemoryCache(),
+        ownerUidProvider: () => 'owner-a',
+      );
+      final ownerB = CachedActivityRouteThumbnailProvider(
+        cache: ActivityRouteSnapshotThumbnailMemoryCache(),
+        ownerUidProvider: () => 'owner-b',
+      );
+
+      expect(await ownerA.resolve(request), same(stored));
+      expect(
+        await ownerB.resolve(request),
+        const ActivityRouteThumbnailResult.unavailable(),
+      );
+      expect(
+        await ownerA.resolve(
+          _request(route: _routeFixture(), activityId: 'other'),
+        ),
+        const ActivityRouteThumbnailResult.unavailable(),
+      );
+    },
+  );
+  test('auth transition evicts prior owner sensitive thumbnail', () async {
+    var owner = 'owner-a';
+    final cache = ActivityRouteSnapshotThumbnailMemoryCache();
+    final request = _request(route: _routeFixture());
+    final key = ActivityRouteSnapshotThumbnailCacheKey.fromRequest(request);
+    final artifact = ActivityRouteThumbnailResult.readyPng(
+      Uint8List.fromList(const <int>[1]),
+    );
+    cache.store(key, artifact, ownerUid: owner);
+    final provider = CachedActivityRouteThumbnailProvider(
+      cache: cache,
+      ownerUidProvider: () => owner,
+    );
+    expect(await provider.resolve(request), same(artifact));
+    owner = 'owner-b';
+    expect(
+      await provider.resolve(request),
+      const ActivityRouteThumbnailResult.unavailable(),
+    );
+    owner = 'owner-a';
+    expect(
+      await provider.resolve(request),
+      const ActivityRouteThumbnailResult.unavailable(),
+    );
+  });
+  test(
+    'app auth lifecycle evicts global History bytes before a fresh resolver can reuse them',
+    () async {
+      final cache = ActivityRouteSnapshotThumbnailMemoryCache();
+      final request = _request(route: _routeFixture());
+      final key = ActivityRouteSnapshotThumbnailCacheKey.fromRequest(request);
+      final artifact = ActivityRouteThumbnailResult.readyPng(
+        Uint8List.fromList(const <int>[1]),
+      );
+      final lifecycle = ActivityRouteSnapshotThumbnailArtifactLifecycle(
+        initialOwnerUid: 'owner-a',
+      );
+
+      cache.store(key, artifact, ownerUid: 'owner-a');
+      lifecycle.syncOwner('owner-a');
+      expect(
+        await CachedActivityRouteThumbnailProvider(
+          cache: ActivityRouteSnapshotThumbnailMemoryCache(),
+          ownerUidProvider: () => 'owner-a',
+        ).resolve(request),
+        same(artifact),
+      );
+
+      lifecycle.syncOwner(null);
+      expect(
+        await CachedActivityRouteThumbnailProvider(
+          cache: ActivityRouteSnapshotThumbnailMemoryCache(),
+          ownerUidProvider: () => 'owner-a',
+        ).resolve(request),
+        const ActivityRouteThumbnailResult.unavailable(),
+      );
+    },
+  );
+  test(
+    'app auth lifecycle evicts owner A global History bytes on an owner switch',
+    () async {
+      final cache = ActivityRouteSnapshotThumbnailMemoryCache();
+      final request = _request(route: _routeFixture());
+      final key = ActivityRouteSnapshotThumbnailCacheKey.fromRequest(request);
+      final lifecycle = ActivityRouteSnapshotThumbnailArtifactLifecycle(
+        initialOwnerUid: 'owner-a',
+      );
+      cache.store(
+        key,
+        ActivityRouteThumbnailResult.readyPng(
+          Uint8List.fromList(const <int>[2]),
+        ),
+        ownerUid: 'owner-a',
+      );
+
+      lifecycle.syncOwner('owner-b');
+
+      expect(
+        await CachedActivityRouteThumbnailProvider(
+          cache: ActivityRouteSnapshotThumbnailMemoryCache(),
+          ownerUidProvider: () => 'owner-a',
+        ).resolve(request),
+        const ActivityRouteThumbnailResult.unavailable(),
+      );
+    },
+  );
+  test(
+    'delayed owner A generation does not store or return after an auth switch',
+    () async {
+      var owner = 'owner-a';
+      final lifecycle = ActivityRouteSnapshotThumbnailArtifactLifecycle(
+        initialOwnerUid: 'test-reset',
+      );
+      lifecycle.syncOwner(owner);
+      final cache = ActivityRouteSnapshotThumbnailMemoryCache();
+      final request = _request(route: _routeFixture());
+      final generation = Completer<ActivityRouteThumbnailResult>();
+      final bytes = Uint8List.fromList(const <int>[3, 4, 5, 6]);
+      final generator = _FakeSnapshotThumbnailGenerator(
+        (request) => generation.future,
+      );
+      final provider = CachedActivityRouteThumbnailProvider(
+        cache: cache,
+        generator: generator,
+        snapshotThumbnailsEnabled: true,
+        hasValidMapboxToken: true,
+        ownerUidProvider: () => owner,
+      );
+
+      final delayedOwnerAResult = provider.resolve(request);
+      expect(generator.requestCount, 1);
+
+      owner = 'owner-b';
+      lifecycle.syncOwner(owner);
+      generation.complete(ActivityRouteThumbnailResult.readyPng(bytes));
+
+      expect(
+        await delayedOwnerAResult,
+        const ActivityRouteThumbnailResult.unavailable(),
+      );
+      expect(cache.length, 0);
+      expect(
+        await CachedActivityRouteThumbnailProvider(
+          cache: ActivityRouteSnapshotThumbnailMemoryCache(),
+          ownerUidProvider: () => 'owner-a',
+        ).resolve(request),
+        const ActivityRouteThumbnailResult.unavailable(),
+      );
+    },
+  );
+  test(
+    'fresh owner A generation does not reuse stale owner A in-flight work after owner cycle',
+    () async {
+      var owner = 'owner-a';
+      final lifecycle = ActivityRouteSnapshotThumbnailArtifactLifecycle(
+        initialOwnerUid: 'test-reset',
+      );
+      lifecycle.syncOwner(owner);
+      final cache = ActivityRouteSnapshotThumbnailMemoryCache();
+      final request = _request(route: _routeFixture());
+      final staleOwnerA = Completer<ActivityRouteThumbnailResult>();
+      final ownerB = Completer<ActivityRouteThumbnailResult>();
+      final freshOwnerA = Completer<ActivityRouteThumbnailResult>();
+      final generations = <Completer<ActivityRouteThumbnailResult>>[
+        staleOwnerA,
+        ownerB,
+        freshOwnerA,
+      ];
+      final freshOwnerABytes = Uint8List.fromList(const <int>[41, 42, 43, 44]);
+      final staleOwnerABytes = Uint8List.fromList(const <int>[51, 52, 53, 54]);
+      final ownerBBytes = Uint8List.fromList(const <int>[61, 62, 63, 64]);
+      final generator = _FakeSnapshotThumbnailGenerator(
+        (request) => generations.removeAt(0).future,
+      );
+      final provider = CachedActivityRouteThumbnailProvider(
+        cache: cache,
+        generator: generator,
+        snapshotThumbnailsEnabled: true,
+        hasValidMapboxToken: true,
+        ownerUidProvider: () => owner,
+      );
+
+      final staleOwnerAResult = provider.resolve(request);
+      expect(generator.requestCount, 1);
+
+      owner = 'owner-b';
+      lifecycle.syncOwner(owner);
+      final ownerBResult = provider.resolve(request);
+      expect(generator.requestCount, 2);
+
+      owner = 'owner-a';
+      lifecycle.syncOwner(owner);
+      final freshOwnerAResult = provider.resolve(request);
+      expect(generator.requestCount, 3);
+
+      freshOwnerA.complete(
+        ActivityRouteThumbnailResult.readyPng(freshOwnerABytes),
+      );
+      final resolvedFreshOwnerA = await freshOwnerAResult;
+      expect(resolvedFreshOwnerA.state, ActivityRouteThumbnailState.readyImage);
+      expect(resolvedFreshOwnerA.pngBytes, freshOwnerABytes);
+      expect(cache.length, 1);
+
+      staleOwnerA.complete(
+        ActivityRouteThumbnailResult.readyPng(staleOwnerABytes),
+      );
+      expect(
+        await staleOwnerAResult,
+        const ActivityRouteThumbnailResult.unavailable(),
+      );
+      expect(cache.length, 1);
+      expect(
+        await CachedActivityRouteThumbnailProvider(
+          cache: ActivityRouteSnapshotThumbnailMemoryCache(),
+          ownerUidProvider: () => 'owner-a',
+        ).resolve(request),
+        same(resolvedFreshOwnerA),
+      );
+
+      owner = 'owner-b';
+      ownerB.complete(ActivityRouteThumbnailResult.readyPng(ownerBBytes));
+      await ownerBResult;
+    },
+  );
+  test(
+    'delayed owner A generation does not store or return after sign out',
+    () async {
+      String? owner = 'owner-a';
+      final lifecycle = ActivityRouteSnapshotThumbnailArtifactLifecycle(
+        initialOwnerUid: 'test-reset',
+      );
+      lifecycle.syncOwner(owner);
+      final cache = ActivityRouteSnapshotThumbnailMemoryCache();
+      final request = _request(route: _routeFixture());
+      final generation = Completer<ActivityRouteThumbnailResult>();
+      final bytes = Uint8List.fromList(const <int>[30, 31, 32, 33]);
+      final generator = _FakeSnapshotThumbnailGenerator(
+        (request) => generation.future,
+      );
+      final provider = CachedActivityRouteThumbnailProvider(
+        cache: cache,
+        generator: generator,
+        snapshotThumbnailsEnabled: true,
+        hasValidMapboxToken: true,
+        ownerUidProvider: () => owner,
+      );
+
+      final delayedOwnerAResult = provider.resolve(request);
+      expect(generator.requestCount, 1);
+
+      owner = null;
+      lifecycle.syncOwner(owner);
+      generation.complete(ActivityRouteThumbnailResult.readyPng(bytes));
+
+      expect(
+        await delayedOwnerAResult,
+        const ActivityRouteThumbnailResult.unavailable(),
+      );
+      expect(cache.length, 0);
+      expect(
+        cache.resolve(
+          ActivityRouteSnapshotThumbnailCacheKey.fromRequest(request),
+          ownerUid: 'owner-a',
+        ),
+        isNull,
+      );
+      expect(
+        await CachedActivityRouteThumbnailProvider(
+          cache: ActivityRouteSnapshotThumbnailMemoryCache(),
+          ownerUidProvider: () => 'owner-a',
+        ).resolve(request),
+        const ActivityRouteThumbnailResult.unavailable(),
+      );
+    },
+  );
+  test('delayed same-owner generation still stores and resolves', () async {
+    const owner = 'owner-a';
+    final lifecycle = ActivityRouteSnapshotThumbnailArtifactLifecycle(
+      initialOwnerUid: 'test-reset',
+    );
+    lifecycle.syncOwner(owner);
+    final cache = ActivityRouteSnapshotThumbnailMemoryCache();
+    final request = _request(route: _routeFixture());
+    final generation = Completer<ActivityRouteThumbnailResult>();
+    final generator = _FakeSnapshotThumbnailGenerator(
+      (request) => generation.future,
+    );
+    final provider = CachedActivityRouteThumbnailProvider(
+      cache: cache,
+      generator: generator,
+      snapshotThumbnailsEnabled: true,
+      hasValidMapboxToken: true,
+      ownerUidProvider: () => owner,
+    );
+
+    final delayedResult = provider.resolve(request);
+    generation.complete(
+      ActivityRouteThumbnailResult.readyPng(
+        Uint8List.fromList(const <int>[7, 8, 9, 10]),
+      ),
+    );
+    final resolved = await delayedResult;
+
+    expect(resolved.state, ActivityRouteThumbnailState.readyImage);
+    expect(generator.requestCount, 1);
+    expect(cache.length, 1);
+    expect(
+      await CachedActivityRouteThumbnailProvider(
+        cache: ActivityRouteSnapshotThumbnailMemoryCache(),
+        ownerUidProvider: () => owner,
+      ).resolve(request),
+      same(resolved),
+    );
+  });
+  test('fractional DPR rounds to the canonical 3x generation dimensions', () {
+    final request = _request(route: _routeFixture(), devicePixelRatio: 2.625);
+
+    final generation =
+        ActivityRouteSnapshotThumbnailGenerationRequest.fromThumbnailRequest(
+          request,
+          styleId: 'test',
+        );
+
+    expect(generation, isNotNull);
+    expect(generation!.devicePixelRatio, 3);
+    expect(generation.outputPixels, 264);
+  });
   test('shared viewport derives deterministic camera for a turn route', () {
     final route = _turnRouteFixture();
     final viewport = ActivityRouteThumbnailViewport.fromRoute(
@@ -326,6 +665,14 @@ void main() {
       expect(
         ActivityRouteSnapshotThumbnailCacheKey.fromRequest(privacyChanged),
         isNot(baseKey),
+      );
+      expect(
+        ActivityRouteSnapshotThumbnailCacheKey.fromRequest(
+          _request(route: _routeFixture(), devicePixelRatio: 2.625),
+        ),
+        ActivityRouteSnapshotThumbnailCacheKey.fromRequest(
+          _request(route: _routeFixture(), devicePixelRatio: 3),
+        ),
       );
     },
   );

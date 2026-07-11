@@ -16,7 +16,12 @@ import '../domain/models/run_location_sample.dart';
 import '../domain/models/run_route_snapshot.dart';
 import '../domain/models/run_summary_snapshot.dart';
 import '../domain/services/advanced_analysis_snapshot_builder.dart';
-import '../../feed/presentation/current_session_feed.dart';
+import '../../feed/data/feed_publish/feed_publish_service.dart';
+import '../../feed/data/feed_publish/feed_thumbnail_artifact.dart';
+import '../../feed/data/feed_publish/feed_thumbnail_capture.dart';
+import '../../feed/data/feed_publish/history_artifact_resolver.dart';
+import '../../feed/data/feed_publish/firebase_feed_publish_gateway.dart';
+import '../../you/presentation/widgets/activity_route_preview.dart';
 import '../../you/presentation/current_session_activity_history.dart';
 import 'run_repository_scope.dart';
 import 'data/run_completion_demo_snapshots.dart';
@@ -68,6 +73,8 @@ class ViewSummaryScreen extends StatelessWidget {
     this.showLowDataSaveAction = true,
     this.mapboxAccessToken,
     this.mapboxBuilder,
+    this.feedPublishService,
+    this.historyArtifactResolver,
   });
 
   final RunSummarySnapshot summary;
@@ -77,6 +84,8 @@ class ViewSummaryScreen extends StatelessWidget {
   final bool showLowDataSaveAction;
   final String? mapboxAccessToken;
   final CompletedRouteMapboxBuilder? mapboxBuilder;
+  final FeedPublishService? feedPublishService;
+  final HistoryArtifactResolver? historyArtifactResolver;
 
   void _showSoonMessage(BuildContext context, String message) {
     ScaffoldMessenger.of(context)
@@ -84,8 +93,12 @@ class ViewSummaryScreen extends StatelessWidget {
       ..showSnackBar(SnackBar(content: Text(message)));
   }
 
-  void _showShareRouteToFeed(BuildContext context, RunSummarySnapshot summary) {
-    final feedStore = CurrentSessionFeedScope.maybeRead(context);
+  Future<void> _showShareRouteToFeed(
+    BuildContext context,
+    RunSummarySnapshot summary,
+  ) async {
+    final artifact = await _resolveHistoryArtifact(context, summary);
+    if (!context.mounted) return;
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -94,19 +107,52 @@ class ViewSummaryScreen extends StatelessWidget {
       barrierColor: Colors.black.withValues(alpha: 0.48),
       builder: (sheetContext) => ShareRouteToFeedSheet(
         summary: summary,
+        artifact: artifact,
         onCancel: () => Navigator.of(sheetContext).pop(),
-        onConfirm: () {
-          if (feedStore == null) {
-            Navigator.of(sheetContext).pop();
-            _showSoonMessage(context, 'Feed sharing is unavailable.');
-            return;
+        onConfirm: () async {
+          final activityId = completionResult?.activityId;
+          if (activityId == null || activityId.isEmpty || artifact == null) {
+            throw StateError('This run is not ready to post yet.');
           }
-          feedStore.shareRunSummary(summary);
-          Navigator.of(sheetContext).pop();
-          _showSoonMessage(context, 'Route shared to Feed.');
+          await (feedPublishService ??
+                  FeedPublishService(gateway: FirebaseFeedPublishGateway()))
+              .publishAfterConfirmation(
+                activityId: activityId,
+                artifact: artifact,
+              );
+          if (context.mounted) {
+            _showSoonMessage(context, 'Route shared to Feed.');
+          }
         },
       ),
     );
+  }
+
+  Future<FeedThumbnailArtifact?> _resolveHistoryArtifact(
+    BuildContext context,
+    RunSummarySnapshot summary,
+  ) async {
+    final activityId = completionResult?.activityId;
+    if (activityId == null || activityId.isEmpty) return null;
+    final cacheIdentity = completionResult?.clientRunSessionId;
+    final request = ActivityRouteThumbnailRequest(
+      route: summary.route,
+      logicalSize: const Size(88, 88),
+      devicePixelRatio: MediaQuery.devicePixelRatioOf(context),
+      allowExternalStaticMap: true,
+      isDemoRoute: false,
+      isCurrentSessionRoute: true,
+      activityId: cacheIdentity == null || cacheIdentity.isEmpty
+          ? activityId
+          : cacheIdentity,
+    );
+    try {
+      return await (historyArtifactResolver ??
+              CacheOnlyHistoryArtifactResolver())
+          .resolve(request);
+    } on FeedThumbnailCaptureException {
+      return null;
+    }
   }
 
   Future<void> _goHomeFromSummary(

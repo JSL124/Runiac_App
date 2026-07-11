@@ -1,0 +1,41 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    function hasExpectedStagingMetadata(uid, activityId, uploadName) {
+      return request.resource.metadata.keys().hasAll([
+          'ownerUid',
+          'activityId',
+          'uploadId',
+        ]) &&
+        request.resource.metadata.keys().hasOnly([
+          'ownerUid',
+          'activityId',
+          'uploadId',
+        ]) &&
+        request.resource.metadata.ownerUid == uid &&
+        request.resource.metadata.activityId == activityId &&
+        request.resource.metadata.uploadId == uploadName;
+    }
+
+    match /feed-thumbnail-staging/{uid}/{activityId}/{uploadName} {
+      allow create: if isOwner(uid) &&
+        uploadName.matches('^[A-Za-z0-9_-]+\\.png$') &&
+        request.resource.size > 0 &&
+        request.resource.size <= 1024 * 1024 &&
+        request.resource.contentType == 'image/png' &&
+        hasExpectedStagingMetadata(uid, activityId, uploadName);
+      allow read, delete: if isOwner(uid);
+      allow update: if false;
+    }
+
+    match /feed-thumbnails/{uid}/{activityId}/route-preview.png {
+      allow read: if isOwner(uid);
+      allow create, update, delete: if false;
+    }
+  }
+}

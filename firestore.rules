@@ -536,6 +536,75 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/expertPlans/$(planId)).data.status == 'published';
     }
 
+    function hasTrustedFriendship(authorUid) {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid)/friends/$(authorUid))
+        && exists(/databases/$(database)/documents/users/$(authorUid)/friends/$(request.auth.uid));
+    }
+
+    function hasNoDirectionalBlock(authorUid) {
+      return !exists(/databases/$(database)/documents/users/$(request.auth.uid)/blockedUsers/$(authorUid))
+        && !exists(/databases/$(database)/documents/users/$(authorUid)/blockedUsers/$(request.auth.uid));
+    }
+
+    function canReadFeedAuthor(authorUid) {
+      return isSignedIn()
+        && hasNoDirectionalBlock(authorUid)
+        && (authorUid == request.auth.uid || hasTrustedFriendship(authorUid));
+    }
+
+    function canReadFeedPost(postId) {
+      return exists(/databases/$(database)/documents/feedPosts/$(postId))
+        && get(/databases/$(database)/documents/feedPosts/$(postId)).data.status == 'published'
+        && canReadFeedAuthor(
+          get(/databases/$(database)/documents/feedPosts/$(postId)).data.authorUid
+        );
+    }
+
+    function validFeedCommentBody(body) {
+      return body is string
+        && body.size() >= 1
+        && body.size() <= 500
+        && body.matches('^[^\\s](.*[^\\s])?$');
+    }
+
+    function matchesCallerProfileSnapshot() {
+      return exists(/databases/$(database)/documents/userProfiles/$(request.auth.uid))
+        && request.resource.data.authorDisplayName
+          == get(/databases/$(database)/documents/userProfiles/$(request.auth.uid)).data.displayName
+        && request.resource.data.authorAvatarInitials
+          == get(/databases/$(database)/documents/userProfiles/$(request.auth.uid)).data.avatarInitials;
+    }
+
+    function validFeedCommentCreate(postId) {
+      return canReadFeedPost(postId)
+        && hasOnlyAllowedKeys([
+          'authorUid',
+          'authorDisplayName',
+          'authorAvatarInitials',
+          'body',
+          'createdAt',
+          'updatedAt'
+        ])
+        && request.resource.data.authorUid == request.auth.uid
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time
+        && validFeedCommentBody(request.resource.data.body)
+        && matchesCallerProfileSnapshot();
+    }
+
+    function validFeedCommentUpdate(postId) {
+      return canReadFeedPost(postId)
+        && resource.data.authorUid == request.auth.uid
+        && request.resource.data.authorUid == resource.data.authorUid
+        && request.resource.data.authorDisplayName == resource.data.authorDisplayName
+        && request.resource.data.authorAvatarInitials == resource.data.authorAvatarInitials
+        && request.resource.data.createdAt == resource.data.createdAt
+        && changesOnlyAllowedKeys(['body', 'updatedAt'])
+        && request.resource.data.updatedAt == request.time
+        && validFeedCommentBody(request.resource.data.body);
+    }
+
     function notificationInboxMutableKeys() {
       return ['readAt', 'deletedAt', 'updatedAt'];
     }
@@ -586,6 +655,30 @@ service cloud.firestore {
     match /users/{uid} {
       allow read: if isOwner(uid);
       allow create, update, delete: if false;
+
+      match /friends/{friendUid} {
+        allow get: if isOwner(uid);
+        allow list: if isOwner(uid)
+          && request.query.limit != null
+          && request.query.limit <= 30;
+        allow create, update, delete: if false;
+      }
+
+      match /blockedUsers/{blockedUid} {
+        allow get: if isOwner(uid);
+        allow list: if isOwner(uid)
+          && request.query.limit != null
+          && request.query.limit <= 30;
+        allow create, update, delete: if false;
+      }
+
+      match /hiddenFeedPosts/{postId} {
+        allow get: if isOwner(uid);
+        allow list: if isOwner(uid)
+          && request.query.limit != null
+          && request.query.limit <= 30;
+        allow create, update, delete: if false;
+      }
     }
 
     match /userProfiles/{uid} {
@@ -679,6 +772,41 @@ service cloud.firestore {
         && doesNotTouchBackendOwnedKeys()
         && doesNotChangeBackendOwnedKeys();
       allow delete: if false;
+    }
+
+    match /feedPosts/{postId} {
+      allow get: if resource.data.status == 'published'
+        && canReadFeedAuthor(resource.data.authorUid);
+      allow list: if request.query.limit != null
+        && request.query.limit <= 20
+        && resource.data.status == 'published'
+        && canReadFeedAuthor(resource.data.authorUid);
+      allow create, update, delete: if false;
+
+      match /likes/{uid} {
+        allow get: if canReadFeedPost(postId);
+        allow list: if false;
+        allow create: if canReadFeedPost(postId)
+          && uid == request.auth.uid
+          && hasOnlyAllowedKeys(['userUid', 'createdAt'])
+          && request.resource.data.userUid == request.auth.uid
+          && request.resource.data.createdAt == request.time;
+        allow update: if false;
+        allow delete: if canReadFeedPost(postId)
+          && uid == request.auth.uid
+          && resource.data.userUid == request.auth.uid;
+      }
+
+      match /comments/{commentId} {
+        allow get: if canReadFeedPost(postId);
+        allow list: if canReadFeedPost(postId)
+          && request.query.limit != null
+          && request.query.limit <= 20;
+        allow create: if validFeedCommentCreate(postId);
+        allow update: if validFeedCommentUpdate(postId);
+        allow delete: if canReadFeedPost(postId)
+          && resource.data.authorUid == request.auth.uid;
+      }
     }
 
     match /runSummaries/{summaryId} {
@@ -777,6 +905,7 @@ service cloud.firestore {
       allow read: if isSignedIn() && resource.data.reporterUid == request.auth.uid;
       allow create: if isSignedIn()
         && request.resource.data.reporterUid == request.auth.uid
+        && request.resource.data.targetType != 'feedPost'
         && hasOnlyAllowedKeys([
           'reporterUid',
           'targetType',

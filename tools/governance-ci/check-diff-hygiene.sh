@@ -29,6 +29,72 @@ is_adaptive_character_guidance_capsule_active() {
   grep -Eq '^- Current active capsule( in this isolated worktree)?: `implementation/roadmap/capsules/adaptive-character-guidance\.md`' implementation/roadmap/CURRENT.md
 }
 
+is_feed_friends_emulator_backend_capsule_active() {
+  grep -Eq '^- Current active capsule in this isolated worktree: `implementation/roadmap/capsules/feed-friends-emulator-backend\.md`\.' implementation/roadmap/CURRENT.md
+}
+
+is_feed_friends_emulator_backend_rules_test_path() {
+  local path="$1"
+  local relative_path
+  local basename
+
+  case "$path" in
+    tests/firebase-rules/*) relative_path="${path#tests/firebase-rules/}" ;;
+    *) return 1 ;;
+  esac
+  case "$relative_path" in
+    */*) return 1 ;;
+  esac
+
+  basename="${relative_path##*/}"
+  case "$basename" in
+    *feed*.mjs) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+is_feed_friends_emulator_backend_functions_test_path() {
+  local path="$1"
+  local relative_path
+  local basename
+
+  case "$path" in
+    functions/test/*) relative_path="${path#functions/test/}" ;;
+    *) return 1 ;;
+  esac
+  case "$relative_path" in
+    */*) return 1 ;;
+  esac
+
+  basename="${relative_path##*/}"
+  case "$basename" in
+    feed*.ts) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+is_feed_friends_emulator_backend_path() {
+  if is_feed_friends_emulator_backend_rules_test_path "$1" || is_feed_friends_emulator_backend_functions_test_path "$1"; then
+    return 0
+  fi
+
+  case "$1" in
+    implementation/roadmap/capsules/feed-friends-emulator-backend.md|\
+    implementation/roadmap/CURRENT.md|\
+    implementation/roadmap/snapshots/latest.md|\
+    firebase.json|firestore.rules|firestore.indexes.json|storage.rules|\
+    tests/firebase-rules/package.json|tests/firebase-rules/package-lock.json|\
+    functions/src/feed/*|\
+    functions/src/index.ts|functions/package.json|functions/package-lock.json)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+
+}
+
 is_adaptive_character_guidance_functions_path() {
   case "$1" in
     functions/package.json|\
@@ -78,6 +144,13 @@ is_run_duration_fields_functions_path() {
 }
 
 is_allowed_path() {
+  if is_feed_friends_emulator_backend_path "$1"; then
+    if is_feed_friends_emulator_backend_capsule_active; then
+      return 0
+    fi
+    return 1
+  fi
+
   case "$1" in
     # Approved: non-operational historical archive (Phase A)
     docs/meta/.aiignore|docs/meta/README.md|docs/meta/RETROSPECTIVE_POLICY.md|docs/meta/RUNIAC_REPOSITORY_EVOLUTION_REPORT.md|tools/governance-ci/check-historical-isolation.sh)
@@ -157,6 +230,13 @@ is_unrelated_mobile_native_artifact() {
 }
 
 is_forbidden_path() {
+  if is_feed_friends_emulator_backend_path "$1"; then
+    if is_feed_friends_emulator_backend_capsule_active; then
+      return 1
+    fi
+    return 0
+  fi
+
   case "$1" in
     firebase.json|firestore.rules)
       return 1

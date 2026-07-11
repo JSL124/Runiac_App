@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/runiac_colors.dart';
@@ -127,6 +129,10 @@ class ActivityRouteThumbnailRequest {
   final bool isCurrentSessionRoute;
   final String? activityId;
 
+  /// The nearest backend-approved image scale; an exact midpoint rounds up.
+  int get canonicalDevicePixelRatio =>
+      canonicalActivityRouteThumbnailScale(devicePixelRatio);
+
   @override
   bool operator ==(Object other) {
     return other is ActivityRouteThumbnailRequest &&
@@ -153,6 +159,16 @@ class ActivityRouteThumbnailRequest {
   }
 }
 
+int canonicalActivityRouteThumbnailScale(double devicePixelRatio) {
+  if (!devicePixelRatio.isFinite || devicePixelRatio < 1.5) {
+    return 1;
+  }
+  if (devicePixelRatio < 2.5) {
+    return 2;
+  }
+  return 3;
+}
+
 enum ActivityRouteThumbnailState {
   readyImage,
   loading,
@@ -164,12 +180,23 @@ enum ActivityRouteThumbnailState {
 }
 
 class ActivityRouteThumbnailResult {
-  const ActivityRouteThumbnailResult._(this.state, {this.imageProvider});
+  const ActivityRouteThumbnailResult._(
+    this.state, {
+    this.imageProvider,
+    this.pngBytes,
+  });
 
   const ActivityRouteThumbnailResult.readyImage(ImageProvider imageProvider)
     : this._(
         ActivityRouteThumbnailState.readyImage,
         imageProvider: imageProvider,
+      );
+
+  ActivityRouteThumbnailResult.readyPng(Uint8List bytes)
+    : this._(
+        ActivityRouteThumbnailState.readyImage,
+        imageProvider: MemoryImage(bytes),
+        pngBytes: bytes,
       );
 
   const ActivityRouteThumbnailResult.loading()
@@ -192,6 +219,7 @@ class ActivityRouteThumbnailResult {
 
   final ActivityRouteThumbnailState state;
   final ImageProvider? imageProvider;
+  final Uint8List? pngBytes;
 
   bool get hasReadyImage {
     return state == ActivityRouteThumbnailState.readyImage &&

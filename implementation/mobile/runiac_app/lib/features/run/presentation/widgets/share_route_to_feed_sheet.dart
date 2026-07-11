@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../domain/models/run_summary_snapshot.dart';
+import '../../../feed/data/feed_publish/feed_thumbnail_artifact.dart';
 import 'share_route_feed_preview.dart';
 
 const _rBlue = Color(0xFF2F51C8);
@@ -9,17 +10,46 @@ const _rBlue60 = Color(0x992F51C8);
 const _rBlue30 = Color(0x4D2F51C8);
 const _rBlue18 = Color(0x2E2F51C8);
 
-class ShareRouteToFeedSheet extends StatelessWidget {
+class ShareRouteToFeedSheet extends StatefulWidget {
   const ShareRouteToFeedSheet({
     required this.summary,
     required this.onCancel,
     required this.onConfirm,
+    this.artifact,
     super.key,
   });
 
   final RunSummarySnapshot summary;
   final VoidCallback onCancel;
-  final VoidCallback onConfirm;
+  final Future<void> Function() onConfirm;
+  final FeedThumbnailArtifact? artifact;
+
+  @override
+  State<ShareRouteToFeedSheet> createState() => _ShareRouteToFeedSheetState();
+}
+
+class _ShareRouteToFeedSheetState extends State<ShareRouteToFeedSheet> {
+  var _isPosting = false;
+  String? _errorMessage;
+
+  Future<void> _confirm() async {
+    setState(() {
+      _isPosting = true;
+      _errorMessage = null;
+    });
+    try {
+      await widget.onConfirm();
+      if (mounted) Navigator.of(context).pop();
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _isPosting = false;
+          _errorMessage =
+              'Posting is temporarily unavailable. Your run is still saved.';
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -72,7 +102,7 @@ class ShareRouteToFeedSheet extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  summary.title,
+                  widget.summary.title,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     color: _rBlue,
@@ -82,7 +112,7 @@ class ShareRouteToFeedSheet extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  summary.dateTimeLabel,
+                  widget.summary.dateTimeLabel,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     color: _rBlue60,
@@ -91,22 +121,13 @@ class ShareRouteToFeedSheet extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 18),
-                Semantics(
-                  label: 'Route thumbnail for ${summary.routeName}',
-                  image: true,
-                  child: ExcludeSemantics(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: SizedBox(
-                        height: 132,
-                        child: const ShareRouteFeedPreview(),
-                      ),
-                    ),
-                  ),
+                ShareRouteFeedPreview(
+                  artifact: widget.artifact,
+                  routeName: widget.summary.routeName,
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  summary.routeName,
+                  widget.summary.routeName,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     color: _rBlue60,
@@ -115,10 +136,10 @@ class ShareRouteToFeedSheet extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 18),
-                _ShareRouteMetrics(summary: summary),
+                ShareRouteMetrics(summary: widget.summary),
                 const SizedBox(height: 22),
                 OutlinedButton(
-                  onPressed: onCancel,
+                  onPressed: _isPosting ? null : widget.onCancel,
                   style: OutlinedButton.styleFrom(
                     foregroundColor: _rBlue,
                     side: const BorderSide(color: _rBlue30, width: 1.5),
@@ -129,9 +150,31 @@ class ShareRouteToFeedSheet extends StatelessWidget {
                   ),
                   child: const Text('Cancel'),
                 ),
+                if (_errorMessage != null) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    _errorMessage!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Color(0xFFDC2626),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+                if (widget.artifact == null) ...[
+                  const SizedBox(height: 10),
+                  const Text(
+                    'Your private route preview is unavailable. Your run is still saved.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: _rBlue60, fontSize: 13),
+                  ),
+                ],
                 const SizedBox(height: 10),
                 FilledButton.icon(
-                  onPressed: onConfirm,
+                  onPressed: _isPosting || widget.artifact == null
+                      ? null
+                      : _confirm,
                   icon: const Icon(Icons.send_outlined, size: 18),
                   style: FilledButton.styleFrom(
                     backgroundColor: _rBlue,
@@ -145,82 +188,13 @@ class ShareRouteToFeedSheet extends StatelessWidget {
                       fontWeight: FontWeight.w800,
                     ),
                   ),
-                  label: const Text('Post to Feed'),
+                  label: Text(_isPosting ? 'Posting to Feed…' : 'Post to Feed'),
                 ),
               ],
             ),
           ),
         ),
       ),
-    );
-  }
-}
-
-class _ShareRouteMetrics extends StatelessWidget {
-  const _ShareRouteMetrics({required this.summary});
-
-  final RunSummarySnapshot summary;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        _ShareRouteMetric(label: 'Distance', value: '${summary.distanceKm} km'),
-        const _ShareRouteMetricDivider(),
-        _ShareRouteMetric(label: 'Pace', value: '${summary.avgPace} / km'),
-        const _ShareRouteMetricDivider(),
-        _ShareRouteMetric(label: 'Time', value: summary.duration),
-      ],
-    );
-  }
-}
-
-class _ShareRouteMetric extends StatelessWidget {
-  const _ShareRouteMetric({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(
-              color: _rBlue60,
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 3),
-          Text(
-            value,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: _rBlue,
-              fontSize: 13,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ShareRouteMetricDivider extends StatelessWidget {
-  const _ShareRouteMetricDivider();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 1,
-      height: 34,
-      margin: const EdgeInsets.symmetric(horizontal: 8),
-      color: _rBlue18,
     );
   }
 }

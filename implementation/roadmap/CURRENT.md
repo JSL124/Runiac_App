@@ -4,13 +4,13 @@
 
 - Current track: Track A - Governance and implementation readiness
 - Current phase: `implementation/roadmap/phases/phase-01-governance-ci.md`
-- Current active capsule in this isolated worktree: `implementation/roadmap/capsules/feed-friends-pdd-traceability-alignment.md`. It is an explicitly approved PDD_MODE Governance / Architecture Lane capsule limited to canonical Feed/Friends PDD, diagrams, traceability, and wireframe alignment. This temporary PDD route does not close, supersede, or mutate the open `adaptive-character-guidance` capsule, and it does not authorize or alter the unrelated `leaderboard-jurong-east-seed-verification` work on the main worktree.
+- Current active capsule in this isolated worktree: `implementation/roadmap/capsules/feed-friends-emulator-backend.md`. Package A is committed at `c8bdc039`; this explicitly approved Backend Guarded Lane route is limited to emulator-only Feed/Friends Auth, Firestore, Functions, Storage, and Flutter work. It does not close, supersede, or mutate the open `adaptive-character-guidance` capsule, and it does not authorize or alter unrelated concurrent Leaderboard/You/design/test work.
 - Most recent pushed / hosted-CI-verified completed capsule: `goal-plan-detail-header-timeline-alignment` implemented, pushed at `7798f058ae1b272e8eca6dd8a31cba4490c8faa1 feat(you): refine goal plan detail week list`, and verified by hosted Governance CI #65 PASS for run ID `27160664756`.
 - Most recent locally closed implementation milestone: `personalized-adaptive-estimate-learning` completed locally after RED/GREEN Functions and Firestore rules evidence on 2026-07-07 Asia/Singapore.
-- Current status: `PDD package Ready for commit; implementation blocked on user commit`. The Feed/Friends PDD Wave 0 chain reached unconditional independent A13, A6, and A8 approval with zero open findings. Product implementation, product tests, production services, staging, and commit remain blocked. The open adaptive-character capsule remains unchanged. The main-worktree Leaderboard path/status set remains unrelated; concurrent user-owned writes are preserved outside this package and recorded as point-in-time fingerprint transitions in capsule evidence. Later user-owned writes do not alter the Wave 0 allowlist or readiness verdict.
-- Current state: `Ready for manual commit` with no staged or committed file. The manual package contains only the canonical PDD Markdown, canonical PlantUML sources/rendered PNGs, this capsule, and minimal routing/snapshot state. No Flutter, Firebase, Functions, Rules, tests, dependencies, secrets, real-screen QA, or implementation capsule is authorized.
-- Current governance decision record: ADR-003 classifies this PDD work as Governance / Architecture Lane. Package A must reach `Ready for manual commit` and be manually committed by the user before any Feed implementation capsule may be opened.
-- Current active milestone in this isolated worktree: `feed-friends-pdd-traceability-alignment`. Phase 02 remains unselected.
+- Current status: Feed/Friends implementation package B is `Ready for user screen QA` and `Ready for manual commit` after committed PDD package A. Backend/Rules and isolated package-B Flutter automation are proven green; production connections/deploy, agent staging/commit, and agent-performed real-screen QA remain blocked.
+- Current state: real-screen QA is explicitly user-owned and unexecuted. Shared-tree Flutter retains five proven unrelated dirty failures, while the isolated 95-path task-only suite passed 1,348/1,348. Binding same-oracle governance review is APPROVE with high confidence: immutable Adaptive OIDs verified, actual staged/unstaged real-path mutations rejected, direct/targeted/full Governance CI passed, and cleanup left the index empty. The open adaptive-character capsule and concurrent user-owned Leaderboard/You/design/test changes remain unrelated and untouched.
+- Current governance decision record: ADR-003 classifies this work as Backend Guarded Lane; ADR-002 requires Emulator First. Project `demo-runiac-feed` and explicit Auth/Firestore/Functions/Storage host guards are mandatory before any fixture mutation.
+- Current active milestone in this isolated worktree: `feed-friends-emulator-backend`. Phase 02 remains unselected.
 
 Run Tracking M4-A/M4-B/M4-C1/M4-C2 reconciliation:
 
@@ -92,11 +92,11 @@ Do not load future phase documents unless explicitly requested.
 
 ## Next Gate
 
-Next gate in this isolated worktree is the user's manual package-A commit for `feed-friends-pdd-traceability-alignment` after the recorded A8 output verdict. Feed implementation remains blocked until that commit exists and a later task separately routes the implementation capsule. `adaptive-character-guidance` remains open and unchanged; the Leaderboard's main-worktree gate remains unrelated and untouched by this package, including preserved concurrent user-owned drift. No Phase 02 selection, product implementation, production service, dependency, secret, automatic staging, or automatic commit is authorized.
+Next gate is the user-owned real-screen emulator checklist. Package B is exactly `Ready for user screen QA` plus `Ready for manual commit`; real-screen acceptance remains user-owned and has not been claimed. The isolated task-only Flutter suite passed 1,348/1,348, while the shared tree has five proven unrelated dirty failures. No Phase 02 selection, production service, deploy, secret, automatic staging, or automatic commit is authorized.
 
 ## Operational TODO / Active Capsule
 
-Current capsule package in this isolated worktree: `implementation/roadmap/capsules/feed-friends-pdd-traceability-alignment.md`. Its PDD design work is closed at `PDD package Ready for commit; implementation blocked on user commit` and `Ready for manual commit`; no automatic stage/commit is allowed. `implementation/roadmap/capsules/adaptive-character-guidance.md` remains open and byte-for-byte unchanged; its implementation is not part of this package. `implementation/roadmap/capsules/leaderboard-jurong-east-seed-verification.md` and all existing Leaderboard dirty paths remain unrelated and untouched by this package; concurrent user-owned state is preserved. Weekly Leaderboard and unrelated Phase 02 work remain excluded.
+Current capsule package in this isolated worktree: `implementation/roadmap/capsules/feed-friends-emulator-backend.md`. It authorizes only its exact emulator-only package-B allowlist and requires worker RED/GREEN evidence plus Sol approval before dependency release. `implementation/roadmap/capsules/adaptive-character-guidance.md` remains open and byte-for-byte unchanged. Existing Leaderboard, You, design-system, test, and debug-journal dirt remains unrelated, user-owned, unstaged, and untouched; later concurrent writes do not alter the Feed allowlist.
 
 Required next-session checklist:
 
@@ -108,8 +108,8 @@ Required next-session checklist:
 6. Treat the Goal Plan Detail, Weekly Workout Detail, Expert Plan List, Expert Plan Detail, and Goal Plan Detail header/timeline alignment capsules as closed unless a future explicit task reopens one of them.
 7. If committing, stage only the task-relevant files listed by the final status.
 8. Do not touch unrelated dirty files if any appear.
-9. For the active Feed/Friends PDD capsule only, use parsed documentation, PlantUML, git-scope, and governance evidence. Do not run or claim real-screen QA, product tests, Firebase, Functions, Flutter, production connections, secrets, dependencies, or provider calls.
-10. Do not create or route `feed-friends-emulator-backend`, resume adaptive-character implementation, select Phase 02, modify product code, mutate production Leaderboard state, or add any new product scope until package A is manually committed and separately routed.
+9. For the active Feed/Friends implementation capsule, use only project `demo-runiac-feed`, explicit Auth/Firestore/Functions/Storage emulator hosts, redacted evidence, and the exact capsule allowlist. Do not run or claim user-owned real-screen QA.
+10. Do not resume adaptive-character implementation, select Phase 02, touch concurrent Leaderboard/You/design/test work, mutate production state, deploy, initialize/reconfigure Firebase, add secrets, or broaden the routed product scope.
 11. `goal-plan-detail-header-timeline-alignment` closure preserves static sample daily rows as preview-only display data; they must not create enrollment, persistence, onboarding mutation, trusted current-week calculation, or backend-owned plan progress behavior.
 
 Closure validation for `leaderboard-leagues-popup-shell`:

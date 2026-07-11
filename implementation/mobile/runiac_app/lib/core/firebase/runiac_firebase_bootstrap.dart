@@ -1,6 +1,7 @@
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 
 import '../../features/account/data/firestore_user_profile_persistence_repository.dart';
 import '../../features/account/data/firestore_user_profile_repository.dart';
@@ -132,7 +133,7 @@ class RuniacFirebaseBootstrap {
           apiKey: 'demo-runiac-functions-test',
           appId: '1:000000000000:ios:runiacfunctionstest',
           messagingSenderId: '000000000000',
-          projectId: 'runiac-functions-test',
+          projectId: 'demo-runiac-feed',
         ),
       );
     }
@@ -142,6 +143,7 @@ class RuniacFirebaseBootstrap {
     FirebaseFunctions.instanceFor(
       region: 'asia-southeast1',
     ).useFunctionsEmulator(runtimeConfig.emulatorHost, 5001);
+    FirebaseStorage.instance.useStorageEmulator(runtimeConfig.emulatorHost, 9199);
     final firestoreGateway = RuniacFirestoreGateway.configure(
       useFirebaseEmulator: runtimeConfig.useFirebaseEmulator,
       emulatorHost: runtimeConfig.emulatorHost,

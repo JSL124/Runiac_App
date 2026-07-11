@@ -323,7 +323,7 @@ void main() {
     );
 
     test('keeps feature code free of Firestore data access APIs', () {
-      const allowedProfileFirestorePaths = <String>{
+      const allowedFirestoreDataAdapterPaths = <String>{
         'lib/features/account/data/'
             'firestore_user_profile_persistence_repository.dart',
         'lib/features/account/data/firestore_user_profile_repository.dart',
@@ -336,6 +336,11 @@ void main() {
         'lib/features/leaderboard/data/firestore_leaderboard_repository.dart',
         'lib/features/you/data/firestore_activity_history_repository.dart',
         'lib/features/you/data/firestore_user_progress_repository.dart',
+        'lib/features/feed/data/comments/firebase_feed_comment_page_port.dart',
+        'lib/features/feed/data/firebase_feed_repository/'
+            'firebase_feed_data_port.dart',
+        'lib/features/feed/data/firebase_feed_repository/'
+            'firebase_feed_post_mapper.dart',
       };
       const forbiddenFeatureTerms = <String>[
         'package:cloud_firestore',
@@ -356,7 +361,9 @@ void main() {
 
       for (final file in _dartFilesIn(
         'lib/features',
-      ).where((file) => !allowedProfileFirestorePaths.contains(file.path))) {
+      ).where(
+        (file) => !allowedFirestoreDataAdapterPaths.contains(file.path),
+      )) {
         final source = file.readAsStringSync();
         for (final term in forbiddenFeatureTerms) {
           expect(source, isNot(contains(term)), reason: '${file.path}: $term');

@@ -3,22 +3,19 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/runiac_colors.dart';
 import '../../../you/presentation/widgets/you_surface_primitives.dart';
 import '../../domain/models/feed_display_models.dart';
+import '../feed_timeline_screen_controller.dart';
 import 'feed_engagement_action.dart';
 import 'feed_route_thumbnail.dart';
 
 class FeedPostSection extends StatelessWidget {
   const FeedPostSection({
     required this.post,
-    required this.onLikePressed,
-    required this.onCommentPressed,
-    required this.onOptionsPressed,
+    required this.controller,
     super.key,
   });
 
   final FeedPostReadModel post;
-  final VoidCallback onLikePressed;
-  final VoidCallback onCommentPressed;
-  final VoidCallback onOptionsPressed;
+  final FeedTimelineScreenController controller;
 
   @override
   Widget build(BuildContext context) {
@@ -58,7 +55,11 @@ class FeedPostSection extends StatelessWidget {
                   ],
                 ),
               ),
-              _FeedPostOptions(onPressed: onOptionsPressed),
+              _FeedPostOptions(
+                onPressed: controller.mutationsEnabled
+                    ? () => controller.showOptions(context, post)
+                    : null,
+              ),
             ],
           ),
         ),
@@ -101,8 +102,8 @@ class FeedPostSection extends StatelessWidget {
                     : Icons.favorite_border,
                 value: post.likeCountLabel,
                 highlighted: post.isLikedByViewer,
-                enabled: true,
-                onPressed: onLikePressed,
+                enabled: controller.mutationsEnabled,
+                onPressed: () => controller.toggleLike(post.postId),
                 actionKey: ValueKey('feed-like-action-${post.postId}'),
               ),
               const SizedBox(width: 22),
@@ -113,8 +114,8 @@ class FeedPostSection extends StatelessWidget {
                     : Icons.mode_comment_outlined,
                 value: post.commentCountLabel,
                 highlighted: post.hasViewerCommented,
-                enabled: post.canComment,
-                onPressed: onCommentPressed,
+                enabled: controller.mutationsEnabled && post.canComment,
+                onPressed: () => controller.openComments(context, post),
                 actionKey: ValueKey('feed-comment-action-${post.postId}'),
               ),
             ],
@@ -133,13 +134,14 @@ class FeedPostSection extends StatelessWidget {
 class _FeedPostOptions extends StatelessWidget {
   const _FeedPostOptions({required this.onPressed});
 
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
     return Semantics(
       label: 'Post options',
-      button: true,
+      button: onPressed != null,
+      enabled: onPressed != null,
       container: true,
       child: ExcludeSemantics(
         child: IconButton(

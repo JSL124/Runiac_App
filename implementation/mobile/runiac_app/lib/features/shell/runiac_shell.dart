@@ -4,6 +4,8 @@ import '../../core/theme/runiac_colors.dart';
 import '../account/domain/repositories/user_profile_repository.dart';
 import '../account/domain/repositories/user_profile_persistence_repository.dart';
 import '../auth/domain/runiac_auth_service.dart';
+import '../feed/domain/models/feed_display_models.dart';
+import '../feed/domain/repositories/feed_repository.dart';
 import '../feed/presentation/current_session_feed.dart';
 import '../home/domain/guide/home_guide_agent.dart';
 import '../home/domain/guide/rule_based_home_guide_agent.dart';
@@ -38,6 +40,7 @@ import 'current_day_rollover.dart';
 class RuniacShell extends StatefulWidget {
   const RuniacShell({
     required this.authRepository,
+    required this.feedRepository,
     this.activityHistoryRepository = const StaticActivityHistoryRepository(),
     this.userProgressRepository = const StaticUserProgressRepository(),
     this.leaderboardRepository = const StaticLeaderboardRepository(),
@@ -59,6 +62,7 @@ class RuniacShell extends StatefulWidget {
   });
 
   final RuniacAuthRepository authRepository;
+  final FeedRepository feedRepository;
   final ActivityHistoryRepository activityHistoryRepository;
   final UserProgressRepository userProgressRepository;
   final LeaderboardRepository leaderboardRepository;
@@ -346,7 +350,10 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
           );
         },
       ),
-      const CurrentSessionFeed(),
+      CurrentSessionFeed(
+        repository: widget.feedRepository,
+        viewerContext: _feedViewerContext,
+      ),
       const SizedBox.shrink(),
       LeaderboardTab(repository: widget.leaderboardRepository),
       YouTab(
@@ -416,6 +423,16 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
         ],
       ),
     );
+  }
+
+  FeedViewerContext? get _feedViewerContext {
+    final viewer = widget.authRepository.currentUser;
+    return viewer == null
+        ? null
+        : FeedViewerContext(
+            currentUserId: viewer.uid,
+            acceptedFriendUserIds: const <String>{},
+          );
   }
 
   PlannedRunContext? _todayPlannedRunContext() {

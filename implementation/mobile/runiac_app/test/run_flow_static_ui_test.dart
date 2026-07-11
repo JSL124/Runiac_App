@@ -1,12 +1,15 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runiac_app/app.dart';
 import 'package:runiac_app/core/theme/runiac_colors.dart';
-import 'package:runiac_app/features/feed/presentation/current_session_feed.dart';
+import 'package:runiac_app/features/feed/data/feed_publish/feed_publish_service.dart';
+import 'package:runiac_app/features/feed/data/feed_publish/history_artifact_resolver.dart';
 import 'package:runiac_app/features/run/domain/models/advanced_analysis_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/cadence_graph_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/coaching_summary_snapshot.dart';
@@ -42,6 +45,8 @@ import 'package:runiac_app/features/run/presentation/xp_update_screen.dart';
 import 'package:runiac_app/features/you/data/local_pending_run_activity_store.dart';
 import 'package:runiac_app/features/you/presentation/current_session_activity_history.dart';
 import 'package:runiac_app/features/you/presentation/data/activity_history_demo_snapshots.dart';
+import 'package:runiac_app/features/you/presentation/widgets/activity_route_preview.dart';
+import 'package:runiac_app/features/you/presentation/widgets/activity_route_snapshot_thumbnail_cache.dart';
 
 import 'support/fake_runiac_auth_repository.dart';
 
@@ -252,6 +257,79 @@ class _DelayedRunRepository extends _ResultRunRepository {
     lastPayload = payload;
     payloads.add(payload);
     return completer.future;
+  }
+}
+
+const _runFlowFeedOwnerUid = 'run-flow-test-owner';
+const _runFlowFeedActivityId = 'run-flow-feed-activity';
+const _runFlowFeedClientSessionId = 'run-flow-feed-session';
+
+final _runFlowHistoryPng = base64Decode(
+  'iVBORw0KGgoAAAANSUhEUgAAAFgAAABYCAYAAABxlTA0AAAAjElEQVR42u3QMQEAAAQAMI1U0VosLhF8O1ZgkdXDn5AgWDCCBQtGsGDBCBaMYMGCESxYMIIFC5YgWDCCBQtGsGDBCBaMYMGCESxYMIIFC5YgWDCCBQtGsGDBCBaMYMGCESxYMIIFCxYhWDCCBQtGsGDBCBaMYMGCESxYMIIFC0awYAQLFoxgwYIRLJizDhyrPSUd4x4AAAAASUVORK5CYII=',
+);
+
+class _RunFlowFeedPublishFixture {
+  _RunFlowFeedPublishFixture()
+    : cache = ActivityRouteSnapshotThumbnailMemoryCache(),
+      gateway = _RecordingFeedPublishGateway() {
+    final request = ActivityRouteThumbnailRequest(
+      route: defaultRunSummarySnapshot.route,
+      logicalSize: const Size(88, 88),
+      devicePixelRatio: 1,
+      allowExternalStaticMap: true,
+      isDemoRoute: false,
+      isCurrentSessionRoute: true,
+      activityId: _runFlowFeedClientSessionId,
+    );
+    cache.store(
+      ActivityRouteSnapshotThumbnailCacheKey.fromRequest(request),
+      ActivityRouteThumbnailResult.readyPng(_runFlowHistoryPng),
+      ownerUid: _runFlowFeedOwnerUid,
+    );
+    historyArtifactResolver = CacheOnlyHistoryArtifactResolver(
+      cache: cache,
+      ownerUidProvider: () => _runFlowFeedOwnerUid,
+    );
+    feedPublishService = FeedPublishService(gateway: gateway);
+  }
+
+  final ActivityRouteSnapshotThumbnailMemoryCache cache;
+  final _RecordingFeedPublishGateway gateway;
+  late final HistoryArtifactResolver historyArtifactResolver;
+  late final FeedPublishService feedPublishService;
+
+  static const completionResult = CompleteRunResult(
+    clientRunSessionId: _runFlowFeedClientSessionId,
+    activityId: _runFlowFeedActivityId,
+    summary: defaultRunSummarySnapshot,
+    xpUpdate: defaultXpUpdateDisplayModel,
+  );
+
+  void dispose() => cache.clearOwner(_runFlowFeedOwnerUid);
+}
+
+class _RecordingFeedPublishGateway implements FeedPublishGateway {
+  Uint8List? stagedPngBytes;
+  var stageCalls = 0;
+  var publishCalls = 0;
+
+  @override
+  Future<String> stage({
+    required String activityId,
+    required Uint8List pngBytes,
+  }) async {
+    stageCalls += 1;
+    stagedPngBytes = pngBytes;
+    return 'feed-thumbnail-staging/test/$activityId/thumbnail.png';
+  }
+
+  @override
+  Future<FeedPublishResponse> publish({
+    required String activityId,
+    required String stagingPath,
+  }) async {
+    publishCalls += 1;
+    return const FeedPublishResponse(postId: 'run-flow-feed-post');
   }
 }
 
@@ -743,7 +821,17 @@ void main() {
     WidgetTester tester,
   ) async {
     _useTallSummarySurface(tester);
-    await tester.pumpWidget(const MaterialApp(home: ViewSummaryScreen()));
+    final feedFixture = _RunFlowFeedPublishFixture();
+    addTearDown(feedFixture.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ViewSummaryScreen(
+          completionResult: _RunFlowFeedPublishFixture.completionResult,
+          feedPublishService: feedFixture.feedPublishService,
+          historyArtifactResolver: feedFixture.historyArtifactResolver,
+        ),
+      ),
+    );
 
     final summaryScaffold = tester.widget<Scaffold>(find.byType(Scaffold));
     expect(summaryScaffold.backgroundColor, RuniacColors.white);
@@ -894,6 +982,9 @@ void main() {
 
     await tester.tap(find.widgetWithText(FilledButton, 'Post to Feed'));
     await tester.pumpAndSettle();
+    expect(find.text('Share route to Feed'), findsNothing);
+    expect(feedFixture.gateway.stagedPngBytes, same(_runFlowHistoryPng));
+    expect(feedFixture.gateway.publishCalls, 1);
     await tester.ensureVisible(
       find.widgetWithText(FilledButton, 'View XP Update'),
     );
@@ -910,12 +1001,15 @@ void main() {
     WidgetTester tester,
   ) async {
     _useTallSummarySurface(tester);
-    final feedStore = CurrentSessionFeedStore();
-    addTearDown(feedStore.dispose);
+    final feedFixture = _RunFlowFeedPublishFixture();
+    addTearDown(feedFixture.dispose);
     await tester.pumpWidget(
-      CurrentSessionFeedScope(
-        store: feedStore,
-        child: const MaterialApp(home: ViewSummaryScreen()),
+      MaterialApp(
+        home: ViewSummaryScreen(
+          completionResult: _RunFlowFeedPublishFixture.completionResult,
+          feedPublishService: feedFixture.feedPublishService,
+          historyArtifactResolver: feedFixture.historyArtifactResolver,
+        ),
       ),
     );
 
@@ -932,34 +1026,23 @@ void main() {
     expect(find.text('6’30” / km'), findsOneWidget);
     expect(find.text('30:15'), findsAtLeastNWidgets(2));
     expect(find.text('Route sharing will be available soon.'), findsNothing);
+    final preview = tester.widget<Image>(find.byType(Image));
+    expect((preview.image as MemoryImage).bytes, same(_runFlowHistoryPng));
 
     await tester.tap(find.widgetWithText(OutlinedButton, 'Cancel'));
     await tester.pumpAndSettle();
-    expect(feedStore.sessionPosts, isEmpty);
+    expect(feedFixture.gateway.stageCalls, 0);
+    expect(feedFixture.gateway.publishCalls, 0);
 
     await tester.tap(find.widgetWithText(OutlinedButton, 'Share Route'));
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(FilledButton, 'Post to Feed'));
     await tester.pumpAndSettle();
 
-    expect(feedStore.sessionPosts, hasLength(1));
-    expect(feedStore.sessionPosts.single.activityTitle, 'Saturday Morning Run');
-    expect(feedStore.sessionPosts.single.routeName, 'East Coast Park Loop');
-
-    await tester.pumpWidget(
-      CurrentSessionFeedScope(
-        store: feedStore,
-        child: const MaterialApp(home: Scaffold(body: CurrentSessionFeed())),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.text('Saturday Morning Run'), findsOneWidget);
-    expect(find.text('East Coast Park Loop'), findsOneWidget);
-    expect(find.text('Today · 7:06 AM'), findsOneWidget);
-    expect(find.text('4.03 km'), findsOneWidget);
-    expect(find.text('6’30” / km'), findsOneWidget);
-    expect(find.text('30:15'), findsOneWidget);
+    expect(find.text('Share route to Feed'), findsNothing);
+    expect(feedFixture.gateway.stageCalls, 1);
+    expect(feedFixture.gateway.publishCalls, 1);
+    expect(feedFixture.gateway.stagedPngBytes, same(_runFlowHistoryPng));
   });
 
   testWidgets('View summary accepts selected static run summary data', (
