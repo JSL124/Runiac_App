@@ -129,6 +129,14 @@ All spacing derives from a base of 4px.
 - **Accessibility**: profile trigger keeps the `Profile` semantic action, and the visual badge exposes the level label as supportive profile context.
 - **Boundary**: level and progress are read-only display values. The Flutter client must not calculate or write trusted XP, level, rank, streak, or leaderboard progression.
 
+### Account Division Badge
+
+- **Structure**: a compact square division emblem appears immediately before the Account nickname within the identity row.
+- **Ranked state**: reuse the matching Leaderboard league image supplied by the backend-owned `divisionKey`; do not repeat the division name as visible text beside the nickname.
+- **Unranked state**: preserve the same footprint with an unfilled, low-emphasis shield outline and no visible `Unranked` text. The level pill remains independent and continues to show `Lv.0`.
+- **Accessibility**: expose the backend-provided division label through image semantics even when the unranked badge is visually empty.
+- **Boundary**: division key and label are read-only backend outputs. Flutter maps a supplied key to an asset but must not derive division from level, XP, rank, or leaderboard state.
+
 ### Home Stage Map
 
 - **Structure**: one full-width illustrated background per plan week with exactly seven stage stones, a weekday caption per real weekday slot, and one guide character attached to the active stone.
