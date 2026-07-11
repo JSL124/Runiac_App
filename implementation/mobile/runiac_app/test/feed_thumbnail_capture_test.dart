@@ -93,6 +93,17 @@ void main() {
     });
   }
 
+  test('capture accepts the current wide card at canonical DPR', () async {
+    final bytes = await _solidPngSized(1032, height: 552);
+    final capture = FeedThumbnailCapture(provider: _PngProvider(bytes));
+
+    final artifact = await capture.capture(
+      _request(dpr: 2.625, logicalSize: const Size(344, 184)),
+    );
+
+    expect(artifact.pngBytes, same(bytes));
+  });
+
   test(
     'capture rejects a fractional-DPR 231px PNG and accepts canonical 264px',
     () async {
@@ -185,52 +196,56 @@ void main() {
     },
   );
 
-  test('route history thumbnail artifact uses route PNG dimensions', () async {
-    final startedAt = DateTime.utc(2026, 6, 14, 7);
-    final artifact = await const RouteHistoryThumbnailGenerator().generate(
-      request: ActivityRouteThumbnailRequest(
-        route: RunRouteSnapshot(
-          segments: [
-            [
-              RunLocationSample(
-                recordedAt: startedAt,
-                latitude: 1.300000,
-                longitude: 103.800000,
-              ),
-              RunLocationSample(
-                recordedAt: startedAt.add(const Duration(seconds: 60)),
-                latitude: 1.300899,
-                longitude: 103.801250,
-              ),
+  test(
+    'route history thumbnail artifact uses current wide card dimensions',
+    () async {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      final artifact = await const RouteHistoryThumbnailGenerator().generate(
+        request: ActivityRouteThumbnailRequest(
+          route: RunRouteSnapshot(
+            segments: [
+              [
+                RunLocationSample(
+                  recordedAt: startedAt,
+                  latitude: 1.300000,
+                  longitude: 103.800000,
+                ),
+                RunLocationSample(
+                  recordedAt: startedAt.add(const Duration(seconds: 60)),
+                  latitude: 1.300899,
+                  longitude: 103.801250,
+                ),
+              ],
             ],
-          ],
+          ),
+          logicalSize: const Size(344, 184),
+          devicePixelRatio: 2.625,
+          allowExternalStaticMap: true,
+          isDemoRoute: false,
+          isCurrentSessionRoute: true,
+          activityId: 'activity-a',
         ),
-        logicalSize: const Size(344, 184),
-        devicePixelRatio: 2.625,
-        allowExternalStaticMap: true,
-        isDemoRoute: false,
-        isCurrentSessionRoute: true,
-        activityId: 'activity-a',
-      ),
-    );
+      );
 
-    final details = _readPngDetailsForTest(artifact.pngBytes);
-    expect(details, const Size(1032, 552));
-    expect(artifact.pngBytes.lengthInBytes, lessThan(1024 * 1024));
-  });
+      final details = _readPngDetailsForTest(artifact.pngBytes);
+      expect(details, const Size(1032, 552));
+      expect(artifact.pngBytes.lengthInBytes, lessThan(1024 * 1024));
+    },
+  );
 }
 
 Future<Uint8List> _solidPng() async {
   return _solidPngSized(88);
 }
 
-Future<Uint8List> _solidPngSized(int size) async {
+Future<Uint8List> _solidPngSized(int width, {int? height}) async {
+  final resolvedHeight = height ?? width;
   final recorder = ui.PictureRecorder();
   ui.Canvas(recorder).drawRect(
-    ui.Rect.fromLTWH(0, 0, size.toDouble(), size.toDouble()),
+    ui.Rect.fromLTWH(0, 0, width.toDouble(), resolvedHeight.toDouble()),
     ui.Paint()..color = const Color(0xFFFFFFFF),
   );
-  final image = await recorder.endRecording().toImage(size, size);
+  final image = await recorder.endRecording().toImage(width, resolvedHeight);
   try {
     final data = await image.toByteData(format: ui.ImageByteFormat.png);
     return data!.buffer.asUint8List();
@@ -275,15 +290,17 @@ class _UnavailableProvider implements ActivityRouteThumbnailProvider {
   ) async => const ActivityRouteThumbnailResult.timedOut();
 }
 
-ActivityRouteThumbnailRequest _request({required double dpr}) =>
-    ActivityRouteThumbnailRequest(
-      route: RunRouteSnapshot.empty,
-      logicalSize: const Size(88, 88),
-      devicePixelRatio: dpr,
-      allowExternalStaticMap: true,
-      isDemoRoute: true,
-      activityId: 'activity-a',
-    );
+ActivityRouteThumbnailRequest _request({
+  required double dpr,
+  Size logicalSize = const Size(88, 88),
+}) => ActivityRouteThumbnailRequest(
+  route: RunRouteSnapshot.empty,
+  logicalSize: logicalSize,
+  devicePixelRatio: dpr,
+  allowExternalStaticMap: true,
+  isDemoRoute: true,
+  activityId: 'activity-a',
+);
 
 class _PngFixtureChunk {
   const _PngFixtureChunk(this.type, this.data);

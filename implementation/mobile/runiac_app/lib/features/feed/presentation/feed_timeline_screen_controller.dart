@@ -97,7 +97,7 @@ class FeedTimelineScreenController extends ChangeNotifier {
     if (isProduction) {
       final next = await _timeline.toggleLike(posts: _posts, postId: postId);
       if (next != null && !_disposed) {
-        _posts = next;
+        _posts = _preserveLoadedThumbnails(next);
         _notify();
       }
       return;
@@ -173,14 +173,14 @@ class FeedTimelineScreenController extends ChangeNotifier {
 
   bool _applyMutation(List<FeedPostReadModel>? next) {
     if (_disposed || next == null) return false;
-    _posts = next;
+    _posts = _preserveLoadedThumbnails(next);
     _notify();
     return true;
   }
 
   void _apply(FeedReadModel feed) {
     if (_disposed) return;
-    _posts = feed.posts;
+    _posts = _preserveLoadedThumbnails(feed.posts);
     _state = feed is FeedTimelineState ? feed : null;
     _fallback.clearForPosts(feed.posts);
     _loadError = null;
@@ -224,7 +224,11 @@ class FeedTimelineScreenController extends ChangeNotifier {
 
   Future<void> _readThumbnail(String postId) async {
     final Uint8List? bytes = await _timeline.readThumbnail(postId);
-    if (_disposed || bytes == null || bytes.lengthInBytes < 8) return;
+    if (_disposed) return;
+    if (bytes == null || bytes.lengthInBytes < 8) {
+      _requestedThumbnails.remove(postId);
+      return;
+    }
     _posts = _posts
         .map(
           (post) => post.postId == postId
@@ -234,12 +238,41 @@ class FeedTimelineScreenController extends ChangeNotifier {
               : post,
         )
         .toList(growable: false);
+    _sessionStore?.cachePublishedThumbnail(postId, bytes);
     _notify();
+  }
+
+  List<FeedPostReadModel> _preserveLoadedThumbnails(
+    List<FeedPostReadModel> next,
+  ) {
+    final loaded = <String, FeedRouteThumbnailReadModel>{
+      for (final post in _posts)
+        if (post.routeThumbnail.pngBytes != null)
+          post.postId: post.routeThumbnail,
+    };
+    return next
+        .map((post) {
+          if (post.routeThumbnail.pngBytes != null) return post;
+          final previous = loaded[post.postId];
+          if (previous != null) {
+            return post.copyWith(routeThumbnail: previous);
+          }
+          final cached = _sessionStore?.thumbnailFor(post.postId);
+          return cached == null
+              ? post
+              : post.copyWith(
+                  routeThumbnail: post.routeThumbnail.copyWith(
+                    pngBytes: cached,
+                  ),
+                );
+        })
+        .toList(growable: false);
   }
 
   void _notify() {
     if (!_disposed) notifyListeners();
   }
+
   @override
   void dispose() {
     _disposed = true;

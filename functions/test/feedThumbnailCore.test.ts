@@ -17,6 +17,7 @@ describe("Feed thumbnail core", () => {
     assert.equal(friendResult.sha256, "a".repeat(64));
     assert.equal("url" in friendResult, false);
     assert.equal(Buffer.from(friendResult.base64Png, "base64").byteLength <= 1_048_576, true);
+    assert.equal(ports.relationshipReads, 1);
   });
 
   it("rejects unauthenticated, unknown-key, missing-friend, revoked, block, and hidden access", async () => {
@@ -55,10 +56,11 @@ class FakePorts implements FeedThumbnailPorts {
   post: unknown = publishedPost();
   object: Stored | undefined = stored();
   hidden = false;
+  relationshipReads = 0;
   relationship = { viewerUid: viewer, authorUid: owner, viewerHasAuthorFriend: true, authorHasViewerFriend: true, viewerBlockedAuthor: false, authorBlockedViewer: false };
   async readPost(): Promise<unknown> { return this.post; }
   async isHidden(): Promise<boolean> { return this.hidden; }
-  async relationshipFor(): Promise<typeof this.relationship> { return this.relationship; }
+  async relationshipFor(): Promise<typeof this.relationship> { this.relationshipReads += 1; return this.relationship; }
   async readObject(): Promise<Stored | undefined> { return this.object; }
   sha256(_bytes: Uint8Array): string { return "a".repeat(64); }
 }

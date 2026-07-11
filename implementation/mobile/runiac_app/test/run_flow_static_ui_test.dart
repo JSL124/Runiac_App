@@ -9,6 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/app.dart';
 import 'package:runiac_app/core/theme/runiac_colors.dart';
 import 'package:runiac_app/features/feed/data/feed_publish/feed_publish_service.dart';
+import 'package:runiac_app/features/feed/presentation/current_session_feed.dart';
 import 'package:runiac_app/features/feed/data/feed_publish/history_artifact_resolver.dart';
 import 'package:runiac_app/features/run/domain/models/advanced_analysis_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/cadence_graph_snapshot.dart';
@@ -1040,13 +1041,18 @@ void main() {
   ) async {
     _useTallSummarySurface(tester);
     final feedFixture = _RunFlowFeedPublishFixture();
+    final feedStore = CurrentSessionFeedStore(ownerUid: _runFlowFeedOwnerUid);
     addTearDown(feedFixture.dispose);
+    addTearDown(feedStore.dispose);
     await tester.pumpWidget(
-      MaterialApp(
-        home: ViewSummaryScreen(
-          completionResult: _RunFlowFeedPublishFixture.completionResult,
-          feedPublishService: feedFixture.feedPublishService,
-          historyArtifactResolver: feedFixture.historyArtifactResolver,
+      CurrentSessionFeedScope(
+        store: feedStore,
+        child: MaterialApp(
+          home: ViewSummaryScreen(
+            completionResult: _RunFlowFeedPublishFixture.completionResult,
+            feedPublishService: feedFixture.feedPublishService,
+            historyArtifactResolver: feedFixture.historyArtifactResolver,
+          ),
         ),
       ),
     );
@@ -1081,6 +1087,10 @@ void main() {
     expect(feedFixture.gateway.stageCalls, 1);
     expect(feedFixture.gateway.publishCalls, 1);
     expect(feedFixture.gateway.stagedPngBytes, same(_runFlowHistoryPng));
+    expect(
+      feedStore.thumbnailFor('run-flow-feed-post'),
+      same(_runFlowHistoryPng),
+    );
   });
 
   testWidgets(

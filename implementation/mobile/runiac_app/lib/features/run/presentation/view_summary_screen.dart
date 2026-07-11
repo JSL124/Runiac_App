@@ -22,6 +22,7 @@ import '../../feed/data/feed_publish/feed_thumbnail_artifact.dart';
 import '../../feed/data/feed_publish/feed_thumbnail_capture.dart';
 import '../../feed/data/feed_publish/history_artifact_resolver.dart';
 import '../../feed/data/feed_publish/firebase_feed_publish_gateway.dart';
+import '../../feed/presentation/current_session_feed_store.dart';
 import '../../you/presentation/widgets/activity_route_preview.dart';
 import '../../you/presentation/widgets/activity_route_mapbox_snapshot_provider.dart';
 import '../../you/presentation/current_session_activity_history.dart';
@@ -121,13 +122,17 @@ class ViewSummaryScreen extends StatelessWidget {
           if (activityId == null || activityId.isEmpty || artifact == null) {
             throw StateError('This run is not ready to post yet.');
           }
-          await (feedPublishService ??
-                  FeedPublishService(gateway: FirebaseFeedPublishGateway()))
-              .publishAfterConfirmation(
-                activityId: activityId,
-                artifact: artifact,
-              );
+          final response =
+              await (feedPublishService ??
+                      FeedPublishService(gateway: FirebaseFeedPublishGateway()))
+                  .publishAfterConfirmation(
+                    activityId: activityId,
+                    artifact: artifact,
+                  );
           if (context.mounted) {
+            CurrentSessionFeedScope.maybeRead(
+              context,
+            )?.cachePublishedThumbnail(response.postId, artifact.pngBytes);
             _showSoonMessage(context, 'Route shared to Feed.');
           }
         },

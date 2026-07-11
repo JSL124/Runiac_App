@@ -133,7 +133,7 @@ async function revokeFriends(left: string, right: string): Promise<void> {
 
 async function stageActivity(uid: string, activityId: string): Promise<void> {
   await db.doc(`activities/${activityId}`).set({ ownerUid: uid, status: "validated", validationStatus: "validated", endedAt: "2026-07-11T00:00:00.000Z", distanceMeters: 1000, durationSeconds: 600, averagePaceSecondsPerKm: 600 });
-  await bucket.file(stagingPath(uid, activityId)).save(png(), { resumable: false, metadata: { contentType: "image/png", metadata: { ownerUid: uid, activityId, uploadId: "task12.png" } } });
+  await bucket.file(stagingPath(uid, activityId)).save(png(), { resumable: false, metadata: { contentType: "image/png", metadata: { ownerUid: uid, activityId, uploadId: "task12.png", firebaseStorageDownloadTokens: "managed-token" } } });
 }
 
 function publishData(uid: string, activityId: string): Readonly<Record<string, string>> { return { activityId, stagingPath: stagingPath(uid, activityId) }; }
@@ -201,7 +201,7 @@ function asRecord(value: unknown): Readonly<Record<string, unknown>> {
 }
 function isRecord(value: unknown): value is Readonly<Record<string, unknown>> { return typeof value === "object" && value !== null && !Array.isArray(value); }
 function stringAt(value: Readonly<Record<string, unknown>>, key: string): string { const result = value[key]; if (typeof result !== "string") assert.fail(`${key} must be a string.`); return result; }
-function png(): Uint8Array { return Uint8Array.from([137, 80, 78, 71, 13, 10, 26, 10, ...chunk("IHDR", [0, 0, 0, 88, 0, 0, 0, 88, 8, 6, 0, 0, 0]), ...chunk("IDAT", [0]), ...chunk("IEND", [])]); }
+function png(): Uint8Array { return Uint8Array.from([137, 80, 78, 71, 13, 10, 26, 10, ...chunk("IHDR", [0, 0, 4, 8, 0, 0, 2, 40, 16, 6, 0, 0, 0]), ...chunk("sBIT", [10, 10, 10, 10]), ...chunk("IDAT", [0]), ...chunk("IEND", [])]); }
 function chunk(type: string, data: readonly number[]): number[] { const typeBytes = [...type].map((character) => character.charCodeAt(0)); return [...uint32(data.length), ...typeBytes, ...data, ...uint32(crc32([...typeBytes, ...data]))]; }
 function uint32(value: number): number[] { return [(value >>> 24) & 255, (value >>> 16) & 255, (value >>> 8) & 255, value & 255]; }
 function crc32(bytes: readonly number[]): number { let crc = 0xffff_ffff; for (const value of bytes) { crc ^= value; for (let bit = 0; bit < 8; bit += 1) crc = (crc & 1) === 1 ? (crc >>> 1) ^ 0xedb8_8320 : crc >>> 1; } return (crc ^ 0xffff_ffff) >>> 0; }

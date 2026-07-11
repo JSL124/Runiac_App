@@ -120,6 +120,89 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('refresh retries a thumbnail after a failed read', (
+    tester,
+  ) async {
+    final repository = ScreenFeedRepository();
+    await _pump(tester, repository);
+    expect(repository.thumbnailReads, 1);
+
+    await tester
+        .widget<RefreshIndicator>(find.byType(RefreshIndicator))
+        .onRefresh();
+    await tester.pumpAndSettle();
+
+    expect(repository.thumbnailReads, 2);
+  });
+
+  test('liking a post preserves its loaded thumbnail bytes', () async {
+    final repository = ScreenFeedRepository()
+      ..thumbnailBytes = Uint8List.fromList(const <int>[
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+      ]);
+    final controller = FeedTimelineScreenController(
+      repository,
+      const FeedViewerContext(
+        currentUserId: 'viewer',
+        acceptedFriendUserIds: <String>{'friend'},
+      ),
+    );
+    await controller.refresh();
+    await Future<void>.delayed(Duration.zero);
+    final loadedBytes = controller.posts.single.routeThumbnail.pngBytes;
+    expect(loadedBytes, isNotNull);
+
+    await controller.toggleLike('post-0');
+
+    expect(controller.posts.single.routeThumbnail.pngBytes, same(loadedBytes));
+    controller.dispose();
+  });
+
+  test('session thumbnail cache survives Feed controller recreation', () async {
+    final bytes = Uint8List.fromList(const <int>[1, 2, 3, 4, 5, 6, 7, 8]);
+    final store = CurrentSessionFeedStore(ownerUid: 'viewer')
+      ..cachePublishedThumbnail('post-0', bytes);
+    final repository = ScreenFeedRepository();
+
+    for (var visit = 0; visit < 2; visit++) {
+      final controller = FeedTimelineScreenController(
+        repository,
+        const FeedViewerContext(
+          currentUserId: 'viewer',
+          acceptedFriendUserIds: <String>{'friend'},
+        ),
+      )..attachSession(store);
+      await controller.refresh();
+      expect(controller.posts.single.routeThumbnail.pngBytes, same(bytes));
+      controller.dispose();
+    }
+
+    expect(repository.thumbnailReads, 0);
+    store.dispose();
+  });
+
+  test('session thumbnail cache is bounded and clears when owner changes', () {
+    final bytes = Uint8List.fromList(const <int>[1, 2, 3, 4, 5, 6, 7, 8]);
+    final store = CurrentSessionFeedStore(ownerUid: 'viewer');
+    for (var index = 0; index < 21; index++) {
+      store.cachePublishedThumbnail('post-$index', bytes);
+    }
+
+    expect(store.thumbnailFor('post-0'), isNull);
+    expect(store.thumbnailFor('post-20'), same(bytes));
+
+    store.syncOwner('other-viewer');
+    expect(store.thumbnailFor('post-20'), isNull);
+    store.dispose();
+  });
+
   for (final operation in _DelayedOperation.values) {
     testWidgets(
       '${operation.name} ignores delayed completion after controller disposal',

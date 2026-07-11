@@ -15,6 +15,7 @@ class ScreenFeedRepository implements FeedTimelineRepository {
   Completer<void>? deleteCompleter, likeCompleter, reportCompleter;
   Completer<FeedTimelineState>? loadMoreCompleter;
   Completer<Uint8List>? thumbnailCompleter;
+  Uint8List thumbnailBytes = Uint8List(0);
   int thumbnailReads = 0, likeCalls = 0, reportCalls = 0, loadMoreCalls = 0;
 
   @override
@@ -91,7 +92,7 @@ class ScreenFeedRepository implements FeedTimelineRepository {
   @override
   Future<Uint8List> readThumbnail(String postId) async {
     thumbnailReads += 1;
-    return thumbnailCompleter?.future ?? Uint8List(0);
+    return thumbnailCompleter?.future ?? thumbnailBytes;
   }
 
   @override

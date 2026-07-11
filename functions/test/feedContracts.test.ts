@@ -130,12 +130,23 @@ describe("Feed contracts", () => {
 
   it("accepts only safe bounded PNGs and rejects unsafe chunk fields, metadata, ordering, and terminal states", () => {
     for (const width of [88, 176, 264]) assert.equal(validateFeedThumbnailPng(png({ width, height: width })).ok, true);
+    for (const [width, height] of [[344, 184], [688, 368], [1032, 552]] as const) {
+      assert.equal(validateFeedThumbnailPng(png({ width, height })).ok, true);
+    }
+    assert.equal(validateFeedThumbnailPng(png({
+      width: 1032,
+      height: 552,
+      ihdrFields: [16, 6, 0, 0, 0],
+      ancillary: [chunk("sBIT", [10, 10, 10, 10])],
+    })).ok, true);
     for (const ancillary of canonicalAncillaryChunks()) assert.equal(validateFeedThumbnailPng(png({ width: 88, height: 88, ancillary: [ancillary] })).ok, true);
     for (const bytes of [
       png({ width: 265, height: 265 }),
       png({ width: 264, height: 263 }),
       png({ width: 89, height: 89 }),
       png({ width: 264, height: 264, ihdrFields: [16, 6, 0, 0, 0] }),
+      png({ width: 1032, height: 552, ihdrFields: [16, 6, 0, 0, 0] }),
+      png({ width: 1032, height: 552, ihdrFields: [16, 6, 0, 0, 0], ancillary: [chunk("sBIT", [8, 8, 8, 8])] }),
       png({ width: 264, height: 264, ihdrFields: [8, 2, 0, 0, 0] }),
       ...["eXIf", "iTXt", "zTXt", "tIME", "iCCP", "pHYs", "tEXt"].map((type) => png({ width: 264, height: 264, extraChunk: chunk(type, []) })),
       png({ width: 264, height: 264, extraChunk: chunk("ABCD", []) }),

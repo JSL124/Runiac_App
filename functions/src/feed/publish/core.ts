@@ -74,7 +74,13 @@ function parseProfile(raw: unknown, uid: string): PrivateProfileSnapshot | undef
 }
 function isSafeStagingObject(object: FeedStoredObject, expectedPath: string, ownerUid: string, activityId: string): boolean {
   const uploadId = expectedPath.split("/")[3];
-  return object.path === expectedPath && object.contentType === "image/png" && uploadId !== undefined && Object.keys(object.metadata).length === 3 && object.metadata["ownerUid"] === ownerUid && object.metadata["activityId"] === activityId && object.metadata["uploadId"] === uploadId && validateFeedThumbnailPng(object.bytes).ok;
+  return object.path === expectedPath && object.contentType === "image/png" && uploadId !== undefined && hasSafeStagingMetadata(object.metadata, ownerUid, activityId, uploadId) && validateFeedThumbnailPng(object.bytes).ok;
+}
+function hasSafeStagingMetadata(metadata: Readonly<Record<string, string>>, ownerUid: string, activityId: string, uploadId: string): boolean {
+  const keys = Object.keys(metadata);
+  const hasManagedDownloadToken = typeof metadata["firebaseStorageDownloadTokens"] === "string" && metadata["firebaseStorageDownloadTokens"].length > 0;
+  const hasExactKeys = keys.length === 3 || (keys.length === 4 && hasManagedDownloadToken);
+  return hasExactKeys && metadata["ownerUid"] === ownerUid && metadata["activityId"] === activityId && metadata["uploadId"] === uploadId;
 }
 function matchesFinalObject(object: FeedStoredObject, path: string, sha256: string, hash: (bytes: Uint8Array) => string): boolean {
   return object.path === path && object.contentType === "image/png" && object.metadata["sha256"] === sha256 && object.generation.length > 0 && validateFeedThumbnailPng(object.bytes).ok && sha256 === hash(object.bytes);

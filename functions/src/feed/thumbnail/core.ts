@@ -22,8 +22,10 @@ export async function readFeedThumbnail(request: FeedThumbnailRequest, ports: Fe
   const post = await ports.readPost(postId);
   if (!isPublishedPost(post) || post.activityId !== postId || post.thumbnailStoragePath !== finalThumbnailPath(post.authorUid, postId)) throw new HttpsError("failed-precondition", "Post thumbnail is unavailable.");
   if (await ports.isHidden(uid, postId)) throw new HttpsError("permission-denied", "Post is hidden for this user.");
-  const relationship = evaluateFeedRelationship(await ports.relationshipFor(uid, post.authorUid));
-  if (relationship.kind === "denied") throw new HttpsError("permission-denied", "Post is unavailable.");
+  if (uid !== post.authorUid) {
+    const relationship = evaluateFeedRelationship(await ports.relationshipFor(uid, post.authorUid));
+    if (relationship.kind === "denied") throw new HttpsError("permission-denied", "Post is unavailable.");
+  }
   const object = await ports.readObject(post.thumbnailStoragePath, post.thumbnailObjectGeneration);
   if (object === undefined || !matchesPostObject(object, post, ports.sha256)) throw new HttpsError("failed-precondition", "Post thumbnail is invalid.");
   return { base64Png: Buffer.from(object.bytes).toString("base64"), contentType: "image/png", generation: object.generation, sha256: post.thumbnailSha256 };

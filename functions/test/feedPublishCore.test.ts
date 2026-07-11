@@ -24,10 +24,10 @@ describe("Feed publish core", () => {
     await rejects(() => publishFeedActivity({ auth: { uid: owner }, data: request() }, ports), "failed-precondition");
   });
 
-  it("rejects missing, foreign, non-PNG, oversized, non-square, and invalid staging metadata", async () => {
+  it("rejects missing, foreign, non-PNG, oversized, unsupported dimensions, and invalid staging metadata", async () => {
     const ports = fakePorts();
     for (const object of [
-      undefined, stored("other/path.png"), stored(stagingPath, { contentType: "image/jpeg" }), stored(stagingPath, { bytes: new Uint8Array(1_048_577) }), stored(stagingPath, { bytes: png(88, 87) }),
+      undefined, stored("other/path.png"), stored(stagingPath, { contentType: "image/jpeg" }), stored(stagingPath, { bytes: new Uint8Array(1_048_577) }), stored(stagingPath, { bytes: png(343, 184) }), stored(stagingPath, { bytes: png(88, 87) }),
       stored(stagingPath, { metadata: {} }), stored(stagingPath, { metadata: { ownerUid: owner, activityId } }), stored(stagingPath, { metadata: { ownerUid: "other", activityId, uploadId: "upload-a.png" } }),
       stored(stagingPath, { metadata: { ownerUid: owner, activityId: "other", uploadId: "upload-a.png" } }), stored(stagingPath, { metadata: { ownerUid: owner, activityId, uploadId: "upload-a" } }),
       stored(stagingPath, { metadata: { ownerUid: owner, activityId, uploadId: "other.png" } }), stored(stagingPath, { metadata: { ...stagingMetadata(), trace: "x" } }),
@@ -35,6 +35,24 @@ describe("Feed publish core", () => {
       ports.staging = object;
       await rejects(() => publishFeedActivity({ auth: { uid: owner }, data: request() }, ports), "failed-precondition");
     }
+  });
+
+  it("accepts current wide card thumbnail dimensions", async () => {
+    const ports = fakePorts();
+    ports.staging = stored(stagingPath, { bytes: png(1032, 552) });
+    const result = await publishFeedActivity({ auth: { uid: owner }, data: request() }, ports);
+    assert.equal(result.postId, activityId);
+    assert.equal(ports.posts.size, 1);
+    assert.equal(ports.staging, undefined);
+  });
+
+  it("accepts Firebase-managed staging download-token metadata", async () => {
+    const ports = fakePorts();
+    ports.staging = stored(stagingPath, {
+      metadata: { ...stagingMetadata(), firebaseStorageDownloadTokens: "managed-token" },
+    });
+    const result = await publishFeedActivity({ auth: { uid: owner }, data: request() }, ports);
+    assert.equal(result.postId, activityId);
   });
 
   it("rejects staging bytes that bypass structure checks with corrupt PNG checksums", async () => {
@@ -98,7 +116,8 @@ class FakePorts implements FeedPublishPorts {
   async readObject(path: string): Promise<Stored | undefined> { return path === stagingPath ? this.staging : this.final; }
   async copyCreateOnly(): Promise<void> {
     this.copyCount += 1;
-    if (this.final === undefined) this.final = stored(finalPath, { generation: "1", metadata: { sha256: hash(png(88, 88)) } });
+    const sourceBytes = this.staging?.bytes ?? png(88, 88);
+    if (this.final === undefined) this.final = stored(finalPath, { generation: "1", bytes: sourceBytes, metadata: { sha256: hash(sourceBytes) } });
     if (this.failAfterCopy) { this.failAfterCopy = false; throw coded("internal"); }
   }
   async createPostIfAbsent(postId: string, post: unknown): Promise<unknown> {

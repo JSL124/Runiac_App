@@ -18,10 +18,18 @@ class FeedThumbnailCapture {
         'A private route preview is not available yet.',
       );
     }
-    final expectedPixels = 88 * request.canonicalDevicePixelRatio;
+    final scale = request.canonicalDevicePixelRatio;
+    final logicalWidth = request.logicalSize.width;
+    final logicalHeight = request.logicalSize.height;
+    final hasSupportedLogicalSize =
+        (logicalWidth == 88 && logicalHeight == 88) ||
+        (logicalWidth == 344 && logicalHeight == 184);
+    final expectedWidth = (logicalWidth * scale).round();
+    final expectedHeight = (logicalHeight * scale).round();
     final details = _readPngDetails(bytes);
-    if (details.width != expectedPixels ||
-        details.height != expectedPixels ||
+    if (!hasSupportedLogicalSize ||
+        details.width != expectedWidth ||
+        details.height != expectedHeight ||
         bytes.lengthInBytes > _maxPngBytes) {
       throw const FeedThumbnailCaptureException(
         'This route preview cannot be posted. Please try again.',

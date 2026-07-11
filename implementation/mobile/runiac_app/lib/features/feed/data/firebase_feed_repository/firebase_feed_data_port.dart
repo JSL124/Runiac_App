@@ -38,8 +38,11 @@ class FirebaseFeedDataPort implements FeedDataPort {
   final FirebaseFunctions? _functionsOverride;
   final FeedQueryObserver? queryObserver;
 
-  FirebaseFirestore get _firestore => _firestoreOverride ?? FirebaseFirestore.instance;
-  FirebaseFunctions get _functions => _functionsOverride ?? FirebaseFunctions.instanceFor(region: 'asia-southeast1');
+  FirebaseFirestore get _firestore =>
+      _firestoreOverride ?? FirebaseFirestore.instance;
+  FirebaseFunctions get _functions =>
+      _functionsOverride ??
+      FirebaseFunctions.instanceFor(region: 'asia-southeast1');
 
   @override
   Future<FeedIdPage> pageAcceptedFriends({
@@ -81,7 +84,7 @@ class FirebaseFeedDataPort implements FeedDataPort {
         .limit(20);
     if (after != null) {
       query = query.startAfter(<Object>[
-        Timestamp.fromDate(after.createdAt),
+        after.createdAt.toUtc().toIso8601String(),
         after.postId,
       ]);
     }

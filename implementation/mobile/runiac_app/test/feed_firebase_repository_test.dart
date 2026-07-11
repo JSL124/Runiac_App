@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/features/feed/data/firebase_feed_repository/feed_data_port.dart';
 import 'package:runiac_app/features/feed/data/firebase_feed_repository/firebase_feed_data_port.dart';
 import 'package:runiac_app/features/feed/data/firebase_feed_repository/firebase_feed_repository.dart';
+import 'package:runiac_app/features/feed/data/firebase_feed_repository/firebase_feed_post_mapper.dart';
 import 'package:runiac_app/features/feed/data/firebase_feed_repository/feed_test_data_port.dart';
 import 'package:runiac_app/features/feed/domain/models/feed_display_models.dart';
 
@@ -13,6 +14,23 @@ void main() {
     currentUserId: 'viewer',
     acceptedFriendUserIds: <String>{},
   );
+
+  test('maps backend ISO createdAt strings into Feed posts', () {
+    final post =
+        FirebaseFeedPostMapper.fromData('activity-a', <String, Object?>{
+          'authorUid': 'viewer',
+          'authorDisplayName': 'Runner',
+          'authorAvatarInitials': 'R',
+          'createdAt': '2026-07-11T21:32:22.329Z',
+          'distanceMeters': 6471,
+          'durationSeconds': 2738,
+          'averagePaceSecondsPerKm': 423,
+          'likeCount': 0,
+          'commentCount': 0,
+        });
+
+    expect(post.createdAt, DateTime.utc(2026, 7, 11, 21, 32, 22, 329));
+  });
 
   test(
     'buffers 35 authors, pages document IDs, and globally merges tied rows',

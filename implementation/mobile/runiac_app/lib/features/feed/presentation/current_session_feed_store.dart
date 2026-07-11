@@ -1,14 +1,21 @@
+import 'dart:collection';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 
 import '../../run/domain/models/run_summary_snapshot.dart';
 import '../domain/models/feed_display_models.dart';
 
 class CurrentSessionFeedStore extends ChangeNotifier {
+  static const _maximumThumbnailEntries = 20;
+
   CurrentSessionFeedStore({String? ownerUid}) : this._withOwner(ownerUid);
 
   CurrentSessionFeedStore._withOwner(this._ownerUid);
 
   final List<FeedPostReadModel> _sessionPosts = <FeedPostReadModel>[];
+  final LinkedHashMap<String, Uint8List> _thumbnailCache =
+      LinkedHashMap<String, Uint8List>();
   var _nextPostSequence = 1;
   var _ownerRevision = 0;
   String? _ownerUid;
@@ -23,8 +30,24 @@ class CurrentSessionFeedStore extends ChangeNotifier {
     _ownerUid = ownerUid;
     _ownerRevision += 1;
     _sessionPosts.clear();
+    _thumbnailCache.clear();
     _nextPostSequence = 1;
     notifyListeners();
+  }
+
+  void cachePublishedThumbnail(String postId, Uint8List bytes) {
+    if (postId.isEmpty || bytes.lengthInBytes < 8) return;
+    _thumbnailCache.remove(postId);
+    _thumbnailCache[postId] = bytes;
+    while (_thumbnailCache.length > _maximumThumbnailEntries) {
+      _thumbnailCache.remove(_thumbnailCache.keys.first);
+    }
+  }
+
+  Uint8List? thumbnailFor(String postId) {
+    final bytes = _thumbnailCache.remove(postId);
+    if (bytes != null) _thumbnailCache[postId] = bytes;
+    return bytes;
   }
 
   void shareRunSummary(RunSummarySnapshot summary) {

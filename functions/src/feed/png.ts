@@ -26,6 +26,7 @@ export function validateFeedThumbnailPng(bytes: Uint8Array): PngValidationResult
   let offset: number = signature.length;
   let width: number | undefined;
   let height: number | undefined;
+  let bitDepth: number | undefined;
   let sawIdat = false;
   let idatByteLength = 0;
   const seenAncillary = new Set<string>();
@@ -46,10 +47,11 @@ export function validateFeedThumbnailPng(bytes: Uint8Array): PngValidationResult
       width = uint32(bytes, dataStart);
       height = uint32(bytes, dataStart + 4);
       if (!isAllowedDimension(width, height)) return { ok: false, error: "dimensions" };
-      if (!hasSafeIhdrFields(bytes, dataStart)) return { ok: false, error: "ihdr" };
+      bitDepth = bytes[dataStart + 8];
+      if (!hasSafeIhdrFields(bytes, dataStart, width, height)) return { ok: false, error: "ihdr" };
     } else if (isAllowedAncillary(chunk)) {
       if (width === undefined || sawIdat) return { ok: false, error: "chunk_order" };
-      if (seenAncillary.has(chunk) || !hasSafeAncillaryData(chunk, bytes, dataStart, length)) return { ok: false, error: "metadata" };
+      if (seenAncillary.has(chunk) || !hasSafeAncillaryData(chunk, bytes, dataStart, length, bitDepth)) return { ok: false, error: "metadata" };
       seenAncillary.add(chunk);
     } else if (chunk === "IDAT") {
       if (width === undefined) return { ok: false, error: "chunk_order" };
@@ -58,6 +60,7 @@ export function validateFeedThumbnailPng(bytes: Uint8Array): PngValidationResult
       idatByteLength += length;
     } else if (chunk === "IEND") {
       if (width === undefined || height === undefined || !sawIdat || length !== 0) return { ok: false, error: "iend" };
+      if (bitDepth === 16 && !seenAncillary.has("sBIT")) return { ok: false, error: "metadata" };
       if (idatByteLength === 0) return { ok: false, error: "empty_idat" };
       if (crcEnd !== bytes.length) return { ok: false, error: "chunk_bounds" };
       return { ok: true, width, height };
@@ -73,22 +76,32 @@ export function validateFeedThumbnailPng(bytes: Uint8Array): PngValidationResult
 }
 
 function isAllowedDimension(width: number, height: number): boolean {
-  return width === height && (width === 88 || width === 176 || width === 264);
+  if (width === height && (width === 88 || width === 176 || width === 264)) return true;
+  return (width === 344 && height === 184) || (width === 688 && height === 368) || (width === 1032 && height === 552);
 }
 
-function hasSafeIhdrFields(bytes: Uint8Array, dataStart: number): boolean {
-  return bytes[dataStart + 8] === 8 && bytes[dataStart + 9] === 6 && bytes[dataStart + 10] === 0 && bytes[dataStart + 11] === 0 && bytes[dataStart + 12] === 0;
+function hasSafeIhdrFields(bytes: Uint8Array, dataStart: number, width: number, height: number): boolean {
+  const bitDepth = bytes[dataStart + 8];
+  const hasSafeBitDepth = bitDepth === 8 || (bitDepth === 16 && isWideDimension(width, height));
+  return hasSafeBitDepth && bytes[dataStart + 9] === 6 && bytes[dataStart + 10] === 0 && bytes[dataStart + 11] === 0 && bytes[dataStart + 12] === 0;
 }
 
 function isAllowedAncillary(chunk: string): boolean {
   return chunk === "cHRM" || chunk === "gAMA" || chunk === "sBIT" || chunk === "sRGB";
 }
 
-function hasSafeAncillaryData(chunk: string, bytes: Uint8Array, dataStart: number, length: number): boolean {
+function hasSafeAncillaryData(chunk: string, bytes: Uint8Array, dataStart: number, length: number, bitDepth: number | undefined): boolean {
   if (chunk === "cHRM") return length === 32 && canonicalChromaticities.every((value, index) => uint32(bytes, dataStart + (index * 4)) === value);
   if (chunk === "gAMA") return length === 4 && uint32(bytes, dataStart) === 45_455;
-  if (chunk === "sBIT") return length === 4 && bytes[dataStart] === 8 && bytes[dataStart + 1] === 8 && bytes[dataStart + 2] === 8 && bytes[dataStart + 3] === 8;
+  if (chunk === "sBIT") {
+    const significantBits = bitDepth === 16 ? 10 : 8;
+    return length === 4 && bytes[dataStart] === significantBits && bytes[dataStart + 1] === significantBits && bytes[dataStart + 2] === significantBits && bytes[dataStart + 3] === significantBits;
+  }
   return length === 1 && bytes[dataStart] === 0;
+}
+
+function isWideDimension(width: number, height: number): boolean {
+  return (width === 344 && height === 184) || (width === 688 && height === 368) || (width === 1032 && height === 552);
 }
 
 function uint32(bytes: Uint8Array, offset: number): number {
