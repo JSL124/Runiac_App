@@ -390,36 +390,39 @@ void main() {
       expect(xp.xpRemainingLabel, '180 XP to Level 3');
     });
 
-    test('renders a friendly not-awarded reason without fake numbers', () async {
-      final repository = FirebaseRunRepository(
-        callable: _FakeCompleteRunCallable(
-          response: _responseWithProgression(<String, Object?>{
-            'xpDelta': 0,
-            'countsTowardLeaderboard': false,
-            'status': 'not_awarded',
-            'reason': 'daily_cap_reached',
-            'totalXp': 200,
-            'previousTotalXp': 200,
-            'level': 3,
-            'previousLevel': 3,
-            'previousLevelProgressPercent': 40,
-            'levelProgressPercent': 40,
-            'nextLevelXp': 300,
-            'xpToNextLevel': 100,
-            'previousStreak': 5,
-            'streak': 5,
-          }),
-        ),
-      );
+    test(
+      'renders a friendly not-awarded reason without fake numbers',
+      () async {
+        final repository = FirebaseRunRepository(
+          callable: _FakeCompleteRunCallable(
+            response: _responseWithProgression(<String, Object?>{
+              'xpDelta': 0,
+              'countsTowardLeaderboard': false,
+              'status': 'not_awarded',
+              'reason': 'daily_cap_reached',
+              'totalXp': 200,
+              'previousTotalXp': 200,
+              'level': 3,
+              'previousLevel': 3,
+              'previousLevelProgressPercent': 40,
+              'levelProgressPercent': 40,
+              'nextLevelXp': 300,
+              'xpToNextLevel': 100,
+              'previousStreak': 5,
+              'streak': 5,
+            }),
+          ),
+        );
 
-      final xp = (await repository.completeRun(_payload())).xpUpdate;
+        final xp = (await repository.completeRun(_payload())).xpUpdate;
 
-      expect(xp.xpAwardState, XpAwardState.notAwarded);
-      expect(xp.earnedXp, 0);
-      expect(xp.heroMessage, 'Daily XP cap reached — great effort today');
-      expect(xp.totalXp, 200);
-      expect(xp.streakCount, 5);
-    });
+        expect(xp.xpAwardState, XpAwardState.notAwarded);
+        expect(xp.earnedXp, 0);
+        expect(xp.heroMessage, 'Daily XP cap reached — great effort today');
+        expect(xp.totalXp, 200);
+        expect(xp.streakCount, 5);
+      },
+    );
 
     test('maps a deferred progression block into a saved fallback', () async {
       final repository = FirebaseRunRepository(

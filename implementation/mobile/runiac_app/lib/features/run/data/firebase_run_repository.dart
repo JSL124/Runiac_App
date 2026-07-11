@@ -313,11 +313,7 @@ class _CompleteRunResultMapper {
     );
   }
 
-  static int _readIntOr(
-    Map<String, Object?> source,
-    String key,
-    int fallback,
-  ) {
+  static int _readIntOr(Map<String, Object?> source, String key, int fallback) {
     final value = source[key];
     if (value is int) {
       return value;

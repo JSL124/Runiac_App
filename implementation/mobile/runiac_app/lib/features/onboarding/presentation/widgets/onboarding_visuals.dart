@@ -24,7 +24,11 @@ TextStyle onboardingTextStyle({
 }
 
 class OnboardingInfoBanner extends StatelessWidget {
-  const OnboardingInfoBanner({required this.icon, required this.text, super.key});
+  const OnboardingInfoBanner({
+    required this.icon,
+    required this.text,
+    super.key,
+  });
 
   final IconData icon;
   final String text;
