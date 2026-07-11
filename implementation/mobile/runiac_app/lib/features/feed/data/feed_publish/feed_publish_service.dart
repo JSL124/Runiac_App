@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'feed_thumbnail_artifact.dart';
@@ -82,10 +83,28 @@ class FeedPublishService {
           .timeout(operationTimeout);
     } on FeedPublishException {
       rethrow;
-    } on Object {
+    } on TimeoutException {
       throw const FeedPublishException(
-        'Posting is temporarily unavailable. Your run is still saved.',
+        'Posting timed out. Check that Firebase Storage and Functions are running, then try again.',
       );
+    } on Object catch (error) {
+      throw FeedPublishException(_unexpectedPublishMessage(error));
     }
   }
+}
+
+String _unexpectedPublishMessage(Object error) {
+  final description = _compactErrorDescription(error);
+  if (description.isEmpty) {
+    return 'Posting failed for an unknown reason. Your run is still saved.';
+  }
+  return 'Posting failed: $description. Your run is still saved.';
+}
+
+String _compactErrorDescription(Object error) {
+  final description = error.toString().trim().replaceAll(RegExp(r'\s+'), ' ');
+  if (description.isEmpty) return '';
+  const maxLength = 140;
+  if (description.length <= maxLength) return description;
+  return '${description.substring(0, maxLength - 1)}…';
 }

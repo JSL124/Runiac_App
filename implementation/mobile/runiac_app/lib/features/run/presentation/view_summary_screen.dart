@@ -102,6 +102,7 @@ class ViewSummaryScreen extends StatelessWidget {
     BuildContext context,
     RunSummarySnapshot summary,
   ) async {
+    final publishSource = _effectiveFeedPublishSource;
     final artifact = await _resolveHistoryArtifact(context, summary);
     if (!context.mounted) return;
     showModalBottomSheet<void>(
@@ -113,9 +114,10 @@ class ViewSummaryScreen extends StatelessWidget {
       builder: (sheetContext) => ShareRouteToFeedSheet(
         summary: summary,
         artifact: artifact,
+        postingUnavailableMessage: _postingUnavailableMessageFor(publishSource),
         onCancel: () => Navigator.of(sheetContext).pop(),
         onConfirm: () async {
-          final activityId = _effectiveFeedPublishSource.activityId;
+          final activityId = publishSource.activityId;
           if (activityId == null || activityId.isEmpty || artifact == null) {
             throw StateError('This run is not ready to post yet.');
           }
@@ -131,6 +133,23 @@ class ViewSummaryScreen extends StatelessWidget {
         },
       ),
     );
+  }
+
+  String? _postingUnavailableMessageFor(RunFeedPublishSource source) {
+    switch (source.disabledReason) {
+      case null:
+        return null;
+      case FeedPublishDisabledReason.localOnly:
+        return 'This run is still local. Save it to your account before posting to Feed.';
+      case FeedPublishDisabledReason.notValidated:
+        return 'This run is still being validated. Try posting again after validation finishes.';
+      case FeedPublishDisabledReason.orphanSummary:
+        return 'This history item is missing its validated activity record, so it cannot be posted yet.';
+      case FeedPublishDisabledReason.insufficientData:
+        return 'This run does not have enough validated distance and time data to post.';
+      case FeedPublishDisabledReason.notAvailable:
+        return 'This run is not ready to post yet.';
+    }
   }
 
   Future<FeedThumbnailArtifact?> _resolveHistoryArtifact(

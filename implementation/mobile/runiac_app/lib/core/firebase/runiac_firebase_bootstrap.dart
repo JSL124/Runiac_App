@@ -131,7 +131,7 @@ class RuniacFirebaseBootstrap {
       await Firebase.initializeApp(
         options: const FirebaseOptions(
           apiKey: 'demo-runiac-functions-test',
-          appId: '1:000000000000:ios:runiacfunctionstest',
+          appId: '1:000000000000:ios:0000000000000000',
           messagingSenderId: '000000000000',
           projectId: 'demo-runiac-feed',
         ),
@@ -143,7 +143,10 @@ class RuniacFirebaseBootstrap {
     FirebaseFunctions.instanceFor(
       region: 'asia-southeast1',
     ).useFunctionsEmulator(runtimeConfig.emulatorHost, 5001);
-    FirebaseStorage.instance.useStorageEmulator(runtimeConfig.emulatorHost, 9199);
+    FirebaseStorage.instance.useStorageEmulator(
+      runtimeConfig.emulatorHost,
+      9199,
+    );
     final firestoreGateway = RuniacFirestoreGateway.configure(
       useFirebaseEmulator: runtimeConfig.useFirebaseEmulator,
       emulatorHost: runtimeConfig.emulatorHost,
@@ -224,6 +227,9 @@ class RuniacFirebaseBootstrap {
       appId: runtimeConfig.productionAppId,
       messagingSenderId: runtimeConfig.productionMessagingSenderId,
       projectId: runtimeConfig.productionProjectId,
+      storageBucket: runtimeConfig.productionStorageBucket.isEmpty
+          ? null
+          : runtimeConfig.productionStorageBucket,
     );
   }
 }

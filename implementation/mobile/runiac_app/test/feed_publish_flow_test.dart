@@ -143,6 +143,10 @@ void main() {
         tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,
         isNull,
       );
+      await tester.ensureVisible(
+        find.widgetWithText(FilledButton, 'Post to Feed'),
+      );
+      await tester.pump();
       await tester.tap(find.text('Post to Feed'));
       expect(calls, 0);
     },
@@ -175,6 +179,92 @@ void main() {
     );
   });
 
+  testWidgets('share sheet preserves publish rejection messages', (
+    tester,
+  ) async {
+    final artifact = FeedThumbnailArtifact(_fixturePng());
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ShareRouteToFeedSheet(
+            summary: defaultRunSummarySnapshot,
+            artifact: artifact,
+            onCancel: () {},
+            onConfirm: () async {
+              throw const FeedPublishException(
+                'Activity is not publishable yet.',
+              );
+            },
+          ),
+        ),
+      ),
+    );
+
+    await tester.ensureVisible(
+      find.widgetWithText(FilledButton, 'Post to Feed'),
+    );
+    await tester.tap(find.widgetWithText(FilledButton, 'Post to Feed'));
+    await tester.pump();
+
+    expect(find.text('Activity is not publishable yet.'), findsOneWidget);
+  });
+
+  testWidgets('share sheet exposes unexpected posting failures', (
+    tester,
+  ) async {
+    final artifact = FeedThumbnailArtifact(_fixturePng());
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ShareRouteToFeedSheet(
+            summary: defaultRunSummarySnapshot,
+            artifact: artifact,
+            onCancel: () {},
+            onConfirm: () async {
+              throw Exception('Firebase Storage bucket is not configured');
+            },
+          ),
+        ),
+      ),
+    );
+
+    await tester.ensureVisible(
+      find.widgetWithText(FilledButton, 'Post to Feed'),
+    );
+    await tester.tap(find.widgetWithText(FilledButton, 'Post to Feed'));
+    await tester.pump();
+
+    expect(
+      find.textContaining('Firebase Storage bucket is not configured'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('share sheet disables posting when source is unavailable', (
+    tester,
+  ) async {
+    final artifact = FeedThumbnailArtifact(_fixturePng());
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ShareRouteToFeedSheet(
+            summary: defaultRunSummarySnapshot,
+            artifact: artifact,
+            postingUnavailableMessage: 'This run is still being validated.',
+            onCancel: () {},
+            onConfirm: () async {},
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('This run is still being validated.'), findsOneWidget);
+    expect(
+      tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,
+      isNull,
+    );
+  });
+
   test('a staging failure is recoverable and never calls publish', () async {
     final gateway = _FakeGateway(stageError: StateError('unavailable'));
     final service = FeedPublishService(gateway: gateway);
@@ -184,10 +274,38 @@ void main() {
         activityId: 'activity-a',
         artifact: FeedThumbnailArtifact(Uint8List.fromList(const <int>[1])),
       ),
-      throwsA(isA<FeedPublishException>()),
+      throwsA(
+        isA<FeedPublishException>().having(
+          (error) => error.message,
+          'message',
+          contains('Bad state: unavailable'),
+        ),
+      ),
     );
 
     expect(gateway.publishCalls, 0);
+  });
+
+  test('a publish failure keeps the backend error visible', () async {
+    final gateway = _FakeGateway(publishError: StateError('profile missing'));
+    final service = FeedPublishService(gateway: gateway);
+
+    await expectLater(
+      service.publishAfterConfirmation(
+        activityId: 'activity-a',
+        artifact: FeedThumbnailArtifact(Uint8List.fromList(const <int>[1])),
+      ),
+      throwsA(
+        isA<FeedPublishException>().having(
+          (error) => error.message,
+          'message',
+          contains('Bad state: profile missing'),
+        ),
+      ),
+    );
+
+    expect(gateway.stageCalls, 1);
+    expect(gateway.publishCalls, 1);
   });
 
   test(
@@ -204,7 +322,13 @@ void main() {
           activityId: 'activity-a',
           artifact: FeedThumbnailArtifact(Uint8List.fromList(const <int>[1])),
         ),
-        throwsA(isA<FeedPublishException>()),
+        throwsA(
+          isA<FeedPublishException>().having(
+            (error) => error.message,
+            'message',
+            contains('Posting timed out'),
+          ),
+        ),
       );
 
       expect(gateway.publishCalls, 0);
@@ -213,9 +337,10 @@ void main() {
 }
 
 class _FakeGateway implements FeedPublishGateway {
-  _FakeGateway({this.stageError, this.neverStage = false});
+  _FakeGateway({this.stageError, this.publishError, this.neverStage = false});
 
   final Object? stageError;
+  final Object? publishError;
   final bool neverStage;
   int stageCalls = 0;
   int publishCalls = 0;
@@ -227,6 +352,7 @@ class _FakeGateway implements FeedPublishGateway {
     required String stagingPath,
   }) async {
     publishCalls += 1;
+    if (publishError != null) throw publishError!;
     return FeedPublishResponse(postId: activityId);
   }
 

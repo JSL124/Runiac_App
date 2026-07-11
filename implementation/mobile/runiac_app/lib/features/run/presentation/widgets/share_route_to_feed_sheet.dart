@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../domain/models/run_summary_snapshot.dart';
+import '../../../feed/data/feed_publish/feed_publish_service.dart';
 import '../../../feed/data/feed_publish/feed_thumbnail_artifact.dart';
 import 'share_route_feed_preview.dart';
 
@@ -17,6 +18,7 @@ class ShareRouteToFeedSheet extends StatefulWidget {
     required this.onCancel,
     required this.onConfirm,
     this.artifact,
+    this.postingUnavailableMessage,
     super.key,
   });
 
@@ -24,6 +26,7 @@ class ShareRouteToFeedSheet extends StatefulWidget {
   final VoidCallback onCancel;
   final Future<void> Function() onConfirm;
   final FeedThumbnailArtifact? artifact;
+  final String? postingUnavailableMessage;
 
   @override
   State<ShareRouteToFeedSheet> createState() => _ShareRouteToFeedSheetState();
@@ -41,12 +44,11 @@ class _ShareRouteToFeedSheetState extends State<ShareRouteToFeedSheet> {
     try {
       await widget.onConfirm();
       if (mounted) Navigator.of(context).pop();
-    } catch (_) {
+    } catch (error) {
       if (mounted) {
         setState(() {
           _isPosting = false;
-          _errorMessage =
-              'Posting is temporarily unavailable. Your run is still saved.';
+          _errorMessage = _messageFor(error);
         });
       }
     }
@@ -54,6 +56,8 @@ class _ShareRouteToFeedSheetState extends State<ShareRouteToFeedSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final canPost =
+        widget.artifact != null && widget.postingUnavailableMessage == null;
     return DecoratedBox(
       decoration: BoxDecoration(
         color: const Color(0xFFF5F7FF),
@@ -68,7 +72,7 @@ class _ShareRouteToFeedSheetState extends State<ShareRouteToFeedSheet> {
       ),
       child: SafeArea(
         top: false,
-        child: Padding(
+        child: SingleChildScrollView(
           padding: EdgeInsets.fromLTRB(
             20,
             18,
@@ -139,7 +143,14 @@ class _ShareRouteToFeedSheetState extends State<ShareRouteToFeedSheet> {
                   ),
                 ),
               ],
-              if (widget.artifact == null) ...[
+              if (widget.postingUnavailableMessage != null) ...[
+                const SizedBox(height: 10),
+                Text(
+                  widget.postingUnavailableMessage!,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: _rBlue60, fontSize: 13),
+                ),
+              ] else if (widget.artifact == null) ...[
                 const SizedBox(height: 10),
                 const Text(
                   'Your private route preview is unavailable. Your run is still saved.',
@@ -149,9 +160,7 @@ class _ShareRouteToFeedSheetState extends State<ShareRouteToFeedSheet> {
               ],
               const SizedBox(height: 8),
               FilledButton.icon(
-                onPressed: _isPosting || widget.artifact == null
-                    ? null
-                    : _confirm,
+                onPressed: _isPosting || !canPost ? null : _confirm,
                 icon: const Icon(Icons.send_outlined, size: 18),
                 style: FilledButton.styleFrom(
                   backgroundColor: _rBlue,
@@ -172,5 +181,23 @@ class _ShareRouteToFeedSheetState extends State<ShareRouteToFeedSheet> {
         ),
       ),
     );
+  }
+
+  String _messageFor(Object error) {
+    if (error is FeedPublishException) {
+      return error.message;
+    }
+    if (error is StateError && error.message.isNotEmpty) {
+      return error.message;
+    }
+    final description = error.toString().trim().replaceAll(RegExp(r'\s+'), ' ');
+    if (description.isEmpty) {
+      return 'Posting failed for an unknown reason. Your run is still saved.';
+    }
+    const maxLength = 140;
+    final compactDescription = description.length <= maxLength
+        ? description
+        : '${description.substring(0, maxLength - 1)}…';
+    return 'Posting failed: $compactDescription. Your run is still saved.';
   }
 }

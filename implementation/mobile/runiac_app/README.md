@@ -13,13 +13,15 @@ flutter run \
 
 Use `RUNIAC_FIREBASE_EMULATOR_HOST=10.0.2.2` for an Android emulator that needs
 to reach services running on the host machine. Local iOS Simulator and desktop
-runs can use `127.0.0.1`.
+runs can use `127.0.0.1`. A physical iPhone must use the Mac's LAN IP address
+and the Firebase emulators must bind to `0.0.0.0` from the root `firebase.json`.
 
 Expected local emulator ports:
 
 - Auth: `127.0.0.1:9099`
 - Functions: `127.0.0.1:5001`
 - Firestore: `127.0.0.1:8080`
+- Storage: `127.0.0.1:9199`
 
 The emulator project ID is `runiac-functions-test`. The Flutter app uses
 non-secret demo `FirebaseOptions` only for emulator initialization. In emulator
@@ -43,7 +45,8 @@ flutter run \
   --dart-define=RUNIAC_FIREBASE_API_KEY=<local-api-key> \
   --dart-define=RUNIAC_FIREBASE_APP_ID=<local-app-id> \
   --dart-define=RUNIAC_FIREBASE_MESSAGING_SENDER_ID=<local-sender-id> \
-  --dart-define=RUNIAC_FIREBASE_PROJECT_ID=<local-project-id>
+  --dart-define=RUNIAC_FIREBASE_PROJECT_ID=<local-project-id> \
+  --dart-define=RUNIAC_FIREBASE_STORAGE_BUCKET=<local-storage-bucket>
 ```
 
 ## M4-C2 Mapbox run map demo boundary

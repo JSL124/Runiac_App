@@ -49,15 +49,24 @@ class FirebaseFeedPublishGateway implements FeedPublishGateway {
       bytes: pngBytes,
       token: _newUploadId(),
     );
-    await _storage
-        .ref(upload.path)
-        .putData(
-          upload.bytes,
-          SettableMetadata(
-            contentType: 'image/png',
-            customMetadata: upload.metadata,
-          ),
-        );
+    try {
+      await _storage
+          .ref(upload.path)
+          .putData(
+            upload.bytes,
+            SettableMetadata(
+              contentType: 'image/png',
+              customMetadata: upload.metadata,
+            ),
+          );
+    } on FirebaseException catch (error) {
+      throw FeedPublishException(
+        _firebaseMessage(
+          error,
+          fallback: 'Route preview upload failed. Your run is still saved.',
+        ),
+      );
+    }
     return upload.path;
   }
 
@@ -67,10 +76,20 @@ class FirebaseFeedPublishGateway implements FeedPublishGateway {
     required String stagingPath,
   }) async {
     final callable = _functions.httpsCallable('publishActivityToFeed');
-    final response = await callable.call(<String, Object>{
-      'activityId': activityId,
-      'stagingPath': stagingPath,
-    });
+    final HttpsCallableResult<Object?> response;
+    try {
+      response = await callable.call(<String, Object>{
+        'activityId': activityId,
+        'stagingPath': stagingPath,
+      });
+    } on FirebaseFunctionsException catch (error) {
+      throw FeedPublishException(
+        _functionsMessage(
+          error,
+          fallback: 'Feed posting was rejected. Your run is still saved.',
+        ),
+      );
+    }
     final data = response.data;
     if (data is! Map<Object?, Object?>) {
       throw const FeedPublishException('Posting did not return a Feed post.');
@@ -116,6 +135,21 @@ class FeedStagingUpload {
   final String path;
   final Map<String, String> metadata;
   final Uint8List bytes;
+}
+
+String _firebaseMessage(FirebaseException error, {required String fallback}) {
+  final message = error.message?.trim();
+  if (message == null || message.isEmpty) return fallback;
+  return message;
+}
+
+String _functionsMessage(
+  FirebaseFunctionsException error, {
+  required String fallback,
+}) {
+  final message = error.message?.trim();
+  if (message == null || message.isEmpty) return fallback;
+  return message;
 }
 
 bool _isSafeId(String value) =>

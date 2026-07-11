@@ -14,6 +14,7 @@ class RuniacFirebaseRuntimeConfig {
     this.productionAppId = '',
     this.productionMessagingSenderId = '',
     this.productionProjectId = '',
+    this.productionStorageBucket = '',
     this.enableIosPushNotifications = false,
   });
 
@@ -31,6 +32,9 @@ class RuniacFirebaseRuntimeConfig {
         'RUNIAC_FIREBASE_MESSAGING_SENDER_ID',
       ),
       productionProjectId: String.fromEnvironment('RUNIAC_FIREBASE_PROJECT_ID'),
+      productionStorageBucket: String.fromEnvironment(
+        'RUNIAC_FIREBASE_STORAGE_BUCKET',
+      ),
       enableIosPushNotifications: bool.fromEnvironment(
         'RUNIAC_ENABLE_IOS_PUSH',
       ),
@@ -46,6 +50,7 @@ class RuniacFirebaseRuntimeConfig {
   final String productionAppId;
   final String productionMessagingSenderId;
   final String productionProjectId;
+  final String productionStorageBucket;
   final bool enableIosPushNotifications;
 }
 
