@@ -2,6 +2,56 @@ part of 'current_session_activity_history.dart';
 
 extension CurrentSessionActivityHistoryPersistence
     on CurrentSessionActivityHistoryStore {
+  Future<CompleteRunResult?> acceptForegroundCompletion(
+    CompleteRunResult remoteResult, {
+    required LocalRunCompletionPayload payload,
+    required RunCompletionContext completionContext,
+  }) async {
+    if (!isRunCompletionContextCurrent(completionContext) ||
+        !_looksLikeRemoteCompletion(remoteResult)) {
+      return null;
+    }
+    final ownerUid = completionContext._ownerUid;
+    final ownerGeneration = completionContext._ownerGeneration;
+    final storage = persistence;
+    if (storage == null) {
+      registerCompletedRun(
+        remoteResult,
+        ownerUid: ownerUid,
+        distanceMeters: payload.distanceMeters,
+        planEnrollmentId: payload.planEnrollmentId,
+        scheduledWorkoutId: payload.scheduledWorkoutId,
+      );
+      return remoteResult;
+    }
+
+    final acceptedRecord = await _mergePendingRunSyncAccepted(
+      storage: storage,
+      ownerUid: ownerUid,
+      clientRunSessionId: payload.clientRunSessionId,
+      remoteResult: remoteResult,
+    );
+    if (acceptedRecord == null ||
+        !isRunCompletionContextCurrent(completionContext)) {
+      return null;
+    }
+
+    _replaceCompletedRun(
+      acceptedRecord.result,
+      ownerUid: ownerUid,
+      distanceMeters: acceptedRecord.payload.distanceMeters,
+      planEnrollmentId: acceptedRecord.payload.planEnrollmentId,
+      scheduledWorkoutId: acceptedRecord.payload.scheduledWorkoutId,
+    );
+    if (!acceptedRecord.payload.userConfirmedLowDataSave) {
+      await _refreshUserProgressAfterRemoteSync(
+        ownerUid: ownerUid,
+        ownerGeneration: ownerGeneration,
+      );
+    }
+    return acceptedRecord.result;
+  }
+
   Future<void> restoreSavedActivities() async {
     final storage = persistence;
     if (storage == null) {
@@ -458,12 +508,26 @@ extension CurrentSessionActivityHistoryPersistence
     SessionCompletedRunActivity activity,
     RunActivityDisplayModel remoteActivity,
   ) {
-    if (activity.activityId == remoteActivity.activityId) {
-      return activity;
-    }
     final result = activity.completionResult.copyWith(
       activityId: remoteActivity.activityId,
     );
+    final remotePublishSource = remoteActivity.feedPublishSource;
+    final feedPublishSource =
+        result.activityId.startsWith('activity_') &&
+            remotePublishSource.isPublishable &&
+            remotePublishSource.activityId == result.activityId
+        ? RunFeedPublishSource.enabled(
+            activityId: result.activityId,
+            cacheIdentity:
+                remotePublishSource.cacheIdentity ?? result.clientRunSessionId,
+            allowsCurrentSessionRouteCapture: true,
+            allowsMetricThumbnailFallback:
+                remotePublishSource.allowsMetricThumbnailFallback,
+          )
+        : RunFeedPublishSource.disabled(
+            remotePublishSource.disabledReason ??
+                FeedPublishDisabledReason.notValidated,
+          );
     return SessionCompletedRunActivity(
       activityId: result.activityId,
       ownerUid: activity.ownerUid,
@@ -480,6 +544,7 @@ extension CurrentSessionActivityHistoryPersistence
         durationLabel: result.summary.duration,
         summary: result.summary,
         completionResult: result,
+        feedPublishSource: feedPublishSource,
       ),
       completionResult: result,
     );

@@ -10,8 +10,6 @@ import '../data/phone_motion_run_cadence_provider.dart';
 import '../data/platform_run_foreground_service.dart';
 import '../data/real_foreground_run_location_provider.dart';
 import '../data/sensors_plus_run_motion_provider.dart';
-import '../data/static_run_repository.dart';
-import '../domain/models/complete_run_result.dart';
 import '../domain/models/run_location_permission_status.dart';
 import '../domain/models/run_location_sample.dart';
 import '../domain/models/run_tracking_state.dart';
@@ -23,13 +21,13 @@ import '../domain/repositories/run_location_provider.dart';
 import '../domain/repositories/run_motion_provider.dart';
 import '../domain/repositories/run_notification_permission_service.dart';
 import '../domain/repositories/run_repository.dart';
-import '../domain/services/run_summary_local_analysis_merger.dart';
 import 'active_run_session_coordinator.dart';
 import 'controllers/run_tracking_controller.dart';
 import 'cool_down_screen.dart';
 import 'data/run_launch_demo_snapshots.dart';
 import 'models/planned_run_context.dart';
 import 'run_repository_scope.dart';
+import 'run_completion_coordinator.dart';
 import 'widgets/run_map_placeholder.dart';
 import 'widgets/run_mapbox_follow_qa_overlay.dart';
 import 'widgets/run_mapbox_surface_config.dart';
@@ -413,59 +411,16 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
     );
     setState(() => _isCompletingRun = true);
 
-    CompleteRunResult result = await const StaticRunRepository().completeRun(
-      payload,
-    );
-
-    if (!mounted) {
-      return;
-    }
-    result = result.copyWith(
-      summary: const RunSummaryLocalAnalysisMerger().merge(
-        backendSummary: result.summary,
-        localPayload: payload,
-        localRoute: payload.routeSnapshot,
-        resultClientRunSessionId: result.clientRunSessionId,
-      ),
-    );
     final activityHistoryStore = CurrentSessionActivityHistoryScope.maybeOf(
       context,
     );
-    if (result.summary.hasSufficientData && activityHistoryStore != null) {
-      var didSaveLocally = false;
-      try {
-        await activityHistoryStore.saveCompletedRun(result, payload: payload);
-        didSaveLocally = true;
-      } catch (error, stackTrace) {
-        FlutterError.reportError(
-          FlutterErrorDetails(
-            exception: error,
-            stack: stackTrace,
-            library: 'runiac run tracking',
-            context: ErrorDescription('saving a completed run locally'),
-          ),
-        );
-      }
-      if (!mounted) {
-        return;
-      }
-      if (didSaveLocally) {
-        unawaited(
-          activityHistoryStore
-              .syncPendingRuns(_repository)
-              .catchError(
-                (Object error, StackTrace stackTrace) =>
-                    FlutterError.reportError(
-                      FlutterErrorDetails(
-                        exception: error,
-                        stack: stackTrace,
-                        library: 'runiac run tracking',
-                        context: ErrorDescription('syncing a completed run'),
-                      ),
-                    ),
-              ),
-        );
-      }
+    final result = await const RunCompletionCoordinator().complete(
+      repository: _repository,
+      payload: payload,
+      activityHistoryStore: activityHistoryStore,
+    );
+    if (!mounted) {
+      return;
     }
     _activeRunSessionCoordinator.stopForegroundTicker();
     _controller.finish(completedAt: completedAt);

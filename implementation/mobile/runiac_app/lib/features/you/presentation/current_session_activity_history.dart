@@ -61,6 +61,13 @@ class RunSyncDebugSnapshot {
   final String? lastSyncFailureMessage;
 }
 
+class RunCompletionContext {
+  const RunCompletionContext._(this._ownerUid, this._ownerGeneration);
+
+  final String _ownerUid;
+  final int _ownerGeneration;
+}
+
 class CurrentSessionActivityHistoryStore extends ChangeNotifier {
   CurrentSessionActivityHistoryStore({
     DateTime Function()? now,
@@ -143,6 +150,15 @@ class CurrentSessionActivityHistoryStore extends ChangeNotifier {
     notifyListeners();
   }
 
+  RunCompletionContext captureRunCompletionContext() {
+    return RunCompletionContext._(_requireOwnerUid(), _ownerGeneration);
+  }
+
+  bool isRunCompletionContextCurrent(RunCompletionContext context) {
+    return _ownerUid == context._ownerUid &&
+        _ownerGeneration == context._ownerGeneration;
+  }
+
   void registerCompletedRun(
     CompleteRunResult result, {
     String? ownerUid,
@@ -166,15 +182,7 @@ class CurrentSessionActivityHistoryStore extends ChangeNotifier {
         durationLabel: result.summary.duration,
         summary: result.summary,
         completionResult: result,
-        feedPublishSource: result.activityId.isEmpty
-            ? const RunFeedPublishSource.disabled(
-                FeedPublishDisabledReason.notAvailable,
-              )
-            : RunFeedPublishSource.enabled(
-                activityId: result.activityId,
-                cacheIdentity: result.clientRunSessionId,
-                allowsCurrentSessionRouteCapture: true,
-              ),
+        feedPublishSource: _feedPublishSourceForCompletion(result),
       ),
       completionResult: result,
     );
@@ -256,7 +264,13 @@ class CurrentSessionActivityHistoryStore extends ChangeNotifier {
   }
 
   bool _looksLikeRemoteCompletion(CompleteRunResult result) {
-    return result.activityId.startsWith('activity_');
+    return RunFeedPublishSource.isCanonicalValidatedCompletion(result);
+  }
+
+  RunFeedPublishSource _feedPublishSourceForCompletion(
+    CompleteRunResult result,
+  ) {
+    return RunFeedPublishSource.fromCompletion(result);
   }
 
   Future<T> _enqueueStorageMutation<T>(Future<T> Function() action) {

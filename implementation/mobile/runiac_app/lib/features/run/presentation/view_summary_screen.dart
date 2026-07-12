@@ -250,16 +250,12 @@ class ViewSummaryScreen extends StatelessWidget {
       return explicit;
     }
     final result = completionResult;
-    if (result == null || result.activityId.isEmpty) {
+    if (result == null) {
       return const RunFeedPublishSource.disabled(
         FeedPublishDisabledReason.notAvailable,
       );
     }
-    return RunFeedPublishSource.enabled(
-      activityId: result.activityId,
-      cacheIdentity: result.clientRunSessionId,
-      allowsCurrentSessionRouteCapture: true,
-    );
+    return RunFeedPublishSource.fromCompletion(result);
   }
 
   Future<void> _goHomeFromSummary(

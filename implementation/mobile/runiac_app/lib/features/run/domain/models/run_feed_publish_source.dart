@@ -1,3 +1,5 @@
+import 'complete_run_result.dart';
+
 enum FeedPublishDisabledReason {
   notAvailable,
   localOnly,
@@ -36,6 +38,41 @@ class RunFeedPublishSource {
         allowsCurrentSessionRouteCapture: false,
         allowsMetricThumbnailFallback: false,
       );
+
+  factory RunFeedPublishSource.fromCompletion(
+    CompleteRunResult result, {
+    bool allowsCurrentSessionRouteCapture = true,
+  }) {
+    final activityId = result.activityId;
+    if (activityId.isEmpty) {
+      return const RunFeedPublishSource.disabled(
+        FeedPublishDisabledReason.notAvailable,
+      );
+    }
+    if (activityId.startsWith('local-') ||
+        activityId.startsWith('local_') ||
+        activityId.startsWith('static-') ||
+        activityId.startsWith('static_')) {
+      return const RunFeedPublishSource.disabled(
+        FeedPublishDisabledReason.localOnly,
+      );
+    }
+    if (!isCanonicalValidatedCompletion(result)) {
+      return const RunFeedPublishSource.disabled(
+        FeedPublishDisabledReason.notValidated,
+      );
+    }
+    return RunFeedPublishSource.enabled(
+      activityId: activityId,
+      cacheIdentity: result.clientRunSessionId,
+      allowsCurrentSessionRouteCapture: allowsCurrentSessionRouteCapture,
+    );
+  }
+
+  static bool isCanonicalValidatedCompletion(CompleteRunResult result) {
+    return result.activityId.startsWith('activity_') &&
+        result.validationStatus == 'validated';
+  }
 
   final String? activityId;
   final String? cacheIdentity;

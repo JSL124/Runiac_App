@@ -1106,6 +1106,41 @@ void main() {
     },
   );
 
+  testWidgets('ViewSummary disables Feed for noncanonical completion identities', (
+    WidgetTester tester,
+  ) async {
+    _useTallSummarySurface(tester);
+    for (final scenario in <(CompleteRunResult, String)>[
+      (
+        const CompleteRunResult(
+          activityId: 'static-summary-activity',
+          summary: defaultRunSummarySnapshot,
+          xpUpdate: defaultXpUpdateDisplayModel,
+        ),
+        'This run is still local. Save it to your account before posting to Feed.',
+      ),
+      (
+        const CompleteRunResult(
+          activityId: 'activity_pending_validation',
+          validationStatus: 'pending',
+          summary: defaultRunSummarySnapshot,
+          xpUpdate: defaultXpUpdateDisplayModel,
+        ),
+        'This run is still being validated. Try posting again after validation finishes.',
+      ),
+    ]) {
+      await tester.pumpWidget(
+        MaterialApp(home: ViewSummaryScreen(completionResult: scenario.$1)),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(OutlinedButton, 'Share Route'));
+      await tester.pumpAndSettle();
+      expect(find.text(scenario.$2), findsOneWidget);
+      await tester.tap(find.widgetWithText(OutlinedButton, 'Cancel'));
+      await tester.pumpAndSettle();
+    }
+  });
+
   testWidgets('Share Route opens a Feed confirmation preview', (
     WidgetTester tester,
   ) async {
@@ -3275,6 +3310,82 @@ void main() {
     expect(find.byType(ListView), findsNothing);
     expect(find.textContaining(_forbiddenRealActivitySaveCopy), findsNothing);
   });
+
+  testWidgets(
+    'Cool down skip preserves the exact completion result and payload',
+    (WidgetTester tester) async {
+      final completionPayload = LocalRunCompletionPayload(
+        clientRunSessionId: 'cool-down-session',
+        startedAt: DateTime.utc(2026, 7, 12, 20),
+        completedAt: DateTime.utc(2026, 7, 12, 20, 31),
+        durationSeconds: 1860,
+        distanceMeters: 4200,
+        avgPaceSecondsPerKm: 443,
+        source: 'gps',
+        routePrivacy: 'private',
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: CoolDownScreen(
+            completionResult: _repositoryCompletionResult,
+            completionPayload: completionPayload,
+          ),
+        ),
+      );
+
+      await tester.tap(find.widgetWithText(OutlinedButton, 'Skip to Summary'));
+      await tester.pumpAndSettle();
+
+      final summary = tester.widget<ViewSummaryScreen>(
+        find.byType(ViewSummaryScreen),
+      );
+      expect(summary.completionResult, same(_repositoryCompletionResult));
+      expect(summary.completionPayload, same(completionPayload));
+    },
+  );
+
+  testWidgets(
+    'Guided cool down preserves the exact completion result and payload',
+    (WidgetTester tester) async {
+      final completionPayload = LocalRunCompletionPayload(
+        clientRunSessionId: 'guided-cool-down-session',
+        startedAt: DateTime.utc(2026, 7, 12, 20),
+        completedAt: DateTime.utc(2026, 7, 12, 20, 31),
+        durationSeconds: 1860,
+        distanceMeters: 4200,
+        avgPaceSecondsPerKm: 443,
+        source: 'gps',
+        routePrivacy: 'private',
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: CoolDownScreen(
+            completionResult: _repositoryCompletionResult,
+            completionPayload: completionPayload,
+          ),
+        ),
+      );
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Start Cool-down'));
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(minutes: 3));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Next'));
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(minutes: 5));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Finish'));
+      await tester.pumpAndSettle();
+
+      final summary = tester.widget<ViewSummaryScreen>(
+        find.byType(ViewSummaryScreen),
+      );
+      expect(summary.completionResult, same(_repositoryCompletionResult));
+      expect(summary.completionPayload, same(completionPayload));
+    },
+  );
 
   testWidgets('Cool down guide supports walk pause stretch and finish states', (
     WidgetTester tester,

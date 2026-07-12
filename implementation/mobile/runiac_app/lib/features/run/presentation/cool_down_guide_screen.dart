@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 
 import 'package:runiac_app/core/theme/runiac_colors.dart';
 
+import '../domain/models/complete_run_result.dart';
+import '../domain/models/local_run_completion_payload.dart';
 import 'view_summary_screen.dart';
 
 const _navy = Color(0xFF2F51C8);
@@ -30,12 +32,16 @@ class CoolDownGuideScreen extends StatefulWidget {
     this.initialPhase = CoolDownPhase.walk,
     this.initialSecondsLeft,
     this.initialCompletedPhases = const <CoolDownPhase>{},
+    this.completionResult,
+    this.completionPayload,
   });
 
   final bool timerEnabled;
   final CoolDownPhase initialPhase;
   final int? initialSecondsLeft;
   final Set<CoolDownPhase> initialCompletedPhases;
+  final CompleteRunResult? completionResult;
+  final LocalRunCompletionPayload? completionPayload;
 
   @override
   State<CoolDownGuideScreen> createState() => _CoolDownGuideScreenState();
@@ -146,7 +152,10 @@ class _CoolDownGuideScreenState extends State<CoolDownGuideScreen> {
     if (_status == _CoolDownStatus.complete) {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute<void>(
-          builder: (context) => const ViewSummaryScreen(),
+          builder: (context) => ViewSummaryScreen(
+            completionResult: widget.completionResult,
+            completionPayload: widget.completionPayload,
+          ),
         ),
       );
     }
