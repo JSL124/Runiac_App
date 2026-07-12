@@ -3,10 +3,14 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
+import 'package:runiac_app/core/assets/runiac_assets.dart';
+import 'package:runiac_app/core/characters/runner_character.dart';
 import 'package:runiac_app/core/theme/runiac_colors.dart';
 import 'package:runiac_app/core/widgets/runiac_back_header.dart';
 
 import 'advanced_analysis_screen.dart';
+import '../data/cloud_function_activity_feedback_agent.dart';
+import '../domain/models/activity_feedback_agent.dart';
 import '../domain/models/advanced_analysis_snapshot.dart';
 import '../domain/models/complete_run_result.dart';
 import '../domain/models/local_run_completion_payload.dart';
@@ -32,6 +36,7 @@ import 'data/run_completion_demo_snapshots.dart';
 import 'widgets/completed_route_map_surface.dart';
 import 'widgets/mapbox_runtime_config.dart';
 import 'widgets/advanced_analysis/advanced_analysis_splits_table.dart';
+import 'widgets/activity_feedback_overlay.dart';
 import 'widgets/share_achievement_sheet.dart';
 import 'widgets/share_route_to_feed_sheet.dart';
 import 'xp_update_screen.dart';
@@ -81,6 +86,7 @@ class ViewSummaryScreen extends StatelessWidget {
     this.feedPublishService,
     this.historyArtifactResolver,
     this.feedPublishSource,
+    this.activityFeedbackAgent,
   });
 
   final RunSummarySnapshot summary;
@@ -93,6 +99,7 @@ class ViewSummaryScreen extends StatelessWidget {
   final FeedPublishService? feedPublishService;
   final HistoryArtifactResolver? historyArtifactResolver;
   final RunFeedPublishSource? feedPublishSource;
+  final ActivityFeedbackAgent? activityFeedbackAgent;
 
   void _showSoonMessage(BuildContext context, String message) {
     ScaffoldMessenger.of(context)
@@ -355,24 +362,74 @@ class ViewSummaryScreen extends StatelessWidget {
                     fontWeight: FontWeight.w600,
                     height: 1.15,
                   ),
-                  trailing: IconButton(
-                    tooltip: 'Share summary',
-                    onPressed: () {
-                      showModalBottomSheet<void>(
-                        context: context,
-                        isScrollControlled: true,
-                        useSafeArea: true,
-                        backgroundColor: Colors.transparent,
-                        barrierColor: Colors.black.withValues(alpha: 0.48),
-                        builder: (context) => const ShareAchievementSheet(),
-                      );
-                    },
-                    style: IconButton.styleFrom(
-                      foregroundColor: _rBlue,
-                      minimumSize: const Size(40, 40),
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                    icon: const Icon(Icons.share_outlined, size: 20),
+                  trailingWidth: 88,
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        tooltip: 'Activity feedback',
+                        onPressed: () {
+                          final character =
+                              SelectedRunnerCharacterScope.maybeOf(
+                                context,
+                              )?.selectedOrDefault ??
+                              RunnerCharacter.blue;
+                          showDialog<void>(
+                            context: context,
+                            barrierDismissible: false,
+                            barrierColor: Colors.transparent,
+                            builder: (dialogContext) {
+                              return ActivityFeedbackOverlay(
+                                character: character,
+                                loadFeedback: () =>
+                                    (activityFeedbackAgent ??
+                                            CloudFunctionActivityFeedbackAgent())
+                                        .explainRun(
+                                          ActivityFeedbackRequest(
+                                            summary: displayedSummary,
+                                            analysis: analysisSnapshot,
+                                          ),
+                                        ),
+                                onClose: () => Navigator.of(
+                                  dialogContext,
+                                  rootNavigator: true,
+                                ).pop(),
+                              );
+                            },
+                          );
+                        },
+                        style: IconButton.styleFrom(
+                          foregroundColor: _rBlue,
+                          minimumSize: const Size(40, 40),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        icon: Image.asset(
+                          RuniacAssets.activityFeedbackSparkle,
+                          width: 22,
+                          height: 22,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: 'Share summary',
+                        onPressed: () {
+                          showModalBottomSheet<void>(
+                            context: context,
+                            isScrollControlled: true,
+                            useSafeArea: true,
+                            backgroundColor: Colors.transparent,
+                            barrierColor: Colors.black.withValues(alpha: 0.48),
+                            builder: (context) => const ShareAchievementSheet(),
+                          );
+                        },
+                        style: IconButton.styleFrom(
+                          foregroundColor: _rBlue,
+                          minimumSize: const Size(40, 40),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        icon: const Icon(Icons.share_outlined, size: 20),
+                      ),
+                    ],
                   ),
                 ),
                 Expanded(

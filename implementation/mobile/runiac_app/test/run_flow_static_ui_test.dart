@@ -12,6 +12,7 @@ import 'package:runiac_app/features/feed/data/feed_publish/feed_publish_service.
 import 'package:runiac_app/features/feed/presentation/current_session_feed.dart';
 import 'package:runiac_app/features/feed/data/feed_publish/history_artifact_resolver.dart';
 import 'package:runiac_app/features/run/domain/models/advanced_analysis_snapshot.dart';
+import 'package:runiac_app/features/run/domain/models/activity_feedback_agent.dart';
 import 'package:runiac_app/features/run/domain/models/cadence_graph_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/coaching_summary_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/complete_run_result.dart';
@@ -108,6 +109,23 @@ Finder _advancedAnalysisSplitDistanceText(String text) {
         widget.maxLines == 1 &&
         widget.overflow == TextOverflow.ellipsis;
   });
+}
+
+class _FakeActivityFeedbackAgent implements ActivityFeedbackAgent {
+  @override
+  Future<ActivityFeedbackBundle> explainRun(
+    ActivityFeedbackRequest request,
+  ) async {
+    return const ActivityFeedbackBundle(
+      source: ActivityFeedbackSource.generated,
+      sections: ActivityFeedbackSections(
+        summary: 'You completed a controlled run.',
+        wentWell: 'Your pacing stayed repeatable.',
+        improve: 'Ease into the first kilometre next time.',
+        nextFocus: 'Keep the next run calm and steady.',
+      ),
+    );
+  }
 }
 
 int _paceSeconds(String pace) {
@@ -989,7 +1007,7 @@ void main() {
     expect(find.widgetWithText(FilledButton, 'Home'), findsNothing);
     expect(find.textContaining(_forbiddenRealActivitySaveCopy), findsNothing);
 
-    await tester.tap(find.byTooltip('Share summary'));
+    await tester.tap(find.byTooltip('Share summary'), warnIfMissed: false);
     await tester.pumpAndSettle();
 
     expect(find.text('Share Your Achievement'), findsOneWidget);
@@ -1045,6 +1063,48 @@ void main() {
     expect(find.text('+120 XP'), findsOneWidget);
     expect(find.text('Earned from this run'), findsNothing);
   });
+
+  testWidgets(
+    'Activity feedback overlay blocks then restores summary actions',
+    (WidgetTester tester) async {
+      _useTallSummarySurface(tester);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ViewSummaryScreen(
+            activityFeedbackAgent: _FakeActivityFeedbackAgent(),
+          ),
+        ),
+      );
+
+      expect(find.byTooltip('Activity feedback'), findsOneWidget);
+      expect(find.byTooltip('Share summary'), findsOneWidget);
+
+      await tester.tap(find.byTooltip('Activity feedback'));
+      await tester.pump();
+      expect(find.text('Analysing your run...'), findsOneWidget);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Summary'), findsOneWidget);
+      expect(find.text('You completed a controlled run.'), findsOneWidget);
+      await tester.tap(find.byTooltip('Next feedback step'));
+      await tester.pumpAndSettle();
+      expect(find.text('Went well'), findsOneWidget);
+      expect(find.text('Your pacing stayed repeatable.'), findsOneWidget);
+
+      await tester.tap(find.byTooltip('Share summary'), warnIfMissed: false);
+      await tester.pumpAndSettle();
+      expect(find.text('Share Your Achievement'), findsNothing);
+
+      await tester.tap(find.byTooltip('Close activity feedback'));
+      await tester.pumpAndSettle();
+      expect(find.text('Went well'), findsNothing);
+
+      await tester.tap(find.byTooltip('Share summary'));
+      await tester.pumpAndSettle();
+      expect(find.text('Share Your Achievement'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets('Share Route opens a Feed confirmation preview', (
     WidgetTester tester,

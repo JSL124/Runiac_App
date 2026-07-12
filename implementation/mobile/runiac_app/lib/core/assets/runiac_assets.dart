@@ -90,4 +90,7 @@ abstract final class RuniacAssets {
       'assets/images/leaderboard/leagues/league_challenger.png';
 
   static const instagramStoriesIcon = 'assets/icons/instagram_stories.png';
+
+  static const activityFeedbackSparkle =
+      'assets/icons/activity_feedback_sparkle.png';
 }

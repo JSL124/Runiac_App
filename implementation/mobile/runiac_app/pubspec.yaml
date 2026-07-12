@@ -72,6 +72,7 @@ flutter:
 
   assets:
     - assets/icons/google_icon.png
+    - assets/icons/activity_feedback_sparkle.png
     - assets/icons/instagram_stories.png
     - assets/images/characters/blue_runner_back.png
     - assets/images/characters/blue_runner_front.png
