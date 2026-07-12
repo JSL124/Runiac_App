@@ -195,7 +195,14 @@ class FirestoreActivityHistoryRepository implements ActivityHistoryRepository {
       averagePaceSecondsPerKm: averagePaceSecondsPerKm,
       routeLabel: _readOptionalString(data, 'routeLabel'),
     );
-    final title = _readOptionalString(data, 'title') ?? 'Completed Run';
+    final persistedTitle = _readOptionalString(data, 'title');
+    final routeLabel = _readOptionalString(data, 'routeLabel');
+    final title =
+        persistedTitle == null ||
+            persistedTitle == 'Completed Run' ||
+            persistedTitle == routeLabel
+        ? scalar.title
+        : persistedTitle;
     final cadenceAnalysisSeries = _readCadenceAnalysisSeries(data);
     final details = source == _ActivityHistoryDocumentSource.summary
         ? const FirestoreRunSummarySnapshotDecoder().decode(data)

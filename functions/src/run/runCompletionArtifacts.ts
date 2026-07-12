@@ -20,7 +20,7 @@ export function fingerprintPayload(payload: RawRunCompletionPayload): string {
 
 export function buildRunSummary(payload: RawRunCompletionPayload): CompleteRunResult["runSummary"] {
   return {
-    title: payload.routeLabel ?? "Completed Run",
+    title: payload.activityTitle ?? "Completed Run",
     startedAt: payload.startedAt,
     endedAt: payload.completedAt,
     distanceMeters: payload.distanceMeters,

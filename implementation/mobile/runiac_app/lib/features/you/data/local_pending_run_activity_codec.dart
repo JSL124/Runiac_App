@@ -61,6 +61,8 @@ Map<String, Object?> _localPendingRunActivityToJson(
       'routeSnapshot': _routeToJson(activity.payload.routeSnapshot),
       if (activity.payload.userConfirmedLowDataSave)
         'userConfirmedLowDataSave': true,
+      if (activity.payload.activityTitle != null)
+        'activityTitle': activity.payload.activityTitle,
       if (activity.payload.routeLabel != null)
         'routeLabel': activity.payload.routeLabel,
       if (activity.payload.clientAppVersion != null)
@@ -218,6 +220,7 @@ LocalRunCompletionPayload _payloadFromJson(
     routeSnapshot: _routeFromJson(_readMap(source, 'routeSnapshot')),
     userConfirmedLowDataSave:
         _readBool(source, 'userConfirmedLowDataSave') ?? false,
+    activityTitle: _readString(source, 'activityTitle'),
     routeLabel: _readString(source, 'routeLabel'),
     clientAppVersion: _readString(source, 'clientAppVersion'),
     planEnrollmentId: _readString(source, 'planEnrollmentId'),

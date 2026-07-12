@@ -27,6 +27,7 @@ const allowedKeys = new Set([
   "source",
   "routePrivacy",
   "userConfirmedLowDataSave",
+  "activityTitle",
   "routeLabel",
   "avgHeartRate",
   "caloriesEstimate",
@@ -118,6 +119,7 @@ export function parseRunCompletionPayload(data: unknown): RawRunCompletionPayloa
     throw invalid("pausedDurationSeconds must match elapsedWallSeconds minus activeDurationSeconds within tolerance.");
   }
 
+  const activityTitle = readOptionalActivityTitle(data);
   const routeLabel = readOptionalString(data, "routeLabel");
   const avgHeartRate = readOptionalPositiveNumber(data, "avgHeartRate");
   const caloriesEstimate = readOptionalPositiveNumber(data, "caloriesEstimate");
@@ -149,6 +151,7 @@ export function parseRunCompletionPayload(data: unknown): RawRunCompletionPayloa
     source: readMobileSource(data),
     routePrivacy: readRoutePrivacy(data),
     ...(userConfirmedLowDataSave ? { userConfirmedLowDataSave: true } : {}),
+    ...(activityTitle === undefined ? {} : { activityTitle }),
     ...(routeLabel === undefined ? {} : { routeLabel }),
     ...(avgHeartRate === undefined ? {} : { avgHeartRate }),
     ...(caloriesEstimate === undefined ? {} : { caloriesEstimate }),
@@ -161,6 +164,24 @@ export function parseRunCompletionPayload(data: unknown): RawRunCompletionPayloa
     ...(paceAnalysisSeries === undefined ? {} : { paceAnalysisSeries }),
     ...(elevationSeries === undefined ? {} : { elevationSeries }),
   };
+}
+
+function readOptionalActivityTitle(
+  data: Readonly<Record<string, unknown>>,
+): string | undefined {
+  const value = data["activityTitle"];
+  if (value === undefined) {
+    return undefined;
+  }
+  if (
+    typeof value !== "string" ||
+    !/^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday) (Morning|Afternoon|Evening|Night) Run$/.test(
+      value,
+    )
+  ) {
+    throw invalid("activityTitle must be a Runiac generated run title.");
+  }
+  return value;
 }
 
 function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {

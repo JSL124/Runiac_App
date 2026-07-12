@@ -13,6 +13,7 @@ export type RawRunCompletionPayload = {
   readonly source: "mobile";
   readonly routePrivacy: RoutePrivacy;
   readonly userConfirmedLowDataSave?: boolean;
+  readonly activityTitle?: string;
   readonly routeLabel?: string;
   readonly avgHeartRate?: number;
   readonly caloriesEstimate?: number;

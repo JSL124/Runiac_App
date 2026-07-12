@@ -65,7 +65,8 @@ void main() {
         'client-session-june-2',
       );
       expect(history.recentRuns.first.title, 'Authenticated Recovery Run');
-      expect(history.recentRuns[1].title, 'Completed Run');
+      expect(history.recentRuns[1].title, 'Friday Morning Run');
+      expect(history.recentRuns[2].title, 'Sunday Morning Run');
       expect(history.recentRuns.first.completedAtLabel, '14/6/26');
       expect(history.recentRuns.first.timeLabel, '7:25 AM');
       expect(history.recentRuns.first.distanceLabel, '3.20 km');

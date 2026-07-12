@@ -31,6 +31,7 @@ class RunCompletionRequestAdapter {
       'source': 'mobile',
       'routePrivacy': payload.routePrivacy,
       if (payload.userConfirmedLowDataSave) 'userConfirmedLowDataSave': true,
+      if (payload.activityTitle != null) 'activityTitle': payload.activityTitle,
       if (payload.routeLabel != null) 'routeLabel': payload.routeLabel,
       if (payload.clientAppVersion != null)
         'clientAppVersion': payload.clientAppVersion,

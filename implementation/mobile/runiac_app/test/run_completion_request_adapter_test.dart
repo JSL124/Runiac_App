@@ -19,6 +19,7 @@ void main() {
         avgPaceSecondsPerKm: 469,
         source: 'local_simulation',
         routePrivacy: 'private',
+        activityTitle: 'Sunday Morning Run',
         routeLabel: 'Repository Result Route',
         clientAppVersion: 'm3-test',
       );
@@ -36,6 +37,7 @@ void main() {
       expect(request['avgPaceSecondsPerKm'], 469);
       expect(request['source'], 'mobile');
       expect(request['routePrivacy'], 'private');
+      expect(request['activityTitle'], 'Sunday Morning Run');
       expect(request['routeLabel'], 'Repository Result Route');
       expect(request['clientAppVersion'], 'm3-test');
     });

@@ -19,6 +19,7 @@ import '../../domain/repositories/run_location_permission_service.dart';
 import '../../domain/repositories/run_location_provider.dart';
 import '../../domain/repositories/run_motion_provider.dart';
 import '../../domain/repositories/run_notification_permission_service.dart';
+import '../../domain/services/completed_run_title_formatter.dart';
 import '../../domain/services/local_run_tracking_session.dart';
 import '../widgets/display_route_smoother.dart';
 
@@ -430,6 +431,9 @@ class RunTrackingController extends ChangeNotifier {
       avgPaceSecondsPerKm: _state.averagePaceSecondsPerKm,
       source: _state.source,
       routePrivacy: _state.routePrivacy,
+      activityTitle: const CompletedRunTitleFormatter().format(
+        completedAt: finishedAt,
+      ),
       routeLabel: _state.routeLabel,
       planEnrollmentId: planEnrollmentId,
       scheduledWorkoutId: scheduledWorkoutId,

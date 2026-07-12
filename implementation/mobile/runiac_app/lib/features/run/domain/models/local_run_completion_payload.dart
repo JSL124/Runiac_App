@@ -14,6 +14,7 @@ class LocalRunCompletionPayload {
     required this.source,
     required this.routePrivacy,
     this.userConfirmedLowDataSave = false,
+    this.activityTitle,
     this.routeLabel,
     this.clientAppVersion,
     this.planEnrollmentId,
@@ -35,6 +36,7 @@ class LocalRunCompletionPayload {
   final String source;
   final String routePrivacy;
   final bool userConfirmedLowDataSave;
+  final String? activityTitle;
   final String? routeLabel;
   final String? clientAppVersion;
   final String? planEnrollmentId;
@@ -78,6 +80,7 @@ class LocalRunCompletionPayload {
       'routePrivacy': routePrivacy,
       if (userConfirmedLowDataSave)
         'userConfirmedLowDataSave': userConfirmedLowDataSave,
+      if (activityTitle != null) 'activityTitle': activityTitle,
       if (routeLabel != null) 'routeLabel': routeLabel,
       if (clientAppVersion != null) 'clientAppVersion': clientAppVersion,
       if (planEnrollmentId != null) 'planEnrollmentId': planEnrollmentId,
@@ -100,6 +103,7 @@ class LocalRunCompletionPayload {
       routePrivacy: routePrivacy,
       userConfirmedLowDataSave:
           userConfirmedLowDataSave ?? this.userConfirmedLowDataSave,
+      activityTitle: activityTitle,
       routeLabel: routeLabel,
       clientAppVersion: clientAppVersion,
       planEnrollmentId: planEnrollmentId,

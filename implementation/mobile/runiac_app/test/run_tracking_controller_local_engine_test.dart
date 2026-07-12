@@ -53,6 +53,7 @@ void main() {
         expect(controller.state.distanceMeters, closeTo(300, 2));
         expect(controller.state.averagePaceSecondsPerKm, closeTo(400, 3));
         expect(payload.durationSeconds, 120);
+        expect(payload.activityTitle, 'Sunday Morning Run');
         expect(payload.distanceMeters, closeTo(300, 2));
         expect(payload.avgPaceSecondsPerKm, closeTo(400, 3));
         expect(payload.routeSnapshot.segments, hasLength(1));
