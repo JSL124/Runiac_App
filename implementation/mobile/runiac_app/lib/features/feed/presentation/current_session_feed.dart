@@ -15,11 +15,13 @@ class CurrentSessionFeed extends StatefulWidget {
   const CurrentSessionFeed({
     this.repository = const StaticFeedRepository(),
     this.viewerContext,
+    this.currentAuthorProfile,
     super.key,
   });
 
   final FeedRepository repository;
   final FeedViewerContext? viewerContext;
+  final FeedAuthorProfileSnapshot? currentAuthorProfile;
 
   @override
   State<CurrentSessionFeed> createState() => _CurrentSessionFeedState();
@@ -43,6 +45,9 @@ class _CurrentSessionFeedState extends State<CurrentSessionFeed> {
       _controller.removeListener(_rebuild);
       _controller.dispose();
       _replaceController();
+    } else if (oldWidget.currentAuthorProfile != widget.currentAuthorProfile) {
+      _controller.updateCurrentAuthorProfile(widget.currentAuthorProfile);
+      _syncAuthorProfile();
     }
   }
 
@@ -54,6 +59,7 @@ class _CurrentSessionFeedState extends State<CurrentSessionFeed> {
     _sessionStore?.removeListener(_onSessionChanged);
     _sessionStore = nextStore;
     _controller.attachSession(nextStore);
+    _syncAuthorProfile();
     _sessionStore?.addListener(_onSessionChanged);
   }
 
@@ -70,9 +76,17 @@ class _CurrentSessionFeedState extends State<CurrentSessionFeed> {
     _controller = FeedTimelineScreenController(
       widget.repository,
       widget.viewerContext,
+      widget.currentAuthorProfile,
     )..addListener(_rebuild);
     _controller.attachSession(_sessionStore);
     _controller.refresh();
+  }
+
+  void _syncAuthorProfile() {
+    final profile = widget.currentAuthorProfile;
+    if (profile != null) {
+      _sessionStore?.updateAuthorProfile(profile);
+    }
   }
 
   void _rebuild() {
@@ -83,6 +97,7 @@ class _CurrentSessionFeedState extends State<CurrentSessionFeed> {
     if (_controller.clearForOwnerChange() && _controller.commentSheetOpen) {
       Navigator.of(context).pop();
     }
+    if (mounted) setState(() {});
   }
 
   @override

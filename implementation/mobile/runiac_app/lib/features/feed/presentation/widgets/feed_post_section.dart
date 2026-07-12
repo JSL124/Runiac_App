@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/runiac_colors.dart';
+import '../../../../core/widgets/runiac_level_profile_badge.dart';
 import '../../../you/presentation/widgets/you_surface_primitives.dart';
 import '../../domain/models/feed_display_models.dart';
 import '../feed_timeline_screen_controller.dart';
@@ -19,6 +20,9 @@ class FeedPostSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final authorProfile = post.authorProfileFor(
+      controller.currentAuthorProfile,
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -26,16 +30,21 @@ class FeedPostSection extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 16, 10, 12),
           child: Row(
             children: [
-              CircleAvatar(
-                radius: 20,
-                backgroundColor: RuniacColors.sectionSurfaceStrong,
-                foregroundColor: RuniacColors.primaryBlue,
-                child: Text(
-                  post.authorAvatarInitials,
-                  style: YouTextStyles.smallStrong.copyWith(
-                    color: RuniacColors.primaryBlue,
-                    fontWeight: FontWeight.w900,
-                  ),
+              ExcludeSemantics(
+                child: RuniacLevelProfileBadge(
+                  key: ValueKey('feed-author-profile-${post.postId}'),
+                  initials: authorProfile.avatarInitials,
+                  levelLabel: authorProfile.compactLevelLabel,
+                  progressFraction: authorProfile.levelProgressFraction,
+                  size: 44,
+                  badgeHeight: 16,
+                  badgeMinWidth: 42,
+                  badgeHorizontalPadding: 6,
+                  badgeFontSize: 9,
+                  ringStrokeWidth: 4,
+                  discColor: RuniacColors.primaryBlue,
+                  discBorderColor: RuniacColors.white,
+                  initialsColor: RuniacColors.white,
                 ),
               ),
               const SizedBox(width: 10),

@@ -37,6 +37,7 @@ Future<void> main() async {
           bootstrap.generatedPlanPersistenceRepository,
       planProgressRepository: bootstrap.planProgressRepository,
       adaptivePlanEstimateRepository: bootstrap.adaptivePlanEstimateRepository,
+      feedRepository: bootstrap.feedRepository,
       notificationInboxRepository: bootstrap.notificationInboxRepository,
       notificationRegistrationService:
           bootstrap.notificationRegistrationService,

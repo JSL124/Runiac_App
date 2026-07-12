@@ -139,7 +139,7 @@ async function stageActivity(uid: string, activityId: string): Promise<void> {
 function publishData(uid: string, activityId: string): Readonly<Record<string, string>> { return { activityId, stagingPath: stagingPath(uid, activityId) }; }
 function stagingPath(uid: string, activityId: string): string { return `feed-thumbnail-staging/${uid}/${activityId}/task12.png`; }
 function finalThumbnailPath(uid: string, activityId: string): string { return `feed-thumbnails/${uid}/${activityId}/route-preview.png`; }
-function comment(uid: string): Readonly<Record<string, unknown>> { return { authorUid: uid, authorDisplayName: uid, authorAvatarInitials: "T12", body: "Synthetic encouragement.", createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp() }; }
+function comment(uid: string): Readonly<Record<string, unknown>> { return { authorUid: uid, authorDisplayName: uid, authorAvatarInitials: "T12", authorLevelLabel: "Level 3", body: "Synthetic encouragement.", createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp() }; }
 
 async function call(actorValue: Actor, name: string, data: Readonly<Record<string, unknown>>): Promise<CallableResult> {
   const response = await fetch(`http://127.0.0.1:5001/${projectId}/asia-southeast1/${name}`, { method: "POST", headers: { authorization: `Bearer ${actorValue.token}`, "content-type": "application/json" }, body: JSON.stringify({ data }) });

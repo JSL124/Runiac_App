@@ -122,8 +122,9 @@ class FeedTestDataPort implements FeedDataPort {
     final start = startAfter == null
         ? 0
         : ordered.indexWhere(
-            (comment) => comment.commentId == startAfter.commentId,
-          ) + 1;
+                (comment) => comment.commentId == startAfter.commentId,
+              ) +
+              1;
     final page = ordered.skip(start).take(20).toList(growable: false);
     final hasMore = start + page.length < ordered.length;
     final last = page.isEmpty ? null : page.last;
@@ -147,6 +148,7 @@ class FeedTestDataPort implements FeedDataPort {
           authorUid: index.isEven ? 'viewer' : 'friend',
           authorDisplayName: 'Runner',
           authorAvatarInitials: 'RU',
+          authorLevelLabel: 'Level 3',
           body: 'Comment $index',
           createdAt: DateTime.utc(2026, 1, 1),
         ),
@@ -161,7 +163,8 @@ class FeedTestDataPort implements FeedDataPort {
   }) async => mutations.add('$action:$postId');
 
   @override
-  Future<Uint8List> readThumbnail(String postId) async => Uint8List.fromList(<int>[137, 80, 78, 71]);
+  Future<Uint8List> readThumbnail(String postId) async =>
+      Uint8List.fromList(<int>[137, 80, 78, 71]);
 
   @override
   Future<void> setViewerLike({
@@ -192,7 +195,8 @@ class FeedTestDataPort implements FeedDataPort {
     required String commentId,
   }) async => mutations.add('comment-delete:$postId');
 
-  void addTopPost(String postId) => _posts.add(_post('viewer', 99, 9999, postId));
+  void addTopPost(String postId) =>
+      _posts.add(_post('viewer', 99, 9999, postId));
 
   Future<FeedIdPage> _ids(
     List<String> ids,
@@ -221,6 +225,7 @@ class FeedTestDataPort implements FeedDataPort {
     authorUid: author,
     authorDisplayName: author,
     authorAvatarInitials: 'FR',
+    authorLevelLabel: 'Level 3',
     createdAt: DateTime.utc(2026, 1, 1).add(Duration(minutes: minute)),
     distanceMeters: 3000,
     durationSeconds: 1500,

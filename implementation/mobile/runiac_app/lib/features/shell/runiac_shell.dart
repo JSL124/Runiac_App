@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/runiac_colors.dart';
+import '../account/domain/models/user_profile_read_model.dart';
 import '../account/domain/repositories/user_profile_repository.dart';
 import '../account/domain/repositories/user_profile_persistence_repository.dart';
 import '../auth/domain/runiac_auth_service.dart';
@@ -112,6 +113,9 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
   late final CurrentDayRolloverController _currentDayController;
   BeginnerAdaptivePlanSnapshot? _pendingPlanNotificationPlan;
   GeneratedPlanProgressDisplay? _pendingPlanNotificationProgress;
+  late Future<FeedAuthorProfileSnapshot> _feedAuthorProfileFuture;
+  String? _feedAuthorProfileOwnerUid;
+  FeedAuthorProfileSnapshot? _lastFeedAuthorProfile;
   late final PlanNotificationSyncService _planNotificationSyncService =
       PlanNotificationSyncService(
         settingsRepository:
@@ -133,6 +137,7 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     _currentDayController = CurrentDayRolloverController()
       ..addListener(_handleCurrentDayChanged);
+    _setFeedAuthorProfileFuture();
     if (widget.youProgressToday == null) {
       _currentDayController.start();
     }
@@ -147,6 +152,50 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
       _handledInitialRunOpenIntent = false;
       _scheduleInitialRunOpenIntent();
     }
+    if (oldWidget.profileRepository != widget.profileRepository ||
+        oldWidget.userProgressRepository != widget.userProgressRepository ||
+        widget.authRepository.currentUser?.uid != _feedAuthorProfileOwnerUid) {
+      _setFeedAuthorProfileFuture();
+    }
+  }
+
+  void _setFeedAuthorProfileFuture() {
+    final ownerUid = widget.authRepository.currentUser?.uid;
+    if (ownerUid != _feedAuthorProfileOwnerUid) {
+      _lastFeedAuthorProfile = null;
+    }
+    _feedAuthorProfileOwnerUid = ownerUid;
+    _feedAuthorProfileFuture = _loadFeedAuthorProfile(ownerUid);
+  }
+
+  Future<FeedAuthorProfileSnapshot> _loadFeedAuthorProfile(
+    String? ownerUid,
+  ) async {
+    try {
+      final (profile, progress) = await (
+        widget.profileRepository.loadUserProfile(),
+        widget.userProgressRepository.loadUserProgress(),
+      ).wait;
+      final snapshot = _feedAuthorProfileFrom(
+        ownerUid: ownerUid,
+        profile: profile,
+        progress: progress,
+      );
+      if (_feedAuthorProfileOwnerUid == ownerUid) {
+        _lastFeedAuthorProfile = snapshot;
+      }
+      return snapshot;
+    } catch (_) {
+      return _lastFeedAuthorProfile ??
+          FeedAuthorProfileSnapshot.fallback(userId: ownerUid ?? '');
+    }
+  }
+
+  void _scheduleFeedAuthorProfileStoreSync(FeedAuthorProfileSnapshot profile) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      CurrentSessionFeedScope.maybeRead(context)?.updateAuthorProfile(profile);
+    });
   }
 
   void _scheduleInitialRunOpenIntent() {
@@ -325,6 +374,12 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
       generatedPlanProgress,
       force: false,
     );
+    final feedAuthorProfile =
+        _lastFeedAuthorProfile ??
+        FeedAuthorProfileSnapshot.fallback(
+          userId: widget.authRepository.currentUser?.uid ?? '',
+        );
+    _scheduleFeedAuthorProfileStoreSync(feedAuthorProfile);
     final tabs = [
       HomeTab(
         authRepository: widget.authRepository,
@@ -353,6 +408,7 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
       CurrentSessionFeed(
         repository: widget.feedRepository,
         viewerContext: _feedViewerContext,
+        currentAuthorProfile: feedAuthorProfile,
       ),
       const SizedBox.shrink(),
       LeaderboardTab(repository: widget.leaderboardRepository),
@@ -370,58 +426,70 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
       ),
     ];
 
-    return Scaffold(
-      appBar:
-          _selectedIndex == 0 ||
-              _selectedIndex == 1 ||
-              _selectedIndex == 3 ||
-              _selectedIndex == 4
-          ? null
-          : AppBar(title: const Text('Runiac')),
-      body: tabs[_selectedIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        type: BottomNavigationBarType.fixed,
-        onTap: _handleNavigationTap,
-        backgroundColor: RuniacColors.white,
-        selectedItemColor: RuniacColors.primaryBlue,
-        unselectedItemColor: RuniacColors.textSecondary,
-        showSelectedLabels: false,
-        showUnselectedLabels: false,
-        selectedFontSize: 0,
-        unselectedFontSize: 0,
-        selectedIconTheme: const IconThemeData(size: 32),
-        unselectedIconTheme: const IconThemeData(size: 30),
-        selectedLabelStyle: const TextStyle(fontSize: 0, height: 0),
-        unselectedLabelStyle: const TextStyle(fontSize: 0, height: 0),
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: '',
-            tooltip: 'Home',
+    return FutureBuilder<FeedAuthorProfileSnapshot>(
+      future: _feedAuthorProfileFuture,
+      builder: (context, snapshot) {
+        if (snapshot.hasData && snapshot.data != _lastFeedAuthorProfile) {
+          _lastFeedAuthorProfile = snapshot.data;
+          _scheduleFeedAuthorProfileStoreSync(snapshot.data!);
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) setState(() {});
+          });
+        }
+        return Scaffold(
+          appBar:
+              _selectedIndex == 0 ||
+                  _selectedIndex == 1 ||
+                  _selectedIndex == 3 ||
+                  _selectedIndex == 4
+              ? null
+              : AppBar(title: const Text('Runiac')),
+          body: tabs[_selectedIndex],
+          bottomNavigationBar: BottomNavigationBar(
+            currentIndex: _selectedIndex,
+            type: BottomNavigationBarType.fixed,
+            onTap: _handleNavigationTap,
+            backgroundColor: RuniacColors.white,
+            selectedItemColor: RuniacColors.primaryBlue,
+            unselectedItemColor: RuniacColors.textSecondary,
+            showSelectedLabels: false,
+            showUnselectedLabels: false,
+            selectedFontSize: 0,
+            unselectedFontSize: 0,
+            selectedIconTheme: const IconThemeData(size: 32),
+            unselectedIconTheme: const IconThemeData(size: 30),
+            selectedLabelStyle: const TextStyle(fontSize: 0, height: 0),
+            unselectedLabelStyle: const TextStyle(fontSize: 0, height: 0),
+            items: const [
+              BottomNavigationBarItem(
+                icon: Icon(Icons.home),
+                label: '',
+                tooltip: 'Home',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.dynamic_feed),
+                label: '',
+                tooltip: 'Feed',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.directions_run),
+                label: '',
+                tooltip: 'Run',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.leaderboard),
+                label: '',
+                tooltip: 'Leaderboard',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.person),
+                label: '',
+                tooltip: 'You',
+              ),
+            ],
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.dynamic_feed),
-            label: '',
-            tooltip: 'Feed',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.directions_run),
-            label: '',
-            tooltip: 'Run',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.leaderboard),
-            label: '',
-            tooltip: 'Leaderboard',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: '',
-            tooltip: 'You',
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -577,4 +645,21 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
       date.day.toString().padLeft(2, '0'),
     ].join('-');
   }
+}
+
+FeedAuthorProfileSnapshot _feedAuthorProfileFrom({
+  required String? ownerUid,
+  required UserProfileReadModel profile,
+  required UserProgressReadModel progress,
+}) {
+  final displayName = profile.displayName.trim();
+  final initials = profile.avatarInitials.trim();
+  final levelLabel = progress.levelLabel.trim();
+  return FeedAuthorProfileSnapshot(
+    userId: ownerUid ?? profile.userId,
+    displayName: displayName.isEmpty ? 'You' : displayName,
+    avatarInitials: initials.isEmpty ? 'R' : initials,
+    levelLabel: levelLabel.isEmpty ? progress.levelBadgeLabel : levelLabel,
+    levelProgressFraction: progress.levelProgressFraction,
+  );
 }

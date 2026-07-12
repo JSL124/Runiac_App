@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:runiac_app/core/widgets/runiac_level_profile_badge.dart';
 import 'package:runiac_app/features/feed/domain/models/feed_display_models.dart';
 import 'package:runiac_app/features/feed/domain/repositories/feed_repository.dart';
 import 'package:runiac_app/features/feed/presentation/widgets/feed_sheets.dart';
@@ -13,6 +14,7 @@ void main() {
     authorUserId: 'author',
     authorDisplayName: 'Alex',
     authorAvatarInitials: 'AL',
+    authorLevelLabel: 'Level 2',
     relativeTimeLabel: 'Now',
     distanceLabel: '3 km',
     paceLabel: '6:00',
@@ -33,6 +35,7 @@ void main() {
     WidgetTester tester,
     _CommentsRepository repository, {
     DraggableScrollableController? sheetController,
+    FeedAuthorProfileSnapshot? currentAuthorProfile,
   }) async {
     await tester.pumpWidget(
       MaterialApp(
@@ -47,6 +50,7 @@ void main() {
                     post,
                     repository,
                     'viewer',
+                    currentAuthorProfile,
                   ).controlledBy(sheetController),
                 ),
                 child: const Text('Open comments'),
@@ -98,10 +102,46 @@ void main() {
   });
 
   testWidgets(
+    'viewer comments use current profile snapshot when level snapshot is empty',
+    (WidgetTester tester) async {
+      final repository = _CommentsRepository.withComments(
+        1,
+        owned: true,
+        levelLabel: '',
+      );
+      await pumpSheet(
+        tester,
+        repository,
+        currentAuthorProfile: const FeedAuthorProfileSnapshot(
+          userId: 'viewer',
+          displayName: 'babo',
+          avatarInitials: 'B',
+          levelLabel: 'Level 8',
+          levelProgressFraction: 0.5,
+        ),
+      );
+
+      expect(find.text('Comment 0'), findsOneWidget);
+      expect(find.text('Lv.8'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('feed-comment-author-profile-comment-0')),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
     'creates, edits, and confirms deletion for viewer-owned comments',
     (WidgetTester tester) async {
       final repository = _CommentsRepository.withComments(1, owned: true);
       await pumpSheet(tester, repository);
+
+      expect(find.byType(RuniacLevelProfileBadge), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('feed-comment-author-profile-comment-0')),
+        findsOneWidget,
+      );
+      expect(find.text('Lv.6'), findsOneWidget);
 
       await tester.enterText(
         find.byKey(const ValueKey('feed-comment-input-post-1')),
@@ -110,7 +150,7 @@ void main() {
       await tester.pump();
       expect(
         tester
-            .widget<FilledButton>(
+            .widget<IconButton>(
               find.byKey(const ValueKey('feed-comment-submit-post-1')),
             )
             .onPressed,
@@ -122,6 +162,10 @@ void main() {
       await tester.pumpAndSettle();
       expect(repository.createdBodies, <String>['New progress!']);
 
+      await tester.tap(
+        find.byKey(const ValueKey('feed-comment-menu-comment-0')),
+      );
+      await tester.pumpAndSettle();
       await tester.tap(
         find.byKey(const ValueKey('feed-comment-edit-comment-0')),
       );
@@ -136,6 +180,10 @@ void main() {
       await tester.pumpAndSettle();
       expect(repository.updatedBodies, <String>['Edited comment']);
 
+      await tester.tap(
+        find.byKey(const ValueKey('feed-comment-menu-comment-0')),
+      );
+      await tester.pumpAndSettle();
       await tester.tap(
         find.byKey(const ValueKey('feed-comment-delete-comment-0')),
       );
@@ -155,8 +203,8 @@ void main() {
         isEmpty,
         reason: 'Deleting the edited comment must leave no stale edit draft.',
       );
-      expect(find.text('Comment'), findsOneWidget);
-      expect(find.text('Save edit'), findsNothing);
+      expect(find.text('Editing comment'), findsNothing);
+      expect(find.byTooltip('Post comment'), findsOneWidget);
     },
   );
 
@@ -213,7 +261,7 @@ void main() {
       );
       expect(
         tester
-            .widget<FilledButton>(
+            .widget<IconButton>(
               find.byKey(const ValueKey('feed-comment-submit-post-1')),
             )
             .onPressed,
@@ -261,7 +309,7 @@ void main() {
     await tester.enterText(input, 'One request only');
     await tester.pump();
 
-    final onPressed = tester.widget<FilledButton>(submit).onPressed!;
+    final onPressed = tester.widget<IconButton>(submit).onPressed!;
     onPressed();
     onPressed();
     await tester.pump();
@@ -270,6 +318,58 @@ void main() {
     repository.releaseCreate();
     await tester.pumpAndSettle();
     expect(find.text('One request only'), findsOneWidget);
+  });
+
+  testWidgets('pending create completion after sheet disposal is ignored', (
+    WidgetTester tester,
+  ) async {
+    final repository = _CommentsRepository.withComments(0)..holdCreate = true;
+    await pumpSheet(tester, repository);
+    await tester.enterText(
+      find.byKey(const ValueKey('feed-comment-input-post-1')),
+      'Pending comment',
+    );
+    await tester.tap(find.byKey(const ValueKey('feed-comment-submit-post-1')));
+    await tester.pump();
+
+    await tester.pumpWidget(const MaterialApp(home: SizedBox()));
+    repository.releaseCreate();
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('non-persistent fallback comments hide edit and delete actions', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => FilledButton(
+              onPressed: () => showFeedCommentSheet(
+                context: context,
+                sheet: FeedCommentSheet.fromFallback(
+                  post,
+                  'viewer',
+                  const FeedCommentFallback(
+                    comments: <String>['Session comment'],
+                    onSubmitted: _ignoreFallbackComment,
+                  ),
+                  null,
+                ),
+              ),
+              child: const Text('Open fallback comments'),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('Open fallback comments'));
+    await tester.pumpAndSettle();
+
+    expect(find.byIcon(Icons.more_horiz), findsNothing);
+    expect(find.text('Session comment'), findsOneWidget);
   });
 
   testWidgets(
@@ -286,7 +386,7 @@ void main() {
       final submit = find.byKey(const ValueKey('feed-comment-submit-post-1'));
       final list = find.byKey(const ValueKey('feed-comment-list-post-1'));
       expect(find.text('Comment 79'), findsOneWidget);
-      expect(find.byIcon(Icons.edit_outlined), findsWidgets);
+      expect(find.byIcon(Icons.more_horiz), findsWidgets);
       for (final size in <double>[.32, .62, .92]) {
         controller.jumpTo(size);
         await tester.pump(const Duration(milliseconds: 16));
@@ -307,20 +407,24 @@ void main() {
           controller.jumpTo(.62);
           await tester.pumpAndSettle();
         }
-        final edit = find.byKey(const ValueKey('feed-comment-edit-comment-79'));
-        await tester.ensureVisible(edit);
-        await tester.tap(edit);
-        await tester.pump();
+        final menu = find.byKey(const ValueKey('feed-comment-menu-comment-79'));
+        await tester.ensureVisible(menu);
+        await tester.tap(menu);
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(const ValueKey('feed-comment-edit-comment-79')),
+        );
+        await tester.pumpAndSettle();
         if (size == .32) {
           controller.jumpTo(.32);
           await tester.pumpAndSettle();
           expect(controller.size, closeTo(.32, .01));
         }
-        expect(find.text('Save edit'), findsOneWidget);
+        expect(find.text('Editing comment'), findsOneWidget);
         final saveRect = tester.getRect(submit);
         expect(saveRect.top, greaterThanOrEqualTo(0));
         expect(saveRect.bottom, lessThanOrEqualTo(600));
-        expect(tester.widget<FilledButton>(submit).onPressed, isNotNull);
+        expect(tester.widget<IconButton>(submit).onPressed, isNotNull);
         final updatesBefore = repository.updatedBodies.length;
         await tester.tap(submit);
         await tester.pumpAndSettle();
@@ -329,7 +433,7 @@ void main() {
         await tester.tap(input);
         await tester.enterText(input, 'Size $size');
         await tester.pump();
-        expect(tester.widget<FilledButton>(submit).onPressed, isNotNull);
+        expect(tester.widget<IconButton>(submit).onPressed, isNotNull);
         await tester.tap(submit);
         await tester.pumpAndSettle();
         expect(repository.createdBodies, contains('Size $size'));
@@ -350,20 +454,26 @@ void main() {
   );
 }
 
+void _ignoreFallbackComment(String _) {}
+
 class _CommentsRepository
     implements FeedTimelineRepository, FeedCommentsRepository {
-  _CommentsRepository.withComments(int count, {bool owned = false})
-    : _comments = List<FeedCommentReadModel>.generate(
-        count,
-        (index) => FeedCommentReadModel(
-          commentId: 'comment-$index',
-          authorUserId: owned ? 'viewer' : 'another-runner',
-          authorDisplayName: owned ? 'You' : 'Runner',
-          authorAvatarInitials: owned ? 'YO' : 'RU',
-          body: 'Comment $index',
-          createdAt: DateTime.utc(2026, 1, 1),
-        ),
-      ).reversed.toList();
+  _CommentsRepository.withComments(
+    int count, {
+    bool owned = false,
+    String? levelLabel,
+  }) : _comments = List<FeedCommentReadModel>.generate(
+         count,
+         (index) => FeedCommentReadModel(
+           commentId: 'comment-$index',
+           authorUserId: owned ? 'viewer' : 'another-runner',
+           authorDisplayName: owned ? 'You' : 'Runner',
+           authorAvatarInitials: owned ? 'YO' : 'RU',
+           authorLevelLabel: levelLabel ?? (owned ? 'Level 6' : 'Level 3'),
+           body: 'Comment $index',
+           createdAt: DateTime.utc(2026, 1, 1),
+         ),
+       ).reversed.toList();
 
   final List<FeedCommentReadModel> _comments;
   final List<FeedCommentCursor?> pageStarts = <FeedCommentCursor?>[];
@@ -429,6 +539,7 @@ class _CommentsRepository
         authorUserId: 'viewer',
         authorDisplayName: 'You',
         authorAvatarInitials: 'YO',
+        authorLevelLabel: 'Level 6',
         body: mutation.body,
         createdAt: DateTime.utc(2026, 1, 2),
       ),

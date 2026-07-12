@@ -137,6 +137,13 @@ All spacing derives from a base of 4px.
 - **Accessibility**: expose the backend-provided division label through image semantics even when the unranked badge is visually empty.
 - **Boundary**: division key and label are read-only backend outputs. Flutter maps a supplied key to an asset but must not derive division from level, XP, rank, or leaderboard state.
 
+### Account Profile Badge
+
+- **Structure**: the Account identity header uses the shared `RuniacLevelProfileBadge`, matching the Home/Feed profile component style with a blue profile disc, white initials, orange progress arc, and orange level pill.
+- **Sizing**: Account uses the larger identity variant so the same component can anchor the profile page without changing the compact Home/Feed row treatments.
+- **Data**: initials, level label, and progress fraction are read-only display values from the trusted account/progress read model.
+- **Boundary**: Flutter must not derive, calculate, or write XP, level, rank, streak, or leaderboard progression from the Account badge.
+
 ### Home Stage Map
 
 - **Structure**: one full-width illustrated background per plan week with exactly seven stage stones, a weekday caption per real weekday slot, and one guide character attached to the active stone.
@@ -167,6 +174,26 @@ All spacing derives from a base of 4px.
 - **Missed treatment**: an incomplete running session whose scheduled day has passed uses a muted `textSecondary` surface, a neutral dash node, and the explicit status label `Missed`. The treatment stays non-judgmental and never relies on color alone.
 - **Interaction**: missed workouts may still open their read-only workout detail, but do not expose Start or Edit schedule actions. Only future workouts may be rescheduled.
 - **Boundary**: missed is a date-and-read-model display state only. The client does not change trusted completion, streak, XP, rank, or leaderboard values.
+
+### Feed Profile Badge
+
+- **Structure**: Feed post and comment author rows reuse the Home dashboard `RuniacLevelProfileBadge` with a compact level pill inside the profile mark rather than a separate text label.
+- **Data**: `authorLevelLabel` is a backend-owned profile snapshot. Flutter may compact the trusted display string from `Level 6` to `Lv.6` for row density, but it must not derive the numeric level. The pill stays absent when the trusted snapshot is empty.
+- **Sizing**: Feed rows use a 42-44px badge with a 16px pill so the level stays attached to the profile component without increasing row density.
+- **Accessibility**: the adjacent author name remains the readable identity; the badge is decorative in Feed rows to avoid duplicate profile announcements.
+- **Boundary**: Flutter must not derive, calculate, or write level progression for Feed profile badges.
+
+### Feed Comment Sheet
+
+- **Structure**: the existing scroll-controlled Runiac modal route contains a centered drag handle and `Comments` title, a newest-first comment list, and a keyboard-safe composer fixed to the bottom of the sheet.
+- **Comment row**: the same compact `RuniacLevelProfileBadge` treatment used by the Home dashboard leads a compact author/time line and multiline body, including the trusted level pill when the comment snapshot provides it. The current author receives one `more_horiz` action; edit and delete are never exposed on another runner's comment.
+- **Composer**: one rounded `Join the conversation...` field fills the available width without a leading profile badge. A familiar send icon is the only submit action. Edit mode is explicit, cancellable, and reuses the composer without changing sheet geometry.
+- **Owner actions**: edit/delete selection and destructive confirmation use Runiac modal bottom sheets. Delete remains red and requires confirmation.
+- **Colors**: white sheet surface, `sectionSurfaceStrong` avatars/composer fill, `primaryBlue` author initials and send action, `textSecondary` timestamps, `errorRed` destructive action.
+- **Spacing**: `space2` for compact metadata, `space3` between comment rows, `space4` horizontal sheet padding, and stable 40-48px interactive targets.
+- **States**: initial loading, pagination loading, empty, offline read-only, validation error, submitting, editing, delete confirmation, and recoverable load/mutation failure.
+- **Accessibility**: avatar initials are decorative beside a textual author name; owner menus and send/edit actions have semantic labels; body text remains selectable by screen readers and is never truncated.
+- **Boundary**: Firestore Rules enforce comment ownership for update/delete. Flutter sends body intent only and never writes the post's backend-owned aggregate `commentCount`.
 
 ## 6. Motion & Interaction
 

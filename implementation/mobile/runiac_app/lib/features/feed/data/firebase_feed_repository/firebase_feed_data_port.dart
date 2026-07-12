@@ -159,6 +159,7 @@ class FirebaseFeedDataPort implements FeedDataPort {
     final profileData = profile.data();
     final displayName = profileData?['displayName'];
     final avatarInitials = profileData?['avatarInitials'];
+    final levelLabel = profileData?['levelLabel'];
     if (displayName is! String ||
         displayName.isEmpty ||
         avatarInitials is! String ||
@@ -174,6 +175,7 @@ class FirebaseFeedDataPort implements FeedDataPort {
       'authorUid': viewerUid,
       'authorDisplayName': displayName,
       'authorAvatarInitials': avatarInitials,
+      if (levelLabel is String) 'authorLevelLabel': levelLabel,
       'body': mutation.body,
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),

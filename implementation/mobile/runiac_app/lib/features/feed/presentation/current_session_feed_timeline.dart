@@ -39,19 +39,15 @@ class CurrentSessionFeedTimeline {
   }
 
   Future<List<FeedPostReadModel>?> toggleLike({
-    required List<FeedPostReadModel> posts,
     required String postId,
+    required bool isLiked,
   }) async {
     final timeline = _timeline;
     if (timeline == null || !timeline.currentState.mutationsEnabled) {
       return null;
     }
-    final post = posts.where((item) => item.postId == postId).firstOrNull;
-    if (post == null) {
-      return null;
-    }
     try {
-      await timeline.setLike(postId: postId, isLiked: !post.isLikedByViewer);
+      await timeline.setLike(postId: postId, isLiked: isLiked);
       return timeline.currentState.posts;
     } catch (_) {
       return null;

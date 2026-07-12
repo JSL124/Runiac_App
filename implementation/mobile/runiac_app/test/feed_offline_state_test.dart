@@ -69,6 +69,24 @@ void main() {
     expect(find.text('Friend Runner 0'), findsNothing);
   });
 
+  testWidgets('like count changes on the first frame before remote success', (
+    tester,
+  ) async {
+    final repository = ScreenFeedRepository()
+      ..likeCompleter = Completer<void>();
+    await _pump(tester, repository);
+
+    await tester.tap(find.byKey(const ValueKey('feed-like-action-post-0')));
+    await tester.pump();
+
+    expect(find.text('1 like'), findsOneWidget);
+    expect(repository.likeCalls, 1);
+
+    repository.likeCompleter!.complete();
+    await tester.pumpAndSettle();
+    expect(find.text('1 like'), findsOneWidget);
+  });
+
   testWidgets('load-more preserves scroll offset while server state updates', (
     tester,
   ) async {
@@ -165,6 +183,125 @@ void main() {
     controller.dispose();
   });
 
+  test('like count updates before the remote write completes', () async {
+    final repository = ScreenFeedRepository()
+      ..likeCompleter = Completer<void>();
+    final controller = FeedTimelineScreenController(
+      repository,
+      const FeedViewerContext(
+        currentUserId: 'viewer',
+        acceptedFriendUserIds: <String>{'friend'},
+      ),
+    );
+    await controller.refresh();
+
+    final mutation = controller.toggleLike('post-0');
+
+    expect(controller.posts.single.isLikedByViewer, isTrue);
+    expect(controller.posts.single.likeCount, 1);
+    repository.likeCompleter!.complete();
+    await mutation;
+    expect(controller.posts.single.likeCount, 1);
+    controller.dispose();
+  });
+
+  test('failed optimistic like restores the previous state', () async {
+    final repository = ScreenFeedRepository()
+      ..likeCompleter = Completer<void>();
+    final controller = FeedTimelineScreenController(
+      repository,
+      const FeedViewerContext(
+        currentUserId: 'viewer',
+        acceptedFriendUserIds: <String>{'friend'},
+      ),
+    );
+    await controller.refresh();
+
+    final mutation = controller.toggleLike('post-0');
+    expect(controller.posts.single.likeCount, 1);
+    repository.likeCompleter!.completeError(StateError('write failed'));
+    await mutation;
+
+    expect(controller.posts.single.isLikedByViewer, isFalse);
+    expect(controller.posts.single.likeCount, 0);
+    controller.dispose();
+  });
+
+  test('pending optimistic like survives a stale refresh completion', () async {
+    final repository = ScreenFeedRepository()
+      ..likeCompleter = Completer<void>();
+    final controller = FeedTimelineScreenController(
+      repository,
+      const FeedViewerContext(
+        currentUserId: 'viewer',
+        acceptedFriendUserIds: <String>{'friend'},
+      ),
+    );
+    await controller.refresh();
+    repository.refreshCompleter = Completer<FeedTimelineState>();
+
+    final refresh = controller.refresh();
+    final mutation = controller.toggleLike('post-0');
+    repository.refreshCompleter!.complete(repository.currentState);
+    await refresh;
+
+    expect(controller.posts.single.isLikedByViewer, isTrue);
+    expect(controller.posts.single.likeCount, 1);
+    repository.likeCompleter!.complete();
+    await mutation;
+    controller.dispose();
+  });
+
+  test(
+    'like rollback preserves a thumbnail that loaded while pending',
+    () async {
+      final repository = ScreenFeedRepository()
+        ..thumbnailCompleter = Completer<Uint8List>()
+        ..likeCompleter = Completer<void>();
+      final controller = FeedTimelineScreenController(
+        repository,
+        const FeedViewerContext(
+          currentUserId: 'viewer',
+          acceptedFriendUserIds: <String>{'friend'},
+        ),
+      );
+      await controller.refresh();
+
+      final mutation = controller.toggleLike('post-0');
+      final bytes = Uint8List.fromList(const <int>[1, 2, 3, 4, 5, 6, 7, 8]);
+      repository.thumbnailCompleter!.complete(bytes);
+      await Future<void>.delayed(Duration.zero);
+      repository.likeCompleter!.completeError(StateError('write failed'));
+      await mutation;
+
+      expect(controller.posts.single.routeThumbnail.pngBytes, same(bytes));
+      expect(controller.posts.single.likeCount, 0);
+      controller.dispose();
+    },
+  );
+
+  test('rapid duplicate like sends only one pending write', () async {
+    final repository = ScreenFeedRepository()
+      ..likeCompleter = Completer<void>();
+    final controller = FeedTimelineScreenController(
+      repository,
+      const FeedViewerContext(
+        currentUserId: 'viewer',
+        acceptedFriendUserIds: <String>{'friend'},
+      ),
+    );
+    await controller.refresh();
+
+    final first = controller.toggleLike('post-0');
+    await controller.toggleLike('post-0');
+
+    expect(repository.likeCalls, 1);
+    expect(controller.posts.single.likeCount, 1);
+    repository.likeCompleter!.complete();
+    await first;
+    controller.dispose();
+  });
+
   test('session thumbnail cache survives Feed controller recreation', () async {
     final bytes = Uint8List.fromList(const <int>[1, 2, 3, 4, 5, 6, 7, 8]);
     final store = CurrentSessionFeedStore(ownerUid: 'viewer')
@@ -237,7 +374,11 @@ Future<void> _expectDisposedOperationIgnored(
 
   expect(controller.posts.map((post) => post.postId), beforePosts);
   expect(controller.timelineState, same(beforeState));
-  expect(notifications, 0, reason: operation.name);
+  expect(
+    notifications,
+    operation == _DelayedOperation.toggleLike ? 1 : 0,
+    reason: operation.name,
+  );
   expect(tester.takeException(), isNull, reason: operation.name);
 }
 

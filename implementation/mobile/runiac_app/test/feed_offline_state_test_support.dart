@@ -14,6 +14,7 @@ class ScreenFeedRepository implements FeedTimelineRepository {
   final List<FeedPostReadModel> _posts;
   Completer<void>? deleteCompleter, likeCompleter, reportCompleter;
   Completer<FeedTimelineState>? loadMoreCompleter;
+  Completer<FeedTimelineState>? refreshCompleter;
   Completer<Uint8List>? thumbnailCompleter;
   Uint8List thumbnailBytes = Uint8List(0);
   int thumbnailReads = 0, likeCalls = 0, reportCalls = 0, loadMoreCalls = 0;
@@ -44,7 +45,8 @@ class ScreenFeedRepository implements FeedTimelineRepository {
   }
 
   @override
-  Future<FeedTimelineState> refresh() async => currentState;
+  Future<FeedTimelineState> refresh() async =>
+      refreshCompleter?.future ?? currentState;
 
   @override
   Future<FeedTimelineState> reconcileAccess() async => currentState;
@@ -104,6 +106,7 @@ FeedPostReadModel _post(int index) => FeedPostReadModel(
   authorUserId: 'friend',
   authorDisplayName: 'Friend Runner $index',
   authorAvatarInitials: 'FR',
+  authorLevelLabel: 'Level 3',
   relativeTimeLabel: 'Now',
   distanceLabel: '2.0 km',
   paceLabel: '7:00 / km',

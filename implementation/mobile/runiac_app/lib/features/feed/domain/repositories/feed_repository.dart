@@ -34,5 +34,8 @@ abstract interface class FeedCommentsRepository {
   });
   Future<void> createComment(FeedCommentMutation mutation);
   Future<void> updateComment(FeedCommentMutation mutation);
-  Future<void> deleteComment({required String postId, required String commentId});
+  Future<void> deleteComment({
+    required String postId,
+    required String commentId,
+  });
 }

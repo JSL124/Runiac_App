@@ -24,6 +24,7 @@ class FirebaseFeedPostMapper {
       authorUid: post.authorUid,
       authorDisplayName: post.authorDisplayName,
       authorAvatarInitials: post.authorAvatarInitials,
+      authorLevelLabel: post.authorLevelLabel,
       createdAt: post.createdAt,
       distanceMeters: post.distanceMeters,
       durationSeconds: post.durationSeconds,
@@ -41,6 +42,7 @@ class FirebaseFeedPostMapper {
         authorUid: _string(data, 'authorUid'),
         authorDisplayName: _string(data, 'authorDisplayName'),
         authorAvatarInitials: _string(data, 'authorAvatarInitials'),
+        authorLevelLabel: _optionalString(data, 'authorLevelLabel'),
         createdAt: _dateTime(data, 'createdAt'),
         distanceMeters: _int(data, 'distanceMeters'),
         durationSeconds: _int(data, 'durationSeconds'),
@@ -54,6 +56,13 @@ class FirebaseFeedPostMapper {
   static String _string(Map<String, Object?> data, String key) {
     final value = data[key];
     if (value is String && value.isNotEmpty) return value;
+    throw FormatException('Feed post field $key is invalid.');
+  }
+
+  static String _optionalString(Map<String, Object?> data, String key) {
+    final value = data[key];
+    if (value == null) return '';
+    if (value is String) return value;
     throw FormatException('Feed post field $key is invalid.');
   }
 

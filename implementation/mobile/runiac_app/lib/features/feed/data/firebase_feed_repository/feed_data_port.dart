@@ -29,6 +29,7 @@ class FeedPostDocument {
     required this.authorUid,
     required this.authorDisplayName,
     required this.authorAvatarInitials,
+    required this.authorLevelLabel,
     required this.createdAt,
     required this.distanceMeters,
     required this.durationSeconds,
@@ -43,6 +44,7 @@ class FeedPostDocument {
   final String authorUid;
   final String authorDisplayName;
   final String authorAvatarInitials;
+  final String authorLevelLabel;
   final DateTime createdAt;
   final int distanceMeters;
   final int durationSeconds;
@@ -73,6 +75,7 @@ class FeedCommentDocument {
     required this.authorUid,
     required this.authorDisplayName,
     required this.authorAvatarInitials,
+    required this.authorLevelLabel,
     required this.body,
     required this.createdAt,
   });
@@ -81,6 +84,7 @@ class FeedCommentDocument {
   final String authorUid;
   final String authorDisplayName;
   final String authorAvatarInitials;
+  final String authorLevelLabel;
   final String body;
   final DateTime createdAt;
 }

@@ -8,11 +8,20 @@ import 'package:runiac_app/features/feed/data/feed_publish/feed_publish_service.
 import 'package:runiac_app/features/feed/data/feed_publish/feed_thumbnail_artifact.dart';
 import 'package:runiac_app/features/feed/data/feed_publish/firebase_feed_publish_gateway.dart';
 import 'package:runiac_app/features/feed/data/feed_publish/history_artifact_resolver.dart';
+import 'package:runiac_app/features/feed/domain/models/feed_display_models.dart';
 import 'package:runiac_app/features/you/presentation/widgets/activity_route_preview.dart';
 import 'package:runiac_app/features/you/presentation/widgets/activity_route_snapshot_thumbnail_cache.dart';
 import 'package:runiac_app/features/run/domain/models/run_route_snapshot.dart';
 import 'package:runiac_app/features/run/presentation/data/run_completion_demo_snapshots.dart';
 import 'package:runiac_app/features/run/presentation/widgets/share_route_to_feed_sheet.dart';
+
+const _shareSheetAuthorProfile = FeedAuthorProfileSnapshot(
+  userId: 'runner-current',
+  displayName: 'You',
+  avatarInitials: 'YO',
+  levelLabel: 'Level 6',
+  levelProgressFraction: 0.42,
+);
 
 void main() {
   test(
@@ -125,6 +134,7 @@ void main() {
           home: Scaffold(
             body: ShareRouteToFeedSheet(
               summary: defaultRunSummarySnapshot,
+              authorProfile: _shareSheetAuthorProfile,
               onCancel: () {},
               onConfirm: () async {
                 calls += 1;
@@ -165,6 +175,7 @@ void main() {
           body: ShareRouteToFeedSheet(
             summary: defaultRunSummarySnapshot,
             artifact: artifact,
+            authorProfile: _shareSheetAuthorProfile,
             onCancel: () {},
             onConfirm: () async {},
           ),
@@ -189,6 +200,7 @@ void main() {
           body: ShareRouteToFeedSheet(
             summary: defaultRunSummarySnapshot,
             artifact: artifact,
+            authorProfile: _shareSheetAuthorProfile,
             onCancel: () {},
             onConfirm: () async {
               throw const FeedPublishException(
@@ -219,6 +231,7 @@ void main() {
           body: ShareRouteToFeedSheet(
             summary: defaultRunSummarySnapshot,
             artifact: artifact,
+            authorProfile: _shareSheetAuthorProfile,
             onCancel: () {},
             onConfirm: () async {
               throw Exception('Firebase Storage bucket is not configured');
@@ -251,6 +264,7 @@ void main() {
             summary: defaultRunSummarySnapshot,
             artifact: artifact,
             postingUnavailableMessage: 'This run is still being validated.',
+            authorProfile: _shareSheetAuthorProfile,
             onCancel: () {},
             onConfirm: () async {},
           ),

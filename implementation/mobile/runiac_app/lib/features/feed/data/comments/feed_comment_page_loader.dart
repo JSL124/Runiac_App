@@ -22,6 +22,7 @@ class FeedCommentPageLoader {
               authorUserId: comment.authorUid,
               authorDisplayName: comment.authorDisplayName,
               authorAvatarInitials: comment.authorAvatarInitials,
+              authorLevelLabel: comment.authorLevelLabel,
               body: comment.body,
               createdAt: comment.createdAt,
             ),

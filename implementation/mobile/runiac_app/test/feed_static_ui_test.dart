@@ -55,9 +55,56 @@ void main() {
       find.byKey(const ValueKey('feed-post-divider-feed-friend-001')),
       findsOneWidget,
     );
+    expect(
+      find.byKey(const ValueKey('feed-author-profile-feed-current-001')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('feed-author-profile-feed-friend-001')),
+      findsOneWidget,
+    );
+    expect(find.text('Lv.6'), findsOneWidget);
+    expect(find.text('Lv.4'), findsOneWidget);
+    expect(find.bySemanticsLabel('Runner profile'), findsNothing);
     expect(find.byType(Card), findsNothing);
     semantics.dispose();
   });
+
+  testWidgets(
+    'Feed uses current profile snapshot when own post level snapshot is empty',
+    (WidgetTester tester) async {
+      final semantics = tester.ensureSemantics();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: CurrentSessionFeed(
+              repository: _ViewerMissingLevelRepository(),
+              viewerContext: const FeedViewerContext(
+                currentUserId: 'viewer',
+                acceptedFriendUserIds: <String>{'viewer'},
+              ),
+              currentAuthorProfile: const FeedAuthorProfileSnapshot(
+                userId: 'viewer',
+                displayName: 'babo',
+                avatarInitials: 'B',
+                levelLabel: 'Level 7',
+                levelProgressFraction: 0.4,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('babo'), findsOneWidget);
+      expect(find.text('Lv.7'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('feed-author-profile-viewer-post')),
+        findsOneWidget,
+      );
+      semantics.dispose();
+    },
+  );
 
   testWidgets('Feed exposes pull-to-refresh and read-only engagement actions', (
     WidgetTester tester,
@@ -179,6 +226,7 @@ void main() {
 
       expect(port.likeWrites, <String>['viewer-0']);
       expect(repository.currentState.posts.first.likeCount, 0);
+      expect(find.text('1 like'), findsOneWidget);
     },
   );
 
@@ -245,6 +293,7 @@ FeedTimelineState _timelineFor({
       authorUserId: authorUid,
       authorDisplayName: displayName,
       authorAvatarInitials: 'RV',
+      authorLevelLabel: 'Level 5',
       relativeTimeLabel: 'Now',
       distanceLabel: '2.0 km',
       paceLabel: '7:00 / km',
@@ -341,6 +390,37 @@ class _EmptyFeedRepository implements FeedRepository {
   }
 }
 
+class _ViewerMissingLevelRepository implements FeedRepository {
+  @override
+  Future<FeedReadModel> loadFeed(FeedViewerContext viewerContext) async {
+    return FeedReadModel(
+      posts: const [
+        FeedPostReadModel(
+          postId: 'viewer-post',
+          authorUserId: 'viewer',
+          authorDisplayName: 'babo',
+          authorAvatarInitials: 'B',
+          authorLevelLabel: '',
+          relativeTimeLabel: 'Now',
+          distanceLabel: '7.5 km',
+          paceLabel: '7:06 / km',
+          durationLabel: '53 min',
+          likeCount: 1,
+          commentCount: 0,
+          isLikedByViewer: true,
+          hasViewerCommented: false,
+          canComment: true,
+          showsOwnerMenu: true,
+          routeThumbnail: FeedRouteThumbnailReadModel(
+            thumbnailKey: 'viewer-preview',
+            accessibilityLabel: 'Viewer route preview',
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _RecoveringFeedRepository implements FeedRepository {
   var loadCount = 0;
 
@@ -357,6 +437,7 @@ class _RecoveringFeedRepository implements FeedRepository {
           authorUserId: 'runner-current',
           authorDisplayName: 'Recovered Runner',
           authorAvatarInitials: 'RR',
+          authorLevelLabel: 'Level 6',
           relativeTimeLabel: 'Now',
           distanceLabel: '2.0 km',
           paceLabel: '7:00 / km',
@@ -387,6 +468,7 @@ class _NonCommentableFeedRepository implements FeedRepository {
           authorUserId: 'runner-friend',
           authorDisplayName: 'Quiet Runner',
           authorAvatarInitials: 'QR',
+          authorLevelLabel: 'Level 2',
           relativeTimeLabel: 'Today',
           distanceLabel: '1.8 km',
           paceLabel: '8:10 / km',

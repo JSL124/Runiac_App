@@ -11,6 +11,10 @@ import '../../features/account/domain/repositories/user_profile_repository.dart'
 import '../../features/auth/data/firebase_runiac_auth_repository.dart';
 import '../../features/auth/data/non_production_auth_repository.dart';
 import '../../features/auth/domain/runiac_auth_service.dart';
+import '../../features/feed/data/firebase_feed_repository/firebase_feed_data_port.dart';
+import '../../features/feed/data/firebase_feed_repository/firebase_feed_repository.dart';
+import '../../features/feed/data/static_feed_repository.dart';
+import '../../features/feed/domain/repositories/feed_repository.dart';
 import '../../features/home/data/home_guide_agent_factory.dart';
 import '../../features/home/domain/guide/home_guide_agent.dart';
 import '../../features/leaderboard/data/firestore_leaderboard_repository.dart';
@@ -66,6 +70,7 @@ class RuniacFirebaseBootstrap {
           planProgressRepository: const NoopPlanProgressRepository(),
           adaptivePlanEstimateRepository:
               const NoopAdaptivePlanEstimateRepository(),
+          feedRepository: const StaticFeedRepository(),
           notificationInboxRepository:
               const StaticNotificationInboxRepository(),
           notificationRegistrationService: null,
@@ -112,6 +117,7 @@ class RuniacFirebaseBootstrap {
         planProgressRepository: FirestorePlanProgressRepository(),
         adaptivePlanEstimateRepository:
             FirestoreAdaptivePlanEstimateRepository(),
+        feedRepository: FirebaseFeedRepository(port: FirebaseFeedDataPort()),
         notificationInboxRepository: FirestoreNotificationInboxRepository(
           ownerUidProvider: () => authRepository.currentUser?.uid,
           documentStore: CloudFirestoreNotificationInboxDocumentStore(),
@@ -183,6 +189,7 @@ class RuniacFirebaseBootstrap {
           FirestoreGeneratedPlanPersistenceRepository(),
       planProgressRepository: FirestorePlanProgressRepository(),
       adaptivePlanEstimateRepository: FirestoreAdaptivePlanEstimateRepository(),
+      feedRepository: FirebaseFeedRepository(port: FirebaseFeedDataPort()),
       notificationInboxRepository: FirestoreNotificationInboxRepository(
         ownerUidProvider: () => authRepository.currentUser?.uid,
         documentStore: CloudFirestoreNotificationInboxDocumentStore(),
@@ -247,6 +254,7 @@ class RuniacFirebaseBootstrapResult {
     required this.generatedPlanPersistenceRepository,
     required this.planProgressRepository,
     required this.adaptivePlanEstimateRepository,
+    required this.feedRepository,
     required this.notificationInboxRepository,
     required this.notificationRegistrationService,
     required this.firestoreGateway,
@@ -263,6 +271,7 @@ class RuniacFirebaseBootstrapResult {
   final GeneratedPlanPersistenceRepository generatedPlanPersistenceRepository;
   final PlanProgressRepository planProgressRepository;
   final AdaptivePlanEstimateRepository adaptivePlanEstimateRepository;
+  final FeedRepository feedRepository;
   final NotificationInboxRepository notificationInboxRepository;
   final NotificationRegistrationService? notificationRegistrationService;
   final RuniacFirestoreGateway firestoreGateway;

@@ -22,6 +22,7 @@ import '../../feed/data/feed_publish/feed_thumbnail_artifact.dart';
 import '../../feed/data/feed_publish/feed_thumbnail_capture.dart';
 import '../../feed/data/feed_publish/history_artifact_resolver.dart';
 import '../../feed/data/feed_publish/firebase_feed_publish_gateway.dart';
+import '../../feed/domain/models/feed_display_models.dart';
 import '../../feed/presentation/current_session_feed_store.dart';
 import '../../you/presentation/widgets/activity_route_preview.dart';
 import '../../you/presentation/widgets/activity_route_mapbox_snapshot_provider.dart';
@@ -106,6 +107,9 @@ class ViewSummaryScreen extends StatelessWidget {
     final publishSource = _effectiveFeedPublishSource;
     final artifact = await _resolveHistoryArtifact(context, summary);
     if (!context.mounted) return;
+    final authorProfile =
+        CurrentSessionFeedScope.maybeRead(context)?.authorProfile ??
+        FeedAuthorProfileSnapshot.fallback();
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -115,6 +119,7 @@ class ViewSummaryScreen extends StatelessWidget {
       builder: (sheetContext) => ShareRouteToFeedSheet(
         summary: summary,
         artifact: artifact,
+        authorProfile: authorProfile,
         postingUnavailableMessage: _postingUnavailableMessageFor(publishSource),
         onCancel: () => Navigator.of(sheetContext).pop(),
         onConfirm: () async {

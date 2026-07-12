@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/runiac_colors.dart';
+import '../../../../core/widgets/runiac_level_profile_badge.dart';
 import '../../../you/presentation/widgets/you_surface_primitives.dart';
 import '../../domain/models/feed_display_models.dart';
 import '../../domain/repositories/feed_repository.dart';
@@ -16,16 +18,28 @@ class FeedCommentSheet extends StatefulWidget {
     FeedPostReadModel post,
     FeedCommentsRepository repository,
     String? viewerUserId,
+    FeedAuthorProfileSnapshot? currentAuthorProfile,
   ) => FeedCommentSheet._(
-    _RepositoryFeedCommentSheetSource(post, repository, viewerUserId),
+    _RepositoryFeedCommentSheetSource(
+      post,
+      repository,
+      viewerUserId,
+      currentAuthorProfile,
+    ),
   );
 
   factory FeedCommentSheet.fromFallback(
     FeedPostReadModel post,
     String? viewerUserId,
     FeedCommentFallback fallback,
+    FeedAuthorProfileSnapshot? currentAuthorProfile,
   ) => FeedCommentSheet._(
-    _FallbackFeedCommentSheetSource(post, viewerUserId, fallback),
+    _FallbackFeedCommentSheetSource(
+      post,
+      viewerUserId,
+      fallback,
+      currentAuthorProfile,
+    ),
   );
 
   FeedCommentSheet controlledBy(DraggableScrollableController? controller) =>
@@ -40,9 +54,11 @@ class FeedCommentSheet extends StatefulWidget {
 
 class _FeedCommentSheetState extends State<FeedCommentSheet> {
   final _controller = TextEditingController();
+  final _focusNode = FocusNode();
   late List<FeedCommentReadModel> _comments = sessionCommentModels(
     comments: widget._source.sessionComments,
     authorUserId: widget._source.viewerUserId ?? 'runner-current',
+    authorProfile: widget._source.currentAuthorProfile,
   );
   FeedCommentCursor? _nextCursor;
   var _isLoading = false, _isLoadingMore = false, _exhausted = false;
@@ -70,12 +86,13 @@ class _FeedCommentSheetState extends State<FeedCommentSheet> {
   @override
   void dispose() {
     _controller.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
   Future<void> _loadInitial() async {
     final repository = widget._source.repository;
-    if (repository == null) return;
+    if (!mounted || repository == null) return;
     setState(() {
       _isLoading = true;
       _loadError = null;
@@ -150,8 +167,12 @@ class _FeedCommentSheetState extends State<FeedCommentSheet> {
             FeedCommentReadModel(
               commentId: 'session-${_comments.length}',
               authorUserId: widget._source.viewerUserId ?? 'runner-current',
-              authorDisplayName: 'You',
-              authorAvatarInitials: 'YO',
+              authorDisplayName:
+                  widget._source.currentAuthorProfile?.displayName ?? 'You',
+              authorAvatarInitials:
+                  widget._source.currentAuthorProfile?.avatarInitials ?? 'YO',
+              authorLevelLabel:
+                  widget._source.currentAuthorProfile?.levelLabel ?? '',
               body: body,
               createdAt: DateTime.now(),
             ),
@@ -166,6 +187,7 @@ class _FeedCommentSheetState extends State<FeedCommentSheet> {
             body: body,
           ),
         );
+        if (!mounted) return;
         await _loadInitial();
       } else {
         await repository.updateComment(
@@ -202,13 +224,44 @@ class _FeedCommentSheetState extends State<FeedCommentSheet> {
 
   void _beginEdit(FeedCommentReadModel comment) {
     _controller.text = comment.body;
-    setState(() => _editingCommentId = comment.commentId);
+    _controller.selection = TextSelection.collapsed(
+      offset: _controller.text.length,
+    );
+    setState(() {
+      _editingCommentId = comment.commentId;
+      _validationError = null;
+    });
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _focusNode.requestFocus(),
+    );
   }
 
-  void _clearValidationError() => setState(() => _validationError = null);
+  void _cancelEdit() {
+    _controller.clear();
+    setState(() {
+      _editingCommentId = null;
+      _validationError = null;
+    });
+    _focusNode.unfocus();
+  }
+
+  Future<void> _showOwnerActions(FeedCommentReadModel comment) async {
+    final action = await showFeedCommentOwnerActions(context, comment);
+    if (!mounted || action == null) return;
+    switch (action) {
+      case FeedCommentOwnerAction.edit:
+        _beginEdit(comment);
+      case FeedCommentOwnerAction.delete:
+        await _confirmDelete(comment);
+    }
+  }
+
+  void _commentTextChanged(String _) => setState(() => _validationError = null);
 
   Future<void> _confirmDelete(FeedCommentReadModel comment) async {
-    if (!await confirmFeedCommentDelete(context) || _isOffline || _isSubmitting) {
+    if (!await confirmFeedCommentDelete(context) ||
+        _isOffline ||
+        _isSubmitting) {
       return;
     }
     try {

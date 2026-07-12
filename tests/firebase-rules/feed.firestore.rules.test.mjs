@@ -25,6 +25,7 @@ const feedPost = (authorUid, status = 'published', createdAt = 10) => ({
   activityId: `activity-${authorUid}-${createdAt}`,
   authorDisplayName: 'Synthetic Runner',
   authorAvatarInitials: 'SR',
+  authorLevelLabel: 'Level 3',
   completedAt: createdAt,
   distanceMeters: 1800,
   durationSeconds: 1200,
@@ -63,6 +64,7 @@ function commentData(body) {
     authorUid: 'bob',
     authorDisplayName: 'Synthetic Runner',
     authorAvatarInitials: 'SR',
+    authorLevelLabel: 'Level 3',
     body,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
@@ -180,8 +182,11 @@ describe('trusted Feed Firestore rules', () => {
     await assertFails(setDoc(doc(bob, 'feedPosts/alice-post/comments/long'), commentData('x'.repeat(501))));
     await assertFails(setDoc(doc(bob, 'feedPosts/alice-post/comments/forged-time'), { ...commentData('Wrong timestamp.'), createdAt: 1 }));
     await assertFails(setDoc(doc(bob, 'feedPosts/alice-post/comments/forged-profile'), { ...commentData('Wrong snapshot.'), authorDisplayName: 'Forged' }));
+    await assertFails(setDoc(doc(bob, 'feedPosts/alice-post/comments/forged-level'), { ...commentData('Wrong level.'), authorLevelLabel: 'Level 99' }));
     await assertFails(updateDoc(comment, { authorDisplayName: 'Forged' }));
+    await assertFails(updateDoc(comment, { authorLevelLabel: 'Level 99' }));
     await assertFails(updateDoc(doc(dbFor('alice'), 'feedPosts/alice-post/comments/comment-001'), { body: 'Forged', updatedAt: serverTimestamp() }));
+    await assertFails(deleteDoc(doc(dbFor('alice'), 'feedPosts/alice-post/comments/comment-001')));
     await assertSucceeds(deleteDoc(comment));
   });
 

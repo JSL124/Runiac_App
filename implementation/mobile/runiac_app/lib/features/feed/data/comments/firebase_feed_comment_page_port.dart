@@ -48,6 +48,7 @@ class FirebaseFeedCommentPagePort {
     final authorUid = data?['authorUid'];
     final displayName = data?['authorDisplayName'];
     final avatarInitials = data?['authorAvatarInitials'];
+    final levelLabel = data?['authorLevelLabel'];
     final body = data?['body'];
     if (createdAt is! Timestamp ||
         authorUid is! String ||
@@ -61,6 +62,7 @@ class FirebaseFeedCommentPagePort {
       authorUid: authorUid,
       authorDisplayName: displayName,
       authorAvatarInitials: avatarInitials,
+      authorLevelLabel: levelLabel is String ? levelLabel : '',
       body: body,
       createdAt: createdAt.toDate(),
     );

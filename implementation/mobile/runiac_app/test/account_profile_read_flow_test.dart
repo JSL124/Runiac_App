@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/app.dart';
 import 'package:runiac_app/core/theme/runiac_colors.dart';
+import 'package:runiac_app/core/widgets/runiac_level_profile_badge.dart';
 import 'package:runiac_app/features/account/data/firestore_user_profile_repository.dart';
 import 'package:runiac_app/features/account/domain/models/user_profile_read_model.dart';
 import 'package:runiac_app/features/account/domain/repositories/user_profile_persistence_repository.dart';
@@ -92,7 +93,11 @@ void main() {
 
       expect(find.text('Account'), findsOneWidget);
       expect(find.text('Maya'), findsOneWidget);
-      expect(find.text('M'), findsWidgets);
+      expect(
+        find.byKey(const ValueKey('account-profile-level-badge')),
+        findsOneWidget,
+      );
+      expect(find.byType(RuniacLevelProfileBadge), findsWidgets);
       expect(find.text('Queenstown, Singapore'), findsOneWidget);
       // Shown once on the profile badge and once on the level-up gauge.
       expect(find.text('Lv.6'), findsNWidgets(2));
@@ -828,7 +833,10 @@ void main() {
 
     expect(find.text('Account'), findsOneWidget);
     expect(find.text('Runiac Runner'), findsOneWidget);
-    expect(find.text('R'), findsWidgets);
+    expect(
+      find.byKey(const ValueKey('account-profile-level-badge')),
+      findsOneWidget,
+    );
     expect(find.text('Jurong East, Singapore'), findsOneWidget);
     // Shown once on the profile badge and once on the level-up gauge.
     expect(find.text('Lv.0'), findsNWidgets(2));

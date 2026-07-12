@@ -49,7 +49,7 @@ describe("Feed contracts", () => {
         durationSeconds: 1500,
         averagePaceSecondsPerKm: 469,
       },
-      profile: { uid: "author-a", displayName: "Ava", avatarInitials: "AV" },
+      profile: { uid: "author-a", displayName: "Ava", avatarInitials: "AV", levelLabel: "Level 6" },
       thumbnail: {
         storagePath: "feed-thumbnails/author-a/activity-a/route-preview.png",
         objectGeneration: "1",
@@ -61,6 +61,7 @@ describe("Feed contracts", () => {
     if (!built.ok) return;
     assert.deepEqual(Object.keys(built.value).sort(), feedPostKeys());
     assert.equal(built.value.activityId, "activity-a");
+    assert.equal(built.value.authorLevelLabel, "Level 6");
     assert.equal("coordinates" in built.value, false);
     assert.equal("xp" in built.value, false);
     assert.equal("leaderboardScore" in built.value, false);
@@ -76,7 +77,7 @@ describe("Feed contracts", () => {
         durationSeconds: 1500,
         averagePaceSecondsPerKm: 469,
       },
-      profile: { uid: "author-a", displayName: "Ava", avatarInitials: "AV" },
+      profile: { uid: "author-a", displayName: "Ava", avatarInitials: "AV", levelLabel: "Level 6" },
       thumbnail: {
         storagePath: "feed-thumbnails/author-a/activity-a/route-preview.png",
         objectGeneration: "1",
@@ -200,7 +201,7 @@ describe("Feed contracts", () => {
 
 function feedPostKeys(): string[] {
   return [
-    "activityId", "authorAvatarInitials", "authorDisplayName", "authorUid", "averagePaceSecondsPerKm",
+    "activityId", "authorAvatarInitials", "authorDisplayName", "authorLevelLabel", "authorUid", "averagePaceSecondsPerKm",
     "commentCount", "completedAt", "createdAt", "distanceMeters", "durationSeconds", "likeCount",
     "schemaVersion", "status", "thumbnailObjectGeneration", "thumbnailSha256", "thumbnailStoragePath", "updatedAt",
   ].sort();

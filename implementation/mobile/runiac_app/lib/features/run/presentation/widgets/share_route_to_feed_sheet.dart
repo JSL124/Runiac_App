@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../domain/models/run_summary_snapshot.dart';
 import '../../../feed/data/feed_publish/feed_publish_service.dart';
 import '../../../feed/data/feed_publish/feed_thumbnail_artifact.dart';
+import '../../../feed/domain/models/feed_display_models.dart';
 import 'share_route_feed_preview.dart';
 
 const _rBlue = Color(0xFF2F51C8);
@@ -17,6 +18,7 @@ class ShareRouteToFeedSheet extends StatefulWidget {
     required this.summary,
     required this.onCancel,
     required this.onConfirm,
+    required this.authorProfile,
     this.artifact,
     this.postingUnavailableMessage,
     super.key,
@@ -25,6 +27,7 @@ class ShareRouteToFeedSheet extends StatefulWidget {
   final RunSummarySnapshot summary;
   final VoidCallback onCancel;
   final Future<void> Function() onConfirm;
+  final FeedAuthorProfileSnapshot authorProfile;
   final FeedThumbnailArtifact? artifact;
   final String? postingUnavailableMessage;
 
@@ -117,6 +120,7 @@ class _ShareRouteToFeedSheetState extends State<ShareRouteToFeedSheet> {
               ShareRouteFeedPostPreview(
                 artifact: widget.artifact,
                 summary: widget.summary,
+                authorProfile: widget.authorProfile,
               ),
               const SizedBox(height: 14),
               OutlinedButton(

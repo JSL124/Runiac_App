@@ -15,8 +15,7 @@ import 'features/auth/data/non_production_auth_repository.dart';
 import 'features/auth/domain/runiac_auth_service.dart';
 import 'features/auth/presentation/runiac_auth_gate.dart';
 import 'features/auth/presentation/runiac_profile_setup_gate.dart';
-import 'features/feed/data/firebase_feed_repository/firebase_feed_data_port.dart';
-import 'features/feed/data/firebase_feed_repository/firebase_feed_repository.dart';
+import 'features/feed/data/static_feed_repository.dart';
 import 'features/feed/domain/repositories/feed_repository.dart';
 import 'features/feed/presentation/current_session_feed.dart';
 import 'features/home/domain/guide/home_guide_agent.dart';
@@ -275,8 +274,7 @@ class _RuniacAppState extends State<RuniacApp> {
   void _configureFeedRepository(FeedRepository? repository) {
     _disposeOwnedFeedRepository();
     _ownsFeedRepository = repository == null;
-    _feedRepository =
-        repository ?? FirebaseFeedRepository(port: FirebaseFeedDataPort());
+    _feedRepository = repository ?? const StaticFeedRepository();
   }
 
   void _disposeOwnedFeedRepository() {

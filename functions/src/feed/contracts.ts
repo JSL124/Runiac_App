@@ -7,6 +7,7 @@ export type FeedPost = {
   readonly activityId: string;
   readonly authorDisplayName: string;
   readonly authorAvatarInitials: string;
+  readonly authorLevelLabel: string;
   readonly completedAt: string;
   readonly distanceMeters: number;
   readonly durationSeconds: number;
@@ -43,7 +44,7 @@ export type ValidatedOwnedActivity = {
   readonly durationSeconds: number;
   readonly averagePaceSecondsPerKm: number;
 };
-export type PrivateProfileSnapshot = { readonly uid: string; readonly displayName: string; readonly avatarInitials: string };
+export type PrivateProfileSnapshot = { readonly uid: string; readonly displayName: string; readonly avatarInitials: string; readonly levelLabel: string };
 export type FinalThumbnail = { readonly storagePath: string; readonly objectGeneration: string; readonly sha256: string };
 export type FeedPostBuildInput = {
   readonly activity: ValidatedOwnedActivity;
@@ -100,7 +101,7 @@ export function buildFeedPost(input: FeedPostBuildInput): FeedResult<FeedPost> {
   const { activity, profile, thumbnail, now } = input;
   if (activity.ownerUid !== profile.uid) return { ok: false, error: { kind: "invalid_activity", code: "owner" } };
   if (activity.status !== "validated" || activity.validationStatus !== "validated") return { ok: false, error: { kind: "invalid_activity", code: "validation" } };
-  if (!isDisplay(profile.displayName) || !isDisplay(profile.avatarInitials)) return { ok: false, error: { kind: "invalid_profile", code: "display" } };
+  if (!isDisplay(profile.displayName) || !isDisplay(profile.avatarInitials) || !isOptionalDisplay(profile.levelLabel)) return { ok: false, error: { kind: "invalid_profile", code: "display" } };
   if (!isFinalThumbnail(thumbnail, activity.ownerUid, activity.activityId)) return { ok: false, error: { kind: "invalid_thumbnail", code: "path" } };
   if (!isIdentifier(thumbnail.objectGeneration)) return { ok: false, error: { kind: "invalid_thumbnail", code: "generation" } };
   if (!/^[a-f0-9]{64}$/.test(thumbnail.sha256)) return { ok: false, error: { kind: "invalid_thumbnail", code: "sha256" } };
@@ -108,7 +109,7 @@ export function buildFeedPost(input: FeedPostBuildInput): FeedResult<FeedPost> {
     ok: true,
     value: {
       authorUid: activity.ownerUid, activityId: activity.activityId, authorDisplayName: profile.displayName,
-      authorAvatarInitials: profile.avatarInitials, completedAt: activity.completedAt, distanceMeters: activity.distanceMeters,
+      authorAvatarInitials: profile.avatarInitials, authorLevelLabel: profile.levelLabel, completedAt: activity.completedAt, distanceMeters: activity.distanceMeters,
       durationSeconds: activity.durationSeconds, averagePaceSecondsPerKm: activity.averagePaceSecondsPerKm,
       thumbnailStoragePath: thumbnail.storagePath, thumbnailObjectGeneration: thumbnail.objectGeneration,
       thumbnailSha256: thumbnail.sha256, likeCount: 0, commentCount: 0, status: "published", schemaVersion: 1,
@@ -135,6 +136,7 @@ function isRecord(value: unknown): value is Readonly<Record<string, unknown>> { 
 function isIdentifier(value: unknown): value is string { return typeof value === "string" && /^[A-Za-z0-9_-]{1,128}$/.test(value); }
 function isUploadName(value: string | undefined): boolean { return value !== undefined && /^[A-Za-z0-9_-]{1,128}\.png$/.test(value); }
 function isDisplay(value: string): boolean { return value.trim().length > 0 && value.length <= 80; }
+function isOptionalDisplay(value: string): boolean { return value.length <= 80; }
 function isFinitePositive(value: unknown): value is number { return typeof value === "number" && Number.isFinite(value) && value > 0; }
 function isIsoTimestamp(value: unknown): value is string { return typeof value === "string" && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(value) && !Number.isNaN(Date.parse(value)); }
 function payloadError(code: "unknown_key" | "invalid_field" | "unsafe_path"): FeedResult<never> { return { ok: false, error: { kind: "invalid_payload", code } }; }

@@ -11,6 +11,7 @@ export const profileFields = {
   fullName: 'Synthetic Runner',
   nickname: 'Runner',
   avatarInitials: 'SR',
+  levelLabel: 'Level 3',
   nicknameKey: 'runner',
   dateOfBirth: '2002-06-28',
   ageYears: 24,

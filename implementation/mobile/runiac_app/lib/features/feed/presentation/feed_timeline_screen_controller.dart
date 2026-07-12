@@ -9,7 +9,11 @@ import 'current_session_feed_timeline.dart';
 import 'widgets/feed_sheets.dart';
 
 class FeedTimelineScreenController extends ChangeNotifier {
-  FeedTimelineScreenController(this._repository, this._viewerContext) {
+  FeedTimelineScreenController(
+    this._repository,
+    this._viewerContext, [
+    this._currentAuthorProfile,
+  ]) {
     scrollController.addListener(_loadMoreNearEnd);
   }
 
@@ -18,8 +22,11 @@ class FeedTimelineScreenController extends ChangeNotifier {
   final ScrollController scrollController = ScrollController();
   final _fallback = CurrentSessionFeedFallback();
   final Set<String> _requestedThumbnails = <String>{};
+  final Map<String, _OptimisticLike> _pendingLikes =
+      <String, _OptimisticLike>{};
   List<FeedPostReadModel> _posts = const [];
   CurrentSessionFeedStore? _sessionStore;
+  FeedAuthorProfileSnapshot? _currentAuthorProfile;
   FeedTimelineState? _state;
   int _ownerRevision = 0, _refreshGeneration = 0;
   bool _hasLoaded = false, _loadingMore = false, _commentSheetOpen = false;
@@ -32,6 +39,9 @@ class FeedTimelineScreenController extends ChangeNotifier {
   FeedTimelineState? get timelineState => _state;
   String? get loadError => _loadError;
   bool get commentSheetOpen => _commentSheetOpen;
+  String? get viewerUserId => _viewerContext?.currentUserId;
+  FeedAuthorProfileSnapshot? get currentAuthorProfile =>
+      _currentAuthorProfile ?? _sessionStore?.authorProfile;
   List<FeedPostReadModel> get posts => <FeedPostReadModel>[
     if (!isProduction) ...?_sessionStore?.sessionPosts,
     ..._posts,
@@ -40,6 +50,12 @@ class FeedTimelineScreenController extends ChangeNotifier {
   void attachSession(CurrentSessionFeedStore? store) {
     _sessionStore = store;
     _ownerRevision = store?.ownerRevision ?? 0;
+  }
+
+  void updateCurrentAuthorProfile(FeedAuthorProfileSnapshot? profile) {
+    if (_currentAuthorProfile == profile) return;
+    _currentAuthorProfile = profile;
+    _notify();
   }
 
   bool clearForOwnerChange() {
@@ -95,11 +111,50 @@ class FeedTimelineScreenController extends ChangeNotifier {
 
   Future<void> toggleLike(String postId) async {
     if (isProduction) {
-      final next = await _timeline.toggleLike(posts: _posts, postId: postId);
+      if (!mutationsEnabled || _pendingLikes.containsKey(postId)) return;
+      final index = _posts.indexWhere((post) => post.postId == postId);
+      if (index < 0) {
+        return;
+      }
+      final previous = _posts[index];
+      final isLiked = !previous.isLikedByViewer;
+      final optimistic = _OptimisticLike(
+        previousIsLiked: previous.isLikedByViewer,
+        previousCount: previous.likeCount,
+        isLiked: isLiked,
+        count: isLiked
+            ? previous.likeCount + 1
+            : previous.likeCount > 0
+            ? previous.likeCount - 1
+            : 0,
+      );
+      _pendingLikes[postId] = optimistic;
+      _posts = List<FeedPostReadModel>.of(_posts)
+        ..[index] = previous.copyWith(
+          isLikedByViewer: optimistic.isLiked,
+          likeCount: optimistic.count,
+        );
+      _notify();
+      final next = await _timeline.toggleLike(postId: postId, isLiked: isLiked);
       if (next != null && !_disposed) {
         _posts = _preserveLoadedThumbnails(next);
         _notify();
+      } else if (!_disposed) {
+        _pendingLikes.remove(postId);
+        final rollbackIndex = _posts.indexWhere(
+          (post) => post.postId == postId,
+        );
+        if (rollbackIndex >= 0) {
+          final current = _posts[rollbackIndex];
+          _posts = List<FeedPostReadModel>.of(_posts)
+            ..[rollbackIndex] = current.copyWith(
+              isLikedByViewer: optimistic.previousIsLiked,
+              likeCount: optimistic.previousCount,
+            );
+          _notify();
+        }
       }
+      _pendingLikes.remove(postId);
       return;
     }
     if (_sessionStore?.toggleLike(postId) ?? false) return;
@@ -121,11 +176,13 @@ class FeedTimelineScreenController extends ChangeNotifier {
                 comments: _fallback.commentsFor(post.postId),
                 onSubmitted: (body) => _addComment(post.postId, body),
               ),
+              currentAuthorProfile,
             )
           : FeedCommentSheet.fromRepository(
               post,
               comments,
               _viewerContext?.currentUserId,
+              currentAuthorProfile,
             ),
     ).whenComplete(() => _commentSheetOpen = false);
   }
@@ -252,18 +309,28 @@ class FeedTimelineScreenController extends ChangeNotifier {
     };
     return next
         .map((post) {
-          if (post.routeThumbnail.pngBytes != null) return post;
-          final previous = loaded[post.postId];
-          if (previous != null) {
-            return post.copyWith(routeThumbnail: previous);
-          }
-          final cached = _sessionStore?.thumbnailFor(post.postId);
-          return cached == null
-              ? post
-              : post.copyWith(
+          var merged = post;
+          if (post.routeThumbnail.pngBytes == null) {
+            final previous = loaded[post.postId];
+            if (previous != null) {
+              merged = post.copyWith(routeThumbnail: previous);
+            } else {
+              final cached = _sessionStore?.thumbnailFor(post.postId);
+              if (cached != null) {
+                merged = post.copyWith(
                   routeThumbnail: post.routeThumbnail.copyWith(
                     pngBytes: cached,
                   ),
+                );
+              }
+            }
+          }
+          final optimistic = _pendingLikes[post.postId];
+          return optimistic == null
+              ? merged
+              : merged.copyWith(
+                  isLikedByViewer: optimistic.isLiked,
+                  likeCount: optimistic.count,
                 );
         })
         .toList(growable: false);
@@ -280,4 +347,18 @@ class FeedTimelineScreenController extends ChangeNotifier {
     scrollController.dispose();
     super.dispose();
   }
+}
+
+class _OptimisticLike {
+  const _OptimisticLike({
+    required this.previousIsLiked,
+    required this.previousCount,
+    required this.isLiked,
+    required this.count,
+  });
+
+  final bool previousIsLiked;
+  final int previousCount;
+  final bool isLiked;
+  final int count;
 }

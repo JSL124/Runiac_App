@@ -12,10 +12,15 @@ class FeedCommentFallback {
 }
 
 sealed class _FeedCommentSheetSource {
-  const _FeedCommentSheetSource(this.post, this.viewerUserId);
+  const _FeedCommentSheetSource(
+    this.post,
+    this.viewerUserId,
+    this.currentAuthorProfile,
+  );
 
   final FeedPostReadModel post;
   final String? viewerUserId;
+  final FeedAuthorProfileSnapshot? currentAuthorProfile;
   FeedCommentsRepository? get repository;
   List<String> get sessionComments;
   ValueChanged<String>? get onSubmitted;
@@ -26,6 +31,7 @@ class _RepositoryFeedCommentSheetSource extends _FeedCommentSheetSource {
     super.post,
     this.repository,
     super.viewerUserId,
+    super.currentAuthorProfile,
   );
 
   @override
@@ -41,6 +47,7 @@ class _FallbackFeedCommentSheetSource extends _FeedCommentSheetSource {
     super.post,
     super.viewerUserId,
     this.fallback,
+    super.currentAuthorProfile,
   );
 
   final FeedCommentFallback fallback;

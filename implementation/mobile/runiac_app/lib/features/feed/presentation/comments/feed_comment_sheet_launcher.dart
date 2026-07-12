@@ -9,5 +9,7 @@ Future<void> showFeedCommentSheet({
 }) => showModalBottomSheet<void>(
   context: context,
   isScrollControlled: true,
+  useSafeArea: true,
+  backgroundColor: Colors.transparent,
   builder: (context) => sheet,
 );

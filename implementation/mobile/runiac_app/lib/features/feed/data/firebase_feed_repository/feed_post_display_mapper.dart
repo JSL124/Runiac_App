@@ -12,6 +12,7 @@ class FeedPostDisplayMapper {
     authorUserId: post.authorUid,
     authorDisplayName: post.authorDisplayName,
     authorAvatarInitials: post.authorAvatarInitials,
+    authorLevelLabel: post.authorLevelLabel,
     relativeTimeLabel: post.createdAt.toIso8601String(),
     distanceLabel: '${(post.distanceMeters / 1000).toStringAsFixed(1)} km',
     paceLabel:

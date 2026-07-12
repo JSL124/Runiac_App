@@ -70,7 +70,7 @@ async function resolveExistingPost(raw: unknown, activityId: string, uid: string
 
 function parseProfile(raw: unknown, uid: string): PrivateProfileSnapshot | undefined {
   if (!isRecord(raw) || typeof raw["displayName"] !== "string" || typeof raw["avatarInitials"] !== "string") return undefined;
-  return { uid, displayName: raw["displayName"], avatarInitials: raw["avatarInitials"] };
+  return { uid, displayName: raw["displayName"], avatarInitials: raw["avatarInitials"], levelLabel: typeof raw["levelLabel"] === "string" ? raw["levelLabel"] : "" };
 }
 function isSafeStagingObject(object: FeedStoredObject, expectedPath: string, ownerUid: string, activityId: string): boolean {
   const uploadId = expectedPath.split("/")[3];

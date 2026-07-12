@@ -993,6 +993,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Share Your Achievement'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('share-feed-preview-profile-badge')),
+      findsOneWidget,
+    );
+    expect(find.text('Lv.6'), findsOneWidget);
 
     await tester.tap(find.widgetWithText(TextButton, 'Close'));
     await tester.pumpAndSettle();
@@ -1017,6 +1022,11 @@ void main() {
     expect(find.text('Share Your Achievement'), findsOneWidget);
     expect(find.widgetWithText(TextButton, 'Close'), findsNothing);
     expect(find.text('Post to Feed'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('share-feed-preview-profile-badge')),
+      findsOneWidget,
+    );
+    expect(find.text('Lv.6'), findsOneWidget);
     expect(find.text('Route sharing will be available soon.'), findsNothing);
 
     await tester.tap(find.widgetWithText(FilledButton, 'Post to Feed'));

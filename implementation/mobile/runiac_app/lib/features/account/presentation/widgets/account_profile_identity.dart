@@ -23,6 +23,7 @@ class AccountIdentityCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               RuniacLevelProfileBadge(
+                key: const ValueKey('account-profile-level-badge'),
                 initials: snapshot.avatarInitials,
                 levelLabel: snapshot.previewLevelBadge,
                 progressFraction: snapshot.levelProgressFraction,
@@ -31,6 +32,9 @@ class AccountIdentityCard extends StatelessWidget {
                 badgeMinWidth: 64,
                 badgeHorizontalPadding: 11,
                 badgeFontSize: 12,
+                discColor: RuniacColors.primaryBlue,
+                discBorderColor: RuniacColors.white,
+                initialsColor: RuniacColors.white,
               ),
               const SizedBox(width: 14),
               Expanded(

@@ -42,7 +42,7 @@ void main() {
         const ValueKey('feed-comment-submit-feed-current-001'),
       );
       expect(
-        tester.widget<FilledButton>(submit).onPressed,
+        tester.widget<IconButton>(submit).onPressed,
         isNull,
         reason: 'Empty comments must not submit.',
       );
@@ -52,7 +52,7 @@ void main() {
         'Nice work!',
       );
       await tester.pump();
-      expect(tester.widget<FilledButton>(submit).onPressed, isNotNull);
+      expect(tester.widget<IconButton>(submit).onPressed, isNotNull);
 
       await tester.tap(submit);
       await tester.pumpAndSettle();
@@ -63,7 +63,7 @@ void main() {
       expect(commentAction.properties.label, 'Comment 2 comments');
       expect(find.text('Nice work!'), findsOneWidget);
       expect(
-        tester.widget<FilledButton>(submit).onPressed,
+        tester.widget<IconButton>(submit).onPressed,
         isNull,
         reason: 'The cleared field prevents a duplicate submission.',
       );
@@ -222,7 +222,7 @@ void main() {
     );
     await tester.pump();
     final staleSubmit = tester
-        .widget<FilledButton>(
+        .widget<IconButton>(
           find.byKey(const ValueKey('feed-comment-submit-feed-session-1')),
         )
         .onPressed;

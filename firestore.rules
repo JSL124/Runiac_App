@@ -573,7 +573,10 @@ service cloud.firestore {
         && request.resource.data.authorDisplayName
           == get(/databases/$(database)/documents/userProfiles/$(request.auth.uid)).data.displayName
         && request.resource.data.authorAvatarInitials
-          == get(/databases/$(database)/documents/userProfiles/$(request.auth.uid)).data.avatarInitials;
+          == get(/databases/$(database)/documents/userProfiles/$(request.auth.uid)).data.avatarInitials
+        && (!request.resource.data.keys().hasAny(['authorLevelLabel'])
+          || request.resource.data.authorLevelLabel
+            == get(/databases/$(database)/documents/userProfiles/$(request.auth.uid)).data.levelLabel);
     }
 
     function validFeedCommentCreate(postId) {
@@ -582,6 +585,7 @@ service cloud.firestore {
           'authorUid',
           'authorDisplayName',
           'authorAvatarInitials',
+          'authorLevelLabel',
           'body',
           'createdAt',
           'updatedAt'
@@ -599,6 +603,7 @@ service cloud.firestore {
         && request.resource.data.authorUid == resource.data.authorUid
         && request.resource.data.authorDisplayName == resource.data.authorDisplayName
         && request.resource.data.authorAvatarInitials == resource.data.authorAvatarInitials
+        && request.resource.data.authorLevelLabel == resource.data.authorLevelLabel
         && request.resource.data.createdAt == resource.data.createdAt
         && changesOnlyAllowedKeys(['body', 'updatedAt'])
         && request.resource.data.updatedAt == request.time

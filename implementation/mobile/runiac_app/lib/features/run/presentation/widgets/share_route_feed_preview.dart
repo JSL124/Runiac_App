@@ -1,18 +1,22 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/runiac_colors.dart';
+import '../../../../core/widgets/runiac_level_profile_badge.dart';
 import '../../../feed/data/feed_publish/feed_thumbnail_artifact.dart';
+import '../../../feed/domain/models/feed_display_models.dart';
 import '../../domain/models/run_summary_snapshot.dart';
 
 class ShareRouteFeedPostPreview extends StatelessWidget {
   const ShareRouteFeedPostPreview({
     required this.artifact,
     required this.summary,
+    required this.authorProfile,
     super.key,
   });
 
   final FeedThumbnailArtifact? artifact;
   final RunSummarySnapshot summary;
+  final FeedAuthorProfileSnapshot authorProfile;
 
   @override
   Widget build(BuildContext context) {
@@ -34,9 +38,9 @@ class ShareRouteFeedPostPreview extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Padding(
-              padding: EdgeInsets.fromLTRB(14, 12, 12, 9),
-              child: _FeedPreviewHeader(),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 12, 12, 9),
+              child: _FeedPreviewHeader(authorProfile: authorProfile),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
@@ -86,35 +90,43 @@ class ShareRouteFeedPostPreview extends StatelessWidget {
 }
 
 class _FeedPreviewHeader extends StatelessWidget {
-  const _FeedPreviewHeader();
+  const _FeedPreviewHeader({required this.authorProfile});
+
+  final FeedAuthorProfileSnapshot authorProfile;
 
   @override
   Widget build(BuildContext context) => Row(
     children: [
-      const CircleAvatar(
-        radius: 18,
-        backgroundColor: RuniacColors.sectionSurfaceStrong,
-        foregroundColor: RuniacColors.primaryBlue,
-        child: Text(
-          'Y',
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900),
-        ),
+      RuniacLevelProfileBadge(
+        key: const ValueKey('share-feed-preview-profile-badge'),
+        initials: authorProfile.avatarInitials,
+        levelLabel: authorProfile.compactLevelLabel,
+        progressFraction: authorProfile.levelProgressFraction,
+        size: 40,
+        badgeHeight: 15,
+        badgeMinWidth: 39,
+        badgeHorizontalPadding: 5,
+        badgeFontSize: 8.5,
+        ringStrokeWidth: 4,
+        discColor: RuniacColors.primaryBlue,
+        discBorderColor: RuniacColors.white,
+        initialsColor: RuniacColors.white,
       ),
       const SizedBox(width: 10),
-      const Expanded(
+      Expanded(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'You',
-              style: TextStyle(
+              authorProfile.displayName,
+              style: const TextStyle(
                 color: RuniacColors.textPrimary,
                 fontSize: 14,
                 fontWeight: FontWeight.w800,
               ),
             ),
-            SizedBox(height: 1),
-            Text(
+            const SizedBox(height: 1),
+            const Text(
               'Ready to post',
               style: TextStyle(
                 color: RuniacColors.textSecondary,
