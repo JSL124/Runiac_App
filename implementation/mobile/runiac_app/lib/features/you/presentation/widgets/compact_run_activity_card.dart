@@ -22,6 +22,9 @@ class CompactRunActivityCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isCurrentSessionRoute = activity.completionResult != null;
+    final allowsTrustedRoutePreviewThumbnail =
+        isCurrentSessionRoute || activity.isTrustedPersistedRoutePreview;
     return RuniacTappableSurface(
       onTap: onTap,
       semanticLabel: 'Open ${activity.title} summary',
@@ -36,8 +39,10 @@ class CompactRunActivityCard extends StatelessWidget {
             route: activity.summary.route,
             thumbnailProvider:
                 routeThumbnailProvider ?? _activityRouteThumbnailProvider,
-            allowExternalStaticMap: activity.completionResult != null,
-            isCurrentSessionRoute: activity.completionResult != null,
+            allowExternalStaticMap: allowsTrustedRoutePreviewThumbnail,
+            isCurrentSessionRoute: isCurrentSessionRoute,
+            isTrustedPersistedRoutePreview:
+                activity.isTrustedPersistedRoutePreview,
             activityId: activity.identityKey,
           ),
           const SizedBox(width: 18),
@@ -269,6 +274,7 @@ void _logActivityRouteThumbnailDiagnostic(
     'allowExternal=${diagnostic.allowExternalStaticMap} '
     'demo=${diagnostic.isDemoRoute} '
     'currentSession=${diagnostic.isCurrentSessionRoute} '
+    'trustedPersistedPreview=${diagnostic.isTrustedPersistedRoutePreview} '
     'snapshotFlag=${diagnostic.snapshotThumbnailsEnabled} '
     'publicToken=${diagnostic.hasValidMapboxToken} '
     'knownLocation=${diagnostic.hasKnownLocation}',

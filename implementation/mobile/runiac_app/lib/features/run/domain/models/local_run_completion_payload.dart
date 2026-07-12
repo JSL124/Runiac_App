@@ -1,6 +1,7 @@
 import '../services/pace_graph_data_builder.dart';
 import 'cadence_analysis_series.dart';
 import 'elevation_analysis_series.dart';
+import 'run_route_snapshot.dart';
 
 class LocalRunCompletionPayload {
   const LocalRunCompletionPayload({
@@ -17,6 +18,7 @@ class LocalRunCompletionPayload {
     this.clientAppVersion,
     this.planEnrollmentId,
     this.scheduledWorkoutId,
+    this.routeSnapshot = RunRouteSnapshot.empty,
     this.paceGraphSamples = const <PaceGraphSample>[],
     this.cadenceAnalysisSeries,
     this.elevationAnalysisSeries,
@@ -37,6 +39,7 @@ class LocalRunCompletionPayload {
   final String? clientAppVersion;
   final String? planEnrollmentId;
   final String? scheduledWorkoutId;
+  final RunRouteSnapshot routeSnapshot;
   final List<PaceGraphSample> paceGraphSamples;
   final CadenceAnalysisSeries? cadenceAnalysisSeries;
   final ElevationAnalysisSeries? elevationAnalysisSeries;
@@ -82,7 +85,10 @@ class LocalRunCompletionPayload {
     };
   }
 
-  LocalRunCompletionPayload copyWith({bool? userConfirmedLowDataSave}) {
+  LocalRunCompletionPayload copyWith({
+    bool? userConfirmedLowDataSave,
+    RunRouteSnapshot? routeSnapshot,
+  }) {
     return LocalRunCompletionPayload(
       clientRunSessionId: clientRunSessionId,
       startedAt: startedAt,
@@ -98,6 +104,7 @@ class LocalRunCompletionPayload {
       clientAppVersion: clientAppVersion,
       planEnrollmentId: planEnrollmentId,
       scheduledWorkoutId: scheduledWorkoutId,
+      routeSnapshot: routeSnapshot ?? this.routeSnapshot,
       paceGraphSamples: paceGraphSamples,
       cadenceAnalysisSeries: cadenceAnalysisSeries,
       elevationAnalysisSeries: elevationAnalysisSeries,

@@ -1,5 +1,6 @@
 import '../../../run/domain/models/cadence_analysis_series.dart';
 import '../../../run/domain/models/run_feed_publish_source.dart';
+import '../../../run/domain/models/run_summary_snapshot.dart';
 
 class ActivityHistoryReadModel {
   ActivityHistoryReadModel({
@@ -37,6 +38,8 @@ class ActivityHistoryItemReadModel {
     this.routeNameLabel = '',
     this.hasSufficientData = true,
     this.cadenceAnalysisSeries,
+    this.summarySnapshot,
+    this.isTrustedPersistedRoutePreview = false,
     this.feedPublishSource = const RunFeedPublishSource.disabled(
       FeedPublishDisabledReason.orphanSummary,
     ),
@@ -54,6 +57,8 @@ class ActivityHistoryItemReadModel {
   final String routeNameLabel;
   final bool hasSufficientData;
   final CadenceAnalysisSeries? cadenceAnalysisSeries;
+  final RunSummarySnapshot? summarySnapshot;
+  final bool isTrustedPersistedRoutePreview;
   final RunFeedPublishSource feedPublishSource;
 
   ActivityHistoryItemReadModel copyWith({
@@ -72,6 +77,8 @@ class ActivityHistoryItemReadModel {
       routeNameLabel: routeNameLabel,
       hasSufficientData: hasSufficientData,
       cadenceAnalysisSeries: cadenceAnalysisSeries,
+      summarySnapshot: summarySnapshot,
+      isTrustedPersistedRoutePreview: isTrustedPersistedRoutePreview,
       feedPublishSource: feedPublishSource ?? this.feedPublishSource,
     );
   }

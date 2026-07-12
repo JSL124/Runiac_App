@@ -140,6 +140,21 @@ class ActivityHistoryDisplayController extends ChangeNotifier {
     final timeLabel = item.timeLabel.isEmpty ? '--' : item.timeLabel;
     final duration = item.durationLabel.isEmpty ? '--' : item.durationLabel;
     final pace = item.paceLabel.isEmpty ? '--' : item.paceLabel;
+    final summary =
+        item.summarySnapshot ??
+        RunSummarySnapshot(
+          title: item.title,
+          dateLabel: item.completedAtLabel,
+          timeLabel: timeLabel,
+          distanceKm: _distanceKmValue(item.distanceLabel),
+          avgPace: pace,
+          duration: duration,
+          avgHeartRate: '--',
+          calories: '--',
+          routeName: routeName,
+          hasSufficientData: item.hasSufficientData,
+          cadenceAnalysisSeries: item.cadenceAnalysisSeries,
+        );
 
     return RunActivityDisplayModel(
       activityId: item.activityId,
@@ -150,19 +165,8 @@ class ActivityHistoryDisplayController extends ChangeNotifier {
       distanceMeters: item.distanceMeters,
       paceLabel: pace,
       durationLabel: duration,
-      summary: RunSummarySnapshot(
-        title: item.title,
-        dateLabel: item.completedAtLabel,
-        timeLabel: timeLabel,
-        distanceKm: _distanceKmValue(item.distanceLabel),
-        avgPace: pace,
-        duration: duration,
-        avgHeartRate: '--',
-        calories: '--',
-        routeName: routeName,
-        hasSufficientData: item.hasSufficientData,
-        cadenceAnalysisSeries: item.cadenceAnalysisSeries,
-      ),
+      summary: summary,
+      isTrustedPersistedRoutePreview: item.isTrustedPersistedRoutePreview,
       feedPublishSource: item.feedPublishSource,
     );
   }

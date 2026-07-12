@@ -372,7 +372,9 @@ class CachedActivityRouteThumbnailProvider
     if (!request.allowExternalStaticMap || !snapshotThumbnailsEnabled) {
       return const ActivityRouteThumbnailResult.privacyDisabled();
     }
-    if (!request.isDemoRoute && !request.isCurrentSessionRoute) {
+    if (!request.isDemoRoute &&
+        !request.isCurrentSessionRoute &&
+        !request.isTrustedPersistedRoutePreview) {
       return const ActivityRouteThumbnailResult.privacyDisabled();
     }
     if (!hasValidMapboxToken) {
@@ -459,6 +461,7 @@ class CachedActivityRouteThumbnailProvider
         allowExternalStaticMap: request.allowExternalStaticMap,
         isDemoRoute: request.isDemoRoute,
         isCurrentSessionRoute: request.isCurrentSessionRoute,
+        isTrustedPersistedRoutePreview: request.isTrustedPersistedRoutePreview,
         snapshotThumbnailsEnabled: snapshotThumbnailsEnabled,
         hasValidMapboxToken: hasValidMapboxToken,
         hasKnownLocation: ActivityRouteThumbnailViewport.fromRoute(
@@ -488,6 +491,7 @@ class ActivityRouteThumbnailDiagnostic {
     required this.allowExternalStaticMap,
     required this.isDemoRoute,
     required this.isCurrentSessionRoute,
+    required this.isTrustedPersistedRoutePreview,
     required this.snapshotThumbnailsEnabled,
     required this.hasValidMapboxToken,
     required this.hasKnownLocation,
@@ -499,6 +503,7 @@ class ActivityRouteThumbnailDiagnostic {
   final bool allowExternalStaticMap;
   final bool isDemoRoute;
   final bool isCurrentSessionRoute;
+  final bool isTrustedPersistedRoutePreview;
   final bool snapshotThumbnailsEnabled;
   final bool hasValidMapboxToken;
   final bool hasKnownLocation;
@@ -552,6 +557,9 @@ String _privacyMode(ActivityRouteThumbnailRequest request) {
   }
   if (request.isCurrentSessionRoute) {
     return 'current-session-runtime-allowed';
+  }
+  if (request.isTrustedPersistedRoutePreview) {
+    return 'trusted-persisted-preview-allowed';
   }
   return 'real-route-disabled';
 }

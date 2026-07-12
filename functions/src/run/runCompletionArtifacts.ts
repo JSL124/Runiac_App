@@ -36,6 +36,11 @@ export function buildRunSummary(payload: RawRunCompletionPayload): CompleteRunRe
     ...(payload.cadenceAnalysisSeries === undefined
       ? {}
       : { cadenceAnalysisSeries: payload.cadenceAnalysisSeries }),
+    ...(payload.routePreview === undefined ? {} : { routePreview: payload.routePreview }),
+    ...(payload.paceAnalysisSeries === undefined
+      ? {}
+      : { paceAnalysisSeries: payload.paceAnalysisSeries }),
+    ...(payload.elevationSeries === undefined ? {} : { elevationSeries: payload.elevationSeries }),
   };
 }
 

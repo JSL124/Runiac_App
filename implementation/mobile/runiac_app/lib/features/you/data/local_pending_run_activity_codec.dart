@@ -58,6 +58,7 @@ Map<String, Object?> _localPendingRunActivityToJson(
       'avgPaceSecondsPerKm': activity.payload.avgPaceSecondsPerKm,
       'source': activity.payload.source,
       'routePrivacy': activity.payload.routePrivacy,
+      'routeSnapshot': _routeToJson(activity.payload.routeSnapshot),
       if (activity.payload.userConfirmedLowDataSave)
         'userConfirmedLowDataSave': true,
       if (activity.payload.routeLabel != null)
@@ -214,6 +215,7 @@ LocalRunCompletionPayload _payloadFromJson(
     avgPaceSecondsPerKm: _readInt(source, 'avgPaceSecondsPerKm') ?? 0,
     source: _readString(source, 'source') ?? 'mobile',
     routePrivacy: _readString(source, 'routePrivacy') ?? 'private',
+    routeSnapshot: _routeFromJson(_readMap(source, 'routeSnapshot')),
     userConfirmedLowDataSave:
         _readBool(source, 'userConfirmedLowDataSave') ?? false,
     routeLabel: _readString(source, 'routeLabel'),

@@ -1,5 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/features/run/domain/models/cadence_analysis_series.dart';
+import 'package:runiac_app/features/run/domain/models/elevation_analysis_series.dart';
+import 'package:runiac_app/features/run/domain/models/pace_analysis_series.dart';
 import 'package:runiac_app/features/run/domain/models/run_feed_publish_source.dart';
 import 'package:runiac_app/features/you/data/firestore_activity_history_repository.dart';
 
@@ -521,6 +525,272 @@ void main() {
       expect(cadence?.validAcceptedSamples, hasLength(3));
     });
 
+    test(
+      'hydrates authenticated masked route preview pace and elevation snapshots',
+      () async {
+        // Given: the signed-in owner's run summary contains the backend's
+        // privacy-masked rich contract after local app storage is empty.
+        final authRepository = FakeRuniacAuthRepository()..emitSignedIn();
+        final repository = FirestoreActivityHistoryRepository(
+          authRepository: authRepository,
+          reader: _FakeActivityHistorySummaryDocumentReader(
+            documents: <ActivityHistorySummaryDocument>[
+              _runSummaryDocument(
+                id: 'rich-summary',
+                ownerUid: 'test-auth-user-1',
+                endedAt: DateTime.utc(2026, 6, 14, 7, 25),
+                routePreview: const <String, Object?>{
+                  'segments': <Object?>[
+                    <String, Object?>{
+                      'points': <Object?>[
+                        <String, Object?>{
+                          'latitude': 1.005,
+                          'longitude': 103.801,
+                        },
+                        <String, Object?>{
+                          'latitude': 1.302,
+                          'longitude': 103.802,
+                        },
+                      ],
+                    },
+                  ],
+                },
+                paceAnalysisSeries: const <String, Object?>{
+                  'source': 'localAccepted',
+                  'confidence': 'derived',
+                  'samples': <Object?>[
+                    <String, Object?>{
+                      'elapsedSeconds': 30,
+                      'cumulativeDistanceMeters': 100.0,
+                      'paceSecondsPerKm': 420,
+                      'status': 'accepted',
+                    },
+                    <String, Object?>{
+                      'elapsedSeconds': 60,
+                      'cumulativeDistanceMeters': 220.0,
+                      'paceSecondsPerKm': 410,
+                      'status': 'accepted',
+                    },
+                    <String, Object?>{
+                      'elapsedSeconds': 90,
+                      'cumulativeDistanceMeters': 350.0,
+                      'paceSecondsPerKm': 400,
+                      'status': 'accepted',
+                    },
+                  ],
+                },
+                elevationSeries: const <String, Object?>{
+                  'source': 'runiacLocalAccepted',
+                  'confidence': 'medium',
+                  'samples': <Object?>[
+                    <String, Object?>{
+                      'distanceKm': 0.0,
+                      'elevationMeters': 10.5,
+                    },
+                    <String, Object?>{
+                      'distanceKm': 0.2,
+                      'elevationMeters': 12.0,
+                    },
+                  ],
+                },
+              ),
+            ],
+          ),
+        );
+
+        // When: Activity History hydrates from Firestore without a local
+        // completion result or local pending-run store.
+        final history = await repository.loadActivityHistory();
+        final item = history.recentRuns.single;
+        final summary = item.summarySnapshot;
+
+        // Then: the typed snapshot retains all rich fields and is explicitly
+        // trusted for owner-scoped persisted-preview thumbnail generation.
+        expect(summary, isNotNull);
+        expect(summary!.route.segments.single, hasLength(2));
+        expect(
+          summary.route.segments.single.first.recordedAt,
+          DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+        );
+        expect(
+          summary.route.segments.single.last.recordedAt,
+          DateTime.fromMillisecondsSinceEpoch(1000, isUtc: true),
+        );
+        expect(summary.route.segments.single.first.altitudeMeters, isNull);
+        expect(
+          summary.route.segments.single.first.latitude,
+          closeTo(1.005, 1e-9),
+        );
+        expect(summary.route.lastKnownLocation?.latitude, closeTo(1.302, 1e-9));
+        expect(
+          summary.route.lastKnownLocation?.longitude,
+          closeTo(103.802, 1e-9),
+        );
+        expect(
+          summary.paceAnalysisSeries?.source,
+          PaceAnalysisSource.localAccepted,
+        );
+        expect(summary.paceAnalysisSeries?.validAcceptedSamples, hasLength(3));
+        expect(
+          summary.elevationSeries.source,
+          ElevationAnalysisSource.runiacLocalAccepted,
+        );
+        expect(summary.elevationSeries.validSamples, hasLength(2));
+        expect(item.isTrustedPersistedRoutePreview, isTrue);
+      },
+    );
+
+    test('rejects raw fields and unquantized persisted route previews', () async {
+      // Given: raw route geometry, non-quantized coordinates, and masked
+      // previews carrying forbidden timestamp/altitude fields.
+      final authRepository = FakeRuniacAuthRepository()..emitSignedIn();
+      final invalidRoutes = <String, Map<String, Object?>>{
+        'raw-route-snapshot': const <String, Object?>{
+          'routeSnapshot': <String, Object?>{
+            'segments': <Object?>[
+              <String, Object?>{
+                'points': <Object?>[
+                  <String, Object?>{
+                    'recordedAt': '2026-06-14T07:25:00.000Z',
+                    'latitude': 1.301,
+                    'longitude': 103.801,
+                    'altitudeMeters': 12.0,
+                  },
+                ],
+              },
+            ],
+          },
+        },
+        'unquantized-preview': const <String, Object?>{
+          'routePreview': <String, Object?>{
+            'segments': <Object?>[
+              <String, Object?>{
+                'points': <Object?>[
+                  <String, Object?>{'latitude': 1.3014, 'longitude': 103.801},
+                ],
+              },
+            ],
+          },
+        },
+        'timestamp-preview': const <String, Object?>{
+          'routePreview': <String, Object?>{
+            'segments': <Object?>[
+              <String, Object?>{
+                'points': <Object?>[
+                  <String, Object?>{
+                    'latitude': 1.301,
+                    'longitude': 103.801,
+                    'recordedAt': '2026-06-14T07:25:00.000Z',
+                  },
+                ],
+              },
+            ],
+          },
+        },
+        'altitude-preview': const <String, Object?>{
+          'routePreview': <String, Object?>{
+            'segments': <Object?>[
+              <String, Object?>{
+                'points': <Object?>[
+                  <String, Object?>{
+                    'latitude': 1.301,
+                    'longitude': 103.801,
+                    'altitudeMeters': 12.0,
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      };
+
+      for (final invalidRoute in invalidRoutes.entries) {
+        final scalarDocument = _runSummaryDocument(
+          id: invalidRoute.key,
+          ownerUid: 'test-auth-user-1',
+          endedAt: DateTime.utc(2026, 6, 14, 7, 25),
+        );
+        final repository = FirestoreActivityHistoryRepository(
+          authRepository: authRepository,
+          reader: _FakeActivityHistorySummaryDocumentReader(
+            documents: <ActivityHistorySummaryDocument>[
+              ActivityHistorySummaryDocument(
+                id: scalarDocument.id,
+                data: <String, Object?>{
+                  ...scalarDocument.data,
+                  ...invalidRoute.value,
+                },
+              ),
+            ],
+          ),
+        );
+
+        // When: the untrusted route boundary is parsed.
+        final item = (await repository.loadActivityHistory()).recentRuns.single;
+
+        // Then: scalar history survives, but no raw/unquantized route can reach
+        // the painter, Mapbox camera, or persisted-preview trust boundary.
+        expect(
+          item.summarySnapshot?.route.hasLocation,
+          isFalse,
+          reason: invalidRoute.key,
+        );
+        expect(
+          item.isTrustedPersistedRoutePreview,
+          isFalse,
+          reason: invalidRoute.key,
+        );
+      }
+    });
+
+    test(
+      'rejects sensitive history when authenticated owner changes mid-load',
+      () async {
+        // Given: owner A starts a delayed Firestore summary read containing a
+        // privacy-masked location preview.
+        final authRepository = FakeRuniacAuthRepository()..emitSignedIn();
+        final reader = _DelayedActivityHistorySummaryDocumentReader();
+        final repository = FirestoreActivityHistoryRepository(
+          authRepository: authRepository,
+          reader: reader,
+        );
+        final load = repository.loadActivityHistory();
+        await reader.summaryReadStarted.future;
+
+        // When: authentication changes to owner B before owner A's query returns.
+        authRepository.emitSignedIn(uid: 'test-auth-user-2');
+        reader.summaryDocuments.complete(<ActivityHistorySummaryDocument>[
+          _runSummaryDocument(
+            id: 'stale-owner-route',
+            ownerUid: 'test-auth-user-1',
+            endedAt: DateTime.utc(2026, 6, 14, 7, 25),
+            routePreview: const <String, Object?>{
+              'segments': <Object?>[
+                <String, Object?>{
+                  'points': <Object?>[
+                    <String, Object?>{'latitude': 1.301, 'longitude': 103.801},
+                  ],
+                },
+              ],
+            },
+          ),
+        ]);
+
+        // Then: owner A's sensitive preview is rejected rather than projected
+        // into owner B's session.
+        await expectLater(
+          load,
+          throwsA(
+            isA<StateError>().having(
+              (error) => error.message,
+              'message',
+              'Activity history owner changed during load.',
+            ),
+          ),
+        );
+      },
+    );
+
     test('skips malformed and wrong-owner activity docs', () async {
       final authRepository = FakeRuniacAuthRepository()..emitSignedIn();
       final repository = FirestoreActivityHistoryRepository(
@@ -573,6 +843,9 @@ ActivityHistorySummaryDocument _runSummaryDocument({
   String? routeLabel = 'Private route',
   String? title,
   Map<String, Object?>? cadenceAnalysisSeries,
+  Map<String, Object?>? routePreview,
+  Map<String, Object?>? paceAnalysisSeries,
+  Map<String, Object?>? elevationSeries,
 }) {
   final data = <String, Object?>{
     'ownerUid': ownerUid,
@@ -595,6 +868,15 @@ ActivityHistorySummaryDocument _runSummaryDocument({
   }
   if (cadenceAnalysisSeries != null) {
     data['cadenceAnalysisSeries'] = cadenceAnalysisSeries;
+  }
+  if (routePreview != null) {
+    data['routePreview'] = routePreview;
+  }
+  if (paceAnalysisSeries != null) {
+    data['paceAnalysisSeries'] = paceAnalysisSeries;
+  }
+  if (elevationSeries != null) {
+    data['elevationSeries'] = elevationSeries;
   }
 
   return ActivityHistorySummaryDocument(id: id, data: data);
@@ -680,5 +962,28 @@ class _FakeActivityHistorySummaryDocumentReader
     readActivityOwnerUids.add(ownerUid);
     readLimits.add(limit);
     return activityDocuments;
+  }
+}
+
+class _DelayedActivityHistorySummaryDocumentReader
+    implements ActivityHistorySummaryDocumentReader {
+  final summaryReadStarted = Completer<void>();
+  final summaryDocuments = Completer<List<ActivityHistorySummaryDocument>>();
+
+  @override
+  Future<List<ActivityHistorySummaryDocument>> loadRunSummaries({
+    required String ownerUid,
+    required int limit,
+  }) {
+    summaryReadStarted.complete();
+    return summaryDocuments.future;
+  }
+
+  @override
+  Future<List<ActivityHistorySummaryDocument>> loadActivities({
+    required String ownerUid,
+    required int limit,
+  }) async {
+    return const <ActivityHistorySummaryDocument>[];
   }
 }

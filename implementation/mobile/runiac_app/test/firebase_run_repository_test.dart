@@ -247,7 +247,7 @@ void main() {
     );
 
     test(
-      'does not send local pace graph samples or route data to Firebase callable',
+      'sends derived pace without raw graph or precise route fields',
       () async {
         final callable = _FakeCompleteRunCallable(
           response: _minimalCallableResponse(),
@@ -271,6 +271,8 @@ void main() {
         expect(callable.lastRequest['routePrivacy'], 'private');
         expect(callable.lastRequest['routeLabel'], 'Repository Result Route');
         expect(callable.lastRequest['clientAppVersion'], 'm5-test');
+        expect(callable.lastRequest['paceAnalysisSeries'], isA<Map>());
+        expect(callable.lastRequest, isNot(contains('routeSnapshot')));
         expect(result.summary.paceGraph.isAvailable, isFalse);
         expect(result.summary.paceGraph.points, isEmpty);
 
@@ -279,9 +281,11 @@ void main() {
           'graphSamples',
           'PaceGraphSample',
           'paceGraph',
-          'samples',
-          'latitude',
-          'longitude',
+          'routeSnapshot',
+          'recordedAt',
+          'altitudeMeters',
+          'horizontalAccuracyMeters',
+          'speedMetersPerSecond',
           'routeTrace',
           'polyline',
           'positions',

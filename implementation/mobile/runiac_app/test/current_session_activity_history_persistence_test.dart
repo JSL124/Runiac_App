@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -7,6 +8,7 @@ import 'package:runiac_app/features/run/domain/models/complete_run_result.dart';
 import 'package:runiac_app/features/run/domain/models/elevation_analysis_series.dart';
 import 'package:runiac_app/features/run/domain/models/local_run_completion_payload.dart';
 import 'package:runiac_app/features/run/domain/models/pace_analysis_series.dart';
+import 'package:runiac_app/features/run/domain/models/run_completion_request_adapter.dart';
 import 'package:runiac_app/features/run/domain/models/run_activity_display_model.dart';
 import 'package:runiac_app/features/run/domain/models/run_activity_read_model.dart';
 import 'package:runiac_app/features/run/domain/models/run_location_sample.dart';
@@ -20,6 +22,8 @@ import 'package:runiac_app/features/run/domain/services/pace_graph_data_builder.
 import 'package:runiac_app/features/you/data/local_pending_run_activity_store.dart';
 import 'package:runiac_app/features/you/domain/models/user_progress_read_model.dart';
 import 'package:runiac_app/features/you/presentation/current_session_activity_history.dart';
+import 'package:runiac_app/features/you/presentation/widgets/activity_route_preview.dart';
+import 'package:runiac_app/features/you/presentation/widgets/activity_route_snapshot_thumbnail_cache.dart';
 
 void main() {
   const ownerUid = 'owner-1';
@@ -162,6 +166,65 @@ void main() {
       expect(restoredRoute.segments.single, hasLength(3));
       expect(restoredRoute.lastKnownLocation?.latitude, 1.3033);
       expect(restoredRoute.lastKnownLocation?.longitude, 103.8333);
+    },
+  );
+
+  test(
+    'preserves never-synced payload route for the first retry after restart',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      const storage = SharedPreferencesLocalPendingRunActivityStore(
+        key: 'test.pendingNeverSyncedRunWithPayloadRoute',
+      );
+      final route = _routeSnapshot();
+      final payload = _payload(
+        'never-synced-route-client-session',
+      ).copyWith(routeSnapshot: route);
+      final beforeRetryRequest = RunCompletionRequestAdapter.toBackendRequest(
+        payload,
+      );
+      final beforeRetryFingerprint = _routeThumbnailFingerprint(
+        route,
+        'never-synced-route',
+      );
+      final firstStore = CurrentSessionActivityHistoryStore(
+        ownerUid: ownerUid,
+        persistence: storage,
+      );
+      addTearDown(firstStore.dispose);
+
+      await firstStore.saveCompletedRun(
+        _completionResult('never-synced-route-client-session', route: route),
+        payload: payload,
+      );
+      expect((await storage.load()).single.syncAccepted, isFalse);
+
+      final restoredStore = CurrentSessionActivityHistoryStore(
+        ownerUid: ownerUid,
+        persistence: storage,
+      );
+      addTearDown(restoredStore.dispose);
+      await restoredStore.restoreSavedActivities();
+      final repository = _RecordingRunRepository();
+
+      await restoredStore.syncPendingRuns(repository);
+
+      final retriedPayload = repository.submittedPayloads.single;
+      final afterRetryRequest = RunCompletionRequestAdapter.toBackendRequest(
+        retriedPayload,
+      );
+      expect(
+        afterRetryRequest['routePreview'],
+        beforeRetryRequest['routePreview'],
+      );
+      expect(
+        _routeThumbnailFingerprint(
+          retriedPayload.routeSnapshot,
+          'never-synced-route',
+        ),
+        beforeRetryFingerprint,
+      );
+      expect(retriedPayload.routeSnapshot.segments.single, hasLength(3));
     },
   );
 
@@ -1133,6 +1196,20 @@ RunRouteSnapshot _routeSnapshot() {
     ),
   ];
   return RunRouteSnapshot(segments: [samples], lastKnownLocation: samples.last);
+}
+
+int _routeThumbnailFingerprint(RunRouteSnapshot route, String activityId) {
+  return ActivityRouteSnapshotThumbnailCacheKey.fromRequest(
+    ActivityRouteThumbnailRequest(
+      route: route,
+      logicalSize: const Size(120, 80),
+      devicePixelRatio: 2,
+      allowExternalStaticMap: true,
+      isDemoRoute: false,
+      isCurrentSessionRoute: true,
+      activityId: activityId,
+    ),
+  ).routeFingerprint;
 }
 
 List<PaceGraphSample> _paceGraphSamples() {

@@ -858,6 +858,7 @@ void main() {
       expect(provider.requestCount, 1);
       expect(provider.lastRequest!.allowExternalStaticMap, isTrue);
       expect(provider.lastRequest!.isCurrentSessionRoute, isTrue);
+      expect(provider.lastRequest!.isTrustedPersistedRoutePreview, isFalse);
       expect(provider.lastRequest!.isDemoRoute, isFalse);
       expect(
         provider.lastRequest!.route.lastKnownLocation?.latitude,
@@ -949,6 +950,44 @@ void main() {
       expect(
         find.byKey(const ValueKey('activity_route_preview_fallback')),
         findsNothing,
+      );
+    },
+  );
+
+  testWidgets(
+    'trusted persisted single-point route requests snapshot without current session',
+    (WidgetTester tester) async {
+      // Given: a backend-masked persisted preview containing one trusted point.
+      final provider = _FakeActivityRouteThumbnailProvider(
+        ActivityRouteThumbnailResult.readyImage(
+          MemoryImage(Uint8List.fromList(_transparentPixelPng)),
+        ),
+      );
+
+      // When: the preview renders without a live completion session.
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ActivityRoutePreview(
+              route: _singlePointRouteFixture(),
+              thumbnailProvider: provider,
+              allowExternalStaticMap: true,
+              isTrustedPersistedRoutePreview: true,
+              activityId: 'trusted-persisted-one-point',
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Then: the trusted preview reaches the provider and retains its actual
+      // provenance instead of impersonating a current-session route.
+      expect(provider.requestCount, 1);
+      expect(provider.lastRequest!.isCurrentSessionRoute, isFalse);
+      expect(provider.lastRequest!.isTrustedPersistedRoutePreview, isTrue);
+      expect(
+        find.byKey(const ValueKey('activity_route_preview_static_thumbnail')),
+        findsOneWidget,
       );
     },
   );
@@ -2504,6 +2543,7 @@ void main() {
       expect(provider.lastRequest!.activityId, 'current-session-mapbox-card');
       expect(provider.lastRequest!.allowExternalStaticMap, isTrue);
       expect(provider.lastRequest!.isCurrentSessionRoute, isTrue);
+      expect(provider.lastRequest!.isTrustedPersistedRoutePreview, isFalse);
       expect(provider.lastRequest!.isDemoRoute, isFalse);
       expect(
         find.descendant(

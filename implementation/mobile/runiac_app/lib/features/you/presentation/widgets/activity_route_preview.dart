@@ -14,6 +14,7 @@ class ActivityRoutePreview extends StatelessWidget {
     this.allowExternalStaticMap = false,
     this.isDemoRoute = false,
     this.isCurrentSessionRoute = false,
+    this.isTrustedPersistedRoutePreview = false,
     this.activityId,
     super.key,
   });
@@ -23,6 +24,7 @@ class ActivityRoutePreview extends StatelessWidget {
   final bool allowExternalStaticMap;
   final bool isDemoRoute;
   final bool isCurrentSessionRoute;
+  final bool isTrustedPersistedRoutePreview;
   final String? activityId;
 
   @override
@@ -40,6 +42,7 @@ class ActivityRoutePreview extends StatelessWidget {
       allowExternalStaticMap: allowExternalStaticMap,
       isDemoRoute: isDemoRoute,
       isCurrentSessionRoute: isCurrentSessionRoute,
+      isTrustedPersistedRoutePreview: isTrustedPersistedRoutePreview,
       activityId: activityId,
     );
 
@@ -99,7 +102,7 @@ class ActivityRoutePreview extends StatelessWidget {
 
   bool _canRequestLocationSnapshot(ActivityRouteThumbnailViewport viewport) {
     return allowExternalStaticMap &&
-        isCurrentSessionRoute &&
+        (isCurrentSessionRoute || isTrustedPersistedRoutePreview) &&
         viewport.hasKnownLocation;
   }
 }
@@ -118,6 +121,7 @@ class ActivityRouteThumbnailRequest {
     required this.allowExternalStaticMap,
     required this.isDemoRoute,
     this.isCurrentSessionRoute = false,
+    this.isTrustedPersistedRoutePreview = false,
     this.activityId,
   });
 
@@ -127,6 +131,7 @@ class ActivityRouteThumbnailRequest {
   final bool allowExternalStaticMap;
   final bool isDemoRoute;
   final bool isCurrentSessionRoute;
+  final bool isTrustedPersistedRoutePreview;
   final String? activityId;
 
   /// The nearest backend-approved image scale; an exact midpoint rounds up.
@@ -142,6 +147,8 @@ class ActivityRouteThumbnailRequest {
         other.allowExternalStaticMap == allowExternalStaticMap &&
         other.isDemoRoute == isDemoRoute &&
         other.isCurrentSessionRoute == isCurrentSessionRoute &&
+        other.isTrustedPersistedRoutePreview ==
+            isTrustedPersistedRoutePreview &&
         other.activityId == activityId;
   }
 
@@ -154,6 +161,7 @@ class ActivityRouteThumbnailRequest {
       allowExternalStaticMap,
       isDemoRoute,
       isCurrentSessionRoute,
+      isTrustedPersistedRoutePreview,
       activityId,
     );
   }

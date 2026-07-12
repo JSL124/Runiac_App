@@ -3,6 +3,7 @@ import { before, beforeEach, describe, it } from "node:test";
 import { getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
 import { completeRunForCallable } from "../src/run/completeRun.js";
+import "./completeRunRichSummaryScenarios.js";
 
 const PROJECT_ID = "runiac-functions-test";
 const USER_UID = "runner-001";
@@ -1618,14 +1619,10 @@ async function writeGeneratedPlanWithWorkouts(
 }
 
 async function expectRejectsCode(action: () => Promise<unknown>, code: string): Promise<void> {
-  try {
-    await action();
-  } catch (error: unknown) {
+  await assert.rejects(action, (error: unknown) => {
     assert.equal(getErrorCode(error), code);
-    return;
-  }
-
-  assert.fail(`Expected ${code} rejection`);
+    return true;
+  });
 }
 
 function getErrorCode(error: unknown): string {

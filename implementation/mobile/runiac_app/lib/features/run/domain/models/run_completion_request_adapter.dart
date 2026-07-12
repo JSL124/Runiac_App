@@ -1,5 +1,6 @@
 import 'cadence_analysis_series.dart';
 import 'local_run_completion_payload.dart';
+import 'run_completion_request_payload_serializer.dart';
 
 class RunCompletionRequestAdapter {
   const RunCompletionRequestAdapter._();
@@ -9,6 +10,14 @@ class RunCompletionRequestAdapter {
   static Map<String, Object?> toBackendRequest(
     LocalRunCompletionPayload payload,
   ) {
+    final routePreview =
+        RunCompletionRequestPayloadSerializer.routePreviewToBackendMap(
+          payload.routeSnapshot,
+        );
+    final paceAnalysisSeries =
+        RunCompletionRequestPayloadSerializer.paceAnalysisSeriesToBackendMap(
+          payload.paceGraphSamples,
+        );
     return <String, Object?>{
       'clientRunSessionId': payload.clientRunSessionId,
       'startedAt': _toBackendIsoString(payload.startedAt),
@@ -29,6 +38,20 @@ class RunCompletionRequestAdapter {
         'planEnrollmentId': payload.planEnrollmentId,
       if (payload.scheduledWorkoutId != null)
         'scheduledWorkoutId': payload.scheduledWorkoutId,
+      ...RunCompletionRequestPayloadSerializer.optionalField(
+        'routePreview',
+        routePreview,
+      ),
+      ...RunCompletionRequestPayloadSerializer.optionalField(
+        'paceAnalysisSeries',
+        paceAnalysisSeries,
+      ),
+      if (payload.elevationAnalysisSeries case final elevationSeries?
+          when elevationSeries.validSamples.isNotEmpty)
+        'elevationSeries':
+            RunCompletionRequestPayloadSerializer.elevationAnalysisSeriesToBackendMap(
+              elevationSeries,
+            ),
       if (payload.cadenceAnalysisSeries case final cadenceAnalysisSeries?
           when cadenceAnalysisSeries.validAcceptedSamples.isNotEmpty)
         'cadenceAnalysisSeries': _cadenceAnalysisSeriesToBackendMap(

@@ -55,6 +55,9 @@ void main() {
         expect(payload.durationSeconds, 120);
         expect(payload.distanceMeters, closeTo(300, 2));
         expect(payload.avgPaceSecondsPerKm, closeTo(400, 3));
+        expect(payload.routeSnapshot.segments, hasLength(1));
+        expect(payload.routeSnapshot.segments.single, hasLength(2));
+        expect(payload.routeSnapshot.lastKnownLocation?.latitude, 1.302698);
         expect(payloadMap.keys, isNot(contains('latitude')));
         expect(payloadMap.keys, isNot(contains('longitude')));
         expect(payloadMap.keys, isNot(contains('samples')));

@@ -115,6 +115,7 @@ ActivityRouteThumbnailRequest _request({
   bool allowExternalStaticMap = true,
   bool isDemoRoute = true,
   bool isCurrentSessionRoute = false,
+  bool isTrustedPersistedRoutePreview = false,
   String? activityId = 'activity-1',
 }) {
   return ActivityRouteThumbnailRequest(
@@ -124,6 +125,7 @@ ActivityRouteThumbnailRequest _request({
     allowExternalStaticMap: allowExternalStaticMap,
     isDemoRoute: isDemoRoute,
     isCurrentSessionRoute: isCurrentSessionRoute,
+    isTrustedPersistedRoutePreview: isTrustedPersistedRoutePreview,
     activityId: activityId,
   );
 }
@@ -790,8 +792,52 @@ void main() {
       ActivityRouteThumbnailDiagnosticSource.generator,
     );
     expect(diagnostics.single.isCurrentSessionRoute, isTrue);
+    expect(diagnostics.single.isTrustedPersistedRoutePreview, isFalse);
     expect(diagnostics.single.hasKnownLocation, isTrue);
   });
+
+  test(
+    'snapshot provider resolves trusted persisted previews without current-session provenance',
+    () async {
+      // Given: a backend-masked persisted preview with explicit trusted
+      // provenance and no live completion session.
+      final cache = ActivityRouteSnapshotThumbnailMemoryCache();
+      final diagnostics = <ActivityRouteThumbnailDiagnostic>[];
+      final image = MemoryImage(Uint8List.fromList(const [13, 14, 15]));
+      final generator = _FakeSnapshotThumbnailGenerator((request) async {
+        return ActivityRouteThumbnailResult.readyImage(image);
+      });
+      final provider = CachedActivityRouteThumbnailProvider(
+        cache: cache,
+        generator: generator,
+        snapshotThumbnailsEnabled: true,
+        hasValidMapboxToken: true,
+        onDiagnostic: diagnostics.add,
+      );
+      final request = _request(
+        route: _routeFixture(),
+        isDemoRoute: false,
+        isCurrentSessionRoute: false,
+        isTrustedPersistedRoutePreview: true,
+      );
+
+      // When: the provider evaluates the non-demo request.
+      final resolved = await provider.resolve(request);
+
+      // Then: trusted persisted provenance independently authorizes generation
+      // and remains distinct in diagnostics and cache policy.
+      expect(resolved.state, ActivityRouteThumbnailState.readyImage);
+      expect(generator.requestCount, 1);
+      expect(cache.length, 1);
+      expect(diagnostics, hasLength(1));
+      expect(diagnostics.single.isCurrentSessionRoute, isFalse);
+      expect(diagnostics.single.isTrustedPersistedRoutePreview, isTrue);
+      expect(
+        ActivityRouteSnapshotThumbnailCacheKey.fromRequest(request).privacyMode,
+        'trusted-persisted-preview-allowed',
+      );
+    },
+  );
 
   test(
     'snapshot provider never generates non-current real user route thumbnails',
@@ -835,6 +881,7 @@ void main() {
       expect(diagnostics.single.hasValidMapboxToken, isTrue);
       expect(diagnostics.single.allowExternalStaticMap, isTrue);
       expect(diagnostics.single.isCurrentSessionRoute, isFalse);
+      expect(diagnostics.single.isTrustedPersistedRoutePreview, isFalse);
     },
   );
 

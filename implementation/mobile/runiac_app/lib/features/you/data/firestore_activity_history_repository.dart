@@ -3,9 +3,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../auth/domain/runiac_auth_service.dart';
 import '../../run/domain/models/cadence_analysis_series.dart';
 import '../../run/domain/models/run_feed_publish_source.dart';
+import '../../run/domain/models/run_summary_snapshot.dart';
 import '../../run/domain/services/run_summary_scalar_mapper.dart';
 import '../domain/models/activity_history_read_model.dart';
 import '../domain/repositories/activity_history_repository.dart';
+import 'firestore_run_summary_snapshot_decoder.dart';
 import 'static_activity_history_repository.dart';
 
 abstract interface class ActivityHistorySummaryDocumentReader {
@@ -106,6 +108,9 @@ class FirestoreActivityHistoryRepository implements ActivityHistoryRepository {
 
     final summaryDocuments = await _loadSummariesSafely(currentUser.uid);
     final activityDocuments = await _loadActivitiesSafely(currentUser.uid);
+    if (authRepository.currentUser?.uid != currentUser.uid) {
+      throw StateError('Activity history owner changed during load.');
+    }
     if (summaryDocuments == null && activityDocuments == null) {
       throw StateError('Both activity history queries failed.');
     }
@@ -190,6 +195,27 @@ class FirestoreActivityHistoryRepository implements ActivityHistoryRepository {
       averagePaceSecondsPerKm: averagePaceSecondsPerKm,
       routeLabel: _readOptionalString(data, 'routeLabel'),
     );
+    final title = _readOptionalString(data, 'title') ?? 'Completed Run';
+    final cadenceAnalysisSeries = _readCadenceAnalysisSeries(data);
+    final details = source == _ActivityHistoryDocumentSource.summary
+        ? const FirestoreRunSummarySnapshotDecoder().decode(data)
+        : FirestoreRunSummaryDetails.empty;
+    final summarySnapshot = RunSummarySnapshot(
+      title: title,
+      dateLabel: scalar.dateLabel,
+      timeLabel: scalar.timeLabel,
+      distanceKm: scalar.distanceKm,
+      avgPace: scalar.avgPace,
+      duration: scalar.duration,
+      avgHeartRate: '--',
+      calories: '--',
+      routeName: scalar.routeName,
+      hasSufficientData: scalar.hasSufficientData,
+      paceAnalysisSeries: details.paceAnalysisSeries,
+      cadenceAnalysisSeries: cadenceAnalysisSeries,
+      elevationSeries: details.elevationSeries,
+      route: details.route,
+    );
     return _MappedActivity(
       endedAt: endedAt,
       identityKey: clientRunSessionId != null && clientRunSessionId.isNotEmpty
@@ -198,7 +224,7 @@ class FirestoreActivityHistoryRepository implements ActivityHistoryRepository {
       item: ActivityHistoryItemReadModel(
         activityId: activityId,
         clientRunSessionId: clientRunSessionId,
-        title: _readOptionalString(data, 'title') ?? 'Completed Run',
+        title: title,
         completedAtLabel: scalar.dateLabel,
         distanceLabel: '${scalar.distanceKm} km',
         distanceMeters: distanceMeters,
@@ -207,7 +233,9 @@ class FirestoreActivityHistoryRepository implements ActivityHistoryRepository {
         timeLabel: scalar.timeLabel,
         routeNameLabel: scalar.routeName,
         hasSufficientData: scalar.hasSufficientData,
-        cadenceAnalysisSeries: _readCadenceAnalysisSeries(data),
+        cadenceAnalysisSeries: cadenceAnalysisSeries,
+        summarySnapshot: summarySnapshot,
+        isTrustedPersistedRoutePreview: details.hasValidPersistedRoutePreview,
         feedPublishSource: _feedPublishSourceFor(
           data,
           activityId: activityId,

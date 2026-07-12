@@ -9,6 +9,7 @@ import '../../domain/models/run_cadence_sample.dart';
 import '../../domain/models/run_location_sample.dart';
 import '../../domain/models/run_location_permission_status.dart';
 import '../../domain/models/run_map_view_state.dart';
+import '../../domain/models/run_route_snapshot.dart';
 import '../../domain/models/run_tracking_diagnostics.dart';
 import '../../domain/models/run_tracking_notification_copy.dart';
 import '../../domain/models/run_tracking_state.dart';
@@ -432,6 +433,7 @@ class RunTrackingController extends ChangeNotifier {
       routeLabel: _state.routeLabel,
       planEnrollmentId: planEnrollmentId,
       scheduledWorkoutId: scheduledWorkoutId,
+      routeSnapshot: RunRouteSnapshot.fromMapViewState(mapViewState),
       paceGraphSamples: _trackingSession?.paceGraphSamples() ?? const [],
       cadenceAnalysisSeries: _trackingSession?.cadenceAnalysisSeries(),
       elevationAnalysisSeries: _trackingSession?.elevationAnalysisSeries(),

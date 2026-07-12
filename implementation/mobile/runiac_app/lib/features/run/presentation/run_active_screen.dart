@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/runiac_colors.dart';
 import '../data/static_run_repository.dart';
 import '../domain/models/complete_run_result.dart';
-import '../domain/models/run_route_snapshot.dart';
 import '../domain/models/run_tracking_state.dart';
 import '../domain/repositories/run_repository.dart';
 import '../domain/services/run_summary_local_analysis_merger.dart';
@@ -116,7 +115,6 @@ class _RunActiveScreenState extends State<RunActiveScreen> {
       planEnrollmentId: planEnrollmentId,
       scheduledWorkoutId: scheduledWorkoutId,
     );
-    final route = RunRouteSnapshot.fromMapViewState(_controller.mapViewState);
     setState(() => _isCompletingRun = true);
 
     CompleteRunResult result = await const StaticRunRepository().completeRun(
@@ -130,7 +128,7 @@ class _RunActiveScreenState extends State<RunActiveScreen> {
       summary: RunSummaryLocalAnalysisMerger().merge(
         backendSummary: result.summary,
         localPayload: payload,
-        localRoute: route,
+        localRoute: payload.routeSnapshot,
         resultClientRunSessionId: result.clientRunSessionId,
       ),
     );

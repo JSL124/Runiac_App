@@ -14,7 +14,6 @@ import '../data/static_run_repository.dart';
 import '../domain/models/complete_run_result.dart';
 import '../domain/models/run_location_permission_status.dart';
 import '../domain/models/run_location_sample.dart';
-import '../domain/models/run_route_snapshot.dart';
 import '../domain/models/run_tracking_state.dart';
 import '../domain/repositories/run_foreground_service.dart';
 import '../domain/repositories/run_cadence_provider.dart';
@@ -412,7 +411,6 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
       planEnrollmentId: planEnrollmentId,
       scheduledWorkoutId: scheduledWorkoutId,
     );
-    final route = RunRouteSnapshot.fromMapViewState(_controller.mapViewState);
     setState(() => _isCompletingRun = true);
 
     CompleteRunResult result = await const StaticRunRepository().completeRun(
@@ -426,7 +424,7 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
       summary: const RunSummaryLocalAnalysisMerger().merge(
         backendSummary: result.summary,
         localPayload: payload,
-        localRoute: route,
+        localRoute: payload.routeSnapshot,
         resultClientRunSessionId: result.clientRunSessionId,
       ),
     );

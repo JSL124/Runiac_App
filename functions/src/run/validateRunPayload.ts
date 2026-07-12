@@ -1,6 +1,11 @@
 import { HttpsError } from "firebase-functions/v2/https";
-import type { CadenceAnalysisSeriesPayload, RawRunCompletionPayload } from "./runCompletionTypes.js";
+import type { RawRunCompletionPayload } from "./runCompletionTypes.js";
 import { readOptionalCadenceAnalysisSeries } from "./validateCadenceAnalysisSeries.js";
+import { readOptionalRoutePreview } from "./validateRoutePreview.js";
+import {
+  readOptionalElevationSeries,
+  readOptionalPaceAnalysisSeries,
+} from "./validateRunSummaryDetails.js";
 import {
   readDistanceMeters,
   readDurationSeconds,
@@ -30,6 +35,9 @@ const allowedKeys = new Set([
   "deviceRecordedAt",
   "clientAppVersion",
   "cadenceAnalysisSeries",
+  "routePreview",
+  "paceAnalysisSeries",
+  "elevationSeries",
 ]);
 
 const protectedKeys = new Set([
@@ -110,7 +118,22 @@ export function parseRunCompletionPayload(data: unknown): RawRunCompletionPayloa
     throw invalid("pausedDurationSeconds must match elapsedWallSeconds minus activeDurationSeconds within tolerance.");
   }
 
-  const payload = {
+  const routeLabel = readOptionalString(data, "routeLabel");
+  const avgHeartRate = readOptionalPositiveNumber(data, "avgHeartRate");
+  const caloriesEstimate = readOptionalPositiveNumber(data, "caloriesEstimate");
+  const planEnrollmentId = readOptionalString(data, "planEnrollmentId");
+  const scheduledWorkoutId = readOptionalString(data, "scheduledWorkoutId");
+  const deviceRecordedAt = readOptionalIsoDateString(data, "deviceRecordedAt");
+  const clientAppVersion = readOptionalString(data, "clientAppVersion");
+  const cadenceAnalysisSeries = readOptionalCadenceAnalysisSeries(data);
+  const routePreview = readOptionalRoutePreview(data);
+  const paceAnalysisSeries = readOptionalPaceAnalysisSeries(data, {
+    durationSeconds,
+    distanceMeters,
+  });
+  const elevationSeries = readOptionalElevationSeries(data, { distanceMeters });
+
+  return {
     clientRunSessionId: readString(data, "clientRunSessionId"),
     startedAt,
     completedAt,
@@ -125,18 +148,19 @@ export function parseRunCompletionPayload(data: unknown): RawRunCompletionPayloa
     }),
     source: readMobileSource(data),
     routePrivacy: readRoutePrivacy(data),
-    userConfirmedLowDataSave,
-    routeLabel: readOptionalString(data, "routeLabel"),
-    avgHeartRate: readOptionalPositiveNumber(data, "avgHeartRate"),
-    caloriesEstimate: readOptionalPositiveNumber(data, "caloriesEstimate"),
-    planEnrollmentId: readOptionalString(data, "planEnrollmentId"),
-    scheduledWorkoutId: readOptionalString(data, "scheduledWorkoutId"),
-    deviceRecordedAt: readOptionalIsoDateString(data, "deviceRecordedAt"),
-    clientAppVersion: readOptionalString(data, "clientAppVersion"),
-    cadenceAnalysisSeries: readOptionalCadenceAnalysisSeries(data),
+    ...(userConfirmedLowDataSave ? { userConfirmedLowDataSave: true } : {}),
+    ...(routeLabel === undefined ? {} : { routeLabel }),
+    ...(avgHeartRate === undefined ? {} : { avgHeartRate }),
+    ...(caloriesEstimate === undefined ? {} : { caloriesEstimate }),
+    ...(planEnrollmentId === undefined ? {} : { planEnrollmentId }),
+    ...(scheduledWorkoutId === undefined ? {} : { scheduledWorkoutId }),
+    ...(deviceRecordedAt === undefined ? {} : { deviceRecordedAt }),
+    ...(clientAppVersion === undefined ? {} : { clientAppVersion }),
+    ...(cadenceAnalysisSeries === undefined ? {} : { cadenceAnalysisSeries }),
+    ...(routePreview === undefined ? {} : { routePreview }),
+    ...(paceAnalysisSeries === undefined ? {} : { paceAnalysisSeries }),
+    ...(elevationSeries === undefined ? {} : { elevationSeries }),
   };
-
-  return withoutUndefined(payload);
 }
 
 function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
@@ -206,54 +230,6 @@ function readRoutePrivacy(data: Readonly<Record<string, unknown>>): "private" | 
     throw invalid("routePrivacy must be private or public.");
   }
   return routePrivacy;
-}
-
-function withoutUndefined(payload: {
-  readonly clientRunSessionId: string;
-  readonly startedAt: string;
-  readonly completedAt: string;
-  readonly durationSeconds: number;
-  readonly activeDurationSeconds: number;
-  readonly elapsedWallSeconds: number;
-  readonly pausedDurationSeconds: number;
-  readonly distanceMeters: number;
-  readonly avgPaceSecondsPerKm: number;
-  readonly source: "mobile";
-  readonly routePrivacy: "private" | "public";
-  readonly userConfirmedLowDataSave: boolean;
-  readonly routeLabel: string | undefined;
-  readonly avgHeartRate: number | undefined;
-  readonly caloriesEstimate: number | undefined;
-  readonly planEnrollmentId: string | undefined;
-  readonly scheduledWorkoutId: string | undefined;
-  readonly deviceRecordedAt: string | undefined;
-  readonly clientAppVersion: string | undefined;
-  readonly cadenceAnalysisSeries: CadenceAnalysisSeriesPayload | undefined;
-}): RawRunCompletionPayload {
-  return {
-    clientRunSessionId: payload.clientRunSessionId,
-    startedAt: payload.startedAt,
-    completedAt: payload.completedAt,
-    durationSeconds: payload.durationSeconds,
-    activeDurationSeconds: payload.activeDurationSeconds,
-    elapsedWallSeconds: payload.elapsedWallSeconds,
-    pausedDurationSeconds: payload.pausedDurationSeconds,
-    distanceMeters: payload.distanceMeters,
-    avgPaceSecondsPerKm: payload.avgPaceSecondsPerKm,
-    source: payload.source,
-    routePrivacy: payload.routePrivacy,
-    ...(payload.userConfirmedLowDataSave ? { userConfirmedLowDataSave: true } : {}),
-    ...(payload.routeLabel === undefined ? {} : { routeLabel: payload.routeLabel }),
-    ...(payload.avgHeartRate === undefined ? {} : { avgHeartRate: payload.avgHeartRate }),
-    ...(payload.caloriesEstimate === undefined ? {} : { caloriesEstimate: payload.caloriesEstimate }),
-    ...(payload.planEnrollmentId === undefined ? {} : { planEnrollmentId: payload.planEnrollmentId }),
-    ...(payload.scheduledWorkoutId === undefined ? {} : { scheduledWorkoutId: payload.scheduledWorkoutId }),
-    ...(payload.deviceRecordedAt === undefined ? {} : { deviceRecordedAt: payload.deviceRecordedAt }),
-    ...(payload.clientAppVersion === undefined ? {} : { clientAppVersion: payload.clientAppVersion }),
-    ...(payload.cadenceAnalysisSeries === undefined
-      ? {}
-      : { cadenceAnalysisSeries: payload.cadenceAnalysisSeries }),
-  };
 }
 
 function invalid(message: string): HttpsError {

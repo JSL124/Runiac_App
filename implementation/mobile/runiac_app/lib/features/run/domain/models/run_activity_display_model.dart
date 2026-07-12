@@ -15,6 +15,7 @@ class RunActivityDisplayModel {
     required this.durationLabel,
     required this.summary,
     this.completionResult,
+    this.isTrustedPersistedRoutePreview = false,
     this.feedPublishSource = const RunFeedPublishSource.disabled(
       FeedPublishDisabledReason.notAvailable,
     ),
@@ -30,6 +31,7 @@ class RunActivityDisplayModel {
   final String durationLabel;
   final RunSummarySnapshot summary;
   final CompleteRunResult? completionResult;
+  final bool isTrustedPersistedRoutePreview;
   final RunFeedPublishSource feedPublishSource;
 
   String get sourceLabel => summary.sourceLabel;

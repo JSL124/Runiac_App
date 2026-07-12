@@ -21,6 +21,9 @@ export type RawRunCompletionPayload = {
   readonly deviceRecordedAt?: string;
   readonly clientAppVersion?: string;
   readonly cadenceAnalysisSeries?: CadenceAnalysisSeriesPayload;
+  readonly routePreview?: RoutePreviewPayload;
+  readonly paceAnalysisSeries?: PaceAnalysisSeriesPayload;
+  readonly elevationSeries?: ElevationSeriesPayload;
 };
 
 export type CadenceAnalysisSeriesPayload = {
@@ -33,6 +36,43 @@ export type CadenceAnalysisSamplePayload = {
   readonly elapsedSeconds: number;
   readonly cadenceSpm: number;
   readonly status: "accepted";
+};
+
+export type RoutePreviewPayload = {
+  readonly segments: readonly RoutePreviewSegmentPayload[];
+};
+
+export type RoutePreviewSegmentPayload = {
+  readonly points: readonly RoutePreviewPointPayload[];
+};
+
+export type RoutePreviewPointPayload = {
+  readonly latitude: number;
+  readonly longitude: number;
+};
+
+export type PaceAnalysisSeriesPayload = {
+  readonly source: "localAccepted";
+  readonly confidence: "derived";
+  readonly samples: readonly PaceAnalysisSamplePayload[];
+};
+
+export type PaceAnalysisSamplePayload = {
+  readonly elapsedSeconds: number;
+  readonly cumulativeDistanceMeters: number;
+  readonly paceSecondsPerKm: number;
+  readonly status: "accepted";
+};
+
+export type ElevationSeriesPayload = {
+  readonly source: "runiacLocalAccepted";
+  readonly confidence: "medium";
+  readonly samples: readonly ElevationSamplePayload[];
+};
+
+export type ElevationSamplePayload = {
+  readonly distanceKm: number;
+  readonly elevationMeters: number;
 };
 
 export type CompleteRunIds = {
@@ -79,6 +119,9 @@ export type RunSummaryResult = {
   readonly displayPace: string;
   readonly routeLabel?: string;
   readonly cadenceAnalysisSeries?: CadenceAnalysisSeriesPayload;
+  readonly routePreview?: RoutePreviewPayload;
+  readonly paceAnalysisSeries?: PaceAnalysisSeriesPayload;
+  readonly elevationSeries?: ElevationSeriesPayload;
 };
 
 export type CompleteRunResult = CompleteRunIds & {
