@@ -11,6 +11,7 @@ import 'package:runiac_app/features/home/presentation/stage_map/home_stage_map_m
 import 'package:runiac_app/features/plan/domain/models/beginner_adaptive_plan_snapshot.dart';
 import 'package:runiac_app/features/plan/domain/services/beginner_adaptive_plan_generator.dart';
 import 'package:runiac_app/features/plan/presentation/current_session_generated_plan.dart';
+import 'package:runiac_app/features/you/presentation/adapters/generated_plan_you_display_adapter.dart';
 
 import 'support/plan_family_test_drafts.dart';
 
@@ -123,6 +124,39 @@ void main() {
       closeTo(280, 0.0001),
     );
   });
+
+  test(
+    'stage map uses the plan creation weekday as day zero through week 8',
+    () {
+      final plan = _plan().withStartsOnDate('2026-07-05');
+      final startSunday = DateTime(2026, 7, 5);
+
+      for (var week = 1; week <= 8; week += 1) {
+        final date = startSunday.add(Duration(days: 7 * (week - 1)));
+        final activeWeek = activeGeneratedPlanWeekFor(plan, currentDate: date);
+        final activeDayIndex = activeGeneratedPlanDayIndexFor(
+          plan,
+          currentDate: date,
+        );
+
+        final model = buildHomeStageMapModel(
+          plan: plan,
+          completedScheduledWorkoutIds: const <String>{},
+          activeWeekNumber: activeWeek!.weekNumber,
+          currentWeekdayIndex: DateTime.monday + activeDayIndex!,
+          backgroundSequence: homeStageBackgroundSequence(
+            planId: plan.id,
+            weekCount: plan.weeks.length,
+          ),
+        );
+
+        expect(model.currentWeekIndex, week - 1);
+        expect(model.todayDayIndex, 0);
+        expect(model.characterDayIndex, 0);
+        expect(model.currentStageId, HomeStageMapModel.stageId(week - 1, 0));
+      }
+    },
+  );
 
   testWidgets('empty state keeps a working header with the streak number', (
     WidgetTester tester,

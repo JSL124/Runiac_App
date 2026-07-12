@@ -625,7 +625,9 @@ class _RuniacAppState extends State<RuniacApp> {
   }
 
   Future<bool> _completeOnboarding(LocalOnboardingDraft draft) async {
-    final snapshot = const BeginnerAdaptivePlanGenerator().generate(draft);
+    final snapshot = const BeginnerAdaptivePlanGenerator()
+        .generate(draft)
+        .withStartsOnDate(generatedPlanDateLabel(_generatedPlanStartDate()));
     final currentUser = widget.authRepository.currentUser;
     if (currentUser != null) {
       final saved = await _saveOnboardingProfile(currentUser.uid, draft);
@@ -640,6 +642,15 @@ class _RuniacAppState extends State<RuniacApp> {
     _setActiveGeneratedPlan(snapshot, ownerUid: currentUser?.uid);
     widget.onOnboardingCompleted?.call(draft);
     return true;
+  }
+
+  DateTime _generatedPlanStartDate() {
+    final currentDate = widget.youProgressToday;
+    if (currentDate != null) {
+      return DateTime(currentDate.year, currentDate.month, currentDate.day);
+    }
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, now.day);
   }
 
   void _setActiveGeneratedPlan(

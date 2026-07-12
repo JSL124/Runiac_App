@@ -416,6 +416,28 @@ BeginnerAdaptivePlanWeek? activeGeneratedPlanWeekFor(
   return snapshot.weeks[activeIndex];
 }
 
+int? activeGeneratedPlanDayIndexFor(
+  BeginnerAdaptivePlanSnapshot snapshot, {
+  DateTime? currentDate,
+}) {
+  final startsOnDate = _dateFromPlanLabel(snapshot.startsOnDate);
+  if (startsOnDate == null) {
+    return null;
+  }
+
+  final today = currentDate ?? DateTime.now();
+  final elapsedDays = DateTime(
+    today.year,
+    today.month,
+    today.day,
+  ).difference(startsOnDate).inDays;
+  if (elapsedDays <= 0) {
+    return 0;
+  }
+
+  return elapsedDays % 7;
+}
+
 DateTime? _dateFromPlanLabel(String? value) {
   if (value == null || value.length != 10) {
     return null;

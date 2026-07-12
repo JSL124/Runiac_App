@@ -1230,6 +1230,63 @@ void main() {
     expect(find.bySemanticsLabel("Today's stage"), findsOneWidget);
   });
 
+  testWidgets('Home stage map advances to week 2 on the next Monday', (
+    WidgetTester tester,
+  ) async {
+    final startMonday = DateTime(2026, 7, 6);
+    final nextMonday = DateTime(2026, 7, 13);
+    final store = CurrentSessionGeneratedPlanStore();
+    expect(store.setActivePlan(_generatedRunPlan(startMonday)), isTrue);
+    addTearDown(store.dispose);
+
+    await tester.pumpWidget(
+      RuniacApp(
+        showSplash: false,
+        enableForegroundGps: false,
+        youProgressToday: nextMonday,
+        currentSessionGeneratedPlanStore: store,
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(
+      find.byKey(const ValueKey<String>('homeStageStone-2-0')),
+      findsOneWidget,
+    );
+    expect(find.bySemanticsLabel("Today's stage"), findsOneWidget);
+  });
+
+  testWidgets('Home stage map advances every week through week 8', (
+    WidgetTester tester,
+  ) async {
+    final startMonday = DateTime(2026, 7, 6);
+
+    for (var week = 1; week <= 8; week += 1) {
+      final store = CurrentSessionGeneratedPlanStore();
+      expect(store.setActivePlan(_generatedRunPlan(startMonday)), isTrue);
+      addTearDown(store.dispose);
+
+      await tester.pumpWidget(
+        RuniacApp(
+          showSplash: false,
+          enableForegroundGps: false,
+          youProgressToday: startMonday.add(Duration(days: 7 * (week - 1))),
+          currentSessionGeneratedPlanStore: store,
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(
+        find.byKey(ValueKey<String>('homeStageStone-$week-0')),
+        findsOneWidget,
+        reason: 'Home should show week $week as the active Monday stage',
+      );
+      expect(find.bySemanticsLabel("Today's stage"), findsOneWidget);
+    }
+  });
+
   testWidgets('Home today stage opens the workout detail without editing', (
     WidgetTester tester,
   ) async {

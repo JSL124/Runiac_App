@@ -39,6 +39,37 @@ void main() {
   );
 
   testWidgets(
+    'signed-in onboarding completion saves and activates plan start date',
+    (tester) async {
+      final authRepository = FakeRuniacAuthRepository();
+      final generatedPlanStore = CurrentSessionGeneratedPlanStore();
+      final generatedPlanRepository =
+          _RecordingGeneratedPlanPersistenceRepository();
+      addTearDown(authRepository.dispose);
+      authRepository.emitSignedIn();
+
+      await tester.pumpWidget(
+        RuniacApp(
+          showSplash: false,
+          showOnboarding: true,
+          enableForegroundGps: false,
+          authRepository: authRepository,
+          currentSessionGeneratedPlanStore: generatedPlanStore,
+          generatedPlanPersistenceRepository: generatedPlanRepository,
+          youProgressToday: DateTime(2026, 7, 6),
+        ),
+      );
+
+      await completeOnboardingToFourSessionPreview(tester);
+      await tapText(tester, 'Continue with this plan');
+
+      expect(generatedPlanRepository.savedUid, 'test-auth-user-1');
+      expect(generatedPlanRepository.savedPlan?.startsOnDate, '2026-07-06');
+      expect(generatedPlanStore.activePlan?.startsOnDate, '2026-07-06');
+    },
+  );
+
+  testWidgets(
     'starter onboarding completion activates generated movement plan session',
     (tester) async {
       final generatedPlanStore = CurrentSessionGeneratedPlanStore();

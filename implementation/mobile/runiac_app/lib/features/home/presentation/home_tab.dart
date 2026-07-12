@@ -282,6 +282,10 @@ class _HomeTabState extends State<HomeTab> {
     );
     final activeWeekNumber =
         activeWeek?.weekNumber ?? plan.weeks.first.weekNumber;
+    final activeDayIndex = activeGeneratedPlanDayIndexFor(
+      plan,
+      currentDate: widget.currentDate,
+    );
     final completedIds =
         widget.generatedPlanProgress?.completedScheduledWorkoutIds ??
         const <String>{};
@@ -293,7 +297,9 @@ class _HomeTabState extends State<HomeTab> {
       plan: plan,
       completedScheduledWorkoutIds: completedIds,
       activeWeekNumber: activeWeekNumber,
-      currentWeekdayIndex: widget.currentDate?.weekday,
+      currentWeekdayIndex: activeDayIndex == null
+          ? null
+          : DateTime.monday + activeDayIndex,
       backgroundSequence: backgroundSequence,
     );
   }

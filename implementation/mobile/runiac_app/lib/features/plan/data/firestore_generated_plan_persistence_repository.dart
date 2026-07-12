@@ -168,7 +168,7 @@ BeginnerAdaptivePlanSnapshot _planFromFirestore(Map<String, Object?> data) {
       _string(data['planKind']),
     ),
     sourceLabel: _string(data['sourceLabel']),
-    startsOnDate: _nullableString(data['startsOnDate']),
+    startsOnDate: _startsOnDateFromFirestore(data),
     durationWeeks: _int(data['durationWeeks']),
     safetyBand: _enumByName(
       BeginnerPlanSafetyBand.values,
@@ -225,6 +225,25 @@ BeginnerAdaptivePlanSnapshot _planFromFirestore(Map<String, Object?> data) {
         ),
     ],
   );
+}
+
+String? _startsOnDateFromFirestore(Map<String, Object?> data) {
+  final explicitStart = _nullableString(data['startsOnDate']);
+  if (explicitStart != null) {
+    return explicitStart;
+  }
+  final createdAt = data['createdAt'];
+  if (createdAt is Timestamp) {
+    return generatedPlanDateLabel(createdAt.toDate().toLocal());
+  }
+  if (createdAt is DateTime) {
+    return generatedPlanDateLabel(createdAt.toLocal());
+  }
+  final parsed = DateTime.tryParse(_string(createdAt));
+  if (parsed != null) {
+    return generatedPlanDateLabel(parsed);
+  }
+  return null;
 }
 
 BeginnerAdaptiveWorkoutDetail _detailFromFirestore(Map<String, Object?> data) {
