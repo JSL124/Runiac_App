@@ -5,6 +5,9 @@ import '../../account/domain/models/user_profile_read_model.dart';
 import '../../account/domain/repositories/user_profile_persistence_repository.dart';
 import '../../account/domain/repositories/user_profile_repository.dart';
 import '../../auth/domain/runiac_auth_service.dart';
+import '../../friends/data/static_friends_repository.dart';
+import '../../friends/domain/repositories/friends_repository.dart';
+import '../../friends/presentation/friends_screen.dart';
 import '../../leaderboard/data/static_leaderboard_repository.dart';
 import '../../leaderboard/domain/repositories/leaderboard_repository.dart';
 import '../../notifications/domain/repositories/notification_inbox_repository.dart';
@@ -36,6 +39,7 @@ class HomeTab extends StatefulWidget {
         const StaticNotificationInboxRepository(),
     this.userProgressRepository = const StaticUserProgressRepository(),
     this.leaderboardRepository = const StaticLeaderboardRepository(),
+    this.friendsRepository = const StaticFriendsRepository(),
     this.todayWorkoutDetailSnapshot,
     this.todayPlannedRunContext,
     this.generatedPlanProgress,
@@ -54,6 +58,11 @@ class HomeTab extends StatefulWidget {
   final NotificationInboxRepository notificationInboxRepository;
   final UserProgressRepository userProgressRepository;
   final LeaderboardRepository leaderboardRepository;
+
+  /// Display-only friends source for the static Friends shell reached from
+  /// the Home Social menu. Defaults to demo snapshots; a future backend
+  /// repository replaces this seam without touching the presentation layer.
+  final FriendsRepository friendsRepository;
   final WeeklyWorkoutDetailSnapshot? todayWorkoutDetailSnapshot;
   final PlannedRunContext? todayPlannedRunContext;
 
@@ -238,6 +247,19 @@ class _HomeTabState extends State<HomeTab> {
     });
   }
 
+  void _openFriends(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) {
+          return FriendsScreen(
+            repository: widget.friendsRepository,
+            onBack: () => Navigator.of(context).pop(),
+          );
+        },
+      ),
+    );
+  }
+
   void _openNotificationInbox(BuildContext context) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
@@ -384,6 +406,7 @@ class _HomeTabState extends State<HomeTab> {
                   levelProgressFraction: progress?.levelProgressFraction ?? 0,
                   onNotifications: () => _openNotificationInbox(context),
                   onProfile: () => _openAccountProfile(context),
+                  onOpenFriends: () => _openFriends(context),
                   onTapTodayStage: () => _openTodayWorkout(context),
                   guideAgent: widget.homeGuideAgent,
                   guideRequest: guideRequest,

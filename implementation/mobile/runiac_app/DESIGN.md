@@ -167,6 +167,22 @@ All spacing derives from a base of 4px.
 - **Motion**: message readability never depends on typing or transition animation. Reduced motion keeps the existing guide/pulse behavior disabled and shows the full resolved bubble copy immediately.
 - **Boundary**: the bubble only renders server/local-agent supplied display copy. Flutter does not calculate progression, activity facts, XP, level, rank, streak, or leaderboard data, and does not persist guide-cycle state.
 
+### Home Social Dropdown
+
+- **Structure**: an always-visible `Social` trigger pill sits directly below the header profile badge, reusing the shared dark translucent header control decoration (radius 999, white border, soft shadow) with a `Social` label and a drop-down/up arrow. Tapping it expands a compact white menu card (radius 18, `cardBorder` border, `softCardShadow`, ~180px wide) right-aligned below the header with two rows: `Friends` (`people_outline`) and `Challenge` (`emoji_events_outlined`).
+- **States**: collapsed shows only the trigger with a down arrow. Expanded flips the arrow up, renders the menu panel, and mounts a full-surface tap-outside dismissal barrier between the map and the header layer; the barrier intentionally blocks map interaction only while the menu is open and is unmounted when closed so stage taps and closed-state semantics are unaffected. `Friends` closes the menu and forwards to the caller's navigation callback; `Challenge` closes the menu and shows only the `Challenge is coming soon!` SnackBar (coming-soon state, no navigation).
+- **Colors**: trigger text/icon white on the shared header control fill; menu card `white` surface, `primaryBlue` item icons, `textPrimary` w800 item labels, `border` divider between rows.
+- **Accessibility**: the trigger announces `Social menu` as a button; each menu row announces its label (`Friends`, `Challenge`) as a button. The trigger stays within the header gradient's existing bottom padding so the taller right column does not clip on 360px-wide layouts.
+- **Boundary**: navigation trigger only. The dropdown reads and writes no social data, performs no friend/request queries, and never calculates or mutates XP, level, rank, streak, or leaderboard values. Challenge behavior beyond the SnackBar stub is future scope.
+
+### Friends Screen (static shell)
+
+- **Structure**: `RuniacBackHeader` titled `Friends`, a compact 4-segment `YouSegmentedControl` (`Friends` / `Search` / `Suggested` / `Requests`), and a per-tab body of white rows (radius 18, `border` outline) led by a compact 42px `RuniacLevelProfileBadge` with a 16px level pill, a w800 `textPrimary` display name, and a w700 `textSecondary` subtitle.
+- **Per-tab states**: `Friends` lists accepted friends or an empty state; `Search` shows a hint state until a query is typed, then case-insensitive name matches over the searchable demo users, with a `No runners found` empty state for no matches; `Suggested` lists recommended runners or an empty state; `Requests` lists incoming requests with pill `Accept` (filled `primaryBlue`) and `Decline` (outlined white) actions, and an empty state once none remain.
+- **Session-local accept/decline**: Accept moves the request row to the top of the Friends list and Decline removes it — both are local `setState` display rearrangements only, reset on screen re-entry; nothing is persisted.
+- **Accessibility**: Accept/Decline announce `Accept <name>` / `Decline <name>` as buttons; the search field announces `Search runners`; row badges are excluded from semantics so the adjacent name remains the single readable identity.
+- **Boundary**: friend relationships, request state, and level labels are backend-owned; the demo snapshots supply pre-formatted `Lv.x` display strings and the client never derives levels, XP, rank, or streak values. The client never writes `users/{uid}/friends`, the module contains no Firebase imports, and its accepted-friends naming stays compatible with the feed's accepted-friends contract. The future profile badge-collection slot is out of scope for this shell.
+
 ### Weekly Plan Day Row
 
 - **Structure**: aligned weekday, status node, workout title/status copy, and an optional detail chevron.

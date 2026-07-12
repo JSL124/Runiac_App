@@ -87,6 +87,7 @@ class HomeStageMap extends StatefulWidget {
     this.levelProgressFraction = 0,
     this.guideAgent,
     this.guideRequest,
+    this.onOpenFriends,
     super.key,
   });
 
@@ -111,6 +112,12 @@ class HomeStageMap extends StatefulWidget {
   /// today's stage changes.
   final HomeGuideRequest? guideRequest;
 
+  /// Opens the Friends screen when the Social menu's Friends item is tapped.
+  /// Optional so existing call sites and tests compile unchanged; when null
+  /// the Friends item simply closes the menu. Navigation trigger only — the
+  /// stage map reads or writes no social data.
+  final VoidCallback? onOpenFriends;
+
   @override
   State<HomeStageMap> createState() => _HomeStageMapState();
 }
@@ -133,6 +140,7 @@ class _HomeStageMapState extends State<HomeStageMap>
   double _overlap = 0;
   double _viewportHeight = 0;
   bool _initialScrollDone = false;
+  bool _socialMenuOpen = false;
 
   String? _shownStageId;
   bool _walking = false;
@@ -230,6 +238,35 @@ class _HomeStageMapState extends State<HomeStageMap>
 
   void _dismissGuideBubble() {
     _guideCycle?.hide();
+  }
+
+  void _toggleSocialMenu() {
+    setState(() {
+      _socialMenuOpen = !_socialMenuOpen;
+    });
+  }
+
+  void _closeSocialMenu() {
+    if (!_socialMenuOpen) {
+      return;
+    }
+    setState(() {
+      _socialMenuOpen = false;
+    });
+  }
+
+  void _onSocialFriendsTap() {
+    _closeSocialMenu();
+    widget.onOpenFriends?.call();
+  }
+
+  void _onSocialChallengeTap() {
+    _closeSocialMenu();
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(content: Text('Challenge is coming soon!')),
+      );
   }
 
   void _advanceGuideBubble() {
@@ -481,18 +518,45 @@ class _HomeStageMapState extends State<HomeStageMap>
         return Stack(
           children: [
             Positioned.fill(child: mapLayer),
+            // Tap-outside dismissal barrier: mounted only while the Social
+            // menu is open so the closed-state semantics and stage taps are
+            // unaffected. Intentionally opaque to map interaction while open.
+            if (_socialMenuOpen)
+              Positioned.fill(
+                child: GestureDetector(
+                  key: const ValueKey<String>('homeSocialMenuBarrier'),
+                  behavior: HitTestBehavior.opaque,
+                  onTap: _closeSocialMenu,
+                  child: const SizedBox.expand(),
+                ),
+              ),
             Positioned(
               top: 0,
               left: 0,
               right: 0,
-              child: _HomeStageHeader(
-                streakCount: widget.streakCount,
-                unreadNotificationCount: widget.unreadNotificationCount,
-                levelBadgeLabel: widget.levelBadgeLabel,
-                levelProgressFraction: widget.levelProgressFraction,
-                profileInitials: widget.profileInitials,
-                onNotifications: widget.onNotifications,
-                onProfile: widget.onProfile,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  _HomeStageHeader(
+                    streakCount: widget.streakCount,
+                    unreadNotificationCount: widget.unreadNotificationCount,
+                    levelBadgeLabel: widget.levelBadgeLabel,
+                    levelProgressFraction: widget.levelProgressFraction,
+                    profileInitials: widget.profileInitials,
+                    onNotifications: widget.onNotifications,
+                    onProfile: widget.onProfile,
+                    socialMenuOpen: _socialMenuOpen,
+                    onToggleSocialMenu: _toggleSocialMenu,
+                  ),
+                  if (_socialMenuOpen)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 12),
+                      child: _HomeSocialMenuPanel(
+                        onFriends: _onSocialFriendsTap,
+                        onChallenge: _onSocialChallengeTap,
+                      ),
+                    ),
+                ],
               ),
             ),
           ],
@@ -1067,6 +1131,8 @@ class _HomeStageHeader extends StatelessWidget {
     required this.profileInitials,
     required this.onNotifications,
     required this.onProfile,
+    required this.socialMenuOpen,
+    required this.onToggleSocialMenu,
   });
 
   final int streakCount;
@@ -1076,6 +1142,8 @@ class _HomeStageHeader extends StatelessWidget {
   final String profileInitials;
   final VoidCallback onNotifications;
   final VoidCallback onProfile;
+  final bool socialMenuOpen;
+  final VoidCallback onToggleSocialMenu;
 
   @override
   Widget build(BuildContext context) {
@@ -1105,49 +1173,216 @@ class _HomeStageHeader extends StatelessWidget {
               onNotifications: onNotifications,
             ),
             const SizedBox(width: 6),
-            Semantics(
-              container: true,
-              label: 'Profile',
-              button: true,
-              child: ExcludeSemantics(
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: onProfile,
-                  child: SizedBox(
-                    width: 60,
-                    height: 62,
-                    child: Stack(
-                      clipBehavior: Clip.none,
-                      alignment: Alignment.topCenter,
-                      children: [
-                        Container(
-                          width: 54,
-                          height: 54,
-                          decoration: _homeStageControlDecoration(
-                            shape: BoxShape.circle,
-                          ),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Semantics(
+                  container: true,
+                  label: 'Profile',
+                  button: true,
+                  child: ExcludeSemantics(
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: onProfile,
+                      child: SizedBox(
+                        width: 60,
+                        height: 62,
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          alignment: Alignment.topCenter,
+                          children: [
+                            Container(
+                              width: 54,
+                              height: 54,
+                              decoration: _homeStageControlDecoration(
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            RuniacLevelProfileBadge(
+                              initials: profileInitials,
+                              levelLabel: levelBadgeLabel,
+                              progressFraction: levelProgressFraction,
+                              size: 54,
+                              badgeHeight: 17,
+                              badgeMinWidth: 44,
+                              badgeHorizontalPadding: 7,
+                              badgeFontSize: 10,
+                              ringStrokeWidth: 4.5,
+                              discColor: RuniacColors.primaryBlue,
+                              discBorderColor: RuniacColors.white,
+                              initialsColor: RuniacColors.white,
+                            ),
+                          ],
                         ),
-                        RuniacLevelProfileBadge(
-                          initials: profileInitials,
-                          levelLabel: levelBadgeLabel,
-                          progressFraction: levelProgressFraction,
-                          size: 54,
-                          badgeHeight: 17,
-                          badgeMinWidth: 44,
-                          badgeHorizontalPadding: 7,
-                          badgeFontSize: 10,
-                          ringStrokeWidth: 4.5,
-                          discColor: RuniacColors.primaryBlue,
-                          discBorderColor: RuniacColors.white,
-                          initialsColor: RuniacColors.white,
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
-              ),
+                const SizedBox(height: 6),
+                _SocialMenuTrigger(
+                  open: socialMenuOpen,
+                  onTap: onToggleSocialMenu,
+                ),
+              ],
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Always-visible pill below the profile badge that toggles the Social menu.
+/// Navigation trigger only — reads and writes no social data.
+class _SocialMenuTrigger extends StatelessWidget {
+  const _SocialMenuTrigger({required this.open, required this.onTap});
+
+  final bool open;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      container: true,
+      label: 'Social menu',
+      button: true,
+      child: ExcludeSemantics(
+        child: GestureDetector(
+          key: const ValueKey<String>('homeSocialMenuTrigger'),
+          behavior: HitTestBehavior.opaque,
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(10, 5, 6, 5),
+            decoration: _homeStageControlDecoration(
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Social',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    height: 1,
+                  ),
+                ),
+                const SizedBox(width: 2),
+                Icon(
+                  open
+                      ? Icons.arrow_drop_up_rounded
+                      : Icons.arrow_drop_down_rounded,
+                  color: Colors.white,
+                  size: 18,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Compact dropdown card below the Home header with the Social menu items.
+/// Friends only forwards to the caller's navigation callback; Challenge is a
+/// Coming-soon stub. No social data is read or written here.
+class _HomeSocialMenuPanel extends StatelessWidget {
+  const _HomeSocialMenuPanel({
+    required this.onFriends,
+    required this.onChallenge,
+  });
+
+  final VoidCallback onFriends;
+  final VoidCallback onChallenge;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: const ValueKey<String>('homeSocialMenuPanel'),
+      width: 180,
+      decoration: BoxDecoration(
+        color: RuniacColors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: RuniacColors.cardBorder, width: 1.2),
+        boxShadow: const [
+          BoxShadow(
+            color: RuniacColors.softCardShadow,
+            blurRadius: 16,
+            offset: Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _SocialMenuItem(
+            icon: Icons.people_outline,
+            label: 'Friends',
+            onTap: onFriends,
+          ),
+          const Divider(
+            height: 1,
+            thickness: 1,
+            color: RuniacColors.border,
+            indent: 14,
+            endIndent: 14,
+          ),
+          _SocialMenuItem(
+            icon: Icons.emoji_events_outlined,
+            label: 'Challenge',
+            onTap: onChallenge,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SocialMenuItem extends StatelessWidget {
+  const _SocialMenuItem({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      container: true,
+      label: label,
+      button: true,
+      child: ExcludeSemantics(
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(
+              children: [
+                Icon(icon, color: RuniacColors.primaryBlue, size: 20),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: RuniacColors.textPrimary,
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w800,
+                      height: 1.2,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

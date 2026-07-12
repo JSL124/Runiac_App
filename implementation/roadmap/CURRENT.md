@@ -11,6 +11,7 @@
 - Current state: worktree baseline was cleaned at `c85eb1f7 fix(shell): refresh progress on day rollover` before this capsule routing. The open adaptive-character capsule and concurrent user-owned Leaderboard/You/design/test changes remain unrelated and untouched.
 - Current governance decision record: ADR-003 classifies this work as Backend Guarded Lane; ADR-002 requires Emulator First. Project `demo-runiac-feed` and explicit Auth/Firestore/Functions/Storage host guards are mandatory before any fixture mutation.
 - Current active milestone in this isolated worktree: `activity-history-durable-preview-recovery`. Phase 02 remains unselected.
+- Newly routed capsule in the main worktree on 2026-07-12 Asia/Singapore: `implementation/roadmap/capsules/home-social-dropdown-friends-shell.md`. The user explicitly routed a Safe Visible Product Acceleration frontend capsule adding a static Home stage-map `Social` dropdown (Friends navigation plus Challenge Coming-soon stub) and a new static demo-data Friends feature module with Friends / Search / Suggested / Requests tabs. It is frontend-only: no feed changes, no Firebase/Firestore/Cloud Functions work, no `users/{uid}/friends` I/O, no XP/level/rank/streak calculation or mutation, no new dependencies, and no shell/navigation changes. This routing is append-only and does not modify or supersede the `activity-history-durable-preview-recovery` capsule in its separate isolated worktree.
 
 Run Tracking M4-A/M4-B/M4-C1/M4-C2 reconciliation:
 
@@ -97,6 +98,8 @@ Next gate is the user-owned real-screen emulator checklist. Package B is exactly
 ## Operational TODO / Active Capsule
 
 Current capsule package in this isolated worktree: `implementation/roadmap/capsules/activity-history-feed-upload.md`. It authorizes only Activity History provenance, existing View Summary / Feed publish integration, Share Your Achievement-style Feed upload sheet work, privacy-safe thumbnail resolution, route thumbnail marker removal, focused tests, and evidence. `implementation/roadmap/capsules/feed-friends-emulator-backend.md` remains a prior package at `Ready for user screen QA` and `Ready for manual commit`; `implementation/roadmap/capsules/adaptive-character-guidance.md` remains open and byte-for-byte unchanged. Existing Leaderboard, unrelated design/test, and debug-journal dirt remains unrelated, unstaged, and untouched.
+
+Newly routed capsule package in the main worktree: `implementation/roadmap/capsules/home-social-dropdown-friends-shell.md`. It authorizes only the static Home stage-map `Social` dropdown trigger/menu/barrier, the new static demo-data Friends feature module (models, repository interface, static repository, demo snapshots, 4-tab screen), `home_tab.dart` wiring with an optional `friendsRepository` seam, two new widget-test files, two DESIGN.md component sections, and minimal capsule/routing/diff-hygiene governance updates. Forbidden: feed code, Firebase/Firestore/Cloud Functions, `users/{uid}/friends` I/O, Challenge behavior beyond a Coming-soon SnackBar, XP/level/rank/streak calculation or mutation, new dependencies, shell/navigation changes, and badge-collection UI. Stop state is `Ready for user screen QA` plus `Ready for manual commit`; no staging, commit, or push is authorized.
 
 Required next-session checklist:
 
