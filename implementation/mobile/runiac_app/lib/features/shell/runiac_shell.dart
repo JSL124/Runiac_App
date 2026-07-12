@@ -60,6 +60,7 @@ class RuniacShell extends StatefulWidget {
     this.initialRunOpenIntent,
     this.youProgressToday,
     this.enableLocalPlanNotifications = false,
+    this.currentDayRolloverController,
   });
 
   final RuniacAuthRepository authRepository;
@@ -82,6 +83,7 @@ class RuniacShell extends StatefulWidget {
   final RunOpenIntent? initialRunOpenIntent;
   final DateTime? youProgressToday;
   final bool enableLocalPlanNotifications;
+  final CurrentDayRolloverController? currentDayRolloverController;
 
   @override
   State<RuniacShell> createState() => _RuniacShellState();
@@ -110,7 +112,10 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
   var _planNotificationSyncInFlight = false;
   var _pendingPlanNotificationSync = false;
   var _localNotificationSmokeTestScheduled = false;
+  var _dayRolloverProgressRefreshSerial = 0;
   late final CurrentDayRolloverController _currentDayController;
+  late final bool _ownsCurrentDayController =
+      widget.currentDayRolloverController == null;
   BeginnerAdaptivePlanSnapshot? _pendingPlanNotificationPlan;
   GeneratedPlanProgressDisplay? _pendingPlanNotificationProgress;
   late Future<FeedAuthorProfileSnapshot> _feedAuthorProfileFuture;
@@ -135,8 +140,9 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _currentDayController = CurrentDayRolloverController()
-      ..addListener(_handleCurrentDayChanged);
+    _currentDayController =
+        (widget.currentDayRolloverController ?? CurrentDayRolloverController())
+          ..addListener(_handleCurrentDayChanged);
     _setFeedAuthorProfileFuture();
     if (widget.youProgressToday == null) {
       _currentDayController.start();
@@ -235,9 +241,10 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _currentDayController
-      ..removeListener(_handleCurrentDayChanged)
-      ..dispose();
+    _currentDayController.removeListener(_handleCurrentDayChanged);
+    if (_ownsCurrentDayController) {
+      _currentDayController.dispose();
+    }
     if (_ownsActiveRunSessionCoordinator) {
       _activeRunSessionCoordinator.dispose();
     }
@@ -253,8 +260,36 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
   }
 
   void _handleCurrentDayChanged() {
+    _refreshUserProgressAfterDayRollover();
     if (mounted) {
       setState(() {});
+    }
+  }
+
+  Future<void> _refreshUserProgressAfterDayRollover() async {
+    final serial = _dayRolloverProgressRefreshSerial + 1;
+    _dayRolloverProgressRefreshSerial = serial;
+    try {
+      final progress = await widget.userProgressRepository.refreshUserProgress();
+      if (!mounted || serial != _dayRolloverProgressRefreshSerial) {
+        return;
+      }
+      CurrentSessionActivityHistoryScope.maybeRead(
+        context,
+      )?.recordUserProgressRefresh(progress);
+      _setFeedAuthorProfileFuture();
+      setState(() {});
+    } catch (error, stackTrace) {
+      FlutterError.reportError(
+        FlutterErrorDetails(
+          exception: error,
+          stack: stackTrace,
+          library: 'runiac shell',
+          context: ErrorDescription(
+            'refreshing user progress after local day rollover',
+          ),
+        ),
+      );
     }
   }
 

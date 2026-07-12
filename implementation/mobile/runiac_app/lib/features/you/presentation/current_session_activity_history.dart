@@ -123,6 +123,10 @@ class CurrentSessionActivityHistoryStore extends ChangeNotifier {
     return _latestUserProgressRefresh;
   }
 
+  void recordUserProgressRefresh(UserProgressReadModel progress) {
+    _notifyUserProgressRefreshed(progress);
+  }
+
   void updateOwnerUid(String? ownerUid) {
     if (_ownerUid == ownerUid) {
       return;
