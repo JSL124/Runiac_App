@@ -197,7 +197,8 @@ class _RuniacLevelRingPainter extends CustomPainter {
     required this.strokeWidth,
   });
 
-  static const _startAngle = math.pi * 0.68;
+  static const _startAngle = math.pi * 5 / 6;
+  static const _sweepAngle = math.pi * 4 / 3;
 
   final double progress;
   final double strokeWidth;
@@ -209,6 +210,7 @@ class _RuniacLevelRingPainter extends CustomPainter {
     final trackPaint = Paint()
       ..color = RuniacColors.primaryBlue.withValues(alpha: 0.12)
       ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
       ..strokeWidth = strokeWidth;
     final progressPaint = Paint()
       ..color = RuniacColors.accentOrange
@@ -216,14 +218,19 @@ class _RuniacLevelRingPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round
       ..strokeWidth = strokeWidth;
 
-    canvas.drawCircle(center, radius, trackPaint);
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius),
-      _startAngle,
-      math.pi * 2 * progress.clamp(0, 1),
-      false,
-      progressPaint,
-    );
+    final ringRect = Rect.fromCircle(center: center, radius: radius);
+    canvas.drawArc(ringRect, _startAngle, _sweepAngle, false, trackPaint);
+
+    final clampedProgress = progress.clamp(0.0, 1.0);
+    if (clampedProgress > 0) {
+      canvas.drawArc(
+        ringRect,
+        _startAngle,
+        _sweepAngle * clampedProgress,
+        false,
+        progressPaint,
+      );
+    }
   }
 
   @override
