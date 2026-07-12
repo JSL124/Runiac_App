@@ -60,7 +60,8 @@ void main() {
 
       expect(refreshService.refreshCount, 1);
       expect(reader.readAfterRefresh, isTrue);
-      expect(progress.officialStreakLabel, isEmpty);
+      expect(progress.officialStreakLabel, '0 days');
+      expect(progress.officialStreakCount, 0);
     },
   );
 

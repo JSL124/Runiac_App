@@ -41,6 +41,25 @@ void main() {
       expect(title, 'Tuesday Night Run');
     });
 
+    test(
+      'converts a persisted UTC completion into the device local daypart',
+      () {
+        final completedAt = DateTime.utc(2026, 7, 8, 13);
+        final local = completedAt.toLocal();
+        final expectedDaypart = switch (local.hour) {
+          >= 5 && < 12 => 'Morning',
+          >= 12 && < 17 => 'Afternoon',
+          >= 17 && < 21 => 'Evening',
+          _ => 'Night',
+        };
+
+        expect(
+          formatter.format(completedAt: completedAt),
+          '${_weekday(local.weekday)} $expectedDaypart Run',
+        );
+      },
+    );
+
     test('formats daypart boundaries from completed timestamp', () {
       expect(
         formatter.format(completedAt: DateTime(2026, 6, 17, 5)),
@@ -61,3 +80,14 @@ void main() {
     });
   });
 }
+
+String _weekday(int weekday) => switch (weekday) {
+  DateTime.monday => 'Monday',
+  DateTime.tuesday => 'Tuesday',
+  DateTime.wednesday => 'Wednesday',
+  DateTime.thursday => 'Thursday',
+  DateTime.friday => 'Friday',
+  DateTime.saturday => 'Saturday',
+  DateTime.sunday => 'Sunday',
+  _ => throw ArgumentError.value(weekday, 'weekday'),
+};

@@ -2,8 +2,9 @@ class CompletedRunTitleFormatter {
   const CompletedRunTitleFormatter();
 
   String format({required DateTime completedAt}) {
-    final weekday = _weekdayLabel(completedAt.weekday);
-    final daypart = _daypartLabel(completedAt.hour);
+    final localCompletedAt = completedAt.toLocal();
+    final weekday = _weekdayLabel(localCompletedAt.weekday);
+    final daypart = _daypartLabel(localCompletedAt.hour);
     return '$weekday $daypart Run';
   }
 

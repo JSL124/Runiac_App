@@ -200,7 +200,8 @@ class FirestoreActivityHistoryRepository implements ActivityHistoryRepository {
     final title =
         persistedTitle == null ||
             persistedTitle == 'Completed Run' ||
-            persistedTitle == routeLabel
+            persistedTitle == routeLabel ||
+            _isGeneratedRunTitle(persistedTitle)
         ? scalar.title
         : persistedTitle;
     final cadenceAnalysisSeries = _readCadenceAnalysisSeries(data);
@@ -252,6 +253,13 @@ class FirestoreActivityHistoryRepository implements ActivityHistoryRepository {
         ),
       ),
     );
+  }
+
+  bool _isGeneratedRunTitle(String title) {
+    return RegExp(
+      r'^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday) '
+      r'(Morning|Afternoon|Evening|Night) Run$',
+    ).hasMatch(title);
   }
 
   List<_MappedActivity> _mapDocuments(

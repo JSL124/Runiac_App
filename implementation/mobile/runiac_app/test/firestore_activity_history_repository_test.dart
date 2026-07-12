@@ -11,6 +11,34 @@ import 'support/fake_runiac_auth_repository.dart';
 
 void main() {
   group('FirestoreActivityHistoryRepository', () {
+    test(
+      'recomputes an incorrectly persisted generated title in local time',
+      () async {
+        final authRepository = FakeRuniacAuthRepository()..emitSignedIn();
+        final repository = FirestoreActivityHistoryRepository(
+          authRepository: authRepository,
+          reader: _FakeActivityHistorySummaryDocumentReader(
+            documents: <ActivityHistorySummaryDocument>[
+              _runSummaryDocument(
+                id: 'summary-wednesday-night',
+                ownerUid: 'test-auth-user-1',
+                endedAt: DateTime.utc(2026, 7, 8, 13),
+                distanceMeters: 6470,
+                durationSeconds: 2738,
+                averagePaceSecondsPerKm: 423,
+                title: 'Wednesday Afternoon Run',
+                routeLabel: 'Runiac GPS',
+              ),
+            ],
+          ),
+        );
+
+        final history = await repository.loadActivityHistory();
+
+        expect(history.recentRuns.single.title, 'Wednesday Night Run');
+      },
+    );
+
     test('maps owner run summaries into grouped history', () async {
       final authRepository = FakeRuniacAuthRepository()..emitSignedIn();
       final reader = _FakeActivityHistorySummaryDocumentReader(

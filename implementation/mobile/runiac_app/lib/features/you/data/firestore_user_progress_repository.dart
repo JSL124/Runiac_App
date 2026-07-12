@@ -115,7 +115,7 @@ class FirestoreUserProgressRepository implements UserProgressRepository {
     final progress = UserProgressReadModel(
       userId: uid,
       officialStreakLabel: _streakLabel(data['streakCount']),
-      officialStreakCount: _positiveInteger(data['streakCount']),
+      officialStreakCount: _nonNegativeInteger(data['streakCount']),
       lastStreakRunDate: _stringOrNull(data['lastStreakRunDate']),
       level: _nonNegativeInteger(data['level']),
       levelProgressFraction: _progressFraction(data['levelProgressPercent']),
@@ -153,7 +153,7 @@ class FirestoreUserProgressRepository implements UserProgressRepository {
 
   String _streakLabel(Object? streakCount) {
     if (streakCount is! int || streakCount <= 0) {
-      return '';
+      return '0 days';
     }
     return streakCount == 1 ? '1 day' : '$streakCount days';
   }
@@ -164,10 +164,6 @@ class FirestoreUserProgressRepository implements UserProgressRepository {
 
   String? _stringOrNull(Object? value) {
     return value is String && value.isNotEmpty ? value : null;
-  }
-
-  int? _positiveInteger(Object? value) {
-    return value is int && value > 0 ? value : null;
   }
 
   int _nonNegativeInteger(Object? value) {
