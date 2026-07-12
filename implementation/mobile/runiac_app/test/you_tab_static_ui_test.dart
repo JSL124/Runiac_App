@@ -2103,6 +2103,171 @@ void main() {
     expect(juneMarkers.labels.last, 'JUN');
   });
 
+  test('weekly distance graph keeps April on July 13 and drops it July 20', () {
+    final july13Markers = weeklyDistanceGraphMonthMarkers(
+      DateTime(2026, 7, 13),
+    );
+    expect(july13Markers.labels, ['APR', 'MAY', 'JUN', 'JUL']);
+    expect(july13Markers.weekIndices, [0, 1, 5, 10]);
+
+    final july20Markers = weeklyDistanceGraphMonthMarkers(
+      DateTime(2026, 7, 20),
+    );
+    expect(july20Markers.labels, ['MAY', 'JUN', 'JUL']);
+    expect(july20Markers.weekIndices, [0, 4, 9]);
+  });
+
+  test('weekly distance graph month markers slide naturally all year', () {
+    final scenarios = <DateTime>[
+      for (var month = 1; month <= 12; month += 1)
+        _firstMondayOnOrAfter(DateTime(2026, month, 13)),
+    ];
+
+    for (final today in scenarios) {
+      final markers = weeklyDistanceGraphMonthMarkers(today);
+      final expected = _expectedWeeklyGraphMonthMarkers(today);
+
+      expect(
+        markers.labels,
+        expected.labels,
+        reason: 'labels for ${today.toIso8601String()}',
+      );
+      expect(
+        markers.weekIndices,
+        expected.weekIndices,
+        reason: 'week indices for ${today.toIso8601String()}',
+      );
+      expect(
+        markers.labels.last,
+        _monthAbbreviation(today.month),
+        reason: 'current month remains visible for ${today.toIso8601String()}',
+      );
+    }
+  });
+
+  test(
+    'weekly distance graph removes old months when the window crosses them',
+    () {
+      for (var month = 1; month <= 12; month += 1) {
+        final before = _firstMondayOnOrAfter(DateTime(2026, month, 13));
+        final after = before.add(const Duration(days: 7));
+        final beforeMarkers = weeklyDistanceGraphMonthMarkers(before);
+        final afterMarkers = weeklyDistanceGraphMonthMarkers(after);
+        final expectedAfter = _expectedWeeklyGraphMonthMarkers(after);
+
+        expect(
+          afterMarkers.labels,
+          expectedAfter.labels,
+          reason: 'labels after one week from ${before.toIso8601String()}',
+        );
+        expect(
+          afterMarkers.weekIndices,
+          expectedAfter.weekIndices,
+          reason:
+              'week indices after one week from ${before.toIso8601String()}',
+        );
+
+        final removedLabels = beforeMarkers.labels.where(
+          (label) => !afterMarkers.labels.contains(label),
+        );
+        for (final removed in removedLabels) {
+          expect(
+            expectedAfter.labels,
+            isNot(contains(removed)),
+            reason: '$removed should be gone after crossing the window',
+          );
+        }
+      }
+    },
+  );
+
+  test(
+    'weekly distance graph visible labels never clamp or overlap all year',
+    () {
+      for (var month = 1; month <= 12; month += 1) {
+        final today = _firstMondayOnOrAfter(DateTime(2026, month, 13));
+        final markers = weeklyDistanceGraphMonthMarkers(today);
+        final visibleLabels = visibleMonthLabelPlacementsForGraph(
+          labels: markers.labels,
+          labelWeekIndices: markers.weekIndices,
+          pointCount: 12,
+          chartLeft: 58,
+          chartRight: 378,
+        );
+
+        for (final label in visibleLabels) {
+          expect(
+            label.left,
+            greaterThanOrEqualTo(58),
+            reason: '${label.label} left edge for ${today.toIso8601String()}',
+          );
+          expect(
+            label.right,
+            lessThanOrEqualTo(378),
+            reason: '${label.label} right edge for ${today.toIso8601String()}',
+          );
+          expect(
+            label.centerX,
+            closeTo(
+              58 + 320 * (markers.weekIndices[label.index] + 0.5) / 12,
+              0.001,
+            ),
+            reason:
+                '${label.label} natural center for ${today.toIso8601String()}',
+          );
+        }
+        for (var index = 1; index < visibleLabels.length; index += 1) {
+          expect(
+            visibleLabels[index].left,
+            greaterThanOrEqualTo(visibleLabels[index - 1].right + 4),
+            reason: 'no overlap for ${today.toIso8601String()}',
+          );
+        }
+      }
+    },
+  );
+
+  test(
+    'weekly distance graph hides adjacent month labels instead of shifting',
+    () {
+      final visibleLabels = visibleMonthLabelPlacementsForGraph(
+        labels: const ['APR', 'MAY', 'JUN'],
+        labelWeekIndices: const [4, 5, 8],
+        pointCount: 12,
+        chartLeft: 58,
+        chartRight: 378,
+        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+      );
+
+      expect(visibleLabels.map((label) => label.label), ['APR', 'JUN']);
+      for (var index = 1; index < visibleLabels.length; index += 1) {
+        expect(
+          visibleLabels[index].left,
+          greaterThanOrEqualTo(visibleLabels[index - 1].right + 4),
+        );
+      }
+      expect(visibleLabels.first.centerX, closeTo(58 + 320 * 4.5 / 12, 0.001));
+      expect(visibleLabels.last.centerX, closeTo(58 + 320 * 8.5 / 12, 0.001));
+    },
+  );
+
+  test(
+    'weekly distance graph hides clipped month labels instead of clamping',
+    () {
+      final visibleLabels = visibleMonthLabelPlacementsForGraph(
+        labels: const ['APR', 'MAY', 'JUN', 'JUL'],
+        labelWeekIndices: const [0, 1, 5, 11],
+        pointCount: 12,
+        chartLeft: 72,
+        chartRight: 378,
+      );
+
+      expect(visibleLabels.map((label) => label.label), isNot(contains('APR')));
+      expect(visibleLabels.map((label) => label.label), isNot(contains('JUL')));
+      expect(visibleLabels.map((label) => label.label), contains('MAY'));
+    },
+  );
+
   testWidgets('You progress period buttons update only distance summary', (
     WidgetTester tester,
   ) async {
@@ -4223,4 +4388,62 @@ void main() {
 Color? _calendarDayTextColor(WidgetTester tester, String dayLabel) {
   final text = tester.widget<Text>(find.text(dayLabel));
   return text.style?.color;
+}
+
+DateTime _firstMondayOnOrAfter(DateTime date) {
+  final localDate = DateTime(date.year, date.month, date.day);
+  final daysUntilMonday =
+      (DateTime.monday - localDate.weekday + DateTime.daysPerWeek) %
+      DateTime.daysPerWeek;
+  return localDate.add(Duration(days: daysUntilMonday));
+}
+
+({List<String> labels, List<int> weekIndices}) _expectedWeeklyGraphMonthMarkers(
+  DateTime today,
+) {
+  const weekCount = 12;
+  final currentWeekStart = _startOfTestWeek(today);
+  final firstWeekStart = currentWeekStart.subtract(
+    const Duration(days: 7 * (weekCount - 1)),
+  );
+  final labels = <String>[];
+  final weekIndices = <int>[];
+  int? lastMonthKey;
+  for (var week = 0; week < weekCount; week += 1) {
+    final weekStart = firstWeekStart.add(Duration(days: 7 * week));
+    final markerDate = week == weekCount - 1 ? today : weekStart;
+    final monthKey = markerDate.year * 12 + markerDate.month;
+    if (monthKey == lastMonthKey) {
+      continue;
+    }
+    lastMonthKey = monthKey;
+    labels.add(_monthAbbreviation(markerDate.month));
+    weekIndices.add(week);
+  }
+  return (labels: labels, weekIndices: weekIndices);
+}
+
+DateTime _startOfTestWeek(DateTime date) {
+  final localDate = DateTime(date.year, date.month, date.day);
+  return localDate.subtract(
+    Duration(days: localDate.weekday - DateTime.monday),
+  );
+}
+
+String _monthAbbreviation(int month) {
+  const names = [
+    'JAN',
+    'FEB',
+    'MAR',
+    'APR',
+    'MAY',
+    'JUN',
+    'JUL',
+    'AUG',
+    'SEP',
+    'OCT',
+    'NOV',
+    'DEC',
+  ];
+  return names[month - 1];
 }
