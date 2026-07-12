@@ -68,11 +68,13 @@ class _ActivityCardContent extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          activity.title,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: _cardTitleStyle,
+        SizedBox(
+          height: 19,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(activity.title, maxLines: 1, style: _cardTitleStyle),
+          ),
         ),
         const SizedBox(height: 4),
         Wrap(

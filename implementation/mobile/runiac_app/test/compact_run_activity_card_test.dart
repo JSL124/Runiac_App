@@ -8,6 +8,37 @@ import 'package:runiac_app/features/you/presentation/widgets/activity_route_prev
 import 'package:runiac_app/features/you/presentation/widgets/compact_run_activity_card.dart';
 
 void main() {
+  testWidgets('long generated run title stays fully visible in the card', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 390,
+            child: CompactRunActivityCard(
+              activity: _activity(
+                isTrustedPersistedRoutePreview: false,
+                title: 'Wednesday Afternoon Run',
+              ),
+              onTap: () {},
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final title = tester.widget<Text>(find.text('Wednesday Afternoon Run'));
+    expect(title.overflow, isNot(TextOverflow.ellipsis));
+    expect(
+      find.ancestor(
+        of: find.text('Wednesday Afternoon Run'),
+        matching: find.byType(FittedBox),
+      ),
+      findsOneWidget,
+    );
+  });
+
   testWidgets(
     'trusted persisted route preview requests thumbnail without current completion',
     (WidgetTester tester) async {
@@ -75,9 +106,10 @@ void main() {
 
 RunActivityDisplayModel _activity({
   required bool isTrustedPersistedRoutePreview,
+  String title = 'Persisted route preview run',
 }) {
   final summary = RunSummarySnapshot(
-    title: 'Persisted route preview run',
+    title: title,
     dateLabel: '14/6/26',
     timeLabel: '7:25 AM',
     distanceKm: '3.20',

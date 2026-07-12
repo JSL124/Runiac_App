@@ -344,6 +344,7 @@ class ViewSummaryScreen extends StatelessWidget {
                   title: displayedSummary.title,
                   subtitle: displayedSummary.dateTimeLabel,
                   tooltip: 'Back to cool down',
+                  scaleTitleToFit: true,
                   onBack: () {
                     if (Navigator.of(context).canPop()) {
                       Navigator.of(context).pop();
@@ -353,7 +354,7 @@ class ViewSummaryScreen extends StatelessWidget {
                     color: _rBlue,
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
-                    letterSpacing: -0.3,
+                    letterSpacing: 0,
                     height: 1.15,
                   ),
                   subtitleStyle: const TextStyle(
