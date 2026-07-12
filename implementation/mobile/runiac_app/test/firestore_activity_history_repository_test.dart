@@ -5,6 +5,7 @@ import 'package:runiac_app/features/run/domain/models/cadence_analysis_series.da
 import 'package:runiac_app/features/run/domain/models/elevation_analysis_series.dart';
 import 'package:runiac_app/features/run/domain/models/pace_analysis_series.dart';
 import 'package:runiac_app/features/run/domain/models/run_feed_publish_source.dart';
+import 'package:runiac_app/features/run/domain/services/completed_run_title_formatter.dart';
 import 'package:runiac_app/features/you/data/firestore_activity_history_repository.dart';
 
 import 'support/fake_runiac_auth_repository.dart';
@@ -14,6 +15,7 @@ void main() {
     test(
       'recomputes an incorrectly persisted generated title in local time',
       () async {
+        final endedAt = DateTime.utc(2026, 7, 8, 13);
         final authRepository = FakeRuniacAuthRepository()..emitSignedIn();
         final repository = FirestoreActivityHistoryRepository(
           authRepository: authRepository,
@@ -22,7 +24,7 @@ void main() {
               _runSummaryDocument(
                 id: 'summary-wednesday-night',
                 ownerUid: 'test-auth-user-1',
-                endedAt: DateTime.utc(2026, 7, 8, 13),
+                endedAt: endedAt,
                 distanceMeters: 6470,
                 durationSeconds: 2738,
                 averagePaceSecondsPerKm: 423,
@@ -35,7 +37,10 @@ void main() {
 
         final history = await repository.loadActivityHistory();
 
-        expect(history.recentRuns.single.title, 'Wednesday Night Run');
+        expect(
+          history.recentRuns.single.title,
+          const CompletedRunTitleFormatter().format(completedAt: endedAt),
+        );
       },
     );
 
