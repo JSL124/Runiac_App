@@ -394,3 +394,7 @@ Repository Workflow Record capsule is complete:
 Workflow Memory Drift Check is detection-only and WARN-only local Governance CI support. It does not approve, close, refresh, or update records automatically.
 
 `docs/meta` remains non-operational and cannot override `CURRENT.md`, active roadmap capsules, ADRs, setup gates, validated snapshots, or active `AGENTS.md` instructions.
+
+## Concurrent Run Completion Reliability Routing
+
+- Concurrent capsule: `implementation/roadmap/capsules/run-completion-authoritative-result-recovery.md`. The user explicitly routed this IMPLEMENTATION_MODE reliability fix on 2026-07-13 Asia/Singapore. It preserves local-first completion durability and stable retry identity while requiring the injected repository's trusted `completeRun` result to drive XP, level, streak, canonical validated activity identity, guided/skip Cool-down propagation, and Feed eligibility. The current active capsule remains `cadence-capture-reliability-recovery`; this append-only route does not supersede or modify cadence scope/evidence. Firebase Emulator Suite and iOS Simulator QA must use synthetic data and report limitations truthfully. No automatic commit, push, deploy, Firebase initialization, raw GPS expansion, or client-side progression calculation is authorized.
