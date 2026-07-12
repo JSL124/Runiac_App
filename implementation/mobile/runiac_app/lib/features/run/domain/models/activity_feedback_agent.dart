@@ -5,10 +5,12 @@ class ActivityFeedbackRequest {
   const ActivityFeedbackRequest({
     required this.summary,
     required this.analysis,
+    this.cacheIdentity,
   });
 
   final RunSummarySnapshot summary;
   final AdvancedAnalysisSnapshot analysis;
+  final String? cacheIdentity;
 }
 
 class ActivityFeedbackSections {

@@ -1,6 +1,10 @@
 import { Timestamp, type Firestore } from "firebase-admin/firestore";
 
 export const ACTIVITY_FEEDBACK_DAILY_LIMIT = 5;
+export type ActivityFeedbackQuotaPolicy = "enforced" | "unlimited-development";
+
+export const TEMPORARY_ACTIVITY_FEEDBACK_QUOTA_POLICY: ActivityFeedbackQuotaPolicy =
+  "unlimited-development";
 const SINGAPORE_UTC_OFFSET_HOURS = 8;
 
 export type ActivityFeedbackQuotaReservation =
@@ -36,7 +40,12 @@ export async function reserveActivityFeedbackQuota(input: {
   readonly firestore: Firestore;
   readonly uid: string;
   readonly now: Date;
+  readonly policy?: ActivityFeedbackQuotaPolicy;
 }): Promise<ActivityFeedbackQuotaReservation> {
+  const policy = input.policy ?? TEMPORARY_ACTIVITY_FEEDBACK_QUOTA_POLICY;
+  if (policy === "unlimited-development") {
+    return { kind: "reserved" };
+  }
   const dayKey = activityFeedbackSingaporeDayKey(input.now);
   const reference = input.firestore.doc(
     `agentUsage/${input.uid}/activityFeedbackDaily/${dayKey}`,

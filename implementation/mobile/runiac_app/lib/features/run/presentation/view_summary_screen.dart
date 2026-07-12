@@ -87,6 +87,7 @@ class ViewSummaryScreen extends StatelessWidget {
     this.historyArtifactResolver,
     this.feedPublishSource,
     this.activityFeedbackAgent,
+    this.activityFeedbackCacheIdentity,
   });
 
   final RunSummarySnapshot summary;
@@ -100,6 +101,7 @@ class ViewSummaryScreen extends StatelessWidget {
   final HistoryArtifactResolver? historyArtifactResolver;
   final RunFeedPublishSource? feedPublishSource;
   final ActivityFeedbackAgent? activityFeedbackAgent;
+  final String? activityFeedbackCacheIdentity;
 
   void _showSoonMessage(BuildContext context, String message) {
     ScaffoldMessenger.of(context)
@@ -385,6 +387,8 @@ class ViewSummaryScreen extends StatelessWidget {
                                           ActivityFeedbackRequest(
                                             summary: displayedSummary,
                                             analysis: analysisSnapshot,
+                                            cacheIdentity:
+                                                _resolvedActivityFeedbackCacheIdentity,
                                           ),
                                         ),
                                 onClose: () => Navigator.of(
@@ -517,6 +521,20 @@ class ViewSummaryScreen extends StatelessWidget {
         },
       ),
     );
+  }
+
+  String? get _resolvedActivityFeedbackCacheIdentity {
+    final result = completionResult;
+    for (final identity in <String?>[
+      activityFeedbackCacheIdentity,
+      result?.activityId,
+      result?.clientRunSessionId,
+      result?.summaryId,
+    ]) {
+      final normalized = identity?.trim();
+      if (normalized != null && normalized.isNotEmpty) return normalized;
+    }
+    return null;
   }
 }
 

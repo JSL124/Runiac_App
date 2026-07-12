@@ -422,11 +422,20 @@ class _YouTabState extends State<YouTab> {
           completionResult: run.completionResult,
           summary: run.summary,
           feedPublishSource: run.feedPublishSource,
+          activityFeedbackCacheIdentity: _activityFeedbackCacheIdentityFor(run),
           showXpUpdateAction: false,
           showLowDataSaveAction: false,
         ),
       ),
     );
+  }
+
+  String? _activityFeedbackCacheIdentityFor(RunActivityDisplayModel run) {
+    for (final identity in <String?>[run.activityId, run.clientRunSessionId]) {
+      final normalized = identity?.trim();
+      if (normalized != null && normalized.isNotEmpty) return normalized;
+    }
+    return null;
   }
 
   void _handleActivityHistoryChanged() {

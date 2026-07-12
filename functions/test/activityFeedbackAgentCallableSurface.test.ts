@@ -10,7 +10,10 @@ import type {
   ActivityFeedbackModelProvider,
   ActivityFeedbackProviderRequest,
 } from "../src/agent/activityFeedbackModel.js";
-import { activityFeedbackSingaporeDayKey } from "../src/agent/activityFeedbackQuota.js";
+import {
+  activityFeedbackSingaporeDayKey,
+  reserveActivityFeedbackQuota,
+} from "../src/agent/activityFeedbackQuota.js";
 
 const PROJECT_ID = "runiac-functions-test";
 const USER_UID = "activity-feedback-runner";
@@ -72,6 +75,69 @@ describe("activityFeedbackAgent callable emulator surface", { skip: process.env[
     assert.equal(first.source, "unavailable");
     assert.equal(first.delivery, "fallback");
     assert.deepEqual(second.sections, first.sections);
+    assert.equal(document.exists, false);
+  });
+
+  it("keeps repeated development calls unlimited without writing quota state", async () => {
+    // Given
+    const provider = new CountingProvider(safeOutput());
+    const handler = injectableHandler(provider);
+
+    // When
+    const results = [];
+    for (let attempt = 0; attempt < 6; attempt += 1) {
+      results.push(await handler(authenticatedRequest(validRequest())));
+    }
+
+    // Then
+    assert.equal(results.every((result) => result.delivery === "generated"), true);
+    assert.equal(provider.calls, 6);
+    assert.equal((await dailyDocument(BASE_NOW)).exists, false);
+  });
+
+  it("does not write quota state across the Asia Singapore midnight boundary", async () => {
+    // Given
+    const beforeMidnight = new Date("2026-07-10T15:59:59.000Z");
+    const afterMidnight = new Date("2026-07-10T16:00:00.000Z");
+    const provider = new CountingProvider(safeOutput());
+
+    // When
+    await injectableHandler(provider, beforeMidnight)(authenticatedRequest(validRequest()));
+    await injectableHandler(provider, afterMidnight)(authenticatedRequest(validRequest()));
+
+    // Then
+    assert.equal(activityFeedbackSingaporeDayKey(beforeMidnight), "20260710");
+    assert.equal(activityFeedbackSingaporeDayKey(afterMidnight), "20260711");
+    assert.equal((await dailyDocument(beforeMidnight)).exists, false);
+    assert.equal((await dailyDocument(afterMidnight)).exists, false);
+    assert.equal(provider.calls, 2);
+  });
+
+  it("retains the enforced five-attempt quota for pre-release restoration", async () => {
+    // Given
+    const reservations = [];
+
+    // When
+    for (let attempt = 0; attempt < 6; attempt += 1) {
+      reservations.push(await reserveActivityFeedbackQuota({
+        firestore,
+        uid: USER_UID,
+        now: BASE_NOW,
+        policy: "enforced",
+      }));
+    }
+
+    // Then
+    assert.equal(
+      reservations.slice(0, 5).every((reservation) => reservation.kind === "reserved"),
+      true,
+    );
+    assert.deepEqual(reservations[5], {
+      kind: "quota",
+      retryAfterDate: "2026-07-11",
+    });
+    const document = await dailyDocument(BASE_NOW);
+    assert.equal(document.get("attemptCount"), 5);
     assert.deepEqual(Object.keys(document.data() ?? {}).sort(), [
       "attemptCount",
       "createdAt",
@@ -85,42 +151,28 @@ describe("activityFeedbackAgent callable emulator surface", { skip: process.env[
     }
   });
 
-  it("permits five attempts per Singapore day and returns quota on the sixth", async () => {
-    // Given
-    const provider = new CountingProvider(safeOutput());
-    const handler = injectableHandler(provider);
-
-    // When
-    const results = [];
-    for (let attempt = 0; attempt < 6; attempt += 1) {
-      results.push(await handler(authenticatedRequest(validRequest())));
-    }
-
-    // Then
-    assert.equal(results.slice(0, 5).every((result) => result.delivery === "generated"), true);
-    assert.deepEqual(results[5], {
-      source: "quota",
-      delivery: "quota",
-      sections: results[5]?.sections,
-      retryAfterDate: "2026-07-11",
-    });
-    assert.equal(provider.calls, 5);
-    assert.equal((await dailyDocument(BASE_NOW)).get("attemptCount"), 5);
-  });
-
-  it("uses yyyyMMdd documents and resets at the Asia Singapore midnight boundary", async () => {
+  it("retains independent enforced quota state across Singapore midnight", async () => {
     // Given
     const beforeMidnight = new Date("2026-07-10T15:59:59.000Z");
     const afterMidnight = new Date("2026-07-10T16:00:00.000Z");
-    const provider = new CountingProvider(safeOutput());
 
     // When
-    await injectableHandler(provider, beforeMidnight)(authenticatedRequest(validRequest()));
-    await injectableHandler(provider, afterMidnight)(authenticatedRequest(validRequest()));
+    const before = await reserveActivityFeedbackQuota({
+      firestore,
+      uid: USER_UID,
+      now: beforeMidnight,
+      policy: "enforced",
+    });
+    const after = await reserveActivityFeedbackQuota({
+      firestore,
+      uid: USER_UID,
+      now: afterMidnight,
+      policy: "enforced",
+    });
 
     // Then
-    assert.equal(activityFeedbackSingaporeDayKey(beforeMidnight), "20260710");
-    assert.equal(activityFeedbackSingaporeDayKey(afterMidnight), "20260711");
+    assert.deepEqual(before, { kind: "reserved" });
+    assert.deepEqual(after, { kind: "reserved" });
     assert.equal((await dailyDocument(beforeMidnight)).get("attemptCount"), 1);
     assert.equal((await dailyDocument(afterMidnight)).get("attemptCount"), 1);
   });
