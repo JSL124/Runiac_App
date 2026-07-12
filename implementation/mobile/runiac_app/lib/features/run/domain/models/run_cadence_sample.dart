@@ -1,3 +1,5 @@
+import 'cadence_analysis_series.dart';
+
 enum CadenceSource { phoneMotion, wearable, importedWorkout }
 
 enum CadenceConfidence { high, estimated, low, unavailable }
@@ -18,7 +20,7 @@ class RunCadenceSample {
   bool get isUsable {
     return stepsPerMinute.isFinite &&
         stepsPerMinute >= 40 &&
-        stepsPerMinute <= 300 &&
+        stepsPerMinute <= maxCadenceAnalysisSpm &&
         confidence != CadenceConfidence.unavailable;
   }
 }

@@ -439,7 +439,9 @@ class RunTrackingController extends ChangeNotifier {
       scheduledWorkoutId: scheduledWorkoutId,
       routeSnapshot: RunRouteSnapshot.fromMapViewState(mapViewState),
       paceGraphSamples: _trackingSession?.paceGraphSamples() ?? const [],
-      cadenceAnalysisSeries: _trackingSession?.cadenceAnalysisSeries(),
+      cadenceAnalysisSeries: _trackingSession?.cadenceAnalysisSeries(
+        completedAt: finishedAt,
+      ),
       elevationAnalysisSeries: _trackingSession?.elevationAnalysisSeries(),
       elevationUnavailableReason:
           _trackingSession?.elevationUnavailableReason() ??

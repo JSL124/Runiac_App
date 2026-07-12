@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 
 import '../domain/models/run_cadence_diagnostics.dart';
 import '../domain/models/run_cadence_sample.dart';
+import '../domain/models/cadence_analysis_series.dart';
 import '../domain/repositories/run_cadence_provider.dart';
 
 class PhoneMotionRunCadenceProvider implements RunCadenceProvider {
@@ -164,24 +165,45 @@ class PhoneMotionRunCadenceProvider implements RunCadenceProvider {
       return null;
     }
     if (event['type'] == 'diagnostic') {
+      if ((event.containsKey('filteredCadenceCount') &&
+              _readNonNegativeInt(event['filteredCadenceCount']) == null) ||
+          (event.containsKey('nativeErrorCount') &&
+              _readNonNegativeInt(event['nativeErrorCount']) == null)) {
+        _recordMalformedEvent();
+        return null;
+      }
       _emitDiagnostics(_diagnosticsFromEvent(event));
       return null;
     }
+    if (event['type'] != 'sample') {
+      _recordMalformedEvent();
+      return null;
+    }
     final cadence = event['stepsPerMinute'];
-    final recordedAtMillis = event['recordedAtMillis'];
-    if (cadence is! num || recordedAtMillis is! num || !cadence.isFinite) {
+    final recordedAtMillis = _readNativeTimestampMillis(
+      event['recordedAtMillis'],
+    );
+    final acceptedCadenceCount = event.containsKey('acceptedCadenceCount')
+        ? _readNonNegativeInt(event['acceptedCadenceCount'])
+        : null;
+    if (cadence is! num ||
+        !cadence.isFinite ||
+        cadence < 40 ||
+        cadence > maxCadenceAnalysisSpm ||
+        recordedAtMillis == null ||
+        (event.containsKey('acceptedCadenceCount') &&
+            acceptedCadenceCount == null)) {
       _recordMalformedEvent();
       return null;
     }
     final recordedAt = DateTime.fromMillisecondsSinceEpoch(
-      recordedAtMillis.round(),
+      recordedAtMillis,
       isUtc: true,
     );
     _emitDiagnostics(
       _diagnostics.copyWith(
         acceptedSampleCount:
-            _readInt(event['acceptedCadenceCount']) ??
-            _diagnostics.acceptedSampleCount + 1,
+            acceptedCadenceCount ?? _diagnostics.acceptedSampleCount + 1,
         latestReason: RunCadenceDiagnosticReason.acceptedSample,
         updatedAt: recordedAt,
       ),
@@ -205,8 +227,8 @@ class PhoneMotionRunCadenceProvider implements RunCadenceProvider {
 
   RunCadenceDiagnostics _diagnosticsFromEvent(Map event) {
     final reason = _diagnosticReasonFrom(event['reason']);
-    final filteredCount = _readInt(event['filteredCadenceCount']);
-    final nativeErrorCount = _readInt(event['nativeErrorCount']);
+    final filteredCount = _readNonNegativeInt(event['filteredCadenceCount']);
+    final nativeErrorCount = _readNonNegativeInt(event['nativeErrorCount']);
     return _diagnostics.copyWith(
       latestReason: reason,
       availabilityStatus: _availabilityStatusFrom(event['availabilityStatus']),
@@ -303,6 +325,7 @@ class PhoneMotionRunCadenceProvider implements RunCadenceProvider {
       'permissionDenied' => RunCadenceDiagnosticReason.permissionDenied,
       'permissionRestricted' => RunCadenceDiagnosticReason.permissionRestricted,
       'permissionUnknown' => RunCadenceDiagnosticReason.permissionUnknown,
+      'streamStarted' => RunCadenceDiagnosticReason.streamStarted,
       'nativeError' => RunCadenceDiagnosticReason.nativeError,
       'nilData' => RunCadenceDiagnosticReason.nilData,
       'filteredOutOfRange' => RunCadenceDiagnosticReason.filteredOutOfRange,
@@ -316,6 +339,25 @@ class PhoneMotionRunCadenceProvider implements RunCadenceProvider {
       return value.round();
     }
     return null;
+  }
+
+  int? _readNonNegativeInt(Object? value) {
+    final parsed = _readInt(value);
+    return parsed != null && parsed >= 0 ? parsed : null;
+  }
+
+  int? _readNativeTimestampMillis(Object? value) {
+    if (value is! num || !value.isFinite) {
+      return null;
+    }
+    const maxDateTimeMilliseconds = 8640000000000000;
+    final rounded = value.round();
+    if (value.toDouble() != rounded.toDouble() ||
+        rounded < -maxDateTimeMilliseconds ||
+        rounded > maxDateTimeMilliseconds) {
+      return null;
+    }
+    return rounded;
   }
 
   String? _readString(Object? value) {

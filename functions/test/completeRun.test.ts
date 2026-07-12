@@ -1279,7 +1279,7 @@ describe("completeRun callable boundary", () => {
             cadenceAnalysisSeries: {
               ...validCadenceAnalysisSeries(),
               samples: [
-                { elapsedSeconds: 30, cadenceSpm: 301, status: "accepted" },
+                { elapsedSeconds: 30, cadenceSpm: 241, status: "accepted" },
               ],
             },
           },
@@ -1300,9 +1300,68 @@ describe("completeRun callable boundary", () => {
       "invalid-argument",
     );
 
+    for (const [clientRunSessionId, samples] of [
+      [
+        "cadence-malformed-duplicate-elapsed",
+        [
+          { elapsedSeconds: 30, cadenceSpm: 120, status: "accepted" },
+          { elapsedSeconds: 30, cadenceSpm: 122, status: "accepted" },
+        ],
+      ],
+      [
+        "cadence-malformed-decreasing-elapsed",
+        [
+          { elapsedSeconds: 60, cadenceSpm: 120, status: "accepted" },
+          { elapsedSeconds: 30, cadenceSpm: 122, status: "accepted" },
+        ],
+      ],
+      [
+        "cadence-malformed-beyond-duration",
+        [{ elapsedSeconds: 1501, cadenceSpm: 120, status: "accepted" }],
+      ],
+    ] as const) {
+      await expectRejectsCode(
+        () =>
+          callCompleteRun({
+            auth: { uid: USER_UID },
+            data: {
+              ...validPayload(),
+              clientRunSessionId,
+              cadenceAnalysisSeries: {
+                ...validCadenceAnalysisSeries(),
+                samples,
+              },
+            },
+          }),
+        "invalid-argument",
+      );
+    }
+
     assert.equal(await countDocuments("activities"), 0);
     assert.equal(await countDocuments("runSummaries"), 0);
     assert.equal(await countDocuments("progressionEvents"), 0);
+  });
+
+  it("accepts cadence samples at the shared 40 through 240 spm boundaries", async () => {
+    const boundarySeries = {
+      source: "phoneSensorEstimated",
+      confidence: "low",
+      samples: [
+        { elapsedSeconds: 30, cadenceSpm: 40, status: "accepted" },
+        { elapsedSeconds: 60, cadenceSpm: 240, status: "accepted" },
+      ],
+    };
+    const result = await callCompleteRun({
+      auth: { uid: USER_UID },
+      data: {
+        ...validPayload(),
+        clientRunSessionId: "cadence-shared-boundary-contract",
+        cadenceAnalysisSeries: boundarySeries,
+      },
+    });
+
+    const summary = await firestore.doc(`runSummaries/${result.summaryId}`).get();
+    assert.deepEqual(summary.get("cadenceAnalysisSeries"), boundarySeries);
   });
 
   it("is idempotent for duplicate clientRunSessionId values", async () => {

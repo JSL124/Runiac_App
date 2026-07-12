@@ -1,5 +1,5 @@
 const minCadenceAnalysisSpm = 40;
-const maxCadenceAnalysisSpm = 300;
+const maxCadenceAnalysisSpm = 240;
 const defaultMinimumCadenceAnalysisSamples = 3;
 
 enum CadenceAnalysisSource {

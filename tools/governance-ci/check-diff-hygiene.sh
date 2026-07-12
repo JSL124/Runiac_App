@@ -25,6 +25,21 @@ is_run_duration_fields_capsule_active() {
   grep -Eq '^- Current active capsule: `implementation/roadmap/capsules/run-duration-fields\.md`' implementation/roadmap/CURRENT.md
 }
 
+is_cadence_capture_reliability_capsule_active() {
+  grep -Eq '^- Current active capsule: `implementation/roadmap/capsules/cadence-capture-reliability-recovery\.md`' implementation/roadmap/CURRENT.md
+}
+
+is_cadence_capture_reliability_functions_path() {
+  case "$1" in
+    functions/src/run/validateCadenceAnalysisSeries.ts|functions/src/run/validateRunPayload.ts|functions/test/completeRun.test.ts)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 is_adaptive_character_guidance_capsule_active() {
   grep -Eq '^- Current active capsule( in this isolated worktree)?: `implementation/roadmap/capsules/adaptive-character-guidance\.md`' implementation/roadmap/CURRENT.md
 }
@@ -155,6 +170,15 @@ is_allowed_path() {
   fi
 
   case "$1" in
+    implementation/roadmap/capsules/run-completion-authoritative-result-recovery.md)
+      return 0
+      ;;
+    implementation/roadmap/capsules/cadence-capture-reliability-recovery.md)
+      if is_cadence_capture_reliability_capsule_active; then
+        return 0
+      fi
+      return 1
+      ;;
     # Approved: non-operational historical archive (Phase A)
     docs/meta/.aiignore|docs/meta/README.md|docs/meta/RETROSPECTIVE_POLICY.md|docs/meta/RUNIAC_REPOSITORY_EVOLUTION_REPORT.md|tools/governance-ci/check-historical-isolation.sh)
       return 0
@@ -195,6 +219,9 @@ is_allowed_path() {
         return 0
       fi
       if is_run_duration_fields_functions_path "$1" && is_run_duration_fields_capsule_active; then
+        return 0
+      fi
+      if is_cadence_capture_reliability_functions_path "$1" && is_cadence_capture_reliability_capsule_active; then
         return 0
       fi
       if is_adaptive_character_guidance_functions_path "$1" && is_adaptive_character_guidance_capsule_active; then
@@ -270,6 +297,9 @@ is_forbidden_path() {
         return 1
       fi
       if is_run_duration_fields_functions_path "$1" && is_run_duration_fields_capsule_active; then
+        return 1
+      fi
+      if is_cadence_capture_reliability_functions_path "$1" && is_cadence_capture_reliability_capsule_active; then
         return 1
       fi
       if is_adaptive_character_guidance_functions_path "$1" && is_adaptive_character_guidance_capsule_active; then

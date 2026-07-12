@@ -127,7 +127,10 @@ export function parseRunCompletionPayload(data: unknown): RawRunCompletionPayloa
   const scheduledWorkoutId = readOptionalString(data, "scheduledWorkoutId");
   const deviceRecordedAt = readOptionalIsoDateString(data, "deviceRecordedAt");
   const clientAppVersion = readOptionalString(data, "clientAppVersion");
-  const cadenceAnalysisSeries = readOptionalCadenceAnalysisSeries(data);
+  const cadenceAnalysisSeries = readOptionalCadenceAnalysisSeries(
+    data,
+    durationSeconds,
+  );
   const routePreview = readOptionalRoutePreview(data);
   const paceAnalysisSeries = readOptionalPaceAnalysisSeries(data, {
     durationSeconds,

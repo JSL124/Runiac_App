@@ -32,10 +32,10 @@ internal class RuniacStepCadenceEstimator {
     }
 
     companion object {
-        private const val CADENCE_WINDOW_NANOS = 15_000_000_000L
+        private const val CADENCE_WINDOW_NANOS = 5_000_000_000L
         private const val NANOS_PER_MINUTE = 60_000_000_000.0
-        private const val MINIMUM_WINDOW_STEPS = 6
-        internal const val MINIMUM_CADENCE_SPM = 90
-        internal const val MAXIMUM_CADENCE_SPM = 220
+        private const val MINIMUM_WINDOW_STEPS = 3
+        internal const val MINIMUM_CADENCE_SPM = 40
+        internal const val MAXIMUM_CADENCE_SPM = 240
     }
 }
