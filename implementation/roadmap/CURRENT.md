@@ -4,13 +4,13 @@
 
 - Current track: Track A - Governance and implementation readiness
 - Current phase: `implementation/roadmap/phases/phase-01-governance-ci.md`
-- Current active capsule in this isolated worktree: `implementation/roadmap/capsules/activity-summary-agent-feedback.md`. This explicitly routed Run UI + Cloud Functions capsule allows an Activity Summary-only AI/sparkle feedback button, selected-character blocking feedback overlay, derived-metrics-only payloads from Run Summary and Advanced Analysis snapshots, and an authenticated server-side activity feedback callable/OpenAI pipeline. It does not close, supersede, or mutate the prior `activity-history-feed-upload` capsule, the prior `feed-friends-emulator-backend` package, the open `adaptive-character-guidance` capsule, or unrelated concurrent Leaderboard/You/design/test work.
+- Current active capsule in this isolated worktree: `implementation/roadmap/capsules/activity-history-durable-preview-recovery.md`. The user explicitly routed this production bug fix after Activity History and Activity Summary lost thumbnails and rich run analysis after restart/reinstall. It allows bounded derived analysis plus a privacy-masked route preview in owner-scoped `runSummaries`, Firestore rehydration, trusted thumbnail regeneration, and focused security/QA work. The previously implemented `activity-summary-agent-feedback` capsule remains separate and is not modified by this recovery capsule.
 - Most recent pushed / hosted-CI-verified completed capsule: `goal-plan-detail-header-timeline-alignment` implemented, pushed at `7798f058ae1b272e8eca6dd8a31cba4490c8faa1 feat(you): refine goal plan detail week list`, and verified by hosted Governance CI #65 PASS for run ID `27160664756`.
 - Most recent locally closed implementation milestone: `personalized-adaptive-estimate-learning` completed locally after RED/GREEN Functions and Firestore rules evidence on 2026-07-07 Asia/Singapore.
-- Current status: Activity Summary Agent Feedback implementation is `In progress` after the user explicitly requested the current worktree be committed clean and the feature work continue on 2026-07-12 Asia/Singapore. Prior Activity History Feed upload work is preserved as a separate routed capsule and is not closed by this switch. Prior Feed/Friends implementation package B remains `Ready for user screen QA` and `Ready for manual commit` after committed PDD package A; production connections/deploy, secrets, and unrelated staging remain blocked.
+- Current status: Activity History durable preview recovery is `In progress` after the user required same-account run data and thumbnails to survive app deletion/reinstall on 2026-07-12 Asia/Singapore. The Activity Summary Agent Feedback implementation remains committed separately; prior Feed/Friends and unrelated work remain untouched.
 - Current state: worktree baseline was cleaned at `c85eb1f7 fix(shell): refresh progress on day rollover` before this capsule routing. The open adaptive-character capsule and concurrent user-owned Leaderboard/You/design/test changes remain unrelated and untouched.
 - Current governance decision record: ADR-003 classifies this work as Backend Guarded Lane; ADR-002 requires Emulator First. Project `demo-runiac-feed` and explicit Auth/Firestore/Functions/Storage host guards are mandatory before any fixture mutation.
-- Current active milestone in this isolated worktree: `activity-summary-agent-feedback`. Phase 02 remains unselected.
+- Current active milestone in this isolated worktree: `activity-history-durable-preview-recovery`. Phase 02 remains unselected.
 
 Run Tracking M4-A/M4-B/M4-C1/M4-C2 reconciliation:
 
@@ -25,7 +25,7 @@ Run Tracking M4-A/M4-B/M4-C1/M4-C2 reconciliation:
 - Missing-token placeholder fallback remains available and Android no-token fallback QA passed.
 - Token-backed Mapbox demo readiness is pending real demo-token QA.
 - Mapbox styles, tiles, resource requests, and SDK telemetry/network boundary are documented in the mobile app README.
-- Raw route/GPS samples remain local-only.
+- Raw route/GPS samples remain local-only; only a 3-decimal privacy-masked route preview without timestamps, altitude, accuracy, or speed may be persisted for same-account history thumbnail recovery.
 - `completeRun` persists validated activity and run summary documents, backend-owned streak progression audit/state, duration-field split values, and eligible planned-workout progress; route/GPS trace persistence remains out of scope.
 - Android permissions are foreground-only.
 - iOS permission is when-in-use only.
