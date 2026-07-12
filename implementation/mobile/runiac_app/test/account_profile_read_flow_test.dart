@@ -171,6 +171,133 @@ void main() {
   );
 
   testWidgets(
+    'Account profile shows backend progression division even when leaderboard is unranked',
+    (tester) async {
+      await tester.pumpWidget(
+        RuniacApp(
+          showSplash: false,
+          enableForegroundGps: false,
+          profileRepository: _SingleProfileRepository(_savedProfile()),
+          leaderboardRepository: _SingleLeaderboardRepository(
+            LeaderboardReadModel(
+              status: LeaderboardReadStatus.unranked,
+              regionLabel: 'Queenstown, Singapore',
+              divisionKey: '',
+              divisionLabel: 'Unranked',
+              currentRunnerRankLabel: '',
+              entries: const [],
+            ),
+          ),
+          userProgressRepository: const _SingleUserProgressRepository(
+            UserProgressReadModel(
+              userId: 'test-auth-user-1',
+              officialStreakLabel: '',
+              level: 1,
+              levelProgressFraction: 0.5,
+              divisionKey: 'tier_01',
+              divisionLabel: 'Iron League',
+              totalXp: 50,
+              nextLevelXp: 100,
+              xpToNextLevel: 50,
+              levelLabel: 'Level 1',
+              totalXpLabel: '50 XP',
+              weeklyXpLabel: '',
+              monthlyXpLabel: '50 XP',
+              weeklyDistanceLabel: '',
+              goalProgressLabel: '',
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.bySemanticsLabel('Profile'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Lv.1'), findsNWidgets(2));
+      expect(find.text('50 / 100 XP'), findsOneWidget);
+      expect(
+        tester
+            .widget<RuniacLevelProfileBadge>(
+              find.byKey(const ValueKey('account-profile-level-badge')),
+            )
+            .progressFraction,
+        0.5,
+      );
+      expect(
+        find.byKey(const ValueKey('account-division-badge-tier_01')),
+        findsOneWidget,
+      );
+      expect(find.bySemanticsLabel('Iron League division'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('account-division-badge-unranked')),
+        findsNothing,
+      );
+    },
+  );
+
+  for (final tier in <(int, String, String)>[
+    (1, 'tier_01', 'Iron League'),
+    (11, 'tier_02', 'Bronze League'),
+    (21, 'tier_03', 'Silver League'),
+    (31, 'tier_04', 'Gold League'),
+    (41, 'tier_05', 'Platinum League'),
+    (51, 'tier_06', 'Emerald League'),
+    (61, 'tier_07', 'Diamond League'),
+    (71, 'tier_08', 'Master League'),
+    (81, 'tier_09', 'Grandmaster League'),
+    (100, 'tier_10', 'Challenger League'),
+  ]) {
+    testWidgets(
+      'Account profile renders backend progression badge ${tier.$2} at level ${tier.$1}',
+      (tester) async {
+        await tester.pumpWidget(
+          RuniacApp(
+            showSplash: false,
+            enableForegroundGps: false,
+            profileRepository: _SingleProfileRepository(_savedProfile()),
+            leaderboardRepository: _SingleLeaderboardRepository(
+              LeaderboardReadModel(
+                status: LeaderboardReadStatus.unranked,
+                regionLabel: 'Queenstown, Singapore',
+                divisionKey: '',
+                divisionLabel: 'Unranked',
+                currentRunnerRankLabel: '',
+                entries: const [],
+              ),
+            ),
+            userProgressRepository: _SingleUserProgressRepository(
+              UserProgressReadModel(
+                userId: 'test-auth-user-1',
+                officialStreakLabel: '',
+                level: tier.$1,
+                levelProgressFraction: 0.25,
+                divisionKey: tier.$2,
+                divisionLabel: tier.$3,
+                levelLabel: 'Level ${tier.$1}',
+                totalXpLabel: '${tier.$1 * 100} XP',
+                weeklyXpLabel: '',
+                monthlyXpLabel: '${tier.$1 * 100} XP',
+                weeklyDistanceLabel: '',
+                goalProgressLabel: '',
+              ),
+            ),
+          ),
+        );
+
+        await tester.tap(find.bySemanticsLabel('Profile'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Lv.${tier.$1}'), findsNWidgets(2));
+        expect(
+          find.byKey(ValueKey('account-division-badge-${tier.$2}')),
+          findsOneWidget,
+        );
+        expect(find.bySemanticsLabel('${tier.$3} division'), findsOneWidget);
+      },
+    );
+  }
+
+  testWidgets(
     'Account profile level-up gauge reports max level from the backend',
     (tester) async {
       await tester.pumpWidget(
@@ -448,7 +575,8 @@ void main() {
             .coachNotes,
         isNotEmpty,
       );
-      expect(profileRepository.loadCount, 2);
+      // Initial shell/Home profile reads plus Account reload after saving.
+      expect(profileRepository.loadCount, 4);
       expect(find.text('Account'), findsOneWidget);
       expect(find.text('Edit profile'), findsOneWidget);
       expect(find.text('4 sessions / week'), findsOneWidget);
@@ -546,7 +674,8 @@ void main() {
     expect(find.text('Jess'), findsOneWidget);
     expect(find.text('Maya'), findsNothing);
     expect(find.text('Orchard, Singapore'), findsOneWidget);
-    expect(profileRepository.loadCount, 2);
+    // Initial shell/Home profile reads plus Account reload after saving.
+    expect(profileRepository.loadCount, 4);
   });
 
   testWidgets('Edit profile blocks duplicate nickname before saving', (

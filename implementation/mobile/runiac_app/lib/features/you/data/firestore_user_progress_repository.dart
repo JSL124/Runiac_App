@@ -122,6 +122,8 @@ class FirestoreUserProgressRepository implements UserProgressRepository {
       totalXp: _nonNegativeIntegerOrNull(data['totalXp']),
       nextLevelXp: _nonNegativeIntegerOrNull(data['nextLevelXp']),
       xpToNextLevel: _nonNegativeIntegerOrNull(data['xpToNextLevel']),
+      divisionKey: _string(data['divisionKey']),
+      divisionLabel: _string(data['divisionLabel']),
       isMaxLevel:
           data.containsKey('xpToNextLevel') && data['xpToNextLevel'] == null,
       levelLabel: _string(data['levelLabel']),

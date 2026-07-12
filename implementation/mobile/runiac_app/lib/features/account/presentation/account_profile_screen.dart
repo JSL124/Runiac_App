@@ -280,8 +280,8 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
           : profile.nickname,
       avatarInitials: profile.avatarInitials,
       regionLabel: profile.locationLabel,
-      divisionKey: _accountDivisionKey(leaderboard),
-      divisionLabel: _accountDivisionLabel(leaderboard),
+      divisionKey: _accountDivisionKey(progress, leaderboard),
+      divisionLabel: _accountDivisionLabel(progress, leaderboard),
       previewLevelBadge:
           progress?.levelBadgeLabel ??
           (profile.previewLevelBadge.isEmpty
@@ -323,8 +323,8 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
       displayName: fallback.displayName,
       avatarInitials: fallback.avatarInitials,
       regionLabel: fallback.regionLabel,
-      divisionKey: _accountDivisionKey(leaderboard),
-      divisionLabel: _accountDivisionLabel(leaderboard),
+      divisionKey: _accountDivisionKey(progress, leaderboard),
+      divisionLabel: _accountDivisionLabel(progress, leaderboard),
       previewLevelBadge:
           progress?.levelBadgeLabel ?? fallback.previewLevelBadge,
       levelProgressFraction: progress?.levelProgressFraction ?? 0,
@@ -392,7 +392,14 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
     return '${value < 0 ? '-' : ''}$buffer';
   }
 
-  String _accountDivisionKey(LeaderboardReadModel? leaderboard) {
+  String _accountDivisionKey(
+    UserProgressReadModel? progress,
+    LeaderboardReadModel? leaderboard,
+  ) {
+    final progressDivisionKey = progress?.divisionKey.trim() ?? '';
+    if (progressDivisionKey.isNotEmpty) {
+      return progressDivisionKey;
+    }
     if (leaderboard == null ||
         leaderboard.status == LeaderboardReadStatus.unranked) {
       return '';
@@ -400,7 +407,15 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
     return leaderboard.divisionKey;
   }
 
-  String _accountDivisionLabel(LeaderboardReadModel? leaderboard) {
+  String _accountDivisionLabel(
+    UserProgressReadModel? progress,
+    LeaderboardReadModel? leaderboard,
+  ) {
+    final progressDivisionKey = progress?.divisionKey.trim() ?? '';
+    final progressDivisionLabel = progress?.divisionLabel.trim() ?? '';
+    if (progressDivisionKey.isNotEmpty && progressDivisionLabel.isNotEmpty) {
+      return progressDivisionLabel;
+    }
     if (leaderboard == null ||
         leaderboard.status == LeaderboardReadStatus.unranked) {
       return 'Unranked';

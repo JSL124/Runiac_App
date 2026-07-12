@@ -359,9 +359,7 @@ void main() {
         '.set(',
       ];
 
-      for (final file in _dartFilesIn(
-        'lib/features',
-      ).where(
+      for (final file in _dartFilesIn('lib/features').where(
         (file) => !allowedFirestoreDataAdapterPaths.contains(file.path),
       )) {
         final source = file.readAsStringSync();
@@ -466,6 +464,8 @@ void main() {
           'totalXp',
           'nextLevelXp',
           'xpToNextLevel',
+          'divisionKey',
+          'divisionLabel',
           'totalXpLabel',
           'monthlyXpLabel',
         };

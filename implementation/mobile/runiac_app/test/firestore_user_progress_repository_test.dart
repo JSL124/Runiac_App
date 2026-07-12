@@ -124,6 +124,57 @@ void main() {
   );
 
   test(
+    'loadUserProgress maps backend-owned division values into progress model',
+    () async {
+      final authRepository = FakeRuniacAuthRepository()
+        ..emitSignedIn(uid: 'division-user');
+      final repository = FirestoreUserProgressRepository(
+        authRepository: authRepository,
+        reader: const _FakeUserProgressDocumentReader({
+          'level': 1,
+          'levelProgressPercent': 50,
+          'divisionKey': 'tier_01',
+          'divisionLabel': 'Iron League',
+        }),
+      );
+
+      final progress = await repository.loadUserProgress();
+
+      expect(progress.level, 1);
+      expect(progress.levelProgressFraction, 0.5);
+      expect(progress.divisionKey, 'tier_01');
+      expect(progress.divisionLabel, 'Iron League');
+    },
+  );
+
+  test('local user progress cache preserves backend-owned division values', () {
+    final entry = LocalUserProgressCacheEntry(
+      uid: 'division-cache-user',
+      refreshedAt: DateTime.utc(2026, 7, 13, 8),
+      progress: const UserProgressReadModel(
+        userId: 'division-cache-user',
+        officialStreakLabel: '',
+        level: 100,
+        levelProgressFraction: 1,
+        divisionKey: 'tier_10',
+        divisionLabel: 'Challenger League',
+        levelLabel: 'Level 100',
+        totalXpLabel: '100,000 XP',
+        weeklyXpLabel: '',
+        monthlyXpLabel: '100,000 XP',
+        weeklyDistanceLabel: '',
+        goalProgressLabel: '',
+      ),
+    );
+
+    final decoded = LocalUserProgressCacheEntry.tryDecode(entry.encode());
+
+    expect(decoded?.progress.level, 100);
+    expect(decoded?.progress.divisionKey, 'tier_10');
+    expect(decoded?.progress.divisionLabel, 'Challenger League');
+  });
+
+  test(
     'loadUserProgress falls back to same-day cache when backend read fails',
     () async {
       final authRepository = FakeRuniacAuthRepository()

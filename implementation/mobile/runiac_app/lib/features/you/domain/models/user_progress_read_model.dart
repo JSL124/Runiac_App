@@ -17,6 +17,8 @@ class UserProgressReadModel {
     this.totalXp,
     this.nextLevelXp,
     this.xpToNextLevel,
+    this.divisionKey = '',
+    this.divisionLabel = '',
     this.isMaxLevel = false,
     this.officialStreakCount,
     this.lastStreakRunDate,
@@ -44,6 +46,12 @@ class UserProgressReadModel {
   /// Backend-computed XP remaining before the next level, displayed as-is.
   /// `null` when the backend has not published the value for this user yet.
   final int? xpToNextLevel;
+
+  /// Backend-owned division key used for profile badge display.
+  final String divisionKey;
+
+  /// Backend-owned division label used for profile badge display.
+  final String divisionLabel;
 
   /// True only when the backend explicitly reported the max level was reached.
   final bool isMaxLevel;

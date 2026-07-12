@@ -19,6 +19,7 @@ import '../../run/presentation/active_run_session_coordinator.dart';
 import '../../run/presentation/models/planned_run_context.dart';
 import '../../you/domain/models/user_progress_read_model.dart';
 import '../../you/domain/repositories/user_progress_repository.dart';
+import '../../you/presentation/current_session_activity_history.dart';
 import '../../you/presentation/adapters/generated_plan_you_display_adapter.dart';
 import '../../you/presentation/data/weekly_workout_demo_snapshots.dart';
 import '../../you/presentation/weekly_workout_detail_screen.dart';
@@ -94,6 +95,7 @@ class _HomeTabState extends State<HomeTab> {
   String? _userProfileOwnerUid;
   UserProgressReadModel? _lastUserProgress;
   UserProfileReadModel? _lastUserProfile;
+  int? _observedUserProgressRefreshRevision;
 
   @override
   void initState() {
@@ -117,6 +119,12 @@ class _HomeTabState extends State<HomeTab> {
     }
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _syncLatestUserProgressRefresh();
+  }
+
   String? get _currentOwnerUid => widget.authRepository.currentUser?.uid;
 
   void _ensureUserProgressFutureForCurrentOwner() {
@@ -129,6 +137,22 @@ class _HomeTabState extends State<HomeTab> {
     if (_currentOwnerUid != _userProfileOwnerUid) {
       _setUserProfileFuture(refresh: false);
     }
+  }
+
+  void _syncLatestUserProgressRefresh() {
+    final activityHistoryStore = CurrentSessionActivityHistoryScope.maybeOf(
+      context,
+    );
+    final revision = activityHistoryStore?.userProgressRefreshRevision;
+    if (revision == null || revision == _observedUserProgressRefreshRevision) {
+      return;
+    }
+    _observedUserProgressRefreshRevision = revision;
+    final latestProgress = activityHistoryStore?.latestUserProgressRefresh;
+    if (latestProgress == null || latestProgress.userId != _currentOwnerUid) {
+      return;
+    }
+    _lastUserProgress = latestProgress;
   }
 
   void _setUserProgressFuture({required bool refresh}) {
@@ -402,7 +426,7 @@ class _HomeTabState extends State<HomeTab> {
             return FutureBuilder<UserProgressReadModel>(
               future: _userProgressFuture,
               builder: (context, progressSnapshot) {
-                final progress = progressSnapshot.data ?? _lastUserProgress;
+                final progress = _lastUserProgress ?? progressSnapshot.data;
                 return HomeStageMap(
                   model: model,
                   streakCount: progress?.officialStreakCount ?? 0,
