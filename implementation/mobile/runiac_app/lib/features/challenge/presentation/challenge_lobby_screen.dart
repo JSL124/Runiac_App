@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/runiac_back_header.dart';
 import '../../../core/widgets/runiac_buttons.dart';
+import '../../../core/widgets/runiac_level_profile_badge.dart';
 import '../domain/challenge_copy.dart';
 import '../domain/challenge_countdown.dart';
 import '../domain/models/active_challenge.dart';
@@ -485,7 +486,7 @@ class _ChallengeLobbyScreenState extends State<ChallengeLobbyScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
         child: Row(
           children: [
-            ChallengeInitialsAvatar(
+            _rosterBadge(
               initials: row.avatarInitialsSnapshot,
               highlighted: row.isCurrentUser,
             ),
@@ -544,7 +545,7 @@ class _ChallengeLobbyScreenState extends State<ChallengeLobbyScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
         child: Row(
           children: [
-            const ChallengeInitialsAvatar(initials: '…'),
+            _rosterBadge(initials: '…'),
             const SizedBox(width: 12),
             const Expanded(
               child: Text(
@@ -568,6 +569,33 @@ class _ChallengeLobbyScreenState extends State<ChallengeLobbyScreen> {
       ),
     );
   }
+}
+
+/// Same profile-circle + XP-ring + level-pill badge Friends and the invite
+/// picker use. No trusted level/XP snapshot travels with the roster today, so
+/// the ring stays empty and the pill shows the same 'Lv.0' placeholder Friends
+/// falls back to when a label is absent.
+Widget _rosterBadge({required String initials, bool highlighted = false}) {
+  return ExcludeSemantics(
+    child: RuniacLevelProfileBadge(
+      initials: initials,
+      levelLabel: 'Lv.0',
+      progressFraction: 0,
+      size: 42,
+      badgeHeight: 16,
+      badgeMinWidth: 42,
+      badgeHorizontalPadding: 6,
+      badgeFontSize: 9,
+      ringStrokeWidth: 4,
+      discColor: highlighted
+          ? RuniacColors.primaryBlue
+          : RuniacColors.sectionSurfaceStrong,
+      discBorderColor: RuniacColors.white,
+      initialsColor: highlighted
+          ? RuniacColors.white
+          : RuniacColors.primaryBlue,
+    ),
+  );
 }
 
 class _ClosesIn extends StatelessWidget {

@@ -115,6 +115,9 @@ void main() {
     expect(find.text('You · Owner'), findsOneWidget);
     expect(find.text('Lobby closes in 01:00:00'), findsOneWidget);
     expect(find.text('Leave lobby'), findsNothing);
+    // Roster rows use the same profile-circle + XP-ring + level-pill badge as
+    // Friends and the invite picker, not the plain initials avatar.
+    expect(find.byType(RuniacLevelProfileBadge), findsOneWidget);
   });
 
   testWidgets('member sees leave and waiting copy, no owner controls', (
