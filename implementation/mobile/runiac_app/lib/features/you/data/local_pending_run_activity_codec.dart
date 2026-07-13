@@ -1,5 +1,8 @@
 part of 'local_pending_run_activity_store.dart';
 
+const _legacyCompleteRunMinCadenceSpm = 90;
+const _legacyCompleteRunMaxCadenceSpm = 220;
+
 Map<String, Object?> _localPendingRunActivityToJson(
   LocalPendingRunActivity activity,
 ) {
@@ -115,6 +118,33 @@ LocalPendingRunActivity? _localPendingRunActivityFromJson(
   final planCompletion =
       _readMap(source, 'planCompletion') ?? const <String, Object?>{};
   final syncAccepted = _readBool(source, 'syncAccepted') ?? false;
+  final persistedSyncState =
+      _enumByName(RunSyncState.values, _readString(source, 'syncState')) ??
+      (syncAccepted ? RunSyncState.syncAccepted : RunSyncState.localSaved);
+  final lastSyncFailureCode = _readString(source, 'lastSyncFailureCode');
+  final cadenceSamples =
+      restoredPayload.cadenceAnalysisSeries?.validAcceptedSamples ??
+      const <CadenceAnalysisSample>[];
+  int? previousCadenceElapsedSeconds;
+  final hasCadenceTimingMismatch = cadenceSamples.any((sample) {
+    final elapsedSeconds = sample.elapsedSeconds;
+    final previousElapsedSeconds = previousCadenceElapsedSeconds;
+    final isInvalid =
+        elapsedSeconds > restoredPayload.durationSeconds ||
+        (previousElapsedSeconds != null &&
+            elapsedSeconds <= previousElapsedSeconds);
+    previousCadenceElapsedSeconds = elapsedSeconds;
+    return isInvalid;
+  });
+  final hasLegacyCadenceRangeMismatch = cadenceSamples.any(
+    (sample) =>
+        sample.cadenceSpmValue < _legacyCompleteRunMinCadenceSpm ||
+        sample.cadenceSpmValue > _legacyCompleteRunMaxCadenceSpm,
+  );
+  final shouldRetryCadenceContractFailure =
+      persistedSyncState == RunSyncState.syncNonRetryableFailure &&
+      lastSyncFailureCode == 'invalid-argument' &&
+      (hasCadenceTimingMismatch || hasLegacyCadenceRangeMismatch);
   return LocalPendingRunActivity(
     ownerUid: ownerUid,
     clientRunSessionId: clientRunSessionId,
@@ -161,12 +191,12 @@ LocalPendingRunActivity? _localPendingRunActivityFromJson(
     ),
     payload: restoredPayload,
     syncAccepted: syncAccepted,
-    syncState:
-        _enumByName(RunSyncState.values, _readString(source, 'syncState')) ??
-        (syncAccepted ? RunSyncState.syncAccepted : RunSyncState.localSaved),
+    syncState: shouldRetryCadenceContractFailure
+        ? RunSyncState.syncRetryableFailure
+        : persistedSyncState,
     syncAttemptCount: _readInt(source, 'syncAttemptCount') ?? 0,
     lastSyncAttemptedAt: _readDate(source, 'lastSyncAttemptedAt'),
-    lastSyncFailureCode: _readString(source, 'lastSyncFailureCode'),
+    lastSyncFailureCode: lastSyncFailureCode,
     lastSyncFailureMessage: _readString(source, 'lastSyncFailureMessage'),
   );
 }

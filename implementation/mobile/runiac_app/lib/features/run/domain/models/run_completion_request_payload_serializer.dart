@@ -10,6 +10,11 @@ class RunCompletionRequestPayloadSerializer {
   static const int maxRoutePreviewSegments = 64;
   static const int maxPaceAnalysisSamples = 360;
   static const int maxElevationSamples = 360;
+  static const int _paceElapsedToleranceSeconds = 60;
+  static const double _paceDistanceToleranceRatio = 1.1;
+  static const int _paceDistanceToleranceMeters = 50;
+  static const int _minPaceSecondsPerKm = 150;
+  static const int _maxPaceSecondsPerKm = 1800;
 
   static Map<String, Object?> optionalField(String key, Object? value) {
     return value == null
@@ -144,23 +149,40 @@ class RunCompletionRequestPayloadSerializer {
   }
 
   static Map<String, Object?>? paceAnalysisSeriesToBackendMap(
-    List<PaceGraphSample> sourceSamples,
-  ) {
+    List<PaceGraphSample> sourceSamples, {
+    required int durationSeconds,
+    required int distanceMeters,
+  }) {
     if (sourceSamples.isEmpty) {
       return null;
     }
     final allSamples = <Map<String, Object?>>[];
     int? previousElapsedSeconds;
     var derivedDistanceMeters = 0;
+    final maxElapsedSeconds = durationSeconds + _paceElapsedToleranceSeconds;
+    final maxDistanceMeters =
+        distanceMeters * _paceDistanceToleranceRatio +
+        _paceDistanceToleranceMeters;
     for (final sample in sourceSamples) {
+      if (sample.elapsedSeconds < 0 ||
+          sample.elapsedSeconds > maxElapsedSeconds ||
+          sample.paceSecondsPerKm < _minPaceSecondsPerKm ||
+          sample.paceSecondsPerKm > _maxPaceSecondsPerKm ||
+          (previousElapsedSeconds != null &&
+              sample.elapsedSeconds <= previousElapsedSeconds)) {
+        continue;
+      }
       final elapsedDelta =
           sample.elapsedSeconds - (previousElapsedSeconds ?? 0);
-      if (sample.cumulativeDistanceMeters != null) {
-        derivedDistanceMeters = sample.cumulativeDistanceMeters!;
-      } else if (elapsedDelta > 0 && sample.paceSecondsPerKm > 0) {
-        derivedDistanceMeters += (elapsedDelta * 1000 / sample.paceSecondsPerKm)
-            .round();
+      final nextDistanceMeters =
+          sample.cumulativeDistanceMeters ??
+          derivedDistanceMeters +
+              (elapsedDelta * 1000 / sample.paceSecondsPerKm).round();
+      if (nextDistanceMeters < derivedDistanceMeters ||
+          nextDistanceMeters > maxDistanceMeters) {
+        continue;
       }
+      derivedDistanceMeters = nextDistanceMeters;
       allSamples.add(<String, Object?>{
         'elapsedSeconds': sample.elapsedSeconds,
         'cumulativeDistanceMeters': derivedDistanceMeters,
@@ -168,6 +190,9 @@ class RunCompletionRequestPayloadSerializer {
         'status': 'accepted',
       });
       previousElapsedSeconds = sample.elapsedSeconds;
+    }
+    if (allSamples.isEmpty) {
+      return null;
     }
     return <String, Object?>{
       'source': 'localAccepted',

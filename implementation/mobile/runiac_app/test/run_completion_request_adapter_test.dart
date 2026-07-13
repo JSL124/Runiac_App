@@ -222,6 +222,78 @@ void main() {
       expect(request.values.join(' '), isNot(contains('paceGraph')));
     });
 
+    test('sanitizes pace timing before backend persistence', () {
+      final payload = LocalRunCompletionPayload(
+        clientRunSessionId: 'local-session-pace-timing-sanitized',
+        startedAt: DateTime.utc(2026, 6, 14, 7),
+        completedAt: DateTime.utc(2026, 6, 14, 7, 3),
+        durationSeconds: 180,
+        distanceMeters: 450,
+        avgPaceSecondsPerKm: 400,
+        source: 'local_simulation',
+        routePrivacy: 'private',
+        paceGraphSamples: const [
+          PaceGraphSample(
+            elapsedSeconds: 60,
+            paceSecondsPerKm: 400,
+            cumulativeDistanceMeters: 150,
+          ),
+          PaceGraphSample(
+            elapsedSeconds: 300,
+            paceSecondsPerKm: 400,
+            cumulativeDistanceMeters: 700,
+          ),
+          PaceGraphSample(
+            elapsedSeconds: 120,
+            paceSecondsPerKm: 400,
+            cumulativeDistanceMeters: 300,
+          ),
+        ],
+      );
+
+      final request = RunCompletionRequestAdapter.toBackendRequest(payload);
+      final pace = request['paceAnalysisSeries']! as Map<String, Object?>;
+
+      expect(pace['samples'], [
+        {
+          'elapsedSeconds': 60,
+          'cumulativeDistanceMeters': 150,
+          'paceSecondsPerKm': 400,
+          'status': 'accepted',
+        },
+        {
+          'elapsedSeconds': 120,
+          'cumulativeDistanceMeters': 300,
+          'paceSecondsPerKm': 400,
+          'status': 'accepted',
+        },
+      ]);
+    });
+
+    test('omits pace analysis when no sample fits the run bounds', () {
+      final payload = LocalRunCompletionPayload(
+        clientRunSessionId: 'local-session-pace-timing-empty',
+        startedAt: DateTime.utc(2026, 6, 14, 7),
+        completedAt: DateTime.utc(2026, 6, 14, 7, 3),
+        durationSeconds: 180,
+        distanceMeters: 450,
+        avgPaceSecondsPerKm: 400,
+        source: 'local_simulation',
+        routePrivacy: 'private',
+        paceGraphSamples: const [
+          PaceGraphSample(
+            elapsedSeconds: 300,
+            paceSecondsPerKm: 400,
+            cumulativeDistanceMeters: 700,
+          ),
+        ],
+      );
+
+      final request = RunCompletionRequestAdapter.toBackendRequest(payload);
+
+      expect(request, isNot(contains('paceAnalysisSeries')));
+    });
+
     test('includes cadence analysis samples for backend persistence', () {
       final payload = LocalRunCompletionPayload(
         clientRunSessionId: 'local-session-cadence-request',
@@ -295,6 +367,68 @@ void main() {
         {'elapsedSeconds': 30, 'cadenceSpm': 95, 'status': 'accepted'},
         {'elapsedSeconds': 90, 'cadenceSpm': 118, 'status': 'accepted'},
       ]);
+    });
+
+    test('sanitizes cadence timing before backend persistence', () {
+      final payload = LocalRunCompletionPayload(
+        clientRunSessionId: 'local-session-cadence-timing-sanitized',
+        startedAt: DateTime.utc(2026, 6, 14, 7),
+        completedAt: DateTime.utc(2026, 6, 14, 7, 3),
+        durationSeconds: 180,
+        distanceMeters: 450,
+        avgPaceSecondsPerKm: 400,
+        source: 'local_simulation',
+        routePrivacy: 'private',
+        cadenceAnalysisSeries: CadenceAnalysisSeries.phoneMotionEstimated(
+          samples: const [
+            CadenceAnalysisSample.accepted(elapsedSeconds: 30, cadenceSpm: 95),
+            CadenceAnalysisSample.accepted(elapsedSeconds: 90, cadenceSpm: 118),
+            CadenceAnalysisSample.accepted(elapsedSeconds: 90, cadenceSpm: 120),
+            CadenceAnalysisSample.accepted(
+              elapsedSeconds: 240,
+              cadenceSpm: 121,
+            ),
+            CadenceAnalysisSample.accepted(
+              elapsedSeconds: 120,
+              cadenceSpm: 122,
+            ),
+          ],
+        ),
+      );
+
+      final request = RunCompletionRequestAdapter.toBackendRequest(payload);
+      final cadence = request['cadenceAnalysisSeries']! as Map<String, Object?>;
+
+      expect(cadence['samples'], [
+        {'elapsedSeconds': 30, 'cadenceSpm': 95, 'status': 'accepted'},
+        {'elapsedSeconds': 90, 'cadenceSpm': 118, 'status': 'accepted'},
+        {'elapsedSeconds': 120, 'cadenceSpm': 122, 'status': 'accepted'},
+      ]);
+    });
+
+    test('omits cadence analysis when no sample fits the run duration', () {
+      final payload = LocalRunCompletionPayload(
+        clientRunSessionId: 'local-session-cadence-timing-empty',
+        startedAt: DateTime.utc(2026, 6, 14, 7),
+        completedAt: DateTime.utc(2026, 6, 14, 7, 3),
+        durationSeconds: 180,
+        distanceMeters: 450,
+        avgPaceSecondsPerKm: 400,
+        source: 'local_simulation',
+        routePrivacy: 'private',
+        cadenceAnalysisSeries: CadenceAnalysisSeries.phoneMotionEstimated(
+          samples: const [
+            CadenceAnalysisSample.accepted(
+              elapsedSeconds: 181,
+              cadenceSpm: 120,
+            ),
+          ],
+        ),
+      );
+
+      final request = RunCompletionRequestAdapter.toBackendRequest(payload);
+
+      expect(request, isNot(contains('cadenceAnalysisSeries')));
     });
 
     test('bounds cadence samples before backend request persistence', () {

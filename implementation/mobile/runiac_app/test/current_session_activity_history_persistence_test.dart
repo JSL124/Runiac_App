@@ -1122,6 +1122,59 @@ void main() {
     },
   );
 
+  test(
+    'decode requeues invalid argument failures caused by cadence contracts',
+    () {
+      final payload = _richPayload(
+        'legacy-cadence-client-session',
+        cadenceAnalysisSeries: CadenceAnalysisSeries.phoneMotionEstimated(
+          samples: const <CadenceAnalysisSample>[
+            CadenceAnalysisSample.accepted(
+              elapsedSeconds: 301,
+              cadenceSpm: 170,
+            ),
+          ],
+        ),
+      );
+      final failed =
+          LocalPendingRunActivity.fromCompletedRun(
+            ownerUid: ownerUid,
+            result: _completionResult(payload.clientRunSessionId),
+            payload: payload,
+          ).markSyncFailure(
+            code: 'invalid-argument',
+            message: 'Run sync failed with invalid-argument.',
+            isRetryable: false,
+          );
+
+      final restored = LocalPendingRunActivity.tryDecode(failed.encode());
+
+      expect(restored, isNotNull);
+      expect(restored?.syncState, RunSyncState.syncRetryableFailure);
+      expect(restored?.shouldAttemptSync, isTrue);
+    },
+  );
+
+  test('decode keeps unrelated invalid argument failures non-retryable', () {
+    final payload = _richPayload('valid-cadence-client-session');
+    final failed =
+        LocalPendingRunActivity.fromCompletedRun(
+          ownerUid: ownerUid,
+          result: _completionResult(payload.clientRunSessionId),
+          payload: payload,
+        ).markSyncFailure(
+          code: 'invalid-argument',
+          message: 'Run sync failed with invalid-argument.',
+          isRetryable: false,
+        );
+
+    final restored = LocalPendingRunActivity.tryDecode(failed.encode());
+
+    expect(restored, isNotNull);
+    expect(restored?.syncState, RunSyncState.syncNonRetryableFailure);
+    expect(restored?.shouldAttemptSync, isFalse);
+  });
+
   test('restore and sync ignore pending runs for another owner', () async {
     final storage = MemoryLocalPendingRunActivityStore();
     final firstStore = CurrentSessionActivityHistoryStore(
@@ -1606,7 +1659,10 @@ UserProgressReadModel _progress(String officialStreakLabel) {
   );
 }
 
-LocalRunCompletionPayload _richPayload(String clientRunSessionId) {
+LocalRunCompletionPayload _richPayload(
+  String clientRunSessionId, {
+  CadenceAnalysisSeries? cadenceAnalysisSeries,
+}) {
   return LocalRunCompletionPayload(
     clientRunSessionId: clientRunSessionId,
     startedAt: DateTime.utc(2026, 6, 14, 9),
@@ -1617,7 +1673,7 @@ LocalRunCompletionPayload _richPayload(String clientRunSessionId) {
     source: 'mobile',
     routePrivacy: 'private',
     paceGraphSamples: _paceGraphSamples(),
-    cadenceAnalysisSeries: _cadenceAnalysisSeries(),
+    cadenceAnalysisSeries: cadenceAnalysisSeries ?? _cadenceAnalysisSeries(),
     elevationAnalysisSeries: _elevationAnalysisSeries(),
     elevationUnavailableReason: ElevationUnavailableReason.none,
   );

@@ -17,7 +17,16 @@ class RunCompletionRequestAdapter {
     final paceAnalysisSeries =
         RunCompletionRequestPayloadSerializer.paceAnalysisSeriesToBackendMap(
           payload.paceGraphSamples,
+          durationSeconds: payload.durationSeconds,
+          distanceMeters: payload.distanceMeters,
         );
+    final cadenceAnalysisSeries = payload.cadenceAnalysisSeries;
+    final cadenceSamples = cadenceAnalysisSeries == null
+        ? const <CadenceAnalysisSample>[]
+        : _cadenceSamplesForBackend(
+            cadenceAnalysisSeries.validAcceptedSamples,
+            durationSeconds: payload.durationSeconds,
+          );
     return <String, Object?>{
       'clientRunSessionId': payload.clientRunSessionId,
       'startedAt': _toBackendIsoString(payload.startedAt),
@@ -53,24 +62,23 @@ class RunCompletionRequestAdapter {
             RunCompletionRequestPayloadSerializer.elevationAnalysisSeriesToBackendMap(
               elevationSeries,
             ),
-      if (payload.cadenceAnalysisSeries case final cadenceAnalysisSeries?
-          when cadenceAnalysisSeries.validAcceptedSamples.isNotEmpty)
+      if (cadenceAnalysisSeries != null && cadenceSamples.isNotEmpty)
         'cadenceAnalysisSeries': _cadenceAnalysisSeriesToBackendMap(
           cadenceAnalysisSeries,
+          cadenceSamples,
         ),
     };
   }
 
   static Map<String, Object?> _cadenceAnalysisSeriesToBackendMap(
     CadenceAnalysisSeries cadenceAnalysisSeries,
+    List<CadenceAnalysisSample> samples,
   ) {
     return <String, Object?>{
       'source': cadenceAnalysisSeries.source.name,
       'confidence': cadenceAnalysisSeries.confidence.name,
       'samples': [
-        for (final sample in _cadenceSamplesForBackend(
-          cadenceAnalysisSeries.validAcceptedSamples,
-        ))
+        for (final sample in samples)
           <String, Object?>{
             'elapsedSeconds': sample.elapsedSeconds,
             'cadenceSpm': sample.cadenceSpm,
@@ -84,8 +92,20 @@ class RunCompletionRequestAdapter {
   }
 
   static List<CadenceAnalysisSample> _cadenceSamplesForBackend(
-    List<CadenceAnalysisSample> samples,
-  ) {
+    List<CadenceAnalysisSample> source, {
+    required int durationSeconds,
+  }) {
+    final samples = <CadenceAnalysisSample>[];
+    int? previousElapsedSeconds;
+    for (final sample in source) {
+      if (sample.elapsedSeconds > durationSeconds ||
+          (previousElapsedSeconds != null &&
+              sample.elapsedSeconds <= previousElapsedSeconds)) {
+        continue;
+      }
+      samples.add(sample);
+      previousElapsedSeconds = sample.elapsedSeconds;
+    }
     if (samples.length <= _maxBackendCadenceAnalysisSamples) {
       return samples;
     }
