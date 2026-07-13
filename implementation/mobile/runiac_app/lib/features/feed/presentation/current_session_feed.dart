@@ -85,7 +85,10 @@ class _CurrentSessionFeedState extends State<CurrentSessionFeed> {
   void _syncAuthorProfile() {
     final profile = widget.currentAuthorProfile;
     if (profile != null) {
-      _sessionStore?.updateAuthorProfile(profile);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _sessionStore?.updateAuthorProfile(profile);
+      });
     }
   }
 

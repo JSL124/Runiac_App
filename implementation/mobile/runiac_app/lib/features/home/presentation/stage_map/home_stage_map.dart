@@ -85,6 +85,8 @@ class HomeStageMap extends StatefulWidget {
     this.profileInitials = 'R',
     this.levelBadgeLabel = 'Lv.0',
     this.levelProgressFraction = 0,
+    this.progressLoading = false,
+    this.profileLoading = false,
     this.guideAgent,
     this.guideRequest,
     this.onOpenFriends,
@@ -98,6 +100,8 @@ class HomeStageMap extends StatefulWidget {
   final String profileInitials;
   final String levelBadgeLabel;
   final double levelProgressFraction;
+  final bool progressLoading;
+  final bool profileLoading;
   final VoidCallback onNotifications;
   final VoidCallback onProfile;
   final VoidCallback onTapTodayStage;
@@ -542,6 +546,8 @@ class _HomeStageMapState extends State<HomeStageMap>
                     unreadNotificationCount: widget.unreadNotificationCount,
                     levelBadgeLabel: widget.levelBadgeLabel,
                     levelProgressFraction: widget.levelProgressFraction,
+                    progressLoading: widget.progressLoading,
+                    profileLoading: widget.profileLoading,
                     profileInitials: widget.profileInitials,
                     onNotifications: widget.onNotifications,
                     onProfile: widget.onProfile,
@@ -1128,6 +1134,8 @@ class _HomeStageHeader extends StatelessWidget {
     required this.unreadNotificationCount,
     required this.levelBadgeLabel,
     required this.levelProgressFraction,
+    required this.progressLoading,
+    required this.profileLoading,
     required this.profileInitials,
     required this.onNotifications,
     required this.onProfile,
@@ -1139,6 +1147,8 @@ class _HomeStageHeader extends StatelessWidget {
   final int unreadNotificationCount;
   final String levelBadgeLabel;
   final double levelProgressFraction;
+  final bool progressLoading;
+  final bool profileLoading;
   final String profileInitials;
   final VoidCallback onNotifications;
   final VoidCallback onProfile;
@@ -1166,7 +1176,7 @@ class _HomeStageHeader extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            _StreakPill(streakCount: streakCount),
+            _StreakPill(streakCount: streakCount, loading: progressLoading),
             const Spacer(),
             _NotificationButton(
               unreadNotificationCount: unreadNotificationCount,
@@ -1198,20 +1208,23 @@ class _HomeStageHeader extends StatelessWidget {
                                 shape: BoxShape.circle,
                               ),
                             ),
-                            RuniacLevelProfileBadge(
-                              initials: profileInitials,
-                              levelLabel: levelBadgeLabel,
-                              progressFraction: levelProgressFraction,
-                              size: 54,
-                              badgeHeight: 17,
-                              badgeMinWidth: 44,
-                              badgeHorizontalPadding: 7,
-                              badgeFontSize: 10,
-                              ringStrokeWidth: 4.5,
-                              discColor: RuniacColors.primaryBlue,
-                              discBorderColor: RuniacColors.white,
-                              initialsColor: RuniacColors.white,
-                            ),
+                            if (progressLoading || profileLoading)
+                              const _LoadingProfileBadge()
+                            else
+                              RuniacLevelProfileBadge(
+                                initials: profileInitials,
+                                levelLabel: levelBadgeLabel,
+                                progressFraction: levelProgressFraction,
+                                size: 54,
+                                badgeHeight: 17,
+                                badgeMinWidth: 44,
+                                badgeHorizontalPadding: 7,
+                                badgeFontSize: 10,
+                                ringStrokeWidth: 4.5,
+                                discColor: RuniacColors.primaryBlue,
+                                discBorderColor: RuniacColors.white,
+                                initialsColor: RuniacColors.white,
+                              ),
                           ],
                         ),
                       ),
@@ -1390,9 +1403,10 @@ class _SocialMenuItem extends StatelessWidget {
 }
 
 class _StreakPill extends StatelessWidget {
-  const _StreakPill({required this.streakCount});
+  const _StreakPill({required this.streakCount, required this.loading});
 
   final int streakCount;
+  final bool loading;
 
   @override
   Widget build(BuildContext context) {
@@ -1411,7 +1425,7 @@ class _StreakPill extends StatelessWidget {
           ),
           const SizedBox(width: 4),
           Text(
-            '$streakCount',
+            loading ? '…' : '$streakCount',
             style: const TextStyle(
               color: Colors.white,
               fontSize: 18,
@@ -1420,6 +1434,36 @@ class _StreakPill extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _LoadingProfileBadge extends StatelessWidget {
+  const _LoadingProfileBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: 'Runner profile loading',
+      child: Container(
+        width: 54,
+        height: 54,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: RuniacColors.primaryBlue.withValues(alpha: 0.24),
+          shape: BoxShape.circle,
+          border: Border.all(color: RuniacColors.white, width: 2),
+        ),
+        child: const Text(
+          '…',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 24,
+            fontWeight: FontWeight.w900,
+            height: 1,
+          ),
+        ),
       ),
     );
   }
