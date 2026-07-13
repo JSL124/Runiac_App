@@ -189,6 +189,7 @@ class _RuniacAppState extends State<RuniacApp> {
       ownerUid: initialOwnerUid,
       repository: widget.userProgressRepository,
       cacheStore: const SharedPreferencesLocalUserProgressCacheStore(),
+      clock: () => widget.youProgressToday ?? DateTime.now(),
     );
     if (initialOwnerUid != null) {
       _scheduleUserProgressLoad(initialOwnerUid);
