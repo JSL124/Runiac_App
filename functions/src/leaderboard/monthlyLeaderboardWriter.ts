@@ -17,6 +17,28 @@ import {
   type MonthlyLeaderboardCurrentViewPlan,
 } from "./leaderboardTypes.js";
 
+import {
+  mergeRolloverViews,
+  readOwnerFacts,
+} from "./monthlyLeaderboardOwnerFacts.js";
+import {
+  currentSingaporeMonthKey,
+  nextSingaporeMonthStart,
+  retainedPeriodKeys,
+  singaporeMonthLabel,
+} from "./monthlyLeaderboardPeriod.js";
+import {
+  cleanupExpiredProjections,
+  commitOperations,
+  type WriteOperation,
+} from "./monthlyLeaderboardWrites.js";
+
+export {
+  currentSingaporeMonthKey,
+  nextSingaporeMonthStart,
+  singaporeMonthLabel,
+};
+
 const leaseDurationMs = 15 * 60 * 1000;
 const maxBatchOperations = 400;
 const profileReadChunkSize = 250;
@@ -299,208 +321,6 @@ async function claimLease(input: {
   });
 }
 
-type OwnerFacts = {
-  readonly isPremium: boolean;
-  readonly profile: FirebaseFirestore.DocumentData | undefined;
-};
-
-async function readOwnerFacts(
-  firestore: Firestore,
-  ownerUids: ReadonlySet<string>,
-): Promise<ReadonlyMap<string, OwnerFacts>> {
-  const result = new Map<string, OwnerFacts>();
-  const uids = [...ownerUids];
-  for (let index = 0; index < uids.length; index += profileReadChunkSize) {
-    const chunk = uids.slice(index, index + profileReadChunkSize);
-    const refs = chunk.flatMap((uid) => [
-      firestore.collection("users").doc(uid),
-      firestore.collection("userProfiles").doc(uid),
-    ]);
-    const snapshots = refs.length === 0 ? [] : await firestore.getAll(...refs);
-    for (let offset = 0; offset < chunk.length; offset += 1) {
-      const uid = chunk[offset];
-      if (uid === undefined) {
-        continue;
-      }
-      const userData = snapshots[offset * 2]?.data();
-      const profileData = snapshots[offset * 2 + 1]?.data();
-      result.set(uid, {
-        isPremium:
-          isPremiumSubscription(userData) ||
-          isPremiumSubscription(profileData),
-        profile: profileData,
-      });
-    }
-  }
-  return result;
-}
-
-function mergeRolloverViews(input: {
-  readonly periodKey: string;
-  readonly plannedViews: readonly MonthlyLeaderboardCurrentViewPlan[];
-  readonly rolloverUids: readonly string[];
-  readonly ownerFacts: ReadonlyMap<string, OwnerFacts>;
-}): MonthlyLeaderboardCurrentViewPlan[] {
-  const views = new Map(
-    input.plannedViews.map((view) => [view.ownerUid, view]),
-  );
-  for (const uid of input.rolloverUids) {
-    if (views.has(uid)) {
-      continue;
-    }
-    const facts = input.ownerFacts.get(uid);
-    const area = singaporePlanningAreaForLocationLabel(
-      facts?.profile?.["locationLabel"],
-    );
-    const league =
-      leaderboardLeagueForKey(facts?.profile?.["divisionKey"]) ??
-      leaderboardLeagueForLevel(readLevel(facts?.profile?.["level"]));
-    const status = facts?.isPremium
-      ? "ineligible_premium"
-      : area === null
-        ? "region_required"
-        : "unranked";
-    views.set(uid, {
-      ownerUid: uid,
-      snapshotId:
-        area === null
-          ? null
-          : monthlyLeaderboardSnapshotId({
-              periodKey: input.periodKey,
-              regionId: area.regionId,
-              divisionKey: league.key,
-            }),
-      rankId: null,
-      periodKey: input.periodKey,
-      regionId: area?.regionId ?? null,
-      divisionKey: league.key,
-      status,
-    });
-  }
-  return [...views.values()].sort((left, right) =>
-    left.ownerUid.localeCompare(right.ownerUid),
-  );
-}
-
-type WriteOperation =
-  | {
-      readonly kind: "set";
-      readonly ref: DocumentReference;
-      readonly data: FirebaseFirestore.DocumentData;
-    }
-  | {
-      readonly kind: "delete";
-      readonly ref: DocumentReference;
-    };
-
-async function commitOperations(
-  firestore: Firestore,
-  operations: readonly WriteOperation[],
-): Promise<void> {
-  for (
-    let index = 0;
-    index < operations.length;
-    index += maxBatchOperations
-  ) {
-    const batch = firestore.batch();
-    for (const operation of operations.slice(
-      index,
-      index + maxBatchOperations,
-    )) {
-      if (operation.kind === "set") {
-        batch.set(operation.ref, operation.data);
-      } else {
-        batch.delete(operation.ref);
-      }
-    }
-    await batch.commit();
-  }
-}
-
-async function cleanupExpiredProjections(
-  firestore: Firestore,
-  retainedPeriods: ReadonlySet<string>,
-): Promise<void> {
-  const collections = [
-    "leaderboardSnapshots",
-    "leaderboardUserRanks",
-    "leaderboardAggregationLocks",
-  ];
-  const operations: WriteOperation[] = [];
-  for (const collection of collections) {
-    const snapshot = await firestore
-      .collection(collection)
-      .where("periodType", "==", "monthly")
-      .get();
-    for (const document of snapshot.docs) {
-      const periodKey = readString(document.data()["periodKey"]);
-      if (periodKey !== null && !retainedPeriods.has(periodKey)) {
-        operations.push({ kind: "delete", ref: document.ref });
-      }
-    }
-  }
-  await commitOperations(firestore, operations);
-}
-
-export function currentSingaporeMonthKey(now: Date): string {
-  const singaporeTime = new Date(now.getTime() + 8 * 60 * 60 * 1000);
-  return singaporeTime.toISOString().slice(0, 7);
-}
-
-export function nextSingaporeMonthStart(periodKey: string): string {
-  const parsed = parsePeriodKey(periodKey);
-  if (parsed === null) {
-    return "";
-  }
-  return new Date(
-    Date.UTC(parsed.year, parsed.month, 0, 16, 0, 0, 0),
-  ).toISOString();
-}
-
-export function singaporeMonthLabel(periodKey: string): string {
-  const parsed = parsePeriodKey(periodKey);
-  if (parsed === null) {
-    return "";
-  }
-  return new Intl.DateTimeFormat("en-US", {
-    month: "long",
-    year: "numeric",
-    timeZone: leaderboardTimezone,
-  }).format(new Date(Date.UTC(parsed.year, parsed.month - 1, 1)));
-}
-
-function retainedPeriodKeys(periodKey: string): ReadonlySet<string> {
-  const parsed = parsePeriodKey(periodKey);
-  if (parsed === null) {
-    return new Set([periodKey]);
-  }
-  const periods = new Set<string>();
-  for (let offset = 0; offset < 3; offset += 1) {
-    const date = new Date(Date.UTC(parsed.year, parsed.month - 1 - offset, 1));
-    periods.add(
-      `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`,
-    );
-  }
-  return periods;
-}
-
-function parsePeriodKey(
-  periodKey: string,
-): { readonly year: number; readonly month: number } | null {
-  const match = /^(\d{4})-(\d{2})$/.exec(periodKey);
-  if (match === null) {
-    return null;
-  }
-  const year = Number(match[1]);
-  const month = Number(match[2]);
-  return Number.isInteger(year) &&
-    Number.isInteger(month) &&
-    month >= 1 &&
-    month <= 12
-    ? { year, month }
-    : null;
-}
-
 function readString(value: unknown): string | null {
   return typeof value === "string" && value.trim().length > 0
     ? value.trim()
@@ -516,10 +336,5 @@ function readDate(value: unknown): Date | null {
   return Number.isFinite(parsed.getTime()) ? parsed : null;
 }
 
-function readLevel(value: unknown): number {
-  return typeof value === "number" && Number.isFinite(value)
-    ? Math.floor(value)
-    : 1;
-}
 
 const emptyStringList: readonly string[] = [];
