@@ -102,6 +102,7 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
   );
 
   int _selectedIndex = 0;
+  final Set<int> _visitedTabIndexes = <int>{0};
   late final bool _ownsActiveRunSessionCoordinator =
       widget.activeRunSessionCoordinator == null;
   late final ActiveRunSessionCoordinator _activeRunSessionCoordinator =
@@ -270,7 +271,8 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
     final serial = _dayRolloverProgressRefreshSerial + 1;
     _dayRolloverProgressRefreshSerial = serial;
     try {
-      final progress = await widget.userProgressRepository.refreshUserProgress();
+      final progress = await widget.userProgressRepository
+          .refreshUserProgress();
       if (!mounted || serial != _dayRolloverProgressRefreshSerial) {
         return;
       }
@@ -311,6 +313,7 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
 
     setState(() {
       _selectedIndex = index;
+      _visitedTabIndexes.add(index);
     });
   }
 
@@ -479,7 +482,18 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
                   _selectedIndex == 4
               ? null
               : AppBar(title: const Text('Runiac')),
-          body: tabs[_selectedIndex],
+          body: IndexedStack(
+            index: _selectedIndex,
+            children: [
+              for (var index = 0; index < tabs.length; index += 1)
+                if (index == 0 ||
+                    index == _selectedIndex ||
+                    (index == 4 && _visitedTabIndexes.contains(index)))
+                  tabs[index]
+                else
+                  const SizedBox.shrink(),
+            ],
+          ),
           bottomNavigationBar: BottomNavigationBar(
             currentIndex: _selectedIndex,
             type: BottomNavigationBarType.fixed,

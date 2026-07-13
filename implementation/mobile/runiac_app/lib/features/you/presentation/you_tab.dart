@@ -74,6 +74,7 @@ class _YouTabState extends State<YouTab> {
   var _userProgressLoaded = false;
   int? _observedUserProgressRefreshRevision;
   var _userProgressLoadSerial = 0;
+  String? _observedActivityHistoryOwnerUid;
   String? _observedUserProgressOwnerUid;
 
   @override
@@ -81,6 +82,7 @@ class _YouTabState extends State<YouTab> {
     super.initState();
     final today = widget.progressToday ?? DateTime.now();
     _visibleCalendarMonth = DateTime(today.year, today.month);
+    _observedActivityHistoryOwnerUid = _currentActivityHistoryOwnerUid;
     _activityHistoryController = ActivityHistoryDisplayController(
       repository: widget.activityHistoryRepository,
     )..addListener(_handleActivityHistoryChanged);
@@ -94,6 +96,7 @@ class _YouTabState extends State<YouTab> {
     super.didChangeDependencies();
     final activityHistoryStore = CurrentSessionActivityHistoryScope.of(context);
     _activityHistoryController.attachActivityHistoryStore(activityHistoryStore);
+    _syncActivityHistoryOwner(activityHistoryStore);
     _syncUserProgressOwner();
     final revision = activityHistoryStore.userProgressRefreshRevision;
     final observedRevision = _observedUserProgressRefreshRevision;
@@ -117,16 +120,12 @@ class _YouTabState extends State<YouTab> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.activityHistoryRepository !=
         widget.activityHistoryRepository) {
-      _activityHistoryController
-        ..removeListener(_handleActivityHistoryChanged)
-        ..dispose();
-      _activityHistoryController = ActivityHistoryDisplayController(
-        repository: widget.activityHistoryRepository,
-      )..addListener(_handleActivityHistoryChanged);
-      _activityHistoryController.attachActivityHistoryStore(
+      _observedActivityHistoryOwnerUid = _currentActivityHistoryOwnerUid;
+      _replaceActivityHistoryController(
         CurrentSessionActivityHistoryScope.of(context),
       );
-      _activityHistoryController.load();
+    } else {
+      _syncActivityHistoryOwner(CurrentSessionActivityHistoryScope.of(context));
     }
     if (oldWidget.userProgressRepository != widget.userProgressRepository) {
       _resetAndLoadUserProgress();
@@ -134,6 +133,7 @@ class _YouTabState extends State<YouTab> {
       _resetAndLoadUserProgress();
     }
     if (oldWidget.authRepository != widget.authRepository) {
+      _syncActivityHistoryOwner(CurrentSessionActivityHistoryScope.of(context));
       _syncUserProgressOwner();
     }
   }
@@ -326,6 +326,31 @@ class _YouTabState extends State<YouTab> {
         _visibleCalendarMonth.month + 1,
       );
     });
+  }
+
+  String? get _currentActivityHistoryOwnerUid =>
+      widget.authRepository?.currentUser?.uid;
+
+  void _syncActivityHistoryOwner(CurrentSessionActivityHistoryStore store) {
+    final ownerUid = _currentActivityHistoryOwnerUid;
+    if (_observedActivityHistoryOwnerUid == ownerUid) {
+      return;
+    }
+    _observedActivityHistoryOwnerUid = ownerUid;
+    _replaceActivityHistoryController(store);
+  }
+
+  void _replaceActivityHistoryController(
+    CurrentSessionActivityHistoryStore store,
+  ) {
+    _activityHistoryController
+      ..removeListener(_handleActivityHistoryChanged)
+      ..dispose();
+    _activityHistoryController = ActivityHistoryDisplayController(
+      repository: widget.activityHistoryRepository,
+    )..addListener(_handleActivityHistoryChanged);
+    _activityHistoryController.attachActivityHistoryStore(store);
+    _activityHistoryController.load();
   }
 
   void _showGoalPlanDetail() {

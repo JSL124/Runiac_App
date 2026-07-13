@@ -385,6 +385,78 @@ class _AggregateProgressRepository implements ActivityHistoryRepository {
   }
 }
 
+class _DelayedSecondActivityHistoryRepository
+    implements ActivityHistoryRepository {
+  final Completer<ActivityHistoryReadModel> _secondLoadCompleter =
+      Completer<ActivityHistoryReadModel>();
+  var loadCount = 0;
+
+  @override
+  Future<ActivityHistoryReadModel> loadActivityHistory() {
+    loadCount += 1;
+    if (loadCount == 1) {
+      return Future<ActivityHistoryReadModel>.value(_activityHistory());
+    }
+    return _secondLoadCompleter.future;
+  }
+
+  ActivityHistoryReadModel _activityHistory() {
+    final activities = [
+      _activity(
+        id: 'cached-week',
+        title: 'Cached Week Run',
+        date: '30/6/26',
+        distanceMeters: 4250,
+      ),
+      _activity(
+        id: 'cached-month',
+        title: 'Cached Month Run',
+        date: '2/6/26',
+        distanceMeters: 3500,
+      ),
+      _activity(
+        id: 'cached-year',
+        title: 'Cached Year Run',
+        date: '4/5/26',
+        distanceMeters: 8100,
+      ),
+    ];
+
+    return ActivityHistoryReadModel(
+      recentRuns: activities.take(3).toList(growable: false),
+      months: [
+        ActivityHistoryMonthReadModel(
+          label: 'June 2026',
+          activities: [activities[0], activities[1]],
+        ),
+        ActivityHistoryMonthReadModel(
+          label: 'May 2026',
+          activities: [activities[2]],
+        ),
+      ],
+    );
+  }
+
+  ActivityHistoryItemReadModel _activity({
+    required String id,
+    required String title,
+    required String date,
+    required int distanceMeters,
+  }) {
+    return ActivityHistoryItemReadModel(
+      activityId: id,
+      title: title,
+      completedAtLabel: date,
+      distanceLabel: 'label hidden',
+      distanceMeters: distanceMeters,
+      paceLabel: '7’10”',
+      durationLabel: '22:56',
+      timeLabel: '7:20 AM',
+      routeNameLabel: 'Cached Test Route',
+    );
+  }
+}
+
 class _WeeklyBoundaryProgressRepository implements ActivityHistoryRepository {
   const _WeeklyBoundaryProgressRepository();
 
@@ -4342,6 +4414,37 @@ void main() {
 
     expect(find.text('Your journey map is waiting'), findsOneWidget);
     expect(find.text('Weekly Distance'), findsNothing);
+  });
+
+  testWidgets('You graph keeps loaded history after returning from Home', (
+    WidgetTester tester,
+  ) async {
+    final activityHistoryRepository = _DelayedSecondActivityHistoryRepository();
+
+    await _openYouTab(
+      tester,
+      activityHistoryRepository: activityHistoryRepository,
+    );
+
+    expect(activityHistoryRepository.loadCount, 1);
+    expectDistanceGraph(
+      tester,
+      expectedValues: const [0, 0, 0, 8.1, 0, 0, 0, 3.5, 0, 0, 0, 4.25],
+      axisLabelPattern: r'0 km.*4 km.*8.1 km',
+    );
+
+    await tester.tap(find.byTooltip('Home'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('You'));
+    await tester.pump();
+
+    expect(activityHistoryRepository.loadCount, 1);
+    expectDistanceGraph(
+      tester,
+      expectedValues: const [0, 0, 0, 8.1, 0, 0, 0, 3.5, 0, 0, 0, 4.25],
+      axisLabelPattern: r'0 km.*4 km.*8.1 km',
+    );
   });
 
   testWidgets('Run launch from You hides the You header once settled', (

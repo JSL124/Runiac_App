@@ -1,6 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/features/account/data/static_user_profile_repository.dart';
+import 'package:runiac_app/features/account/domain/models/user_profile_read_model.dart';
+import 'package:runiac_app/features/account/domain/repositories/user_profile_repository.dart';
 import 'package:runiac_app/features/account/domain/repositories/user_profile_persistence_repository.dart';
 import 'package:runiac_app/features/feed/data/static_feed_repository.dart';
 import 'package:runiac_app/features/plan/presentation/current_session_generated_plan.dart';
@@ -91,6 +95,68 @@ void main() {
     controller.dispose();
     await tester.pumpWidget(const SizedBox.shrink());
   });
+
+  testWidgets(
+    'shell keeps Home progress and profile visible when returning from Feed',
+    (tester) async {
+      final authRepository = FakeRuniacAuthRepository()..emitSignedIn();
+      final progressRepository = _DelayedCountingUserProgressRepository();
+      final profileRepository = _DelayedCountingUserProfileRepository();
+      final activityHistoryStore = CurrentSessionActivityHistoryStore(
+        ownerUid: 'test-auth-user-1',
+      );
+      addTearDown(authRepository.dispose);
+      addTearDown(activityHistoryStore.dispose);
+
+      final generatedPlanStore = CurrentSessionGeneratedPlanStore();
+      addTearDown(generatedPlanStore.dispose);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: CurrentSessionActivityHistoryScope(
+            store: activityHistoryStore,
+            child: CurrentSessionGeneratedPlanScope(
+              store: generatedPlanStore,
+              child: RuniacShell(
+                authRepository: authRepository,
+                feedRepository: const StaticFeedRepository(),
+                userProgressRepository: progressRepository,
+                profileRepository: profileRepository,
+                profilePersistenceRepository:
+                    const NoopUserProfilePersistenceRepository(),
+                enableForegroundGps: false,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      progressRepository.completePending(_profileProgress);
+      profileRepository.completePending(_profile);
+      await tester.pumpAndSettle();
+
+      expect(find.text('7'), findsOneWidget);
+      expect(find.text('Lv.6'), findsOneWidget);
+      expect(find.text('ZX'), findsOneWidget);
+      final initialProgressLoads = progressRepository.loadCalls;
+      final initialProfileLoads = profileRepository.loadCalls;
+
+      await tester.tap(find.byTooltip('Feed'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Home'));
+      await tester.pump();
+
+      expect(progressRepository.loadCalls, initialProgressLoads);
+      expect(profileRepository.loadCalls, initialProfileLoads);
+      expect(find.text('7'), findsOneWidget);
+      expect(find.text('Lv.6'), findsOneWidget);
+      expect(find.text('ZX'), findsOneWidget);
+      expect(find.text('Lv.0'), findsNothing);
+      expect(find.text('R'), findsNothing);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
 }
 
 class _CountingUserProgressRepository implements UserProgressRepository {
@@ -120,3 +186,80 @@ const _progress = UserProgressReadModel(
   weeklyDistanceLabel: '',
   goalProgressLabel: '',
 );
+
+const _profileProgress = UserProgressReadModel(
+  userId: 'test-auth-user-1',
+  officialStreakLabel: '7 days',
+  officialStreakCount: 7,
+  level: 6,
+  levelLabel: 'Level 6',
+  totalXpLabel: '600 XP',
+  weeklyXpLabel: '',
+  monthlyXpLabel: '',
+  weeklyDistanceLabel: '',
+  goalProgressLabel: '',
+);
+
+final _profile = UserProfileReadModel(
+  userId: 'test-auth-user-1',
+  displayName: 'Zoe X',
+  avatarInitials: 'ZX',
+  locationLabel: 'Jurong East, Singapore',
+);
+
+class _DelayedCountingUserProgressRepository implements UserProgressRepository {
+  final List<Completer<UserProgressReadModel>> _pendingLoads =
+      <Completer<UserProgressReadModel>>[];
+  int loadCalls = 0;
+  int refreshCalls = 0;
+
+  @override
+  Future<UserProgressReadModel> loadUserProgress() {
+    loadCalls += 1;
+    final completer = Completer<UserProgressReadModel>();
+    _pendingLoads.add(completer);
+    return completer.future;
+  }
+
+  @override
+  Future<UserProgressReadModel> refreshUserProgress() async {
+    refreshCalls += 1;
+    return _profileProgress;
+  }
+
+  void completePending(UserProgressReadModel progress) {
+    for (final completer in List<Completer<UserProgressReadModel>>.of(
+      _pendingLoads,
+    )) {
+      if (!completer.isCompleted) {
+        completer.complete(progress);
+      }
+    }
+    _pendingLoads.clear();
+  }
+}
+
+class _DelayedCountingUserProfileRepository implements UserProfileRepository {
+  final List<Completer<UserProfileReadModel>> _pendingLoads =
+      <Completer<UserProfileReadModel>>[];
+  int loadCalls = 0;
+
+  @override
+  Future<UserProfileReadModel> loadUserProfile() {
+    loadCalls += 1;
+    final completer = Completer<UserProfileReadModel>();
+    _pendingLoads.add(completer);
+    return completer.future;
+  }
+
+  void completePending(UserProfileReadModel profile) {
+    for (final completer in List<Completer<UserProfileReadModel>>.of(
+      _pendingLoads,
+    )) {
+      if (!completer.isCompleted) {
+        completer.complete(profile);
+      }
+    }
+    _pendingLoads.clear();
+  }
+}

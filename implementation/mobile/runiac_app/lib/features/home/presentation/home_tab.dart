@@ -110,8 +110,6 @@ class _HomeTabState extends State<HomeTab> {
     if (oldWidget.userProgressRepository != widget.userProgressRepository ||
         _currentOwnerUid != _userProgressOwnerUid) {
       _setUserProgressFuture(refresh: false);
-    } else if (!_isSameDate(oldWidget.currentDate, widget.currentDate)) {
-      _setUserProgressFuture(refresh: true);
     }
     if (oldWidget.profileRepository != widget.profileRepository ||
         _currentOwnerUid != _userProfileOwnerUid) {
@@ -456,10 +454,4 @@ String _homeProfileInitials(UserProfileReadModel? profile) {
     return 'R';
   }
   return initials;
-}
-
-bool _isSameDate(DateTime? left, DateTime? right) {
-  return left?.year == right?.year &&
-      left?.month == right?.month &&
-      left?.day == right?.day;
 }
