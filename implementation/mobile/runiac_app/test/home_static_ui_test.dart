@@ -175,6 +175,14 @@ class _SingleUserProfileRepository implements UserProfileRepository {
   Future<UserProfileReadModel> loadUserProfile() async => profile;
 }
 
+class _HeldUserProfileRepository implements UserProfileRepository {
+  final Completer<UserProfileReadModel> _completer =
+      Completer<UserProfileReadModel>();
+
+  @override
+  Future<UserProfileReadModel> loadUserProfile() => _completer.future;
+}
+
 class _CountingUserProgressRepository implements UserProgressRepository {
   _CountingUserProgressRepository(this.progress);
 
@@ -192,6 +200,25 @@ class _CountingUserProgressRepository implements UserProgressRepository {
   Future<UserProgressReadModel> refreshUserProgress() async {
     refreshCalls += 1;
     return progress;
+  }
+}
+
+class _HeldUserProgressRepository implements UserProgressRepository {
+  final Completer<UserProgressReadModel> _completer =
+      Completer<UserProgressReadModel>();
+  int loadCalls = 0;
+  int refreshCalls = 0;
+
+  @override
+  Future<UserProgressReadModel> loadUserProgress() {
+    loadCalls += 1;
+    return _completer.future;
+  }
+
+  @override
+  Future<UserProgressReadModel> refreshUserProgress() {
+    refreshCalls += 1;
+    return _completer.future;
   }
 }
 
@@ -579,6 +606,73 @@ void main() {
     expect(find.text('Lv.6'), findsOneWidget);
     expect(find.text('Lv.0'), findsNothing);
     expect(find.text('Lv.12'), findsNothing);
+  });
+
+  testWidgets('Home shows loading placeholder instead of default progress', (
+    WidgetTester tester,
+  ) async {
+    final progressRepository = _HeldUserProgressRepository();
+
+    await tester.pumpWidget(
+      RuniacApp(
+        showSplash: false,
+        enableForegroundGps: false,
+        userProgressRepository: progressRepository,
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('Lv.0'), findsNothing);
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is RuniacLevelProfileBadge &&
+            widget.size == 54 &&
+            widget.badgeHeight == 17,
+      ),
+      findsNothing,
+    );
+    expect(progressRepository.refreshCalls, 0);
+  });
+
+  testWidgets('Home hides profile badge while profile is still loading', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      RuniacApp(
+        showSplash: false,
+        enableForegroundGps: false,
+        profileRepository: _HeldUserProfileRepository(),
+        userProgressRepository: const _SingleUserProgressRepository(
+          UserProgressReadModel(
+            userId: 'runner-42',
+            officialStreakLabel: '4 days',
+            level: 4,
+            levelProgressFraction: 0.42,
+            levelLabel: 'Level 4',
+            totalXpLabel: '1,240 XP',
+            weeklyXpLabel: '180 XP',
+            monthlyXpLabel: '620 XP',
+            weeklyDistanceLabel: '12.4 km',
+            goalProgressLabel: '43%',
+            officialStreakCount: 4,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('Lv.4'), findsNothing);
+    expect(find.text('Lv.0'), findsNothing);
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is RuniacLevelProfileBadge &&
+            widget.size == 54 &&
+            widget.badgeHeight == 17,
+      ),
+      findsNothing,
+    );
   });
 
   testWidgets('Home profile progress load is not repeated by inbox updates', (

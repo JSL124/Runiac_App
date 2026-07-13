@@ -20,6 +20,7 @@ import '../../run/presentation/models/planned_run_context.dart';
 import '../../you/domain/models/user_progress_read_model.dart';
 import '../../you/domain/repositories/user_progress_repository.dart';
 import '../../you/presentation/current_session_activity_history.dart';
+import '../../you/presentation/current_session_user_progress.dart';
 import '../../you/presentation/adapters/generated_plan_you_display_adapter.dart';
 import '../../you/presentation/data/weekly_workout_demo_snapshots.dart';
 import '../../you/presentation/weekly_workout_detail_screen.dart';
@@ -91,6 +92,7 @@ class HomeTab extends StatefulWidget {
 class _HomeTabState extends State<HomeTab> {
   late Future<UserProgressReadModel> _userProgressFuture;
   late Future<UserProfileReadModel?> _userProfileFuture;
+  var _userProgressFutureInitialized = false;
   String? _userProgressOwnerUid;
   String? _userProfileOwnerUid;
   UserProgressReadModel? _lastUserProgress;
@@ -100,15 +102,16 @@ class _HomeTabState extends State<HomeTab> {
   @override
   void initState() {
     super.initState();
-    _setUserProgressFuture(refresh: false);
     _setUserProfileFuture(refresh: false);
   }
 
   @override
   void didUpdateWidget(covariant HomeTab oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.userProgressRepository != widget.userProgressRepository ||
-        _currentOwnerUid != _userProgressOwnerUid) {
+    if (CurrentSessionUserProgressScope.maybeRead(context) == null &&
+        (oldWidget.userProgressRepository != widget.userProgressRepository ||
+            !_userProgressFutureInitialized ||
+            _currentOwnerUid != _userProgressOwnerUid)) {
       _setUserProgressFuture(refresh: false);
     }
     if (oldWidget.profileRepository != widget.profileRepository ||
@@ -121,12 +124,17 @@ class _HomeTabState extends State<HomeTab> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     _syncLatestUserProgressRefresh();
+    if (CurrentSessionUserProgressScope.maybeRead(context) == null &&
+        !_userProgressFutureInitialized) {
+      _setUserProgressFuture(refresh: false);
+    }
   }
 
   String? get _currentOwnerUid => widget.authRepository.currentUser?.uid;
 
   void _ensureUserProgressFutureForCurrentOwner() {
-    if (_currentOwnerUid != _userProgressOwnerUid) {
+    if (!_userProgressFutureInitialized ||
+        _currentOwnerUid != _userProgressOwnerUid) {
       _setUserProgressFuture(refresh: false);
     }
   }
@@ -159,6 +167,7 @@ class _HomeTabState extends State<HomeTab> {
       _lastUserProgress = null;
     }
     _userProgressOwnerUid = ownerUid;
+    _userProgressFutureInitialized = true;
     final source = refresh
         ? widget.userProgressRepository.refreshUserProgress()
         : widget.userProgressRepository.loadUserProgress();
@@ -407,7 +416,16 @@ class _HomeTabState extends State<HomeTab> {
 
   @override
   Widget build(BuildContext context) {
-    _ensureUserProgressFutureForCurrentOwner();
+    final scopedSessionUserProgress = CurrentSessionUserProgressScope.maybeOf(
+      context,
+    );
+    final sessionUserProgress =
+        scopedSessionUserProgress?.snapshot.ownerUid == null
+        ? null
+        : scopedSessionUserProgress;
+    if (sessionUserProgress == null) {
+      _ensureUserProgressFutureForCurrentOwner();
+    }
     _ensureUserProfileFutureForCurrentOwner();
     final plan = CurrentSessionGeneratedPlanScope.maybeOf(context)?.activePlan;
     final model = _buildStageMapModel(plan);
@@ -421,29 +439,67 @@ class _HomeTabState extends State<HomeTab> {
           stream: widget.notificationInboxRepository.watchUnreadCount(),
           initialData: 0,
           builder: (context, unreadSnapshot) {
+            if (sessionUserProgress != null) {
+              final snapshot = sessionUserProgress.snapshot;
+              final progress = snapshot.progress ?? _lastUserProgress;
+              if (snapshot.progress != null) {
+                _lastUserProgress = snapshot.progress;
+              }
+              return _buildHomeStageMap(
+                context: context,
+                model: model,
+                guideRequest: guideRequest,
+                profile: profile,
+                profileLoading: profile == null,
+                progress: progress,
+                unreadNotificationCount: unreadSnapshot.data ?? 0,
+              );
+            }
             return FutureBuilder<UserProgressReadModel>(
               future: _userProgressFuture,
               builder: (context, progressSnapshot) {
                 final progress = _lastUserProgress ?? progressSnapshot.data;
-                return HomeStageMap(
+                return _buildHomeStageMap(
+                  context: context,
                   model: model,
-                  streakCount: progress?.officialStreakCount ?? 0,
-                  unreadNotificationCount: unreadSnapshot.data ?? 0,
-                  profileInitials: _homeProfileInitials(profile),
-                  levelBadgeLabel: progress?.levelBadgeLabel ?? 'Lv.0',
-                  levelProgressFraction: progress?.levelProgressFraction ?? 0,
-                  onNotifications: () => _openNotificationInbox(context),
-                  onProfile: () => _openAccountProfile(context),
-                  onOpenFriends: () => _openFriends(context),
-                  onTapTodayStage: () => _openTodayWorkout(context),
-                  guideAgent: widget.homeGuideAgent,
                   guideRequest: guideRequest,
+                  profile: profile,
+                  profileLoading: profile == null,
+                  progress: progress,
+                  unreadNotificationCount: unreadSnapshot.data ?? 0,
                 );
               },
             );
           },
         );
       },
+    );
+  }
+
+  Widget _buildHomeStageMap({
+    required BuildContext context,
+    required HomeStageMapModel? model,
+    required HomeGuideRequest? guideRequest,
+    required UserProfileReadModel? profile,
+    required bool profileLoading,
+    required UserProgressReadModel? progress,
+    required int unreadNotificationCount,
+  }) {
+    return HomeStageMap(
+      model: model,
+      streakCount: progress?.officialStreakCount ?? 0,
+      unreadNotificationCount: unreadNotificationCount,
+      profileInitials: _homeProfileInitials(profile),
+      levelBadgeLabel: progress?.levelBadgeLabel ?? 'Lv.0',
+      levelProgressFraction: progress?.levelProgressFraction ?? 0,
+      progressLoading: progress == null,
+      profileLoading: profileLoading,
+      onNotifications: () => _openNotificationInbox(context),
+      onProfile: () => _openAccountProfile(context),
+      onOpenFriends: () => _openFriends(context),
+      onTapTodayStage: () => _openTodayWorkout(context),
+      guideAgent: widget.homeGuideAgent,
+      guideRequest: guideRequest,
     );
   }
 }

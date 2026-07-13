@@ -27,6 +27,7 @@ import 'package:runiac_app/features/run/presentation/data/pace_graph_demo_snapsh
 import 'package:runiac_app/features/run/presentation/data/run_completion_demo_snapshots.dart';
 import 'package:runiac_app/features/run/presentation/view_summary_screen.dart';
 import 'package:runiac_app/features/run/presentation/widgets/advanced_analysis/advanced_analysis_charts.dart';
+import 'package:runiac_app/features/plan/presentation/current_session_generated_plan.dart';
 import 'package:runiac_app/features/you/data/static_activity_history_repository.dart';
 import 'package:runiac_app/features/you/data/local_pending_run_activity_store.dart';
 import 'package:runiac_app/features/you/presentation/current_session_activity_history.dart';
@@ -40,6 +41,8 @@ import 'package:runiac_app/features/you/presentation/widgets/activity_route_prev
 import 'package:runiac_app/features/you/presentation/widgets/compact_run_activity_card.dart';
 import 'package:runiac_app/features/you/presentation/widgets/monthly_distance_graph.dart';
 import 'package:runiac_app/features/you/presentation/widgets/you_progress_surface.dart';
+import 'package:runiac_app/features/you/presentation/you_tab.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'support/fake_runiac_auth_repository.dart';
 
@@ -158,6 +161,54 @@ class _HoldingUserProgressRepository implements UserProgressRepository {
   @override
   Future<UserProgressReadModel> refreshUserProgress() {
     return loadUserProgress();
+  }
+}
+
+class _HoldingActivityHistoryRepository implements ActivityHistoryRepository {
+  final Completer<ActivityHistoryReadModel> _completer =
+      Completer<ActivityHistoryReadModel>();
+
+  @override
+  Future<ActivityHistoryReadModel> loadActivityHistory() => _completer.future;
+}
+
+class _DateReloadUserProgressRepository implements UserProgressRepository {
+  final Completer<UserProgressReadModel> _reload =
+      Completer<UserProgressReadModel>();
+  var _loadCount = 0;
+
+  void completeReload(String officialStreakLabel) {
+    if (_reload.isCompleted) {
+      return;
+    }
+    _reload.complete(_progress(officialStreakLabel));
+  }
+
+  @override
+  Future<UserProgressReadModel> loadUserProgress() {
+    _loadCount += 1;
+    if (_loadCount == 1) {
+      return Future.value(_progress('4 days'));
+    }
+    return _reload.future;
+  }
+
+  @override
+  Future<UserProgressReadModel> refreshUserProgress() {
+    return loadUserProgress();
+  }
+
+  UserProgressReadModel _progress(String officialStreakLabel) {
+    return UserProgressReadModel(
+      userId: 'test-user-progress',
+      officialStreakLabel: officialStreakLabel,
+      levelLabel: '',
+      totalXpLabel: '',
+      weeklyXpLabel: '',
+      monthlyXpLabel: '',
+      weeklyDistanceLabel: '',
+      goalProgressLabel: '',
+    );
   }
 }
 
@@ -1487,6 +1538,84 @@ void main() {
     expect(find.text('Pending'), findsNothing);
   });
 
+  testWidgets('You shows Activity History loading instead of zero graph', (
+    WidgetTester tester,
+  ) async {
+    await _openYouTab(
+      tester,
+      activityHistoryRepository: _HoldingActivityHistoryRepository(),
+    );
+
+    expect(
+      find.byKey(const ValueKey('you_monthly_distance_loading_placeholder')),
+      findsOneWidget,
+    );
+    expect(find.text('Loading your activities'), findsOneWidget);
+    expect(find.text('0.00'), findsNothing);
+  });
+
+  testWidgets('You keeps last official streak while date reload is pending', (
+    WidgetTester tester,
+  ) async {
+    final progressRepository = _DateReloadUserProgressRepository();
+    final activityHistoryStore = CurrentSessionActivityHistoryStore();
+    final generatedPlanStore = CurrentSessionGeneratedPlanStore();
+    addTearDown(activityHistoryStore.dispose);
+    addTearDown(generatedPlanStore.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: CurrentSessionActivityHistoryScope(
+          store: activityHistoryStore,
+          child: CurrentSessionGeneratedPlanScope(
+            store: generatedPlanStore,
+            child: YouTab(
+              activityHistoryRepository:
+                  const StaticActivityHistoryRepository(),
+              userProgressRepository: progressRepository,
+              authRepository: const NonProductionAuthRepository(),
+              enableForegroundGps: false,
+              progressToday: DateTime(2026, 6, 30),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('4 days'), findsOneWidget);
+    expect(find.text('Complete a run to start your streak.'), findsNothing);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: CurrentSessionActivityHistoryScope(
+          store: activityHistoryStore,
+          child: CurrentSessionGeneratedPlanScope(
+            store: generatedPlanStore,
+            child: YouTab(
+              activityHistoryRepository:
+                  const StaticActivityHistoryRepository(),
+              userProgressRepository: progressRepository,
+              authRepository: const NonProductionAuthRepository(),
+              enableForegroundGps: false,
+              progressToday: DateTime(2026, 7),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('4 days'), findsOneWidget);
+    expect(find.text('Complete a run to start your streak.'), findsNothing);
+
+    progressRepository.completeReload('5 days');
+    await tester.pumpAndSettle();
+
+    expect(find.text('5 days'), findsOneWidget);
+    expect(find.text('4 days'), findsNothing);
+  });
+
   testWidgets(
     'You official streak display uses backend label instead of derived value',
     (WidgetTester tester) async {
@@ -1622,12 +1751,14 @@ void main() {
   testWidgets('mounted You reloads official streak after auth owner changes', (
     WidgetTester tester,
   ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
     final authRepository = FakeRuniacAuthRepository()
       ..emitSignedIn(uid: 'owner-1');
     addTearDown(authRepository.dispose);
     final progressRepository = _AuthAwareUserProgressRepository(
       authRepository: authRepository,
       labelsByUid: const <String, String>{
+        'signed-out': '1 day',
         'owner-1': '1 day',
         'owner-2': '2 days',
       },

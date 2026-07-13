@@ -35,6 +35,7 @@ import '../you/domain/repositories/activity_history_repository.dart';
 import '../you/domain/repositories/user_progress_repository.dart';
 import '../you/presentation/adapters/generated_plan_you_display_adapter.dart';
 import '../you/presentation/current_session_activity_history.dart';
+import '../you/presentation/current_session_user_progress.dart';
 import '../you/presentation/you_tab.dart';
 import 'current_day_rollover.dart';
 
@@ -179,9 +180,18 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
     String? ownerUid,
   ) async {
     try {
+      final scopedUserProgressStore = CurrentSessionUserProgressScope.maybeRead(
+        context,
+      );
+      final userProgressStore =
+          scopedUserProgressStore?.snapshot.ownerUid == null
+          ? null
+          : scopedUserProgressStore;
       final (profile, progress) = await (
         widget.profileRepository.loadUserProfile(),
-        widget.userProgressRepository.loadUserProgress(),
+        userProgressStore == null
+            ? widget.userProgressRepository.loadUserProgress()
+            : _loadFeedAuthorProgress(userProgressStore),
       ).wait;
       final snapshot = _feedAuthorProfileFrom(
         ownerUid: ownerUid,
@@ -196,6 +206,15 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
       return _lastFeedAuthorProfile ??
           FeedAuthorProfileSnapshot.fallback(userId: ownerUid ?? '');
     }
+  }
+
+  Future<UserProgressReadModel> _loadFeedAuthorProgress(
+    CurrentSessionUserProgress userProgressStore,
+  ) async {
+    await WidgetsBinding.instance.endOfFrame;
+    await userProgressStore.load();
+    return userProgressStore.snapshot.progress ??
+        await widget.userProgressRepository.loadUserProgress();
   }
 
   void _scheduleFeedAuthorProfileStoreSync(FeedAuthorProfileSnapshot profile) {
@@ -271,8 +290,16 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
     final serial = _dayRolloverProgressRefreshSerial + 1;
     _dayRolloverProgressRefreshSerial = serial;
     try {
-      final progress = await widget.userProgressRepository
-          .refreshUserProgress();
+      final scopedUserProgressStore = CurrentSessionUserProgressScope.maybeRead(
+        context,
+      );
+      final userProgressStore =
+          scopedUserProgressStore?.snapshot.ownerUid == null
+          ? null
+          : scopedUserProgressStore;
+      final progress =
+          await userProgressStore?.refresh() ??
+          await widget.userProgressRepository.refreshUserProgress();
       if (!mounted || serial != _dayRolloverProgressRefreshSerial) {
         return;
       }
@@ -394,6 +421,12 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
     final activeGeneratedPlan = CurrentSessionGeneratedPlanScope.of(
       context,
     ).activePlan;
+    final scopedUserProgressStore = CurrentSessionUserProgressScope.maybeRead(
+      context,
+    );
+    final userProgressStore = scopedUserProgressStore?.snapshot.ownerUid == null
+        ? null
+        : scopedUserProgressStore;
     final generatedPlanProgress = _generatedPlanProgress(activeGeneratedPlan);
     final todayWorkoutDetail = todayGeneratedWorkoutDetailFromSnapshot(
       activeGeneratedPlan,
@@ -410,6 +443,7 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
     _syncGeneratedPlanNotifications(
       activeGeneratedPlan,
       generatedPlanProgress,
+      userProgressStore: userProgressStore,
       force: false,
     );
     final feedAuthorProfile =
@@ -418,51 +452,61 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
           userId: widget.authRepository.currentUser?.uid ?? '',
         );
     _scheduleFeedAuthorProfileStoreSync(feedAuthorProfile);
-    final tabs = [
-      HomeTab(
-        authRepository: widget.authRepository,
-        profileRepository: widget.profileRepository,
-        profilePersistenceRepository: widget.profilePersistenceRepository,
-        generatedPlanPersistenceRepository:
-            widget.generatedPlanPersistenceRepository,
-        notificationInboxRepository: widget.notificationInboxRepository,
-        userProgressRepository: widget.userProgressRepository,
-        leaderboardRepository: widget.leaderboardRepository,
-        todayWorkoutDetailSnapshot: todayWorkoutDetail,
-        todayPlannedRunContext: todayPlannedRunContext,
-        generatedPlanProgress: generatedPlanProgress,
-        currentDate: currentDate,
-        homeGuideAgent: widget.homeGuideAgent,
-        enableForegroundGps: widget.enableForegroundGps,
-        activeRunSessionCoordinator: _activeRunSessionCoordinator,
-        onNotificationSettingsChanged: () {
-          _syncGeneratedPlanNotifications(
-            activeGeneratedPlan,
-            generatedPlanProgress,
-            force: true,
-          );
-        },
-      ),
-      CurrentSessionFeed(
-        repository: widget.feedRepository,
-        viewerContext: _feedViewerContext,
-        currentAuthorProfile: feedAuthorProfile,
-      ),
-      const SizedBox.shrink(),
-      LeaderboardTab(repository: widget.leaderboardRepository),
-      YouTab(
-        activityHistoryRepository: widget.activityHistoryRepository,
-        userProgressRepository: widget.userProgressRepository,
-        authRepository: widget.authRepository,
-        generatedPlanPersistenceRepository:
-            widget.generatedPlanPersistenceRepository,
-        enableForegroundGps: widget.enableForegroundGps,
-        activeRunSessionCoordinator: _activeRunSessionCoordinator,
-        progressToday: currentDate,
-        generatedPlanProgress: generatedPlanProgress,
-        adaptivePlanEstimate: widget.adaptivePlanEstimate,
-      ),
-    ];
+    final tabs = <int, Widget>{
+      if (_visitedTabIndexes.contains(0))
+        0: HomeTab(
+          key: const ValueKey<String>('runiac-shell-tab-home'),
+          authRepository: widget.authRepository,
+          profileRepository: widget.profileRepository,
+          profilePersistenceRepository: widget.profilePersistenceRepository,
+          generatedPlanPersistenceRepository:
+              widget.generatedPlanPersistenceRepository,
+          notificationInboxRepository: widget.notificationInboxRepository,
+          userProgressRepository: widget.userProgressRepository,
+          leaderboardRepository: widget.leaderboardRepository,
+          todayWorkoutDetailSnapshot: todayWorkoutDetail,
+          todayPlannedRunContext: todayPlannedRunContext,
+          generatedPlanProgress: generatedPlanProgress,
+          currentDate: currentDate,
+          homeGuideAgent: widget.homeGuideAgent,
+          enableForegroundGps: widget.enableForegroundGps,
+          activeRunSessionCoordinator: _activeRunSessionCoordinator,
+          onNotificationSettingsChanged: () {
+            _syncGeneratedPlanNotifications(
+              activeGeneratedPlan,
+              generatedPlanProgress,
+              userProgressStore: userProgressStore,
+              force: true,
+            );
+          },
+        ),
+      if (_visitedTabIndexes.contains(1))
+        1: CurrentSessionFeed(
+          key: const ValueKey<String>('runiac-shell-tab-feed'),
+          repository: widget.feedRepository,
+          viewerContext: _feedViewerContext,
+          currentAuthorProfile: feedAuthorProfile,
+        ),
+      if (_visitedTabIndexes.contains(3))
+        3: LeaderboardTab(
+          key: const ValueKey<String>('runiac-shell-tab-leaderboard'),
+          repository: widget.leaderboardRepository,
+        ),
+      if (_visitedTabIndexes.contains(4))
+        4: YouTab(
+          key: const ValueKey<String>('runiac-shell-tab-you'),
+          activityHistoryRepository: widget.activityHistoryRepository,
+          userProgressRepository: widget.userProgressRepository,
+          authRepository: widget.authRepository,
+          generatedPlanPersistenceRepository:
+              widget.generatedPlanPersistenceRepository,
+          enableForegroundGps: widget.enableForegroundGps,
+          activeRunSessionCoordinator: _activeRunSessionCoordinator,
+          progressToday: currentDate,
+          generatedPlanProgress: generatedPlanProgress,
+          adaptivePlanEstimate: widget.adaptivePlanEstimate,
+        ),
+    };
 
     return FutureBuilder<FeedAuthorProfileSnapshot>(
       future: _feedAuthorProfileFuture,
@@ -482,16 +526,18 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
                   _selectedIndex == 4
               ? null
               : AppBar(title: const Text('Runiac')),
-          body: IndexedStack(
-            index: _selectedIndex,
+          body: Stack(
+            fit: StackFit.expand,
             children: [
-              for (var index = 0; index < tabs.length; index += 1)
-                if (index == 0 ||
-                    index == _selectedIndex ||
-                    (index == 4 && _visitedTabIndexes.contains(index)))
-                  tabs[index]
-                else
-                  const SizedBox.shrink(),
+              for (final entry in tabs.entries)
+                Offstage(
+                  key: ValueKey<String>('runiac-shell-slot-${entry.key}'),
+                  offstage: entry.key != _selectedIndex,
+                  child: TickerMode(
+                    enabled: entry.key == _selectedIndex,
+                    child: entry.value,
+                  ),
+                ),
             ],
           ),
           bottomNavigationBar: BottomNavigationBar(
@@ -585,6 +631,7 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
   void _syncGeneratedPlanNotifications(
     BeginnerAdaptivePlanSnapshot? activeGeneratedPlan,
     GeneratedPlanProgressDisplay? generatedPlanProgress, {
+    required CurrentSessionUserProgress? userProgressStore,
     required bool force,
   }) {
     if (!widget.enableLocalPlanNotifications) {
@@ -616,6 +663,7 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
               const <String>{},
           streakRisk: await _streakRiskInputForPlan(
             activeGeneratedPlan,
+            userProgressStore: userProgressStore,
             now: now,
           ),
         );
@@ -632,6 +680,7 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
           _syncGeneratedPlanNotifications(
             pendingPlan,
             pendingProgress,
+            userProgressStore: userProgressStore,
             force: true,
           );
         }
@@ -660,12 +709,13 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
 
   Future<StreakRiskNotificationInput?> _streakRiskInputForPlan(
     BeginnerAdaptivePlanSnapshot? activeGeneratedPlan, {
+    required CurrentSessionUserProgress? userProgressStore,
     required DateTime now,
   }) async {
     if (activeGeneratedPlan == null) {
       return null;
     }
-    final progress = await widget.userProgressRepository.loadUserProgress();
+    final progress = await _loadProgressForShell(userProgressStore);
     if (!_isStreakAtRisk(progress, now: now)) {
       return null;
     }
@@ -674,6 +724,18 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
       riskDate: now,
       streakWouldBreakWithoutValidatedRun: true,
     );
+  }
+
+  Future<UserProgressReadModel> _loadProgressForShell(
+    CurrentSessionUserProgress? userProgressStore,
+  ) async {
+    if (userProgressStore == null) {
+      return widget.userProgressRepository.loadUserProgress();
+    }
+    await WidgetsBinding.instance.endOfFrame;
+    await userProgressStore.load();
+    return userProgressStore.snapshot.progress ??
+        await widget.userProgressRepository.loadUserProgress();
   }
 
   bool _isStreakAtRisk(

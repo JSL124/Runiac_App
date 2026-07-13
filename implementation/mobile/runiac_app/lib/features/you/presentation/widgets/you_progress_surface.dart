@@ -28,6 +28,7 @@ const _monthNames = [
 class YouProgressSurface extends StatefulWidget {
   const YouProgressSurface({
     required this.activityHistoryMonths,
+    required this.activityHistoryLoading,
     required this.runs,
     required this.visibleCalendarMonth,
     required this.onPreviousMonth,
@@ -41,6 +42,7 @@ class YouProgressSurface extends StatefulWidget {
   });
 
   final List<ActivityHistoryMonth> activityHistoryMonths;
+  final bool activityHistoryLoading;
   final List<RunActivityDisplayModel> runs;
   final DateTime visibleCalendarMonth;
   final VoidCallback onPreviousMonth;
@@ -87,7 +89,13 @@ class _YouProgressSurfaceState extends State<YouProgressSurface> {
           },
         ),
         const SizedBox(height: 12),
-        _MonthlyDistanceSection(summary: selectedSummary, graphData: graphData),
+        if (widget.activityHistoryLoading)
+          const _MonthlyDistanceLoadingSection()
+        else
+          _MonthlyDistanceSection(
+            summary: selectedSummary,
+            graphData: graphData,
+          ),
         const SizedBox(height: 10),
         _StreakSection(
           officialStreakLabel: widget.officialStreakLabel,
@@ -104,7 +112,9 @@ class _YouProgressSurfaceState extends State<YouProgressSurface> {
         const SizedBox(height: 18),
         _RecentRunningHeader(onSeeAll: widget.onMoreActivities),
         const SizedBox(height: 12),
-        if (widget.runs.isEmpty)
+        if (widget.activityHistoryLoading)
+          const _RecentRunningLoadingState()
+        else if (widget.runs.isEmpty)
           const _RecentRunningEmptyState()
         else
           for (final run in widget.runs) ...[
@@ -430,6 +440,27 @@ class _RecentRunningEmptyState extends StatelessWidget {
   }
 }
 
+class _RecentRunningLoadingState extends StatelessWidget {
+  const _RecentRunningLoadingState();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: const ValueKey('recent_running_loading_state'),
+      padding: const EdgeInsets.all(16),
+      decoration: youCardLikeDecoration,
+      child: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          YouCardHeader(Icons.directions_run, 'Loading your activities'),
+          SizedBox(height: 8),
+          Text('Your running history is loading.', style: YouTextStyles.body),
+        ],
+      ),
+    );
+  }
+}
+
 class _MonthlyDistanceSection extends StatelessWidget {
   const _MonthlyDistanceSection({
     required this.summary,
@@ -474,6 +505,43 @@ class _MonthlyDistanceSection extends StatelessWidget {
           ),
         ),
         const _SectionDivider(),
+      ],
+    );
+  }
+}
+
+class _MonthlyDistanceLoadingSection extends StatelessWidget {
+  const _MonthlyDistanceLoadingSection();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _SectionDivider(),
+        Padding(
+          padding: EdgeInsets.symmetric(vertical: 14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Weekly Distance', style: YouTextStyles.cardTitle),
+              SizedBox(height: 10),
+              Text('Loading', style: YouTextStyles.heroNumber),
+              SizedBox(height: 12),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  color: RuniacColors.sectionSurfaceStrong,
+                  borderRadius: BorderRadius.all(Radius.circular(18)),
+                ),
+                child: SizedBox(
+                  key: ValueKey('you_monthly_distance_loading_placeholder'),
+                  height: 154,
+                ),
+              ),
+            ],
+          ),
+        ),
+        _SectionDivider(),
       ],
     );
   }

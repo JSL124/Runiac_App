@@ -25,6 +25,8 @@ class ActivityHistoryDisplayController extends ChangeNotifier {
   var _disposed = false;
 
   bool get loadFailed => _loadFailed;
+  bool get initialLoadPending =>
+      !_usesStaticRepository && _loadedActivityHistory == null && !_loadFailed;
 
   Future<void> load() async {
     final requestId = ++_loadRequestId;
@@ -44,7 +46,6 @@ class ActivityHistoryDisplayController extends ChangeNotifier {
       if (_disposed || requestId != _loadRequestId) {
         return;
       }
-      _loadedActivityHistory = null;
       _loadFailed = true;
       _notifyIfActive();
     }
