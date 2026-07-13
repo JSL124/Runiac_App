@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/assets/runiac_assets.dart';
 import '../../../../core/theme/runiac_colors.dart';
 import '../../../../core/widgets/runiac_buttons.dart';
 import '../../../../core/widgets/runiac_level_profile_badge.dart';
@@ -7,9 +8,16 @@ import '../../domain/models/friends_read_model.dart';
 
 /// Display-only row for a friend, suggested runner, or search result.
 class FriendUserRow extends StatelessWidget {
-  const FriendUserRow({required this.user, super.key});
+  const FriendUserRow({
+    required this.user,
+    this.onAdd,
+    this.isPending = false,
+    super.key,
+  }) : assert(!isPending || onAdd == null);
 
   final FriendUserReadModel user;
+  final VoidCallback? onAdd;
+  final bool isPending;
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +33,15 @@ class FriendUserRow extends StatelessWidget {
           children: [
             _FriendRowBadge(user: user),
             const SizedBox(width: 12),
-            Expanded(child: _FriendRowIdentity(user: user)),
+            Expanded(child: _FriendRowName(user: user)),
+            if (onAdd != null || isPending) ...[
+              const SizedBox(width: 8),
+              _FriendRequestAction(
+                user: user,
+                onAdd: onAdd,
+                isPending: isPending,
+              ),
+            ],
           ],
         ),
       ),
@@ -169,6 +185,77 @@ class _FriendRowIdentity extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _FriendRowName extends StatelessWidget {
+  const _FriendRowName({required this.user});
+
+  final FriendUserReadModel user;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      user.displayName,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: const TextStyle(
+        color: RuniacColors.textPrimary,
+        fontSize: 14.5,
+        fontWeight: FontWeight.w800,
+        height: 1.2,
+      ),
+    );
+  }
+}
+
+class _FriendRequestAction extends StatelessWidget {
+  const _FriendRequestAction({
+    required this.user,
+    required this.onAdd,
+    required this.isPending,
+  });
+
+  final FriendUserReadModel user;
+  final VoidCallback? onAdd;
+  final bool isPending;
+
+  @override
+  Widget build(BuildContext context) {
+    final icon = ImageIcon(
+      AssetImage(
+        isPending ? RuniacAssets.friendsPending : RuniacAssets.friendsAdd,
+      ),
+      color: RuniacColors.primaryBlue,
+      size: 22,
+    );
+
+    if (isPending) {
+      return Semantics(
+        container: true,
+        label: 'Pending ${user.displayName}',
+        enabled: false,
+        child: SizedBox(
+          width: 44,
+          height: 44,
+          child: Center(child: ExcludeSemantics(child: icon)),
+        ),
+      );
+    }
+
+    return Semantics(
+      container: true,
+      child: RuniacTappableSurface(
+        key: ValueKey('friends-add-action-${user.userId}'),
+        semanticLabel: 'Add ${user.displayName}',
+        onTap: onAdd,
+        width: 44,
+        height: 44,
+        alignment: Alignment.center,
+        borderRadius: BorderRadius.circular(999),
+        child: ExcludeSemantics(child: icon),
+      ),
     );
   }
 }

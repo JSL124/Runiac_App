@@ -86,6 +86,10 @@ abstract final class RuniacAssets {
   static const challengeBadge1000k =
       'assets/images/challenges/badges/challenge_badge_1000k.png';
 
+  static const friendsAdd = 'assets/images/friends/friends_add.png';
+
+  static const friendsPending = 'assets/images/friends/friends_pending.png';
+
   static const leaderboardShareRankCardBackground =
       'assets/images/leaderboard/share_rank_card_background.png';
 

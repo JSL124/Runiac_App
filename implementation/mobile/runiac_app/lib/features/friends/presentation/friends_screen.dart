@@ -44,6 +44,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
   // Session-local mutable copies for the accept/decline display gesture.
   List<FriendUserReadModel>? _friends;
   List<FriendUserReadModel>? _requests;
+  final Set<String> _pendingFriendUserIds = <String>{};
 
   @override
   void initState() {
@@ -79,6 +80,12 @@ class _FriendsScreenState extends State<FriendsScreen> {
   void _declineRequest(FriendUserReadModel user) {
     setState(() {
       _requests?.remove(user);
+    });
+  }
+
+  void _sendFriendRequest(FriendUserReadModel user) {
+    setState(() {
+      _pendingFriendUserIds.add(user.userId);
     });
   }
 
@@ -138,6 +145,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
       case 2:
         return _buildUserList(
           users: overview.recommended,
+          allowsFriendRequests: true,
           emptyTitle: 'No suggestions yet',
           emptyBody: 'Suggested runners will appear here as you keep running.',
         );
@@ -156,6 +164,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
     required List<FriendUserReadModel> users,
     required String emptyTitle,
     required String emptyBody,
+    bool allowsFriendRequests = false,
   }) {
     if (users.isEmpty) {
       return FriendsEmptyState(title: emptyTitle, body: emptyBody);
@@ -164,7 +173,18 @@ class _FriendsScreenState extends State<FriendsScreen> {
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
       itemCount: users.length,
       separatorBuilder: (_, _) => const SizedBox(height: 8),
-      itemBuilder: (context, index) => FriendUserRow(user: users[index]),
+      itemBuilder: (context, index) {
+        final user = users[index];
+        final isPending =
+            allowsFriendRequests && _pendingFriendUserIds.contains(user.userId);
+        return FriendUserRow(
+          user: user,
+          isPending: isPending,
+          onAdd: allowsFriendRequests && !isPending
+              ? () => _sendFriendRequest(user)
+              : null,
+        );
+      },
     );
   }
 
@@ -193,7 +213,15 @@ class _FriendsScreenState extends State<FriendsScreen> {
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
         itemCount: results.length,
         separatorBuilder: (_, _) => const SizedBox(height: 8),
-        itemBuilder: (context, index) => FriendUserRow(user: results[index]),
+        itemBuilder: (context, index) {
+          final user = results[index];
+          final isPending = _pendingFriendUserIds.contains(user.userId);
+          return FriendUserRow(
+            user: user,
+            isPending: isPending,
+            onAdd: isPending ? null : () => _sendFriendRequest(user),
+          );
+        },
       );
     }
 
