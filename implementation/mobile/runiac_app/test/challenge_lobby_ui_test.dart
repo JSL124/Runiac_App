@@ -10,6 +10,7 @@ import 'package:runiac_app/features/challenge/domain/repositories/challenge_repo
 import 'package:runiac_app/features/challenge/presentation/challenge_friend_picker_screen.dart';
 import 'package:runiac_app/features/challenge/presentation/challenge_lobby_screen.dart';
 import 'package:runiac_app/features/challenge/presentation/challenge_progress_screen.dart';
+import 'package:runiac_app/core/widgets/runiac_level_profile_badge.dart';
 
 import 'support/fake_challenge_repository.dart';
 
@@ -280,7 +281,12 @@ void main() {
           cap: 1,
           onBack: () {},
           friends: const [
-            ChallengeInvitableFriend(uid: 'a', displayName: 'Ann', initials: 'AN'),
+            ChallengeInvitableFriend(
+              uid: 'a',
+              displayName: 'Ann',
+              initials: 'AN',
+              levelLabel: 'Lv.9',
+            ),
             ChallengeInvitableFriend(uid: 'b', displayName: 'Bob', initials: 'BO'),
           ],
         ),
@@ -289,6 +295,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Invited 0 of 1'), findsWidgets);
+    // Rows use the same profile-circle + XP-ring + level-pill badge as Friends.
+    expect(find.byType(RuniacLevelProfileBadge), findsNWidgets(2));
+    expect(find.text('Lv.9'), findsOneWidget);
+    expect(find.text('Lv.0'), findsOneWidget);
 
     await tester.tap(find.text('Ann'));
     await tester.pumpAndSettle();

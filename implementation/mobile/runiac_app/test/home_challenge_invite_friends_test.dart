@@ -13,12 +13,14 @@ const _aisha = FriendUserReadModel(
   userId: 'friend-aisha',
   displayName: 'Aisha Runner',
   avatarInitials: 'AR',
+  levelLabel: 'Lv.12',
 );
 
 const _ben = FriendUserReadModel(
   userId: 'friend-ben',
   displayName: 'Ben Pacer',
   avatarInitials: 'BP',
+  levelLabel: 'Lv.7',
 );
 
 class _FakeFriendsRepository implements FriendsRepository {
@@ -115,10 +117,15 @@ void main() {
 
       expect(friendsRepository.loadCalls, 1);
       expect(friendsRepository.lastOwnerUid, 'owner-uid');
-      expect(invitable.map((f) => (f.uid, f.displayName, f.initials)), [
-        ('friend-aisha', 'Aisha Runner', 'AR'),
-        ('friend-ben', 'Ben Pacer', 'BP'),
-      ]);
+      expect(
+        invitable.map(
+          (f) => (f.uid, f.displayName, f.initials, f.levelLabel),
+        ),
+        [
+          ('friend-aisha', 'Aisha Runner', 'AR', 'Lv.12'),
+          ('friend-ben', 'Ben Pacer', 'BP', 'Lv.7'),
+        ],
+      );
     },
   );
 

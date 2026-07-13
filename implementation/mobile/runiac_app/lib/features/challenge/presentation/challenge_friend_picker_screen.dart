@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/runiac_back_header.dart';
 import '../../../core/widgets/runiac_buttons.dart';
+import '../../../core/widgets/runiac_level_profile_badge.dart';
 import '../domain/challenge_copy.dart';
 import 'widgets/challenge_widgets.dart';
 
@@ -15,17 +16,24 @@ Future<List<ChallengeInvitableFriend>> noChallengeInvitableFriends() async =>
     const <ChallengeInvitableFriend>[];
 
 /// A reciprocal friend the owner may invite to a lobby. Identity is limited to
-/// a display name and initials; no routes, metrics, or activity are exposed.
+/// a display name, initials, and backend-owned level label (for the same
+/// profile badge Friends renders); no routes, metrics, or activity are
+/// exposed.
 class ChallengeInvitableFriend {
   const ChallengeInvitableFriend({
     required this.uid,
     required this.displayName,
     required this.initials,
+    this.levelLabel = '',
   });
 
   final String uid;
   final String displayName;
   final String initials;
+
+  /// Pre-formatted backend-owned display string, e.g. `'Lv.12'`. Never
+  /// computed on the client.
+  final String levelLabel;
 }
 
 /// Reciprocal-friends picker with a capacity-capped checkbox selection.
@@ -191,7 +199,24 @@ class _FriendPickRow extends StatelessWidget {
         constraints: const BoxConstraints(minHeight: 44),
         child: Row(
           children: [
-            ChallengeInitialsAvatar(initials: friend.initials),
+            ExcludeSemantics(
+              child: RuniacLevelProfileBadge(
+                initials: friend.initials,
+                levelLabel: friend.levelLabel.trim().isEmpty
+                    ? 'Lv.0'
+                    : friend.levelLabel,
+                progressFraction: 0,
+                size: 42,
+                badgeHeight: 16,
+                badgeMinWidth: 42,
+                badgeHorizontalPadding: 6,
+                badgeFontSize: 9,
+                ringStrokeWidth: 4,
+                discColor: RuniacColors.primaryBlue,
+                discBorderColor: RuniacColors.white,
+                initialsColor: RuniacColors.white,
+              ),
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
