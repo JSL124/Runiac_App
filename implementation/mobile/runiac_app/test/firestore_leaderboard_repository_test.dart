@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/features/leaderboard/data/firestore_leaderboard_repository.dart';
 import 'package:runiac_app/features/leaderboard/domain/models/leaderboard_read_model.dart';
@@ -176,6 +178,99 @@ void main() {
 
     await expectLater(repository.loadLeaderboard(), throwsStateError);
   });
+
+  test(
+    'emits the promoted division after its Firestore documents change',
+    () async {
+      final authRepository = FakeRuniacAuthRepository()
+        ..emitSignedIn(uid: 'runner-1');
+      final reader = _LiveLeaderboardDocumentReader();
+      addTearDown(reader.dispose);
+      final repository = FirestoreLeaderboardRepository(
+        authRepository: authRepository,
+        reader: reader,
+      );
+      final promoted = repository.watchLeaderboard().first;
+
+      reader.publishBronzePromotion();
+
+      final leaderboard = await promoted;
+      expect(leaderboard.divisionKey, 'tier_02');
+      expect(leaderboard.divisionLabel, 'Bronze League');
+      expect(leaderboard.currentRunnerRankLabel, '#1');
+    },
+  );
+}
+
+class _LiveLeaderboardDocumentReader implements LiveLeaderboardDocumentReader {
+  final _changes = StreamController<void>.broadcast();
+  Map<String, Object?>? _currentView;
+  Map<String, Object?>? _profile = const {
+    'locationLabel': 'Jurong East, Singapore',
+    'divisionKey': 'tier_01',
+  };
+  Map<String, Object?>? _snapshot;
+  Map<String, Object?>? _rank;
+
+  @override
+  Future<Map<String, Object?>?> readCurrentPeriod() async => const {
+    'periodKey': '2026-07',
+  };
+
+  @override
+  Future<Map<String, Object?>?> readCurrentView({required String uid}) async =>
+      _currentView;
+
+  @override
+  Future<Map<String, Object?>?> readProfile({required String uid}) async =>
+      _profile;
+
+  @override
+  Future<Map<String, Object?>?> readRank({required String rankId}) async =>
+      _rank;
+
+  @override
+  Future<Map<String, Object?>?> readSnapshot({
+    required String snapshotId,
+  }) async => _snapshot;
+
+  @override
+  Stream<void> watchLeaderboardDocuments({required String uid}) =>
+      _changes.stream;
+
+  void publishBronzePromotion() {
+    _currentView = const {
+      'homeRegionId': 'jurong-east',
+      'divisionKey': 'tier_02',
+      'status': 'ranked',
+      'snapshotId': 'monthly_jurong-east_tier_02_2026-07',
+      'rankId': 'runner-1_monthly_2026-07',
+    };
+    _profile = const {
+      'locationLabel': 'Jurong East, Singapore',
+      'divisionKey': 'tier_02',
+    };
+    _snapshot = const {
+      'divisionLabel': 'Bronze League',
+      'topEntries': [
+        {
+          'publicAlias': 'League Runner',
+          'rankLabel': '#1',
+          'scoreLabel': '85 XP',
+          'levelLabel': 'Level 11',
+          'divisionLabel': 'Bronze League',
+          'regionLabel': 'Jurong East',
+        },
+      ],
+    };
+    _rank = const {
+      'rankLabel': '#1',
+      'currentEntry': {'publicAlias': 'League Runner', 'rankLabel': '#1'},
+    };
+    _changes.add(null);
+  }
+
+  Future<void> dispose() => _changes.close();
 }
 
 class _FakeLeaderboardDocumentReader implements LeaderboardDocumentReader {

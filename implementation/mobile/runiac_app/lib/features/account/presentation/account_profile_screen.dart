@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/runiac_colors.dart';
@@ -50,6 +52,7 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
   late Future<UserProfileReadModel> _profileFuture;
   late Future<UserProgressReadModel> _progressFuture;
   late Future<LeaderboardReadModel> _leaderboardFuture;
+  StreamSubscription<UserProgressReadModel>? _progressSubscription;
   bool _verificationSendPending = false;
   String? _verificationFeedbackMessage;
 
@@ -59,6 +62,7 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
     _profileFuture = widget.profileRepository.loadUserProfile();
     _progressFuture = widget.userProgressRepository.loadUserProgress();
     _leaderboardFuture = widget.leaderboardRepository.loadLeaderboard();
+    _subscribeToLiveProgress();
   }
 
   @override
@@ -69,10 +73,45 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
     }
     if (oldWidget.userProgressRepository != widget.userProgressRepository) {
       _progressFuture = widget.userProgressRepository.loadUserProgress();
+      _progressSubscription?.cancel();
+      _subscribeToLiveProgress();
     }
     if (oldWidget.leaderboardRepository != widget.leaderboardRepository) {
       _leaderboardFuture = widget.leaderboardRepository.loadLeaderboard();
     }
+  }
+
+  @override
+  void dispose() {
+    _progressSubscription?.cancel();
+    super.dispose();
+  }
+
+  void _subscribeToLiveProgress() {
+    final repository = widget.userProgressRepository;
+    if (repository is! LiveUserProgressRepository) {
+      return;
+    }
+    _progressSubscription = repository.watchUserProgress().listen(
+      (progress) {
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _progressFuture = Future.value(progress);
+        });
+      },
+      onError: (Object error, StackTrace stackTrace) {
+        FlutterError.reportError(
+          FlutterErrorDetails(
+            exception: error,
+            stack: stackTrace,
+            library: 'runiac account profile',
+            context: ErrorDescription('watching backend progression updates'),
+          ),
+        );
+      },
+    );
   }
 
   @override

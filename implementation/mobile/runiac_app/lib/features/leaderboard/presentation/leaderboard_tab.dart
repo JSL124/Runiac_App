@@ -59,12 +59,14 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
   LeaderboardDetailDisplaySnapshot? _selectedRegion;
   RunnerAchievementProfileSnapshot? _selectedProfile;
   Timer? _periodRefreshTimer;
+  StreamSubscription<LeaderboardReadModel>? _liveUpdateSubscription;
   var _expiredRetryAttempt = 0;
   var _loadSerial = 0;
 
   @override
   void initState() {
     super.initState();
+    _subscribeToLiveUpdates();
     unawaited(_loadLeaderboard());
   }
 
@@ -74,6 +76,8 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
     if (oldWidget.repository != widget.repository ||
         oldWidget.clock != widget.clock) {
       _expiredRetryAttempt = 0;
+      _liveUpdateSubscription?.cancel();
+      _subscribeToLiveUpdates();
       unawaited(_loadLeaderboard());
     }
   }
@@ -81,7 +85,28 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
   @override
   void dispose() {
     _periodRefreshTimer?.cancel();
+    _liveUpdateSubscription?.cancel();
     super.dispose();
+  }
+
+  void _subscribeToLiveUpdates() {
+    final repository = widget.repository;
+    if (repository is! LiveLeaderboardRepository) {
+      return;
+    }
+    _liveUpdateSubscription = repository.watchLeaderboard().listen(
+      (_) => unawaited(_loadLeaderboard()),
+      onError: (Object error, StackTrace stackTrace) {
+        FlutterError.reportError(
+          FlutterErrorDetails(
+            exception: error,
+            stack: stackTrace,
+            library: 'runiac leaderboard',
+            context: ErrorDescription('watching leaderboard updates'),
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _loadLeaderboard() async {

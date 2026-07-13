@@ -11,8 +11,13 @@ abstract interface class UserProgressDocumentReader {
   Future<Map<String, Object?>?> readUserProgress({required String uid});
 }
 
-class FirestoreUserProgressDocumentReader
+abstract interface class LiveUserProgressDocumentReader
     implements UserProgressDocumentReader {
+  Stream<void> watchUserProgress({required String uid});
+}
+
+class FirestoreUserProgressDocumentReader
+    implements LiveUserProgressDocumentReader {
   FirestoreUserProgressDocumentReader({FirebaseFirestore? firestore})
     : _firestore = firestore ?? FirebaseFirestore.instance;
 
@@ -24,9 +29,19 @@ class FirestoreUserProgressDocumentReader
     final data = snapshot.data();
     return data == null ? null : Map<String, Object?>.from(data);
   }
+
+  @override
+  Stream<void> watchUserProgress({required String uid}) {
+    return _firestore
+        .collection('userProfiles')
+        .doc(uid)
+        .snapshots()
+        .map<void>((_) {});
+  }
 }
 
-class FirestoreUserProgressRepository implements UserProgressRepository {
+class FirestoreUserProgressRepository
+    implements UserProgressRepository, LiveUserProgressRepository {
   FirestoreUserProgressRepository({
     required this.authRepository,
     UserProgressDocumentReader? reader,
@@ -88,6 +103,24 @@ class FirestoreUserProgressRepository implements UserProgressRepository {
       currentUser.uid,
       cacheWriteGeneration: _cacheWriteGeneration,
     );
+  }
+
+  @override
+  Stream<UserProgressReadModel> watchUserProgress() {
+    final currentUser = authRepository.currentUser;
+    final reader = _reader;
+    if (currentUser == null || reader is! LiveUserProgressDocumentReader) {
+      return Stream.fromFuture(loadUserProgress());
+    }
+    final cacheWriteGeneration = _cacheWriteGeneration;
+    return reader
+        .watchUserProgress(uid: currentUser.uid)
+        .asyncMap(
+          (_) => _readAndCacheUserProgress(
+            currentUser.uid,
+            cacheWriteGeneration: cacheWriteGeneration,
+          ),
+        );
   }
 
   Future<void> _refreshStreakSafely() async {

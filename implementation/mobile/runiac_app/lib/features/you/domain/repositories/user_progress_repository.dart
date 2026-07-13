@@ -6,6 +6,11 @@ abstract interface class UserProgressRepository {
   Future<UserProgressReadModel> refreshUserProgress();
 }
 
+abstract interface class LiveUserProgressRepository
+    implements UserProgressRepository {
+  Stream<UserProgressReadModel> watchUserProgress();
+}
+
 class StaticUserProgressRepository implements UserProgressRepository {
   const StaticUserProgressRepository();
 
