@@ -1451,7 +1451,7 @@ class _SocialMenuTrigger extends StatelessWidget {
           behavior: HitTestBehavior.opaque,
           onTap: onTap,
           child: Container(
-            padding: const EdgeInsets.fromLTRB(12, 6, 8, 6),
+            padding: const EdgeInsets.fromLTRB(14, 7, 10, 7),
             decoration: _homeStageControlDecoration(
               borderRadius: BorderRadius.circular(999),
             ),
@@ -1462,18 +1462,18 @@ class _SocialMenuTrigger extends StatelessWidget {
                   'Social',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 12.5,
+                    fontSize: 13,
                     fontWeight: FontWeight.w800,
                     height: 1,
                   ),
                 ),
-                const SizedBox(width: 3),
+                const SizedBox(width: 4),
                 Icon(
                   open
                       ? Icons.arrow_drop_up_rounded
                       : Icons.arrow_drop_down_rounded,
                   color: Colors.white,
-                  size: 19,
+                  size: 20,
                 ),
               ],
             ),

@@ -35,8 +35,8 @@ void main() {
     expect(find.text('Challenge'), findsNothing);
 
     final triggerSize = tester.getSize(_trigger);
-    expect(triggerSize.width, greaterThanOrEqualTo(71));
-    expect(triggerSize.height, greaterThanOrEqualTo(31));
+    expect(triggerSize.width, greaterThanOrEqualTo(76));
+    expect(triggerSize.height, greaterThanOrEqualTo(34));
   });
 
   testWidgets('Tapping the trigger opens Friends and Challenge items', (
