@@ -1402,8 +1402,9 @@ class _HomeActiveChallengeControlState
                     width: 62,
                     height: 62,
                     padding: const EdgeInsets.all(11),
-                    decoration:
-                        _homeStageControlDecoration(shape: BoxShape.circle),
+                    decoration: _homeStageControlDecoration(
+                      shape: BoxShape.circle,
+                    ),
                     child: ChallengeBadgeImage(
                       tierId: widget.display.tierId,
                       size: 40,
@@ -1450,7 +1451,7 @@ class _SocialMenuTrigger extends StatelessWidget {
           behavior: HitTestBehavior.opaque,
           onTap: onTap,
           child: Container(
-            padding: const EdgeInsets.fromLTRB(10, 5, 6, 5),
+            padding: const EdgeInsets.fromLTRB(12, 6, 8, 6),
             decoration: _homeStageControlDecoration(
               borderRadius: BorderRadius.circular(999),
             ),
@@ -1461,18 +1462,18 @@ class _SocialMenuTrigger extends StatelessWidget {
                   'Social',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 12,
+                    fontSize: 12.5,
                     fontWeight: FontWeight.w800,
                     height: 1,
                   ),
                 ),
-                const SizedBox(width: 2),
+                const SizedBox(width: 3),
                 Icon(
                   open
                       ? Icons.arrow_drop_up_rounded
                       : Icons.arrow_drop_down_rounded,
                   color: Colors.white,
-                  size: 18,
+                  size: 19,
                 ),
               ],
             ),

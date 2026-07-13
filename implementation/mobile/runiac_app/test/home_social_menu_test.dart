@@ -33,6 +33,10 @@ void main() {
     expect(_barrier, findsNothing);
     expect(find.text('Friends'), findsNothing);
     expect(find.text('Challenge'), findsNothing);
+
+    final triggerSize = tester.getSize(_trigger);
+    expect(triggerSize.width, greaterThanOrEqualTo(71));
+    expect(triggerSize.height, greaterThanOrEqualTo(31));
   });
 
   testWidgets('Tapping the trigger opens Friends and Challenge items', (
@@ -54,9 +58,7 @@ void main() {
     tester,
   ) async {
     var openFriendsCount = 0;
-    await tester.pumpWidget(
-      _harness(onOpenFriends: () => openFriendsCount++),
-    );
+    await tester.pumpWidget(_harness(onOpenFriends: () => openFriendsCount++));
     await tester.pumpAndSettle();
 
     await tester.tap(_trigger);
@@ -69,32 +71,31 @@ void main() {
     expect(_barrier, findsNothing);
   });
 
-  testWidgets(
-    'Challenge item fires the callback once and closes the menu',
-    (tester) async {
-      var openFriendsCount = 0;
-      var openChallengeCount = 0;
-      await tester.pumpWidget(
-        _harness(
-          onOpenFriends: () => openFriendsCount++,
-          onOpenChallenge: () => openChallengeCount++,
-        ),
-      );
-      await tester.pumpAndSettle();
+  testWidgets('Challenge item fires the callback once and closes the menu', (
+    tester,
+  ) async {
+    var openFriendsCount = 0;
+    var openChallengeCount = 0;
+    await tester.pumpWidget(
+      _harness(
+        onOpenFriends: () => openFriendsCount++,
+        onOpenChallenge: () => openChallengeCount++,
+      ),
+    );
+    await tester.pumpAndSettle();
 
-      await tester.tap(_trigger);
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Challenge'));
-      await tester.pumpAndSettle();
+    await tester.tap(_trigger);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Challenge'));
+    await tester.pumpAndSettle();
 
-      expect(openChallengeCount, 1);
-      expect(openFriendsCount, 0);
-      // No coming-soon SnackBar is shown anymore.
-      expect(find.text('Challenge is coming soon!'), findsNothing);
-      expect(_panel, findsNothing);
-      expect(_barrier, findsNothing);
-    },
-  );
+    expect(openChallengeCount, 1);
+    expect(openFriendsCount, 0);
+    // No coming-soon SnackBar is shown anymore.
+    expect(find.text('Challenge is coming soon!'), findsNothing);
+    expect(_panel, findsNothing);
+    expect(_barrier, findsNothing);
+  });
 
   testWidgets('Tapping outside the open menu dismisses it', (tester) async {
     await tester.pumpWidget(_harness(onOpenFriends: () {}));
