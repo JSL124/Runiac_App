@@ -261,7 +261,7 @@ class _ChallengeExploreScreenState extends State<ChallengeExploreScreen> {
             crossAxisCount: 3,
             mainAxisSpacing: 12,
             crossAxisSpacing: 12,
-            childAspectRatio: 0.74,
+            childAspectRatio: 0.64,
           ),
           itemBuilder: (context, index) {
             final tier = data.catalog[index];
@@ -383,7 +383,7 @@ class _TierTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final badgeSize = constraints.maxWidth * 0.6;
+        final badgeSize = constraints.maxWidth * 0.88;
         return RuniacTappableSurface(
           key: ValueKey<String>('challenge-tier-${tier.tierId.wireValue}'),
           onTap: onTap,
@@ -405,6 +405,7 @@ class _TierTile extends StatelessWidget {
             children: [
               Column(
                 mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   ChallengeBadgeImage(tierId: tier.tierId, size: badgeSize),
                   const SizedBox(height: 4),
