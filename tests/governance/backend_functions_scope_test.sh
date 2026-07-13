@@ -16,8 +16,16 @@ set_inactive_feed_capsule() {
   perl -0pi -e 's{- Current active capsule in this isolated worktree: `implementation/roadmap/capsules/feed-friends-emulator-backend\.md`\.[^\n]*}{- Current active capsule: none. Historical reference: Feed/Friends emulator backend is not active.}' implementation/roadmap/CURRENT.md
 }
 
+set_active_feed_capsule() {
+  perl -0pi -e 's{^- Current active capsule(?: in this isolated worktree)?: .*?$}{- Current active capsule in this isolated worktree: `implementation/roadmap/capsules/feed-friends-emulator-backend.md`.}m' implementation/roadmap/CURRENT.md
+}
+
 set_adaptive_character_guidance_capsule() {
   perl -0pi -e 's{^- Current active capsule(?: in this isolated worktree)?: .*?$}{- Current active capsule in this isolated worktree: `implementation/roadmap/capsules/adaptive-character-guidance.md`.}m' implementation/roadmap/CURRENT.md
+}
+
+set_inactive_challenge_distance_system_capsule() {
+  perl -0pi -e 's{^- Newly routed Challenge distance system on 2026-07-13 Asia/Singapore: `implementation/roadmap/capsules/challenge-distance-system\.md`[^\n]*\n}{}m' implementation/roadmap/CURRENT.md
 }
 
 cleanup_probes() {
@@ -26,6 +34,8 @@ cleanup_probes() {
     functions/src/.runiac-governance-probe.ts \
     functions/src/.runiac-governance-staged-probe.ts \
     functions/src/agent/.runiac-governance-adaptive-probe.ts \
+    functions/src/challenge/.runiac-governance-challenge-probe.ts \
+    functions/src/feed/.runiac-governance-feed-probe.ts \
     tests/firebase-rules/.runiac-nonprefix-feed-probe.mjs \
     functions/test/.runiac-governance-nested/feedScope.test.ts \
     tests/firebase-rules/.runiac-governance-nested/feed-scope.mjs
@@ -43,6 +53,7 @@ cleanup() {
 
 trap cleanup EXIT
 cleanup_probes
+set_active_feed_capsule
 
 expect_rejection() {
   local checker="$1"
@@ -86,6 +97,20 @@ if ! ./tools/governance-ci/check-pre-scaffold-scope.sh >"$tmp_dir/pre-scaffold-a
   cat "$tmp_dir/pre-scaffold-active-pass.txt"
   exit 1
 fi
+
+printf '%s\n' 'allowed Challenge Functions probe' > functions/src/challenge/.runiac-governance-challenge-probe.ts
+
+if ! ./tools/governance-ci/check-pre-scaffold-scope.sh >"$tmp_dir/challenge-active-pass.txt"; then
+  cat "$tmp_dir/challenge-active-pass.txt"
+  printf '%s\n' 'Expected an active Challenge capsule to allow its explicit Functions paths'
+  exit 1
+fi
+
+set_inactive_challenge_distance_system_capsule
+expect_rejection ./tools/governance-ci/check-pre-scaffold-scope.sh functions/src/challenge/.runiac-governance-challenge-probe.ts 'check-pre-scaffold-scope inactive Challenge Functions probe'
+cp "$current_backup" implementation/roadmap/CURRENT.md
+rm -f functions/src/challenge/.runiac-governance-challenge-probe.ts
+set_active_feed_capsule
 
 if ! grep -Fq 'git rev-parse ":$path"' tools/governance-ci/check-pre-scaffold-scope.sh || ! grep -Fq 'git hash-object -- "$path"' tools/governance-ci/check-pre-scaffold-scope.sh || ! grep -Fq '[ "$index_blob" != "$expected_blob" ] || [ "$worktree_blob" != "$expected_blob" ]' tools/governance-ci/check-pre-scaffold-scope.sh; then
   printf '%s\n' 'Expected immutable Adaptive baseline checks to compare both index and worktree blobs for clean committed-content enforcement'
@@ -147,6 +172,8 @@ if ! cmp -s "$current_backup" implementation/roadmap/CURRENT.md; then
   exit 1
 fi
 
+set_active_feed_capsule
+
 if ! test -f functions/src/feed/engagement/engagement.ts; then
   printf '%s\n' 'Expected a nested Feed Functions source fixture for recursive allowlist coverage'
   exit 1
@@ -202,14 +229,12 @@ if ! grep -Fq 'functions/src/.runiac-governance-staged-probe.ts' <<<"$staged_pre
   exit 1
 fi
 
-cp "$current_backup" implementation/roadmap/CURRENT.md
 set_inactive_feed_capsule
 printf '%s\n' 'adaptive inactive probe' > functions/src/agent/.runiac-governance-adaptive-probe.ts
+printf '%s\n' 'inactive Feed probe' > functions/src/feed/.runiac-governance-feed-probe.ts
 
-expect_rejection ./tools/governance-ci/check-diff-hygiene.sh functions/src/feed/cleanup.ts 'check-diff-hygiene inactive Feed Functions probe'
-expect_rejection ./tools/governance-ci/check-pre-scaffold-scope.sh functions/src/feed/cleanup.ts 'check-pre-scaffold-scope inactive Feed Functions probe'
-expect_rejection ./tools/governance-ci/check-diff-hygiene.sh storage.rules 'check-diff-hygiene inactive Feed Storage probe'
-expect_rejection ./tools/governance-ci/check-pre-scaffold-scope.sh storage.rules 'check-pre-scaffold-scope inactive Feed Storage probe'
+expect_rejection ./tools/governance-ci/check-diff-hygiene.sh functions/src/feed/.runiac-governance-feed-probe.ts 'check-diff-hygiene inactive Feed Functions probe'
+expect_rejection ./tools/governance-ci/check-pre-scaffold-scope.sh functions/src/feed/.runiac-governance-feed-probe.ts 'check-pre-scaffold-scope inactive Feed Functions probe'
 expect_rejection ./tools/governance-ci/check-diff-hygiene.sh functions/src/agent/.runiac-governance-adaptive-probe.ts 'check-diff-hygiene inactive adaptive probe'
 expect_rejection ./tools/governance-ci/check-pre-scaffold-scope.sh functions/src/agent/.runiac-governance-adaptive-probe.ts 'check-pre-scaffold-scope inactive adaptive probe'
 

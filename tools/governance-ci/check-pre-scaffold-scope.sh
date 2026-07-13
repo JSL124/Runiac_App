@@ -43,6 +43,31 @@ is_historical_backend_functions_path() {
     functions/src/agent/homeGuideModelOutput.ts|\
     functions/src/agent/homeGuideQuotaCache.ts|\
     functions/src/agent/homeGuideQuotaFingerprint.ts|\
+    functions/src/agent/activityFeedbackAgent.ts|\
+    functions/src/agent/activityFeedbackAgentHandler.ts|\
+    functions/src/agent/activityFeedbackContractFields.ts|\
+    functions/src/agent/activityFeedbackContracts.ts|\
+    functions/src/agent/activityFeedbackModel.ts|\
+    functions/src/agent/activityFeedbackModelOutput.ts|\
+    functions/src/agent/activityFeedbackQuota.ts|\
+    functions/src/agent/activityFeedbackTypes.ts|\
+    functions/src/feed/cleanup.ts|\
+    functions/src/feed/contracts.ts|\
+    functions/src/feed/engagement/engagement.ts|\
+    functions/src/feed/fixtures/cli.ts|\
+    functions/src/feed/fixtures/emulatorFixtures.ts|\
+    functions/src/feed/fixtures/fixtureDefinitions.ts|\
+    functions/src/feed/fixtures/fixtureLibrary.ts|\
+    functions/src/feed/lifecycle/core.ts|\
+    functions/src/feed/lifecycle/firebasePort.ts|\
+    functions/src/feed/lifecycle/functions.ts|\
+    functions/src/feed/lifecycle/types.ts|\
+    functions/src/feed/png.ts|\
+    functions/src/feed/publish/callable.ts|\
+    functions/src/feed/publish/core.ts|\
+    functions/src/feed/relationship.ts|\
+    functions/src/feed/thumbnail/callable.ts|\
+    functions/src/feed/thumbnail/core.ts|\
     functions/src/notifications/deviceRegistry.ts|\
     functions/src/notifications/dispatchPlanner.ts|\
     functions/src/notifications/scheduledPushDispatch.ts|\
@@ -88,8 +113,25 @@ is_historical_backend_functions_path() {
     functions/src/run/validateCadenceAnalysisSeries.ts|\
     functions/src/run/validateRunPayload.ts|\
     functions/src/run/validateRunScalarFields.ts|\
+    functions/src/run/rejectUnsupportedFields.ts|\
+    functions/src/run/validateRoutePreview.ts|\
+    functions/src/run/validateRunSummaryDetails.ts|\
+    functions/test/activityFeedbackAgentCallableSurface.test.ts|\
+    functions/test/activityFeedbackContracts.test.ts|\
+    functions/test/activityFeedbackModel.test.ts|\
     functions/test/completeRun.test.ts|\
     functions/test/completeRunCallableSurface.test.ts|\
+    functions/test/completeRunRichSummaryCases.ts|\
+    functions/test/completeRunRichSummaryFixtures.ts|\
+    functions/test/completeRunRichSummaryScenarios.ts|\
+    functions/test/feedCallableSurface.test.ts|\
+    functions/test/feedContracts.test.ts|\
+    functions/test/feedEmulatorIntegration.test.ts|\
+    functions/test/feedEngagement.test.ts|\
+    functions/test/feedFixtureGuard.test.ts|\
+    functions/test/feedLifecycle.test.ts|\
+    functions/test/feedPublishCore.test.ts|\
+    functions/test/feedThumbnailCore.test.ts|\
     functions/test/homeGuideAgentCallableSurface.test.ts|\
     functions/test/homeGuideAgentSurface.test.ts|\
     functions/test/homeGuideEvidence.test.ts|\
@@ -119,12 +161,48 @@ is_historical_backend_functions_path() {
   esac
 }
 
+is_historical_backend_config_path() {
+  case "$1" in
+    firebase.json|firestore.indexes.json|firestore.rules|storage.rules|\
+    implementation/roadmap/CURRENT.md|\
+    implementation/roadmap/capsules/feed-friends-emulator-backend.md|\
+    implementation/roadmap/snapshots/latest.md|\
+    tests/firebase-rules/feed.emulator.guard.mjs|\
+    tests/firebase-rules/feed.firestore.rules.test.mjs|\
+    tests/firebase-rules/feed.storage.rules.test.mjs|\
+    tests/firebase-rules/package.json|\
+    tests/firebase-rules/package-lock.json)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 is_adaptive_character_guidance_capsule_active() {
   grep -Eq '^- Current active capsule( in this isolated worktree)?: `implementation/roadmap/capsules/adaptive-character-guidance\.md`' implementation/roadmap/CURRENT.md
 }
 
 is_feed_friends_emulator_backend_capsule_active() {
   grep -Eq '^- Current active capsule in this isolated worktree: `implementation/roadmap/capsules/feed-friends-emulator-backend\.md`\.' implementation/roadmap/CURRENT.md
+}
+
+is_challenge_distance_system_capsule_active() {
+  grep -Eq '^- Newly routed Challenge distance system on 2026-07-13 Asia/Singapore: `implementation/roadmap/capsules/challenge-distance-system\.md`' implementation/roadmap/CURRENT.md
+}
+
+is_challenge_distance_system_functions_path() {
+  case "$1" in
+    functions/src/challenge/*|\
+    functions/test/challenge*.ts|\
+    functions/test/levelUpLeaderboard.integration.test.ts)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
 }
 
 is_feed_friends_emulator_backend_rules_test_path() {
@@ -286,6 +364,14 @@ is_approved_scaffold_path() {
 }
 
 is_forbidden_config_or_secret() {
+  if is_historical_backend_config_path "$1"; then
+    return 1
+  fi
+
+  if is_historical_backend_functions_path "$1"; then
+    return 1
+  fi
+
   if is_feed_friends_emulator_backend_rules_test_candidate_path "$1"; then
     if is_feed_friends_emulator_backend_path "$1" && is_feed_friends_emulator_backend_capsule_active; then
       return 1
@@ -327,6 +413,9 @@ is_forbidden_config_or_secret() {
       ;;
     functions/*)
       if is_historical_backend_functions_path "$1"; then
+        return 1
+      fi
+      if is_challenge_distance_system_functions_path "$1" && is_challenge_distance_system_capsule_active; then
         return 1
       fi
       if is_adaptive_character_guidance_functions_path "$1" && is_adaptive_character_guidance_capsule_active; then
