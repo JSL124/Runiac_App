@@ -31,20 +31,12 @@ class FeedPostSection extends StatelessWidget {
           child: Row(
             children: [
               ExcludeSemantics(
-                child: RuniacLevelProfileBadge(
+                child: RuniacLevelProfileBadge.row(
                   key: ValueKey('feed-author-profile-${post.postId}'),
                   initials: authorProfile.avatarInitials,
                   levelLabel: authorProfile.compactLevelLabel,
                   progressFraction: authorProfile.levelProgressFraction,
                   size: 44,
-                  badgeHeight: 16,
-                  badgeMinWidth: 42,
-                  badgeHorizontalPadding: 6,
-                  badgeFontSize: 9,
-                  ringStrokeWidth: 4,
-                  discColor: RuniacColors.primaryBlue,
-                  discBorderColor: RuniacColors.white,
-                  initialsColor: RuniacColors.white,
                 ),
               ),
               const SizedBox(width: 10),

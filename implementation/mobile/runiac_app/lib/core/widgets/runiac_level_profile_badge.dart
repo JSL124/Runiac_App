@@ -21,6 +21,27 @@ class RuniacLevelProfileBadge extends StatelessWidget {
     super.key,
   });
 
+  /// Preset sizing for the compact avatar+ring+pill badge used inline in a
+  /// list row (Friends, Feed author/comment rows, challenge invite picker and
+  /// lobby roster rows, etc.). Only identity, progress, and the current-user
+  /// highlight colors vary per call site — keeping the row geometry here in
+  /// one place means every row-style usage renders identically and stays in
+  /// sync when the preset changes.
+  const RuniacLevelProfileBadge.row({
+    required this.initials,
+    required this.levelLabel,
+    required this.progressFraction,
+    this.size = 42,
+    this.discColor = RuniacColors.primaryBlue,
+    this.discBorderColor = RuniacColors.white,
+    this.initialsColor = RuniacColors.white,
+    super.key,
+  })  : badgeHeight = 16,
+        badgeMinWidth = 42,
+        badgeHorizontalPadding = 6,
+        badgeFontSize = 9,
+        ringStrokeWidth = 4;
+
   final String initials;
   final String levelLabel;
   final double progressFraction;

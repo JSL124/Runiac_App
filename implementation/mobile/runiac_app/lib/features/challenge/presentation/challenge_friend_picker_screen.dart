@@ -200,21 +200,12 @@ class _FriendPickRow extends StatelessWidget {
         child: Row(
           children: [
             ExcludeSemantics(
-              child: RuniacLevelProfileBadge(
+              child: RuniacLevelProfileBadge.row(
                 initials: friend.initials,
                 levelLabel: friend.levelLabel.trim().isEmpty
                     ? 'Lv.0'
                     : friend.levelLabel,
                 progressFraction: 0,
-                size: 42,
-                badgeHeight: 16,
-                badgeMinWidth: 42,
-                badgeHorizontalPadding: 6,
-                badgeFontSize: 9,
-                ringStrokeWidth: 4,
-                discColor: RuniacColors.primaryBlue,
-                discBorderColor: RuniacColors.white,
-                initialsColor: RuniacColors.white,
               ),
             ),
             const SizedBox(width: 12),

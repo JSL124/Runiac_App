@@ -16,19 +16,10 @@ class FriendRowBadge extends StatelessWidget {
     // progress fraction is available, so the ring remains empty. An absent
     // label uses the display-only zero-level placeholder used by Home.
     return ExcludeSemantics(
-      child: RuniacLevelProfileBadge(
+      child: RuniacLevelProfileBadge.row(
         initials: user.avatarInitials,
         levelLabel: levelLabel.trim().isEmpty ? 'Lv.0' : levelLabel,
         progressFraction: 0,
-        size: 42,
-        badgeHeight: 16,
-        badgeMinWidth: 42,
-        badgeHorizontalPadding: 6,
-        badgeFontSize: 9,
-        ringStrokeWidth: 4,
-        discColor: RuniacColors.primaryBlue,
-        discBorderColor: RuniacColors.white,
-        initialsColor: RuniacColors.white,
       ),
     );
   }

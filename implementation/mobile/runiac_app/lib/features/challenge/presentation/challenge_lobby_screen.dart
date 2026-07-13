@@ -577,20 +577,13 @@ class _ChallengeLobbyScreenState extends State<ChallengeLobbyScreen> {
 /// falls back to when a label is absent.
 Widget _rosterBadge({required String initials, bool highlighted = false}) {
   return ExcludeSemantics(
-    child: RuniacLevelProfileBadge(
+    child: RuniacLevelProfileBadge.row(
       initials: initials,
       levelLabel: 'Lv.0',
       progressFraction: 0,
-      size: 42,
-      badgeHeight: 16,
-      badgeMinWidth: 42,
-      badgeHorizontalPadding: 6,
-      badgeFontSize: 9,
-      ringStrokeWidth: 4,
       discColor: highlighted
           ? RuniacColors.primaryBlue
           : RuniacColors.sectionSurfaceStrong,
-      discBorderColor: RuniacColors.white,
       initialsColor: highlighted
           ? RuniacColors.white
           : RuniacColors.primaryBlue,

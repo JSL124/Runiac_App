@@ -102,20 +102,11 @@ class _CommentRow extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         ExcludeSemantics(
-          child: RuniacLevelProfileBadge(
+          child: RuniacLevelProfileBadge.row(
             key: ValueKey('feed-comment-author-profile-${comment.commentId}'),
             initials: authorProfile.avatarInitials,
             levelLabel: authorProfile.compactLevelLabel,
             progressFraction: authorProfile.levelProgressFraction,
-            size: 42,
-            badgeHeight: 16,
-            badgeMinWidth: 42,
-            badgeHorizontalPadding: 6,
-            badgeFontSize: 9,
-            ringStrokeWidth: 4,
-            discColor: RuniacColors.primaryBlue,
-            discBorderColor: RuniacColors.white,
-            initialsColor: RuniacColors.white,
           ),
         ),
         const SizedBox(width: 12),
