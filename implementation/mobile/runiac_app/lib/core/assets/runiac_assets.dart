@@ -56,6 +56,36 @@ abstract final class RuniacAssets {
   static const homeDashboardStageRun =
       'assets/images/home/stages/dashboard_stage_run.png';
 
+  static const challengeBadgeCase =
+      'assets/images/challenges/challenge_badge_case.png';
+
+  static const challengeBadge10k =
+      'assets/images/challenges/badges/challenge_badge_10k.png';
+
+  static const challengeBadge20k =
+      'assets/images/challenges/badges/challenge_badge_20k.png';
+
+  static const challengeBadge42kMarathon =
+      'assets/images/challenges/badges/challenge_badge_42k_marathon.png';
+
+  static const challengeBadge100k =
+      'assets/images/challenges/badges/challenge_badge_100k.png';
+
+  static const challengeBadge200k =
+      'assets/images/challenges/badges/challenge_badge_200k.png';
+
+  static const challengeBadge250k =
+      'assets/images/challenges/badges/challenge_badge_250k.png';
+
+  static const challengeBadge300k =
+      'assets/images/challenges/badges/challenge_badge_300k.png';
+
+  static const challengeBadge500k =
+      'assets/images/challenges/badges/challenge_badge_500k.png';
+
+  static const challengeBadge1000k =
+      'assets/images/challenges/badges/challenge_badge_1000k.png';
+
   static const leaderboardShareRankCardBackground =
       'assets/images/leaderboard/share_rank_card_background.png';
 

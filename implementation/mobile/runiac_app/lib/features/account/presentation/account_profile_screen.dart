@@ -14,6 +14,7 @@ import '../domain/repositories/user_profile_persistence_repository.dart';
 import '../domain/repositories/user_profile_repository.dart';
 import 'account_edit_profile_screen.dart';
 import 'data/account_profile_demo_snapshots.dart';
+import 'widgets/account_challenge_badge_case.dart';
 import 'widgets/account_profile_identity.dart';
 import 'widgets/account_profile_sections.dart';
 
@@ -161,6 +162,8 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
             AccountIdentityCard(snapshot: snapshot),
             const SizedBox(height: 14),
             AccountLevelUpGauge(snapshot: snapshot),
+            const SizedBox(height: 14),
+            const AccountChallengeBadgeCase(),
             if (snapshot.previewNote.isNotEmpty) ...[
               const SizedBox(height: 14),
               AccountPreviewNote(message: snapshot.previewNote),

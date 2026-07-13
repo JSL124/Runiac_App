@@ -144,6 +144,14 @@ All spacing derives from a base of 4px.
 - **Data**: initials, level label, and progress fraction are read-only display values from the trusted account/progress read model.
 - **Boundary**: Flutter must not derive, calculate, or write XP, level, rank, streak, or leaderboard progression from the Account badge.
 
+### Account Challenge Badge Case
+
+- **Structure**: the Account page places the supplied illustrated 3x3 challenge case directly below the level progress gauge. Nine transparent badge assets are overlaid at the source-slot centres as a static fit preview.
+- **States**: current usage is a visual asset-fit preview only; earned and unearned collection states are not implemented.
+- **Sizing**: the case retains its source aspect ratio; badge images scale from its width so every badge stays centred in its intended slot.
+- **Accessibility**: the complete case is announced as a single image summary; individual decorative badge images are excluded.
+- **Boundary**: a future earned/unearned badge state must come from a trusted challenge/progression read model. Flutter must not calculate or write challenge completion, XP, level, rank, streak, or leaderboard values.
+
 ### Home Stage Map
 
 - **Structure**: one full-width illustrated background per plan week with exactly seven stage stones, a weekday caption per real weekday slot, and one guide character attached to the active stone.

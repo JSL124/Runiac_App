@@ -98,8 +98,8 @@ flutter:
     - assets/images/home/backgrounds/
     - assets/images/leaderboard/share_rank_card_background.png
     - assets/images/leaderboard/leagues/
-    - assets/images/challenges/badges/
     - assets/images/challenges/challenge_badge_case.png
+    - assets/images/challenges/badges/
     - assets/maps/master_plan_2025_planning_area_boundary_no_sea.geojson
     - assets/images/splash/runiac_splash_logo.png
 
