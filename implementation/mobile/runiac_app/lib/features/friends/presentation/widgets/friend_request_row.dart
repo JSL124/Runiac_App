@@ -112,7 +112,7 @@ class _RequestPill extends StatelessWidget {
       key: ValueKey(actionKey),
       semanticLabel: semanticLabel,
       onTap: onTap,
-      constraints: const BoxConstraints(minHeight: 44),
+      height: 44,
       alignment: Alignment.center,
       borderRadius: BorderRadius.circular(999),
       padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 9),

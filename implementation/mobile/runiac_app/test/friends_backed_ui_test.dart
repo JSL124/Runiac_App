@@ -8,6 +8,7 @@ import 'package:runiac_app/features/friends/domain/models/friends_read_model.dar
 import 'package:runiac_app/features/friends/domain/repositories/friends_repository.dart';
 import 'package:runiac_app/features/friends/presentation/friends_screen.dart';
 import 'package:runiac_app/features/friends/presentation/friends_screen_controller.dart';
+import 'package:runiac_app/features/friends/presentation/widgets/friends_rows.dart';
 
 import 'support/fake_runiac_auth_repository.dart';
 
@@ -273,7 +274,7 @@ void main() {
     expect(repository.cancelCalls, 1);
   });
 
-  testWidgets('request and unblock actions retain 44px touch targets', (
+  testWidgets('request and blocked rows match the Friends row height', (
     tester,
   ) async {
     repository.overview = repository.overview.copyWith(
@@ -282,27 +283,32 @@ void main() {
     );
     await tester.pumpWidget(harness());
     await tester.pumpAndSettle();
+
+    final friendRowHeight = tester.getSize(find.byType(FriendUserRow)).height;
+
     await tester.tap(find.text('Requests'));
     await tester.pumpAndSettle();
 
+    expect(
+      tester.getSize(find.byType(FriendRequestRow).first).height,
+      friendRowHeight,
+    );
     for (final key in const <String>[
       'friends-accept-action-jasmine',
       'friends-decline-action-jasmine',
       'friends-cancel-action-outgoing',
     ]) {
-      expect(
-        tester.getSize(find.byKey(ValueKey(key))).height,
-        greaterThanOrEqualTo(44),
-      );
+      expect(tester.getSize(find.byKey(ValueKey(key))).height, 44);
     }
 
     await tester.tap(find.text('Blocked'));
     await tester.pumpAndSettle();
+    expect(tester.getSize(find.byType(BlockedUserRow)).height, friendRowHeight);
     expect(
       tester
           .getSize(find.byKey(const ValueKey('friends-unblock-action-blocked')))
           .height,
-      greaterThanOrEqualTo(44),
+      44,
     );
   });
 

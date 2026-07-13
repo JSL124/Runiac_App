@@ -53,7 +53,7 @@ class BlockedUserRow extends StatelessWidget {
                   key: ValueKey('friends-unblock-action-${user.userId}'),
                   semanticLabel: 'Unblock ${user.displayName}',
                   onTap: onUnblock,
-                  constraints: const BoxConstraints(minHeight: 44),
+                  height: 44,
                   alignment: Alignment.center,
                   borderRadius: BorderRadius.circular(999),
                   padding: const EdgeInsets.symmetric(
