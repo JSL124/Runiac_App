@@ -5,6 +5,10 @@ import 'package:flutter/material.dart';
 import '../../../../core/characters/runner_character.dart';
 import '../../../../core/theme/runiac_colors.dart';
 import '../../../../core/widgets/runiac_level_profile_badge.dart';
+import '../../../challenge/domain/challenge_copy.dart';
+import '../../../challenge/domain/challenge_countdown.dart';
+import '../../../challenge/presentation/home_active_challenge_display.dart';
+import '../../../challenge/presentation/widgets/challenge_badge_image.dart';
 import '../../domain/guide/home_guide_agent.dart';
 import 'home_stage_background_sequence.dart';
 import 'home_guide_cycle.dart';
@@ -90,6 +94,11 @@ class HomeStageMap extends StatefulWidget {
     this.guideAgent,
     this.guideRequest,
     this.onOpenFriends,
+    this.onOpenChallenge,
+    this.activeChallenge,
+    this.onOpenChallengeProgress,
+    this.challengeClock,
+    this.challengeTicker,
     super.key,
   });
 
@@ -121,6 +130,30 @@ class HomeStageMap extends StatefulWidget {
   /// the Friends item simply closes the menu. Navigation trigger only — the
   /// stage map reads or writes no social data.
   final VoidCallback? onOpenFriends;
+
+  /// Opens the Challenge hub when the Social menu's Challenge item is tapped.
+  /// Optional so existing call sites and tests compile unchanged; when null the
+  /// Challenge item simply closes the menu. Navigation trigger only — the stage
+  /// map internals read or write no Challenge/Firebase data.
+  final VoidCallback? onOpenChallenge;
+
+  /// The caller's live ACTIVE/SETTLING challenge, resolved by `HomeTab` from its
+  /// repository and handed down as a plain Firebase-free projection. Null hides
+  /// the header active-challenge control entirely (no reserved gap).
+  final HomeActiveChallengeDisplay? activeChallenge;
+
+  /// Opens the Progress screen when the active-challenge control is tapped.
+  /// `HomeTab` owns the navigation and repository; the stage map only fires the
+  /// callback.
+  final VoidCallback? onOpenChallengeProgress;
+
+  /// Injected wall-clock for the active-challenge countdown (production uses
+  /// `DateTime.now`). Tests pass a fixed clock for a deterministic label.
+  final DateTime Function()? challengeClock;
+
+  /// Injected 1-second ticker seam for the countdown (production uses a periodic
+  /// timer). Tests pass a no-op/controlled ticker so no real frames are scheduled.
+  final ChallengeTicker? challengeTicker;
 
   @override
   State<HomeStageMap> createState() => _HomeStageMapState();
@@ -266,11 +299,7 @@ class _HomeStageMapState extends State<HomeStageMap>
 
   void _onSocialChallengeTap() {
     _closeSocialMenu();
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        const SnackBar(content: Text('Challenge is coming soon!')),
-      );
+    widget.onOpenChallenge?.call();
   }
 
   void _advanceGuideBubble() {
@@ -553,6 +582,10 @@ class _HomeStageMapState extends State<HomeStageMap>
                     onProfile: widget.onProfile,
                     socialMenuOpen: _socialMenuOpen,
                     onToggleSocialMenu: _toggleSocialMenu,
+                    activeChallenge: widget.activeChallenge,
+                    onOpenChallengeProgress: widget.onOpenChallengeProgress,
+                    challengeClock: widget.challengeClock,
+                    challengeTicker: widget.challengeTicker,
                   ),
                   if (_socialMenuOpen)
                     Padding(
@@ -1141,6 +1174,10 @@ class _HomeStageHeader extends StatelessWidget {
     required this.onProfile,
     required this.socialMenuOpen,
     required this.onToggleSocialMenu,
+    required this.activeChallenge,
+    required this.onOpenChallengeProgress,
+    required this.challengeClock,
+    required this.challengeTicker,
   });
 
   final int streakCount;
@@ -1154,6 +1191,10 @@ class _HomeStageHeader extends StatelessWidget {
   final VoidCallback onProfile;
   final bool socialMenuOpen;
   final VoidCallback onToggleSocialMenu;
+  final HomeActiveChallengeDisplay? activeChallenge;
+  final VoidCallback? onOpenChallengeProgress;
+  final DateTime Function()? challengeClock;
+  final ChallengeTicker? challengeTicker;
 
   @override
   Widget build(BuildContext context) {
@@ -1176,7 +1217,22 @@ class _HomeStageHeader extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            _StreakPill(streakCount: streakCount, loading: progressLoading),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _StreakPill(streakCount: streakCount, loading: progressLoading),
+                if (activeChallenge != null) ...[
+                  const SizedBox(height: 8),
+                  _HomeActiveChallengeControl(
+                    display: activeChallenge!,
+                    onOpen: onOpenChallengeProgress,
+                    clock: challengeClock,
+                    ticker: challengeTicker,
+                  ),
+                ],
+              ],
+            ),
             const Spacer(),
             _NotificationButton(
               unreadNotificationCount: unreadNotificationCount,
@@ -1245,6 +1301,135 @@ class _HomeStageHeader extends StatelessWidget {
   }
 }
 
+/// Circular header control shown under the Streak pill while a challenge is
+/// ACTIVE or SETTLING. The whole badge + countdown area is ONE semantic button
+/// that opens Progress; it contains only the tier badge PNG and a fixed-width
+/// `DD:HH:MM:SS` countdown (or the short "Calculating…" copy while settling).
+/// No title, distance, percent, participant count, progress bar, or chevron.
+class _HomeActiveChallengeControl extends StatefulWidget {
+  const _HomeActiveChallengeControl({
+    required this.display,
+    required this.onOpen,
+    required this.clock,
+    required this.ticker,
+  });
+
+  final HomeActiveChallengeDisplay display;
+  final VoidCallback? onOpen;
+  final DateTime Function()? clock;
+  final ChallengeTicker? ticker;
+
+  @override
+  State<_HomeActiveChallengeControl> createState() =>
+      _HomeActiveChallengeControlState();
+}
+
+class _HomeActiveChallengeControlState
+    extends State<_HomeActiveChallengeControl> {
+  late ChallengeCountdownController _countdown;
+
+  @override
+  void initState() {
+    super.initState();
+    _countdown = ChallengeCountdownController(
+      clock: widget.clock ?? DateTime.now,
+      ticker: widget.ticker,
+      scheduledEndsAt: widget.display.scheduledEndsAt,
+      isSettling: widget.display.isSettling,
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant _HomeActiveChallengeControl oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.display != widget.display) {
+      _countdown.update(
+        scheduledEndsAt: widget.display.scheduledEndsAt,
+        isSettling: widget.display.isSettling,
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _countdown.dispose();
+    super.dispose();
+  }
+
+  /// Minute-granularity remaining phrase so the screen-reader summary never
+  /// re-announces on the per-second tick.
+  String _remainingPhrase(Duration remaining) {
+    final days = remaining.inDays;
+    final hours = remaining.inHours % 24;
+    final minutes = remaining.inMinutes % 60;
+    String unit(int value, String noun) =>
+        '$value $noun${value == 1 ? '' : 's'}';
+    if (days > 0) {
+      return '${unit(days, 'day')} ${unit(hours, 'hour')} left';
+    }
+    if (hours > 0) {
+      return '${unit(hours, 'hour')} ${unit(minutes, 'minute')} left';
+    }
+    return '${unit(minutes, 'minute')} left';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _countdown,
+      builder: (context, _) {
+        final value = _countdown.value;
+        final tierTitle = challengeTierTitle(widget.display.tierId);
+        final semanticRemaining = value.isSettling
+            ? 'calculating results'
+            : _remainingPhrase(value.remaining);
+        final semanticLabel =
+            'Active $tierTitle challenge, $semanticRemaining. '
+            'Opens challenge progress.';
+        return Semantics(
+          key: const ValueKey<String>('homeActiveChallengeControl'),
+          container: true,
+          button: true,
+          label: semanticLabel,
+          child: ExcludeSemantics(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: widget.onOpen,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 62,
+                    height: 62,
+                    padding: const EdgeInsets.all(11),
+                    decoration:
+                        _homeStageControlDecoration(shape: BoxShape.circle),
+                    child: ChallengeBadgeImage(
+                      tierId: widget.display.tierId,
+                      size: 40,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    value.isSettling ? ChallengeCopy.calculating : value.label,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      height: 1,
+                      fontFeatures: [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
 /// Always-visible pill below the profile badge that toggles the Social menu.
 /// Navigation trigger only — reads and writes no social data.
 class _SocialMenuTrigger extends StatelessWidget {
@@ -1299,8 +1484,8 @@ class _SocialMenuTrigger extends StatelessWidget {
 }
 
 /// Compact dropdown card below the Home header with the Social menu items.
-/// Friends only forwards to the caller's navigation callback; Challenge is a
-/// Coming-soon stub. No social data is read or written here.
+/// Friends and Challenge each forward to the caller's navigation callback. No
+/// social data is read or written here.
 class _HomeSocialMenuPanel extends StatelessWidget {
   const _HomeSocialMenuPanel({
     required this.onFriends,

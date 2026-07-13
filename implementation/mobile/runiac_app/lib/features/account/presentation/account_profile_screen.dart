@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/runiac_back_header.dart';
 import '../../auth/domain/runiac_auth_service.dart';
+import '../../challenge/domain/models/challenge_enums.dart';
+import '../../challenge/domain/repositories/challenge_repository.dart';
 import '../../leaderboard/data/static_leaderboard_repository.dart';
 import '../../leaderboard/domain/models/leaderboard_read_model.dart';
 import '../../leaderboard/domain/repositories/leaderboard_repository.dart';
@@ -29,6 +31,7 @@ class AccountProfileScreen extends StatefulWidget {
     required this.onBack,
     this.userProgressRepository = const StaticUserProgressRepository(),
     this.leaderboardRepository = const StaticLeaderboardRepository(),
+    this.challengeRepository,
     this.snapshot = accountProfileDemoSnapshot,
     this.onNotificationSettingsChanged,
     super.key,
@@ -40,6 +43,12 @@ class AccountProfileScreen extends StatefulWidget {
   final GeneratedPlanPersistenceRepository generatedPlanPersistenceRepository;
   final UserProgressRepository userProgressRepository;
   final LeaderboardRepository leaderboardRepository;
+
+  /// Trusted badge-ownership source for the challenge badge case. When `null`
+  /// (default), the badge case keeps its static preview (all badges full
+  /// colour). When supplied, the case renders earned vs unearned from the
+  /// backend-owned `ownedBadges()` projection.
+  final ChallengeRepository? challengeRepository;
   final VoidCallback onBack;
   final AccountProfileDemoSnapshot snapshot;
   final VoidCallback? onNotificationSettingsChanged;
@@ -56,6 +65,10 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
   bool _verificationSendPending = false;
   String? _verificationFeedbackMessage;
 
+  /// Owned tier badges for the badge case. `null` keeps the static preview
+  /// (all full colour); a loaded set drives earned/unearned rendering.
+  Set<ChallengeTierId>? _ownedTierIds;
+
   @override
   void initState() {
     super.initState();
@@ -63,6 +76,30 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
     _progressFuture = widget.userProgressRepository.loadUserProgress();
     _leaderboardFuture = widget.leaderboardRepository.loadLeaderboard();
     _subscribeToLiveProgress();
+    _loadOwnedBadges();
+  }
+
+  /// Loads trusted badge ownership when a challenge source is wired. Degrades
+  /// gracefully: a failure leaves every slot unearned rather than blocking the
+  /// account screen. Preview mode (no repository) keeps `_ownedTierIds` null.
+  Future<void> _loadOwnedBadges() async {
+    final repository = widget.challengeRepository;
+    if (repository == null) {
+      return;
+    }
+    Set<ChallengeTierId> owned;
+    try {
+      final ownership = await repository.ownedBadges();
+      owned = ownership.ownedTierIds;
+    } catch (_) {
+      owned = const <ChallengeTierId>{};
+    }
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _ownedTierIds = owned;
+    });
   }
 
   @override
@@ -202,7 +239,11 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
             const SizedBox(height: 14),
             AccountLevelUpGauge(snapshot: snapshot),
             const SizedBox(height: 14),
-            const AccountChallengeBadgeCase(),
+            AccountChallengeBadgeCase(
+              ownedTierIds: widget.challengeRepository == null
+                  ? null
+                  : (_ownedTierIds ?? const <ChallengeTierId>{}),
+            ),
             if (snapshot.previewNote.isNotEmpty) ...[
               const SizedBox(height: 14),
               AccountPreviewNote(message: snapshot.previewNote),

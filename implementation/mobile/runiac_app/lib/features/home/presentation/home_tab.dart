@@ -5,6 +5,18 @@ import '../../account/domain/models/user_profile_read_model.dart';
 import '../../account/domain/repositories/user_profile_persistence_repository.dart';
 import '../../account/domain/repositories/user_profile_repository.dart';
 import '../../auth/domain/runiac_auth_service.dart';
+import '../../challenge/data/static_challenge_repository.dart';
+import '../../challenge/domain/challenge_notification_routing.dart';
+import '../../challenge/domain/models/challenge_history.dart';
+import '../../challenge/domain/repositories/challenge_repository.dart';
+import '../../challenge/presentation/challenge_explore_screen.dart';
+import '../../challenge/presentation/challenge_history_screen.dart';
+import '../../challenge/presentation/challenge_invitations_screen.dart';
+import '../../challenge/presentation/challenge_progress_screen.dart';
+import '../../challenge/presentation/challenge_result_presentation_controller.dart';
+import '../../challenge/presentation/challenge_result_screen.dart';
+import '../../challenge/presentation/home_active_challenge_display.dart';
+import '../../notifications/domain/models/notification_inbox_item.dart';
 import '../../friends/data/static_friends_repository.dart';
 import '../../friends/domain/repositories/friends_repository.dart';
 import '../../friends/presentation/friends_screen.dart';
@@ -42,6 +54,8 @@ class HomeTab extends StatefulWidget {
     this.userProgressRepository = const StaticUserProgressRepository(),
     this.leaderboardRepository = const StaticLeaderboardRepository(),
     this.friendsRepository = const StaticFriendsRepository(),
+    this.challengeRepository = const StaticChallengeRepository(),
+    this.challengeResultPresenter,
     this.todayWorkoutDetailSnapshot,
     this.todayPlannedRunContext,
     this.generatedPlanProgress,
@@ -65,6 +79,17 @@ class HomeTab extends StatefulWidget {
   /// composition root supplies the Firebase implementation in production;
   /// the static source remains a deterministic fallback for local previews.
   final FriendsRepository friendsRepository;
+
+  /// Challenge distance-system source reached from the Home Social menu's
+  /// Challenge item. Defaults to the deterministic static source for previews
+  /// and tests; the composition root threads the Firebase-backed repository the
+  /// same way [friendsRepository] is threaded.
+  final ChallengeRepository challengeRepository;
+
+  /// One-shot foreground Result presenter. When non-null (Firebase-active
+  /// composition), a newly-settled challenge result is auto-presented once on
+  /// load/resume. `null` (previews/tests) disables auto-presentation entirely.
+  final ChallengeResultPresentationController? challengeResultPresenter;
   final WeeklyWorkoutDetailSnapshot? todayWorkoutDetailSnapshot;
   final PlannedRunContext? todayPlannedRunContext;
 
@@ -89,7 +114,7 @@ class HomeTab extends StatefulWidget {
   State<HomeTab> createState() => _HomeTabState();
 }
 
-class _HomeTabState extends State<HomeTab> {
+class _HomeTabState extends State<HomeTab> with WidgetsBindingObserver {
   late Future<UserProgressReadModel> _userProgressFuture;
   late Future<UserProfileReadModel?> _userProfileFuture;
   var _userProgressFutureInitialized = false;
@@ -99,10 +124,102 @@ class _HomeTabState extends State<HomeTab> {
   UserProfileReadModel? _lastUserProfile;
   int? _observedUserProgressRefreshRevision;
 
+  /// The caller's live ACTIVE/SETTLING challenge projected for the Home control,
+  /// or null when no control should render. Loaded one-shot on init and
+  /// refreshed on return from Challenge navigation.
+  HomeActiveChallengeDisplay? _activeChallengeDisplay;
+  String? _activeChallengeId;
+
+  /// Guards the one-shot Result presentation against re-entrancy (a resume
+  /// while a result route is already open must not stack a second one).
+  bool _presentingResult = false;
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _setUserProfileFuture(refresh: false);
+    _loadActiveChallenge();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _maybePresentUnseenResult();
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _loadActiveChallenge();
+      _maybePresentUnseenResult();
+    }
+  }
+
+  /// Presents the newest unseen terminal result exactly once. The presenter
+  /// itself is idempotent (it advances a local seen-marker), so a resume/replay
+  /// yields nothing to present.
+  Future<void> _maybePresentUnseenResult() async {
+    final presenter = widget.challengeResultPresenter;
+    if (presenter == null || !mounted || _presentingResult) {
+      return;
+    }
+    final ChallengeResult? result = await presenter.takeUnseenResult();
+    if (result == null || !mounted) {
+      return;
+    }
+    await _presentResult(result);
+  }
+
+  Future<void> _presentResult(ChallengeResult result) async {
+    if (_presentingResult || !mounted) {
+      return;
+    }
+    _presentingResult = true;
+    try {
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          fullscreenDialog: true,
+          builder: (context) => ChallengeResultScreen(
+            result: result,
+            onClose: () => Navigator.of(context).pop(),
+            onViewBadgeCollection: result.earnedBadge
+                ? () {
+                    Navigator.of(context).pop();
+                    _openAccountProfile(context);
+                  }
+                : null,
+          ),
+        ),
+      );
+    } finally {
+      _presentingResult = false;
+    }
+    if (mounted) {
+      await _loadActiveChallenge();
+    }
+  }
+
+  /// One-shot read of the caller's active challenge. Failures are non-fatal: the
+  /// control simply keeps its current (or absent) state rather than surfacing an
+  /// error, since it is a secondary Home affordance.
+  Future<void> _loadActiveChallenge() async {
+    try {
+      final active = await widget.challengeRepository.activeChallenge();
+      if (!mounted) {
+        return;
+      }
+      final display = HomeActiveChallengeDisplay.fromActiveChallenge(active);
+      setState(() {
+        _activeChallengeDisplay = display;
+        _activeChallengeId = display == null ? null : active!.challengeId;
+      });
+    } catch (_) {
+      // Leave the existing control state untouched on a transient failure.
+    }
   }
 
   @override
@@ -263,6 +380,7 @@ class _HomeTabState extends State<HomeTab> {
                 widget.generatedPlanPersistenceRepository,
             userProgressRepository: widget.userProgressRepository,
             leaderboardRepository: widget.leaderboardRepository,
+            challengeRepository: widget.challengeRepository,
             onNotificationSettingsChanged: widget.onNotificationSettingsChanged,
             onBack: () => Navigator.of(context).pop(),
           );
@@ -292,16 +410,139 @@ class _HomeTabState extends State<HomeTab> {
     );
   }
 
+  Future<void> _openChallenge(BuildContext context) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) {
+          return ChallengeExploreScreen(
+            repository: widget.challengeRepository,
+            onBack: () => Navigator.of(context).pop(),
+            onOpenHistory: () => _openChallengeHistory(context),
+          );
+        },
+      ),
+    );
+    if (!mounted) {
+      return;
+    }
+    await _loadActiveChallenge();
+  }
+
+  void _openChallengeHistory(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) {
+          return ChallengeHistoryScreen(
+            repository: widget.challengeRepository,
+            onBack: () => Navigator.of(context).pop(),
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _openChallengeProgress(BuildContext context) async {
+    final challengeId = _activeChallengeId;
+    if (challengeId == null) {
+      return;
+    }
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) {
+          return ChallengeProgressScreen(
+            challengeId: challengeId,
+            repository: widget.challengeRepository,
+            onBack: () => Navigator.of(context).pop(),
+          );
+        },
+      ),
+    );
+    if (!mounted) {
+      return;
+    }
+    await _loadActiveChallenge();
+  }
+
   void _openNotificationInbox(BuildContext context) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (context) {
           return NotificationInboxPage(
             repository: widget.notificationInboxRepository,
+            onOpenItem: (item) => _openChallengeNotification(context, item),
           );
         },
       ),
     );
+  }
+
+  /// Routes a tapped challenge inbox item to its destination. Non-challenge
+  /// items resolve to `null` and keep their mark-read-only behaviour.
+  Future<void> _openChallengeNotification(
+    BuildContext context,
+    NotificationInboxItem item,
+  ) async {
+    final target = challengeNotificationTargetFor(item.data);
+    if (target == null) {
+      return;
+    }
+    switch (target.destination) {
+      case ChallengeNotificationDestination.invitations:
+        await Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (context) => ChallengeInvitationsScreen(
+              repository: widget.challengeRepository,
+              slotHeld: _activeChallengeId != null,
+              onBack: () => Navigator.of(context).pop(),
+            ),
+          ),
+        );
+      case ChallengeNotificationDestination.progress:
+        if (target.challengeId.isEmpty) {
+          return;
+        }
+        await Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (context) => ChallengeProgressScreen(
+              challengeId: target.challengeId,
+              repository: widget.challengeRepository,
+              onBack: () => Navigator.of(context).pop(),
+            ),
+          ),
+        );
+      case ChallengeNotificationDestination.result:
+        await _openResultForChallenge(context, target.challengeId);
+    }
+    if (mounted) {
+      await _loadActiveChallenge();
+    }
+  }
+
+  /// Opens the personalized result for [challengeId] by fetching the caller's
+  /// history and reopening the full result surface for the matching entry.
+  Future<void> _openResultForChallenge(
+    BuildContext context,
+    String challengeId,
+  ) async {
+    if (challengeId.isEmpty) {
+      return;
+    }
+    ChallengeHistoryEntry? entry;
+    try {
+      final history = await widget.challengeRepository.history();
+      for (final candidate in history) {
+        if (candidate.challengeId == challengeId) {
+          entry = candidate;
+          break;
+        }
+      }
+    } catch (_) {
+      entry = null;
+    }
+    if (entry == null || !mounted) {
+      return;
+    }
+    await _presentResult(entry.toResult());
   }
 
   HomeStageMapModel? _buildStageMapModel(BeginnerAdaptivePlanSnapshot? plan) {
@@ -498,6 +739,9 @@ class _HomeTabState extends State<HomeTab> {
       onNotifications: () => _openNotificationInbox(context),
       onProfile: () => _openAccountProfile(context),
       onOpenFriends: () => _openFriends(context),
+      onOpenChallenge: () => _openChallenge(context),
+      activeChallenge: _activeChallengeDisplay,
+      onOpenChallengeProgress: () => _openChallengeProgress(context),
       onTapTodayStage: () => _openTodayWorkout(context),
       guideAgent: widget.homeGuideAgent,
       guideRequest: guideRequest,

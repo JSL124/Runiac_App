@@ -6,10 +6,20 @@ import '../domain/models/notification_inbox_item.dart';
 import '../domain/repositories/notification_inbox_repository.dart';
 
 class NotificationInboxPage extends StatelessWidget {
-  const NotificationInboxPage({required this.repository, this.now, super.key});
+  const NotificationInboxPage({
+    required this.repository,
+    this.now,
+    this.onOpenItem,
+    super.key,
+  });
 
   final NotificationInboxRepository repository;
   final DateTime Function()? now;
+
+  /// Tap routing seam. Invoked (after the item is marked read) when a row is
+  /// tapped, so the composition can route challenge notifications to their
+  /// destination. `null` keeps the existing mark-read-only behaviour.
+  final void Function(NotificationInboxItem item)? onOpenItem;
 
   DateTime get _currentTime => (now ?? DateTime.now)();
 
@@ -37,14 +47,18 @@ class NotificationInboxPage extends StatelessWidget {
                     separatorBuilder: (context, index) =>
                         const SizedBox(height: 10),
                     itemBuilder: (context, index) {
+                      final item = items[index];
                       return _NotificationInboxTile(
-                        item: items[index],
+                        item: item,
                         relativeTime: _formatRelativeTime(
-                          items[index].createdAt,
+                          item.createdAt,
                           _currentTime,
                         ),
-                        onRead: () => repository.markRead(items[index].id),
-                        onDelete: () => repository.softDelete(items[index].id),
+                        onRead: () async {
+                          await repository.markRead(item.id);
+                          onOpenItem?.call(item);
+                        },
+                        onDelete: () => repository.softDelete(item.id),
                       );
                     },
                   );

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/features/home/presentation/stage_map/home_stage_map.dart';
 
-Widget _harness({VoidCallback? onOpenFriends}) {
+Widget _harness({VoidCallback? onOpenFriends, VoidCallback? onOpenChallenge}) {
   return MaterialApp(
     home: Scaffold(
       body: HomeStageMap(
@@ -10,6 +10,7 @@ Widget _harness({VoidCallback? onOpenFriends}) {
         onProfile: () {},
         onTapTodayStage: () {},
         onOpenFriends: onOpenFriends,
+        onOpenChallenge: onOpenChallenge,
       ),
     ),
   );
@@ -69,26 +70,29 @@ void main() {
   });
 
   testWidgets(
-    'Challenge item shows the coming-soon SnackBar without navigation',
+    'Challenge item fires the callback once and closes the menu',
     (tester) async {
       var openFriendsCount = 0;
+      var openChallengeCount = 0;
       await tester.pumpWidget(
-        _harness(onOpenFriends: () => openFriendsCount++),
+        _harness(
+          onOpenFriends: () => openFriendsCount++,
+          onOpenChallenge: () => openChallengeCount++,
+        ),
       );
       await tester.pumpAndSettle();
 
       await tester.tap(_trigger);
       await tester.pumpAndSettle();
       await tester.tap(find.text('Challenge'));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 300));
-
-      expect(find.text('Challenge is coming soon!'), findsOneWidget);
-      expect(openFriendsCount, 0);
-      expect(_panel, findsNothing);
-      // Still on the stage map: no route was pushed.
-      expect(find.byType(HomeStageMap), findsOneWidget);
       await tester.pumpAndSettle();
+
+      expect(openChallengeCount, 1);
+      expect(openFriendsCount, 0);
+      // No coming-soon SnackBar is shown anymore.
+      expect(find.text('Challenge is coming soon!'), findsNothing);
+      expect(_panel, findsNothing);
+      expect(_barrier, findsNothing);
     },
   );
 

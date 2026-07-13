@@ -5,6 +5,9 @@ import '../account/domain/models/user_profile_read_model.dart';
 import '../account/domain/repositories/user_profile_repository.dart';
 import '../account/domain/repositories/user_profile_persistence_repository.dart';
 import '../auth/domain/runiac_auth_service.dart';
+import '../challenge/data/static_challenge_repository.dart';
+import '../challenge/domain/repositories/challenge_repository.dart';
+import '../challenge/presentation/challenge_result_presentation_controller.dart';
 import '../feed/domain/models/feed_display_models.dart';
 import '../feed/domain/repositories/feed_repository.dart';
 import '../feed/presentation/current_session_feed.dart';
@@ -49,6 +52,8 @@ class RuniacShell extends StatefulWidget {
     this.userProgressRepository = const StaticUserProgressRepository(),
     this.leaderboardRepository = const StaticLeaderboardRepository(),
     this.friendsRepository = const StaticFriendsRepository(),
+    this.challengeRepository = const StaticChallengeRepository(),
+    this.challengeResultPresenter,
     required this.profileRepository,
     required this.profilePersistenceRepository,
     this.generatedPlanPersistenceRepository =
@@ -73,6 +78,14 @@ class RuniacShell extends StatefulWidget {
   final UserProgressRepository userProgressRepository;
   final LeaderboardRepository leaderboardRepository;
   final FriendsRepository friendsRepository;
+
+  /// Server-owned Challenge source threaded to [HomeTab] and the Account badge
+  /// case. Defaults to the static source for previews/tests.
+  final ChallengeRepository challengeRepository;
+
+  /// One-shot foreground Result presenter threaded to [HomeTab]. `null`
+  /// disables auto-presentation.
+  final ChallengeResultPresentationController? challengeResultPresenter;
   final UserProfileRepository profileRepository;
   final UserProfilePersistenceRepository profilePersistenceRepository;
   final GeneratedPlanPersistenceRepository generatedPlanPersistenceRepository;
@@ -469,6 +482,8 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
           userProgressRepository: widget.userProgressRepository,
           leaderboardRepository: widget.leaderboardRepository,
           friendsRepository: widget.friendsRepository,
+          challengeRepository: widget.challengeRepository,
+          challengeResultPresenter: widget.challengeResultPresenter,
           todayWorkoutDetailSnapshot: todayWorkoutDetail,
           todayPlannedRunContext: todayPlannedRunContext,
           generatedPlanProgress: generatedPlanProgress,

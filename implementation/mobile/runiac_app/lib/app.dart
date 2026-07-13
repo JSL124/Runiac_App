@@ -15,6 +15,9 @@ import 'features/auth/data/non_production_auth_repository.dart';
 import 'features/auth/domain/runiac_auth_service.dart';
 import 'features/auth/presentation/runiac_auth_gate.dart';
 import 'features/auth/presentation/runiac_profile_setup_gate.dart';
+import 'features/challenge/data/static_challenge_repository.dart';
+import 'features/challenge/domain/repositories/challenge_repository.dart';
+import 'features/challenge/presentation/challenge_result_presentation_controller.dart';
 import 'features/feed/data/static_feed_repository.dart';
 import 'features/feed/domain/repositories/feed_repository.dart';
 import 'features/feed/presentation/current_session_feed.dart';
@@ -71,6 +74,8 @@ class RuniacApp extends StatefulWidget {
     this.userProgressRepository = const StaticUserProgressRepository(),
     this.leaderboardRepository = const StaticLeaderboardRepository(),
     this.friendsRepository = const StaticFriendsRepository(),
+    this.challengeRepository = const StaticChallengeRepository(),
+    this.challengeResultPresenter,
     this.profileRepository = const StaticUserProfileRepository(),
     this.profilePersistenceRepository =
         const NoopUserProfilePersistenceRepository(),
@@ -105,6 +110,15 @@ class RuniacApp extends StatefulWidget {
   final UserProgressRepository userProgressRepository;
   final LeaderboardRepository leaderboardRepository;
   final FriendsRepository friendsRepository;
+
+  /// Challenge distance-system repository seam, threaded through
+  /// `RuniacShell` to `HomeTab` (and the Account badge case) so physical runs
+  /// use trusted data. Defaults to the static source for previews/tests.
+  final ChallengeRepository challengeRepository;
+
+  /// One-shot foreground Result presenter, threaded to `HomeTab`. `null`
+  /// (previews/tests/no-Firebase) disables auto-presentation.
+  final ChallengeResultPresentationController? challengeResultPresenter;
   final UserProfileRepository profileRepository;
   final UserProfilePersistenceRepository profilePersistenceRepository;
   final GeneratedPlanPersistenceRepository generatedPlanPersistenceRepository;
@@ -611,6 +625,8 @@ class _RuniacAppState extends State<RuniacApp> {
           userProgressRepository: widget.userProgressRepository,
           leaderboardRepository: widget.leaderboardRepository,
           friendsRepository: widget.friendsRepository,
+          challengeRepository: widget.challengeRepository,
+          challengeResultPresenter: widget.challengeResultPresenter,
           profileRepository: widget.profileRepository,
           profilePersistenceRepository: widget.profilePersistenceRepository,
           generatedPlanPersistenceRepository:

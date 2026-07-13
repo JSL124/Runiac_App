@@ -32,6 +32,8 @@ Future<void> main() async {
       userProgressRepository: bootstrap.userProgressRepository,
       leaderboardRepository: bootstrap.leaderboardRepository,
       friendsRepository: bootstrap.friendsRepository,
+      challengeRepository: bootstrap.challengeRepository,
+      challengeResultPresenter: bootstrap.challengeResultPresenter,
       profileRepository: bootstrap.profileRepository,
       profilePersistenceRepository: bootstrap.profilePersistenceRepository,
       generatedPlanPersistenceRepository:

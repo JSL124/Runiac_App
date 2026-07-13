@@ -11,6 +11,12 @@ import '../../features/account/domain/repositories/user_profile_repository.dart'
 import '../../features/auth/data/firebase_runiac_auth_repository.dart';
 import '../../features/auth/data/non_production_auth_repository.dart';
 import '../../features/auth/domain/runiac_auth_service.dart';
+import '../../features/challenge/data/firebase_challenge_repository.dart';
+import '../../features/challenge/data/firestore_challenge_read_store.dart';
+import '../../features/challenge/data/shared_preferences_challenge_result_seen_store.dart';
+import '../../features/challenge/data/static_challenge_repository.dart';
+import '../../features/challenge/domain/repositories/challenge_repository.dart';
+import '../../features/challenge/presentation/challenge_result_presentation_controller.dart';
 import '../../features/feed/data/firebase_feed_repository/firebase_feed_data_port.dart';
 import '../../features/feed/data/firebase_feed_repository/firebase_feed_repository.dart';
 import '../../features/feed/data/static_feed_repository.dart';
@@ -86,6 +92,8 @@ class RuniacFirebaseBootstrap {
           notificationInboxRepository:
               const StaticNotificationInboxRepository(),
           notificationRegistrationService: null,
+          challengeRepository: const StaticChallengeRepository(),
+          challengeResultPresenter: null,
           firestoreGateway: RuniacFirestoreGateway.configure(
             useFirebaseEmulator: runtimeConfig.useFirebaseEmulator,
             emulatorHost: runtimeConfig.emulatorHost,
@@ -105,10 +113,16 @@ class RuniacFirebaseBootstrap {
         emulatorHost: runtimeConfig.emulatorHost,
         connector: firestoreConnector,
       );
+      final challengeRepository = _firebaseChallengeRepository(authRepository);
       return RuniacFirebaseBootstrapResult(
         runRepository: RunRepositoryFactory.create(config: runtimeConfig),
         homeGuideAgent: HomeGuideAgentFactory.create(config: runtimeConfig),
         authRepository: authRepository,
+        challengeRepository: challengeRepository,
+        challengeResultPresenter: _challengeResultPresenter(
+          challengeRepository,
+          authRepository,
+        ),
         activityHistoryRepository: FirestoreActivityHistoryRepository(
           authRepository: authRepository,
         ),
@@ -174,11 +188,17 @@ class RuniacFirebaseBootstrap {
     final authRepository = FirebaseRuniacAuthRepository(
       firebaseAuth: firebaseAuth,
     );
+    final challengeRepository = _firebaseChallengeRepository(authRepository);
 
     return RuniacFirebaseBootstrapResult(
       runRepository: RunRepositoryFactory.create(config: runtimeConfig),
       homeGuideAgent: HomeGuideAgentFactory.create(config: runtimeConfig),
       authRepository: authRepository,
+      challengeRepository: challengeRepository,
+      challengeResultPresenter: _challengeResultPresenter(
+        challengeRepository,
+        authRepository,
+      ),
       activityHistoryRepository: FirestoreActivityHistoryRepository(
         authRepository: authRepository,
       ),
@@ -212,6 +232,31 @@ class RuniacFirebaseBootstrap {
         applePushRegistrationEnabled: runtimeConfig.enableIosPushNotifications,
       ),
       firestoreGateway: firestoreGateway,
+    );
+  }
+
+  /// Callable-backed Challenge repository with the member-scoped Firestore read
+  /// store for the two read paths (history, badges) that have no callable.
+  static ChallengeRepository _firebaseChallengeRepository(
+    RuniacAuthRepository authRepository,
+  ) {
+    return FirebaseChallengeRepository(
+      currentUid: () => authRepository.currentUser?.uid,
+      readStore: FirestoreChallengeReadStore(),
+    );
+  }
+
+  /// One-shot foreground Result presenter with a durable, uid-scoped local
+  /// seen-marker.
+  static ChallengeResultPresentationController _challengeResultPresenter(
+    ChallengeRepository challengeRepository,
+    RuniacAuthRepository authRepository,
+  ) {
+    return ChallengeResultPresentationController(
+      repository: challengeRepository,
+      seenStore: SharedPreferencesChallengeResultSeenStore(
+        uidProvider: () => authRepository.currentUser?.uid,
+      ),
     );
   }
 
@@ -269,6 +314,8 @@ class RuniacFirebaseBootstrapResult {
     required this.feedRepository,
     required this.notificationInboxRepository,
     required this.notificationRegistrationService,
+    required this.challengeRepository,
+    required this.challengeResultPresenter,
     required this.firestoreGateway,
   });
 
@@ -287,5 +334,14 @@ class RuniacFirebaseBootstrapResult {
   final FeedRepository feedRepository;
   final NotificationInboxRepository notificationInboxRepository;
   final NotificationRegistrationService? notificationRegistrationService;
+
+  /// Server-owned Challenge distance-system source. Firebase-active paths supply
+  /// the callable-backed repository with a member-scoped Firestore read store;
+  /// the no-Firebase path keeps the deterministic static source.
+  final ChallengeRepository challengeRepository;
+
+  /// One-shot foreground Result presenter; non-null only on Firebase-active
+  /// paths (durable local seen-marker), null for the static/no-config path.
+  final ChallengeResultPresentationController? challengeResultPresenter;
   final RuniacFirestoreGateway firestoreGateway;
 }

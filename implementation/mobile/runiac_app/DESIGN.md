@@ -222,6 +222,34 @@ All spacing derives from a base of 4px.
 - **Accessibility**: avatar initials are decorative beside a textual author name; owner menus and send/edit actions have semantic labels; body text remains selectable by screen readers and is never truncated.
 - **Boundary**: Firestore Rules enforce comment ownership for update/delete. Flutter sends body intent only and never writes the post's backend-owned aggregate `commentCount`.
 
+### Challenge Explore Grid
+
+- **Structure**: `RuniacBackHeader` titled `Challenge` with two 44px trailing header actions — Invitations (`mail_outline`, orange pending-count badge when invitations exist) and History (`history`). The body is a 3x3 grid of tier tiles in catalog order (10K through 1000K); each tile is a white radius-18 `cardBorder` card containing the user-created tier badge PNG, the tier title, and the backend difficulty caption in `textSecondary`.
+- **Tile states**: default opens Tier Detail; the user's in-progress tier gains an orange ring and `In progress` chip; earned tiers show a small `successGreen` corner check. A slot banner above the grid shows `You already have a challenge in progress` with a `View current challenge` action when a slot is held.
+- **States**: loading skeleton, offline/error with `Try again`, and the slot-banner variants. Verified at 360px and text scale 1.3.
+- **Boundary**: the grid renders only the trusted server catalog and slot state; tiles never compute progress or eligibility. Every badge rendering uses `RuniacAssets.challengeBadge*` PNGs, never icons or generated art.
+
+### Challenge Tier Detail & Lobby
+
+- **Tier detail**: badge hero, tier title with difficulty chip, and one radius-18 rules card stating target distance, duration, max participants, personal minimum, the group rule, and the solo full-target warning. One primary blue 56px `Create challenge` CTA; a held slot disables it with `You already have a challenge in progress` plus `View current challenge`. Earned tiers show an `Earned` chip and remain repeatable.
+- **Lobby**: badge and tier header with a `Lobby closes in HH:MM:SS` countdown from the server expiry. Roster rows lead with the snapshot-initials avatar and w800 name; the owner row is `You · Owner`; invitees carry text chips `Pending` / `Accepted` / `Declined`. Owner-only actions: `Invite friends` (friend picker capped at the tier invite cap with a live counter), primary `Start challenge` (confirmation sheet states solo vs group consequences), and destructive `Cancel challenge`. Members see only `Leave lobby` and a waiting line. Expired lobbies show a calm full-screen state.
+- **Boundary**: all lobby state, capacity, expiry, and roster truth is server-owned; the client sends intents and renders stable backend reason codes mapped to friendly English copy.
+
+### Home Active Challenge Control
+
+- **Structure**: when an ACTIVE or SETTLING challenge exists, the stage-map header's left column stacks the Streak pill above a 62px circular control using the shared header-control decoration, containing only the tier badge PNG with a fixed-width `DD:HH:MM:SS` countdown beneath. The entire badge-plus-time area is one semantic button opening Challenge Progress.
+- **States**: absent with no reserved gap when no active/settling challenge; live countdown clamped at `00:00:00:00`; `Calculating…` while settling; removed once the result is ready. No title, distance, percentage, participant count, progress bar, or chevron ever appears in the control.
+- **Accessibility**: a stable minute-level semantic summary (never per-second re-announcement); the ticking text is excluded from semantics.
+- **Boundary**: remaining time derives only from the server `scheduledEndsAt` via an injected clock; the stage map receives display data and a callback only and stays Firebase-free.
+
+### Challenge Progress, Results & History
+
+- **Progress**: tier badge centered in a circular team-progress ring (`cardBorder` track, `accentOrange` arc, clamped server fraction), then `X.X / Y.Y km`, `Time left DD:HH:MM:SS` (or `Calculating results…` while settling). Group mode adds a personal-minimum mini bar with a `Minimum reached` state; solo mode hides it and labels the roster `Solo challenge`. Participant rows show `You` first, then active runners by trusted distance descending, with LEFT participants in a separate muted `Left the challenge` group retaining their distance. Owners see only destructive `Abandon challenge`; members see only `Leave challenge`; both confirm via Runiac bottom sheets that explain irreversible badge loss.
+- **Results**: a full-screen result presents once per terminal event with five variants — badge earned (full-color badge, orange celebration, transform/opacity-only motion), team success with `Personal minimum not reached` (small desaturated badge, supportive copy), deadline failure, cancelled by owner, and you left. Notification taps and History reopen the same personalized result.
+- **History**: rows with badge thumbnail, tier, date, and a text outcome chip (`Badge earned` in `successGreen`; other outcomes neutral); rows reopen the result detail.
+- **Badge case**: the Account 3x3 case preserves the committed artwork, slot geometry, and aspect ratio; earned tiers render the badge PNG full-color and unearned tiers render the same PNG dimmed. Semantics announce `N of 9 badges earned` when trusted ownership data is supplied.
+- **Boundary**: outcomes, eligibility, team totals, and badge ownership are rendered verbatim from trusted server data; the client never computes or persists them. GPS routes, coordinates, run timestamps, and activity history never appear on any challenge surface.
+
 ## 6. Motion & Interaction
 
 ### Timing
