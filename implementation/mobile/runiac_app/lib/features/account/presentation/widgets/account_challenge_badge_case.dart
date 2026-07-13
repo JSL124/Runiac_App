@@ -22,7 +22,7 @@ class AccountChallengeBadgeCase extends StatelessWidget {
     _BadgeSlot(0.5, 0.51, 0.245, ChallengeTierId.k200),
     _BadgeSlot(0.78, 0.50, 0.245, ChallengeTierId.k250),
     _BadgeSlot(0.226, 0.795, 0.265, ChallengeTierId.k300),
-    _BadgeSlot(0.5, 0.794, 0.33, ChallengeTierId.k500),
+    _BadgeSlot(0.5, 0.794, 0.27, ChallengeTierId.k500),
     _BadgeSlot(0.785, 0.8, 0.28, ChallengeTierId.k1000),
   ];
 
