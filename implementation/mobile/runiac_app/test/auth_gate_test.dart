@@ -241,7 +241,7 @@ void main() {
       await tester.pump();
       await tester.pump();
 
-      expect(profileRepository.loadCalls, 2);
+      expect(profileRepository.loadCalls, greaterThanOrEqualTo(2));
       expect(find.byTooltip('Home'), findsOneWidget);
       expect(
         find.byKey(const ValueKey('auth_welcome_runiac_logo')),

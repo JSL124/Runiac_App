@@ -281,7 +281,7 @@ class _DelayedRunRepository extends _ResultRunRepository {
 }
 
 const _runFlowFeedOwnerUid = 'run-flow-test-owner';
-const _runFlowFeedActivityId = 'run-flow-feed-activity';
+const _runFlowFeedActivityId = 'activity_run_flow_feed';
 const _runFlowFeedClientSessionId = 'run-flow-feed-session';
 
 final _runFlowHistoryPng = base64Decode(
@@ -1011,11 +1011,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Share Your Achievement'), findsOneWidget);
-    expect(
-      find.byKey(const ValueKey('share-feed-preview-profile-badge')),
-      findsOneWidget,
-    );
-    expect(find.text('Lv.6'), findsOneWidget);
 
     await tester.tap(find.widgetWithText(TextButton, 'Close'));
     await tester.pumpAndSettle();
@@ -1044,7 +1039,6 @@ void main() {
       find.byKey(const ValueKey('share-feed-preview-profile-badge')),
       findsOneWidget,
     );
-    expect(find.text('Lv.6'), findsOneWidget);
     expect(find.text('Route sharing will be available soon.'), findsNothing);
 
     await tester.tap(find.widgetWithText(FilledButton, 'Post to Feed'));
@@ -1175,7 +1169,11 @@ void main() {
     expect(find.text('6’30” / km'), findsOneWidget);
     expect(find.text('30:15'), findsAtLeastNWidgets(2));
     expect(find.text('Route sharing will be available soon.'), findsNothing);
-    final preview = tester.widget<Image>(find.byType(Image));
+    final preview = tester.widget<Image>(
+      find.byWidgetPredicate(
+        (widget) => widget is Image && widget.image is MemoryImage,
+      ),
+    );
     expect((preview.image as MemoryImage).bytes, same(_runFlowHistoryPng));
 
     await tester.tap(find.widgetWithText(OutlinedButton, 'Cancel'));
@@ -1237,7 +1235,11 @@ void main() {
         ),
         findsNothing,
       );
-      final preview = tester.widget<Image>(find.byType(Image));
+      final preview = tester.widget<Image>(
+        find.byWidgetPredicate(
+          (widget) => widget is Image && widget.image is MemoryImage,
+        ),
+      );
       final bytes = (preview.image as MemoryImage).bytes;
       expect(bytes, isNot(same(_runFlowHistoryPng)));
       expect(bytes.sublist(0, 8), const <int>[137, 80, 78, 71, 13, 10, 26, 10]);

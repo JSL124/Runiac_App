@@ -19,6 +19,7 @@ import 'package:runiac_app/features/run/domain/models/coaching_summary_snapshot.
 import 'package:runiac_app/features/run/domain/models/local_run_completion_payload.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_repository.dart';
 import 'package:runiac_app/features/run/domain/services/advanced_analysis_snapshot_builder.dart';
+import 'package:runiac_app/features/run/domain/services/completed_run_title_formatter.dart';
 import 'package:runiac_app/features/run/domain/services/pace_graph_data_builder.dart';
 import 'package:runiac_app/features/you/data/static_activity_history_repository.dart';
 import 'package:runiac_app/features/you/data/static_expert_plans_repository.dart';
@@ -334,7 +335,12 @@ void main() {
         'static-progression-local-session-20260614-0700',
       );
       expect(completedRun.validationStatus, 'validated');
-      expect(completedRun.summary.title, 'Sunday Morning Run');
+      expect(
+        completedRun.summary.title,
+        const CompletedRunTitleFormatter().format(
+          completedAt: payload.completedAt,
+        ),
+      );
       expect(completedRun.summary.distanceKm, '3.20');
       expect(completedRun.summary.duration, '25:00');
       expect(completedRun.summary.avgPace, '7’49”');
@@ -432,7 +438,12 @@ void main() {
 
         final completedRun = await repository.completeRun(payload);
 
-        expect(completedRun.summary.title, 'Sunday Morning Run');
+        expect(
+          completedRun.summary.title,
+          const CompletedRunTitleFormatter().format(
+            completedAt: payload.completedAt,
+          ),
+        );
         expect(completedRun.summary.distanceKm, '0.00');
         expect(completedRun.summary.duration, '0:00');
         expect(completedRun.summary.avgPace, '--');

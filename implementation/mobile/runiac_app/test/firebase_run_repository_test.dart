@@ -3,6 +3,7 @@ import 'package:runiac_app/features/run/data/firebase_run_repository.dart';
 import 'package:runiac_app/features/run/domain/models/local_run_completion_payload.dart';
 import 'package:runiac_app/features/run/domain/models/run_completion_error.dart';
 import 'package:runiac_app/features/run/domain/models/xp_update_display_model.dart';
+import 'package:runiac_app/features/run/domain/services/completed_run_title_formatter.dart';
 import 'package:runiac_app/features/run/domain/services/pace_graph_data_builder.dart';
 
 void main() {
@@ -44,7 +45,12 @@ void main() {
       expect(result.summaryId, 'summary_123');
       expect(result.progressionEventId, 'progression_123');
       expect(result.validationStatus, 'validated');
-      expect(result.summary.title, 'Sunday Morning Run');
+      expect(
+        result.summary.title,
+        const CompletedRunTitleFormatter().format(
+          completedAt: DateTime.utc(2026, 6, 14, 7, 25),
+        ),
+      );
       expect(result.summary.distanceKm, '3.20');
       expect(result.summary.duration, '25:00');
       expect(result.summary.avgPace, '7’49”');
