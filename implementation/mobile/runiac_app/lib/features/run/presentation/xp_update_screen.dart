@@ -979,12 +979,16 @@ class _ConfettiPainter extends CustomPainter {
       return;
     }
 
+    // Reuse a single Paint across particles; only the color changes per
+    // particle. Avoids allocating one Paint per particle on every frame.
+    final paint = Paint();
+
     for (final particle in particles) {
       final radius = particle.distance * travel;
       final dx = math.cos(particle.angle) * radius;
       final dy = math.sin(particle.angle) * radius + travel * travel * 14;
       final offset = center + Offset(dx, dy);
-      final paint = Paint()..color = particle.color.withValues(alpha: opacity);
+      paint.color = particle.color.withValues(alpha: opacity);
 
       if (particle.isRect) {
         canvas.save();

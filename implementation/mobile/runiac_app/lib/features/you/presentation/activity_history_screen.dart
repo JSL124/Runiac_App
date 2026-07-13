@@ -5,6 +5,7 @@ import '../../../core/widgets/runiac_back_header.dart';
 import '../../run/domain/models/run_activity_display_model.dart';
 import 'data/activity_history_demo_snapshots.dart';
 import 'widgets/compact_run_activity_card.dart';
+import 'widgets/you_surface_primitives.dart';
 
 class ActivityHistoryScreen extends StatefulWidget {
   const ActivityHistoryScreen({
@@ -405,7 +406,7 @@ class _FilterPill extends StatelessWidget {
       child: Container(
         height: 38,
         padding: const EdgeInsets.symmetric(horizontal: 12),
-        decoration: _pillDecoration,
+        decoration: youPillDecoration(RuniacColors.white),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -441,11 +442,6 @@ class _MonthHeader extends StatelessWidget {
   }
 }
 
-final _pillDecoration = BoxDecoration(
-  color: RuniacColors.white,
-  borderRadius: BorderRadius.circular(999),
-  border: Border.all(color: RuniacColors.border),
-);
 
 const _filterTextStyle = TextStyle(
   color: RuniacColors.textPrimary,
