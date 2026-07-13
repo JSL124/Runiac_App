@@ -17,7 +17,7 @@ import {
   where,
 } from 'firebase/firestore';
 
-import { dbFor, profileFields, seed, unauthenticatedDb } from './support/firestore_rules_test_support.mjs';
+import { dbFor, profileFields, removeSeed, seed, unauthenticatedDb } from './support/firestore_rules_test_support.mjs';
 import './feed.emulator.guard.mjs';
 
 const feedPost = (authorUid, status = 'published', createdAt = 10) => ({
@@ -110,6 +110,18 @@ describe('trusted Feed Firestore rules', () => {
     await assertFails(getDoc(doc(dbFor('bob'), 'feedPosts/alice-post')));
   });
 
+  it('allows a friend Feed read before the block transaction state and denies it immediately after', async () => {
+    await seed('feedPosts/alice-post', feedPost('alice'));
+    await seedFriendship('alice', 'bob');
+    const bobPost = doc(dbFor('bob'), 'feedPosts/alice-post');
+
+    await assertSucceeds(getDoc(bobPost));
+    await seed('users/alice/blockedUsers/bob', block('bob'));
+    await removeSeed('users/alice/friends/bob');
+    await removeSeed('users/bob/friends/alice');
+    await assertFails(getDoc(bobPost));
+  });
+
   it('requires a bounded single-author published query shape', async () => {
     await seed('feedPosts/alice-post', feedPost('alice'));
     await seed('feedPosts/carol-post', feedPost('carol'));
@@ -169,7 +181,12 @@ describe('trusted Feed Firestore rules', () => {
   it('enforces comment snapshot, time, body, and author-only mutation contracts', async () => {
     await seed('feedPosts/alice-post', feedPost('alice'));
     await seedFriendship('alice', 'bob');
-    await seed('userProfiles/bob', profileFields);
+    await seed('userProfiles/bob', {
+      ...profileFields,
+      displayName: 'Synthetic Runner',
+      avatarInitials: 'SR',
+      levelLabel: 'Level 3',
+    });
     const bob = dbFor('bob');
     const comment = doc(bob, 'feedPosts/alice-post/comments/comment-001');
 

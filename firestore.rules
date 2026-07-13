@@ -96,7 +96,15 @@ service cloud.firestore {
         'publishedAt',
         'approvedAt',
         'reviewedByAdminId',
-        'publishedByAdminId'
+        'publishedByAdminId',
+        'displayName',
+        'avatarInitials',
+        'nickname',
+        'nicknameKey',
+        'nicknameCanonical',
+        'nicknameIndexKey',
+        'socialDiscoveryStatus',
+        'socialListSortKey'
       ];
     }
 
@@ -110,11 +118,7 @@ service cloud.firestore {
 
     function userProfileWritableKeys() {
       return [
-        'displayName',
         'fullName',
-        'nickname',
-        'avatarInitials',
-        'nicknameKey',
         'dateOfBirth',
         'ageYears',
         'weightKg',
@@ -305,9 +309,7 @@ service cloud.firestore {
       return hasOnlyAllowedKeys(userProfileWritableKeys())
         && validProfileStringField('displayName')
         && validProfileStringField('fullName')
-        && validProfileShortStringField('nickname')
         && validProfileInitials()
-        && validProfileNicknameKey()
         && validProfileDateOfBirth()
         && validProfileAgeYears()
         && validProfileWeightKg()
@@ -317,17 +319,14 @@ service cloud.firestore {
         && validProfileAvailability()
         && validProfileStringField('planCautiousness')
         && validProfileHealthSafetyReadiness()
-        && validProfileUpdatedAt()
-        && validProfileNicknameClaimAfter();
+        && validProfileUpdatedAt();
     }
 
     function validUserProfileUpdateData() {
       return changesOnlyAllowedKeys(userProfileWritableKeys())
         && validChangedProfileStringField('displayName')
         && validChangedProfileStringField('fullName')
-        && validChangedProfileShortStringField('nickname')
         && validChangedProfileInitials()
-        && validChangedProfileNicknameKey()
         && validChangedProfileDateOfBirth()
         && validChangedProfileAgeYears()
         && validChangedProfileWeightKg()
@@ -337,8 +336,7 @@ service cloud.firestore {
         && validChangedProfileAvailability()
         && validChangedProfileStringField('planCautiousness')
         && validChangedProfileHealthSafetyReadiness()
-        && validChangedProfileUpdatedAt()
-        && validProfileNicknameClaimForChangedNickname();
+        && validChangedProfileUpdatedAt();
     }
 
     function validNicknameClaimData(nicknameKey) {
@@ -683,6 +681,14 @@ service cloud.firestore {
         allow create, update, delete: if false;
       }
 
+      match /friendRequests/{otherUid} {
+        allow get: if isOwner(uid);
+        allow list: if isOwner(uid)
+          && request.query.limit != null
+          && request.query.limit <= 30;
+        allow create, update, delete: if false;
+      }
+
       match /hiddenFeedPosts/{postId} {
         allow get: if isOwner(uid);
         allow list: if isOwner(uid)
@@ -720,15 +726,7 @@ service cloud.firestore {
     }
 
     match /nicknameClaims/{nicknameKey} {
-      allow get: if isSignedIn();
-      allow list: if false;
-      allow create: if isSignedIn()
-        && validNicknameClaimData(nicknameKey);
-      allow update: if isSignedIn()
-        && resource.data.ownerUid == request.auth.uid
-        && validNicknameClaimData(nicknameKey);
-      allow delete: if isSignedIn()
-        && resource.data.ownerUid == request.auth.uid;
+      allow read, write: if false;
     }
 
     match /generatedPlans/{uid} {

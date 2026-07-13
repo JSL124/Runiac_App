@@ -1,18 +1,13 @@
 import { readFileSync } from 'node:fs';
 import { after, before, beforeEach } from 'node:test';
 import { initializeTestEnvironment } from '@firebase/rules-unit-testing';
-import { doc, setDoc } from 'firebase/firestore';
+import { deleteDoc, doc, setDoc } from 'firebase/firestore';
 
 const RULES_PATH = new URL('../../../firestore.rules', import.meta.url);
 let testEnv;
 
 export const profileFields = {
-  displayName: 'Synthetic Runner',
   fullName: 'Synthetic Runner',
-  nickname: 'Runner',
-  avatarInitials: 'SR',
-  levelLabel: 'Level 3',
-  nicknameKey: 'runner',
   dateOfBirth: '2002-06-28',
   ageYears: 24,
   weightKg: 58.5,
@@ -240,6 +235,12 @@ export function unauthenticatedDb() {
 export async function seed(path, data) {
   await testEnv.withSecurityRulesDisabled(async (context) => {
     await setDoc(doc(context.firestore(), path), data);
+  });
+}
+
+export async function removeSeed(path) {
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await deleteDoc(doc(context.firestore(), path));
   });
 }
 

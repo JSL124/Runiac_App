@@ -8,6 +8,19 @@ export type NotificationDispatchKind =
   | "streak_risk_22"
   | "streak_risk_23";
 
+// Challenge distance-system notification kinds (Todo 7). Registered here so the
+// notification kind registry stays a single source of truth, but kept as a
+// separate union from `NotificationDispatchKind` because challenge events are
+// server-event-driven inbox notifications, not scheduled-push dispatches, and
+// must not enter the dispatch planner's kind space. Additive only.
+export type ChallengeNotificationKind =
+  | "challenge_invitation_received"
+  | "challenge_started"
+  | "challenge_participant_left"
+  | "challenge_owner_cancelled"
+  | "challenge_result_ready"
+  | "challenge_badge_issued";
+
 export type PlannedWorkoutReminder = {
   readonly scheduledWorkoutId: string;
   readonly title: string;

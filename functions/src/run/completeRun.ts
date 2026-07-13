@@ -1,6 +1,7 @@
 import { getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
+import { applyChallengeContribution } from "../challenge/challengeContribution.js";
 import {
   leaderboardContributionId,
   writeLeaderboardContribution,
@@ -117,6 +118,22 @@ export async function completeRunForCallable(
     if (activitySnapshot.exists) {
       assertExistingActivityMatchesPayload(activitySnapshot.data(), payloadFingerprint);
     }
+
+    // Challenge contribution seam (Todo 5). Runs after payload validation and
+    // replay matching, and strictly BEFORE this transaction's first write (its
+    // internal reads must precede every write). It never throws for challenge
+    // state reasons and never touches XP/streak/level/leaderboard outputs;
+    // non-participants pay at most one extra read.
+    await applyChallengeContribution({
+      transaction,
+      firestore,
+      uid,
+      activityId: ids.activityId,
+      activityAlreadyExists: activitySnapshot.exists,
+      distanceMeters: payload.distanceMeters,
+      completedAtMs: Date.parse(payload.completedAt),
+      nowMs: Date.now(),
+    });
 
     const shouldPersistProgression = !activitySnapshot.exists;
     let planProgressResult = noCompletedWorkoutRecorded();

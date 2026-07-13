@@ -172,10 +172,19 @@ export type ChallengeInstanceDoc = {
   readonly maxParticipants: number;
   readonly teamMeters: number;
   readonly createdAt: ServerTimestamp;
+  // Exactly createdAt + 24h; the lazily-enforced lobby expiry instant.
+  readonly lobbyExpiresAt: ServerTimestamp;
   readonly startsAt?: ServerTimestamp;
   readonly scheduledEndsAt?: ServerTimestamp;
   readonly settledAt?: ServerTimestamp;
   readonly terminalReason?: ChallengeTerminalReason;
+  // Unclamped credited total. `teamMeters` (the exposed field) clamps at
+  // `rules.targetMeters` the instant the target is reached; this preserves the
+  // raw sum for audit. Present once the first contribution is credited.
+  readonly rawTeamMeters?: number;
+  // Server receipt instant of the contribution that reached the target
+  // (ACTIVE -> SETTLING). Absent until the target is reached.
+  readonly completedAt?: ServerTimestamp;
 };
 
 // challengeInstances/{challengeId}/participants/{uid}
@@ -231,7 +240,9 @@ export type ChallengeHistoryDoc = {
   readonly mode: ChallengeMode;
   readonly role: ParticipantRole;
   readonly outcome: ParticipantState;
-  readonly terminalReason: ChallengeTerminalReason;
+  // Absent only on a leaver's history doc while the instance is still running;
+  // settlement/abandon/deadline later merges the instance terminal reason in.
+  readonly terminalReason?: ChallengeTerminalReason;
   readonly teamMeters: number;
   readonly personalMeters: number;
   readonly targetMeters: number;

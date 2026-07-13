@@ -12,7 +12,7 @@ Type: Backend Guarded Lane full-stack Challenge distance system capsule (Cloud F
 
 ## Status
 
-Status: Routed; implementation in progress.
+Status: Backend deployed to `runiac-fypp` on 2026-07-13 Asia/Singapore after explicit user authorization; Flutter implementation remains separately in progress. All expected Functions are ACTIVE, Challenge indexes are present, and the unauthenticated catalog probe reaches the deployed callable and returns `UNAUTHENTICATED` rather than 404.
 
 Routed on: 2026-07-13 Asia/Singapore.
 
@@ -77,7 +77,7 @@ All 300K/500K/1000K tiers are active launch scope, not future scope. Eligibility
 
 ## Allowed Files
 
-Backend (new under `functions/src/challenge/` and tests under `functions/test/`): `challengeTypes.ts`, `challengeCatalog.ts`, `challengeStateMachine.ts`, `challengeContribution.ts`, lobby/settlement/notification challenge modules, `functions/src/index.ts` (export additions only), `functions/package.json` (`test:challenge` script only, no dependencies), corresponding `functions/test/challenge*.test.ts` files, minimal notification-kind extensions under `functions/src/notifications/`.
+Backend (new under `functions/src/challenge/` and tests under `functions/test/`): `challengeTypes.ts`, `challengeCatalog.ts`, `challengeStateMachine.ts`, `challengeContribution.ts`, lobby/settlement/notification challenge modules, `functions/src/index.ts` (export additions only), `functions/package.json` (`test:challenge` script only, no dependencies), corresponding `functions/test/challenge*.test.ts` files, minimal notification-kind extensions under `functions/src/notifications/`, `functions/src/run/completeRun.ts` (contribution-seam hook call only, after existing validation/replay logic) and `functions/test/completeRun.test.ts` (additive regression coverage only — existing tests stay green).
 
 Persistence: `firestore.rules` (challenge sections added), `firestore.indexes.json` (challenge indexes added), `tests/firebase-rules/challenge.firestore.rules.test.mjs` (new) plus its package test-script wiring.
 

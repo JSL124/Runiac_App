@@ -192,6 +192,22 @@ is_challenge_distance_system_capsule_active() {
   grep -Eq '^- Newly routed Challenge distance system on 2026-07-13 Asia/Singapore: `implementation/roadmap/capsules/challenge-distance-system\.md`' implementation/roadmap/CURRENT.md
 }
 
+is_friends_backend_mvp_capsule_active() {
+  grep -Eq '^- Newly routed backed Friends MVP on 2026-07-13 Asia/Singapore: `implementation/roadmap/capsules/friends-backend-mvp\.md`' implementation/roadmap/CURRENT.md
+}
+
+is_friends_backend_mvp_functions_path() {
+  case "$1" in
+    functions/src/friends/*|\
+    functions/test/friendsCore.test.ts)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 is_challenge_distance_system_functions_path() {
   case "$1" in
     functions/src/challenge/*|\
@@ -413,6 +429,9 @@ is_forbidden_config_or_secret() {
       ;;
     functions/*)
       if is_historical_backend_functions_path "$1"; then
+        return 1
+      fi
+      if is_friends_backend_mvp_functions_path "$1" && is_friends_backend_mvp_capsule_active; then
         return 1
       fi
       if is_challenge_distance_system_functions_path "$1" && is_challenge_distance_system_capsule_active; then

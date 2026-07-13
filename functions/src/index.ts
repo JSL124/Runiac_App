@@ -15,3 +15,29 @@ export {
   feedCommentUpdated,
   feedCommentDeleted,
 } from "./feed/engagement/engagement.js";
+export {
+  getChallengeCatalog,
+  createChallengeLobby,
+  inviteChallengeFriends,
+  respondToChallengeInvitation,
+  withdrawFromChallengeLobby,
+  cancelChallengeLobby,
+  startChallenge,
+  getActiveChallenge,
+  getChallengeInvitations,
+  leaveChallenge,
+  abandonChallenge,
+} from "./challenge/callable.js";
+export { settleChallengeDeadlines } from "./challenge/challengeSettlementSchedule.js";
+export {
+  checkNicknameAvailability,
+  upsertNickname,
+  searchFriends,
+  sendFriendRequest,
+  cancelFriendRequest,
+  respondToFriendRequest,
+  removeFriend,
+  blockUser,
+  unblockUser,
+  migrateUnicodeNicknameClaims,
+} from "./friends/callable.js";

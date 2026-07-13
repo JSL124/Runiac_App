@@ -52,6 +52,31 @@ is_challenge_distance_system_capsule_active() {
   grep -Eq '^- Newly routed Challenge distance system on 2026-07-13 Asia/Singapore: `implementation/roadmap/capsules/challenge-distance-system\.md`' implementation/roadmap/CURRENT.md
 }
 
+is_friends_backend_mvp_capsule_active() {
+  grep -Eq '^- Newly routed backed Friends MVP on 2026-07-13 Asia/Singapore: `implementation/roadmap/capsules/friends-backend-mvp\.md`' implementation/roadmap/CURRENT.md
+}
+
+is_friends_backend_mvp_path() {
+  case "$1" in
+    implementation/roadmap/capsules/friends-backend-mvp.md|\
+    firestore.rules|\
+    firestore.indexes.json|\
+    functions/src/friends/*|\
+    functions/test/friendsCore.test.ts|\
+    functions/src/index.ts|\
+    functions/package.json|\
+    tests/firebase-rules/firestore.rules.test.mjs|\
+    tests/firebase-rules/friends.firestore.rules.test.mjs|\
+    tests/firebase-rules/feed.firestore.rules.test.mjs|\
+    tests/firebase-rules/support/firestore_rules_test_support.mjs)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 is_challenge_distance_system_path() {
   case "$1" in
     implementation/roadmap/capsules/challenge-distance-system.md|\
@@ -61,6 +86,8 @@ is_challenge_distance_system_path() {
     functions/src/notifications/*|\
     functions/src/index.ts|\
     functions/package.json|\
+    functions/src/run/completeRun.ts|\
+    functions/test/completeRun.test.ts|\
     tests/firebase-rules/challenge.firestore.rules.test.mjs)
       return 0
       ;;
@@ -184,6 +211,10 @@ is_run_duration_fields_functions_path() {
 }
 
 is_allowed_path() {
+  if is_friends_backend_mvp_path "$1" && is_friends_backend_mvp_capsule_active; then
+    return 0
+  fi
+
   if is_challenge_distance_system_path "$1" && is_challenge_distance_system_capsule_active; then
     return 0
   fi
@@ -289,6 +320,10 @@ is_unrelated_mobile_native_artifact() {
 }
 
 is_forbidden_path() {
+  if is_friends_backend_mvp_path "$1" && is_friends_backend_mvp_capsule_active; then
+    return 1
+  fi
+
   if is_challenge_distance_system_path "$1" && is_challenge_distance_system_capsule_active; then
     return 1
   fi

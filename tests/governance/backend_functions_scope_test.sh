@@ -28,6 +28,10 @@ set_inactive_challenge_distance_system_capsule() {
   perl -0pi -e 's{^- Newly routed Challenge distance system on 2026-07-13 Asia/Singapore: `implementation/roadmap/capsules/challenge-distance-system\.md`[^\n]*\n}{}m' implementation/roadmap/CURRENT.md
 }
 
+set_inactive_friends_backend_mvp_capsule() {
+  perl -0pi -e 's{^- Newly routed backed Friends MVP on 2026-07-13 Asia/Singapore: `implementation/roadmap/capsules/friends-backend-mvp\.md`[^\n]*\n}{}m' implementation/roadmap/CURRENT.md
+}
+
 cleanup_probes() {
   rm -f \
     functions/.runiac-governance-probe.js \
@@ -36,6 +40,7 @@ cleanup_probes() {
     functions/src/agent/.runiac-governance-adaptive-probe.ts \
     functions/src/challenge/.runiac-governance-challenge-probe.ts \
     functions/src/feed/.runiac-governance-feed-probe.ts \
+    functions/src/friends/.runiac-governance-friends-probe.ts \
     tests/firebase-rules/.runiac-nonprefix-feed-probe.mjs \
     functions/test/.runiac-governance-nested/feedScope.test.ts \
     tests/firebase-rules/.runiac-governance-nested/feed-scope.mjs
@@ -110,6 +115,27 @@ set_inactive_challenge_distance_system_capsule
 expect_rejection ./tools/governance-ci/check-pre-scaffold-scope.sh functions/src/challenge/.runiac-governance-challenge-probe.ts 'check-pre-scaffold-scope inactive Challenge Functions probe'
 cp "$current_backup" implementation/roadmap/CURRENT.md
 rm -f functions/src/challenge/.runiac-governance-challenge-probe.ts
+set_active_feed_capsule
+
+printf '%s\n' 'allowed Friends Functions probe' > functions/src/friends/.runiac-governance-friends-probe.ts
+
+if ! ./tools/governance-ci/check-diff-hygiene.sh >"$tmp_dir/friends-active-diff-pass.txt"; then
+  cat "$tmp_dir/friends-active-diff-pass.txt"
+  printf '%s\n' 'Expected an active Friends backend MVP capsule to allow its explicit Functions paths'
+  exit 1
+fi
+
+if ! ./tools/governance-ci/check-pre-scaffold-scope.sh >"$tmp_dir/friends-active-pre-scaffold-pass.txt"; then
+  cat "$tmp_dir/friends-active-pre-scaffold-pass.txt"
+  printf '%s\n' 'Expected an active Friends backend MVP capsule to allow its explicit Functions paths'
+  exit 1
+fi
+
+set_inactive_friends_backend_mvp_capsule
+expect_rejection ./tools/governance-ci/check-diff-hygiene.sh functions/src/friends/.runiac-governance-friends-probe.ts 'check-diff-hygiene inactive Friends Functions probe'
+expect_rejection ./tools/governance-ci/check-pre-scaffold-scope.sh functions/src/friends/.runiac-governance-friends-probe.ts 'check-pre-scaffold-scope inactive Friends Functions probe'
+cp "$current_backup" implementation/roadmap/CURRENT.md
+rm -f functions/src/friends/.runiac-governance-friends-probe.ts
 set_active_feed_capsule
 
 if ! grep -Fq 'git rev-parse ":$path"' tools/governance-ci/check-pre-scaffold-scope.sh || ! grep -Fq 'git hash-object -- "$path"' tools/governance-ci/check-pre-scaffold-scope.sh || ! grep -Fq '[ "$index_blob" != "$expected_blob" ] || [ "$worktree_blob" != "$expected_blob" ]' tools/governance-ci/check-pre-scaffold-scope.sh; then
