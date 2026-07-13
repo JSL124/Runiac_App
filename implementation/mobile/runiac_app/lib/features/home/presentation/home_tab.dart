@@ -10,6 +10,7 @@ import '../../challenge/domain/challenge_notification_routing.dart';
 import '../../challenge/domain/models/challenge_history.dart';
 import '../../challenge/domain/repositories/challenge_repository.dart';
 import '../../challenge/presentation/challenge_explore_screen.dart';
+import '../../challenge/presentation/challenge_friend_picker_screen.dart';
 import '../../challenge/presentation/challenge_history_screen.dart';
 import '../../challenge/presentation/challenge_invitations_screen.dart';
 import '../../challenge/presentation/challenge_progress_screen.dart';
@@ -222,6 +223,32 @@ class _HomeTabState extends State<HomeTab> with WidgetsBindingObserver {
     }
   }
 
+  /// Loads the caller's reciprocal friends for the challenge invite picker.
+  /// Failures (including no signed-in user) are non-fatal: the picker simply
+  /// shows its empty state rather than surfacing an error.
+  Future<List<ChallengeInvitableFriend>> _loadInvitableFriends() async {
+    final ownerUid = _currentOwnerUid;
+    if (ownerUid == null) {
+      return const <ChallengeInvitableFriend>[];
+    }
+    try {
+      final overview = await widget.friendsRepository.loadFriendsOverview(
+        ownerUid: ownerUid,
+      );
+      return overview.friends
+          .map(
+            (friend) => ChallengeInvitableFriend(
+              uid: friend.userId,
+              displayName: friend.displayName,
+              initials: friend.avatarInitials,
+            ),
+          )
+          .toList(growable: false);
+    } catch (_) {
+      return const <ChallengeInvitableFriend>[];
+    }
+  }
+
   @override
   void didUpdateWidget(covariant HomeTab oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -418,6 +445,7 @@ class _HomeTabState extends State<HomeTab> with WidgetsBindingObserver {
             repository: widget.challengeRepository,
             onBack: () => Navigator.of(context).pop(),
             onOpenHistory: () => _openChallengeHistory(context),
+            invitableFriendsLoader: _loadInvitableFriends,
           );
         },
       ),
@@ -494,6 +522,7 @@ class _HomeTabState extends State<HomeTab> with WidgetsBindingObserver {
               repository: widget.challengeRepository,
               slotHeld: _activeChallengeId != null,
               onBack: () => Navigator.of(context).pop(),
+              invitableFriendsLoader: _loadInvitableFriends,
             ),
           ),
         );
