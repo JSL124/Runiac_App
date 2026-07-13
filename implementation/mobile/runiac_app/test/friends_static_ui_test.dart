@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:runiac_app/core/theme/runiac_colors.dart';
+import 'package:runiac_app/core/widgets/runiac_level_profile_badge.dart';
 import 'package:runiac_app/features/friends/data/static_friends_repository.dart';
 import 'package:runiac_app/features/friends/domain/models/friends_read_model.dart';
 import 'package:runiac_app/features/friends/presentation/friends_screen.dart';
+import 'package:runiac_app/features/friends/presentation/widgets/friend_row_identity.dart';
 import 'package:runiac_app/features/friends/presentation/widgets/friends_rows.dart';
 import 'support/fake_runiac_auth_repository.dart';
 
@@ -27,6 +30,12 @@ const _longNameUser = FriendUserReadModel(
   avatarInitials: 'AM',
   levelLabel: 'Lv.12',
   subtitleLabel: 'Unused in compact row',
+);
+
+const _emptyLevelUser = FriendUserReadModel(
+  userId: 'empty-level-user',
+  displayName: 'Runmaster',
+  avatarInitials: 'RU',
 );
 
 Widget _rowHarness({required bool isPending}) {
@@ -80,6 +89,37 @@ void main() {
       expect(find.bySemanticsLabel('Pending Aisha Rahman'), findsNothing);
     },
   );
+
+  testWidgets('Friends rows reuse the Feed profile badge colors', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_rowHarness(isPending: false));
+    await tester.pumpAndSettle();
+
+    final badge = tester.widget<RuniacLevelProfileBadge>(
+      find.byType(RuniacLevelProfileBadge),
+    );
+    expect(badge.discColor, RuniacColors.primaryBlue);
+    expect(badge.discBorderColor, RuniacColors.white);
+    expect(badge.initialsColor, RuniacColors.white);
+    expect(badge.levelLabel, _longNameUser.levelLabel);
+  });
+
+  testWidgets('Friends rows show Lv.0 when the level label is empty', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(body: FriendRowBadge(user: _emptyLevelUser)),
+      ),
+    );
+
+    final badge = tester.widget<RuniacLevelProfileBadge>(
+      find.byType(RuniacLevelProfileBadge),
+    );
+    expect(badge.levelLabel, 'Lv.0');
+    expect(find.text('Lv.0'), findsOneWidget);
+  });
 
   testWidgets(
     'A 360px row keeps a long name and 44px Add action without overflow',

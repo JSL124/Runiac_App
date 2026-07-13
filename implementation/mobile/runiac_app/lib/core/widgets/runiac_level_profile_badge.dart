@@ -119,15 +119,22 @@ class _ProfileInitialsDisc extends StatelessWidget {
         shape: BoxShape.circle,
         border: Border.all(color: borderColor, width: 2),
       ),
-      child: Text(
-        _initialLabel(initials),
-        maxLines: 1,
-        overflow: TextOverflow.clip,
-        style: TextStyle(
-          color: textColor,
-          fontSize: fontSize,
-          fontWeight: FontWeight.w900,
-          height: 1,
+      child: Padding(
+        padding: EdgeInsets.all(size * 0.10),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            _initialLabel(initials),
+            maxLines: 1,
+            overflow: TextOverflow.clip,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: textColor,
+              fontSize: fontSize,
+              fontWeight: FontWeight.w900,
+              height: 1,
+            ),
+          ),
         ),
       ),
     );

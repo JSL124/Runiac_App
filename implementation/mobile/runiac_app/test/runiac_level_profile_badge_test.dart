@@ -125,4 +125,35 @@ void main() {
         ),
     );
   });
+
+  testWidgets('compact two-letter initials stay centered inside the disc', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: RuniacLevelProfileBadge(
+              initials: 'AR',
+              levelLabel: 'Lv.12',
+              progressFraction: 0,
+              size: 42,
+              badgeHeight: 16,
+              badgeMinWidth: 42,
+              badgeHorizontalPadding: 6,
+              badgeFontSize: 9,
+              ringStrokeWidth: 4,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final initials = tester.widget<Text>(find.text('AR'));
+    expect(initials.textAlign, TextAlign.center);
+    expect(
+      find.ancestor(of: find.text('AR'), matching: find.byType(FittedBox)),
+      findsOneWidget,
+    );
+  });
 }

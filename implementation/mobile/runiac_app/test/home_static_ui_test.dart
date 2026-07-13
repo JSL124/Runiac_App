@@ -385,6 +385,12 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('LR'), findsOneWidget);
+    final homeInitials = tester.widget<Text>(find.text('LR'));
+    expect(homeInitials.textAlign, TextAlign.center);
+    expect(
+      find.ancestor(of: find.text('LR'), matching: find.byType(FittedBox)),
+      findsOneWidget,
+    );
 
     await tester.tap(find.bySemanticsLabel('Profile'));
     await tester.pumpAndSettle();

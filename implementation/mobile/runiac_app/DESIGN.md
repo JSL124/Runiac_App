@@ -121,7 +121,7 @@ All spacing derives from a base of 4px.
 
 ### Level Profile Badge
 
-- **Structure**: circular pale-blue profile disc, blue-tinted ring track, orange progress arc, centered runner initial, and an overlapping orange level pill.
+- **Structure**: circular profile disc, blue-tinted ring track, orange progress arc, centered runner initials, and an overlapping orange level pill. One- and two-letter initials are centered and scaled inside the disc without clipping across compact and large variants.
 - **Variants**: compact Home dashboard trigger and larger Account identity profile mark.
 - **Colors**: `RuniacColors.primaryBlue` for the initial/ring track, `RuniacColors.accentOrange` for progress and level pill, `RuniacColors.white` for pill text.
 - **Spacing**: stable square ring sizing; the pill overlaps the lower ring edge and keeps a minimum readable width.
@@ -185,7 +185,7 @@ All spacing derives from a base of 4px.
 
 ### Friends Screen (backed MVP)
 
-- **Structure**: `RuniacBackHeader` titled `Friends`, a compact 4-segment `YouSegmentedControl` (`Friends` / `Search` / `Requests` / `Blocked`), and white rows with radius 18 and a `border` outline. Every identity row leads with the compact 42px `RuniacLevelProfileBadge` and a w800 `textPrimary` display name. Suggested discovery is deferred.
+- **Structure**: `RuniacBackHeader` titled `Friends`, a compact 4-segment `YouSegmentedControl` (`Friends` / `Search` / `Requests` / `Blocked`), and white rows with radius 18 and a `border` outline. Every identity row leads with the compact 42px `RuniacLevelProfileBadge`, using the Feed treatment of a `primaryBlue` profile disc with a white border and white initials. One- and two-letter initials are centered and scaled within the disc without clipping. The trusted level label is shown in the orange pill; an absent label uses the display-only `Lv.0` placeholder and never implies calculated XP or progress. A w800 `textPrimary` display name follows the badge. Suggested discovery is deferred.
 - **Friends**: owner-scoped accepted-friend rows are ordered by trusted list sort fields. Each friend has a circular 44px `more_horiz` action with a visible primary-blue-derived ring and dark-blue dots. The bottom sheet offers `Remove Friend` and `Block`; each opens a second confirmation dialog. Destructive confirmations use `errorRed` and explain the privacy reset in beginner-friendly English.
 - **Search**: exact-submit only. The field preserves the submitted query, uses `Enter an exact nickname` helper copy, and never filters a local list while typing. Results are zero or one sanitized backend identity; neutral misses use `No runners found` without exposing privacy, account, or reverse-block state. Invalid length and generic retry states remain actionable.
 - **Requests**: owner-scoped incoming and outgoing pending rows. Incoming rows expose explicit `Accept` and `Decline`; outgoing rows expose `Cancel`. There is no crossed-request auto-accept and no social notification copy.

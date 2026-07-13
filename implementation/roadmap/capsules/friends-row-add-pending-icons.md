@@ -31,11 +31,15 @@ Keep the existing Friends screen tabs and Requests row intact while making the c
 
 - `implementation/mobile/runiac_app/lib/features/friends/presentation/friends_screen.dart`
 - `implementation/mobile/runiac_app/lib/features/friends/presentation/widgets/friends_rows.dart`
+- `implementation/mobile/runiac_app/lib/features/friends/presentation/widgets/friend_row_identity.dart`
+- `implementation/mobile/runiac_app/lib/core/widgets/runiac_level_profile_badge.dart` for shared initials centering only.
 - `implementation/mobile/runiac_app/lib/core/assets/runiac_assets.dart`
 - `implementation/mobile/runiac_app/assets/images/friends/friends_add.png`
 - `implementation/mobile/runiac_app/assets/images/friends/friends_pending.png`
 - `implementation/mobile/runiac_app/pubspec.yaml` for registering only the two supplied image assets; no package or dependency changes.
 - `implementation/mobile/runiac_app/test/friends_static_ui_test.dart`
+- `implementation/mobile/runiac_app/test/home_static_ui_test.dart` for the shared Home badge regression only.
+- `implementation/mobile/runiac_app/test/runiac_level_profile_badge_test.dart`
 - `implementation/mobile/runiac_app/DESIGN.md`
 - This capsule and append-only routing in `implementation/roadmap/CURRENT.md`.
 - `tools/governance-ci/check-diff-hygiene.sh` only if the new capsule path must be added to its routed-capsule allowlist.
@@ -49,12 +53,14 @@ Keep the existing Friends screen tabs and Requests row intact while making the c
 - Add state is session-local `setState` only. It must be shared by Search and Suggested for the current screen instance and reset when the screen is re-entered.
 - A Pending state must not invoke another action or persist anything.
 - Preserve the existing `FriendRequestRow` layout, invitation copy, Accept / Decline semantics, and session-local request behavior byte-for-byte unless a compiler-only adjustment is required.
+- Keep one- and two-letter initials horizontally centered and scaled inside compact profile discs without clipping.
+- Show the backend-supplied level label when present; when absent, show the display-only compact placeholder `Lv.0` without deriving XP, level progress, or rank.
 
 ## Forbidden Scope
 
 - No Firebase, Auth, Firestore, Cloud Functions, FCM, feed code, repositories, or `users/{uid}/friends` / friend-request I/O.
 - No persistence, network calls, optimistic backend state, notification delivery, undo, or request cancellation.
-- No change to the tab structure, shell navigation, Social dropdown, Requests layout, Accept / Decline behavior, or Home dashboard profile component.
+- No change to the tab structure, shell navigation, Social dropdown, Requests layout, Accept / Decline behavior, or Home dashboard screen composition.
 - No client-side calculation or mutation of XP, level, rank, streak, leaderboard score, weekly XP, monthly XP, subscription privilege state, or expert plan publication state.
 - No new dependencies, Android/iOS/native changes, deployment, build artifacts, staging, commit, or push.
 
@@ -72,5 +78,7 @@ Keep the existing Friends screen tabs and Requests row intact while making the c
 - [ ] Tapping Add changes only that user's visible action to the noninteractive Pending icon for the current screen session.
 - [ ] Pending artwork has no opaque white background.
 - [ ] Requests remain visually and behaviorally unchanged.
+- [ ] One- and two-letter initials remain centered without clipping in compact badges.
+- [ ] Every Friends identity badge shows a level pill, using `Lv.0` only when the supplied label is empty.
 - [ ] Focused and relevant regression validation pass, with any pre-existing failures reported separately.
 - [ ] No backend, persistence, progression, entitlement, navigation, or unrelated UI behavior is introduced.
