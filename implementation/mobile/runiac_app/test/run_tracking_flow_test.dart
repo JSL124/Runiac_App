@@ -1073,9 +1073,11 @@ void main() {
     expect(find.text('12:34 of 30:00'), findsOneWidget);
     expect(find.text('42%'), findsOneWidget);
     expect(find.byKey(const Key('run_plan_progress_bar')), findsOneWidget);
-    expect(find.text('TIME'), findsWidgets);
-    expect(find.text('12:34'), findsWidgets);
-    expect(find.text('DISTANCE'), findsNothing);
+    expect(find.text('DISTANCE'), findsOneWidget);
+    expect(find.text('1.20'), findsOneWidget);
+    expect(find.text('km'), findsOneWidget);
+    expect(find.text('TIME'), findsOneWidget);
+    expect(find.text('12:34'), findsOneWidget);
     expect(find.text('0.00 of 4.50 km'), findsNothing);
     expect(tester.takeException(), isNull);
   });

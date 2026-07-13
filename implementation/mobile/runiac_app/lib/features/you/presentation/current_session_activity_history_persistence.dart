@@ -2,6 +2,27 @@ part of 'current_session_activity_history.dart';
 
 extension CurrentSessionActivityHistoryPersistence
     on CurrentSessionActivityHistoryStore {
+  Future<void> recordForegroundRunSyncFailure({
+    required LocalRunCompletionPayload payload,
+    required RunCompletionContext completionContext,
+    required Object error,
+  }) async {
+    if (!isRunCompletionContextCurrent(completionContext)) {
+      return;
+    }
+    final storage = persistence;
+    if (storage == null) {
+      return;
+    }
+    final failure = _classifySyncFailure(error);
+    await _markPendingRunSyncFailed(
+      storage: storage,
+      ownerUid: completionContext._ownerUid,
+      clientRunSessionId: payload.clientRunSessionId,
+      failure: failure,
+    );
+  }
+
   Future<CompleteRunResult?> acceptForegroundCompletion(
     CompleteRunResult remoteResult, {
     required LocalRunCompletionPayload payload,
@@ -19,8 +40,12 @@ extension CurrentSessionActivityHistoryPersistence
         remoteResult,
         ownerUid: ownerUid,
         distanceMeters: payload.distanceMeters,
-        planEnrollmentId: payload.planEnrollmentId,
-        scheduledWorkoutId: payload.scheduledWorkoutId,
+        planEnrollmentId: remoteResult.planCompletion.completed
+            ? remoteResult.planCompletion.planEnrollmentId
+            : null,
+        scheduledWorkoutId: remoteResult.planCompletion.completed
+            ? remoteResult.planCompletion.scheduledWorkoutId
+            : null,
       );
       return remoteResult;
     }
@@ -40,8 +65,12 @@ extension CurrentSessionActivityHistoryPersistence
       acceptedRecord.result,
       ownerUid: ownerUid,
       distanceMeters: acceptedRecord.payload.distanceMeters,
-      planEnrollmentId: acceptedRecord.payload.planEnrollmentId,
-      scheduledWorkoutId: acceptedRecord.payload.scheduledWorkoutId,
+      planEnrollmentId: acceptedRecord.result.planCompletion.completed
+          ? acceptedRecord.result.planCompletion.planEnrollmentId
+          : null,
+      scheduledWorkoutId: acceptedRecord.result.planCompletion.completed
+          ? acceptedRecord.result.planCompletion.scheduledWorkoutId
+          : null,
     );
     if (!acceptedRecord.payload.userConfirmedLowDataSave) {
       await _refreshUserProgressAfterRemoteSync(
@@ -80,8 +109,12 @@ extension CurrentSessionActivityHistoryPersistence
         record.result,
         ownerUid: record.ownerUid,
         distanceMeters: record.payload.distanceMeters,
-        planEnrollmentId: record.payload.planEnrollmentId,
-        scheduledWorkoutId: record.payload.scheduledWorkoutId,
+        planEnrollmentId: record.result.planCompletion.completed
+            ? record.result.planCompletion.planEnrollmentId
+            : null,
+        scheduledWorkoutId: record.result.planCompletion.completed
+            ? record.result.planCompletion.scheduledWorkoutId
+            : null,
       );
     }
   }
@@ -195,8 +228,12 @@ extension CurrentSessionActivityHistoryPersistence
             syncedRecord.result,
             ownerUid: ownerUid,
             distanceMeters: syncedRecord.payload.distanceMeters,
-            planEnrollmentId: syncedRecord.payload.planEnrollmentId,
-            scheduledWorkoutId: syncedRecord.payload.scheduledWorkoutId,
+            planEnrollmentId: syncedRecord.result.planCompletion.completed
+                ? syncedRecord.result.planCompletion.planEnrollmentId
+                : null,
+            scheduledWorkoutId: syncedRecord.result.planCompletion.completed
+                ? syncedRecord.result.planCompletion.scheduledWorkoutId
+                : null,
           );
           if (!syncedRecord.payload.userConfirmedLowDataSave) {
             await _refreshUserProgressAfterRemoteSync(

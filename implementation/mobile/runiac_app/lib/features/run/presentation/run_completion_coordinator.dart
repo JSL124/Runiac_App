@@ -68,6 +68,24 @@ class RunCompletionCoordinator {
       return remoteResult;
     } catch (error, stackTrace) {
       _report(error, stackTrace, 'completing a run');
+      if (didSaveLocally &&
+          store != null &&
+          completionContext != null &&
+          store.isRunCompletionContextCurrent(completionContext)) {
+        try {
+          await store.recordForegroundRunSyncFailure(
+            payload: payload,
+            completionContext: completionContext,
+            error: error,
+          );
+        } catch (persistenceError, persistenceStackTrace) {
+          _report(
+            persistenceError,
+            persistenceStackTrace,
+            'recording a run completion sync failure',
+          );
+        }
+      }
       return localResult;
     }
   }

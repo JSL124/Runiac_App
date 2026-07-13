@@ -16,7 +16,7 @@ import {
   sumMonthlyXp,
 } from "./progressionAuditHelpers.js";
 
-export { progressionDisplayFromEvent } from "./progressionDisplayReader.js";
+export { planCompletionFromEvent, progressionDisplayFromEvent } from "./progressionDisplayReader.js";
 
 export type ProgressionAudit = {
   readonly progressionDisplay: ProgressionDisplay;
@@ -168,7 +168,9 @@ export function progressionEventData(input: {
     countsTowardLeaderboard: display.countsTowardLeaderboard,
     reason: display.reason,
     plannedWorkoutBonusApplied: input.audit.planCompletionBonusXp > 0,
+    plannedWorkoutMatched: input.planProgressResult.matchedPlanWorkout,
     plannedWorkoutRecorded: input.planProgressResult.completedWorkoutRecorded,
+    planEnrollmentId: input.planProgressResult.planEnrollmentId,
     plannedWorkoutId: input.planProgressResult.scheduledWorkoutId,
     plannedWorkoutMatchedBy: input.planProgressResult.matchedBy,
   };
@@ -194,7 +196,9 @@ export function profileProgressionData(audit: ProgressionAudit, updatedAt: strin
 
 export function noCompletedWorkoutRecorded(): PersistPlanProgressResult {
   return {
+    matchedPlanWorkout: false,
     completedWorkoutRecorded: false,
+    planEnrollmentId: null,
     scheduledWorkoutId: null,
     matchedBy: null,
   };

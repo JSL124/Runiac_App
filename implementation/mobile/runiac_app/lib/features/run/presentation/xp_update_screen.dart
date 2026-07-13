@@ -380,6 +380,8 @@ class _HeroRewardCard extends StatelessWidget {
         return 'Good effort, ${model.runnerName}!';
       case XpAwardState.deferred:
         return 'Run saved, ${model.runnerName}!';
+      case XpAwardState.syncPending:
+        return 'Run saved locally, ${model.runnerName}!';
     }
   }
 

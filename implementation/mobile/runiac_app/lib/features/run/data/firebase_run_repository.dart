@@ -89,6 +89,7 @@ class _CompleteRunResultMapper {
   static CompleteRunResult fromCallableResponse(Map<String, Object?> response) {
     final summary = _readMap(response, 'runSummary');
     final progression = _readMap(response, 'progressionDisplay');
+    final planCompletion = _readOptionalMap(response, 'planCompletion');
     final paceSeconds = _readInt(summary, 'averagePaceSecondsPerKm');
     final distanceMeters = _readInt(summary, 'distanceMeters');
     final durationSeconds = _readInt(summary, 'durationSeconds');
@@ -130,9 +131,38 @@ class _CompleteRunResultMapper {
         status: _readString(progression, 'status'),
         reason: _readString(progression, 'reason'),
       ),
+      planCompletion: PlanCompletionResult(
+        completed: _readOptionalBool(planCompletion, 'completed') ?? false,
+        planEnrollmentId: _readOptionalString(
+          planCompletion,
+          'planEnrollmentId',
+        ),
+        scheduledWorkoutId: _readOptionalString(
+          planCompletion,
+          'scheduledWorkoutId',
+        ),
+      ),
       xpUpdate: _buildXpUpdate(progression),
       message: _readString(response, 'message'),
     );
+  }
+
+  static Map<String, Object?>? _readOptionalMap(
+    Map<String, Object?> source,
+    String key,
+  ) {
+    final value = source[key];
+    if (value is Map<String, Object?>) {
+      return value;
+    }
+    if (value is Map) {
+      return value.map((key, value) => MapEntry(key.toString(), value));
+    }
+    return null;
+  }
+
+  static bool? _readOptionalBool(Map<String, Object?>? source, String key) {
+    return source?[key] is bool ? source![key] as bool : null;
   }
 
   /// Builds the XP & Streak display model purely from backend-owned progression
@@ -283,8 +313,8 @@ class _CompleteRunResultMapper {
     );
   }
 
-  static String? _readOptionalString(Map<String, Object?> source, String key) {
-    final value = source[key];
+  static String? _readOptionalString(Map<String, Object?>? source, String key) {
+    final value = source?[key];
     if (value == null) {
       return null;
     }

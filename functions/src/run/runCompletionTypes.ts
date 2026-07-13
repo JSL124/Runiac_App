@@ -125,9 +125,16 @@ export type RunSummaryResult = {
   readonly elevationSeries?: ElevationSeriesPayload;
 };
 
+export type PlanCompletionResult = {
+  readonly completed: boolean;
+  readonly planEnrollmentId?: string;
+  readonly scheduledWorkoutId?: string;
+};
+
 export type CompleteRunResult = CompleteRunIds & {
   readonly validationStatus: "validated";
   readonly runSummary: RunSummaryResult;
   readonly progressionDisplay: ProgressionDisplay;
+  readonly planCompletion: PlanCompletionResult;
   readonly message: string;
 };

@@ -11,6 +11,13 @@ Map<String, Object?> _localPendingRunActivityToJson(
     'progressionEventId': activity.result.progressionEventId,
     'validationStatus': activity.result.validationStatus,
     'message': activity.result.message,
+    'planCompletion': <String, Object?>{
+      'completed': activity.result.planCompletion.completed,
+      if (activity.result.planCompletion.planEnrollmentId != null)
+        'planEnrollmentId': activity.result.planCompletion.planEnrollmentId,
+      if (activity.result.planCompletion.scheduledWorkoutId != null)
+        'scheduledWorkoutId': activity.result.planCompletion.scheduledWorkoutId,
+    },
     'syncAccepted': activity.syncAccepted,
     'syncState': activity.syncState.name,
     'syncAttemptCount': activity.syncAttemptCount,
@@ -105,6 +112,8 @@ LocalPendingRunActivity? _localPendingRunActivityFromJson(
   }
 
   final restoredPayload = _payloadFromJson(payload, clientRunSessionId);
+  final planCompletion =
+      _readMap(source, 'planCompletion') ?? const <String, Object?>{};
   final syncAccepted = _readBool(source, 'syncAccepted') ?? false;
   return LocalPendingRunActivity(
     ownerUid: ownerUid,
@@ -120,6 +129,11 @@ LocalPendingRunActivity? _localPendingRunActivityFromJson(
           _readString(source, 'progressionEventId') ??
           'local-progression-$clientRunSessionId',
       validationStatus: _readString(source, 'validationStatus') ?? 'validated',
+      planCompletion: PlanCompletionResult(
+        completed: _readBool(planCompletion, 'completed') ?? false,
+        planEnrollmentId: _readString(planCompletion, 'planEnrollmentId'),
+        scheduledWorkoutId: _readString(planCompletion, 'scheduledWorkoutId'),
+      ),
       summary: _summaryFromJson(summary, restoredPayload),
       progressionDisplay: const ProgressionDisplayModel(
         xpDelta: 0,
@@ -130,18 +144,18 @@ LocalPendingRunActivity? _localPendingRunActivityFromJson(
       xpUpdate: const XpUpdateDisplayModel(
         runnerName: 'Runiac Runner',
         earnedXpLabel: '+0 XP',
-        totalXpLabel: 'Deferred by backend',
-        levelLabel: 'Pending',
-        nextLevelLabel: 'Pending',
-        progressTargetLabel: 'Pending',
-        xpRemainingLabel: 'Formula pending',
+        totalXpLabel: 'Saved on this device',
+        levelLabel: '--',
+        nextLevelLabel: '--',
+        progressTargetLabel: 'Sync pending',
+        xpRemainingLabel: 'XP updates after sync',
         previousProgressFraction: 0,
         currentProgressFraction: 0,
-        streakChangeLabel: 'Deferred',
-        streakNote: 'Backend validation accepted the run.',
+        streakChangeLabel: 'Not updated yet',
+        streakNote: 'We’ll retry when the service is available.',
         didLevelUp: false,
-        xpAwardState: XpAwardState.deferred,
-        heroMessage: 'This run is saved. XP is being finalized.',
+        xpAwardState: XpAwardState.syncPending,
+        heroMessage: 'This run is saved locally. XP updates after sync.',
       ),
       message: _readString(source, 'message') ?? 'Saved locally.',
     ),

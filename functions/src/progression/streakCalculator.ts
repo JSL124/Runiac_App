@@ -57,6 +57,20 @@ export function calculateStreakTransition(
   };
 }
 
+export function unchangedStreakTransition(
+  currentState: StreakState,
+  completedAt: string,
+): StreakTransition {
+  return {
+    previousStreak: currentState.streakCount,
+    nextStreak: currentState.streakCount,
+    previousStreakRunDate: currentState.lastStreakRunDate,
+    nextStreakRunDate: currentState.lastStreakRunDate ?? dailyCapDateForCompletedAt(completedAt),
+    streakUpdatedAt: completedAt,
+    shouldUpdateProfile: false,
+  };
+}
+
 export function calculateStreakStateFromRuns(
   runs: readonly StreakRun[],
   protectedRestDates: readonly string[] = [],

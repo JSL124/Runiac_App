@@ -17,6 +17,7 @@ import 'package:runiac_app/features/maps/domain/repositories/shared_routes_repos
 import 'package:runiac_app/features/run/data/static_run_repository.dart';
 import 'package:runiac_app/features/run/domain/models/coaching_summary_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/local_run_completion_payload.dart';
+import 'package:runiac_app/features/run/domain/models/xp_update_display_model.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_repository.dart';
 import 'package:runiac_app/features/run/domain/services/advanced_analysis_snapshot_builder.dart';
 import 'package:runiac_app/features/run/domain/services/completed_run_title_formatter.dart';
@@ -325,6 +326,8 @@ void main() {
         isNot(contains(_forbiddenDefaultDemoCoachingCopy)),
       );
       expect(completedRun.activityId, 'static-local-session-20260614-0700');
+      expect(completedRun.xpUpdate.xpAwardState, XpAwardState.syncPending);
+      expect(completedRun.xpUpdate.totalXpLabel, 'Saved on this device');
       expect(completedRun.clientRunSessionId, 'local-session-20260614-0700');
       expect(
         completedRun.summaryId,
@@ -459,7 +462,7 @@ void main() {
         expect(completedRun.summary.calories, isNot('145'));
         expect(completedRun.summary.routeName, isNot('East Coast Park Loop'));
         expect(completedRun.xpUpdate.earnedXpLabel, '+0 XP');
-        expect(completedRun.xpUpdate.streakChangeLabel, 'Deferred');
+        expect(completedRun.xpUpdate.streakChangeLabel, 'Not updated yet');
       },
     );
 

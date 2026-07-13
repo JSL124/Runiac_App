@@ -212,8 +212,6 @@ class CurrentSessionActivityHistoryStore extends ChangeNotifier {
         record.result,
         ownerUid: record.ownerUid,
         distanceMeters: record.payload.distanceMeters,
-        planEnrollmentId: record.payload.planEnrollmentId,
-        scheduledWorkoutId: record.payload.scheduledWorkoutId,
       );
       return;
     }
@@ -238,8 +236,6 @@ class CurrentSessionActivityHistoryStore extends ChangeNotifier {
         record.result,
         ownerUid: record.ownerUid,
         distanceMeters: record.payload.distanceMeters,
-        planEnrollmentId: record.payload.planEnrollmentId,
-        scheduledWorkoutId: record.payload.scheduledWorkoutId,
       );
     } catch (error, stackTrace) {
       _reportAsyncError(error, stackTrace, 'saving a completed run locally');

@@ -4,7 +4,7 @@
 /// returns, and this discriminator keeps the celebration honest: full XP
 /// choreography only for [awarded], supportive copy for [notAwarded] and
 /// [deferred].
-enum XpAwardState { awarded, notAwarded, deferred }
+enum XpAwardState { awarded, notAwarded, deferred, syncPending }
 
 class XpUpdateDisplayModel {
   const XpUpdateDisplayModel({

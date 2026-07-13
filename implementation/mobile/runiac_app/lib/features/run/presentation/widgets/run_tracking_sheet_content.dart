@@ -86,9 +86,6 @@ class _RunPlanProgressDisplay {
     required this.label,
     required this.percentLabel,
     required this.value,
-    required this.focusLabel,
-    required this.focusValue,
-    required this.focusUnit,
   });
 
   factory _RunPlanProgressDisplay.distance({
@@ -105,9 +102,6 @@ class _RunPlanProgressDisplay {
       label: '${snapshot.distanceValueLabel} of $targetLabel km',
       percentLabel: '${(progress * 100).round()}%',
       value: progress,
-      focusLabel: 'DISTANCE',
-      focusValue: snapshot.distanceValueLabel,
-      focusUnit: snapshot.distanceUnitLabel,
     );
   }
 
@@ -124,9 +118,6 @@ class _RunPlanProgressDisplay {
           '${snapshot.elapsedTimeLabel} of ${_formatDurationTarget(targetDurationSeconds)}',
       percentLabel: '${(progress * 100).round()}%',
       value: progress,
-      focusLabel: 'TIME',
-      focusValue: snapshot.elapsedTimeLabel,
-      focusUnit: '',
     );
   }
 
@@ -158,9 +149,6 @@ class _RunPlanProgressDisplay {
   final String label;
   final String percentLabel;
   final double value;
-  final String focusLabel;
-  final String focusValue;
-  final String focusUnit;
 }
 
 class _ProgressSummaryRow extends StatelessWidget {
@@ -223,10 +211,9 @@ class _PrimaryMetricFocus extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final display = progress;
-    final focusLabel = display?.focusLabel ?? 'DISTANCE';
-    final focusValue = display?.focusValue ?? snapshot.distanceValueLabel;
-    final focusUnit = display?.focusUnit ?? snapshot.distanceUnitLabel;
+    const focusLabel = 'DISTANCE';
+    final focusValue = snapshot.distanceValueLabel;
+    final focusUnit = snapshot.distanceUnitLabel;
 
     return Center(
       child: Column(

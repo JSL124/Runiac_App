@@ -20,6 +20,11 @@ type CompletionResult = {
   readonly summaryId: string;
   readonly progressionEventId: string;
   readonly validationStatus: string;
+  readonly planCompletion: {
+    readonly completed: boolean;
+    readonly planEnrollmentId?: string;
+    readonly scheduledWorkoutId?: string;
+  };
   readonly progressionDisplay: {
     readonly xpDelta: number;
     readonly countsTowardLeaderboard: boolean;
@@ -901,7 +906,7 @@ describe("completeRun callable boundary", () => {
       }),
     ]);
 
-    await callCompleteRun({
+    const underDurationResult = await callCompleteRun({
       auth: { uid: USER_UID },
       data: runPayloadForSession({
         clientRunSessionId: "plan-thu-under-duration",
@@ -914,6 +919,18 @@ describe("completeRun callable boundary", () => {
     });
     assert.equal(await countDocuments("activities"), 1);
     assert.equal((await firestore.doc(`planProgress/${USER_UID}`).get()).exists, false);
+    const underDurationEvent = await firestore.doc(
+      `progressionEvents/${underDurationResult.progressionEventId}`,
+    ).get();
+    assert.deepEqual(underDurationResult.planCompletion, { completed: false });
+    assert.equal(underDurationEvent.get("plannedWorkoutMatched"), true);
+    assert.equal(underDurationEvent.get("plannedWorkoutRecorded"), false);
+    assert.equal(underDurationEvent.get("previousStreak"), 0);
+    assert.equal(underDurationEvent.get("nextStreak"), 0);
+    assert.equal(
+      (await firestore.doc(`activities/${underDurationResult.activityId}`).get()).get("countsTowardStreak"),
+      false,
+    );
 
     const result = await callCompleteRun({
       auth: { uid: USER_UID },
@@ -943,6 +960,11 @@ describe("completeRun callable boundary", () => {
     assert.equal(progressionEvent.get("plannedWorkoutBonusApplied"), true);
     assert.equal(progressionEvent.get("planCompletionBonusXp"), 20);
     assert.equal(progressionEvent.get("xpDelta"), 80);
+    assert.deepEqual(result.planCompletion, {
+      completed: true,
+      planEnrollmentId: "generated-plan-001",
+      scheduledWorkoutId: "week-1-thu-easy-run",
+    });
   });
 
   it("auto-matches only the active generated workout on the run completedAt date", async () => {

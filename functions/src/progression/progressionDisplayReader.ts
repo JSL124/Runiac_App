@@ -1,5 +1,5 @@
 import { HttpsError } from "firebase-functions/v2/https";
-import type { ProgressionDisplay } from "../run/runCompletionTypes.js";
+import type { PlanCompletionResult, ProgressionDisplay } from "../run/runCompletionTypes.js";
 
 export function progressionDisplayFromEvent(
   eventData: FirebaseFirestore.DocumentData | undefined,
@@ -43,6 +43,22 @@ export function progressionDisplayFromEvent(
     ...(readNullableNumberField(eventData, "nextXpToNextLevel", "xpToNextLevel") ?? {}),
     ...(typeof previousStreak === "number" ? { previousStreak } : {}),
     ...(typeof streak === "number" ? { streak } : {}),
+  };
+}
+
+export function planCompletionFromEvent(
+  eventData: FirebaseFirestore.DocumentData | undefined,
+): PlanCompletionResult {
+  if (eventData?.["plannedWorkoutRecorded"] !== true) {
+    return { completed: false };
+  }
+
+  const planEnrollmentId = eventData["planEnrollmentId"];
+  const scheduledWorkoutId = eventData["plannedWorkoutId"];
+  return {
+    completed: true,
+    ...(typeof planEnrollmentId === "string" ? { planEnrollmentId } : {}),
+    ...(typeof scheduledWorkoutId === "string" ? { scheduledWorkoutId } : {}),
   };
 }
 

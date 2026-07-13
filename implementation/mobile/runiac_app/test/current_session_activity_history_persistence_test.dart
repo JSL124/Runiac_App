@@ -73,16 +73,37 @@ void main() {
         ),
       );
 
+      expect(store.completedScheduledWorkoutIds, isEmpty);
+      expect(
+        store.completedScheduledWorkoutIdsForPlan('generated-plan-10k'),
+        isEmpty,
+      );
+
+      final completionContext = store.captureRunCompletionContext();
+      await store.acceptForegroundCompletion(
+        _completionResult('planned-client-session').copyWith(
+          activityId: 'activity_planned-client-session',
+          summaryId: 'summary_planned-client-session',
+          progressionEventId: 'progression_planned-client-session',
+          planCompletion: const PlanCompletionResult(
+            completed: true,
+            planEnrollmentId: 'generated-plan-10k',
+            scheduledWorkoutId: 'week-1-tue-controlled-steady-run',
+          ),
+        ),
+        payload: _payload(
+          'planned-client-session',
+          scheduledWorkoutId: 'week-1-tue-controlled-steady-run',
+        ),
+        completionContext: completionContext,
+      );
+
       expect(store.completedScheduledWorkoutIds, {
         'week-1-tue-controlled-steady-run',
       });
       expect(store.completedScheduledWorkoutIdsForPlan('generated-plan-10k'), {
         'week-1-tue-controlled-steady-run',
       });
-      expect(
-        store.completedScheduledWorkoutIdsForPlan('regenerated-plan-10k'),
-        isEmpty,
-      );
 
       final restoredStore = CurrentSessionActivityHistoryStore(
         ownerUid: ownerUid,
@@ -1025,6 +1046,39 @@ void main() {
       RunSyncState.syncRetryableFailure,
     );
   });
+
+  test(
+    'foreground completion failures retain a safe sync reason for retry',
+    () async {
+      final storage = MemoryLocalPendingRunActivityStore();
+      final store = CurrentSessionActivityHistoryStore(
+        ownerUid: ownerUid,
+        persistence: storage,
+      );
+      addTearDown(store.dispose);
+      final payload = _payload('foreground-failure-client-session');
+
+      await store.saveCompletedRun(
+        _completionResult(payload.clientRunSessionId),
+        payload: payload,
+      );
+      await store.recordForegroundRunSyncFailure(
+        payload: payload,
+        completionContext: store.captureRunCompletionContext(),
+        error: const RunCompletionException(
+          code: 'unavailable',
+          message: 'backend details must not reach the user',
+          isRetryable: true,
+        ),
+      );
+
+      final saved = (await storage.load()).single;
+      expect(saved.syncState, RunSyncState.syncRetryableFailure);
+      expect(saved.lastSyncFailureCode, 'unavailable');
+      expect(saved.lastSyncFailureMessage, 'Run sync failed with unavailable.');
+      expect(saved.lastSyncFailureMessage, isNot(contains('backend details')));
+    },
+  );
 
   test(
     'sync records non-retryable completion failures without resubmitting',

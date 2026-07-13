@@ -10,6 +10,7 @@ import { persistCompletedWorkoutProgress } from "../plan/planProgress.js";
 import {
   calculateProgressionAudit,
   noCompletedWorkoutRecorded,
+  planCompletionFromEvent,
   profileProgressionData,
   progressionEventData,
   progressionDisplayFromEvent,
@@ -20,14 +21,18 @@ import {
 } from "../progression/progressionCalculator.js";
 import { deferredProgressionDisplay } from "../progression/progressionEventWriter.js";
 import { readTrustedProtectedRestDates, readTrustedStreakState } from "../progression/planBoundedStreakState.js";
-import { calculateStreakTransition, type StreakState } from "../progression/streakCalculator.js";
+import {
+  calculateStreakTransition,
+  type StreakState,
+  unchangedStreakTransition,
+} from "../progression/streakCalculator.js";
 import {
   assertExistingActivityMatchesPayload,
   buildRunSummary,
   deterministicIds,
   fingerprintPayload,
 } from "./runCompletionArtifacts.js";
-import type { CompleteRunResult, ProgressionDisplay } from "./runCompletionTypes.js";
+import type { CompleteRunResult, PlanCompletionResult, ProgressionDisplay } from "./runCompletionTypes.js";
 import { parseRunCompletionPayload } from "./validateRunPayload.js";
 type CallableRunRequest = {
   readonly auth?: {
@@ -58,6 +63,7 @@ export async function completeRunForCallable(
   const dailyCapDate = dailyCapDateForCompletedAt(payload.completedAt);
   const monthlyPeriod = monthlyPeriodForCompletedAt(payload.completedAt);
   let progressionDisplay: ProgressionDisplay = deferredProgressionDisplay();
+  let planCompletion: PlanCompletionResult = { completed: false };
 
   await firestore.runTransaction(async (transaction) => {
     const activityRef = firestore.collection("activities").doc(ids.activityId);
@@ -113,20 +119,6 @@ export async function completeRunForCallable(
     }
 
     const shouldPersistProgression = !activitySnapshot.exists;
-    const streakTransition = shouldPersistProgression
-      ? calculateStreakTransition(
-          {
-            currentState: readTrustedStreakState({
-              profileState: readStreakState(profileSnapshot.data()),
-              generatedPlanData: generatedPlanSnapshot.data(),
-              activityDocuments: activitySnapshots.docs.map((document) => document.data()),
-            }),
-            completedAt: payload.completedAt,
-            protectedRestDates: readTrustedProtectedRestDates(generatedPlanSnapshot.data()),
-          },
-        )
-      : undefined;
-
     let planProgressResult = noCompletedWorkoutRecorded();
     if (shouldPersistProgression) {
       planProgressResult = persistCompletedWorkoutProgress({
@@ -139,6 +131,23 @@ export async function completeRunForCallable(
         progressData: planProgressSnapshot.data(),
       });
     }
+
+    const currentStreakState = readTrustedStreakState({
+      profileState: readStreakState(profileSnapshot.data()),
+      generatedPlanData: generatedPlanSnapshot.data(),
+      activityDocuments: activitySnapshots.docs.map((document) => document.data()),
+    });
+    const countsTowardStreak =
+      !planProgressResult.matchedPlanWorkout || planProgressResult.completedWorkoutRecorded;
+    const streakTransition = shouldPersistProgression
+      ? countsTowardStreak
+        ? calculateStreakTransition({
+            currentState: currentStreakState,
+            completedAt: payload.completedAt,
+            protectedRestDates: readTrustedProtectedRestDates(generatedPlanSnapshot.data()),
+          })
+        : unchangedStreakTransition(currentStreakState, payload.completedAt)
+      : undefined;
 
     const xpAudit = shouldPersistProgression
       ? calculateProgressionAudit({
@@ -176,6 +185,8 @@ export async function completeRunForCallable(
         validationStatus: "validated",
         validatedActivityContributionState: xpAudit?.xpDelta === 0 ? "not_awarded" : "awarded",
         countsTowardProgression: (xpAudit?.xpDelta ?? 0) > 0,
+        countsTowardStreak,
+        plannedWorkoutRecorded: planProgressResult.completedWorkoutRecorded,
         validationReason: xpAudit?.reason ?? "progression_formula_deferred",
         ...(payload.cadenceAnalysisSeries === undefined
           ? {}
@@ -206,6 +217,17 @@ export async function completeRunForCallable(
         previousStreak: streakTransition.previousStreak,
         streak: streakTransition.nextStreak,
       };
+      planCompletion = planProgressResult.completedWorkoutRecorded
+        ? {
+            completed: true,
+            ...(planProgressResult.planEnrollmentId === null
+              ? {}
+              : { planEnrollmentId: planProgressResult.planEnrollmentId }),
+            ...(planProgressResult.scheduledWorkoutId === null
+              ? {}
+              : { scheduledWorkoutId: planProgressResult.scheduledWorkoutId }),
+          }
+        : { completed: false };
       transaction.set(
         progressionRef,
         progressionEventData({ uid, ids, payload, audit: xpAudit, streakTransition, planProgressResult }),
@@ -226,6 +248,7 @@ export async function completeRunForCallable(
       });
     } else {
       progressionDisplay = progressionDisplayFromEvent(progressionSnapshot.data());
+      planCompletion = planCompletionFromEvent(progressionSnapshot.data());
     }
 
     if (streakTransition?.shouldUpdateProfile === true) {
@@ -261,6 +284,7 @@ export async function completeRunForCallable(
     validationStatus: "validated",
     runSummary,
     progressionDisplay,
+    planCompletion,
     message: "Run completion accepted by emulator backend skeleton.",
   };
 }
