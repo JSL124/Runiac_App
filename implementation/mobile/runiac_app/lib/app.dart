@@ -18,6 +18,8 @@ import 'features/auth/presentation/runiac_profile_setup_gate.dart';
 import 'features/feed/data/static_feed_repository.dart';
 import 'features/feed/domain/repositories/feed_repository.dart';
 import 'features/feed/presentation/current_session_feed.dart';
+import 'features/friends/data/static_friends_repository.dart';
+import 'features/friends/domain/repositories/friends_repository.dart';
 import 'features/home/domain/guide/home_guide_agent.dart';
 import 'features/home/domain/guide/rule_based_home_guide_agent.dart';
 import 'features/onboarding/domain/models/local_onboarding_draft.dart';
@@ -68,6 +70,7 @@ class RuniacApp extends StatefulWidget {
     this.activityHistoryRepository = const StaticActivityHistoryRepository(),
     this.userProgressRepository = const StaticUserProgressRepository(),
     this.leaderboardRepository = const StaticLeaderboardRepository(),
+    this.friendsRepository = const StaticFriendsRepository(),
     this.profileRepository = const StaticUserProfileRepository(),
     this.profilePersistenceRepository =
         const NoopUserProfilePersistenceRepository(),
@@ -101,6 +104,7 @@ class RuniacApp extends StatefulWidget {
   final ActivityHistoryRepository activityHistoryRepository;
   final UserProgressRepository userProgressRepository;
   final LeaderboardRepository leaderboardRepository;
+  final FriendsRepository friendsRepository;
   final UserProfileRepository profileRepository;
   final UserProfilePersistenceRepository profilePersistenceRepository;
   final GeneratedPlanPersistenceRepository generatedPlanPersistenceRepository;
@@ -606,6 +610,7 @@ class _RuniacAppState extends State<RuniacApp> {
           feedRepository: _feedRepository,
           userProgressRepository: widget.userProgressRepository,
           leaderboardRepository: widget.leaderboardRepository,
+          friendsRepository: widget.friendsRepository,
           profileRepository: widget.profileRepository,
           profilePersistenceRepository: widget.profilePersistenceRepository,
           generatedPlanPersistenceRepository:
@@ -814,7 +819,6 @@ class _RuniacAppState extends State<RuniacApp> {
     final fullName = personalProfile?.fullName ?? 'Runiac Runner';
     final nickname = personalProfile?.nickname ?? 'Runiac Runner';
     final avatarInitials = personalProfile?.avatarInitials ?? 'RR';
-    final nicknameKey = personalProfile?.nicknameKey ?? 'runiac-runner';
     final dateOfBirthIso = personalProfile?.dateOfBirthIso ?? '2008-01-01';
     final ageYears = personalProfile?.ageYears ?? 18;
     final weightKg = personalProfile?.weightKg ?? 60;
@@ -824,7 +828,6 @@ class _RuniacAppState extends State<RuniacApp> {
       fullName: fullName,
       nickname: nickname,
       avatarInitials: avatarInitials,
-      nicknameKey: nicknameKey,
       dateOfBirthIso: dateOfBirthIso,
       ageYears: ageYears,
       weightKg: weightKg,

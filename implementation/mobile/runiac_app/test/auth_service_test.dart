@@ -17,6 +17,15 @@ void main() {
   TestFirebaseCoreHostApi.setUp(_EmptyFirebaseCoreHostApi());
 
   group('Runiac auth service', () {
+    test('emulator Firebase API key has the native SDK-required shape', () {
+      final options = RuniacFirebaseBootstrap.emulatorFirebaseOptions;
+      final apiKey = options.apiKey;
+
+      expect(apiKey, hasLength(39));
+      expect(apiKey, startsWith('A'));
+      expect(options.storageBucket, isNotEmpty);
+    });
+
     test('maps FirebaseAuthException codes to beginner-friendly errors', () {
       const cases = <_FirebaseAuthErrorCase>[
         _FirebaseAuthErrorCase(

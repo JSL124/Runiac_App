@@ -15,6 +15,9 @@ import '../../features/feed/data/firebase_feed_repository/firebase_feed_data_por
 import '../../features/feed/data/firebase_feed_repository/firebase_feed_repository.dart';
 import '../../features/feed/data/static_feed_repository.dart';
 import '../../features/feed/domain/repositories/feed_repository.dart';
+import '../../features/friends/data/firebase_friends_repository.dart';
+import '../../features/friends/data/static_friends_repository.dart';
+import '../../features/friends/domain/repositories/friends_repository.dart';
 import '../../features/home/data/home_guide_agent_factory.dart';
 import '../../features/home/domain/guide/home_guide_agent.dart';
 import '../../features/leaderboard/data/firestore_leaderboard_repository.dart';
@@ -45,6 +48,14 @@ import 'runiac_firestore_gateway.dart';
 class RuniacFirebaseBootstrap {
   const RuniacFirebaseBootstrap._();
 
+  static const emulatorFirebaseOptions = FirebaseOptions(
+    apiKey: 'AIzaSyA00000000000000000000000000000000',
+    appId: '1:000000000000:ios:0000000000000000',
+    messagingSenderId: '000000000000',
+    projectId: 'demo-runiac-feed',
+    storageBucket: 'demo-runiac-feed.appspot.com',
+  );
+
   static Future<RuniacFirebaseBootstrapResult> initialize({
     RuniacFirebaseRuntimeConfig? config,
     bool enableAnonymousEmulatorSignIn = true,
@@ -62,6 +73,7 @@ class RuniacFirebaseBootstrap {
           activityHistoryRepository: const StaticActivityHistoryRepository(),
           userProgressRepository: const StaticUserProgressRepository(),
           leaderboardRepository: const StaticLeaderboardRepository(),
+          friendsRepository: const StaticFriendsRepository(),
           profileRepository: const StaticUserProfileRepository(),
           profilePersistenceRepository:
               const NoopUserProfilePersistenceRepository(),
@@ -107,6 +119,9 @@ class RuniacFirebaseBootstrap {
         leaderboardRepository: FirestoreLeaderboardRepository(
           authRepository: authRepository,
         ),
+        friendsRepository: FirebaseFriendsRepository(
+          authRepository: authRepository,
+        ),
         profileRepository: FirestoreUserProfileRepository(
           authRepository: authRepository,
         ),
@@ -134,14 +149,7 @@ class RuniacFirebaseBootstrap {
     }
 
     if (Firebase.apps.isEmpty) {
-      await Firebase.initializeApp(
-        options: const FirebaseOptions(
-          apiKey: 'demo-runiac-functions-test',
-          appId: '1:000000000000:ios:0000000000000000',
-          messagingSenderId: '000000000000',
-          projectId: 'demo-runiac-feed',
-        ),
-      );
+      await Firebase.initializeApp(options: emulatorFirebaseOptions);
     }
 
     final firebaseAuth = FirebaseAuth.instance;
@@ -179,6 +187,9 @@ class RuniacFirebaseBootstrap {
         streakRefreshService: CloudFunctionUserStreakRefreshService(),
       ),
       leaderboardRepository: FirestoreLeaderboardRepository(
+        authRepository: authRepository,
+      ),
+      friendsRepository: FirebaseFriendsRepository(
         authRepository: authRepository,
       ),
       profileRepository: FirestoreUserProfileRepository(
@@ -249,6 +260,7 @@ class RuniacFirebaseBootstrapResult {
     required this.activityHistoryRepository,
     required this.userProgressRepository,
     required this.leaderboardRepository,
+    required this.friendsRepository,
     required this.profileRepository,
     required this.profilePersistenceRepository,
     required this.generatedPlanPersistenceRepository,
@@ -266,6 +278,7 @@ class RuniacFirebaseBootstrapResult {
   final ActivityHistoryRepository activityHistoryRepository;
   final UserProgressRepository userProgressRepository;
   final LeaderboardRepository leaderboardRepository;
+  final FriendsRepository friendsRepository;
   final UserProfileRepository profileRepository;
   final UserProfilePersistenceRepository profilePersistenceRepository;
   final GeneratedPlanPersistenceRepository generatedPlanPersistenceRepository;

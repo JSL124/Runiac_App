@@ -286,7 +286,6 @@ void main() {
     expect(profileRepository.profile?.fullName, 'Maya Tan');
     expect(profileRepository.profile?.nickname, 'Maya');
     expect(profileRepository.profile?.avatarInitials, 'M');
-    expect(profileRepository.profile?.nicknameKey, 'maya');
     expect(profileRepository.profile?.dateOfBirthIso, '2002-06-28');
     expect(profileRepository.profile?.ageYears, 24);
     expect(profileRepository.profile?.weightKg, 58.5);
@@ -605,7 +604,6 @@ class _SavedOnboardingProfileDocumentReader
       'fullName': 'Maya Tan',
       'nickname': 'Maya',
       'avatarInitials': 'M',
-      'nicknameKey': 'maya',
       'dateOfBirth': '2002-06-28',
       'ageYears': 24,
       'weightKg': 58.5,

@@ -23,6 +23,10 @@ class NicknameAvailabilityCheckException implements Exception {
   final NicknameAvailabilityFailureReason reason;
 }
 
+class NicknameUnavailableException implements Exception {
+  const NicknameUnavailableException();
+}
+
 enum NicknameAvailabilityFailureReason { rulesUnavailable, unavailable }
 
 class PersonalProfileDraft {
@@ -47,15 +51,12 @@ class PersonalProfileDraft {
 
   String get avatarInitials => _avatarInitials(nickname, fullName);
 
-  String get nicknameKey => normalizeNicknameKey(nickname);
-
   int get ageYears => ageFromBirthDateIso(dateOfBirthIso);
 
   UserProfilePersonalSnapshot toPersonalSnapshot() {
     return UserProfilePersonalSnapshot(
       fullName: fullName,
       nickname: nickname,
-      nicknameKey: nicknameKey,
       dateOfBirthIso: dateOfBirthIso,
       ageYears: ageYears,
       weightKg: weightKg,
@@ -68,12 +69,12 @@ class PersonalProfileDraft {
   }
 
   static String? validateNickname(String value) {
-    final textError = _validateText(value, 'Nickname', 30);
-    if (textError != null) {
-      return textError;
+    final trimmed = value.trim();
+    if (trimmed.isEmpty || trimmed.runes.length > 30) {
+      return 'Nickname must be 1-30 characters.';
     }
-    if (normalizeNicknameKey(value).isEmpty) {
-      return 'Nickname must include letters or numbers.';
+    if (RegExp(r'[\x00-\x1F\x7F-\x9F]').hasMatch(trimmed)) {
+      return 'Nickname cannot include line breaks.';
     }
     return null;
   }
@@ -150,7 +151,6 @@ class UserProfilePersonalSnapshot {
   UserProfilePersonalSnapshot({
     required this.fullName,
     required this.nickname,
-    required this.nicknameKey,
     required this.dateOfBirthIso,
     required this.ageYears,
     required this.weightKg,
@@ -159,7 +159,6 @@ class UserProfilePersonalSnapshot {
 
   final String fullName;
   final String nickname;
-  final String nicknameKey;
   final String dateOfBirthIso;
   final int ageYears;
   final num weightKg;
@@ -171,11 +170,7 @@ class UserProfilePersonalSnapshot {
 
   Map<String, Object> toFirestoreDocument({required Object updatedAt}) {
     return <String, Object>{
-      'displayName': displayName,
       'fullName': fullName,
-      'nickname': nickname,
-      'avatarInitials': avatarInitials,
-      'nicknameKey': nicknameKey,
       'dateOfBirth': dateOfBirthIso,
       'ageYears': ageYears,
       'weightKg': weightKg,
@@ -191,7 +186,6 @@ class UserProfileOnboardingSnapshot {
     required this.fullName,
     required this.nickname,
     required this.avatarInitials,
-    required this.nicknameKey,
     required this.dateOfBirthIso,
     required this.ageYears,
     required this.weightKg,
@@ -209,7 +203,6 @@ class UserProfileOnboardingSnapshot {
   final String fullName;
   final String nickname;
   final String avatarInitials;
-  final String nicknameKey;
   final String dateOfBirthIso;
   final int ageYears;
   final num weightKg;
@@ -222,11 +215,7 @@ class UserProfileOnboardingSnapshot {
 
   Map<String, Object> toFirestoreDocument({required Object updatedAt}) {
     return <String, Object>{
-      'displayName': displayName,
       'fullName': fullName,
-      'nickname': nickname,
-      'avatarInitials': avatarInitials,
-      'nicknameKey': nicknameKey,
       'dateOfBirth': dateOfBirthIso,
       'ageYears': ageYears,
       'weightKg': weightKg,
@@ -279,17 +268,10 @@ String _avatarInitials(String nickname, String fullName) {
 }
 
 String _firstCharacter(String value) {
-  return value.substring(0, 1);
-}
-
-String normalizeNicknameKey(String value) {
-  final normalized = value
-      .trim()
-      .toLowerCase()
-      .replaceAll(RegExp(r'[^a-z0-9]+'), '-')
-      .replaceAll(RegExp(r'-+'), '-')
-      .replaceAll(RegExp(r'^-|-$'), '');
-  return normalized.length <= 30 ? normalized : normalized.substring(0, 30);
+  if (value.runes.isEmpty) {
+    return '';
+  }
+  return String.fromCharCode(value.runes.first);
 }
 
 int ageFromBirthDateIso(String value, {DateTime? today}) {

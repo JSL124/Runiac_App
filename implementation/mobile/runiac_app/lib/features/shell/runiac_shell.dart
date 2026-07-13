@@ -8,6 +8,8 @@ import '../auth/domain/runiac_auth_service.dart';
 import '../feed/domain/models/feed_display_models.dart';
 import '../feed/domain/repositories/feed_repository.dart';
 import '../feed/presentation/current_session_feed.dart';
+import '../friends/data/static_friends_repository.dart';
+import '../friends/domain/repositories/friends_repository.dart';
 import '../home/domain/guide/home_guide_agent.dart';
 import '../home/domain/guide/rule_based_home_guide_agent.dart';
 import '../home/presentation/home_tab.dart';
@@ -46,6 +48,7 @@ class RuniacShell extends StatefulWidget {
     this.activityHistoryRepository = const StaticActivityHistoryRepository(),
     this.userProgressRepository = const StaticUserProgressRepository(),
     this.leaderboardRepository = const StaticLeaderboardRepository(),
+    this.friendsRepository = const StaticFriendsRepository(),
     required this.profileRepository,
     required this.profilePersistenceRepository,
     this.generatedPlanPersistenceRepository =
@@ -69,6 +72,7 @@ class RuniacShell extends StatefulWidget {
   final ActivityHistoryRepository activityHistoryRepository;
   final UserProgressRepository userProgressRepository;
   final LeaderboardRepository leaderboardRepository;
+  final FriendsRepository friendsRepository;
   final UserProfileRepository profileRepository;
   final UserProfilePersistenceRepository profilePersistenceRepository;
   final GeneratedPlanPersistenceRepository generatedPlanPersistenceRepository;
@@ -464,6 +468,7 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
           notificationInboxRepository: widget.notificationInboxRepository,
           userProgressRepository: widget.userProgressRepository,
           leaderboardRepository: widget.leaderboardRepository,
+          friendsRepository: widget.friendsRepository,
           todayWorkoutDetailSnapshot: todayWorkoutDetail,
           todayPlannedRunContext: todayPlannedRunContext,
           generatedPlanProgress: generatedPlanProgress,

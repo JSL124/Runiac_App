@@ -147,6 +147,15 @@ class _AccountEditProfileScreenState extends State<AccountEditProfileScreen> {
         return;
       }
       Navigator.of(context).pop(true);
+    } on NicknameUnavailableException {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _nicknameAvailable = false;
+        _nicknameStatusMessage = 'Nickname is already taken.';
+        _error = 'Nickname is already taken.';
+      });
     } on NicknameAvailabilityCheckException catch (error) {
       if (!mounted) {
         return;
@@ -506,7 +515,6 @@ class _RetakeOnboardingScreenState extends State<_RetakeOnboardingScreen> {
           fullName: widget.personalProfile.fullName,
           nickname: widget.personalProfile.nickname,
           avatarInitials: widget.personalProfile.avatarInitials,
-          nicknameKey: widget.personalProfile.nicknameKey,
           dateOfBirthIso: widget.personalProfile.dateOfBirthIso,
           ageYears: widget.personalProfile.ageYears,
           weightKg: widget.personalProfile.weightKg,

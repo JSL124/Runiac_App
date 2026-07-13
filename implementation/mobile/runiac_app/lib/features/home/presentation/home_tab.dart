@@ -61,9 +61,9 @@ class HomeTab extends StatefulWidget {
   final UserProgressRepository userProgressRepository;
   final LeaderboardRepository leaderboardRepository;
 
-  /// Display-only friends source for the static Friends shell reached from
-  /// the Home Social menu. Defaults to demo snapshots; a future backend
-  /// repository replaces this seam without touching the presentation layer.
+  /// Auth-scoped Friends source reached from the Home Social menu. The
+  /// composition root supplies the Firebase implementation in production;
+  /// the static source remains a deterministic fallback for local previews.
   final FriendsRepository friendsRepository;
   final WeeklyWorkoutDetailSnapshot? todayWorkoutDetailSnapshot;
   final PlannedRunContext? todayPlannedRunContext;
@@ -283,6 +283,7 @@ class _HomeTabState extends State<HomeTab> {
       MaterialPageRoute<void>(
         builder: (context) {
           return FriendsScreen(
+            authRepository: widget.authRepository,
             repository: widget.friendsRepository,
             onBack: () => Navigator.of(context).pop(),
           );

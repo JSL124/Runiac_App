@@ -1,8 +1,87 @@
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/features/account/data/firestore_user_profile_persistence_repository.dart';
 import 'package:runiac_app/features/account/domain/repositories/user_profile_persistence_repository.dart';
 
 void main() {
+  test(
+    'concrete writer uses non-mutating availability and upsert callables',
+    () async {
+      final calls = <String>[];
+      final writer = FirestoreUserProfileDocumentWriter(
+        callable: (name, payload) async {
+          calls.add('$name:${payload['nickname']}');
+          return <String, Object?>{
+            'available': true,
+            'identity': <String, Object?>{
+              'uid': 'test-auth-user-1',
+              'nickname': payload['nickname'],
+              'displayName': payload['nickname'],
+              'avatarInitials': 'ER',
+            },
+          };
+        },
+      );
+
+      expect(
+        await writer.isNicknameAvailable(
+          uid: 'test-auth-user-1',
+          nickname: 'Élodie Runner',
+        ),
+        isTrue,
+      );
+      await writer.upsertNickname(
+        uid: 'test-auth-user-1',
+        nickname: 'Élodie Runner',
+      );
+
+      expect(calls, <String>[
+        'checkNicknameAvailability:Élodie Runner',
+        'upsertNickname:Élodie Runner',
+      ]);
+    },
+  );
+
+  test(
+    'concrete writer maps a nickname collision to neutral unavailable',
+    () async {
+      final writer = FirestoreUserProfileDocumentWriter(
+        callable: (name, payload) async {
+          throw FirebaseFunctionsException(
+            code: 'invalid-argument',
+            message: 'nickname unavailable',
+            details: const <String, Object?>{'reason': 'NICKNAME_UNAVAILABLE'},
+          );
+        },
+      );
+
+      expect(
+        () => writer.upsertNickname(uid: 'test-auth-user-1', nickname: 'Maya'),
+        throwsA(isA<NicknameUnavailableException>()),
+      );
+    },
+  );
+
+  test(
+    'nickname validation counts Unicode code points and keeps initials rune-safe',
+    () {
+      final thirtyEmoji = List.filled(30, '😀').join();
+      final thirtyOneEmoji = List.filled(31, '😀').join();
+      expect(PersonalProfileDraft.validateNickname(thirtyEmoji), isNull);
+      expect(PersonalProfileDraft.validateNickname(thirtyOneEmoji), isNotNull);
+      expect(PersonalProfileDraft.validateNickname('Runner\u007F'), isNotNull);
+
+      final draft = PersonalProfileDraft(
+        fullName: 'Runner',
+        nickname: '😀 Runner',
+        dateOfBirthIso: '2000-01-01',
+        weightKg: 59,
+        locationLabel: 'Orchard, Singapore',
+      );
+      expect(draft.avatarInitials, '😀R');
+    },
+  );
+
   group('UserProfileOnboardingSnapshot', () {
     test('serializes only client-owned onboarding profile fields', () {
       final snapshot = UserProfileOnboardingSnapshot(
@@ -10,7 +89,6 @@ void main() {
         fullName: 'Maya Tan',
         nickname: 'Maya',
         avatarInitials: 'M',
-        nicknameKey: 'maya',
         dateOfBirthIso: '2002-06-28',
         ageYears: 24,
         weightKg: 58.5,
@@ -38,11 +116,7 @@ void main() {
       final document = snapshot.toFirestoreDocument(updatedAt: 1);
 
       expect(document.keys, <String>[
-        'displayName',
         'fullName',
-        'nickname',
-        'avatarInitials',
-        'nicknameKey',
         'dateOfBirth',
         'ageYears',
         'weightKg',
@@ -67,7 +141,6 @@ void main() {
       final snapshot = UserProfilePersonalSnapshot(
         fullName: 'Maya Tan',
         nickname: 'May',
-        nicknameKey: 'may',
         dateOfBirthIso: '2000-01-01',
         ageYears: 26,
         weightKg: 59,
@@ -77,11 +150,7 @@ void main() {
       final document = snapshot.toFirestoreDocument(updatedAt: 2);
 
       expect(document, <String, Object>{
-        'displayName': 'May',
         'fullName': 'Maya Tan',
-        'nickname': 'May',
-        'avatarInitials': 'M',
-        'nicknameKey': 'may',
         'dateOfBirth': '2000-01-01',
         'ageYears': 26,
         'weightKg': 59,
@@ -94,6 +163,24 @@ void main() {
   });
 
   group('FirestoreUserProfilePersistenceRepository', () {
+    test(
+      'availability delegates the original nickname to the callable seam',
+      () async {
+        final writer = _RecordingUserProfileDocumentWriter();
+        final repository = FirestoreUserProfilePersistenceRepository(
+          writer: writer,
+        );
+
+        final available = await repository.isNicknameAvailable(
+          uid: 'test-auth-user-1',
+          nickname: 'Élodie Runner',
+        );
+
+        expect(available, isTrue);
+        expect(writer.checkedNickname, 'Élodie Runner');
+      },
+    );
+
     test(
       'merges the onboarding profile under the authenticated user id',
       () async {
@@ -110,7 +197,6 @@ void main() {
             fullName: 'Maya Tan',
             nickname: 'Maya',
             avatarInitials: 'M',
-            nicknameKey: 'maya',
             dateOfBirthIso: '2002-06-28',
             ageYears: 24,
             weightKg: 58.5,
@@ -137,16 +223,17 @@ void main() {
         );
 
         expect(writer.uid, 'test-auth-user-1');
+        expect(writer.calls, <String>['mergeUserProfile', 'upsertNickname']);
         expect(writer.data?['updatedAt'], 42);
-        expect(writer.data?['displayName'], 'Maya');
         expect(writer.data?['fullName'], 'Maya Tan');
-        expect(writer.data?['nickname'], 'Maya');
-        expect(writer.data?['avatarInitials'], 'M');
-        expect(writer.data?['nicknameKey'], 'maya');
+        expect(writer.nickname, 'Maya');
         expect(writer.data?['dateOfBirth'], '2002-06-28');
         expect(writer.data?['ageYears'], 24);
         expect(writer.data?['weightKg'], 58.5);
         expect(writer.data?['locationLabel'], 'Queenstown, Singapore');
+        expect(writer.data, isNot(containsPair('nickname', anything)));
+        expect(writer.data, isNot(containsPair('displayName', anything)));
+        expect(writer.data, isNot(containsPair('nicknameKey', anything)));
         expect(writer.data?['fitnessLevel'], 'new');
         expect(
           writer.data,
@@ -170,7 +257,6 @@ void main() {
           profile: UserProfilePersonalSnapshot(
             fullName: 'Maya Tan',
             nickname: 'May',
-            nicknameKey: 'may',
             dateOfBirthIso: '2000-01-01',
             ageYears: 26,
             weightKg: 59,
@@ -179,9 +265,9 @@ void main() {
         );
 
         expect(writer.uid, 'test-auth-user-1');
+        expect(writer.calls, <String>['mergeUserProfile', 'upsertNickname']);
         expect(writer.data?['updatedAt'], 43);
-        expect(writer.data?['displayName'], 'May');
-        expect(writer.data?['nicknameKey'], 'may');
+        expect(writer.nickname, 'May');
         expect(writer.data?['dateOfBirth'], '2000-01-01');
         expect(writer.data?['locationLabel'], 'Tiong Bahru, Singapore');
         expect(writer.data, isNot(containsPair('email', anything)));
@@ -190,7 +276,7 @@ void main() {
       },
     );
 
-    test('normalizes nickname keys consistently', () {
+    test('does not generate a legacy ASCII nickname key', () {
       final draft = PersonalProfileDraft.tryCreate(
         fullName: 'Maya Tan',
         nickname: '  May Runner  ',
@@ -200,7 +286,6 @@ void main() {
       );
 
       expect(draft, isNotNull);
-      expect(draft?.nicknameKey, 'may-runner');
       expect(draft?.ageYears, 26);
     });
   });
@@ -210,15 +295,17 @@ class _RecordingUserProfileDocumentWriter implements UserProfileDocumentWriter {
   String? uid;
   Map<String, Object>? data;
   String? nickname;
-  String? nicknameKey;
+  String? checkedNickname;
+  final calls = <String>[];
 
   @override
   Future<bool> isNicknameAvailable({
     required String uid,
-    required String nicknameKey,
+    required String nickname,
   }) async {
     this.uid = uid;
-    this.nicknameKey = nicknameKey;
+    calls.add('isNicknameAvailable');
+    checkedNickname = nickname;
     return true;
   }
 
@@ -226,12 +313,19 @@ class _RecordingUserProfileDocumentWriter implements UserProfileDocumentWriter {
   Future<void> mergeUserProfile({
     required String uid,
     required Map<String, Object> data,
-    required String nickname,
-    required String nicknameKey,
   }) async {
     this.uid = uid;
+    calls.add('mergeUserProfile');
     this.data = Map<String, Object>.from(data);
+  }
+
+  @override
+  Future<void> upsertNickname({
+    required String uid,
+    required String nickname,
+  }) async {
+    this.uid = uid;
     this.nickname = nickname;
-    this.nicknameKey = nicknameKey;
+    calls.add('upsertNickname');
   }
 }

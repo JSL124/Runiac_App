@@ -327,6 +327,8 @@ void main() {
         'lib/features/account/data/'
             'firestore_user_profile_persistence_repository.dart',
         'lib/features/account/data/firestore_user_profile_repository.dart',
+        'lib/features/friends/data/firebase_friends_repository.dart',
+        'lib/features/friends/data/friends_owner_list_reader.dart',
         'lib/features/plan/data/'
             'firestore_generated_plan_persistence_repository.dart',
         'lib/features/plan/data/firestore_adaptive_plan_estimate_repository.dart',
@@ -381,8 +383,8 @@ void main() {
         ).readAsStringSync();
 
         expect(persistenceSource, contains("collection('userProfiles')"));
-        expect(persistenceSource, contains("collection('nicknameClaims')"));
-        expect(persistenceSource, contains('runTransaction'));
+        expect(persistenceSource, contains("checkNicknameAvailability"));
+        expect(persistenceSource, contains("upsertNickname"));
         expect(persistenceSource, contains('.set('));
         expect(persistenceSource, isNot(contains("collection('users')")));
         expect(readSource, contains("collection('userProfiles')"));
