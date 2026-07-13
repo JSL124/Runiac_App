@@ -48,6 +48,28 @@ is_feed_friends_emulator_backend_capsule_active() {
   grep -Eq '^- Current active capsule in this isolated worktree: `implementation/roadmap/capsules/feed-friends-emulator-backend\.md`\.' implementation/roadmap/CURRENT.md
 }
 
+is_challenge_distance_system_capsule_active() {
+  grep -Eq '^- Newly routed Challenge distance system on 2026-07-13 Asia/Singapore: `implementation/roadmap/capsules/challenge-distance-system\.md`' implementation/roadmap/CURRENT.md
+}
+
+is_challenge_distance_system_path() {
+  case "$1" in
+    implementation/roadmap/capsules/challenge-distance-system.md|\
+    implementation/roadmap/snapshots/latest.md|\
+    functions/src/challenge/*|\
+    functions/test/challenge*.ts|\
+    functions/src/notifications/*|\
+    functions/src/index.ts|\
+    functions/package.json|\
+    tests/firebase-rules/challenge.firestore.rules.test.mjs)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 is_feed_friends_emulator_backend_rules_test_path() {
   local path="$1"
   local relative_path
@@ -162,6 +184,10 @@ is_run_duration_fields_functions_path() {
 }
 
 is_allowed_path() {
+  if is_challenge_distance_system_path "$1" && is_challenge_distance_system_capsule_active; then
+    return 0
+  fi
+
   if is_feed_friends_emulator_backend_path "$1"; then
     if is_feed_friends_emulator_backend_capsule_active; then
       return 0
@@ -263,6 +289,10 @@ is_unrelated_mobile_native_artifact() {
 }
 
 is_forbidden_path() {
+  if is_challenge_distance_system_path "$1" && is_challenge_distance_system_capsule_active; then
+    return 1
+  fi
+
   if is_feed_friends_emulator_backend_path "$1"; then
     if is_feed_friends_emulator_backend_capsule_active; then
       return 1

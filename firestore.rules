@@ -657,6 +657,12 @@ service cloud.firestore {
         || request.resource.data[field] is timestamp;
     }
 
+    function isSnapshottedChallengeMember(challengeId) {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/challengeInstances/$(challengeId))
+        && request.auth.uid in get(/databases/$(database)/documents/challengeInstances/$(challengeId)).data.rosterUids;
+    }
+
     match /users/{uid} {
       allow read: if isOwner(uid);
       allow create, update, delete: if false;
@@ -678,6 +684,22 @@ service cloud.firestore {
       }
 
       match /hiddenFeedPosts/{postId} {
+        allow get: if isOwner(uid);
+        allow list: if isOwner(uid)
+          && request.query.limit != null
+          && request.query.limit <= 30;
+        allow create, update, delete: if false;
+      }
+
+      match /challengeHistory/{challengeId} {
+        allow get: if isOwner(uid);
+        allow list: if isOwner(uid)
+          && request.query.limit != null
+          && request.query.limit <= 30;
+        allow create, update, delete: if false;
+      }
+
+      match /challengeBadges/{tierId} {
         allow get: if isOwner(uid);
         allow list: if isOwner(uid)
           && request.query.limit != null
@@ -981,6 +1003,46 @@ service cloud.firestore {
         ])
         && doesNotChangeBackendOwnedKeys();
       allow delete: if false;
+    }
+
+    match /challengeInstances/{challengeId} {
+      allow get: if isSignedIn()
+        && request.auth.uid in resource.data.rosterUids;
+      allow list: if isSignedIn()
+        && request.query.limit != null
+        && request.query.limit <= 20
+        && request.auth.uid in resource.data.rosterUids;
+      allow create, update, delete: if false;
+
+      match /participants/{participantUid} {
+        allow get: if isSnapshottedChallengeMember(challengeId);
+        allow list: if isSnapshottedChallengeMember(challengeId)
+          && request.query.limit != null
+          && request.query.limit <= 20;
+        allow create, update, delete: if false;
+      }
+    }
+
+    match /challengeInvitations/{inviteId} {
+      allow get: if isSignedIn()
+        && (resource.data.ownerUid == request.auth.uid
+          || resource.data.recipientUid == request.auth.uid);
+      allow list: if isSignedIn()
+        && request.query.limit != null
+        && request.query.limit <= 20
+        && (resource.data.ownerUid == request.auth.uid
+          || resource.data.recipientUid == request.auth.uid);
+      allow create, update, delete: if false;
+    }
+
+    match /challengeSlots/{uid} {
+      allow get: if isOwner(uid);
+      allow list: if false;
+      allow create, update, delete: if false;
+    }
+
+    match /challengeRewardGrants/{grantId} {
+      allow read, write: if false;
     }
 
     match /{document=**} {
