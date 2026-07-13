@@ -177,8 +177,9 @@ class ViewSummaryScreen extends StatelessWidget {
   ) async {
     final source = _effectiveFeedPublishSource;
     final activityId = source.activityId;
-    if (activityId == null || activityId.isEmpty) return null;
     final cacheIdentity = source.cacheIdentity;
+    final thumbnailIdentity =
+        cacheIdentity ?? activityId ?? 'local-summary-preview';
     final devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
     final request = ActivityRouteThumbnailRequest(
       route: summary.route,
@@ -187,9 +188,7 @@ class ViewSummaryScreen extends StatelessWidget {
       allowExternalStaticMap: true,
       isDemoRoute: false,
       isCurrentSessionRoute: source.allowsCurrentSessionRouteCapture,
-      activityId: cacheIdentity == null || cacheIdentity.isEmpty
-          ? activityId
-          : cacheIdentity,
+      activityId: thumbnailIdentity,
     );
     final injectedResolver = historyArtifactResolver;
     if (injectedResolver != null) {
@@ -223,7 +222,7 @@ class ViewSummaryScreen extends StatelessWidget {
           allowExternalStaticMap: true,
           isDemoRoute: false,
           isCurrentSessionRoute: true,
-          activityId: activityId,
+          activityId: thumbnailIdentity,
         ),
       );
     }

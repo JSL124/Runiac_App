@@ -1254,6 +1254,56 @@ void main() {
   );
 
   testWidgets(
+    'Share Route keeps the route preview for a local run while posting stays disabled',
+    (WidgetTester tester) async {
+      _useTallSummarySurface(tester);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ViewSummaryScreen(
+            summary: _summaryWithRoute(),
+            feedPublishSource: const RunFeedPublishSource.disabled(
+              FeedPublishDisabledReason.localOnly,
+            ),
+          ),
+        ),
+      );
+
+      await tester.ensureVisible(
+        find.widgetWithText(OutlinedButton, 'Share Route'),
+      );
+      await tester.tap(find.widgetWithText(OutlinedButton, 'Share Route'));
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 100)),
+      );
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('Share Your Achievement'), findsOneWidget);
+      expect(
+        find.text(
+          'This run is still local. Save it to your account before posting to Feed.',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byWidgetPredicate(
+          (widget) => widget is Image && widget.image is MemoryImage,
+        ),
+        findsOneWidget,
+      );
+      expect(
+        tester
+            .widget<FilledButton>(
+              find.widgetWithText(FilledButton, 'Post to Feed'),
+            )
+            .onPressed,
+        isNull,
+      );
+    },
+  );
+
+  testWidgets(
     'Activity History Share Route uses canonical backend activity id',
     (WidgetTester tester) async {
       _useTallSummarySurface(tester);
