@@ -404,7 +404,41 @@ describe("challenge read models", () => {
     assert.equal(active.challenge?.participants.length, 2);
     // Participant-safe: only whitelisted fields present.
     const keys = Object.keys(active.challenge!.participants[0]!).sort();
-    assert.deepEqual(keys, ["avatarInitialsSnapshot", "creditedMeters", "displayNameSnapshot", "reward", "role", "status", "uid"].sort());
+    assert.deepEqual(
+      keys,
+      [
+        "avatarInitialsSnapshot",
+        "creditedMeters",
+        "displayNameSnapshot",
+        "levelLabelSnapshot",
+        "reward",
+        "role",
+        "status",
+        "uid",
+      ].sort(),
+    );
+  });
+
+  it("getActiveChallenge resolves each participant's current level label live", async () => {
+    const { challengeId } = await createChallengeLobbyForCallable(req(OWNER, { tierId: "42K" }), firestore);
+    await inviteChallengeFriendsForCallable(req(OWNER, { challengeId, uids: [A] }), firestore);
+    await respondToChallengeInvitationForCallable(req(A, { inviteId: inviteId(challengeId, A), response: "accept" }), firestore);
+
+    // Profiles gain a level AFTER the roster identity was snapshotted at join.
+    await firestore.doc(`userProfiles/${OWNER}`).set({ levelLabel: "Lv.9" }, { merge: true });
+    await firestore.doc(`userProfiles/${A}`).set({ level: 2 }, { merge: true });
+
+    const active = await getActiveChallengeForCallable(req(OWNER, {}), firestore);
+    const byUid = new Map(active.challenge!.participants.map((p) => [p.uid, p.levelLabelSnapshot]));
+    // Explicit levelLabel is read back verbatim; a bare numeric level formats as Lv.N.
+    assert.equal(byUid.get(OWNER), "Lv.9");
+    assert.equal(byUid.get(A), "Lv.2");
+  });
+
+  it("getActiveChallenge returns an empty level label when the profile has no level", async () => {
+    const { challengeId } = await createChallengeLobbyForCallable(req(OWNER, { tierId: "42K" }), firestore);
+    const active = await getActiveChallengeForCallable(req(OWNER, {}), firestore);
+    assert.equal(active.challenge?.participants[0]?.levelLabelSnapshot, "");
   });
 
   it("getActiveChallenge returns null when the caller holds no slot", async () => {
