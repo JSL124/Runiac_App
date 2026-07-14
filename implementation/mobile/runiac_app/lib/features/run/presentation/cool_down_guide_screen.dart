@@ -7,7 +7,9 @@ import 'package:runiac_app/core/theme/runiac_colors.dart';
 
 import '../domain/models/complete_run_result.dart';
 import '../domain/models/local_run_completion_payload.dart';
+import '../domain/repositories/run_repository.dart';
 import 'models/stretch_exercise.dart';
+import 'run_repository_scope.dart';
 import 'view_summary_screen.dart';
 
 part 'cool_down_models.dart';
@@ -43,6 +45,7 @@ class CoolDownGuideScreen extends StatefulWidget {
     this.initialCompletedPhases = const <CoolDownPhase>{},
     this.completionResult,
     this.completionPayload,
+    this.repository,
   });
 
   final bool timerEnabled;
@@ -51,6 +54,7 @@ class CoolDownGuideScreen extends StatefulWidget {
   final Set<CoolDownPhase> initialCompletedPhases;
   final CompleteRunResult? completionResult;
   final LocalRunCompletionPayload? completionPayload;
+  final RunRepository? repository;
 
   @override
   State<CoolDownGuideScreen> createState() => _CoolDownGuideScreenState();
@@ -64,6 +68,8 @@ class _CoolDownGuideScreenState extends State<CoolDownGuideScreen> {
   late _CoolDownStatus _status;
   late Set<CoolDownPhase> _completedPhases;
   int _stretchStepIndex = 0;
+  bool _awaitingStretchAdvance = false;
+  bool _isFinishing = false;
   Timer? _timer;
 
   @override
@@ -99,6 +105,7 @@ class _CoolDownGuideScreenState extends State<CoolDownGuideScreen> {
 
   void _resetFromWidget() {
     _stretchStepIndex = 0;
+    _awaitingStretchAdvance = false;
     _phase = widget.initialPhase;
     if (_phase == CoolDownPhase.stretch && widget.initialSecondsLeft == 0) {
       _stretchStepIndex = stretchSteps.length - 1;
@@ -118,7 +125,9 @@ class _CoolDownGuideScreenState extends State<CoolDownGuideScreen> {
 
   void _scheduleTick() {
     _timer?.cancel();
-    if (!widget.timerEnabled || _status != _CoolDownStatus.running) {
+    if (!widget.timerEnabled ||
+        _status != _CoolDownStatus.running ||
+        _awaitingStretchAdvance) {
       return;
     }
 
@@ -130,19 +139,66 @@ class _CoolDownGuideScreenState extends State<CoolDownGuideScreen> {
       setState(() {
         _secondsLeft -= 1;
         if (_secondsLeft <= 0) {
+          _secondsLeft = 0;
           if (_phase == CoolDownPhase.stretch &&
               _stretchStepIndex < stretchSteps.length - 1) {
-            _stretchStepIndex += 1;
-            _secondsLeft = stretchSteps[_stretchStepIndex].seconds;
+            _awaitingStretchAdvance = true;
           } else {
-            _secondsLeft = 0;
             _status = _CoolDownStatus.complete;
             _completedPhases.add(_phase);
           }
         }
       });
-      _scheduleTick();
+
+      if (_awaitingStretchAdvance) {
+        _promptNextStretch();
+      } else {
+        _scheduleTick();
+      }
     });
+  }
+
+  Future<void> _promptNextStretch() async {
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: _pureWhite,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'Time’s up!',
+          style: TextStyle(color: _navy, fontWeight: FontWeight.w800),
+        ),
+        content: const Text(
+          'Ready for the next stretch?',
+          style: TextStyle(color: _navy75),
+        ),
+        actions: [
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: _navy,
+              foregroundColor: _pureWhite,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Continue'),
+          ),
+        ],
+      ),
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _awaitingStretchAdvance = false;
+      _stretchStepIndex += 1;
+      _secondsLeft = stretchSteps[_stretchStepIndex].seconds;
+    });
+    _scheduleTick();
   }
 
   void _togglePause() {
@@ -188,6 +244,11 @@ class _CoolDownGuideScreenState extends State<CoolDownGuideScreen> {
     }
 
     if (_status == _CoolDownStatus.complete) {
+      if (_phase == CoolDownPhase.stretch && widget.completionResult != null) {
+        unawaited(_finishCoolDown());
+        return;
+      }
+
       Navigator.of(context).pushReplacement(
         MaterialPageRoute<void>(
           builder: (context) => ViewSummaryScreen(
@@ -197,6 +258,59 @@ class _CoolDownGuideScreenState extends State<CoolDownGuideScreen> {
         ),
       );
     }
+  }
+
+  /// Requests the server-computed cool-down XP bonus and folds it into the
+  /// run's completion result before navigating to the summary screen.
+  ///
+  /// This never calculates XP locally: it only relays the activity and
+  /// session identifiers to [RunRepository.completeCoolDown] and merges the
+  /// backend's own returned progression numbers via
+  /// [CompleteRunResult.mergeCoolDownBonus]. Any failure (including the
+  /// static/demo repository's "unimplemented" response) falls back silently
+  /// to the original completion result — no snackbar, no retry.
+  Future<void> _finishCoolDown() async {
+    if (_isFinishing) {
+      return;
+    }
+    setState(() {
+      _isFinishing = true;
+    });
+
+    final completionResult = widget.completionResult!;
+    final sessionId =
+        completionResult.clientRunSessionId ??
+        widget.completionPayload?.clientRunSessionId;
+
+    var result = completionResult;
+    if (sessionId != null) {
+      try {
+        final repository =
+            widget.repository ?? RunRepositoryScope.of(context);
+        final coolDown = await repository.completeCoolDown(
+          activityId: completionResult.activityId,
+          clientRunSessionId: sessionId,
+        );
+        result = completionResult.mergeCoolDownBonus(
+          coolDown.progressionDisplay,
+        );
+      } catch (_) {
+        result = completionResult;
+      }
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute<void>(
+        builder: (context) => ViewSummaryScreen(
+          completionResult: result,
+          completionPayload: widget.completionPayload,
+        ),
+      ),
+    );
   }
 
   _PhaseCopy get _copy {
@@ -302,7 +416,7 @@ class _CoolDownGuideScreenState extends State<CoolDownGuideScreen> {
                         _CoolDownPrimaryCta(
                           label: _copy.completeCta,
                           tone: _CtaTone.orange,
-                          onPressed: _handlePrimaryAction,
+                          onPressed: _isFinishing ? null : _handlePrimaryAction,
                         )
                       else
                         Row(

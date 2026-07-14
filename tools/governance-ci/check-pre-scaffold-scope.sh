@@ -221,6 +221,30 @@ is_challenge_distance_system_functions_path() {
   esac
 }
 
+is_cool_down_stretch_xp_bonus_capsule_active() {
+  grep -Eq '^- Newly routed cool-down stretch completion XP bonus on 2026-07-14 Asia/Singapore: `implementation/roadmap/capsules/cool-down-stretch-completion-xp-bonus\.md`' implementation/roadmap/CURRENT.md
+}
+
+is_cool_down_stretch_xp_bonus_functions_path() {
+  case "$1" in
+    functions/src/run/completeCoolDown.ts|\
+    functions/src/run/validateCoolDownPayload.ts|\
+    functions/src/run/runCompletionTypes.ts|\
+    functions/src/run/runCompletionArtifacts.ts|\
+    functions/src/progression/progressionCalculator.ts|\
+    functions/src/progression/progressionAudit.ts|\
+    functions/src/progression/progressionDisplayReader.ts|\
+    functions/src/index.ts|\
+    functions/test/completeCoolDown.test.ts|\
+    functions/test/progressionCalculator.test.ts)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 is_feed_friends_emulator_backend_rules_test_path() {
   local path="$1"
   local relative_path
@@ -435,6 +459,9 @@ is_forbidden_config_or_secret() {
         return 1
       fi
       if is_challenge_distance_system_functions_path "$1" && is_challenge_distance_system_capsule_active; then
+        return 1
+      fi
+      if is_cool_down_stretch_xp_bonus_functions_path "$1" && is_cool_down_stretch_xp_bonus_capsule_active; then
         return 1
       fi
       if is_adaptive_character_guidance_functions_path "$1" && is_adaptive_character_guidance_capsule_active; then

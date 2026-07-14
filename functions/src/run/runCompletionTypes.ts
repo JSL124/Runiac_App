@@ -91,7 +91,9 @@ export type ProgressionDisplay = {
     | "low_data_no_xp"
     | "daily_cap_reached"
     | "premium_no_progression"
-    | "progression_formula_deferred";
+    | "progression_formula_deferred"
+    | "cool_down_stretch_bonus_awarded"
+    | "cool_down_daily_cap_reached";
   readonly totalXp?: number;
   readonly level?: number;
   readonly divisionKey?: string;
@@ -137,4 +139,18 @@ export type CompleteRunResult = CompleteRunIds & {
   readonly progressionDisplay: ProgressionDisplay;
   readonly planCompletion: PlanCompletionResult;
   readonly message: string;
+};
+
+export type RawCoolDownCompletionPayload = {
+  readonly activityId: string;
+  readonly clientRunSessionId: string;
+  readonly completedStretchCount: number;
+  readonly completedAt: string;
+};
+
+export type CompleteCoolDownResult = {
+  readonly activityId: string;
+  readonly coolDownProgressionEventId: string;
+  readonly alreadyAwarded: boolean;
+  readonly progressionDisplay: ProgressionDisplay;
 };

@@ -130,6 +130,7 @@ class _RunActiveScreenState extends State<RunActiveScreen> {
         builder: (context) => CoolDownScreen(
           completionResult: result,
           completionPayload: payload,
+          repository: _repository,
         ),
       ),
     );

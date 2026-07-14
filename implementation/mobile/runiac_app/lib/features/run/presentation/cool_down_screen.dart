@@ -5,6 +5,7 @@ import 'package:runiac_app/core/theme/runiac_colors.dart';
 
 import '../domain/models/complete_run_result.dart';
 import '../domain/models/local_run_completion_payload.dart';
+import '../domain/repositories/run_repository.dart';
 import 'cool_down_guide_screen.dart';
 import 'models/stretch_exercise.dart';
 import 'view_summary_screen.dart';
@@ -24,10 +25,12 @@ class CoolDownScreen extends StatelessWidget {
     super.key,
     this.completionResult,
     this.completionPayload,
+    this.repository,
   });
 
   final CompleteRunResult? completionResult;
   final LocalRunCompletionPayload? completionPayload;
+  final RunRepository? repository;
 
   @override
   Widget build(BuildContext context) {
@@ -79,6 +82,7 @@ class CoolDownScreen extends StatelessWidget {
                                     builder: (context) => CoolDownGuideScreen(
                                       completionResult: completionResult,
                                       completionPayload: completionPayload,
+                                      repository: repository,
                                     ),
                                   ),
                                 );

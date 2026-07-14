@@ -434,6 +434,7 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
         builder: (context) => CoolDownScreen(
           completionResult: result,
           completionPayload: payload,
+          repository: _repository,
         ),
       ),
     );

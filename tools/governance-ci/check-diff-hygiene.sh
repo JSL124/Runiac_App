@@ -97,6 +97,34 @@ is_challenge_distance_system_path() {
   esac
 }
 
+is_cool_down_stretch_xp_bonus_capsule_active() {
+  grep -Eq '^- Newly routed cool-down stretch completion XP bonus on 2026-07-14 Asia/Singapore: `implementation/roadmap/capsules/cool-down-stretch-completion-xp-bonus\.md`' implementation/roadmap/CURRENT.md
+}
+
+is_cool_down_stretch_xp_bonus_path() {
+  case "$1" in
+    implementation/roadmap/capsules/cool-down-stretch-completion-xp-bonus.md|\
+    functions/src/run/completeCoolDown.ts|\
+    functions/src/run/validateCoolDownPayload.ts|\
+    functions/src/run/runCompletionTypes.ts|\
+    functions/src/run/runCompletionArtifacts.ts|\
+    functions/src/progression/progressionCalculator.ts|\
+    functions/src/progression/progressionAudit.ts|\
+    functions/src/progression/progressionDisplayReader.ts|\
+    functions/src/index.ts|\
+    functions/package.json|\
+    functions/test/completeCoolDown.test.ts|\
+    functions/test/progressionCalculator.test.ts|\
+    tests/firebase-rules/firestore.rules.test.mjs|\
+    firestore.rules)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 is_feed_friends_emulator_backend_rules_test_path() {
   local path="$1"
   local relative_path
@@ -219,6 +247,10 @@ is_allowed_path() {
     return 0
   fi
 
+  if is_cool_down_stretch_xp_bonus_path "$1" && is_cool_down_stretch_xp_bonus_capsule_active; then
+    return 0
+  fi
+
   if is_feed_friends_emulator_backend_path "$1"; then
     if is_feed_friends_emulator_backend_capsule_active; then
       return 0
@@ -325,6 +357,10 @@ is_forbidden_path() {
   fi
 
   if is_challenge_distance_system_path "$1" && is_challenge_distance_system_capsule_active; then
+    return 1
+  fi
+
+  if is_cool_down_stretch_xp_bonus_path "$1" && is_cool_down_stretch_xp_bonus_capsule_active; then
     return 1
   fi
 

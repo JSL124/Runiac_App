@@ -137,8 +137,9 @@ void main() {
             'Future<CompleteRunResult> loadLatestCompletionResult();',
             'Future<RunActivityReadModel> loadLatestRunActivity();',
             'Future<CompleteRunResult> completeRun(LocalRunCompletionPayload payload);',
+            'Future<CompleteRunResult> completeCoolDown({ required String activityId, required String clientRunSessionId, });',
           ],
-          allowedCommandMethods: <String>['completeRun'],
+          allowedCommandMethods: <String>['completeRun', 'completeCoolDown'],
         ),
       ];
 

@@ -1,6 +1,11 @@
 import type { PersistPlanProgressResult } from "../plan/planProgress.js";
 import type { StreakTransition } from "./streakCalculator.js";
-import type { CompleteRunIds, ProgressionDisplay, RawRunCompletionPayload } from "../run/runCompletionTypes.js";
+import type {
+  CompleteRunIds,
+  ProgressionDisplay,
+  RawCoolDownCompletionPayload,
+  RawRunCompletionPayload,
+} from "../run/runCompletionTypes.js";
 import {
   applyDailyXpCap,
   calculateActivityXp,
@@ -173,6 +178,60 @@ export function progressionEventData(input: {
     planEnrollmentId: input.planProgressResult.planEnrollmentId,
     plannedWorkoutId: input.planProgressResult.scheduledWorkoutId,
     plannedWorkoutMatchedBy: input.planProgressResult.matchedBy,
+  };
+}
+
+export function coolDownProgressionEventData(input: {
+  readonly uid: string;
+  readonly activityId: string;
+  readonly payload: RawCoolDownCompletionPayload;
+  readonly baseEarnedXp: number;
+  readonly bonusBeforeDailyCap: number;
+  readonly dailyCapDate: string;
+  readonly monthlyPeriod: string;
+  readonly dailyXpBefore: number;
+  readonly dailyXpAfter: number;
+  readonly dailyCapApplied: boolean;
+  readonly monthlyXpBefore: number;
+  readonly monthlyXpAfter: number;
+  readonly previousTotalXp: number;
+  readonly nextTotalXp: number;
+  readonly previousProgression: LevelProgression;
+  readonly nextProgression: LevelProgression;
+  readonly countsTowardLeaderboard: boolean;
+  readonly reason: ProgressionDisplay["reason"];
+  readonly status: ProgressionDisplay["status"];
+  readonly xpDelta: number;
+}): FirebaseFirestore.DocumentData {
+  return {
+    ownerUid: input.uid,
+    activityId: input.activityId,
+    eventType: "cool_down_stretch_bonus",
+    status: input.status,
+    createdAt: input.payload.completedAt,
+    xpDelta: input.xpDelta,
+    rawXpBeforeDailyCap: input.bonusBeforeDailyCap,
+    baseEarnedXp: input.baseEarnedXp,
+    completedStretchCount: input.payload.completedStretchCount,
+    dailyCapDate: input.dailyCapDate,
+    monthlyPeriod: input.monthlyPeriod,
+    dailyXpBefore: input.dailyXpBefore,
+    dailyXpAfter: input.dailyXpAfter,
+    dailyCapApplied: input.dailyCapApplied,
+    monthlyXpBefore: input.monthlyXpBefore,
+    monthlyXpAfter: input.monthlyXpAfter,
+    previousTotalXp: input.previousTotalXp,
+    nextTotalXp: input.nextTotalXp,
+    previousLevel: input.previousProgression.level,
+    nextLevel: input.nextProgression.level,
+    previousDivisionKey: input.previousProgression.divisionKey,
+    nextDivisionKey: input.nextProgression.divisionKey,
+    previousLevelProgressPercent: input.previousProgression.levelProgressPercent,
+    nextLevelProgressPercent: input.nextProgression.levelProgressPercent,
+    nextLevelXpTarget: input.nextProgression.nextLevelXp,
+    nextXpToNextLevel: input.nextProgression.xpToNextLevel,
+    countsTowardLeaderboard: input.countsTowardLeaderboard,
+    reason: input.reason,
   };
 }
 

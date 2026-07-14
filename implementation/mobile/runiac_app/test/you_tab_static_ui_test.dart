@@ -308,6 +308,14 @@ class _RemoteAcceptingRunRepository implements RunRepository {
   }
 
   @override
+  Future<CompleteRunResult> completeCoolDown({
+    required String activityId,
+    required String clientRunSessionId,
+  }) {
+    throw UnimplementedError();
+  }
+
+  @override
   Future<CompleteRunResult> loadLatestCompletionResult() {
     throw UnimplementedError();
   }
@@ -335,6 +343,14 @@ class _LocalResultRunRepository implements RunRepository {
       title: 'Local Result',
       distanceKm: '3.00',
     ).copyWith(clientRunSessionId: payload.clientRunSessionId);
+  }
+
+  @override
+  Future<CompleteRunResult> completeCoolDown({
+    required String activityId,
+    required String clientRunSessionId,
+  }) {
+    throw UnimplementedError();
   }
 
   @override

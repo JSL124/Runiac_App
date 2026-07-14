@@ -1,9 +1,11 @@
 import '../domain/repositories/run_repository.dart';
 import 'firebase_run_repository.dart';
+import 'flutterfire_complete_cool_down_callable.dart';
 import 'flutterfire_complete_run_callable.dart';
 import 'static_run_repository.dart';
 
 typedef CompleteRunCallableFactory = CompleteRunCallable Function();
+typedef CompleteCoolDownCallableFactory = CompleteCoolDownCallable Function();
 
 class RuniacFirebaseRuntimeConfig {
   const RuniacFirebaseRuntimeConfig({
@@ -61,12 +63,17 @@ class RunRepositoryFactory {
     RuniacFirebaseRuntimeConfig? config,
     CompleteRunCallableFactory completeRunCallableFactory =
         _defaultCompleteRunCallableFactory,
+    CompleteCoolDownCallableFactory coolDownCallableFactory =
+        _defaultCompleteCoolDownCallableFactory,
   }) {
     final runtimeConfig =
         config ?? RuniacFirebaseRuntimeConfig.fromEnvironment();
     if (runtimeConfig.useFirebaseEmulator ||
         runtimeConfig.useProductionFirebase) {
-      return FirebaseRunRepository(callable: completeRunCallableFactory());
+      return FirebaseRunRepository(
+        callable: completeRunCallableFactory(),
+        coolDownCallable: coolDownCallableFactory(),
+      );
     }
 
     return const StaticRunRepository();
@@ -74,5 +81,9 @@ class RunRepositoryFactory {
 
   static CompleteRunCallable _defaultCompleteRunCallableFactory() {
     return FlutterFireCompleteRunCallable();
+  }
+
+  static CompleteCoolDownCallable _defaultCompleteCoolDownCallableFactory() {
+    return FlutterFireCompleteCoolDownCallable();
   }
 }

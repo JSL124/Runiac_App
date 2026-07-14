@@ -16,6 +16,7 @@ import 'package:runiac_app/features/run/domain/models/activity_feedback_agent.da
 import 'package:runiac_app/features/run/domain/models/cadence_graph_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/coaching_summary_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/complete_run_result.dart';
+import 'package:runiac_app/features/run/domain/models/cool_down_contract.dart';
 import 'package:runiac_app/features/run/domain/models/local_run_completion_payload.dart';
 import 'package:runiac_app/features/run/domain/models/pace_analysis_series.dart';
 import 'package:runiac_app/features/run/domain/models/pace_graph_snapshot.dart';
@@ -28,6 +29,7 @@ import 'package:runiac_app/features/run/domain/models/run_feed_publish_source.da
 import 'package:runiac_app/features/run/presentation/advanced_analysis_screen.dart';
 import 'package:runiac_app/features/run/presentation/cool_down_guide_screen.dart';
 import 'package:runiac_app/features/run/presentation/cool_down_screen.dart';
+import 'package:runiac_app/features/run/presentation/models/stretch_exercise.dart';
 import 'package:runiac_app/features/run/domain/models/run_summary_read_model.dart';
 import 'package:runiac_app/features/run/domain/models/run_summary_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/workout_metric_contract.dart';
@@ -218,6 +220,14 @@ class _ResultRunRepository implements RunRepository {
   }
 
   @override
+  Future<CompleteRunResult> completeCoolDown({
+    required String activityId,
+    required String clientRunSessionId,
+  }) {
+    throw UnimplementedError();
+  }
+
+  @override
   Future<CompleteRunResult> loadLatestCompletionResult() async {
     return result;
   }
@@ -277,6 +287,51 @@ class _DelayedRunRepository extends _ResultRunRepository {
     lastPayload = payload;
     payloads.add(payload);
     return completer.future;
+  }
+}
+
+/// Records the arguments the cool-down guide screen forwards to
+/// [RunRepository.completeCoolDown] and returns a caller-supplied server
+/// bonus response, so tests can assert the request shape and the merged
+/// result without the guide screen ever calculating XP itself.
+class _RecordingCoolDownRunRepository extends _ResultRunRepository {
+  _RecordingCoolDownRunRepository(
+    super.result, {
+    required this.coolDownResult,
+  });
+
+  final CompleteRunResult coolDownResult;
+  int completeCoolDownCalls = 0;
+  String? lastCoolDownActivityId;
+  String? lastCoolDownClientRunSessionId;
+
+  @override
+  Future<CompleteRunResult> completeCoolDown({
+    required String activityId,
+    required String clientRunSessionId,
+  }) async {
+    completeCoolDownCalls += 1;
+    lastCoolDownActivityId = activityId;
+    lastCoolDownClientRunSessionId = clientRunSessionId;
+    return coolDownResult;
+  }
+}
+
+/// Simulates the server's cool-down bonus request failing, so tests can
+/// confirm the guide screen falls back silently to the original completion
+/// result rather than surfacing an error.
+class _FailingCoolDownRunRepository extends _ResultRunRepository {
+  _FailingCoolDownRunRepository(super.result);
+
+  int completeCoolDownCalls = 0;
+
+  @override
+  Future<CompleteRunResult> completeCoolDown({
+    required String activityId,
+    required String clientRunSessionId,
+  }) async {
+    completeCoolDownCalls += 1;
+    throw StateError('cool-down bonus unavailable');
   }
 }
 
@@ -465,6 +520,27 @@ const _repositoryCompletionResult = CompleteRunResult(
     didLevelUp: false,
   ),
   message: 'Static repository completion accepted.',
+);
+
+/// The server's cool-down XP bonus response merged on top of
+/// [_repositoryCompletionResult]: an 'awarded' progression display with a
+/// positive xpDelta and a non-null totalXp, so `mergeCoolDownBonus` actually
+/// folds it in (sums the two deltas, adopts the bonus response's totals).
+final _repositoryCoolDownBonusResult = _repositoryCompletionResult.copyWith(
+  progressionDisplay: const ProgressionDisplayModel(
+    xpDelta: 10,
+    countsTowardLeaderboard: true,
+    status: 'awarded',
+    reason: 'cool_down_stretch_bonus_awarded',
+    totalXp: 155,
+    level: 2,
+    previousTotalXp: 145,
+    previousLevel: 2,
+    previousLevelProgressPercent: 45,
+    levelProgressPercent: 55,
+    xpToNextLevel: 45,
+    nextLevelXp: 200,
+  ),
 );
 
 const _lowDataCompletionResult = CompleteRunResult(
@@ -3398,7 +3474,7 @@ void main() {
   );
 
   testWidgets(
-    'Guided cool down preserves the exact completion result and payload',
+    'Guided cool down completion requests the server bonus once and forwards the merged result',
     (WidgetTester tester) async {
       final completionPayload = LocalRunCompletionPayload(
         clientRunSessionId: 'guided-cool-down-session',
@@ -3410,10 +3486,15 @@ void main() {
         source: 'gps',
         routePrivacy: 'private',
       );
+      final fake = _RecordingCoolDownRunRepository(
+        _repositoryCompletionResult,
+        coolDownResult: _repositoryCoolDownBonusResult,
+      );
 
       await tester.pumpWidget(
         MaterialApp(
           home: CoolDownScreen(
+            repository: fake,
             completionResult: _repositoryCompletionResult,
             completionPayload: completionPayload,
           ),
@@ -3426,18 +3507,156 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.widgetWithText(FilledButton, 'Next'));
       await tester.pumpAndSettle();
-      // Pump the full guided stretch duration (350s = 5:50 across all 14
-      // steps) so the phase auto-completes and the CTA becomes 'Finish'.
-      await tester.pump(const Duration(seconds: 350));
+      // Step through all 14 stretch steps: each of the first 13 timers
+      // expiring prompts a confirmation dialog that must be dismissed
+      // before advancing; the 14th auto-completes the phase.
+      for (final step in stretchSteps.sublist(0, stretchSteps.length - 1)) {
+        await tester.pump(Duration(seconds: step.seconds));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 200));
+        await tester.tap(find.widgetWithText(FilledButton, 'Continue'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 200));
+      }
+      await tester.pump(Duration(seconds: stretchSteps.last.seconds));
       await tester.pumpAndSettle();
       await tester.tap(find.widgetWithText(FilledButton, 'Finish'));
       await tester.pumpAndSettle();
+
+      expect(fake.completeCoolDownCalls, 1);
+      expect(fake.lastCoolDownActivityId, 'repo-activity');
+      // _repositoryCompletionResult.clientRunSessionId is null, so the
+      // session id must be resolved from the local completion payload.
+      expect(fake.lastCoolDownClientRunSessionId, 'guided-cool-down-session');
+
+      final summary = tester.widget<ViewSummaryScreen>(
+        find.byType(ViewSummaryScreen),
+      );
+      expect(summary.completionResult, isNot(same(_repositoryCompletionResult)));
+      expect(summary.completionResult!.progressionDisplay.xpDelta, 10);
+      expect(summary.completionResult!.progressionDisplay.status, 'awarded');
+      expect(summary.completionResult!.progressionDisplay.totalXp, 155);
+      expect(summary.completionResult!.xpUpdate.earnedXpLabel, '+10 XP');
+      expect(summary.completionPayload, same(completionPayload));
+    },
+  );
+
+  testWidgets(
+    'Guided cool down completion falls back silently when the server bonus request fails',
+    (WidgetTester tester) async {
+      final completionPayload = LocalRunCompletionPayload(
+        clientRunSessionId: 'guided-cool-down-session',
+        startedAt: DateTime.utc(2026, 7, 12, 20),
+        completedAt: DateTime.utc(2026, 7, 12, 20, 31),
+        durationSeconds: 1860,
+        distanceMeters: 4200,
+        avgPaceSecondsPerKm: 443,
+        source: 'gps',
+        routePrivacy: 'private',
+      );
+      final fake = _FailingCoolDownRunRepository(_repositoryCompletionResult);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: CoolDownScreen(
+            repository: fake,
+            completionResult: _repositoryCompletionResult,
+            completionPayload: completionPayload,
+          ),
+        ),
+      );
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Start Cool-down'));
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(minutes: 3));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Next'));
+      await tester.pumpAndSettle();
+      for (final step in stretchSteps.sublist(0, stretchSteps.length - 1)) {
+        await tester.pump(Duration(seconds: step.seconds));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 200));
+        await tester.tap(find.widgetWithText(FilledButton, 'Continue'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 200));
+      }
+      await tester.pump(Duration(seconds: stretchSteps.last.seconds));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Finish'));
+      await tester.pumpAndSettle();
+
+      expect(fake.completeCoolDownCalls, 1);
 
       final summary = tester.widget<ViewSummaryScreen>(
         find.byType(ViewSummaryScreen),
       );
       expect(summary.completionResult, same(_repositoryCompletionResult));
       expect(summary.completionPayload, same(completionPayload));
+    },
+  );
+
+  testWidgets(
+    'Cool down guide never requests the server bonus for a partial stretch phase',
+    (WidgetTester tester) async {
+      final fake = _RecordingCoolDownRunRepository(
+        _repositoryCompletionResult,
+        coolDownResult: _repositoryCoolDownBonusResult,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: CoolDownScreen(
+            repository: fake,
+            completionResult: _repositoryCompletionResult,
+          ),
+        ),
+      );
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Start Cool-down'));
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(minutes: 3));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Next'));
+      await tester.pumpAndSettle();
+
+      // Advance a few stretch steps manually, but never reach the 14th
+      // (final) step, so the phase never completes and Finish never appears.
+      for (var i = 0; i < 3; i++) {
+        await tester.tap(find.widgetWithText(FilledButton, 'Next stretch'));
+        await tester.pump();
+      }
+
+      expect(find.widgetWithText(FilledButton, 'Finish'), findsNothing);
+      expect(fake.completeCoolDownCalls, 0);
+    },
+  );
+
+  testWidgets(
+    'Cool down skip to summary never requests the server bonus',
+    (WidgetTester tester) async {
+      final fake = _RecordingCoolDownRunRepository(
+        _repositoryCompletionResult,
+        coolDownResult: _repositoryCoolDownBonusResult,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: CoolDownScreen(
+            repository: fake,
+            completionResult: _repositoryCompletionResult,
+          ),
+        ),
+      );
+
+      await tester.tap(find.widgetWithText(OutlinedButton, 'Skip to Summary'));
+      await tester.pumpAndSettle();
+
+      expect(fake.completeCoolDownCalls, 0);
+
+      final summary = tester.widget<ViewSummaryScreen>(
+        find.byType(ViewSummaryScreen),
+      );
+      expect(summary.completionResult, same(_repositoryCompletionResult));
     },
   );
 
@@ -3594,10 +3813,19 @@ void main() {
     expect(find.text('Stretch 1 of 8'), findsOneWidget);
     expect(find.text('Right'), findsOneWidget);
 
-    // Letting the real timer run out the full 25s auto-advances to the next
-    // step without any tap.
+    // Letting the real timer run out the full 25s prompts a confirmation
+    // dialog instead of silently auto-advancing; confirming moves to the
+    // next step.
     await tester.pump(const Duration(seconds: 25));
     await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+
+    expect(find.text('Time’s up!'), findsOneWidget);
+    expect(find.text('Ready for the next stretch?'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(FilledButton, 'Continue'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
 
     expect(find.text('Stretch 2 of 8'), findsOneWidget);
     expect(find.text('Left'), findsOneWidget);
@@ -3741,4 +3969,14 @@ void main() {
     expect(find.byTooltip('Leaderboard'), findsOneWidget);
     expect(find.byTooltip('You'), findsOneWidget);
   });
+
+  test(
+    'Stretch catalog stays in sync with the cool-down backend contract',
+    () {
+      // The cool-down guide screen only requests the server XP bonus after
+      // all `stretchSteps` complete; the domain-owned
+      // `coolDownStretchStepCount` constant must always match that count.
+      expect(stretchSteps.length, coolDownStretchStepCount);
+    },
+  );
 }

@@ -11,6 +11,11 @@ export function deterministicIds(uid: string, clientRunSessionId: string): Compl
   };
 }
 
+export function coolDownProgressionEventId(uid: string, clientRunSessionId: string): string {
+  const digest = createHash("sha256").update(`${uid}:${clientRunSessionId}`).digest("hex").slice(0, 24);
+  return `progression_cooldown_${digest}`;
+}
+
 export function fingerprintPayload(payload: RawRunCompletionPayload): string {
   const sortedPayload = Object.fromEntries(
     Object.entries(payload).sort(([left], [right]) => left.localeCompare(right)),

@@ -608,6 +608,23 @@ describe('owner-owned client records', () => {
     );
   });
 
+  it('denies client writes to backend-owned cool-down XP fields on activities', async () => {
+    await seed('activities/cooldown-001', {
+      ...activityDraft,
+    });
+
+    const activity = doc(dbFor('alice'), 'activities/cooldown-001');
+
+    await assertFails(updateDoc(activity, { coolDownXpAwarded: true }));
+
+    await assertFails(
+      setDoc(doc(dbFor('alice'), 'activities/cooldown-002'), {
+        ...activityDraft,
+        coolDownXpAwarded: true,
+      }),
+    );
+  });
+
   it('denies overwriting or resetting backend-processed activities', async () => {
     await seed('activities/processed-001', {
       ...activityDraft,

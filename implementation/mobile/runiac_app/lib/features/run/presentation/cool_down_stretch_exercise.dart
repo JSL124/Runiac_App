@@ -49,9 +49,9 @@ class _StretchExerciseView extends StatelessWidget {
             ],
           ],
         ),
-        SizedBox(height: compact ? 6 : 10),
+        SizedBox(height: compact ? 3 : 8),
         ConstrainedBox(
-          constraints: BoxConstraints(maxHeight: compact ? 120 : 150),
+          constraints: BoxConstraints(maxHeight: compact ? 130 : 190),
           child: Semantics(
             label: '${step.exercise.name} demonstration animation',
             child: Image.asset(
@@ -63,18 +63,18 @@ class _StretchExerciseView extends StatelessWidget {
             ),
           ),
         ),
-        SizedBox(height: compact ? 6 : 10),
+        SizedBox(height: compact ? 3 : 8),
         Text(
           step.exercise.name,
           textAlign: TextAlign.center,
           style: TextStyle(
             color: _navy,
-            fontSize: compact ? 20 : 24,
+            fontSize: compact ? 18 : 24,
             fontWeight: FontWeight.w800,
             letterSpacing: -0.6,
           ),
         ),
-        SizedBox(height: compact ? 6 : 8),
+        SizedBox(height: compact ? 4 : 8),
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 300),
           child: Text(

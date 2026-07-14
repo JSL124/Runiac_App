@@ -1,4 +1,5 @@
 import '../domain/models/complete_run_result.dart';
+import '../domain/models/cool_down_contract.dart';
 import '../domain/models/local_run_completion_payload.dart';
 import '../domain/models/pace_graph_snapshot.dart';
 import '../domain/models/progression_display_model.dart';
@@ -7,12 +8,19 @@ import '../domain/models/run_completion_error.dart';
 import '../domain/models/run_completion_request_adapter.dart';
 import '../domain/models/run_summary_read_model.dart';
 import '../domain/models/run_summary_snapshot.dart';
-import '../domain/models/xp_update_display_model.dart';
 import '../domain/repositories/run_repository.dart';
 import '../domain/services/run_summary_scalar_mapper.dart';
+import '../domain/services/xp_update_display_model_mapper.dart';
 import 'static_run_repository.dart';
 
 abstract interface class CompleteRunCallable {
+  Future<Map<String, Object?>> call(Map<String, Object?> request);
+}
+
+/// Requests the server-computed cool-down stretch XP bonus. Mirrors
+/// [CompleteRunCallable]'s shape; the same [CompleteRunCallableException]
+/// type is used to report failures from either callable.
+abstract interface class CompleteCoolDownCallable {
   Future<Map<String, Object?>> call(Map<String, Object?> request);
 }
 
@@ -26,13 +34,34 @@ class CompleteRunCallableException implements Exception {
   final String message;
 }
 
+/// A neutral, non-rendered run summary used for [CompleteRunResult]s that
+/// only carry a cool-down XP bonus. The cool-down flow never displays this
+/// summary — callers only consume `progressionDisplay` / `xpUpdate` via
+/// [CompleteRunResult.mergeCoolDownBonus] — so every field is a harmless
+/// placeholder rather than a real measurement.
+const _coolDownBonusOnlySummary = RunSummarySnapshot(
+  title: '--',
+  dateLabel: '--',
+  timeLabel: '--',
+  distanceKm: '--',
+  avgPace: '--',
+  duration: '--',
+  avgHeartRate: '--',
+  calories: '--',
+  routeName: '--',
+  hasSufficientData: false,
+  paceGraph: PaceGraphSnapshot.unavailable(),
+);
+
 class FirebaseRunRepository implements RunRepository {
   const FirebaseRunRepository({
     required this.callable,
+    this.coolDownCallable,
     this.staticFallback = const StaticRunRepository(),
   });
 
   final CompleteRunCallable callable;
+  final CompleteCoolDownCallable? coolDownCallable;
   final RunRepository staticFallback;
 
   @override
@@ -62,6 +91,48 @@ class FirebaseRunRepository implements RunRepository {
   }
 
   @override
+  Future<CompleteRunResult> completeCoolDown({
+    required String activityId,
+    required String clientRunSessionId,
+  }) async {
+    final coolDownCallable = this.coolDownCallable;
+    if (coolDownCallable == null) {
+      throw const RunCompletionException(
+        code: 'unimplemented',
+        message: 'Cool-down bonus is unavailable.',
+        isRetryable: false,
+      );
+    }
+
+    final request = <String, Object?>{
+      'activityId': activityId,
+      'clientRunSessionId': clientRunSessionId,
+      'completedStretchCount': coolDownStretchStepCount,
+      'completedAt': _toBackendIsoString(DateTime.now()),
+    };
+
+    final response = await coolDownCallable.call(request).onError((
+      error,
+      stackTrace,
+    ) {
+      if (error is CompleteRunCallableException) {
+        throw RunCompletionException(
+          code: error.code,
+          message: error.message,
+          isRetryable: _isRetryableCallableCode(error.code),
+        );
+      }
+      throw RunCompletionException(
+        code: 'unknown',
+        message: 'Cool-down bonus failed before the service responded.',
+        isRetryable: true,
+      );
+    });
+
+    return _CompleteRunResultMapper.fromCoolDownCallableResponse(response);
+  }
+
+  @override
   Future<CompleteRunResult> loadLatestCompletionResult() {
     return staticFallback.loadLatestCompletionResult();
   }
@@ -80,6 +151,25 @@ class FirebaseRunRepository implements RunRepository {
     return code == 'unavailable' ||
         code == 'deadline-exceeded' ||
         code == 'internal';
+  }
+
+  /// Formats [value] the same way [RunCompletionRequestAdapter] serializes
+  /// timestamps for the backend: UTC with exactly millisecond precision. The
+  /// server's payload validator rejects timestamps with microsecond
+  /// fractional digits, so this normalizes away Dart's native microsecond
+  /// precision before sending `completedAt`.
+  static String _toBackendIsoString(DateTime value) {
+    final utc = value.toUtc();
+    final millisecondDate = DateTime.utc(
+      utc.year,
+      utc.month,
+      utc.day,
+      utc.hour,
+      utc.minute,
+      utc.second,
+      utc.millisecond,
+    );
+    return millisecondDate.toIso8601String();
   }
 }
 
@@ -101,6 +191,7 @@ class _CompleteRunResultMapper {
       averagePaceSecondsPerKm: paceSeconds,
       routeLabel: _readOptionalString(summary, 'routeLabel'),
     );
+    final progressionDisplay = _buildProgressionDisplay(progression);
 
     return CompleteRunResult(
       activityId: _readString(response, 'activityId'),
@@ -122,15 +213,7 @@ class _CompleteRunResultMapper {
           unavailableReason: 'backend_graph_data_unavailable',
         ),
       ),
-      progressionDisplay: ProgressionDisplayModel(
-        xpDelta: _readInt(progression, 'xpDelta'),
-        countsTowardLeaderboard: _readBool(
-          progression,
-          'countsTowardLeaderboard',
-        ),
-        status: _readString(progression, 'status'),
-        reason: _readString(progression, 'reason'),
-      ),
+      progressionDisplay: progressionDisplay,
       planCompletion: PlanCompletionResult(
         completed: _readOptionalBool(planCompletion, 'completed') ?? false,
         planEnrollmentId: _readOptionalString(
@@ -142,8 +225,66 @@ class _CompleteRunResultMapper {
           'scheduledWorkoutId',
         ),
       ),
-      xpUpdate: _buildXpUpdate(progression),
+      xpUpdate: XpUpdateDisplayModelMapper.fromProgression(progressionDisplay),
       message: _readString(response, 'message'),
+    );
+  }
+
+  /// Builds the cool-down-only [CompleteRunResult] from the `completeCoolDown`
+  /// callable response. There is no `runSummary` on this response — the
+  /// result's `summary` is a neutral placeholder that callers never render;
+  /// only `progressionDisplay` / `xpUpdate` are consumed, via
+  /// [CompleteRunResult.mergeCoolDownBonus].
+  static CompleteRunResult fromCoolDownCallableResponse(
+    Map<String, Object?> response,
+  ) {
+    final progression = _readMap(response, 'progressionDisplay');
+    final progressionDisplay = _buildProgressionDisplay(progression);
+
+    return CompleteRunResult(
+      activityId: _readString(response, 'activityId'),
+      progressionEventId: _readString(response, 'coolDownProgressionEventId'),
+      validationStatus: 'validated',
+      summary: _coolDownBonusOnlySummary,
+      progressionDisplay: progressionDisplay,
+      xpUpdate: XpUpdateDisplayModelMapper.fromProgression(progressionDisplay),
+      message:
+          _readOptionalString(response, 'message') ??
+          'Cool-down bonus processed.',
+    );
+  }
+
+  /// Builds a fully-populated [ProgressionDisplayModel] from a backend
+  /// `progressionDisplay` map, reading optional numeric fields leniently
+  /// (absent or non-numeric values become `null` rather than throwing).
+  static ProgressionDisplayModel _buildProgressionDisplay(
+    Map<String, Object?> progression,
+  ) {
+    return ProgressionDisplayModel(
+      xpDelta: _readInt(progression, 'xpDelta'),
+      countsTowardLeaderboard: _readBool(
+        progression,
+        'countsTowardLeaderboard',
+      ),
+      status: _readString(progression, 'status'),
+      reason: _readString(progression, 'reason'),
+      totalXp: _readNullableInt(progression, 'totalXp'),
+      level: _readNullableInt(progression, 'level'),
+      divisionKey: _readOptionalString(progression, 'divisionKey'),
+      previousTotalXp: _readNullableInt(progression, 'previousTotalXp'),
+      previousLevel: _readNullableInt(progression, 'previousLevel'),
+      previousLevelProgressPercent: _readNullableInt(
+        progression,
+        'previousLevelProgressPercent',
+      ),
+      levelProgressPercent: _readNullableInt(
+        progression,
+        'levelProgressPercent',
+      ),
+      xpToNextLevel: _readNullableInt(progression, 'xpToNextLevel'),
+      nextLevelXp: _readNullableInt(progression, 'nextLevelXp'),
+      streak: _readNullableInt(progression, 'streak'),
+      previousStreak: _readNullableInt(progression, 'previousStreak'),
     );
   }
 
@@ -163,124 +304,6 @@ class _CompleteRunResultMapper {
 
   static bool? _readOptionalBool(Map<String, Object?>? source, String key) {
     return source?[key] is bool ? source![key] as bool : null;
-  }
-
-  /// Builds the XP & Streak display model purely from backend-owned progression
-  /// values. The client never calculates XP, level, streak, or progress
-  /// fractions; fractions are backend percents divided by 100.
-  static XpUpdateDisplayModel _buildXpUpdate(Map<String, Object?> progression) {
-    const runnerName = 'Runiac Runner';
-    final status = _readString(progression, 'status');
-    final reason = _readString(progression, 'reason');
-    final xpDelta = _readInt(progression, 'xpDelta');
-    final hasProgressionNumbers =
-        progression.containsKey('totalXp') &&
-        progression.containsKey('previousTotalXp');
-
-    if (status == 'deferred' || !hasProgressionNumbers) {
-      return const XpUpdateDisplayModel(
-        runnerName: runnerName,
-        earnedXpLabel: '+0 XP',
-        totalXpLabel: 'Saved',
-        levelLabel: '--',
-        nextLevelLabel: '--',
-        progressTargetLabel: 'Progression pending',
-        xpRemainingLabel: 'Finalizing',
-        previousProgressFraction: 0,
-        currentProgressFraction: 0,
-        streakChangeLabel: 'Streak saved',
-        streakNote: 'Saved',
-        didLevelUp: false,
-        xpAwardState: XpAwardState.deferred,
-        heroMessage: 'This run is saved. XP is being finalized.',
-      );
-    }
-
-    final totalXp = _readInt(progression, 'totalXp');
-    final previousTotalXp = _readIntOr(progression, 'previousTotalXp', totalXp);
-    final level = _readIntOr(progression, 'level', 0);
-    final previousLevel = _readIntOr(progression, 'previousLevel', level);
-    final previousPercent = _readIntOr(
-      progression,
-      'previousLevelProgressPercent',
-      0,
-    );
-    final currentPercent = _readIntOr(progression, 'levelProgressPercent', 0);
-    final streak = _readIntOr(progression, 'streak', 0);
-    final previousStreak = _readIntOr(progression, 'previousStreak', streak);
-    final xpToNextLevel = _readNullableInt(progression, 'xpToNextLevel');
-    final isMaxLevel = xpToNextLevel == null;
-    final didLevelUp = level > previousLevel;
-    final awarded = status == 'awarded' && xpDelta > 0;
-    final nextLevel = level + 1;
-
-    return XpUpdateDisplayModel(
-      runnerName: runnerName,
-      earnedXpLabel: '+${_formatThousands(xpDelta)} XP',
-      totalXpLabel: '${_formatThousands(totalXp)} XP',
-      levelLabel: '$level',
-      nextLevelLabel: isMaxLevel ? '$level' : '$nextLevel',
-      progressTargetLabel: isMaxLevel
-          ? 'Max level reached'
-          : 'Progress to Level $nextLevel',
-      xpRemainingLabel: isMaxLevel
-          ? 'Max level reached'
-          : '${_formatThousands(xpToNextLevel)} XP to Level $nextLevel',
-      previousProgressFraction: previousPercent / 100.0,
-      currentProgressFraction: currentPercent / 100.0,
-      streakChangeLabel: _streakChangeLabel(previousStreak, streak),
-      streakNote: streak > previousStreak ? 'Keep it going' : 'Nice work',
-      didLevelUp: didLevelUp,
-      xpAwardState: awarded ? XpAwardState.awarded : XpAwardState.notAwarded,
-      heroMessage: awarded
-          ? (didLevelUp
-                ? 'You reached Level $level. Keep it up.'
-                : 'Earned from this run')
-          : _notAwardedMessage(reason),
-      earnedXp: xpDelta,
-      totalXp: totalXp,
-      previousTotalXp: previousTotalXp,
-      level: level,
-      previousLevel: previousLevel,
-      streakCount: streak,
-      previousStreakCount: previousStreak,
-    );
-  }
-
-  static String _streakChangeLabel(int previousStreak, int streak) {
-    if (streak <= 0) {
-      return 'Streak saved';
-    }
-    final unit = streak == 1 ? 'day' : 'days';
-    if (streak > previousStreak) {
-      return '$previousStreak → $streak $unit';
-    }
-    return '$streak $unit';
-  }
-
-  static String _notAwardedMessage(String reason) {
-    switch (reason) {
-      case 'low_data_no_xp':
-        return 'Run a little longer to earn XP';
-      case 'daily_cap_reached':
-        return 'Daily XP cap reached — great effort today';
-      case 'premium_no_progression':
-        return 'Premium runs stay off the XP board — enjoy the run';
-      default:
-        return 'This run didn\'t earn XP';
-    }
-  }
-
-  static String _formatThousands(int value) {
-    final digits = value.abs().toString();
-    final buffer = StringBuffer();
-    for (var index = 0; index < digits.length; index += 1) {
-      if (index != 0 && (digits.length - index) % 3 == 0) {
-        buffer.write(',');
-      }
-      buffer.write(digits[index]);
-    }
-    return '${value < 0 ? '-' : ''}$buffer';
   }
 
   static Map<String, Object?> _readMap(
@@ -341,17 +364,6 @@ class _CompleteRunResultMapper {
       message: 'The emulator returned an invalid run completion response.',
       isRetryable: true,
     );
-  }
-
-  static int _readIntOr(Map<String, Object?> source, String key, int fallback) {
-    final value = source[key];
-    if (value is int) {
-      return value;
-    }
-    if (value is num && value.isFinite) {
-      return value.round();
-    }
-    return fallback;
   }
 
   /// Reads a backend field that is a number, an explicit `null` (for example a

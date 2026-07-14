@@ -1705,6 +1705,14 @@ class _RecordingRunRepository implements RunRepository {
   }
 
   @override
+  Future<CompleteRunResult> completeCoolDown({
+    required String activityId,
+    required String clientRunSessionId,
+  }) {
+    throw UnimplementedError();
+  }
+
+  @override
   Future<CompleteRunResult> loadLatestCompletionResult() {
     throw UnimplementedError();
   }

@@ -83,6 +83,19 @@ export function calculateActivityXp(input: ActivityXpInput): ActivityXpResult {
   };
 }
 
+export const coolDownBonusPercent = 0.2;
+export const coolDownBonusMin = 5;
+export const coolDownBonusMax = 20;
+
+export function calculateCoolDownBonus(baseEarnedXp: number): number {
+  if (!Number.isFinite(baseEarnedXp) || baseEarnedXp <= 0) {
+    return 0; // zero-XP bases (low-data, premium, fully daily-capped runs) earn no bonus
+  }
+  const raw = Math.round((baseEarnedXp * coolDownBonusPercent) / 5) * 5;
+  const clamped = Math.min(coolDownBonusMax, Math.max(coolDownBonusMin, raw));
+  return Math.max(0, Math.min(clamped, activityXpCap - baseEarnedXp));
+}
+
 export function applyDailyXpCap(input: DailyXpCapInput): DailyXpCapResult {
   const remainingDailyXp = Math.max(0, dailyXpCap - input.dailyXpBefore);
   const xpDelta = Math.min(input.xpDeltaBeforeDailyCap, remainingDailyXp);

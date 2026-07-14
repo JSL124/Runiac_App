@@ -1,4 +1,5 @@
 export { completeRun } from "./run/completeRun.js";
+export { completeCoolDown } from "./run/completeCoolDown.js";
 export { homeGuideAgent } from "./agent/homeGuideAgent.js";
 export { activityFeedbackAgent } from "./agent/activityFeedbackAgent.js";
 export { registerNotificationDevice, unregisterNotificationDevice } from "./notifications/deviceRegistry.js";

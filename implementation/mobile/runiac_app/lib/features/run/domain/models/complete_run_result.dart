@@ -1,3 +1,4 @@
+import '../services/xp_update_display_model_mapper.dart';
 import 'progression_display_model.dart';
 import 'run_summary_snapshot.dart';
 import 'xp_update_display_model.dart';
@@ -71,6 +72,57 @@ class CompleteRunResult {
       planCompletion: planCompletion ?? this.planCompletion,
       xpUpdate: xpUpdate ?? this.xpUpdate,
       message: message ?? this.message,
+    );
+  }
+
+  /// Folds a server-computed cool-down XP bonus into this run's progression
+  /// display for rendering.
+  ///
+  /// This is a display-only merge: it never derives new progression numbers.
+  /// It only (a) sums the two server-returned XP deltas so the celebration
+  /// screen shows the combined amount earned this session, and (b) copies the
+  /// bonus response's server-returned totals (totalXp, level, progress
+  /// percents, etc.) as the new truth, since those already account for the
+  /// bonus having been applied server-side. The "previous" fields are taken
+  /// from this run's own progression display so the XP screen still animates
+  /// from the pre-run baseline; streak fields are untouched because
+  /// cool-down never changes streak.
+  ///
+  /// Returns this result unchanged if the cool-down bonus was not awarded.
+  CompleteRunResult mergeCoolDownBonus(ProgressionDisplayModel coolDownDisplay) {
+    if (coolDownDisplay.status != 'awarded' ||
+        coolDownDisplay.xpDelta <= 0 ||
+        coolDownDisplay.totalXp == null) {
+      return this;
+    }
+
+    final merged = ProgressionDisplayModel(
+      xpDelta: progressionDisplay.xpDelta + coolDownDisplay.xpDelta,
+      countsTowardLeaderboard:
+          progressionDisplay.countsTowardLeaderboard ||
+          coolDownDisplay.countsTowardLeaderboard,
+      status: 'awarded',
+      reason: progressionDisplay.reason,
+      totalXp: coolDownDisplay.totalXp,
+      level: coolDownDisplay.level,
+      divisionKey: coolDownDisplay.divisionKey,
+      previousTotalXp:
+          progressionDisplay.previousTotalXp ?? coolDownDisplay.previousTotalXp,
+      previousLevel:
+          progressionDisplay.previousLevel ?? coolDownDisplay.previousLevel,
+      previousLevelProgressPercent:
+          progressionDisplay.previousLevelProgressPercent ??
+          coolDownDisplay.previousLevelProgressPercent,
+      levelProgressPercent: coolDownDisplay.levelProgressPercent,
+      xpToNextLevel: coolDownDisplay.xpToNextLevel,
+      nextLevelXp: coolDownDisplay.nextLevelXp,
+      streak: progressionDisplay.streak,
+      previousStreak: progressionDisplay.previousStreak,
+    );
+
+    return copyWith(
+      progressionDisplay: merged,
+      xpUpdate: XpUpdateDisplayModelMapper.fromProgression(merged),
     );
   }
 }
