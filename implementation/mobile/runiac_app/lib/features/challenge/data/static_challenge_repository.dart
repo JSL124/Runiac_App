@@ -127,6 +127,14 @@ class StaticChallengeRepository implements ChallengeRepository {
   }
 
   @override
+  Stream<ActiveChallenge?> watchActiveChallenge() =>
+      Stream<ActiveChallenge?>.fromFuture(activeChallenge());
+
+  @override
+  Stream<List<ChallengeInvitationSummary>> watchInvitations() =>
+      Stream<List<ChallengeInvitationSummary>>.fromFuture(invitations());
+
+  @override
   Future<LeaveChallengeResult> leave({required String challengeId}) async {
     return LeaveChallengeResult(challengeId: challengeId, idempotent: false);
   }

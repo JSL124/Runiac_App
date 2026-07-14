@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 
@@ -59,6 +61,92 @@ class FirebaseFriendsRepository implements FriendsRepository {
         FriendsRepositoryErrorCode.unavailable,
       );
     }
+  }
+
+  @override
+  Stream<FriendsOverviewReadModel> watchFriendsOverview({
+    required String ownerUid,
+  }) {
+    _requireAuthenticatedOwner(ownerUid);
+    final user = _firestore.collection('users').doc(ownerUid);
+    late final StreamController<FriendsOverviewReadModel> controller;
+    final subscriptions = <StreamSubscription<void>>[];
+
+    List<FriendUserReadModel>? friends;
+    List<FriendUserReadModel>? incomingRequests;
+    List<FriendUserReadModel>? outgoingRequests;
+    List<FriendUserReadModel>? blockedUsers;
+
+    void emitIfReady() {
+      final currentFriends = friends;
+      final currentIncoming = incomingRequests;
+      final currentOutgoing = outgoingRequests;
+      final currentBlocked = blockedUsers;
+      if (currentFriends == null ||
+          currentIncoming == null ||
+          currentOutgoing == null ||
+          currentBlocked == null) {
+        return;
+      }
+      controller.add(
+        FriendsOverviewReadModel(
+          friends: currentFriends,
+          incomingRequests: currentIncoming,
+          outgoingRequests: currentOutgoing,
+          blockedUsers: currentBlocked,
+        ),
+      );
+    }
+
+    void handleError(Object error) {
+      if (error is FirebaseException) {
+        controller.addError(_mapFirebaseError(error));
+      } else {
+        controller.addError(
+          const FriendsRepositoryException(
+            FriendsRepositoryErrorCode.unavailable,
+          ),
+        );
+      }
+    }
+
+    controller = StreamController<FriendsOverviewReadModel>(
+      onListen: () {
+        subscriptions.addAll([
+          watchFriendsOwnerList(user.collection('friends')).listen((value) {
+            friends = value;
+            emitIfReady();
+          }, onError: handleError),
+          watchFriendsOwnerList(
+            user.collection('friendRequests'),
+            direction: 'incoming',
+          ).listen((value) {
+            incomingRequests = value;
+            emitIfReady();
+          }, onError: handleError),
+          watchFriendsOwnerList(
+            user.collection('friendRequests'),
+            direction: 'outgoing',
+          ).listen((value) {
+            outgoingRequests = value;
+            emitIfReady();
+          }, onError: handleError),
+          watchFriendsOwnerList(user.collection('blockedUsers')).listen((
+            value,
+          ) {
+            blockedUsers = value;
+            emitIfReady();
+          }, onError: handleError),
+        ]);
+      },
+      onCancel: () async {
+        for (final subscription in subscriptions) {
+          await subscription.cancel();
+        }
+        subscriptions.clear();
+      },
+    );
+    return controller.stream;
   }
 
   @override

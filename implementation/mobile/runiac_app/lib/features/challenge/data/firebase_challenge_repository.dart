@@ -8,8 +8,89 @@ import '../domain/models/challenge_history.dart';
 import '../domain/models/challenge_invitation_summary.dart';
 import '../domain/models/challenge_parse.dart';
 import '../domain/models/challenge_parse_exception.dart';
+import '../domain/models/challenge_participant_row.dart';
+import '../domain/models/challenge_rules_snapshot.dart';
 import '../domain/models/challenge_tier.dart';
 import '../domain/repositories/challenge_repository.dart';
+
+/// Placeholder rendered for a participant's level label when the hybrid
+/// level-label seed (built from the last `activeChallenge()` result) never
+/// saw that uid. A single space rather than a literal empty string, because
+/// [ChallengeParticipantRow.fromMap] parses `levelLabelSnapshot` through
+/// [ChallengeParse.string], which rejects an empty string; surfaces already
+/// trim the label before falling back to the display-only `Lv.0` placeholder,
+/// so a blank-after-trim string reads identically either way.
+const String _unseededLevelLabel = ' ';
+
+/// Pure: applies the hybrid level-label seed to a store view and parses it.
+///
+/// [levelLabelSeed] maps participant uid to the level label last read from a
+/// full `activeChallenge()` callable response; a uid the seed never saw
+/// renders [_unseededLevelLabel] (surfaces trim it and fall back to `Lv.0`).
+ActiveChallenge? mapActiveChallengeView(
+  Map<String, Object?>? view, {
+  required Map<String, String> levelLabelSeed,
+  required String? currentUid,
+}) {
+  if (view == null) {
+    return null;
+  }
+  try {
+    final rawParticipants =
+        ChallengeParse.asList(view['participants'], field: 'participants');
+    final seededParticipants = rawParticipants.map((entry) {
+      final participant =
+          ChallengeParse.asMap(entry, field: 'participants[]');
+      final uid = ChallengeParse.string(participant, 'uid');
+      return <String, Object?>{
+        ...participant,
+        'levelLabelSnapshot': levelLabelSeed[uid] ?? _unseededLevelLabel,
+      };
+    }).toList(growable: false);
+    final seededView = <String, Object?>{
+      ...view,
+      'participants': seededParticipants,
+    };
+    return ActiveChallenge.fromChallengeMap(seededView, currentUid: currentUid);
+  } on ChallengeParseException catch (error) {
+    throw ChallengeFailure(
+      reason: 'INVALID_RESPONSE',
+      message: error.toString(),
+    );
+  }
+}
+
+/// Pure: applies the per-tier rules seed to store invitation views.
+///
+/// [rulesSeed] maps tier id to the rules snapshot last read from a full
+/// `getChallengeInvitations()` callable response; a tier the seed never saw
+/// renders `rules: null` (the detail screen already tolerates that).
+List<ChallengeInvitationSummary> mapPendingInvitationViews(
+  List<Map<String, Object?>> views, {
+  required Map<ChallengeTierId, ChallengeRulesSnapshot> rulesSeed,
+}) {
+  try {
+    final summaries = views.map((view) {
+      final tierId = ChallengeTierId.parse(ChallengeParse.string(view, 'tierId'));
+      return ChallengeInvitationSummary(
+        inviteId: ChallengeParse.string(view, 'inviteId'),
+        challengeId: ChallengeParse.string(view, 'challengeId'),
+        tierId: tierId,
+        ownerUid: ChallengeParse.string(view, 'ownerUid'),
+        status: ChallengeInvitationStatus.pending,
+        createdAtMs: ChallengeParse.integer(view, 'createdAtMs'),
+        expiresAtMs: ChallengeParse.integer(view, 'expiresAtMs'),
+        rules: rulesSeed[tierId],
+      );
+    }).toList(growable: false);
+    return List<ChallengeInvitationSummary>.unmodifiable(summaries);
+  } on ChallengeParseException catch (error) {
+    throw ChallengeFailure(
+      reason: 'INVALID_RESPONSE',
+      message: error.toString(),
+    );
+  }
+}
 
 /// Resolves the currently-authenticated uid (used to flag the caller's own
 /// participant row). Returns `null` when signed out.
@@ -147,6 +228,89 @@ class FirebaseChallengeRepository implements ChallengeRepository {
       'challengeId': challengeId,
     });
     return _map(() => AbandonChallengeResult.fromMap(data));
+  }
+
+  @override
+  Stream<ActiveChallenge?> watchActiveChallenge() {
+    final store = readStore;
+    if (store == null) {
+      return Stream<ActiveChallenge?>.error(
+        const ChallengeFailure(reason: ChallengeFailure.unavailableReason),
+      );
+    }
+    final uid = currentUid();
+    if (uid == null || uid.isEmpty) {
+      return Stream<ActiveChallenge?>.error(
+        const ChallengeFailure(reason: 'UNAUTHENTICATED'),
+      );
+    }
+    return _watchActiveChallenge(store, uid);
+  }
+
+  Stream<ActiveChallenge?> _watchActiveChallenge(
+    ChallengeReadStore store,
+    String uid,
+  ) async* {
+    var levelLabelSeed = const <String, String>{};
+    try {
+      final seeded = await activeChallenge();
+      levelLabelSeed = <String, String>{
+        for (final row
+            in seeded?.participants ?? const <ChallengeParticipantRow>[])
+          row.uid: row.levelLabelSnapshot,
+      };
+      yield seeded;
+    } on ChallengeFailure {
+      // The callable seed is unavailable; fall through to the live view with
+      // an empty seed rather than failing the whole stream over it.
+    }
+
+    yield* store.watchActiveChallengeView(ownerUid: uid).map(
+          (view) => mapActiveChallengeView(
+            view,
+            levelLabelSeed: levelLabelSeed,
+            currentUid: currentUid(),
+          ),
+        );
+  }
+
+  @override
+  Stream<List<ChallengeInvitationSummary>> watchInvitations() {
+    final store = readStore;
+    if (store == null) {
+      return Stream<List<ChallengeInvitationSummary>>.error(
+        const ChallengeFailure(reason: ChallengeFailure.unavailableReason),
+      );
+    }
+    final uid = currentUid();
+    if (uid == null || uid.isEmpty) {
+      return Stream<List<ChallengeInvitationSummary>>.error(
+        const ChallengeFailure(reason: 'UNAUTHENTICATED'),
+      );
+    }
+    return _watchInvitations(store, uid);
+  }
+
+  Stream<List<ChallengeInvitationSummary>> _watchInvitations(
+    ChallengeReadStore store,
+    String uid,
+  ) async* {
+    var rulesSeed = const <ChallengeTierId, ChallengeRulesSnapshot>{};
+    try {
+      final seeded = await invitations();
+      rulesSeed = <ChallengeTierId, ChallengeRulesSnapshot>{
+        for (final summary in seeded)
+          if (summary.rules != null) summary.tierId: summary.rules!,
+      };
+      yield seeded;
+    } on ChallengeFailure {
+      // The callable seed is unavailable; fall through to the live view with
+      // an empty seed rather than failing the whole stream over it.
+    }
+
+    yield* store.watchPendingInvitationViews(ownerUid: uid).map(
+          (views) => mapPendingInvitationViews(views, rulesSeed: rulesSeed),
+        );
   }
 
   @override

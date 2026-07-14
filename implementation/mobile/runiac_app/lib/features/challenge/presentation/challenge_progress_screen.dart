@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -47,47 +48,67 @@ class ChallengeProgressScreen extends StatefulWidget {
 class _ChallengeProgressScreenState extends State<ChallengeProgressScreen> {
   ActiveChallenge? _challenge;
   ChallengeCountdownController? _countdown;
+  DateTime? _countdownEndsAt;
+  bool? _countdownSettling;
   bool _loading = true;
   bool _ended = false;
   bool _busy = false;
   String? _error;
+  StreamSubscription<ActiveChallenge?>? _subscription;
 
   @override
   void initState() {
     super.initState();
-    _load();
+    _subscribe();
   }
 
   @override
   void dispose() {
+    unawaited(_subscription?.cancel());
     _countdown?.dispose();
     super.dispose();
   }
 
-  Future<void> _load() async {
+  /// Subscribes to the live active-challenge view. Cancels any prior
+  /// subscription first so retry/re-subscribe (including the post-race
+  /// re-read in [_runExit]) never leaks a listener.
+  Future<void> _subscribe() async {
+    unawaited(_subscription?.cancel());
     setState(() {
-      _loading = true;
+      _loading = _challenge == null && !_ended;
       _error = null;
     });
-    try {
-      final challenge = await widget.repository.activeChallenge();
-      if (!mounted) {
-        return;
-      }
-      final isThisLiveChallenge = challenge != null &&
-          challenge.challengeId == widget.challengeId &&
-          (challenge.status == ChallengeInstanceStatus.active ||
-              challenge.status == ChallengeInstanceStatus.settling);
-      if (!isThisLiveChallenge) {
-        _countdown?.dispose();
-        _countdown = null;
-        setState(() {
-          _challenge = null;
-          _loading = false;
-          _ended = true;
-        });
-        return;
-      }
+    _subscription = widget.repository.watchActiveChallenge().listen(
+      _handleChallenge,
+      onError: _handleStreamError,
+    );
+  }
+
+  void _handleChallenge(ActiveChallenge? challenge) {
+    if (!mounted) {
+      return;
+    }
+    final isThisLiveChallenge = challenge != null &&
+        challenge.challengeId == widget.challengeId &&
+        (challenge.status == ChallengeInstanceStatus.active ||
+            challenge.status == ChallengeInstanceStatus.settling);
+    if (!isThisLiveChallenge) {
+      _countdown?.dispose();
+      _countdown = null;
+      setState(() {
+        _challenge = null;
+        _loading = false;
+        _ended = true;
+        _error = null;
+      });
+      return;
+    }
+    // The countdown controller is recreated only when the deadline or the
+    // settling flag changes, so a progress-only emission (metres, roster)
+    // never restarts its ticker.
+    if (_countdown == null ||
+        _countdownEndsAt != challenge.scheduledEndsAt ||
+        _countdownSettling != challenge.isSettling) {
       _countdown?.dispose();
       _countdown = ChallengeCountdownController(
         clock: widget.clock ?? DateTime.now,
@@ -95,28 +116,32 @@ class _ChallengeProgressScreenState extends State<ChallengeProgressScreen> {
         scheduledEndsAt: challenge.scheduledEndsAt,
         isSettling: challenge.isSettling,
       );
-      setState(() {
-        _challenge = challenge;
-        _loading = false;
-        _ended = false;
-      });
-    } on ChallengeFailure catch (failure) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _loading = false;
-        _error = ChallengeCopy.failureMessage(failure.reason);
-      });
-    } catch (_) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _loading = false;
-        _error = ChallengeCopy.failureMessage('UNKNOWN');
-      });
+      _countdownEndsAt = challenge.scheduledEndsAt;
+      _countdownSettling = challenge.isSettling;
     }
+    setState(() {
+      _challenge = challenge;
+      _loading = false;
+      _ended = false;
+      _error = null;
+    });
+  }
+
+  void _handleStreamError(Object error) {
+    if (!mounted) {
+      return;
+    }
+    // Once we already have data, a transient stream error is ignored rather
+    // than replacing a working progress view with an error state.
+    if (_challenge != null) {
+      return;
+    }
+    setState(() {
+      _loading = false;
+      _error = error is ChallengeFailure
+          ? ChallengeCopy.failureMessage(error.reason)
+          : ChallengeCopy.failureMessage('UNKNOWN');
+    });
   }
 
   ChallengeParticipantRow? get _currentUserRow {
@@ -173,13 +198,14 @@ class _ChallengeProgressScreenState extends State<ChallengeProgressScreen> {
       if (mounted) {
         _showSnack(ChallengeCopy.failureMessage(failure.reason));
         // A race rejection (CHALLENGE_NOT_ACTIVE, etc.) means our snapshot is
-        // stale — re-read the trusted state rather than trusting local UI.
-        await _load();
+        // stale — re-subscribe to re-read the trusted state rather than
+        // trusting local UI.
+        await _subscribe();
       }
     } catch (_) {
       if (mounted) {
         _showSnack(ChallengeCopy.failureMessage('UNKNOWN'));
-        await _load();
+        await _subscribe();
       }
     } finally {
       if (mounted) {
@@ -337,7 +363,7 @@ class _ChallengeProgressScreenState extends State<ChallengeProgressScreen> {
     if (challenge == null) {
       return ChallengeErrorState(
         message: _error ?? ChallengeCopy.exploreError,
-        onRetry: _load,
+        onRetry: _subscribe,
       );
     }
     return _buildProgress(challenge);

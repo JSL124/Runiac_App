@@ -23,6 +23,20 @@ void main() {
     expect(repositorySource, contains("user.collection('blockedUsers')"));
   });
 
+  test('live owner-list watch keeps the same bounded query as the read', () {
+    final readerSource = File(
+      'lib/features/friends/data/friends_owner_list_reader.dart',
+    ).readAsStringSync();
+
+    expect(
+      readerSource,
+      contains(
+        ".orderBy('listSortTieBreaker')\n      .limit(30)\n      .snapshots()",
+      ),
+    );
+    expect(readerSource, contains('watchFriendsOwnerList'));
+  });
+
   test('maps the finalized root-level owner-list document shape', () {
     final user = mapFriendIdentityDocument(<String, Object?>{
       'uid': 'runner-b',

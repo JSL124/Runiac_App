@@ -21,7 +21,7 @@ class FriendsScreenController extends ChangeNotifier {
     );
     final ownerUid = _ownerUid;
     if (ownerUid != null) {
-      unawaited(loadOverview(ownerUid: ownerUid));
+      _subscribeToOverview(ownerUid);
     }
   }
 
@@ -38,6 +38,7 @@ class FriendsScreenController extends ChangeNotifier {
 
   final Map<String, Object> _inFlightActions = <String, Object>{};
   StreamSubscription<RuniacAuthUser?>? _authSubscription;
+  StreamSubscription<FriendsOverviewReadModel>? _overviewSubscription;
   FriendsOverviewReadModel? _overview;
   List<FriendUserReadModel>? _searchResults;
   String? _submittedSearch;
@@ -48,6 +49,7 @@ class FriendsScreenController extends ChangeNotifier {
   var _disposed = false;
   var _loadGeneration = 0;
   var _searchGeneration = 0;
+  var _overviewGeneration = 0;
 
   bool isActionInFlight(String actionKey) =>
       _inFlightActions.containsKey(actionKey);
@@ -170,13 +172,17 @@ class FriendsScreenController extends ChangeNotifier {
 
   Future<void> retry() async {
     final ownerUid = _ownerUid;
-    if (ownerUid != null) await loadOverview(ownerUid: ownerUid);
+    if (ownerUid == null) return;
+    _subscribeToOverview(ownerUid);
   }
 
   void resetForOwner(String? ownerUid) {
     if (_disposed) return;
     _loadGeneration += 1;
     _searchGeneration += 1;
+    _overviewGeneration += 1;
+    unawaited(_overviewSubscription?.cancel());
+    _overviewSubscription = null;
     _ownerUid = ownerUid;
     _overview = null;
     _searchResults = null;
@@ -194,8 +200,11 @@ class FriendsScreenController extends ChangeNotifier {
     _disposed = true;
     _loadGeneration += 1;
     _searchGeneration += 1;
+    _overviewGeneration += 1;
     unawaited(_authSubscription?.cancel());
     _authSubscription = null;
+    unawaited(_overviewSubscription?.cancel());
+    _overviewSubscription = null;
     super.dispose();
   }
 
@@ -205,8 +214,56 @@ class FriendsScreenController extends ChangeNotifier {
     if (nextOwnerUid == _ownerUid) return;
     resetForOwner(nextOwnerUid);
     if (nextOwnerUid != null) {
-      unawaited(loadOverview(ownerUid: nextOwnerUid));
+      _subscribeToOverview(nextOwnerUid);
     }
+  }
+
+  /// Cancels any previous overview subscription for the current owner and
+  /// starts a fresh live subscription via [FriendsRepository.watchFriendsOverview].
+  /// The one-shot [loadOverview] method remains available for explicit
+  /// refreshes (e.g. after a mutation callable succeeds); a subsequent
+  /// snapshot emission harmlessly overwrites the same data.
+  void _subscribeToOverview(String ownerUid) {
+    unawaited(_overviewSubscription?.cancel());
+    final generation = ++_overviewGeneration;
+    _isLoading = true;
+    _errorMessage = null;
+    _notifyListeners();
+    try {
+      _overviewSubscription = repository
+          .watchFriendsOverview(ownerUid: ownerUid)
+          .listen(
+            (result) {
+              if (!_isCurrentOverviewSubscription(ownerUid, generation)) {
+                return;
+              }
+              _overview = result;
+              _isLoading = false;
+              _errorMessage = null;
+              _notifyListeners();
+            },
+            onError: (Object error) {
+              if (!_isCurrentOverviewSubscription(ownerUid, generation)) {
+                return;
+              }
+              _isLoading = false;
+              _errorMessage = _messageFor(error);
+              _notifyListeners();
+            },
+          );
+    } catch (error) {
+      if (!_isCurrentOverviewSubscription(ownerUid, generation)) return;
+      _isLoading = false;
+      _errorMessage = _messageFor(error);
+      _notifyListeners();
+    }
+  }
+
+  bool _isCurrentOverviewSubscription(String ownerUid, int generation) {
+    return !_disposed &&
+        _ownerUid == ownerUid &&
+        authRepository.currentUser?.uid == ownerUid &&
+        generation == _overviewGeneration;
   }
 
   bool _isCurrentOwner(String ownerUid, {int? generation}) {
