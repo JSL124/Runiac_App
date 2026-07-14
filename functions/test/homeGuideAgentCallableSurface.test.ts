@@ -74,18 +74,22 @@ describe("homeGuideAgent callable emulator surface", { skip: process.env["FIREST
     assert.equal((await dailyDocument()).get("attemptCount"), 1);
   });
 
-  it("preserves a verified prior cache and returns local fallback when a changed fingerprint provider fails", async () => {
+  it("preserves prior cache when changed-fingerprint model copy needs replacement", async () => {
     const generatedProvider = new CountingProvider(validModelOutput());
     const generated = await injectableHandler(generatedProvider)(authenticatedRequest(validPayload()));
-    const failedProvider = new CountingProvider(() => Promise.reject(new Error("test provider failure")));
-    const failed = await injectableHandler(failedProvider)(authenticatedRequest({ ...validPayload(), planTitle: "Changed plan" }));
+    const rejectedProvider = new CountingProvider({
+      ...validModelOutput(),
+      planSummaryText: "Ask a doctor about distance progress.",
+      runningTipText: "Run 20% faster today.",
+    });
+    const failed = await injectableHandler(rejectedProvider)(authenticatedRequest({ ...validPayload(), planTitle: "Changed plan" }));
 
     assert.equal(generated.delivery, "generated");
     assert.equal(failed.source, "unavailable");
     assert.equal(failed.delivery, "fallback");
     assert.notDeepEqual(failed.messages, generated.messages);
     assert.deepEqual((await dailyDocument()).get("readyBundle"), generated.messages);
-    assert.equal(failedProvider.calls, 1);
+    assert.equal(rejectedProvider.calls, 1);
   });
 
   it("emits one privacy-safe Firebase structured decision log for generated, cache, and fallback results", async () => {
@@ -237,7 +241,7 @@ function injectableHandler(provider: HomeGuideModelProvider) {
   });
 }
 
-function validModelOutput(): unknown {
+function validModelOutput(): Readonly<Record<string, unknown>> {
   return {
     schemaVersion: 1,
     planSummaryText: "The planned session is ready.",

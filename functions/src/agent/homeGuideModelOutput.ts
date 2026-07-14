@@ -22,6 +22,7 @@ const INSTRUCTIONAL_TERMS = /\b(?:ignore|disregard|previous instructions?|system
 const MARKDOWN = /(?:^|\s)(?:#{1,6}\s|[-*+]\s|>\s)|[*_`~\[\]]/u;
 const URL = /(?:https?:\/\/|www\.)/iu;
 const MAX_MODEL_TEXT_LENGTH = 128;
+const GENERIC_PLAN_SUMMARY = /^your plan is ready[.!?]?$/iu;
 
 export type HomeGuideActionCode = (typeof ACTION_CODES)[number];
 export type HomeGuideProgressionLead = "baseline" | "improving" | "steady" | "mixed" | "needs_attention";
@@ -36,6 +37,7 @@ export type HomeGuideModelValidationIssue = "json_shape" | "policy_validation";
 export type HomeGuideModelValidationResult =
   | { readonly kind: "valid"; readonly output: HomeGuideModelOutput }
   | { readonly kind: "invalid"; readonly issue: HomeGuideModelValidationIssue };
+export type HomeGuideModelCopyStatus = "preserved" | "replaced";
 export type HomeGuideModelValidationInput = {
   readonly output: unknown;
   readonly evidence: HomeGuideEvidence;
@@ -125,6 +127,22 @@ export function renderHomeGuideBundle(input: HomeGuideRenderInput): HomeGuideBun
   return bundle;
 }
 
+export function homeGuideModelCopyStatus(
+  input: HomeGuideRenderInput,
+): HomeGuideModelCopyStatus {
+  if (input.output === null) return "replaced";
+  const { planSummaryText, runningTipText } = input.output;
+  if (
+    !isSafeModelText(planSummaryText)
+    || !isSafeModelText(runningTipText)
+    || GENERIC_PLAN_SUMMARY.test(planSummaryText.trim())
+  ) return "replaced";
+  return isSafeFinalMessage(renderPlanSummary(planSummaryText, input.planContext))
+    && isSafeFinalMessage(renderRunningTip(runningTipText, input.planContext))
+    ? "preserved"
+    : "replaced";
+}
+
 function renderPlanSummary(text: string, planContext: HomeGuidePlanDisplayContext | undefined): string {
   const safeText = isSafeModelText(text) ? text : "Your plan is ready.";
   if (planContext === undefined) return `Your plan is ready, superstar! ${safeText}`;
@@ -134,8 +152,10 @@ function renderPlanSummary(text: string, planContext: HomeGuidePlanDisplayContex
 function renderRunningTip(text: string, planContext: HomeGuidePlanDisplayContext | undefined): string {
   const safeText = isSafeModelText(text) ? text : "";
   if (planContext === undefined) return `Tiny trainer tip:${safeText.length === 0 ? "" : ` ${safeText}`}`;
-  const practicalTip = `Tiny trainer tip: ${intensityCue(planContext.intensity)}${safeText.length === 0 ? "" : ` ${safeText}`}`;
-  return isSafeFinalMessage(practicalTip) ? practicalTip : `Tiny trainer tip: ${intensityCue(planContext.intensity)}`;
+  const prefix = `Tiny trainer tip: ${intensityCue(planContext.intensity)}`;
+  if (safeText.length === 0) return prefix;
+  const availableCharacters = 160 - codePointLength(prefix) - 1;
+  return `${prefix} ${compactText(safeText, availableCharacters)}`;
 }
 
 function intensityCue(intensity: string): string {

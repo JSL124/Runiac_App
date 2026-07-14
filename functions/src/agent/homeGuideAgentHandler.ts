@@ -102,6 +102,15 @@ export function createHomeGuideAgentHandler(
             await finalizeHomeGuideAttemptFailure({ firestore, uid, now, reservation: outcome.reservation });
             return loggedFallbackResult(outcome.fallback, generated.fallbackCategory);
           case "generated": {
+            switch (generated.copyStatus) {
+              case "replaced":
+                await finalizeHomeGuideAttemptFailure({ firestore, uid, now, reservation: outcome.reservation });
+                return loggedFallbackResult(outcome.fallback, "policy_validation");
+              case "preserved":
+                break;
+              default:
+                return assertNever(generated.copyStatus);
+            }
             const finalized = await finalizeHomeGuideAttemptReady({
               firestore,
               uid,
