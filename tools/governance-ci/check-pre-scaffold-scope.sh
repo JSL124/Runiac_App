@@ -37,6 +37,7 @@ is_historical_backend_functions_path() {
     functions/src/index.ts|\
     functions/src/agent/homeGuideAgent.ts|\
     functions/src/agent/homeGuideAgentHandler.ts|\
+    functions/src/agent/homeGuideConsent.ts|\
     functions/src/agent/homeGuideContracts.ts|\
     functions/src/agent/homeGuideEvidence.ts|\
     functions/src/agent/homeGuideModel.ts|\
@@ -51,6 +52,7 @@ is_historical_backend_functions_path() {
     functions/src/agent/activityFeedbackModelOutput.ts|\
     functions/src/agent/activityFeedbackQuota.ts|\
     functions/src/agent/activityFeedbackTypes.ts|\
+    functions/src/security/appCheck.ts|\
     functions/src/feed/cleanup.ts|\
     functions/src/feed/contracts.ts|\
     functions/src/feed/engagement/engagement.ts|\
@@ -136,6 +138,7 @@ is_historical_backend_functions_path() {
     functions/test/feedPublishCore.test.ts|\
     functions/test/feedThumbnailCore.test.ts|\
     functions/test/homeGuideAgentCallableSurface.test.ts|\
+    functions/test/homeGuideConsent.test.ts|\
     functions/test/homeGuideAgentSurface.test.ts|\
     functions/test/homeGuideEvidence.test.ts|\
     functions/test/homeGuideEvidenceFixtures.ts|\
