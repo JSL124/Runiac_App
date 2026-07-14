@@ -50,6 +50,9 @@ abstract final class RuniacAssets {
   static const homeTodayPlanRunner =
       'assets/images/home/todays_plan_runner.png';
 
+  static const stretchingTrainerIdle =
+      'assets/images/stretching/stretching_trainer_idle.gif';
+
   static const homeDashboardStageRest =
       'assets/images/home/stages/dashboard_stage_rest.png';
 
