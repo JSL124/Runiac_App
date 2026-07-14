@@ -114,7 +114,10 @@ void main() {
     await tester.tap(
       find.byKey(const ValueKey<String>('challenge-history-c-succeeded')),
     );
-    await tester.pumpAndSettle();
+    // The earned ceremony loops forever (ambient glow + fireworks), so the
+    // route never settles — drive a bounded number of frames instead.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 700));
 
     expect(find.byType(ChallengeResultScreen), findsOneWidget);
     expect(find.text('You earned the 10K badge!'), findsOneWidget);

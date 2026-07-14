@@ -88,6 +88,39 @@ void main() {
     );
   });
 
+  testWidgets('tapping an earned badge replays that tier; unearned is inert',
+      (tester) async {
+    final tapped = <ChallengeTierId>[];
+    await tester.pumpWidget(
+      _harness(
+        AccountChallengeBadgeCase(
+          ownedTierIds: const <ChallengeTierId>{ChallengeTierId.k250},
+          onBadgeTap: tapped.add,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    ChallengeBadgeImage badgeFor(ChallengeTierId tier) {
+      return find
+          .byType(ChallengeBadgeImage)
+          .evaluate()
+          .map((element) => element.widget as ChallengeBadgeImage)
+          .firstWhere((badge) => badge.tierId == tier);
+    }
+
+    // Earned tier fires with its own tier.
+    await tester.tap(find.byWidget(badgeFor(ChallengeTierId.k250)));
+    expect(tapped, <ChallengeTierId>[ChallengeTierId.k250]);
+
+    // Unearned tier is not tappable.
+    await tester.tap(
+      find.byWidget(badgeFor(ChallengeTierId.k100)),
+      warnIfMissed: false,
+    );
+    expect(tapped, <ChallengeTierId>[ChallengeTierId.k250]);
+  });
+
   testWidgets('geometry and aspect ratio are preserved regardless of earned '
       'state', (tester) async {
     await tester.pumpWidget(

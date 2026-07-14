@@ -7,8 +7,11 @@ import '../../account/domain/repositories/user_profile_repository.dart';
 import '../../auth/domain/runiac_auth_service.dart';
 import '../../challenge/data/static_challenge_repository.dart';
 import '../../challenge/domain/challenge_notification_routing.dart';
+import '../../challenge/domain/models/challenge_enums.dart';
 import '../../challenge/domain/models/challenge_history.dart';
 import '../../challenge/domain/repositories/challenge_repository.dart';
+import '../../challenge/presentation/challenge_badge_flight.dart';
+import '../../challenge/presentation/challenge_ceremony_route.dart';
 import '../../challenge/presentation/challenge_explore_screen.dart';
 import '../../challenge/presentation/challenge_friend_picker_screen.dart';
 import '../../challenge/presentation/challenge_history_screen.dart';
@@ -39,9 +42,18 @@ import '../../you/presentation/data/weekly_workout_demo_snapshots.dart';
 import '../../you/presentation/weekly_workout_detail_screen.dart';
 import '../domain/guide/home_guide_agent.dart';
 import '../domain/guide/rule_based_home_guide_agent.dart';
+import 'plan_completion_ceremony.dart';
 import 'stage_map/home_stage_background_sequence.dart';
 import 'stage_map/home_stage_map.dart';
 import 'stage_map/home_stage_map_model.dart';
+
+// TODO(plan-completion): flip to true (or wire a real trigger) to visually
+// exercise `showPlanCompletionCeremony` locally. No backend-computed
+// "plan completed" signal exists yet (only per-workout completion is
+// tracked) — replace this stub once that signal is added, then remove the
+// flag and call `showPlanCompletionCeremony(context)` from the real
+// plan-completion detection path instead.
+const _kDebugShowPlanCompletionCeremony = false;
 
 class HomeTab extends StatefulWidget {
   const HomeTab({
@@ -143,6 +155,9 @@ class _HomeTabState extends State<HomeTab> with WidgetsBindingObserver {
     _loadActiveChallenge();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _maybePresentUnseenResult();
+      if (_kDebugShowPlanCompletionCeremony && mounted) {
+        showPlanCompletionCeremony(context);
+      }
     });
   }
 
@@ -182,16 +197,16 @@ class _HomeTabState extends State<HomeTab> with WidgetsBindingObserver {
     _presentingResult = true;
     try {
       await Navigator.of(context).push(
-        MaterialPageRoute<void>(
+        challengeCeremonyRoute<void>(
           fullscreenDialog: true,
           builder: (context) => ChallengeResultScreen(
             result: result,
             onClose: () => Navigator.of(context).pop(),
             onViewBadgeCollection: result.earnedBadge
-                ? () {
-                    Navigator.of(context).pop();
-                    _openAccountProfile(context);
-                  }
+                ? () => _openAccountProfileWithBadgeFlight(
+                    context,
+                    result.tierId,
+                  )
                 : null,
           ),
         ),
@@ -396,25 +411,22 @@ class _HomeTabState extends State<HomeTab> with WidgetsBindingObserver {
     );
   }
 
-  Future<void> _openAccountProfile(BuildContext context) async {
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (context) {
-          return AccountProfileScreen(
-            authRepository: widget.authRepository,
-            profileRepository: widget.profileRepository,
-            profilePersistenceRepository: widget.profilePersistenceRepository,
-            generatedPlanPersistenceRepository:
-                widget.generatedPlanPersistenceRepository,
-            userProgressRepository: widget.userProgressRepository,
-            leaderboardRepository: widget.leaderboardRepository,
-            challengeRepository: widget.challengeRepository,
-            onNotificationSettingsChanged: widget.onNotificationSettingsChanged,
-            onBack: () => Navigator.of(context).pop(),
-          );
-        },
-      ),
+  AccountProfileScreen _accountProfileScreen(BuildContext routeContext) {
+    return AccountProfileScreen(
+      authRepository: widget.authRepository,
+      profileRepository: widget.profileRepository,
+      profilePersistenceRepository: widget.profilePersistenceRepository,
+      generatedPlanPersistenceRepository:
+          widget.generatedPlanPersistenceRepository,
+      userProgressRepository: widget.userProgressRepository,
+      leaderboardRepository: widget.leaderboardRepository,
+      challengeRepository: widget.challengeRepository,
+      onNotificationSettingsChanged: widget.onNotificationSettingsChanged,
+      onBack: () => Navigator.of(routeContext).pop(),
     );
+  }
+
+  void _refreshAfterAccountProfile() {
     if (!mounted) {
       return;
     }
@@ -422,6 +434,79 @@ class _HomeTabState extends State<HomeTab> with WidgetsBindingObserver {
       _setUserProgressFuture(refresh: true);
       _setUserProfileFuture(refresh: true);
     });
+  }
+
+  Future<void> _openAccountProfile(BuildContext context) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => _accountProfileScreen(context),
+      ),
+    );
+    _refreshAfterAccountProfile();
+  }
+
+  /// Opens the Account badge collection with the "badge shrinks into the
+  /// Account page" flourish: the earned badge flies from the result screen into
+  /// the collection while the Account page fades/scales in. Replaces the result
+  /// route so backing out of Account returns Home. Falls back to a plain open
+  /// under reduced motion or when no root overlay is available.
+  Future<void> _openAccountProfileWithBadgeFlight(
+    BuildContext resultContext,
+    ChallengeTierId tierId,
+  ) async {
+    final mediaQuery = MediaQuery.maybeOf(resultContext);
+    final reduceMotion = mediaQuery?.disableAnimations ?? false;
+    final overlay = Navigator.of(resultContext, rootNavigator: true).overlay;
+
+    if (reduceMotion || mediaQuery == null || overlay == null) {
+      Navigator.of(resultContext).pop();
+      await _openAccountProfile(resultContext);
+      return;
+    }
+
+    final Size size = mediaQuery.size;
+    const double sourceSize = 176;
+    const double targetSize = 48;
+    final Rect source = Rect.fromCenter(
+      center: Offset(size.width / 2, size.height * 0.4),
+      width: sourceSize,
+      height: sourceSize,
+    );
+    final Rect target = Rect.fromCenter(
+      center: Offset(size.width / 2, mediaQuery.padding.top + 150),
+      width: targetSize,
+      height: targetSize,
+    );
+
+    flyChallengeBadgeToAccount(
+      overlay: overlay,
+      tierId: tierId,
+      source: source,
+      target: target,
+    );
+
+    await Navigator.of(resultContext).pushReplacement(
+      PageRouteBuilder<void>(
+        transitionDuration: const Duration(milliseconds: 460),
+        reverseTransitionDuration: const Duration(milliseconds: 300),
+        pageBuilder: (routeContext, _, _) =>
+            _accountProfileScreen(routeContext),
+        transitionsBuilder: (context, animation, _, child) {
+          final curved = CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutCubic,
+          );
+          return FadeTransition(
+            opacity: curved,
+            child: ScaleTransition(
+              scale: Tween<double>(begin: 0.94, end: 1).animate(curved),
+              child: child,
+            ),
+          );
+        },
+      ),
+    );
+    _refreshAfterAccountProfile();
   }
 
   void _openFriends(BuildContext context) {

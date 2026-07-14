@@ -105,7 +105,7 @@ class _EditScheduleSheetState extends State<_EditScheduleSheet> {
                                   timeLabel: _selectedTimeLabel!,
                                 ),
                               );
-                              Navigator.of(context).pop();
+                              Navigator.of(context).pop(true);
                             }
                           : null,
                       style: ElevatedButton.styleFrom(

@@ -92,27 +92,28 @@ class _HomeActiveChallengeControlState
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container(
-                    width: 62,
-                    height: 62,
-                    padding: const EdgeInsets.all(11),
-                    decoration: _homeStageControlDecoration(
-                      shape: BoxShape.circle,
-                    ),
-                    child: ChallengeBadgeImage(
-                      tierId: widget.display.tierId,
-                      size: 40,
-                    ),
+                  ChallengeBadgeImage(
+                    tierId: widget.display.tierId,
+                    size: 62,
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    value.isSettling ? ChallengeCopy.calculating : value.label,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      height: 1,
-                      fontFeatures: [FontFeature.tabularFigures()],
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: _homeStageControlDecoration(
+                      borderRadius: BorderRadius.circular(9),
+                    ),
+                    child: Text(
+                      value.isSettling ? ChallengeCopy.calculating : value.label,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        height: 1,
+                        fontFeatures: [FontFeature.tabularFigures()],
+                      ),
                     ),
                   ),
                 ],

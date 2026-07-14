@@ -4,9 +4,13 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/runiac_back_header.dart';
+import '../../../core/widgets/runiac_success_check_overlay.dart';
 import '../../auth/domain/runiac_auth_service.dart';
 import '../../challenge/domain/models/challenge_enums.dart';
+import '../../challenge/domain/models/challenge_history.dart';
 import '../../challenge/domain/repositories/challenge_repository.dart';
+import '../../challenge/presentation/challenge_ceremony_route.dart';
+import '../../challenge/presentation/challenge_result_screen.dart';
 import '../../leaderboard/data/static_leaderboard_repository.dart';
 import '../../leaderboard/domain/models/leaderboard_read_model.dart';
 import '../../leaderboard/domain/repositories/leaderboard_repository.dart';
@@ -69,6 +73,12 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
   /// (all full colour); a loaded set drives earned/unearned rendering.
   Set<ChallengeTierId>? _ownedTierIds;
 
+  /// The trusted terminal result per earned tier, projected from durable
+  /// history, so tapping a collected badge replays its ceremony with the real
+  /// backend-owned figures (never synthesized).
+  Map<ChallengeTierId, ChallengeResult> _resultByTier =
+      const <ChallengeTierId, ChallengeResult>{};
+
   @override
   void initState() {
     super.initState();
@@ -94,12 +104,44 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
     } catch (_) {
       owned = const <ChallengeTierId>{};
     }
+    // Durable history gives the trusted result to replay per tier. A failure
+    // here only disables badge taps; ownership display still stands.
+    final resultByTier = <ChallengeTierId, ChallengeResult>{};
+    try {
+      for (final entry in await repository.history()) {
+        if (entry.outcome == ChallengeParticipantStatus.succeeded) {
+          resultByTier.putIfAbsent(entry.tierId, entry.toResult);
+        }
+      }
+    } catch (_) {
+      // Leave the map empty; taps simply stay inert.
+    }
     if (!mounted) {
       return;
     }
     setState(() {
       _ownedTierIds = owned;
+      _resultByTier = resultByTier;
     });
+  }
+
+  /// Replays a collected tier's ceremony using the trusted result, with the
+  /// same "bloom open" transition as every other ceremony entry point. No
+  /// badge-collection action is offered (the viewer is already here).
+  void _replayTierCeremony(ChallengeTierId tierId) {
+    final result = _resultByTier[tierId];
+    if (result == null) {
+      return;
+    }
+    Navigator.of(context).push(
+      challengeCeremonyRoute<void>(
+        fullscreenDialog: true,
+        builder: (routeContext) => ChallengeResultScreen(
+          result: result,
+          onClose: () => Navigator.of(routeContext).pop(),
+        ),
+      ),
+    );
   }
 
   @override
@@ -243,6 +285,9 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
               ownedTierIds: widget.challengeRepository == null
                   ? null
                   : (_ownedTierIds ?? const <ChallengeTierId>{}),
+              onBadgeTap: widget.challengeRepository == null
+                  ? null
+                  : _replayTierCeremony,
             ),
             if (snapshot.previewNote.isNotEmpty) ...[
               const SizedBox(height: 14),
@@ -552,9 +597,7 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
     setState(() {
       _profileFuture = widget.profileRepository.loadUserProfile();
     });
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(const SnackBar(content: Text('Profile updated.')));
+    await showRuniacSuccessCheckOverlay(context, message: 'Profile updated.');
   }
 
   IconData _matchingSetupIcon(
