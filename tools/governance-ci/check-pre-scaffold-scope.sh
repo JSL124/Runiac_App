@@ -91,8 +91,11 @@ is_historical_backend_functions_path() {
     functions/src/leaderboard/leaderboardSeedWriteRecovery.ts|\
     functions/src/leaderboard/leaderboardTypes.ts|\
     functions/src/leaderboard/monthlyLeaderboard.ts|\
+    functions/src/leaderboard/monthlyLeaderboardOwnerFacts.ts|\
+    functions/src/leaderboard/monthlyLeaderboardPeriod.ts|\
     functions/src/leaderboard/monthlyLeaderboardPlanner.ts|\
     functions/src/leaderboard/monthlyLeaderboardWriter.ts|\
+    functions/src/leaderboard/monthlyLeaderboardWrites.ts|\
     functions/src/leaderboard/seedLeaderboardMockData.ts|\
     functions/src/leaderboard/singaporePlanningAreas.ts|\
     functions/src/plan/adaptiveEstimate.ts|\
