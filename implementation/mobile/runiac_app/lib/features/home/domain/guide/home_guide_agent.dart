@@ -7,6 +7,11 @@ import 'package:flutter/foundation.dart';
 /// (title, duration, steps, coach copy); nothing is backend-owned progression
 /// data (no XP, level, rank, streak, or leaderboard value is carried here or
 /// derivable from it).
+///
+/// When [isRestDay] is true the request describes a scheduled rest day rather
+/// than a workout: the workout fields ([workoutTitle], [durationMinutes],
+/// [intensityLabel], [description], [steps], [supportiveNote]) are empty and
+/// the guide composes rest-day encouragement instead of a workout summary.
 @immutable
 class HomeGuideRequest {
   const HomeGuideRequest({
@@ -20,6 +25,7 @@ class HomeGuideRequest {
     required this.description,
     this.steps = const <String>[],
     this.supportiveNote = '',
+    this.isRestDay = false,
   });
 
   /// Title of the active generated plan (e.g. `'First 10K Preparation'`).
@@ -51,6 +57,11 @@ class HomeGuideRequest {
 
   /// Encouraging coach note attached to the workout, when available.
   final String supportiveNote;
+
+  /// True when today is a scheduled rest day (no run session). The guide
+  /// composes rest-day encouragement instead of a workout summary; the
+  /// workout fields are empty in this case.
+  final bool isRestDay;
 }
 
 /// The three named messages the guide can present in its local cycle.

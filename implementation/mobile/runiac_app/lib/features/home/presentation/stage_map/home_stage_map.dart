@@ -755,6 +755,7 @@ class _HomeStageMapState extends State<HomeStageMap>
         child: _GuideSpeechBubble(
           key: ValueKey<String?>(model.currentStageId),
           state: cycle.state,
+          isRestDay: widget.guideRequest?.isRestDay ?? false,
           onAdvance: _advanceGuideBubble,
           onDismiss: _dismissGuideBubble,
         ),

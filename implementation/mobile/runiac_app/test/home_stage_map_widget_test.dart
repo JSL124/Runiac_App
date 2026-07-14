@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/app.dart';
 import 'package:runiac_app/core/characters/runner_character.dart';
 import 'package:runiac_app/features/home/domain/guide/home_guide_agent.dart';
+import 'package:runiac_app/features/home/domain/guide/rule_based_home_guide_agent.dart';
 import 'package:runiac_app/features/home/presentation/stage_map/home_stage_background_sequence.dart';
 import 'package:runiac_app/features/home/presentation/stage_map/home_stage_map.dart';
 import 'package:runiac_app/features/home/presentation/stage_map/home_stage_map_model.dart';
@@ -25,6 +26,18 @@ const HomeGuideRequest _guideRequest = HomeGuideRequest(
   intensityLabel: 'Gentle',
   description: 'A relaxed run to build your habit.',
   supportiveNote: 'Keep the pace conversational.',
+);
+
+const HomeGuideRequest _restGuideRequest = HomeGuideRequest(
+  planTitle: 'First 10K Preparation',
+  weekNumber: 1,
+  weekFocus: 'Build a steady habit',
+  dayLabel: 'Wed',
+  workoutTitle: '',
+  durationMinutes: 0,
+  intensityLabel: '',
+  description: '',
+  isRestDay: true,
 );
 
 BeginnerAdaptivePlanSnapshot _plan() {
@@ -591,6 +604,45 @@ void main() {
     const characterTapTarget = ValueKey<String>('homeGuideCharacterTapTarget');
     const bubbleBody = ValueKey<String>('homeGuideBubbleBody');
     const bubble = ValueKey<String>('homeGuideBubble');
+
+    testWidgets('shows rest-day encouragement on a rest day', (
+      WidgetTester tester,
+    ) async {
+      final plan = _plan();
+      final model = _model(plan);
+      const agent = RuleBasedHomeGuideAgent();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: HomeStageMap(
+              model: model,
+              onNotifications: () {},
+              onProfile: () {},
+              onTapTodayStage: () {},
+              guideAgent: agent,
+              guideRequest: _restGuideRequest,
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.byKey(bubble), findsOneWidget);
+      expect(find.textContaining('rest day'), findsOneWidget);
+      // Accessibility label is rest-flavored, not "Plan summary".
+      expect(
+        find.bySemanticsLabel('Rest-day cheer. Tap to hear a rest tip.'),
+        findsOneWidget,
+      );
+
+      // The rest bundle still cycles through its three messages on tap.
+      await tester.tap(find.byKey(bubbleBody));
+      await tester.pump();
+      expect(find.textContaining('Rest-day tip:'), findsOneWidget);
+    });
+
     testWidgets(
       'auto-opens summary and cycles tip, progression, then summary once',
       (WidgetTester tester) async {

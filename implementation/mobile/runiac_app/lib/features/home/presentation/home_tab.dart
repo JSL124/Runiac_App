@@ -741,14 +741,36 @@ class _HomeTabState extends State<HomeTab> with WidgetsBindingObserver {
       return null;
     }
     final weekIndex = model.currentWeekIndex!;
-    if (weekIndex >= plan.weeks.length) {
+    if (weekIndex >= plan.weeks.length || weekIndex >= model.sections.length) {
       return null;
     }
+    final week = plan.weeks[weekIndex];
+
+    // On a scheduled rest day the today stone is a rest stone (no run session
+    // claims it), so it carries no workout to summarise. Compose a rest-day
+    // request instead of suppressing the guide entirely.
+    final dayIndex = model.todayDayIndex;
+    final stones = model.sections[weekIndex].stones;
+    if (dayIndex != null &&
+        dayIndex < stones.length &&
+        !stones[dayIndex].isRun) {
+      return HomeGuideRequest(
+        planTitle: plan.title,
+        weekNumber: week.weekNumber,
+        weekFocus: week.focus,
+        dayLabel: stones[dayIndex].dayLabel ?? '',
+        workoutTitle: '',
+        durationMinutes: 0,
+        intensityLabel: '',
+        description: '',
+        isRestDay: true,
+      );
+    }
+
     final workout = _findTodayWorkout(plan, model);
     if (workout == null) {
       return null;
     }
-    final week = plan.weeks[weekIndex];
     return HomeGuideRequest(
       planTitle: plan.title,
       weekNumber: week.weekNumber,

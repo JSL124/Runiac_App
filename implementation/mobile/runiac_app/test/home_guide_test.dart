@@ -9,6 +9,7 @@ HomeGuideRequest _request({
   String intensityLabel = 'Gentle',
   String description = 'A relaxed run to build your habit.',
   String supportiveNote = 'Keep the pace conversational.',
+  bool isRestDay = false,
 }) {
   return HomeGuideRequest(
     planTitle: 'First 10K Preparation',
@@ -20,6 +21,7 @@ HomeGuideRequest _request({
     intensityLabel: intensityLabel,
     description: description,
     supportiveNote: supportiveNote,
+    isRestDay: isRestDay,
   );
 }
 
@@ -103,5 +105,55 @@ void main() {
         );
       },
     );
+
+    test('composes three distinct, display-safe rest-day messages', () async {
+      final bundle = await agent.explainTodayPlan(
+        _request(
+          isRestDay: true,
+          workoutTitle: '',
+          durationMinutes: 0,
+          intensityLabel: '',
+          description: '',
+          supportiveNote: '',
+        ),
+      );
+
+      expect(bundle.isFromRemoteAgent, isFalse);
+      expect(bundle.messages, hasLength(3));
+      expect(bundle.planSummary.kind, HomeGuideMessageKind.planSummary);
+      expect(bundle.runningTip.kind, HomeGuideMessageKind.runningTip);
+      expect(
+        bundle.progressionCheckIn.kind,
+        HomeGuideMessageKind.progressionCheckIn,
+      );
+      expect(
+        bundle.messages.map((message) => message.text.toLowerCase()).toSet(),
+        hasLength(3),
+      );
+      // Clearly rest-themed, not workout copy.
+      expect(bundle.planSummary.text.toLowerCase(), contains('rest day'));
+      expect(bundle.runningTip.text, startsWith('Rest-day tip:'));
+      expect(bundle.progressionCheckIn.text.toLowerCase(), contains('rest'));
+      // Shares the compact bubble contract with workout copy.
+      for (final message in bundle.messages) {
+        expect(message.text, message.text.trim());
+        expect(message.text, isNot(contains('\n')));
+        expect(message.text.runes.length, lessThanOrEqualTo(160));
+        expect(
+          RegExp(r'[.!?。！？]+').allMatches(message.text).length,
+          lessThanOrEqualTo(2),
+        );
+      }
+    });
+
+    test('rest-day copy is deterministic across calls', () async {
+      final request = _request(isRestDay: true);
+      final first = await agent.explainTodayPlan(request);
+      final second = await agent.explainTodayPlan(request);
+
+      expect(first.planSummary.text, second.planSummary.text);
+      expect(first.runningTip.text, second.runningTip.text);
+      expect(first.progressionCheckIn.text, second.progressionCheckIn.text);
+    });
   });
 }
