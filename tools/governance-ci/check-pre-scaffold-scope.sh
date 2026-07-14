@@ -139,6 +139,7 @@ is_historical_backend_functions_path() {
     functions/test/homeGuideAgentSurface.test.ts|\
     functions/test/homeGuideEvidence.test.ts|\
     functions/test/homeGuideEvidenceFixtures.ts|\
+    functions/test/homeGuideGeneratedCopyPolicy.test.ts|\
     functions/test/homeGuideModel.test.ts|\
     functions/test/homeGuideModelFixtures.ts|\
     functions/test/homeGuideQuotaCache.test.ts|\
@@ -327,6 +328,10 @@ is_feed_friends_emulator_backend_path() {
 
 is_adaptive_character_guidance_functions_path() {
   case "$1" in
+    functions/src/index.ts|\
+    functions/src/security/appCheck.ts|\
+    functions/src/agent/activityFeedbackAgent.ts|\
+    functions/src/agent/homeGuideConsent.ts|\
     functions/src/agent/homeGuideAgent.ts|\
     functions/src/agent/homeGuideAgentHandler.ts|\
     functions/src/agent/homeGuideContracts.ts|\
@@ -337,6 +342,7 @@ is_adaptive_character_guidance_functions_path() {
     functions/src/agent/homeGuideQuotaFingerprint.ts|\
     functions/src/progression/refreshStreakStatus.ts|\
     functions/test/homeGuideAgentCallableSurface.test.ts|\
+    functions/test/homeGuideConsent.test.ts|\
     functions/test/homeGuideAgentSurface.test.ts|\
     functions/test/homeGuideEvidence.test.ts|\
     functions/test/homeGuideEvidenceFixtures.ts|\

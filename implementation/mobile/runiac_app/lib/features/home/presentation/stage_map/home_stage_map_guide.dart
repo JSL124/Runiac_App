@@ -6,6 +6,7 @@ class _GuideSpeechBubble extends StatelessWidget {
     required this.isRestDay,
     required this.onAdvance,
     required this.onDismiss,
+    this.onManageDataUse,
     super.key,
   });
 
@@ -13,6 +14,7 @@ class _GuideSpeechBubble extends StatelessWidget {
   final bool isRestDay;
   final VoidCallback onAdvance;
   final VoidCallback onDismiss;
+  final VoidCallback? onManageDataUse;
 
   static const String _fallbackErrorText =
       "Let's get moving — you've got this today.";
@@ -29,6 +31,7 @@ class _GuideSpeechBubble extends StatelessWidget {
       fallbackText: _fallbackErrorText,
       onAdvance: onAdvance,
       onDismiss: onDismiss,
+      onManageDataUse: onManageDataUse,
     );
   }
 }
@@ -42,6 +45,7 @@ class _GuideBubbleCard extends StatelessWidget {
     required this.fallbackText,
     required this.onAdvance,
     required this.onDismiss,
+    this.onManageDataUse,
     super.key,
   });
 
@@ -52,6 +56,7 @@ class _GuideBubbleCard extends StatelessWidget {
   final String fallbackText;
   final VoidCallback onAdvance;
   final VoidCallback onDismiss;
+  final VoidCallback? onManageDataUse;
 
   String get _bodyText {
     if (isLoading) {
@@ -133,6 +138,24 @@ class _GuideBubbleCard extends StatelessWidget {
               ),
             ),
           ),
+          if (onManageDataUse != null)
+            SizedBox(
+              width: 44,
+              height: 44,
+              child: Semantics(
+                button: true,
+                label: 'Manage guide data use',
+                child: IconButton(
+                  tooltip: 'Manage guide data use',
+                  onPressed: onManageDataUse,
+                  icon: const Icon(
+                    Icons.shield_outlined,
+                    size: 19,
+                    color: RuniacColors.textSecondary,
+                  ),
+                ),
+              ),
+            ),
           SizedBox(
             width: 44,
             height: 44,
@@ -154,6 +177,70 @@ class _GuideBubbleCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _GuideConsentCard extends StatelessWidget {
+  const _GuideConsentCard({required this.onReview});
+
+  final VoidCallback onReview;
+
+  @override
+  Widget build(BuildContext context) {
+    const message = Text(
+      'Personalize your guide with recent run totals.',
+      style: TextStyle(
+        fontSize: 13,
+        height: 1.35,
+        fontWeight: FontWeight.w600,
+        color: RuniacColors.textPrimary,
+      ),
+    );
+    final reviewButton = TextButton(
+      onPressed: onReview,
+      child: Semantics(
+        button: true,
+        label: 'Review guide data use',
+        child: const ExcludeSemantics(child: Text('Review')),
+      ),
+    );
+    return Container(
+      key: const ValueKey<String>('homeGuideConsentCard'),
+      padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
+      decoration: BoxDecoration(
+        color: RuniacColors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: RuniacColors.cardBorder, width: 1.2),
+        boxShadow: const [
+          BoxShadow(
+            color: RuniacColors.softCardShadow,
+            blurRadius: 16,
+            offset: Offset(0, 6),
+          ),
+        ],
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final largeText = MediaQuery.textScalerOf(context).scale(13) > 18;
+          if (constraints.maxWidth < 280 || largeText) {
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                message,
+                Align(alignment: Alignment.centerRight, child: reviewButton),
+              ],
+            );
+          }
+          return Row(
+            children: [
+              Expanded(child: message),
+              reviewButton,
+            ],
+          );
+        },
       ),
     );
   }

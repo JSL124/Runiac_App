@@ -25,6 +25,8 @@ import '../../features/friends/data/firebase_friends_repository.dart';
 import '../../features/friends/data/static_friends_repository.dart';
 import '../../features/friends/domain/repositories/friends_repository.dart';
 import '../../features/home/data/home_guide_agent_factory.dart';
+import '../../features/home/data/cloud_function_home_guide_consent_repository.dart';
+import '../../features/home/domain/guide/home_guide_consent.dart';
 import '../../features/home/domain/guide/home_guide_agent.dart';
 import '../../features/leaderboard/data/firestore_leaderboard_repository.dart';
 import '../../features/leaderboard/data/static_leaderboard_repository.dart';
@@ -75,6 +77,8 @@ class RuniacFirebaseBootstrap {
         return RuniacFirebaseBootstrapResult(
           runRepository: RunRepositoryFactory.create(config: runtimeConfig),
           homeGuideAgent: HomeGuideAgentFactory.create(config: runtimeConfig),
+          homeGuideConsentRepository:
+              const AlwaysGrantedHomeGuideConsentRepository(),
           authRepository: const NonProductionAuthRepository(),
           activityHistoryRepository: const StaticActivityHistoryRepository(),
           userProgressRepository: const StaticUserProgressRepository(),
@@ -117,6 +121,7 @@ class RuniacFirebaseBootstrap {
       return RuniacFirebaseBootstrapResult(
         runRepository: RunRepositoryFactory.create(config: runtimeConfig),
         homeGuideAgent: HomeGuideAgentFactory.create(config: runtimeConfig),
+        homeGuideConsentRepository: CloudFunctionHomeGuideConsentRepository(),
         authRepository: authRepository,
         challengeRepository: challengeRepository,
         challengeResultPresenter: _challengeResultPresenter(
@@ -193,6 +198,7 @@ class RuniacFirebaseBootstrap {
     return RuniacFirebaseBootstrapResult(
       runRepository: RunRepositoryFactory.create(config: runtimeConfig),
       homeGuideAgent: HomeGuideAgentFactory.create(config: runtimeConfig),
+      homeGuideConsentRepository: CloudFunctionHomeGuideConsentRepository(),
       authRepository: authRepository,
       challengeRepository: challengeRepository,
       challengeResultPresenter: _challengeResultPresenter(
@@ -301,6 +307,7 @@ class RuniacFirebaseBootstrapResult {
   const RuniacFirebaseBootstrapResult({
     required this.runRepository,
     required this.homeGuideAgent,
+    required this.homeGuideConsentRepository,
     required this.authRepository,
     required this.activityHistoryRepository,
     required this.userProgressRepository,
@@ -321,6 +328,7 @@ class RuniacFirebaseBootstrapResult {
 
   final RunRepository runRepository;
   final HomeGuideAgent homeGuideAgent;
+  final HomeGuideConsentRepository homeGuideConsentRepository;
   final RuniacAuthRepository authRepository;
   final ActivityHistoryRepository activityHistoryRepository;
   final UserProgressRepository userProgressRepository;

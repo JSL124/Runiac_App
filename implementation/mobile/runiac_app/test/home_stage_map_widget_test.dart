@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/app.dart';
 import 'package:runiac_app/core/characters/runner_character.dart';
 import 'package:runiac_app/features/home/domain/guide/home_guide_agent.dart';
+import 'package:runiac_app/features/home/domain/guide/home_guide_consent.dart';
 import 'package:runiac_app/features/home/domain/guide/rule_based_home_guide_agent.dart';
 import 'package:runiac_app/features/home/presentation/stage_map/home_stage_background_sequence.dart';
 import 'package:runiac_app/features/home/presentation/stage_map/home_stage_map.dart';
@@ -604,6 +605,111 @@ void main() {
     const characterTapTarget = ValueKey<String>('homeGuideCharacterTapTarget');
     const bubbleBody = ValueKey<String>('homeGuideBubbleBody');
     const bubble = ValueKey<String>('homeGuideBubble');
+
+    testWidgets('does not call the remote guide before consent', (
+      WidgetTester tester,
+    ) async {
+      final agent = _ControlledGuideAgent();
+      var reviewTaps = 0;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: HomeStageMap(
+              model: _model(_plan()),
+              onNotifications: () {},
+              onProfile: () {},
+              onTapTodayStage: () {},
+              guideAgent: agent,
+              guideRequest: _guideRequest,
+              guideConsentStatus: HomeGuideConsentStatus.notGranted,
+              onReviewGuideDataUse: () => reviewTaps += 1,
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(agent.invocationCount, 0);
+      expect(
+        find.text('Personalize your guide with recent run totals.'),
+        findsOneWidget,
+      );
+      expect(find.bySemanticsLabel('Review guide data use'), findsOneWidget);
+
+      await tester.tap(find.bySemanticsLabel('Review guide data use'));
+      expect(reviewTaps, 1);
+    });
+
+    testWidgets('keeps the consent card usable on a narrow large-text screen', (
+      WidgetTester tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MediaQuery(
+            data: const MediaQueryData(
+              size: Size(390, 844),
+              textScaler: TextScaler.linear(1.6),
+            ),
+            child: Scaffold(
+              body: HomeStageMap(
+                model: _model(_plan()),
+                onNotifications: () {},
+                onProfile: () {},
+                onTapTodayStage: () {},
+                guideAgent: _ControlledGuideAgent(),
+                guideRequest: _guideRequest,
+                guideConsentStatus: HomeGuideConsentStatus.notGranted,
+                onReviewGuideDataUse: () {},
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(
+        find.byKey(const ValueKey<String>('homeGuideConsentCard')),
+        findsOneWidget,
+      );
+      expect(find.bySemanticsLabel('Review guide data use'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('keeps consent management available after consent', (
+      WidgetTester tester,
+    ) async {
+      final agent = _ControlledGuideAgent();
+      var manageTaps = 0;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: HomeStageMap(
+              model: _model(_plan()),
+              onNotifications: () {},
+              onProfile: () {},
+              onTapTodayStage: () {},
+              guideAgent: agent,
+              guideRequest: _guideRequest,
+              guideConsentStatus: HomeGuideConsentStatus.granted,
+              onReviewGuideDataUse: () => manageTaps += 1,
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      agent.completeNext(_guideBundle());
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.bySemanticsLabel('Manage guide data use'), findsOneWidget);
+      await tester.tap(find.bySemanticsLabel('Manage guide data use'));
+      expect(manageTaps, 1);
+    });
 
     testWidgets('shows rest-day encouragement on a rest day', (
       WidgetTester tester,

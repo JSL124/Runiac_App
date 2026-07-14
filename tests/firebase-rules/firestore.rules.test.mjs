@@ -33,6 +33,26 @@ import {
 } from './support/firestore_rules_test_support.mjs';
 
 describe('owner-owned client records', () => {
+  it('denies all direct Home Guide consent reads and writes', async () => {
+    await seed('homeGuideConsents/alice', {
+      ownerUid: 'alice',
+      schemaVersion: 1,
+      disclosureVersion: 1,
+      granted: true,
+    });
+
+    const alice = dbFor('alice');
+    await assertFails(getDoc(doc(alice, 'homeGuideConsents/alice')));
+    await assertFails(
+      setDoc(doc(alice, 'homeGuideConsents/alice'), {
+        ownerUid: 'alice',
+        schemaVersion: 1,
+        disclosureVersion: 1,
+        granted: false,
+      }),
+    );
+  });
+
   it('allows an owner to write safe user profile fields', async () => {
     const alice = dbFor('alice');
 

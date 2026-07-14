@@ -22,6 +22,7 @@ import {
   singaporeDayKey,
   type HomeGuideBundle,
 } from "./homeGuideQuotaCache.js";
+import { requireCurrentHomeGuideConsent } from "./homeGuideConsent.js";
 
 const FALLBACK_MESSAGES: HomeGuideBundle = {
   planSummary: "Your plan is ready, superstar! Let's keep today comfy and fun.",
@@ -61,6 +62,7 @@ export function createHomeGuideAgentHandler(
     const planContext = parsePlanContext(request.data);
     const now = dependencies.now();
     const firestore = dependencies.firestore();
+    await requireCurrentHomeGuideConsent(firestore, uid);
     const [activePlan, activities] = await Promise.all([
       firestore.collection("generatedPlans").doc(uid).get(),
       readTrustedHomeGuideActivities(firestore, uid, now),

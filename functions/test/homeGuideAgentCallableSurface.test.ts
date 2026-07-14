@@ -23,7 +23,14 @@ before(() => {
 beforeEach(async () => {
   await clearCollection("activities");
   await clearCollection("agentGuidanceDaily");
+  await clearCollection("homeGuideConsents");
   await firestore.doc(`generatedPlans/${USER_UID}`).delete();
+  await firestore.doc(`homeGuideConsents/${USER_UID}`).set({
+    ownerUid: USER_UID,
+    schemaVersion: 1,
+    disclosureVersion: 1,
+    granted: true,
+  });
 });
 
 describe("homeGuideAgent callable emulator surface", { skip: process.env["FIRESTORE_EMULATOR_HOST"] === undefined }, () => {
@@ -224,7 +231,9 @@ function validPayload(): Record<string, unknown> {
   };
 }
 
-async function clearCollection(collectionName: "activities" | "agentGuidanceDaily"): Promise<void> {
+async function clearCollection(
+  collectionName: "activities" | "agentGuidanceDaily" | "homeGuideConsents",
+): Promise<void> {
   const snapshot = await firestore.collection(collectionName).get();
   await Promise.all(snapshot.docs.map((document) => document.ref.delete()));
 }

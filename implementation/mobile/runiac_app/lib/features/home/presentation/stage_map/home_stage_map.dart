@@ -10,6 +10,7 @@ import '../../../challenge/domain/challenge_countdown.dart';
 import '../../../challenge/presentation/home_active_challenge_display.dart';
 import '../../../challenge/presentation/widgets/challenge_badge_image.dart';
 import '../../domain/guide/home_guide_agent.dart';
+import '../../domain/guide/home_guide_consent.dart';
 import 'home_stage_background_sequence.dart';
 import 'home_guide_cycle.dart';
 import 'home_stage_map_model.dart';
@@ -102,6 +103,8 @@ class HomeStageMap extends StatefulWidget {
     this.profileLoading = false,
     this.guideAgent,
     this.guideRequest,
+    this.guideConsentStatus = HomeGuideConsentStatus.granted,
+    this.onReviewGuideDataUse,
     this.onOpenFriends,
     this.onOpenChallenge,
     this.activeChallenge,
@@ -133,6 +136,8 @@ class HomeStageMap extends StatefulWidget {
   /// Rebuilt by the caller (see `home_tab.dart`) whenever the active plan or
   /// today's stage changes.
   final HomeGuideRequest? guideRequest;
+  final HomeGuideConsentStatus guideConsentStatus;
+  final VoidCallback? onReviewGuideDataUse;
 
   /// Opens the Friends screen when the Social menu's Friends item is tapped.
   /// Optional so existing call sites and tests compile unchanged; when null
@@ -233,7 +238,10 @@ class _HomeStageMapState extends State<HomeStageMap>
     final stageId = _hasTodayStage(model) ? model!.currentStageId : null;
     final agent = widget.guideAgent;
     final request = widget.guideRequest;
-    if (stageId == null || agent == null || request == null) {
+    if (stageId == null ||
+        agent == null ||
+        request == null ||
+        widget.guideConsentStatus != HomeGuideConsentStatus.granted) {
       _clearGuideCycle();
       return;
     }
@@ -709,11 +717,7 @@ class _HomeStageMapState extends State<HomeStageMap>
     int n,
     double totalHeight,
   ) {
-    final cycle = _guideCycle;
-    if (cycle == null ||
-        !cycle.state.isVisible ||
-        _walking ||
-        !_hasTodayStage(model)) {
+    if (_walking || !_hasTodayStage(model)) {
       return null;
     }
     if (widget.guideAgent == null || widget.guideRequest == null) {
@@ -746,6 +750,28 @@ class _HomeStageMapState extends State<HomeStageMap>
     final safeTop = MediaQuery.paddingOf(context).top + horizontalSafeInset;
     final maxBubbleHeight = math.max(1.0, charTopY - gap - safeTop);
 
+    if (widget.guideConsentStatus != HomeGuideConsentStatus.granted) {
+      final onReview = widget.onReviewGuideDataUse;
+      if (widget.guideConsentStatus == HomeGuideConsentStatus.unknown ||
+          onReview == null) {
+        return null;
+      }
+      return Positioned(
+        left: left,
+        width: bubbleWidth,
+        bottom: (totalHeight - (charTopY - gap)).clamp(0.0, totalHeight),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: maxBubbleHeight),
+          child: _GuideConsentCard(onReview: onReview),
+        ),
+      );
+    }
+
+    final cycle = _guideCycle;
+    if (cycle == null || !cycle.state.isVisible) {
+      return null;
+    }
+
     return Positioned(
       left: left,
       width: bubbleWidth,
@@ -758,6 +784,7 @@ class _HomeStageMapState extends State<HomeStageMap>
           isRestDay: widget.guideRequest?.isRestDay ?? false,
           onAdvance: _advanceGuideBubble,
           onDismiss: _dismissGuideBubble,
+          onManageDataUse: widget.onReviewGuideDataUse,
         ),
       ),
     );
@@ -849,7 +876,11 @@ class _HomeStageMapState extends State<HomeStageMap>
                 child: GestureDetector(
                   key: const ValueKey<String>('homeGuideCharacterTapTarget'),
                   behavior: HitTestBehavior.opaque,
-                  onTap: _toggleGuideBubble,
+                  onTap:
+                      widget.guideConsentStatus ==
+                          HomeGuideConsentStatus.granted
+                      ? _toggleGuideBubble
+                      : widget.onReviewGuideDataUse,
                   child: const SizedBox.expand(),
                 ),
               ),

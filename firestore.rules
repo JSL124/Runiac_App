@@ -758,6 +758,10 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    match /homeGuideConsents/{uid} {
+      allow read, write: if false;
+    }
+
     match /activities/{activityId} {
       allow read: if isSignedIn() && resource.data.ownerUid == request.auth.uid;
       allow create: if isSignedIn()

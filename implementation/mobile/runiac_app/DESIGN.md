@@ -175,6 +175,15 @@ All spacing derives from a base of 4px.
 - **Motion**: message readability never depends on typing or transition animation. Reduced motion keeps the existing guide/pulse behavior disabled and shows the full resolved bubble copy immediately.
 - **Boundary**: the bubble only renders server/local-agent supplied display copy. Flutter does not calculate progression, activity facts, XP, level, rank, streak, or leaderboard data, and does not persist guide-cycle state.
 
+### Home Guide Data Consent
+
+- **Entry state**: authenticated Firebase-backed Home Guide sessions do not start a remote guide request until the current account has granted the current disclosure version. Before consent, the character area shows a compact `Review data use` action instead of loading or fallback copy.
+- **Disclosure**: the review dialog states that Runiac uses only recent validated-run aggregates (frequency, distance, active time, and eligible pace) to personalize the three guide messages. It explicitly states that raw GPS routes, activity IDs, exact timestamps, profile data, and health data are not sent to the AI provider.
+- **Choice and withdrawal**: `Allow personalized guide` is an explicit action and dismissal/`Not now` does not grant consent. A 44x44 `Manage guide data use` shield control remains available on the guide bubble after consent; the same dialog lets the runner stop future aggregate processing at any time.
+- **Failure state**: consent read/write failures keep the remote guide disabled and show a short retryable error without changing consent locally. Revocation clears the active remote bundle immediately.
+- **Accessibility**: review, allow, decline, manage, and stop actions have explicit semantic labels and retain at least 44x44 touch targets. The dialog copy remains readable at text scale 1.3 without horizontal overflow.
+- **Boundary**: the server owns the versioned consent record and checks it before reading activities or reserving provider quota. Flutter may request a consent change but never infers consent from UI visibility, cached guide copy, subscription status, or user role.
+
 ### Home Social Dropdown
 
 - **Structure**: an always-visible `Social` trigger pill sits directly below the header profile badge, reusing the shared dark translucent header control decoration (radius 999, white border, soft shadow) with a `Social` label and a drop-down/up arrow. Tapping it expands a compact white menu card (radius 18, `cardBorder` border, `softCardShadow`, ~180px wide) right-aligned below the header with two rows: `Friends` (`people_outline`) and `Challenge` (`emoji_events_outlined`).

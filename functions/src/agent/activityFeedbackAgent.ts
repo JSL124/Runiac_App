@@ -7,6 +7,7 @@ import {
   createActivityFeedbackModelProvider,
   type ActivityFeedbackModelProvider,
 } from "./activityFeedbackModel.js";
+import { shouldEnforceAppCheck } from "../security/appCheck.js";
 
 const OPENAI_API_KEY = defineSecret("OPENAI_API_KEY");
 
@@ -17,7 +18,11 @@ const handler = createActivityFeedbackAgentHandler({
 });
 
 export const activityFeedbackAgent = onCall(
-  { region: "asia-southeast1", secrets: [OPENAI_API_KEY] },
+  {
+    region: "asia-southeast1",
+    secrets: [OPENAI_API_KEY],
+    enforceAppCheck: shouldEnforceAppCheck(),
+  },
   handler,
 );
 

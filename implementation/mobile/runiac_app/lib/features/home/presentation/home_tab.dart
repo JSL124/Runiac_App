@@ -41,6 +41,7 @@ import '../../you/presentation/adapters/generated_plan_you_display_adapter.dart'
 import '../../you/presentation/data/weekly_workout_demo_snapshots.dart';
 import '../../you/presentation/weekly_workout_detail_screen.dart';
 import '../domain/guide/home_guide_agent.dart';
+import '../domain/guide/home_guide_consent.dart';
 import '../domain/guide/rule_based_home_guide_agent.dart';
 import 'plan_completion_ceremony.dart';
 import 'stage_map/home_stage_background_sequence.dart';
@@ -74,6 +75,8 @@ class HomeTab extends StatefulWidget {
     this.generatedPlanProgress,
     this.currentDate,
     this.homeGuideAgent = const RuleBasedHomeGuideAgent(),
+    this.homeGuideConsentRepository =
+        const AlwaysGrantedHomeGuideConsentRepository(),
     super.key,
     this.enableForegroundGps = true,
     this.activeRunSessionCoordinator,
@@ -112,6 +115,7 @@ class HomeTab extends StatefulWidget {
   /// agent when Firebase is active. Display-only: never computes or writes
   /// XP, level, rank, streak, or leaderboard values.
   final HomeGuideAgent homeGuideAgent;
+  final HomeGuideConsentRepository homeGuideConsentRepository;
 
   /// Backend-owned generated-plan progress (completed scheduled-workout ids),
   /// forwarded from the shell. Display-only.
@@ -146,12 +150,16 @@ class _HomeTabState extends State<HomeTab> with WidgetsBindingObserver {
   /// Guards the one-shot Result presentation against re-entrancy (a resume
   /// while a result route is already open must not stack a second one).
   bool _presentingResult = false;
+  HomeGuideConsentStatus _homeGuideConsentStatus =
+      HomeGuideConsentStatus.unknown;
+  String? _homeGuideConsentOwnerUid;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _setUserProfileFuture(refresh: false);
+    _loadHomeGuideConsent();
     _loadActiveChallenge();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _maybePresentUnseenResult();
@@ -203,10 +211,8 @@ class _HomeTabState extends State<HomeTab> with WidgetsBindingObserver {
             result: result,
             onClose: () => Navigator.of(context).pop(),
             onViewBadgeCollection: result.earnedBadge
-                ? () => _openAccountProfileWithBadgeFlight(
-                    context,
-                    result.tierId,
-                  )
+                ? () =>
+                      _openAccountProfileWithBadgeFlight(context, result.tierId)
                 : null,
           ),
         ),
@@ -278,6 +284,11 @@ class _HomeTabState extends State<HomeTab> with WidgetsBindingObserver {
         _currentOwnerUid != _userProfileOwnerUid) {
       _setUserProfileFuture(refresh: false);
     }
+    if (oldWidget.homeGuideConsentRepository !=
+            widget.homeGuideConsentRepository ||
+        _currentOwnerUid != _homeGuideConsentOwnerUid) {
+      _loadHomeGuideConsent();
+    }
   }
 
   @override
@@ -291,6 +302,74 @@ class _HomeTabState extends State<HomeTab> with WidgetsBindingObserver {
   }
 
   String? get _currentOwnerUid => widget.authRepository.currentUser?.uid;
+
+  Future<void> _loadHomeGuideConsent() async {
+    final ownerUid = _currentOwnerUid;
+    _homeGuideConsentOwnerUid = ownerUid;
+    _homeGuideConsentStatus = HomeGuideConsentStatus.unknown;
+    final status = await widget.homeGuideConsentRepository.read();
+    if (!mounted || ownerUid != _currentOwnerUid) {
+      return;
+    }
+    setState(() {
+      _homeGuideConsentStatus = status;
+    });
+  }
+
+  Future<void> _reviewHomeGuideDataUse(BuildContext context) async {
+    final currentlyGranted =
+        _homeGuideConsentStatus == HomeGuideConsentStatus.granted;
+    final grant = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Personalized guide data use'),
+        content: const Text(
+          'Runiac uses totals from your recent validated runs — frequency, '
+          'distance, active time, and eligible pace — to personalize today’s '
+          'three guide messages. Raw GPS routes, activity IDs, exact '
+          'timestamps, profile data, and health data are not sent to the AI '
+          'provider. You can stop this at any time.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(
+              dialogContext,
+            ).pop(currentlyGranted ? false : null),
+            child: Text(currentlyGranted ? 'Stop using data' : 'Not now'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(
+              currentlyGranted ? 'Keep enabled' : 'Allow personalized guide',
+            ),
+          ),
+        ],
+      ),
+    );
+    if (grant == null || !mounted) {
+      return;
+    }
+    try {
+      final status = await widget.homeGuideConsentRepository.update(
+        granted: grant,
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _homeGuideConsentStatus = status;
+      });
+    } catch (_) {
+      if (!mounted || !context.mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not update guide data use. Please try again.'),
+        ),
+      );
+    }
+  }
 
   void _ensureUserProgressFutureForCurrentOwner() {
     if (!_userProgressFutureInitialized ||
@@ -882,6 +961,8 @@ class _HomeTabState extends State<HomeTab> with WidgetsBindingObserver {
       onTapTodayStage: () => _openTodayWorkout(context),
       guideAgent: widget.homeGuideAgent,
       guideRequest: guideRequest,
+      guideConsentStatus: _homeGuideConsentStatus,
+      onReviewGuideDataUse: () => _reviewHomeGuideDataUse(context),
     );
   }
 }
