@@ -97,6 +97,7 @@ flutter:
     - assets/images/home/todays_plan_runner.png
     - assets/images/home/stages/
     - assets/images/home/backgrounds/
+    - assets/images/stretching/
     - assets/images/friends/friends_add.png
     - assets/images/friends/friends_pending.png
     - assets/images/leaderboard/share_rank_card_background.png
