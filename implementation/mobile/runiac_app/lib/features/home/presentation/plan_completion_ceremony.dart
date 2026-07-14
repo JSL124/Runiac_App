@@ -107,13 +107,14 @@ class _PlanCompletionOverlayState extends State<_PlanCompletionOverlay>
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     SizedBox(
-                      width: 140,
-                      height: 140,
+                      width: 220,
+                      height: 132,
                       child: AnimatedOpacity(
                         opacity: _revealed ? 1 : 0,
                         duration: const Duration(milliseconds: 260),
                         child: Lottie.asset(
                           RuniacAssets.planCompleteBurstLottie,
+                          fit: BoxFit.contain,
                           repeat: false,
                           errorBuilder: (context, error, stackTrace) =>
                               const SizedBox.shrink(),
@@ -136,10 +137,11 @@ class _PlanCompletionOverlayState extends State<_PlanCompletionOverlay>
                     ),
                     const SizedBox(height: 24),
                     SizedBox(
-                      width: 180,
-                      height: 180,
+                      width: 280,
+                      height: 70,
                       child: Lottie.asset(
                         RuniacAssets.planCompleteGaugeLottie,
+                        fit: BoxFit.contain,
                         repeat: false,
                         errorBuilder: (context, error, stackTrace) =>
                             const SizedBox.shrink(),
