@@ -6,6 +6,7 @@ import 'package:runiac_app/core/theme/runiac_colors.dart';
 import '../domain/models/complete_run_result.dart';
 import '../domain/models/local_run_completion_payload.dart';
 import 'cool_down_guide_screen.dart';
+import 'models/stretch_exercise.dart';
 import 'view_summary_screen.dart';
 
 const _rBlue = Color(0xFF2F51C8);
@@ -477,7 +478,7 @@ class _ActivityListCard extends StatelessWidget {
             _CoolDownActivityRow(
               icon: Icons.self_improvement,
               title: 'Stretching',
-              meta: '5-8 min · 5 exercises',
+              meta: '~${(stretchTotalSeconds / 60).ceil()} min · ${stretchExercises.length} exercises',
               layout: layout,
             ),
           ],

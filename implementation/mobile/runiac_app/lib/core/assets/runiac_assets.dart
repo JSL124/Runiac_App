@@ -53,6 +53,30 @@ abstract final class RuniacAssets {
   static const stretchingTrainerIdle =
       'assets/images/stretching/stretching_trainer_idle.gif';
 
+  static const stretchingStandingCalf =
+      'assets/images/stretching/standing_calf_stretch.gif';
+
+  static const stretchingStandingQuadriceps =
+      'assets/images/stretching/standing_quadriceps_stretch.gif';
+
+  static const stretchingHamstring =
+      'assets/images/stretching/hamstring_stretch.gif';
+
+  static const stretchingHipFlexorLunge =
+      'assets/images/stretching/hip_flexor_lunge_stretch.gif';
+
+  static const stretchingFigureFourGlute =
+      'assets/images/stretching/figure_four_glute_stretch.gif';
+
+  static const stretchingAdductorSideLunge =
+      'assets/images/stretching/adductor_side_lunge_stretch.gif';
+
+  static const stretchingKneelingShin =
+      'assets/images/stretching/kneeling_shin_stretch.gif';
+
+  static const stretchingChildsPose =
+      'assets/images/stretching/childs_pose.gif';
+
   static const homeDashboardStageRest =
       'assets/images/home/stages/dashboard_stage_rest.png';
 

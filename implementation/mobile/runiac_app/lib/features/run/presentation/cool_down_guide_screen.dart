@@ -7,6 +7,7 @@ import 'package:runiac_app/core/theme/runiac_colors.dart';
 
 import '../domain/models/complete_run_result.dart';
 import '../domain/models/local_run_completion_payload.dart';
+import 'models/stretch_exercise.dart';
 import 'view_summary_screen.dart';
 
 part 'cool_down_models.dart';
@@ -15,6 +16,7 @@ part 'cool_down_timer.dart';
 part 'cool_down_content.dart';
 part 'cool_down_cards.dart';
 part 'cool_down_actions.dart';
+part 'cool_down_stretch_exercise.dart';
 
 const _navy = Color(0xFF2F51C8);
 const _orange = Color(0xFFFB6414);
@@ -56,12 +58,12 @@ class CoolDownGuideScreen extends StatefulWidget {
 
 class _CoolDownGuideScreenState extends State<CoolDownGuideScreen> {
   static const _walkDuration = 180;
-  static const _stretchDuration = 300;
 
   late CoolDownPhase _phase;
   late int _secondsLeft;
   late _CoolDownStatus _status;
   late Set<CoolDownPhase> _completedPhases;
+  int _stretchStepIndex = 0;
   Timer? _timer;
 
   @override
@@ -90,11 +92,17 @@ class _CoolDownGuideScreenState extends State<CoolDownGuideScreen> {
   }
 
   int _durationFor(CoolDownPhase phase) {
-    return phase == CoolDownPhase.walk ? _walkDuration : _stretchDuration;
+    return phase == CoolDownPhase.walk
+        ? _walkDuration
+        : stretchSteps[_stretchStepIndex].seconds;
   }
 
   void _resetFromWidget() {
+    _stretchStepIndex = 0;
     _phase = widget.initialPhase;
+    if (_phase == CoolDownPhase.stretch && widget.initialSecondsLeft == 0) {
+      _stretchStepIndex = stretchSteps.length - 1;
+    }
     _secondsLeft = widget.initialSecondsLeft ?? _durationFor(_phase);
     _status = _secondsLeft <= 0
         ? _CoolDownStatus.complete
@@ -122,9 +130,15 @@ class _CoolDownGuideScreenState extends State<CoolDownGuideScreen> {
       setState(() {
         _secondsLeft -= 1;
         if (_secondsLeft <= 0) {
-          _secondsLeft = 0;
-          _status = _CoolDownStatus.complete;
-          _completedPhases.add(_phase);
+          if (_phase == CoolDownPhase.stretch &&
+              _stretchStepIndex < stretchSteps.length - 1) {
+            _stretchStepIndex += 1;
+            _secondsLeft = stretchSteps[_stretchStepIndex].seconds;
+          } else {
+            _secondsLeft = 0;
+            _status = _CoolDownStatus.complete;
+            _completedPhases.add(_phase);
+          }
         }
       });
       _scheduleTick();
@@ -149,8 +163,25 @@ class _CoolDownGuideScreenState extends State<CoolDownGuideScreen> {
       setState(() {
         _completedPhases.add(CoolDownPhase.walk);
         _phase = CoolDownPhase.stretch;
-        _secondsLeft = _stretchDuration;
+        _stretchStepIndex = 0;
+        _secondsLeft = stretchSteps.first.seconds;
         _status = _CoolDownStatus.running;
+      });
+      _scheduleTick();
+      return;
+    }
+
+    if (_phase == CoolDownPhase.stretch &&
+        _status == _CoolDownStatus.running) {
+      setState(() {
+        if (_stretchStepIndex < stretchSteps.length - 1) {
+          _stretchStepIndex += 1;
+          _secondsLeft = stretchSteps[_stretchStepIndex].seconds;
+        } else {
+          _secondsLeft = 0;
+          _status = _CoolDownStatus.complete;
+          _completedPhases.add(_phase);
+        }
       });
       _scheduleTick();
       return;
@@ -196,7 +227,7 @@ class _CoolDownGuideScreenState extends State<CoolDownGuideScreen> {
       ],
       completeTitle: 'Cool-down complete',
       completeHelper: 'That’s your recovery done. Great work today.',
-      bottomLabel: 'Finish',
+      bottomLabel: 'Next stretch',
       completeCta: 'Finish',
       icon: Icons.self_improvement_rounded,
     );
@@ -243,18 +274,29 @@ class _CoolDownGuideScreenState extends State<CoolDownGuideScreen> {
                         ),
                       ),
                       SizedBox(height: compact ? 8 : 18),
-                      _CoolDownStepIdentity(
-                        icon: content.icon,
-                        title: content.title,
-                        helper: content.helper,
-                        compact: compact,
-                      ),
-                      SizedBox(height: compact ? 8 : 16),
-                      if (_status == _CoolDownStatus.complete &&
-                          _phase == CoolDownPhase.walk)
-                        const _CoolDownUpNextCard()
-                      else if (_status != _CoolDownStatus.complete)
-                        _CoolDownTipsCard(tips: _copy.tips, compact: compact),
+                      if (_phase == CoolDownPhase.stretch &&
+                          _status != _CoolDownStatus.complete)
+                        _StretchExerciseView(
+                          step: stretchSteps[_stretchStepIndex],
+                          compact: compact,
+                        )
+                      else ...[
+                        _CoolDownStepIdentity(
+                          icon: content.icon,
+                          title: content.title,
+                          helper: content.helper,
+                          compact: compact,
+                        ),
+                        SizedBox(height: compact ? 8 : 16),
+                        if (_status == _CoolDownStatus.complete &&
+                            _phase == CoolDownPhase.walk)
+                          const _CoolDownUpNextCard()
+                        else if (_status != _CoolDownStatus.complete)
+                          _CoolDownTipsCard(
+                            tips: _copy.tips,
+                            compact: compact,
+                          ),
+                      ],
                       const Spacer(),
                       if (_status == _CoolDownStatus.complete)
                         _CoolDownPrimaryCta(

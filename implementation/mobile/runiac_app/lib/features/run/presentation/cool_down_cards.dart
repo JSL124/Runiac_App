@@ -24,11 +24,11 @@ class _CoolDownUpNextCard extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                const Text(
                   'UP NEXT',
                   style: TextStyle(
                     color: _navy45,
@@ -37,8 +37,8 @@ class _CoolDownUpNextCard extends StatelessWidget {
                     letterSpacing: 1,
                   ),
                 ),
-                SizedBox(height: 6),
-                Text(
+                const SizedBox(height: 6),
+                const Text(
                   'Gentle Stretch',
                   style: TextStyle(
                     color: _navy,
@@ -47,10 +47,10 @@ class _CoolDownUpNextCard extends StatelessWidget {
                     letterSpacing: -0.4,
                   ),
                 ),
-                SizedBox(height: 2),
+                const SizedBox(height: 2),
                 Text(
-                  '5 min · gentle recovery',
-                  style: TextStyle(
+                  '~${(stretchTotalSeconds / 60).ceil()} min · gentle recovery',
+                  style: const TextStyle(
                     color: _navy60,
                     fontSize: 12.5,
                     fontWeight: FontWeight.w500,

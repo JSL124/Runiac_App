@@ -657,7 +657,7 @@ void main() {
     expect(find.text('Slow Walk'), findsOneWidget);
     expect(find.text('3-5 min'), findsOneWidget);
     expect(find.text('Stretching'), findsOneWidget);
-    expect(find.text('5-8 min · 5 exercises'), findsOneWidget);
+    expect(find.text('~6 min · 8 exercises'), findsOneWidget);
     expect(find.text('Start Cool-down'), findsOneWidget);
     expect(find.text('Skip to Summary'), findsOneWidget);
     expect(find.byType(SingleChildScrollView), findsNothing);
@@ -3426,7 +3426,9 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.widgetWithText(FilledButton, 'Next'));
       await tester.pumpAndSettle();
-      await tester.pump(const Duration(minutes: 5));
+      // Pump the full guided stretch duration (350s = 5:50 across all 14
+      // steps) so the phase auto-completes and the CTA becomes 'Finish'.
+      await tester.pump(const Duration(seconds: 350));
       await tester.pumpAndSettle();
       await tester.tap(find.widgetWithText(FilledButton, 'Finish'));
       await tester.pumpAndSettle();
@@ -3471,24 +3473,32 @@ void main() {
     expect(find.text('Gentle Stretch'), findsNothing);
 
     await tester.tap(find.widgetWithText(FilledButton, 'Next'));
-    await tester.pumpAndSettle();
+    await tester.pump();
 
-    expect(find.text('05:00'), findsOneWidget);
-    expect(find.text('Gentle Stretch'), findsOneWidget);
+    expect(find.text('00:25'), findsOneWidget);
+    expect(find.text('Stretch 1 of 8'), findsOneWidget);
+    expect(find.text('Left'), findsOneWidget);
+    expect(find.text('Standing Calf Stretch'), findsOneWidget);
+    expect(find.text('Calf stretch'), findsOneWidget);
+    expect(find.text('Gentle Stretch'), findsNothing);
     expect(find.text('Slow Walk'), findsNothing);
+    expect(find.text('Tips'), findsNothing);
+    expect(find.text('Stretch slowly — never bounce.'), findsNothing);
+    expect(find.text('Keep your breathing steady.'), findsNothing);
+    expect(find.text('Stop if anything feels sharp.'), findsNothing);
 
     await tester.tap(find.byTooltip('Pause'));
-    await tester.pumpAndSettle();
+    await tester.pump();
 
     expect(find.text('PAUSED'), findsOneWidget);
-    expect(find.text('05:00'), findsOneWidget);
+    expect(find.text('00:25'), findsOneWidget);
     expect(find.byTooltip('Resume'), findsOneWidget);
 
     await tester.tap(find.text('Walk'));
-    await tester.pumpAndSettle();
+    await tester.pump();
 
     expect(find.text('PAUSED'), findsOneWidget);
-    expect(find.text('05:00'), findsOneWidget);
+    expect(find.text('00:25'), findsOneWidget);
 
     await tester.pumpWidget(
       const MaterialApp(
@@ -3518,7 +3528,7 @@ void main() {
     );
     expect(find.text('UP NEXT'), findsOneWidget);
     expect(find.text('Gentle Stretch'), findsOneWidget);
-    expect(find.text('5 min · gentle recovery'), findsOneWidget);
+    expect(find.text('~6 min · gentle recovery'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'Next'), findsOneWidget);
     expect(
       tester
@@ -3534,21 +3544,110 @@ void main() {
     expect(find.text('Walk complete'), findsOneWidget);
 
     await tester.tap(find.widgetWithText(FilledButton, 'Next'));
-    await tester.pumpAndSettle();
+    await tester.pump();
 
-    expect(find.text('05:00'), findsOneWidget);
-    expect(find.text('Gentle Stretch'), findsOneWidget);
-    expect(find.text('Ease through each stretch and breathe.'), findsOneWidget);
-    expect(find.text('Stretch slowly — never bounce.'), findsOneWidget);
-    expect(find.text('Keep your breathing steady.'), findsOneWidget);
-    expect(find.text('Stop if anything feels sharp.'), findsOneWidget);
+    expect(find.text('00:25'), findsOneWidget);
+    expect(find.text('Stretch 1 of 8'), findsOneWidget);
+    expect(find.text('Left'), findsOneWidget);
+    expect(find.text('Standing Calf Stretch'), findsOneWidget);
+    expect(find.text('Calf stretch'), findsOneWidget);
+    expect(find.text('Gentle Stretch'), findsNothing);
+    expect(find.text('Tips'), findsNothing);
+    expect(find.text('Ease through each stretch and breathe.'), findsNothing);
+    expect(find.text('Stretch slowly — never bounce.'), findsNothing);
+    expect(find.text('Keep your breathing steady.'), findsNothing);
+    expect(find.text('Stop if anything feels sharp.'), findsNothing);
 
-    await tester.tap(find.widgetWithText(FilledButton, 'Finish'));
-    await tester.pumpAndSettle();
+    // Manual advance via the primary CTA (now 'Next stretch' while running)
+    // moves from the left-side step to the right-side step of the same
+    // exercise.
+    await tester.tap(find.widgetWithText(FilledButton, 'Next stretch'));
+    await tester.pump();
 
-    expect(find.text('Gentle Stretch'), findsOneWidget);
+    expect(find.text('00:25'), findsOneWidget);
+    expect(find.text('Stretch 1 of 8'), findsOneWidget);
+    expect(find.text('Right'), findsOneWidget);
+    expect(find.text('Standing Calf Stretch'), findsOneWidget);
     expect(find.text('Saturday Morning Run'), findsNothing);
 
+    // A dedicated real-timer instance covers auto-advance-on-expiry, the
+    // no-side exercises (no Left/Right pill), and the full 14-step sequence
+    // through to phase completion.
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: CoolDownGuideScreen(
+          timerEnabled: true,
+          initialPhase: CoolDownPhase.stretch,
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('00:25'), findsOneWidget);
+    expect(find.text('Stretch 1 of 8'), findsOneWidget);
+    expect(find.text('Left'), findsOneWidget);
+    expect(find.text('Standing Calf Stretch'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(FilledButton, 'Next stretch'));
+    await tester.pump();
+
+    expect(find.text('Stretch 1 of 8'), findsOneWidget);
+    expect(find.text('Right'), findsOneWidget);
+
+    // Letting the real timer run out the full 25s auto-advances to the next
+    // step without any tap.
+    await tester.pump(const Duration(seconds: 25));
+    await tester.pump();
+
+    expect(find.text('Stretch 2 of 8'), findsOneWidget);
+    expect(find.text('Left'), findsOneWidget);
+    expect(find.text('Standing Quadriceps Stretch'), findsOneWidget);
+    expect(find.text('Front thigh stretch'), findsOneWidget);
+    expect(find.text('00:25'), findsOneWidget);
+
+    // Manually advance the remaining per-side steps (index 2 through 11)
+    // to reach the first no-side exercise, Kneeling Shin Stretch (index 12).
+    for (var i = 0; i < 10; i++) {
+      await tester.tap(find.widgetWithText(FilledButton, 'Next stretch'));
+      await tester.pump();
+    }
+
+    expect(find.text('Stretch 7 of 8'), findsOneWidget);
+    expect(find.text('Kneeling Shin Stretch'), findsOneWidget);
+    expect(find.text('Shin stretch'), findsOneWidget);
+    expect(find.text('00:20'), findsOneWidget);
+    expect(find.text('Left'), findsNothing);
+    expect(find.text('Right'), findsNothing);
+
+    await tester.tap(find.widgetWithText(FilledButton, 'Next stretch'));
+    await tester.pump();
+
+    expect(find.text('Stretch 8 of 8'), findsOneWidget);
+    expect(find.text("Child's Pose"), findsOneWidget);
+    expect(find.text('Lower back and spine release'), findsOneWidget);
+    expect(find.text('00:30'), findsOneWidget);
+    expect(find.text('Left'), findsNothing);
+    expect(find.text('Right'), findsNothing);
+
+    // Tapping the CTA on the final running step completes the phase.
+    await tester.tap(find.widgetWithText(FilledButton, 'Next stretch'));
+    await tester.pump();
+
+    expect(find.text('Cool-down complete'), findsOneWidget);
+    expect(
+      find.text('That’s your recovery done. Great work today.'),
+      findsOneWidget,
+    );
+    expect(find.widgetWithText(FilledButton, 'Finish'), findsOneWidget);
+    expect(find.text('UP NEXT'), findsNothing);
+    expect(find.byType(SingleChildScrollView), findsNothing);
+    expect(find.byType(ListView), findsNothing);
+    expect(find.textContaining(_forbiddenRealActivitySaveCopy), findsNothing);
+
+    // Deep-link contract: rendering directly into an already-complete
+    // stretch phase (initialSecondsLeft: 0) pins the last stretch step and
+    // shows the complete state immediately. Checked here, before the real
+    // navigation below replaces this widget tree with ViewSummaryScreen.
     await tester.pumpWidget(
       const MaterialApp(
         home: CoolDownGuideScreen(
@@ -3561,15 +3660,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Cool-down complete'), findsOneWidget);
-    expect(
-      find.text('That’s your recovery done. Great work today.'),
-      findsOneWidget,
-    );
-    expect(find.widgetWithText(FilledButton, 'Finish'), findsOneWidget);
-    expect(find.text('UP NEXT'), findsNothing);
-    expect(find.byType(SingleChildScrollView), findsNothing);
-    expect(find.byType(ListView), findsNothing);
-    expect(find.textContaining(_forbiddenRealActivitySaveCopy), findsNothing);
 
     await tester.tap(find.widgetWithText(FilledButton, 'Finish'));
     await tester.pumpAndSettle();
