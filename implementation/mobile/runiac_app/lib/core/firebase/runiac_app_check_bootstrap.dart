@@ -9,15 +9,20 @@ typedef RuniacAppCheckActivator =
 class RuniacAppCheckBootstrap {
   const RuniacAppCheckBootstrap._();
 
+  /// [debugToken] pins the App Check debug token instead of letting the SDK
+  /// mint a random per-device one, so a token already registered in the
+  /// Firebase console keeps working across devices. Runtime-only (dart-define),
+  /// never committed, and ignored outside debug providers.
   static Future<void> activate({
     required bool useDebugProviders,
+    String? debugToken,
     RuniacAppCheckActivator? activator,
   }) {
     final androidProvider = useDebugProviders
-        ? const AndroidDebugProvider()
+        ? AndroidDebugProvider(debugToken: debugToken)
         : const AndroidPlayIntegrityProvider();
     final appleProvider = useDebugProviders
-        ? const AppleDebugProvider()
+        ? AppleDebugProvider(debugToken: debugToken)
         : const AppleAppAttestWithDeviceCheckFallbackProvider();
     return (activator ?? _activateFirebase)(
       androidProvider: androidProvider,

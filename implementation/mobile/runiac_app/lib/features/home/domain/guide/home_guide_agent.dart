@@ -120,9 +120,16 @@ class HomeGuideBundle extends HomeGuideMessage {
     required String progressionCheckIn,
     required bool isFromRemoteAgent,
   }) {
+    // The progression line may carry server-computed comparison figures (e.g.
+    // "+2.5 km, +50% vs last week"), so it is allowed a little more length and
+    // an extra clause than the plan-summary and running-tip lines.
     if (!_isDisplaySafe(planSummary) ||
         !_isDisplaySafe(runningTip) ||
-        !_isDisplaySafe(progressionCheckIn)) {
+        !_isDisplaySafe(
+          progressionCheckIn,
+          maxRunes: _progressionMaxRunes,
+          maxSentences: _progressionMaxSentences,
+        )) {
       return null;
     }
     final normalizedPlanSummary = _normalizedPurpose(planSummary);
@@ -167,14 +174,27 @@ class HomeGuideBundle extends HomeGuideMessage {
     <HomeGuideMessage>[planSummary, runningTip, progressionCheckIn],
   );
 
-  static bool _isDisplaySafe(String text) {
+  /// Default compact bubble limits for the plan-summary and running-tip lines.
+  static const int _defaultMaxRunes = 160;
+  static const int _defaultMaxSentences = 2;
+
+  /// Relaxed limits for the progression line, which may include comparison
+  /// figures and a short "what to improve" clause.
+  static const int _progressionMaxRunes = 220;
+  static const int _progressionMaxSentences = 3;
+
+  static bool _isDisplaySafe(
+    String text, {
+    int maxRunes = _defaultMaxRunes,
+    int maxSentences = _defaultMaxSentences,
+  }) {
     if (text.isEmpty || text != text.trim() || text.contains('\n')) {
       return false;
     }
-    if (text.runes.length > 160) {
+    if (text.runes.length > maxRunes) {
       return false;
     }
-    return _sentenceEndingPattern.allMatches(text).length <= 2;
+    return _sentenceEndingPattern.allMatches(text).length <= maxSentences;
   }
 
   static final RegExp _sentenceEndingPattern = RegExp(r'[.!?。！？]+');

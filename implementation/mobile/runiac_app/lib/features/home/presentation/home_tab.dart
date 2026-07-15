@@ -40,9 +40,11 @@ import '../../you/presentation/current_session_user_progress.dart';
 import '../../you/presentation/adapters/generated_plan_you_display_adapter.dart';
 import '../../you/presentation/data/weekly_workout_demo_snapshots.dart';
 import '../../you/presentation/weekly_workout_detail_screen.dart';
+import '../data/local_home_guide_consent_prompt_store.dart';
 import '../domain/guide/home_guide_agent.dart';
 import '../domain/guide/home_guide_consent.dart';
 import '../domain/guide/rule_based_home_guide_agent.dart';
+import 'guide/home_guide_consent_sheet.dart';
 import 'plan_completion_ceremony.dart';
 import 'stage_map/home_stage_background_sequence.dart';
 import 'stage_map/home_stage_map.dart';
@@ -77,6 +79,8 @@ class HomeTab extends StatefulWidget {
     this.homeGuideAgent = const RuleBasedHomeGuideAgent(),
     this.homeGuideConsentRepository =
         const AlwaysGrantedHomeGuideConsentRepository(),
+    this.consentPromptStore =
+        const SharedPreferencesHomeGuideConsentPromptStore(),
     super.key,
     this.enableForegroundGps = true,
     this.activeRunSessionCoordinator,
@@ -116,6 +120,11 @@ class HomeTab extends StatefulWidget {
   /// XP, level, rank, streak, or leaderboard values.
   final HomeGuideAgent homeGuideAgent;
   final HomeGuideConsentRepository homeGuideConsentRepository;
+
+  /// Local, device-only "consent sheet already shown" flag. Decides whether the
+  /// one-time data-use consent sheet auto-presents on first Home entry. Never
+  /// grants consent or influences any backend-owned value.
+  final HomeGuideConsentPromptStore consentPromptStore;
 
   /// Backend-owned generated-plan progress (completed scheduled-workout ids),
   /// forwarded from the shell. Display-only.
@@ -314,44 +323,38 @@ class _HomeTabState extends State<HomeTab> with WidgetsBindingObserver {
     setState(() {
       _homeGuideConsentStatus = status;
     });
+    if (status != HomeGuideConsentStatus.granted) {
+      await _maybePromptHomeGuideConsent(ownerUid);
+    }
   }
 
-  Future<void> _reviewHomeGuideDataUse(BuildContext context) async {
-    final currentlyGranted =
-        _homeGuideConsentStatus == HomeGuideConsentStatus.granted;
-    final grant = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Personalized guide data use'),
-        content: const Text(
-          'Runiac uses totals from your recent validated runs — frequency, '
-          'distance, active time, and eligible pace — to personalize today’s '
-          'three guide messages. Raw GPS routes, activity IDs, exact '
-          'timestamps, profile data, and health data are not sent to the AI '
-          'provider. You can stop this at any time.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(
-              dialogContext,
-            ).pop(currentlyGranted ? false : null),
-            child: Text(currentlyGranted ? 'Stop using data' : 'Not now'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: Text(
-              currentlyGranted ? 'Keep enabled' : 'Allow personalized guide',
-            ),
-          ),
-        ],
-      ),
-    );
-    if (grant == null || !mounted) {
+  /// Presents the one-time consent sheet on the first Home entry for [ownerUid]
+  /// when consent has not been granted. The decision is written server-side;
+  /// declining hides the guide (consent can be revisited in Account →
+  /// Privacy & Safety).
+  Future<void> _maybePromptHomeGuideConsent(String? ownerUid) async {
+    if (await widget.consentPromptStore.hasPrompted(uid: ownerUid)) {
       return;
     }
+    if (!mounted || ownerUid != _currentOwnerUid) {
+      return;
+    }
+    final granted = await showHomeGuideConsentSheet(context);
+    if (granted == null) {
+      // No explicit decision (defensive): re-ask on the next Home entry.
+      return;
+    }
+    await widget.consentPromptStore.markPrompted(uid: ownerUid);
+    if (!mounted || ownerUid != _currentOwnerUid) {
+      return;
+    }
+    await _applyHomeGuideConsentDecision(granted);
+  }
+
+  Future<void> _applyHomeGuideConsentDecision(bool granted) async {
     try {
       final status = await widget.homeGuideConsentRepository.update(
-        granted: grant,
+        granted: granted,
       );
       if (!mounted) {
         return;
@@ -501,6 +504,7 @@ class _HomeTabState extends State<HomeTab> with WidgetsBindingObserver {
       leaderboardRepository: widget.leaderboardRepository,
       challengeRepository: widget.challengeRepository,
       onNotificationSettingsChanged: widget.onNotificationSettingsChanged,
+      homeGuideConsentRepository: widget.homeGuideConsentRepository,
       onBack: () => Navigator.of(routeContext).pop(),
     );
   }
@@ -513,6 +517,10 @@ class _HomeTabState extends State<HomeTab> with WidgetsBindingObserver {
       _setUserProgressFuture(refresh: true);
       _setUserProfileFuture(refresh: true);
     });
+    // Consent may have changed in Account → Privacy & Safety; re-read it so the
+    // guide reappears or hides to match. Does not re-prompt (the sheet is
+    // one-time and its flag is already set once shown).
+    _loadHomeGuideConsent();
   }
 
   Future<void> _openAccountProfile(BuildContext context) async {
@@ -962,7 +970,6 @@ class _HomeTabState extends State<HomeTab> with WidgetsBindingObserver {
       guideAgent: widget.homeGuideAgent,
       guideRequest: guideRequest,
       guideConsentStatus: _homeGuideConsentStatus,
-      onReviewGuideDataUse: () => _reviewHomeGuideDataUse(context),
     );
   }
 }

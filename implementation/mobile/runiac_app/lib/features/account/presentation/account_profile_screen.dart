@@ -11,6 +11,7 @@ import '../../challenge/domain/models/challenge_history.dart';
 import '../../challenge/domain/repositories/challenge_repository.dart';
 import '../../challenge/presentation/challenge_ceremony_route.dart';
 import '../../challenge/presentation/challenge_result_screen.dart';
+import '../../home/domain/guide/home_guide_consent.dart';
 import '../../leaderboard/data/static_leaderboard_repository.dart';
 import '../../leaderboard/domain/models/leaderboard_read_model.dart';
 import '../../leaderboard/domain/repositories/leaderboard_repository.dart';
@@ -38,6 +39,8 @@ class AccountProfileScreen extends StatefulWidget {
     this.challengeRepository,
     this.snapshot = accountProfileDemoSnapshot,
     this.onNotificationSettingsChanged,
+    this.homeGuideConsentRepository =
+        const AlwaysGrantedHomeGuideConsentRepository(),
     super.key,
   });
 
@@ -56,6 +59,11 @@ class AccountProfileScreen extends StatefulWidget {
   final VoidCallback onBack;
   final AccountProfileDemoSnapshot snapshot;
   final VoidCallback? onNotificationSettingsChanged;
+
+  /// Consent source for the Privacy & Safety personalized-guide control.
+  /// Defaults to the always-granted stub for previews/tests; the composition
+  /// root threads the Cloud Function-backed repository via `HomeTab`.
+  final HomeGuideConsentRepository homeGuideConsentRepository;
 
   @override
   State<AccountProfileScreen> createState() => _AccountProfileScreenState();
@@ -305,6 +313,7 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
               authRepository: widget.authRepository,
               onNotificationSettingsChanged:
                   widget.onNotificationSettingsChanged,
+              homeGuideConsentRepository: widget.homeGuideConsentRepository,
               onEditProfile: profile == null
                   ? null
                   : () => _openEditProfile(profile),

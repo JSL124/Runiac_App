@@ -141,8 +141,9 @@ class FirestoreUserProfileRepository implements UserProfileRepository {
         ),
         UserProfileManageRowReadModel(
           title: 'Privacy & Safety',
-          subtitle: 'Routes, activity, and sharing controls',
-          snackBarMessage: 'Privacy & Safety preview is coming soon.',
+          subtitle: 'Personalized guide data use and sharing controls',
+          snackBarMessage: '',
+          action: UserProfileManageAction.privacySafety,
         ),
         UserProfileManageRowReadModel(
           title: 'Notifications',

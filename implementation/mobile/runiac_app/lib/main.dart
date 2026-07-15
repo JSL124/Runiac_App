@@ -29,8 +29,12 @@ Future<void> main() async {
   );
   if (runtimeConfig.useFirebaseEmulator ||
       runtimeConfig.useProductionFirebase) {
+    const appCheckDebugToken = String.fromEnvironment(
+      'RUNIAC_APPCHECK_DEBUG_TOKEN',
+    );
     await RuniacAppCheckBootstrap.activate(
       useDebugProviders: kDebugMode || runtimeConfig.useFirebaseEmulator,
+      debugToken: appCheckDebugToken.isEmpty ? null : appCheckDebugToken,
     );
   }
 

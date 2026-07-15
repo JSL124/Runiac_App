@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/runiac_colors.dart';
 import '../../../../core/widgets/runiac_buttons.dart';
 import '../../../auth/domain/runiac_auth_service.dart';
+import '../../../home/domain/guide/home_guide_consent.dart';
 import '../../domain/models/user_profile_read_model.dart';
 import '../data/account_profile_demo_snapshots.dart';
 import '../notification_center_screen.dart';
+import '../privacy_safety_screen.dart';
 import '../watch_health_apps_screen.dart';
 import 'account_sign_out_row.dart';
 
@@ -65,6 +67,8 @@ class AccountManageSection extends StatelessWidget {
     required this.authRepository,
     this.onEditProfile,
     this.onNotificationSettingsChanged,
+    this.homeGuideConsentRepository =
+        const AlwaysGrantedHomeGuideConsentRepository(),
     super.key,
   });
 
@@ -72,6 +76,7 @@ class AccountManageSection extends StatelessWidget {
   final RuniacAuthRepository authRepository;
   final VoidCallback? onEditProfile;
   final VoidCallback? onNotificationSettingsChanged;
+  final HomeGuideConsentRepository homeGuideConsentRepository;
 
   @override
   Widget build(BuildContext context) {
@@ -82,6 +87,7 @@ class AccountManageSection extends StatelessWidget {
             row: row,
             onEditProfile: onEditProfile,
             onNotificationSettingsChanged: onNotificationSettingsChanged,
+            homeGuideConsentRepository: homeGuideConsentRepository,
           ),
           const SizedBox(height: 8),
         ],
@@ -141,6 +147,7 @@ class _SetupRow extends StatelessWidget {
 class _ManageRow extends StatelessWidget {
   const _ManageRow({
     required this.row,
+    required this.homeGuideConsentRepository,
     this.onEditProfile,
     this.onNotificationSettingsChanged,
   });
@@ -148,6 +155,7 @@ class _ManageRow extends StatelessWidget {
   final AccountProfileManageRow row;
   final VoidCallback? onEditProfile;
   final VoidCallback? onNotificationSettingsChanged;
+  final HomeGuideConsentRepository homeGuideConsentRepository;
 
   @override
   Widget build(BuildContext context) {
@@ -180,6 +188,16 @@ class _ManageRow extends StatelessWidget {
                 onSettingsChanged: (_) {
                   onNotificationSettingsChanged?.call();
                 },
+              ),
+            ),
+          );
+          return;
+        }
+        if (row.action == UserProfileManageAction.privacySafety) {
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => PrivacySafetyScreen(
+                consentRepository: homeGuideConsentRepository,
               ),
             ),
           );

@@ -846,7 +846,6 @@ void main() {
 
     for (final row in <(String, String)>[
       ('Settings', 'Settings preview is coming soon.'),
-      ('Privacy & Safety', 'Privacy & Safety preview is coming soon.'),
       ('About Runiac', 'About Runiac preview is coming soon.'),
     ]) {
       await tester.scrollUntilVisible(
@@ -861,6 +860,34 @@ void main() {
       expect(find.text(row.$2), findsOneWidget);
       expect(find.text('Account'), findsOneWidget);
     }
+  });
+
+  testWidgets('Account opens Privacy & Safety guide consent from Manage', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      const RuniacApp(showSplash: false, enableForegroundGps: false),
+    );
+
+    await tester.tap(find.bySemanticsLabel('Profile'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Account'), findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.text('Privacy & Safety'),
+      180,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Privacy & Safety'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey<String>('privacySafetyGuideConsentSwitch')),
+      findsOneWidget,
+    );
+    expect(find.text('Personalized guide'), findsOneWidget);
   });
 
   testWidgets('Account opens Watch and Health Apps preview from Manage', (

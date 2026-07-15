@@ -104,7 +104,6 @@ class HomeStageMap extends StatefulWidget {
     this.guideAgent,
     this.guideRequest,
     this.guideConsentStatus = HomeGuideConsentStatus.granted,
-    this.onReviewGuideDataUse,
     this.onOpenFriends,
     this.onOpenChallenge,
     this.activeChallenge,
@@ -137,7 +136,6 @@ class HomeStageMap extends StatefulWidget {
   /// today's stage changes.
   final HomeGuideRequest? guideRequest;
   final HomeGuideConsentStatus guideConsentStatus;
-  final VoidCallback? onReviewGuideDataUse;
 
   /// Opens the Friends screen when the Social menu's Friends item is tapped.
   /// Optional so existing call sites and tests compile unchanged; when null
@@ -750,21 +748,11 @@ class _HomeStageMapState extends State<HomeStageMap>
     final safeTop = MediaQuery.paddingOf(context).top + horizontalSafeInset;
     final maxBubbleHeight = math.max(1.0, charTopY - gap - safeTop);
 
+    // Consent is collected once via the onboarding bottom sheet and managed in
+    // Account → Privacy & Safety. When it is not granted the guide is hidden
+    // entirely (the cycle is never created; see [_syncGuideBubble]).
     if (widget.guideConsentStatus != HomeGuideConsentStatus.granted) {
-      final onReview = widget.onReviewGuideDataUse;
-      if (widget.guideConsentStatus == HomeGuideConsentStatus.unknown ||
-          onReview == null) {
-        return null;
-      }
-      return Positioned(
-        left: left,
-        width: bubbleWidth,
-        bottom: (totalHeight - (charTopY - gap)).clamp(0.0, totalHeight),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxHeight: maxBubbleHeight),
-          child: _GuideConsentCard(onReview: onReview),
-        ),
-      );
+      return null;
     }
 
     final cycle = _guideCycle;
@@ -784,7 +772,6 @@ class _HomeStageMapState extends State<HomeStageMap>
           isRestDay: widget.guideRequest?.isRestDay ?? false,
           onAdvance: _advanceGuideBubble,
           onDismiss: _dismissGuideBubble,
-          onManageDataUse: widget.onReviewGuideDataUse,
         ),
       ),
     );
@@ -880,7 +867,7 @@ class _HomeStageMapState extends State<HomeStageMap>
                       widget.guideConsentStatus ==
                           HomeGuideConsentStatus.granted
                       ? _toggleGuideBubble
-                      : widget.onReviewGuideDataUse,
+                      : null,
                   child: const SizedBox.expand(),
                 ),
               ),

@@ -56,8 +56,9 @@ const accountProfileDemoSnapshot = AccountProfileDemoSnapshot(
     AccountProfileManageRow(
       icon: Icons.shield_outlined,
       title: 'Privacy & Safety',
-      subtitle: 'Routes, activity, and sharing controls',
-      snackBarMessage: 'Privacy & Safety preview is coming soon.',
+      subtitle: 'Personalized guide data use and sharing controls',
+      snackBarMessage: '',
+      action: UserProfileManageAction.privacySafety,
     ),
     AccountProfileManageRow(
       icon: Icons.notifications_none,
