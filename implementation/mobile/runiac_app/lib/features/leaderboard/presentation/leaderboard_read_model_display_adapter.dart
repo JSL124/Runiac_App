@@ -126,10 +126,10 @@ String _regionRankLabel(String regionLabel, String rankLabel) {
   if (region.isEmpty) {
     return rank;
   }
-  if (rank.isEmpty) {
-    return region;
+  if (rank.isEmpty || rank == '#--') {
+    return '$region, Singapore';
   }
-  return '$region · Rank $rank';
+  return '$rank $region, Singapore';
 }
 
 String _initialFor(String displayName) {
