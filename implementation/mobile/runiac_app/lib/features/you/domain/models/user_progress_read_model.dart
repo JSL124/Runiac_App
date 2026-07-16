@@ -12,6 +12,8 @@ class UserProgressReadModel {
     required this.monthlyXpLabel,
     required this.weeklyDistanceLabel,
     required this.goalProgressLabel,
+    this.longestStreakLabel = '',
+    this.totalDistanceLabel = '',
     this.level = 0,
     this.levelProgressFraction = 0,
     this.totalXp,
@@ -32,6 +34,16 @@ class UserProgressReadModel {
   final String monthlyXpLabel;
   final String weeklyDistanceLabel;
   final String goalProgressLabel;
+
+  /// Backend-computed longest streak the runner has ever reached, displayed
+  /// as-is such as '14 days'. Empty when the backend has not published the
+  /// value for this user yet.
+  final String longestStreakLabel;
+
+  /// Backend-computed lifetime total distance the runner has run so far,
+  /// displayed as-is such as '148.6 km'. Empty when the backend has not
+  /// published the value for this user yet.
+  final String totalDistanceLabel;
   final int level;
   final double levelProgressFraction;
 

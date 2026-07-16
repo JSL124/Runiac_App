@@ -32,6 +32,7 @@ class HomeGuideCycleSignature {
       description: request.description,
       steps: List<String>.unmodifiable(request.steps),
       supportiveNote: request.supportiveNote,
+      isRestDay: request.isRestDay,
     );
     return HomeGuideCycleSignature._(
       stageId: stageId,
@@ -48,6 +49,7 @@ class HomeGuideCycleSignature {
         snapshot.description,
         snapshot.steps,
         snapshot.supportiveNote,
+        snapshot.isRestDay,
       ]),
     );
   }

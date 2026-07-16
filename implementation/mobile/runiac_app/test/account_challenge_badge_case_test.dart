@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:runiac_app/features/account/presentation/widgets/account_challenge_badge_case.dart';
+import 'package:runiac_app/features/profile/presentation/widgets/account_challenge_badge_case.dart';
 import 'package:runiac_app/features/challenge/domain/models/challenge_enums.dart';
 import 'package:runiac_app/features/challenge/presentation/widgets/challenge_badge_image.dart';
 
@@ -86,6 +86,39 @@ void main() {
       find.bySemanticsLabel('Challenge badge case, 3 of 9 badges earned'),
       findsOneWidget,
     );
+  });
+
+  testWidgets('tapping an earned badge replays that tier; unearned is inert',
+      (tester) async {
+    final tapped = <ChallengeTierId>[];
+    await tester.pumpWidget(
+      _harness(
+        AccountChallengeBadgeCase(
+          ownedTierIds: const <ChallengeTierId>{ChallengeTierId.k250},
+          onBadgeTap: tapped.add,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    ChallengeBadgeImage badgeFor(ChallengeTierId tier) {
+      return find
+          .byType(ChallengeBadgeImage)
+          .evaluate()
+          .map((element) => element.widget as ChallengeBadgeImage)
+          .firstWhere((badge) => badge.tierId == tier);
+    }
+
+    // Earned tier fires with its own tier.
+    await tester.tap(find.byWidget(badgeFor(ChallengeTierId.k250)));
+    expect(tapped, <ChallengeTierId>[ChallengeTierId.k250]);
+
+    // Unearned tier is not tappable.
+    await tester.tap(
+      find.byWidget(badgeFor(ChallengeTierId.k100)),
+      warnIfMissed: false,
+    );
+    expect(tapped, <ChallengeTierId>[ChallengeTierId.k250]);
   });
 
   testWidgets('geometry and aspect ratio are preserved regardless of earned '

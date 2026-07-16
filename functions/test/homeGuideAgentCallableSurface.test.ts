@@ -23,7 +23,14 @@ before(() => {
 beforeEach(async () => {
   await clearCollection("activities");
   await clearCollection("agentGuidanceDaily");
+  await clearCollection("homeGuideConsents");
   await firestore.doc(`generatedPlans/${USER_UID}`).delete();
+  await firestore.doc(`homeGuideConsents/${USER_UID}`).set({
+    ownerUid: USER_UID,
+    schemaVersion: 1,
+    disclosureVersion: 1,
+    granted: true,
+  });
 });
 
 describe("homeGuideAgent callable emulator surface", { skip: process.env["FIRESTORE_EMULATOR_HOST"] === undefined }, () => {
@@ -74,18 +81,22 @@ describe("homeGuideAgent callable emulator surface", { skip: process.env["FIREST
     assert.equal((await dailyDocument()).get("attemptCount"), 1);
   });
 
-  it("preserves a verified prior cache and returns local fallback when a changed fingerprint provider fails", async () => {
+  it("preserves prior cache when changed-fingerprint model copy needs replacement", async () => {
     const generatedProvider = new CountingProvider(validModelOutput());
     const generated = await injectableHandler(generatedProvider)(authenticatedRequest(validPayload()));
-    const failedProvider = new CountingProvider(() => Promise.reject(new Error("test provider failure")));
-    const failed = await injectableHandler(failedProvider)(authenticatedRequest({ ...validPayload(), planTitle: "Changed plan" }));
+    const rejectedProvider = new CountingProvider({
+      ...validModelOutput(),
+      planSummaryText: "Ask a doctor about distance progress.",
+      runningTipText: "Run 20% faster today.",
+    });
+    const failed = await injectableHandler(rejectedProvider)(authenticatedRequest({ ...validPayload(), planTitle: "Changed plan" }));
 
     assert.equal(generated.delivery, "generated");
     assert.equal(failed.source, "unavailable");
     assert.equal(failed.delivery, "fallback");
     assert.notDeepEqual(failed.messages, generated.messages);
     assert.deepEqual((await dailyDocument()).get("readyBundle"), generated.messages);
-    assert.equal(failedProvider.calls, 1);
+    assert.equal(rejectedProvider.calls, 1);
   });
 
   it("emits one privacy-safe Firebase structured decision log for generated, cache, and fallback results", async () => {
@@ -220,7 +231,9 @@ function validPayload(): Record<string, unknown> {
   };
 }
 
-async function clearCollection(collectionName: "activities" | "agentGuidanceDaily"): Promise<void> {
+async function clearCollection(
+  collectionName: "activities" | "agentGuidanceDaily" | "homeGuideConsents",
+): Promise<void> {
   const snapshot = await firestore.collection(collectionName).get();
   await Promise.all(snapshot.docs.map((document) => document.ref.delete()));
 }
@@ -237,7 +250,7 @@ function injectableHandler(provider: HomeGuideModelProvider) {
   });
 }
 
-function validModelOutput(): unknown {
+function validModelOutput(): Readonly<Record<string, unknown>> {
   return {
     schemaVersion: 1,
     planSummaryText: "The planned session is ready.",

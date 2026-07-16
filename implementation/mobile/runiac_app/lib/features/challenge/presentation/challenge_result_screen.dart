@@ -6,6 +6,7 @@ import '../domain/challenge_copy.dart';
 import '../domain/models/challenge_distance_format.dart';
 import '../domain/models/challenge_enums.dart';
 import '../domain/models/challenge_history.dart';
+import 'challenge_result_ceremony.dart';
 import 'widgets/challenge_badge_image.dart';
 import 'widgets/challenge_widgets.dart';
 
@@ -61,54 +62,58 @@ class ChallengeResultScreen extends StatelessWidget {
     final variant = _variant;
     final earned = variant == _ResultVariant.badgeEarned;
     final tierTitle = challengeTierTitle(result.tierId);
-    final targetLabel =
-        ChallengeDistanceFormat.kilometresLabel(result.targetMeters);
-    final teamLabel =
-        ChallengeDistanceFormat.kilometresLabel(result.teamMeters);
-    final mineLabel =
-        ChallengeDistanceFormat.kilometresLabel(result.creditedMeters);
-    final minimumLabel =
-        ChallengeDistanceFormat.kilometresLabel(result.personalMinimumMeters);
+    final targetLabel = ChallengeDistanceFormat.kilometresLabel(
+      result.targetMeters,
+    );
+    final teamLabel = ChallengeDistanceFormat.kilometresLabel(
+      result.teamMeters,
+    );
+    final mineLabel = ChallengeDistanceFormat.kilometresLabel(
+      result.creditedMeters,
+    );
+    final minimumLabel = ChallengeDistanceFormat.kilometresLabel(
+      result.personalMinimumMeters,
+    );
 
     final _ResultCopy copy = switch (variant) {
       _ResultVariant.badgeEarned => _ResultCopy(
-          title: ChallengeCopy.badgeEarnedHeadline(tierTitle),
-          body: ChallengeCopy.badgeEarnedSubtitle,
-        ),
+        title: ChallengeCopy.badgeEarnedHeadline(tierTitle),
+        body: ChallengeCopy.badgeEarnedSubtitle,
+      ),
       _ResultVariant.minimumMissed => _ResultCopy(
-          chip: ChallengeCopy.personalMinimumNotReached,
-          title: ChallengeCopy.minimumMissedTitle,
-          body: ChallengeCopy.minimumMissedBody(
-            targetLabel: targetLabel,
-            mineLabel: mineLabel,
-            minimumLabel: minimumLabel,
-          ),
-          support: ChallengeCopy.stillAddedSupport(mineLabel),
+        chip: ChallengeCopy.personalMinimumNotReached,
+        title: ChallengeCopy.minimumMissedTitle,
+        body: ChallengeCopy.minimumMissedBody(
+          targetLabel: targetLabel,
+          mineLabel: mineLabel,
+          minimumLabel: minimumLabel,
         ),
+        support: ChallengeCopy.stillAddedSupport(mineLabel),
+      ),
       _ResultVariant.deadlineFailed => _ResultCopy(
-          title: ChallengeCopy.deadlineFailedTitle,
-          body: ChallengeCopy.deadlineFailedBody(
-            teamLabel: teamLabel,
-            targetLabel: targetLabel,
-          ),
+        title: ChallengeCopy.deadlineFailedTitle,
+        body: ChallengeCopy.deadlineFailedBody(
+          teamLabel: teamLabel,
+          targetLabel: targetLabel,
         ),
+      ),
       _ResultVariant.cancelled => const _ResultCopy(
-          title: ChallengeCopy.resultCancelledTitle,
-          body: ChallengeCopy.resultCancelledBody,
-        ),
+        title: ChallengeCopy.resultCancelledTitle,
+        body: ChallengeCopy.resultCancelledBody,
+      ),
       _ResultVariant.left => _ResultCopy(
-          title: ChallengeCopy.resultLeftTitle,
-          body: ChallengeCopy.resultLeftBody(mineLabel),
-        ),
+        title: ChallengeCopy.resultLeftTitle,
+        body: ChallengeCopy.resultLeftBody(mineLabel),
+      ),
     };
 
-    final accent = earned ? RuniacColors.accentOrange : RuniacColors.primaryBlue;
+    final accent = earned
+        ? RuniacColors.accentOrange
+        : RuniacColors.primaryBlue;
 
     return Scaffold(
       key: const ValueKey<String>('challenge-result-screen'),
-      backgroundColor: earned
-          ? RuniacColors.accentOrange.withValues(alpha: 0.06)
-          : RuniacColors.background,
+      backgroundColor: RuniacColors.background,
       body: SafeArea(
         child: Column(
           children: [
@@ -125,68 +130,82 @@ class ChallengeResultScreen extends StatelessWidget {
               ),
             ),
             Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(24, 8, 24, 8),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    _ResultBadge(tierId: result.tierId, earned: earned),
-                    const SizedBox(height: 24),
-                    if (copy.chip != null) ...[
-                      ChallengeStatusChip(
-                        label: copy.chip!,
-                        color: RuniacColors.textSecondary,
-                      ),
-                      const SizedBox(height: 14),
-                    ],
-                    Text(
-                      copy.title,
-                      key: const ValueKey<String>('challenge-result-headline'),
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: RuniacColors.textPrimary,
-                        fontSize: 24,
-                        fontWeight: FontWeight.w900,
-                        height: 1.2,
-                        letterSpacing: -0.2,
-                        decorationColor: accent,
-                      ),
+              // A plain scroll view shrink-wraps its child, so the column's
+              // centering has no effect and the content pins to the top.
+              // Give the child the viewport as a minimum height so the result
+              // block sits vertically centred, while still scrolling when the
+              // content is taller than the screen.
+              child: LayoutBuilder(
+                builder: (context, viewport) => SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(24, 8, 24, 8),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: viewport.maxHeight - 16,
                     ),
-                    const SizedBox(height: 12),
-                    Text(
-                      copy.body,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: RuniacColors.textSecondary,
-                        fontSize: 15.5,
-                        fontWeight: FontWeight.w600,
-                        height: 1.4,
-                      ),
-                    ),
-                    if (copy.support != null) ...[
-                      const SizedBox(height: 16),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 10,
-                        ),
-                        decoration: BoxDecoration(
-                          color: RuniacColors.sectionSurface,
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: Text(
-                          copy.support!,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _ResultBadge(tierId: result.tierId, earned: earned),
+                        const SizedBox(height: 24),
+                        if (copy.chip != null) ...[
+                          ChallengeStatusChip(
+                            label: copy.chip!,
+                            color: RuniacColors.textSecondary,
+                          ),
+                          const SizedBox(height: 14),
+                        ],
+                        Text(
+                          copy.title,
+                          key: const ValueKey<String>(
+                            'challenge-result-headline',
+                          ),
                           textAlign: TextAlign.center,
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: RuniacColors.textPrimary,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            height: 1.35,
+                            fontSize: 24,
+                            fontWeight: FontWeight.w900,
+                            height: 1.2,
+                            letterSpacing: -0.2,
+                            decorationColor: accent,
                           ),
                         ),
-                      ),
-                    ],
-                  ],
+                        const SizedBox(height: 12),
+                        Text(
+                          copy.body,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: RuniacColors.textSecondary,
+                            fontSize: 15.5,
+                            fontWeight: FontWeight.w600,
+                            height: 1.4,
+                          ),
+                        ),
+                        if (copy.support != null) ...[
+                          const SizedBox(height: 16),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 10,
+                            ),
+                            decoration: BoxDecoration(
+                              color: RuniacColors.sectionSurface,
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Text(
+                              copy.support!,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: RuniacColors.textPrimary,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                height: 1.35,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -227,80 +246,22 @@ class _ResultCopy {
   final String? support;
 }
 
-/// The tier badge. Earned renders the full-colour PNG with a transform/opacity
-/// celebration (skipped under reduced motion); every other outcome renders the
-/// same PNG small and desaturated via [ChallengeBadgeImage.dimmed].
-class _ResultBadge extends StatefulWidget {
+/// The tier badge. Earned plays the full dynamic celebration ceremony
+/// ([ChallengeBadgeCeremony], which itself skips to its final frame under
+/// reduced motion); every other outcome renders the same PNG small and
+/// desaturated via [ChallengeBadgeImage.dimmed].
+class _ResultBadge extends StatelessWidget {
   const _ResultBadge({required this.tierId, required this.earned});
 
   final ChallengeTierId tierId;
   final bool earned;
 
   @override
-  State<_ResultBadge> createState() => _ResultBadgeState();
-}
-
-class _ResultBadgeState extends State<_ResultBadge>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 520),
-  );
-
-  @override
-  void initState() {
-    super.initState();
-    if (!widget.earned) {
-      _controller.value = 1;
-    }
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (widget.earned) {
-      final reduceMotion =
-          MediaQuery.maybeOf(context)?.disableAnimations ?? false;
-      if (reduceMotion) {
-        _controller.value = 1;
-      } else if (!_controller.isAnimating && _controller.value == 0) {
-        _controller.forward();
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final double size = widget.earned ? 168 : 96;
-    final badge = ChallengeBadgeImage(
-      tierId: widget.tierId,
-      size: size,
-      dimmed: !widget.earned,
-    );
-    if (!widget.earned) {
-      return badge;
+    if (earned) {
+      return ChallengeBadgeCeremony(tierId: tierId);
     }
-    final curved = CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOutBack,
-    );
-    return AnimatedBuilder(
-      animation: curved,
-      builder: (context, child) {
-        final t = curved.value.clamp(0.0, 1.0);
-        return Opacity(
-          opacity: _controller.value.clamp(0.0, 1.0),
-          child: Transform.scale(scale: 0.72 + 0.28 * t, child: child),
-        );
-      },
-      child: badge,
-    );
+    return ChallengeBadgeImage(tierId: tierId, size: 96, dimmed: true);
   }
 }
 

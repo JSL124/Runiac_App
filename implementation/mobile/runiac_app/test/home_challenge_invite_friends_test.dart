@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:runiac_app/features/account/data/static_user_profile_repository.dart';
-import 'package:runiac_app/features/account/domain/repositories/user_profile_persistence_repository.dart';
+import 'package:runiac_app/features/profile/data/static_user_profile_repository.dart';
+import 'package:runiac_app/features/profile/domain/repositories/user_profile_persistence_repository.dart';
 import 'package:runiac_app/features/challenge/presentation/challenge_explore_screen.dart';
 import 'package:runiac_app/features/friends/domain/models/friends_read_model.dart';
 import 'package:runiac_app/features/friends/domain/repositories/friends_repository.dart';
@@ -38,6 +38,11 @@ class _FakeFriendsRepository implements FriendsRepository {
       incomingRequests: <FriendUserReadModel>[],
     );
   }
+
+  @override
+  Stream<FriendsOverviewReadModel> watchFriendsOverview({
+    required String ownerUid,
+  }) => Stream.fromFuture(loadFriendsOverview(ownerUid: ownerUid));
 
   @override
   Future<List<FriendUserReadModel>> searchFriends({

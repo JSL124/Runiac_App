@@ -37,6 +37,7 @@ is_historical_backend_functions_path() {
     functions/src/index.ts|\
     functions/src/agent/homeGuideAgent.ts|\
     functions/src/agent/homeGuideAgentHandler.ts|\
+    functions/src/agent/homeGuideConsent.ts|\
     functions/src/agent/homeGuideContracts.ts|\
     functions/src/agent/homeGuideEvidence.ts|\
     functions/src/agent/homeGuideModel.ts|\
@@ -51,6 +52,7 @@ is_historical_backend_functions_path() {
     functions/src/agent/activityFeedbackModelOutput.ts|\
     functions/src/agent/activityFeedbackQuota.ts|\
     functions/src/agent/activityFeedbackTypes.ts|\
+    functions/src/security/appCheck.ts|\
     functions/src/feed/cleanup.ts|\
     functions/src/feed/contracts.ts|\
     functions/src/feed/engagement/engagement.ts|\
@@ -136,9 +138,11 @@ is_historical_backend_functions_path() {
     functions/test/feedPublishCore.test.ts|\
     functions/test/feedThumbnailCore.test.ts|\
     functions/test/homeGuideAgentCallableSurface.test.ts|\
+    functions/test/homeGuideConsent.test.ts|\
     functions/test/homeGuideAgentSurface.test.ts|\
     functions/test/homeGuideEvidence.test.ts|\
     functions/test/homeGuideEvidenceFixtures.ts|\
+    functions/test/homeGuideGeneratedCopyPolicy.test.ts|\
     functions/test/homeGuideModel.test.ts|\
     functions/test/homeGuideModelFixtures.ts|\
     functions/test/homeGuideQuotaCache.test.ts|\
@@ -216,6 +220,30 @@ is_challenge_distance_system_functions_path() {
     functions/src/challenge/*|\
     functions/test/challenge*.ts|\
     functions/test/levelUpLeaderboard.integration.test.ts)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+is_cool_down_stretch_xp_bonus_capsule_active() {
+  grep -Eq '^- Newly routed cool-down stretch completion XP bonus on 2026-07-14 Asia/Singapore: `implementation/roadmap/capsules/cool-down-stretch-completion-xp-bonus\.md`' implementation/roadmap/CURRENT.md
+}
+
+is_cool_down_stretch_xp_bonus_functions_path() {
+  case "$1" in
+    functions/src/run/completeCoolDown.ts|\
+    functions/src/run/validateCoolDownPayload.ts|\
+    functions/src/run/runCompletionTypes.ts|\
+    functions/src/run/runCompletionArtifacts.ts|\
+    functions/src/progression/progressionCalculator.ts|\
+    functions/src/progression/progressionAudit.ts|\
+    functions/src/progression/progressionDisplayReader.ts|\
+    functions/src/index.ts|\
+    functions/test/completeCoolDown.test.ts|\
+    functions/test/progressionCalculator.test.ts)
       return 0
       ;;
     *)
@@ -303,6 +331,10 @@ is_feed_friends_emulator_backend_path() {
 
 is_adaptive_character_guidance_functions_path() {
   case "$1" in
+    functions/src/index.ts|\
+    functions/src/security/appCheck.ts|\
+    functions/src/agent/activityFeedbackAgent.ts|\
+    functions/src/agent/homeGuideConsent.ts|\
     functions/src/agent/homeGuideAgent.ts|\
     functions/src/agent/homeGuideAgentHandler.ts|\
     functions/src/agent/homeGuideContracts.ts|\
@@ -313,6 +345,7 @@ is_adaptive_character_guidance_functions_path() {
     functions/src/agent/homeGuideQuotaFingerprint.ts|\
     functions/src/progression/refreshStreakStatus.ts|\
     functions/test/homeGuideAgentCallableSurface.test.ts|\
+    functions/test/homeGuideConsent.test.ts|\
     functions/test/homeGuideAgentSurface.test.ts|\
     functions/test/homeGuideEvidence.test.ts|\
     functions/test/homeGuideEvidenceFixtures.ts|\
@@ -438,6 +471,9 @@ is_forbidden_config_or_secret() {
         return 1
       fi
       if is_challenge_distance_system_functions_path "$1" && is_challenge_distance_system_capsule_active; then
+        return 1
+      fi
+      if is_cool_down_stretch_xp_bonus_functions_path "$1" && is_cool_down_stretch_xp_bonus_capsule_active; then
         return 1
       fi
       if is_adaptive_character_guidance_functions_path "$1" && is_adaptive_character_guidance_capsule_active; then

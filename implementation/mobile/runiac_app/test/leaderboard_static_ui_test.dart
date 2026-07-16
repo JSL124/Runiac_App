@@ -6,7 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runiac_app/app.dart';
 import 'package:runiac_app/core/widgets/runiac_share_bottom_sheet.dart';
-import 'package:runiac_app/features/account/domain/singapore_region_options.dart';
+import 'package:runiac_app/features/profile/domain/singapore_region_options.dart';
 import 'package:runiac_app/features/leaderboard/domain/models/leaderboard_read_model.dart';
 import 'package:runiac_app/features/leaderboard/domain/repositories/leaderboard_repository.dart';
 import 'package:runiac_app/features/leaderboard/presentation/data/leaderboard_demo_snapshots.dart';
@@ -421,7 +421,7 @@ void main() {
 
     expect(find.text('Runner profile'), findsOneWidget);
     expect(find.text('Alex T.'), findsOneWidget);
-    expect(find.text('Jurong East · Rank #1'), findsOneWidget);
+    expect(find.text('#1 Jurong East, Singapore'), findsOneWidget);
 
     await tester.tap(find.byTooltip('Back to Rankings'));
     await tester.pumpAndSettle();
@@ -433,7 +433,7 @@ void main() {
 
     expect(find.text('Runner profile'), findsOneWidget);
     expect(find.text('Jinseo (You)'), findsOneWidget);
-    expect(find.text('Jurong East · Rank #18'), findsOneWidget);
+    expect(find.text('#18 Jurong East, Singapore'), findsOneWidget);
     expect(find.text('520 XP'), findsNothing);
   });
 
@@ -973,20 +973,20 @@ void main() {
     expect(find.text('Runner profile'), findsOneWidget);
     expect(find.text('PUBLIC'), findsNothing);
     expect(find.text('Alex T.'), findsOneWidget);
-    expect(find.text('Jurong East · Rank #1'), findsOneWidget);
+    expect(find.text('#1 Jurong East, Singapore'), findsOneWidget);
     expect(find.text('Bronze · Level 18'), findsOneWidget);
     expect(
       find.byKey(const Key('runner_profile_total_distance_metric')),
       findsOneWidget,
     );
     expect(
-      find.byKey(const Key('runner_profile_best_streak_metric')),
+      find.byKey(const Key('runner_profile_max_streak_metric')),
       findsOneWidget,
     );
     expect(find.text('Not shared'), findsNWidgets(2));
     expect(find.text('Total distance'), findsOneWidget);
     expect(find.text('Total distance (km)'), findsNothing);
-    expect(find.text('Best streak'), findsOneWidget);
+    expect(find.text('Max streak'), findsOneWidget);
     expect(find.text('Achievements'), findsOneWidget);
     expect(find.text('0 earned'), findsOneWidget);
     expect(find.text('First 5K'), findsNothing);
@@ -1018,7 +1018,7 @@ void main() {
 
     expect(find.text('Runner profile'), findsOneWidget);
     expect(find.text('Daniel W.'), findsOneWidget);
-    expect(find.text('Jurong East · Rank #17'), findsOneWidget);
+    expect(find.text('#17 Jurong East, Singapore'), findsOneWidget);
     expect(find.text('640 XP'), findsNothing);
 
     await tester.tap(find.byTooltip('Back to Rankings'));
@@ -1034,7 +1034,7 @@ void main() {
 
     expect(find.text('Runner profile'), findsOneWidget);
     expect(find.text('Jinseo (You)'), findsOneWidget);
-    expect(find.text('Jurong East · Rank #18'), findsOneWidget);
+    expect(find.text('#18 Jurong East, Singapore'), findsOneWidget);
     expect(find.text('520 XP'), findsNothing);
     // Pushed profile route covers the shell bottom navigation.
     expect(find.byTooltip('You'), findsNothing);

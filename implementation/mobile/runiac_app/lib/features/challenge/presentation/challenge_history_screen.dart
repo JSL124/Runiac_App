@@ -7,6 +7,7 @@ import '../domain/challenge_copy.dart';
 import '../domain/models/challenge_enums.dart';
 import '../domain/models/challenge_history.dart';
 import '../domain/repositories/challenge_repository.dart';
+import 'challenge_ceremony_route.dart';
 import 'challenge_result_screen.dart';
 import 'widgets/challenge_badge_image.dart';
 import 'widgets/challenge_widgets.dart';
@@ -76,7 +77,7 @@ class _ChallengeHistoryScreenState extends State<ChallengeHistoryScreen> {
 
   Future<void> _openResult(ChallengeHistoryEntry entry) async {
     await Navigator.of(context).push(
-      MaterialPageRoute<void>(
+      challengeCeremonyRoute<void>(
         builder: (context) => ChallengeResultScreen(
           result: entry.toResult(),
           onClose: () => Navigator.of(context).pop(),

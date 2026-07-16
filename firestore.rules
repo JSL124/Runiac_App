@@ -73,6 +73,10 @@ service cloud.firestore {
         'nextStreak',
         'previousStreakRunDate',
         'nextStreakRunDate',
+        'longestStreak',
+        'longestStreakLabel',
+        'totalDistanceMeters',
+        'totalDistanceLabel',
         'level',
         'rank',
         'leaderboardScore',
@@ -87,6 +91,9 @@ service cloud.firestore {
         'validationStatus',
         'validatedActivityContributionState',
         'countsTowardProgression',
+        'coolDownXpAwarded',
+        'coolDownXpAwardedAt',
+        'coolDownProgressionEventId',
         'backendSchedulingStatus',
         'lastScheduledAt',
         'deliveryState',
@@ -752,6 +759,10 @@ service cloud.firestore {
     }
 
     match /agentGuidanceDaily/{document} {
+      allow read, write: if false;
+    }
+
+    match /homeGuideConsents/{uid} {
       allow read, write: if false;
     }
 

@@ -3,12 +3,14 @@ part of 'home_stage_map.dart';
 class _GuideSpeechBubble extends StatelessWidget {
   const _GuideSpeechBubble({
     required this.state,
+    required this.isRestDay,
     required this.onAdvance,
     required this.onDismiss,
     super.key,
   });
 
   final HomeGuideCycleState state;
+  final bool isRestDay;
   final VoidCallback onAdvance;
   final VoidCallback onDismiss;
 
@@ -23,6 +25,7 @@ class _GuideSpeechBubble extends StatelessWidget {
       message: message,
       isLoading: state.isLoading,
       isUnavailable: !state.isLoading && message == null,
+      isRestDay: isRestDay,
       fallbackText: _fallbackErrorText,
       onAdvance: onAdvance,
       onDismiss: onDismiss,
@@ -35,6 +38,7 @@ class _GuideBubbleCard extends StatelessWidget {
     required this.message,
     required this.isLoading,
     required this.isUnavailable,
+    required this.isRestDay,
     required this.fallbackText,
     required this.onAdvance,
     required this.onDismiss,
@@ -44,6 +48,7 @@ class _GuideBubbleCard extends StatelessWidget {
   final HomeGuideMessage? message;
   final bool isLoading;
   final bool isUnavailable;
+  final bool isRestDay;
   final String fallbackText;
   final VoidCallback onAdvance;
   final VoidCallback onDismiss;
@@ -61,6 +66,16 @@ class _GuideBubbleCard extends StatelessWidget {
     }
     if (isUnavailable) {
       return 'Guide message unavailable.';
+    }
+    if (isRestDay) {
+      return switch (message!.kind) {
+        HomeGuideMessageKind.planSummary =>
+          'Rest-day cheer. Tap to hear a rest tip.',
+        HomeGuideMessageKind.runningTip =>
+          'Rest-day tip. Tap to hear why rest matters.',
+        HomeGuideMessageKind.progressionCheckIn =>
+          'Why rest matters. Tap to return to your rest-day cheer.',
+      };
     }
     return switch (message!.kind) {
       HomeGuideMessageKind.planSummary =>

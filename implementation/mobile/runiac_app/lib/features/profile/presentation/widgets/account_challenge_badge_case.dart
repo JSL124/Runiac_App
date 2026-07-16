@@ -5,13 +5,21 @@ import '../../../challenge/domain/models/challenge_enums.dart';
 import '../../../challenge/presentation/widgets/challenge_badge_image.dart';
 
 class AccountChallengeBadgeCase extends StatelessWidget {
-  const AccountChallengeBadgeCase({this.ownedTierIds, super.key});
+  const AccountChallengeBadgeCase({
+    this.ownedTierIds,
+    this.onBadgeTap,
+    super.key,
+  });
 
   /// The tiers the viewer owns a badge for. When `null` the case renders its
   /// static preview (every badge full-colour) so existing previews/tests are
   /// unchanged. When supplied, earned tiers render full-colour and every other
   /// slot renders the SAME PNG dimmed/desaturated — one badge per tier.
   final Set<ChallengeTierId>? ownedTierIds;
+
+  /// Invoked when an EARNED badge slot is tapped, to replay that tier's
+  /// ceremony. `null` (or an unearned slot) leaves the badge non-interactive.
+  final void Function(ChallengeTierId tierId)? onBadgeTap;
 
   static const _caseAspectRatio = 1448 / 1086;
   static const _badgeSlots = [
@@ -25,6 +33,32 @@ class AccountChallengeBadgeCase extends StatelessWidget {
     _BadgeSlot(0.5, 0.794, 0.27, ChallengeTierId.k500),
     _BadgeSlot(0.785, 0.8, 0.28, ChallengeTierId.k1000),
   ];
+
+  /// The badge PNG for a slot, wrapped in a tap target only when the tier is
+  /// earned AND [onBadgeTap] is wired — so replaying a ceremony is reachable
+  /// from every earned badge while unearned slots stay inert. Geometry is
+  /// unchanged (the wrapper fills the same slot box).
+  Widget _badgeSlotChild(_BadgeSlot slot, double size) {
+    final earned = _isEarned(slot.tierId);
+    final badge = ChallengeBadgeImage(
+      tierId: slot.tierId,
+      size: size,
+      dimmed: !earned,
+    );
+    final onTap = onBadgeTap;
+    if (!earned || onTap == null) {
+      return badge;
+    }
+    return Semantics(
+      button: true,
+      label: 'Replay ${challengeTierTitle(slot.tierId)} challenge celebration',
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => onTap(slot.tierId),
+        child: badge,
+      ),
+    );
+  }
 
   bool _isEarned(ChallengeTierId tierId) {
     final owned = ownedTierIds;
@@ -76,10 +110,9 @@ class AccountChallengeBadgeCase extends StatelessWidget {
                         constraints.maxWidth * slot.sizeFraction / 2,
                     width: constraints.maxWidth * slot.sizeFraction,
                     height: constraints.maxWidth * slot.sizeFraction,
-                    child: ChallengeBadgeImage(
-                      tierId: slot.tierId,
-                      size: constraints.maxWidth * slot.sizeFraction,
-                      dimmed: !_isEarned(slot.tierId),
+                    child: _badgeSlotChild(
+                      slot,
+                      constraints.maxWidth * slot.sizeFraction,
                     ),
                   ),
               ],

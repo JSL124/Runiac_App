@@ -7,6 +7,11 @@ import 'package:flutter/foundation.dart';
 /// (title, duration, steps, coach copy); nothing is backend-owned progression
 /// data (no XP, level, rank, streak, or leaderboard value is carried here or
 /// derivable from it).
+///
+/// When [isRestDay] is true the request describes a scheduled rest day rather
+/// than a workout: the workout fields ([workoutTitle], [durationMinutes],
+/// [intensityLabel], [description], [steps], [supportiveNote]) are empty and
+/// the guide composes rest-day encouragement instead of a workout summary.
 @immutable
 class HomeGuideRequest {
   const HomeGuideRequest({
@@ -20,6 +25,7 @@ class HomeGuideRequest {
     required this.description,
     this.steps = const <String>[],
     this.supportiveNote = '',
+    this.isRestDay = false,
   });
 
   /// Title of the active generated plan (e.g. `'First 10K Preparation'`).
@@ -51,6 +57,11 @@ class HomeGuideRequest {
 
   /// Encouraging coach note attached to the workout, when available.
   final String supportiveNote;
+
+  /// True when today is a scheduled rest day (no run session). The guide
+  /// composes rest-day encouragement instead of a workout summary; the
+  /// workout fields are empty in this case.
+  final bool isRestDay;
 }
 
 /// The three named messages the guide can present in its local cycle.
@@ -109,9 +120,16 @@ class HomeGuideBundle extends HomeGuideMessage {
     required String progressionCheckIn,
     required bool isFromRemoteAgent,
   }) {
+    // The progression line may carry server-computed comparison figures (e.g.
+    // "+2.5 km, +50% vs last week"), so it is allowed a little more length and
+    // an extra clause than the plan-summary and running-tip lines.
     if (!_isDisplaySafe(planSummary) ||
         !_isDisplaySafe(runningTip) ||
-        !_isDisplaySafe(progressionCheckIn)) {
+        !_isDisplaySafe(
+          progressionCheckIn,
+          maxRunes: _progressionMaxRunes,
+          maxSentences: _progressionMaxSentences,
+        )) {
       return null;
     }
     final normalizedPlanSummary = _normalizedPurpose(planSummary);
@@ -156,14 +174,27 @@ class HomeGuideBundle extends HomeGuideMessage {
     <HomeGuideMessage>[planSummary, runningTip, progressionCheckIn],
   );
 
-  static bool _isDisplaySafe(String text) {
+  /// Default compact bubble limits for the plan-summary and running-tip lines.
+  static const int _defaultMaxRunes = 160;
+  static const int _defaultMaxSentences = 2;
+
+  /// Relaxed limits for the progression line, which may include comparison
+  /// figures and a short "what to improve" clause.
+  static const int _progressionMaxRunes = 220;
+  static const int _progressionMaxSentences = 3;
+
+  static bool _isDisplaySafe(
+    String text, {
+    int maxRunes = _defaultMaxRunes,
+    int maxSentences = _defaultMaxSentences,
+  }) {
     if (text.isEmpty || text != text.trim() || text.contains('\n')) {
       return false;
     }
-    if (text.runes.length > 160) {
+    if (text.runes.length > maxRunes) {
       return false;
     }
-    return _sentenceEndingPattern.allMatches(text).length <= 2;
+    return _sentenceEndingPattern.allMatches(text).length <= maxSentences;
   }
 
   static final RegExp _sentenceEndingPattern = RegExp(r'[.!?。！？]+');

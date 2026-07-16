@@ -72,6 +72,9 @@ temp/
 .cache/
 .omo/
 
+# Separate nested project (own git repo), not part of this app
+website/
+
 # Private GPS, route, and test evidence artifacts
 test-evidence/*
 !test-evidence/

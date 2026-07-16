@@ -4,9 +4,14 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/runiac_back_header.dart';
+import '../../../core/widgets/runiac_success_check_overlay.dart';
 import '../../auth/domain/runiac_auth_service.dart';
 import '../../challenge/domain/models/challenge_enums.dart';
+import '../../challenge/domain/models/challenge_history.dart';
 import '../../challenge/domain/repositories/challenge_repository.dart';
+import '../../challenge/presentation/challenge_ceremony_route.dart';
+import '../../challenge/presentation/challenge_result_screen.dart';
+import '../../home/domain/guide/home_guide_consent.dart';
 import '../../leaderboard/data/static_leaderboard_repository.dart';
 import '../../leaderboard/domain/models/leaderboard_read_model.dart';
 import '../../leaderboard/domain/repositories/leaderboard_repository.dart';
@@ -34,6 +39,8 @@ class AccountProfileScreen extends StatefulWidget {
     this.challengeRepository,
     this.snapshot = accountProfileDemoSnapshot,
     this.onNotificationSettingsChanged,
+    this.homeGuideConsentRepository =
+        const AlwaysGrantedHomeGuideConsentRepository(),
     super.key,
   });
 
@@ -53,6 +60,11 @@ class AccountProfileScreen extends StatefulWidget {
   final AccountProfileDemoSnapshot snapshot;
   final VoidCallback? onNotificationSettingsChanged;
 
+  /// Consent source for the Privacy & Safety personalized-guide control.
+  /// Defaults to the always-granted stub for previews/tests; the composition
+  /// root threads the Cloud Function-backed repository via `HomeTab`.
+  final HomeGuideConsentRepository homeGuideConsentRepository;
+
   @override
   State<AccountProfileScreen> createState() => _AccountProfileScreenState();
 }
@@ -68,6 +80,12 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
   /// Owned tier badges for the badge case. `null` keeps the static preview
   /// (all full colour); a loaded set drives earned/unearned rendering.
   Set<ChallengeTierId>? _ownedTierIds;
+
+  /// The trusted terminal result per earned tier, projected from durable
+  /// history, so tapping a collected badge replays its ceremony with the real
+  /// backend-owned figures (never synthesized).
+  Map<ChallengeTierId, ChallengeResult> _resultByTier =
+      const <ChallengeTierId, ChallengeResult>{};
 
   @override
   void initState() {
@@ -94,12 +112,44 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
     } catch (_) {
       owned = const <ChallengeTierId>{};
     }
+    // Durable history gives the trusted result to replay per tier. A failure
+    // here only disables badge taps; ownership display still stands.
+    final resultByTier = <ChallengeTierId, ChallengeResult>{};
+    try {
+      for (final entry in await repository.history()) {
+        if (entry.outcome == ChallengeParticipantStatus.succeeded) {
+          resultByTier.putIfAbsent(entry.tierId, entry.toResult);
+        }
+      }
+    } catch (_) {
+      // Leave the map empty; taps simply stay inert.
+    }
     if (!mounted) {
       return;
     }
     setState(() {
       _ownedTierIds = owned;
+      _resultByTier = resultByTier;
     });
+  }
+
+  /// Replays a collected tier's ceremony using the trusted result, with the
+  /// same "bloom open" transition as every other ceremony entry point. No
+  /// badge-collection action is offered (the viewer is already here).
+  void _replayTierCeremony(ChallengeTierId tierId) {
+    final result = _resultByTier[tierId];
+    if (result == null) {
+      return;
+    }
+    Navigator.of(context).push(
+      challengeCeremonyRoute<void>(
+        fullscreenDialog: true,
+        builder: (routeContext) => ChallengeResultScreen(
+          result: result,
+          onClose: () => Navigator.of(routeContext).pop(),
+        ),
+      ),
+    );
   }
 
   @override
@@ -160,7 +210,7 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
         child: Column(
           children: [
             RuniacBackHeader(
-              title: 'Account',
+              title: 'Profile',
               tooltip: 'Back to Home',
               onBack: widget.onBack,
             ),
@@ -239,10 +289,15 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
             const SizedBox(height: 14),
             AccountLevelUpGauge(snapshot: snapshot),
             const SizedBox(height: 14),
+            AccountLifetimeStats(snapshot: snapshot),
+            const SizedBox(height: 14),
             AccountChallengeBadgeCase(
               ownedTierIds: widget.challengeRepository == null
                   ? null
                   : (_ownedTierIds ?? const <ChallengeTierId>{}),
+              onBadgeTap: widget.challengeRepository == null
+                  ? null
+                  : _replayTierCeremony,
             ),
             if (snapshot.previewNote.isNotEmpty) ...[
               const SizedBox(height: 14),
@@ -260,6 +315,7 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
               authRepository: widget.authRepository,
               onNotificationSettingsChanged:
                   widget.onNotificationSettingsChanged,
+              homeGuideConsentRepository: widget.homeGuideConsentRepository,
               onEditProfile: profile == null
                   ? null
                   : () => _openEditProfile(profile),
@@ -363,6 +419,9 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
           : profile.nickname,
       avatarInitials: profile.avatarInitials,
       regionLabel: profile.locationLabel,
+      regionalRankLabel: _accountRegionalRankLabel(leaderboard),
+      maxStreakLabel: _accountMaxStreakLabel(progress, fallback),
+      totalDistanceLabel: _accountTotalDistanceLabel(progress, fallback),
       divisionKey: _accountDivisionKey(progress, leaderboard),
       divisionLabel: _accountDivisionLabel(progress, leaderboard),
       previewLevelBadge:
@@ -406,6 +465,9 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
       displayName: fallback.displayName,
       avatarInitials: fallback.avatarInitials,
       regionLabel: fallback.regionLabel,
+      regionalRankLabel: _accountRegionalRankLabel(leaderboard),
+      maxStreakLabel: _accountMaxStreakLabel(progress, fallback),
+      totalDistanceLabel: _accountTotalDistanceLabel(progress, fallback),
       divisionKey: _accountDivisionKey(progress, leaderboard),
       divisionLabel: _accountDivisionLabel(progress, leaderboard),
       previewLevelBadge:
@@ -473,6 +535,44 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
       buffer.write(digits[index]);
     }
     return '${value < 0 ? '-' : ''}$buffer';
+  }
+
+  /// Trusted, backend-owned regional rank for the current runner in their home
+  /// region. The client only relays this label; it never computes rank.
+  String _accountRegionalRankLabel(LeaderboardReadModel? leaderboard) {
+    if (leaderboard == null ||
+        !leaderboard.isHomeRegion ||
+        leaderboard.status == LeaderboardReadStatus.unranked) {
+      return '';
+    }
+    return leaderboard.currentRunnerRankLabel.trim();
+  }
+
+  /// Relays the backend-owned longest streak; the client never derives it.
+  /// When a progress read model is present (real or static repo) its label is
+  /// shown as-is, so a real runner with no runs yet renders '—' rather than a
+  /// fabricated value. The demo snapshot label only fills in while progress is
+  /// still loading (null).
+  String _accountMaxStreakLabel(
+    UserProgressReadModel? progress,
+    AccountProfileDemoSnapshot fallback,
+  ) {
+    if (progress == null) {
+      return fallback.maxStreakLabel;
+    }
+    return progress.longestStreakLabel.trim();
+  }
+
+  /// Relays the backend-owned lifetime distance total; the client never
+  /// derives it. Same null-only fallback contract as [_accountMaxStreakLabel].
+  String _accountTotalDistanceLabel(
+    UserProgressReadModel? progress,
+    AccountProfileDemoSnapshot fallback,
+  ) {
+    if (progress == null) {
+      return fallback.totalDistanceLabel;
+    }
+    return progress.totalDistanceLabel.trim();
   }
 
   String _accountDivisionKey(
@@ -552,9 +652,7 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
     setState(() {
       _profileFuture = widget.profileRepository.loadUserProfile();
     });
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(const SnackBar(content: Text('Profile updated.')));
+    await showRuniacSuccessCheckOverlay(context, message: 'Profile updated.');
   }
 
   IconData _matchingSetupIcon(

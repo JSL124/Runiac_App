@@ -15,6 +15,11 @@ class StaticFriendsRepository implements FriendsRepository {
   }
 
   @override
+  Stream<FriendsOverviewReadModel> watchFriendsOverview({
+    required String ownerUid,
+  }) => Stream.fromFuture(loadFriendsOverview(ownerUid: ownerUid));
+
+  @override
   Future<List<FriendUserReadModel>> searchFriends({
     required String ownerUid,
     required String nickname,

@@ -39,6 +39,12 @@ class CloudFunctionHomeGuideAgent implements HomeGuideAgent {
 
   @override
   Future<HomeGuideBundle> explainTodayPlan(HomeGuideRequest request) async {
+    // Rest days carry no workout copy; the remote callable is built around
+    // workout summaries, so compose the rest-day bundle locally instead of
+    // sending an empty-workout request to the server.
+    if (request.isRestDay) {
+      return fallbackAgent.explainTodayPlan(request);
+    }
     try {
       final bundle = _bundleFromResponse(
         await _callable(_requestPayload(request)),

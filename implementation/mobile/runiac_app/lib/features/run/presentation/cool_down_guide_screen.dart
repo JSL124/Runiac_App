@@ -7,6 +7,9 @@ import 'package:runiac_app/core/theme/runiac_colors.dart';
 
 import '../domain/models/complete_run_result.dart';
 import '../domain/models/local_run_completion_payload.dart';
+import '../domain/repositories/run_repository.dart';
+import 'models/stretch_exercise.dart';
+import 'run_repository_scope.dart';
 import 'view_summary_screen.dart';
 
 part 'cool_down_models.dart';
@@ -15,6 +18,7 @@ part 'cool_down_timer.dart';
 part 'cool_down_content.dart';
 part 'cool_down_cards.dart';
 part 'cool_down_actions.dart';
+part 'cool_down_stretch_exercise.dart';
 
 const _navy = Color(0xFF2F51C8);
 const _orange = Color(0xFFFB6414);
@@ -41,6 +45,7 @@ class CoolDownGuideScreen extends StatefulWidget {
     this.initialCompletedPhases = const <CoolDownPhase>{},
     this.completionResult,
     this.completionPayload,
+    this.repository,
   });
 
   final bool timerEnabled;
@@ -49,6 +54,7 @@ class CoolDownGuideScreen extends StatefulWidget {
   final Set<CoolDownPhase> initialCompletedPhases;
   final CompleteRunResult? completionResult;
   final LocalRunCompletionPayload? completionPayload;
+  final RunRepository? repository;
 
   @override
   State<CoolDownGuideScreen> createState() => _CoolDownGuideScreenState();
@@ -56,12 +62,14 @@ class CoolDownGuideScreen extends StatefulWidget {
 
 class _CoolDownGuideScreenState extends State<CoolDownGuideScreen> {
   static const _walkDuration = 180;
-  static const _stretchDuration = 300;
 
   late CoolDownPhase _phase;
   late int _secondsLeft;
   late _CoolDownStatus _status;
   late Set<CoolDownPhase> _completedPhases;
+  int _stretchStepIndex = 0;
+  bool _awaitingStretchAdvance = false;
+  bool _isFinishing = false;
   Timer? _timer;
 
   @override
@@ -90,11 +98,18 @@ class _CoolDownGuideScreenState extends State<CoolDownGuideScreen> {
   }
 
   int _durationFor(CoolDownPhase phase) {
-    return phase == CoolDownPhase.walk ? _walkDuration : _stretchDuration;
+    return phase == CoolDownPhase.walk
+        ? _walkDuration
+        : stretchSteps[_stretchStepIndex].seconds;
   }
 
   void _resetFromWidget() {
+    _stretchStepIndex = 0;
+    _awaitingStretchAdvance = false;
     _phase = widget.initialPhase;
+    if (_phase == CoolDownPhase.stretch && widget.initialSecondsLeft == 0) {
+      _stretchStepIndex = stretchSteps.length - 1;
+    }
     _secondsLeft = widget.initialSecondsLeft ?? _durationFor(_phase);
     _status = _secondsLeft <= 0
         ? _CoolDownStatus.complete
@@ -110,7 +125,9 @@ class _CoolDownGuideScreenState extends State<CoolDownGuideScreen> {
 
   void _scheduleTick() {
     _timer?.cancel();
-    if (!widget.timerEnabled || _status != _CoolDownStatus.running) {
+    if (!widget.timerEnabled ||
+        _status != _CoolDownStatus.running ||
+        _awaitingStretchAdvance) {
       return;
     }
 
@@ -123,12 +140,65 @@ class _CoolDownGuideScreenState extends State<CoolDownGuideScreen> {
         _secondsLeft -= 1;
         if (_secondsLeft <= 0) {
           _secondsLeft = 0;
-          _status = _CoolDownStatus.complete;
-          _completedPhases.add(_phase);
+          if (_phase == CoolDownPhase.stretch &&
+              _stretchStepIndex < stretchSteps.length - 1) {
+            _awaitingStretchAdvance = true;
+          } else {
+            _status = _CoolDownStatus.complete;
+            _completedPhases.add(_phase);
+          }
         }
       });
-      _scheduleTick();
+
+      if (_awaitingStretchAdvance) {
+        _promptNextStretch();
+      } else {
+        _scheduleTick();
+      }
     });
+  }
+
+  Future<void> _promptNextStretch() async {
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: _pureWhite,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'Time’s up!',
+          style: TextStyle(color: _navy, fontWeight: FontWeight.w800),
+        ),
+        content: const Text(
+          'Ready for the next stretch?',
+          style: TextStyle(color: _navy75),
+        ),
+        actions: [
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: _navy,
+              foregroundColor: _pureWhite,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Continue'),
+          ),
+        ],
+      ),
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _awaitingStretchAdvance = false;
+      _stretchStepIndex += 1;
+      _secondsLeft = stretchSteps[_stretchStepIndex].seconds;
+    });
+    _scheduleTick();
   }
 
   void _togglePause() {
@@ -149,14 +219,36 @@ class _CoolDownGuideScreenState extends State<CoolDownGuideScreen> {
       setState(() {
         _completedPhases.add(CoolDownPhase.walk);
         _phase = CoolDownPhase.stretch;
-        _secondsLeft = _stretchDuration;
+        _stretchStepIndex = 0;
+        _secondsLeft = stretchSteps.first.seconds;
         _status = _CoolDownStatus.running;
       });
       _scheduleTick();
       return;
     }
 
+    if (_phase == CoolDownPhase.stretch &&
+        _status == _CoolDownStatus.running) {
+      setState(() {
+        if (_stretchStepIndex < stretchSteps.length - 1) {
+          _stretchStepIndex += 1;
+          _secondsLeft = stretchSteps[_stretchStepIndex].seconds;
+        } else {
+          _secondsLeft = 0;
+          _status = _CoolDownStatus.complete;
+          _completedPhases.add(_phase);
+        }
+      });
+      _scheduleTick();
+      return;
+    }
+
     if (_status == _CoolDownStatus.complete) {
+      if (_phase == CoolDownPhase.stretch && widget.completionResult != null) {
+        unawaited(_finishCoolDown());
+        return;
+      }
+
       Navigator.of(context).pushReplacement(
         MaterialPageRoute<void>(
           builder: (context) => ViewSummaryScreen(
@@ -166,6 +258,59 @@ class _CoolDownGuideScreenState extends State<CoolDownGuideScreen> {
         ),
       );
     }
+  }
+
+  /// Requests the server-computed cool-down XP bonus and folds it into the
+  /// run's completion result before navigating to the summary screen.
+  ///
+  /// This never calculates XP locally: it only relays the activity and
+  /// session identifiers to [RunRepository.completeCoolDown] and merges the
+  /// backend's own returned progression numbers via
+  /// [CompleteRunResult.mergeCoolDownBonus]. Any failure (including the
+  /// static/demo repository's "unimplemented" response) falls back silently
+  /// to the original completion result — no snackbar, no retry.
+  Future<void> _finishCoolDown() async {
+    if (_isFinishing) {
+      return;
+    }
+    setState(() {
+      _isFinishing = true;
+    });
+
+    final completionResult = widget.completionResult!;
+    final sessionId =
+        completionResult.clientRunSessionId ??
+        widget.completionPayload?.clientRunSessionId;
+
+    var result = completionResult;
+    if (sessionId != null) {
+      try {
+        final repository =
+            widget.repository ?? RunRepositoryScope.of(context);
+        final coolDown = await repository.completeCoolDown(
+          activityId: completionResult.activityId,
+          clientRunSessionId: sessionId,
+        );
+        result = completionResult.mergeCoolDownBonus(
+          coolDown.progressionDisplay,
+        );
+      } catch (_) {
+        result = completionResult;
+      }
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute<void>(
+        builder: (context) => ViewSummaryScreen(
+          completionResult: result,
+          completionPayload: widget.completionPayload,
+        ),
+      ),
+    );
   }
 
   _PhaseCopy get _copy {
@@ -196,7 +341,7 @@ class _CoolDownGuideScreenState extends State<CoolDownGuideScreen> {
       ],
       completeTitle: 'Cool-down complete',
       completeHelper: 'That’s your recovery done. Great work today.',
-      bottomLabel: 'Finish',
+      bottomLabel: 'Next stretch',
       completeCta: 'Finish',
       icon: Icons.self_improvement_rounded,
     );
@@ -243,24 +388,35 @@ class _CoolDownGuideScreenState extends State<CoolDownGuideScreen> {
                         ),
                       ),
                       SizedBox(height: compact ? 8 : 18),
-                      _CoolDownStepIdentity(
-                        icon: content.icon,
-                        title: content.title,
-                        helper: content.helper,
-                        compact: compact,
-                      ),
-                      SizedBox(height: compact ? 8 : 16),
-                      if (_status == _CoolDownStatus.complete &&
-                          _phase == CoolDownPhase.walk)
-                        const _CoolDownUpNextCard()
-                      else if (_status != _CoolDownStatus.complete)
-                        _CoolDownTipsCard(tips: _copy.tips, compact: compact),
+                      if (_phase == CoolDownPhase.stretch &&
+                          _status != _CoolDownStatus.complete)
+                        _StretchExerciseView(
+                          step: stretchSteps[_stretchStepIndex],
+                          compact: compact,
+                        )
+                      else ...[
+                        _CoolDownStepIdentity(
+                          icon: content.icon,
+                          title: content.title,
+                          helper: content.helper,
+                          compact: compact,
+                        ),
+                        SizedBox(height: compact ? 8 : 16),
+                        if (_status == _CoolDownStatus.complete &&
+                            _phase == CoolDownPhase.walk)
+                          const _CoolDownUpNextCard()
+                        else if (_status != _CoolDownStatus.complete)
+                          _CoolDownTipsCard(
+                            tips: _copy.tips,
+                            compact: compact,
+                          ),
+                      ],
                       const Spacer(),
                       if (_status == _CoolDownStatus.complete)
                         _CoolDownPrimaryCta(
                           label: _copy.completeCta,
                           tone: _CtaTone.orange,
-                          onPressed: _handlePrimaryAction,
+                          onPressed: _isFinishing ? null : _handlePrimaryAction,
                         )
                       else
                         Row(

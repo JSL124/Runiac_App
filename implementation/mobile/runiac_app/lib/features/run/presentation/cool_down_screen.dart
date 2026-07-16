@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 
+import 'package:runiac_app/core/assets/runiac_assets.dart';
 import 'package:runiac_app/core/theme/runiac_colors.dart';
 
 import '../domain/models/complete_run_result.dart';
 import '../domain/models/local_run_completion_payload.dart';
+import '../domain/repositories/run_repository.dart';
 import 'cool_down_guide_screen.dart';
+import 'models/stretch_exercise.dart';
 import 'view_summary_screen.dart';
 
 const _rBlue = Color(0xFF2F51C8);
@@ -22,10 +25,12 @@ class CoolDownScreen extends StatelessWidget {
     super.key,
     this.completionResult,
     this.completionPayload,
+    this.repository,
   });
 
   final CompleteRunResult? completionResult;
   final LocalRunCompletionPayload? completionPayload;
+  final RunRepository? repository;
 
   @override
   Widget build(BuildContext context) {
@@ -77,6 +82,7 @@ class CoolDownScreen extends StatelessWidget {
                                     builder: (context) => CoolDownGuideScreen(
                                       completionResult: completionResult,
                                       completionPayload: completionPayload,
+                                      repository: repository,
                                     ),
                                   ),
                                 );
@@ -352,41 +358,26 @@ class _IllustrationSlot extends StatelessWidget {
                       layout.illustrationMinHeight,
                       layout.illustrationMaxHeight,
                     );
+              final trainerSize = (effectiveHeight * 1.2)
+                  .clamp(180, 240)
+                  .toDouble();
 
               return Semantics(
-                label: 'Runner stretching illustration placeholder',
+                label: 'Stretching trainer waiting animation',
                 child: AspectRatio(
                   aspectRatio: 4 / 3,
                   child: ConstrainedBox(
                     constraints: BoxConstraints(maxHeight: effectiveHeight),
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        color: _rBlue06,
-                        border: Border.all(color: _rBlue10),
-                        borderRadius: BorderRadius.circular(22),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(22),
-                        child: Stack(
-                          fit: StackFit.expand,
-                          children: const [
-                            CustomPaint(painter: _StripePainter()),
-                            Center(child: _StretchIconBadge()),
-                            Positioned(
-                              right: 11,
-                              bottom: 9,
-                              child: Text(
-                                'illustration · 4:3',
-                                style: TextStyle(
-                                  color: _rBlue45,
-                                  fontSize: 10,
-                                  fontFamily: 'monospace',
-                                  letterSpacing: 0.2,
-                                ),
-                              ),
-                            ),
-                          ],
+                    child: Center(
+                      child: Image(
+                        image: const AssetImage(
+                          RuniacAssets.stretchingTrainerIdle,
                         ),
+                        width: trainerSize,
+                        height: trainerSize,
+                        fit: BoxFit.contain,
+                        filterQuality: FilterQuality.high,
+                        excludeFromSemantics: true,
                       ),
                     ),
                   ),
@@ -397,56 +388,6 @@ class _IllustrationSlot extends StatelessWidget {
         ),
       ),
     );
-  }
-}
-
-class _StretchIconBadge extends StatelessWidget {
-  const _StretchIconBadge();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 60,
-      height: 60,
-      decoration: BoxDecoration(
-        color: _rWhite,
-        border: Border.all(color: _rBlue10),
-        borderRadius: BorderRadius.circular(30),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x142F51C8),
-            blurRadius: 14,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: const Icon(Icons.self_improvement, color: _rBlue, size: 30),
-    );
-  }
-}
-
-class _StripePainter extends CustomPainter {
-  const _StripePainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = _rBlue10.withValues(alpha: 0.6)
-      ..strokeWidth = 6
-      ..strokeCap = StrokeCap.square;
-
-    for (var x = -size.height; x < size.width + size.height; x += 14) {
-      canvas.drawLine(
-        Offset(x, size.height),
-        Offset(x + size.height, 0),
-        paint,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _StripePainter oldDelegate) {
-    return false;
   }
 }
 
@@ -541,7 +482,7 @@ class _ActivityListCard extends StatelessWidget {
             _CoolDownActivityRow(
               icon: Icons.self_improvement,
               title: 'Stretching',
-              meta: '5-8 min · 5 exercises',
+              meta: '~${(stretchTotalSeconds / 60).ceil()} min · ${stretchExercises.length} exercises',
               layout: layout,
             ),
           ],

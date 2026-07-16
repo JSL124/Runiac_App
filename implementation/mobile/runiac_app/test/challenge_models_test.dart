@@ -38,6 +38,7 @@ Map<String, Object?> _participant({
     'reward': reward,
     'displayNameSnapshot': 'Runner $uid',
     'avatarInitialsSnapshot': 'RR',
+    'levelLabelSnapshot': 'Lv.4',
   };
 }
 
@@ -270,6 +271,7 @@ void main() {
       final self = active.participants.firstWhere((row) => row.isCurrentUser);
       expect(self.uid, 'u1');
       expect(self.role, ChallengeParticipantRole.owner);
+      expect(self.levelLabelSnapshot, 'Lv.4');
     });
 
     test('rejects an instance missing a required field', () {

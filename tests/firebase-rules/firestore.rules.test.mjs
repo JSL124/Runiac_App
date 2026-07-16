@@ -33,6 +33,26 @@ import {
 } from './support/firestore_rules_test_support.mjs';
 
 describe('owner-owned client records', () => {
+  it('denies all direct Home Guide consent reads and writes', async () => {
+    await seed('homeGuideConsents/alice', {
+      ownerUid: 'alice',
+      schemaVersion: 1,
+      disclosureVersion: 1,
+      granted: true,
+    });
+
+    const alice = dbFor('alice');
+    await assertFails(getDoc(doc(alice, 'homeGuideConsents/alice')));
+    await assertFails(
+      setDoc(doc(alice, 'homeGuideConsents/alice'), {
+        ownerUid: 'alice',
+        schemaVersion: 1,
+        disclosureVersion: 1,
+        granted: false,
+      }),
+    );
+  });
+
   it('allows an owner to write safe user profile fields', async () => {
     const alice = dbFor('alice');
 
@@ -608,6 +628,23 @@ describe('owner-owned client records', () => {
     );
   });
 
+  it('denies client writes to backend-owned cool-down XP fields on activities', async () => {
+    await seed('activities/cooldown-001', {
+      ...activityDraft,
+    });
+
+    const activity = doc(dbFor('alice'), 'activities/cooldown-001');
+
+    await assertFails(updateDoc(activity, { coolDownXpAwarded: true }));
+
+    await assertFails(
+      setDoc(doc(dbFor('alice'), 'activities/cooldown-002'), {
+        ...activityDraft,
+        coolDownXpAwarded: true,
+      }),
+    );
+  });
+
   it('denies overwriting or resetting backend-processed activities', async () => {
     await seed('activities/processed-001', {
       ...activityDraft,
@@ -646,6 +683,33 @@ describe('owner-owned client records', () => {
     await assertFails(updateDoc(profile, { lastStreakRunDate: '2026-06-16' }));
     await assertFails(updateDoc(profile, { streakUpdatedAt: 2 }));
     await assertFails(updateDoc(profile, { streakCount: deleteField() }));
+  });
+
+  it('denies client writes to backend-owned lifetime stat profile fields', async () => {
+    await seed('userProfiles/alice', {
+      ...profileFields,
+      longestStreak: 5,
+      longestStreakLabel: '5 days',
+      totalDistanceMeters: 12800,
+      totalDistanceLabel: '12.8 km',
+    });
+
+    const profile = doc(dbFor('alice'), 'userProfiles/alice');
+
+    await assertFails(
+      setDoc(profile, {
+        ...profileFields,
+        longestStreak: 9,
+        longestStreakLabel: '9 days',
+        totalDistanceMeters: 99999,
+        totalDistanceLabel: '100.0 km',
+      }),
+    );
+    await assertFails(updateDoc(profile, { longestStreak: 9 }));
+    await assertFails(updateDoc(profile, { longestStreakLabel: '9 days' }));
+    await assertFails(updateDoc(profile, { totalDistanceMeters: 99999 }));
+    await assertFails(updateDoc(profile, { totalDistanceLabel: '100.0 km' }));
+    await assertFails(updateDoc(profile, { totalDistanceMeters: deleteField() }));
   });
 
   it('activity owner history list supports latest-first bounded queries', async () => {

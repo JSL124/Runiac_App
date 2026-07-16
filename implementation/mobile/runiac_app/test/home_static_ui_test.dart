@@ -5,11 +5,11 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runiac_app/app.dart';
 import 'package:runiac_app/core/widgets/runiac_level_profile_badge.dart';
-import 'package:runiac_app/features/account/data/static_user_profile_repository.dart';
-import 'package:runiac_app/features/account/domain/models/user_profile_read_model.dart';
-import 'package:runiac_app/features/account/domain/repositories/user_profile_repository.dart';
-import 'package:runiac_app/features/account/domain/repositories/user_profile_persistence_repository.dart';
-import 'package:runiac_app/features/account/presentation/watch_health_apps_screen.dart';
+import 'package:runiac_app/features/profile/data/static_user_profile_repository.dart';
+import 'package:runiac_app/features/profile/domain/models/user_profile_read_model.dart';
+import 'package:runiac_app/features/profile/domain/repositories/user_profile_repository.dart';
+import 'package:runiac_app/features/profile/domain/repositories/user_profile_persistence_repository.dart';
+import 'package:runiac_app/features/profile/presentation/watch_health_apps_screen.dart';
 import 'package:runiac_app/features/home/presentation/home_tab.dart';
 import 'package:runiac_app/features/home/presentation/data/home_dashboard_demo_snapshots.dart';
 import 'package:runiac_app/features/home/presentation/widgets/home_progress_insight_section.dart';
@@ -395,7 +395,7 @@ void main() {
     await tester.tap(find.bySemanticsLabel('Profile'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Account'), findsOneWidget);
+    expect(find.text('Profile'), findsOneWidget);
     expect(find.text('Lee Runner'), findsOneWidget);
     expect(find.text('Tampines, Singapore'), findsOneWidget);
     expect(find.text('LR'), findsOneWidget);
@@ -496,7 +496,7 @@ void main() {
       await tester.tap(find.bySemanticsLabel('Profile'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Account'), findsOneWidget);
+      expect(find.text('Profile'), findsOneWidget);
       expect(find.text('Runiac'), findsNothing);
       expect(find.text('Runiac Runner'), findsOneWidget);
       final displayName = tester.widget<Text>(find.text('Runiac Runner'));
@@ -549,7 +549,8 @@ void main() {
         'subscription',
         'entitlement',
         'XP',
-        'streak',
+        // 'streak' intentionally allowed: the profile screen now surfaces the
+        // backend-owned Max streak stat beneath the progression bar.
         'level',
         'Level',
         'rank',
@@ -566,7 +567,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Your journey map is waiting'), findsOneWidget);
-      expect(find.text('Account'), findsNothing);
+      expect(find.text('Profile'), findsNothing);
 
       expect(find.text('This Week\'s Plan'), findsNothing);
       expect(find.text('Last Run'), findsNothing);
@@ -764,7 +765,7 @@ void main() {
 
     await tester.tap(find.bySemanticsLabel('Profile'));
     await tester.pumpAndSettle();
-    expect(find.text('Account'), findsOneWidget);
+    expect(find.text('Profile'), findsOneWidget);
 
     await tester.tap(find.bySemanticsLabel('Back to Home'));
     await tester.pumpAndSettle();
@@ -842,11 +843,10 @@ void main() {
     await tester.tap(find.bySemanticsLabel('Profile'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Account'), findsOneWidget);
+    expect(find.text('Profile'), findsOneWidget);
 
     for (final row in <(String, String)>[
       ('Settings', 'Settings preview is coming soon.'),
-      ('Privacy & Safety', 'Privacy & Safety preview is coming soon.'),
       ('About Runiac', 'About Runiac preview is coming soon.'),
     ]) {
       await tester.scrollUntilVisible(
@@ -859,8 +859,36 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text(row.$2), findsOneWidget);
-      expect(find.text('Account'), findsOneWidget);
+      expect(find.text('Profile'), findsOneWidget);
     }
+  });
+
+  testWidgets('Account opens Privacy & Safety guide consent from Manage', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      const RuniacApp(showSplash: false, enableForegroundGps: false),
+    );
+
+    await tester.tap(find.bySemanticsLabel('Profile'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Profile'), findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.text('Privacy & Safety'),
+      180,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Privacy & Safety'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey<String>('privacySafetyGuideConsentSwitch')),
+      findsOneWidget,
+    );
+    expect(find.text('Personalized guide'), findsOneWidget);
   });
 
   testWidgets('Account opens Watch and Health Apps preview from Manage', (
@@ -873,7 +901,7 @@ void main() {
     await tester.tap(find.bySemanticsLabel('Profile'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Account'), findsOneWidget);
+    expect(find.text('Profile'), findsOneWidget);
     expect(find.text('Watch & Health Apps'), findsOneWidget);
     expect(find.text('Connect watch runs and health apps'), findsOneWidget);
 
@@ -967,7 +995,7 @@ void main() {
     await tester.tap(find.bySemanticsLabel('Back to Account'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Account'), findsOneWidget);
+    expect(find.text('Profile'), findsOneWidget);
     expect(find.text('Runiac Runner'), findsOneWidget);
     expect(find.text('Lv.0'), findsWidgets);
   });
@@ -1175,7 +1203,7 @@ void main() {
     await tester.tap(find.bySemanticsLabel('Profile'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Account'), findsOneWidget);
+    expect(find.text('Profile'), findsOneWidget);
     expect(find.text('Runiac'), findsNothing);
     expect(find.text('Runiac Runner'), findsOneWidget);
     expect(find.text('Jurong East, Singapore'), findsOneWidget);

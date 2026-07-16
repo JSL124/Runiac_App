@@ -164,12 +164,12 @@ class _StartRunAction extends StatelessWidget {
   }
 }
 
-void _showEditScheduleSheet(
+Future<void> _showEditScheduleSheet(
   BuildContext context,
   WeeklyWorkoutDetailSnapshot snapshot,
   ValueChanged<WorkoutScheduleEditSelection>? onScheduleChanged,
-) {
-  showModalBottomSheet<void>(
+) async {
+  final saved = await showModalBottomSheet<bool>(
     context: context,
     isScrollControlled: true,
     backgroundColor: RuniacColors.white,
@@ -181,4 +181,8 @@ void _showEditScheduleSheet(
       onScheduleChanged: onScheduleChanged,
     ),
   );
+  if (saved != true || !context.mounted) {
+    return;
+  }
+  await showRuniacSuccessCheckOverlay(context, message: 'Schedule updated.');
 }

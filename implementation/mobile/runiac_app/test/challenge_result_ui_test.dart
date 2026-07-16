@@ -73,7 +73,10 @@ void main() {
         ),
       ),
     );
-    await tester.pumpAndSettle();
+    // The earned ceremony runs a continuous ambient/fireworks loop that never
+    // settles, so drive a bounded number of frames instead of pumpAndSettle.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 700));
 
     expect(find.text('You earned the 10K badge!'), findsOneWidget);
     expect(_badge(tester).dimmed, isFalse);

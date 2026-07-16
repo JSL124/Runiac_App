@@ -229,6 +229,10 @@ export type ChallengeParticipantView = {
   readonly reward: string;
   readonly displayNameSnapshot: string;
   readonly avatarInitialsSnapshot: string;
+  // Backend-owned, display-only level label (e.g. "Lv.2") resolved live from
+  // the participant's profile when the roster is served. Empty when the
+  // participant's profile has no level yet; the client falls back to "Lv.0".
+  readonly levelLabelSnapshot: string;
 };
 
 export function serializeInstance(
@@ -262,6 +266,7 @@ export function serializeInstance(
 
 export function serializeParticipant(
   data: DocumentData,
+  levelLabel = "",
 ): ChallengeParticipantView {
   return {
     uid: readString(data, "uid"),
@@ -271,13 +276,18 @@ export function serializeParticipant(
     reward: readString(data, "reward"),
     displayNameSnapshot: readString(data, "displayNameSnapshot"),
     avatarInitialsSnapshot: readString(data, "avatarInitialsSnapshot"),
+    levelLabelSnapshot: levelLabel,
   };
 }
 
 export function sortedParticipantViews(
   snapshot: QuerySnapshot,
+  levelByUid: ReadonlyMap<string, string> = new Map(),
 ): readonly ChallengeParticipantView[] {
   return snapshot.docs
-    .map((doc) => serializeParticipant(doc.data()))
+    .map((doc) => {
+      const data = doc.data();
+      return serializeParticipant(data, levelByUid.get(readString(data, "uid")) ?? "");
+    })
     .sort((left, right) => left.uid.localeCompare(right.uid));
 }

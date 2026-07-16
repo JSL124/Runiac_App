@@ -3,7 +3,7 @@ import { activePlanMarker, type HomeGuideEvidence, type HomeGuidePlanDisplayCont
 
 const SINGAPORE_OFFSET_MILLIS = 8 * 60 * 60 * 1_000;
 const FINGERPRINT_SCHEMA_VERSION = 1;
-const PROMPT_SCHEMA_VERSION = 1;
+export const HOME_GUIDE_PROMPT_SCHEMA_VERSION = 2;
 const EVIDENCE_ALGORITHM_VERSION = 1;
 
 export type HomeGuideFingerprintInput = {
@@ -30,7 +30,7 @@ export function singaporeDayKey(now: Date): string {
 export function createHomeGuideContextFingerprint(input: HomeGuideFingerprintInput): string {
   const canonical = JSON.stringify({
     fingerprintSchemaVersion: FINGERPRINT_SCHEMA_VERSION,
-    promptSchemaVersion: PROMPT_SCHEMA_VERSION,
+    promptSchemaVersion: HOME_GUIDE_PROMPT_SCHEMA_VERSION,
     evidenceAlgorithmVersion: EVIDENCE_ALGORITHM_VERSION,
     dayKey: input.dayKey,
     activePlanMarker: activePlanMarker(input.activePlanMarker),

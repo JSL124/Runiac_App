@@ -6,11 +6,11 @@ import 'package:flutter/material.dart';
 import 'core/characters/local_selected_runner_character_storage.dart';
 import 'core/characters/runner_character.dart';
 import 'core/theme/runiac_theme.dart';
-import 'features/account/data/static_user_profile_repository.dart';
-import 'features/account/domain/models/user_profile_read_model.dart';
-import 'features/account/domain/repositories/user_profile_persistence_repository.dart';
-import 'features/account/domain/repositories/user_profile_repository.dart';
-import 'features/account/presentation/personal_profile_collection_screen.dart';
+import 'features/profile/data/static_user_profile_repository.dart';
+import 'features/profile/domain/models/user_profile_read_model.dart';
+import 'features/profile/domain/repositories/user_profile_persistence_repository.dart';
+import 'features/profile/domain/repositories/user_profile_repository.dart';
+import 'features/profile/presentation/personal_profile_collection_screen.dart';
 import 'features/auth/data/non_production_auth_repository.dart';
 import 'features/auth/domain/runiac_auth_service.dart';
 import 'features/auth/presentation/runiac_auth_gate.dart';
@@ -24,6 +24,7 @@ import 'features/feed/presentation/current_session_feed.dart';
 import 'features/friends/data/static_friends_repository.dart';
 import 'features/friends/domain/repositories/friends_repository.dart';
 import 'features/home/domain/guide/home_guide_agent.dart';
+import 'features/home/domain/guide/home_guide_consent.dart';
 import 'features/home/domain/guide/rule_based_home_guide_agent.dart';
 import 'features/onboarding/domain/models/local_onboarding_draft.dart';
 import 'features/notifications/domain/models/notification_inbox_item.dart';
@@ -88,6 +89,8 @@ class RuniacApp extends StatefulWidget {
         const StaticNotificationInboxRepository(),
     this.notificationRegistrationService,
     this.homeGuideAgent = const RuleBasedHomeGuideAgent(),
+    this.homeGuideConsentRepository =
+        const AlwaysGrantedHomeGuideConsentRepository(),
     this.enableForegroundGps = true,
     this.activeRunSessionCoordinator,
     this.initialRunOpenIntent,
@@ -129,6 +132,7 @@ class RuniacApp extends StatefulWidget {
 
   /// Guide seam forwarded down to `HomeTab`'s stage-map speech bubble.
   final HomeGuideAgent homeGuideAgent;
+  final HomeGuideConsentRepository homeGuideConsentRepository;
   final bool enableForegroundGps;
   final ActiveRunSessionCoordinator? activeRunSessionCoordinator;
   final RunOpenIntent? initialRunOpenIntent;
@@ -636,6 +640,7 @@ class _RuniacAppState extends State<RuniacApp> {
           planProgress: _planProgress,
           adaptivePlanEstimate: _adaptivePlanEstimate,
           homeGuideAgent: widget.homeGuideAgent,
+          homeGuideConsentRepository: widget.homeGuideConsentRepository,
           enableForegroundGps: widget.enableForegroundGps,
           activeRunSessionCoordinator: widget.activeRunSessionCoordinator,
           initialRunOpenIntent: widget.initialRunOpenIntent,

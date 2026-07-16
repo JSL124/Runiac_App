@@ -45,6 +45,8 @@ dependencies:
   google_sign_in: ^7.2.0
   shared_preferences: ^2.5.3
   firebase_messaging: ^16.4.1
+  lottie: ^3.5.1
+  firebase_app_check: ^0.4.5+2
 
 dev_dependencies:
   flutter_test:
@@ -96,6 +98,7 @@ flutter:
     - assets/images/home/todays_plan_runner.png
     - assets/images/home/stages/
     - assets/images/home/backgrounds/
+    - assets/images/stretching/
     - assets/images/friends/friends_add.png
     - assets/images/friends/friends_pending.png
     - assets/images/leaderboard/share_rank_card_background.png
@@ -104,6 +107,10 @@ flutter:
     - assets/images/challenges/badges/
     - assets/maps/master_plan_2025_planning_area_boundary_no_sea.geojson
     - assets/images/splash/runiac_splash_logo.png
+    - assets/animations/challenge_celebration.lottie
+    - assets/animations/success_check.lottie
+    - assets/animations/plan_complete_gauge.lottie
+    - assets/animations/plan_complete_burst.lottie
 
   # To add assets to your application, add an assets section, like this:
   # assets:

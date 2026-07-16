@@ -31,7 +31,7 @@ void main() {
     await tester.tap(find.bySemanticsLabel('Profile'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Account'), findsOneWidget);
+    expect(find.text('Profile'), findsOneWidget);
     await tester.ensureVisible(find.text('Sign out'));
     await tester.pumpAndSettle();
 
@@ -63,7 +63,7 @@ void main() {
 
     expect(repository.signOutCalls, 0);
     expect(find.text('Sign out?'), findsNothing);
-    expect(find.text('Account'), findsOneWidget);
+    expect(find.text('Profile'), findsOneWidget);
 
     repository.holdNextSignOut();
 
@@ -98,6 +98,6 @@ void main() {
 
     expect(repository.signOutCalls, 1);
     expect(find.text('Sign up'), findsOneWidget);
-    expect(find.text('Account'), findsNothing);
+    expect(find.text('Profile'), findsNothing);
   });
 }

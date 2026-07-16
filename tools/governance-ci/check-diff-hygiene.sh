@@ -97,6 +97,34 @@ is_challenge_distance_system_path() {
   esac
 }
 
+is_cool_down_stretch_xp_bonus_capsule_active() {
+  grep -Eq '^- Newly routed cool-down stretch completion XP bonus on 2026-07-14 Asia/Singapore: `implementation/roadmap/capsules/cool-down-stretch-completion-xp-bonus\.md`' implementation/roadmap/CURRENT.md
+}
+
+is_cool_down_stretch_xp_bonus_path() {
+  case "$1" in
+    implementation/roadmap/capsules/cool-down-stretch-completion-xp-bonus.md|\
+    functions/src/run/completeCoolDown.ts|\
+    functions/src/run/validateCoolDownPayload.ts|\
+    functions/src/run/runCompletionTypes.ts|\
+    functions/src/run/runCompletionArtifacts.ts|\
+    functions/src/progression/progressionCalculator.ts|\
+    functions/src/progression/progressionAudit.ts|\
+    functions/src/progression/progressionDisplayReader.ts|\
+    functions/src/index.ts|\
+    functions/package.json|\
+    functions/test/completeCoolDown.test.ts|\
+    functions/test/progressionCalculator.test.ts|\
+    tests/firebase-rules/firestore.rules.test.mjs|\
+    firestore.rules)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 is_feed_friends_emulator_backend_rules_test_path() {
   local path="$1"
   local relative_path
@@ -165,6 +193,10 @@ is_feed_friends_emulator_backend_path() {
 is_adaptive_character_guidance_functions_path() {
   case "$1" in
     functions/package.json|\
+    functions/src/index.ts|\
+    functions/src/security/appCheck.ts|\
+    functions/src/agent/activityFeedbackAgent.ts|\
+    functions/src/agent/homeGuideConsent.ts|\
     functions/src/agent/homeGuideAgent.ts|\
     functions/src/agent/homeGuideAgentHandler.ts|\
     functions/src/agent/homeGuideContracts.ts|\
@@ -174,9 +206,11 @@ is_adaptive_character_guidance_functions_path() {
     functions/src/agent/homeGuideQuotaCache.ts|\
     functions/src/agent/homeGuideQuotaFingerprint.ts|\
     functions/test/homeGuideAgentCallableSurface.test.ts|\
+    functions/test/homeGuideConsent.test.ts|\
     functions/test/homeGuideAgentSurface.test.ts|\
     functions/test/homeGuideEvidence.test.ts|\
     functions/test/homeGuideEvidenceFixtures.ts|\
+    functions/test/homeGuideGeneratedCopyPolicy.test.ts|\
     functions/test/homeGuideModel.test.ts|\
     functions/test/homeGuideModelFixtures.ts|\
     functions/test/homeGuideQuotaCache.test.ts)
@@ -211,11 +245,19 @@ is_run_duration_fields_functions_path() {
 }
 
 is_allowed_path() {
+  if is_adaptive_character_guidance_functions_path "$1" && is_adaptive_character_guidance_capsule_active; then
+    return 0
+  fi
+
   if is_friends_backend_mvp_path "$1" && is_friends_backend_mvp_capsule_active; then
     return 0
   fi
 
   if is_challenge_distance_system_path "$1" && is_challenge_distance_system_capsule_active; then
+    return 0
+  fi
+
+  if is_cool_down_stretch_xp_bonus_path "$1" && is_cool_down_stretch_xp_bonus_capsule_active; then
     return 0
   fi
 
@@ -243,8 +285,12 @@ is_allowed_path() {
     implementation/roadmap/capsules/friends-row-add-pending-icons.md)
       return 0
       ;;
+    # Approved: routed profile lifetime-stats backend deploy capsule
+    implementation/roadmap/capsules/profile-lifetime-stats-backend.md)
+      return 0
+      ;;
     # Approved: routed capsule documentation/governance patches only
-    docs/meta/REPOSITORY_WORKFLOW_RECORD.md|implementation/roadmap/capsules/repository-workflow-record.md|implementation/roadmap/capsules/flutter-app-shell-baseline.md|implementation/roadmap/capsules/android-ui-smoke-test-evidence.md|implementation/roadmap/capsules/home-dashboard-visual-polish.md|implementation/roadmap/capsules/premium-home-dashboard-static-wireframe-alignment.md|implementation/roadmap/capsules/github-actions-governance-ci-baseline.md|implementation/roadmap/capsules/github-actions-flutter-validation-baseline.md|implementation/roadmap/capsules/home-dashboard-scroll-layout-stability-fix.md|implementation/roadmap/capsules/home-dashboard-reference-layout-alignment.md|implementation/roadmap/capsules/home-dashboard-primary-action-simplification.md|implementation/roadmap/capsules/home-maps-static-read-model-snapshot-readiness.md|implementation/roadmap/capsules/complete-run-progression-contract-plan.md|implementation/roadmap/capsules/complete-run-cloud-functions-emulator-skeleton.md|implementation/roadmap/capsules/run-duration-fields.md|implementation/roadmap/capsules/running-activity-history-user-link.md|implementation/roadmap/capsules/firestore-base-bootstrap-seam.md|implementation/roadmap/capsules/profile-persistence-rules-contract.md|implementation/roadmap/capsules/goal-plan-detail-static-snapshot-shell.md|implementation/roadmap/capsules/goal-plan-detail-header-timeline-alignment.md|implementation/roadmap/capsules/maps-tab-static-placeholder.md|implementation/roadmap/capsules/maps-static-discovery-hierarchy-polish.md|implementation/roadmap/capsules/leaderboard-static-motivation-hierarchy-polish.md|implementation/roadmap/capsules/leaderboard-map-first-landing-shell.md|implementation/roadmap/capsules/leaderboard-help-modal-shell.md|implementation/roadmap/capsules/leaderboard-region-preview-sheet-shell.md|implementation/roadmap/capsules/leaderboard-leagues-popup-shell.md|implementation/roadmap/capsules/leaderboard-static-read-model-snapshot-readiness.md|implementation/roadmap/capsules/flutter-frontend-hygiene-cleanup.md|implementation/roadmap/capsules/flutter-source-structure-refactor.md|implementation/roadmap/capsules/run-tab-static-placeholder.md|implementation/roadmap/capsules/run-tab-fullscreen-map-overlay-alignment.md|implementation/roadmap/capsules/run-controls-and-plan-spacing-polish.md|implementation/roadmap/capsules/run-launch-fullscreen-static-interaction.md|implementation/roadmap/capsules/run-launch-brand-color-polish.md|implementation/roadmap/capsules/run-plan-objective-bottom-sheet.md|implementation/roadmap/capsules/run-static-read-model-snapshot-readiness.md|implementation/roadmap/capsules/weekly-workout-detail-static-snapshot-shell.md|implementation/roadmap/capsules/expert-plan-list-static-snapshot-shell.md|implementation/roadmap/capsules/expert-plan-detail-static-snapshot-shell.md|implementation/roadmap/capsules/you-tab-progress-overview-static.md|implementation/roadmap/capsules/you-plans-static-ui.md|implementation/roadmap/capsules/home-social-dropdown-friends-shell.md|implementation/roadmap/capsules/home-you-state-stability.md)
+    docs/meta/REPOSITORY_WORKFLOW_RECORD.md|implementation/roadmap/capsules/repository-workflow-record.md|implementation/roadmap/capsules/flutter-app-shell-baseline.md|implementation/roadmap/capsules/android-ui-smoke-test-evidence.md|implementation/roadmap/capsules/home-dashboard-visual-polish.md|implementation/roadmap/capsules/premium-home-dashboard-static-wireframe-alignment.md|implementation/roadmap/capsules/github-actions-governance-ci-baseline.md|implementation/roadmap/capsules/github-actions-flutter-validation-baseline.md|implementation/roadmap/capsules/home-dashboard-scroll-layout-stability-fix.md|implementation/roadmap/capsules/home-dashboard-reference-layout-alignment.md|implementation/roadmap/capsules/home-dashboard-primary-action-simplification.md|implementation/roadmap/capsules/home-maps-static-read-model-snapshot-readiness.md|implementation/roadmap/capsules/complete-run-progression-contract-plan.md|implementation/roadmap/capsules/complete-run-cloud-functions-emulator-skeleton.md|implementation/roadmap/capsules/run-duration-fields.md|implementation/roadmap/capsules/running-activity-history-user-link.md|implementation/roadmap/capsules/firestore-base-bootstrap-seam.md|implementation/roadmap/capsules/profile-persistence-rules-contract.md|implementation/roadmap/capsules/goal-plan-detail-static-snapshot-shell.md|implementation/roadmap/capsules/goal-plan-detail-header-timeline-alignment.md|implementation/roadmap/capsules/maps-tab-static-placeholder.md|implementation/roadmap/capsules/maps-static-discovery-hierarchy-polish.md|implementation/roadmap/capsules/leaderboard-static-motivation-hierarchy-polish.md|implementation/roadmap/capsules/leaderboard-map-first-landing-shell.md|implementation/roadmap/capsules/leaderboard-help-modal-shell.md|implementation/roadmap/capsules/leaderboard-region-preview-sheet-shell.md|implementation/roadmap/capsules/leaderboard-leagues-popup-shell.md|implementation/roadmap/capsules/leaderboard-static-read-model-snapshot-readiness.md|implementation/roadmap/capsules/flutter-frontend-hygiene-cleanup.md|implementation/roadmap/capsules/flutter-source-structure-refactor.md|implementation/roadmap/capsules/run-tab-static-placeholder.md|implementation/roadmap/capsules/run-tab-fullscreen-map-overlay-alignment.md|implementation/roadmap/capsules/run-controls-and-plan-spacing-polish.md|implementation/roadmap/capsules/run-launch-fullscreen-static-interaction.md|implementation/roadmap/capsules/run-launch-brand-color-polish.md|implementation/roadmap/capsules/run-plan-objective-bottom-sheet.md|implementation/roadmap/capsules/run-static-read-model-snapshot-readiness.md|implementation/roadmap/capsules/weekly-workout-detail-static-snapshot-shell.md|implementation/roadmap/capsules/expert-plan-list-static-snapshot-shell.md|implementation/roadmap/capsules/expert-plan-detail-static-snapshot-shell.md|implementation/roadmap/capsules/you-tab-progress-overview-static.md|implementation/roadmap/capsules/you-plans-static-ui.md|implementation/roadmap/capsules/home-social-dropdown-friends-shell.md|implementation/roadmap/capsules/home-you-state-stability.md|implementation/roadmap/capsules/adaptive-character-guidance.md)
       return 0
       ;;
     # Approved: scaffold-baseline instruction/setup-gate alignment only
@@ -320,11 +366,19 @@ is_unrelated_mobile_native_artifact() {
 }
 
 is_forbidden_path() {
+  if is_adaptive_character_guidance_functions_path "$1" && is_adaptive_character_guidance_capsule_active; then
+    return 1
+  fi
+
   if is_friends_backend_mvp_path "$1" && is_friends_backend_mvp_capsule_active; then
     return 1
   fi
 
   if is_challenge_distance_system_path "$1" && is_challenge_distance_system_capsule_active; then
+    return 1
+  fi
+
+  if is_cool_down_stretch_xp_bonus_path "$1" && is_cool_down_stretch_xp_bonus_capsule_active; then
     return 1
   fi
 

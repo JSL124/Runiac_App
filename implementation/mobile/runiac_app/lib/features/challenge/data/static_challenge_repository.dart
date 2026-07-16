@@ -127,6 +127,14 @@ class StaticChallengeRepository implements ChallengeRepository {
   }
 
   @override
+  Stream<ActiveChallenge?> watchActiveChallenge() =>
+      Stream<ActiveChallenge?>.fromFuture(activeChallenge());
+
+  @override
+  Stream<List<ChallengeInvitationSummary>> watchInvitations() =>
+      Stream<List<ChallengeInvitationSummary>>.fromFuture(invitations());
+
+  @override
   Future<LeaveChallengeResult> leave({required String challengeId}) async {
     return LeaveChallengeResult(challengeId: challengeId, idempotent: false);
   }
@@ -291,6 +299,7 @@ class StaticChallengeRepository implements ChallengeRepository {
               uid: _friendUid,
               displayNameSnapshot: 'Sam Runner',
               avatarInitialsSnapshot: 'SR',
+              levelLabelSnapshot: 'Lv.8',
               role: ChallengeParticipantRole.owner,
               status: ChallengeParticipantStatus.active,
               creditedMeters: 5000,
@@ -301,6 +310,7 @@ class StaticChallengeRepository implements ChallengeRepository {
               uid: _currentUid,
               displayNameSnapshot: 'You',
               avatarInitialsSnapshot: 'YO',
+              levelLabelSnapshot: 'Lv.3',
               role: ChallengeParticipantRole.member,
               status: ChallengeParticipantStatus.left,
               creditedMeters: 2000,
@@ -358,6 +368,7 @@ class StaticChallengeRepository implements ChallengeRepository {
       uid: _currentUid,
       displayNameSnapshot: 'You',
       avatarInitialsSnapshot: 'YO',
+      levelLabelSnapshot: 'Lv.5',
       role: ChallengeParticipantRole.owner,
       status: status,
       creditedMeters: meters,
@@ -375,6 +386,7 @@ class StaticChallengeRepository implements ChallengeRepository {
       uid: _friendUid,
       displayNameSnapshot: 'Sam Runner',
       avatarInitialsSnapshot: 'SR',
+      levelLabelSnapshot: 'Lv.8',
       role: ChallengeParticipantRole.member,
       status: status,
       creditedMeters: meters,

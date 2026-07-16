@@ -5,6 +5,13 @@ abstract interface class FriendsRepository {
     required String ownerUid,
   });
 
+  /// Snapshot-backed live read of the same owner-scoped lists as
+  /// [loadFriendsOverview] (friends, incoming/outgoing requests, blocked
+  /// users). Reads only — writes stay on the Cloud Functions callables.
+  Stream<FriendsOverviewReadModel> watchFriendsOverview({
+    required String ownerUid,
+  });
+
   Future<List<FriendUserReadModel>> searchFriends({
     required String ownerUid,
     required String nickname,

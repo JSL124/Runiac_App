@@ -1,10 +1,10 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:runiac_app/features/account/data/static_user_profile_repository.dart';
-import 'package:runiac_app/features/account/data/static_viewer_access_repository.dart';
-import 'package:runiac_app/features/account/domain/repositories/user_profile_repository.dart';
-import 'package:runiac_app/features/account/domain/repositories/viewer_access_repository.dart';
+import 'package:runiac_app/features/profile/data/static_user_profile_repository.dart';
+import 'package:runiac_app/features/profile/data/static_viewer_access_repository.dart';
+import 'package:runiac_app/features/profile/domain/repositories/user_profile_repository.dart';
+import 'package:runiac_app/features/profile/domain/repositories/viewer_access_repository.dart';
 import 'package:runiac_app/features/feed/data/static_feed_repository.dart';
 import 'package:runiac_app/features/feed/domain/models/feed_display_models.dart';
 import 'package:runiac_app/features/feed/domain/repositories/feed_repository.dart';
@@ -75,7 +75,7 @@ void main() {
       const repositoryContracts = <_RepositoryContract>[
         _RepositoryContract(
           path:
-              'lib/features/account/domain/repositories/'
+              'lib/features/profile/domain/repositories/'
               'user_profile_repository.dart',
           declarations: <String>[
             'Future<UserProfileReadModel> loadUserProfile();',
@@ -116,7 +116,7 @@ void main() {
         ),
         _RepositoryContract(
           path:
-              'lib/features/account/domain/repositories/'
+              'lib/features/profile/domain/repositories/'
               'viewer_access_repository.dart',
           declarations: <String>[
             'Future<ViewerAccessReadModel> loadViewerAccess();',
@@ -137,8 +137,9 @@ void main() {
             'Future<CompleteRunResult> loadLatestCompletionResult();',
             'Future<RunActivityReadModel> loadLatestRunActivity();',
             'Future<CompleteRunResult> completeRun(LocalRunCompletionPayload payload);',
+            'Future<CompleteRunResult> completeCoolDown({ required String activityId, required String clientRunSessionId, });',
           ],
-          allowedCommandMethods: <String>['completeRun'],
+          allowedCommandMethods: <String>['completeRun', 'completeCoolDown'],
         ),
       ];
 

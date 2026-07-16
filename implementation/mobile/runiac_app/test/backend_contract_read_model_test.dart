@@ -176,6 +176,8 @@ void main() {
             'monthlyXpLabel',
             'weeklyDistanceLabel',
             'goalProgressLabel',
+            'longestStreakLabel',
+            'totalDistanceLabel',
             'divisionKey',
             'divisionLabel',
           ],

@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import {
   applyDailyXpCap,
   calculateActivityXp,
+  calculateCoolDownBonus,
   dailyCapDateForCompletedAt,
   monthlyPeriodForCompletedAt,
   resolveLevelProgression,
@@ -104,5 +105,30 @@ describe("progression calculator", () => {
     assert.equal(max.nextLevelXp, null);
     assert.equal(max.xpToNextLevel, null);
     assert.equal(max.levelProgressPercent, 100);
+  });
+});
+
+describe("cool-down bonus calculator", () => {
+  it("awards a 20 percent bonus rounded to the nearest 5 XP", () => {
+    assert.equal(calculateCoolDownBonus(40), 10);
+    assert.equal(calculateCoolDownBonus(75), 15);
+  });
+
+  it("caps the bonus so the activity total never exceeds the 100 XP activity cap", () => {
+    assert.equal(calculateCoolDownBonus(95), 5);
+  });
+
+  it("floors the bonus at 5 XP for small nonzero bases", () => {
+    assert.equal(calculateCoolDownBonus(10), 5);
+  });
+
+  it("awards zero bonus once the base XP already exhausts the activity cap", () => {
+    assert.equal(calculateCoolDownBonus(100), 0);
+  });
+
+  it("awards zero bonus for zero or invalid base XP", () => {
+    assert.equal(calculateCoolDownBonus(0), 0);
+    assert.equal(calculateCoolDownBonus(-10), 0);
+    assert.equal(calculateCoolDownBonus(Number.NaN), 0);
   });
 });

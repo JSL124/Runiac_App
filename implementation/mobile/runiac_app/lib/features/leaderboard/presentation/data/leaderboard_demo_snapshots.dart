@@ -146,7 +146,7 @@ const leaderboardDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       profile: RunnerAchievementProfileSnapshot(
         name: 'Alex T.',
         initial: 'A',
-        regionRankLabel: 'Jurong East · Rank #1',
+        regionRankLabel: '#1 Jurong East, Singapore',
         levelBadgeLabel: 'Lv.18',
         divisionLevelLabel: 'Bronze · Level 18',
         totalDistanceLabel: '10000 km',
@@ -165,7 +165,7 @@ const leaderboardDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       profile: RunnerAchievementProfileSnapshot(
         name: 'Maya L.',
         initial: 'M',
-        regionRankLabel: 'Jurong East · Rank #2',
+        regionRankLabel: '#2 Jurong East, Singapore',
         levelBadgeLabel: 'Lv.17',
         divisionLevelLabel: 'Bronze · Level 17',
         totalDistanceLabel: '198.2 km',
@@ -183,7 +183,7 @@ const leaderboardDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       profile: RunnerAchievementProfileSnapshot(
         name: 'Ryan K.',
         initial: 'R',
-        regionRankLabel: 'Jurong East · Rank #3',
+        regionRankLabel: '#3 Jurong East, Singapore',
         levelBadgeLabel: 'Lv.16',
         divisionLevelLabel: 'Bronze · Level 16',
         totalDistanceLabel: '176.0 km',
@@ -201,7 +201,7 @@ const leaderboardDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       profile: RunnerAchievementProfileSnapshot(
         name: 'Ethan G.',
         initial: 'E',
-        regionRankLabel: 'Jurong East · Rank #4',
+        regionRankLabel: '#4 Jurong East, Singapore',
         levelBadgeLabel: 'Lv.15',
         divisionLevelLabel: 'Bronze · Level 15',
         totalDistanceLabel: '154.5 km',
@@ -218,7 +218,7 @@ const leaderboardDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       profile: RunnerAchievementProfileSnapshot(
         name: 'Sarah C.',
         initial: 'S',
-        regionRankLabel: 'Jurong East · Rank #5',
+        regionRankLabel: '#5 Jurong East, Singapore',
         levelBadgeLabel: 'Lv.14',
         divisionLevelLabel: 'Bronze · Level 14',
         totalDistanceLabel: '143.6 km',
@@ -235,7 +235,7 @@ const leaderboardDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       profile: RunnerAchievementProfileSnapshot(
         name: 'Priya N.',
         initial: 'P',
-        regionRankLabel: 'Jurong East · Rank #6',
+        regionRankLabel: '#6 Jurong East, Singapore',
         levelBadgeLabel: 'Lv.14',
         divisionLevelLabel: 'Bronze · Level 14',
         totalDistanceLabel: '139.2 km',
@@ -252,7 +252,7 @@ const leaderboardDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       profile: RunnerAchievementProfileSnapshot(
         name: 'Omar R.',
         initial: 'O',
-        regionRankLabel: 'Jurong East · Rank #7',
+        regionRankLabel: '#7 Jurong East, Singapore',
         levelBadgeLabel: 'Lv.13',
         divisionLevelLabel: 'Bronze · Level 13',
         totalDistanceLabel: '135.8 km',
@@ -269,7 +269,7 @@ const leaderboardDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       profile: RunnerAchievementProfileSnapshot(
         name: 'Hana S.',
         initial: 'H',
-        regionRankLabel: 'Jurong East · Rank #8',
+        regionRankLabel: '#8 Jurong East, Singapore',
         levelBadgeLabel: 'Lv.13',
         divisionLevelLabel: 'Bronze · Level 13',
         totalDistanceLabel: '132.4 km',
@@ -286,7 +286,7 @@ const leaderboardDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       profile: RunnerAchievementProfileSnapshot(
         name: 'Leo P.',
         initial: 'L',
-        regionRankLabel: 'Jurong East · Rank #9',
+        regionRankLabel: '#9 Jurong East, Singapore',
         levelBadgeLabel: 'Lv.13',
         divisionLevelLabel: 'Bronze · Level 13',
         totalDistanceLabel: '130.1 km',
@@ -303,7 +303,7 @@ const leaderboardDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       profile: RunnerAchievementProfileSnapshot(
         name: 'Grace L.',
         initial: 'G',
-        regionRankLabel: 'Jurong East · Rank #10',
+        regionRankLabel: '#10 Jurong East, Singapore',
         levelBadgeLabel: 'Lv.13',
         divisionLevelLabel: 'Bronze · Level 13',
         totalDistanceLabel: '128.8 km',
@@ -322,7 +322,7 @@ const leaderboardDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       profile: RunnerAchievementProfileSnapshot(
         name: 'Chloe B.',
         initial: 'C',
-        regionRankLabel: 'Jurong East · Rank #16',
+        regionRankLabel: '#16 Jurong East, Singapore',
         levelBadgeLabel: 'Lv.13',
         divisionLevelLabel: 'Bronze · Level 13',
         totalDistanceLabel: '126.1 km',
@@ -339,7 +339,7 @@ const leaderboardDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       profile: RunnerAchievementProfileSnapshot(
         name: 'Daniel W.',
         initial: 'D',
-        regionRankLabel: 'Jurong East · Rank #17',
+        regionRankLabel: '#17 Jurong East, Singapore',
         levelBadgeLabel: 'Lv.13',
         divisionLevelLabel: 'Bronze · Level 13',
         totalDistanceLabel: '124.7 km',
@@ -356,7 +356,7 @@ const leaderboardDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       profile: RunnerAchievementProfileSnapshot(
         name: 'Jinseo',
         initial: 'J',
-        regionRankLabel: 'Jurong East · Rank #18',
+        regionRankLabel: '#18 Jurong East, Singapore',
         levelBadgeLabel: 'Lv.12',
         divisionLevelLabel: 'Bronze · Level 12',
         totalDistanceLabel: '128.4 km',
@@ -375,7 +375,7 @@ const leaderboardDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       profile: RunnerAchievementProfileSnapshot(
         name: 'Noah K.',
         initial: 'N',
-        regionRankLabel: 'Jurong East · Rank #19',
+        regionRankLabel: '#19 Jurong East, Singapore',
         levelBadgeLabel: 'Lv.12',
         divisionLevelLabel: 'Bronze · Level 12',
         totalDistanceLabel: '119.3 km',
@@ -392,7 +392,7 @@ const leaderboardDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       profile: RunnerAchievementProfileSnapshot(
         name: 'Aisha P.',
         initial: 'A',
-        regionRankLabel: 'Jurong East · Rank #20',
+        regionRankLabel: '#20 Jurong East, Singapore',
         levelBadgeLabel: 'Lv.12',
         divisionLevelLabel: 'Bronze · Level 12',
         totalDistanceLabel: '116.6 km',
@@ -431,7 +431,7 @@ const leaderboardTampinesDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       profile: RunnerAchievementProfileSnapshot(
         name: 'Nadia R.',
         initial: 'N',
-        regionRankLabel: 'Tampines · Rank #1',
+        regionRankLabel: '#1 Tampines, Singapore',
         levelBadgeLabel: 'Lv.19',
         divisionLevelLabel: 'Bronze · Level 19',
         totalDistanceLabel: '210.4 km',
@@ -450,7 +450,7 @@ const leaderboardTampinesDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       profile: RunnerAchievementProfileSnapshot(
         name: 'Wei H.',
         initial: 'W',
-        regionRankLabel: 'Tampines · Rank #2',
+        regionRankLabel: '#2 Tampines, Singapore',
         levelBadgeLabel: 'Lv.18',
         divisionLevelLabel: 'Bronze · Level 18',
         totalDistanceLabel: '188.7 km',
@@ -468,7 +468,7 @@ const leaderboardTampinesDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       profile: RunnerAchievementProfileSnapshot(
         name: 'Anika S.',
         initial: 'A',
-        regionRankLabel: 'Tampines · Rank #3',
+        regionRankLabel: '#3 Tampines, Singapore',
         levelBadgeLabel: 'Lv.16',
         divisionLevelLabel: 'Bronze · Level 16',
         totalDistanceLabel: '166.2 km',
@@ -509,7 +509,7 @@ const leaderboardWoodlandsDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       profile: RunnerAchievementProfileSnapshot(
         name: 'Farah M.',
         initial: 'F',
-        regionRankLabel: 'Woodlands · Rank #1',
+        regionRankLabel: '#1 Woodlands, Singapore',
         levelBadgeLabel: 'Lv.17',
         divisionLevelLabel: 'Bronze · Level 17',
         totalDistanceLabel: '174.0 km',
@@ -528,7 +528,7 @@ const leaderboardWoodlandsDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       profile: RunnerAchievementProfileSnapshot(
         name: 'Jun P.',
         initial: 'J',
-        regionRankLabel: 'Woodlands · Rank #2',
+        regionRankLabel: '#2 Woodlands, Singapore',
         levelBadgeLabel: 'Lv.16',
         divisionLevelLabel: 'Bronze · Level 16',
         totalDistanceLabel: '160.5 km',
@@ -546,7 +546,7 @@ const leaderboardWoodlandsDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       profile: RunnerAchievementProfileSnapshot(
         name: 'Iris C.',
         initial: 'I',
-        regionRankLabel: 'Woodlands · Rank #3',
+        regionRankLabel: '#3 Woodlands, Singapore',
         levelBadgeLabel: 'Lv.15',
         divisionLevelLabel: 'Bronze · Level 15',
         totalDistanceLabel: '150.2 km',
@@ -587,7 +587,7 @@ const leaderboardMarinaBayDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       profile: RunnerAchievementProfileSnapshot(
         name: 'Kai V.',
         initial: 'K',
-        regionRankLabel: 'Marina Bay · Rank #1',
+        regionRankLabel: '#1 Marina Bay, Singapore',
         levelBadgeLabel: 'Lv.20',
         divisionLevelLabel: 'Bronze · Level 20',
         totalDistanceLabel: '226.8 km',
@@ -606,7 +606,7 @@ const leaderboardMarinaBayDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       profile: RunnerAchievementProfileSnapshot(
         name: 'Lina Q.',
         initial: 'L',
-        regionRankLabel: 'Marina Bay · Rank #2',
+        regionRankLabel: '#2 Marina Bay, Singapore',
         levelBadgeLabel: 'Lv.18',
         divisionLevelLabel: 'Bronze · Level 18',
         totalDistanceLabel: '190.0 km',
@@ -624,7 +624,7 @@ const leaderboardMarinaBayDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       profile: RunnerAchievementProfileSnapshot(
         name: 'Sam D.',
         initial: 'S',
-        regionRankLabel: 'Marina Bay · Rank #3',
+        regionRankLabel: '#3 Marina Bay, Singapore',
         levelBadgeLabel: 'Lv.17',
         divisionLevelLabel: 'Bronze · Level 17',
         totalDistanceLabel: '171.2 km',
@@ -665,7 +665,7 @@ const leaderboardAngMoKioDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       profile: RunnerAchievementProfileSnapshot(
         name: 'Mei T.',
         initial: 'M',
-        regionRankLabel: 'Ang Mo Kio · Rank #1',
+        regionRankLabel: '#1 Ang Mo Kio, Singapore',
         levelBadgeLabel: 'Lv.18',
         divisionLevelLabel: 'Bronze · Level 18',
         totalDistanceLabel: '184.3 km',
@@ -684,7 +684,7 @@ const leaderboardAngMoKioDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       profile: RunnerAchievementProfileSnapshot(
         name: 'Arun B.',
         initial: 'A',
-        regionRankLabel: 'Ang Mo Kio · Rank #2',
+        regionRankLabel: '#2 Ang Mo Kio, Singapore',
         levelBadgeLabel: 'Lv.16',
         divisionLevelLabel: 'Bronze · Level 16',
         totalDistanceLabel: '158.9 km',
@@ -702,7 +702,7 @@ const leaderboardAngMoKioDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       profile: RunnerAchievementProfileSnapshot(
         name: 'Tara J.',
         initial: 'T',
-        regionRankLabel: 'Ang Mo Kio · Rank #3',
+        regionRankLabel: '#3 Ang Mo Kio, Singapore',
         levelBadgeLabel: 'Lv.15',
         divisionLevelLabel: 'Bronze · Level 15',
         totalDistanceLabel: '148.4 km',

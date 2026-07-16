@@ -75,13 +75,25 @@ abstract final class ChallengeCopy {
   static const cancelChallenge = 'Cancel challenge';
   static const leaveLobby = 'Leave lobby';
   static const waitingForOwner = 'Waiting for the owner to start';
-  static const ownerLabel = 'You · Owner';
+
+  /// Owner subtitle when the current user is themselves the owner.
+  static const ownerSelfLabel = 'You · Owner';
+
+  /// Owner subtitle other participants see for the owner's row.
+  static const ownerLabel = 'Owner';
+
+  /// Subtitle marking the current user's own (non-owner) row.
+  static const youLabel = 'You';
   static const chipPending = 'Pending';
   static const chipAccepted = 'Accepted';
   static const chipDeclined = 'Declined';
 
-  /// `Invited N of M`.
+  /// `Invited N of M` — used by the friend picker for selection progress.
   static String invitedOf(int count, int cap) => 'Invited $count of $cap';
+
+  /// Roster headcount `count/cap` — current people in the lobby (owner
+  /// included) over the maximum the challenge allows.
+  static String lobbyHeadcount(int count, int cap) => '$count/$cap';
 
   static const startSoloConfirm = 'Start solo — no one has joined yet.';
   static String startGroupConfirm(int runners) =>

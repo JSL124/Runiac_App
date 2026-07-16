@@ -33,6 +33,8 @@ class FakeChallengeRepository implements ChallengeRepository {
     this.leaveFailure,
     this.abandonFailure,
     this.activeOverride,
+    this.watchActiveOverride,
+    this.watchInvitationsOverride,
   }) : _base = StaticChallengeRepository(seed: seed);
 
   final StaticChallengeRepository _base;
@@ -54,6 +56,16 @@ class FakeChallengeRepository implements ChallengeRepository {
   final ChallengeFailure? leaveFailure;
   final ChallengeFailure? abandonFailure;
   final ActiveChallenge? Function()? activeOverride;
+
+  /// Injectable live stream for [watchActiveChallenge]; defaults to a
+  /// one-shot stream over [activeChallenge] so existing widget tests that
+  /// never set this keep working unchanged.
+  Stream<ActiveChallenge?>? watchActiveOverride;
+
+  /// Injectable live stream for [watchInvitations]; defaults to a one-shot
+  /// stream over [invitations] so existing widget tests that never set this
+  /// keep working unchanged.
+  Stream<List<ChallengeInvitationSummary>>? watchInvitationsOverride;
 
   /// Number of upcoming `catalog()` calls that should fail before succeeding.
   /// Lets a test exercise the error-state retry path.
@@ -184,6 +196,15 @@ class FakeChallengeRepository implements ChallengeRepository {
     }
     return _base.abandon(challengeId: challengeId);
   }
+
+  @override
+  Stream<ActiveChallenge?> watchActiveChallenge() =>
+      watchActiveOverride ?? Stream<ActiveChallenge?>.fromFuture(activeChallenge());
+
+  @override
+  Stream<List<ChallengeInvitationSummary>> watchInvitations() =>
+      watchInvitationsOverride ??
+      Stream<List<ChallengeInvitationSummary>>.fromFuture(invitations());
 
   int historyCalls = 0;
 

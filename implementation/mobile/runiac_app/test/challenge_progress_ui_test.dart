@@ -58,6 +58,7 @@ ChallengeParticipantRow _row({
     uid: uid,
     displayNameSnapshot: name,
     avatarInitialsSnapshot: initials,
+    levelLabelSnapshot: '',
     role: role,
     status: status,
     creditedMeters: meters,

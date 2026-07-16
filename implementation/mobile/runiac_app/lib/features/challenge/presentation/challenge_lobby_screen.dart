@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/runiac_colors.dart';
@@ -50,71 +52,121 @@ class ChallengeLobbyScreen extends StatefulWidget {
 class _ChallengeLobbyScreenState extends State<ChallengeLobbyScreen> {
   ActiveChallenge? _challenge;
   ChallengeCountdownController? _countdown;
+  DateTime? _countdownEndsAt;
   bool _loading = true;
   bool _expired = false;
   bool _busy = false;
   String? _error;
+  StreamSubscription<ActiveChallenge?>? _subscription;
+
+  /// Guards the started-remotely navigation so an emission that arrives after
+  /// this device already pushed the progress screen (via [_confirmStart])
+  /// never pushes a second time.
+  bool _navigatedToProgress = false;
 
   @override
   void initState() {
     super.initState();
-    _load();
+    _subscribe();
   }
 
   @override
   void dispose() {
+    unawaited(_subscription?.cancel());
     _countdown?.dispose();
     super.dispose();
   }
 
-  Future<void> _load() async {
+  /// Subscribes to the live active-challenge view. Cancels any prior
+  /// subscription first so retry/re-subscribe never leaks a listener.
+  Future<void> _subscribe() async {
+    unawaited(_subscription?.cancel());
     setState(() {
-      _loading = true;
+      _loading = _challenge == null && !_expired;
       _error = null;
     });
-    try {
-      final challenge = await widget.repository.activeChallenge();
-      if (!mounted) {
-        return;
+    _subscription = widget.repository.watchActiveChallenge().listen(
+      _handleChallenge,
+      onError: _handleStreamError,
+    );
+  }
+
+  void _handleChallenge(ActiveChallenge? challenge) {
+    if (!mounted) {
+      return;
+    }
+    if (challenge == null ||
+        challenge.challengeId != widget.challengeId ||
+        challenge.status == ChallengeInstanceStatus.expired ||
+        challenge.status.isTerminal) {
+      _countdown?.dispose();
+      _countdown = null;
+      setState(() {
+        _challenge = null;
+        _loading = false;
+        _expired = true;
+        _error = null;
+      });
+      return;
+    }
+    if (challenge.status == ChallengeInstanceStatus.active ||
+        challenge.status == ChallengeInstanceStatus.settling) {
+      // The owner started the challenge (possibly from another device, or
+      // this device's own confirm already pushed) — move to Progress exactly
+      // once.
+      if (!_navigatedToProgress) {
+        _navigatedToProgress = true;
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute<void>(
+            builder: (context) => ChallengeProgressScreen(
+              challengeId: widget.challengeId,
+              repository: widget.repository,
+              clock: widget.clock,
+              ticker: widget.ticker,
+              onBack: () => Navigator.of(context).pop(),
+            ),
+          ),
+        );
       }
-      if (challenge == null ||
-          challenge.status == ChallengeInstanceStatus.expired ||
-          challenge.status.isTerminal) {
-        setState(() {
-          _loading = false;
-          _expired = true;
-        });
-        return;
-      }
+      return;
+    }
+    // RECRUITING: live roster/status/headcount update. The countdown
+    // controller is recreated only when the deadline actually changes, so a
+    // roster-only emission never restarts its ticker.
+    final scheduledEndsAt =
+        DateTime.fromMillisecondsSinceEpoch(challenge.lobbyExpiresAtMs);
+    if (_countdown == null || _countdownEndsAt != scheduledEndsAt) {
       _countdown?.dispose();
       _countdown = ChallengeCountdownController(
         clock: widget.clock ?? DateTime.now,
         ticker: widget.ticker,
-        scheduledEndsAt:
-            DateTime.fromMillisecondsSinceEpoch(challenge.lobbyExpiresAtMs),
+        scheduledEndsAt: scheduledEndsAt,
       );
-      setState(() {
-        _challenge = challenge;
-        _loading = false;
-        _expired = false;
-      });
-    } on ChallengeFailure catch (failure) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _loading = false;
-        _error = ChallengeCopy.failureMessage(failure.reason);
-      });
-    } catch (_) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _loading = false;
-        _error = ChallengeCopy.failureMessage('UNKNOWN');
-      });
+      _countdownEndsAt = scheduledEndsAt;
     }
+    setState(() {
+      _challenge = challenge;
+      _loading = false;
+      _expired = false;
+      _error = null;
+    });
+  }
+
+  void _handleStreamError(Object error) {
+    if (!mounted) {
+      return;
+    }
+    // Once we already have data, a transient stream error is ignored rather
+    // than replacing a working lobby view with an error state.
+    if (_challenge != null) {
+      return;
+    }
+    setState(() {
+      _loading = false;
+      _error = error is ChallengeFailure
+          ? ChallengeCopy.failureMessage(error.reason)
+          : ChallengeCopy.failureMessage('UNKNOWN');
+    });
   }
 
   List<ChallengeParticipantRow> get _roster {
@@ -143,6 +195,13 @@ class _ChallengeLobbyScreenState extends State<ChallengeLobbyScreen> {
       .length;
 
   int get _inviteCap => _challenge?.rules.maxInvitedFriends ?? 0;
+
+  /// People currently in the lobby: the owner (always present) plus every
+  /// accepted invitee who has not left. Pending invites are not counted.
+  int get _presentHeadcount => 1 + _acceptedInviteeCount;
+
+  /// Maximum runners the challenge allows: the owner plus the invite cap.
+  int get _lobbyCapacity => 1 + _inviteCap;
 
   bool get _canInvite =>
       (_acceptedInviteeCount + _pendingInviteeCount) < _inviteCap;
@@ -198,7 +257,8 @@ class _ChallengeLobbyScreenState extends State<ChallengeLobbyScreen> {
     await _runAction(() async {
       await widget.repository
           .invite(challengeId: widget.challengeId, uids: selected);
-      await _load();
+      // No manual refetch: the live subscription already reflects the
+      // updated pending-invite state once the write lands.
     });
   }
 
@@ -217,9 +277,13 @@ class _ChallengeLobbyScreenState extends State<ChallengeLobbyScreen> {
     }
     await _runAction(() async {
       await widget.repository.start(challengeId: widget.challengeId);
-      if (!mounted) {
+      if (!mounted || _navigatedToProgress) {
         return;
       }
+      // Set the guard before pushing so a live emission racing this success
+      // path (the stream also observes the now-ACTIVE status) never pushes a
+      // second time.
+      _navigatedToProgress = true;
       await Navigator.of(context).pushReplacement(
         MaterialPageRoute<void>(
           builder: (context) => ChallengeProgressScreen(
@@ -374,7 +438,7 @@ class _ChallengeLobbyScreenState extends State<ChallengeLobbyScreen> {
     if (challenge == null) {
       return ChallengeErrorState(
         message: _error ?? ChallengeCopy.exploreError,
-        onRetry: _load,
+        onRetry: _subscribe,
       );
     }
     return _buildLobby(challenge);
@@ -410,8 +474,8 @@ class _ChallengeLobbyScreenState extends State<ChallengeLobbyScreen> {
         ),
         const SizedBox(height: 16),
         _CapacityLine(
-          invited: _acceptedInviteeCount + _pendingInviteeCount,
-          cap: _inviteCap,
+          present: _presentHeadcount,
+          capacity: _lobbyCapacity,
         ),
         const SizedBox(height: 10),
         ..._roster.map(_rosterTile),
@@ -480,6 +544,14 @@ class _ChallengeLobbyScreenState extends State<ChallengeLobbyScreen> {
 
   Widget _rosterTile(ChallengeParticipantRow row) {
     final isOwner = row.role == ChallengeParticipantRole.owner;
+    // "You" is a viewer-relative marker: only the current user sees it on their
+    // own row. The owner reads "You · Owner" for themselves and a plain "Owner"
+    // to everyone else; a non-owner current user reads "You".
+    final String? subtitle = isOwner
+        ? (row.isCurrentUser
+            ? ChallengeCopy.ownerSelfLabel
+            : ChallengeCopy.ownerLabel)
+        : (row.isCurrentUser ? ChallengeCopy.youLabel : null);
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: ChallengeCard(
@@ -488,7 +560,7 @@ class _ChallengeLobbyScreenState extends State<ChallengeLobbyScreen> {
           children: [
             _rosterBadge(
               initials: row.avatarInitialsSnapshot,
-              highlighted: row.isCurrentUser,
+              levelLabel: row.levelLabelSnapshot,
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -505,11 +577,11 @@ class _ChallengeLobbyScreenState extends State<ChallengeLobbyScreen> {
                       fontWeight: FontWeight.w800,
                     ),
                   ),
-                  if (isOwner) ...[
+                  if (subtitle != null) ...[
                     const SizedBox(height: 2),
-                    const Text(
-                      ChallengeCopy.ownerLabel,
-                      style: TextStyle(
+                    Text(
+                      subtitle,
+                      style: const TextStyle(
                         color: RuniacColors.textSecondary,
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
@@ -572,21 +644,17 @@ class _ChallengeLobbyScreenState extends State<ChallengeLobbyScreen> {
 }
 
 /// Same profile-circle + XP-ring + level-pill badge Friends and the invite
-/// picker use. No trusted level/XP snapshot travels with the roster today, so
-/// the ring stays empty and the pill shows the same 'Lv.0' placeholder Friends
-/// falls back to when a label is absent.
-Widget _rosterBadge({required String initials, bool highlighted = false}) {
+/// picker use, rendered with the app-wide blue profile disc so every roster
+/// avatar matches how a runner's profile reads elsewhere. [levelLabel] is the
+/// backend-owned level snapshot read back verbatim; an empty label falls back
+/// to the display-only 'Lv.0' placeholder Friends uses. No trusted progress
+/// fraction travels with the roster, so the ring stays empty.
+Widget _rosterBadge({required String initials, String levelLabel = ''}) {
   return ExcludeSemantics(
     child: RuniacLevelProfileBadge.row(
       initials: initials,
-      levelLabel: 'Lv.0',
+      levelLabel: levelLabel.trim().isEmpty ? 'Lv.0' : levelLabel,
       progressFraction: 0,
-      discColor: highlighted
-          ? RuniacColors.primaryBlue
-          : RuniacColors.sectionSurfaceStrong,
-      initialsColor: highlighted
-          ? RuniacColors.white
-          : RuniacColors.primaryBlue,
     ),
   );
 }
@@ -620,15 +688,15 @@ class _ClosesIn extends StatelessWidget {
 }
 
 class _CapacityLine extends StatelessWidget {
-  const _CapacityLine({required this.invited, required this.cap});
+  const _CapacityLine({required this.present, required this.capacity});
 
-  final int invited;
-  final int cap;
+  final int present;
+  final int capacity;
 
   @override
   Widget build(BuildContext context) {
     return Text(
-      ChallengeCopy.invitedOf(invited, cap),
+      ChallengeCopy.lobbyHeadcount(present, capacity),
       style: const TextStyle(
         color: RuniacColors.textPrimary,
         fontSize: 14,

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/runiac_colors.dart';
@@ -40,46 +42,58 @@ class _ChallengeInvitationsScreenState
   List<ChallengeInvitationSummary>? _invitations;
   bool _loading = true;
   String? _error;
+  StreamSubscription<List<ChallengeInvitationSummary>>? _subscription;
 
   DateTime get _now => (widget.clock ?? DateTime.now)();
 
   @override
   void initState() {
     super.initState();
-    _load();
+    _subscribe();
   }
 
-  Future<void> _load() async {
+  @override
+  void dispose() {
+    unawaited(_subscription?.cancel());
+    super.dispose();
+  }
+
+  /// Subscribes to the live pending-invitations view. Cancels any prior
+  /// subscription first so retry/re-subscribe never leaks a listener.
+  Future<void> _subscribe() async {
+    unawaited(_subscription?.cancel());
     setState(() {
-      _loading = true;
+      _loading = _invitations == null;
       _error = null;
     });
-    try {
-      final invitations = await widget.repository.invitations();
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _invitations = invitations;
-        _loading = false;
-      });
-    } on ChallengeFailure catch (failure) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _loading = false;
-        _error = ChallengeCopy.failureMessage(failure.reason);
-      });
-    } catch (_) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _loading = false;
-        _error = ChallengeCopy.failureMessage('UNKNOWN');
-      });
-    }
+    _subscription = widget.repository.watchInvitations().listen(
+      (invitations) {
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _invitations = invitations;
+          _loading = false;
+          _error = null;
+        });
+      },
+      onError: (Object error) {
+        if (!mounted) {
+          return;
+        }
+        // Once we already have data, a transient stream error is ignored
+        // rather than replacing a working list with an error state.
+        if (_invitations != null) {
+          return;
+        }
+        setState(() {
+          _loading = false;
+          _error = error is ChallengeFailure
+              ? ChallengeCopy.failureMessage(error.reason)
+              : ChallengeCopy.failureMessage('UNKNOWN');
+        });
+      },
+    );
   }
 
   Future<void> _openDetail(ChallengeInvitationSummary invite) async {
@@ -95,9 +109,8 @@ class _ChallengeInvitationsScreenState
         ),
       ),
     );
-    if (mounted) {
-      await _load();
-    }
+    // No manual refetch: the live subscription already reflects any change
+    // (accept/decline) made from the detail screen.
   }
 
   @override
@@ -126,7 +139,7 @@ class _ChallengeInvitationsScreenState
     if (invitations == null) {
       return ChallengeErrorState(
         message: _error ?? ChallengeCopy.exploreError,
-        onRetry: _load,
+        onRetry: _subscribe,
       );
     }
     if (invitations.isEmpty) {

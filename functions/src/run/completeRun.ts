@@ -23,7 +23,9 @@ import {
 import { deferredProgressionDisplay } from "../progression/progressionEventWriter.js";
 import { readTrustedProtectedRestDates, readTrustedStreakState } from "../progression/planBoundedStreakState.js";
 import {
+  calculateStreakStateFromRuns,
   calculateStreakTransition,
+  type StreakRun,
   type StreakState,
   unchangedStreakTransition,
 } from "../progression/streakCalculator.js";
@@ -32,6 +34,8 @@ import {
   buildRunSummary,
   deterministicIds,
   fingerprintPayload,
+  formatLongestStreakLabel,
+  formatTotalDistanceLabel,
 } from "./runCompletionArtifacts.js";
 import type { CompleteRunResult, PlanCompletionResult, ProgressionDisplay } from "./runCompletionTypes.js";
 import { parseRunCompletionPayload } from "./validateRunPayload.js";
@@ -280,6 +284,61 @@ export async function completeRunForCallable(
       );
     }
 
+    // Backend-owned lifetime stats for the profile page, recomputed from the
+    // full validated activity history already fetched in this transaction (no
+    // extra reads). Self-healing: it reflects every recorded run — including
+    // any that predate this field — and is naturally idempotent, so replays
+    // never double-count. Runs on genuinely new completions only.
+    if (shouldPersistProgression) {
+      const streakRuns: StreakRun[] = [];
+      let totalDistanceMeters = 0;
+      for (const activityDocument of activitySnapshots.docs) {
+        const data = activityDocument.data();
+        if (data["activityType"] !== "run" || data["validationStatus"] !== "validated") {
+          continue;
+        }
+        const distanceMeters = data["distanceMeters"];
+        if (typeof distanceMeters === "number" && Number.isFinite(distanceMeters) && distanceMeters > 0) {
+          totalDistanceMeters += distanceMeters;
+        }
+        if (data["countsTowardStreak"] !== false) {
+          const completedAt = readActivityCompletedAt(data);
+          if (completedAt !== null) {
+            streakRuns.push({ completedAt });
+          }
+        }
+      }
+      // The current run is written earlier in this transaction, so it is not yet
+      // in the fetched snapshot — fold it in explicitly.
+      if (payload.distanceMeters > 0) {
+        totalDistanceMeters += payload.distanceMeters;
+      }
+      if (countsTowardStreak) {
+        streakRuns.push({ completedAt: payload.completedAt });
+      }
+
+      const recomputedLongestStreak = longestStreakFromRuns(
+        streakRuns,
+        readTrustedProtectedRestDates(generatedPlanSnapshot.data()),
+      );
+      // "Max streak ever" must never regress, e.g. if historical rest-day
+      // context is unavailable to bridge an old gap.
+      const longestStreak = Math.max(
+        readNonNegativeInteger(profileSnapshot.data()?.["longestStreak"]),
+        recomputedLongestStreak,
+      );
+      transaction.set(
+        profileRef,
+        {
+          longestStreak,
+          longestStreakLabel: formatLongestStreakLabel(longestStreak),
+          totalDistanceMeters,
+          totalDistanceLabel: formatTotalDistanceLabel(totalDistanceMeters),
+        },
+        { merge: true },
+      );
+    }
+
     if (shouldPersistProgression && xpAudit !== null) {
       transaction.set(profileRef, profileProgressionData(xpAudit, payload.completedAt), { merge: true });
     }
@@ -319,4 +378,43 @@ function readStreakState(profileData: FirebaseFirestore.DocumentData | undefined
     streakCount: hasPersistedStreak ? streakCount : 0,
     lastStreakRunDate: hasPersistedStreak && typeof lastStreakRunDate === "string" ? lastStreakRunDate : null,
   };
+}
+
+function readNonNegativeInteger(value: unknown): number {
+  return typeof value === "number" && Number.isInteger(value) && value > 0 ? value : 0;
+}
+
+function readActivityCompletedAt(activityData: FirebaseFirestore.DocumentData): string | null {
+  const endedAt = activityData["endedAt"];
+  if (typeof endedAt === "string") {
+    return endedAt;
+  }
+  const completedAt = activityData["completedAt"];
+  return typeof completedAt === "string" ? completedAt : null;
+}
+
+// Highest streak ever reached across the given runs. Reuses the canonical
+// streak reducer over each date-ordered prefix, so the streak height on every
+// run day is evaluated and the maximum retained — no duplication of the
+// day-transition rules (consecutive day, same-day, rest-day bridge, gap reset).
+function longestStreakFromRuns(
+  runs: readonly StreakRun[],
+  protectedRestDates: readonly string[],
+): number {
+  const orderedRuns = [...runs].sort((left, right) =>
+    dailyCapDateForCompletedAt(left.completedAt).localeCompare(
+      dailyCapDateForCompletedAt(right.completedAt),
+    ),
+  );
+  let peak = 0;
+  for (let length = 1; length <= orderedRuns.length; length += 1) {
+    const { streakCount } = calculateStreakStateFromRuns(
+      orderedRuns.slice(0, length),
+      protectedRestDates,
+    );
+    if (streakCount > peak) {
+      peak = streakCount;
+    }
+  }
+  return peak;
 }

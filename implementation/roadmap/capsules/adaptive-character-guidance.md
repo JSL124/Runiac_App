@@ -8,7 +8,7 @@
 
 - Mode: IMPLEMENTATION_MODE, explicitly approved for the adaptive character-guidance feature.
 - Execution lane: Backend Guarded Lane under ADR-003, because the work spans Cloud Functions, Firestore rules, emulator workflows, trusted activity evidence, privacy-sensitive aggregates, and Flutter integration.
-- Status: Routed in the isolated worktree only; emulator-only implementation may proceed through the documented review chain.
+- Status: Implementation is complete locally and ready for scoped backend production deployment plus registered-debug-client verification. App Store-grade iOS App Attest remains externally blocked by the current Apple Personal Team provisioning profile.
 - Main-worktree protection: `leaderboard-jurong-east-seed-verification` remains Active / Production confirmation pending on the main worktree. This capsule neither closes, supersedes, mutates, nor authorizes production activity for it.
 
 ## Goal
@@ -24,6 +24,7 @@ The chain is mandatory because the capsule combines user-facing guidance with Fi
 ## Allowed Scope
 
 - The adaptive guide domain/adapter/cycle and Home Stage Map bubble only under `implementation/mobile/runiac_app/lib/features/home/`, with the directly related tests and the Home-guide section of `implementation/mobile/runiac_app/DESIGN.md`.
+- The App Check bootstrap/dependency wiring separately authorized for this production rollout.
 - Server-only adaptive guidance modules and the existing `homeGuideAgent` callable under `functions/src/agent/`, with focused Functions tests and the canonical Functions test script only when required by the route.
 - An explicit `agentGuidanceDaily/{uid_YYYY-MM-DD}` client-deny rule and focused Firestore rules tests.
 - Emulator-only synthetic, non-identifying test fixtures and capsule-scoped evidence.
@@ -47,7 +48,7 @@ The chain is mandatory because the capsule combines user-facing guidance with Fi
 
 ## Production-Deployment Gate
 
-Production deployment is **blocked** until an approved privacy disclosure/consent basis for processing aggregate activity metrics is recorded. This gate blocks production deployment only; it does not block emulator-only implementation, emulator tests, or local readiness evidence. App Check remains a separate open production gate.
+Production deployment was explicitly approved on 2026-07-15 Asia/Singapore. The versioned disclosure, explicit grant/withdrawal flow, server-side consent check before activity reads, iOS App Attest with DeviceCheck fallback, Android Play Integrity, debug-provider client path, and callable App Check enforcement are implemented. A signed iOS release build proved that the current Apple Personal Team cannot provision the App Attest capability; registered debug-provider verification is permitted for the current FYP device, while App Store-grade iOS enforcement remains blocked until an Apple Developer Program team and provisioning profile are available.
 
 ## Required Tests and Validation
 
@@ -72,5 +73,5 @@ Production deployment is **blocked** until an approved privacy disclosure/consen
 - [ ] A13 confirms authenticated server-only access, data minimization, secret handling, and no client bypass.
 - [ ] A6 confirms architecture, fairness, and backend-owned-state boundaries.
 - [ ] A12 reconciles automated and Android emulator evidence; A8 confirms deliverables and factual claims.
-- [ ] Production privacy-disclosure/consent and App Check remain explicit open gates unless separately evidenced and approved.
+- [ ] Production privacy-disclosure/consent and App Check are implemented and approved; registered-debug-client live verification remains, while App Store-grade iOS App Attest is externally blocked by Personal Team provisioning.
 - [ ] `CURRENT.md` and the latest snapshot are updated from factual final results only.

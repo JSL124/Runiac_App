@@ -22,6 +22,13 @@ const INSTRUCTIONAL_TERMS = /\b(?:ignore|disregard|previous instructions?|system
 const MARKDOWN = /(?:^|\s)(?:#{1,6}\s|[-*+]\s|>\s)|[*_`~\[\]]/u;
 const URL = /(?:https?:\/\/|www\.)/iu;
 const MAX_MODEL_TEXT_LENGTH = 128;
+// The progression line may cite server-trusted comparison figures (from
+// homeGuideEvidence), so it is allowed more length and one extra sentence than
+// the compact plan/tip lines. Kept in sync with the client display contract
+// (HomeGuideBundle progression limits in home_guide_agent.dart).
+const PROGRESSION_MAX_LENGTH = 220;
+const PROGRESSION_MAX_SENTENCES = 3;
+const GENERIC_PLAN_SUMMARY = /^your plan is ready[.!?]?$/iu;
 
 export type HomeGuideActionCode = (typeof ACTION_CODES)[number];
 export type HomeGuideProgressionLead = "baseline" | "improving" | "steady" | "mixed" | "needs_attention";
@@ -36,6 +43,7 @@ export type HomeGuideModelValidationIssue = "json_shape" | "policy_validation";
 export type HomeGuideModelValidationResult =
   | { readonly kind: "valid"; readonly output: HomeGuideModelOutput }
   | { readonly kind: "invalid"; readonly issue: HomeGuideModelValidationIssue };
+export type HomeGuideModelCopyStatus = "preserved" | "replaced";
 export type HomeGuideModelValidationInput = {
   readonly output: unknown;
   readonly evidence: HomeGuideEvidence;
@@ -117,7 +125,7 @@ export function renderHomeGuideBundle(input: HomeGuideRenderInput): HomeGuideBun
       renderRunningTip(input.output.runningTipText, input.planContext),
       "Tiny trainer tip: Start gently and keep effort smooth.",
     ),
-    progressionCheckIn: safeFinalMessage(
+    progressionCheckIn: safeProgressionMessage(
       renderProgression(facts, action),
       actionSentence(action),
     ),
@@ -125,17 +133,77 @@ export function renderHomeGuideBundle(input: HomeGuideRenderInput): HomeGuideBun
   return bundle;
 }
 
-function renderPlanSummary(text: string, planContext: HomeGuidePlanDisplayContext | undefined): string {
-  const safeText = isSafeModelText(text) ? text : "Your plan is ready.";
-  if (planContext === undefined) return `Your plan is ready, superstar! ${safeText}`;
-  return `${compactText(planContext.workoutTitle, 21)} is ready. ${safeText}`;
+export function homeGuideModelCopyStatus(
+  input: HomeGuideRenderInput,
+): HomeGuideModelCopyStatus {
+  if (input.output === null) return "replaced";
+  const { planSummaryText, runningTipText } = input.output;
+  if (
+    !isSafeModelText(planSummaryText)
+    || !isSafeModelText(runningTipText)
+    || GENERIC_PLAN_SUMMARY.test(planSummaryText.trim())
+  ) return "replaced";
+  return isSafeFinalMessage(renderPlanSummary(planSummaryText, input.planContext))
+    && isSafeFinalMessage(renderRunningTip(runningTipText, input.planContext))
+    ? "preserved"
+    : "replaced";
+}
+
+// The plan bubble is a single, self-contained beginner-friendly walkthrough of
+// today's session. It intentionally does NOT append the model's free-text
+// encouragement: that generic cheer reads as a disconnected leftover line glued
+// onto the plan explanation. The model's warmth still lives in the running-tip
+// and progression bubbles.
+function renderPlanSummary(_text: string, planContext: HomeGuidePlanDisplayContext | undefined): string {
+  if (planContext === undefined) return "Your plan is ready, superstar!";
+  return planElaborationSentence(planContext);
+}
+
+// Beginner-friendly one-sentence walkthrough of today's session, composed only
+// from already-rendered plan display fields (never a backend-owned value) so a
+// first-time runner learns what the plan actually is instead of just that it is
+// "ready". The workout title is kept verbatim (only length-compacted) so a
+// punctuation-heavy title still trips the final sentence-count safety gate and
+// falls back, matching the compact-bubble contract.
+function planElaborationSentence(planContext: HomeGuidePlanDisplayContext): string {
+  const withFocus = composePlanElaboration(planContext, true);
+  // Prefer the fuller sentence, but never surface a mid-phrase ellipsis: if the
+  // focus clause pushes the line past the compact bubble, drop the clause whole
+  // rather than truncating the week focus into "... .".
+  return isSafeFinalMessage(withFocus) ? withFocus : composePlanElaboration(planContext, false);
+}
+
+function composePlanElaboration(planContext: HomeGuidePlanDisplayContext, includeFocus: boolean): string {
+  const title = compactText(planContext.workoutTitle, 40);
+  const effort = planEffortWord(planContext.intensity);
+  const focus = includeFocus ? planFocusClause(planContext.weekFocus) : "";
+  return `Today's ${title} is a ${effort} ${planContext.durationMinutes}-minute session${focus}.`;
+}
+
+function planEffortWord(intensity: string): string {
+  const normalized = intensity.toLocaleLowerCase("en-SG");
+  if (/\b(?:easy|recovery|rest|gentle|light)\b/u.test(normalized)) return "gentle";
+  if (/\b(?:tempo|interval|hard|speed|hill)\b/u.test(normalized)) return "focused";
+  return "steady";
+}
+
+// Keeps the week focus verbatim (only whitespace-normalized). Length is handled
+// by the caller dropping the whole clause, so this never emits a truncating
+// ellipsis mid-phrase.
+function planFocusClause(weekFocus: string): string {
+  const focus = weekFocus.replace(/\s+/gu, " ").trim();
+  if (focus.length === 0) return "";
+  const lead = focus.charAt(0).toLocaleLowerCase("en-SG") + focus.slice(1);
+  return ` to ${lead}`;
 }
 
 function renderRunningTip(text: string, planContext: HomeGuidePlanDisplayContext | undefined): string {
   const safeText = isSafeModelText(text) ? text : "";
   if (planContext === undefined) return `Tiny trainer tip:${safeText.length === 0 ? "" : ` ${safeText}`}`;
-  const practicalTip = `Tiny trainer tip: ${intensityCue(planContext.intensity)}${safeText.length === 0 ? "" : ` ${safeText}`}`;
-  return isSafeFinalMessage(practicalTip) ? practicalTip : `Tiny trainer tip: ${intensityCue(planContext.intensity)}`;
+  const prefix = `Tiny trainer tip: ${intensityCue(planContext.intensity)}`;
+  if (safeText.length === 0) return prefix;
+  const availableCharacters = 160 - codePointLength(prefix) - 1;
+  return `${prefix} ${compactText(safeText, availableCharacters)}`;
 }
 
 function intensityCue(intensity: string): string {
@@ -145,15 +213,84 @@ function intensityCue(intensity: string): string {
   return "Start gently and keep effort smooth.";
 }
 
+// Beginner-friendly, number-free reading of the selected trusted evidence. It
+// speaks to the direction of change (trending up, easing off, holding steady)
+// in warm words instead of surfacing the raw comparison figures, which read as
+// cold data to a first-time runner. The action clause still comes from the
+// coherent next step.
 function renderProgression(
   facts: readonly HomeGuideEvidenceFact[],
   action: HomeGuideActionCode,
 ): string {
   const actionText = actionSentence(action);
-  if (facts.length === 0) return `You are building a running baseline. ${actionText}`;
-  const detail = facts.map((fact) => fact.text.replace(/[.!?]+$/u, "")).join("; ");
-  const detailed = `${detail}. ${actionText}`;
-  return isSafeFinalMessage(detailed) ? detailed : actionText;
+  if (facts.length === 0) {
+    return `You are building a running baseline, and every easy session counts. ${actionText}`;
+  }
+  const message = `${progressionSummary(facts)} ${actionText}`;
+  return isSafeProgressionMessage(message) ? message : actionText;
+}
+
+function progressionSummary(facts: readonly HomeGuideEvidenceFact[]): string {
+  const phrases: string[] = [];
+  for (const fact of facts) {
+    const phrase = progressionPhrase(fact.metric, fact.direction);
+    if (!phrases.includes(phrase)) phrases.push(phrase);
+  }
+  const [first, second] = phrases;
+  const joined = first === undefined
+    ? "keeping your running going"
+    : second === undefined
+      ? first
+      : `${first} and ${second}`;
+  const comparison = progressionComparison(facts);
+  return comparison === null
+    ? `Lately you've been ${joined}.`
+    : `You've been ${joined} ${comparison}.`;
+}
+
+// A qualitative "compared with" label, but only when every selected fact shares
+// the same window so the timeframe stays accurate; mixed windows fall back to a
+// neutral "lately" (handled by the caller returning null here).
+function progressionComparison(facts: readonly HomeGuideEvidenceFact[]): string | null {
+  const first = facts[0];
+  if (first === undefined) return null;
+  const windows = new Set(facts.map((fact) => fact.window));
+  if (windows.size !== 1) return null;
+  return first.window === "week_to_date" ? "compared with last week" : "compared with the past month";
+}
+
+function progressionPhrase(
+  metric: HomeGuideEvidenceFact["metric"],
+  direction: HomeGuideEvidenceFact["direction"],
+): string {
+  switch (metric) {
+    case "run_count":
+      return direction === "improving"
+        ? "running more often"
+        : direction === "declining"
+          ? "running a little less often"
+          : "running just as regularly";
+    case "distance":
+      return direction === "improving"
+        ? "covering more ground"
+        : direction === "declining"
+          ? "covering a bit less ground"
+          : "covering steady ground";
+    case "active_duration":
+      return direction === "improving"
+        ? "spending more time on your feet"
+        : direction === "declining"
+          ? "easing back your time on your feet"
+          : "keeping steady time on your feet";
+    case "weighted_pace":
+      return direction === "improving"
+        ? "settling into a smoother pace"
+        : direction === "declining"
+          ? "taking your pace a touch easier"
+          : "holding a steady pace";
+    default:
+      return assertNever(metric);
+  }
 }
 
 function actionSentence(action: HomeGuideActionCode): string {
@@ -228,6 +365,21 @@ function isSafeFinalMessage(value: string): boolean {
 
 function safeFinalMessage(value: string, fallback: string): string {
   return isSafeFinalMessage(value) ? value : fallback;
+}
+
+// Progression copy is rendered only from server-trusted evidence facts, so it
+// may carry comparison figures and a "what to improve" clause. It uses looser
+// length/sentence bounds than the plain plan/tip lines.
+function isSafeProgressionMessage(value: string): boolean {
+  return (
+    value.trim().length > 0 &&
+    codePointLength(value) <= PROGRESSION_MAX_LENGTH &&
+    sentenceCount(value) <= PROGRESSION_MAX_SENTENCES
+  );
+}
+
+function safeProgressionMessage(value: string, fallback: string): string {
+  return isSafeProgressionMessage(value) ? value : fallback;
 }
 
 function sentenceCount(value: string): number {

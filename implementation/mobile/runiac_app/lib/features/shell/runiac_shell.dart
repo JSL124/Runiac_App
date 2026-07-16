@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/runiac_colors.dart';
-import '../account/domain/models/user_profile_read_model.dart';
-import '../account/domain/repositories/user_profile_repository.dart';
-import '../account/domain/repositories/user_profile_persistence_repository.dart';
+import '../profile/domain/models/user_profile_read_model.dart';
+import '../profile/domain/repositories/user_profile_repository.dart';
+import '../profile/domain/repositories/user_profile_persistence_repository.dart';
 import '../auth/domain/runiac_auth_service.dart';
 import '../challenge/data/static_challenge_repository.dart';
 import '../challenge/domain/repositories/challenge_repository.dart';
@@ -14,6 +14,7 @@ import '../feed/presentation/current_session_feed.dart';
 import '../friends/data/static_friends_repository.dart';
 import '../friends/domain/repositories/friends_repository.dart';
 import '../home/domain/guide/home_guide_agent.dart';
+import '../home/domain/guide/home_guide_consent.dart';
 import '../home/domain/guide/rule_based_home_guide_agent.dart';
 import '../home/presentation/home_tab.dart';
 import '../leaderboard/data/static_leaderboard_repository.dart';
@@ -63,6 +64,8 @@ class RuniacShell extends StatefulWidget {
     this.planProgress,
     this.adaptivePlanEstimate,
     this.homeGuideAgent = const RuleBasedHomeGuideAgent(),
+    this.homeGuideConsentRepository =
+        const AlwaysGrantedHomeGuideConsentRepository(),
     super.key,
     this.enableForegroundGps = true,
     this.activeRunSessionCoordinator,
@@ -96,6 +99,7 @@ class RuniacShell extends StatefulWidget {
   /// Guide seam forwarded to [HomeTab]'s stage-map speech bubble. See
   /// `HomeTab.homeGuideAgent` for the trust-boundary contract.
   final HomeGuideAgent homeGuideAgent;
+  final HomeGuideConsentRepository homeGuideConsentRepository;
   final bool enableForegroundGps;
   final ActiveRunSessionCoordinator? activeRunSessionCoordinator;
   final RunOpenIntent? initialRunOpenIntent;
@@ -489,6 +493,7 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
           generatedPlanProgress: generatedPlanProgress,
           currentDate: currentDate,
           homeGuideAgent: widget.homeGuideAgent,
+          homeGuideConsentRepository: widget.homeGuideConsentRepository,
           enableForegroundGps: widget.enableForegroundGps,
           activeRunSessionCoordinator: _activeRunSessionCoordinator,
           onNotificationSettingsChanged: () {

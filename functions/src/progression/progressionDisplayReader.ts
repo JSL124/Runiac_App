@@ -90,6 +90,8 @@ function isProgressionReason(value: unknown): value is ProgressionDisplay["reaso
     value === "low_data_no_xp" ||
     value === "daily_cap_reached" ||
     value === "premium_no_progression" ||
-    value === "progression_formula_deferred"
+    value === "progression_formula_deferred" ||
+    value === "cool_down_stretch_bonus_awarded" ||
+    value === "cool_down_daily_cap_reached"
   );
 }

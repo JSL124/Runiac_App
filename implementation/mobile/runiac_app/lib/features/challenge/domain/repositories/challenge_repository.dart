@@ -41,12 +41,31 @@ abstract interface class ChallengeRepository {
   Future<StartChallengeResult> start({required String challengeId});
 
   /// The caller's current recruiting/active/settling challenge, or `null`
-  /// (`getActiveChallenge`). One-shot: the backend exposes no member-scoped
-  /// live listener, so surfaces refetch rather than stream.
+  /// (`getActiveChallenge`). One-shot; live surfaces should prefer
+  /// [watchActiveChallenge] instead.
   Future<ActiveChallenge?> activeChallenge();
 
   /// The caller's PENDING invitations (`getChallengeInvitations`).
   Future<List<ChallengeInvitationSummary>> invitations();
+
+  /// Live view of the caller's current challenge (recruiting, active, or
+  /// settling), or `null` when the caller has none. Backed by a read-side
+  /// stream over the caller's slot document and, once it names a challenge,
+  /// the linked instance and its participant list — so membership, role,
+  /// headcount, status, and metres update the moment another device's write
+  /// lands, without a re-entry refetch. Participant level labels are
+  /// best-effort: seeded once from the last [activeChallenge] result per uid
+  /// and held fixed thereafter; a participant the seed never saw renders a
+  /// blank label (surfaces already fall back to the display-only `Lv.0`
+  /// placeholder).
+  Stream<ActiveChallenge?> watchActiveChallenge();
+
+  /// Live PENDING invitations for the caller. Backed by a read-side stream
+  /// over the caller's invitation inbox, newest first. Per-tier rules are
+  /// seeded once from the last [invitations] result; an invitation for a tier
+  /// the seed never saw carries `rules: null` (the detail screen already
+  /// tolerates that by hiding the rules card).
+  Stream<List<ChallengeInvitationSummary>> watchInvitations();
 
   /// Non-owner leaves an ACTIVE challenge (`leaveChallenge`).
   Future<LeaveChallengeResult> leave({required String challengeId});
@@ -92,4 +111,18 @@ abstract interface class ChallengeReadStore {
   Future<List<ChallengeHistoryEntry>> loadHistory({required String ownerUid});
 
   Future<ChallengeBadgeOwnership> loadOwnedBadges({required String ownerUid});
+
+  /// Emits the caller's current challenge as a callable-view-shaped map
+  /// (`{'instance': ..., 'participants': [...]}`) WITHOUT `levelLabelSnapshot`,
+  /// or `null` when the caller has no visible challenge.
+  Stream<Map<String, Object?>?> watchActiveChallengeView({
+    required String ownerUid,
+  });
+
+  /// Emits the caller's PENDING invitations as callable-view-shaped maps
+  /// (`inviteId`, `challengeId`, `tierId`, `ownerUid`, `createdAtMs`,
+  /// `expiresAtMs`), newest first, WITHOUT `rules`.
+  Stream<List<Map<String, Object?>>> watchPendingInvitationViews({
+    required String ownerUid,
+  });
 }

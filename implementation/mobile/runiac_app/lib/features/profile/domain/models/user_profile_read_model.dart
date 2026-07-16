@@ -76,4 +76,5 @@ enum UserProfileManageAction {
   editProfile,
   notifications,
   watchHealthApps,
+  privacySafety,
 }

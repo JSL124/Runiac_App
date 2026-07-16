@@ -36,26 +36,37 @@ const _rules = ChallengeRulesSnapshot(
 
 final _clock = DateTime.fromMillisecondsSinceEpoch(1000000000000);
 
-ChallengeParticipantRow _owner() => const ChallengeParticipantRow(
+ChallengeParticipantRow _owner({
+  bool isCurrentUser = true,
+  String displayName = 'You',
+  String levelLabel = 'Lv.5',
+}) =>
+    ChallengeParticipantRow(
       uid: 'me',
-      displayNameSnapshot: 'You',
+      displayNameSnapshot: displayName,
       avatarInitialsSnapshot: 'YO',
+      levelLabelSnapshot: levelLabel,
       role: ChallengeParticipantRole.owner,
       status: ChallengeParticipantStatus.accepted,
       creditedMeters: 0,
       reward: ChallengeRewardStatus.notEligible,
-      isCurrentUser: true,
+      isCurrentUser: isCurrentUser,
     );
 
-ChallengeParticipantRow _member() => const ChallengeParticipantRow(
+ChallengeParticipantRow _member({
+  bool isCurrentUser = false,
+  String levelLabel = 'Lv.7',
+}) =>
+    ChallengeParticipantRow(
       uid: 'friend',
       displayNameSnapshot: 'Sam Runner',
       avatarInitialsSnapshot: 'SR',
+      levelLabelSnapshot: levelLabel,
       role: ChallengeParticipantRole.member,
       status: ChallengeParticipantStatus.accepted,
       creditedMeters: 0,
       reward: ChallengeRewardStatus.notEligible,
-      isCurrentUser: false,
+      isCurrentUser: isCurrentUser,
     );
 
 ActiveChallenge _lobby({
@@ -118,6 +129,63 @@ void main() {
     // Roster rows use the same profile-circle + XP-ring + level-pill badge as
     // Friends and the invite picker, not the plain initials avatar.
     expect(find.byType(RuniacLevelProfileBadge), findsOneWidget);
+  });
+
+  testWidgets('non-owner viewer sees plain Owner and You on their own row', (
+    tester,
+  ) async {
+    final repository = FakeChallengeRepository(
+      activeOverride: () => _lobby(
+        isOwner: false,
+        participants: [
+          _owner(isCurrentUser: false, displayName: 'jinseo'),
+          _member(isCurrentUser: true),
+        ],
+      ),
+    );
+    await tester.pumpWidget(_harness(_screen(repository: repository)));
+    await tester.pumpAndSettle();
+
+    // The owner is someone else, so no "You" leaks onto their row.
+    expect(find.text('Owner'), findsOneWidget);
+    expect(find.text('You · Owner'), findsNothing);
+    // The current user's own (member) row is marked "You".
+    expect(find.text('You'), findsOneWidget);
+  });
+
+  testWidgets('roster shows each runner\'s backend level label', (
+    tester,
+  ) async {
+    final repository = FakeChallengeRepository(
+      activeOverride: () => _lobby(
+        isOwner: true,
+        participants: [
+          _owner(levelLabel: 'Lv.5'),
+          _member(levelLabel: 'Lv.2'),
+        ],
+      ),
+    );
+    await tester.pumpWidget(_harness(_screen(repository: repository)));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Lv.5'), findsOneWidget);
+    expect(find.text('Lv.2'), findsOneWidget);
+    expect(find.text('Lv.0'), findsNothing);
+  });
+
+  testWidgets('capacity line counts present people over total capacity', (
+    tester,
+  ) async {
+    final repository = FakeChallengeRepository(
+      activeOverride: () =>
+          _lobby(isOwner: true, participants: [_owner(), _member()]),
+    );
+    await tester.pumpWidget(_harness(_screen(repository: repository)));
+    await tester.pumpAndSettle();
+
+    // Owner + one accepted member = 2 present; cap is owner + maxInvited(1) = 2.
+    expect(find.text('2/2'), findsOneWidget);
+    expect(find.textContaining('Invited'), findsNothing);
   });
 
   testWidgets('member sees leave and waiting copy, no owner controls', (

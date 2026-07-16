@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/assets/runiac_assets.dart';
 import '../../../../core/theme/runiac_colors.dart';
 import '../../../../core/widgets/runiac_back_header.dart';
 import '../models/leaderboard_display_models.dart';
@@ -102,15 +103,24 @@ class _RunnerIdentityCard extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            profile.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: RuniacColors.white,
-                              fontSize: 32,
-                              fontWeight: FontWeight.w900,
-                            ),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  profile.name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: RuniacColors.white,
+                                    fontSize: 32,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              _RunnerDivisionBadge(profile: profile),
+                            ],
                           ),
                           const SizedBox(height: 8),
                           Row(
@@ -179,6 +189,58 @@ class _RunnerIdentityCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _RunnerDivisionBadge extends StatelessWidget {
+  const _RunnerDivisionBadge({required this.profile});
+
+  final RunnerAchievementProfileSnapshot profile;
+
+  String? _divisionName() {
+    final segments = profile.divisionLevelLabel.split(' · ');
+    if (segments.isEmpty) {
+      return null;
+    }
+    return segments.first.trim();
+  }
+
+  String? _divisionAssetPath(String divisionName) {
+    return switch (divisionName.toLowerCase()) {
+      'iron' => RuniacAssets.leaderboardLeagueIron,
+      'bronze' => RuniacAssets.leaderboardLeagueBronze,
+      'silver' => RuniacAssets.leaderboardLeagueSilver,
+      'gold' => RuniacAssets.leaderboardLeagueGold,
+      'platinum' => RuniacAssets.leaderboardLeaguePlatinum,
+      'emerald' => RuniacAssets.leaderboardLeagueEmerald,
+      'diamond' => RuniacAssets.leaderboardLeagueDiamond,
+      'master' => RuniacAssets.leaderboardLeagueMaster,
+      'grandmaster' => RuniacAssets.leaderboardLeagueGrandmaster,
+      'challenger' => RuniacAssets.leaderboardLeagueChallenger,
+      _ => null,
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final divisionName = _divisionName();
+    if (divisionName == null) {
+      return const SizedBox.shrink();
+    }
+    final assetPath = _divisionAssetPath(divisionName);
+    if (assetPath == null) {
+      return const SizedBox.shrink();
+    }
+
+    return Semantics(
+      label: '$divisionName division',
+      image: true,
+      child: SizedBox.square(
+        key: const Key('runner_profile_division_badge'),
+        dimension: 30,
+        child: Image.asset(assetPath, fit: BoxFit.contain),
       ),
     );
   }
@@ -258,10 +320,10 @@ class _RunnerPublicMetrics extends StatelessWidget {
         const SizedBox(width: 12),
         Expanded(
           child: _RunnerMetricTile(
-            key: const Key('runner_profile_best_streak_metric'),
-            icon: Icons.water_drop_outlined,
+            key: const Key('runner_profile_max_streak_metric'),
+            icon: Icons.local_fire_department,
             value: profile.bestStreakLabel,
-            label: 'Best streak',
+            label: 'Max streak',
           ),
         ),
       ],
@@ -424,10 +486,10 @@ class _RunnerAchievementsSection extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         Container(
-          padding: const EdgeInsets.fromLTRB(12, 20, 12, 18),
+          padding: const EdgeInsets.fromLTRB(14, 22, 14, 20),
           decoration: BoxDecoration(
             color: RuniacColors.white,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(26),
             border: Border.all(color: const Color(0xFFDDE3F8)),
           ),
           child: GridView.builder(
@@ -456,10 +518,32 @@ class _RunnerAchievementBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final badgeColor = badge.highlighted
-        ? RuniacColors.accentOrange
-        : RuniacColors.primaryBlue;
+    if (badge.highlighted) {
+      return _buildSlot(
+        iconColor: RuniacColors.accentOrange,
+        fillColor: const Color(0xFFFFECE5),
+        borderColor: RuniacColors.accentOrange.withValues(alpha: 0.28),
+        labelColor: RuniacColors.textSecondary,
+      );
+    }
 
+    // Unearned/generic badges get the same dimmed/desaturated treatment
+    // ChallengeBadgeImage applies to unearned tier badges: muted fill, muted
+    // icon tone, no vivid accent.
+    return _buildSlot(
+      iconColor: RuniacColors.textSecondary.withValues(alpha: 0.55),
+      fillColor: const Color(0xFFF0F1F5),
+      borderColor: const Color(0xFFE1E3EA),
+      labelColor: RuniacColors.textSecondary.withValues(alpha: 0.7),
+    );
+  }
+
+  Widget _buildSlot({
+    required Color iconColor,
+    required Color fillColor,
+    required Color borderColor,
+    required Color labelColor,
+  }) {
     return Column(
       children: [
         Container(
@@ -467,13 +551,11 @@ class _RunnerAchievementBadge extends StatelessWidget {
           height: 68,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: badge.highlighted
-                ? const Color(0xFFFFECE5)
-                : RuniacColors.primaryBlue.withValues(alpha: 0.08),
+            color: fillColor,
             borderRadius: BorderRadius.circular(999),
-            border: Border.all(color: badgeColor.withValues(alpha: 0.28)),
+            border: Border.all(color: borderColor),
           ),
-          child: Icon(badge.icon, color: badgeColor, size: 28),
+          child: Icon(badge.icon, color: iconColor, size: 28),
         ),
         const SizedBox(height: 10),
         Text(
@@ -481,8 +563,8 @@ class _RunnerAchievementBadge extends StatelessWidget {
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
           textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: RuniacColors.textSecondary,
+          style: TextStyle(
+            color: labelColor,
             fontSize: 13,
             height: 1.1,
             fontWeight: FontWeight.w900,

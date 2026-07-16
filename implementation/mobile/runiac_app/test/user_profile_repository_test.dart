@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:runiac_app/features/account/data/firestore_user_profile_repository.dart';
-import 'package:runiac_app/features/account/presentation/data/account_profile_demo_snapshots.dart';
+import 'package:runiac_app/features/profile/data/firestore_user_profile_repository.dart';
+import 'package:runiac_app/features/profile/presentation/data/account_profile_demo_snapshots.dart';
 
 import 'support/fake_runiac_auth_repository.dart';
 

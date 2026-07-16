@@ -13,6 +13,7 @@ class ChallengeParticipantRow {
     required this.uid,
     required this.displayNameSnapshot,
     required this.avatarInitialsSnapshot,
+    required this.levelLabelSnapshot,
     required this.role,
     required this.status,
     required this.creditedMeters,
@@ -24,6 +25,11 @@ class ChallengeParticipantRow {
   final String uid;
   final String displayNameSnapshot;
   final String avatarInitialsSnapshot;
+
+  /// Backend-owned level label (e.g. `Lv.2`) read back verbatim for display.
+  /// May be empty when the backend cannot resolve a level; callers fall back
+  /// to the display-only `Lv.0` placeholder.
+  final String levelLabelSnapshot;
   final ChallengeParticipantRole role;
   final ChallengeParticipantStatus status;
   final int creditedMeters;
@@ -42,6 +48,7 @@ class ChallengeParticipantRow {
       displayNameSnapshot: ChallengeParse.string(map, 'displayNameSnapshot'),
       avatarInitialsSnapshot:
           ChallengeParse.string(map, 'avatarInitialsSnapshot'),
+      levelLabelSnapshot: ChallengeParse.string(map, 'levelLabelSnapshot'),
       role: ChallengeParticipantRole.parse(ChallengeParse.string(map, 'role')),
       status:
           ChallengeParticipantStatus.parse(ChallengeParse.string(map, 'status')),

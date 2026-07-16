@@ -823,13 +823,50 @@ export async function getActiveChallengeForCallable(
       return { challenge: null };
     }
 
+    // Level is backend-owned and display-only: resolve each roster member's
+    // current level label live from their profile (no write). All transaction
+    // reads happen before any write, and this happy path performs none.
+    const participantUids = loaded.participants.docs.map((doc) =>
+      readString(doc.data(), "uid"),
+    );
+    const levelByUid = await readParticipantLevels(transaction, firestore, participantUids);
+
     return {
       challenge: {
         instance: serializeInstance(challengeId, loaded.data),
-        participants: sortedParticipantViews(loaded.participants),
+        participants: sortedParticipantViews(loaded.participants, levelByUid),
       },
     };
   });
+}
+
+// Reads the display-only level label for each participant from their trusted
+// `userProfiles/{uid}` document. Falls back to `Lv.{level}` when only the numeric
+// level is present, and to an empty label (client renders `Lv.0`) when neither
+// exists. Deduplicates refs so one getAll covers the whole roster.
+async function readParticipantLevels(
+  transaction: Transaction,
+  firestore: Firestore,
+  uids: readonly string[],
+): Promise<ReadonlyMap<string, string>> {
+  const levels = new Map<string, string>();
+  const unique = [...new Set(uids)].filter((uid) => uid.length > 0);
+  if (unique.length === 0) return levels;
+  const snaps = await transaction.getAll(...unique.map((uid) => profileRef(firestore, uid)));
+  unique.forEach((uid, index) => {
+    const label = participantLevelLabel(snaps[index]?.data());
+    if (label.length > 0) levels.set(uid, label);
+  });
+  return levels;
+}
+
+function participantLevelLabel(data: DocumentData | undefined): string {
+  if (data === undefined) return "";
+  const label = data["levelLabel"];
+  if (typeof label === "string" && label.trim().length > 0) return label.trim();
+  const level = data["level"];
+  if (typeof level === "number" && Number.isFinite(level)) return `Lv.${Math.trunc(level)}`;
+  return "";
 }
 
 // ---------------------------------------------------------------------------
