@@ -43,3 +43,8 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Local-only runtime dart-defines (production Firebase keys, pinned App Check
+# debug token, Mapbox token). Never commit — contains secrets.
+dart_define*.local.json
+run_local.sh
