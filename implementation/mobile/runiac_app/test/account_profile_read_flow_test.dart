@@ -5,10 +5,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/app.dart';
 import 'package:runiac_app/core/theme/runiac_colors.dart';
 import 'package:runiac_app/core/widgets/runiac_level_profile_badge.dart';
-import 'package:runiac_app/features/account/data/firestore_user_profile_repository.dart';
-import 'package:runiac_app/features/account/domain/models/user_profile_read_model.dart';
-import 'package:runiac_app/features/account/domain/repositories/user_profile_persistence_repository.dart';
-import 'package:runiac_app/features/account/domain/repositories/user_profile_repository.dart';
+import 'package:runiac_app/features/profile/data/firestore_user_profile_repository.dart';
+import 'package:runiac_app/features/profile/domain/models/user_profile_read_model.dart';
+import 'package:runiac_app/features/profile/domain/repositories/user_profile_persistence_repository.dart';
+import 'package:runiac_app/features/profile/domain/repositories/user_profile_repository.dart';
 import 'package:runiac_app/features/auth/domain/runiac_auth_service.dart';
 import 'package:runiac_app/features/leaderboard/domain/models/leaderboard_read_model.dart';
 import 'package:runiac_app/features/leaderboard/domain/repositories/leaderboard_repository.dart';
@@ -91,7 +91,7 @@ void main() {
       await tester.tap(find.bySemanticsLabel('Profile'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Account'), findsOneWidget);
+      expect(find.text('Profile'), findsOneWidget);
       expect(find.text('Maya'), findsOneWidget);
       expect(
         find.byKey(const ValueKey('account-profile-level-badge')),
@@ -577,7 +577,7 @@ void main() {
       );
       // Initial shell/Home profile reads plus Account reload after saving.
       expect(profileRepository.loadCount, 4);
-      expect(find.text('Account'), findsOneWidget);
+      expect(find.text('Profile'), findsOneWidget);
       expect(find.text('Edit profile'), findsOneWidget);
       expect(find.text('4 sessions / week'), findsOneWidget);
       expect(find.text('3 sessions / week'), findsNothing);
@@ -670,7 +670,7 @@ void main() {
     await tester.tap(find.text('Save changes'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Account'), findsOneWidget);
+    expect(find.text('Profile'), findsOneWidget);
     expect(find.text('Jess'), findsOneWidget);
     expect(find.text('Maya'), findsNothing);
     expect(find.text('Orchard, Singapore'), findsOneWidget);
@@ -938,7 +938,7 @@ void main() {
       await tester.pumpAndSettle();
       final reportedError = tester.takeException();
 
-      expect(find.text('Account'), findsNothing);
+      expect(find.text('Profile'), findsNothing);
       expect(generatedPlanStore.activePlan, isNull);
       expect(persistenceRepository.onboardingProfile, isNotNull);
       expect(generatedPlanPersistenceRepository.saveCalls, 1);
@@ -960,17 +960,75 @@ void main() {
     await tester.tap(find.bySemanticsLabel('Profile'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Account'), findsOneWidget);
+    expect(find.text('Profile'), findsOneWidget);
     expect(find.text('Runiac Runner'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('account-profile-level-badge')),
       findsOneWidget,
     );
     expect(find.text('Jurong East, Singapore'), findsOneWidget);
+    // Trusted, backend-owned regional rank rendered in front of the region.
+    expect(find.byKey(const ValueKey('account-regional-rank')), findsOneWidget);
+    expect(find.text('#18'), findsOneWidget);
     // Shown once on the profile badge and once on the level-up gauge.
     expect(find.text('Lv.0'), findsNWidgets(2));
     expect(find.text('Build a consistent 10K habit'), findsOneWidget);
+    // The no-Firebase static preview keeps its demo lifetime stats.
+    expect(find.text('12 days'), findsOneWidget);
+    expect(find.text('148.6 km'), findsOneWidget);
   });
+
+  testWidgets(
+    'Account profile shows em-dash lifetime stats for a real runner with no runs',
+    (tester) async {
+      await tester.pumpWidget(
+        RuniacApp(
+          showSplash: false,
+          enableForegroundGps: false,
+          profileRepository: _SingleProfileRepository(_savedProfile()),
+          userProgressRepository: const _SingleUserProgressRepository(
+            UserProgressReadModel(
+              userId: 'test-auth-user-1',
+              officialStreakLabel: '',
+              level: 0,
+              levelLabel: 'Level 0',
+              totalXpLabel: '0 XP',
+              weeklyXpLabel: '',
+              monthlyXpLabel: '0 XP',
+              weeklyDistanceLabel: '',
+              goalProgressLabel: '',
+              // Backend has not published lifetime stats for this fresh account.
+              longestStreakLabel: '',
+              totalDistanceLabel: '',
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.bySemanticsLabel('Profile'));
+      await tester.pumpAndSettle();
+
+      expect(
+        tester
+            .widget<Text>(
+              find.byKey(const ValueKey('account-stat-max-streak')),
+            )
+            .data,
+        '—',
+      );
+      expect(
+        tester
+            .widget<Text>(
+              find.byKey(const ValueKey('account-stat-total-distance')),
+            )
+            .data,
+        '—',
+      );
+      // No fabricated demo values leak into the real-runner path.
+      expect(find.text('12 days'), findsNothing);
+      expect(find.text('148.6 km'), findsNothing);
+    },
+  );
 }
 
 Color? _textColor(WidgetTester tester, String text) {

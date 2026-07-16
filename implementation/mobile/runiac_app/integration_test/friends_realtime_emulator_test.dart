@@ -5,7 +5,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:runiac_app/core/firebase/runiac_firebase_bootstrap.dart';
-import 'package:runiac_app/features/account/data/firestore_user_profile_persistence_repository.dart';
+import 'package:runiac_app/features/profile/data/firestore_user_profile_persistence_repository.dart';
 import 'package:runiac_app/features/run/data/run_repository_factory.dart';
 import 'package:runiac_app/features/you/presentation/widgets/you_segmented_control.dart';
 

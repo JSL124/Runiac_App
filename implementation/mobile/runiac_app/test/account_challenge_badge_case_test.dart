@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:runiac_app/features/account/presentation/widgets/account_challenge_badge_case.dart';
+import 'package:runiac_app/features/profile/presentation/widgets/account_challenge_badge_case.dart';
 import 'package:runiac_app/features/challenge/domain/models/challenge_enums.dart';
 import 'package:runiac_app/features/challenge/presentation/widgets/challenge_badge_image.dart';
 

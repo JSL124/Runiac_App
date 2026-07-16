@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/runiac_colors.dart';
-import '../account/domain/models/user_profile_read_model.dart';
-import '../account/domain/repositories/user_profile_repository.dart';
-import '../account/domain/repositories/user_profile_persistence_repository.dart';
+import '../profile/domain/models/user_profile_read_model.dart';
+import '../profile/domain/repositories/user_profile_repository.dart';
+import '../profile/domain/repositories/user_profile_persistence_repository.dart';
 import '../auth/domain/runiac_auth_service.dart';
 import '../challenge/data/static_challenge_repository.dart';
 import '../challenge/domain/repositories/challenge_repository.dart';

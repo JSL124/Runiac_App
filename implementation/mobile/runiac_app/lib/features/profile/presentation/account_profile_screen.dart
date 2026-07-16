@@ -210,7 +210,7 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
         child: Column(
           children: [
             RuniacBackHeader(
-              title: 'Account',
+              title: 'Profile',
               tooltip: 'Back to Home',
               onBack: widget.onBack,
             ),
@@ -288,6 +288,8 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
             AccountIdentityCard(snapshot: snapshot),
             const SizedBox(height: 14),
             AccountLevelUpGauge(snapshot: snapshot),
+            const SizedBox(height: 14),
+            AccountLifetimeStats(snapshot: snapshot),
             const SizedBox(height: 14),
             AccountChallengeBadgeCase(
               ownedTierIds: widget.challengeRepository == null
@@ -417,6 +419,9 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
           : profile.nickname,
       avatarInitials: profile.avatarInitials,
       regionLabel: profile.locationLabel,
+      regionalRankLabel: _accountRegionalRankLabel(leaderboard),
+      maxStreakLabel: _accountMaxStreakLabel(progress, fallback),
+      totalDistanceLabel: _accountTotalDistanceLabel(progress, fallback),
       divisionKey: _accountDivisionKey(progress, leaderboard),
       divisionLabel: _accountDivisionLabel(progress, leaderboard),
       previewLevelBadge:
@@ -460,6 +465,9 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
       displayName: fallback.displayName,
       avatarInitials: fallback.avatarInitials,
       regionLabel: fallback.regionLabel,
+      regionalRankLabel: _accountRegionalRankLabel(leaderboard),
+      maxStreakLabel: _accountMaxStreakLabel(progress, fallback),
+      totalDistanceLabel: _accountTotalDistanceLabel(progress, fallback),
       divisionKey: _accountDivisionKey(progress, leaderboard),
       divisionLabel: _accountDivisionLabel(progress, leaderboard),
       previewLevelBadge:
@@ -527,6 +535,44 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
       buffer.write(digits[index]);
     }
     return '${value < 0 ? '-' : ''}$buffer';
+  }
+
+  /// Trusted, backend-owned regional rank for the current runner in their home
+  /// region. The client only relays this label; it never computes rank.
+  String _accountRegionalRankLabel(LeaderboardReadModel? leaderboard) {
+    if (leaderboard == null ||
+        !leaderboard.isHomeRegion ||
+        leaderboard.status == LeaderboardReadStatus.unranked) {
+      return '';
+    }
+    return leaderboard.currentRunnerRankLabel.trim();
+  }
+
+  /// Relays the backend-owned longest streak; the client never derives it.
+  /// When a progress read model is present (real or static repo) its label is
+  /// shown as-is, so a real runner with no runs yet renders '—' rather than a
+  /// fabricated value. The demo snapshot label only fills in while progress is
+  /// still loading (null).
+  String _accountMaxStreakLabel(
+    UserProgressReadModel? progress,
+    AccountProfileDemoSnapshot fallback,
+  ) {
+    if (progress == null) {
+      return fallback.maxStreakLabel;
+    }
+    return progress.longestStreakLabel.trim();
+  }
+
+  /// Relays the backend-owned lifetime distance total; the client never
+  /// derives it. Same null-only fallback contract as [_accountMaxStreakLabel].
+  String _accountTotalDistanceLabel(
+    UserProgressReadModel? progress,
+    AccountProfileDemoSnapshot fallback,
+  ) {
+    if (progress == null) {
+      return fallback.totalDistanceLabel;
+    }
+    return progress.totalDistanceLabel.trim();
   }
 
   String _accountDivisionKey(

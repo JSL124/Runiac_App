@@ -821,6 +821,104 @@ describe("completeRun callable boundary", () => {
     assert.equal(secondProgressionEvent.get("nextStreakRunDate"), "2026-06-17");
   });
 
+  it("records a lifetime longest streak that survives a later missed-day reset", async () => {
+    for (const day of ["14", "15", "16"] as const) {
+      await callCompleteRun({
+        auth: { uid: USER_UID },
+        data: runPayloadForSession({
+          clientRunSessionId: `longest-streak-day-202606${day}`,
+          startedAt: `2026-06-${day}T09:00:00.000Z`,
+          completedAt: `2026-06-${day}T09:25:00.000Z`,
+        }),
+      });
+    }
+
+    const peakProfile = await firestore.doc(`userProfiles/${USER_UID}`).get();
+    assert.equal(peakProfile.get("streakCount"), 3);
+    assert.equal(peakProfile.get("longestStreak"), 3);
+    assert.equal(peakProfile.get("longestStreakLabel"), "3 days");
+
+    // A missed-day gap resets the current streak, but the lifetime peak stays.
+    await callCompleteRun({
+      auth: { uid: USER_UID },
+      data: runPayloadForSession({
+        clientRunSessionId: "longest-streak-after-gap",
+        startedAt: "2026-06-20T09:00:00.000Z",
+        completedAt: "2026-06-20T09:25:00.000Z",
+      }),
+    });
+
+    const profile = await firestore.doc(`userProfiles/${USER_UID}`).get();
+    assert.equal(profile.get("streakCount"), 1);
+    assert.equal(profile.get("longestStreak"), 3);
+    assert.equal(profile.get("longestStreakLabel"), "3 days");
+    // Four validated 3.2 km runs accumulate into the lifetime distance total.
+    assert.equal(profile.get("totalDistanceMeters"), 12800);
+    assert.equal(profile.get("totalDistanceLabel"), "12.8 km");
+  });
+
+  it("accumulates lifetime total distance without double counting duplicate sessions", async () => {
+    await callCompleteRun({
+      auth: { uid: USER_UID },
+      data: runPayloadForSession({
+        clientRunSessionId: "total-distance-day-one",
+        startedAt: "2026-06-14T09:00:00.000Z",
+        completedAt: "2026-06-14T09:25:00.000Z",
+        distanceMeters: 3200,
+      }),
+    });
+    const secondPayload = runPayloadForSession({
+      clientRunSessionId: "total-distance-day-two",
+      startedAt: "2026-06-15T09:00:00.000Z",
+      completedAt: "2026-06-15T09:25:00.000Z",
+      distanceMeters: 4200,
+    });
+    await callCompleteRun({ auth: { uid: USER_UID }, data: secondPayload });
+
+    const afterTwoRuns = await firestore.doc(`userProfiles/${USER_UID}`).get();
+    assert.equal(afterTwoRuns.get("totalDistanceMeters"), 7400);
+    assert.equal(afterTwoRuns.get("totalDistanceLabel"), "7.4 km");
+
+    // Replaying the identical second session must not add distance again.
+    await callCompleteRun({ auth: { uid: USER_UID }, data: secondPayload });
+
+    const afterReplay = await firestore.doc(`userProfiles/${USER_UID}`).get();
+    assert.equal(afterReplay.get("totalDistanceMeters"), 7400);
+    assert.equal(afterReplay.get("totalDistanceLabel"), "7.4 km");
+  });
+
+  it("backfills lifetime stats from pre-existing validated runs on the next completion", async () => {
+    // A validated run recorded before the lifetime-stat fields existed: its
+    // distance/streak never flowed into the profile aggregates.
+    await firestore.doc("activities/preexisting-validated-run").set({
+      ownerUid: USER_UID,
+      activityType: "run",
+      validationStatus: "validated",
+      distanceMeters: 5000,
+      endedAt: "2026-06-14T09:25:00.000Z",
+      countsTowardStreak: true,
+    });
+
+    await callCompleteRun({
+      auth: { uid: USER_UID },
+      data: runPayloadForSession({
+        clientRunSessionId: "backfill-next-run",
+        startedAt: "2026-06-15T09:00:00.000Z",
+        completedAt: "2026-06-15T09:25:00.000Z",
+        distanceMeters: 3200,
+      }),
+    });
+
+    const profile = await firestore.doc(`userProfiles/${USER_UID}`).get();
+    // Recomputed from the full history: 5000 (pre-existing) + 3200 (new).
+    assert.equal(profile.get("totalDistanceMeters"), 8200);
+    assert.equal(profile.get("totalDistanceLabel"), "8.2 km");
+    // The two consecutive validated run days yield a peak streak of 2, even
+    // though the pre-existing run never incremented the live streak counter.
+    assert.equal(profile.get("longestStreak"), 2);
+    assert.equal(profile.get("longestStreakLabel"), "2 days");
+  });
+
   it("does not regress persisted streak state when an older valid run syncs later", async () => {
     await callCompleteRun({
       auth: { uid: USER_UID },

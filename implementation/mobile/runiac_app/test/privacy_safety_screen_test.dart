@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:runiac_app/features/account/presentation/privacy_safety_screen.dart';
+import 'package:runiac_app/features/profile/presentation/privacy_safety_screen.dart';
 import 'package:runiac_app/features/home/domain/guide/home_guide_consent.dart';
 
 class _FakeConsentRepository implements HomeGuideConsentRepository {

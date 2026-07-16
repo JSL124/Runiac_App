@@ -2,10 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:runiac_app/features/account/data/static_user_profile_repository.dart';
-import 'package:runiac_app/features/account/domain/models/user_profile_read_model.dart';
-import 'package:runiac_app/features/account/domain/repositories/user_profile_repository.dart';
-import 'package:runiac_app/features/account/domain/repositories/user_profile_persistence_repository.dart';
+import 'package:runiac_app/features/profile/data/static_user_profile_repository.dart';
+import 'package:runiac_app/features/profile/domain/models/user_profile_read_model.dart';
+import 'package:runiac_app/features/profile/domain/repositories/user_profile_repository.dart';
+import 'package:runiac_app/features/profile/domain/repositories/user_profile_persistence_repository.dart';
 import 'package:runiac_app/features/feed/data/static_feed_repository.dart';
 import 'package:runiac_app/features/plan/presentation/current_session_generated_plan.dart';
 import 'package:runiac_app/features/shell/current_day_rollover.dart';

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/app.dart';
-import 'package:runiac_app/features/account/data/firestore_user_profile_repository.dart';
-import 'package:runiac_app/features/account/domain/models/user_profile_read_model.dart';
-import 'package:runiac_app/features/account/domain/repositories/user_profile_repository.dart';
+import 'package:runiac_app/features/profile/data/firestore_user_profile_repository.dart';
+import 'package:runiac_app/features/profile/domain/models/user_profile_read_model.dart';
+import 'package:runiac_app/features/profile/domain/repositories/user_profile_repository.dart';
 import 'package:runiac_app/features/auth/domain/runiac_auth_service.dart';
 import 'package:runiac_app/features/auth/presentation/runiac_auth_flow_screen.dart';
 

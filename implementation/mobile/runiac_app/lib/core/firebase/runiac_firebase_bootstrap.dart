@@ -3,11 +3,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
-import '../../features/account/data/firestore_user_profile_persistence_repository.dart';
-import '../../features/account/data/firestore_user_profile_repository.dart';
-import '../../features/account/data/static_user_profile_repository.dart';
-import '../../features/account/domain/repositories/user_profile_persistence_repository.dart';
-import '../../features/account/domain/repositories/user_profile_repository.dart';
+import '../../features/profile/data/firestore_user_profile_persistence_repository.dart';
+import '../../features/profile/data/firestore_user_profile_repository.dart';
+import '../../features/profile/data/static_user_profile_repository.dart';
+import '../../features/profile/domain/repositories/user_profile_persistence_repository.dart';
+import '../../features/profile/domain/repositories/user_profile_repository.dart';
 import '../../features/auth/data/firebase_runiac_auth_repository.dart';
 import '../../features/auth/data/non_production_auth_repository.dart';
 import '../../features/auth/domain/runiac_auth_service.dart';

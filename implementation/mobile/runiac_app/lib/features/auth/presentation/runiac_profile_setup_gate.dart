@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../account/data/firestore_user_profile_repository.dart';
-import '../../account/domain/models/user_profile_read_model.dart';
-import '../../account/domain/repositories/user_profile_repository.dart';
+import '../../profile/data/firestore_user_profile_repository.dart';
+import '../../profile/domain/models/user_profile_read_model.dart';
+import '../../profile/domain/repositories/user_profile_repository.dart';
 import '../../splash/presentation/splash_three_soft_dots_screen.dart';
 import '../domain/runiac_auth_service.dart';
 

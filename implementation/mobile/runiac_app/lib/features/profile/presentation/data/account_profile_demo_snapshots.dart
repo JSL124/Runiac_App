@@ -8,6 +8,10 @@ const accountProfileDemoSnapshot = AccountProfileDemoSnapshot(
   displayName: 'Runiac Runner',
   avatarInitials: 'RR',
   regionLabel: 'Jurong East, Singapore',
+  // Fallback display only. Real streak/distance totals come from the
+  // backend-owned user progress read path.
+  maxStreakLabel: '12 days',
+  totalDistanceLabel: '148.6 km',
   divisionKey: '',
   divisionLabel: 'Unranked',
   // Fallback display only. Real level/progression values come from the
@@ -95,6 +99,9 @@ class AccountProfileDemoSnapshot {
     required this.footerCaption,
     required this.setupItems,
     required this.manageRows,
+    this.regionalRankLabel = '',
+    this.maxStreakLabel = '',
+    this.totalDistanceLabel = '',
     this.divisionKey = '',
     this.divisionLabel = 'Unranked',
     this.levelProgressFraction = 0,
@@ -106,6 +113,18 @@ class AccountProfileDemoSnapshot {
   final String displayName;
   final String avatarInitials;
   final String regionLabel;
+
+  /// Backend-provided regional rank label for the current runner (e.g. '#1');
+  /// empty when the backend has not published a home-region rank yet.
+  final String regionalRankLabel;
+
+  /// Backend-provided longest (max) streak label for the current runner
+  /// (e.g. '14 days'); empty when the backend has not published it yet.
+  final String maxStreakLabel;
+
+  /// Backend-provided lifetime total distance label for the current runner
+  /// (e.g. '148.6 km'); empty when the backend has not published it yet.
+  final String totalDistanceLabel;
   final String divisionKey;
   final String divisionLabel;
   final String previewLevelBadge;

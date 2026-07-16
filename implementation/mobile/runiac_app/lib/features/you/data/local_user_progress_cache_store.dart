@@ -36,6 +36,8 @@ class LocalUserProgressCacheEntry {
         'monthlyXpLabel': progress.monthlyXpLabel,
         'weeklyDistanceLabel': progress.weeklyDistanceLabel,
         'goalProgressLabel': progress.goalProgressLabel,
+        'longestStreakLabel': progress.longestStreakLabel,
+        'totalDistanceLabel': progress.totalDistanceLabel,
         'officialStreakCount': progress.officialStreakCount,
         'lastStreakRunDate': progress.lastStreakRunDate,
       },
@@ -82,6 +84,8 @@ class LocalUserProgressCacheEntry {
           monthlyXpLabel: _string(progress['monthlyXpLabel']),
           weeklyDistanceLabel: _string(progress['weeklyDistanceLabel']),
           goalProgressLabel: _string(progress['goalProgressLabel']),
+          longestStreakLabel: _string(progress['longestStreakLabel']),
+          totalDistanceLabel: _string(progress['totalDistanceLabel']),
           officialStreakCount: _positiveInteger(
             progress['officialStreakCount'],
           ),

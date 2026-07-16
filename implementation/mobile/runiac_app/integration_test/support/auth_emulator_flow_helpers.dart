@@ -200,7 +200,7 @@ Future<void> attemptWrongPassword(
 Future<void> signOutFromAccount(WidgetTester tester) async {
   await tester.tap(find.bySemanticsLabel('Profile'));
   await tester.pumpAndSettle();
-  expect(find.text('Account'), findsOneWidget);
+  expect(find.text('Profile'), findsOneWidget);
 
   await tester.ensureVisible(find.text('Sign out'));
   await tester.pumpAndSettle();

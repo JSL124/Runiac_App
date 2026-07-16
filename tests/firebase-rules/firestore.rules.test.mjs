@@ -685,6 +685,33 @@ describe('owner-owned client records', () => {
     await assertFails(updateDoc(profile, { streakCount: deleteField() }));
   });
 
+  it('denies client writes to backend-owned lifetime stat profile fields', async () => {
+    await seed('userProfiles/alice', {
+      ...profileFields,
+      longestStreak: 5,
+      longestStreakLabel: '5 days',
+      totalDistanceMeters: 12800,
+      totalDistanceLabel: '12.8 km',
+    });
+
+    const profile = doc(dbFor('alice'), 'userProfiles/alice');
+
+    await assertFails(
+      setDoc(profile, {
+        ...profileFields,
+        longestStreak: 9,
+        longestStreakLabel: '9 days',
+        totalDistanceMeters: 99999,
+        totalDistanceLabel: '100.0 km',
+      }),
+    );
+    await assertFails(updateDoc(profile, { longestStreak: 9 }));
+    await assertFails(updateDoc(profile, { longestStreakLabel: '9 days' }));
+    await assertFails(updateDoc(profile, { totalDistanceMeters: 99999 }));
+    await assertFails(updateDoc(profile, { totalDistanceLabel: '100.0 km' }));
+    await assertFails(updateDoc(profile, { totalDistanceMeters: deleteField() }));
+  });
+
   it('activity owner history list supports latest-first bounded queries', async () => {
     await seed('activities/alice-older', {
       ...activityDraft,

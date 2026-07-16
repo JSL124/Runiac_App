@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/app.dart';
-import 'package:runiac_app/features/account/data/firestore_user_profile_repository.dart';
-import 'package:runiac_app/features/account/domain/repositories/user_profile_persistence_repository.dart';
+import 'package:runiac_app/features/profile/data/firestore_user_profile_repository.dart';
+import 'package:runiac_app/features/profile/domain/repositories/user_profile_persistence_repository.dart';
 import 'package:runiac_app/features/plan/domain/models/beginner_adaptive_plan_snapshot.dart';
 import 'package:runiac_app/features/plan/domain/repositories/generated_plan_persistence_repository.dart';
 import 'package:runiac_app/features/plan/domain/services/beginner_adaptive_plan_generator.dart';

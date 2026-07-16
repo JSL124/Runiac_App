@@ -67,3 +67,17 @@ function formatDuration(totalSeconds: number): string {
   const seconds = totalSeconds % 60;
   return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 }
+
+// Display label for the backend-owned lifetime longest streak. Mirrors the
+// client `_streakLabel` (0 days / 1 day / N days) so the profile renders it as-is.
+export function formatLongestStreakLabel(streakDays: number): string {
+  const safeDays = Number.isFinite(streakDays) && streakDays > 0 ? Math.floor(streakDays) : 0;
+  return safeDays === 1 ? "1 day" : `${safeDays} days`;
+}
+
+// Display label for the backend-owned lifetime total distance, one decimal km
+// (e.g. "148.6 km"), matching the profile's distance formatting.
+export function formatTotalDistanceLabel(totalDistanceMeters: number): string {
+  const safeMeters = Number.isFinite(totalDistanceMeters) && totalDistanceMeters > 0 ? totalDistanceMeters : 0;
+  return `${(safeMeters / 1000).toFixed(1)} km`;
+}

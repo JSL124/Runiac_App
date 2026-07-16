@@ -6,7 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runiac_app/app.dart';
 import 'package:runiac_app/core/widgets/runiac_share_bottom_sheet.dart';
-import 'package:runiac_app/features/account/domain/singapore_region_options.dart';
+import 'package:runiac_app/features/profile/domain/singapore_region_options.dart';
 import 'package:runiac_app/features/leaderboard/domain/models/leaderboard_read_model.dart';
 import 'package:runiac_app/features/leaderboard/domain/repositories/leaderboard_repository.dart';
 import 'package:runiac_app/features/leaderboard/presentation/data/leaderboard_demo_snapshots.dart';

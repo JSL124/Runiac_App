@@ -65,15 +65,42 @@ class AccountIdentityCard extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 7),
-                    Text(
-                      snapshot.regionLabel,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: RuniacColors.primaryBlue,
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w800,
-                        height: 1.2,
+                    Semantics(
+                      label: snapshot.regionalRankLabel.isEmpty
+                          ? snapshot.regionLabel
+                          : 'Rank ${snapshot.regionalRankLabel} in '
+                                '${snapshot.regionLabel}',
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.baseline,
+                        textBaseline: TextBaseline.alphabetic,
+                        children: [
+                          if (snapshot.regionalRankLabel.isNotEmpty) ...[
+                            Text(
+                              snapshot.regionalRankLabel,
+                              key: const ValueKey('account-regional-rank'),
+                              style: const TextStyle(
+                                color: RuniacColors.accentOrange,
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w900,
+                                height: 1.2,
+                              ),
+                            ),
+                            const SizedBox(width: 5),
+                          ],
+                          Flexible(
+                            child: Text(
+                              snapshot.regionLabel,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: RuniacColors.primaryBlue,
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w800,
+                                height: 1.2,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -257,6 +284,121 @@ class AccountLevelUpGauge extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Backend-owned lifetime totals shown beneath the progression gauge: the
+/// runner's longest (max) streak and total distance run so far. The client
+/// only relays these trusted labels; it never computes streak or distance.
+class AccountLifetimeStats extends StatelessWidget {
+  const AccountLifetimeStats({required this.snapshot, super.key});
+
+  final AccountProfileDemoSnapshot snapshot;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      key: const ValueKey('account-lifetime-stats'),
+      decoration: BoxDecoration(
+        color: RuniacColors.sectionSurface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: RuniacColors.cardBorder),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: _LifetimeStatTile(
+                statKey: const ValueKey('account-stat-max-streak'),
+                icon: Icons.local_fire_department_outlined,
+                iconColor: RuniacColors.accentOrange,
+                value: snapshot.maxStreakLabel,
+                caption: 'Max streak',
+              ),
+            ),
+            Container(
+              width: 1,
+              height: 34,
+              margin: const EdgeInsets.symmetric(horizontal: 12),
+              color: RuniacColors.cardBorder,
+            ),
+            Expanded(
+              child: _LifetimeStatTile(
+                statKey: const ValueKey('account-stat-total-distance'),
+                icon: Icons.route_outlined,
+                iconColor: RuniacColors.primaryBlue,
+                value: snapshot.totalDistanceLabel,
+                caption: 'Total distance',
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LifetimeStatTile extends StatelessWidget {
+  const _LifetimeStatTile({
+    required this.statKey,
+    required this.icon,
+    required this.iconColor,
+    required this.value,
+    required this.caption,
+  });
+
+  final Key statKey;
+  final IconData icon;
+  final Color iconColor;
+  final String value;
+  final String caption;
+
+  @override
+  Widget build(BuildContext context) {
+    final displayValue = value.trim().isEmpty ? '—' : value.trim();
+    return Semantics(
+      label: '$caption $displayValue',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: iconColor, size: 18),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  displayValue,
+                  key: statKey,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: RuniacColors.textPrimary,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w900,
+                    height: 1.1,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            caption,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: RuniacColors.textSecondary,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+              height: 1.2,
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -43,6 +43,39 @@ void main() {
     expect(progress.officialStreakLabel, '17 days');
   });
 
+  test('maps backend-owned lifetime stat labels into the read model', () async {
+    final authRepository = FakeRuniacAuthRepository()..emitSignedIn();
+    final repository = FirestoreUserProgressRepository(
+      authRepository: authRepository,
+      reader: const _FakeUserProgressDocumentReader({
+        'streakCount': 3,
+        'longestStreakLabel': '14 days',
+        'totalDistanceLabel': '148.6 km',
+      }),
+    );
+
+    final progress = await repository.loadUserProgress();
+
+    expect(progress.longestStreakLabel, '14 days');
+    expect(progress.totalDistanceLabel, '148.6 km');
+  });
+
+  test(
+    'defaults lifetime stat labels to empty when the backend omits them',
+    () async {
+      final authRepository = FakeRuniacAuthRepository()..emitSignedIn();
+      final repository = FirestoreUserProgressRepository(
+        authRepository: authRepository,
+        reader: const _FakeUserProgressDocumentReader({'streakCount': 0}),
+      );
+
+      final progress = await repository.loadUserProgress();
+
+      expect(progress.longestStreakLabel, isEmpty);
+      expect(progress.totalDistanceLabel, isEmpty);
+    },
+  );
+
   test(
     'refreshes backend-owned streak before reading official progress',
     () async {

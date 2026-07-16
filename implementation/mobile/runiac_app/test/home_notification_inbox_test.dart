@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:runiac_app/features/account/data/static_user_profile_repository.dart';
-import 'package:runiac_app/features/account/domain/repositories/user_profile_persistence_repository.dart';
+import 'package:runiac_app/features/profile/data/static_user_profile_repository.dart';
+import 'package:runiac_app/features/profile/domain/repositories/user_profile_persistence_repository.dart';
 import 'package:runiac_app/features/auth/data/non_production_auth_repository.dart';
 import 'package:runiac_app/features/home/presentation/home_tab.dart';
 import 'package:runiac_app/features/home/presentation/widgets/home_header.dart';

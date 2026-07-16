@@ -165,6 +165,8 @@ class FirestoreUserProgressRepository
       weeklyXpLabel: '',
       weeklyDistanceLabel: _string(data['weeklyDistanceLabel']),
       goalProgressLabel: _string(data['goalProgressLabel']),
+      longestStreakLabel: _string(data['longestStreakLabel']),
+      totalDistanceLabel: _string(data['totalDistanceLabel']),
     );
     await _saveCacheSafely(
       progress,
