@@ -483,8 +483,8 @@ class _LeaderboardRankRow extends StatelessWidget {
             key: row.isCurrentUser
                 ? const Key('leaderboard_detail_current_user_row')
                 : null,
-            constraints: const BoxConstraints(minHeight: 64),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            constraints: const BoxConstraints(minHeight: 56),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
             child: Row(
               children: [
                 _RankBadge(row: row),

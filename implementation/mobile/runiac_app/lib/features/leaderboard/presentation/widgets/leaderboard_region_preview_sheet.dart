@@ -7,6 +7,7 @@ import '../leaderboard_status_copy.dart';
 import '../models/leaderboard_display_models.dart';
 import 'leaderboard_empty_state.dart';
 import 'leaderboard_rank_row_helpers.dart';
+import 'leaderboard_refresh_countdown.dart';
 import 'leaderboard_visual_cta.dart';
 
 // Display-only sheet copy. These labels never encode backend-owned rank, XP,
@@ -25,6 +26,7 @@ class LeaderboardRegionPreviewSheet extends StatelessWidget {
     required this.onViewMoreRanking,
     required this.onShareMyRank,
     required this.onProfileSelected,
+    this.clock,
   });
 
   final double height;
@@ -34,6 +36,10 @@ class LeaderboardRegionPreviewSheet extends StatelessWidget {
   final VoidCallback onViewMoreRanking;
   final VoidCallback onShareMyRank;
   final ValueChanged<RunnerAchievementProfileSnapshot> onProfileSelected;
+
+  /// Injected clock so the live refresh countdown ticks deterministically in
+  /// tests; production falls back to the system clock.
+  final DateTime Function()? clock;
 
   @override
   Widget build(BuildContext context) {
@@ -83,8 +89,11 @@ class LeaderboardRegionPreviewSheet extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  snapshot.refreshLabel,
+                LeaderboardRefreshCountdown(
+                  periodEndsAt: snapshot.periodEndsAt,
+                  staticLabel: snapshot.refreshLabel,
+                  live: snapshot.refreshLabelIsLive,
+                  clock: clock,
                   style: const TextStyle(
                     color: RuniacColors.primaryBlue,
                     fontSize: 12,
@@ -233,14 +242,12 @@ class _RegionPreviewRankCard extends StatelessWidget {
     required this.onProfileSelected,
     required this.keyPrefix,
     this.useTopMedals = false,
-    this.useDetailRowSizing = false,
   });
 
   final List<LeaderboardRankRowDisplaySnapshot> rows;
   final ValueChanged<RunnerAchievementProfileSnapshot> onProfileSelected;
   final String keyPrefix;
   final bool useTopMedals;
-  final bool useDetailRowSizing;
 
   @override
   Widget build(BuildContext context) {
@@ -263,7 +270,6 @@ class _RegionPreviewRankCard extends StatelessWidget {
                     ? RegionPreviewMedalTone.values[index]
                     : null,
                 onProfileSelected: onProfileSelected,
-                useDetailRowSizing: useDetailRowSizing,
               ),
               if (index != rows.length - 1)
                 const Divider(height: 1, color: Color(0xFFE4E9FA)),
@@ -281,25 +287,23 @@ class _RegionPreviewRankRow extends StatelessWidget {
     required this.row,
     required this.onProfileSelected,
     this.medalTone,
-    this.useDetailRowSizing = false,
   });
 
   final LeaderboardRankRowDisplaySnapshot row;
   final ValueChanged<RunnerAchievementProfileSnapshot> onProfileSelected;
   final RegionPreviewMedalTone? medalTone;
-  final bool useDetailRowSizing;
 
   @override
   Widget build(BuildContext context) {
-    final rowMinHeight = useDetailRowSizing ? 64.0 : 56.0;
+    const rowMinHeight = 56.0;
     const horizontalPadding = 10.0;
-    final verticalPadding = useDetailRowSizing ? 10.0 : 7.0;
+    const verticalPadding = 7.0;
     const rankGap = 10.0;
     const nameGap = 10.0;
-    final xpGap = useDetailRowSizing ? 12.0 : 8.0;
+    const xpGap = 8.0;
     const badgeSize = 38.0;
-    final nameFontSize = useDetailRowSizing ? 16.0 : 14.0;
-    final xpFontSize = useDetailRowSizing ? 16.0 : 14.0;
+    const nameFontSize = 14.0;
+    const xpFontSize = 14.0;
 
     return Semantics(
       button: true,
@@ -323,7 +327,6 @@ class _RegionPreviewRankRow extends StatelessWidget {
                   row: row,
                   medalTone: medalTone,
                   size: badgeSize,
-                  useDetailSizing: useDetailRowSizing,
                 ),
                 SizedBox(width: rankGap),
                 LeaderboardInitialBadge(
@@ -374,13 +377,11 @@ class _RegionPreviewRankBadge extends StatelessWidget {
   const _RegionPreviewRankBadge({
     required this.row,
     required this.size,
-    required this.useDetailSizing,
     this.medalTone,
   });
 
   final LeaderboardRankRowDisplaySnapshot row;
   final double size;
-  final bool useDetailSizing;
   final RegionPreviewMedalTone? medalTone;
 
   @override
@@ -401,7 +402,7 @@ class _RegionPreviewRankBadge extends StatelessWidget {
         child: Icon(
           Icons.emoji_events_outlined,
           color: colors.foreground,
-          size: useDetailSizing ? 22 : 21,
+          size: 21,
         ),
       );
     }
@@ -425,7 +426,7 @@ class _RegionPreviewRankBadge extends StatelessWidget {
           color: row.isCurrentUser
               ? RuniacColors.accentOrange
               : RuniacColors.primaryBlue,
-          fontSize: useDetailSizing ? 16 : 14,
+          fontSize: 14,
           fontWeight: FontWeight.w900,
         ),
       ),
@@ -473,7 +474,6 @@ class _MyRankPreviewCard extends StatelessWidget {
             rows: [row],
             onProfileSelected: onProfileSelected,
             keyPrefix: 'leaderboard_region_my_rank_row',
-            useDetailRowSizing: true,
           ),
       ],
     );

@@ -74,6 +74,8 @@ class LeaderboardDetailDisplaySnapshot {
     required this.nearbyRanks,
     this.status = LeaderboardReadStatus.data,
     this.hasCurrentUserRank = true,
+    this.periodEndsAt,
+    this.refreshLabelIsLive = false,
   });
 
   final String regionId;
@@ -99,6 +101,14 @@ class LeaderboardDetailDisplaySnapshot {
   // True when the backend reported a rank for the current user. Detected
   // from presence in the read model, never computed on the client.
   final bool hasCurrentUserRank;
+
+  // Backend-owned monthly period end. Display-only: the refresh countdown is
+  // re-derived from this trusted instant; the client never computes the reset.
+  final DateTime? periodEndsAt;
+
+  // True when [refreshLabel] was derived from [periodEndsAt] (should tick live)
+  // rather than supplied verbatim by the backend as a static copy string.
+  final bool refreshLabelIsLive;
 }
 
 class LeaderboardMapRegionDisplaySnapshot {

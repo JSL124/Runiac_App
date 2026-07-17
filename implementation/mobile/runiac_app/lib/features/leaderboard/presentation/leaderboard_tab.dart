@@ -374,6 +374,7 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
               onViewMoreRanking: _openRankingPage,
               onShareMyRank: _openShareRankPanel,
               onProfileSelected: _openRunnerProfile,
+              clock: widget.clock,
             ),
           ),
           if (_loading)

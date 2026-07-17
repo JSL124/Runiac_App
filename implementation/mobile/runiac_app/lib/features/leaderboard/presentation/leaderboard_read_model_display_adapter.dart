@@ -1,5 +1,6 @@
 import '../domain/models/leaderboard_read_model.dart';
 import 'models/leaderboard_display_models.dart';
+import 'widgets/leaderboard_refresh_countdown.dart';
 
 LeaderboardDetailDisplaySnapshot leaderboardDisplaySnapshotFromReadModel(
   LeaderboardReadModel model,
@@ -24,6 +25,10 @@ LeaderboardDetailDisplaySnapshot leaderboardDisplaySnapshotFromReadModel(
   final hasCurrentRank =
       model.currentRunnerRankLabel.isNotEmpty && currentUser != null;
 
+  final serverRefreshLabel = model.refreshLabel?.trim();
+  final hasServerRefreshLabel =
+      serverRefreshLabel != null && serverRefreshLabel.isNotEmpty;
+
   return LeaderboardDetailDisplaySnapshot(
     regionId: model.regionId,
     regionName: model.regionLabel.isEmpty ? 'Leaderboard' : model.regionLabel,
@@ -33,9 +38,11 @@ LeaderboardDetailDisplaySnapshot leaderboardDisplaySnapshotFromReadModel(
     isUserRegion: model.isHomeRegion,
     periodLabel: model.periodLabel ?? '',
     fallbackPeriodLabel: 'Monthly leaderboard',
-    refreshLabel: model.refreshLabel?.trim().isNotEmpty == true
-        ? model.refreshLabel!.trim()
-        : _refreshLabel(model.periodEndsAt, now),
+    refreshLabel: hasServerRefreshLabel
+        ? serverRefreshLabel
+        : formatLeaderboardRefreshLabel(model.periodEndsAt, now),
+    refreshLabelIsLive: !hasServerRefreshLabel && model.periodEndsAt != null,
+    periodEndsAt: model.periodEndsAt,
     fallbackRefreshLabel: 'Updating',
     monthlyResetLabel:
         'Monthly gained XP resets to 0 XP next month. Your level stays the same.',
@@ -53,22 +60,6 @@ LeaderboardDetailDisplaySnapshot leaderboardDisplaySnapshotFromReadModel(
     hasCurrentUserRank: hasCurrentRank,
   );
 }
-
-String _refreshLabel(DateTime? periodEndsAt, DateTime now) {
-  if (periodEndsAt == null) {
-    return 'Updating';
-  }
-  final rawRemaining = periodEndsAt.difference(now);
-  final remaining = rawRemaining.isNegative ? Duration.zero : rawRemaining;
-  final days = remaining.inDays;
-  final hours = remaining.inHours.remainder(24);
-  final minutes = remaining.inMinutes.remainder(60);
-  final seconds = remaining.inSeconds.remainder(60);
-  return 'Refreshes in ${_twoDigits(days)}:${_twoDigits(hours)}:'
-      '${_twoDigits(minutes)}:${_twoDigits(seconds)}';
-}
-
-String _twoDigits(int value) => value.toString().padLeft(2, '0');
 
 LeaderboardRankRowDisplaySnapshot
 leaderboardRankRowDisplaySnapshotFromReadModel(
