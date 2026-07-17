@@ -46,8 +46,20 @@ flutter run \
   --dart-define=RUNIAC_FIREBASE_APP_ID=<local-app-id> \
   --dart-define=RUNIAC_FIREBASE_MESSAGING_SENDER_ID=<local-sender-id> \
   --dart-define=RUNIAC_FIREBASE_PROJECT_ID=<local-project-id> \
-  --dart-define=RUNIAC_FIREBASE_STORAGE_BUCKET=<local-storage-bucket>
+  --dart-define=RUNIAC_FIREBASE_STORAGE_BUCKET=<local-storage-bucket> \
+  --dart-define=RUNIAC_APPCHECK_DEBUG_TOKEN=<registered-appcheck-debug-token>
 ```
+
+`RUNIAC_APPCHECK_DEBUG_TOKEN` is required against production: the home-guide
+consent/agent and activity-feedback callables enforce App Check, so a debug
+build must present a **registered** debug token or every call fails ("Could not
+update guide data use.", and the guide silently falls back to the rule-based
+character message). Pin one registered UUID and reuse it on every sim/device —
+do not let the SDK mint a fresh (unregistered) token per launch.
+
+The simplest path is `./run_local.sh [-d <device>]`, which injects these defines
+plus the pinned token from the gitignored `dart_define.local.json`, so no
+per-device App Check registration is ever needed.
 
 ## M4-C2 Mapbox run map demo boundary
 

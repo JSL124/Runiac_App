@@ -27,6 +27,7 @@ describe(
         "leaderboardCurrentViews",
         "leaderboardPeriods",
         "leaderboardAggregationLocks",
+        "config",
       ]);
     });
 
@@ -122,6 +123,58 @@ describe(
       assert.equal(currentView.get("homeRegionId"), "tampines");
       assert.equal(currentView.get("status"), "unranked");
       assert.equal(currentView.get("activeRankProjectionId"), null);
+    });
+
+    it("excludes a premium user by default (config/leaderboard missing)", async () => {
+      const uid = "premium-runner-default";
+      await Promise.all([
+        firestore.doc(`users/${uid}`).set({ subscriptionStatus: "premium" }),
+        firestore.doc(`userProfiles/${uid}`).set({
+          nickname: "Premium Default",
+          locationLabel: "Jurong East, Singapore",
+          divisionKey: "tier_01",
+          level: 1,
+        }),
+        firestore
+          .doc(`leaderboardContributions/${uid}_monthly_2026-07`)
+          .set(contribution({ ownerUid: uid })),
+      ]);
+      await refreshMonthlyLeaderboardSnapshots(firestore, "2026-07", {
+        now: new Date("2026-07-10T00:00:00.000Z"),
+        buildId: "premium-default-build",
+      });
+
+      const currentView = await firestore
+        .doc(`leaderboardCurrentViews/${uid}`)
+        .get();
+      assert.equal(currentView.get("status"), "ineligible_premium");
+    });
+
+    it("includes a premium user when config/leaderboard.excludePremium is false", async () => {
+      const uid = "premium-runner-included";
+      await firestore.doc("config/leaderboard").set({ excludePremium: false });
+      await Promise.all([
+        firestore.doc(`users/${uid}`).set({ subscriptionStatus: "premium" }),
+        firestore.doc(`userProfiles/${uid}`).set({
+          nickname: "Premium Included",
+          locationLabel: "Jurong East, Singapore",
+          divisionKey: "tier_01",
+          level: 1,
+        }),
+        firestore
+          .doc(`leaderboardContributions/${uid}_monthly_2026-07`)
+          .set(contribution({ ownerUid: uid })),
+      ]);
+      await refreshMonthlyLeaderboardSnapshots(firestore, "2026-07", {
+        now: new Date("2026-07-10T00:00:00.000Z"),
+        buildId: "premium-included-build",
+      });
+
+      const currentView = await firestore
+        .doc(`leaderboardCurrentViews/${uid}`)
+        .get();
+      assert.equal(currentView.get("status"), "ranked");
+      await firestore.doc("config/leaderboard").delete();
     });
   },
 );

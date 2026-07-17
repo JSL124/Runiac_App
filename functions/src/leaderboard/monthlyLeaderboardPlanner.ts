@@ -21,8 +21,15 @@ export function planMonthlyLeaderboards(input: {
   readonly periodKey: string;
   readonly contributions: readonly FirebaseFirestore.DocumentData[];
   readonly currentPremiumUids?: ReadonlySet<string>;
+  /**
+   * Mirrors `LeaderboardConfig.excludePremium` (`config/leaderboard`). Defaults
+   * to `true`, matching pre-config-plane behavior where premium users were
+   * unconditionally excluded from ranking.
+   */
+  readonly excludePremium?: boolean;
 }): MonthlyLeaderboardPlan {
   const premiumUids = input.currentPremiumUids ?? emptyUidSet;
+  const excludePremium = input.excludePremium ?? true;
   const contributionByOwner = new Map<string, LeaderboardContributionDocument>();
   for (const rawContribution of input.contributions) {
     const contribution = parseContribution(rawContribution, input.periodKey);
@@ -41,7 +48,7 @@ export function planMonthlyLeaderboards(input: {
   const groups = new Map<string, LeaderboardContributionDocument[]>();
   const excludedCurrentViews: MonthlyLeaderboardCurrentViewPlan[] = [];
   for (const contribution of contributionByOwner.values()) {
-    if (premiumUids.has(contribution.ownerUid)) {
+    if (excludePremium && premiumUids.has(contribution.ownerUid)) {
       excludedCurrentViews.push({
         ownerUid: contribution.ownerUid,
         snapshotId: null,

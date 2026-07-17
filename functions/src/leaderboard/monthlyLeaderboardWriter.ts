@@ -32,6 +32,7 @@ import {
   commitOperations,
   type WriteOperation,
 } from "./monthlyLeaderboardWrites.js";
+import { loadLeaderboardConfig } from "../config/configLoader.js";
 
 export {
   currentSingaporeMonthKey,
@@ -87,6 +88,21 @@ export async function refreshMonthlyLeaderboardSnapshots(
   }
 
   try {
+    // Loaded once, up front, before any aggregation reads so the whole
+    // refresh run is consistent under a single config snapshot.
+    const leaderboardConfig = await loadLeaderboardConfig(firestore);
+    // NOTE: `leaderboardConfig.seasonLengthDays` is not wired here. The
+    // monthly period boundaries (`currentSingaporeMonthKey` /
+    // `nextSingaporeMonthStart` / `retainedPeriodKeys`) are calendar-month
+    // based, not a rolling day-count window, so a day-count setting doesn't
+    // cleanly apply without changing the period model itself. Left
+    // unchanged per scope; see worker report.
+    // NOTE: `leaderboardConfig.minRunsToQualify` is not enforced here either.
+    // `leaderboardContributions` docs (and `monthlyLeaderboardPlanner`'s
+    // aggregation) do not currently carry a per-user qualifying-run count,
+    // only a pre-computed `eligible`/`eligibilityReason` from progression.
+    // Enforcing this would require adding that count upstream; left
+    // unchanged per scope.
     const [contributionSnapshot, currentPeriodSnapshot] = await Promise.all([
       firestore
         .collection("leaderboardContributions")
@@ -125,6 +141,7 @@ export async function refreshMonthlyLeaderboardSnapshots(
         document.data(),
       ),
       currentPremiumUids: premiumUids,
+      excludePremium: leaderboardConfig.excludePremium,
     });
     const currentViews = mergeRolloverViews({
       periodKey,
@@ -132,6 +149,7 @@ export async function refreshMonthlyLeaderboardSnapshots(
       rolloverUids:
         rolloverViews?.docs.map((document) => document.id) ?? emptyStringList,
       ownerFacts,
+      excludePremium: leaderboardConfig.excludePremium,
     });
 
     const refreshesAt = nextSingaporeMonthStart(periodKey);

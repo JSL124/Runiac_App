@@ -1638,6 +1638,37 @@ describe("completeRun callable boundary", () => {
     assert.equal(await countDocuments("runSummaries"), 0);
     assert.equal(await countDocuments("progressionEvents"), 0);
   });
+
+  it("applies a seeded config/progression override to distance XP", async () => {
+    await firestore.doc("config/progression").set({ xpPerKilometer: 20 });
+    try {
+      const result = await callCompleteRun({ auth: { uid: USER_UID }, data: validPayload() });
+      const progressionEvent = await firestore.doc(`progressionEvents/${result.progressionEventId}`).get();
+
+      // Default config (xpPerKilometer: 10) awards distanceXp 30 for this 3200m
+      // payload (see "writes backend-owned completion artifacts..." above,
+      // xpDelta 60 = base 20 + distanceXp 30 + durationXp 10). Doubling
+      // xpPerKilometer to 20 must double distanceXp to 60.
+      assert.equal(progressionEvent.get("distanceXp"), 60);
+      assert.equal(result.progressionDisplay.xpDelta, 90);
+    } finally {
+      await firestore.doc("config/progression").delete();
+    }
+  });
+
+  it("falls back to defaults and never throws when config/progression is corrupted", async () => {
+    await firestore.doc("config/progression").set({ dailyXpCap: -5 });
+    try {
+      const result = await callCompleteRun({ auth: { uid: USER_UID }, data: validPayload() });
+      const progressionEvent = await firestore.doc(`progressionEvents/${result.progressionEventId}`).get();
+
+      assert.equal(result.validationStatus, "validated");
+      assert.equal(result.progressionDisplay.xpDelta, 60);
+      assert.equal(progressionEvent.get("xpDelta"), 60);
+    } finally {
+      await firestore.doc("config/progression").delete();
+    }
+  });
 });
 
 async function callCompleteRun(request: CallableRequest): Promise<CompletionResult> {

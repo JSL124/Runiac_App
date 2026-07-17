@@ -183,7 +183,13 @@ void main() {
         .dy;
     final leaderboardTitleTop = tester.getTopLeft(find.text('Jurong East')).dy;
     expect(leaderboardTitleTop - leaderboardAccentBottom, closeTo(10, 0.1));
-    expect(find.text('Refreshes in 24:14:05:45'), findsOneWidget);
+    // The refresh label is now a live countdown derived from the backend
+    // period end, so it is time-dependent rather than a frozen demo string.
+    expect(
+      find.byKey(const Key('leaderboard_refresh_countdown')),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Refreshes in '), findsOneWidget);
     expect(find.text('Bronze'), findsOneWidget);
     expect(find.text('Region Leaderboard'), findsNothing);
     expect(find.text('Region Preview'), findsNothing);
