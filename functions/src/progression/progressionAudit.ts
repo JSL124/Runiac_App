@@ -1,3 +1,4 @@
+import type { ProgressionConfig } from "../config/configLoader.js";
 import type { PersistPlanProgressResult } from "../plan/planProgress.js";
 import type { StreakTransition } from "./streakCalculator.js";
 import type {
@@ -56,27 +57,35 @@ export function calculateProgressionAudit(input: {
   readonly sameDayProgressionEventDocuments: readonly FirebaseFirestore.DocumentData[];
   readonly sameMonthProgressionEventDocuments: readonly FirebaseFirestore.DocumentData[];
   readonly planProgressResult: PersistPlanProgressResult;
+  readonly config: ProgressionConfig;
 }): ProgressionAudit {
   const previousTotalXp = readTotalXp(input.profileData);
-  const previousProgression = resolveLevelProgression(previousTotalXp);
+  const previousProgression = resolveLevelProgression(previousTotalXp, input.config);
   const isPremium = isPremiumSubscription(input.subscriptionData) || isPremiumSubscription(input.profileData);
-  const activityXp = calculateActivityXp({
-    distanceMeters: input.payload.distanceMeters,
-    activeDurationSeconds: input.payload.activeDurationSeconds,
-    lowDataConfirmed: input.payload.userConfirmedLowDataSave === true,
-    planCompletionBonusEligible: input.planProgressResult.completedWorkoutRecorded,
-  });
+  const activityXp = calculateActivityXp(
+    {
+      distanceMeters: input.payload.distanceMeters,
+      activeDurationSeconds: input.payload.activeDurationSeconds,
+      lowDataConfirmed: input.payload.userConfirmedLowDataSave === true,
+      planCompletionBonusEligible: input.planProgressResult.completedWorkoutRecorded,
+    },
+    input.config,
+  );
   const dailyXpBefore = sumDailyXp(input.sameDayProgressionEventDocuments, input.dailyCapDate);
   const monthlyXpBefore = sumMonthlyXp(
     input.sameMonthProgressionEventDocuments,
     input.monthlyPeriod,
   );
-  const capped = isPremium
+  const suppress = isPremium && !input.config.premiumEarnsXp;
+  const capped = suppress
     ? { xpDelta: 0, dailyXpAfter: dailyXpBefore, dailyCapApplied: false }
-    : applyDailyXpCap({
-        xpDeltaBeforeDailyCap: activityXp.xpDeltaBeforeDailyCap,
-        dailyXpBefore,
-      });
+    : applyDailyXpCap(
+        {
+          xpDeltaBeforeDailyCap: activityXp.xpDeltaBeforeDailyCap,
+          dailyXpBefore,
+        },
+        input.config,
+      );
   const reason = progressionReason({
     isPremium,
     activityReason: activityXp.reason,
@@ -85,7 +94,7 @@ export function calculateProgressionAudit(input: {
   });
   const nextTotalXp = previousTotalXp + capped.xpDelta;
   const monthlyXpAfter = monthlyXpBefore + capped.xpDelta;
-  const nextProgression = resolveLevelProgression(nextTotalXp);
+  const nextProgression = resolveLevelProgression(nextTotalXp, input.config);
 
   return {
     progressionDisplay: {

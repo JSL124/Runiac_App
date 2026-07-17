@@ -1,13 +1,7 @@
+import type { ProgressionConfig } from "../config/configLoader.js";
 import { leaderboardLeagueForLevel } from "./leaderboardLeagues.js";
 
-const baseCompletionXp = 20;
-const xpPerKilometer = 10;
-const xpPerTenActiveMinutes = 5;
-const planCompletionBonusXp = 20;
-const activityXpCap = 100;
-const dailyXpCap = 200;
 const singaporeUtcOffsetHours = 8;
-const maxLevel = 100;
 
 export type ActivityXpInput = {
   readonly distanceMeters: number;
@@ -51,7 +45,10 @@ export type LevelProgression = {
   readonly levelProgressPercent: number;
 };
 
-export function calculateActivityXp(input: ActivityXpInput): ActivityXpResult {
+export function calculateActivityXp(
+  input: ActivityXpInput,
+  config: ProgressionConfig,
+): ActivityXpResult {
   if (input.lowDataConfirmed) {
     return {
       baseCompletionXp: 0,
@@ -65,14 +62,14 @@ export function calculateActivityXp(input: ActivityXpInput): ActivityXpResult {
     };
   }
 
-  const distanceXp = Math.floor(input.distanceMeters / 1000) * xpPerKilometer;
-  const durationXp = Math.floor(input.activeDurationSeconds / 600) * xpPerTenActiveMinutes;
-  const bonusXp = input.planCompletionBonusEligible ? planCompletionBonusXp : 0;
-  const rawXpBeforeActivityCap = baseCompletionXp + distanceXp + durationXp + bonusXp;
-  const xpDeltaBeforeDailyCap = Math.min(rawXpBeforeActivityCap, activityXpCap);
+  const distanceXp = Math.floor(input.distanceMeters / 1000) * config.xpPerKilometer;
+  const durationXp = Math.floor(input.activeDurationSeconds / 600) * config.xpPerTenActiveMinutes;
+  const bonusXp = input.planCompletionBonusEligible ? config.planCompletionBonusXp : 0;
+  const rawXpBeforeActivityCap = config.baseCompletionXp + distanceXp + durationXp + bonusXp;
+  const xpDeltaBeforeDailyCap = Math.min(rawXpBeforeActivityCap, config.activityXpCap);
 
   return {
-    baseCompletionXp,
+    baseCompletionXp: config.baseCompletionXp,
     distanceXp,
     durationXp,
     planCompletionBonusXp: bonusXp,
@@ -83,21 +80,17 @@ export function calculateActivityXp(input: ActivityXpInput): ActivityXpResult {
   };
 }
 
-export const coolDownBonusPercent = 0.2;
-export const coolDownBonusMin = 5;
-export const coolDownBonusMax = 20;
-
-export function calculateCoolDownBonus(baseEarnedXp: number): number {
+export function calculateCoolDownBonus(baseEarnedXp: number, config: ProgressionConfig): number {
   if (!Number.isFinite(baseEarnedXp) || baseEarnedXp <= 0) {
     return 0; // zero-XP bases (low-data, premium, fully daily-capped runs) earn no bonus
   }
-  const raw = Math.round((baseEarnedXp * coolDownBonusPercent) / 5) * 5;
-  const clamped = Math.min(coolDownBonusMax, Math.max(coolDownBonusMin, raw));
-  return Math.max(0, Math.min(clamped, activityXpCap - baseEarnedXp));
+  const raw = Math.round((baseEarnedXp * config.coolDown.percent) / 5) * 5;
+  const clamped = Math.min(config.coolDown.max, Math.max(config.coolDown.min, raw));
+  return Math.max(0, Math.min(clamped, config.activityXpCap - baseEarnedXp));
 }
 
-export function applyDailyXpCap(input: DailyXpCapInput): DailyXpCapResult {
-  const remainingDailyXp = Math.max(0, dailyXpCap - input.dailyXpBefore);
+export function applyDailyXpCap(input: DailyXpCapInput, config: ProgressionConfig): DailyXpCapResult {
+  const remainingDailyXp = Math.max(0, config.dailyXpCap - input.dailyXpBefore);
   const xpDelta = Math.min(input.xpDeltaBeforeDailyCap, remainingDailyXp);
 
   return {
@@ -123,9 +116,9 @@ function singaporeDateForCompletedAt(completedAt: string): string {
   return singaporeTime.toISOString();
 }
 
-export function resolveLevelProgression(totalXp: number): LevelProgression {
+export function resolveLevelProgression(totalXp: number, config: ProgressionConfig): LevelProgression {
   const boundedTotalXp = Math.max(0, Math.floor(totalXp));
-  const thresholds = levelThresholds();
+  const thresholds = levelThresholds(config);
   let level = 1;
   for (let index = 0; index < thresholds.length; index += 1) {
     const threshold = thresholds[index];
@@ -136,7 +129,7 @@ export function resolveLevelProgression(totalXp: number): LevelProgression {
 
   const division = leaderboardLeagueForLevel(level);
   const currentLevelXp = thresholds[level - 1] ?? 0;
-  const nextLevelXp = level >= maxLevel ? null : thresholds[level] ?? null;
+  const nextLevelXp = level >= config.maxLevel ? null : thresholds[level] ?? null;
   const xpToNextLevel = nextLevelXp === null ? null : nextLevelXp - boundedTotalXp;
   const levelProgressPercent =
     nextLevelXp === null
@@ -163,42 +156,17 @@ export function resolveLevelProgression(totalXp: number): LevelProgression {
   };
 }
 
-function levelThresholds(): readonly number[] {
+function levelThresholds(config: ProgressionConfig): readonly number[] {
   const thresholds: number[] = [0];
-  for (let nextLevel = 2; nextLevel <= maxLevel; nextLevel += 1) {
+  for (let nextLevel = 2; nextLevel <= config.maxLevel; nextLevel += 1) {
     const previousThreshold = thresholds[nextLevel - 2] ?? 0;
-    thresholds.push(previousThreshold + incrementForLevel(nextLevel));
+    thresholds.push(previousThreshold + incrementForLevel(nextLevel, config));
   }
   return thresholds;
 }
 
-function incrementForLevel(level: number): number {
-  if (level <= 10) {
-    return 100;
-  }
-  if (level <= 20) {
-    return 150;
-  }
-  if (level <= 30) {
-    return 220;
-  }
-  if (level <= 40) {
-    return 300;
-  }
-  if (level <= 50) {
-    return 400;
-  }
-  if (level <= 60) {
-    return 520;
-  }
-  if (level <= 70) {
-    return 660;
-  }
-  if (level <= 80) {
-    return 820;
-  }
-  if (level <= 90) {
-    return 1000;
-  }
-  return 1200;
+function incrementForLevel(level: number, config: ProgressionConfig): number {
+  const increments = config.levelIncrements;
+  const bandIndex = Math.min(Math.floor((level - 1) / 10), increments.length - 1);
+  return increments[bandIndex] ?? increments[increments.length - 1] ?? 0;
 }

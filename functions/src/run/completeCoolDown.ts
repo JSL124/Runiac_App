@@ -1,6 +1,7 @@
 import { getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
+import { loadProgressionConfig } from "../config/configLoader.js";
 import {
   leaderboardContributionId,
   writeLeaderboardContribution,
@@ -67,6 +68,7 @@ export async function completeCoolDownForCallable(
 
   let progressionDisplay: ProgressionDisplay | undefined;
   let alreadyAwarded = false;
+  const progressionConfig = await loadProgressionConfig(firestore);
 
   await firestore.runTransaction(async (transaction) => {
     const activityRef = firestore.collection("activities").doc(ids.activityId);
@@ -133,21 +135,24 @@ export async function completeCoolDownForCallable(
     }
 
     const isPremium = isPremiumSubscription(userSnapshot.data()) || isPremiumSubscription(profileSnapshot.data());
-    const bonusBeforeDailyCap = isPremium ? 0 : calculateCoolDownBonus(baseEarnedXp);
+    const bonusBeforeDailyCap = isPremium ? 0 : calculateCoolDownBonus(baseEarnedXp, progressionConfig);
     const dailyXpBefore = sumDailyXp(
       sameDayProgressionEventSnapshots.docs.map((document) => document.data()),
       dailyCapDate,
     );
-    const capped = applyDailyXpCap({ xpDeltaBeforeDailyCap: bonusBeforeDailyCap, dailyXpBefore });
+    const capped = applyDailyXpCap(
+      { xpDeltaBeforeDailyCap: bonusBeforeDailyCap, dailyXpBefore },
+      progressionConfig,
+    );
     const monthlyXpBefore = sumMonthlyXp(
       sameMonthProgressionEventSnapshots.docs.map((document) => document.data()),
       monthlyPeriod,
     );
 
     const previousTotalXp = readTotalXp(profileSnapshot.data());
-    const previousProgression = resolveLevelProgression(previousTotalXp);
+    const previousProgression = resolveLevelProgression(previousTotalXp, progressionConfig);
     const nextTotalXp = previousTotalXp + capped.xpDelta;
-    const nextProgression = resolveLevelProgression(nextTotalXp);
+    const nextProgression = resolveLevelProgression(nextTotalXp, progressionConfig);
     const monthlyXpAfter = monthlyXpBefore + capped.xpDelta;
 
     const reason: ProgressionDisplay["reason"] =

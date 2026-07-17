@@ -50,7 +50,9 @@ export function mergeRolloverViews(input: {
   readonly plannedViews: readonly MonthlyLeaderboardCurrentViewPlan[];
   readonly rolloverUids: readonly string[];
   readonly ownerFacts: ReadonlyMap<string, OwnerFacts>;
+  readonly excludePremium?: boolean;
 }): MonthlyLeaderboardCurrentViewPlan[] {
+  const excludePremium = input.excludePremium ?? true;
   const views = new Map(
     input.plannedViews.map((view) => [view.ownerUid, view]),
   );
@@ -65,7 +67,7 @@ export function mergeRolloverViews(input: {
     const league =
       leaderboardLeagueForKey(facts?.profile?.["divisionKey"]) ??
       leaderboardLeagueForLevel(readLevel(facts?.profile?.["level"]));
-    const status = facts?.isPremium
+    const status = excludePremium && facts?.isPremium
       ? "ineligible_premium"
       : area === null
         ? "region_required"

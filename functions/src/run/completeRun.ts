@@ -2,6 +2,7 @@ import { getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { applyChallengeContribution } from "../challenge/challengeContribution.js";
+import { loadProgressionConfig } from "../config/configLoader.js";
 import {
   leaderboardContributionId,
   writeLeaderboardContribution,
@@ -69,6 +70,7 @@ export async function completeRunForCallable(
   const monthlyPeriod = monthlyPeriodForCompletedAt(payload.completedAt);
   let progressionDisplay: ProgressionDisplay = deferredProgressionDisplay();
   let planCompletion: PlanCompletionResult = { completed: false };
+  const progressionConfig = await loadProgressionConfig(firestore);
 
   await firestore.runTransaction(async (transaction) => {
     const activityRef = firestore.collection("activities").doc(ids.activityId);
@@ -180,6 +182,7 @@ export async function completeRunForCallable(
           sameDayProgressionEventDocuments: progressionEventSnapshots.docs.map((document) => document.data()),
           sameMonthProgressionEventDocuments: monthlyProgressionEventSnapshots.docs.map((document) => document.data()),
           planProgressResult,
+          config: progressionConfig,
         })
       : null;
 

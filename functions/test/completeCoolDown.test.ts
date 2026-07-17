@@ -5,6 +5,7 @@ import { getFirestore, type Firestore } from "firebase-admin/firestore";
 import { completeCoolDownForCallable } from "../src/run/completeCoolDown.js";
 import { completeRunForCallable } from "../src/run/completeRun.js";
 import { deterministicIds } from "../src/run/runCompletionArtifacts.js";
+import { DEFAULT_PROGRESSION_CONFIG } from "../src/config/configLoader.js";
 import { calculateCoolDownBonus } from "../src/progression/progressionCalculator.js";
 
 const PROJECT_ID = "runiac-functions-test";
@@ -167,7 +168,7 @@ describe("completeCoolDown callable boundary", () => {
     );
     const baseXp = runResult.progressionDisplay.xpDelta;
     assert.equal(baseXp, 60);
-    const expectedBonus = calculateCoolDownBonus(baseXp);
+    const expectedBonus = calculateCoolDownBonus(baseXp, DEFAULT_PROGRESSION_CONFIG);
     assert.equal(expectedBonus, 10);
 
     const result = await callCompleteCoolDown({
