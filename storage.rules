@@ -37,5 +37,19 @@ service firebase.storage {
       allow read: if isOwner(uid);
       allow create, update, delete: if false;
     }
+
+    // Owner-uploaded rank share card. The owner writes and reads it; a
+    // shareable link is produced from the download token, which grants read to
+    // anyone holding the link (that is the point of "Copy Link"). Only trusted
+    // display values are rendered into the image; no backend-owned value is
+    // written here.
+    match /share-cards/{uid}/{fileName} {
+      allow create, update: if isOwner(uid) &&
+        fileName.matches('^[A-Za-z0-9_-]+\\.png$') &&
+        request.resource.size > 0 &&
+        request.resource.size <= 4 * 1024 * 1024 &&
+        request.resource.contentType == 'image/png';
+      allow read, delete: if isOwner(uid);
+    }
   }
 }

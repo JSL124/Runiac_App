@@ -244,7 +244,40 @@ is_run_duration_fields_functions_path() {
   esac
 }
 
+is_user_feedback_pipeline_capsule_active() {
+  grep -Eq '^- Newly routed user feedback pipeline on 2026-07-19 Asia/Singapore: `implementation/roadmap/capsules/user-feedback-pipeline\.md`' implementation/roadmap/CURRENT.md
+}
+
+# Note: the rules test basename contains "feed", so this must be consulted
+# before the feed-friends-emulator-backend basename patterns claim it.
+is_user_feedback_pipeline_path() {
+  case "$1" in
+    implementation/roadmap/capsules/user-feedback-pipeline.md|\
+    firestore.rules|\
+    firestore.indexes.json|\
+    functions/src/feedback/*|\
+    functions/test/submitFeedback.test.ts|\
+    functions/src/index.ts|\
+    functions/package.json|\
+    tests/firebase-rules/feedback.firestore.rules.test.mjs|\
+    tests/firebase-rules/package.json)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 is_allowed_path() {
+  if is_user_feedback_pipeline_path "$1" && is_user_feedback_pipeline_capsule_active; then
+    return 0
+  fi
+
+  if is_share_rank_export_capsule_active && is_share_rank_export_backend_path "$1"; then
+    return 0
+  fi
+
   if is_adaptive_character_guidance_functions_path "$1" && is_adaptive_character_guidance_capsule_active; then
     return 0
   fi
@@ -287,6 +320,14 @@ is_allowed_path() {
       ;;
     # Approved: routed profile lifetime-stats backend deploy capsule
     implementation/roadmap/capsules/profile-lifetime-stats-backend.md)
+      return 0
+      ;;
+    # Approved: routed Share-my-rank card + Share-rank export-targets capsules,
+    # and the routed Share-activity-card real-data export capsule
+    implementation/roadmap/capsules/share-my-rank-transparent-card-league-badge.md|\
+    implementation/roadmap/capsules/share-rank-card-export-targets.md|\
+    implementation/roadmap/capsules/share-activity-card-real-data-export.md|\
+    tests/firebase-rules/share-card.storage.rules.test.mjs)
       return 0
       ;;
     # Approved: routed capsule documentation/governance patches only
@@ -350,7 +391,28 @@ is_allowed_path() {
   esac
 }
 
+is_share_rank_export_capsule_active() {
+  grep -Eq '^- Newly routed Share-rank card export targets on 2026-07-18 Asia/Singapore: `implementation/roadmap/capsules/share-rank-card-export-targets\.md`' implementation/roadmap/CURRENT.md
+}
+
+is_share_rank_export_backend_path() {
+  case "$1" in
+    storage.rules|\
+    tests/firebase-rules/share-card.storage.rules.test.mjs|\
+    tests/firebase-rules/package.json)
+      return 0
+      ;;
+  esac
+  return 1
+}
+
 is_unrelated_mobile_native_artifact() {
+  # The routed Share-rank export-targets capsule registers the Instagram Stories
+  # Swift channel, which requires editing the Xcode project file.
+  if [ "$1" = "implementation/mobile/runiac_app/ios/Runner.xcodeproj/project.pbxproj" ] \
+    && is_share_rank_export_capsule_active; then
+    return 1
+  fi
   case "$1" in
     implementation/mobile/runiac_app/ios/Podfile.lock|\
     implementation/mobile/runiac_app/ios/Runner.xcodeproj/project.pbxproj|\
@@ -366,6 +428,14 @@ is_unrelated_mobile_native_artifact() {
 }
 
 is_forbidden_path() {
+  if is_user_feedback_pipeline_path "$1" && is_user_feedback_pipeline_capsule_active; then
+    return 1
+  fi
+
+  if is_share_rank_export_capsule_active && is_share_rank_export_backend_path "$1"; then
+    return 1
+  fi
+
   if is_adaptive_character_guidance_functions_path "$1" && is_adaptive_character_guidance_capsule_active; then
     return 1
   fi

@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 
+import '../../../../core/assets/runiac_assets.dart';
 import '../../domain/models/leaderboard_read_model.dart';
 
 // Presentation-only display models for static leaderboard UI.
@@ -72,6 +73,7 @@ class LeaderboardDetailDisplaySnapshot {
     required this.currentUser,
     required this.topRanks,
     required this.nearbyRanks,
+    this.divisionAssetPath = RuniacAssets.leaderboardLeagueIron,
     this.status = LeaderboardReadStatus.data,
     this.hasCurrentUserRank = true,
     this.periodEndsAt,
@@ -87,6 +89,9 @@ class LeaderboardDetailDisplaySnapshot {
   final String fallbackRefreshLabel;
   final String monthlyResetLabel;
   final String divisionLabel;
+  // League (division) badge artwork for this board, resolved from the
+  // backend-owned division tier. Display-only; never computed on the client.
+  final String divisionAssetPath;
   final String topRanksTitle;
   final String nearbyRanksTitle;
   final CurrentUserRankSummaryDisplaySnapshot currentUser;

@@ -802,10 +802,28 @@ void main() {
     expect(shareToRect.top - cardRect.bottom, lessThanOrEqualTo(72));
     expect(find.text('Jurong East'), findsWidgets);
     expect(find.text('Bronze'), findsWidgets);
-    expect(find.text('#'), findsOneWidget);
-    expect(find.text('18'), findsOneWidget);
+    expect(find.text('#'), findsWidgets);
+    expect(find.text('18'), findsWidgets);
+    expect(
+      find.byKey(const Key('leaderboard_share_rank_card_solid')),
+      findsOneWidget,
+    );
+    // The league (division) badge renders on the share card.
+    expect(
+      find.byKey(const Key('leaderboard_share_rank_league_badge')),
+      findsWidgets,
+    );
     expect(
       find.byKey(const Key('leaderboard_share_rank_page_indicator')),
+      findsOneWidget,
+    );
+    // Exactly two dots now (one active), replacing the former hardcoded three.
+    expect(
+      find.byKey(const Key('leaderboard_share_rank_indicator_dot_active')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('leaderboard_share_rank_indicator_dot_inactive')),
       findsOneWidget,
     );
     expect(
@@ -842,6 +860,107 @@ void main() {
 
     expect(find.byKey(const Key('leaderboard_share_rank_panel')), findsNothing);
   });
+
+  testWidgets(
+    'Share rank carousel swipes to the transparent overlay card with a live indicator',
+    (WidgetTester tester) async {
+      _useCompactShareSheetSurface(tester);
+
+      await tester.pumpWidget(
+        const RuniacApp(showSplash: false, enableForegroundGps: false),
+      );
+
+      await tester.tap(find.byTooltip('Leaderboard'));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const Key('leaderboard_share_my_rank_button')),
+      );
+      await tester.pumpAndSettle();
+
+      // Page 0 (the solid card) is active; capture the indicator position.
+      expect(
+        find.byKey(const Key('leaderboard_share_rank_card_solid')),
+        findsOneWidget,
+      );
+      final activeDotDxBefore = tester
+          .getCenter(
+            find.byKey(
+              const Key('leaderboard_share_rank_indicator_dot_active'),
+            ),
+          )
+          .dx;
+
+      // Swipe to the transparent overlay card.
+      await tester.drag(
+        find.byKey(const Key('leaderboard_share_rank_carousel')),
+        const Offset(-400, 0),
+      );
+      await tester.pumpAndSettle();
+
+      final transparentCard = find.byKey(
+        const Key('leaderboard_share_rank_card_transparent'),
+      );
+      expect(transparentCard, findsOneWidget);
+      // The overlay card carries no background image (transparent for photos).
+      expect(
+        find.descendant(
+          of: transparentCard,
+          matching: find.byKey(
+            const Key('leaderboard_share_rank_card_background'),
+          ),
+        ),
+        findsNothing,
+      );
+      // Checkerboard "transparent background" sign and the Runiac logo, so the
+      // overlay card mirrors the solid card's design.
+      expect(
+        find.descendant(
+          of: transparentCard,
+          matching: find.byKey(
+            const Key('leaderboard_share_rank_transparent_sign'),
+          ),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: transparentCard,
+          matching: find.byKey(
+            const Key('leaderboard_share_rank_transparent_logo'),
+          ),
+        ),
+        findsOneWidget,
+      );
+      // Same components as the solid card, including the league badge.
+      expect(
+        find.descendant(
+          of: transparentCard,
+          matching: find.byKey(
+            const Key('leaderboard_share_rank_league_badge'),
+          ),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: transparentCard,
+          matching: find.text('Jurong East'),
+        ),
+        findsOneWidget,
+      );
+
+      // The indicator is live: the active dot moved to the second position.
+      final activeDotDxAfter = tester
+          .getCenter(
+            find.byKey(
+              const Key('leaderboard_share_rank_indicator_dot_active'),
+            ),
+          )
+          .dx;
+      expect(activeDotDxAfter, greaterThan(activeDotDxBefore));
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets('Share rank card fits shorter screens without overflow', (
     WidgetTester tester,

@@ -129,6 +129,7 @@ const leaderboardDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
   monthlyResetLabel:
       'Monthly gained XP resets to 0 XP next month. Your level stays the same.',
   divisionLabel: 'Bronze',
+  divisionAssetPath: RuniacAssets.leaderboardLeagueBronze,
   topRanksTitle: 'Regional ranking',
   nearbyRanksTitle: 'Nearby your rank',
   currentUser: CurrentUserRankSummaryDisplaySnapshot(
@@ -414,6 +415,7 @@ const leaderboardTampinesDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
   monthlyResetLabel:
       'Monthly gained XP resets to 0 XP next month. Your level stays the same.',
   divisionLabel: 'Bronze',
+  divisionAssetPath: RuniacAssets.leaderboardLeagueBronze,
   topRanksTitle: 'Regional ranking',
   nearbyRanksTitle: 'Nearby your rank',
   currentUser: CurrentUserRankSummaryDisplaySnapshot(
@@ -492,6 +494,7 @@ const leaderboardWoodlandsDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
   monthlyResetLabel:
       'Monthly gained XP resets to 0 XP next month. Your level stays the same.',
   divisionLabel: 'Bronze',
+  divisionAssetPath: RuniacAssets.leaderboardLeagueBronze,
   topRanksTitle: 'Regional ranking',
   nearbyRanksTitle: 'Nearby your rank',
   currentUser: CurrentUserRankSummaryDisplaySnapshot(
@@ -570,6 +573,7 @@ const leaderboardMarinaBayDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
   monthlyResetLabel:
       'Monthly gained XP resets to 0 XP next month. Your level stays the same.',
   divisionLabel: 'Bronze',
+  divisionAssetPath: RuniacAssets.leaderboardLeagueBronze,
   topRanksTitle: 'Regional ranking',
   nearbyRanksTitle: 'Nearby your rank',
   currentUser: CurrentUserRankSummaryDisplaySnapshot(
@@ -648,6 +652,7 @@ const leaderboardAngMoKioDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
   monthlyResetLabel:
       'Monthly gained XP resets to 0 XP next month. Your level stays the same.',
   divisionLabel: 'Bronze',
+  divisionAssetPath: RuniacAssets.leaderboardLeagueBronze,
   topRanksTitle: 'Regional ranking',
   nearbyRanksTitle: 'Nearby your rank',
   currentUser: CurrentUserRankSummaryDisplaySnapshot(
@@ -1224,6 +1229,7 @@ LeaderboardDetailDisplaySnapshot _genericLeaderboardRegionRankingSnapshot(
     fallbackRefreshLabel: leaderboardDetailDemoSnapshot.fallbackRefreshLabel,
     monthlyResetLabel: leaderboardDetailDemoSnapshot.monthlyResetLabel,
     divisionLabel: leaderboardDetailDemoSnapshot.divisionLabel,
+    divisionAssetPath: leaderboardDetailDemoSnapshot.divisionAssetPath,
     topRanksTitle: leaderboardDetailDemoSnapshot.topRanksTitle,
     nearbyRanksTitle: leaderboardDetailDemoSnapshot.nearbyRanksTitle,
     currentUser: leaderboardDetailDemoSnapshot.currentUser,
