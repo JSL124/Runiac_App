@@ -132,30 +132,34 @@ describe(
       assert.equal((await firestore.collection("adminAuditLogs").get()).size, 0);
     });
 
-    // Regression: an out-of-contract numeric expiry must not be selected at
-    // all. Numbers sort below every Timestamp, so without the range's lower
-    // bound these would fill the candidate window, be rejected by the
-    // re-check, and starve genuinely lapsed subscriptions behind them on every
-    // run.
-    it("does not select expiries stored as millis numbers, so they cannot starve the window", async () => {
-      await firestore.collection("users").doc("millis-future-expiry").set({
-        subscriptionStatus: "premium",
-        subscriptionExpiresAt: futureMs,
-      });
-      await firestore.collection("users").doc("millis-past-expiry").set({
+    // Guards the property the Timestamp-only contract depends on: Firestore
+    // inequality filters are type-scoped, so `subscriptionExpiresAt <=
+    // <Timestamp>` never returns numeric or string values. That is what makes
+    // out-of-contract data harmless — it is not merely rejected downstream, it
+    // is never selected, so it cannot be downgraded and cannot occupy a
+    // candidate slot.
+    //
+    // candidateLimit is pinned to the number of out-of-contract documents so
+    // the assertion is meaningful: if they ever did start matching, they would
+    // fill the window and `real-lapsed` would go unswept, failing this test.
+    it("never selects out-of-contract expiry values, so they cannot occupy the window", async () => {
+      await firestore.collection("users").doc("millis-expiry").set({
         subscriptionStatus: "premium",
         subscriptionExpiresAt: pastMs,
       });
-      // A genuinely lapsed Timestamp document sorted after both numeric ones.
+      await firestore.collection("users").doc("iso-expiry").set({
+        subscriptionStatus: "premium",
+        subscriptionExpiresAt: new Date(pastMs).toISOString(),
+      });
       await firestore.collection("users").doc("real-lapsed").set({
         subscriptionStatus: "premium",
         subscriptionExpiresAt: Timestamp.fromMillis(pastMs),
       });
 
-      const result = await runSubscriptionExpirySweep(firestore, nowMs);
+      const result = await runSubscriptionExpirySweep(firestore, nowMs, {
+        candidateLimit: 2,
+      });
 
-      // Only the Timestamp-backed document is swept; the numeric ones are
-      // untouched and did not consume a candidate slot.
       assert.equal(result.expiredCount, 1);
       assert.equal(
         (await firestore.collection("users").doc("real-lapsed").get()).data()?.[
@@ -163,7 +167,9 @@ describe(
         ],
         "basic",
       );
-      for (const id of ["millis-future-expiry", "millis-past-expiry"]) {
+      // Left premium, consistent with isPremiumSubscription() treating a
+      // non-Timestamp value as "no expiry".
+      for (const id of ["millis-expiry", "iso-expiry"]) {
         assert.equal(
           (await firestore.collection("users").doc(id).get()).data()?.[
             "subscriptionStatus"
