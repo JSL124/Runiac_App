@@ -244,6 +244,43 @@ is_run_duration_fields_functions_path() {
   esac
 }
 
+is_admin_role_subscription_expiry_capsule_active() {
+  grep -Eq '^- Newly routed admin role and subscription expiry on 2026-07-20 Asia/Singapore: `implementation/roadmap/capsules/admin-role-subscription-expiry\.md`' implementation/roadmap/CURRENT.md
+}
+
+# Scoped to the canonical Platform Administrator role predicate and the premium
+# expiry sweep. The progression/leaderboard/run entries are signature-only
+# `nowMs` threading required by the expiry-aware premium check; they are
+# behaviour-preserving and covered by the regression run recorded in the
+# capsule's Validation section.
+is_admin_role_subscription_expiry_path() {
+  case "$1" in
+    implementation/roadmap/capsules/admin-role-subscription-expiry.md|\
+    functions/src/security/roles.ts|\
+    functions/src/progression/subscriptionExpiryCore.ts|\
+    functions/src/progression/subscriptionExpirySchedule.ts|\
+    functions/src/progression/progressionAuditHelpers.ts|\
+    functions/src/progression/progressionAudit.ts|\
+    functions/src/run/completeRun.ts|\
+    functions/src/run/completeCoolDown.ts|\
+    functions/src/leaderboard/monthlyLeaderboardOwnerFacts.ts|\
+    functions/src/leaderboard/monthlyLeaderboardWriter.ts|\
+    functions/src/friends/friendsMigration.ts|\
+    functions/test/roles.test.ts|\
+    functions/test/progressionAuditHelpers.test.ts|\
+    functions/test/subscriptionExpiry.test.ts|\
+    functions/test/friendsCore.test.ts|\
+    functions/src/index.ts|\
+    functions/package.json|\
+    firestore.indexes.json)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 is_user_feedback_pipeline_capsule_active() {
   grep -Eq '^- Newly routed user feedback pipeline on 2026-07-19 Asia/Singapore: `implementation/roadmap/capsules/user-feedback-pipeline\.md`' implementation/roadmap/CURRENT.md
 }
@@ -271,6 +308,10 @@ is_user_feedback_pipeline_path() {
 
 is_allowed_path() {
   if is_user_feedback_pipeline_path "$1" && is_user_feedback_pipeline_capsule_active; then
+    return 0
+  fi
+
+  if is_admin_role_subscription_expiry_path "$1" && is_admin_role_subscription_expiry_capsule_active; then
     return 0
   fi
 
@@ -429,6 +470,10 @@ is_unrelated_mobile_native_artifact() {
 
 is_forbidden_path() {
   if is_user_feedback_pipeline_path "$1" && is_user_feedback_pipeline_capsule_active; then
+    return 1
+  fi
+
+  if is_admin_role_subscription_expiry_path "$1" && is_admin_role_subscription_expiry_capsule_active; then
     return 1
   fi
 

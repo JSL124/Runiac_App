@@ -18,6 +18,7 @@ export type OwnerFacts = {
 export async function readOwnerFacts(
   firestore: Firestore,
   ownerUids: ReadonlySet<string>,
+  nowMs: number,
 ): Promise<ReadonlyMap<string, OwnerFacts>> {
   const result = new Map<string, OwnerFacts>();
   const uids = [...ownerUids];
@@ -37,8 +38,8 @@ export async function readOwnerFacts(
       const profileData = snapshots[offset * 2 + 1]?.data();
       result.set(uid, {
         isPremium:
-          isPremiumSubscription(userData) ||
-          isPremiumSubscription(profileData),
+          isPremiumSubscription(userData, nowMs) ||
+          isPremiumSubscription(profileData, nowMs),
         profile: profileData,
       });
     }

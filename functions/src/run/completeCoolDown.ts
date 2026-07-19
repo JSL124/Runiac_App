@@ -69,6 +69,7 @@ export async function completeCoolDownForCallable(
   let progressionDisplay: ProgressionDisplay | undefined;
   let alreadyAwarded = false;
   const progressionConfig = await loadProgressionConfig(firestore);
+  const nowMs = Date.now();
 
   await firestore.runTransaction(async (transaction) => {
     const activityRef = firestore.collection("activities").doc(ids.activityId);
@@ -134,7 +135,8 @@ export async function completeCoolDownForCallable(
       throw new HttpsError("failed-precondition", "The completed run's XP could not be read.");
     }
 
-    const isPremium = isPremiumSubscription(userSnapshot.data()) || isPremiumSubscription(profileSnapshot.data());
+    const isPremium =
+      isPremiumSubscription(userSnapshot.data(), nowMs) || isPremiumSubscription(profileSnapshot.data(), nowMs);
     const bonusBeforeDailyCap = isPremium ? 0 : calculateCoolDownBonus(baseEarnedXp, progressionConfig);
     const dailyXpBefore = sumDailyXp(
       sameDayProgressionEventSnapshots.docs.map((document) => document.data()),

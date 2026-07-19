@@ -18,6 +18,7 @@ const ALICE = "friends-alice";
 const BOB = "friends-bob";
 const CAROL = "friends-carol";
 const ADMIN = "friends-admin";
+const ADMIN_CANONICAL = "friends-admin-canonical";
 
 let firestore: Firestore;
 let nowMs = Date.UTC(2026, 6, 13, 10, 0, 0);
@@ -41,6 +42,7 @@ beforeEach(async () => {
     seedProfile(BOB, "Bøb"),
     seedProfile(CAROL, "Carol"),
     firestore.doc(`users/${ADMIN}`).set({ userRole: "Platform Administrator" }),
+    firestore.doc(`users/${ADMIN_CANONICAL}`).set({ userRole: "platformAdmin" }),
   ]);
 });
 
@@ -576,6 +578,13 @@ describe("Friends nickname migration", () => {
       () => friends.migrateUnicodeNicknameClaims(request(ALICE, {})),
       FRIEND_REASON.NOT_PLATFORM_ADMIN,
     );
+  });
+
+  it("accepts the canonical admin-console userRole value ('platformAdmin'), not just the legacy string", async () => {
+    const friends = service();
+    await seedLegacyMigrationProfile(ALICE, "Alice", "legacy-alice-canonical");
+
+    assert.deepEqual(await friends.migrateUnicodeNicknameClaims(request(ADMIN_CANONICAL, {})), { migrated: 1 });
   });
 });
 

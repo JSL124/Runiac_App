@@ -129,7 +129,7 @@ export async function refreshMonthlyLeaderboardSnapshots(
         ownerUids.add(view.id);
       }
     }
-    const ownerFacts = await readOwnerFacts(firestore, ownerUids);
+    const ownerFacts = await readOwnerFacts(firestore, ownerUids, now.getTime());
     const premiumUids = new Set(
       [...ownerFacts.entries()]
         .filter(([, facts]) => facts.isPremium)

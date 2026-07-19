@@ -58,10 +58,13 @@ export function calculateProgressionAudit(input: {
   readonly sameMonthProgressionEventDocuments: readonly FirebaseFirestore.DocumentData[];
   readonly planProgressResult: PersistPlanProgressResult;
   readonly config: ProgressionConfig;
+  readonly nowMs: number;
 }): ProgressionAudit {
   const previousTotalXp = readTotalXp(input.profileData);
   const previousProgression = resolveLevelProgression(previousTotalXp, input.config);
-  const isPremium = isPremiumSubscription(input.subscriptionData) || isPremiumSubscription(input.profileData);
+  const isPremium =
+    isPremiumSubscription(input.subscriptionData, input.nowMs) ||
+    isPremiumSubscription(input.profileData, input.nowMs);
   const activityXp = calculateActivityXp(
     {
       distanceMeters: input.payload.distanceMeters,
