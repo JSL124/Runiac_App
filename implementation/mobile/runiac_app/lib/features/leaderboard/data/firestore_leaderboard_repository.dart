@@ -243,7 +243,10 @@ class FirestoreLeaderboardRepository
       isHomeRegion: isHomeRegion,
       currentRunnerRankLabel: currentRankLabel,
       entries: topEntries,
-      nearbyEntries: nearbyEntries,
+      nearbyEntries: _withCurrentEntry(
+        nearbyEntries,
+        currentEntry: currentEntry,
+      ),
       periodEndsAt: periodEndsAt,
       periodLabel: periodLabel,
     );
@@ -276,6 +279,30 @@ class FirestoreLeaderboardRepository
                 _string(entry['publicAlias']) ==
                     _string(currentEntry['publicAlias']),
           ),
+    ];
+  }
+
+  List<LeaderboardRowReadModel> _withCurrentEntry(
+    List<LeaderboardRowReadModel> entries, {
+    required Map<Object?, Object?>? currentEntry,
+  }) {
+    if (currentEntry == null || entries.any((entry) => entry.isCurrentUser)) {
+      return entries;
+    }
+    return [
+      ...entries,
+      LeaderboardRowReadModel(
+        userId: '',
+        displayName: _string(currentEntry['publicAlias']).isEmpty
+            ? 'Runiac Runner'
+            : _string(currentEntry['publicAlias']),
+        rankLabel: _string(currentEntry['rankLabel']),
+        scoreLabel: _string(currentEntry['scoreLabel']),
+        levelLabel: _string(currentEntry['levelLabel']),
+        divisionLabel: _string(currentEntry['divisionLabel']),
+        regionLabel: _string(currentEntry['regionLabel']),
+        isCurrentUser: true,
+      ),
     ];
   }
 
