@@ -58,7 +58,8 @@ const completeRunActivityFields = [
   "activeDurationSeconds", "elapsedWallSeconds", "pausedDurationSeconds", "distanceMeters",
   "averagePaceSecondsPerKm", "routePrivacy", "clientRunSessionId", "payloadFingerprint", "createdAt",
   "updatedAt", "processedAt", "validationStatus", "validatedActivityContributionState",
-  "countsTowardProgression", "validationReason", "cadenceAnalysisSeries",
+  "countsTowardProgression", "countsTowardStreak", "plannedWorkoutRecorded", "validationReason",
+  "cadenceAnalysisSeries", "coolDownXpAwarded", "coolDownXpAwardedAt", "coolDownProgressionEventId",
 ] as const;
 
 export function parsePublishFeedPayload(raw: unknown, ownerUid: string): FeedResult<FeedPublishPayload> {
