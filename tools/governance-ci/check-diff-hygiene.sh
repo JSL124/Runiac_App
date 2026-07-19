@@ -244,7 +244,36 @@ is_run_duration_fields_functions_path() {
   esac
 }
 
+is_user_feedback_pipeline_capsule_active() {
+  grep -Eq '^- Newly routed user feedback pipeline on 2026-07-19 Asia/Singapore: `implementation/roadmap/capsules/user-feedback-pipeline\.md`' implementation/roadmap/CURRENT.md
+}
+
+# Note: the rules test basename contains "feed", so this must be consulted
+# before the feed-friends-emulator-backend basename patterns claim it.
+is_user_feedback_pipeline_path() {
+  case "$1" in
+    implementation/roadmap/capsules/user-feedback-pipeline.md|\
+    firestore.rules|\
+    firestore.indexes.json|\
+    functions/src/feedback/*|\
+    functions/test/submitFeedback.test.ts|\
+    functions/src/index.ts|\
+    functions/package.json|\
+    tests/firebase-rules/feedback.firestore.rules.test.mjs|\
+    tests/firebase-rules/package.json)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 is_allowed_path() {
+  if is_user_feedback_pipeline_path "$1" && is_user_feedback_pipeline_capsule_active; then
+    return 0
+  fi
+
   if is_share_rank_export_capsule_active && is_share_rank_export_backend_path "$1"; then
     return 0
   fi
@@ -399,6 +428,10 @@ is_unrelated_mobile_native_artifact() {
 }
 
 is_forbidden_path() {
+  if is_user_feedback_pipeline_path "$1" && is_user_feedback_pipeline_capsule_active; then
+    return 1
+  fi
+
   if is_share_rank_export_capsule_active && is_share_rank_export_backend_path "$1"; then
     return 1
   fi
