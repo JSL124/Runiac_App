@@ -1,4 +1,5 @@
 import '../domain/models/leaderboard_read_model.dart';
+import 'league_asset_path.dart';
 import 'models/leaderboard_display_models.dart';
 import 'widgets/leaderboard_refresh_countdown.dart';
 
@@ -47,6 +48,7 @@ LeaderboardDetailDisplaySnapshot leaderboardDisplaySnapshotFromReadModel(
     monthlyResetLabel:
         'Monthly gained XP resets to 0 XP next month. Your level stays the same.',
     divisionLabel: model.divisionLabel,
+    divisionAssetPath: leagueAssetPathForTierKey(model.divisionKey),
     topRanksTitle: 'Regional ranking',
     nearbyRanksTitle: 'Ranks near you',
     currentUser: CurrentUserRankSummaryDisplaySnapshot(

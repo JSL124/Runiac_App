@@ -2,13 +2,13 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../../../core/assets/runiac_assets.dart';
 import '../../../core/theme/runiac_colors.dart';
 import '../data/static_leaderboard_repository.dart';
 import '../domain/models/leaderboard_league_catalog.dart';
 import '../domain/models/leaderboard_read_model.dart';
 import '../domain/repositories/leaderboard_repository.dart';
 import 'data/leaderboard_demo_snapshots.dart';
+import 'league_asset_path.dart';
 import 'leaderboard_read_model_display_adapter.dart';
 import 'models/leaderboard_display_models.dart';
 import 'widgets/leaderboard_dialogs.dart';
@@ -258,6 +258,7 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
           regionName: snapshot.regionName,
           divisionName: snapshot.divisionLabel,
           rankLabel: rankLabel,
+          leagueBadgeAssetPath: snapshot.divisionAssetPath,
         );
       },
     );
@@ -465,18 +466,4 @@ class _LeaderboardStateMessage extends StatelessWidget {
   }
 }
 
-String _leagueAssetPath(String key) {
-  return switch (key) {
-    'tier_01' => RuniacAssets.leaderboardLeagueIron,
-    'tier_02' => RuniacAssets.leaderboardLeagueBronze,
-    'tier_03' => RuniacAssets.leaderboardLeagueSilver,
-    'tier_04' => RuniacAssets.leaderboardLeagueGold,
-    'tier_05' => RuniacAssets.leaderboardLeaguePlatinum,
-    'tier_06' => RuniacAssets.leaderboardLeagueEmerald,
-    'tier_07' => RuniacAssets.leaderboardLeagueDiamond,
-    'tier_08' => RuniacAssets.leaderboardLeagueMaster,
-    'tier_09' => RuniacAssets.leaderboardLeagueGrandmaster,
-    'tier_10' => RuniacAssets.leaderboardLeagueChallenger,
-    _ => RuniacAssets.leaderboardLeagueIron,
-  };
-}
+String _leagueAssetPath(String key) => leagueAssetPathForTierKey(key);

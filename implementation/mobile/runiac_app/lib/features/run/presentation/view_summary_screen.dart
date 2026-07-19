@@ -212,28 +212,10 @@ class ViewSummaryScreen extends StatelessWidget {
       }
     }
     if (summary.route.hasRoute) {
-      final runtimeConfig = mapboxAccessToken == null
-          ? MapboxRuntimeConfig.fromEnvironment()
-          : MapboxRuntimeConfig(accessToken: mapboxAccessToken!.trim());
-      final snapshotGenerator =
-          runtimeConfig.accessToken.isNotEmpty &&
-              runtimeConfig.hasPublicAccessToken
-          ? MapboxActivityRouteSnapshotThumbnailGenerator(
-              accessToken: runtimeConfig.accessToken,
-            )
-          : null;
-      return RouteHistoryThumbnailGenerator(
-        snapshotGenerator: snapshotGenerator,
-      ).generate(
-        request: ActivityRouteThumbnailRequest(
-          route: summary.route,
-          logicalSize: Size(344, 184),
-          devicePixelRatio: devicePixelRatio,
-          allowExternalStaticMap: true,
-          isDemoRoute: false,
-          isCurrentSessionRoute: true,
-          activityId: thumbnailIdentity,
-        ),
+      return _generateRouteThumbnailArtifact(
+        summary: summary,
+        thumbnailIdentity: thumbnailIdentity,
+        devicePixelRatio: devicePixelRatio,
       );
     }
     try {
@@ -253,6 +235,40 @@ class ViewSummaryScreen extends StatelessWidget {
       );
     }
     return null;
+  }
+
+  // Shared 344x184 route-thumbnail generation path used both when resolving
+  // the Feed-publish preview above and when building the Share-Your-Activity
+  // sheet's map panel, so Mapbox token lookup, privacy flags, and DPR wiring
+  // are not duplicated between the two call sites.
+  Future<FeedThumbnailArtifact> _generateRouteThumbnailArtifact({
+    required RunSummarySnapshot summary,
+    required String thumbnailIdentity,
+    required double devicePixelRatio,
+  }) {
+    final runtimeConfig = mapboxAccessToken == null
+        ? MapboxRuntimeConfig.fromEnvironment()
+        : MapboxRuntimeConfig(accessToken: mapboxAccessToken!.trim());
+    final snapshotGenerator =
+        runtimeConfig.accessToken.isNotEmpty &&
+            runtimeConfig.hasPublicAccessToken
+        ? MapboxActivityRouteSnapshotThumbnailGenerator(
+            accessToken: runtimeConfig.accessToken,
+          )
+        : null;
+    return RouteHistoryThumbnailGenerator(
+      snapshotGenerator: snapshotGenerator,
+    ).generate(
+      request: ActivityRouteThumbnailRequest(
+        route: summary.route,
+        logicalSize: const Size(344, 184),
+        devicePixelRatio: devicePixelRatio,
+        allowExternalStaticMap: true,
+        isDemoRoute: false,
+        isCurrentSessionRoute: true,
+        activityId: thumbnailIdentity,
+      ),
+    );
   }
 
   RunFeedPublishSource get _effectiveFeedPublishSource {
@@ -423,13 +439,37 @@ class ViewSummaryScreen extends StatelessWidget {
                       IconButton(
                         tooltip: 'Share summary',
                         onPressed: () {
+                          Future<FeedThumbnailArtifact?>? mapArtifactFuture;
+                          if (displayedSummary.route.hasRoute) {
+                            final source = _effectiveFeedPublishSource;
+                            final thumbnailIdentity =
+                                source.cacheIdentity ??
+                                source.activityId ??
+                                'local-summary-preview';
+                            mapArtifactFuture =
+                                _generateRouteThumbnailArtifact(
+                                      summary: displayedSummary,
+                                      thumbnailIdentity: thumbnailIdentity,
+                                      devicePixelRatio:
+                                          MediaQuery.devicePixelRatioOf(
+                                            context,
+                                          ),
+                                    )
+                                    .then<FeedThumbnailArtifact?>(
+                                      (artifact) => artifact,
+                                    )
+                                    .catchError((_) => null);
+                          }
                           showModalBottomSheet<void>(
                             context: context,
                             isScrollControlled: true,
                             useSafeArea: true,
                             backgroundColor: Colors.transparent,
                             barrierColor: Colors.black.withValues(alpha: 0.48),
-                            builder: (context) => const ShareAchievementSheet(),
+                            builder: (context) => ShareAchievementSheet(
+                              summary: displayedSummary,
+                              mapArtifact: mapArtifactFuture,
+                            ),
                           );
                         },
                         style: IconButton.styleFrom(

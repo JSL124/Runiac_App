@@ -6,6 +6,7 @@ import '../../../auth/domain/runiac_auth_service.dart';
 import '../../../home/domain/guide/home_guide_consent.dart';
 import '../../domain/models/user_profile_read_model.dart';
 import '../data/account_profile_demo_snapshots.dart';
+import '../feedback_screen.dart';
 import '../notification_center_screen.dart';
 import '../privacy_safety_screen.dart';
 import '../watch_health_apps_screen.dart';
@@ -200,6 +201,12 @@ class _ManageRow extends StatelessWidget {
                 consentRepository: homeGuideConsentRepository,
               ),
             ),
+          );
+          return;
+        }
+        if (row.action == UserProfileManageAction.feedback) {
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(builder: (_) => FeedbackScreen()),
           );
           return;
         }

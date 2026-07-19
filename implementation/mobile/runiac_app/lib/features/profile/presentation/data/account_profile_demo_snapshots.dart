@@ -84,6 +84,13 @@ const accountProfileDemoSnapshot = AccountProfileDemoSnapshot(
       subtitle: 'App version and project information',
       snackBarMessage: 'About Runiac preview is coming soon.',
     ),
+    AccountProfileManageRow(
+      icon: Icons.feedback_outlined,
+      title: 'Feedback',
+      subtitle: 'Report a bug or share a suggestion',
+      snackBarMessage: '',
+      action: UserProfileManageAction.feedback,
+    ),
   ],
 );
 
