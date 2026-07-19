@@ -96,22 +96,32 @@ describe(
     // renewal landing between the candidate query and the write must win. An
     // unconditional batch write would strip Premium from a user who just
     // renewed.
-    it("does not downgrade a candidate that was renewed after the query", async () => {
+    //
+    // The renewal is applied through the afterCandidateQuery hook, i.e. after
+    // the query has already returned the stale lapsed snapshot. Renewing before
+    // the call would leave the query empty and the test would pass even with
+    // the re-check removed.
+    it("does not downgrade a candidate renewed after the candidate query", async () => {
       const userRef = firestore.collection("users").doc("renewed-mid-sweep");
       await userRef.set({
         subscriptionStatus: "premium",
         subscriptionExpiresAt: Timestamp.fromMillis(pastMs),
       });
 
-      // Simulate the race: the candidate query has already seen the lapsed
-      // document, then an admin extends the subscription before the write.
-      await userRef.set(
-        { subscriptionExpiresAt: Timestamp.fromMillis(futureMs) },
-        { merge: true },
-      );
+      let candidateWasStale = false;
+      const result = await runSubscriptionExpirySweep(firestore, nowMs, {
+        afterCandidateQuery: async () => {
+          candidateWasStale = true;
+          await userRef.set(
+            { subscriptionExpiresAt: Timestamp.fromMillis(futureMs) },
+            { merge: true },
+          );
+        },
+      });
 
-      const result = await runSubscriptionExpirySweep(firestore, nowMs);
-
+      // Guards the test itself: if the query stopped returning the candidate,
+      // the assertions below would pass vacuously.
+      assert.equal(candidateWasStale, true);
       assert.equal(result.expiredCount, 0);
       const stored = (await userRef.get()).data();
       assert.equal(stored?.["subscriptionStatus"], "premium");
@@ -122,24 +132,45 @@ describe(
       assert.equal((await firestore.collection("adminAuditLogs").get()).size, 0);
     });
 
-    // Regression: Firestore orders values by type before value, so a millis
-    // number sorts below every Timestamp and is selected by the `<= now`
-    // range query even when it represents a future instant. The transaction
-    // re-check must reject it rather than downgrading a live subscription.
-    it("does not downgrade a future expiry stored as a millis number", async () => {
-      const userRef = firestore.collection("users").doc("millis-future-expiry");
-      await userRef.set({
+    // Regression: an out-of-contract numeric expiry must not be selected at
+    // all. Numbers sort below every Timestamp, so without the range's lower
+    // bound these would fill the candidate window, be rejected by the
+    // re-check, and starve genuinely lapsed subscriptions behind them on every
+    // run.
+    it("does not select expiries stored as millis numbers, so they cannot starve the window", async () => {
+      await firestore.collection("users").doc("millis-future-expiry").set({
         subscriptionStatus: "premium",
         subscriptionExpiresAt: futureMs,
+      });
+      await firestore.collection("users").doc("millis-past-expiry").set({
+        subscriptionStatus: "premium",
+        subscriptionExpiresAt: pastMs,
+      });
+      // A genuinely lapsed Timestamp document sorted after both numeric ones.
+      await firestore.collection("users").doc("real-lapsed").set({
+        subscriptionStatus: "premium",
+        subscriptionExpiresAt: Timestamp.fromMillis(pastMs),
       });
 
       const result = await runSubscriptionExpirySweep(firestore, nowMs);
 
-      assert.equal(result.expiredCount, 0);
+      // Only the Timestamp-backed document is swept; the numeric ones are
+      // untouched and did not consume a candidate slot.
+      assert.equal(result.expiredCount, 1);
       assert.equal(
-        (await userRef.get()).data()?.["subscriptionStatus"],
-        "premium",
+        (await firestore.collection("users").doc("real-lapsed").get()).data()?.[
+          "subscriptionStatus"
+        ],
+        "basic",
       );
+      for (const id of ["millis-future-expiry", "millis-past-expiry"]) {
+        assert.equal(
+          (await firestore.collection("users").doc(id).get()).data()?.[
+            "subscriptionStatus"
+          ],
+          "premium",
+        );
+      }
     });
 
   },

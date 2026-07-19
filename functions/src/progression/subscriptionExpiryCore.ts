@@ -24,6 +24,18 @@ const ADMIN_AUDIT_LOGS = "adminAuditLogs";
 // backlog within a small number of runs while keeping one run bounded.
 const SWEEP_QUERY_LIMIT = 200;
 
+// Firestore's minimum representable Timestamp (0001-01-01T00:00:00Z). Used as
+// the range's lower bound purely to pin the selection to the Timestamp type,
+// not to filter by time.
+const EARLIEST_TIMESTAMP = Timestamp.fromDate(new Date("0001-01-01T00:00:00Z"));
+
+export type SubscriptionExpirySweepHooks = {
+  // Test seam. Invoked once after the candidate query resolves and before any
+  // downgrade transaction runs, which is the exact window in which an admin
+  // renewal must be able to win. Production callers pass nothing.
+  readonly afterCandidateQuery?: () => Promise<void>;
+};
+
 export type SubscriptionExpirySweepResult = {
   readonly expiredCount: number;
 };
@@ -31,17 +43,36 @@ export type SubscriptionExpirySweepResult = {
 export async function runSubscriptionExpirySweep(
   firestore: Firestore,
   nowMs: number,
+  hooks?: SubscriptionExpirySweepHooks,
 ): Promise<SubscriptionExpirySweepResult> {
   const nowTimestamp = Timestamp.fromMillis(nowMs);
+
+  // Both bounds are deliberate. Firestore orders values by type before value,
+  // so bounding the range at each end with a Timestamp restricts the result to
+  // Timestamp values alone: anything stored as a number sorts below
+  // EARLIEST_TIMESTAMP and anything stored as a string sorts above
+  // nowTimestamp.
+  //
+  // Without the lower bound, out-of-contract numeric values would still be
+  // selected (numbers < timestamps), be rejected by the re-check below as
+  // "no expiry", and consume the candidate window — so a backlog of malformed
+  // documents would starve genuinely lapsed subscriptions behind them on every
+  // run, forever. Excluding them from selection means they can never occupy a
+  // slot.
   const lapsed = await firestore
     .collection("users")
     .where("subscriptionStatus", "==", "premium")
+    .where("subscriptionExpiresAt", ">=", EARLIEST_TIMESTAMP)
     .where("subscriptionExpiresAt", "<=", nowTimestamp)
     .limit(SWEEP_QUERY_LIMIT)
     .get();
 
   if (lapsed.empty) {
     return { expiredCount: 0 };
+  }
+
+  if (hooks?.afterCandidateQuery !== undefined) {
+    await hooks.afterCandidateQuery();
   }
 
   // The query result is only a candidate list. Each downgrade is applied in its
