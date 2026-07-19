@@ -38,37 +38,40 @@ describe("isPremiumSubscription", () => {
     assert.equal(isPremiumSubscription(data, nowMs), false);
   });
 
-  it("tolerates an ISO string expiry", () => {
-    assert.equal(
-      isPremiumSubscription(
-        { subscriptionStatus: "premium", subscriptionExpiresAt: new Date(futureMs).toISOString() },
-        nowMs,
-      ),
-      true,
-    );
+  // The stored contract is Timestamp-only. Non-Timestamp shapes are uniformly
+  // treated as "no expiry" here, by the expiry sweep, and by firestore.rules,
+  // so the three can never disagree about a given document. See the comment on
+  // readSubscriptionExpiresAtMs() for why a tolerant reader was actively
+  // harmful: Firestore orders values by type before value, so a millis number
+  // is selected by the sweep's `<= Timestamp` range query even when it is in
+  // the future, and an ISO string is never selected even once it has lapsed.
+  it("treats an ISO string expiry as no-expiry, matching the sweep", () => {
     assert.equal(
       isPremiumSubscription(
         { subscriptionStatus: "premium", subscriptionExpiresAt: new Date(pastMs).toISOString() },
         nowMs,
       ),
-      false,
+      true,
     );
   });
 
-  it("tolerates a millis-number expiry", () => {
+  it("treats a millis-number expiry as no-expiry, matching the sweep", () => {
     assert.equal(
-      isPremiumSubscription({ subscriptionStatus: "premium", subscriptionExpiresAt: futureMs }, nowMs),
+      isPremiumSubscription({ subscriptionStatus: "premium", subscriptionExpiresAt: pastMs }, nowMs),
       true,
     );
     assert.equal(
-      isPremiumSubscription({ subscriptionStatus: "premium", subscriptionExpiresAt: pastMs }, nowMs),
-      false,
+      isPremiumSubscription({ subscriptionStatus: "premium", subscriptionExpiresAt: futureMs }, nowMs),
+      true,
     );
   });
 
   it("treats the boundary instant (expiresAt === now) as expired", () => {
     assert.equal(
-      isPremiumSubscription({ subscriptionStatus: "premium", subscriptionExpiresAt: nowMs }, nowMs),
+      isPremiumSubscription(
+        { subscriptionStatus: "premium", subscriptionExpiresAt: Timestamp.fromMillis(nowMs) },
+        nowMs,
+      ),
       false,
     );
   });

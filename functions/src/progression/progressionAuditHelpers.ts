@@ -64,23 +64,27 @@ export function isPremiumSubscription(
     return false;
   }
   const expiresAtMs = readSubscriptionExpiresAtMs(data?.["subscriptionExpiresAt"]);
-  // Absent/unparseable expiry means "no expiry" so existing docs keep their
+  // Absent/unreadable expiry means "no expiry" so existing docs keep their
   // current always-premium behaviour; only a resolvable, past expiry lapses.
   return expiresAtMs === null || expiresAtMs > nowMs;
 }
 
+// `subscriptionExpiresAt` is contractually a Firestore Timestamp: the only
+// writer is the admin console's setUserSubscription(), which stores
+// Timestamp.fromDate().
+//
+// Reading other shapes here would be worse than useless, because the expiry
+// sweep selects lapsed documents with a `<= Timestamp` range query and
+// Firestore orders values by type before value (numbers < timestamps <
+// strings). A millis number would therefore be selected by the range query
+// even when it is in the future, and an ISO string would never be selected
+// even after it lapses — so the in-request check and the sweep would disagree
+// about exactly the documents that matter. Restricting both to Timestamp keeps
+// them consistent by construction; any other shape is uniformly treated as
+// "no expiry" here, by the sweep, and by firestore.rules alike.
 function readSubscriptionExpiresAtMs(value: unknown): number | null {
-  if (value === null || value === undefined) {
-    return null;
-  }
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return value;
-  }
-  if (typeof value === "string") {
-    const parsed = Date.parse(value);
-    return Number.isNaN(parsed) ? null : parsed;
-  }
   if (
+    value !== null &&
     typeof value === "object" &&
     typeof (value as { toMillis?: unknown }).toMillis === "function"
   ) {
