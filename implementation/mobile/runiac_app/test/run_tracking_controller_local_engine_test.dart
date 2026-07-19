@@ -6,6 +6,7 @@ import 'package:runiac_app/features/run/domain/models/local_run_completion_paylo
 import 'package:runiac_app/features/run/domain/models/run_location_sample.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_location_provider.dart';
 import 'package:runiac_app/features/run/domain/services/advanced_analysis_snapshot_builder.dart';
+import 'package:runiac_app/features/run/domain/services/completed_run_title_formatter.dart';
 import 'package:runiac_app/features/run/domain/services/pace_graph_data_builder.dart';
 import 'package:runiac_app/features/run/domain/models/run_tracking_state.dart';
 import 'package:runiac_app/features/run/presentation/controllers/run_tracking_controller.dart';
@@ -53,8 +54,17 @@ void main() {
         expect(controller.state.distanceMeters, closeTo(300, 2));
         expect(controller.state.averagePaceSecondsPerKm, closeTo(400, 3));
         expect(payload.durationSeconds, 120);
+        expect(
+          payload.activityTitle,
+          const CompletedRunTitleFormatter().format(
+            completedAt: startedAt.add(const Duration(seconds: 120)),
+          ),
+        );
         expect(payload.distanceMeters, closeTo(300, 2));
         expect(payload.avgPaceSecondsPerKm, closeTo(400, 3));
+        expect(payload.routeSnapshot.segments, hasLength(1));
+        expect(payload.routeSnapshot.segments.single, hasLength(2));
+        expect(payload.routeSnapshot.lastKnownLocation?.latitude, 1.302698);
         expect(payloadMap.keys, isNot(contains('latitude')));
         expect(payloadMap.keys, isNot(contains('longitude')));
         expect(payloadMap.keys, isNot(contains('samples')));

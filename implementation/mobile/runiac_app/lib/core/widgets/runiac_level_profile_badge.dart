@@ -21,6 +21,27 @@ class RuniacLevelProfileBadge extends StatelessWidget {
     super.key,
   });
 
+  /// Preset sizing for the compact avatar+ring+pill badge used inline in a
+  /// list row (Friends, Feed author/comment rows, challenge invite picker and
+  /// lobby roster rows, etc.). Only identity, progress, and the current-user
+  /// highlight colors vary per call site — keeping the row geometry here in
+  /// one place means every row-style usage renders identically and stays in
+  /// sync when the preset changes.
+  const RuniacLevelProfileBadge.row({
+    required this.initials,
+    required this.levelLabel,
+    required this.progressFraction,
+    this.size = 42,
+    this.discColor = RuniacColors.primaryBlue,
+    this.discBorderColor = RuniacColors.white,
+    this.initialsColor = RuniacColors.white,
+    super.key,
+  })  : badgeHeight = 16,
+        badgeMinWidth = 42,
+        badgeHorizontalPadding = 6,
+        badgeFontSize = 9,
+        ringStrokeWidth = 4;
+
   final String initials;
   final String levelLabel;
   final double progressFraction;
@@ -64,9 +85,11 @@ class RuniacLevelProfileBadge extends StatelessWidget {
                 initials: initials,
                 size: avatarSize,
                 fontSize: size < 80 ? 24 : 30,
-                fillColor: discColor ??
+                fillColor:
+                    discColor ??
                     RuniacColors.primaryBlue.withValues(alpha: 0.06),
-                borderColor: discBorderColor ??
+                borderColor:
+                    discBorderColor ??
                     RuniacColors.primaryBlue.withValues(alpha: 0.10),
                 textColor: initialsColor ?? RuniacColors.primaryBlue,
               ),
@@ -117,15 +140,22 @@ class _ProfileInitialsDisc extends StatelessWidget {
         shape: BoxShape.circle,
         border: Border.all(color: borderColor, width: 2),
       ),
-      child: Text(
-        _initialLabel(initials),
-        maxLines: 1,
-        overflow: TextOverflow.clip,
-        style: TextStyle(
-          color: textColor,
-          fontSize: fontSize,
-          fontWeight: FontWeight.w900,
-          height: 1,
+      child: Padding(
+        padding: EdgeInsets.all(size * 0.10),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            _initialLabel(initials),
+            maxLines: 1,
+            overflow: TextOverflow.clip,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: textColor,
+              fontSize: fontSize,
+              fontWeight: FontWeight.w900,
+              height: 1,
+            ),
+          ),
         ),
       ),
     );
@@ -136,7 +166,7 @@ class _ProfileInitialsDisc extends StatelessWidget {
     if (trimmed.isEmpty) {
       return 'R';
     }
-    return trimmed.characters.first.toUpperCase();
+    return trimmed.characters.take(2).toString().toUpperCase();
   }
 }
 
@@ -195,7 +225,8 @@ class _RuniacLevelRingPainter extends CustomPainter {
     required this.strokeWidth,
   });
 
-  static const _startAngle = math.pi * 0.68;
+  static const _startAngle = math.pi * 5 / 6;
+  static const _sweepAngle = math.pi * 4 / 3;
 
   final double progress;
   final double strokeWidth;
@@ -207,6 +238,7 @@ class _RuniacLevelRingPainter extends CustomPainter {
     final trackPaint = Paint()
       ..color = RuniacColors.primaryBlue.withValues(alpha: 0.12)
       ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
       ..strokeWidth = strokeWidth;
     final progressPaint = Paint()
       ..color = RuniacColors.accentOrange
@@ -214,14 +246,19 @@ class _RuniacLevelRingPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round
       ..strokeWidth = strokeWidth;
 
-    canvas.drawCircle(center, radius, trackPaint);
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius),
-      _startAngle,
-      math.pi * 2 * progress.clamp(0, 1),
-      false,
-      progressPaint,
-    );
+    final ringRect = Rect.fromCircle(center: center, radius: radius);
+    canvas.drawArc(ringRect, _startAngle, _sweepAngle, false, trackPaint);
+
+    final clampedProgress = progress.clamp(0.0, 1.0);
+    if (clampedProgress > 0) {
+      canvas.drawArc(
+        ringRect,
+        _startAngle,
+        _sweepAngle * clampedProgress,
+        false,
+        progressPaint,
+      );
+    }
   }
 
   @override

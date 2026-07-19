@@ -8,6 +8,7 @@ import 'package:runiac_app/features/plan/domain/services/beginner_adaptive_plan_
 import 'package:runiac_app/features/plan/presentation/current_session_generated_plan.dart';
 import 'package:runiac_app/features/you/presentation/adapters/generated_plan_you_display_adapter.dart';
 import 'package:runiac_app/features/you/presentation/data/goal_plan_demo_snapshots.dart';
+import 'package:runiac_app/features/you/presentation/data/weekly_workout_demo_snapshots.dart';
 
 import 'support/plan_family_test_drafts.dart';
 
@@ -129,7 +130,11 @@ void main() {
       final plan = _tenKPerformancePlan();
       expect(generatedPlanStore.setActivePlan(plan), isTrue);
 
-      await _openYouPlansTab(tester, generatedPlanStore);
+      await _openYouPlansTab(
+        tester,
+        generatedPlanStore,
+        currentDate: DateTime(2026, 7, 6),
+      );
 
       expect(find.text('Current Goal'), findsNothing);
       expect(find.text('View Goal Plan'), findsNothing);
@@ -316,6 +321,111 @@ void main() {
     expect(sundayGoal!.weeks[1].status, GoalPlanWeekStatus.current);
   });
 
+  testWidgets('You Plans shows week 2 on the next Monday after plan start', (
+    WidgetTester tester,
+  ) async {
+    final generatedPlanStore = CurrentSessionGeneratedPlanStore();
+    final plan = _tenKPerformancePlan().withStartsOnDate('2026-07-06');
+    expect(generatedPlanStore.setActivePlan(plan), isTrue);
+
+    await _openYouPlansTab(
+      tester,
+      generatedPlanStore,
+      currentDate: DateTime(2026, 7, 13),
+    );
+
+    expect(find.text('Week 2 of ${plan.weeks.length}'), findsOneWidget);
+    expect(find.text('Week 1 of ${plan.weeks.length}'), findsNothing);
+    expect(find.text('Week 3 of ${plan.weeks.length}'), findsNothing);
+  });
+
+  test('generated plan week and day stay anchored to the creation weekday', () {
+    final plan = _sundayStartedTenKPerformancePlan();
+
+    expect(
+      activeGeneratedPlanWeekFor(
+        plan,
+        currentDate: DateTime(2026, 7, 5),
+      )?.weekNumber,
+      1,
+    );
+    expect(
+      activeGeneratedPlanDayIndexFor(plan, currentDate: DateTime(2026, 7, 5)),
+      0,
+    );
+    expect(
+      activeGeneratedPlanWeekFor(
+        plan,
+        currentDate: DateTime(2026, 7, 11),
+      )?.weekNumber,
+      1,
+    );
+    expect(
+      activeGeneratedPlanDayIndexFor(plan, currentDate: DateTime(2026, 7, 11)),
+      6,
+    );
+    expect(
+      activeGeneratedPlanWeekFor(
+        plan,
+        currentDate: DateTime(2026, 7, 12),
+      )?.weekNumber,
+      2,
+    );
+    expect(
+      activeGeneratedPlanDayIndexFor(plan, currentDate: DateTime(2026, 7, 12)),
+      0,
+    );
+  });
+
+  test(
+    'Sunday-created generated plan advances every Sunday through week 8',
+    () {
+      final plan = _sundayStartedTenKPerformancePlan();
+      final startSunday = DateTime(2026, 7, 5);
+
+      for (var week = 1; week <= 8; week += 1) {
+        final date = startSunday.add(Duration(days: 7 * (week - 1)));
+
+        expect(
+          activeGeneratedPlanWeekFor(plan, currentDate: date)?.weekNumber,
+          week,
+        );
+        expect(activeGeneratedPlanDayIndexFor(plan, currentDate: date), 0);
+      }
+    },
+  );
+
+  testWidgets('You Plans advances every week through week 8', (
+    WidgetTester tester,
+  ) async {
+    final startMonday = DateTime(2026, 7, 6);
+
+    for (var week = 1; week <= 8; week += 1) {
+      final generatedPlanStore = CurrentSessionGeneratedPlanStore();
+      final plan = _tenKPerformancePlan().withStartsOnDate('2026-07-06');
+      expect(generatedPlanStore.setActivePlan(plan), isTrue);
+      addTearDown(generatedPlanStore.dispose);
+
+      await _openYouPlansTab(
+        tester,
+        generatedPlanStore,
+        currentDate: startMonday.add(Duration(days: 7 * (week - 1))),
+      );
+
+      expect(find.text('Week $week of ${plan.weeks.length}'), findsOneWidget);
+      for (var otherWeek = 1; otherWeek <= 8; otherWeek += 1) {
+        if (otherWeek == week) {
+          continue;
+        }
+        expect(
+          find.text('Week $otherWeek of ${plan.weeks.length}'),
+          findsNothing,
+          reason: 'visible week should be $week',
+        );
+      }
+    }
+  });
+
   testWidgets('generated weekly rest rows do not open workout detail', (
     WidgetTester tester,
   ) async {
@@ -421,6 +531,106 @@ void main() {
     expect(find.text('Generated'), findsNothing);
     expect(find.text('Suggested pace'), findsNothing);
     expect(find.text('7:30 /km'), findsNothing);
+  });
+
+  testWidgets(
+    'past incomplete generated workout is marked missed and cannot reschedule',
+    (WidgetTester tester) async {
+      final generatedPlanStore = CurrentSessionGeneratedPlanStore();
+      final plan = _tenKPerformancePlan();
+      final currentDate = DateTime(2026, 7, 8);
+      expect(generatedPlanStore.setActivePlan(plan), isTrue);
+
+      final display = generatedYouPlanDisplayFromSnapshot(
+        plan,
+        currentDate: currentDate,
+      );
+      final missedRows = display!.scheduleRows.where(
+        (row) => row.isPast && row.isRunningSession,
+      );
+
+      expect(missedRows, isNotEmpty);
+      expect(missedRows.every((row) => row.status == 'Missed'), isTrue);
+      expect(missedRows.every((row) => !row.canEditSchedule), isTrue);
+      expect(
+        missedRows.every((row) => !row.detailSnapshot!.canEditSchedule),
+        isTrue,
+      );
+      final missedDetail = missedRows.first.detailSnapshot!;
+      const futureSelection = WorkoutScheduleEditSelection(
+        weekdayIndex: DateTime.friday,
+        dayLabel: 'Fri',
+        timeLabel: '7:30 AM',
+      );
+      expect(
+        display.rescheduleWorkout(missedDetail, futureSelection),
+        same(display),
+      );
+      expect(
+        rescheduleGeneratedPlanSnapshot(
+          plan,
+          missedDetail,
+          futureSelection,
+          currentDate: currentDate,
+        ),
+        isNull,
+      );
+
+      await _openYouPlansTab(
+        tester,
+        generatedPlanStore,
+        currentDate: currentDate,
+      );
+
+      final missedRow = missedRows.first;
+      expect(find.text('Missed'), findsWidgets);
+      expect(
+        find.byKey(ValueKey('weekly_plan_missed_${missedRow.weekdayIndex}')),
+        findsOneWidget,
+      );
+      await tester.ensureVisible(find.text(missedRow.title));
+      await tester.tap(find.text(missedRow.title));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Workout detail'), findsOneWidget);
+      expect(find.byTooltip('Edit schedule'), findsNothing);
+      expect(find.text('Start this run'), findsNothing);
+    },
+  );
+
+  test('future workout cannot be rescheduled onto a past weekday', () {
+    final plan = _tenKPerformancePlan();
+    final display = generatedYouPlanDisplayFromSnapshot(
+      plan,
+      currentDate: DateTime(2026, 7, 8),
+    );
+    final futureRow = display!.scheduleRows.firstWhere(
+      (row) => row.isFuture && row.isRunningSession,
+    );
+
+    final updated = display.rescheduleWorkout(
+      futureRow.detailSnapshot!,
+      const WorkoutScheduleEditSelection(
+        weekdayIndex: DateTime.tuesday,
+        dayLabel: 'Tue',
+        timeLabel: '7:30 AM',
+      ),
+    );
+
+    expect(identical(updated, display), isTrue);
+    expect(
+      rescheduleGeneratedPlanSnapshot(
+        plan,
+        futureRow.detailSnapshot!,
+        const WorkoutScheduleEditSelection(
+          weekdayIndex: DateTime.tuesday,
+          dayLabel: 'Tue',
+          timeLabel: '7:30 AM',
+        ),
+        currentDate: DateTime(2026, 7, 8),
+      ),
+      isNull,
+    );
   });
 
   testWidgets('generated workout edit schedule persists updated plan', (

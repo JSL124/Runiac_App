@@ -2,6 +2,85 @@ part of 'current_session_activity_history.dart';
 
 extension CurrentSessionActivityHistoryPersistence
     on CurrentSessionActivityHistoryStore {
+  Future<void> recordForegroundRunSyncFailure({
+    required LocalRunCompletionPayload payload,
+    required RunCompletionContext completionContext,
+    required Object error,
+  }) async {
+    if (!isRunCompletionContextCurrent(completionContext)) {
+      return;
+    }
+    final storage = persistence;
+    if (storage == null) {
+      return;
+    }
+    final failure = _classifySyncFailure(error);
+    await _markPendingRunSyncFailed(
+      storage: storage,
+      ownerUid: completionContext._ownerUid,
+      clientRunSessionId: payload.clientRunSessionId,
+      failure: failure,
+    );
+  }
+
+  Future<CompleteRunResult?> acceptForegroundCompletion(
+    CompleteRunResult remoteResult, {
+    required LocalRunCompletionPayload payload,
+    required RunCompletionContext completionContext,
+  }) async {
+    if (!isRunCompletionContextCurrent(completionContext) ||
+        !_looksLikeRemoteCompletion(remoteResult)) {
+      return null;
+    }
+    final ownerUid = completionContext._ownerUid;
+    final ownerGeneration = completionContext._ownerGeneration;
+    final storage = persistence;
+    if (storage == null) {
+      registerCompletedRun(
+        remoteResult,
+        ownerUid: ownerUid,
+        distanceMeters: payload.distanceMeters,
+        planEnrollmentId: remoteResult.planCompletion.completed
+            ? remoteResult.planCompletion.planEnrollmentId
+            : null,
+        scheduledWorkoutId: remoteResult.planCompletion.completed
+            ? remoteResult.planCompletion.scheduledWorkoutId
+            : null,
+      );
+      return remoteResult;
+    }
+
+    final acceptedRecord = await _mergePendingRunSyncAccepted(
+      storage: storage,
+      ownerUid: ownerUid,
+      clientRunSessionId: payload.clientRunSessionId,
+      remoteResult: remoteResult,
+    );
+    if (acceptedRecord == null ||
+        !isRunCompletionContextCurrent(completionContext)) {
+      return null;
+    }
+
+    _replaceCompletedRun(
+      acceptedRecord.result,
+      ownerUid: ownerUid,
+      distanceMeters: acceptedRecord.payload.distanceMeters,
+      planEnrollmentId: acceptedRecord.result.planCompletion.completed
+          ? acceptedRecord.result.planCompletion.planEnrollmentId
+          : null,
+      scheduledWorkoutId: acceptedRecord.result.planCompletion.completed
+          ? acceptedRecord.result.planCompletion.scheduledWorkoutId
+          : null,
+    );
+    if (!acceptedRecord.payload.userConfirmedLowDataSave) {
+      await _refreshUserProgressAfterRemoteSync(
+        ownerUid: ownerUid,
+        ownerGeneration: ownerGeneration,
+      );
+    }
+    return acceptedRecord.result;
+  }
+
   Future<void> restoreSavedActivities() async {
     final storage = persistence;
     if (storage == null) {
@@ -30,8 +109,12 @@ extension CurrentSessionActivityHistoryPersistence
         record.result,
         ownerUid: record.ownerUid,
         distanceMeters: record.payload.distanceMeters,
-        planEnrollmentId: record.payload.planEnrollmentId,
-        scheduledWorkoutId: record.payload.scheduledWorkoutId,
+        planEnrollmentId: record.result.planCompletion.completed
+            ? record.result.planCompletion.planEnrollmentId
+            : null,
+        scheduledWorkoutId: record.result.planCompletion.completed
+            ? record.result.planCompletion.scheduledWorkoutId
+            : null,
       );
     }
   }
@@ -145,8 +228,12 @@ extension CurrentSessionActivityHistoryPersistence
             syncedRecord.result,
             ownerUid: ownerUid,
             distanceMeters: syncedRecord.payload.distanceMeters,
-            planEnrollmentId: syncedRecord.payload.planEnrollmentId,
-            scheduledWorkoutId: syncedRecord.payload.scheduledWorkoutId,
+            planEnrollmentId: syncedRecord.result.planCompletion.completed
+                ? syncedRecord.result.planCompletion.planEnrollmentId
+                : null,
+            scheduledWorkoutId: syncedRecord.result.planCompletion.completed
+                ? syncedRecord.result.planCompletion.scheduledWorkoutId
+                : null,
           );
           if (!syncedRecord.payload.userConfirmedLowDataSave) {
             await _refreshUserProgressAfterRemoteSync(
@@ -458,12 +545,26 @@ extension CurrentSessionActivityHistoryPersistence
     SessionCompletedRunActivity activity,
     RunActivityDisplayModel remoteActivity,
   ) {
-    if (activity.activityId == remoteActivity.activityId) {
-      return activity;
-    }
     final result = activity.completionResult.copyWith(
       activityId: remoteActivity.activityId,
     );
+    final remotePublishSource = remoteActivity.feedPublishSource;
+    final feedPublishSource =
+        result.activityId.startsWith('activity_') &&
+            remotePublishSource.isPublishable &&
+            remotePublishSource.activityId == result.activityId
+        ? RunFeedPublishSource.enabled(
+            activityId: result.activityId,
+            cacheIdentity:
+                remotePublishSource.cacheIdentity ?? result.clientRunSessionId,
+            allowsCurrentSessionRouteCapture: true,
+            allowsMetricThumbnailFallback:
+                remotePublishSource.allowsMetricThumbnailFallback,
+          )
+        : RunFeedPublishSource.disabled(
+            remotePublishSource.disabledReason ??
+                FeedPublishDisabledReason.notValidated,
+          );
     return SessionCompletedRunActivity(
       activityId: result.activityId,
       ownerUid: activity.ownerUid,
@@ -480,6 +581,7 @@ extension CurrentSessionActivityHistoryPersistence
         durationLabel: result.summary.duration,
         summary: result.summary,
         completionResult: result,
+        feedPublishSource: feedPublishSource,
       ),
       completionResult: result,
     );

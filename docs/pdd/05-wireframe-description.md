@@ -285,6 +285,52 @@ For final PDD insertion, repeated Basic/Premium variants should be grouped into 
 
 **Progression boundary:** XP, streak, level, rank, weekly XP, monthly XP, and leaderboard-related values shown in the summary or XP update screens are backend-owned outputs. The mobile interface displays the results after processing; it must not calculate, edit, or directly write those values.
 
+### 10.1 Friends-Only Activity Feed And Comments Bottom Sheet
+
+**Screen name:** Friends-Only Activity Feed, Feed Post Confirmation, Comments Bottom Sheet.
+
+**Purpose:** The Feed gives a runner a quiet, beginner-friendly place to see explicitly shared validated activities from themselves and their current accepted friends. It is an activity-sharing extension, not a competition surface: it does not add pressure to perform, public reach, or any effect on XP, streak, level, rank, leaderboard score, weekly XP, monthly XP, or other competitive outcomes.
+
+**Audience and publication boundary:** The Feed shows only the signed-in user's posts and posts from current accepted friends. It has no public, global, nearby, or algorithmic view, and it does not include friend-management or notification UI. Completing a run never publishes automatically. From a validated run summary, the owner may deliberately choose `Post to Feed`, review a confirmation step, and explicitly confirm the post; cancelling leaves the activity private. The Feed item is an activity snapshot, not a general text, photo, or media post, and it must never expose raw routes, coordinates, start/end addresses, or other sensitive route metadata.
+
+**Shared thumbnail and privacy boundary:** The Feed uses the exact same privacy-masked Running History saved-thumbnail bytes as its source-of-truth artifact; it must not create a second Feed-specific render, substitute image, media-picker attachment, raw route view, or coordinate-bearing asset. That single PNG is 88 logical pixels square, rendered with device pixel ratio capped at 3, has 12-logical-pixel masks over the projected start and end points, contains no metadata, and is no larger than 1 MiB. A previously cached thumbnail may remain visible in a read-only cached state; if it is unavailable, the Feed shows a privacy-neutral placeholder rather than attempting another render or exposing sensitive data.
+
+**Main UI elements and ordering:** Each Feed row may show sanitized author display information, the validated activity summary, the protected thumbnail or neutral placeholder, a like action/count, a comment icon/count, and an overflow action appropriate to the viewer. Rows are latest-first. A global page contains 20 unique posts, obtained in deterministic descending `(createdAt, postId)` order, with load-more pagination. Pull-to-refresh obtains current server state without a scroll jump; the Feed does not use popularity ranking, algorithmic reordering, or automatic scroll repositioning.
+
+**Feed actions:** A user can like an eligible visible post only while server-backed. A non-owner can report a post; after successful reporting, the item is hidden only for that reporter and disappears from that reporter's Feed, while other eligible friends remain unaffected. An owner can choose delete for their own Feed post, receives a confirmation before deletion, and sees a deleting state that blocks repeated engagement; deleting the Feed post does not delete its source activity. There is no local or optimistic offline mutation queue: posting, liking, commenting, comment editing/deletion, reporting, and owner post deletion stay disabled until server-backed state returns.
+
+**Feed state contract:**
+
+| State | Required wireframe behaviour |
+| --- | --- |
+| Initial loading | Show a calm loading state while the first latest-first page is requested; preserve normal navigation and prevent duplicate actions. |
+| Empty | Explain that no accepted-friend activity has been shared yet, without shaming the user or prompting public posting. |
+| Recoverable error | Show a clear retry action and retain any safely available prior content without inventing a new social state. |
+| Refreshing | Show refresh feedback while retaining the reader's current position; the result must not force a scroll jump or automatic reordering. |
+| Pagination / loading more / exhausted | Load the next global page of 20 on request or near the list end, show loading-more feedback, and state clearly when there are no more posts. |
+| Cached offline read-only | Label cached content as offline/read-only. Cached thumbnails may remain; missing ones use the privacy-neutral placeholder. All mutation controls are disabled. |
+| Reconnect / server-backed recovery | Once a server-backed state returns, refresh eligibility and current visibility before re-enabling posting or engagement controls. |
+| Revoked, unfriended, or blocked | Remove the affected row when current friendship is revoked or either user blocks the other; do not leave an actionable stale row after resynchronization. |
+| Reported / hidden | Remove a successfully reported item for the reporter only. This is not a public moderation outcome and does not imply a penalty or removal for other eligible viewers. |
+| Deleting / deleted | Show a temporary deleting state for the owner action, then remove the post when deletion completes; the source activity remains available outside the Feed. |
+
+**Comments Bottom Sheet interaction:** Tapping a Feed row's comment icon opens a draggable, keyboard-safe Comments Bottom Sheet. At PDD level, this follows a `showModalBottomSheet(isScrollControlled: true)` interaction contract: the sheet supports minimum, middle, and maximum drag sizes; uses a list scroll controller bound to the sheet; keeps the flat comment list scrollable at every size; and respects SafeArea. Its persistent composer sits above `MediaQuery.viewInsets.bottom` with matching padding and animation. At a nonzero keyboard inset, the focused composer and its create or edit action remain visible and tappable while the attached list remains scrollable; the keyboard must not cover the action or trap the user below the list.
+
+**Flat comment model and actions:** Comments are flat only, newest-first, and loaded in 20-item cursor pages using deterministic `(createdAt, commentId)` ordering. The composer trims input and accepts 1 to 500 characters. The comment author can create, edit, or hard-delete their own comment; edit mode makes the current text and the edit action clear, and delete requires confirmation. Other viewers have no edit or delete controls. While offline or before server-backed recovery, the composer and every create, edit, and delete control are disabled rather than queued for later mutation.
+
+**Comments Bottom Sheet state contract:**
+
+| State | Required wireframe behaviour |
+| --- | --- |
+| Comment loading | Keep the sheet draggable and the persistent composer visible while the first newest-first page loads. |
+| Comment empty | Use supportive copy that invites a short, respectful first comment without implying that engagement is required. |
+| Comment recoverable error | Keep already loaded comments where safe, explain the problem plainly, and offer retry. |
+| Comment pagination / exhausted | Fetch further 20-item cursor pages without duplicates or nesting, show a loading-more state, and state when the full flat list is reached. |
+| Comment editing | Identify the comment being edited, retain a visible cancel path, and keep the edit action above the keyboard. |
+| Cached offline read-only | Leave cached comments readable with an offline/read-only label, but disable the composer and all author mutations. |
+
+**Explicit exclusions and reference boundary:** Any supplied interaction screenshot is reference-only; it must not be copied, embedded, branded, or used as an asset. This contract excludes replies or nested comments, comment likes, a reaction strip or bar, translation, verification badges, share buttons/actions, copied Instagram styling/assets/branding, administrator moderation UI, report thresholds or penalties, friend management, notifications, public/global/nearby/algorithmic Feed variants, general text or photo posts, automatic posting, popularity ranking, automatic scroll jumps, optimistic offline queues, and activity-delete UI.
+
 ## 11. Explore Map
 
 **Screen name:** Maps Landing Page.

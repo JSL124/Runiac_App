@@ -1,6 +1,11 @@
+import 'dart:async';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:runiac_app/features/feed/data/firebase_feed_repository/feed_test_data_port.dart';
+import 'package:runiac_app/features/feed/data/firebase_feed_repository/firebase_feed_repository.dart';
 import 'package:runiac_app/features/feed/domain/models/feed_display_models.dart';
 import 'package:runiac_app/features/feed/domain/repositories/feed_repository.dart';
 import 'package:runiac_app/features/feed/presentation/current_session_feed.dart';
@@ -39,7 +44,7 @@ void main() {
     expect(find.text('7:20 / km'), findsOneWidget);
     expect(find.text('23 min'), findsOneWidget);
     expect(
-      find.bySemanticsLabel('A simplified route preview'),
+      find.bySemanticsLabel('Private route preview unavailable'),
       findsNWidgets(2),
     );
     expect(
@@ -50,9 +55,56 @@ void main() {
       find.byKey(const ValueKey('feed-post-divider-feed-friend-001')),
       findsOneWidget,
     );
+    expect(
+      find.byKey(const ValueKey('feed-author-profile-feed-current-001')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('feed-author-profile-feed-friend-001')),
+      findsOneWidget,
+    );
+    expect(find.text('Lv.6'), findsOneWidget);
+    expect(find.text('Lv.4'), findsOneWidget);
+    expect(find.bySemanticsLabel('Runner profile'), findsNothing);
     expect(find.byType(Card), findsNothing);
     semantics.dispose();
   });
+
+  testWidgets(
+    'Feed uses current profile snapshot when own post level snapshot is empty',
+    (WidgetTester tester) async {
+      final semantics = tester.ensureSemantics();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: CurrentSessionFeed(
+              repository: _ViewerMissingLevelRepository(),
+              viewerContext: const FeedViewerContext(
+                currentUserId: 'viewer',
+                acceptedFriendUserIds: <String>{'viewer'},
+              ),
+              currentAuthorProfile: const FeedAuthorProfileSnapshot(
+                userId: 'viewer',
+                displayName: 'babo',
+                avatarInitials: 'B',
+                levelLabel: 'Level 7',
+                levelProgressFraction: 0.4,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('babo'), findsOneWidget);
+      expect(find.text('Lv.7'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('feed-author-profile-viewer-post')),
+        findsOneWidget,
+      );
+      semantics.dispose();
+    },
+  );
 
   testWidgets('Feed exposes pull-to-refresh and read-only engagement actions', (
     WidgetTester tester,
@@ -114,33 +166,258 @@ void main() {
     expect(find.text('Feed could not refresh.'), findsNothing);
   });
 
-  testWidgets('Feed disables comments when a visible post cannot be commented', (
-    WidgetTester tester,
-  ) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: CurrentSessionFeed(repository: _NonCommentableFeedRepository()),
+  testWidgets(
+    'Feed disables comments when a visible post cannot be commented',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: CurrentSessionFeed(
+              repository: _NonCommentableFeedRepository(),
+            ),
+          ),
         ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Quiet Runner'), findsOneWidget);
+
+      await tester.tap(
+        find.byKey(const ValueKey('feed-comment-action-feed-quiet-001')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Comments'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'Feed timeline uses the injected viewer and delegates likes to the repository',
+    (WidgetTester tester) async {
+      final port = FeedTestDataPort.withUnevenAuthors();
+      final repository = FirebaseFeedRepository(port: port);
+      const viewer = FeedViewerContext(
+        currentUserId: 'viewer',
+        acceptedFriendUserIds: <String>{},
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: CurrentSessionFeed(
+              repository: repository,
+              viewerContext: viewer,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        port.authorQueries.map((query) => query.authorUid),
+        contains('viewer'),
+      );
+      expect(
+        port.authorQueries.map((query) => query.authorUid),
+        isNot(contains('runner-current')),
+      );
+
+      await tester.tap(find.byKey(const ValueKey('feed-like-action-viewer-0')));
+      await tester.pumpAndSettle();
+
+      expect(port.likeWrites, <String>['viewer-0']);
+      expect(repository.currentState.posts.first.likeCount, 0);
+      expect(find.text('1 like'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'Feed ignores an older viewer load after the authenticated viewer changes',
+    (WidgetTester tester) async {
+      final repository = _ControlledTimelineRepository();
+      const firstViewer = FeedViewerContext(
+        currentUserId: 'first-viewer',
+        acceptedFriendUserIds: <String>{},
+      );
+      const secondViewer = FeedViewerContext(
+        currentUserId: 'second-viewer',
+        acceptedFriendUserIds: <String>{},
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: CurrentSessionFeed(
+              repository: repository,
+              viewerContext: firstViewer,
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: CurrentSessionFeed(
+              repository: repository,
+              viewerContext: secondViewer,
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      repository.complete(
+        'second-viewer',
+        _timelineFor(authorUid: 'second-viewer', displayName: 'Second Viewer'),
+      );
+      await tester.pumpAndSettle();
+      repository.complete(
+        'first-viewer',
+        _timelineFor(authorUid: 'first-viewer', displayName: 'First Viewer'),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Second Viewer'), findsOneWidget);
+      expect(find.text('First Viewer'), findsNothing);
+    },
+  );
+}
+
+FeedTimelineState _timelineFor({
+  required String authorUid,
+  required String displayName,
+}) => FeedTimelineState(
+  posts: <FeedPostReadModel>[
+    FeedPostReadModel(
+      postId: '$authorUid-post',
+      authorUserId: authorUid,
+      authorDisplayName: displayName,
+      authorAvatarInitials: 'RV',
+      authorLevelLabel: 'Level 5',
+      relativeTimeLabel: 'Now',
+      distanceLabel: '2.0 km',
+      paceLabel: '7:00 / km',
+      durationLabel: '14 min',
+      likeCount: 0,
+      commentCount: 0,
+      isLikedByViewer: false,
+      hasViewerCommented: false,
+      canComment: true,
+      showsOwnerMenu: true,
+      routeThumbnail: const FeedRouteThumbnailReadModel(
+        thumbnailKey: 'viewer-race',
+        accessibilityLabel: 'Viewer race route preview',
       ),
-    );
-    await tester.pumpAndSettle();
+    ),
+  ],
+  source: FeedTimelineSource.server,
+  refreshing: false,
+  exhausted: true,
+);
 
-    expect(find.text('Quiet Runner'), findsOneWidget);
+class _ControlledTimelineRepository implements FeedTimelineRepository {
+  final Map<String, Completer<FeedTimelineState>> _pending =
+      <String, Completer<FeedTimelineState>>{};
+  FeedTimelineState _state = FeedTimelineState(
+    posts: const <FeedPostReadModel>[],
+    source: FeedTimelineSource.server,
+    refreshing: false,
+    exhausted: false,
+  );
 
-    await tester.tap(
-      find.byKey(const ValueKey('feed-comment-action-feed-quiet-001')),
-    );
-    await tester.pumpAndSettle();
+  @override
+  FeedTimelineState get currentState => _state;
 
-    expect(find.text('Comments'), findsNothing);
-  });
+  @override
+  Future<FeedReadModel> loadFeed(FeedViewerContext viewerContext) =>
+      loadInitial(viewerContext);
+
+  @override
+  Future<FeedTimelineState> loadInitial(FeedViewerContext viewerContext) {
+    final completer = Completer<FeedTimelineState>();
+    _pending[viewerContext.currentUserId] = completer;
+    return completer.future.then((state) {
+      _state = state;
+      return state;
+    });
+  }
+
+  void complete(String viewerUid, FeedTimelineState state) {
+    _pending.remove(viewerUid)!.complete(state);
+  }
+
+  @override
+  Future<FeedTimelineState> loadMore() async => _state;
+
+  @override
+  Future<FeedTimelineState> refresh() async => _state;
+
+  @override
+  Future<FeedTimelineState> reconcileAccess() async => _state;
+
+  @override
+  Future<void> setLike({required String postId, required bool isLiked}) async {}
+
+  @override
+  Future<void> createComment(FeedCommentMutation mutation) async {}
+
+  @override
+  Future<void> updateComment(FeedCommentMutation mutation) async {}
+
+  @override
+  Future<void> deleteComment({
+    required String postId,
+    required String commentId,
+  }) async {}
+
+  @override
+  Future<void> reportPost(String postId) async {}
+
+  @override
+  Future<void> deletePost(String postId) async {}
+
+  @override
+  Future<Uint8List> readThumbnail(String postId) async => Uint8List(0);
+
+  @override
+  void dispose() {}
 }
 
 class _EmptyFeedRepository implements FeedRepository {
   @override
   Future<FeedReadModel> loadFeed(FeedViewerContext viewerContext) async {
     return FeedReadModel(posts: const []);
+  }
+}
+
+class _ViewerMissingLevelRepository implements FeedRepository {
+  @override
+  Future<FeedReadModel> loadFeed(FeedViewerContext viewerContext) async {
+    return FeedReadModel(
+      posts: const [
+        FeedPostReadModel(
+          postId: 'viewer-post',
+          authorUserId: 'viewer',
+          authorDisplayName: 'babo',
+          authorAvatarInitials: 'B',
+          authorLevelLabel: '',
+          relativeTimeLabel: 'Now',
+          distanceLabel: '7.5 km',
+          paceLabel: '7:06 / km',
+          durationLabel: '53 min',
+          likeCount: 1,
+          commentCount: 0,
+          isLikedByViewer: true,
+          hasViewerCommented: false,
+          canComment: true,
+          showsOwnerMenu: true,
+          routeThumbnail: FeedRouteThumbnailReadModel(
+            thumbnailKey: 'viewer-preview',
+            accessibilityLabel: 'Viewer route preview',
+          ),
+        ),
+      ],
+    );
   }
 }
 
@@ -160,6 +437,7 @@ class _RecoveringFeedRepository implements FeedRepository {
           authorUserId: 'runner-current',
           authorDisplayName: 'Recovered Runner',
           authorAvatarInitials: 'RR',
+          authorLevelLabel: 'Level 6',
           relativeTimeLabel: 'Now',
           distanceLabel: '2.0 km',
           paceLabel: '7:00 / km',
@@ -190,6 +468,7 @@ class _NonCommentableFeedRepository implements FeedRepository {
           authorUserId: 'runner-friend',
           authorDisplayName: 'Quiet Runner',
           authorAvatarInitials: 'QR',
+          authorLevelLabel: 'Level 2',
           relativeTimeLabel: 'Today',
           distanceLabel: '1.8 km',
           paceLabel: '8:10 / km',

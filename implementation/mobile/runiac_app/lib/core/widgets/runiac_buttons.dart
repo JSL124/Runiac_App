@@ -134,6 +134,8 @@ class RuniacTappableSurface extends StatelessWidget {
       label: semanticLabel,
       button: semanticsButton,
       enabled: onTap != null,
+      onTap: semanticLabel == null ? null : onTap,
+      excludeSemantics: semanticLabel != null,
       child: surface,
     );
   }

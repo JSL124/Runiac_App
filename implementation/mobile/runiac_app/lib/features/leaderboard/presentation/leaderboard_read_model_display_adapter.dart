@@ -1,15 +1,18 @@
 import '../domain/models/leaderboard_read_model.dart';
+import 'league_asset_path.dart';
 import 'models/leaderboard_display_models.dart';
+import 'widgets/leaderboard_refresh_countdown.dart';
 
 LeaderboardDetailDisplaySnapshot leaderboardDisplaySnapshotFromReadModel(
   LeaderboardReadModel model,
   DateTime now,
 ) {
   final topRows = [
-    for (final entry in model.entries)
+    for (final (index, entry) in model.entries.indexed)
       leaderboardRankRowDisplaySnapshotFromReadModel(
         entry,
         regionLabel: model.regionLabel,
+        ordinal: index,
       ),
   ];
   final nearbyRows = [
@@ -23,21 +26,31 @@ LeaderboardDetailDisplaySnapshot leaderboardDisplaySnapshotFromReadModel(
   final hasCurrentRank =
       model.currentRunnerRankLabel.isNotEmpty && currentUser != null;
 
+  final serverRefreshLabel = model.refreshLabel?.trim();
+  final hasServerRefreshLabel =
+      serverRefreshLabel != null && serverRefreshLabel.isNotEmpty;
+
   return LeaderboardDetailDisplaySnapshot(
     regionId: model.regionId,
     regionName: model.regionLabel.isEmpty ? 'Leaderboard' : model.regionLabel,
-    isUserRegion: model.isHomeRegion && hasCurrentRank,
+    // Home-region treatment is independent of whether the runner already has
+    // a rank: an unranked runner still sees their own board with
+    // encouragement instead of the visitor layout.
+    isUserRegion: model.isHomeRegion,
     periodLabel: model.periodLabel ?? '',
     fallbackPeriodLabel: 'Monthly leaderboard',
-    refreshLabel: model.refreshLabel?.trim().isNotEmpty == true
-        ? model.refreshLabel!.trim()
-        : _refreshLabel(model.periodEndsAt, now),
+    refreshLabel: hasServerRefreshLabel
+        ? serverRefreshLabel
+        : formatLeaderboardRefreshLabel(model.periodEndsAt, now),
+    refreshLabelIsLive: !hasServerRefreshLabel && model.periodEndsAt != null,
+    periodEndsAt: model.periodEndsAt,
     fallbackRefreshLabel: 'Updating',
     monthlyResetLabel:
         'Monthly gained XP resets to 0 XP next month. Your level stays the same.',
     divisionLabel: model.divisionLabel,
+    divisionAssetPath: leagueAssetPathForTierKey(model.divisionKey),
     topRanksTitle: 'Regional ranking',
-    nearbyRanksTitle: 'NEARBY YOUR RANK',
+    nearbyRanksTitle: 'Ranks near you',
     currentUser: CurrentUserRankSummaryDisplaySnapshot(
       rankLabel: hasCurrentRank ? model.currentRunnerRankLabel : 'Unranked',
       title: 'My monthly rank',
@@ -45,29 +58,16 @@ LeaderboardDetailDisplaySnapshot leaderboardDisplaySnapshotFromReadModel(
     ),
     topRanks: topRows,
     nearbyRanks: nearbyRows,
+    status: model.status,
+    hasCurrentUserRank: hasCurrentRank,
   );
 }
-
-String _refreshLabel(DateTime? periodEndsAt, DateTime now) {
-  if (periodEndsAt == null) {
-    return 'Updating';
-  }
-  final rawRemaining = periodEndsAt.difference(now);
-  final remaining = rawRemaining.isNegative ? Duration.zero : rawRemaining;
-  final days = remaining.inDays;
-  final hours = remaining.inHours.remainder(24);
-  final minutes = remaining.inMinutes.remainder(60);
-  final seconds = remaining.inSeconds.remainder(60);
-  return 'Refreshes in ${_twoDigits(days)}:${_twoDigits(hours)}:'
-      '${_twoDigits(minutes)}:${_twoDigits(seconds)}';
-}
-
-String _twoDigits(int value) => value.toString().padLeft(2, '0');
 
 LeaderboardRankRowDisplaySnapshot
 leaderboardRankRowDisplaySnapshotFromReadModel(
   LeaderboardRowReadModel entry, {
   required String regionLabel,
+  int? ordinal,
 }) {
   final displayName = entry.displayName.trim().isEmpty
       ? 'Runiac Runner'
@@ -81,8 +81,8 @@ leaderboardRankRowDisplaySnapshotFromReadModel(
     levelLabel: levelLabel,
     levelBadgeLabel: _levelBadgeLabel(levelLabel),
     xpLabel: entry.scoreLabel.trim(),
-    trophy: rankLabel == '#1',
-    medalTone: _medalTone(rankLabel),
+    trophy: ordinal == 0,
+    medalTone: _medalToneForOrdinal(ordinal),
     isCurrentUser: entry.isCurrentUser,
     profile: RunnerAchievementProfileSnapshot(
       name: displayName,
@@ -101,11 +101,14 @@ leaderboardRankRowDisplaySnapshotFromReadModel(
   );
 }
 
-RegionPreviewMedalTone? _medalTone(String rankLabel) {
-  return switch (rankLabel) {
-    '#1' => RegionPreviewMedalTone.gold,
-    '#2' => RegionPreviewMedalTone.silver,
-    '#3' => RegionPreviewMedalTone.bronze,
+// Medal tone follows the ordinal position within the backend-provided top
+// entries list, not the rank label string. Index 0/1/2 map to gold/silver/
+// bronze; a null ordinal (nearby rows) gets no medal tone.
+RegionPreviewMedalTone? _medalToneForOrdinal(int? ordinal) {
+  return switch (ordinal) {
+    0 => RegionPreviewMedalTone.gold,
+    1 => RegionPreviewMedalTone.silver,
+    2 => RegionPreviewMedalTone.bronze,
     _ => null,
   };
 }
@@ -116,10 +119,10 @@ String _regionRankLabel(String regionLabel, String rankLabel) {
   if (region.isEmpty) {
     return rank;
   }
-  if (rank.isEmpty) {
-    return region;
+  if (rank.isEmpty || rank == '#--') {
+    return '$region, Singapore';
   }
-  return '$region · Rank $rank';
+  return '$rank $region, Singapore';
 }
 
 String _initialFor(String displayName) {

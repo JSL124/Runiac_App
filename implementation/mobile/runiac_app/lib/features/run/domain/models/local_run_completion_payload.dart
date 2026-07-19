@@ -1,6 +1,7 @@
 import '../services/pace_graph_data_builder.dart';
 import 'cadence_analysis_series.dart';
 import 'elevation_analysis_series.dart';
+import 'run_route_snapshot.dart';
 
 class LocalRunCompletionPayload {
   const LocalRunCompletionPayload({
@@ -13,10 +14,12 @@ class LocalRunCompletionPayload {
     required this.source,
     required this.routePrivacy,
     this.userConfirmedLowDataSave = false,
+    this.activityTitle,
     this.routeLabel,
     this.clientAppVersion,
     this.planEnrollmentId,
     this.scheduledWorkoutId,
+    this.routeSnapshot = RunRouteSnapshot.empty,
     this.paceGraphSamples = const <PaceGraphSample>[],
     this.cadenceAnalysisSeries,
     this.elevationAnalysisSeries,
@@ -33,10 +36,12 @@ class LocalRunCompletionPayload {
   final String source;
   final String routePrivacy;
   final bool userConfirmedLowDataSave;
+  final String? activityTitle;
   final String? routeLabel;
   final String? clientAppVersion;
   final String? planEnrollmentId;
   final String? scheduledWorkoutId;
+  final RunRouteSnapshot routeSnapshot;
   final List<PaceGraphSample> paceGraphSamples;
   final CadenceAnalysisSeries? cadenceAnalysisSeries;
   final ElevationAnalysisSeries? elevationAnalysisSeries;
@@ -75,6 +80,7 @@ class LocalRunCompletionPayload {
       'routePrivacy': routePrivacy,
       if (userConfirmedLowDataSave)
         'userConfirmedLowDataSave': userConfirmedLowDataSave,
+      if (activityTitle != null) 'activityTitle': activityTitle,
       if (routeLabel != null) 'routeLabel': routeLabel,
       if (clientAppVersion != null) 'clientAppVersion': clientAppVersion,
       if (planEnrollmentId != null) 'planEnrollmentId': planEnrollmentId,
@@ -82,7 +88,10 @@ class LocalRunCompletionPayload {
     };
   }
 
-  LocalRunCompletionPayload copyWith({bool? userConfirmedLowDataSave}) {
+  LocalRunCompletionPayload copyWith({
+    bool? userConfirmedLowDataSave,
+    RunRouteSnapshot? routeSnapshot,
+  }) {
     return LocalRunCompletionPayload(
       clientRunSessionId: clientRunSessionId,
       startedAt: startedAt,
@@ -94,10 +103,12 @@ class LocalRunCompletionPayload {
       routePrivacy: routePrivacy,
       userConfirmedLowDataSave:
           userConfirmedLowDataSave ?? this.userConfirmedLowDataSave,
+      activityTitle: activityTitle,
       routeLabel: routeLabel,
       clientAppVersion: clientAppVersion,
       planEnrollmentId: planEnrollmentId,
       scheduledWorkoutId: scheduledWorkoutId,
+      routeSnapshot: routeSnapshot ?? this.routeSnapshot,
       paceGraphSamples: paceGraphSamples,
       cadenceAnalysisSeries: cadenceAnalysisSeries,
       elevationAnalysisSeries: elevationAnalysisSeries,

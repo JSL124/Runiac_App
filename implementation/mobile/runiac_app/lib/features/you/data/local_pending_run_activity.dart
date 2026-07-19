@@ -134,6 +134,7 @@ class LocalPendingRunActivity {
         progressionEventId: remoteResult.progressionEventId,
         validationStatus: remoteResult.validationStatus,
         progressionDisplay: remoteResult.progressionDisplay,
+        planCompletion: remoteResult.planCompletion,
         xpUpdate: remoteResult.xpUpdate,
         message: remoteResult.message,
       ),

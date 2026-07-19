@@ -143,4 +143,34 @@ void main() {
     expect(find.text('5 days'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('local sync pending state does not claim backend deferral', (
+    tester,
+  ) async {
+    await pumpScreen(
+      tester,
+      const XpUpdateDisplayModel(
+        runnerName: 'Ada',
+        earnedXpLabel: '+0 XP',
+        totalXpLabel: 'Saved on this device',
+        levelLabel: '--',
+        nextLevelLabel: '--',
+        progressTargetLabel: 'Sync pending',
+        xpRemainingLabel: 'XP updates after sync',
+        previousProgressFraction: 0,
+        currentProgressFraction: 0,
+        streakChangeLabel: 'Not updated yet',
+        streakNote: 'We’ll retry when the service is available.',
+        didLevelUp: false,
+        xpAwardState: XpAwardState.syncPending,
+        heroMessage: 'This run is saved locally. XP updates after sync.',
+      ),
+    );
+
+    expect(find.text('Run saved locally, Ada!'), findsOneWidget);
+    expect(find.text('Saved on this device'), findsOneWidget);
+    expect(find.text('Sync pending'), findsOneWidget);
+    expect(find.text('Deferred by backend'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
 }

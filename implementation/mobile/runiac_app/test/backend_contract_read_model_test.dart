@@ -69,6 +69,8 @@ void main() {
         monthlyXpLabel: '1,240 XP',
         weeklyDistanceLabel: '12.4 km',
         goalProgressLabel: '43%',
+        divisionKey: 'tier_02',
+        divisionLabel: 'Bronze League',
       );
 
       // When / Then: the read models expose immutable backend-produced labels.
@@ -84,6 +86,8 @@ void main() {
       expect(leaderboardEntry.scoreLabel, '1,240 XP');
       expect(progress.weeklyXpLabel, '520 XP');
       expect(progress.monthlyXpLabel, '1,240 XP');
+      expect(progress.divisionKey, 'tier_02');
+      expect(progress.divisionLabel, 'Bronze League');
     });
 
     test('keeps read model sources backend-free and immutable', () {
@@ -172,10 +176,18 @@ void main() {
             'monthlyXpLabel',
             'weeklyDistanceLabel',
             'goalProgressLabel',
+            'longestStreakLabel',
+            'totalDistanceLabel',
+            'divisionKey',
+            'divisionLabel',
           ],
           nonStringFields: [
             'level',
             'levelProgressFraction',
+            'totalXp',
+            'nextLevelXp',
+            'xpToNextLevel',
+            'isMaxLevel',
             'officialStreakCount',
             'lastStreakRunDate',
           ],
@@ -326,6 +338,7 @@ void _expectReadModelContract(String source, _ReadModelContract contract) {
               trimmed == 'final int $field;' ||
               trimmed == 'final int? $field;' ||
               trimmed == 'final double $field;' ||
+              trimmed == 'final bool $field;' ||
               trimmed == 'final String? $field;',
         );
       }).toList();

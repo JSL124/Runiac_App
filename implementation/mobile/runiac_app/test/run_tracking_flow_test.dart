@@ -295,6 +295,14 @@ class _ResultRunRepository implements RunRepository {
   }
 
   @override
+  Future<CompleteRunResult> completeCoolDown({
+    required String activityId,
+    required String clientRunSessionId,
+  }) {
+    throw UnimplementedError();
+  }
+
+  @override
   Future<CompleteRunResult> loadLatestCompletionResult() async {
     return result;
   }
@@ -411,6 +419,55 @@ const _activeCompletionResult = CompleteRunResult(
     didLevelUp: false,
   ),
   message: 'Repository completion accepted.',
+);
+
+const _serverAwardedCompletionResult = CompleteRunResult(
+  clientRunSessionId: 'server-session',
+  activityId: 'activity_server_awarded',
+  summaryId: 'summary_server_awarded',
+  progressionEventId: 'progression_server_awarded',
+  validationStatus: 'validated',
+  summary: RunSummarySnapshot(
+    title: 'Server Awarded Run',
+    dateLabel: 'Today',
+    timeLabel: '8:10 AM',
+    distanceKm: '4.20',
+    avgPace: '7’23”',
+    duration: '31:00',
+    avgHeartRate: '--',
+    calories: '--',
+    routeName: 'Canonical Server Route',
+  ),
+  progressionDisplay: ProgressionDisplayModel(
+    xpDelta: 75,
+    countsTowardLeaderboard: true,
+    status: 'awarded',
+    reason: 'validated_run',
+  ),
+  xpUpdate: XpUpdateDisplayModel(
+    runnerName: 'Runiac Runner',
+    earnedXpLabel: '+75 XP',
+    totalXpLabel: '75 XP',
+    levelLabel: 'Level 1',
+    nextLevelLabel: 'Level 2',
+    progressTargetLabel: '75 / 100 XP',
+    xpRemainingLabel: '25 XP to next level',
+    previousProgressFraction: 0,
+    currentProgressFraction: 0.75,
+    streakChangeLabel: '0 → 1 days',
+    streakNote: 'First validated run in the streak.',
+    didLevelUp: false,
+    xpAwardState: XpAwardState.awarded,
+    heroMessage: 'Earned from this run',
+    earnedXp: 75,
+    totalXp: 75,
+    previousTotalXp: 0,
+    level: 1,
+    previousLevel: 1,
+    streakCount: 1,
+    previousStreakCount: 0,
+  ),
+  message: 'Server completion accepted.',
 );
 
 const _firebaseScalarCompletionResult = CompleteRunResult(
@@ -1024,9 +1081,11 @@ void main() {
     expect(find.text('12:34 of 30:00'), findsOneWidget);
     expect(find.text('42%'), findsOneWidget);
     expect(find.byKey(const Key('run_plan_progress_bar')), findsOneWidget);
-    expect(find.text('TIME'), findsWidgets);
-    expect(find.text('12:34'), findsWidgets);
-    expect(find.text('DISTANCE'), findsNothing);
+    expect(find.text('DISTANCE'), findsOneWidget);
+    expect(find.text('1.20'), findsOneWidget);
+    expect(find.text('km'), findsOneWidget);
+    expect(find.text('TIME'), findsOneWidget);
+    expect(find.text('12:34'), findsOneWidget);
     expect(find.text('0.00 of 4.50 km'), findsNothing);
     expect(tester.takeException(), isNull);
   });
@@ -2730,15 +2789,84 @@ void main() {
   });
 
   testWidgets(
+    'RunLaunchScreen uses injected server completion for summary and XP',
+    (WidgetTester tester) async {
+      _useMobileRunSurface(tester);
+      final repository = _ResultRunRepository(_serverAwardedCompletionResult);
+      final runHarness = _testSufficientRunHarness(tester);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RunLaunchScreen(
+            repository: repository,
+            enableForegroundGps: false,
+            activeRunSessionCoordinator: runHarness.coordinator,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Start run'));
+      await tester.pumpAndSettle();
+      await _pumpSufficientRun(tester);
+
+      runHarness.controller.pause(pausedAt: tester.binding.clock.now());
+      await tester.pumpAndSettle();
+      final endButton = find.byKey(const Key('hold_to_end_button'));
+      final holdGesture = await tester.startGesture(
+        tester.getCenter(endButton),
+      );
+      await tester.pump(const Duration(milliseconds: 1600));
+      await holdGesture.up();
+      await tester.pumpAndSettle();
+
+      expect(repository.completeRunCalls, 1);
+      expect(repository.lastPayload, isNotNull);
+      expect(find.text('Cool down'), findsOneWidget);
+
+      await tester.tap(find.widgetWithText(OutlinedButton, 'Skip to Summary'));
+      await tester.pumpAndSettle();
+
+      final summaryScreen = tester.widget<ViewSummaryScreen>(
+        find.byType(ViewSummaryScreen),
+      );
+      expect(
+        summaryScreen.completionResult?.activityId,
+        'activity_server_awarded',
+      );
+      expect(summaryScreen.completionResult?.progressionDisplay.xpDelta, 75);
+      expect(summaryScreen.completionResult?.xpUpdate.levelLabel, 'Level 1');
+      expect(
+        summaryScreen.completionResult?.xpUpdate.streakChangeLabel,
+        '0 → 1 days',
+      );
+      expect(find.text('Server Awarded Run'), findsOneWidget);
+
+      await tester.ensureVisible(find.text('View XP Update'));
+      await tester.tap(find.text('View XP Update'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('+75 XP'), findsOneWidget);
+      expect(find.text('Lv.Level 1'), findsOneWidget);
+      expect(find.text('1 day'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
     'RunActiveScreen sends tracked completion result through cool down to summary',
     (WidgetTester tester) async {
       _useMobileRunSurface(tester);
-      final repository = _ResultRunRepository(_activeCompletionResult);
+      final repository = _ResultRunRepository(_serverAwardedCompletionResult);
       final historyStore = CurrentSessionActivityHistoryStore(
         ownerUid: 'test-owner',
         persistence: MemoryLocalPendingRunActivityStore(),
       );
       final runHarness = _testSufficientRunHarness(tester);
+      runHarness.controller.start(
+        startedAt: tester.binding.clock.now(),
+        routeLabel: 'Injected repository route',
+      );
+      runHarness.controller.advanceBy(const Duration(seconds: 120));
       addTearDown(historyStore.dispose);
 
       await tester.pumpWidget(
@@ -2769,22 +2897,38 @@ void main() {
       await holdGesture.up();
       await tester.pumpAndSettle();
 
-      expect(repository.completeRunCalls, 0);
-      expect(repository.lastPayload, isNull);
+      expect(repository.completeRunCalls, 1);
+      expect(repository.lastPayload, isNotNull);
       expect(find.text('Cool down'), findsOneWidget);
-      expect(find.text('Active Repository Run'), findsNothing);
 
       await tester.tap(find.widgetWithText(OutlinedButton, 'Skip to Summary'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Active Repository Run'), findsNothing);
-      expect(find.text('Active Repository Route'), findsNothing);
-      expect(find.text('0.00'), findsNothing);
-      expect(find.text('--'), findsAtLeastNWidgets(2));
-      expect(find.text('-- bpm'), findsNothing);
-      expect(find.text('-- kcal'), findsNothing);
-      expect(find.text('Saturday Morning Run'), findsNothing);
-      expect(find.text('4.03'), findsNothing);
+      final summaryScreen = tester.widget<ViewSummaryScreen>(
+        find.byType(ViewSummaryScreen),
+      );
+      expect(
+        summaryScreen.completionResult?.activityId,
+        'activity_server_awarded',
+      );
+      expect(summaryScreen.completionResult?.progressionDisplay.xpDelta, 75);
+      expect(summaryScreen.completionResult?.xpUpdate.levelLabel, 'Level 1');
+      expect(
+        summaryScreen.completionResult?.xpUpdate.streakChangeLabel,
+        '0 → 1 days',
+      );
+      expect(
+        find.text(summaryScreen.completionResult!.summary.title),
+        findsOneWidget,
+      );
+
+      await tester.ensureVisible(find.text('View XP Update'));
+      await tester.tap(find.text('View XP Update'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('+75 XP'), findsOneWidget);
+      expect(find.text('Lv.Level 1'), findsOneWidget);
+      expect(find.text('1 day'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );

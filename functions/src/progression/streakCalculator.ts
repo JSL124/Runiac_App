@@ -1,3 +1,5 @@
+import { dailyCapDateForCompletedAt } from "./progressionCalculator.js";
+
 export type StreakState = {
   readonly streakCount: number;
   readonly lastStreakRunDate: string | null;
@@ -16,6 +18,12 @@ export type StreakRun = {
   readonly completedAt: string;
 };
 
+export type StreakExpiryTransition = {
+  readonly previousStreak: number;
+  readonly nextStreak: number;
+  readonly shouldUpdateProfile: boolean;
+};
+
 type NextStreakState = {
   readonly streakCount: number;
   readonly lastStreakRunDate: string;
@@ -32,7 +40,7 @@ export function calculateStreakTransition(
     readonly protectedRestDates?: readonly string[];
   },
 ): StreakTransition {
-  const runDate = input.completedAt.slice(0, utcDateLength);
+  const runDate = dailyCapDateForCompletedAt(input.completedAt);
   const nextState = nextStreakState(
     input.currentState,
     runDate,
@@ -49,11 +57,25 @@ export function calculateStreakTransition(
   };
 }
 
+export function unchangedStreakTransition(
+  currentState: StreakState,
+  completedAt: string,
+): StreakTransition {
+  return {
+    previousStreak: currentState.streakCount,
+    nextStreak: currentState.streakCount,
+    previousStreakRunDate: currentState.lastStreakRunDate,
+    nextStreakRunDate: currentState.lastStreakRunDate ?? dailyCapDateForCompletedAt(completedAt),
+    streakUpdatedAt: completedAt,
+    shouldUpdateProfile: false,
+  };
+}
+
 export function calculateStreakStateFromRuns(
   runs: readonly StreakRun[],
   protectedRestDates: readonly string[] = [],
 ): StreakState {
-  const runDates = [...new Set(runs.map((run) => run.completedAt.slice(0, utcDateLength)))]
+  const runDates = [...new Set(runs.map((run) => dailyCapDateForCompletedAt(run.completedAt)))]
     .sort((left, right) => left.localeCompare(right));
   const protectedRestDateSet = new Set(protectedRestDates);
   return runDates.reduce<StreakState>(
@@ -66,6 +88,36 @@ export function calculateStreakStateFromRuns(
     },
     { streakCount: 0, lastStreakRunDate: null },
   );
+}
+
+export function calculateStreakExpiryTransition(input: {
+  readonly currentState: StreakState;
+  readonly asOfDate: string;
+  readonly protectedRestDates?: readonly string[];
+}): StreakExpiryTransition {
+  const previousDate = input.currentState.lastStreakRunDate;
+  if (
+    input.currentState.streakCount <= 0 ||
+    previousDate === null ||
+    daysBetween(previousDate, input.asOfDate) <= 1 ||
+    isProtectedRestGap(
+      previousDate,
+      input.asOfDate,
+      new Set(input.protectedRestDates ?? []),
+    )
+  ) {
+    return {
+      previousStreak: input.currentState.streakCount,
+      nextStreak: input.currentState.streakCount,
+      shouldUpdateProfile: false,
+    };
+  }
+
+  return {
+    previousStreak: input.currentState.streakCount,
+    nextStreak: 0,
+    shouldUpdateProfile: true,
+  };
 }
 
 function nextStreakState(

@@ -20,6 +20,7 @@ void main() {
       final repository = RunRepositoryFactory.create(
         config: const RuniacFirebaseRuntimeConfig(useFirebaseEmulator: true),
         completeRunCallableFactory: _FakeCallable.new,
+        coolDownCallableFactory: _FakeCoolDownCallable.new,
       );
 
       expect(repository, isA<FirebaseRunRepository>());
@@ -32,6 +33,7 @@ void main() {
           useProductionFirebase: true,
         ),
         completeRunCallableFactory: _FakeCallable.new,
+        coolDownCallableFactory: _FakeCoolDownCallable.new,
       );
 
       expect(repository, isA<FirebaseRunRepository>());
@@ -58,6 +60,13 @@ void main() {
 }
 
 class _FakeCallable implements CompleteRunCallable {
+  @override
+  Future<Map<String, Object?>> call(Map<String, Object?> request) {
+    throw UnimplementedError();
+  }
+}
+
+class _FakeCoolDownCallable implements CompleteCoolDownCallable {
   @override
   Future<Map<String, Object?>> call(Map<String, Object?> request) {
     throw UnimplementedError();

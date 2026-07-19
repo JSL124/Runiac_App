@@ -1,4 +1,5 @@
 import 'complete_run_result.dart';
+import 'run_feed_publish_source.dart';
 import 'run_summary_snapshot.dart';
 
 /// Display-only activity row model backed by future run history read models.
@@ -14,6 +15,10 @@ class RunActivityDisplayModel {
     required this.durationLabel,
     required this.summary,
     this.completionResult,
+    this.isTrustedPersistedRoutePreview = false,
+    this.feedPublishSource = const RunFeedPublishSource.disabled(
+      FeedPublishDisabledReason.notAvailable,
+    ),
   });
 
   final String? activityId;
@@ -26,6 +31,8 @@ class RunActivityDisplayModel {
   final String durationLabel;
   final RunSummarySnapshot summary;
   final CompleteRunResult? completionResult;
+  final bool isTrustedPersistedRoutePreview;
+  final RunFeedPublishSource feedPublishSource;
 
   String get sourceLabel => summary.sourceLabel;
   String get identityKey => clientRunSessionId ?? activityId ?? title;

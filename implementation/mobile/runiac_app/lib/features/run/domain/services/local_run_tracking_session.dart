@@ -95,8 +95,9 @@ class LocalRunTrackingSession {
       <List<RunLocationSample>>[];
   final List<List<LocalPaceGraphSamplePoint>> _acceptedGraphSampleSegments =
       <List<LocalPaceGraphSamplePoint>>[];
-  final List<CadenceAnalysisSample> _cadenceAnalysisSamples =
-      <CadenceAnalysisSample>[];
+  final List<({CadenceAnalysisSample analysis, DateTime recordedAt})>
+  _cadenceAnalysisSamples =
+      <({CadenceAnalysisSample analysis, DateTime recordedAt})>[];
 
   Duration get trackingDuration => _trackingDuration;
   int get activeDurationSeconds => _movingDuration.inSeconds;
@@ -117,12 +118,20 @@ class LocalRunTrackingSession {
     return List<PaceGraphSample>.unmodifiable(graphSamples);
   }
 
-  CadenceAnalysisSeries? cadenceAnalysisSeries() {
-    if (_cadenceAnalysisSamples.isEmpty) {
+  CadenceAnalysisSeries? cadenceAnalysisSeries({DateTime? completedAt}) {
+    final durationBoundedSamples = _cadenceAnalysisSamples
+        .where(
+          (sample) =>
+              sample.analysis.elapsedSeconds <= trackingDurationSeconds &&
+              (completedAt == null || !sample.recordedAt.isAfter(completedAt)),
+        )
+        .map((sample) => sample.analysis)
+        .toList(growable: false);
+    if (durationBoundedSamples.isEmpty) {
       return null;
     }
     return CadenceAnalysisSeries.phoneMotionEstimated(
-      samples: _cadenceAnalysisSamples,
+      samples: durationBoundedSamples,
     );
   }
 
@@ -276,15 +285,37 @@ class LocalRunTrackingSession {
   void addCadenceSample(RunCadenceSample sample) {
     if (!_isActive ||
         sample.source != CadenceSource.phoneMotion ||
-        !sample.isUsable) {
+        !sample.isUsable ||
+        sample.recordedAt.isBefore(_activeTimelineStartedAt)) {
       return;
     }
-    _cadenceAnalysisSamples.add(
-      CadenceAnalysisSample.accepted(
-        elapsedSeconds: _activeElapsedSecondsForTime(sample.recordedAt),
-        cadenceSpm: sample.stepsPerMinute.round(),
-      ),
+    final calculatedElapsedSeconds = _activeElapsedSecondsForTime(
+      sample.recordedAt,
     );
+    final lastCadenceSample = _cadenceAnalysisSamples.lastOrNull;
+    if (lastCadenceSample != null &&
+        !sample.recordedAt.isAfter(lastCadenceSample.recordedAt)) {
+      return;
+    }
+    if (lastCadenceSample != null &&
+        calculatedElapsedSeconds < lastCadenceSample.analysis.elapsedSeconds) {
+      return;
+    }
+    final cadenceSample = CadenceAnalysisSample.accepted(
+      elapsedSeconds: calculatedElapsedSeconds,
+      cadenceSpm: sample.stepsPerMinute.round(),
+    );
+    final storedSample = (
+      analysis: cadenceSample,
+      recordedAt: sample.recordedAt,
+    );
+    if (lastCadenceSample?.analysis.elapsedSeconds ==
+        calculatedElapsedSeconds) {
+      _cadenceAnalysisSamples[_cadenceAnalysisSamples.length - 1] =
+          storedSample;
+      return;
+    }
+    _cadenceAnalysisSamples.add(storedSample);
   }
 
   void pause() {

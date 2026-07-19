@@ -5,3 +5,8 @@ abstract interface class LeaderboardRepository {
 
   Future<LeaderboardReadModel> loadRegion({required String regionId});
 }
+
+abstract interface class LiveLeaderboardRepository
+    implements LeaderboardRepository {
+  Stream<LeaderboardReadModel> watchLeaderboard();
+}

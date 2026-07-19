@@ -8,6 +8,7 @@ import 'package:flutter/widgets.dart';
 import '../../run/domain/models/complete_run_result.dart';
 import '../../run/domain/models/local_run_completion_payload.dart';
 import '../../run/domain/models/run_activity_display_model.dart';
+import '../../run/domain/models/run_feed_publish_source.dart';
 import '../../run/domain/models/run_completion_error.dart';
 import '../../run/domain/models/run_summary_snapshot.dart';
 import '../../run/domain/repositories/run_repository.dart';
@@ -58,6 +59,13 @@ class RunSyncDebugSnapshot {
   final DateTime? lastSyncAttemptedAt;
   final String? lastSyncFailureCode;
   final String? lastSyncFailureMessage;
+}
+
+class RunCompletionContext {
+  const RunCompletionContext._(this._ownerUid, this._ownerGeneration);
+
+  final String _ownerUid;
+  final int _ownerGeneration;
 }
 
 class CurrentSessionActivityHistoryStore extends ChangeNotifier {
@@ -122,6 +130,10 @@ class CurrentSessionActivityHistoryStore extends ChangeNotifier {
     return _latestUserProgressRefresh;
   }
 
+  void recordUserProgressRefresh(UserProgressReadModel progress) {
+    _notifyUserProgressRefreshed(progress);
+  }
+
   void updateOwnerUid(String? ownerUid) {
     if (_ownerUid == ownerUid) {
       return;
@@ -136,6 +148,15 @@ class CurrentSessionActivityHistoryStore extends ChangeNotifier {
       _syncDebugSnapshots.clear();
     }
     notifyListeners();
+  }
+
+  RunCompletionContext captureRunCompletionContext() {
+    return RunCompletionContext._(_requireOwnerUid(), _ownerGeneration);
+  }
+
+  bool isRunCompletionContextCurrent(RunCompletionContext context) {
+    return _ownerUid == context._ownerUid &&
+        _ownerGeneration == context._ownerGeneration;
   }
 
   void registerCompletedRun(
@@ -161,6 +182,7 @@ class CurrentSessionActivityHistoryStore extends ChangeNotifier {
         durationLabel: result.summary.duration,
         summary: result.summary,
         completionResult: result,
+        feedPublishSource: _feedPublishSourceForCompletion(result),
       ),
       completionResult: result,
     );
@@ -190,8 +212,6 @@ class CurrentSessionActivityHistoryStore extends ChangeNotifier {
         record.result,
         ownerUid: record.ownerUid,
         distanceMeters: record.payload.distanceMeters,
-        planEnrollmentId: record.payload.planEnrollmentId,
-        scheduledWorkoutId: record.payload.scheduledWorkoutId,
       );
       return;
     }
@@ -216,8 +236,6 @@ class CurrentSessionActivityHistoryStore extends ChangeNotifier {
         record.result,
         ownerUid: record.ownerUid,
         distanceMeters: record.payload.distanceMeters,
-        planEnrollmentId: record.payload.planEnrollmentId,
-        scheduledWorkoutId: record.payload.scheduledWorkoutId,
       );
     } catch (error, stackTrace) {
       _reportAsyncError(error, stackTrace, 'saving a completed run locally');
@@ -242,7 +260,13 @@ class CurrentSessionActivityHistoryStore extends ChangeNotifier {
   }
 
   bool _looksLikeRemoteCompletion(CompleteRunResult result) {
-    return result.activityId.startsWith('activity_');
+    return RunFeedPublishSource.isCanonicalValidatedCompletion(result);
+  }
+
+  RunFeedPublishSource _feedPublishSourceForCompletion(
+    CompleteRunResult result,
+  ) {
+    return RunFeedPublishSource.fromCompletion(result);
   }
 
   Future<T> _enqueueStorageMutation<T>(Future<T> Function() action) {

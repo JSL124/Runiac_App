@@ -53,10 +53,18 @@ class GeneratedYouPlanDisplay {
     }
 
     final sourceRow = scheduleRows[sourceIndex];
+    if (sourceRow.isPast || !sourceRow.canEditSchedule) {
+      return this;
+    }
     final targetIndex = scheduleRows.indexWhere(
       (row) => row.weekdayIndex == selection.weekdayIndex,
     );
     if (targetIndex == -1 || targetIndex == sourceIndex) {
+      return this;
+    }
+
+    final targetRow = scheduleRows[targetIndex];
+    if (!targetRow.isFuture) {
       return this;
     }
 
@@ -70,7 +78,6 @@ class GeneratedYouPlanDisplay {
       isFuture: oldRow.isFuture,
     );
 
-    final targetRow = scheduleRows[targetIndex];
     updatedRows[targetIndex] = YouPlanScheduleRow(
       targetRow.day,
       sourceRow.title,
@@ -86,7 +93,7 @@ class GeneratedYouPlanDisplay {
       isRunningSession: true,
       canOpenDetail: true,
       canStart: targetRow.isToday,
-      canEditSchedule: !targetRow.isToday,
+      canEditSchedule: targetRow.isFuture,
     );
 
     return GeneratedYouPlanDisplay(
@@ -322,6 +329,14 @@ BeginnerAdaptivePlanSnapshot? rescheduleGeneratedPlanSnapshot(
   if (sourceIndex == -1) {
     return null;
   }
+  final sourceWeekdayIndex = _weekdayIndexFor(
+    currentWeek.workouts[sourceIndex].dayLabel,
+  );
+  final currentWeekdayIndex = (currentDate ?? DateTime.now()).weekday;
+  if (sourceWeekdayIndex <= currentWeekdayIndex ||
+      selection.weekdayIndex <= currentWeekdayIndex) {
+    return null;
+  }
 
   final updatedWorkouts = [...currentWeek.workouts];
   final sourceWorkout = currentWeek.workouts[sourceIndex];
@@ -399,6 +414,28 @@ BeginnerAdaptivePlanWeek? activeGeneratedPlanWeekFor(
 
   final activeIndex = (elapsedDays ~/ 7).clamp(0, snapshot.weeks.length - 1);
   return snapshot.weeks[activeIndex];
+}
+
+int? activeGeneratedPlanDayIndexFor(
+  BeginnerAdaptivePlanSnapshot snapshot, {
+  DateTime? currentDate,
+}) {
+  final startsOnDate = _dateFromPlanLabel(snapshot.startsOnDate);
+  if (startsOnDate == null) {
+    return null;
+  }
+
+  final today = currentDate ?? DateTime.now();
+  final elapsedDays = DateTime(
+    today.year,
+    today.month,
+    today.day,
+  ).difference(startsOnDate).inDays;
+  if (elapsedDays <= 0) {
+    return 0;
+  }
+
+  return elapsedDays % 7;
 }
 
 DateTime? _dateFromPlanLabel(String? value) {
@@ -646,7 +683,7 @@ YouPlanScheduleRow _scheduleRowForDay(
   }
 
   final canStart = isToday;
-  final canEditSchedule = !isToday;
+  final canEditSchedule = isFuture;
   final scheduleTimeLabel =
       workout.scheduleTimeLabel ?? _generatedPlanFallbackTime;
   final scheduledWorkoutId = _scheduledWorkoutIdFor(
@@ -658,7 +695,11 @@ YouPlanScheduleRow _scheduleRowForDay(
   return YouPlanScheduleRow(
     dayLabel,
     '${workout.durationMinutes} min ${workout.title}',
-    completed ? 'Completed' : 'Upcoming · $scheduleTimeLabel',
+    completed
+        ? 'Completed'
+        : isPast
+        ? 'Missed'
+        : 'Upcoming · $scheduleTimeLabel',
     _iconForWorkout(workout.kind),
     active: true,
     opensWorkoutDetail: true,
@@ -671,7 +712,10 @@ YouPlanScheduleRow _scheduleRowForDay(
       alreadyCompletedToday: completed && isToday,
       keepPlannedRunContext: completed && isToday,
       adaptiveEstimate: adaptiveEstimate,
-      occupiedWeekdayIndexes: occupiedWeekdayIndexes,
+      occupiedWeekdayIndexes: {
+        ...occupiedWeekdayIndexes,
+        for (var day = DateTime.monday; day <= currentWeekdayIndex; day++) day,
+      },
     ),
     weekdayIndex: weekdayIndex,
     isToday: isToday,

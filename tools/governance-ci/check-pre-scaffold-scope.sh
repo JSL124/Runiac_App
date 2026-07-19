@@ -5,7 +5,7 @@ repo_root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 cd "$repo_root"
 
 check_name="check-pre-scaffold-scope"
-scanned_paths="."
+scanned_paths="git ls-files --cached --others --exclude-standard"
 failures=0
 approved_scaffold_prefix="implementation/mobile/runiac_app/"
 
@@ -35,6 +35,42 @@ is_historical_backend_functions_path() {
     functions/package.json|\
     functions/tsconfig.json|\
     functions/src/index.ts|\
+    functions/src/agent/homeGuideAgent.ts|\
+    functions/src/agent/homeGuideAgentHandler.ts|\
+    functions/src/agent/homeGuideConsent.ts|\
+    functions/src/agent/homeGuideContracts.ts|\
+    functions/src/agent/homeGuideEvidence.ts|\
+    functions/src/agent/homeGuideModel.ts|\
+    functions/src/agent/homeGuideModelOutput.ts|\
+    functions/src/agent/homeGuideQuotaCache.ts|\
+    functions/src/agent/homeGuideQuotaFingerprint.ts|\
+    functions/src/agent/activityFeedbackAgent.ts|\
+    functions/src/agent/activityFeedbackAgentHandler.ts|\
+    functions/src/agent/activityFeedbackContractFields.ts|\
+    functions/src/agent/activityFeedbackContracts.ts|\
+    functions/src/agent/activityFeedbackModel.ts|\
+    functions/src/agent/activityFeedbackModelOutput.ts|\
+    functions/src/agent/activityFeedbackQuota.ts|\
+    functions/src/agent/activityFeedbackTypes.ts|\
+    functions/src/config/configLoader.ts|\
+    functions/src/security/appCheck.ts|\
+    functions/src/feed/cleanup.ts|\
+    functions/src/feed/contracts.ts|\
+    functions/src/feed/engagement/engagement.ts|\
+    functions/src/feed/fixtures/cli.ts|\
+    functions/src/feed/fixtures/emulatorFixtures.ts|\
+    functions/src/feed/fixtures/fixtureDefinitions.ts|\
+    functions/src/feed/fixtures/fixtureLibrary.ts|\
+    functions/src/feed/lifecycle/core.ts|\
+    functions/src/feed/lifecycle/firebasePort.ts|\
+    functions/src/feed/lifecycle/functions.ts|\
+    functions/src/feed/lifecycle/types.ts|\
+    functions/src/feed/png.ts|\
+    functions/src/feed/publish/callable.ts|\
+    functions/src/feed/publish/core.ts|\
+    functions/src/feed/relationship.ts|\
+    functions/src/feed/thumbnail/callable.ts|\
+    functions/src/feed/thumbnail/core.ts|\
     functions/src/notifications/deviceRegistry.ts|\
     functions/src/notifications/dispatchPlanner.ts|\
     functions/src/notifications/scheduledPushDispatch.ts|\
@@ -58,8 +94,11 @@ is_historical_backend_functions_path() {
     functions/src/leaderboard/leaderboardSeedWriteRecovery.ts|\
     functions/src/leaderboard/leaderboardTypes.ts|\
     functions/src/leaderboard/monthlyLeaderboard.ts|\
+    functions/src/leaderboard/monthlyLeaderboardOwnerFacts.ts|\
+    functions/src/leaderboard/monthlyLeaderboardPeriod.ts|\
     functions/src/leaderboard/monthlyLeaderboardPlanner.ts|\
     functions/src/leaderboard/monthlyLeaderboardWriter.ts|\
+    functions/src/leaderboard/monthlyLeaderboardWrites.ts|\
     functions/src/leaderboard/seedLeaderboardMockData.ts|\
     functions/src/leaderboard/singaporePlanningAreas.ts|\
     functions/src/plan/adaptiveEstimate.ts|\
@@ -80,8 +119,35 @@ is_historical_backend_functions_path() {
     functions/src/run/validateCadenceAnalysisSeries.ts|\
     functions/src/run/validateRunPayload.ts|\
     functions/src/run/validateRunScalarFields.ts|\
+    functions/src/run/rejectUnsupportedFields.ts|\
+    functions/src/run/validateRoutePreview.ts|\
+    functions/src/run/validateRunSummaryDetails.ts|\
+    functions/test/activityFeedbackAgentCallableSurface.test.ts|\
+    functions/test/activityFeedbackContracts.test.ts|\
+    functions/test/activityFeedbackModel.test.ts|\
     functions/test/completeRun.test.ts|\
     functions/test/completeRunCallableSurface.test.ts|\
+    functions/test/completeRunRichSummaryCases.ts|\
+    functions/test/completeRunRichSummaryFixtures.ts|\
+    functions/test/completeRunRichSummaryScenarios.ts|\
+    functions/test/configLoader.test.ts|\
+    functions/test/feedCallableSurface.test.ts|\
+    functions/test/feedContracts.test.ts|\
+    functions/test/feedEmulatorIntegration.test.ts|\
+    functions/test/feedEngagement.test.ts|\
+    functions/test/feedFixtureGuard.test.ts|\
+    functions/test/feedLifecycle.test.ts|\
+    functions/test/feedPublishCore.test.ts|\
+    functions/test/feedThumbnailCore.test.ts|\
+    functions/test/homeGuideAgentCallableSurface.test.ts|\
+    functions/test/homeGuideConsent.test.ts|\
+    functions/test/homeGuideAgentSurface.test.ts|\
+    functions/test/homeGuideEvidence.test.ts|\
+    functions/test/homeGuideEvidenceFixtures.ts|\
+    functions/test/homeGuideGeneratedCopyPolicy.test.ts|\
+    functions/test/homeGuideModel.test.ts|\
+    functions/test/homeGuideModelFixtures.ts|\
+    functions/test/homeGuideQuotaCache.test.ts|\
     functions/test/notificationDevices.test.ts|\
     functions/test/notificationDispatch.test.ts|\
     functions/test/notificationScheduledDispatch.test.ts|\
@@ -104,12 +170,173 @@ is_historical_backend_functions_path() {
   esac
 }
 
+is_historical_backend_config_path() {
+  case "$1" in
+    firebase.json|firestore.indexes.json|firestore.rules|storage.rules|\
+    implementation/roadmap/CURRENT.md|\
+    implementation/roadmap/capsules/feed-friends-emulator-backend.md|\
+    implementation/roadmap/snapshots/latest.md|\
+    tests/firebase-rules/feed.emulator.guard.mjs|\
+    tests/firebase-rules/feed.firestore.rules.test.mjs|\
+    tests/firebase-rules/feed.storage.rules.test.mjs|\
+    tests/firebase-rules/package.json|\
+    tests/firebase-rules/package-lock.json)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 is_adaptive_character_guidance_capsule_active() {
   grep -Eq '^- Current active capsule( in this isolated worktree)?: `implementation/roadmap/capsules/adaptive-character-guidance\.md`' implementation/roadmap/CURRENT.md
 }
 
+is_feed_friends_emulator_backend_capsule_active() {
+  grep -Eq '^- Current active capsule in this isolated worktree: `implementation/roadmap/capsules/feed-friends-emulator-backend\.md`\.' implementation/roadmap/CURRENT.md
+}
+
+is_challenge_distance_system_capsule_active() {
+  grep -Eq '^- Newly routed Challenge distance system on 2026-07-13 Asia/Singapore: `implementation/roadmap/capsules/challenge-distance-system\.md`' implementation/roadmap/CURRENT.md
+}
+
+is_friends_backend_mvp_capsule_active() {
+  grep -Eq '^- Newly routed backed Friends MVP on 2026-07-13 Asia/Singapore: `implementation/roadmap/capsules/friends-backend-mvp\.md`' implementation/roadmap/CURRENT.md
+}
+
+is_friends_backend_mvp_functions_path() {
+  case "$1" in
+    functions/src/friends/*|\
+    functions/test/friendsCore.test.ts)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+is_challenge_distance_system_functions_path() {
+  case "$1" in
+    functions/src/challenge/*|\
+    functions/test/challenge*.ts|\
+    functions/test/levelUpLeaderboard.integration.test.ts)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+is_cool_down_stretch_xp_bonus_capsule_active() {
+  grep -Eq '^- Newly routed cool-down stretch completion XP bonus on 2026-07-14 Asia/Singapore: `implementation/roadmap/capsules/cool-down-stretch-completion-xp-bonus\.md`' implementation/roadmap/CURRENT.md
+}
+
+is_cool_down_stretch_xp_bonus_functions_path() {
+  case "$1" in
+    functions/src/run/completeCoolDown.ts|\
+    functions/src/run/validateCoolDownPayload.ts|\
+    functions/src/run/runCompletionTypes.ts|\
+    functions/src/run/runCompletionArtifacts.ts|\
+    functions/src/progression/progressionCalculator.ts|\
+    functions/src/progression/progressionAudit.ts|\
+    functions/src/progression/progressionDisplayReader.ts|\
+    functions/src/index.ts|\
+    functions/test/completeCoolDown.test.ts|\
+    functions/test/progressionCalculator.test.ts)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+is_feed_friends_emulator_backend_rules_test_path() {
+  local path="$1"
+  local relative_path
+  local basename
+
+  case "$path" in
+    tests/firebase-rules/*) relative_path="${path#tests/firebase-rules/}" ;;
+    *) return 1 ;;
+  esac
+  case "$relative_path" in
+    */*) return 1 ;;
+  esac
+
+  basename="${relative_path##*/}"
+  case "$basename" in
+    *feed*.mjs) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+is_feed_friends_emulator_backend_rules_test_candidate_path() {
+  local path="$1"
+  local basename
+
+  case "$path" in
+    tests/firebase-rules/*) basename="${path##*/}" ;;
+    *) return 1 ;;
+  esac
+
+  case "$basename" in
+    *feed*.mjs) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+is_feed_friends_emulator_backend_functions_test_path() {
+  local path="$1"
+  local relative_path
+  local basename
+
+  case "$path" in
+    functions/test/*) relative_path="${path#functions/test/}" ;;
+    *) return 1 ;;
+  esac
+  case "$relative_path" in
+    */*) return 1 ;;
+  esac
+
+  basename="${relative_path##*/}"
+  case "$basename" in
+    feed*.ts) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+is_feed_friends_emulator_backend_path() {
+  if is_feed_friends_emulator_backend_rules_test_path "$1" || is_feed_friends_emulator_backend_functions_test_path "$1"; then
+    return 0
+  fi
+
+  case "$1" in
+    implementation/roadmap/capsules/feed-friends-emulator-backend.md|\
+    implementation/roadmap/CURRENT.md|\
+    implementation/roadmap/snapshots/latest.md|\
+    firebase.json|firestore.rules|firestore.indexes.json|storage.rules|\
+    tests/firebase-rules/package.json|tests/firebase-rules/package-lock.json|\
+    functions/src/feed/*|\
+    functions/src/index.ts|functions/package.json|functions/package-lock.json)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+
+}
+
 is_adaptive_character_guidance_functions_path() {
   case "$1" in
+    functions/src/index.ts|\
+    functions/src/security/appCheck.ts|\
+    functions/src/agent/activityFeedbackAgent.ts|\
+    functions/src/agent/homeGuideConsent.ts|\
     functions/src/agent/homeGuideAgent.ts|\
     functions/src/agent/homeGuideAgentHandler.ts|\
     functions/src/agent/homeGuideContracts.ts|\
@@ -118,19 +345,65 @@ is_adaptive_character_guidance_functions_path() {
     functions/src/agent/homeGuideModelOutput.ts|\
     functions/src/agent/homeGuideQuotaCache.ts|\
     functions/src/agent/homeGuideQuotaFingerprint.ts|\
+    functions/src/progression/refreshStreakStatus.ts|\
     functions/test/homeGuideAgentCallableSurface.test.ts|\
+    functions/test/homeGuideConsent.test.ts|\
     functions/test/homeGuideAgentSurface.test.ts|\
     functions/test/homeGuideEvidence.test.ts|\
     functions/test/homeGuideEvidenceFixtures.ts|\
+    functions/test/homeGuideLoggerCapture.ts|\
     functions/test/homeGuideModel.test.ts|\
     functions/test/homeGuideModelFixtures.ts|\
-    functions/test/homeGuideQuotaCache.test.ts)
+    functions/test/homeGuideQuotaCache.test.ts|\
+    functions/test/streakExpiry.test.ts)
       return 0
       ;;
     *)
       return 1
       ;;
   esac
+}
+
+approved_adaptive_inactive_baseline_blob() {
+  case "$1" in
+    functions/src/progression/refreshStreakStatus.ts)
+      printf '%s\n' '26ec88d24e4f28415cbef6b473fa9d98d0e9f842'
+      ;;
+    functions/test/streakExpiry.test.ts)
+      printf '%s\n' 'ca432a704997422ba9e8e3f96abad33ffc1c1e1e'
+      ;;
+    functions/test/homeGuideLoggerCapture.ts)
+      printf '%s\n' 'b5e8340a755b33bb4fb1d8f425649bd4172e3af7'
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+check_approved_adaptive_inactive_baselines() {
+  local path
+  local expected_blob
+  local index_blob
+  local worktree_blob
+
+  if is_adaptive_character_guidance_capsule_active; then
+    return 0
+  fi
+
+  while IFS= read -r path; do
+    expected_blob="$(approved_adaptive_inactive_baseline_blob "$path")"
+    index_blob="$(git rev-parse ":$path" 2>/dev/null || true)"
+    worktree_blob="$(git hash-object -- "$path" 2>/dev/null || true)"
+
+    if [ "$index_blob" != "$expected_blob" ] || [ "$worktree_blob" != "$expected_blob" ]; then
+      fail "Adaptive inactive immutable baseline mismatch: $path (expected_blob=$expected_blob index_blob=${index_blob:-missing} worktree_blob=${worktree_blob:-missing})"
+    fi
+  done <<'PATHS'
+functions/src/progression/refreshStreakStatus.ts
+functions/test/streakExpiry.test.ts
+functions/test/homeGuideLoggerCapture.ts
+PATHS
 }
 
 is_approved_scaffold_path() {
@@ -144,7 +417,57 @@ is_approved_scaffold_path() {
   esac
 }
 
+is_user_feedback_pipeline_capsule_active() {
+  grep -Eq '^- Newly routed user feedback pipeline on 2026-07-19 Asia/Singapore: `implementation/roadmap/capsules/user-feedback-pipeline\.md`' implementation/roadmap/CURRENT.md
+}
+
+# Note: the rules test basename contains "feed", so this must be consulted
+# before the feed-friends-emulator-backend basename patterns claim it.
+is_user_feedback_pipeline_path() {
+  case "$1" in
+    firestore.rules|\
+    firestore.indexes.json|\
+    functions/src/feedback/*|\
+    functions/test/submitFeedback.test.ts|\
+    functions/src/index.ts|\
+    functions/package.json|\
+    tests/firebase-rules/feedback.firestore.rules.test.mjs|\
+    tests/firebase-rules/package.json)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 is_forbidden_config_or_secret() {
+  if is_user_feedback_pipeline_path "$1" && is_user_feedback_pipeline_capsule_active; then
+    return 1
+  fi
+
+  if is_historical_backend_config_path "$1"; then
+    return 1
+  fi
+
+  if is_historical_backend_functions_path "$1"; then
+    return 1
+  fi
+
+  if is_feed_friends_emulator_backend_rules_test_candidate_path "$1"; then
+    if is_feed_friends_emulator_backend_path "$1" && is_feed_friends_emulator_backend_capsule_active; then
+      return 1
+    fi
+    return 0
+  fi
+
+  if is_feed_friends_emulator_backend_path "$1"; then
+    if is_feed_friends_emulator_backend_capsule_active; then
+      return 1
+    fi
+    return 0
+  fi
+
   case "$1" in
     firebase.json|firestore.rules)
       return 1
@@ -174,7 +497,19 @@ is_forbidden_config_or_secret() {
       if is_historical_backend_functions_path "$1"; then
         return 1
       fi
+      if is_friends_backend_mvp_functions_path "$1" && is_friends_backend_mvp_capsule_active; then
+        return 1
+      fi
+      if is_challenge_distance_system_functions_path "$1" && is_challenge_distance_system_capsule_active; then
+        return 1
+      fi
+      if is_cool_down_stretch_xp_bonus_functions_path "$1" && is_cool_down_stretch_xp_bonus_capsule_active; then
+        return 1
+      fi
       if is_adaptive_character_guidance_functions_path "$1" && is_adaptive_character_guidance_capsule_active; then
+        return 1
+      fi
+      if approved_adaptive_inactive_baseline_blob "$1" >/dev/null; then
         return 1
       fi
       return 0
@@ -183,6 +518,8 @@ is_forbidden_config_or_secret() {
 
   return 1
 }
+
+check_approved_adaptive_inactive_baselines
 
 while IFS= read -r path; do
   [ -n "$path" ] || continue

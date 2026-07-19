@@ -1,9 +1,13 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart' as widgets;
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mapbox;
 
+import '../../../run/domain/models/run_location_sample.dart';
 import 'activity_route_preview.dart';
 import 'activity_route_snapshot_thumbnail_cache.dart';
+import 'activity_route_thumbnail_viewport.dart';
 
 class ActivityRouteMapboxSnapshotStyle {
   const ActivityRouteMapboxSnapshotStyle._();
@@ -135,9 +139,16 @@ class MapboxActivityRouteSnapshotThumbnailGenerator
           byteLength: bytes.lengthInBytes,
         ),
       );
-      return ActivityRouteThumbnailResult.readyImage(
-        widgets.MemoryImage(bytes),
-      );
+      try {
+        final maskedBytes = await encodePrivacyMaskedPng(bytes, request);
+        return ActivityRouteThumbnailResult.readyPng(maskedBytes);
+      } on Object {
+        // Legacy/UI-only consumers can still render an invalid test double,
+        // but Feed capture refuses results without verified PNG bytes.
+        return ActivityRouteThumbnailResult.readyImage(
+          widgets.MemoryImage(bytes),
+        );
+      }
     } on PlatformException catch (error) {
       _reportDiagnostic(
         _snapshotWasCancelled(error)
@@ -172,6 +183,96 @@ class MapboxActivityRouteSnapshotThumbnailGenerator
     }
     onDiagnostic(diagnostic);
   }
+}
+
+Future<Uint8List> encodePrivacyMaskedPng(
+  Uint8List sourceBytes,
+  ActivityRouteSnapshotThumbnailGenerationRequest request,
+) async {
+  final codec = await ui.instantiateImageCodec(sourceBytes);
+  final frame = await codec.getNextFrame();
+  codec.dispose();
+  final image = frame.image;
+  final width = request.outputWidthPixels;
+  final height = request.outputHeightPixels;
+  final recorder = ui.PictureRecorder();
+  final canvas = ui.Canvas(recorder);
+  try {
+    final destination = ui.Rect.fromLTWH(
+      0,
+      0,
+      width.toDouble(),
+      height.toDouble(),
+    );
+    canvas.drawImageRect(
+      image,
+      ui.Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
+      destination,
+      ui.Paint(),
+    );
+    _paintRouteOverlay(canvas, request);
+    final output = await recorder.endRecording().toImage(width, height);
+    try {
+      final data = await output.toByteData(format: ui.ImageByteFormat.png);
+      if (data == null) throw StateError('PNG encoding was unavailable.');
+      return data.buffer.asUint8List();
+    } finally {
+      output.dispose();
+    }
+  } finally {
+    image.dispose();
+  }
+}
+
+void _paintRouteOverlay(
+  ui.Canvas canvas,
+  ActivityRouteSnapshotThumbnailGenerationRequest request,
+) {
+  if (request.route.segments.isEmpty) {
+    return;
+  }
+  canvas.save();
+  canvas.scale(request.devicePixelRatio, request.devicePixelRatio);
+  final shadowPaint = ui.Paint()
+    ..color = const ui.Color(0xCCFFFFFF)
+    ..strokeWidth = 8
+    ..style = ui.PaintingStyle.stroke
+    ..strokeCap = ui.StrokeCap.round
+    ..strokeJoin = ui.StrokeJoin.round;
+  final routePaint = ui.Paint()
+    ..color = const ui.Color(0xFFC85A09)
+    ..strokeWidth = 5
+    ..style = ui.PaintingStyle.stroke
+    ..strokeCap = ui.StrokeCap.round
+    ..strokeJoin = ui.StrokeJoin.round;
+  for (final segment in request.route.segments) {
+    final path = _routePathForSegment(segment, request.viewport);
+    if (path == null) {
+      continue;
+    }
+    canvas.drawPath(path, shadowPaint);
+    canvas.drawPath(path, routePaint);
+  }
+  canvas.restore();
+}
+
+ui.Path? _routePathForSegment(
+  List<RunLocationSample> segment,
+  ActivityRouteThumbnailViewport viewport,
+) {
+  final points = segment
+      .where((point) => point.latitude.isFinite && point.longitude.isFinite)
+      .toList(growable: false);
+  if (points.length < 2) {
+    return null;
+  }
+  final start = viewport.project(points.first);
+  final path = ui.Path()..moveTo(start.dx, start.dy);
+  for (final point in points.skip(1)) {
+    final projected = viewport.project(point);
+    path.lineTo(projected.dx, projected.dy);
+  }
+  return path;
 }
 
 typedef ActivityRouteSnapshotterLifecycleSink =

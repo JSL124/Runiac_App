@@ -34,6 +34,7 @@ import UserNotifications
     RuniacHealthKitImportChannel.register(with: registrar.messenger())
     RuniacPhoneMotionCadenceChannel.register(with: registrar.messenger())
     RuniacPlanNotificationChannel.register(with: registrar.messenger())
+    RuniacInstagramStoryChannel.register(with: registrar.messenger())
   }
 
   override func userNotificationCenter(

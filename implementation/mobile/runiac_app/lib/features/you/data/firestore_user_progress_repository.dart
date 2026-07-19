@@ -5,13 +5,19 @@ import '../../auth/domain/runiac_auth_service.dart';
 import '../domain/models/user_progress_read_model.dart';
 import '../domain/repositories/user_progress_repository.dart';
 import 'local_user_progress_cache_store.dart';
+import 'user_streak_refresh_service.dart';
 
 abstract interface class UserProgressDocumentReader {
   Future<Map<String, Object?>?> readUserProgress({required String uid});
 }
 
-class FirestoreUserProgressDocumentReader
+abstract interface class LiveUserProgressDocumentReader
     implements UserProgressDocumentReader {
+  Stream<void> watchUserProgress({required String uid});
+}
+
+class FirestoreUserProgressDocumentReader
+    implements LiveUserProgressDocumentReader {
   FirestoreUserProgressDocumentReader({FirebaseFirestore? firestore})
     : _firestore = firestore ?? FirebaseFirestore.instance;
 
@@ -23,13 +29,24 @@ class FirestoreUserProgressDocumentReader
     final data = snapshot.data();
     return data == null ? null : Map<String, Object?>.from(data);
   }
+
+  @override
+  Stream<void> watchUserProgress({required String uid}) {
+    return _firestore
+        .collection('userProfiles')
+        .doc(uid)
+        .snapshots()
+        .map<void>((_) {});
+  }
 }
 
-class FirestoreUserProgressRepository implements UserProgressRepository {
+class FirestoreUserProgressRepository
+    implements UserProgressRepository, LiveUserProgressRepository {
   FirestoreUserProgressRepository({
     required this.authRepository,
     UserProgressDocumentReader? reader,
     LocalUserProgressCacheStore? cacheStore,
+    this.streakRefreshService = const NoopUserStreakRefreshService(),
     DateTime Function()? clock,
     this.fallbackRepository = const StaticUserProgressRepository(),
   }) : _reader = reader ?? FirestoreUserProgressDocumentReader(),
@@ -41,6 +58,7 @@ class FirestoreUserProgressRepository implements UserProgressRepository {
   final UserProgressDocumentReader _reader;
   final LocalUserProgressCacheStore _cacheStore;
   final DateTime Function() _clock;
+  final UserStreakRefreshService streakRefreshService;
   final UserProgressRepository fallbackRepository;
   var _cacheWriteGeneration = 0;
 
@@ -53,6 +71,7 @@ class FirestoreUserProgressRepository implements UserProgressRepository {
 
     final cacheWriteGeneration = _cacheWriteGeneration;
     try {
+      await _refreshStreakSafely();
       return await _readAndCacheUserProgress(
         currentUser.uid,
         cacheWriteGeneration: cacheWriteGeneration,
@@ -79,10 +98,37 @@ class FirestoreUserProgressRepository implements UserProgressRepository {
     }
 
     _cacheWriteGeneration += 1;
+    await _refreshStreakSafely();
     return _readAndCacheUserProgress(
       currentUser.uid,
       cacheWriteGeneration: _cacheWriteGeneration,
     );
+  }
+
+  @override
+  Stream<UserProgressReadModel> watchUserProgress() {
+    final currentUser = authRepository.currentUser;
+    final reader = _reader;
+    if (currentUser == null || reader is! LiveUserProgressDocumentReader) {
+      return Stream.fromFuture(loadUserProgress());
+    }
+    final cacheWriteGeneration = _cacheWriteGeneration;
+    return reader
+        .watchUserProgress(uid: currentUser.uid)
+        .asyncMap(
+          (_) => _readAndCacheUserProgress(
+            currentUser.uid,
+            cacheWriteGeneration: cacheWriteGeneration,
+          ),
+        );
+  }
+
+  Future<void> _refreshStreakSafely() async {
+    try {
+      await streakRefreshService.refreshStreakStatus();
+    } on Object catch (error, stackTrace) {
+      _reportCacheError(error, stackTrace, 'refreshing streak status');
+    }
   }
 
   Future<UserProgressReadModel> _readAndCacheUserProgress(
@@ -102,16 +148,25 @@ class FirestoreUserProgressRepository implements UserProgressRepository {
     final progress = UserProgressReadModel(
       userId: uid,
       officialStreakLabel: _streakLabel(data['streakCount']),
-      officialStreakCount: _positiveInteger(data['streakCount']),
+      officialStreakCount: _nonNegativeInteger(data['streakCount']),
       lastStreakRunDate: _stringOrNull(data['lastStreakRunDate']),
       level: _nonNegativeInteger(data['level']),
       levelProgressFraction: _progressFraction(data['levelProgressPercent']),
+      totalXp: _nonNegativeIntegerOrNull(data['totalXp']),
+      nextLevelXp: _nonNegativeIntegerOrNull(data['nextLevelXp']),
+      xpToNextLevel: _nonNegativeIntegerOrNull(data['xpToNextLevel']),
+      divisionKey: _string(data['divisionKey']),
+      divisionLabel: _string(data['divisionLabel']),
+      isMaxLevel:
+          data.containsKey('xpToNextLevel') && data['xpToNextLevel'] == null,
       levelLabel: _string(data['levelLabel']),
       totalXpLabel: _string(data['totalXpLabel']),
       monthlyXpLabel: _string(data['monthlyXpLabel']),
       weeklyXpLabel: '',
       weeklyDistanceLabel: _string(data['weeklyDistanceLabel']),
       goalProgressLabel: _string(data['goalProgressLabel']),
+      longestStreakLabel: _string(data['longestStreakLabel']),
+      totalDistanceLabel: _string(data['totalDistanceLabel']),
     );
     await _saveCacheSafely(
       progress,
@@ -135,7 +190,7 @@ class FirestoreUserProgressRepository implements UserProgressRepository {
 
   String _streakLabel(Object? streakCount) {
     if (streakCount is! int || streakCount <= 0) {
-      return '';
+      return '0 days';
     }
     return streakCount == 1 ? '1 day' : '$streakCount days';
   }
@@ -148,12 +203,12 @@ class FirestoreUserProgressRepository implements UserProgressRepository {
     return value is String && value.isNotEmpty ? value : null;
   }
 
-  int? _positiveInteger(Object? value) {
-    return value is int && value > 0 ? value : null;
-  }
-
   int _nonNegativeInteger(Object? value) {
     return value is int && value >= 0 ? value : 0;
+  }
+
+  int? _nonNegativeIntegerOrNull(Object? value) {
+    return value is int && value >= 0 ? value : null;
   }
 
   double _progressFraction(Object? value) {

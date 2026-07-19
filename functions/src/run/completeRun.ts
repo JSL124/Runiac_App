@@ -1,6 +1,8 @@
 import { getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
+import { applyChallengeContribution } from "../challenge/challengeContribution.js";
+import { loadProgressionConfig } from "../config/configLoader.js";
 import {
   leaderboardContributionId,
   writeLeaderboardContribution,
@@ -10,6 +12,7 @@ import { persistCompletedWorkoutProgress } from "../plan/planProgress.js";
 import {
   calculateProgressionAudit,
   noCompletedWorkoutRecorded,
+  planCompletionFromEvent,
   profileProgressionData,
   progressionEventData,
   progressionDisplayFromEvent,
@@ -20,14 +23,22 @@ import {
 } from "../progression/progressionCalculator.js";
 import { deferredProgressionDisplay } from "../progression/progressionEventWriter.js";
 import { readTrustedProtectedRestDates, readTrustedStreakState } from "../progression/planBoundedStreakState.js";
-import { calculateStreakTransition, type StreakState } from "../progression/streakCalculator.js";
+import {
+  calculateStreakStateFromRuns,
+  calculateStreakTransition,
+  type StreakRun,
+  type StreakState,
+  unchangedStreakTransition,
+} from "../progression/streakCalculator.js";
 import {
   assertExistingActivityMatchesPayload,
   buildRunSummary,
   deterministicIds,
   fingerprintPayload,
+  formatLongestStreakLabel,
+  formatTotalDistanceLabel,
 } from "./runCompletionArtifacts.js";
-import type { CompleteRunResult, ProgressionDisplay } from "./runCompletionTypes.js";
+import type { CompleteRunResult, PlanCompletionResult, ProgressionDisplay } from "./runCompletionTypes.js";
 import { parseRunCompletionPayload } from "./validateRunPayload.js";
 type CallableRunRequest = {
   readonly auth?: {
@@ -58,6 +69,8 @@ export async function completeRunForCallable(
   const dailyCapDate = dailyCapDateForCompletedAt(payload.completedAt);
   const monthlyPeriod = monthlyPeriodForCompletedAt(payload.completedAt);
   let progressionDisplay: ProgressionDisplay = deferredProgressionDisplay();
+  let planCompletion: PlanCompletionResult = { completed: false };
+  const progressionConfig = await loadProgressionConfig(firestore);
 
   await firestore.runTransaction(async (transaction) => {
     const activityRef = firestore.collection("activities").doc(ids.activityId);
@@ -112,21 +125,23 @@ export async function completeRunForCallable(
       assertExistingActivityMatchesPayload(activitySnapshot.data(), payloadFingerprint);
     }
 
-    const shouldPersistProgression = !activitySnapshot.exists;
-    const streakTransition = shouldPersistProgression
-      ? calculateStreakTransition(
-          {
-            currentState: readTrustedStreakState({
-              profileState: readStreakState(profileSnapshot.data()),
-              generatedPlanData: generatedPlanSnapshot.data(),
-              activityDocuments: activitySnapshots.docs.map((document) => document.data()),
-            }),
-            completedAt: payload.completedAt,
-            protectedRestDates: readTrustedProtectedRestDates(generatedPlanSnapshot.data()),
-          },
-        )
-      : undefined;
+    // Challenge contribution seam (Todo 5). Runs after payload validation and
+    // replay matching, and strictly BEFORE this transaction's first write (its
+    // internal reads must precede every write). It never throws for challenge
+    // state reasons and never touches XP/streak/level/leaderboard outputs;
+    // non-participants pay at most one extra read.
+    await applyChallengeContribution({
+      transaction,
+      firestore,
+      uid,
+      activityId: ids.activityId,
+      activityAlreadyExists: activitySnapshot.exists,
+      distanceMeters: payload.distanceMeters,
+      completedAtMs: Date.parse(payload.completedAt),
+      nowMs: Date.now(),
+    });
 
+    const shouldPersistProgression = !activitySnapshot.exists;
     let planProgressResult = noCompletedWorkoutRecorded();
     if (shouldPersistProgression) {
       planProgressResult = persistCompletedWorkoutProgress({
@@ -140,6 +155,23 @@ export async function completeRunForCallable(
       });
     }
 
+    const currentStreakState = readTrustedStreakState({
+      profileState: readStreakState(profileSnapshot.data()),
+      generatedPlanData: generatedPlanSnapshot.data(),
+      activityDocuments: activitySnapshots.docs.map((document) => document.data()),
+    });
+    const countsTowardStreak =
+      !planProgressResult.matchedPlanWorkout || planProgressResult.completedWorkoutRecorded;
+    const streakTransition = shouldPersistProgression
+      ? countsTowardStreak
+        ? calculateStreakTransition({
+            currentState: currentStreakState,
+            completedAt: payload.completedAt,
+            protectedRestDates: readTrustedProtectedRestDates(generatedPlanSnapshot.data()),
+          })
+        : unchangedStreakTransition(currentStreakState, payload.completedAt)
+      : undefined;
+
     const xpAudit = shouldPersistProgression
       ? calculateProgressionAudit({
           payload,
@@ -150,6 +182,7 @@ export async function completeRunForCallable(
           sameDayProgressionEventDocuments: progressionEventSnapshots.docs.map((document) => document.data()),
           sameMonthProgressionEventDocuments: monthlyProgressionEventSnapshots.docs.map((document) => document.data()),
           planProgressResult,
+          config: progressionConfig,
         })
       : null;
 
@@ -176,6 +209,8 @@ export async function completeRunForCallable(
         validationStatus: "validated",
         validatedActivityContributionState: xpAudit?.xpDelta === 0 ? "not_awarded" : "awarded",
         countsTowardProgression: (xpAudit?.xpDelta ?? 0) > 0,
+        countsTowardStreak,
+        plannedWorkoutRecorded: planProgressResult.completedWorkoutRecorded,
         validationReason: xpAudit?.reason ?? "progression_formula_deferred",
         ...(payload.cadenceAnalysisSeries === undefined
           ? {}
@@ -206,6 +241,17 @@ export async function completeRunForCallable(
         previousStreak: streakTransition.previousStreak,
         streak: streakTransition.nextStreak,
       };
+      planCompletion = planProgressResult.completedWorkoutRecorded
+        ? {
+            completed: true,
+            ...(planProgressResult.planEnrollmentId === null
+              ? {}
+              : { planEnrollmentId: planProgressResult.planEnrollmentId }),
+            ...(planProgressResult.scheduledWorkoutId === null
+              ? {}
+              : { scheduledWorkoutId: planProgressResult.scheduledWorkoutId }),
+          }
+        : { completed: false };
       transaction.set(
         progressionRef,
         progressionEventData({ uid, ids, payload, audit: xpAudit, streakTransition, planProgressResult }),
@@ -226,6 +272,7 @@ export async function completeRunForCallable(
       });
     } else {
       progressionDisplay = progressionDisplayFromEvent(progressionSnapshot.data());
+      planCompletion = planCompletionFromEvent(progressionSnapshot.data());
     }
 
     if (streakTransition?.shouldUpdateProfile === true) {
@@ -235,6 +282,61 @@ export async function completeRunForCallable(
           streakCount: streakTransition.nextStreak,
           lastStreakRunDate: streakTransition.nextStreakRunDate,
           streakUpdatedAt: streakTransition.streakUpdatedAt,
+        },
+        { merge: true },
+      );
+    }
+
+    // Backend-owned lifetime stats for the profile page, recomputed from the
+    // full validated activity history already fetched in this transaction (no
+    // extra reads). Self-healing: it reflects every recorded run — including
+    // any that predate this field — and is naturally idempotent, so replays
+    // never double-count. Runs on genuinely new completions only.
+    if (shouldPersistProgression) {
+      const streakRuns: StreakRun[] = [];
+      let totalDistanceMeters = 0;
+      for (const activityDocument of activitySnapshots.docs) {
+        const data = activityDocument.data();
+        if (data["activityType"] !== "run" || data["validationStatus"] !== "validated") {
+          continue;
+        }
+        const distanceMeters = data["distanceMeters"];
+        if (typeof distanceMeters === "number" && Number.isFinite(distanceMeters) && distanceMeters > 0) {
+          totalDistanceMeters += distanceMeters;
+        }
+        if (data["countsTowardStreak"] !== false) {
+          const completedAt = readActivityCompletedAt(data);
+          if (completedAt !== null) {
+            streakRuns.push({ completedAt });
+          }
+        }
+      }
+      // The current run is written earlier in this transaction, so it is not yet
+      // in the fetched snapshot — fold it in explicitly.
+      if (payload.distanceMeters > 0) {
+        totalDistanceMeters += payload.distanceMeters;
+      }
+      if (countsTowardStreak) {
+        streakRuns.push({ completedAt: payload.completedAt });
+      }
+
+      const recomputedLongestStreak = longestStreakFromRuns(
+        streakRuns,
+        readTrustedProtectedRestDates(generatedPlanSnapshot.data()),
+      );
+      // "Max streak ever" must never regress, e.g. if historical rest-day
+      // context is unavailable to bridge an old gap.
+      const longestStreak = Math.max(
+        readNonNegativeInteger(profileSnapshot.data()?.["longestStreak"]),
+        recomputedLongestStreak,
+      );
+      transaction.set(
+        profileRef,
+        {
+          longestStreak,
+          longestStreakLabel: formatLongestStreakLabel(longestStreak),
+          totalDistanceMeters,
+          totalDistanceLabel: formatTotalDistanceLabel(totalDistanceMeters),
         },
         { merge: true },
       );
@@ -261,6 +363,7 @@ export async function completeRunForCallable(
     validationStatus: "validated",
     runSummary,
     progressionDisplay,
+    planCompletion,
     message: "Run completion accepted by emulator backend skeleton.",
   };
 }
@@ -278,4 +381,43 @@ function readStreakState(profileData: FirebaseFirestore.DocumentData | undefined
     streakCount: hasPersistedStreak ? streakCount : 0,
     lastStreakRunDate: hasPersistedStreak && typeof lastStreakRunDate === "string" ? lastStreakRunDate : null,
   };
+}
+
+function readNonNegativeInteger(value: unknown): number {
+  return typeof value === "number" && Number.isInteger(value) && value > 0 ? value : 0;
+}
+
+function readActivityCompletedAt(activityData: FirebaseFirestore.DocumentData): string | null {
+  const endedAt = activityData["endedAt"];
+  if (typeof endedAt === "string") {
+    return endedAt;
+  }
+  const completedAt = activityData["completedAt"];
+  return typeof completedAt === "string" ? completedAt : null;
+}
+
+// Highest streak ever reached across the given runs. Reuses the canonical
+// streak reducer over each date-ordered prefix, so the streak height on every
+// run day is evaluated and the maximum retained — no duplication of the
+// day-transition rules (consecutive day, same-day, rest-day bridge, gap reset).
+function longestStreakFromRuns(
+  runs: readonly StreakRun[],
+  protectedRestDates: readonly string[],
+): number {
+  const orderedRuns = [...runs].sort((left, right) =>
+    dailyCapDateForCompletedAt(left.completedAt).localeCompare(
+      dailyCapDateForCompletedAt(right.completedAt),
+    ),
+  );
+  let peak = 0;
+  for (let length = 1; length <= orderedRuns.length; length += 1) {
+    const { streakCount } = calculateStreakStateFromRuns(
+      orderedRuns.slice(0, length),
+      protectedRestDates,
+    );
+    if (streakCount > peak) {
+      peak = streakCount;
+    }
+  }
+  return peak;
 }

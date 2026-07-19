@@ -38,14 +38,17 @@ const leaderboardRunnerAchievementDemoBadges = [
 const leaderboardPreviewDemoSnapshot = LeaderboardPreviewSnapshot(
   tipsTitle: 'Tips',
   leaguesTipTitle: 'Leagues',
-  cadenceTipTitle: 'Board timing',
-  readinessTipTitle: 'Static sample data',
+  cadenceTipTitle: 'Monthly refresh',
+  readinessTipTitle: 'Getting ranked',
   leaguesTipBody:
-      'Leagues group runners by broad progress bands so the board feels fair and beginner-friendly.',
+      'Leagues group runners into broad progress bands so every board stays '
+      'fair and beginner-friendly.',
   cadenceTipBody:
-      'This static preview keeps one monthly board context for a calmer comparison.',
+      'Rankings refresh every month. Your monthly XP resets at the start of a '
+      'new month, while your level stays the same.',
   readinessTipBody:
-      'Leaderboard values shown here are display-only sample rows for this UI milestone.',
+      'Finish a run in your planning area this month to appear on its '
+      'leaderboard.',
 );
 
 const leaderboardLeagueDemoSnapshot = LeaderboardLeagueSnapshot(
@@ -126,6 +129,7 @@ const leaderboardDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
   monthlyResetLabel:
       'Monthly gained XP resets to 0 XP next month. Your level stays the same.',
   divisionLabel: 'Bronze',
+  divisionAssetPath: RuniacAssets.leaderboardLeagueBronze,
   topRanksTitle: 'Regional ranking',
   nearbyRanksTitle: 'Nearby your rank',
   currentUser: CurrentUserRankSummaryDisplaySnapshot(
@@ -143,7 +147,7 @@ const leaderboardDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       profile: RunnerAchievementProfileSnapshot(
         name: 'Alex T.',
         initial: 'A',
-        regionRankLabel: 'Jurong East · Rank #1',
+        regionRankLabel: '#1 Jurong East, Singapore',
         levelBadgeLabel: 'Lv.18',
         divisionLevelLabel: 'Bronze · Level 18',
         totalDistanceLabel: '10000 km',
@@ -162,7 +166,7 @@ const leaderboardDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       profile: RunnerAchievementProfileSnapshot(
         name: 'Maya L.',
         initial: 'M',
-        regionRankLabel: 'Jurong East · Rank #2',
+        regionRankLabel: '#2 Jurong East, Singapore',
         levelBadgeLabel: 'Lv.17',
         divisionLevelLabel: 'Bronze · Level 17',
         totalDistanceLabel: '198.2 km',
@@ -180,7 +184,7 @@ const leaderboardDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       profile: RunnerAchievementProfileSnapshot(
         name: 'Ryan K.',
         initial: 'R',
-        regionRankLabel: 'Jurong East · Rank #3',
+        regionRankLabel: '#3 Jurong East, Singapore',
         levelBadgeLabel: 'Lv.16',
         divisionLevelLabel: 'Bronze · Level 16',
         totalDistanceLabel: '176.0 km',
@@ -198,7 +202,7 @@ const leaderboardDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       profile: RunnerAchievementProfileSnapshot(
         name: 'Ethan G.',
         initial: 'E',
-        regionRankLabel: 'Jurong East · Rank #4',
+        regionRankLabel: '#4 Jurong East, Singapore',
         levelBadgeLabel: 'Lv.15',
         divisionLevelLabel: 'Bronze · Level 15',
         totalDistanceLabel: '154.5 km',
@@ -215,7 +219,7 @@ const leaderboardDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       profile: RunnerAchievementProfileSnapshot(
         name: 'Sarah C.',
         initial: 'S',
-        regionRankLabel: 'Jurong East · Rank #5',
+        regionRankLabel: '#5 Jurong East, Singapore',
         levelBadgeLabel: 'Lv.14',
         divisionLevelLabel: 'Bronze · Level 14',
         totalDistanceLabel: '143.6 km',
@@ -232,7 +236,7 @@ const leaderboardDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       profile: RunnerAchievementProfileSnapshot(
         name: 'Priya N.',
         initial: 'P',
-        regionRankLabel: 'Jurong East · Rank #6',
+        regionRankLabel: '#6 Jurong East, Singapore',
         levelBadgeLabel: 'Lv.14',
         divisionLevelLabel: 'Bronze · Level 14',
         totalDistanceLabel: '139.2 km',
@@ -249,7 +253,7 @@ const leaderboardDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       profile: RunnerAchievementProfileSnapshot(
         name: 'Omar R.',
         initial: 'O',
-        regionRankLabel: 'Jurong East · Rank #7',
+        regionRankLabel: '#7 Jurong East, Singapore',
         levelBadgeLabel: 'Lv.13',
         divisionLevelLabel: 'Bronze · Level 13',
         totalDistanceLabel: '135.8 km',
@@ -266,7 +270,7 @@ const leaderboardDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       profile: RunnerAchievementProfileSnapshot(
         name: 'Hana S.',
         initial: 'H',
-        regionRankLabel: 'Jurong East · Rank #8',
+        regionRankLabel: '#8 Jurong East, Singapore',
         levelBadgeLabel: 'Lv.13',
         divisionLevelLabel: 'Bronze · Level 13',
         totalDistanceLabel: '132.4 km',
@@ -283,7 +287,7 @@ const leaderboardDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       profile: RunnerAchievementProfileSnapshot(
         name: 'Leo P.',
         initial: 'L',
-        regionRankLabel: 'Jurong East · Rank #9',
+        regionRankLabel: '#9 Jurong East, Singapore',
         levelBadgeLabel: 'Lv.13',
         divisionLevelLabel: 'Bronze · Level 13',
         totalDistanceLabel: '130.1 km',
@@ -300,7 +304,7 @@ const leaderboardDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       profile: RunnerAchievementProfileSnapshot(
         name: 'Grace L.',
         initial: 'G',
-        regionRankLabel: 'Jurong East · Rank #10',
+        regionRankLabel: '#10 Jurong East, Singapore',
         levelBadgeLabel: 'Lv.13',
         divisionLevelLabel: 'Bronze · Level 13',
         totalDistanceLabel: '128.8 km',
@@ -319,7 +323,7 @@ const leaderboardDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       profile: RunnerAchievementProfileSnapshot(
         name: 'Chloe B.',
         initial: 'C',
-        regionRankLabel: 'Jurong East · Rank #16',
+        regionRankLabel: '#16 Jurong East, Singapore',
         levelBadgeLabel: 'Lv.13',
         divisionLevelLabel: 'Bronze · Level 13',
         totalDistanceLabel: '126.1 km',
@@ -336,7 +340,7 @@ const leaderboardDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       profile: RunnerAchievementProfileSnapshot(
         name: 'Daniel W.',
         initial: 'D',
-        regionRankLabel: 'Jurong East · Rank #17',
+        regionRankLabel: '#17 Jurong East, Singapore',
         levelBadgeLabel: 'Lv.13',
         divisionLevelLabel: 'Bronze · Level 13',
         totalDistanceLabel: '124.7 km',
@@ -353,7 +357,7 @@ const leaderboardDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       profile: RunnerAchievementProfileSnapshot(
         name: 'Jinseo',
         initial: 'J',
-        regionRankLabel: 'Jurong East · Rank #18',
+        regionRankLabel: '#18 Jurong East, Singapore',
         levelBadgeLabel: 'Lv.12',
         divisionLevelLabel: 'Bronze · Level 12',
         totalDistanceLabel: '128.4 km',
@@ -372,7 +376,7 @@ const leaderboardDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       profile: RunnerAchievementProfileSnapshot(
         name: 'Noah K.',
         initial: 'N',
-        regionRankLabel: 'Jurong East · Rank #19',
+        regionRankLabel: '#19 Jurong East, Singapore',
         levelBadgeLabel: 'Lv.12',
         divisionLevelLabel: 'Bronze · Level 12',
         totalDistanceLabel: '119.3 km',
@@ -389,7 +393,7 @@ const leaderboardDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       profile: RunnerAchievementProfileSnapshot(
         name: 'Aisha P.',
         initial: 'A',
-        regionRankLabel: 'Jurong East · Rank #20',
+        regionRankLabel: '#20 Jurong East, Singapore',
         levelBadgeLabel: 'Lv.12',
         divisionLevelLabel: 'Bronze · Level 12',
         totalDistanceLabel: '116.6 km',
@@ -411,6 +415,7 @@ const leaderboardTampinesDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
   monthlyResetLabel:
       'Monthly gained XP resets to 0 XP next month. Your level stays the same.',
   divisionLabel: 'Bronze',
+  divisionAssetPath: RuniacAssets.leaderboardLeagueBronze,
   topRanksTitle: 'Regional ranking',
   nearbyRanksTitle: 'Nearby your rank',
   currentUser: CurrentUserRankSummaryDisplaySnapshot(
@@ -428,7 +433,7 @@ const leaderboardTampinesDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       profile: RunnerAchievementProfileSnapshot(
         name: 'Nadia R.',
         initial: 'N',
-        regionRankLabel: 'Tampines · Rank #1',
+        regionRankLabel: '#1 Tampines, Singapore',
         levelBadgeLabel: 'Lv.19',
         divisionLevelLabel: 'Bronze · Level 19',
         totalDistanceLabel: '210.4 km',
@@ -447,7 +452,7 @@ const leaderboardTampinesDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       profile: RunnerAchievementProfileSnapshot(
         name: 'Wei H.',
         initial: 'W',
-        regionRankLabel: 'Tampines · Rank #2',
+        regionRankLabel: '#2 Tampines, Singapore',
         levelBadgeLabel: 'Lv.18',
         divisionLevelLabel: 'Bronze · Level 18',
         totalDistanceLabel: '188.7 km',
@@ -465,7 +470,7 @@ const leaderboardTampinesDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       profile: RunnerAchievementProfileSnapshot(
         name: 'Anika S.',
         initial: 'A',
-        regionRankLabel: 'Tampines · Rank #3',
+        regionRankLabel: '#3 Tampines, Singapore',
         levelBadgeLabel: 'Lv.16',
         divisionLevelLabel: 'Bronze · Level 16',
         totalDistanceLabel: '166.2 km',
@@ -489,6 +494,7 @@ const leaderboardWoodlandsDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
   monthlyResetLabel:
       'Monthly gained XP resets to 0 XP next month. Your level stays the same.',
   divisionLabel: 'Bronze',
+  divisionAssetPath: RuniacAssets.leaderboardLeagueBronze,
   topRanksTitle: 'Regional ranking',
   nearbyRanksTitle: 'Nearby your rank',
   currentUser: CurrentUserRankSummaryDisplaySnapshot(
@@ -506,7 +512,7 @@ const leaderboardWoodlandsDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       profile: RunnerAchievementProfileSnapshot(
         name: 'Farah M.',
         initial: 'F',
-        regionRankLabel: 'Woodlands · Rank #1',
+        regionRankLabel: '#1 Woodlands, Singapore',
         levelBadgeLabel: 'Lv.17',
         divisionLevelLabel: 'Bronze · Level 17',
         totalDistanceLabel: '174.0 km',
@@ -525,7 +531,7 @@ const leaderboardWoodlandsDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       profile: RunnerAchievementProfileSnapshot(
         name: 'Jun P.',
         initial: 'J',
-        regionRankLabel: 'Woodlands · Rank #2',
+        regionRankLabel: '#2 Woodlands, Singapore',
         levelBadgeLabel: 'Lv.16',
         divisionLevelLabel: 'Bronze · Level 16',
         totalDistanceLabel: '160.5 km',
@@ -543,7 +549,7 @@ const leaderboardWoodlandsDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       profile: RunnerAchievementProfileSnapshot(
         name: 'Iris C.',
         initial: 'I',
-        regionRankLabel: 'Woodlands · Rank #3',
+        regionRankLabel: '#3 Woodlands, Singapore',
         levelBadgeLabel: 'Lv.15',
         divisionLevelLabel: 'Bronze · Level 15',
         totalDistanceLabel: '150.2 km',
@@ -567,6 +573,7 @@ const leaderboardMarinaBayDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
   monthlyResetLabel:
       'Monthly gained XP resets to 0 XP next month. Your level stays the same.',
   divisionLabel: 'Bronze',
+  divisionAssetPath: RuniacAssets.leaderboardLeagueBronze,
   topRanksTitle: 'Regional ranking',
   nearbyRanksTitle: 'Nearby your rank',
   currentUser: CurrentUserRankSummaryDisplaySnapshot(
@@ -584,7 +591,7 @@ const leaderboardMarinaBayDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       profile: RunnerAchievementProfileSnapshot(
         name: 'Kai V.',
         initial: 'K',
-        regionRankLabel: 'Marina Bay · Rank #1',
+        regionRankLabel: '#1 Marina Bay, Singapore',
         levelBadgeLabel: 'Lv.20',
         divisionLevelLabel: 'Bronze · Level 20',
         totalDistanceLabel: '226.8 km',
@@ -603,7 +610,7 @@ const leaderboardMarinaBayDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       profile: RunnerAchievementProfileSnapshot(
         name: 'Lina Q.',
         initial: 'L',
-        regionRankLabel: 'Marina Bay · Rank #2',
+        regionRankLabel: '#2 Marina Bay, Singapore',
         levelBadgeLabel: 'Lv.18',
         divisionLevelLabel: 'Bronze · Level 18',
         totalDistanceLabel: '190.0 km',
@@ -621,7 +628,7 @@ const leaderboardMarinaBayDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       profile: RunnerAchievementProfileSnapshot(
         name: 'Sam D.',
         initial: 'S',
-        regionRankLabel: 'Marina Bay · Rank #3',
+        regionRankLabel: '#3 Marina Bay, Singapore',
         levelBadgeLabel: 'Lv.17',
         divisionLevelLabel: 'Bronze · Level 17',
         totalDistanceLabel: '171.2 km',
@@ -645,6 +652,7 @@ const leaderboardAngMoKioDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
   monthlyResetLabel:
       'Monthly gained XP resets to 0 XP next month. Your level stays the same.',
   divisionLabel: 'Bronze',
+  divisionAssetPath: RuniacAssets.leaderboardLeagueBronze,
   topRanksTitle: 'Regional ranking',
   nearbyRanksTitle: 'Nearby your rank',
   currentUser: CurrentUserRankSummaryDisplaySnapshot(
@@ -662,7 +670,7 @@ const leaderboardAngMoKioDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       profile: RunnerAchievementProfileSnapshot(
         name: 'Mei T.',
         initial: 'M',
-        regionRankLabel: 'Ang Mo Kio · Rank #1',
+        regionRankLabel: '#1 Ang Mo Kio, Singapore',
         levelBadgeLabel: 'Lv.18',
         divisionLevelLabel: 'Bronze · Level 18',
         totalDistanceLabel: '184.3 km',
@@ -681,7 +689,7 @@ const leaderboardAngMoKioDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       profile: RunnerAchievementProfileSnapshot(
         name: 'Arun B.',
         initial: 'A',
-        regionRankLabel: 'Ang Mo Kio · Rank #2',
+        regionRankLabel: '#2 Ang Mo Kio, Singapore',
         levelBadgeLabel: 'Lv.16',
         divisionLevelLabel: 'Bronze · Level 16',
         totalDistanceLabel: '158.9 km',
@@ -699,7 +707,7 @@ const leaderboardAngMoKioDetailDemoSnapshot = LeaderboardDetailDisplaySnapshot(
       profile: RunnerAchievementProfileSnapshot(
         name: 'Tara J.',
         initial: 'T',
-        regionRankLabel: 'Ang Mo Kio · Rank #3',
+        regionRankLabel: '#3 Ang Mo Kio, Singapore',
         levelBadgeLabel: 'Lv.15',
         divisionLevelLabel: 'Bronze · Level 15',
         totalDistanceLabel: '148.4 km',
@@ -1221,6 +1229,7 @@ LeaderboardDetailDisplaySnapshot _genericLeaderboardRegionRankingSnapshot(
     fallbackRefreshLabel: leaderboardDetailDemoSnapshot.fallbackRefreshLabel,
     monthlyResetLabel: leaderboardDetailDemoSnapshot.monthlyResetLabel,
     divisionLabel: leaderboardDetailDemoSnapshot.divisionLabel,
+    divisionAssetPath: leaderboardDetailDemoSnapshot.divisionAssetPath,
     topRanksTitle: leaderboardDetailDemoSnapshot.topRanksTitle,
     nearbyRanksTitle: leaderboardDetailDemoSnapshot.nearbyRanksTitle,
     currentUser: leaderboardDetailDemoSnapshot.currentUser,

@@ -13,13 +13,15 @@ flutter run \
 
 Use `RUNIAC_FIREBASE_EMULATOR_HOST=10.0.2.2` for an Android emulator that needs
 to reach services running on the host machine. Local iOS Simulator and desktop
-runs can use `127.0.0.1`.
+runs can use `127.0.0.1`. A physical iPhone must use the Mac's LAN IP address
+and the Firebase emulators must bind to `0.0.0.0` from the root `firebase.json`.
 
 Expected local emulator ports:
 
 - Auth: `127.0.0.1:9099`
 - Functions: `127.0.0.1:5001`
 - Firestore: `127.0.0.1:8080`
+- Storage: `127.0.0.1:9199`
 
 The emulator project ID is `runiac-functions-test`. The Flutter app uses
 non-secret demo `FirebaseOptions` only for emulator initialization. In emulator
@@ -43,8 +45,21 @@ flutter run \
   --dart-define=RUNIAC_FIREBASE_API_KEY=<local-api-key> \
   --dart-define=RUNIAC_FIREBASE_APP_ID=<local-app-id> \
   --dart-define=RUNIAC_FIREBASE_MESSAGING_SENDER_ID=<local-sender-id> \
-  --dart-define=RUNIAC_FIREBASE_PROJECT_ID=<local-project-id>
+  --dart-define=RUNIAC_FIREBASE_PROJECT_ID=<local-project-id> \
+  --dart-define=RUNIAC_FIREBASE_STORAGE_BUCKET=<local-storage-bucket> \
+  --dart-define=RUNIAC_APPCHECK_DEBUG_TOKEN=<registered-appcheck-debug-token>
 ```
+
+`RUNIAC_APPCHECK_DEBUG_TOKEN` is required against production: the home-guide
+consent/agent and activity-feedback callables enforce App Check, so a debug
+build must present a **registered** debug token or every call fails ("Could not
+update guide data use.", and the guide silently falls back to the rule-based
+character message). Pin one registered UUID and reuse it on every sim/device —
+do not let the SDK mint a fresh (unregistered) token per launch.
+
+The simplest path is `./run_local.sh [-d <device>]`, which injects these defines
+plus the pinned token from the gitignored `dart_define.local.json`, so no
+per-device App Check registration is ever needed.
 
 ## M4-C2 Mapbox run map demo boundary
 

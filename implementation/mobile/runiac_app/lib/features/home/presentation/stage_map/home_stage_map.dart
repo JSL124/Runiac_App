@@ -5,20 +5,32 @@ import 'package:flutter/material.dart';
 import '../../../../core/characters/runner_character.dart';
 import '../../../../core/theme/runiac_colors.dart';
 import '../../../../core/widgets/runiac_level_profile_badge.dart';
+import '../../../challenge/domain/challenge_copy.dart';
+import '../../../challenge/domain/challenge_countdown.dart';
+import '../../../challenge/presentation/home_active_challenge_display.dart';
+import '../../../challenge/presentation/widgets/challenge_badge_image.dart';
 import '../../domain/guide/home_guide_agent.dart';
+import '../../domain/guide/home_guide_consent.dart';
 import 'home_stage_background_sequence.dart';
 import 'home_guide_cycle.dart';
 import 'home_stage_map_model.dart';
+
+part 'home_stage_map_backdrop.dart';
+part 'home_stage_map_stones.dart';
+part 'home_stage_map_header.dart';
+part 'home_stage_map_challenge.dart';
+part 'home_stage_map_social.dart';
+part 'home_stage_map_status_controls.dart';
+part 'home_stage_map_empty_state.dart';
+part 'home_stage_map_guide.dart';
 
 const double _kFadeFraction = 0.08;
 const double _kMinimumStageStoneSize = 92;
 const double _kMaximumStageStoneSize = 108;
 const double _kStageStoneWidthFraction = 0.255;
 const double _kCharacterToStoneScale = 0.86;
-// Stage PNGs include transparent pixels beneath the visible plate. Pull the
-// weekday chip into that space so it reads as attached directly below the
-// rendered stage instead of floating in the path gap.
-const double _kStageDayLabelVisualOverlap = 16;
+const double _kStageDayLabelWidth = 56;
+const double _kStageDayLabelTopFraction = 0.82;
 
 /// The initial camera composition keeps the guide in the lower visual third,
 /// leaving room above for upcoming stages and the Home header.
@@ -84,10 +96,20 @@ class HomeStageMap extends StatefulWidget {
     this.model,
     this.streakCount = 0,
     this.unreadNotificationCount = 0,
+    this.profileInitials = 'R',
     this.levelBadgeLabel = 'Lv.0',
     this.levelProgressFraction = 0,
+    this.progressLoading = false,
+    this.profileLoading = false,
     this.guideAgent,
     this.guideRequest,
+    this.guideConsentStatus = HomeGuideConsentStatus.granted,
+    this.onOpenFriends,
+    this.onOpenChallenge,
+    this.activeChallenge,
+    this.onOpenChallengeProgress,
+    this.challengeClock,
+    this.challengeTicker,
     super.key,
   });
 
@@ -95,8 +117,11 @@ class HomeStageMap extends StatefulWidget {
   final HomeStageMapModel? model;
   final int streakCount;
   final int unreadNotificationCount;
+  final String profileInitials;
   final String levelBadgeLabel;
   final double levelProgressFraction;
+  final bool progressLoading;
+  final bool profileLoading;
   final VoidCallback onNotifications;
   final VoidCallback onProfile;
   final VoidCallback onTapTodayStage;
@@ -110,6 +135,37 @@ class HomeStageMap extends StatefulWidget {
   /// Rebuilt by the caller (see `home_tab.dart`) whenever the active plan or
   /// today's stage changes.
   final HomeGuideRequest? guideRequest;
+  final HomeGuideConsentStatus guideConsentStatus;
+
+  /// Opens the Friends screen when the Social menu's Friends item is tapped.
+  /// Optional so existing call sites and tests compile unchanged; when null
+  /// the Friends item simply closes the menu. Navigation trigger only — the
+  /// stage map reads or writes no social data.
+  final VoidCallback? onOpenFriends;
+
+  /// Opens the Challenge hub when the Social menu's Challenge item is tapped.
+  /// Optional so existing call sites and tests compile unchanged; when null the
+  /// Challenge item simply closes the menu. Navigation trigger only — the stage
+  /// map internals read or write no Challenge/Firebase data.
+  final VoidCallback? onOpenChallenge;
+
+  /// The caller's live ACTIVE/SETTLING challenge, resolved by `HomeTab` from its
+  /// repository and handed down as a plain Firebase-free projection. Null hides
+  /// the header active-challenge control entirely (no reserved gap).
+  final HomeActiveChallengeDisplay? activeChallenge;
+
+  /// Opens the Progress screen when the active-challenge control is tapped.
+  /// `HomeTab` owns the navigation and repository; the stage map only fires the
+  /// callback.
+  final VoidCallback? onOpenChallengeProgress;
+
+  /// Injected wall-clock for the active-challenge countdown (production uses
+  /// `DateTime.now`). Tests pass a fixed clock for a deterministic label.
+  final DateTime Function()? challengeClock;
+
+  /// Injected 1-second ticker seam for the countdown (production uses a periodic
+  /// timer). Tests pass a no-op/controlled ticker so no real frames are scheduled.
+  final ChallengeTicker? challengeTicker;
 
   @override
   State<HomeStageMap> createState() => _HomeStageMapState();
@@ -133,6 +189,7 @@ class _HomeStageMapState extends State<HomeStageMap>
   double _overlap = 0;
   double _viewportHeight = 0;
   bool _initialScrollDone = false;
+  bool _socialMenuOpen = false;
 
   String? _shownStageId;
   bool _walking = false;
@@ -179,7 +236,10 @@ class _HomeStageMapState extends State<HomeStageMap>
     final stageId = _hasTodayStage(model) ? model!.currentStageId : null;
     final agent = widget.guideAgent;
     final request = widget.guideRequest;
-    if (stageId == null || agent == null || request == null) {
+    if (stageId == null ||
+        agent == null ||
+        request == null ||
+        widget.guideConsentStatus != HomeGuideConsentStatus.granted) {
       _clearGuideCycle();
       return;
     }
@@ -230,6 +290,31 @@ class _HomeStageMapState extends State<HomeStageMap>
 
   void _dismissGuideBubble() {
     _guideCycle?.hide();
+  }
+
+  void _toggleSocialMenu() {
+    setState(() {
+      _socialMenuOpen = !_socialMenuOpen;
+    });
+  }
+
+  void _closeSocialMenu() {
+    if (!_socialMenuOpen) {
+      return;
+    }
+    setState(() {
+      _socialMenuOpen = false;
+    });
+  }
+
+  void _onSocialFriendsTap() {
+    _closeSocialMenu();
+    widget.onOpenFriends?.call();
+  }
+
+  void _onSocialChallengeTap() {
+    _closeSocialMenu();
+    widget.onOpenChallenge?.call();
   }
 
   void _advanceGuideBubble() {
@@ -481,17 +566,51 @@ class _HomeStageMapState extends State<HomeStageMap>
         return Stack(
           children: [
             Positioned.fill(child: mapLayer),
+            // Tap-outside dismissal barrier: mounted only while the Social
+            // menu is open so the closed-state semantics and stage taps are
+            // unaffected. Intentionally opaque to map interaction while open.
+            if (_socialMenuOpen)
+              Positioned.fill(
+                child: GestureDetector(
+                  key: const ValueKey<String>('homeSocialMenuBarrier'),
+                  behavior: HitTestBehavior.opaque,
+                  onTap: _closeSocialMenu,
+                  child: const SizedBox.expand(),
+                ),
+              ),
             Positioned(
               top: 0,
               left: 0,
               right: 0,
-              child: _HomeStageHeader(
-                streakCount: widget.streakCount,
-                unreadNotificationCount: widget.unreadNotificationCount,
-                levelBadgeLabel: widget.levelBadgeLabel,
-                levelProgressFraction: widget.levelProgressFraction,
-                onNotifications: widget.onNotifications,
-                onProfile: widget.onProfile,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  _HomeStageHeader(
+                    streakCount: widget.streakCount,
+                    unreadNotificationCount: widget.unreadNotificationCount,
+                    levelBadgeLabel: widget.levelBadgeLabel,
+                    levelProgressFraction: widget.levelProgressFraction,
+                    progressLoading: widget.progressLoading,
+                    profileLoading: widget.profileLoading,
+                    profileInitials: widget.profileInitials,
+                    onNotifications: widget.onNotifications,
+                    onProfile: widget.onProfile,
+                    socialMenuOpen: _socialMenuOpen,
+                    onToggleSocialMenu: _toggleSocialMenu,
+                    activeChallenge: widget.activeChallenge,
+                    onOpenChallengeProgress: widget.onOpenChallengeProgress,
+                    challengeClock: widget.challengeClock,
+                    challengeTicker: widget.challengeTicker,
+                  ),
+                  if (_socialMenuOpen)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 12),
+                      child: _HomeSocialMenuPanel(
+                        onFriends: _onSocialFriendsTap,
+                        onChallenge: _onSocialChallengeTap,
+                      ),
+                    ),
+                ],
               ),
             ),
           ],
@@ -539,22 +658,23 @@ class _HomeStageMapState extends State<HomeStageMap>
               stone: stone,
               size: size,
               pulse: stone.isCurrent ? _pulseController : null,
-              onTap: stone.isCurrent ? widget.onTapTodayStage : null,
+              onTap: stone.isCurrent && stone.isRun
+                  ? widget.onTapTodayStage
+                  : null,
             ),
           ),
         );
         if (stone.dayLabel != null) {
-          const labelWidth = 56.0;
           children.add(
             Positioned(
-              left: center.dx - labelWidth / 2,
-              top: center.dy + size / 2 - _kStageDayLabelVisualOverlap,
-              width: labelWidth,
+              left: center.dx - _kStageDayLabelWidth / 2,
+              top: center.dy - size / 2 + size * _kStageDayLabelTopFraction,
+              width: _kStageDayLabelWidth,
               child: IgnorePointer(
-                key: ValueKey<String>(
-                  'homeStageDayLabel-${section.weekNumber}-$d',
-                ),
                 child: _StageDayLabel(
+                  key: ValueKey<String>(
+                    'homeStageDayLabel-${section.weekNumber}-$d',
+                  ),
                   label: stone.dayLabel!,
                   dimmed: stone.state == HomeStageStoneState.future,
                 ),
@@ -595,11 +715,7 @@ class _HomeStageMapState extends State<HomeStageMap>
     int n,
     double totalHeight,
   ) {
-    final cycle = _guideCycle;
-    if (cycle == null ||
-        !cycle.state.isVisible ||
-        _walking ||
-        !_hasTodayStage(model)) {
+    if (_walking || !_hasTodayStage(model)) {
       return null;
     }
     if (widget.guideAgent == null || widget.guideRequest == null) {
@@ -632,6 +748,18 @@ class _HomeStageMapState extends State<HomeStageMap>
     final safeTop = MediaQuery.paddingOf(context).top + horizontalSafeInset;
     final maxBubbleHeight = math.max(1.0, charTopY - gap - safeTop);
 
+    // Consent is collected once via the onboarding bottom sheet and managed in
+    // Account → Privacy & Safety. When it is not granted the guide is hidden
+    // entirely (the cycle is never created; see [_syncGuideBubble]).
+    if (widget.guideConsentStatus != HomeGuideConsentStatus.granted) {
+      return null;
+    }
+
+    final cycle = _guideCycle;
+    if (cycle == null || !cycle.state.isVisible) {
+      return null;
+    }
+
     return Positioned(
       left: left,
       width: bubbleWidth,
@@ -641,6 +769,7 @@ class _HomeStageMapState extends State<HomeStageMap>
         child: _GuideSpeechBubble(
           key: ValueKey<String?>(model.currentStageId),
           state: cycle.state,
+          isRestDay: widget.guideRequest?.isRestDay ?? false,
           onAdvance: _advanceGuideBubble,
           onDismiss: _dismissGuideBubble,
         ),
@@ -734,7 +863,11 @@ class _HomeStageMapState extends State<HomeStageMap>
                 child: GestureDetector(
                   key: const ValueKey<String>('homeGuideCharacterTapTarget'),
                   behavior: HitTestBehavior.opaque,
-                  onTap: _toggleGuideBubble,
+                  onTap:
+                      widget.guideConsentStatus ==
+                          HomeGuideConsentStatus.granted
+                      ? _toggleGuideBubble
+                      : null,
                   child: const SizedBox.expand(),
                 ),
               ),
@@ -794,667 +927,3 @@ class _HomeStageMapState extends State<HomeStageMap>
 
 /// A background section whose top edge fades to transparent so the week above
 /// (painted behind it) bleeds through for a soft, continuous transition.
-class _FadingBackground extends StatelessWidget {
-  const _FadingBackground({required this.asset});
-
-  final String asset;
-
-  @override
-  Widget build(BuildContext context) {
-    return ShaderMask(
-      shaderCallback: (rect) {
-        return const LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Colors.transparent, Colors.white],
-          stops: [0.0, _kFadeFraction],
-        ).createShader(rect);
-      },
-      blendMode: BlendMode.dstIn,
-      child: Image.asset(
-        asset,
-        fit: BoxFit.cover,
-        filterQuality: FilterQuality.medium,
-        errorBuilder: (context, error, stackTrace) =>
-            const ColoredBox(color: Color(0xFFBFE3F5)),
-      ),
-    );
-  }
-}
-
-class _StageStoneWidget extends StatelessWidget {
-  const _StageStoneWidget({
-    super.key,
-    required this.stone,
-    required this.size,
-    this.pulse,
-    this.onTap,
-  });
-
-  final HomeStageStone stone;
-  final double size;
-  final Listenable? pulse;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final asset = stone.isRun ? _kStageRunAsset : _kStageRestAsset;
-    final isFuture = stone.state == HomeStageStoneState.future;
-    final isCompleted = stone.state == HomeStageStoneState.completed;
-
-    Widget image = Image.asset(
-      asset,
-      fit: BoxFit.contain,
-      filterQuality: FilterQuality.medium,
-      errorBuilder: (context, error, stackTrace) {
-        return DecoratedBox(
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: stone.isRun
-                ? const Color(0xFFEBC66A)
-                : const Color(0xFFBFC7D1),
-          ),
-        );
-      },
-    );
-
-    if (isFuture) {
-      image = Opacity(
-        opacity: 0.62,
-        child: ColorFiltered(
-          colorFilter: const ColorFilter.matrix(<double>[
-            0.45,
-            0.45,
-            0.10,
-            0,
-            0,
-            0.45,
-            0.45,
-            0.10,
-            0,
-            0,
-            0.45,
-            0.45,
-            0.10,
-            0,
-            0,
-            0,
-            0,
-            0,
-            1,
-            0,
-          ]),
-          child: image,
-        ),
-      );
-    }
-
-    Widget content = SizedBox(width: size, height: size, child: image);
-
-    if (isCompleted && stone.isRun) {
-      content = Stack(
-        clipBehavior: Clip.none,
-        children: [
-          content,
-          Positioned(
-            right: -2,
-            top: -2,
-            child: _CompletedCheck(size: size * 0.34),
-          ),
-        ],
-      );
-    }
-
-    if (stone.isCurrent && pulse != null) {
-      content = AnimatedBuilder(
-        animation: pulse!,
-        builder: (context, child) {
-          final t = pulse is Animation<double>
-              ? (pulse! as Animation<double>).value
-              : 0.0;
-          return Stack(
-            clipBehavior: Clip.none,
-            alignment: Alignment.center,
-            children: [
-              Transform.scale(
-                scale: 1.0 + 0.22 * t,
-                child: Container(
-                  width: size,
-                  height: size,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: const Color(
-                      0xFFFC6818,
-                    ).withValues(alpha: 0.30 * (1 - t)),
-                  ),
-                ),
-              ),
-              child!,
-            ],
-          );
-        },
-        child: content,
-      );
-    }
-
-    if (onTap == null) {
-      return content;
-    }
-    return Semantics(
-      button: true,
-      label: "Today's stage",
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: content,
-      ),
-    );
-  }
-}
-
-/// Small English weekday caption pinned just below a stage stone.
-///
-/// Purely cosmetic/display layer: it never intercepts taps (the caller wraps
-/// it in [IgnorePointer]) and carries no backend-owned scheduling meaning.
-class _StageDayLabel extends StatelessWidget {
-  const _StageDayLabel({required this.label, required this.dimmed});
-
-  final String label;
-  final bool dimmed;
-
-  @override
-  Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.topCenter,
-      child: Opacity(
-        opacity: dimmed ? 0.55 : 1.0,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.56),
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.28),
-              width: 0.75,
-            ),
-          ),
-          child: Text(
-            label.toUpperCase(),
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 11,
-              fontWeight: FontWeight.w800,
-              height: 1,
-              letterSpacing: 0.3,
-              shadows: [
-                Shadow(
-                  color: Colors.black87,
-                  blurRadius: 2,
-                  offset: Offset(0, 1),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _CompletedCheck extends StatelessWidget {
-  const _CompletedCheck({required this.size});
-
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: const BoxDecoration(
-        shape: BoxShape.circle,
-        color: Color(0xFF2FBF71),
-        boxShadow: [
-          BoxShadow(color: Colors.black26, blurRadius: 3, offset: Offset(0, 1)),
-        ],
-      ),
-      child: Icon(Icons.check_rounded, size: size * 0.72, color: Colors.white),
-    );
-  }
-}
-
-class _HomeStageHeader extends StatelessWidget {
-  const _HomeStageHeader({
-    required this.streakCount,
-    required this.unreadNotificationCount,
-    required this.levelBadgeLabel,
-    required this.levelProgressFraction,
-    required this.onNotifications,
-    required this.onProfile,
-  });
-
-  final int streakCount;
-  final int unreadNotificationCount;
-  final String levelBadgeLabel;
-  final double levelProgressFraction;
-  final VoidCallback onNotifications;
-  final VoidCallback onProfile;
-
-  @override
-  Widget build(BuildContext context) {
-    final topPadding = MediaQuery.of(context).padding.top;
-    return IgnorePointer(
-      ignoring: false,
-      child: Container(
-        padding: EdgeInsets.fromLTRB(16, topPadding + 8, 12, 18),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              RuniacColors.textPrimary.withValues(alpha: 0.72),
-              RuniacColors.textPrimary.withValues(alpha: 0.08),
-              Colors.transparent,
-            ],
-          ),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            _StreakPill(streakCount: streakCount),
-            const Spacer(),
-            _NotificationButton(
-              unreadNotificationCount: unreadNotificationCount,
-              onNotifications: onNotifications,
-            ),
-            const SizedBox(width: 6),
-            Semantics(
-              container: true,
-              label: 'Profile',
-              button: true,
-              child: ExcludeSemantics(
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: onProfile,
-                  child: SizedBox(
-                    width: 60,
-                    height: 62,
-                    child: Stack(
-                      clipBehavior: Clip.none,
-                      alignment: Alignment.topCenter,
-                      children: [
-                        Container(
-                          width: 54,
-                          height: 54,
-                          decoration: _homeStageControlDecoration(
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        RuniacLevelProfileBadge(
-                          initials: 'R',
-                          levelLabel: levelBadgeLabel,
-                          progressFraction: levelProgressFraction,
-                          size: 54,
-                          badgeHeight: 17,
-                          badgeMinWidth: 44,
-                          badgeHorizontalPadding: 7,
-                          badgeFontSize: 10,
-                          ringStrokeWidth: 4.5,
-                          discColor: RuniacColors.primaryBlue,
-                          discBorderColor: RuniacColors.white,
-                          initialsColor: RuniacColors.white,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _StreakPill extends StatelessWidget {
-  const _StreakPill({required this.streakCount});
-
-  final int streakCount;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-      decoration: _homeStageControlDecoration(
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(
-            Icons.local_fire_department,
-            color: Color(0xFFFF8A34),
-            size: 22,
-          ),
-          const SizedBox(width: 4),
-          Text(
-            '$streakCount',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
-              height: 1,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _NotificationButton extends StatelessWidget {
-  const _NotificationButton({
-    required this.unreadNotificationCount,
-    required this.onNotifications,
-  });
-
-  final int unreadNotificationCount;
-  final VoidCallback onNotifications;
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      container: true,
-      label: 'Notifications',
-      button: true,
-      child: ExcludeSemantics(
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: onNotifications,
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: _homeStageControlDecoration(shape: BoxShape.circle),
-                child: const Icon(
-                  Icons.notifications_none,
-                  color: Colors.white,
-                  size: 24,
-                ),
-              ),
-              if (unreadNotificationCount > 0)
-                Positioned(
-                  right: -1,
-                  top: -1,
-                  child: _UnreadBadge(count: unreadNotificationCount),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-BoxDecoration _homeStageControlDecoration({
-  BorderRadius? borderRadius,
-  BoxShape shape = BoxShape.rectangle,
-}) {
-  return BoxDecoration(
-    color: RuniacColors.textPrimary.withValues(alpha: 0.92),
-    borderRadius: borderRadius,
-    shape: shape,
-    border: Border.all(color: RuniacColors.white.withValues(alpha: 0.42)),
-    boxShadow: [
-      BoxShadow(
-        color: RuniacColors.textPrimary.withValues(alpha: 0.42),
-        blurRadius: 10,
-        offset: const Offset(0, 3),
-      ),
-    ],
-  );
-}
-
-class _UnreadBadge extends StatelessWidget {
-  const _UnreadBadge({required this.count});
-
-  final int count;
-
-  @override
-  Widget build(BuildContext context) {
-    final label = count > 99 ? '99+' : '$count';
-    return Container(
-      constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
-      alignment: Alignment.center,
-      padding: const EdgeInsets.symmetric(horizontal: 5),
-      decoration: BoxDecoration(
-        color: const Color(0xFFDC2626),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: Colors.white, width: 2),
-      ),
-      child: Text(
-        label,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 10,
-          fontWeight: FontWeight.w800,
-          height: 1,
-        ),
-      ),
-    );
-  }
-}
-
-class _HomeStageEmptyState extends StatelessWidget {
-  const _HomeStageEmptyState();
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        Image.asset(
-          _kEmptyStateBackground,
-          fit: BoxFit.cover,
-          filterQuality: FilterQuality.medium,
-          errorBuilder: (context, error, stackTrace) =>
-              const ColoredBox(color: Color(0xFFBFE3F5)),
-        ),
-        const DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Color(0x22000000), Color(0x88000000)],
-            ),
-          ),
-        ),
-        Align(
-          alignment: const Alignment(0, 0.35),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: const [
-                Icon(Icons.hiking_rounded, color: Colors.white, size: 52),
-                SizedBox(height: 14),
-                Text(
-                  'Your journey map is waiting',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                    height: 1.2,
-                  ),
-                ),
-                SizedBox(height: 10),
-                Text(
-                  'Finish your plan setup to unlock a weekly map of gentle running stages.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Color(0xE6FFFFFF),
-                    fontSize: 14.5,
-                    height: 1.4,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// Speech-bubble card for the Home guide character.
-///
-/// Display-only: renders the current local guide-cycle message and never
-/// touches XP, level, rank, streak, or leaderboard values.
-class _GuideSpeechBubble extends StatelessWidget {
-  const _GuideSpeechBubble({
-    required this.state,
-    required this.onAdvance,
-    required this.onDismiss,
-    super.key,
-  });
-
-  final HomeGuideCycleState state;
-  final VoidCallback onAdvance;
-  final VoidCallback onDismiss;
-
-  static const String _fallbackErrorText =
-      "Let's get moving — you've got this today.";
-
-  @override
-  Widget build(BuildContext context) {
-    final message = state.currentMessage;
-    return _GuideBubbleCard(
-      key: ValueKey<String>('${state.isLoading}:${message?.text}'),
-      message: message,
-      isLoading: state.isLoading,
-      isUnavailable: !state.isLoading && message == null,
-      fallbackText: _fallbackErrorText,
-      onAdvance: onAdvance,
-      onDismiss: onDismiss,
-    );
-  }
-}
-
-class _GuideBubbleCard extends StatelessWidget {
-  const _GuideBubbleCard({
-    required this.message,
-    required this.isLoading,
-    required this.isUnavailable,
-    required this.fallbackText,
-    required this.onAdvance,
-    required this.onDismiss,
-    super.key,
-  });
-
-  final HomeGuideMessage? message;
-  final bool isLoading;
-  final bool isUnavailable;
-  final String fallbackText;
-  final VoidCallback onAdvance;
-  final VoidCallback onDismiss;
-
-  String get _bodyText {
-    if (isLoading) {
-      return 'Preparing your guide...';
-    }
-    return message?.text ?? fallbackText;
-  }
-
-  String get _bodySemanticsLabel {
-    if (isLoading) {
-      return 'Guide message loading. Please wait.';
-    }
-    if (isUnavailable) {
-      return 'Guide message unavailable.';
-    }
-    return switch (message!.kind) {
-      HomeGuideMessageKind.planSummary =>
-        'Plan summary. Tap to hear a running tip.',
-      HomeGuideMessageKind.runningTip =>
-        'Running tip. Tap to hear a progression check-in.',
-      HomeGuideMessageKind.progressionCheckIn =>
-        'Progression check-in. Tap to return to your plan summary.',
-    };
-  }
-
-  bool get _canAdvance => !isLoading && !isUnavailable;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      key: const ValueKey<String>('homeGuideBubble'),
-      padding: const EdgeInsets.fromLTRB(12, 10, 4, 10),
-      decoration: BoxDecoration(
-        color: RuniacColors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: RuniacColors.cardBorder, width: 1.2),
-        boxShadow: const [
-          BoxShadow(
-            color: RuniacColors.softCardShadow,
-            blurRadius: 16,
-            offset: Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Semantics(
-              button: _canAdvance,
-              label: _bodySemanticsLabel,
-              child: ExcludeSemantics(
-                child: GestureDetector(
-                  key: const ValueKey<String>('homeGuideBubbleBody'),
-                  behavior: HitTestBehavior.opaque,
-                  onTap: _canAdvance ? onAdvance : null,
-                  child: Text(
-                    _bodyText,
-                    style: TextStyle(
-                      fontSize: isLoading ? 14 : 13,
-                      height: 1.35,
-                      fontWeight: isLoading ? FontWeight.w700 : FontWeight.w600,
-                      color: isLoading
-                          ? RuniacColors.textSecondary
-                          : RuniacColors.textPrimary,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          SizedBox(
-            width: 44,
-            height: 44,
-            child: Semantics(
-              button: true,
-              label: 'Close guide message',
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: onDismiss,
-                child: const Tooltip(
-                  message: 'Close guide message',
-                  child: Icon(
-                    Icons.close_rounded,
-                    size: 20,
-                    color: RuniacColors.textSecondary,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

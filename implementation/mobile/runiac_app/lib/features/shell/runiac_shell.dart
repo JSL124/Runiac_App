@@ -1,11 +1,20 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/runiac_colors.dart';
-import '../account/domain/repositories/user_profile_repository.dart';
-import '../account/domain/repositories/user_profile_persistence_repository.dart';
+import '../profile/domain/models/user_profile_read_model.dart';
+import '../profile/domain/repositories/user_profile_repository.dart';
+import '../profile/domain/repositories/user_profile_persistence_repository.dart';
 import '../auth/domain/runiac_auth_service.dart';
+import '../challenge/data/static_challenge_repository.dart';
+import '../challenge/domain/repositories/challenge_repository.dart';
+import '../challenge/presentation/challenge_result_presentation_controller.dart';
+import '../feed/domain/models/feed_display_models.dart';
+import '../feed/domain/repositories/feed_repository.dart';
 import '../feed/presentation/current_session_feed.dart';
+import '../friends/data/static_friends_repository.dart';
+import '../friends/domain/repositories/friends_repository.dart';
 import '../home/domain/guide/home_guide_agent.dart';
+import '../home/domain/guide/home_guide_consent.dart';
 import '../home/domain/guide/rule_based_home_guide_agent.dart';
 import '../home/presentation/home_tab.dart';
 import '../leaderboard/data/static_leaderboard_repository.dart';
@@ -32,14 +41,20 @@ import '../you/domain/repositories/activity_history_repository.dart';
 import '../you/domain/repositories/user_progress_repository.dart';
 import '../you/presentation/adapters/generated_plan_you_display_adapter.dart';
 import '../you/presentation/current_session_activity_history.dart';
+import '../you/presentation/current_session_user_progress.dart';
 import '../you/presentation/you_tab.dart';
+import 'current_day_rollover.dart';
 
 class RuniacShell extends StatefulWidget {
   const RuniacShell({
     required this.authRepository,
+    required this.feedRepository,
     this.activityHistoryRepository = const StaticActivityHistoryRepository(),
     this.userProgressRepository = const StaticUserProgressRepository(),
     this.leaderboardRepository = const StaticLeaderboardRepository(),
+    this.friendsRepository = const StaticFriendsRepository(),
+    this.challengeRepository = const StaticChallengeRepository(),
+    this.challengeResultPresenter,
     required this.profileRepository,
     required this.profilePersistenceRepository,
     this.generatedPlanPersistenceRepository =
@@ -49,18 +64,31 @@ class RuniacShell extends StatefulWidget {
     this.planProgress,
     this.adaptivePlanEstimate,
     this.homeGuideAgent = const RuleBasedHomeGuideAgent(),
+    this.homeGuideConsentRepository =
+        const AlwaysGrantedHomeGuideConsentRepository(),
     super.key,
     this.enableForegroundGps = true,
     this.activeRunSessionCoordinator,
     this.initialRunOpenIntent,
     this.youProgressToday,
     this.enableLocalPlanNotifications = false,
+    this.currentDayRolloverController,
   });
 
   final RuniacAuthRepository authRepository;
+  final FeedRepository feedRepository;
   final ActivityHistoryRepository activityHistoryRepository;
   final UserProgressRepository userProgressRepository;
   final LeaderboardRepository leaderboardRepository;
+  final FriendsRepository friendsRepository;
+
+  /// Server-owned Challenge source threaded to [HomeTab] and the Account badge
+  /// case. Defaults to the static source for previews/tests.
+  final ChallengeRepository challengeRepository;
+
+  /// One-shot foreground Result presenter threaded to [HomeTab]. `null`
+  /// disables auto-presentation.
+  final ChallengeResultPresentationController? challengeResultPresenter;
   final UserProfileRepository profileRepository;
   final UserProfilePersistenceRepository profilePersistenceRepository;
   final GeneratedPlanPersistenceRepository generatedPlanPersistenceRepository;
@@ -71,11 +99,13 @@ class RuniacShell extends StatefulWidget {
   /// Guide seam forwarded to [HomeTab]'s stage-map speech bubble. See
   /// `HomeTab.homeGuideAgent` for the trust-boundary contract.
   final HomeGuideAgent homeGuideAgent;
+  final HomeGuideConsentRepository homeGuideConsentRepository;
   final bool enableForegroundGps;
   final ActiveRunSessionCoordinator? activeRunSessionCoordinator;
   final RunOpenIntent? initialRunOpenIntent;
   final DateTime? youProgressToday;
   final bool enableLocalPlanNotifications;
+  final CurrentDayRolloverController? currentDayRolloverController;
 
   @override
   State<RuniacShell> createState() => _RuniacShellState();
@@ -94,6 +124,7 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
   );
 
   int _selectedIndex = 0;
+  final Set<int> _visitedTabIndexes = <int>{0};
   late final bool _ownsActiveRunSessionCoordinator =
       widget.activeRunSessionCoordinator == null;
   late final ActiveRunSessionCoordinator _activeRunSessionCoordinator =
@@ -104,8 +135,15 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
   var _planNotificationSyncInFlight = false;
   var _pendingPlanNotificationSync = false;
   var _localNotificationSmokeTestScheduled = false;
+  var _dayRolloverProgressRefreshSerial = 0;
+  late final CurrentDayRolloverController _currentDayController;
+  late final bool _ownsCurrentDayController =
+      widget.currentDayRolloverController == null;
   BeginnerAdaptivePlanSnapshot? _pendingPlanNotificationPlan;
   GeneratedPlanProgressDisplay? _pendingPlanNotificationProgress;
+  late Future<FeedAuthorProfileSnapshot> _feedAuthorProfileFuture;
+  String? _feedAuthorProfileOwnerUid;
+  FeedAuthorProfileSnapshot? _lastFeedAuthorProfile;
   late final PlanNotificationSyncService _planNotificationSyncService =
       PlanNotificationSyncService(
         settingsRepository:
@@ -125,6 +163,13 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _currentDayController =
+        (widget.currentDayRolloverController ?? CurrentDayRolloverController())
+          ..addListener(_handleCurrentDayChanged);
+    _setFeedAuthorProfileFuture();
+    if (widget.youProgressToday == null) {
+      _currentDayController.start();
+    }
     _scheduleInitialRunOpenIntent();
     _scheduleLocalNotificationSmokeTestIfEnabled();
   }
@@ -136,6 +181,68 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
       _handledInitialRunOpenIntent = false;
       _scheduleInitialRunOpenIntent();
     }
+    if (oldWidget.profileRepository != widget.profileRepository ||
+        oldWidget.userProgressRepository != widget.userProgressRepository ||
+        widget.authRepository.currentUser?.uid != _feedAuthorProfileOwnerUid) {
+      _setFeedAuthorProfileFuture();
+    }
+  }
+
+  void _setFeedAuthorProfileFuture() {
+    final ownerUid = widget.authRepository.currentUser?.uid;
+    if (ownerUid != _feedAuthorProfileOwnerUid) {
+      _lastFeedAuthorProfile = null;
+    }
+    _feedAuthorProfileOwnerUid = ownerUid;
+    _feedAuthorProfileFuture = _loadFeedAuthorProfile(ownerUid);
+  }
+
+  Future<FeedAuthorProfileSnapshot> _loadFeedAuthorProfile(
+    String? ownerUid,
+  ) async {
+    try {
+      final scopedUserProgressStore = CurrentSessionUserProgressScope.maybeRead(
+        context,
+      );
+      final userProgressStore =
+          scopedUserProgressStore?.snapshot.ownerUid == null
+          ? null
+          : scopedUserProgressStore;
+      final (profile, progress) = await (
+        widget.profileRepository.loadUserProfile(),
+        userProgressStore == null
+            ? widget.userProgressRepository.loadUserProgress()
+            : _loadFeedAuthorProgress(userProgressStore),
+      ).wait;
+      final snapshot = _feedAuthorProfileFrom(
+        ownerUid: ownerUid,
+        profile: profile,
+        progress: progress,
+      );
+      if (_feedAuthorProfileOwnerUid == ownerUid) {
+        _lastFeedAuthorProfile = snapshot;
+      }
+      return snapshot;
+    } catch (_) {
+      return _lastFeedAuthorProfile ??
+          FeedAuthorProfileSnapshot.fallback(userId: ownerUid ?? '');
+    }
+  }
+
+  Future<UserProgressReadModel> _loadFeedAuthorProgress(
+    CurrentSessionUserProgress userProgressStore,
+  ) async {
+    await WidgetsBinding.instance.endOfFrame;
+    await userProgressStore.load();
+    return userProgressStore.snapshot.progress ??
+        await widget.userProgressRepository.loadUserProgress();
+  }
+
+  void _scheduleFeedAuthorProfileStoreSync(FeedAuthorProfileSnapshot profile) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      CurrentSessionFeedScope.maybeRead(context)?.updateAuthorProfile(profile);
+    });
   }
 
   void _scheduleInitialRunOpenIntent() {
@@ -175,6 +282,10 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _currentDayController.removeListener(_handleCurrentDayChanged);
+    if (_ownsCurrentDayController) {
+      _currentDayController.dispose();
+    }
     if (_ownsActiveRunSessionCoordinator) {
       _activeRunSessionCoordinator.dispose();
     }
@@ -184,7 +295,51 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
+      _currentDayController.refresh();
       _openActiveRunFromSystemReturn();
+    }
+  }
+
+  void _handleCurrentDayChanged() {
+    _refreshUserProgressAfterDayRollover();
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  Future<void> _refreshUserProgressAfterDayRollover() async {
+    final serial = _dayRolloverProgressRefreshSerial + 1;
+    _dayRolloverProgressRefreshSerial = serial;
+    try {
+      final scopedUserProgressStore = CurrentSessionUserProgressScope.maybeRead(
+        context,
+      );
+      final userProgressStore =
+          scopedUserProgressStore?.snapshot.ownerUid == null
+          ? null
+          : scopedUserProgressStore;
+      final progress =
+          await userProgressStore?.refresh() ??
+          await widget.userProgressRepository.refreshUserProgress();
+      if (!mounted || serial != _dayRolloverProgressRefreshSerial) {
+        return;
+      }
+      CurrentSessionActivityHistoryScope.maybeRead(
+        context,
+      )?.recordUserProgressRefresh(progress);
+      _setFeedAuthorProfileFuture();
+      setState(() {});
+    } catch (error, stackTrace) {
+      FlutterError.reportError(
+        FlutterErrorDetails(
+          exception: error,
+          stack: stackTrace,
+          library: 'runiac shell',
+          context: ErrorDescription(
+            'refreshing user progress after local day rollover',
+          ),
+        ),
+      );
     }
   }
 
@@ -206,6 +361,7 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
 
     setState(() {
       _selectedIndex = index;
+      _visitedTabIndexes.add(index);
     });
   }
 
@@ -282,121 +438,189 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    final currentDate = widget.youProgressToday ?? _currentDayController.today;
     final activeGeneratedPlan = CurrentSessionGeneratedPlanScope.of(
       context,
     ).activePlan;
+    final scopedUserProgressStore = CurrentSessionUserProgressScope.maybeRead(
+      context,
+    );
+    final userProgressStore = scopedUserProgressStore?.snapshot.ownerUid == null
+        ? null
+        : scopedUserProgressStore;
     final generatedPlanProgress = _generatedPlanProgress(activeGeneratedPlan);
     final todayWorkoutDetail = todayGeneratedWorkoutDetailFromSnapshot(
       activeGeneratedPlan,
-      currentDate: widget.youProgressToday,
+      currentDate: currentDate,
       planProgress: generatedPlanProgress,
       adaptiveEstimate: widget.adaptivePlanEstimate,
     );
     final todayPlannedRunContext = todayPlannedRunContextFromSnapshot(
       activeGeneratedPlan,
-      currentDate: widget.youProgressToday,
+      currentDate: currentDate,
       planProgress: generatedPlanProgress,
       adaptiveEstimate: widget.adaptivePlanEstimate,
     );
     _syncGeneratedPlanNotifications(
       activeGeneratedPlan,
       generatedPlanProgress,
+      userProgressStore: userProgressStore,
       force: false,
     );
-    final tabs = [
-      HomeTab(
-        authRepository: widget.authRepository,
-        profileRepository: widget.profileRepository,
-        profilePersistenceRepository: widget.profilePersistenceRepository,
-        generatedPlanPersistenceRepository:
-            widget.generatedPlanPersistenceRepository,
-        notificationInboxRepository: widget.notificationInboxRepository,
-        userProgressRepository: widget.userProgressRepository,
-        todayWorkoutDetailSnapshot: todayWorkoutDetail,
-        todayPlannedRunContext: todayPlannedRunContext,
-        generatedPlanProgress: generatedPlanProgress,
-        currentDate: widget.youProgressToday,
-        homeGuideAgent: widget.homeGuideAgent,
-        enableForegroundGps: widget.enableForegroundGps,
-        activeRunSessionCoordinator: _activeRunSessionCoordinator,
-        onNotificationSettingsChanged: () {
-          _syncGeneratedPlanNotifications(
-            activeGeneratedPlan,
-            generatedPlanProgress,
-            force: true,
-          );
-        },
-      ),
-      const CurrentSessionFeed(),
-      const SizedBox.shrink(),
-      LeaderboardTab(repository: widget.leaderboardRepository),
-      YouTab(
-        activityHistoryRepository: widget.activityHistoryRepository,
-        userProgressRepository: widget.userProgressRepository,
-        authRepository: widget.authRepository,
-        generatedPlanPersistenceRepository:
-            widget.generatedPlanPersistenceRepository,
-        enableForegroundGps: widget.enableForegroundGps,
-        activeRunSessionCoordinator: _activeRunSessionCoordinator,
-        progressToday: widget.youProgressToday,
-        generatedPlanProgress: generatedPlanProgress,
-        adaptivePlanEstimate: widget.adaptivePlanEstimate,
-      ),
-    ];
+    final feedAuthorProfile =
+        _lastFeedAuthorProfile ??
+        FeedAuthorProfileSnapshot.fallback(
+          userId: widget.authRepository.currentUser?.uid ?? '',
+        );
+    _scheduleFeedAuthorProfileStoreSync(feedAuthorProfile);
+    final tabs = <int, Widget>{
+      if (_visitedTabIndexes.contains(0))
+        0: HomeTab(
+          key: const ValueKey<String>('runiac-shell-tab-home'),
+          authRepository: widget.authRepository,
+          profileRepository: widget.profileRepository,
+          profilePersistenceRepository: widget.profilePersistenceRepository,
+          generatedPlanPersistenceRepository:
+              widget.generatedPlanPersistenceRepository,
+          notificationInboxRepository: widget.notificationInboxRepository,
+          userProgressRepository: widget.userProgressRepository,
+          leaderboardRepository: widget.leaderboardRepository,
+          friendsRepository: widget.friendsRepository,
+          challengeRepository: widget.challengeRepository,
+          challengeResultPresenter: widget.challengeResultPresenter,
+          todayWorkoutDetailSnapshot: todayWorkoutDetail,
+          todayPlannedRunContext: todayPlannedRunContext,
+          generatedPlanProgress: generatedPlanProgress,
+          currentDate: currentDate,
+          homeGuideAgent: widget.homeGuideAgent,
+          homeGuideConsentRepository: widget.homeGuideConsentRepository,
+          enableForegroundGps: widget.enableForegroundGps,
+          activeRunSessionCoordinator: _activeRunSessionCoordinator,
+          onNotificationSettingsChanged: () {
+            _syncGeneratedPlanNotifications(
+              activeGeneratedPlan,
+              generatedPlanProgress,
+              userProgressStore: userProgressStore,
+              force: true,
+            );
+          },
+        ),
+      if (_visitedTabIndexes.contains(1))
+        1: CurrentSessionFeed(
+          key: const ValueKey<String>('runiac-shell-tab-feed'),
+          repository: widget.feedRepository,
+          viewerContext: _feedViewerContext,
+          currentAuthorProfile: feedAuthorProfile,
+        ),
+      if (_visitedTabIndexes.contains(3))
+        3: LeaderboardTab(
+          key: const ValueKey<String>('runiac-shell-tab-leaderboard'),
+          repository: widget.leaderboardRepository,
+        ),
+      if (_visitedTabIndexes.contains(4))
+        4: YouTab(
+          key: const ValueKey<String>('runiac-shell-tab-you'),
+          activityHistoryRepository: widget.activityHistoryRepository,
+          userProgressRepository: widget.userProgressRepository,
+          authRepository: widget.authRepository,
+          generatedPlanPersistenceRepository:
+              widget.generatedPlanPersistenceRepository,
+          enableForegroundGps: widget.enableForegroundGps,
+          activeRunSessionCoordinator: _activeRunSessionCoordinator,
+          progressToday: currentDate,
+          generatedPlanProgress: generatedPlanProgress,
+          adaptivePlanEstimate: widget.adaptivePlanEstimate,
+        ),
+    };
 
-    return Scaffold(
-      appBar:
-          _selectedIndex == 0 ||
-              _selectedIndex == 1 ||
-              _selectedIndex == 3 ||
-              _selectedIndex == 4
-          ? null
-          : AppBar(title: const Text('Runiac')),
-      body: tabs[_selectedIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        type: BottomNavigationBarType.fixed,
-        onTap: _handleNavigationTap,
-        backgroundColor: RuniacColors.white,
-        selectedItemColor: RuniacColors.primaryBlue,
-        unselectedItemColor: RuniacColors.textSecondary,
-        showSelectedLabels: false,
-        showUnselectedLabels: false,
-        selectedFontSize: 0,
-        unselectedFontSize: 0,
-        selectedIconTheme: const IconThemeData(size: 32),
-        unselectedIconTheme: const IconThemeData(size: 30),
-        selectedLabelStyle: const TextStyle(fontSize: 0, height: 0),
-        unselectedLabelStyle: const TextStyle(fontSize: 0, height: 0),
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: '',
-            tooltip: 'Home',
+    return FutureBuilder<FeedAuthorProfileSnapshot>(
+      future: _feedAuthorProfileFuture,
+      builder: (context, snapshot) {
+        if (snapshot.hasData && snapshot.data != _lastFeedAuthorProfile) {
+          _lastFeedAuthorProfile = snapshot.data;
+          _scheduleFeedAuthorProfileStoreSync(snapshot.data!);
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) setState(() {});
+          });
+        }
+        return Scaffold(
+          appBar:
+              _selectedIndex == 0 ||
+                  _selectedIndex == 1 ||
+                  _selectedIndex == 3 ||
+                  _selectedIndex == 4
+              ? null
+              : AppBar(title: const Text('Runiac')),
+          body: Stack(
+            fit: StackFit.expand,
+            children: [
+              for (final entry in tabs.entries)
+                Offstage(
+                  key: ValueKey<String>('runiac-shell-slot-${entry.key}'),
+                  offstage: entry.key != _selectedIndex,
+                  child: TickerMode(
+                    enabled: entry.key == _selectedIndex,
+                    child: entry.value,
+                  ),
+                ),
+            ],
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.dynamic_feed),
-            label: '',
-            tooltip: 'Feed',
+          bottomNavigationBar: BottomNavigationBar(
+            currentIndex: _selectedIndex,
+            type: BottomNavigationBarType.fixed,
+            onTap: _handleNavigationTap,
+            backgroundColor: RuniacColors.white,
+            selectedItemColor: RuniacColors.primaryBlue,
+            unselectedItemColor: RuniacColors.textSecondary,
+            showSelectedLabels: false,
+            showUnselectedLabels: false,
+            selectedFontSize: 0,
+            unselectedFontSize: 0,
+            selectedIconTheme: const IconThemeData(size: 32),
+            unselectedIconTheme: const IconThemeData(size: 30),
+            selectedLabelStyle: const TextStyle(fontSize: 0, height: 0),
+            unselectedLabelStyle: const TextStyle(fontSize: 0, height: 0),
+            items: const [
+              BottomNavigationBarItem(
+                icon: Icon(Icons.home),
+                label: '',
+                tooltip: 'Home',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.dynamic_feed),
+                label: '',
+                tooltip: 'Feed',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.directions_run),
+                label: '',
+                tooltip: 'Run',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.leaderboard),
+                label: '',
+                tooltip: 'Leaderboard',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.person),
+                label: '',
+                tooltip: 'You',
+              ),
+            ],
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.directions_run),
-            label: '',
-            tooltip: 'Run',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.leaderboard),
-            label: '',
-            tooltip: 'Leaderboard',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: '',
-            tooltip: 'You',
-          ),
-        ],
-      ),
+        );
+      },
     );
+  }
+
+  FeedViewerContext? get _feedViewerContext {
+    final viewer = widget.authRepository.currentUser;
+    return viewer == null
+        ? null
+        : FeedViewerContext(
+            currentUserId: viewer.uid,
+            acceptedFriendUserIds: const <String>{},
+          );
   }
 
   PlannedRunContext? _todayPlannedRunContext() {
@@ -432,6 +656,7 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
   void _syncGeneratedPlanNotifications(
     BeginnerAdaptivePlanSnapshot? activeGeneratedPlan,
     GeneratedPlanProgressDisplay? generatedPlanProgress, {
+    required CurrentSessionUserProgress? userProgressStore,
     required bool force,
   }) {
     if (!widget.enableLocalPlanNotifications) {
@@ -463,6 +688,7 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
               const <String>{},
           streakRisk: await _streakRiskInputForPlan(
             activeGeneratedPlan,
+            userProgressStore: userProgressStore,
             now: now,
           ),
         );
@@ -479,6 +705,7 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
           _syncGeneratedPlanNotifications(
             pendingPlan,
             pendingProgress,
+            userProgressStore: userProgressStore,
             force: true,
           );
         }
@@ -507,12 +734,13 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
 
   Future<StreakRiskNotificationInput?> _streakRiskInputForPlan(
     BeginnerAdaptivePlanSnapshot? activeGeneratedPlan, {
+    required CurrentSessionUserProgress? userProgressStore,
     required DateTime now,
   }) async {
     if (activeGeneratedPlan == null) {
       return null;
     }
-    final progress = await widget.userProgressRepository.loadUserProgress();
+    final progress = await _loadProgressForShell(userProgressStore);
     if (!_isStreakAtRisk(progress, now: now)) {
       return null;
     }
@@ -521,6 +749,18 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
       riskDate: now,
       streakWouldBreakWithoutValidatedRun: true,
     );
+  }
+
+  Future<UserProgressReadModel> _loadProgressForShell(
+    CurrentSessionUserProgress? userProgressStore,
+  ) async {
+    if (userProgressStore == null) {
+      return widget.userProgressRepository.loadUserProgress();
+    }
+    await WidgetsBinding.instance.endOfFrame;
+    await userProgressStore.load();
+    return userProgressStore.snapshot.progress ??
+        await widget.userProgressRepository.loadUserProgress();
   }
 
   bool _isStreakAtRisk(
@@ -541,4 +781,21 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
       date.day.toString().padLeft(2, '0'),
     ].join('-');
   }
+}
+
+FeedAuthorProfileSnapshot _feedAuthorProfileFrom({
+  required String? ownerUid,
+  required UserProfileReadModel profile,
+  required UserProgressReadModel progress,
+}) {
+  final displayName = profile.displayName.trim();
+  final initials = profile.avatarInitials.trim();
+  final levelLabel = progress.levelLabel.trim();
+  return FeedAuthorProfileSnapshot(
+    userId: ownerUid ?? profile.userId,
+    displayName: displayName.isEmpty ? 'You' : displayName,
+    avatarInitials: initials.isEmpty ? 'R' : initials,
+    levelLabel: levelLabel.isEmpty ? progress.levelBadgeLabel : levelLabel,
+    levelProgressFraction: progress.levelProgressFraction,
+  );
 }

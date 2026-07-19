@@ -6,17 +6,25 @@ import 'package:flutter/material.dart';
 import 'core/characters/local_selected_runner_character_storage.dart';
 import 'core/characters/runner_character.dart';
 import 'core/theme/runiac_theme.dart';
-import 'features/account/data/static_user_profile_repository.dart';
-import 'features/account/domain/models/user_profile_read_model.dart';
-import 'features/account/domain/repositories/user_profile_persistence_repository.dart';
-import 'features/account/domain/repositories/user_profile_repository.dart';
-import 'features/account/presentation/personal_profile_collection_screen.dart';
+import 'features/profile/data/static_user_profile_repository.dart';
+import 'features/profile/domain/models/user_profile_read_model.dart';
+import 'features/profile/domain/repositories/user_profile_persistence_repository.dart';
+import 'features/profile/domain/repositories/user_profile_repository.dart';
+import 'features/profile/presentation/personal_profile_collection_screen.dart';
 import 'features/auth/data/non_production_auth_repository.dart';
 import 'features/auth/domain/runiac_auth_service.dart';
 import 'features/auth/presentation/runiac_auth_gate.dart';
 import 'features/auth/presentation/runiac_profile_setup_gate.dart';
+import 'features/challenge/data/static_challenge_repository.dart';
+import 'features/challenge/domain/repositories/challenge_repository.dart';
+import 'features/challenge/presentation/challenge_result_presentation_controller.dart';
+import 'features/feed/data/static_feed_repository.dart';
+import 'features/feed/domain/repositories/feed_repository.dart';
 import 'features/feed/presentation/current_session_feed.dart';
+import 'features/friends/data/static_friends_repository.dart';
+import 'features/friends/domain/repositories/friends_repository.dart';
 import 'features/home/domain/guide/home_guide_agent.dart';
+import 'features/home/domain/guide/home_guide_consent.dart';
 import 'features/home/domain/guide/rule_based_home_guide_agent.dart';
 import 'features/onboarding/domain/models/local_onboarding_draft.dart';
 import 'features/notifications/domain/models/notification_inbox_item.dart';
@@ -37,6 +45,7 @@ import 'features/run/domain/repositories/run_repository.dart';
 import 'features/run/presentation/active_run_session_coordinator.dart';
 import 'features/run/presentation/run_open_intent.dart';
 import 'features/run/presentation/run_repository_scope.dart';
+import 'features/you/data/local_user_progress_cache_store.dart';
 import 'features/you/data/static_activity_history_repository.dart';
 import 'features/you/data/local_pending_run_activity_store.dart';
 import 'features/you/domain/models/user_progress_read_model.dart';
@@ -48,6 +57,8 @@ import 'features/shell/runiac_shell.dart';
 import 'features/splash/presentation/runiac_splash_tokens.dart';
 import 'features/splash/presentation/runiac_startup_gate.dart';
 import 'features/you/presentation/current_session_activity_history.dart';
+import 'features/you/presentation/current_session_user_progress.dart';
+import 'features/you/presentation/widgets/activity_route_snapshot_thumbnail_cache.dart';
 
 export 'features/run/presentation/run_open_intent.dart';
 
@@ -63,6 +74,9 @@ class RuniacApp extends StatefulWidget {
     this.activityHistoryRepository = const StaticActivityHistoryRepository(),
     this.userProgressRepository = const StaticUserProgressRepository(),
     this.leaderboardRepository = const StaticLeaderboardRepository(),
+    this.friendsRepository = const StaticFriendsRepository(),
+    this.challengeRepository = const StaticChallengeRepository(),
+    this.challengeResultPresenter,
     this.profileRepository = const StaticUserProfileRepository(),
     this.profilePersistenceRepository =
         const NoopUserProfilePersistenceRepository(),
@@ -75,11 +89,14 @@ class RuniacApp extends StatefulWidget {
         const StaticNotificationInboxRepository(),
     this.notificationRegistrationService,
     this.homeGuideAgent = const RuleBasedHomeGuideAgent(),
+    this.homeGuideConsentRepository =
+        const AlwaysGrantedHomeGuideConsentRepository(),
     this.enableForegroundGps = true,
     this.activeRunSessionCoordinator,
     this.initialRunOpenIntent,
     this.currentSessionActivityHistoryStore,
     this.currentSessionFeedStore,
+    this.feedRepository,
     this.currentSessionGeneratedPlanStore,
     this.initialPersonalProfileDraft,
     this.onOnboardingCompleted,
@@ -95,6 +112,16 @@ class RuniacApp extends StatefulWidget {
   final ActivityHistoryRepository activityHistoryRepository;
   final UserProgressRepository userProgressRepository;
   final LeaderboardRepository leaderboardRepository;
+  final FriendsRepository friendsRepository;
+
+  /// Challenge distance-system repository seam, threaded through
+  /// `RuniacShell` to `HomeTab` (and the Account badge case) so physical runs
+  /// use trusted data. Defaults to the static source for previews/tests.
+  final ChallengeRepository challengeRepository;
+
+  /// One-shot foreground Result presenter, threaded to `HomeTab`. `null`
+  /// (previews/tests/no-Firebase) disables auto-presentation.
+  final ChallengeResultPresentationController? challengeResultPresenter;
   final UserProfileRepository profileRepository;
   final UserProfilePersistenceRepository profilePersistenceRepository;
   final GeneratedPlanPersistenceRepository generatedPlanPersistenceRepository;
@@ -105,11 +132,13 @@ class RuniacApp extends StatefulWidget {
 
   /// Guide seam forwarded down to `HomeTab`'s stage-map speech bubble.
   final HomeGuideAgent homeGuideAgent;
+  final HomeGuideConsentRepository homeGuideConsentRepository;
   final bool enableForegroundGps;
   final ActiveRunSessionCoordinator? activeRunSessionCoordinator;
   final RunOpenIntent? initialRunOpenIntent;
   final CurrentSessionActivityHistoryStore? currentSessionActivityHistoryStore;
   final CurrentSessionFeedStore? currentSessionFeedStore;
+  final FeedRepository? feedRepository;
   final CurrentSessionGeneratedPlanStore? currentSessionGeneratedPlanStore;
   final PersonalProfileDraft? initialPersonalProfileDraft;
   final ValueChanged<LocalOnboardingDraft>? onOnboardingCompleted;
@@ -122,8 +151,11 @@ class RuniacApp extends StatefulWidget {
 class _RuniacAppState extends State<RuniacApp> {
   late final CurrentSessionActivityHistoryStore _activityHistoryStore;
   late final bool _ownsActivityHistoryStore;
+  late final CurrentSessionUserProgress _userProgressStore;
   late final CurrentSessionFeedStore _feedStore;
   late final bool _ownsFeedStore;
+  late FeedRepository _feedRepository;
+  var _ownsFeedRepository = false;
   late final CurrentSessionGeneratedPlanStore _generatedPlanStore;
   late final bool _ownsGeneratedPlanStore;
   RuniacAuthCompletion? _authCompletion;
@@ -141,6 +173,8 @@ class _RuniacAppState extends State<RuniacApp> {
       SelectedRunnerCharacterStore();
   final LocalSelectedRunnerCharacterStorage _selectedCharacterStorage =
       const SharedPreferencesSelectedRunnerCharacterStorage();
+  late final ActivityRouteSnapshotThumbnailArtifactLifecycle
+  _thumbnailArtifactLifecycle;
 
   @override
   void initState() {
@@ -155,6 +189,19 @@ class _RuniacAppState extends State<RuniacApp> {
           onRemoteRunSynced: _refreshUserProgressAfterRunSync,
         );
     final initialOwnerUid = widget.authRepository.currentUser?.uid;
+    _userProgressStore = CurrentSessionUserProgress(
+      ownerUid: initialOwnerUid,
+      repository: widget.userProgressRepository,
+      cacheStore: const SharedPreferencesLocalUserProgressCacheStore(),
+      clock: () => widget.youProgressToday ?? DateTime.now(),
+    );
+    if (initialOwnerUid != null) {
+      _scheduleUserProgressLoad(initialOwnerUid);
+    }
+    _thumbnailArtifactLifecycle =
+        ActivityRouteSnapshotThumbnailArtifactLifecycle(
+          initialOwnerUid: initialOwnerUid,
+        );
     _ownsFeedStore = widget.currentSessionFeedStore == null;
     _feedStore =
         widget.currentSessionFeedStore ??
@@ -162,6 +209,7 @@ class _RuniacAppState extends State<RuniacApp> {
     if (!_ownsFeedStore) {
       _feedStore.syncOwner(initialOwnerUid);
     }
+    _configureFeedRepository(widget.feedRepository);
     if (initialOwnerUid != null) {
       unawaited(_restoreAndSyncPendingRuns(ownerUid: initialOwnerUid));
     }
@@ -210,8 +258,13 @@ class _RuniacAppState extends State<RuniacApp> {
       _authCompletion = null;
       _personalProfileDraft = widget.initialPersonalProfileDraft;
       final nextOwnerUid = widget.authRepository.currentUser?.uid;
+      _thumbnailArtifactLifecycle.syncOwner(nextOwnerUid);
+      _syncUserProgressOwner(nextOwnerUid);
       _scheduleActivityHistoryOwnerSync(nextOwnerUid);
       _feedStore.syncOwner(nextOwnerUid);
+    }
+    if (oldWidget.feedRepository != widget.feedRepository) {
+      _configureFeedRepository(widget.feedRepository);
     }
     if (oldWidget.planProgressRepository != widget.planProgressRepository) {
       final ownerUid = _generatedPlanOwnerUid;
@@ -243,70 +296,87 @@ class _RuniacAppState extends State<RuniacApp> {
     if (_ownsFeedStore) {
       _feedStore.dispose();
     }
+    _disposeOwnedFeedRepository();
     if (_ownsGeneratedPlanStore) {
       _generatedPlanStore.dispose();
     }
+    _userProgressStore.dispose();
     unawaited(_cancelPushNotificationSubscription());
     unawaited(widget.notificationRegistrationService?.dispose());
     _selectedCharacterStore.dispose();
     super.dispose();
   }
 
+  void _configureFeedRepository(FeedRepository? repository) {
+    _disposeOwnedFeedRepository();
+    _ownsFeedRepository = repository == null;
+    _feedRepository = repository ?? const StaticFeedRepository();
+  }
+
+  void _disposeOwnedFeedRepository() {
+    if (_ownsFeedRepository && _feedRepository is FeedTimelineRepository) {
+      (_feedRepository as FeedTimelineRepository).dispose();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return CurrentSessionFeedScope(
-      store: _feedStore,
-      child: SelectedRunnerCharacterScope(
-        store: _selectedCharacterStore,
-        child: CurrentSessionActivityHistoryScope(
-          store: _activityHistoryStore,
-          child: CurrentSessionGeneratedPlanScope(
-            store: _generatedPlanStore,
-            child: RunRepositoryScope(
-              repository: widget.runRepository,
-              child: MaterialApp(
-                debugShowCheckedModeBanner: false,
-                title: 'Runiac',
-                theme: buildRuniacTheme(),
-                home: RuniacStartupGate(
-                  showSplash: widget.showSplash,
-                  splashDuration: widget.splashDuration,
-                  child: RuniacAuthGate(
-                    authRepository: widget.authRepository,
-                    showAuth: widget.showAuth,
-                    onAuthenticated: (completion) {
-                      setState(() {
-                        _authCompletion = completion;
-                        _authStateError = null;
-                        _showMissingProfileSignupPrompt = false;
-                      });
-                      _startPushNotificationsForCurrentUser();
-                      unawaited(
-                        _restoreSelectedCharacter(
-                          widget.authRepository.currentUser?.uid,
-                        ),
-                      );
-                    },
-                    onAuthStateChanged: (user) {
-                      if (user == null) {
-                        unawaited(_cancelPushNotificationSubscription());
-                        unawaited(
-                          widget.notificationRegistrationService
-                              ?.unregisterCurrentDevice(),
-                        );
-                      }
-                      _scheduleActivityHistoryOwnerSync(user?.uid);
-                      _feedStore.syncOwner(user?.uid);
-                      _clearGeneratedPlanForAuthChange(user?.uid);
-                      unawaited(_restoreSelectedCharacter(user?.uid));
-                    },
-                    recoveryPrompt: _showMissingProfileSignupPrompt
-                        ? const RuniacAuthRecoveryPrompt.signup(
-                            message:
-                                'No Runiac account setup exists for this account. Sign up to create your profile and start onboarding.',
-                          )
-                        : null,
-                    childBuilder: (_) => _buildPostAuthFlow(),
+    return CurrentSessionUserProgressScope(
+      store: _userProgressStore,
+      child: CurrentSessionFeedScope(
+        store: _feedStore,
+        child: SelectedRunnerCharacterScope(
+          store: _selectedCharacterStore,
+          child: CurrentSessionActivityHistoryScope(
+            store: _activityHistoryStore,
+            child: CurrentSessionGeneratedPlanScope(
+              store: _generatedPlanStore,
+              child: RunRepositoryScope(
+                repository: widget.runRepository,
+                child: MaterialApp(
+                  debugShowCheckedModeBanner: false,
+                  title: 'Runiac',
+                  theme: buildRuniacTheme(),
+                  home: RuniacStartupGate(
+                    showSplash: widget.showSplash,
+                    splashDuration: widget.splashDuration,
+                    child: RuniacAuthGate(
+                      authRepository: widget.authRepository,
+                      showAuth: widget.showAuth,
+                      onAuthenticated: (completion) {
+                        final ownerUid = widget.authRepository.currentUser?.uid;
+                        _syncUserProgressOwner(ownerUid);
+                        setState(() {
+                          _authCompletion = completion;
+                          _authStateError = null;
+                          _showMissingProfileSignupPrompt = false;
+                        });
+                        _startPushNotificationsForCurrentUser();
+                        unawaited(_restoreSelectedCharacter(ownerUid));
+                      },
+                      onAuthStateChanged: (user) {
+                        _thumbnailArtifactLifecycle.syncOwner(user?.uid);
+                        _syncUserProgressOwner(user?.uid);
+                        if (user == null) {
+                          unawaited(_cancelPushNotificationSubscription());
+                          unawaited(
+                            widget.notificationRegistrationService
+                                ?.unregisterCurrentDevice(),
+                          );
+                        }
+                        _scheduleActivityHistoryOwnerSync(user?.uid);
+                        _feedStore.syncOwner(user?.uid);
+                        _clearGeneratedPlanForAuthChange(user?.uid);
+                        unawaited(_restoreSelectedCharacter(user?.uid));
+                      },
+                      recoveryPrompt: _showMissingProfileSignupPrompt
+                          ? const RuniacAuthRecoveryPrompt.signup(
+                              message:
+                                  'No Runiac account setup exists for this account. Sign up to create your profile and start onboarding.',
+                            )
+                          : null,
+                      childBuilder: (_) => _buildPostAuthFlow(),
+                    ),
                   ),
                 ),
               ),
@@ -315,6 +385,34 @@ class _RuniacAppState extends State<RuniacApp> {
         ),
       ),
     );
+  }
+
+  void _syncUserProgressOwner(String? ownerUid) {
+    _userProgressStore.updateOwnerUid(ownerUid);
+    if (ownerUid != null) {
+      _scheduleUserProgressLoad(ownerUid);
+    }
+  }
+
+  void _scheduleUserProgressOwnerSync(String? ownerUid) {
+    if (_userProgressStore.snapshot.ownerUid == ownerUid) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _userProgressStore.snapshot.ownerUid == ownerUid) {
+        return;
+      }
+      _syncUserProgressOwner(ownerUid);
+    });
+  }
+
+  void _scheduleUserProgressLoad(String ownerUid) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || widget.authRepository.currentUser?.uid != ownerUid) {
+        return;
+      }
+      unawaited(_userProgressStore.load());
+    });
   }
 
   void _clearGeneratedPlanForAuthChange(String? nextOwnerUid) {
@@ -407,7 +505,10 @@ class _RuniacAppState extends State<RuniacApp> {
 
   Future<UserProgressReadModel> _refreshUserProgressAfterRunSync() async {
     try {
-      return widget.userProgressRepository.refreshUserProgress();
+      final progress = await widget.userProgressRepository
+          .refreshUserProgress();
+      _userProgressStore.recordRemoteProgress(progress);
+      return progress;
     } catch (error, stackTrace) {
       FlutterError.reportError(
         FlutterErrorDetails(
@@ -423,6 +524,7 @@ class _RuniacAppState extends State<RuniacApp> {
 
   Widget _buildPostAuthFlow() {
     final currentUser = widget.authRepository.currentUser;
+    _scheduleUserProgressOwnerSync(currentUser?.uid);
     _scheduleActivityHistoryOwnerSync(currentUser?.uid);
 
     if (_shouldShowPersonalProfile) {
@@ -524,8 +626,12 @@ class _RuniacAppState extends State<RuniacApp> {
         child: RuniacShell(
           authRepository: widget.authRepository,
           activityHistoryRepository: widget.activityHistoryRepository,
+          feedRepository: _feedRepository,
           userProgressRepository: widget.userProgressRepository,
           leaderboardRepository: widget.leaderboardRepository,
+          friendsRepository: widget.friendsRepository,
+          challengeRepository: widget.challengeRepository,
+          challengeResultPresenter: widget.challengeResultPresenter,
           profileRepository: widget.profileRepository,
           profilePersistenceRepository: widget.profilePersistenceRepository,
           generatedPlanPersistenceRepository:
@@ -534,6 +640,7 @@ class _RuniacAppState extends State<RuniacApp> {
           planProgress: _planProgress,
           adaptivePlanEstimate: _adaptivePlanEstimate,
           homeGuideAgent: widget.homeGuideAgent,
+          homeGuideConsentRepository: widget.homeGuideConsentRepository,
           enableForegroundGps: widget.enableForegroundGps,
           activeRunSessionCoordinator: widget.activeRunSessionCoordinator,
           initialRunOpenIntent: widget.initialRunOpenIntent,
@@ -592,7 +699,9 @@ class _RuniacAppState extends State<RuniacApp> {
   }
 
   Future<bool> _completeOnboarding(LocalOnboardingDraft draft) async {
-    final snapshot = const BeginnerAdaptivePlanGenerator().generate(draft);
+    final snapshot = const BeginnerAdaptivePlanGenerator()
+        .generate(draft)
+        .withStartsOnDate(generatedPlanDateLabel(_generatedPlanStartDate()));
     final currentUser = widget.authRepository.currentUser;
     if (currentUser != null) {
       final saved = await _saveOnboardingProfile(currentUser.uid, draft);
@@ -607,6 +716,15 @@ class _RuniacAppState extends State<RuniacApp> {
     _setActiveGeneratedPlan(snapshot, ownerUid: currentUser?.uid);
     widget.onOnboardingCompleted?.call(draft);
     return true;
+  }
+
+  DateTime _generatedPlanStartDate() {
+    final currentDate = widget.youProgressToday;
+    if (currentDate != null) {
+      return DateTime(currentDate.year, currentDate.month, currentDate.day);
+    }
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, now.day);
   }
 
   void _setActiveGeneratedPlan(
@@ -723,7 +841,6 @@ class _RuniacAppState extends State<RuniacApp> {
     final fullName = personalProfile?.fullName ?? 'Runiac Runner';
     final nickname = personalProfile?.nickname ?? 'Runiac Runner';
     final avatarInitials = personalProfile?.avatarInitials ?? 'RR';
-    final nicknameKey = personalProfile?.nicknameKey ?? 'runiac-runner';
     final dateOfBirthIso = personalProfile?.dateOfBirthIso ?? '2008-01-01';
     final ageYears = personalProfile?.ageYears ?? 18;
     final weightKg = personalProfile?.weightKg ?? 60;
@@ -733,7 +850,6 @@ class _RuniacAppState extends State<RuniacApp> {
       fullName: fullName,
       nickname: nickname,
       avatarInitials: avatarInitials,
-      nicknameKey: nicknameKey,
       dateOfBirthIso: dateOfBirthIso,
       ageYears: ageYears,
       weightKg: weightKg,

@@ -9,6 +9,7 @@ import '../../domain/models/run_cadence_sample.dart';
 import '../../domain/models/run_location_sample.dart';
 import '../../domain/models/run_location_permission_status.dart';
 import '../../domain/models/run_map_view_state.dart';
+import '../../domain/models/run_route_snapshot.dart';
 import '../../domain/models/run_tracking_diagnostics.dart';
 import '../../domain/models/run_tracking_notification_copy.dart';
 import '../../domain/models/run_tracking_state.dart';
@@ -18,6 +19,7 @@ import '../../domain/repositories/run_location_permission_service.dart';
 import '../../domain/repositories/run_location_provider.dart';
 import '../../domain/repositories/run_motion_provider.dart';
 import '../../domain/repositories/run_notification_permission_service.dart';
+import '../../domain/services/completed_run_title_formatter.dart';
 import '../../domain/services/local_run_tracking_session.dart';
 import '../widgets/display_route_smoother.dart';
 
@@ -429,11 +431,17 @@ class RunTrackingController extends ChangeNotifier {
       avgPaceSecondsPerKm: _state.averagePaceSecondsPerKm,
       source: _state.source,
       routePrivacy: _state.routePrivacy,
+      activityTitle: const CompletedRunTitleFormatter().format(
+        completedAt: finishedAt,
+      ),
       routeLabel: _state.routeLabel,
       planEnrollmentId: planEnrollmentId,
       scheduledWorkoutId: scheduledWorkoutId,
+      routeSnapshot: RunRouteSnapshot.fromMapViewState(mapViewState),
       paceGraphSamples: _trackingSession?.paceGraphSamples() ?? const [],
-      cadenceAnalysisSeries: _trackingSession?.cadenceAnalysisSeries(),
+      cadenceAnalysisSeries: _trackingSession?.cadenceAnalysisSeries(
+        completedAt: finishedAt,
+      ),
       elevationAnalysisSeries: _trackingSession?.elevationAnalysisSeries(),
       elevationUnavailableReason:
           _trackingSession?.elevationUnavailableReason() ??

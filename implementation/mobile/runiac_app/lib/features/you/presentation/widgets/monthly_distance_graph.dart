@@ -26,6 +26,25 @@ const _finalHaloRadius = 13.0;
 const _contextLabelFontSize = 10.0;
 const _axisFontSize = 13.0;
 const _monthFontSize = 13.0;
+const _monthLabelMaxWidth = 48.0;
+const _monthLabelMinGap = 4.0;
+
+@visibleForTesting
+class MonthLabelPlacement {
+  const MonthLabelPlacement({
+    required this.label,
+    required this.index,
+    required this.centerX,
+    required this.left,
+    required this.right,
+  });
+
+  final String label;
+  final int index;
+  final double centerX;
+  final double left;
+  final double right;
+}
 
 class PastTwelveWeeksDistanceGraph extends StatelessWidget {
   const PastTwelveWeeksDistanceGraph({
@@ -232,14 +251,20 @@ class _PastTwelveWeeksDistanceGraphPainter extends CustomPainter {
       fontSize: _monthFontSize,
       fontWeight: FontWeight.w600,
     );
-    for (var i = 0; i < labels.length; i += 1) {
-      final x = _labelX(chartRect, i, labels.length);
+    final visibleMonthLabels = visibleMonthLabelPlacementsForGraph(
+      labels: labels,
+      pointCount: values.length,
+      labelWeekIndices: labelWeekIndices,
+      chartLeft: chartRect.left,
+      chartRight: chartRect.right,
+      style: monthLabelStyle,
+    );
+    for (final label in visibleMonthLabels) {
       _paintCenteredLabel(
         canvas,
-        labels[i],
-        centerX: x,
+        label.label,
+        centerX: label.centerX,
         top: chartRect.bottom + 9,
-        chartRect: chartRect,
         style: monthLabelStyle,
       );
     }
@@ -250,18 +275,14 @@ class _PastTwelveWeeksDistanceGraphPainter extends CustomPainter {
     String value, {
     required double centerX,
     required double top,
-    required Rect chartRect,
     required TextStyle style,
   }) {
     final painter = TextPainter(
       text: TextSpan(text: value, style: style),
       textDirection: TextDirection.ltr,
       maxLines: 1,
-    )..layout(maxWidth: 48);
-    final maxLeft = math.max(chartRect.left, chartRect.right - painter.width);
-    final dx = (centerX - painter.width / 2)
-        .clamp(chartRect.left, maxLeft)
-        .toDouble();
+    )..layout(maxWidth: _monthLabelMaxWidth);
+    final dx = centerX - painter.width / 2;
     painter.paint(canvas, Offset(dx, top));
   }
 
@@ -277,18 +298,6 @@ class _PastTwelveWeeksDistanceGraphPainter extends CustomPainter {
   double _pointY(Rect chartRect, double value, double maxValue) {
     final normalized = maxValue <= 0 ? 0.0 : (value / maxValue).clamp(0.0, 1.0);
     return chartRect.bottom - chartRect.height * normalized;
-  }
-
-  double _labelX(Rect chartRect, int index, int labelCount) {
-    final indices = labelWeekIndices;
-    if (indices != null && index < indices.length) {
-      return _pointX(chartRect, indices[index], values.length);
-    }
-    final fractions = monthLabelFractionsForGraph(
-      labelCount: labelCount,
-      pointCount: values.length,
-    );
-    return chartRect.left + chartRect.width * fractions[index];
   }
 
   void _paintText(
@@ -431,4 +440,112 @@ List<double> monthLabelFractionsForGraph({
     final intervalCenter = centeredWeek + 0.5;
     return (intervalCenter / pointCount).clamp(0.0, 1.0);
   });
+}
+
+@visibleForTesting
+List<MonthLabelPlacement> visibleMonthLabelPlacementsForGraph({
+  required List<String> labels,
+  required int pointCount,
+  required double chartLeft,
+  required double chartRight,
+  List<int>? labelWeekIndices,
+  TextStyle style = const TextStyle(
+    fontSize: _monthFontSize,
+    fontWeight: FontWeight.w600,
+  ),
+}) {
+  if (labels.isEmpty || pointCount <= 0 || chartRight <= chartLeft) {
+    return const [];
+  }
+  final chartWidth = chartRight - chartLeft;
+  final fallbackFractions = monthLabelFractionsForGraph(
+    labelCount: labels.length,
+    pointCount: pointCount,
+  );
+  final candidates = <MonthLabelPlacement>[];
+  for (var index = 0; index < labels.length; index += 1) {
+    final centerX = _monthLabelCenterX(
+      index: index,
+      labelCount: labels.length,
+      pointCount: pointCount,
+      labelWeekIndices: labelWeekIndices,
+      fallbackFractions: fallbackFractions,
+      chartLeft: chartLeft,
+      chartWidth: chartWidth,
+    );
+    final painter = TextPainter(
+      text: TextSpan(text: labels[index], style: style),
+      textDirection: TextDirection.ltr,
+      maxLines: 1,
+    )..layout(maxWidth: _monthLabelMaxWidth);
+    final left = centerX - painter.width / 2;
+    final right = centerX + painter.width / 2;
+    if (left < chartLeft || right > chartRight) {
+      continue;
+    }
+    candidates.add(
+      MonthLabelPlacement(
+        label: labels[index],
+        index: index,
+        centerX: centerX,
+        left: left,
+        right: right,
+      ),
+    );
+  }
+
+  final accepted = <MonthLabelPlacement>[];
+  for (final candidate in _monthLabelPriorityOrder(candidates)) {
+    final overlaps = accepted.any(
+      (visible) =>
+          candidate.left < visible.right + _monthLabelMinGap &&
+          candidate.right + _monthLabelMinGap > visible.left,
+    );
+    if (!overlaps) {
+      accepted.add(candidate);
+    }
+  }
+  accepted.sort((a, b) => a.index.compareTo(b.index));
+  return accepted;
+}
+
+double _monthLabelCenterX({
+  required int index,
+  required int labelCount,
+  required int pointCount,
+  required List<int>? labelWeekIndices,
+  required List<double> fallbackFractions,
+  required double chartLeft,
+  required double chartWidth,
+}) {
+  final weekIndices = labelWeekIndices;
+  if (weekIndices != null && index < weekIndices.length) {
+    final weekIndex = weekIndices[index]
+        .clamp(0, math.max(0, pointCount - 1))
+        .toInt();
+    return chartLeft + chartWidth * (weekIndex + 0.5) / pointCount;
+  }
+  if (index < fallbackFractions.length) {
+    return chartLeft + chartWidth * fallbackFractions[index];
+  }
+  return chartLeft + chartWidth * (index + 0.5) / math.max(1, labelCount);
+}
+
+List<MonthLabelPlacement> _monthLabelPriorityOrder(
+  List<MonthLabelPlacement> candidates,
+) {
+  final ordered = [...candidates];
+  final currentMonthIndex = candidates.fold<int>(
+    -1,
+    (maxIndex, candidate) => math.max(maxIndex, candidate.index),
+  );
+  ordered.sort((a, b) {
+    final aIsCurrentMonth = a.index == currentMonthIndex;
+    final bIsCurrentMonth = b.index == currentMonthIndex;
+    if (aIsCurrentMonth != bIsCurrentMonth) {
+      return aIsCurrentMonth ? -1 : 1;
+    }
+    return a.index.compareTo(b.index);
+  });
+  return ordered;
 }

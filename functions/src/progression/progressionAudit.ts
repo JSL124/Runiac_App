@@ -1,6 +1,12 @@
+import type { ProgressionConfig } from "../config/configLoader.js";
 import type { PersistPlanProgressResult } from "../plan/planProgress.js";
 import type { StreakTransition } from "./streakCalculator.js";
-import type { CompleteRunIds, ProgressionDisplay, RawRunCompletionPayload } from "../run/runCompletionTypes.js";
+import type {
+  CompleteRunIds,
+  ProgressionDisplay,
+  RawCoolDownCompletionPayload,
+  RawRunCompletionPayload,
+} from "../run/runCompletionTypes.js";
 import {
   applyDailyXpCap,
   calculateActivityXp,
@@ -16,7 +22,7 @@ import {
   sumMonthlyXp,
 } from "./progressionAuditHelpers.js";
 
-export { progressionDisplayFromEvent } from "./progressionDisplayReader.js";
+export { planCompletionFromEvent, progressionDisplayFromEvent } from "./progressionDisplayReader.js";
 
 export type ProgressionAudit = {
   readonly progressionDisplay: ProgressionDisplay;
@@ -51,27 +57,35 @@ export function calculateProgressionAudit(input: {
   readonly sameDayProgressionEventDocuments: readonly FirebaseFirestore.DocumentData[];
   readonly sameMonthProgressionEventDocuments: readonly FirebaseFirestore.DocumentData[];
   readonly planProgressResult: PersistPlanProgressResult;
+  readonly config: ProgressionConfig;
 }): ProgressionAudit {
   const previousTotalXp = readTotalXp(input.profileData);
-  const previousProgression = resolveLevelProgression(previousTotalXp);
+  const previousProgression = resolveLevelProgression(previousTotalXp, input.config);
   const isPremium = isPremiumSubscription(input.subscriptionData) || isPremiumSubscription(input.profileData);
-  const activityXp = calculateActivityXp({
-    distanceMeters: input.payload.distanceMeters,
-    activeDurationSeconds: input.payload.activeDurationSeconds,
-    lowDataConfirmed: input.payload.userConfirmedLowDataSave === true,
-    planCompletionBonusEligible: input.planProgressResult.completedWorkoutRecorded,
-  });
+  const activityXp = calculateActivityXp(
+    {
+      distanceMeters: input.payload.distanceMeters,
+      activeDurationSeconds: input.payload.activeDurationSeconds,
+      lowDataConfirmed: input.payload.userConfirmedLowDataSave === true,
+      planCompletionBonusEligible: input.planProgressResult.completedWorkoutRecorded,
+    },
+    input.config,
+  );
   const dailyXpBefore = sumDailyXp(input.sameDayProgressionEventDocuments, input.dailyCapDate);
   const monthlyXpBefore = sumMonthlyXp(
     input.sameMonthProgressionEventDocuments,
     input.monthlyPeriod,
   );
-  const capped = isPremium
+  const suppress = isPremium && !input.config.premiumEarnsXp;
+  const capped = suppress
     ? { xpDelta: 0, dailyXpAfter: dailyXpBefore, dailyCapApplied: false }
-    : applyDailyXpCap({
-        xpDeltaBeforeDailyCap: activityXp.xpDeltaBeforeDailyCap,
-        dailyXpBefore,
-      });
+    : applyDailyXpCap(
+        {
+          xpDeltaBeforeDailyCap: activityXp.xpDeltaBeforeDailyCap,
+          dailyXpBefore,
+        },
+        input.config,
+      );
   const reason = progressionReason({
     isPremium,
     activityReason: activityXp.reason,
@@ -80,7 +94,7 @@ export function calculateProgressionAudit(input: {
   });
   const nextTotalXp = previousTotalXp + capped.xpDelta;
   const monthlyXpAfter = monthlyXpBefore + capped.xpDelta;
-  const nextProgression = resolveLevelProgression(nextTotalXp);
+  const nextProgression = resolveLevelProgression(nextTotalXp, input.config);
 
   return {
     progressionDisplay: {
@@ -168,9 +182,65 @@ export function progressionEventData(input: {
     countsTowardLeaderboard: display.countsTowardLeaderboard,
     reason: display.reason,
     plannedWorkoutBonusApplied: input.audit.planCompletionBonusXp > 0,
+    plannedWorkoutMatched: input.planProgressResult.matchedPlanWorkout,
     plannedWorkoutRecorded: input.planProgressResult.completedWorkoutRecorded,
+    planEnrollmentId: input.planProgressResult.planEnrollmentId,
     plannedWorkoutId: input.planProgressResult.scheduledWorkoutId,
     plannedWorkoutMatchedBy: input.planProgressResult.matchedBy,
+  };
+}
+
+export function coolDownProgressionEventData(input: {
+  readonly uid: string;
+  readonly activityId: string;
+  readonly payload: RawCoolDownCompletionPayload;
+  readonly baseEarnedXp: number;
+  readonly bonusBeforeDailyCap: number;
+  readonly dailyCapDate: string;
+  readonly monthlyPeriod: string;
+  readonly dailyXpBefore: number;
+  readonly dailyXpAfter: number;
+  readonly dailyCapApplied: boolean;
+  readonly monthlyXpBefore: number;
+  readonly monthlyXpAfter: number;
+  readonly previousTotalXp: number;
+  readonly nextTotalXp: number;
+  readonly previousProgression: LevelProgression;
+  readonly nextProgression: LevelProgression;
+  readonly countsTowardLeaderboard: boolean;
+  readonly reason: ProgressionDisplay["reason"];
+  readonly status: ProgressionDisplay["status"];
+  readonly xpDelta: number;
+}): FirebaseFirestore.DocumentData {
+  return {
+    ownerUid: input.uid,
+    activityId: input.activityId,
+    eventType: "cool_down_stretch_bonus",
+    status: input.status,
+    createdAt: input.payload.completedAt,
+    xpDelta: input.xpDelta,
+    rawXpBeforeDailyCap: input.bonusBeforeDailyCap,
+    baseEarnedXp: input.baseEarnedXp,
+    completedStretchCount: input.payload.completedStretchCount,
+    dailyCapDate: input.dailyCapDate,
+    monthlyPeriod: input.monthlyPeriod,
+    dailyXpBefore: input.dailyXpBefore,
+    dailyXpAfter: input.dailyXpAfter,
+    dailyCapApplied: input.dailyCapApplied,
+    monthlyXpBefore: input.monthlyXpBefore,
+    monthlyXpAfter: input.monthlyXpAfter,
+    previousTotalXp: input.previousTotalXp,
+    nextTotalXp: input.nextTotalXp,
+    previousLevel: input.previousProgression.level,
+    nextLevel: input.nextProgression.level,
+    previousDivisionKey: input.previousProgression.divisionKey,
+    nextDivisionKey: input.nextProgression.divisionKey,
+    previousLevelProgressPercent: input.previousProgression.levelProgressPercent,
+    nextLevelProgressPercent: input.nextProgression.levelProgressPercent,
+    nextLevelXpTarget: input.nextProgression.nextLevelXp,
+    nextXpToNextLevel: input.nextProgression.xpToNextLevel,
+    countsTowardLeaderboard: input.countsTowardLeaderboard,
+    reason: input.reason,
   };
 }
 
@@ -194,7 +264,9 @@ export function profileProgressionData(audit: ProgressionAudit, updatedAt: strin
 
 export function noCompletedWorkoutRecorded(): PersistPlanProgressResult {
   return {
+    matchedPlanWorkout: false,
     completedWorkoutRecorded: false,
+    planEnrollmentId: null,
     scheduledWorkoutId: null,
     matchedBy: null,
   };

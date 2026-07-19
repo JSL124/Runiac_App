@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runiac_app/core/widgets/runiac_buttons.dart';
-import 'package:runiac_app/features/account/presentation/watch_health_apps_screen.dart';
+import 'package:runiac_app/features/profile/presentation/watch_health_apps_screen.dart';
 
 Future<void> _pumpWatchHealthAppsScreen(WidgetTester tester) async {
   tester.view

@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/runiac_colors.dart';
@@ -12,6 +14,7 @@ class ActivityRoutePreview extends StatelessWidget {
     this.allowExternalStaticMap = false,
     this.isDemoRoute = false,
     this.isCurrentSessionRoute = false,
+    this.isTrustedPersistedRoutePreview = false,
     this.activityId,
     super.key,
   });
@@ -21,6 +24,7 @@ class ActivityRoutePreview extends StatelessWidget {
   final bool allowExternalStaticMap;
   final bool isDemoRoute;
   final bool isCurrentSessionRoute;
+  final bool isTrustedPersistedRoutePreview;
   final String? activityId;
 
   @override
@@ -38,6 +42,7 @@ class ActivityRoutePreview extends StatelessWidget {
       allowExternalStaticMap: allowExternalStaticMap,
       isDemoRoute: isDemoRoute,
       isCurrentSessionRoute: isCurrentSessionRoute,
+      isTrustedPersistedRoutePreview: isTrustedPersistedRoutePreview,
       activityId: activityId,
     );
 
@@ -97,7 +102,7 @@ class ActivityRoutePreview extends StatelessWidget {
 
   bool _canRequestLocationSnapshot(ActivityRouteThumbnailViewport viewport) {
     return allowExternalStaticMap &&
-        isCurrentSessionRoute &&
+        (isCurrentSessionRoute || isTrustedPersistedRoutePreview) &&
         viewport.hasKnownLocation;
   }
 }
@@ -116,6 +121,7 @@ class ActivityRouteThumbnailRequest {
     required this.allowExternalStaticMap,
     required this.isDemoRoute,
     this.isCurrentSessionRoute = false,
+    this.isTrustedPersistedRoutePreview = false,
     this.activityId,
   });
 
@@ -125,7 +131,12 @@ class ActivityRouteThumbnailRequest {
   final bool allowExternalStaticMap;
   final bool isDemoRoute;
   final bool isCurrentSessionRoute;
+  final bool isTrustedPersistedRoutePreview;
   final String? activityId;
+
+  /// The nearest backend-approved image scale; an exact midpoint rounds up.
+  int get canonicalDevicePixelRatio =>
+      canonicalActivityRouteThumbnailScale(devicePixelRatio);
 
   @override
   bool operator ==(Object other) {
@@ -136,6 +147,8 @@ class ActivityRouteThumbnailRequest {
         other.allowExternalStaticMap == allowExternalStaticMap &&
         other.isDemoRoute == isDemoRoute &&
         other.isCurrentSessionRoute == isCurrentSessionRoute &&
+        other.isTrustedPersistedRoutePreview ==
+            isTrustedPersistedRoutePreview &&
         other.activityId == activityId;
   }
 
@@ -148,9 +161,20 @@ class ActivityRouteThumbnailRequest {
       allowExternalStaticMap,
       isDemoRoute,
       isCurrentSessionRoute,
+      isTrustedPersistedRoutePreview,
       activityId,
     );
   }
+}
+
+int canonicalActivityRouteThumbnailScale(double devicePixelRatio) {
+  if (!devicePixelRatio.isFinite || devicePixelRatio < 1.5) {
+    return 1;
+  }
+  if (devicePixelRatio < 2.5) {
+    return 2;
+  }
+  return 3;
 }
 
 enum ActivityRouteThumbnailState {
@@ -164,12 +188,23 @@ enum ActivityRouteThumbnailState {
 }
 
 class ActivityRouteThumbnailResult {
-  const ActivityRouteThumbnailResult._(this.state, {this.imageProvider});
+  const ActivityRouteThumbnailResult._(
+    this.state, {
+    this.imageProvider,
+    this.pngBytes,
+  });
 
   const ActivityRouteThumbnailResult.readyImage(ImageProvider imageProvider)
     : this._(
         ActivityRouteThumbnailState.readyImage,
         imageProvider: imageProvider,
+      );
+
+  ActivityRouteThumbnailResult.readyPng(Uint8List bytes)
+    : this._(
+        ActivityRouteThumbnailState.readyImage,
+        imageProvider: MemoryImage(bytes),
+        pngBytes: bytes,
       );
 
   const ActivityRouteThumbnailResult.loading()
@@ -192,6 +227,7 @@ class ActivityRouteThumbnailResult {
 
   final ActivityRouteThumbnailState state;
   final ImageProvider? imageProvider;
+  final Uint8List? pngBytes;
 
   bool get hasReadyImage {
     return state == ActivityRouteThumbnailState.readyImage &&
@@ -451,12 +487,6 @@ class _RoutePolylinePreviewPainter extends CustomPainter {
         canvas.drawPath(segmentPath, pathPaint);
       }
     }
-
-    _paintRouteDots(
-      canvas,
-      start: viewport.project(viewport.drawablePoints.first),
-      end: viewport.project(viewport.drawablePoints.last),
-    );
   }
 
   @override
@@ -524,25 +554,6 @@ Paint _routePathPaint(Color color, double strokeWidth) {
     ..style = PaintingStyle.stroke
     ..strokeCap = StrokeCap.round
     ..strokeJoin = StrokeJoin.round;
-}
-
-void _paintRouteDots(
-  Canvas canvas, {
-  required Offset start,
-  required Offset end,
-}) {
-  final endPaint = Paint()..color = RuniacColors.accentOrange;
-  final startPaint = Paint()
-    ..color = RuniacColors.white
-    ..style = PaintingStyle.fill;
-  final startBorderPaint = Paint()
-    ..color = RuniacColors.primaryBlue
-    ..strokeWidth = 2
-    ..style = PaintingStyle.stroke;
-
-  canvas.drawCircle(start, 4, startPaint);
-  canvas.drawCircle(start, 4, startBorderPaint);
-  canvas.drawCircle(end, 5, endPaint);
 }
 
 const _previewSlotSize = 88.0;

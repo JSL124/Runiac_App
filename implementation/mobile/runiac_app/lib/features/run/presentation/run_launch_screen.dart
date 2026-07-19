@@ -10,11 +10,8 @@ import '../data/phone_motion_run_cadence_provider.dart';
 import '../data/platform_run_foreground_service.dart';
 import '../data/real_foreground_run_location_provider.dart';
 import '../data/sensors_plus_run_motion_provider.dart';
-import '../data/static_run_repository.dart';
-import '../domain/models/complete_run_result.dart';
 import '../domain/models/run_location_permission_status.dart';
 import '../domain/models/run_location_sample.dart';
-import '../domain/models/run_route_snapshot.dart';
 import '../domain/models/run_tracking_state.dart';
 import '../domain/repositories/run_foreground_service.dart';
 import '../domain/repositories/run_cadence_provider.dart';
@@ -24,25 +21,29 @@ import '../domain/repositories/run_location_provider.dart';
 import '../domain/repositories/run_motion_provider.dart';
 import '../domain/repositories/run_notification_permission_service.dart';
 import '../domain/repositories/run_repository.dart';
-import '../domain/services/run_summary_local_analysis_merger.dart';
 import 'active_run_session_coordinator.dart';
 import 'controllers/run_tracking_controller.dart';
 import 'cool_down_screen.dart';
 import 'data/run_launch_demo_snapshots.dart';
 import 'models/planned_run_context.dart';
 import 'run_repository_scope.dart';
+import 'run_completion_coordinator.dart';
 import 'widgets/run_map_placeholder.dart';
 import 'widgets/run_mapbox_follow_qa_overlay.dart';
 import 'widgets/run_mapbox_surface_config.dart';
+import 'widgets/run_status_pill.dart';
 import 'widgets/run_tracking_map_surface.dart';
 import 'widgets/run_tracking_sheet_content.dart';
 import '../../you/presentation/current_session_activity_history.dart';
+
+part 'run_launch_map_controls.dart';
+part 'run_launch_bottom_sheet.dart';
+part 'run_launch_pre_run_content.dart';
 
 const _blueBorder = Color(0xFFDCE6FF);
 const _sportOrange = Color(0xFFFF7A1A);
 const _orangeShadow = Color(0x33FF7A1A);
 const _screenBackground = Color(0xFF3153C9);
-const _softControlBlue = Color(0x667A91E5);
 const _panelTextBlue = Color(0xFF3151C8);
 const _mutedBlue = Color(0xFF8296E8);
 const _controlPressHold = Duration(milliseconds: 90);
@@ -54,6 +55,7 @@ const _sheetCollapseVelocityThreshold = 260.0;
 const _recenterButtonSize = 48.0;
 const _sheetAdjacentRecenterGap = 10.0;
 const _launchRecenterRightPadding = 28.0;
+const _defaultRunLaunchSnapshot = runLaunchDemoSnapshot;
 
 enum RunSheetMode { preRun, running, paused }
 
@@ -412,62 +414,18 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
       planEnrollmentId: planEnrollmentId,
       scheduledWorkoutId: scheduledWorkoutId,
     );
-    final route = RunRouteSnapshot.fromMapViewState(_controller.mapViewState);
     setState(() => _isCompletingRun = true);
 
-    CompleteRunResult result = await const StaticRunRepository().completeRun(
-      payload,
-    );
-
-    if (!mounted) {
-      return;
-    }
-    result = result.copyWith(
-      summary: const RunSummaryLocalAnalysisMerger().merge(
-        backendSummary: result.summary,
-        localPayload: payload,
-        localRoute: route,
-        resultClientRunSessionId: result.clientRunSessionId,
-      ),
-    );
     final activityHistoryStore = CurrentSessionActivityHistoryScope.maybeOf(
       context,
     );
-    if (result.summary.hasSufficientData && activityHistoryStore != null) {
-      var didSaveLocally = false;
-      try {
-        await activityHistoryStore.saveCompletedRun(result, payload: payload);
-        didSaveLocally = true;
-      } catch (error, stackTrace) {
-        FlutterError.reportError(
-          FlutterErrorDetails(
-            exception: error,
-            stack: stackTrace,
-            library: 'runiac run tracking',
-            context: ErrorDescription('saving a completed run locally'),
-          ),
-        );
-      }
-      if (!mounted) {
-        return;
-      }
-      if (didSaveLocally) {
-        unawaited(
-          activityHistoryStore
-              .syncPendingRuns(_repository)
-              .catchError(
-                (Object error, StackTrace stackTrace) =>
-                    FlutterError.reportError(
-                      FlutterErrorDetails(
-                        exception: error,
-                        stack: stackTrace,
-                        library: 'runiac run tracking',
-                        context: ErrorDescription('syncing a completed run'),
-                      ),
-                    ),
-              ),
-        );
-      }
+    final result = await const RunCompletionCoordinator().complete(
+      repository: _repository,
+      payload: payload,
+      activityHistoryStore: activityHistoryStore,
+    );
+    if (!mounted) {
+      return;
     }
     _activeRunSessionCoordinator.stopForegroundTicker();
     _controller.finish(completedAt: completedAt);
@@ -476,6 +434,7 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
         builder: (context) => CoolDownScreen(
           completionResult: result,
           completionPayload: payload,
+          repository: _repository,
         ),
       ),
     );
@@ -708,7 +667,7 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
                               duration: _sheetAnimationDuration,
                               switchInCurve: Curves.easeOutCubic,
                               switchOutCurve: Curves.easeInCubic,
-                              child: _RunStatusPill(
+                              child: RunStatusPill(
                                 key: ValueKey(_statusLabel(_controller.state)),
                                 label: _statusLabel(_controller.state),
                               ),
@@ -869,416 +828,5 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
 
   bool get _hasCurrentPosition {
     return _controller.mapViewState.currentPosition != null;
-  }
-}
-
-class _MapCircleButton extends StatefulWidget {
-  const _MapCircleButton({
-    super.key,
-    required this.tooltip,
-    required this.icon,
-    required this.onPressed,
-  });
-
-  final String tooltip;
-  final IconData icon;
-  final VoidCallback onPressed;
-
-  @override
-  State<_MapCircleButton> createState() => _MapCircleButtonState();
-}
-
-class _MapCircleButtonState extends State<_MapCircleButton> {
-  bool _pressed = false;
-  bool _activating = false;
-
-  bool get _visuallyPressed => _pressed || _activating;
-
-  void _setPressed(bool pressed) {
-    if (!mounted || _pressed == pressed) {
-      return;
-    }
-    setState(() => _pressed = pressed);
-  }
-
-  Future<void> _handleTap() async {
-    setState(() => _activating = true);
-    await Future<void>.delayed(_controlPressHold);
-    if (!mounted) {
-      return;
-    }
-    setState(() {
-      _activating = false;
-      _pressed = false;
-    });
-    widget.onPressed();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: widget.tooltip,
-      child: AnimatedScale(
-        scale: _visuallyPressed ? 0.94 : 1,
-        duration: const Duration(milliseconds: 90),
-        curve: Curves.easeOutCubic,
-        child: Material(
-          color: _visuallyPressed ? const Color(0xFFE8EEFF) : Colors.white,
-          elevation: 8,
-          shadowColor: const Color(0x33172033),
-          shape: const CircleBorder(),
-          clipBehavior: Clip.antiAlias,
-          child: InkResponse(
-            onTap: _handleTap,
-            onHighlightChanged: _setPressed,
-            containedInkWell: true,
-            customBorder: const CircleBorder(),
-            radius: 34,
-            splashColor: const Color(0x1A3151C8),
-            highlightColor: const Color(0x143151C8),
-            child: SizedBox(
-              width: 58,
-              height: 58,
-              child: Icon(widget.icon, color: _panelTextBlue, size: 30),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _RunStatusPill extends StatelessWidget {
-  const _RunStatusPill({super.key, required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      constraints: const BoxConstraints(maxWidth: 190),
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-      decoration: BoxDecoration(
-        color: _softControlBlue,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.circle, color: _sportOrange, size: 14),
-          const SizedBox(width: 10),
-          Flexible(
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(
-                label,
-                maxLines: 1,
-                style: const TextStyle(
-                  color: RuniacColors.white,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w800,
-                  height: 1,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _RunBottomSheetShell extends StatelessWidget {
-  const _RunBottomSheetShell({
-    super.key,
-    required this.bottomInset,
-    required this.mode,
-    required this.extent,
-    required this.sheetProgress,
-    required this.onHandleTap,
-    required this.onVerticalDragStart,
-    required this.onVerticalDragUpdate,
-    required this.onVerticalDragEnd,
-    required this.onVerticalDragCancel,
-    required this.child,
-  });
-
-  final double bottomInset;
-  final RunSheetMode mode;
-  final RunLaunchSheetExtent extent;
-  final double sheetProgress;
-  final VoidCallback onHandleTap;
-  final GestureDragStartCallback onVerticalDragStart;
-  final GestureDragUpdateCallback onVerticalDragUpdate;
-  final GestureDragEndCallback onVerticalDragEnd;
-  final GestureDragCancelCallback onVerticalDragCancel;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final compact = constraints.maxWidth < 360;
-        final collapsed = extent == RunLaunchSheetExtent.collapsed;
-        final contentVisible = sheetProgress > 0.01;
-        final horizontalPadding = mode == RunSheetMode.preRun
-            ? (compact ? 22.0 : 28.0)
-            : 24.0;
-        const topPadding = 0.0;
-        final bottomPadding =
-            bottomInset +
-            (collapsed
-                ? 0.0
-                : mode == RunSheetMode.preRun
-                ? (compact ? 18.0 : 22.0)
-                : (compact ? 18.0 : 22.0));
-
-        return Container(
-          padding: EdgeInsets.fromLTRB(
-            horizontalPadding,
-            topPadding,
-            horizontalPadding,
-            bottomPadding,
-          ),
-          decoration: BoxDecoration(
-            color: RuniacColors.white,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x26172033),
-                blurRadius: 26,
-                offset: Offset(0, -8),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              GestureDetector(
-                key: const Key('runLaunchSheetHandleArea'),
-                behavior: HitTestBehavior.opaque,
-                onTap: onHandleTap,
-                onVerticalDragStart: onVerticalDragStart,
-                onVerticalDragUpdate: onVerticalDragUpdate,
-                onVerticalDragEnd: onVerticalDragEnd,
-                onVerticalDragCancel: onVerticalDragCancel,
-                child: const SizedBox(
-                  height: _collapsedRunSheetHeight,
-                  child: Center(
-                    child: RuniacBottomSheetHandle(
-                      key: Key('runLaunchSheetHandle'),
-                      semanticLabel: 'Run launch sheet handle',
-                    ),
-                  ),
-                ),
-              ),
-              if (collapsed) ...[
-                const SizedBox.shrink(
-                  key: Key('runLaunchSheetCollapsedContent'),
-                ),
-              ],
-              Offstage(offstage: collapsed || !contentVisible, child: child),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _PreRunSheetContent extends StatelessWidget {
-  const _PreRunSheetContent({
-    this.permissionMessage,
-    this.plannedWorkout,
-    required this.onStart,
-    required this.onSwitchRoute,
-  });
-
-  final String? permissionMessage;
-  final PlannedRunContext? plannedWorkout;
-  final VoidCallback onStart;
-  final VoidCallback onSwitchRoute;
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final compact = constraints.maxWidth < 360;
-        final startHeight = compact ? 56.0 : 66.0;
-        final planned = plannedWorkout;
-        final planLabel = planned == null
-            ? runLaunchDemoSnapshot.planLabel
-            : planned.alreadyCompletedToday
-            ? '${planned.title.toUpperCase()} COMPLETE'
-            : planned.title.toUpperCase();
-        final primaryValue =
-            planned?.primaryValueLabel ?? runLaunchDemoSnapshot.distanceValue;
-        final primaryUnit =
-            planned?.primaryUnitLabel ??
-            runLaunchDemoSnapshot.distanceUnitLabel;
-        final supportLabel =
-            planned?.supportLabel ?? runLaunchDemoSnapshot.paceLabel;
-        final secondarySupportLabel = planned?.secondarySupportLabel;
-
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    planLabel,
-                    style: const TextStyle(
-                      color: _sportOrange,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 0,
-                    ),
-                  ),
-                ),
-                OutlinedButton(
-                  onPressed: onSwitchRoute,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: _panelTextBlue,
-                    side: const BorderSide(color: _blueBorder),
-                    minimumSize: const Size(0, 42),
-                    padding: const EdgeInsets.symmetric(horizontal: 18),
-                    textStyle: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  child: Text(runLaunchDemoSnapshot.switchRouteLabel),
-                ),
-              ],
-            ),
-            SizedBox(height: compact ? 16 : 22),
-            Wrap(
-              crossAxisAlignment: WrapCrossAlignment.end,
-              spacing: 8,
-              runSpacing: 2,
-              children: [
-                Text(
-                  primaryValue,
-                  style: const TextStyle(
-                    color: _panelTextBlue,
-                    fontSize: 46,
-                    fontWeight: FontWeight.w900,
-                    height: 0.95,
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 5),
-                  child: primaryUnit.isEmpty
-                      ? const SizedBox.shrink()
-                      : Text(
-                          primaryUnit,
-                          style: const TextStyle(
-                            color: _mutedBlue,
-                            fontSize: 22,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              supportLabel,
-              style: const TextStyle(
-                color: _mutedBlue,
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            if (secondarySupportLabel case final label?) ...[
-              const SizedBox(height: 6),
-              Text(
-                label,
-                style: const TextStyle(
-                  color: _mutedBlue,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-            if (planned case final workout?
-                when !workout.alreadyCompletedToday) ...[
-              const SizedBox(height: 8),
-              Text(
-                workout.supportiveNote,
-                style: const TextStyle(
-                  color: _mutedBlue,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-            if (permissionMessage case final message?) ...[
-              SizedBox(height: compact ? 12 : 14),
-              _RunPermissionGuidance(message: message),
-            ],
-            SizedBox(height: compact ? 18 : 24),
-            SizedBox(
-              width: double.infinity,
-              height: startHeight,
-              child: FilledButton.icon(
-                onPressed: onStart,
-                icon: const Icon(Icons.play_arrow_rounded, size: 32),
-                label: Text(runLaunchDemoSnapshot.startLabel),
-                style: FilledButton.styleFrom(
-                  backgroundColor: _sportOrange,
-                  foregroundColor: RuniacColors.white,
-                  elevation: 8,
-                  shadowColor: _orangeShadow,
-                  textStyle: TextStyle(
-                    fontSize: compact ? 24 : 28,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-}
-
-class _RunPermissionGuidance extends StatelessWidget {
-  const _RunPermissionGuidance({required this.message});
-
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      key: const Key('runPermissionGuidance'),
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Padding(
-          padding: EdgeInsets.only(top: 2),
-          child: Icon(
-            Icons.info_outline_rounded,
-            size: 18,
-            color: _sportOrange,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            message,
-            style: const TextStyle(
-              color: _panelTextBlue,
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              height: 1.28,
-            ),
-          ),
-        ),
-      ],
-    );
   }
 }

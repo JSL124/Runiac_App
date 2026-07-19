@@ -8,9 +8,10 @@ import '../../../core/theme/runiac_colors.dart';
 /// Animated guide overlay shown when the user stalls on an onboarding step.
 ///
 /// The Blue guide runs in from a random horizontal direction, then settles in
-/// the lower safe area before its speech bubble appears. Other selected guide
-/// characters retain the existing static presentation until matching running
-/// and idle assets are available.
+/// the lower safe area before its speech bubble appears. On dismissal, the
+/// guide leaves through whichever horizontal edge is farther from its current
+/// position. Other selected guide characters retain the existing static
+/// presentation until matching running and idle assets are available.
 ///
 /// Display-only: the overlay renders sprites and hint copy and never touches
 /// XP, level, rank, streak, or leaderboard values.
@@ -38,6 +39,9 @@ class OnboardingGuideOverlay extends StatefulWidget {
 /// Long enough for the running GIF to read as movement without delaying help.
 const onboardingGuideRunInDuration = Duration(milliseconds: 800);
 
+/// Keeps dismissal responsive while letting the run-out direction read.
+const onboardingGuideRunOutDuration = Duration(milliseconds: 620);
+
 const _blueIdleAsset =
     'assets/images/characters/blue_idle/blue_runner_idle.gif';
 const _blueRunLeftAsset = 'assets/images/characters/cap_runner_run_left.gif';
@@ -47,11 +51,15 @@ class _OnboardingGuideOverlayState extends State<OnboardingGuideOverlay>
     with TickerProviderStateMixin {
   late final AnimationController _entrance;
   late final AnimationController _runIn;
+  late final AnimationController _runOut;
   late final AnimationController _bob;
   late final AnimationController _type;
   late final Animation<int> _typedLength;
   late final bool _entersFromLeft;
+  final _characterKey = GlobalKey();
   bool _hasArrived = false;
+  bool _isExiting = false;
+  bool _exitsToRight = true;
   bool _motionInitialized = false;
 
   @override
@@ -65,6 +73,10 @@ class _OnboardingGuideOverlayState extends State<OnboardingGuideOverlay>
     _runIn = AnimationController(
       vsync: this,
       duration: onboardingGuideRunInDuration,
+    );
+    _runOut = AnimationController(
+      vsync: this,
+      duration: onboardingGuideRunOutDuration,
     );
     _bob = AnimationController(
       vsync: this,
@@ -87,6 +99,11 @@ class _OnboardingGuideOverlayState extends State<OnboardingGuideOverlay>
         setState(() {
           _hasArrived = true;
         });
+      }
+    });
+    _runOut.addStatusListener((status) {
+      if (status == AnimationStatus.completed && mounted) {
+        widget.onDismiss();
       }
     });
   }
@@ -120,9 +137,45 @@ class _OnboardingGuideOverlayState extends State<OnboardingGuideOverlay>
   void dispose() {
     _entrance.dispose();
     _runIn.dispose();
+    _runOut.dispose();
     _bob.dispose();
     _type.dispose();
     super.dispose();
+  }
+
+  void _beginDismiss() {
+    if (_isExiting) {
+      return;
+    }
+    if (MediaQuery.disableAnimationsOf(context)) {
+      widget.onDismiss();
+      return;
+    }
+
+    final characterBox =
+        _characterKey.currentContext?.findRenderObject() as RenderBox?;
+    final characterCenterX = characterBox == null
+        ? MediaQuery.sizeOf(context).width / 2
+        : characterBox
+              .localToGlobal(
+                Offset(
+                  characterBox.size.width / 2,
+                  characterBox.size.height / 2,
+                ),
+              )
+              .dx;
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final spaceToLeft = characterCenterX;
+    final spaceToRight = screenWidth - characterCenterX;
+
+    _runIn.stop();
+    _entrance.stop();
+    _type.stop();
+    setState(() {
+      _isExiting = true;
+      _exitsToRight = spaceToRight >= spaceToLeft;
+    });
+    _runOut.forward();
   }
 
   @override
@@ -135,7 +188,7 @@ class _OnboardingGuideOverlayState extends State<OnboardingGuideOverlay>
         Positioned.fill(
           child: GestureDetector(
             behavior: HitTestBehavior.translucent,
-            onTap: widget.onDismiss,
+            onTap: _beginDismiss,
           ),
         ),
         Positioned(
@@ -146,23 +199,34 @@ class _OnboardingGuideOverlayState extends State<OnboardingGuideOverlay>
               ? LayoutBuilder(
                   builder: (context, constraints) {
                     return AnimatedBuilder(
-                      animation: Listenable.merge([_runIn, _bob]),
+                      animation: Listenable.merge([_runIn, _runOut, _bob]),
                       builder: (context, _) {
                         final horizontalDistance = constraints.maxWidth + 112;
-                        final direction = _entersFromLeft ? -1.0 : 1.0;
+                        final entranceDirection = _entersFromLeft ? -1.0 : 1.0;
+                        final exitDirection = _exitsToRight ? 1.0 : -1.0;
                         final bob = _hasArrived ? (_bob.value - 0.5) * 4 : 0.0;
                         return Transform.translate(
                           offset: Offset(
-                            direction * (1 - runIn.value) * horizontalDistance,
+                            entranceDirection *
+                                    (1 - runIn.value) *
+                                    horizontalDistance +
+                                exitDirection *
+                                    Curves.easeInCubic.transform(
+                                      _runOut.value,
+                                    ) *
+                                    horizontalDistance,
                             bob,
                           ),
                           child: _GuideCard(
+                            characterKey: _characterKey,
                             character: widget.character,
                             message: widget.message,
                             typedLength: _typedLength,
                             enterFromLeft: _entersFromLeft,
                             hasArrived: _hasArrived,
-                            onDismiss: widget.onDismiss,
+                            isExiting: _isExiting,
+                            exitsToRight: _exitsToRight,
+                            onDismiss: _beginDismiss,
                           ),
                         );
                       },
@@ -170,26 +234,37 @@ class _OnboardingGuideOverlayState extends State<OnboardingGuideOverlay>
                   },
                 )
               : AnimatedBuilder(
-                  animation: Listenable.merge([_entrance, _bob]),
+                  animation: Listenable.merge([_entrance, _runOut, _bob]),
                   builder: (context, _) {
                     final entrance = Curves.easeOutBack.transform(
                       _entrance.value,
                     );
                     final bob = (_bob.value - 0.5) * 6;
+                    final exitDirection = _exitsToRight ? 1.0 : -1.0;
+                    final horizontalDistance =
+                        MediaQuery.sizeOf(context).width + 112;
                     return Opacity(
                       opacity: _entrance.value.clamp(0.0, 1.0),
                       child: Transform.translate(
-                        offset: Offset(0, (1 - entrance) * 120 + bob),
+                        offset: Offset(
+                          exitDirection *
+                              Curves.easeInCubic.transform(_runOut.value) *
+                              horizontalDistance,
+                          (1 - entrance) * 120 + bob,
+                        ),
                         child: Transform.scale(
                           scale: 0.9 + entrance * 0.1,
                           alignment: Alignment.bottomCenter,
                           child: _GuideCard(
+                            characterKey: _characterKey,
                             character: widget.character,
                             message: widget.message,
                             typedLength: _typedLength,
                             enterFromLeft: true,
                             hasArrived: true,
-                            onDismiss: widget.onDismiss,
+                            isExiting: _isExiting,
+                            exitsToRight: _exitsToRight,
+                            onDismiss: _beginDismiss,
                           ),
                         ),
                       ),
@@ -204,35 +279,46 @@ class _OnboardingGuideOverlayState extends State<OnboardingGuideOverlay>
 
 class _GuideCard extends StatelessWidget {
   const _GuideCard({
+    required this.characterKey,
     required this.character,
     required this.message,
     required this.typedLength,
     required this.enterFromLeft,
     required this.hasArrived,
+    required this.isExiting,
+    required this.exitsToRight,
     required this.onDismiss,
   });
 
+  final Key characterKey;
   final RunnerCharacter character;
   final String message;
   final Animation<int> typedLength;
   final bool enterFromLeft;
   final bool hasArrived;
+  final bool isExiting;
+  final bool exitsToRight;
   final VoidCallback onDismiss;
 
   @override
   Widget build(BuildContext context) {
     final character = _GuideCharacter(
+      key: characterKey,
       character: this.character,
-      facing: enterFromLeft
+      facing: isExiting
+          ? exitsToRight
+                ? RunnerCharacterFacing.right
+                : RunnerCharacterFacing.left
+          : enterFromLeft
           ? RunnerCharacterFacing.right
           : RunnerCharacterFacing.left,
-      isRunning: !hasArrived,
+      isRunning: !hasArrived || isExiting,
     );
     final bubble = _GuideBubble(
       character: this.character,
       message: message,
       typedLength: typedLength,
-      visible: hasArrived,
+      visible: hasArrived && !isExiting,
       onDismiss: onDismiss,
     );
 
@@ -250,6 +336,7 @@ class _GuideCharacter extends StatelessWidget {
     required this.character,
     required this.facing,
     required this.isRunning,
+    super.key,
   });
 
   final RunnerCharacter character;
@@ -267,6 +354,7 @@ class _GuideCharacter extends StatelessWidget {
               : _blueIdleAsset
         : character.assetPath(facing);
     return SizedBox(
+      key: ValueKey('onboarding_guide_character_${facing.name}'),
       width: 92,
       height: 104,
       child: Image.asset(

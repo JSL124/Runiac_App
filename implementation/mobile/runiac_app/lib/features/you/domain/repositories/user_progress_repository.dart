@@ -6,6 +6,11 @@ abstract interface class UserProgressRepository {
   Future<UserProgressReadModel> refreshUserProgress();
 }
 
+abstract interface class LiveUserProgressRepository
+    implements UserProgressRepository {
+  Stream<UserProgressReadModel> watchUserProgress();
+}
+
 class StaticUserProgressRepository implements UserProgressRepository {
   const StaticUserProgressRepository();
 
@@ -20,6 +25,8 @@ class StaticUserProgressRepository implements UserProgressRepository {
       monthlyXpLabel: '0 XP',
       weeklyDistanceLabel: '12.4 km',
       goalProgressLabel: '43%',
+      longestStreakLabel: '12 days',
+      totalDistanceLabel: '148.6 km',
     );
   }
 

@@ -41,7 +41,11 @@ function readPlanBoundedValidatedRuns(
   generatedPlanStartedAt: string,
 ): readonly StreakRun[] {
   return activityDocuments.flatMap((activityData) => {
-    if (activityData["activityType"] !== "run" || activityData["validationStatus"] !== "validated") {
+    if (
+      activityData["activityType"] !== "run" ||
+      activityData["validationStatus"] !== "validated" ||
+      activityData["countsTowardStreak"] === false
+    ) {
       return [];
     }
 

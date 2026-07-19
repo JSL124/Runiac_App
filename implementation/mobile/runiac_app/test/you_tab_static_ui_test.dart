@@ -27,6 +27,7 @@ import 'package:runiac_app/features/run/presentation/data/pace_graph_demo_snapsh
 import 'package:runiac_app/features/run/presentation/data/run_completion_demo_snapshots.dart';
 import 'package:runiac_app/features/run/presentation/view_summary_screen.dart';
 import 'package:runiac_app/features/run/presentation/widgets/advanced_analysis/advanced_analysis_charts.dart';
+import 'package:runiac_app/features/plan/presentation/current_session_generated_plan.dart';
 import 'package:runiac_app/features/you/data/static_activity_history_repository.dart';
 import 'package:runiac_app/features/you/data/local_pending_run_activity_store.dart';
 import 'package:runiac_app/features/you/presentation/current_session_activity_history.dart';
@@ -40,6 +41,8 @@ import 'package:runiac_app/features/you/presentation/widgets/activity_route_prev
 import 'package:runiac_app/features/you/presentation/widgets/compact_run_activity_card.dart';
 import 'package:runiac_app/features/you/presentation/widgets/monthly_distance_graph.dart';
 import 'package:runiac_app/features/you/presentation/widgets/you_progress_surface.dart';
+import 'package:runiac_app/features/you/presentation/you_tab.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'support/fake_runiac_auth_repository.dart';
 
@@ -161,6 +164,54 @@ class _HoldingUserProgressRepository implements UserProgressRepository {
   }
 }
 
+class _HoldingActivityHistoryRepository implements ActivityHistoryRepository {
+  final Completer<ActivityHistoryReadModel> _completer =
+      Completer<ActivityHistoryReadModel>();
+
+  @override
+  Future<ActivityHistoryReadModel> loadActivityHistory() => _completer.future;
+}
+
+class _DateReloadUserProgressRepository implements UserProgressRepository {
+  final Completer<UserProgressReadModel> _reload =
+      Completer<UserProgressReadModel>();
+  var _loadCount = 0;
+
+  void completeReload(String officialStreakLabel) {
+    if (_reload.isCompleted) {
+      return;
+    }
+    _reload.complete(_progress(officialStreakLabel));
+  }
+
+  @override
+  Future<UserProgressReadModel> loadUserProgress() {
+    _loadCount += 1;
+    if (_loadCount == 1) {
+      return Future.value(_progress('4 days'));
+    }
+    return _reload.future;
+  }
+
+  @override
+  Future<UserProgressReadModel> refreshUserProgress() {
+    return loadUserProgress();
+  }
+
+  UserProgressReadModel _progress(String officialStreakLabel) {
+    return UserProgressReadModel(
+      userId: 'test-user-progress',
+      officialStreakLabel: officialStreakLabel,
+      levelLabel: '',
+      totalXpLabel: '',
+      weeklyXpLabel: '',
+      monthlyXpLabel: '',
+      weeklyDistanceLabel: '',
+      goalProgressLabel: '',
+    );
+  }
+}
+
 class _MutableUserProgressRepository implements UserProgressRepository {
   _MutableUserProgressRepository({
     required this.initialLabel,
@@ -257,6 +308,14 @@ class _RemoteAcceptingRunRepository implements RunRepository {
   }
 
   @override
+  Future<CompleteRunResult> completeCoolDown({
+    required String activityId,
+    required String clientRunSessionId,
+  }) {
+    throw UnimplementedError();
+  }
+
+  @override
   Future<CompleteRunResult> loadLatestCompletionResult() {
     throw UnimplementedError();
   }
@@ -284,6 +343,14 @@ class _LocalResultRunRepository implements RunRepository {
       title: 'Local Result',
       distanceKm: '3.00',
     ).copyWith(clientRunSessionId: payload.clientRunSessionId);
+  }
+
+  @override
+  Future<CompleteRunResult> completeCoolDown({
+    required String activityId,
+    required String clientRunSessionId,
+  }) {
+    throw UnimplementedError();
   }
 
   @override
@@ -381,6 +448,78 @@ class _AggregateProgressRepository implements ActivityHistoryRepository {
       durationLabel: '22:56',
       timeLabel: '7:20 AM',
       routeNameLabel: 'Aggregate Test Route',
+    );
+  }
+}
+
+class _DelayedSecondActivityHistoryRepository
+    implements ActivityHistoryRepository {
+  final Completer<ActivityHistoryReadModel> _secondLoadCompleter =
+      Completer<ActivityHistoryReadModel>();
+  var loadCount = 0;
+
+  @override
+  Future<ActivityHistoryReadModel> loadActivityHistory() {
+    loadCount += 1;
+    if (loadCount == 1) {
+      return Future<ActivityHistoryReadModel>.value(_activityHistory());
+    }
+    return _secondLoadCompleter.future;
+  }
+
+  ActivityHistoryReadModel _activityHistory() {
+    final activities = [
+      _activity(
+        id: 'cached-week',
+        title: 'Cached Week Run',
+        date: '30/6/26',
+        distanceMeters: 4250,
+      ),
+      _activity(
+        id: 'cached-month',
+        title: 'Cached Month Run',
+        date: '2/6/26',
+        distanceMeters: 3500,
+      ),
+      _activity(
+        id: 'cached-year',
+        title: 'Cached Year Run',
+        date: '4/5/26',
+        distanceMeters: 8100,
+      ),
+    ];
+
+    return ActivityHistoryReadModel(
+      recentRuns: activities.take(3).toList(growable: false),
+      months: [
+        ActivityHistoryMonthReadModel(
+          label: 'June 2026',
+          activities: [activities[0], activities[1]],
+        ),
+        ActivityHistoryMonthReadModel(
+          label: 'May 2026',
+          activities: [activities[2]],
+        ),
+      ],
+    );
+  }
+
+  ActivityHistoryItemReadModel _activity({
+    required String id,
+    required String title,
+    required String date,
+    required int distanceMeters,
+  }) {
+    return ActivityHistoryItemReadModel(
+      activityId: id,
+      title: title,
+      completedAtLabel: date,
+      distanceLabel: 'label hidden',
+      distanceMeters: distanceMeters,
+      paceLabel: '7’10”',
+      durationLabel: '22:56',
+      timeLabel: '7:20 AM',
+      routeNameLabel: 'Cached Test Route',
     );
   }
 }
@@ -858,6 +997,7 @@ void main() {
       expect(provider.requestCount, 1);
       expect(provider.lastRequest!.allowExternalStaticMap, isTrue);
       expect(provider.lastRequest!.isCurrentSessionRoute, isTrue);
+      expect(provider.lastRequest!.isTrustedPersistedRoutePreview, isFalse);
       expect(provider.lastRequest!.isDemoRoute, isFalse);
       expect(
         provider.lastRequest!.route.lastKnownLocation?.latitude,
@@ -949,6 +1089,44 @@ void main() {
       expect(
         find.byKey(const ValueKey('activity_route_preview_fallback')),
         findsNothing,
+      );
+    },
+  );
+
+  testWidgets(
+    'trusted persisted single-point route requests snapshot without current session',
+    (WidgetTester tester) async {
+      // Given: a backend-masked persisted preview containing one trusted point.
+      final provider = _FakeActivityRouteThumbnailProvider(
+        ActivityRouteThumbnailResult.readyImage(
+          MemoryImage(Uint8List.fromList(_transparentPixelPng)),
+        ),
+      );
+
+      // When: the preview renders without a live completion session.
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ActivityRoutePreview(
+              route: _singlePointRouteFixture(),
+              thumbnailProvider: provider,
+              allowExternalStaticMap: true,
+              isTrustedPersistedRoutePreview: true,
+              activityId: 'trusted-persisted-one-point',
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Then: the trusted preview reaches the provider and retains its actual
+      // provenance instead of impersonating a current-session route.
+      expect(provider.requestCount, 1);
+      expect(provider.lastRequest!.isCurrentSessionRoute, isFalse);
+      expect(provider.lastRequest!.isTrustedPersistedRoutePreview, isTrue);
+      expect(
+        find.byKey(const ValueKey('activity_route_preview_static_thumbnail')),
+        findsOneWidget,
       );
     },
   );
@@ -1376,6 +1554,84 @@ void main() {
     expect(find.text('Pending'), findsNothing);
   });
 
+  testWidgets('You shows Activity History loading instead of zero graph', (
+    WidgetTester tester,
+  ) async {
+    await _openYouTab(
+      tester,
+      activityHistoryRepository: _HoldingActivityHistoryRepository(),
+    );
+
+    expect(
+      find.byKey(const ValueKey('you_monthly_distance_loading_placeholder')),
+      findsOneWidget,
+    );
+    expect(find.text('Loading your activities'), findsOneWidget);
+    expect(find.text('0.00'), findsNothing);
+  });
+
+  testWidgets('You keeps last official streak while date reload is pending', (
+    WidgetTester tester,
+  ) async {
+    final progressRepository = _DateReloadUserProgressRepository();
+    final activityHistoryStore = CurrentSessionActivityHistoryStore();
+    final generatedPlanStore = CurrentSessionGeneratedPlanStore();
+    addTearDown(activityHistoryStore.dispose);
+    addTearDown(generatedPlanStore.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: CurrentSessionActivityHistoryScope(
+          store: activityHistoryStore,
+          child: CurrentSessionGeneratedPlanScope(
+            store: generatedPlanStore,
+            child: YouTab(
+              activityHistoryRepository:
+                  const StaticActivityHistoryRepository(),
+              userProgressRepository: progressRepository,
+              authRepository: const NonProductionAuthRepository(),
+              enableForegroundGps: false,
+              progressToday: DateTime(2026, 6, 30),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('4 days'), findsOneWidget);
+    expect(find.text('Complete a run to start your streak.'), findsNothing);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: CurrentSessionActivityHistoryScope(
+          store: activityHistoryStore,
+          child: CurrentSessionGeneratedPlanScope(
+            store: generatedPlanStore,
+            child: YouTab(
+              activityHistoryRepository:
+                  const StaticActivityHistoryRepository(),
+              userProgressRepository: progressRepository,
+              authRepository: const NonProductionAuthRepository(),
+              enableForegroundGps: false,
+              progressToday: DateTime(2026, 7),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('4 days'), findsOneWidget);
+    expect(find.text('Complete a run to start your streak.'), findsNothing);
+
+    progressRepository.completeReload('5 days');
+    await tester.pumpAndSettle();
+
+    expect(find.text('5 days'), findsOneWidget);
+    expect(find.text('4 days'), findsNothing);
+  });
+
   testWidgets(
     'You official streak display uses backend label instead of derived value',
     (WidgetTester tester) async {
@@ -1511,12 +1767,14 @@ void main() {
   testWidgets('mounted You reloads official streak after auth owner changes', (
     WidgetTester tester,
   ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
     final authRepository = FakeRuniacAuthRepository()
       ..emitSignedIn(uid: 'owner-1');
     addTearDown(authRepository.dispose);
     final progressRepository = _AuthAwareUserProgressRepository(
       authRepository: authRepository,
       labelsByUid: const <String, String>{
+        'signed-out': '1 day',
         'owner-1': '1 day',
         'owner-2': '2 days',
       },
@@ -2064,6 +2322,171 @@ void main() {
     expect(juneMarkers.labels.last, 'JUN');
   });
 
+  test('weekly distance graph keeps April on July 13 and drops it July 20', () {
+    final july13Markers = weeklyDistanceGraphMonthMarkers(
+      DateTime(2026, 7, 13),
+    );
+    expect(july13Markers.labels, ['APR', 'MAY', 'JUN', 'JUL']);
+    expect(july13Markers.weekIndices, [0, 1, 5, 10]);
+
+    final july20Markers = weeklyDistanceGraphMonthMarkers(
+      DateTime(2026, 7, 20),
+    );
+    expect(july20Markers.labels, ['MAY', 'JUN', 'JUL']);
+    expect(july20Markers.weekIndices, [0, 4, 9]);
+  });
+
+  test('weekly distance graph month markers slide naturally all year', () {
+    final scenarios = <DateTime>[
+      for (var month = 1; month <= 12; month += 1)
+        _firstMondayOnOrAfter(DateTime(2026, month, 13)),
+    ];
+
+    for (final today in scenarios) {
+      final markers = weeklyDistanceGraphMonthMarkers(today);
+      final expected = _expectedWeeklyGraphMonthMarkers(today);
+
+      expect(
+        markers.labels,
+        expected.labels,
+        reason: 'labels for ${today.toIso8601String()}',
+      );
+      expect(
+        markers.weekIndices,
+        expected.weekIndices,
+        reason: 'week indices for ${today.toIso8601String()}',
+      );
+      expect(
+        markers.labels.last,
+        _monthAbbreviation(today.month),
+        reason: 'current month remains visible for ${today.toIso8601String()}',
+      );
+    }
+  });
+
+  test(
+    'weekly distance graph removes old months when the window crosses them',
+    () {
+      for (var month = 1; month <= 12; month += 1) {
+        final before = _firstMondayOnOrAfter(DateTime(2026, month, 13));
+        final after = before.add(const Duration(days: 7));
+        final beforeMarkers = weeklyDistanceGraphMonthMarkers(before);
+        final afterMarkers = weeklyDistanceGraphMonthMarkers(after);
+        final expectedAfter = _expectedWeeklyGraphMonthMarkers(after);
+
+        expect(
+          afterMarkers.labels,
+          expectedAfter.labels,
+          reason: 'labels after one week from ${before.toIso8601String()}',
+        );
+        expect(
+          afterMarkers.weekIndices,
+          expectedAfter.weekIndices,
+          reason:
+              'week indices after one week from ${before.toIso8601String()}',
+        );
+
+        final removedLabels = beforeMarkers.labels.where(
+          (label) => !afterMarkers.labels.contains(label),
+        );
+        for (final removed in removedLabels) {
+          expect(
+            expectedAfter.labels,
+            isNot(contains(removed)),
+            reason: '$removed should be gone after crossing the window',
+          );
+        }
+      }
+    },
+  );
+
+  test(
+    'weekly distance graph visible labels never clamp or overlap all year',
+    () {
+      for (var month = 1; month <= 12; month += 1) {
+        final today = _firstMondayOnOrAfter(DateTime(2026, month, 13));
+        final markers = weeklyDistanceGraphMonthMarkers(today);
+        final visibleLabels = visibleMonthLabelPlacementsForGraph(
+          labels: markers.labels,
+          labelWeekIndices: markers.weekIndices,
+          pointCount: 12,
+          chartLeft: 58,
+          chartRight: 378,
+        );
+
+        for (final label in visibleLabels) {
+          expect(
+            label.left,
+            greaterThanOrEqualTo(58),
+            reason: '${label.label} left edge for ${today.toIso8601String()}',
+          );
+          expect(
+            label.right,
+            lessThanOrEqualTo(378),
+            reason: '${label.label} right edge for ${today.toIso8601String()}',
+          );
+          expect(
+            label.centerX,
+            closeTo(
+              58 + 320 * (markers.weekIndices[label.index] + 0.5) / 12,
+              0.001,
+            ),
+            reason:
+                '${label.label} natural center for ${today.toIso8601String()}',
+          );
+        }
+        for (var index = 1; index < visibleLabels.length; index += 1) {
+          expect(
+            visibleLabels[index].left,
+            greaterThanOrEqualTo(visibleLabels[index - 1].right + 4),
+            reason: 'no overlap for ${today.toIso8601String()}',
+          );
+        }
+      }
+    },
+  );
+
+  test(
+    'weekly distance graph hides adjacent month labels instead of shifting',
+    () {
+      final visibleLabels = visibleMonthLabelPlacementsForGraph(
+        labels: const ['APR', 'MAY', 'JUN'],
+        labelWeekIndices: const [4, 5, 8],
+        pointCount: 12,
+        chartLeft: 58,
+        chartRight: 378,
+        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+      );
+
+      expect(visibleLabels.map((label) => label.label), ['APR', 'JUN']);
+      for (var index = 1; index < visibleLabels.length; index += 1) {
+        expect(
+          visibleLabels[index].left,
+          greaterThanOrEqualTo(visibleLabels[index - 1].right + 4),
+        );
+      }
+      expect(visibleLabels.first.centerX, closeTo(58 + 320 * 4.5 / 12, 0.001));
+      expect(visibleLabels.last.centerX, closeTo(58 + 320 * 8.5 / 12, 0.001));
+    },
+  );
+
+  test(
+    'weekly distance graph hides clipped month labels instead of clamping',
+    () {
+      final visibleLabels = visibleMonthLabelPlacementsForGraph(
+        labels: const ['APR', 'MAY', 'JUN', 'JUL'],
+        labelWeekIndices: const [0, 1, 5, 11],
+        pointCount: 12,
+        chartLeft: 72,
+        chartRight: 378,
+      );
+
+      expect(visibleLabels.map((label) => label.label), isNot(contains('APR')));
+      expect(visibleLabels.map((label) => label.label), isNot(contains('JUL')));
+      expect(visibleLabels.map((label) => label.label), contains('MAY'));
+    },
+  );
+
   testWidgets('You progress period buttons update only distance summary', (
     WidgetTester tester,
   ) async {
@@ -2504,6 +2927,7 @@ void main() {
       expect(provider.lastRequest!.activityId, 'current-session-mapbox-card');
       expect(provider.lastRequest!.allowExternalStaticMap, isTrue);
       expect(provider.lastRequest!.isCurrentSessionRoute, isTrue);
+      expect(provider.lastRequest!.isTrustedPersistedRoutePreview, isFalse);
       expect(provider.lastRequest!.isDemoRoute, isFalse);
       expect(
         find.descendant(
@@ -4139,6 +4563,37 @@ void main() {
     expect(find.text('Weekly Distance'), findsNothing);
   });
 
+  testWidgets('You graph keeps loaded history after returning from Home', (
+    WidgetTester tester,
+  ) async {
+    final activityHistoryRepository = _DelayedSecondActivityHistoryRepository();
+
+    await _openYouTab(
+      tester,
+      activityHistoryRepository: activityHistoryRepository,
+    );
+
+    expect(activityHistoryRepository.loadCount, 1);
+    expectDistanceGraph(
+      tester,
+      expectedValues: const [0, 0, 0, 8.1, 0, 0, 0, 3.5, 0, 0, 0, 4.25],
+      axisLabelPattern: r'0 km.*4 km.*8.1 km',
+    );
+
+    await tester.tap(find.byTooltip('Home'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('You'));
+    await tester.pump();
+
+    expect(activityHistoryRepository.loadCount, 1);
+    expectDistanceGraph(
+      tester,
+      expectedValues: const [0, 0, 0, 8.1, 0, 0, 0, 3.5, 0, 0, 0, 4.25],
+      axisLabelPattern: r'0 km.*4 km.*8.1 km',
+    );
+  });
+
   testWidgets('Run launch from You hides the You header once settled', (
     WidgetTester tester,
   ) async {
@@ -4183,4 +4638,62 @@ void main() {
 Color? _calendarDayTextColor(WidgetTester tester, String dayLabel) {
   final text = tester.widget<Text>(find.text(dayLabel));
   return text.style?.color;
+}
+
+DateTime _firstMondayOnOrAfter(DateTime date) {
+  final localDate = DateTime(date.year, date.month, date.day);
+  final daysUntilMonday =
+      (DateTime.monday - localDate.weekday + DateTime.daysPerWeek) %
+      DateTime.daysPerWeek;
+  return localDate.add(Duration(days: daysUntilMonday));
+}
+
+({List<String> labels, List<int> weekIndices}) _expectedWeeklyGraphMonthMarkers(
+  DateTime today,
+) {
+  const weekCount = 12;
+  final currentWeekStart = _startOfTestWeek(today);
+  final firstWeekStart = currentWeekStart.subtract(
+    const Duration(days: 7 * (weekCount - 1)),
+  );
+  final labels = <String>[];
+  final weekIndices = <int>[];
+  int? lastMonthKey;
+  for (var week = 0; week < weekCount; week += 1) {
+    final weekStart = firstWeekStart.add(Duration(days: 7 * week));
+    final markerDate = week == weekCount - 1 ? today : weekStart;
+    final monthKey = markerDate.year * 12 + markerDate.month;
+    if (monthKey == lastMonthKey) {
+      continue;
+    }
+    lastMonthKey = monthKey;
+    labels.add(_monthAbbreviation(markerDate.month));
+    weekIndices.add(week);
+  }
+  return (labels: labels, weekIndices: weekIndices);
+}
+
+DateTime _startOfTestWeek(DateTime date) {
+  final localDate = DateTime(date.year, date.month, date.day);
+  return localDate.subtract(
+    Duration(days: localDate.weekday - DateTime.monday),
+  );
+}
+
+String _monthAbbreviation(int month) {
+  const names = [
+    'JAN',
+    'FEB',
+    'MAR',
+    'APR',
+    'MAY',
+    'JUN',
+    'JUL',
+    'AUG',
+    'SEP',
+    'OCT',
+    'NOV',
+    'DEC',
+  ];
+  return names[month - 1];
 }

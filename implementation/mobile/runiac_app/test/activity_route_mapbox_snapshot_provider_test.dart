@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:runiac_app/features/run/domain/models/run_route_snapshot.dart';
 import 'package:runiac_app/features/you/presentation/widgets/activity_route_mapbox_snapshot_provider.dart';
 import 'package:runiac_app/features/you/presentation/widgets/activity_route_preview.dart';
 import 'package:runiac_app/features/you/presentation/widgets/activity_route_snapshot_thumbnail_cache.dart';
+import 'package:runiac_app/features/you/presentation/widgets/activity_route_thumbnail_viewport.dart';
 
 void main() {
   test(
@@ -155,16 +157,23 @@ const _testPublicToken =
     'k.test-public-token';
 
 ActivityRouteSnapshotThumbnailGenerationRequest _generationRequest() {
-  return const ActivityRouteSnapshotThumbnailGenerationRequest(
-    logicalSize: Size(88, 88),
+  const logicalSize = Size(88, 88);
+  final viewport = ActivityRouteThumbnailViewport.fromRoute(
+    RunRouteSnapshot.empty,
+    logicalSize: logicalSize,
+  );
+  return ActivityRouteSnapshotThumbnailGenerationRequest(
+    logicalSize: logicalSize,
     devicePixelRatio: 3,
     styleId: 'runiac-card-static-v1',
     activityId: 'session-activity',
-    camera: ActivityRouteSnapshotCamera(
+    camera: const ActivityRouteSnapshotCamera(
       centerLatitude: 1.3015,
       centerLongitude: 103.8015,
       zoom: 15.5,
     ),
+    route: RunRouteSnapshot.empty,
+    viewport: viewport,
   );
 }
 

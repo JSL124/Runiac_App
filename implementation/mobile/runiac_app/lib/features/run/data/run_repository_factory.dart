@@ -1,9 +1,11 @@
 import '../domain/repositories/run_repository.dart';
 import 'firebase_run_repository.dart';
+import 'flutterfire_complete_cool_down_callable.dart';
 import 'flutterfire_complete_run_callable.dart';
 import 'static_run_repository.dart';
 
 typedef CompleteRunCallableFactory = CompleteRunCallable Function();
+typedef CompleteCoolDownCallableFactory = CompleteCoolDownCallable Function();
 
 class RuniacFirebaseRuntimeConfig {
   const RuniacFirebaseRuntimeConfig({
@@ -14,6 +16,7 @@ class RuniacFirebaseRuntimeConfig {
     this.productionAppId = '',
     this.productionMessagingSenderId = '',
     this.productionProjectId = '',
+    this.productionStorageBucket = '',
     this.enableIosPushNotifications = false,
   });
 
@@ -31,6 +34,9 @@ class RuniacFirebaseRuntimeConfig {
         'RUNIAC_FIREBASE_MESSAGING_SENDER_ID',
       ),
       productionProjectId: String.fromEnvironment('RUNIAC_FIREBASE_PROJECT_ID'),
+      productionStorageBucket: String.fromEnvironment(
+        'RUNIAC_FIREBASE_STORAGE_BUCKET',
+      ),
       enableIosPushNotifications: bool.fromEnvironment(
         'RUNIAC_ENABLE_IOS_PUSH',
       ),
@@ -46,6 +52,7 @@ class RuniacFirebaseRuntimeConfig {
   final String productionAppId;
   final String productionMessagingSenderId;
   final String productionProjectId;
+  final String productionStorageBucket;
   final bool enableIosPushNotifications;
 }
 
@@ -56,12 +63,17 @@ class RunRepositoryFactory {
     RuniacFirebaseRuntimeConfig? config,
     CompleteRunCallableFactory completeRunCallableFactory =
         _defaultCompleteRunCallableFactory,
+    CompleteCoolDownCallableFactory coolDownCallableFactory =
+        _defaultCompleteCoolDownCallableFactory,
   }) {
     final runtimeConfig =
         config ?? RuniacFirebaseRuntimeConfig.fromEnvironment();
     if (runtimeConfig.useFirebaseEmulator ||
         runtimeConfig.useProductionFirebase) {
-      return FirebaseRunRepository(callable: completeRunCallableFactory());
+      return FirebaseRunRepository(
+        callable: completeRunCallableFactory(),
+        coolDownCallable: coolDownCallableFactory(),
+      );
     }
 
     return const StaticRunRepository();
@@ -69,5 +81,9 @@ class RunRepositoryFactory {
 
   static CompleteRunCallable _defaultCompleteRunCallableFactory() {
     return FlutterFireCompleteRunCallable();
+  }
+
+  static CompleteCoolDownCallable _defaultCompleteCoolDownCallableFactory() {
+    return FlutterFireCompleteCoolDownCallable();
   }
 }

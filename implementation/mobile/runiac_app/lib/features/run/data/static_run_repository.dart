@@ -4,6 +4,7 @@ import '../domain/models/local_run_completion_payload.dart';
 import '../domain/models/pace_analysis_series.dart';
 import '../domain/models/pace_graph_snapshot.dart';
 import '../domain/models/progression_display_model.dart';
+import '../domain/models/run_completion_error.dart';
 import '../domain/models/run_completion_request_adapter.dart';
 import '../domain/models/run_activity_read_model.dart';
 import '../domain/models/run_summary_read_model.dart';
@@ -114,20 +115,34 @@ class StaticRunRepository implements RunRepository {
       xpUpdate: const XpUpdateDisplayModel(
         runnerName: 'Runiac Runner',
         earnedXpLabel: '+0 XP',
-        totalXpLabel: 'Deferred by backend',
-        levelLabel: 'Pending',
-        nextLevelLabel: 'Pending',
-        progressTargetLabel: 'Pending',
-        xpRemainingLabel: 'Formula pending',
+        totalXpLabel: 'Saved on this device',
+        levelLabel: '--',
+        nextLevelLabel: '--',
+        progressTargetLabel: 'Sync pending',
+        xpRemainingLabel: 'XP updates after sync',
         previousProgressFraction: 0,
         currentProgressFraction: 0,
-        streakChangeLabel: 'Deferred',
-        streakNote: 'Backend validation accepted the run.',
+        streakChangeLabel: 'Not updated yet',
+        streakNote: 'We’ll retry when the service is available.',
         didLevelUp: false,
-        xpAwardState: XpAwardState.deferred,
-        heroMessage: 'This run is saved. XP is being finalized.',
+        xpAwardState: XpAwardState.syncPending,
+        heroMessage: 'This run is saved locally. XP updates after sync.',
       ),
       message: 'Static repository completion accepted.',
+    );
+  }
+
+  @override
+  Future<CompleteRunResult> completeCoolDown({
+    required String activityId,
+    required String clientRunSessionId,
+  }) async {
+    // Demo/offline mode must not fabricate a cool-down XP bonus; the guide
+    // screen falls back silently and keeps the original completion result.
+    throw const RunCompletionException(
+      code: 'unimplemented',
+      message: 'Cool-down bonus is unavailable in demo mode.',
+      isRetryable: false,
     );
   }
 

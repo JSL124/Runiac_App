@@ -1,5 +1,5 @@
 import { HttpsError } from "firebase-functions/v2/https";
-import type { ProgressionDisplay } from "../run/runCompletionTypes.js";
+import type { PlanCompletionResult, ProgressionDisplay } from "../run/runCompletionTypes.js";
 
 export function progressionDisplayFromEvent(
   eventData: FirebaseFirestore.DocumentData | undefined,
@@ -46,6 +46,22 @@ export function progressionDisplayFromEvent(
   };
 }
 
+export function planCompletionFromEvent(
+  eventData: FirebaseFirestore.DocumentData | undefined,
+): PlanCompletionResult {
+  if (eventData?.["plannedWorkoutRecorded"] !== true) {
+    return { completed: false };
+  }
+
+  const planEnrollmentId = eventData["planEnrollmentId"];
+  const scheduledWorkoutId = eventData["plannedWorkoutId"];
+  return {
+    completed: true,
+    ...(typeof planEnrollmentId === "string" ? { planEnrollmentId } : {}),
+    ...(typeof scheduledWorkoutId === "string" ? { scheduledWorkoutId } : {}),
+  };
+}
+
 function readNullableNumberField(
   eventData: FirebaseFirestore.DocumentData,
   storedKey: string,
@@ -74,6 +90,8 @@ function isProgressionReason(value: unknown): value is ProgressionDisplay["reaso
     value === "low_data_no_xp" ||
     value === "daily_cap_reached" ||
     value === "premium_no_progression" ||
-    value === "progression_formula_deferred"
+    value === "progression_formula_deferred" ||
+    value === "cool_down_stretch_bonus_awarded" ||
+    value === "cool_down_daily_cap_reached"
   );
 }

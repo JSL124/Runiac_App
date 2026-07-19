@@ -1,28 +1,22 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/runiac_colors.dart';
-import '../data/static_run_repository.dart';
-import '../domain/models/complete_run_result.dart';
-import '../domain/models/run_route_snapshot.dart';
 import '../domain/models/run_tracking_state.dart';
 import '../domain/repositories/run_repository.dart';
-import '../domain/services/run_summary_local_analysis_merger.dart';
 import 'active_run_session_coordinator.dart';
 import 'controllers/run_tracking_controller.dart';
 import 'cool_down_screen.dart';
 import 'models/planned_run_context.dart';
 import 'run_repository_scope.dart';
+import 'run_completion_coordinator.dart';
 import 'widgets/run_map_placeholder.dart';
 import 'widgets/run_mapbox_follow_qa_overlay.dart';
 import 'widgets/run_mapbox_surface_config.dart';
+import 'widgets/run_status_pill.dart';
 import 'widgets/run_tracking_map_surface.dart';
 import 'widgets/run_tracking_sheet_content.dart';
 import '../../you/presentation/current_session_activity_history.dart';
 
-const _sportOrange = Color(0xFFFF7A1A);
-const _softControlBlue = Color(0x667A91E5);
 const _screenBackground = Color(0xFF3153C9);
 const _recenterButtonSize = 48.0;
 const _sheetAdjacentRecenterGap = 10.0;
@@ -116,62 +110,18 @@ class _RunActiveScreenState extends State<RunActiveScreen> {
       planEnrollmentId: planEnrollmentId,
       scheduledWorkoutId: scheduledWorkoutId,
     );
-    final route = RunRouteSnapshot.fromMapViewState(_controller.mapViewState);
     setState(() => _isCompletingRun = true);
 
-    CompleteRunResult result = await const StaticRunRepository().completeRun(
-      payload,
-    );
-
-    if (!mounted) {
-      return;
-    }
-    result = result.copyWith(
-      summary: RunSummaryLocalAnalysisMerger().merge(
-        backendSummary: result.summary,
-        localPayload: payload,
-        localRoute: route,
-        resultClientRunSessionId: result.clientRunSessionId,
-      ),
-    );
     final activityHistoryStore = CurrentSessionActivityHistoryScope.maybeOf(
       context,
     );
-    if (result.summary.hasSufficientData && activityHistoryStore != null) {
-      var didSaveLocally = false;
-      try {
-        await activityHistoryStore.saveCompletedRun(result, payload: payload);
-        didSaveLocally = true;
-      } catch (error, stackTrace) {
-        FlutterError.reportError(
-          FlutterErrorDetails(
-            exception: error,
-            stack: stackTrace,
-            library: 'runiac run tracking',
-            context: ErrorDescription('saving a completed run locally'),
-          ),
-        );
-      }
-      if (!mounted) {
-        return;
-      }
-      if (didSaveLocally) {
-        unawaited(
-          activityHistoryStore
-              .syncPendingRuns(_repository)
-              .catchError(
-                (Object error, StackTrace stackTrace) =>
-                    FlutterError.reportError(
-                      FlutterErrorDetails(
-                        exception: error,
-                        stack: stackTrace,
-                        library: 'runiac run tracking',
-                        context: ErrorDescription('syncing a completed run'),
-                      ),
-                    ),
-              ),
-        );
-      }
+    final result = await const RunCompletionCoordinator().complete(
+      repository: _repository,
+      payload: payload,
+      activityHistoryStore: activityHistoryStore,
+    );
+    if (!mounted) {
+      return;
     }
     _activeRunSessionCoordinator.stopForegroundTicker();
     _controller.finish(completedAt: completedAt);
@@ -180,6 +130,7 @@ class _RunActiveScreenState extends State<RunActiveScreen> {
         builder: (context) => CoolDownScreen(
           completionResult: result,
           completionPayload: payload,
+          repository: _repository,
         ),
       ),
     );
@@ -260,13 +211,17 @@ class _RunActiveScreenState extends State<RunActiveScreen> {
                 child: AnimatedBuilder(
                   animation: _controller,
                   builder: (context, _) {
-                    return _RunStatusPill(
-                      label: _controller.state.isAbnormalPaused
-                          ? 'Tracking paused'
-                          : _controller.state.isPaused ||
-                                _controller.state.isAutoPaused
-                          ? 'Paused'
-                          : _controller.state.locationStatus.label,
+                    return Center(
+                      child: RunStatusPill(
+                        maxWidth: 240,
+                        horizontalPadding: 16,
+                        label: _controller.state.isAbnormalPaused
+                            ? 'Tracking paused'
+                            : _controller.state.isPaused ||
+                                  _controller.state.isAutoPaused
+                            ? 'Paused'
+                            : _controller.state.locationStatus.label,
+                      ),
                     );
                   },
                 ),
@@ -329,49 +284,6 @@ class _RunActiveScreenState extends State<RunActiveScreen> {
 
   bool get _hasCurrentPosition {
     return _controller.mapViewState.currentPosition != null;
-  }
-}
-
-class _RunStatusPill extends StatelessWidget {
-  const _RunStatusPill({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Container(
-        constraints: const BoxConstraints(maxWidth: 240),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: _softControlBlue,
-          borderRadius: BorderRadius.circular(999),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.circle, color: _sportOrange, size: 14),
-            const SizedBox(width: 10),
-            Flexible(
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  style: const TextStyle(
-                    color: RuniacColors.white,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w800,
-                    height: 1,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }
 

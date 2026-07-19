@@ -5,12 +5,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/app.dart';
 import 'package:runiac_app/core/characters/runner_character.dart';
 import 'package:runiac_app/features/home/domain/guide/home_guide_agent.dart';
+import 'package:runiac_app/features/home/domain/guide/home_guide_consent.dart';
+import 'package:runiac_app/features/home/domain/guide/rule_based_home_guide_agent.dart';
 import 'package:runiac_app/features/home/presentation/stage_map/home_stage_background_sequence.dart';
 import 'package:runiac_app/features/home/presentation/stage_map/home_stage_map.dart';
 import 'package:runiac_app/features/home/presentation/stage_map/home_stage_map_model.dart';
 import 'package:runiac_app/features/plan/domain/models/beginner_adaptive_plan_snapshot.dart';
 import 'package:runiac_app/features/plan/domain/services/beginner_adaptive_plan_generator.dart';
 import 'package:runiac_app/features/plan/presentation/current_session_generated_plan.dart';
+import 'package:runiac_app/features/you/presentation/adapters/generated_plan_you_display_adapter.dart';
 
 import 'support/plan_family_test_drafts.dart';
 
@@ -24,6 +27,18 @@ const HomeGuideRequest _guideRequest = HomeGuideRequest(
   intensityLabel: 'Gentle',
   description: 'A relaxed run to build your habit.',
   supportiveNote: 'Keep the pace conversational.',
+);
+
+const HomeGuideRequest _restGuideRequest = HomeGuideRequest(
+  planTitle: 'First 10K Preparation',
+  weekNumber: 1,
+  weekFocus: 'Build a steady habit',
+  dayLabel: 'Wed',
+  workoutTitle: '',
+  durationMinutes: 0,
+  intensityLabel: '',
+  description: '',
+  isRestDay: true,
 );
 
 BeginnerAdaptivePlanSnapshot _plan() {
@@ -124,6 +139,39 @@ void main() {
     );
   });
 
+  test(
+    'stage map uses the plan creation weekday as day zero through week 8',
+    () {
+      final plan = _plan().withStartsOnDate('2026-07-05');
+      final startSunday = DateTime(2026, 7, 5);
+
+      for (var week = 1; week <= 8; week += 1) {
+        final date = startSunday.add(Duration(days: 7 * (week - 1)));
+        final activeWeek = activeGeneratedPlanWeekFor(plan, currentDate: date);
+        final activeDayIndex = activeGeneratedPlanDayIndexFor(
+          plan,
+          currentDate: date,
+        );
+
+        final model = buildHomeStageMapModel(
+          plan: plan,
+          completedScheduledWorkoutIds: const <String>{},
+          activeWeekNumber: activeWeek!.weekNumber,
+          currentWeekdayIndex: DateTime.monday + activeDayIndex!,
+          backgroundSequence: homeStageBackgroundSequence(
+            planId: plan.id,
+            weekCount: plan.weeks.length,
+          ),
+        );
+
+        expect(model.currentWeekIndex, week - 1);
+        expect(model.todayDayIndex, 0);
+        expect(model.characterDayIndex, 0);
+        expect(model.currentStageId, HomeStageMapModel.stageId(week - 1, 0));
+      }
+    },
+  );
+
   testWidgets('empty state keeps a working header with the streak number', (
     WidgetTester tester,
   ) async {
@@ -208,7 +256,7 @@ void main() {
     expect(find.text('MON'), findsWidgets);
   });
 
-  testWidgets('weekday labels sit directly below their stage stones', (
+  testWidgets('weekday captions stay attached to their stage stones', (
     WidgetTester tester,
   ) async {
     tester.view.physicalSize = const Size(390, 844);
@@ -219,6 +267,7 @@ void main() {
     final plan = _plan();
     final model = _model(plan);
     final firstWeekNumber = model.sections.first.weekNumber;
+    const dayIndex = 1;
 
     await tester.pumpWidget(
       MaterialApp(
@@ -233,21 +282,22 @@ void main() {
       ),
     );
     await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump();
 
-    final stone = find.byKey(
-      ValueKey<String>('homeStageStone-$firstWeekNumber-0'),
+    final stoneRect = tester.getRect(
+      find.byKey(ValueKey<String>('homeStageStone-$firstWeekNumber-$dayIndex')),
     );
-    final label = find.byKey(
-      ValueKey<String>('homeStageDayLabel-$firstWeekNumber-0'),
+    final labelRect = tester.getRect(
+      find.byKey(
+        ValueKey<String>('homeStageDayLabel-$firstWeekNumber-$dayIndex'),
+      ),
     );
-    final stoneRect = tester.getRect(stone);
-    final labelRect = tester.getRect(label);
 
-    // The label overlaps only the asset's transparent lower inset. Its
-    // widget starts 16 logical pixels above the stone's box bottom, keeping
-    // the visible chip immediately under the rendered plate.
-    expect(labelRect.top, closeTo(stoneRect.bottom - 16, 0.1));
+    expect(labelRect.center.dx, closeTo(stoneRect.center.dx, 0.5));
     expect(labelRect.top, greaterThan(stoneRect.center.dy));
+    expect(labelRect.top, lessThan(stoneRect.bottom));
+    expect(labelRect.bottom, closeTo(stoneRect.bottom, 6));
   });
 
   testWidgets(
@@ -555,6 +605,108 @@ void main() {
     const characterTapTarget = ValueKey<String>('homeGuideCharacterTapTarget');
     const bubbleBody = ValueKey<String>('homeGuideBubbleBody');
     const bubble = ValueKey<String>('homeGuideBubble');
+
+    testWidgets('hides the guide until consent is granted', (
+      WidgetTester tester,
+    ) async {
+      final agent = _ControlledGuideAgent();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: HomeStageMap(
+              model: _model(_plan()),
+              onNotifications: () {},
+              onProfile: () {},
+              onTapTodayStage: () {},
+              guideAgent: agent,
+              guideRequest: _guideRequest,
+              guideConsentStatus: HomeGuideConsentStatus.notGranted,
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      // Without consent the guide never calls the remote agent and shows no
+      // bubble or inline consent prompt. Consent now lives in the onboarding
+      // sheet and Account → Privacy & Safety.
+      expect(agent.invocationCount, 0);
+      expect(find.byKey(bubble), findsNothing);
+      expect(
+        find.text('Personalize your guide with recent run totals.'),
+        findsNothing,
+      );
+    });
+
+    testWidgets(
+      'shows the guide bubble without a data-use shield after consent',
+      (WidgetTester tester) async {
+        final agent = _ControlledGuideAgent();
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: HomeStageMap(
+                model: _model(_plan()),
+                onNotifications: () {},
+                onProfile: () {},
+                onTapTodayStage: () {},
+                guideAgent: agent,
+                guideRequest: _guideRequest,
+                guideConsentStatus: HomeGuideConsentStatus.granted,
+              ),
+            ),
+          ),
+        );
+        await tester.pump();
+        agent.completeNext(_guideBundle());
+        await tester.pump();
+        await tester.pump();
+
+        expect(find.byKey(bubble), findsOneWidget);
+        expect(find.bySemanticsLabel('Manage guide data use'), findsNothing);
+      },
+    );
+
+    testWidgets('shows rest-day encouragement on a rest day', (
+      WidgetTester tester,
+    ) async {
+      final plan = _plan();
+      final model = _model(plan);
+      const agent = RuleBasedHomeGuideAgent();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: HomeStageMap(
+              model: model,
+              onNotifications: () {},
+              onProfile: () {},
+              onTapTodayStage: () {},
+              guideAgent: agent,
+              guideRequest: _restGuideRequest,
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.byKey(bubble), findsOneWidget);
+      expect(find.textContaining('rest day'), findsOneWidget);
+      // Accessibility label is rest-flavored, not "Plan summary".
+      expect(
+        find.bySemanticsLabel('Rest-day cheer. Tap to hear a rest tip.'),
+        findsOneWidget,
+      );
+
+      // The rest bundle still cycles through its three messages on tap.
+      await tester.tap(find.byKey(bubbleBody));
+      await tester.pump();
+      expect(find.textContaining('Rest-day tip:'), findsOneWidget);
+    });
+
     testWidgets(
       'auto-opens summary and cycles tip, progression, then summary once',
       (WidgetTester tester) async {

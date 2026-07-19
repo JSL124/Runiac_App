@@ -7,6 +7,7 @@ enum WeeklyPlanDayRowState {
   rest,
   completed,
   completedToday,
+  missed,
   todayUpcoming,
   futureUpcoming,
   inactive,
@@ -34,6 +35,9 @@ class WeeklyPlanDayRow extends StatelessWidget {
         RuniacColors.accentOrange.withValues(alpha: 0.06),
       WeeklyPlanDayRowState.futureUpcoming =>
         RuniacColors.primaryBlue.withValues(alpha: 0.06),
+      WeeklyPlanDayRowState.missed => RuniacColors.textSecondary.withValues(
+        alpha: 0.08,
+      ),
       _ => null,
     };
     final usesTodayTreatment =
@@ -42,16 +46,24 @@ class WeeklyPlanDayRow extends StatelessWidget {
     final usesBlueActiveTreatment =
         state == WeeklyPlanDayRowState.completed ||
         state == WeeklyPlanDayRowState.futureUpcoming;
-    final dayColor = usesTodayTreatment
+    final missed = state == WeeklyPlanDayRowState.missed;
+    final dayColor = missed
+        ? RuniacColors.textSecondary
+        : usesTodayTreatment
         ? const Color(0xFFE8550A)
         : usesBlueActiveTreatment
         ? RuniacColors.primaryBlue
         : RuniacColors.primaryBlue.withValues(alpha: 0.45);
-    final subtitleColor = usesTodayTreatment
+    final subtitleColor = missed
+        ? RuniacColors.textSecondary
+        : usesTodayTreatment
         ? const Color(0xFFE8550A)
         : RuniacColors.primaryBlue.withValues(alpha: 0.60);
     final status = display.status;
     final row = Container(
+      key: missed
+          ? ValueKey('weekly_plan_missed_${display.weekdayIndex}')
+          : null,
       constraints: const BoxConstraints(minHeight: 50),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
       decoration: BoxDecoration(
@@ -93,7 +105,9 @@ class WeeklyPlanDayRow extends StatelessWidget {
                 Text(
                   display.title,
                   style: TextStyle(
-                    color: state == WeeklyPlanDayRowState.rest
+                    color: missed
+                        ? RuniacColors.textSecondary
+                        : state == WeeklyPlanDayRowState.rest
                         ? RuniacColors.primaryBlue.withValues(alpha: 0.75)
                         : RuniacColors.primaryBlue,
                     fontSize: 14,
@@ -211,6 +225,25 @@ class WeeklyPlanStatusNode extends StatelessWidget {
       );
     }
 
+    if (state == WeeklyPlanDayRowState.missed) {
+      return Container(
+        width: 28,
+        height: 28,
+        decoration: BoxDecoration(
+          color: RuniacColors.textSecondary.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: RuniacColors.textSecondary.withValues(alpha: 0.35),
+          ),
+        ),
+        child: const Icon(
+          Icons.remove_rounded,
+          color: RuniacColors.textSecondary,
+          size: 17,
+        ),
+      );
+    }
+
     return const SizedBox(width: 28, height: 28);
   }
 }
@@ -225,6 +258,9 @@ WeeklyPlanDayRowState _stateFor(
   }
   if (completed) {
     return WeeklyPlanDayRowState.completed;
+  }
+  if (display.isPast && display.isRunningSession) {
+    return WeeklyPlanDayRowState.missed;
   }
   if (display.title == 'Rest Day') {
     return WeeklyPlanDayRowState.rest;

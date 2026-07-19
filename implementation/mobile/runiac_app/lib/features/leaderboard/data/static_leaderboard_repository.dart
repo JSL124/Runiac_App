@@ -23,7 +23,10 @@ class StaticLeaderboardRepository implements LeaderboardRepository {
         leaderboardDetailDemoSnapshot.nearbyRanks,
       ),
       periodLabel: leaderboardDetailDemoSnapshot.periodLabel,
-      refreshLabel: leaderboardDetailDemoSnapshot.refreshLabel,
+      // A real period end anchors the live refresh countdown so the demo board
+      // ticks down in real time; leaving refreshLabel null selects the derived
+      // live label instead of a frozen static string.
+      periodEndsAt: _monthlyPeriodEnd(DateTime.now()),
     );
   }
 
@@ -43,9 +46,15 @@ class StaticLeaderboardRepository implements LeaderboardRepository {
       entries: _rowsFromDisplaySnapshots(snapshot.topRanks),
       nearbyEntries: _rowsFromDisplaySnapshots(snapshot.nearbyRanks),
       periodLabel: snapshot.periodLabel,
-      refreshLabel: snapshot.refreshLabel,
+      periodEndsAt: _monthlyPeriodEnd(DateTime.now()),
     );
   }
+}
+
+/// Start of the next calendar month in local time — the instant the monthly
+/// board resets. Used only to drive the demo live countdown.
+DateTime _monthlyPeriodEnd(DateTime now) {
+  return DateTime(now.year, now.month + 1, 1);
 }
 
 List<LeaderboardRowReadModel> _rowsFromDisplaySnapshots(

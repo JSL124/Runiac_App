@@ -2,18 +2,18 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../../../core/assets/runiac_assets.dart';
 import '../../../core/theme/runiac_colors.dart';
 import '../data/static_leaderboard_repository.dart';
 import '../domain/models/leaderboard_league_catalog.dart';
 import '../domain/models/leaderboard_read_model.dart';
 import '../domain/repositories/leaderboard_repository.dart';
 import 'data/leaderboard_demo_snapshots.dart';
+import 'league_asset_path.dart';
 import 'leaderboard_read_model_display_adapter.dart';
 import 'models/leaderboard_display_models.dart';
-import 'widgets/leaderboard_detail_screen.dart';
 import 'widgets/leaderboard_dialogs.dart';
 import 'widgets/leaderboard_map_background.dart';
+import 'widgets/leaderboard_ranking_screen.dart';
 import 'widgets/leaderboard_region_preview_sheet.dart';
 import 'widgets/leaderboard_top_overlay.dart';
 import 'widgets/runner_achievement_profile_screen.dart';
@@ -39,7 +39,9 @@ class LeaderboardTab extends StatefulWidget {
 DateTime _systemClock() => DateTime.timestamp().toLocal();
 
 class _LeaderboardTabState extends State<LeaderboardTab> {
-  static const double _userRegionExpandedSheetHeight = 464;
+  // Tall enough for the two-line unranked encouragement card in the My Rank
+  // Preview section; device fonts render taller than the test-only font.
+  static const double _userRegionExpandedSheetHeight = 472;
   static const double _regionalExpandedSheetHeight = 374;
   static const double _collapsedSheetHeight = 46;
   static const _expiredRetryDelays = [
@@ -51,19 +53,20 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
   ];
 
   double _sheetProgress = 1;
-  bool _showingDetail = false;
   bool _loading = true;
   Object? _loadError;
   LeaderboardReadModel? _readModel;
   LeaderboardDetailDisplaySnapshot? _selectedRegion;
   RunnerAchievementProfileSnapshot? _selectedProfile;
   Timer? _periodRefreshTimer;
+  StreamSubscription<LeaderboardReadModel>? _liveUpdateSubscription;
   var _expiredRetryAttempt = 0;
   var _loadSerial = 0;
 
   @override
   void initState() {
     super.initState();
+    _subscribeToLiveUpdates();
     unawaited(_loadLeaderboard());
   }
 
@@ -73,6 +76,8 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
     if (oldWidget.repository != widget.repository ||
         oldWidget.clock != widget.clock) {
       _expiredRetryAttempt = 0;
+      _liveUpdateSubscription?.cancel();
+      _subscribeToLiveUpdates();
       unawaited(_loadLeaderboard());
     }
   }
@@ -80,7 +85,28 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
   @override
   void dispose() {
     _periodRefreshTimer?.cancel();
+    _liveUpdateSubscription?.cancel();
     super.dispose();
+  }
+
+  void _subscribeToLiveUpdates() {
+    final repository = widget.repository;
+    if (repository is! LiveLeaderboardRepository) {
+      return;
+    }
+    _liveUpdateSubscription = repository.watchLeaderboard().listen(
+      (_) => unawaited(_loadLeaderboard()),
+      onError: (Object error, StackTrace stackTrace) {
+        FlutterError.reportError(
+          FlutterErrorDetails(
+            exception: error,
+            stack: stackTrace,
+            library: 'runiac leaderboard',
+            context: ErrorDescription('watching leaderboard updates'),
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _loadLeaderboard() async {
@@ -191,20 +217,16 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
     }
   }
 
-  void _openDetail() {
-    if (_selectedRegion == null) {
+  void _openRankingPage() {
+    final snapshot = _selectedRegion;
+    if (snapshot == null) {
       return;
     }
-    setState(() {
-      _showingDetail = true;
-    });
-  }
-
-  void _closeDetail() {
-    setState(() {
-      _showingDetail = false;
-      _selectedProfile = null;
-    });
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => LeaderboardRankingScreen(snapshot: snapshot),
+      ),
+    );
   }
 
   void _openRunnerProfile(RunnerAchievementProfileSnapshot profile) {
@@ -215,12 +237,16 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
 
   void _openShareRankPanel() {
     final snapshot = _selectedRegion;
-    final currentUserRow = snapshot?.nearbyRanks
-        .where((row) => row.isCurrentUser)
-        .firstOrNull;
-    if (snapshot == null || currentUserRow == null) {
+    if (snapshot == null) {
       return;
     }
+    // Backend-provided rank when the runner is ranked; otherwise the
+    // adapter's presence-derived 'Unranked' summary label. Display-only.
+    final currentUserRow = snapshot.nearbyRanks
+        .where((row) => row.isCurrentUser)
+        .firstOrNull;
+    final rankLabel =
+        currentUserRow?.rankLabel ?? snapshot.currentUser.rankLabel;
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -231,7 +257,8 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
         return ShareRankFloatingPanel(
           regionName: snapshot.regionName,
           divisionName: snapshot.divisionLabel,
-          rankLabel: currentUserRow.rankLabel,
+          rankLabel: rankLabel,
+          leagueBadgeAssetPath: snapshot.divisionAssetPath,
         );
       },
     );
@@ -277,13 +304,6 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
       );
     }
     final snapshot = _selectedRegion;
-    if (_showingDetail && snapshot != null) {
-      return LeaderboardDetailScreen(
-        snapshot: snapshot,
-        onBack: _closeDetail,
-        onProfileSelected: _openRunnerProfile,
-      );
-    }
     final readModel = _readModel;
     if (readModel?.status == LeaderboardReadStatus.regionRequired) {
       return _LeaderboardStateMessage(
@@ -352,9 +372,10 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
               snapshot: snapshot,
               onVerticalDragUpdate: _handleSheetDragUpdate,
               onVerticalDragEnd: _handleSheetDragEnd,
-              onViewMoreRanking: _openDetail,
+              onViewMoreRanking: _openRankingPage,
               onShareMyRank: _openShareRankPanel,
               onProfileSelected: _openRunnerProfile,
+              clock: widget.clock,
             ),
           ),
           if (_loading)
@@ -445,18 +466,4 @@ class _LeaderboardStateMessage extends StatelessWidget {
   }
 }
 
-String _leagueAssetPath(String key) {
-  return switch (key) {
-    'tier_01' => RuniacAssets.leaderboardLeagueIron,
-    'tier_02' => RuniacAssets.leaderboardLeagueBronze,
-    'tier_03' => RuniacAssets.leaderboardLeagueSilver,
-    'tier_04' => RuniacAssets.leaderboardLeagueGold,
-    'tier_05' => RuniacAssets.leaderboardLeaguePlatinum,
-    'tier_06' => RuniacAssets.leaderboardLeagueEmerald,
-    'tier_07' => RuniacAssets.leaderboardLeagueDiamond,
-    'tier_08' => RuniacAssets.leaderboardLeagueMaster,
-    'tier_09' => RuniacAssets.leaderboardLeagueGrandmaster,
-    'tier_10' => RuniacAssets.leaderboardLeagueChallenger,
-    _ => RuniacAssets.leaderboardLeagueIron,
-  };
-}
+String _leagueAssetPath(String key) => leagueAssetPathForTierKey(key);

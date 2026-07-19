@@ -104,7 +104,10 @@ void main() {
       expect(find.textContaining('running buddy'), findsOneWidget);
 
       await tester.tap(find.byTooltip('Dismiss'));
-      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump();
+      await tester.pump(
+        onboardingGuideRunOutDuration + const Duration(milliseconds: 1),
+      );
       expect(find.textContaining('running buddy'), findsNothing);
 
       // Idling again on the same step must not nag the user.
@@ -165,6 +168,114 @@ void main() {
         1,
       );
     });
+
+    testWidgets(
+      'Blue guide runs out to the right when more screen remains there',
+      (tester) async {
+        final originalSize = tester.view.physicalSize;
+        final originalDevicePixelRatio = tester.view.devicePixelRatio;
+        tester.view.physicalSize = const Size(390, 844);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(() {
+          tester.view.physicalSize = originalSize;
+          tester.view.devicePixelRatio = originalDevicePixelRatio;
+        });
+        var dismissed = false;
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: OnboardingGuideOverlay(
+                character: RunnerCharacter.blue,
+                message: 'Pick the closest answer for now.',
+                enterFromLeft: true,
+                onDismiss: () {
+                  dismissed = true;
+                },
+              ),
+            ),
+          ),
+        );
+        await tester.pump(onboardingGuideRunInDuration);
+        await tester.pump(const Duration(milliseconds: 250));
+
+        final idleCenter = tester.getCenter(
+          find.byKey(const ValueKey('onboarding_guide_idle_character')),
+        );
+        await tester.tap(find.byTooltip('Dismiss'));
+        await tester.pump();
+
+        expect(dismissed, isFalse);
+        expect(
+          find.byKey(const ValueKey('onboarding_guide_character_right')),
+          findsOneWidget,
+        );
+
+        await tester.pump(onboardingGuideRunOutDuration * 0.5);
+        final runningCenter = tester.getCenter(
+          find.byKey(const ValueKey('onboarding_guide_running_character')),
+        );
+        expect(runningCenter.dx, greaterThan(idleCenter.dx));
+        expect(dismissed, isFalse);
+
+        await tester.pump(onboardingGuideRunOutDuration * 0.5);
+        await tester.pump(const Duration(milliseconds: 1));
+        expect(dismissed, isTrue);
+      },
+    );
+
+    testWidgets(
+      'Blue guide runs out to the left when more screen remains there',
+      (tester) async {
+        final originalSize = tester.view.physicalSize;
+        final originalDevicePixelRatio = tester.view.devicePixelRatio;
+        tester.view.physicalSize = const Size(390, 844);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(() {
+          tester.view.physicalSize = originalSize;
+          tester.view.devicePixelRatio = originalDevicePixelRatio;
+        });
+        var dismissed = false;
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: OnboardingGuideOverlay(
+                character: RunnerCharacter.blue,
+                message: 'Pick the closest answer for now.',
+                enterFromLeft: false,
+                onDismiss: () {
+                  dismissed = true;
+                },
+              ),
+            ),
+          ),
+        );
+        await tester.pump(onboardingGuideRunInDuration);
+        await tester.pump(const Duration(milliseconds: 250));
+
+        final idleCenter = tester.getCenter(
+          find.byKey(const ValueKey('onboarding_guide_idle_character')),
+        );
+        await tester.tap(find.byTooltip('Dismiss'));
+        await tester.pump();
+
+        expect(dismissed, isFalse);
+        expect(
+          find.byKey(const ValueKey('onboarding_guide_character_left')),
+          findsOneWidget,
+        );
+
+        await tester.pump(onboardingGuideRunOutDuration * 0.5);
+        final runningCenter = tester.getCenter(
+          find.byKey(const ValueKey('onboarding_guide_running_character')),
+        );
+        expect(runningCenter.dx, lessThan(idleCenter.dx));
+        expect(dismissed, isFalse);
+
+        await tester.pump(onboardingGuideRunOutDuration * 0.5);
+        await tester.pump(const Duration(milliseconds: 1));
+        expect(dismissed, isTrue);
+      },
+    );
 
     testWidgets('non-Blue guides retain the existing static guide state', (
       tester,

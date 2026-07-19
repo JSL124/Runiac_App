@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/features/onboarding/domain/models/local_onboarding_draft.dart';
 import 'package:runiac_app/features/plan/data/firestore_generated_plan_persistence_repository.dart';
@@ -70,6 +71,28 @@ void main() {
           ),
         ),
       );
+    },
+  );
+
+  test(
+    'generated plan persistence recovers missing start date from createdAt',
+    () async {
+      final writer = _RecordingGeneratedPlanDocumentStore();
+      final repository = FirestoreGeneratedPlanPersistenceRepository(
+        documentStore: writer,
+        updatedAt: () => Timestamp.fromDate(DateTime(2026, 7, 6, 10, 30)),
+      );
+      final plan = const BeginnerAdaptivePlanGenerator().generate(_draft());
+
+      await repository.saveGeneratedPlan(uid: 'runner-1', plan: plan);
+      writer.document = <String, Object?>{...writer.document}
+        ..remove('startsOnDate')
+        ..['createdAt'] = Timestamp.fromDate(DateTime(2026, 7, 6, 10, 30));
+
+      final restored = await repository.loadGeneratedPlan(uid: 'runner-1');
+
+      expect(restored, isNotNull);
+      expect(restored!.startsOnDate, '2026-07-06');
     },
   );
 }

@@ -42,7 +42,9 @@ type PersistPlanProgressInput = {
   readonly progressData: DocumentData | undefined;
 };
 export type PersistPlanProgressResult = {
+  readonly matchedPlanWorkout: boolean;
   readonly completedWorkoutRecorded: boolean;
+  readonly planEnrollmentId: string | null;
   readonly scheduledWorkoutId: string | null;
   readonly matchedBy: MatchKind | null;
 };
@@ -50,15 +52,25 @@ export type PersistPlanProgressResult = {
 export function persistCompletedWorkoutProgress(input: PersistPlanProgressInput): PersistPlanProgressResult {
   const planData = trustedPlanData(input.generatedPlanData, input.progressData, input.payload);
   const matchedWorkout = findMatchedWorkout(planData, input.payload);
-  if (matchedWorkout === null || !meetsObjective(matchedWorkout.workout.objective, input.payload)) {
+  if (matchedWorkout === null) {
     return noCompletedWorkoutRecorded();
   }
 
-  const completedWorkouts = readCompletedWorkouts(input.progressData);
   const sourceGeneratedPlanId = readGeneratedPlanId(planData);
+  if (!meetsObjective(matchedWorkout.workout.objective, input.payload)) {
+    return incompleteMatchedWorkout({
+      sourceGeneratedPlanId,
+      matchedWorkout,
+    });
+  }
+
+  const completedWorkouts = readCompletedWorkouts(input.progressData);
   const progressKey = progressWorkoutKey(sourceGeneratedPlanId, matchedWorkout.workout.scheduledWorkoutId);
   if (completedWorkouts[progressKey] !== undefined) {
-    return noCompletedWorkoutRecorded();
+    return incompleteMatchedWorkout({
+      sourceGeneratedPlanId,
+      matchedWorkout,
+    });
   }
 
   const completedWorkoutCount = readCompletedWorkoutCount(input.progressData, completedWorkouts) + 1;
@@ -77,15 +89,32 @@ export function persistCompletedWorkoutProgress(input: PersistPlanProgressInput)
     { merge: true },
   );
   return {
+    matchedPlanWorkout: true,
     completedWorkoutRecorded: true,
+    planEnrollmentId: sourceGeneratedPlanId ?? null,
     scheduledWorkoutId: matchedWorkout.workout.scheduledWorkoutId,
     matchedBy: matchedWorkout.matchedBy,
   };
 }
 
+function incompleteMatchedWorkout(input: {
+  readonly sourceGeneratedPlanId: string | undefined;
+  readonly matchedWorkout: MatchedWorkout;
+}): PersistPlanProgressResult {
+  return {
+    matchedPlanWorkout: true,
+    completedWorkoutRecorded: false,
+    planEnrollmentId: input.sourceGeneratedPlanId ?? null,
+    scheduledWorkoutId: input.matchedWorkout.workout.scheduledWorkoutId,
+    matchedBy: input.matchedWorkout.matchedBy,
+  };
+}
+
 function noCompletedWorkoutRecorded(): PersistPlanProgressResult {
   return {
+    matchedPlanWorkout: false,
     completedWorkoutRecorded: false,
+    planEnrollmentId: null,
     scheduledWorkoutId: null,
     matchedBy: null,
   };

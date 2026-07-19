@@ -4,11 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/app.dart';
 import 'package:runiac_app/core/theme/runiac_colors.dart';
-import 'package:runiac_app/features/account/data/firestore_user_profile_repository.dart';
-import 'package:runiac_app/features/account/domain/models/user_profile_read_model.dart';
-import 'package:runiac_app/features/account/domain/repositories/user_profile_persistence_repository.dart';
-import 'package:runiac_app/features/account/domain/repositories/user_profile_repository.dart';
+import 'package:runiac_app/core/widgets/runiac_level_profile_badge.dart';
+import 'package:runiac_app/features/profile/data/firestore_user_profile_repository.dart';
+import 'package:runiac_app/features/profile/domain/models/user_profile_read_model.dart';
+import 'package:runiac_app/features/profile/domain/repositories/user_profile_persistence_repository.dart';
+import 'package:runiac_app/features/profile/domain/repositories/user_profile_repository.dart';
 import 'package:runiac_app/features/auth/domain/runiac_auth_service.dart';
+import 'package:runiac_app/features/leaderboard/domain/models/leaderboard_read_model.dart';
+import 'package:runiac_app/features/leaderboard/domain/repositories/leaderboard_repository.dart';
 import 'package:runiac_app/features/plan/domain/models/beginner_adaptive_plan_snapshot.dart';
 import 'package:runiac_app/features/plan/domain/repositories/generated_plan_persistence_repository.dart';
 import 'package:runiac_app/features/plan/presentation/current_session_generated_plan.dart';
@@ -71,6 +74,9 @@ void main() {
               officialStreakLabel: '3 days',
               level: 6,
               levelProgressFraction: 0.2,
+              totalXp: 520,
+              nextLevelXp: 600,
+              xpToNextLevel: 80,
               levelLabel: 'Level 6',
               totalXpLabel: '520 XP',
               weeklyXpLabel: '',
@@ -85,14 +91,249 @@ void main() {
       await tester.tap(find.bySemanticsLabel('Profile'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Account'), findsOneWidget);
+      expect(find.text('Profile'), findsOneWidget);
       expect(find.text('Maya'), findsOneWidget);
-      expect(find.text('M'), findsWidgets);
+      expect(
+        find.byKey(const ValueKey('account-profile-level-badge')),
+        findsOneWidget,
+      );
+      expect(find.byType(RuniacLevelProfileBadge), findsWidgets);
       expect(find.text('Queenstown, Singapore'), findsOneWidget);
-      expect(find.text('Lv.6'), findsOneWidget);
+      // Shown once on the profile badge and once on the level-up gauge.
+      expect(find.text('Lv.6'), findsNWidgets(2));
+      expect(
+        find.byKey(const ValueKey('account-level-up-gauge')),
+        findsOneWidget,
+      );
+      expect(find.text('Lv.7'), findsOneWidget);
+      expect(find.text('80 XP to level up'), findsOneWidget);
+      expect(find.text('520 / 600 XP'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('account-division-badge-tier_02')),
+        findsOneWidget,
+      );
+      expect(find.bySemanticsLabel('Bronze division'), findsOneWidget);
       expect(find.text('First relaxed 5K'), findsOneWidget);
       expect(find.text('4 sessions / week'), findsOneWidget);
       expect(find.text('Returning runner'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'Account profile renders an empty division badge for an unranked runner',
+    (tester) async {
+      await tester.pumpWidget(
+        RuniacApp(
+          showSplash: false,
+          enableForegroundGps: false,
+          profileRepository: _SingleProfileRepository(_savedProfile()),
+          leaderboardRepository: _SingleLeaderboardRepository(
+            LeaderboardReadModel(
+              status: LeaderboardReadStatus.unranked,
+              regionLabel: 'Queenstown, Singapore',
+              divisionKey: '',
+              divisionLabel: 'Unranked',
+              currentRunnerRankLabel: '',
+              entries: const [],
+            ),
+          ),
+          userProgressRepository: const _SingleUserProgressRepository(
+            UserProgressReadModel(
+              userId: 'test-auth-user-1',
+              officialStreakLabel: '',
+              level: 0,
+              levelLabel: 'Level 0',
+              totalXpLabel: '0 XP',
+              weeklyXpLabel: '',
+              monthlyXpLabel: '0 XP',
+              weeklyDistanceLabel: '',
+              goalProgressLabel: '',
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.bySemanticsLabel('Profile'));
+      await tester.pumpAndSettle();
+
+      // Shown once on the profile badge and once on the level-up gauge.
+      expect(find.text('Lv.0'), findsNWidgets(2));
+      // No backend XP value yet, so the gauge shows no XP caption.
+      expect(find.textContaining('XP to level up'), findsNothing);
+      expect(find.text('0%'), findsOneWidget);
+      expect(find.text('Unranked'), findsNothing);
+      expect(
+        find.byKey(const ValueKey('account-division-badge-unranked')),
+        findsOneWidget,
+      );
+      expect(find.bySemanticsLabel('Unranked division'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'Account profile shows backend progression division even when leaderboard is unranked',
+    (tester) async {
+      await tester.pumpWidget(
+        RuniacApp(
+          showSplash: false,
+          enableForegroundGps: false,
+          profileRepository: _SingleProfileRepository(_savedProfile()),
+          leaderboardRepository: _SingleLeaderboardRepository(
+            LeaderboardReadModel(
+              status: LeaderboardReadStatus.unranked,
+              regionLabel: 'Queenstown, Singapore',
+              divisionKey: '',
+              divisionLabel: 'Unranked',
+              currentRunnerRankLabel: '',
+              entries: const [],
+            ),
+          ),
+          userProgressRepository: const _SingleUserProgressRepository(
+            UserProgressReadModel(
+              userId: 'test-auth-user-1',
+              officialStreakLabel: '',
+              level: 1,
+              levelProgressFraction: 0.5,
+              divisionKey: 'tier_01',
+              divisionLabel: 'Iron League',
+              totalXp: 50,
+              nextLevelXp: 100,
+              xpToNextLevel: 50,
+              levelLabel: 'Level 1',
+              totalXpLabel: '50 XP',
+              weeklyXpLabel: '',
+              monthlyXpLabel: '50 XP',
+              weeklyDistanceLabel: '',
+              goalProgressLabel: '',
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.bySemanticsLabel('Profile'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Lv.1'), findsNWidgets(2));
+      expect(find.text('50 / 100 XP'), findsOneWidget);
+      expect(
+        tester
+            .widget<RuniacLevelProfileBadge>(
+              find.byKey(const ValueKey('account-profile-level-badge')),
+            )
+            .progressFraction,
+        0.5,
+      );
+      expect(
+        find.byKey(const ValueKey('account-division-badge-tier_01')),
+        findsOneWidget,
+      );
+      expect(find.bySemanticsLabel('Iron League division'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('account-division-badge-unranked')),
+        findsNothing,
+      );
+    },
+  );
+
+  for (final tier in <(int, String, String)>[
+    (1, 'tier_01', 'Iron League'),
+    (11, 'tier_02', 'Bronze League'),
+    (21, 'tier_03', 'Silver League'),
+    (31, 'tier_04', 'Gold League'),
+    (41, 'tier_05', 'Platinum League'),
+    (51, 'tier_06', 'Emerald League'),
+    (61, 'tier_07', 'Diamond League'),
+    (71, 'tier_08', 'Master League'),
+    (81, 'tier_09', 'Grandmaster League'),
+    (100, 'tier_10', 'Challenger League'),
+  ]) {
+    testWidgets(
+      'Account profile renders backend progression badge ${tier.$2} at level ${tier.$1}',
+      (tester) async {
+        await tester.pumpWidget(
+          RuniacApp(
+            showSplash: false,
+            enableForegroundGps: false,
+            profileRepository: _SingleProfileRepository(_savedProfile()),
+            leaderboardRepository: _SingleLeaderboardRepository(
+              LeaderboardReadModel(
+                status: LeaderboardReadStatus.unranked,
+                regionLabel: 'Queenstown, Singapore',
+                divisionKey: '',
+                divisionLabel: 'Unranked',
+                currentRunnerRankLabel: '',
+                entries: const [],
+              ),
+            ),
+            userProgressRepository: _SingleUserProgressRepository(
+              UserProgressReadModel(
+                userId: 'test-auth-user-1',
+                officialStreakLabel: '',
+                level: tier.$1,
+                levelProgressFraction: 0.25,
+                divisionKey: tier.$2,
+                divisionLabel: tier.$3,
+                levelLabel: 'Level ${tier.$1}',
+                totalXpLabel: '${tier.$1 * 100} XP',
+                weeklyXpLabel: '',
+                monthlyXpLabel: '${tier.$1 * 100} XP',
+                weeklyDistanceLabel: '',
+                goalProgressLabel: '',
+              ),
+            ),
+          ),
+        );
+
+        await tester.tap(find.bySemanticsLabel('Profile'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Lv.${tier.$1}'), findsNWidgets(2));
+        expect(
+          find.byKey(ValueKey('account-division-badge-${tier.$2}')),
+          findsOneWidget,
+        );
+        expect(find.bySemanticsLabel('${tier.$3} division'), findsOneWidget);
+      },
+    );
+  }
+
+  testWidgets(
+    'Account profile level-up gauge reports max level from the backend',
+    (tester) async {
+      await tester.pumpWidget(
+        RuniacApp(
+          showSplash: false,
+          enableForegroundGps: false,
+          profileRepository: _SingleProfileRepository(_savedProfile()),
+          userProgressRepository: const _SingleUserProgressRepository(
+            UserProgressReadModel(
+              userId: 'test-auth-user-1',
+              officialStreakLabel: '',
+              level: 50,
+              levelProgressFraction: 1,
+              totalXp: 99000,
+              isMaxLevel: true,
+              levelLabel: 'Level 50',
+              totalXpLabel: '99,000 XP',
+              weeklyXpLabel: '',
+              monthlyXpLabel: '1,200 XP',
+              weeklyDistanceLabel: '',
+              goalProgressLabel: '',
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.bySemanticsLabel('Profile'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('account-level-up-gauge')),
+        findsOneWidget,
+      );
+      expect(find.text('Max level reached'), findsOneWidget);
+      expect(find.text('Lv.51'), findsNothing);
+      expect(find.text('99,000 XP'), findsOneWidget);
     },
   );
 
@@ -334,8 +575,9 @@ void main() {
             .coachNotes,
         isNotEmpty,
       );
-      expect(profileRepository.loadCount, 2);
-      expect(find.text('Account'), findsOneWidget);
+      // Initial shell/Home profile reads plus Account reload after saving.
+      expect(profileRepository.loadCount, 4);
+      expect(find.text('Profile'), findsOneWidget);
       expect(find.text('Edit profile'), findsOneWidget);
       expect(find.text('4 sessions / week'), findsOneWidget);
       expect(find.text('3 sessions / week'), findsNothing);
@@ -428,11 +670,12 @@ void main() {
     await tester.tap(find.text('Save changes'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Account'), findsOneWidget);
+    expect(find.text('Profile'), findsOneWidget);
     expect(find.text('Jess'), findsOneWidget);
     expect(find.text('Maya'), findsNothing);
     expect(find.text('Orchard, Singapore'), findsOneWidget);
-    expect(profileRepository.loadCount, 2);
+    // Initial shell/Home profile reads plus Account reload after saving.
+    expect(profileRepository.loadCount, 4);
   });
 
   testWidgets('Edit profile blocks duplicate nickname before saving', (
@@ -695,7 +938,7 @@ void main() {
       await tester.pumpAndSettle();
       final reportedError = tester.takeException();
 
-      expect(find.text('Account'), findsNothing);
+      expect(find.text('Profile'), findsNothing);
       expect(generatedPlanStore.activePlan, isNull);
       expect(persistenceRepository.onboardingProfile, isNotNull);
       expect(generatedPlanPersistenceRepository.saveCalls, 1);
@@ -717,13 +960,75 @@ void main() {
     await tester.tap(find.bySemanticsLabel('Profile'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Account'), findsOneWidget);
+    expect(find.text('Profile'), findsOneWidget);
     expect(find.text('Runiac Runner'), findsOneWidget);
-    expect(find.text('R'), findsWidgets);
+    expect(
+      find.byKey(const ValueKey('account-profile-level-badge')),
+      findsOneWidget,
+    );
     expect(find.text('Jurong East, Singapore'), findsOneWidget);
-    expect(find.text('Lv.0'), findsOneWidget);
+    // Trusted, backend-owned regional rank rendered in front of the region.
+    expect(find.byKey(const ValueKey('account-regional-rank')), findsOneWidget);
+    expect(find.text('#18'), findsOneWidget);
+    // Shown once on the profile badge and once on the level-up gauge.
+    expect(find.text('Lv.0'), findsNWidgets(2));
     expect(find.text('Build a consistent 10K habit'), findsOneWidget);
+    // The no-Firebase static preview keeps its demo lifetime stats.
+    expect(find.text('12 days'), findsOneWidget);
+    expect(find.text('148.6 km'), findsOneWidget);
   });
+
+  testWidgets(
+    'Account profile shows em-dash lifetime stats for a real runner with no runs',
+    (tester) async {
+      await tester.pumpWidget(
+        RuniacApp(
+          showSplash: false,
+          enableForegroundGps: false,
+          profileRepository: _SingleProfileRepository(_savedProfile()),
+          userProgressRepository: const _SingleUserProgressRepository(
+            UserProgressReadModel(
+              userId: 'test-auth-user-1',
+              officialStreakLabel: '',
+              level: 0,
+              levelLabel: 'Level 0',
+              totalXpLabel: '0 XP',
+              weeklyXpLabel: '',
+              monthlyXpLabel: '0 XP',
+              weeklyDistanceLabel: '',
+              goalProgressLabel: '',
+              // Backend has not published lifetime stats for this fresh account.
+              longestStreakLabel: '',
+              totalDistanceLabel: '',
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.bySemanticsLabel('Profile'));
+      await tester.pumpAndSettle();
+
+      expect(
+        tester
+            .widget<Text>(
+              find.byKey(const ValueKey('account-stat-max-streak')),
+            )
+            .data,
+        '—',
+      );
+      expect(
+        tester
+            .widget<Text>(
+              find.byKey(const ValueKey('account-stat-total-distance')),
+            )
+            .data,
+        '—',
+      );
+      // No fabricated demo values leak into the real-runner path.
+      expect(find.text('12 days'), findsNothing);
+      expect(find.text('148.6 km'), findsNothing);
+    },
+  );
 }
 
 Color? _textColor(WidgetTester tester, String text) {
@@ -781,6 +1086,19 @@ class _SingleUserProgressRepository implements UserProgressRepository {
 
   @override
   Future<UserProgressReadModel> refreshUserProgress() async => progress;
+}
+
+class _SingleLeaderboardRepository implements LeaderboardRepository {
+  const _SingleLeaderboardRepository(this.leaderboard);
+
+  final LeaderboardReadModel leaderboard;
+
+  @override
+  Future<LeaderboardReadModel> loadLeaderboard() async => leaderboard;
+
+  @override
+  Future<LeaderboardReadModel> loadRegion({required String regionId}) async =>
+      leaderboard;
 }
 
 class _CompletingProfileRepository implements UserProfileRepository {

@@ -33,15 +33,29 @@ import {
 } from './support/firestore_rules_test_support.mjs';
 
 describe('owner-owned client records', () => {
+  it('denies all direct Home Guide consent reads and writes', async () => {
+    await seed('homeGuideConsents/alice', {
+      ownerUid: 'alice',
+      schemaVersion: 1,
+      disclosureVersion: 1,
+      granted: true,
+    });
+
+    const alice = dbFor('alice');
+    await assertFails(getDoc(doc(alice, 'homeGuideConsents/alice')));
+    await assertFails(
+      setDoc(doc(alice, 'homeGuideConsents/alice'), {
+        ownerUid: 'alice',
+        schemaVersion: 1,
+        disclosureVersion: 1,
+        granted: false,
+      }),
+    );
+  });
+
   it('allows an owner to write safe user profile fields', async () => {
     const alice = dbFor('alice');
 
-    await seed('nicknameClaims/runner', {
-      ownerUid: 'alice',
-      nickname: 'Runner',
-      nicknameKey: 'runner',
-      updatedAt: 1,
-    });
     await assertSucceeds(setDoc(doc(alice, 'userProfiles/alice'), profileFields));
     await assertSucceeds(getDoc(doc(alice, 'userProfiles/alice')));
     await assertFails(getDoc(doc(dbFor('bob'), 'userProfiles/alice')));
@@ -74,7 +88,8 @@ describe('owner-owned client records', () => {
 
     const profile = doc(dbFor('alice'), 'userProfiles/alice');
 
-    await assertSucceeds(updateDoc(profile, { displayName: 'Updated Runner' }));
+    await assertSucceeds(updateDoc(profile, { fullName: 'Updated Runner' }));
+    await assertFails(updateDoc(profile, { displayName: 'Updated Runner' }));
     await assertFails(updateDoc(profile, { xp: deleteField() }));
     await assertFails(updateDoc(profile, { totalXp: 80 }));
     await assertFails(updateDoc(profile, { monthlyXp: 80 }));
@@ -215,35 +230,32 @@ describe('owner-owned client records', () => {
     );
   });
 
-  it('allows nickname claims only for the authenticated owner', async () => {
+  it('denies all direct nickname claim reads and writes', async () => {
     const alice = dbFor('alice');
 
-    await assertSucceeds(
+    await assertFails(
       setDoc(doc(alice, 'nicknameClaims/runner'), {
         ownerUid: 'alice',
-        nickname: 'Runner',
-        nicknameKey: 'runner',
+        nicknameCanonical: 'runner',
+        nicknameIndexKey: 'n1_runner',
         updatedAt: 1,
       }),
     );
-    await assertSucceeds(getDoc(doc(alice, 'nicknameClaims/runner')));
+    await seed('nicknameClaims/n1_runner', {
+      ownerUid: 'alice',
+      nicknameCanonical: 'runner',
+      nicknameIndexKey: 'n1_runner',
+    });
+    await assertFails(getDoc(doc(alice, 'nicknameClaims/n1_runner')));
     await assertFails(
-      setDoc(doc(dbFor('bob'), 'nicknameClaims/runner'), {
+      setDoc(doc(dbFor('bob'), 'nicknameClaims/n1_runner'), {
         ownerUid: 'bob',
-        nickname: 'Runner',
-        nicknameKey: 'runner',
+        nicknameCanonical: 'runner',
+        nicknameIndexKey: 'n1_runner',
         updatedAt: 1,
       }),
     );
-    await assertFails(
-      setDoc(doc(alice, 'nicknameClaims/other-key'), {
-        ownerUid: 'alice',
-        nickname: 'Runner',
-        nicknameKey: 'runner',
-        updatedAt: 1,
-      }),
-    );
-    await assertSucceeds(deleteDoc(doc(alice, 'nicknameClaims/runner')));
+    await assertFails(deleteDoc(doc(alice, 'nicknameClaims/n1_runner')));
   });
 
   it('allows only the owner to read and write generated plans', async () => {
@@ -479,29 +491,22 @@ describe('owner-owned client records', () => {
     await assertFails(deleteDoc(aliceEstimate));
   });
 
-  it('requires a matching owner nickname claim before profile nickname writes', async () => {
+  it('denies direct client nickname identity writes even when a matching claim exists', async () => {
     const alice = dbFor('alice');
 
-    await assertFails(setDoc(doc(alice, 'userProfiles/alice'), profileFields));
+    await assertSucceeds(setDoc(doc(alice, 'userProfiles/alice'), profileFields));
     await seed('nicknameClaims/runner', {
       ownerUid: 'alice',
-      nickname: 'Runner',
-      nicknameKey: 'runner',
-      updatedAt: 1,
-    });
-    await assertSucceeds(setDoc(doc(alice, 'userProfiles/alice'), profileFields));
-
-    await seed('nicknameClaims/maya', {
-      ownerUid: 'bob',
-      nickname: 'Maya',
-      nicknameKey: 'maya',
+      nicknameCanonical: 'runner',
+      nicknameIndexKey: 'n1_runner',
       updatedAt: 1,
     });
     await assertFails(
       updateDoc(doc(alice, 'userProfiles/alice'), {
-        displayName: 'Maya',
-        nickname: 'Maya',
-        nicknameKey: 'maya',
+        displayName: 'Runner',
+        avatarInitials: 'RU',
+        nickname: 'Runner',
+        nicknameIndexKey: 'n1_runner',
       }),
     );
   });
@@ -623,6 +628,23 @@ describe('owner-owned client records', () => {
     );
   });
 
+  it('denies client writes to backend-owned cool-down XP fields on activities', async () => {
+    await seed('activities/cooldown-001', {
+      ...activityDraft,
+    });
+
+    const activity = doc(dbFor('alice'), 'activities/cooldown-001');
+
+    await assertFails(updateDoc(activity, { coolDownXpAwarded: true }));
+
+    await assertFails(
+      setDoc(doc(dbFor('alice'), 'activities/cooldown-002'), {
+        ...activityDraft,
+        coolDownXpAwarded: true,
+      }),
+    );
+  });
+
   it('denies overwriting or resetting backend-processed activities', async () => {
     await seed('activities/processed-001', {
       ...activityDraft,
@@ -661,6 +683,33 @@ describe('owner-owned client records', () => {
     await assertFails(updateDoc(profile, { lastStreakRunDate: '2026-06-16' }));
     await assertFails(updateDoc(profile, { streakUpdatedAt: 2 }));
     await assertFails(updateDoc(profile, { streakCount: deleteField() }));
+  });
+
+  it('denies client writes to backend-owned lifetime stat profile fields', async () => {
+    await seed('userProfiles/alice', {
+      ...profileFields,
+      longestStreak: 5,
+      longestStreakLabel: '5 days',
+      totalDistanceMeters: 12800,
+      totalDistanceLabel: '12.8 km',
+    });
+
+    const profile = doc(dbFor('alice'), 'userProfiles/alice');
+
+    await assertFails(
+      setDoc(profile, {
+        ...profileFields,
+        longestStreak: 9,
+        longestStreakLabel: '9 days',
+        totalDistanceMeters: 99999,
+        totalDistanceLabel: '100.0 km',
+      }),
+    );
+    await assertFails(updateDoc(profile, { longestStreak: 9 }));
+    await assertFails(updateDoc(profile, { longestStreakLabel: '9 days' }));
+    await assertFails(updateDoc(profile, { totalDistanceMeters: 99999 }));
+    await assertFails(updateDoc(profile, { totalDistanceLabel: '100.0 km' }));
+    await assertFails(updateDoc(profile, { totalDistanceMeters: deleteField() }));
   });
 
   it('activity owner history list supports latest-first bounded queries', async () => {

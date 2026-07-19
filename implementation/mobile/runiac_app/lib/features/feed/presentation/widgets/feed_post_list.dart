@@ -1,88 +1,120 @@
 import 'package:flutter/material.dart';
 
 import '../../domain/models/feed_display_models.dart';
+import '../feed_timeline_screen_controller.dart';
 import 'feed_post_section.dart';
 import 'feed_status_message.dart';
 
 class FeedPostList extends StatelessWidget {
-  const FeedPostList({
-    required this.hasLoaded,
-    required this.loadErrorMessage,
-    required this.posts,
-    required this.onRetry,
-    required this.onLikePressed,
-    required this.onCommentPressed,
-    required this.onOptionsPressed,
-    super.key,
-  });
+  const FeedPostList({required this.controller, super.key});
 
-  final bool hasLoaded;
-  final String? loadErrorMessage;
-  final List<FeedPostReadModel> posts;
-  final VoidCallback onRetry;
-  final ValueChanged<String> onLikePressed;
-  final ValueChanged<FeedPostReadModel> onCommentPressed;
-  final ValueChanged<FeedPostReadModel> onOptionsPressed;
+  final FeedTimelineScreenController controller;
 
   @override
   Widget build(BuildContext context) {
-    if (!hasLoaded) {
-      return ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: EdgeInsets.zero,
-        children: const [
-          SizedBox(
-            height: 280,
-            child: Center(child: CircularProgressIndicator()),
-          ),
-        ],
-      );
+    final state = controller.timelineState;
+    final error = state?.recoverableError?.message ?? controller.loadError;
+    final posts = controller.posts;
+    if (!controller.hasLoaded) {
+      return _message(const CircularProgressIndicator());
     }
-
-    final errorMessage = loadErrorMessage;
-    if (errorMessage != null) {
-      return ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: EdgeInsets.zero,
-        children: [
-          FeedStatusMessage(
-            title: errorMessage,
-            body: 'Pull down or tap retry to load friends posts.',
-            action: OutlinedButton(
-              onPressed: onRetry,
-              child: const Text('Retry'),
-            ),
-          ),
-        ],
-      );
+    if (posts.isEmpty && error != null) {
+      return _error(error);
     }
-
     if (posts.isEmpty) {
-      return ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: EdgeInsets.zero,
-        children: const [
-          FeedStatusMessage(
-            title: 'No shared runs yet.',
-            body: 'Runs shared by you and accepted friends will appear here.',
-          ),
-        ],
+      return _status(
+        'No shared runs yet.',
+        body: 'Runs shared by you and accepted friends will appear here.',
       );
     }
-
+    final offline = !controller.mutationsEnabled;
     return ListView.builder(
+      key: const ValueKey('feed-post-list'),
+      controller: controller.scrollController,
       physics: const AlwaysScrollableScrollPhysics(),
       padding: EdgeInsets.zero,
-      itemCount: posts.length,
+      itemCount: posts.length + 2,
       itemBuilder: (context, index) {
-        final post = posts[index];
-        return FeedPostSection(
-          post: post,
-          onLikePressed: () => onLikePressed(post.postId),
-          onCommentPressed: () => onCommentPressed(post),
-          onOptionsPressed: () => onOptionsPressed(post),
-        );
+        if (index == 0) {
+          return _FeedNotice(
+            error: error,
+            offline: offline,
+            controller: controller,
+          );
+        }
+        if (index <= posts.length) {
+          return FeedPostSection(
+            post: posts[index - 1],
+            controller: controller,
+          );
+        }
+        return _FeedFooter(state: state);
       },
     );
   }
+
+  Widget _message(Widget child) => ListView(
+    key: const ValueKey('feed-post-list'),
+    controller: controller.scrollController,
+    physics: const AlwaysScrollableScrollPhysics(),
+    children: [SizedBox(height: 280, child: Center(child: child))],
+  );
+
+  Widget _status(String title, {required String body}) => ListView(
+    key: const ValueKey('feed-post-list'),
+    controller: controller.scrollController,
+    physics: const AlwaysScrollableScrollPhysics(),
+    children: [FeedStatusMessage(title: title, body: body)],
+  );
+
+  Widget _error(String message) => ListView(
+    key: const ValueKey('feed-post-list'),
+    controller: controller.scrollController,
+    physics: const AlwaysScrollableScrollPhysics(),
+    children: [
+      FeedStatusMessage(
+        title: message,
+        body: 'Pull down or tap retry to load friends posts.',
+        action: OutlinedButton(
+          onPressed: controller.refresh,
+          child: const Text('Retry'),
+        ),
+      ),
+    ],
+  );
+}
+
+class _FeedNotice extends StatelessWidget {
+  const _FeedNotice({
+    required this.error,
+    required this.offline,
+    required this.controller,
+  });
+  final String? error;
+  final bool offline;
+  final FeedTimelineScreenController controller;
+  @override
+  Widget build(BuildContext context) => Column(
+    children: [
+      if (offline)
+        const Padding(
+          padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
+          child: Text('Offline — cached feed. Actions are disabled.'),
+        ),
+      if (error != null)
+        TextButton(onPressed: controller.refresh, child: Text(error!)),
+    ],
+  );
+}
+
+class _FeedFooter extends StatelessWidget {
+  const _FeedFooter({required this.state});
+  final FeedTimelineState? state;
+  @override
+  Widget build(BuildContext context) => state?.exhausted == true
+      ? const Padding(
+          padding: EdgeInsets.all(16),
+          child: Center(child: Text("You're all caught up.")),
+        )
+      : const SizedBox(height: 24);
 }

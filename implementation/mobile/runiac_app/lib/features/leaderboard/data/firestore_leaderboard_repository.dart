@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../core/regions/singapore_planning_area_catalog.dart';
@@ -18,7 +20,13 @@ abstract interface class LeaderboardDocumentReader {
   Future<Map<String, Object?>?> readRank({required String rankId});
 }
 
-class FirestoreLeaderboardDocumentReader implements LeaderboardDocumentReader {
+abstract interface class LiveLeaderboardDocumentReader
+    implements LeaderboardDocumentReader {
+  Stream<void> watchLeaderboardDocuments({required String uid});
+}
+
+class FirestoreLeaderboardDocumentReader
+    implements LiveLeaderboardDocumentReader {
   FirestoreLeaderboardDocumentReader({FirebaseFirestore? firestore})
     : _firestore = firestore ?? FirebaseFirestore.instance;
 
@@ -54,9 +62,38 @@ class FirestoreLeaderboardDocumentReader implements LeaderboardDocumentReader {
     final data = snapshot.data();
     return data == null ? null : Map<String, Object?>.from(data);
   }
+
+  @override
+  Stream<void> watchLeaderboardDocuments({required String uid}) {
+    late StreamController<void> controller;
+    final subscriptions = <StreamSubscription<DocumentSnapshot<Object?>>>[];
+    controller = StreamController<void>(
+      onListen: () {
+        void notify(DocumentSnapshot<Object?> _) => controller.add(null);
+        subscriptions.addAll([
+          _firestore
+              .doc('leaderboardPeriods/monthly_current')
+              .snapshots()
+              .listen(notify),
+          _firestore
+              .doc('leaderboardCurrentViews/$uid')
+              .snapshots()
+              .listen(notify),
+          _firestore.doc('userProfiles/$uid').snapshots().listen(notify),
+        ]);
+      },
+      onCancel: () async {
+        await Future.wait(
+          subscriptions.map((subscription) => subscription.cancel()),
+        );
+      },
+    );
+    return controller.stream;
+  }
 }
 
-class FirestoreLeaderboardRepository implements LeaderboardRepository {
+class FirestoreLeaderboardRepository
+    implements LeaderboardRepository, LiveLeaderboardRepository {
   FirestoreLeaderboardRepository({
     required this.authRepository,
     LeaderboardDocumentReader? reader,
@@ -77,6 +114,18 @@ class FirestoreLeaderboardRepository implements LeaderboardRepository {
       throw ArgumentError.value(regionId, 'regionId', 'Unsupported region');
     }
     return _load(selectedRegionId: area.regionId);
+  }
+
+  @override
+  Stream<LeaderboardReadModel> watchLeaderboard() {
+    final currentUser = authRepository.currentUser;
+    final reader = _reader;
+    if (currentUser == null || reader is! LiveLeaderboardDocumentReader) {
+      return Stream.fromFuture(loadLeaderboard());
+    }
+    return reader
+        .watchLeaderboardDocuments(uid: currentUser.uid)
+        .asyncMap((_) => loadLeaderboard());
   }
 
   Future<LeaderboardReadModel> _load({String? selectedRegionId}) async {

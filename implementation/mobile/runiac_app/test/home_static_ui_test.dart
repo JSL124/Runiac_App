@@ -4,9 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runiac_app/app.dart';
-import 'package:runiac_app/features/account/data/static_user_profile_repository.dart';
-import 'package:runiac_app/features/account/domain/repositories/user_profile_persistence_repository.dart';
-import 'package:runiac_app/features/account/presentation/watch_health_apps_screen.dart';
+import 'package:runiac_app/core/widgets/runiac_level_profile_badge.dart';
+import 'package:runiac_app/features/profile/data/static_user_profile_repository.dart';
+import 'package:runiac_app/features/profile/domain/models/user_profile_read_model.dart';
+import 'package:runiac_app/features/profile/domain/repositories/user_profile_repository.dart';
+import 'package:runiac_app/features/profile/domain/repositories/user_profile_persistence_repository.dart';
+import 'package:runiac_app/features/profile/presentation/watch_health_apps_screen.dart';
 import 'package:runiac_app/features/home/presentation/home_tab.dart';
 import 'package:runiac_app/features/home/presentation/data/home_dashboard_demo_snapshots.dart';
 import 'package:runiac_app/features/home/presentation/widgets/home_progress_insight_section.dart';
@@ -21,6 +24,7 @@ import 'package:runiac_app/features/run/domain/models/run_source_display.dart';
 import 'package:runiac_app/features/run/domain/repositories/health_workout_import_repository.dart';
 import 'package:runiac_app/features/you/domain/models/user_progress_read_model.dart';
 import 'package:runiac_app/features/you/domain/repositories/user_progress_repository.dart';
+import 'package:runiac_app/features/you/presentation/current_session_activity_history.dart';
 
 import 'support/fake_runiac_auth_repository.dart';
 import 'support/plan_family_test_drafts.dart';
@@ -36,6 +40,17 @@ Finder _nearestDecoratedBoxContaining(String text) {
   return find
       .ancestor(of: find.text(text), matching: find.byType(DecoratedBox))
       .last;
+}
+
+RuniacLevelProfileBadge _homeBadge(WidgetTester tester) {
+  return tester.widget<RuniacLevelProfileBadge>(
+    find.byWidgetPredicate(
+      (widget) =>
+          widget is RuniacLevelProfileBadge &&
+          widget.size == 54 &&
+          widget.badgeHeight == 17,
+    ),
+  );
 }
 
 Future<void> _pumpWatchHealthAppsScreen(
@@ -151,6 +166,23 @@ class _SingleUserProgressRepository implements UserProgressRepository {
   Future<UserProgressReadModel> refreshUserProgress() async => progress;
 }
 
+class _SingleUserProfileRepository implements UserProfileRepository {
+  const _SingleUserProfileRepository(this.profile);
+
+  final UserProfileReadModel profile;
+
+  @override
+  Future<UserProfileReadModel> loadUserProfile() async => profile;
+}
+
+class _HeldUserProfileRepository implements UserProfileRepository {
+  final Completer<UserProfileReadModel> _completer =
+      Completer<UserProfileReadModel>();
+
+  @override
+  Future<UserProfileReadModel> loadUserProfile() => _completer.future;
+}
+
 class _CountingUserProgressRepository implements UserProgressRepository {
   _CountingUserProgressRepository(this.progress);
 
@@ -168,6 +200,25 @@ class _CountingUserProgressRepository implements UserProgressRepository {
   Future<UserProgressReadModel> refreshUserProgress() async {
     refreshCalls += 1;
     return progress;
+  }
+}
+
+class _HeldUserProgressRepository implements UserProgressRepository {
+  final Completer<UserProgressReadModel> _completer =
+      Completer<UserProgressReadModel>();
+  int loadCalls = 0;
+  int refreshCalls = 0;
+
+  @override
+  Future<UserProgressReadModel> loadUserProgress() {
+    loadCalls += 1;
+    return _completer.future;
+  }
+
+  @override
+  Future<UserProgressReadModel> refreshUserProgress() {
+    refreshCalls += 1;
+    return _completer.future;
   }
 }
 
@@ -212,17 +263,24 @@ Future<void> _pumpHomeTab(
   WidgetTester tester, {
   required FakeRuniacAuthRepository authRepository,
   required UserProgressRepository userProgressRepository,
+  UserProfileRepository profileRepository = const StaticUserProfileRepository(),
+  CurrentSessionActivityHistoryStore? activityHistoryStore,
 }) async {
+  final homeTab = HomeTab(
+    authRepository: authRepository,
+    profileRepository: profileRepository,
+    profilePersistenceRepository: const NoopUserProfilePersistenceRepository(),
+    userProgressRepository: userProgressRepository,
+    enableForegroundGps: false,
+  );
   await tester.pumpWidget(
     MaterialApp(
-      home: HomeTab(
-        authRepository: authRepository,
-        profileRepository: const StaticUserProfileRepository(),
-        profilePersistenceRepository:
-            const NoopUserProfilePersistenceRepository(),
-        userProgressRepository: userProgressRepository,
-        enableForegroundGps: false,
-      ),
+      home: activityHistoryStore == null
+          ? homeTab
+          : CurrentSessionActivityHistoryScope(
+              store: activityHistoryStore,
+              child: homeTab,
+            ),
     ),
   );
 }
@@ -303,6 +361,102 @@ int _stageAssetCount(WidgetTester tester, String assetName) {
 }
 
 void main() {
+  testWidgets('Home profile badge matches the account profile source', (
+    WidgetTester tester,
+  ) async {
+    final profileRepository = _SingleUserProfileRepository(
+      UserProfileReadModel(
+        userId: 'runner-profile',
+        displayName: 'Lee Runner',
+        nickname: 'Lee Runner',
+        avatarInitials: 'LR',
+        locationLabel: 'Tampines, Singapore',
+      ),
+    );
+    final authRepository = FakeRuniacAuthRepository()
+      ..emitSignedIn(uid: 'runner-profile');
+
+    await _pumpHomeTab(
+      tester,
+      authRepository: authRepository,
+      userProgressRepository: const StaticUserProgressRepository(),
+      profileRepository: profileRepository,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('LR'), findsOneWidget);
+    final homeInitials = tester.widget<Text>(find.text('LR'));
+    expect(homeInitials.textAlign, TextAlign.center);
+    expect(
+      find.ancestor(of: find.text('LR'), matching: find.byType(FittedBox)),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.bySemanticsLabel('Profile'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Profile'), findsOneWidget);
+    expect(find.text('Lee Runner'), findsOneWidget);
+    expect(find.text('Tampines, Singapore'), findsOneWidget);
+    expect(find.text('LR'), findsOneWidget);
+  });
+
+  testWidgets(
+    'Home profile XP ring follows the latest backend progress refresh',
+    (WidgetTester tester) async {
+      final historyStore = CurrentSessionActivityHistoryStore(
+        ownerUid: 'runner-progress',
+      );
+      final authRepository = FakeRuniacAuthRepository()
+        ..emitSignedIn(uid: 'runner-progress');
+      final progressRepository = _SingleUserProgressRepository(
+        const UserProgressReadModel(
+          userId: 'runner-progress',
+          officialStreakLabel: '',
+          level: 1,
+          levelProgressFraction: 0.66,
+          levelLabel: 'Level 1',
+          totalXpLabel: '66 XP',
+          weeklyXpLabel: '',
+          monthlyXpLabel: '66 XP',
+          weeklyDistanceLabel: '',
+          goalProgressLabel: '',
+        ),
+      );
+
+      await _pumpHomeTab(
+        tester,
+        authRepository: authRepository,
+        userProgressRepository: progressRepository,
+        activityHistoryStore: historyStore,
+      );
+      await tester.pumpAndSettle();
+
+      expect(_homeBadge(tester).progressFraction, 0.66);
+
+      historyStore.recordUserProgressRefresh(
+        const UserProgressReadModel(
+          userId: 'runner-progress',
+          officialStreakLabel: '',
+          level: 1,
+          levelProgressFraction: 0.5,
+          totalXp: 50,
+          nextLevelXp: 100,
+          xpToNextLevel: 50,
+          levelLabel: 'Level 1',
+          totalXpLabel: '50 XP',
+          weeklyXpLabel: '',
+          monthlyXpLabel: '50 XP',
+          weeklyDistanceLabel: '',
+          goalProgressLabel: '',
+        ),
+      );
+      await tester.pump();
+
+      expect(_homeBadge(tester).progressFraction, 0.5);
+    },
+  );
+
   testWidgets(
     'Home stage map shows the empty journey state and a live header',
     (WidgetTester tester) async {
@@ -342,7 +496,7 @@ void main() {
       await tester.tap(find.bySemanticsLabel('Profile'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Account'), findsOneWidget);
+      expect(find.text('Profile'), findsOneWidget);
       expect(find.text('Runiac'), findsNothing);
       expect(find.text('Runiac Runner'), findsOneWidget);
       final displayName = tester.widget<Text>(find.text('Runiac Runner'));
@@ -395,7 +549,8 @@ void main() {
         'subscription',
         'entitlement',
         'XP',
-        'streak',
+        // 'streak' intentionally allowed: the profile screen now surfaces the
+        // backend-owned Max streak stat beneath the progression bar.
         'level',
         'Level',
         'rank',
@@ -412,7 +567,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Your journey map is waiting'), findsOneWidget);
-      expect(find.text('Account'), findsNothing);
+      expect(find.text('Profile'), findsNothing);
 
       expect(find.text('This Week\'s Plan'), findsNothing);
       expect(find.text('Last Run'), findsNothing);
@@ -460,6 +615,73 @@ void main() {
     expect(find.text('Lv.12'), findsNothing);
   });
 
+  testWidgets('Home shows loading placeholder instead of default progress', (
+    WidgetTester tester,
+  ) async {
+    final progressRepository = _HeldUserProgressRepository();
+
+    await tester.pumpWidget(
+      RuniacApp(
+        showSplash: false,
+        enableForegroundGps: false,
+        userProgressRepository: progressRepository,
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('Lv.0'), findsNothing);
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is RuniacLevelProfileBadge &&
+            widget.size == 54 &&
+            widget.badgeHeight == 17,
+      ),
+      findsNothing,
+    );
+    expect(progressRepository.refreshCalls, 0);
+  });
+
+  testWidgets('Home hides profile badge while profile is still loading', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      RuniacApp(
+        showSplash: false,
+        enableForegroundGps: false,
+        profileRepository: _HeldUserProfileRepository(),
+        userProgressRepository: const _SingleUserProgressRepository(
+          UserProgressReadModel(
+            userId: 'runner-42',
+            officialStreakLabel: '4 days',
+            level: 4,
+            levelProgressFraction: 0.42,
+            levelLabel: 'Level 4',
+            totalXpLabel: '1,240 XP',
+            weeklyXpLabel: '180 XP',
+            monthlyXpLabel: '620 XP',
+            weeklyDistanceLabel: '12.4 km',
+            goalProgressLabel: '43%',
+            officialStreakCount: 4,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('Lv.4'), findsNothing);
+    expect(find.text('Lv.0'), findsNothing);
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is RuniacLevelProfileBadge &&
+            widget.size == 54 &&
+            widget.badgeHeight == 17,
+      ),
+      findsNothing,
+    );
+  });
+
   testWidgets('Home profile progress load is not repeated by inbox updates', (
     WidgetTester tester,
   ) async {
@@ -489,7 +711,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(progressRepository.loadCalls, 1);
+    // The shell syncs the feed-author profile once and Home reads its own
+    // profile progress once; inbox changes must not add another progress read.
+    expect(progressRepository.loadCalls, 2);
     expect(progressRepository.refreshCalls, 0);
 
     await notificationRepository.saveInboxItem(
@@ -503,7 +727,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Lv.6'), findsOneWidget);
-    expect(progressRepository.loadCalls, 1);
+    expect(progressRepository.loadCalls, 2);
     expect(progressRepository.refreshCalls, 0);
   });
 
@@ -534,18 +758,20 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(progressRepository.loadCalls, 1);
+    // The shell syncs the feed-author profile once and Home reads its own
+    // profile progress once before the Account round trip.
+    expect(progressRepository.loadCalls, 2);
     expect(progressRepository.refreshCalls, 0);
 
     await tester.tap(find.bySemanticsLabel('Profile'));
     await tester.pumpAndSettle();
-    expect(find.text('Account'), findsOneWidget);
+    expect(find.text('Profile'), findsOneWidget);
 
     await tester.tap(find.bySemanticsLabel('Back to Home'));
     await tester.pumpAndSettle();
 
     expect(find.text('Your journey map is waiting'), findsOneWidget);
-    expect(progressRepository.loadCalls, 2);
+    expect(progressRepository.loadCalls, 3);
     expect(progressRepository.refreshCalls, 1);
   });
 
@@ -617,11 +843,10 @@ void main() {
     await tester.tap(find.bySemanticsLabel('Profile'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Account'), findsOneWidget);
+    expect(find.text('Profile'), findsOneWidget);
 
     for (final row in <(String, String)>[
       ('Settings', 'Settings preview is coming soon.'),
-      ('Privacy & Safety', 'Privacy & Safety preview is coming soon.'),
       ('About Runiac', 'About Runiac preview is coming soon.'),
     ]) {
       await tester.scrollUntilVisible(
@@ -634,8 +859,36 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text(row.$2), findsOneWidget);
-      expect(find.text('Account'), findsOneWidget);
+      expect(find.text('Profile'), findsOneWidget);
     }
+  });
+
+  testWidgets('Account opens Privacy & Safety guide consent from Manage', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      const RuniacApp(showSplash: false, enableForegroundGps: false),
+    );
+
+    await tester.tap(find.bySemanticsLabel('Profile'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Profile'), findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.text('Privacy & Safety'),
+      180,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Privacy & Safety'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey<String>('privacySafetyGuideConsentSwitch')),
+      findsOneWidget,
+    );
+    expect(find.text('Personalized guide'), findsOneWidget);
   });
 
   testWidgets('Account opens Watch and Health Apps preview from Manage', (
@@ -648,7 +901,7 @@ void main() {
     await tester.tap(find.bySemanticsLabel('Profile'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Account'), findsOneWidget);
+    expect(find.text('Profile'), findsOneWidget);
     expect(find.text('Watch & Health Apps'), findsOneWidget);
     expect(find.text('Connect watch runs and health apps'), findsOneWidget);
 
@@ -742,7 +995,7 @@ void main() {
     await tester.tap(find.bySemanticsLabel('Back to Account'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Account'), findsOneWidget);
+    expect(find.text('Profile'), findsOneWidget);
     expect(find.text('Runiac Runner'), findsOneWidget);
     expect(find.text('Lv.0'), findsWidgets);
   });
@@ -950,7 +1203,7 @@ void main() {
     await tester.tap(find.bySemanticsLabel('Profile'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Account'), findsOneWidget);
+    expect(find.text('Profile'), findsOneWidget);
     expect(find.text('Runiac'), findsNothing);
     expect(find.text('Runiac Runner'), findsOneWidget);
     expect(find.text('Jurong East, Singapore'), findsOneWidget);
@@ -1182,6 +1435,63 @@ void main() {
       greaterThan(0),
     );
     expect(find.bySemanticsLabel("Today's stage"), findsOneWidget);
+  });
+
+  testWidgets('Home stage map advances to week 2 on the next Monday', (
+    WidgetTester tester,
+  ) async {
+    final startMonday = DateTime(2026, 7, 6);
+    final nextMonday = DateTime(2026, 7, 13);
+    final store = CurrentSessionGeneratedPlanStore();
+    expect(store.setActivePlan(_generatedRunPlan(startMonday)), isTrue);
+    addTearDown(store.dispose);
+
+    await tester.pumpWidget(
+      RuniacApp(
+        showSplash: false,
+        enableForegroundGps: false,
+        youProgressToday: nextMonday,
+        currentSessionGeneratedPlanStore: store,
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(
+      find.byKey(const ValueKey<String>('homeStageStone-2-0')),
+      findsOneWidget,
+    );
+    expect(find.bySemanticsLabel("Today's stage"), findsOneWidget);
+  });
+
+  testWidgets('Home stage map advances every week through week 8', (
+    WidgetTester tester,
+  ) async {
+    final startMonday = DateTime(2026, 7, 6);
+
+    for (var week = 1; week <= 8; week += 1) {
+      final store = CurrentSessionGeneratedPlanStore();
+      expect(store.setActivePlan(_generatedRunPlan(startMonday)), isTrue);
+      addTearDown(store.dispose);
+
+      await tester.pumpWidget(
+        RuniacApp(
+          showSplash: false,
+          enableForegroundGps: false,
+          youProgressToday: startMonday.add(Duration(days: 7 * (week - 1))),
+          currentSessionGeneratedPlanStore: store,
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(
+        find.byKey(ValueKey<String>('homeStageStone-$week-0')),
+        findsOneWidget,
+        reason: 'Home should show week $week as the active Monday stage',
+      );
+      expect(find.bySemanticsLabel("Today's stage"), findsOneWidget);
+    }
   });
 
   testWidgets('Home today stage opens the workout detail without editing', (

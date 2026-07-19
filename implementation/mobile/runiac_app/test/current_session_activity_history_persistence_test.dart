@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -7,10 +8,12 @@ import 'package:runiac_app/features/run/domain/models/complete_run_result.dart';
 import 'package:runiac_app/features/run/domain/models/elevation_analysis_series.dart';
 import 'package:runiac_app/features/run/domain/models/local_run_completion_payload.dart';
 import 'package:runiac_app/features/run/domain/models/pace_analysis_series.dart';
+import 'package:runiac_app/features/run/domain/models/run_completion_request_adapter.dart';
 import 'package:runiac_app/features/run/domain/models/run_activity_display_model.dart';
 import 'package:runiac_app/features/run/domain/models/run_activity_read_model.dart';
 import 'package:runiac_app/features/run/domain/models/run_location_sample.dart';
 import 'package:runiac_app/features/run/domain/models/run_completion_error.dart';
+import 'package:runiac_app/features/run/domain/models/run_feed_publish_source.dart';
 import 'package:runiac_app/features/run/domain/models/run_route_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/run_summary_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/run_summary_read_model.dart';
@@ -20,6 +23,8 @@ import 'package:runiac_app/features/run/domain/services/pace_graph_data_builder.
 import 'package:runiac_app/features/you/data/local_pending_run_activity_store.dart';
 import 'package:runiac_app/features/you/domain/models/user_progress_read_model.dart';
 import 'package:runiac_app/features/you/presentation/current_session_activity_history.dart';
+import 'package:runiac_app/features/you/presentation/widgets/activity_route_preview.dart';
+import 'package:runiac_app/features/you/presentation/widgets/activity_route_snapshot_thumbnail_cache.dart';
 
 void main() {
   const ownerUid = 'owner-1';
@@ -68,16 +73,37 @@ void main() {
         ),
       );
 
+      expect(store.completedScheduledWorkoutIds, isEmpty);
+      expect(
+        store.completedScheduledWorkoutIdsForPlan('generated-plan-10k'),
+        isEmpty,
+      );
+
+      final completionContext = store.captureRunCompletionContext();
+      await store.acceptForegroundCompletion(
+        _completionResult('planned-client-session').copyWith(
+          activityId: 'activity_planned-client-session',
+          summaryId: 'summary_planned-client-session',
+          progressionEventId: 'progression_planned-client-session',
+          planCompletion: const PlanCompletionResult(
+            completed: true,
+            planEnrollmentId: 'generated-plan-10k',
+            scheduledWorkoutId: 'week-1-tue-controlled-steady-run',
+          ),
+        ),
+        payload: _payload(
+          'planned-client-session',
+          scheduledWorkoutId: 'week-1-tue-controlled-steady-run',
+        ),
+        completionContext: completionContext,
+      );
+
       expect(store.completedScheduledWorkoutIds, {
         'week-1-tue-controlled-steady-run',
       });
       expect(store.completedScheduledWorkoutIdsForPlan('generated-plan-10k'), {
         'week-1-tue-controlled-steady-run',
       });
-      expect(
-        store.completedScheduledWorkoutIdsForPlan('regenerated-plan-10k'),
-        isEmpty,
-      );
 
       final restoredStore = CurrentSessionActivityHistoryStore(
         ownerUid: ownerUid,
@@ -162,6 +188,65 @@ void main() {
       expect(restoredRoute.segments.single, hasLength(3));
       expect(restoredRoute.lastKnownLocation?.latitude, 1.3033);
       expect(restoredRoute.lastKnownLocation?.longitude, 103.8333);
+    },
+  );
+
+  test(
+    'preserves never-synced payload route for the first retry after restart',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      const storage = SharedPreferencesLocalPendingRunActivityStore(
+        key: 'test.pendingNeverSyncedRunWithPayloadRoute',
+      );
+      final route = _routeSnapshot();
+      final payload = _payload(
+        'never-synced-route-client-session',
+      ).copyWith(routeSnapshot: route);
+      final beforeRetryRequest = RunCompletionRequestAdapter.toBackendRequest(
+        payload,
+      );
+      final beforeRetryFingerprint = _routeThumbnailFingerprint(
+        route,
+        'never-synced-route',
+      );
+      final firstStore = CurrentSessionActivityHistoryStore(
+        ownerUid: ownerUid,
+        persistence: storage,
+      );
+      addTearDown(firstStore.dispose);
+
+      await firstStore.saveCompletedRun(
+        _completionResult('never-synced-route-client-session', route: route),
+        payload: payload,
+      );
+      expect((await storage.load()).single.syncAccepted, isFalse);
+
+      final restoredStore = CurrentSessionActivityHistoryStore(
+        ownerUid: ownerUid,
+        persistence: storage,
+      );
+      addTearDown(restoredStore.dispose);
+      await restoredStore.restoreSavedActivities();
+      final repository = _RecordingRunRepository();
+
+      await restoredStore.syncPendingRuns(repository);
+
+      final retriedPayload = repository.submittedPayloads.single;
+      final afterRetryRequest = RunCompletionRequestAdapter.toBackendRequest(
+        retriedPayload,
+      );
+      expect(
+        afterRetryRequest['routePreview'],
+        beforeRetryRequest['routePreview'],
+      );
+      expect(
+        _routeThumbnailFingerprint(
+          retriedPayload.routeSnapshot,
+          'never-synced-route',
+        ),
+        beforeRetryFingerprint,
+      );
+      expect(retriedPayload.routeSnapshot.segments.single, hasLength(3));
     },
   );
 
@@ -384,6 +469,83 @@ void main() {
     expect(saved.result.summary.cadenceAnalysisSeries, isNotNull);
     expect(saved.result.summary.elevationSeries.isUnavailable, isFalse);
   });
+
+  test('local completion identity is not publishable before validation', () {
+    final store = CurrentSessionActivityHistoryStore(ownerUid: ownerUid);
+    addTearDown(store.dispose);
+
+    store.registerCompletedRun(_completionResult('local-feed-session'));
+
+    final publishSource = store.activities.single.display.feedPublishSource;
+    expect(publishSource.isPublishable, isFalse);
+    expect(publishSource.activityId, isNull);
+    expect(publishSource.disabledReason, FeedPublishDisabledReason.localOnly);
+  });
+
+  test(
+    'retryable rich run survives restore and accepted retry keeps analysis',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      const storage = SharedPreferencesLocalPendingRunActivityStore(
+        key: 'test.pendingRetryableRichRun',
+      );
+      const clientRunSessionId = 'retryable-rich-client-session';
+      final payload = _richPayload(clientRunSessionId);
+      final firstStore = CurrentSessionActivityHistoryStore(
+        ownerUid: ownerUid,
+        persistence: storage,
+      );
+      addTearDown(firstStore.dispose);
+
+      await firstStore.saveCompletedRun(
+        _richCompletionResult(clientRunSessionId, route: _routeSnapshot()),
+        payload: payload,
+      );
+      await firstStore.syncPendingRuns(_RejectingRunRepository());
+
+      final failedRecord = (await storage.load()).single;
+      expect(failedRecord.syncState, RunSyncState.syncRetryableFailure);
+      expect(failedRecord.clientRunSessionId, clientRunSessionId);
+      expect(
+        RunCompletionRequestAdapter.toBackendRequest(failedRecord.payload),
+        RunCompletionRequestAdapter.toBackendRequest(payload),
+      );
+
+      final restoredStore = CurrentSessionActivityHistoryStore(
+        ownerUid: ownerUid,
+        persistence: storage,
+      );
+      addTearDown(restoredStore.dispose);
+      await restoredStore.restoreSavedActivities();
+      final repository = _RecordingRunRepository();
+
+      await restoredStore.syncPendingRuns(repository);
+
+      expect(repository.submittedPayloads, hasLength(1));
+      expect(
+        RunCompletionRequestAdapter.toBackendRequest(
+          repository.submittedPayloads.single,
+        ),
+        RunCompletionRequestAdapter.toBackendRequest(payload),
+      );
+      final accepted = (await storage.load()).single;
+      expect(accepted.syncState, RunSyncState.syncAccepted);
+      expect(accepted.result.activityId, 'activity_$clientRunSessionId');
+      expect(accepted.result.clientRunSessionId, clientRunSessionId);
+      expect(accepted.result.summary.route.hasRoute, isTrue);
+      expect(accepted.result.summary.paceGraph.isAvailable, isTrue);
+      expect(accepted.result.summary.cadenceAnalysisSeries, isNotNull);
+      expect(accepted.result.summary.elevationSeries.isUnavailable, isFalse);
+      expect(
+        restoredStore.activities.single.display.feedPublishSource.isPublishable,
+        isTrue,
+      );
+      expect(
+        restoredStore.activities.single.display.feedPublishSource.activityId,
+        'activity_$clientRunSessionId',
+      );
+    },
+  );
 
   test(
     'merged rich local snapshot survives shared preferences restore',
@@ -774,6 +936,41 @@ void main() {
     },
   );
 
+  test(
+    'remote reconcile upgrades rich local snapshot to publishable source',
+    () async {
+      final storage = MemoryLocalPendingRunActivityStore();
+      final store = CurrentSessionActivityHistoryStore(
+        ownerUid: ownerUid,
+        persistence: storage,
+      );
+      addTearDown(store.dispose);
+      const clientRunSessionId = 'rich-feed-reconcile-client-session';
+
+      await store.saveCompletedRun(
+        _richCompletionResult(clientRunSessionId, route: _routeSnapshot()),
+        payload: _richPayload(clientRunSessionId),
+      );
+
+      store.reconcileWithRemote([
+        _publishableRemoteActivity(clientRunSessionId),
+      ]);
+      await Future<void>.delayed(Duration.zero);
+
+      final activity = store.activities.single;
+      expect(activity.activityId, 'activity_$clientRunSessionId');
+      expect(activity.display.feedPublishSource.isPublishable, isTrue);
+      expect(
+        activity.display.feedPublishSource.activityId,
+        'activity_$clientRunSessionId',
+      );
+      expect(activity.display.summary.route.hasRoute, isTrue);
+      expect(activity.display.summary.paceGraph.isAvailable, isTrue);
+      expect(activity.display.summary.cadenceAnalysisSeries, isNotNull);
+      expect(activity.display.summary.elevationSeries.isUnavailable, isFalse);
+    },
+  );
+
   test('local save failure does not leave an in-memory saved run', () async {
     final storage = _FailingSavePendingRunActivityStore();
     final store = CurrentSessionActivityHistoryStore(
@@ -851,6 +1048,39 @@ void main() {
   });
 
   test(
+    'foreground completion failures retain a safe sync reason for retry',
+    () async {
+      final storage = MemoryLocalPendingRunActivityStore();
+      final store = CurrentSessionActivityHistoryStore(
+        ownerUid: ownerUid,
+        persistence: storage,
+      );
+      addTearDown(store.dispose);
+      final payload = _payload('foreground-failure-client-session');
+
+      await store.saveCompletedRun(
+        _completionResult(payload.clientRunSessionId),
+        payload: payload,
+      );
+      await store.recordForegroundRunSyncFailure(
+        payload: payload,
+        completionContext: store.captureRunCompletionContext(),
+        error: const RunCompletionException(
+          code: 'unavailable',
+          message: 'backend details must not reach the user',
+          isRetryable: true,
+        ),
+      );
+
+      final saved = (await storage.load()).single;
+      expect(saved.syncState, RunSyncState.syncRetryableFailure);
+      expect(saved.lastSyncFailureCode, 'unavailable');
+      expect(saved.lastSyncFailureMessage, 'Run sync failed with unavailable.');
+      expect(saved.lastSyncFailureMessage, isNot(contains('backend details')));
+    },
+  );
+
+  test(
     'sync records non-retryable completion failures without resubmitting',
     () async {
       final storage = MemoryLocalPendingRunActivityStore();
@@ -891,6 +1121,59 @@ void main() {
       );
     },
   );
+
+  test(
+    'decode requeues invalid argument failures caused by cadence contracts',
+    () {
+      final payload = _richPayload(
+        'legacy-cadence-client-session',
+        cadenceAnalysisSeries: CadenceAnalysisSeries.phoneMotionEstimated(
+          samples: const <CadenceAnalysisSample>[
+            CadenceAnalysisSample.accepted(
+              elapsedSeconds: 301,
+              cadenceSpm: 170,
+            ),
+          ],
+        ),
+      );
+      final failed =
+          LocalPendingRunActivity.fromCompletedRun(
+            ownerUid: ownerUid,
+            result: _completionResult(payload.clientRunSessionId),
+            payload: payload,
+          ).markSyncFailure(
+            code: 'invalid-argument',
+            message: 'Run sync failed with invalid-argument.',
+            isRetryable: false,
+          );
+
+      final restored = LocalPendingRunActivity.tryDecode(failed.encode());
+
+      expect(restored, isNotNull);
+      expect(restored?.syncState, RunSyncState.syncRetryableFailure);
+      expect(restored?.shouldAttemptSync, isTrue);
+    },
+  );
+
+  test('decode keeps unrelated invalid argument failures non-retryable', () {
+    final payload = _richPayload('valid-cadence-client-session');
+    final failed =
+        LocalPendingRunActivity.fromCompletedRun(
+          ownerUid: ownerUid,
+          result: _completionResult(payload.clientRunSessionId),
+          payload: payload,
+        ).markSyncFailure(
+          code: 'invalid-argument',
+          message: 'Run sync failed with invalid-argument.',
+          isRetryable: false,
+        );
+
+    final restored = LocalPendingRunActivity.tryDecode(failed.encode());
+
+    expect(restored, isNotNull);
+    expect(restored?.syncState, RunSyncState.syncNonRetryableFailure);
+    expect(restored?.shouldAttemptSync, isFalse);
+  });
 
   test('restore and sync ignore pending runs for another owner', () async {
     final storage = MemoryLocalPendingRunActivityStore();
@@ -1003,6 +1286,107 @@ void main() {
       expect((await storage.load()).single.syncAccepted, isFalse);
     },
   );
+
+  test('foreground accept defers nonvalidated canonical result', () async {
+    final storage = MemoryLocalPendingRunActivityStore();
+    final store = CurrentSessionActivityHistoryStore(
+      ownerUid: ownerUid,
+      persistence: storage,
+    );
+    addTearDown(store.dispose);
+    final payload = _richPayload('foreground-pending-validation');
+    await store.saveCompletedRun(
+      _richCompletionResult(payload.clientRunSessionId),
+      payload: payload,
+    );
+    final context = store.captureRunCompletionContext();
+    final remote = _completionResult(payload.clientRunSessionId).copyWith(
+      activityId: 'activity_${payload.clientRunSessionId}',
+      validationStatus: 'pending',
+    );
+
+    final accepted = await store.acceptForegroundCompletion(
+      remote,
+      payload: payload,
+      completionContext: context,
+    );
+
+    expect(accepted, isNull);
+    final saved = (await storage.load()).single;
+    expect(saved.syncAccepted, isFalse);
+    expect(saved.shouldAttemptSync, isTrue);
+  });
+
+  test('foreground accept refuses registration after owner change', () async {
+    final storage = MemoryLocalPendingRunActivityStore();
+    final store = CurrentSessionActivityHistoryStore(
+      ownerUid: ownerUid,
+      persistence: storage,
+    );
+    addTearDown(store.dispose);
+    final payload = _richPayload('foreground-owner-switch');
+    await store.saveCompletedRun(
+      _richCompletionResult(payload.clientRunSessionId),
+      payload: payload,
+    );
+    final context = store.captureRunCompletionContext();
+    store.updateOwnerUid(otherOwnerUid);
+    final local = _completionResult(payload.clientRunSessionId);
+    final remote = local.copyWith(
+      activityId: 'activity_${payload.clientRunSessionId}',
+      validationStatus: 'validated',
+    );
+
+    final accepted = await store.acceptForegroundCompletion(
+      remote,
+      payload: payload,
+      completionContext: context,
+    );
+
+    expect(accepted, isNull);
+    expect(store.activities, isEmpty);
+    final saved = (await storage.load()).single;
+    expect(saved.ownerUid, ownerUid);
+    expect(saved.syncAccepted, isFalse);
+  });
+
+  test(
+    'foreground accept persistence failure keeps same session retryable',
+    () async {
+      final storage = _FailOnDemandPendingRunActivityStore();
+      final store = CurrentSessionActivityHistoryStore(
+        ownerUid: ownerUid,
+        persistence: storage,
+      );
+      addTearDown(store.dispose);
+      final payload = _richPayload('foreground-accept-save-failure');
+      await store.saveCompletedRun(
+        _richCompletionResult(payload.clientRunSessionId),
+        payload: payload,
+      );
+      final context = store.captureRunCompletionContext();
+      final local = _completionResult(payload.clientRunSessionId);
+      final remote = local.copyWith(
+        activityId: 'activity_${payload.clientRunSessionId}',
+        validationStatus: 'validated',
+      );
+      storage.failNextSave = true;
+
+      await expectLater(
+        store.acceptForegroundCompletion(
+          remote,
+          payload: payload,
+          completionContext: context,
+        ),
+        throwsStateError,
+      );
+
+      final saved = (await storage.load()).single;
+      expect(saved.clientRunSessionId, payload.clientRunSessionId);
+      expect(saved.syncAccepted, isFalse);
+      expect(saved.shouldAttemptSync, isTrue);
+    },
+  );
 }
 
 RunActivityDisplayModel _remoteActivity(String clientRunSessionId) {
@@ -1017,6 +1401,26 @@ RunActivityDisplayModel _remoteActivity(String clientRunSessionId) {
     paceLabel: result.summary.avgPace,
     durationLabel: result.summary.duration,
     summary: result.summary,
+  );
+}
+
+RunActivityDisplayModel _publishableRemoteActivity(String clientRunSessionId) {
+  final result = _completionResult(clientRunSessionId);
+  final activityId = 'activity_$clientRunSessionId';
+  return RunActivityDisplayModel(
+    activityId: activityId,
+    clientRunSessionId: clientRunSessionId,
+    title: result.summary.title,
+    timeAgoLabel: result.summary.dateTimeLabel,
+    distanceLabel: '${result.summary.distanceKm} km',
+    distanceMeters: 0,
+    paceLabel: result.summary.avgPace,
+    durationLabel: result.summary.duration,
+    summary: result.summary,
+    feedPublishSource: RunFeedPublishSource.enabled(
+      activityId: activityId,
+      cacheIdentity: clientRunSessionId,
+    ),
   );
 }
 
@@ -1135,6 +1539,20 @@ RunRouteSnapshot _routeSnapshot() {
   return RunRouteSnapshot(segments: [samples], lastKnownLocation: samples.last);
 }
 
+int _routeThumbnailFingerprint(RunRouteSnapshot route, String activityId) {
+  return ActivityRouteSnapshotThumbnailCacheKey.fromRequest(
+    ActivityRouteThumbnailRequest(
+      route: route,
+      logicalSize: const Size(120, 80),
+      devicePixelRatio: 2,
+      allowExternalStaticMap: true,
+      isDemoRoute: false,
+      isCurrentSessionRoute: true,
+      activityId: activityId,
+    ),
+  ).routeFingerprint;
+}
+
 List<PaceGraphSample> _paceGraphSamples() {
   return const <PaceGraphSample>[
     PaceGraphSample(
@@ -1241,7 +1659,10 @@ UserProgressReadModel _progress(String officialStreakLabel) {
   );
 }
 
-LocalRunCompletionPayload _richPayload(String clientRunSessionId) {
+LocalRunCompletionPayload _richPayload(
+  String clientRunSessionId, {
+  CadenceAnalysisSeries? cadenceAnalysisSeries,
+}) {
   return LocalRunCompletionPayload(
     clientRunSessionId: clientRunSessionId,
     startedAt: DateTime.utc(2026, 6, 14, 9),
@@ -1252,7 +1673,7 @@ LocalRunCompletionPayload _richPayload(String clientRunSessionId) {
     source: 'mobile',
     routePrivacy: 'private',
     paceGraphSamples: _paceGraphSamples(),
-    cadenceAnalysisSeries: _cadenceAnalysisSeries(),
+    cadenceAnalysisSeries: cadenceAnalysisSeries ?? _cadenceAnalysisSeries(),
     elevationAnalysisSeries: _elevationAnalysisSeries(),
     elevationUnavailableReason: ElevationUnavailableReason.none,
   );
@@ -1281,6 +1702,14 @@ class _RecordingRunRepository implements RunRepository {
       xpUpdate: result.xpUpdate,
       message: result.message,
     );
+  }
+
+  @override
+  Future<CompleteRunResult> completeCoolDown({
+    required String activityId,
+    required String clientRunSessionId,
+  }) {
+    throw UnimplementedError();
   }
 
   @override
@@ -1383,6 +1812,26 @@ class _FailingSavePendingRunActivityStore
   @override
   Future<void> save(List<LocalPendingRunActivity> activities) {
     throw StateError('local storage unavailable');
+  }
+}
+
+class _FailOnDemandPendingRunActivityStore
+    implements LocalPendingRunActivityStore {
+  List<LocalPendingRunActivity> _activities = const <LocalPendingRunActivity>[];
+  bool failNextSave = false;
+
+  @override
+  Future<List<LocalPendingRunActivity>> load() async {
+    return List<LocalPendingRunActivity>.of(_activities);
+  }
+
+  @override
+  Future<void> save(List<LocalPendingRunActivity> activities) async {
+    if (failNextSave) {
+      failNextSave = false;
+      throw StateError('accept persistence unavailable');
+    }
+    _activities = List<LocalPendingRunActivity>.of(activities);
   }
 }
 

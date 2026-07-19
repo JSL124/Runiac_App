@@ -12,6 +12,9 @@ class RuleBasedHomeGuideAgent implements HomeGuideAgent {
 
   @override
   Future<HomeGuideBundle> explainTodayPlan(HomeGuideRequest request) async {
+    if (request.isRestDay) {
+      return _restBundle();
+    }
     final bundle = HomeGuideBundle.tryCreate(
       planSummary: _planSummary(request),
       runningTip: _runningTip(request),
@@ -20,6 +23,46 @@ class RuleBasedHomeGuideAgent implements HomeGuideAgent {
       isFromRemoteAgent: false,
     );
     return bundle ?? _safeLocalBundle();
+  }
+
+  /// Rest-day encouragement mapped onto the three named message slots: a cheer
+  /// that today is rest, a "how to rest well" tip, and a "why rest matters"
+  /// check-in. Composed with the strict [HomeGuideBundle.tryCreate] contract so
+  /// it shares the same display-safety guarantees as workout copy, and falls
+  /// back to a pre-validated bundle if the constants ever fail validation.
+  HomeGuideBundle _restBundle() {
+    final bundle = HomeGuideBundle.tryCreate(
+      planSummary:
+          "Today's a rest day — nice work showing up! Recovery is where your "
+          'progress locks in.',
+      runningTip:
+          'Rest-day tip: Hydrate, stretch gently, and aim for an early night.',
+      progressionCheckIn:
+          "Rest lets your legs rebuild so your next run feels easier. You've "
+          'earned it!',
+      isFromRemoteAgent: false,
+    );
+    return bundle ?? _safeRestBundle();
+  }
+
+  /// Pre-validated rest-day fallback trio: distinct purposes, one sentence
+  /// each, and shorter than the compact bubble limit.
+  HomeGuideBundle _safeRestBundle() {
+    return HomeGuideBundle(
+      planSummary: const HomeGuideMessage(
+        kind: HomeGuideMessageKind.planSummary,
+        text: "Today's a rest day — great job staying consistent!",
+      ),
+      runningTip: const HomeGuideMessage(
+        kind: HomeGuideMessageKind.runningTip,
+        text: 'Rest-day tip: Hydrate, stretch gently, and rest up.',
+      ),
+      progressionCheckIn: const HomeGuideMessage(
+        kind: HomeGuideMessageKind.progressionCheckIn,
+        text: "Rest is how you get stronger. You've earned it!",
+      ),
+      isFromRemoteAgent: false,
+    );
   }
 
   /// Keeps the offline path total if untrusted display copy happens to repeat

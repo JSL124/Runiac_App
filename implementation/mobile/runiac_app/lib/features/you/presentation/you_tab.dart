@@ -18,6 +18,7 @@ import '../../plan/presentation/current_session_generated_plan.dart';
 import 'activity_history_display_controller.dart';
 import 'activity_history_screen.dart';
 import 'current_session_activity_history.dart';
+import 'current_session_user_progress.dart';
 import 'adapters/generated_plan_you_display_adapter.dart';
 import 'data/goal_plan_demo_snapshots.dart';
 import 'data/weekly_workout_demo_snapshots.dart';
@@ -74,6 +75,7 @@ class _YouTabState extends State<YouTab> {
   var _userProgressLoaded = false;
   int? _observedUserProgressRefreshRevision;
   var _userProgressLoadSerial = 0;
+  String? _observedActivityHistoryOwnerUid;
   String? _observedUserProgressOwnerUid;
 
   @override
@@ -81,20 +83,35 @@ class _YouTabState extends State<YouTab> {
     super.initState();
     final today = widget.progressToday ?? DateTime.now();
     _visibleCalendarMonth = DateTime(today.year, today.month);
+    _observedActivityHistoryOwnerUid = _currentActivityHistoryOwnerUid;
     _activityHistoryController = ActivityHistoryDisplayController(
       repository: widget.activityHistoryRepository,
     )..addListener(_handleActivityHistoryChanged);
     _activityHistoryController.load();
     _observedUserProgressOwnerUid = _currentUserProgressOwnerUid;
-    unawaited(_loadUserProgress());
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final activityHistoryStore = CurrentSessionActivityHistoryScope.of(context);
+    final scopedSessionUserProgress = CurrentSessionUserProgressScope.maybeOf(
+      context,
+    );
+    final sessionUserProgress =
+        scopedSessionUserProgress?.snapshot.ownerUid == null
+        ? null
+        : scopedSessionUserProgress;
     _activityHistoryController.attachActivityHistoryStore(activityHistoryStore);
-    _syncUserProgressOwner();
+    _syncActivityHistoryOwner(activityHistoryStore);
+    if (sessionUserProgress == null) {
+      _syncUserProgressOwner();
+      if (!_userProgressLoaded && _userProgress == null) {
+        unawaited(_loadUserProgress());
+      }
+    } else {
+      _syncSessionUserProgress(sessionUserProgress);
+    }
     final revision = activityHistoryStore.userProgressRefreshRevision;
     final observedRevision = _observedUserProgressRefreshRevision;
     _observedUserProgressRefreshRevision = revision;
@@ -117,22 +134,30 @@ class _YouTabState extends State<YouTab> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.activityHistoryRepository !=
         widget.activityHistoryRepository) {
-      _activityHistoryController
-        ..removeListener(_handleActivityHistoryChanged)
-        ..dispose();
-      _activityHistoryController = ActivityHistoryDisplayController(
-        repository: widget.activityHistoryRepository,
-      )..addListener(_handleActivityHistoryChanged);
-      _activityHistoryController.attachActivityHistoryStore(
+      _observedActivityHistoryOwnerUid = _currentActivityHistoryOwnerUid;
+      _replaceActivityHistoryController(
         CurrentSessionActivityHistoryScope.of(context),
       );
-      _activityHistoryController.load();
+    } else {
+      _syncActivityHistoryOwner(CurrentSessionActivityHistoryScope.of(context));
     }
     if (oldWidget.userProgressRepository != widget.userProgressRepository) {
-      _resetAndLoadUserProgress();
+      if (_activeSessionUserProgress(context) == null) {
+        _resetAndLoadUserProgress();
+      }
+    } else if (!_isSameDate(oldWidget.progressToday, widget.progressToday)) {
+      final sessionUserProgress = _activeSessionUserProgress(context);
+      if (sessionUserProgress == null) {
+        unawaited(_loadUserProgress());
+      } else {
+        unawaited(sessionUserProgress.refresh());
+      }
     }
     if (oldWidget.authRepository != widget.authRepository) {
-      _syncUserProgressOwner();
+      _syncActivityHistoryOwner(CurrentSessionActivityHistoryScope.of(context));
+      if (_activeSessionUserProgress(context) == null) {
+        _syncUserProgressOwner();
+      }
     }
   }
 
@@ -146,6 +171,21 @@ class _YouTabState extends State<YouTab> {
 
   @override
   Widget build(BuildContext context) {
+    final scopedSessionUserProgress = CurrentSessionUserProgressScope.maybeOf(
+      context,
+    );
+    final sessionUserProgress =
+        scopedSessionUserProgress?.snapshot.ownerUid == null
+        ? null
+        : scopedSessionUserProgress;
+    final sessionProgressSnapshot = sessionUserProgress?.snapshot;
+    final displayedProgress =
+        sessionProgressSnapshot?.progress ?? _userProgress;
+    final progressLoaded = sessionUserProgress == null
+        ? _userProgressLoaded
+        : displayedProgress != null ||
+              sessionProgressSnapshot?.status ==
+                  CurrentSessionUserProgressStatus.failure;
     final activityHistoryStore = CurrentSessionActivityHistoryScope.of(context);
     final recentRuns = _activityHistoryController.recentRuns(
       activityHistoryStore,
@@ -153,6 +193,10 @@ class _YouTabState extends State<YouTab> {
     final activityHistoryMonths = _activityHistoryController.months(
       activityHistoryStore,
     );
+    final activityHistoryLoading =
+        _activityHistoryController.initialLoadPending &&
+        activityHistoryMonths.isEmpty &&
+        recentRuns.isEmpty;
     final generatedPlanStore = CurrentSessionGeneratedPlanScope.of(context);
     final activeGeneratedPlan = generatedPlanStore.activePlan;
     final generatedPlanProgress = _generatedPlanProgress(
@@ -263,6 +307,7 @@ class _YouTabState extends State<YouTab> {
                 else
                   YouProgressSurface(
                     activityHistoryMonths: activityHistoryMonths,
+                    activityHistoryLoading: activityHistoryLoading,
                     runs: recentRuns,
                     visibleCalendarMonth: _visibleCalendarMonth,
                     onPreviousMonth: _showPreviousCalendarMonth,
@@ -270,8 +315,8 @@ class _YouTabState extends State<YouTab> {
                     onRunSelected: _showRunSummary,
                     onMoreActivities: _showActivityHistory,
                     officialStreakLabel:
-                        _userProgress?.officialStreakLabel ?? '',
-                    officialStreakLoading: !_userProgressLoaded,
+                        displayedProgress?.officialStreakLabel ?? '',
+                    officialStreakLoading: !progressLoaded,
                     today: widget.progressToday,
                   ),
               ],
@@ -326,6 +371,31 @@ class _YouTabState extends State<YouTab> {
     });
   }
 
+  String? get _currentActivityHistoryOwnerUid =>
+      widget.authRepository?.currentUser?.uid;
+
+  void _syncActivityHistoryOwner(CurrentSessionActivityHistoryStore store) {
+    final ownerUid = _currentActivityHistoryOwnerUid;
+    if (_observedActivityHistoryOwnerUid == ownerUid) {
+      return;
+    }
+    _observedActivityHistoryOwnerUid = ownerUid;
+    _replaceActivityHistoryController(store);
+  }
+
+  void _replaceActivityHistoryController(
+    CurrentSessionActivityHistoryStore store,
+  ) {
+    _activityHistoryController
+      ..removeListener(_handleActivityHistoryChanged)
+      ..dispose();
+    _activityHistoryController = ActivityHistoryDisplayController(
+      repository: widget.activityHistoryRepository,
+    )..addListener(_handleActivityHistoryChanged);
+    _activityHistoryController.attachActivityHistoryStore(store);
+    _activityHistoryController.load();
+  }
+
   void _showGoalPlanDetail() {
     setState(() => _goalPlanDetailVisible = true);
   }
@@ -351,6 +421,7 @@ class _YouTabState extends State<YouTab> {
             activePlan,
             _workoutDetailSnapshot,
             selection,
+            currentDate: widget.progressToday,
           );
     setState(() {
       final currentGeneratedPlan =
@@ -418,11 +489,21 @@ class _YouTabState extends State<YouTab> {
         builder: (context) => ViewSummaryScreen(
           completionResult: run.completionResult,
           summary: run.summary,
+          feedPublishSource: run.feedPublishSource,
+          activityFeedbackCacheIdentity: _activityFeedbackCacheIdentityFor(run),
           showXpUpdateAction: false,
           showLowDataSaveAction: false,
         ),
       ),
     );
+  }
+
+  String? _activityFeedbackCacheIdentityFor(RunActivityDisplayModel run) {
+    for (final identity in <String?>[run.activityId, run.clientRunSessionId]) {
+      final normalized = identity?.trim();
+      if (normalized != null && normalized.isNotEmpty) return normalized;
+    }
+    return null;
   }
 
   void _handleActivityHistoryChanged() {
@@ -435,6 +516,11 @@ class _YouTabState extends State<YouTab> {
   String? get _currentUserProgressOwnerUid =>
       widget.authRepository?.currentUser?.uid;
 
+  CurrentSessionUserProgress? _activeSessionUserProgress(BuildContext context) {
+    final session = CurrentSessionUserProgressScope.maybeRead(context);
+    return session?.snapshot.ownerUid == null ? null : session;
+  }
+
   void _syncUserProgressOwner() {
     final ownerUid = _currentUserProgressOwnerUid;
     if (_observedUserProgressOwnerUid == ownerUid) {
@@ -442,6 +528,31 @@ class _YouTabState extends State<YouTab> {
     }
     _observedUserProgressOwnerUid = ownerUid;
     _resetAndLoadUserProgress();
+  }
+
+  void _syncSessionUserProgress(CurrentSessionUserProgress session) {
+    final snapshot = session.snapshot;
+    final progress = snapshot.progress;
+    if (progress != null) {
+      _userProgressLoadSerial += 1;
+      _userProgress = progress;
+      _userProgressLoaded = true;
+      return;
+    }
+    if (snapshot.status == CurrentSessionUserProgressStatus.idle) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted ||
+            session.snapshot.status != CurrentSessionUserProgressStatus.idle) {
+          return;
+        }
+        unawaited(session.load());
+      });
+    } else if (snapshot.status == CurrentSessionUserProgressStatus.failure) {
+      _userProgressLoaded = true;
+      if (_userProgress == null) {
+        unawaited(_loadUserProgress());
+      }
+    }
   }
 
   void _resetAndLoadUserProgress() {
@@ -478,9 +589,14 @@ class _YouTabState extends State<YouTab> {
         ),
       );
       setState(() {
-        _userProgress = null;
         _userProgressLoaded = true;
       });
     }
   }
+}
+
+bool _isSameDate(DateTime? left, DateTime? right) {
+  return left?.year == right?.year &&
+      left?.month == right?.month &&
+      left?.day == right?.day;
 }

@@ -14,6 +14,7 @@ class RuniacBackHeader extends StatelessWidget {
     this.subtitleStyle,
     this.titleMaxLines = 1,
     this.titleOverflow = TextOverflow.ellipsis,
+    this.scaleTitleToFit = false,
     this.height = 56,
     this.trailingWidth = 48,
     super.key,
@@ -29,6 +30,7 @@ class RuniacBackHeader extends StatelessWidget {
   final TextStyle? subtitleStyle;
   final int titleMaxLines;
   final TextOverflow titleOverflow;
+  final bool scaleTitleToFit;
   final double height;
   final double trailingWidth;
 
@@ -70,6 +72,7 @@ class RuniacBackHeader extends StatelessWidget {
                 subtitleStyle: subtitleStyle,
                 titleMaxLines: titleMaxLines,
                 titleOverflow: titleOverflow,
+                scaleTitleToFit: scaleTitleToFit,
               ),
             ),
             SizedBox(
@@ -94,6 +97,7 @@ class _RuniacBackHeaderTitle extends StatelessWidget {
     required this.subtitleStyle,
     required this.titleMaxLines,
     required this.titleOverflow,
+    required this.scaleTitleToFit,
   });
 
   final String title;
@@ -103,6 +107,7 @@ class _RuniacBackHeaderTitle extends StatelessWidget {
   final TextStyle? subtitleStyle;
   final int titleMaxLines;
   final TextOverflow titleOverflow;
+  final bool scaleTitleToFit;
 
   @override
   Widget build(BuildContext context) {
@@ -110,27 +115,13 @@ class _RuniacBackHeaderTitle extends StatelessWidget {
     final subtitle = this.subtitle;
 
     if (subtitle == null) {
-      return Text(
-        title,
-        key: titleKey,
-        textAlign: TextAlign.center,
-        maxLines: titleMaxLines,
-        overflow: titleOverflow,
-        style: effectiveTitleStyle,
-      );
+      return Center(child: _titleText(effectiveTitleStyle));
     }
 
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Text(
-          title,
-          key: titleKey,
-          textAlign: TextAlign.center,
-          maxLines: titleMaxLines,
-          overflow: titleOverflow,
-          style: effectiveTitleStyle,
-        ),
+        _titleText(effectiveTitleStyle),
         const SizedBox(height: 1),
         Text(
           subtitle,
@@ -140,6 +131,24 @@ class _RuniacBackHeaderTitle extends StatelessWidget {
           style: subtitleStyle ?? _defaultSubtitleStyle,
         ),
       ],
+    );
+  }
+
+  Widget _titleText(TextStyle effectiveTitleStyle) {
+    final text = Text(
+      title,
+      key: titleKey,
+      textAlign: TextAlign.center,
+      maxLines: titleMaxLines,
+      overflow: scaleTitleToFit ? null : titleOverflow,
+      style: effectiveTitleStyle,
+    );
+    if (!scaleTitleToFit) {
+      return text;
+    }
+    return SizedBox(
+      height: 19,
+      child: FittedBox(fit: BoxFit.scaleDown, child: text),
     );
   }
 }

@@ -3,6 +3,7 @@ import 'package:runiac_app/features/run/data/firebase_run_repository.dart';
 import 'package:runiac_app/features/run/domain/models/local_run_completion_payload.dart';
 import 'package:runiac_app/features/run/domain/models/run_completion_error.dart';
 import 'package:runiac_app/features/run/domain/models/xp_update_display_model.dart';
+import 'package:runiac_app/features/run/domain/services/completed_run_title_formatter.dart';
 import 'package:runiac_app/features/run/domain/services/pace_graph_data_builder.dart';
 
 void main() {
@@ -44,7 +45,12 @@ void main() {
       expect(result.summaryId, 'summary_123');
       expect(result.progressionEventId, 'progression_123');
       expect(result.validationStatus, 'validated');
-      expect(result.summary.title, 'Sunday Morning Run');
+      expect(
+        result.summary.title,
+        const CompletedRunTitleFormatter().format(
+          completedAt: DateTime.utc(2026, 6, 14, 7, 25),
+        ),
+      );
       expect(result.summary.distanceKm, '3.20');
       expect(result.summary.duration, '25:00');
       expect(result.summary.avgPace, '7’49”');
@@ -247,7 +253,7 @@ void main() {
     );
 
     test(
-      'does not send local pace graph samples or route data to Firebase callable',
+      'sends derived pace without raw graph or precise route fields',
       () async {
         final callable = _FakeCompleteRunCallable(
           response: _minimalCallableResponse(),
@@ -271,6 +277,8 @@ void main() {
         expect(callable.lastRequest['routePrivacy'], 'private');
         expect(callable.lastRequest['routeLabel'], 'Repository Result Route');
         expect(callable.lastRequest['clientAppVersion'], 'm5-test');
+        expect(callable.lastRequest['paceAnalysisSeries'], isA<Map>());
+        expect(callable.lastRequest, isNot(contains('routeSnapshot')));
         expect(result.summary.paceGraph.isAvailable, isFalse);
         expect(result.summary.paceGraph.points, isEmpty);
 
@@ -279,9 +287,11 @@ void main() {
           'graphSamples',
           'PaceGraphSample',
           'paceGraph',
-          'samples',
-          'latitude',
-          'longitude',
+          'routeSnapshot',
+          'recordedAt',
+          'altitudeMeters',
+          'horizontalAccuracyMeters',
+          'speedMetersPerSecond',
           'routeTrace',
           'polyline',
           'positions',
@@ -390,36 +400,39 @@ void main() {
       expect(xp.xpRemainingLabel, '180 XP to Level 3');
     });
 
-    test('renders a friendly not-awarded reason without fake numbers', () async {
-      final repository = FirebaseRunRepository(
-        callable: _FakeCompleteRunCallable(
-          response: _responseWithProgression(<String, Object?>{
-            'xpDelta': 0,
-            'countsTowardLeaderboard': false,
-            'status': 'not_awarded',
-            'reason': 'daily_cap_reached',
-            'totalXp': 200,
-            'previousTotalXp': 200,
-            'level': 3,
-            'previousLevel': 3,
-            'previousLevelProgressPercent': 40,
-            'levelProgressPercent': 40,
-            'nextLevelXp': 300,
-            'xpToNextLevel': 100,
-            'previousStreak': 5,
-            'streak': 5,
-          }),
-        ),
-      );
+    test(
+      'renders a friendly not-awarded reason without fake numbers',
+      () async {
+        final repository = FirebaseRunRepository(
+          callable: _FakeCompleteRunCallable(
+            response: _responseWithProgression(<String, Object?>{
+              'xpDelta': 0,
+              'countsTowardLeaderboard': false,
+              'status': 'not_awarded',
+              'reason': 'daily_cap_reached',
+              'totalXp': 200,
+              'previousTotalXp': 200,
+              'level': 3,
+              'previousLevel': 3,
+              'previousLevelProgressPercent': 40,
+              'levelProgressPercent': 40,
+              'nextLevelXp': 300,
+              'xpToNextLevel': 100,
+              'previousStreak': 5,
+              'streak': 5,
+            }),
+          ),
+        );
 
-      final xp = (await repository.completeRun(_payload())).xpUpdate;
+        final xp = (await repository.completeRun(_payload())).xpUpdate;
 
-      expect(xp.xpAwardState, XpAwardState.notAwarded);
-      expect(xp.earnedXp, 0);
-      expect(xp.heroMessage, 'Daily XP cap reached — great effort today');
-      expect(xp.totalXp, 200);
-      expect(xp.streakCount, 5);
-    });
+        expect(xp.xpAwardState, XpAwardState.notAwarded);
+        expect(xp.earnedXp, 0);
+        expect(xp.heroMessage, 'Daily XP cap reached — great effort today');
+        expect(xp.totalXp, 200);
+        expect(xp.streakCount, 5);
+      },
+    );
 
     test('maps a deferred progression block into a saved fallback', () async {
       final repository = FirebaseRunRepository(

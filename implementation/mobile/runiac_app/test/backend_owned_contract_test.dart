@@ -2,8 +2,8 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/core/contracts/backend_owned_value_contract.dart';
-import 'package:runiac_app/features/account/domain/models/user_profile_read_model.dart';
-import 'package:runiac_app/features/account/domain/models/viewer_access_read_model.dart';
+import 'package:runiac_app/features/profile/domain/models/user_profile_read_model.dart';
+import 'package:runiac_app/features/profile/domain/models/viewer_access_read_model.dart';
 import 'package:runiac_app/features/feed/data/static_feed_repository.dart';
 import 'package:runiac_app/features/feed/domain/models/feed_display_models.dart';
 import 'package:runiac_app/features/leaderboard/domain/models/leaderboard_read_model.dart';
@@ -323,10 +323,13 @@ void main() {
     );
 
     test('keeps feature code free of Firestore data access APIs', () {
-      const allowedProfileFirestorePaths = <String>{
-        'lib/features/account/data/'
+      const allowedFirestoreDataAdapterPaths = <String>{
+        'lib/features/profile/data/'
             'firestore_user_profile_persistence_repository.dart',
-        'lib/features/account/data/firestore_user_profile_repository.dart',
+        'lib/features/profile/data/firestore_user_profile_repository.dart',
+        'lib/features/challenge/data/firestore_challenge_read_store.dart',
+        'lib/features/friends/data/firebase_friends_repository.dart',
+        'lib/features/friends/data/friends_owner_list_reader.dart',
         'lib/features/plan/data/'
             'firestore_generated_plan_persistence_repository.dart',
         'lib/features/plan/data/firestore_adaptive_plan_estimate_repository.dart',
@@ -336,6 +339,11 @@ void main() {
         'lib/features/leaderboard/data/firestore_leaderboard_repository.dart',
         'lib/features/you/data/firestore_activity_history_repository.dart',
         'lib/features/you/data/firestore_user_progress_repository.dart',
+        'lib/features/feed/data/comments/firebase_feed_comment_page_port.dart',
+        'lib/features/feed/data/firebase_feed_repository/'
+            'firebase_feed_data_port.dart',
+        'lib/features/feed/data/firebase_feed_repository/'
+            'firebase_feed_post_mapper.dart',
       };
       const forbiddenFeatureTerms = <String>[
         'package:cloud_firestore',
@@ -354,9 +362,9 @@ void main() {
         '.set(',
       ];
 
-      for (final file in _dartFilesIn(
-        'lib/features',
-      ).where((file) => !allowedProfileFirestorePaths.contains(file.path))) {
+      for (final file in _dartFilesIn('lib/features').where(
+        (file) => !allowedFirestoreDataAdapterPaths.contains(file.path),
+      )) {
         final source = file.readAsStringSync();
         for (final term in forbiddenFeatureTerms) {
           expect(source, isNot(contains(term)), reason: '${file.path}: $term');
@@ -368,16 +376,16 @@ void main() {
       'limits Firestore feature access to approved user profile repositories',
       () {
         final persistenceSource = File(
-          'lib/features/account/data/'
+          'lib/features/profile/data/'
           'firestore_user_profile_persistence_repository.dart',
         ).readAsStringSync();
         final readSource = File(
-          'lib/features/account/data/firestore_user_profile_repository.dart',
+          'lib/features/profile/data/firestore_user_profile_repository.dart',
         ).readAsStringSync();
 
         expect(persistenceSource, contains("collection('userProfiles')"));
-        expect(persistenceSource, contains("collection('nicknameClaims')"));
-        expect(persistenceSource, contains('runTransaction'));
+        expect(persistenceSource, contains("checkNicknameAvailability"));
+        expect(persistenceSource, contains("upsertNickname"));
         expect(persistenceSource, contains('.set('));
         expect(persistenceSource, isNot(contains("collection('users')")));
         expect(readSource, contains("collection('userProfiles')"));
@@ -453,9 +461,16 @@ void main() {
         const allowedReadOnlyProgressFields = <String>{
           'streakCount',
           'lastStreakRunDate',
+          'longestStreakLabel',
+          'totalDistanceLabel',
           'level',
           'levelLabel',
           'levelProgressPercent',
+          'totalXp',
+          'nextLevelXp',
+          'xpToNextLevel',
+          'divisionKey',
+          'divisionLabel',
           'totalXpLabel',
           'monthlyXpLabel',
         };

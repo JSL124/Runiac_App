@@ -121,7 +121,7 @@ All spacing derives from a base of 4px.
 
 ### Level Profile Badge
 
-- **Structure**: circular pale-blue profile disc, blue-tinted ring track, orange progress arc, centered runner initial, and an overlapping orange level pill.
+- **Structure**: circular profile disc, blue-tinted ring track, orange progress arc, centered runner initials, and an overlapping orange level pill. One- and two-letter initials are centered and scaled inside the disc without clipping across compact and large variants.
 - **Variants**: compact Home dashboard trigger and larger Account identity profile mark.
 - **Colors**: `RuniacColors.primaryBlue` for the initial/ring track, `RuniacColors.accentOrange` for progress and level pill, `RuniacColors.white` for pill text.
 - **Spacing**: stable square ring sizing; the pill overlaps the lower ring edge and keeps a minimum readable width.
@@ -129,13 +129,39 @@ All spacing derives from a base of 4px.
 - **Accessibility**: profile trigger keeps the `Profile` semantic action, and the visual badge exposes the level label as supportive profile context.
 - **Boundary**: level and progress are read-only display values. The Flutter client must not calculate or write trusted XP, level, rank, streak, or leaderboard progression.
 
+### Account Division Badge
+
+- **Structure**: a compact square division emblem appears immediately before the Account nickname within the identity row.
+- **Ranked state**: reuse the matching Leaderboard league image supplied by the backend-owned `divisionKey`; do not repeat the division name as visible text beside the nickname.
+- **Unranked state**: preserve the same footprint with an unfilled, low-emphasis shield outline and no visible `Unranked` text. The level pill remains independent and continues to show `Lv.0`.
+- **Accessibility**: expose the backend-provided division label through image semantics even when the unranked badge is visually empty.
+- **Boundary**: division key and label are read-only backend outputs. Flutter maps a supplied key to an asset but must not derive division from level, XP, rank, or leaderboard state.
+
+### Account Profile Badge
+
+- **Structure**: the Account identity header uses the shared `RuniacLevelProfileBadge`, matching the Home/Feed profile component style with a blue profile disc, white initials, orange progress arc, and orange level pill.
+- **Sizing**: Account uses the larger identity variant so the same component can anchor the profile page without changing the compact Home/Feed row treatments.
+- **Data**: initials, level label, and progress fraction are read-only display values from the trusted account/progress read model.
+- **Boundary**: Flutter must not derive, calculate, or write XP, level, rank, streak, or leaderboard progression from the Account badge.
+
+### Account Challenge Badge Case
+
+- **Structure**: the Account page places the supplied illustrated 3x3 challenge case directly below the level progress gauge. Nine transparent badge assets are overlaid at the source-slot centres as a static fit preview.
+- **States**: current usage is a visual asset-fit preview only; earned and unearned collection states are not implemented.
+- **Sizing**: the case retains its source aspect ratio; badge images scale from its width so every badge stays centred in its intended slot.
+- **Accessibility**: the complete case is announced as a single image summary; individual decorative badge images are excluded.
+- **Boundary**: a future earned/unearned badge state must come from a trusted challenge/progression read model. Flutter must not calculate or write challenge completion, XP, level, rank, streak, or leaderboard values.
+
 ### Home Stage Map
 
 - **Structure**: one full-width illustrated background per plan week with exactly seven stage stones, a weekday caption per real weekday slot, and one guide character attached to the active stone.
 - **Layout**: each complete background draws one seven-stone chevron, alternating `<`, `>`, `<` as backgrounds stack. Every chevron starts and ends at the horizontal centre so the path is continuous across background seams. Vertical intervals stay uniform, and the bottom/first background reserves at least one bottom-navigation-height of visual clearance beneath the lowest stone caption.
 - **Sizing**: stone diameter is responsive within a 92–108px mobile range. The guide character is 0.86 times its stone width and is anchored by its feet, which rest on the stone's visible standing surface (just above the plate's vertical centre) so the body rises above the plate and the plate stays visible beneath. Foot anchoring is character-agnostic: it derives from the rendered sprite height plus one shared transparent foot-inset allowance, never per-asset pixel offsets.
 - **Landing**: on first Home-dashboard entry, the map scrolls toward the rendered guide-character box centre one-third up from the viewport bottom when that location is reachable; otherwise it stops at the nearest valid map position. Runners can then scroll freely to inspect every stage.
-- **States**: completed, current, future, run, and rest visuals retain their existing assets and backend-read-only meaning.
+- **States**: completed, current, missed, future, run, and rest visuals retain their existing assets and backend-read-only meaning. The character follows the real local weekday slot rather than the first unfinished workout.
+- **Missed treatment**: an incomplete run stone before today's weekday is desaturated and darkened, with a neutral dash badge and `Missed stage` semantics. This avoids shame-oriented copy and does not rely on color alone.
+- **Date rollover**: the app shell refreshes its local calendar day at midnight and on app resume, then reloads the trusted streak projection and rebuilds Home/You plan displays for the new date.
+- **Reschedule sync**: schedule edits update the shared generated-plan store, so Home rebuilds the same week from the new weekday assignment without duplicating plan state.
 - **Accessibility**: the current stage keeps its semantic button target; weekday captions remain display-only; the character's interactive upper-body target must not steal the stage tap target.
 - **Motion**: current-stage pulse and guide walking behavior keep the existing reduced-motion handling and animate only transform/opacity-compatible properties. The Blue Home guide uses the supplied animated GIF at rest and during plan-to-plan movement; other characters retain their direction-specific PNG sprites.
 - **Boundary**: layout and decoration are display-only. Plan completion and current-stage state remain derived from trusted completed scheduled-workout IDs.
@@ -148,6 +174,90 @@ All spacing derives from a base of 4px.
 - **Accessibility**: the bubble body announces message kind and its next action, such as `Plan summary. Tap to hear a running tip.` The close control has a visible 44×44px target and the semantic label `Close guide message`. The character retains its upper-body-only semantic action so the current-stage target remains available.
 - **Motion**: message readability never depends on typing or transition animation. Reduced motion keeps the existing guide/pulse behavior disabled and shows the full resolved bubble copy immediately.
 - **Boundary**: the bubble only renders server/local-agent supplied display copy. Flutter does not calculate progression, activity facts, XP, level, rank, streak, or leaderboard data, and does not persist guide-cycle state.
+
+### Home Guide Data Consent
+
+- **Entry state**: authenticated Firebase-backed Home Guide sessions do not start a remote guide request until the current account has granted the current disclosure version. Before consent, the character area shows a compact `Review data use` action instead of loading or fallback copy.
+- **Disclosure**: the review dialog states that Runiac uses only recent validated-run aggregates (frequency, distance, active time, and eligible pace) to personalize the three guide messages. It explicitly states that raw GPS routes, activity IDs, exact timestamps, profile data, and health data are not sent to the AI provider.
+- **Choice and withdrawal**: `Allow personalized guide` is an explicit action and dismissal/`Not now` does not grant consent. A 44x44 `Manage guide data use` shield control remains available on the guide bubble after consent; the same dialog lets the runner stop future aggregate processing at any time.
+- **Failure state**: consent read/write failures keep the remote guide disabled and show a short retryable error without changing consent locally. Revocation clears the active remote bundle immediately.
+- **Accessibility**: review, allow, decline, manage, and stop actions have explicit semantic labels and retain at least 44x44 touch targets. The dialog copy remains readable at text scale 1.3 without horizontal overflow.
+- **Boundary**: the server owns the versioned consent record and checks it before reading activities or reserving provider quota. Flutter may request a consent change but never infers consent from UI visibility, cached guide copy, subscription status, or user role.
+
+### Home Social Dropdown
+
+- **Structure**: an always-visible `Social` trigger pill sits directly below the header profile badge, reusing the shared dark translucent header control decoration (radius 999, white border, soft shadow) with a `Social` label and a drop-down/up arrow. Tapping it expands a compact white menu card (radius 18, `cardBorder` border, `softCardShadow`, ~180px wide) right-aligned below the header with two rows: `Friends` (`people_outline`) and `Challenge` (`emoji_events_outlined`).
+- **States**: collapsed shows only the trigger with a down arrow. Expanded flips the arrow up, renders the menu panel, and mounts a full-surface tap-outside dismissal barrier between the map and the header layer; the barrier intentionally blocks map interaction only while the menu is open and is unmounted when closed so stage taps and closed-state semantics are unaffected. `Friends` closes the menu and forwards to the caller's navigation callback; `Challenge` closes the menu and shows only the `Challenge is coming soon!` SnackBar (coming-soon state, no navigation).
+- **Colors**: trigger text/icon white on the shared header control fill; menu card `white` surface, `primaryBlue` item icons, `textPrimary` w800 item labels, `border` divider between rows.
+- **Accessibility**: the trigger announces `Social menu` as a button; each menu row announces its label (`Friends`, `Challenge`) as a button. The trigger stays within the header gradient's existing bottom padding so the taller right column does not clip on 360px-wide layouts.
+- **Boundary**: navigation trigger only. The dropdown reads and writes no social data, performs no friend/request queries, and never calculates or mutates XP, level, rank, streak, or leaderboard values. Challenge behavior beyond the SnackBar stub is future scope.
+
+### Friends Screen (backed MVP)
+
+- **Structure**: `RuniacBackHeader` titled `Friends`, a compact 4-segment `YouSegmentedControl` (`Friends` / `Search` / `Requests` / `Blocked`), and white rows with radius 18 and a `border` outline. Every identity row leads with the compact 42px `RuniacLevelProfileBadge`, using the Feed treatment of a `primaryBlue` profile disc with a white border and white initials. One- and two-letter initials are centered and scaled within the disc without clipping. The trusted level label is shown in the orange pill; an absent label uses the display-only `Lv.0` placeholder and never implies calculated XP or progress. A w800 `textPrimary` display name follows the badge. Suggested discovery is deferred.
+- **Friends**: owner-scoped accepted-friend rows are ordered by trusted list sort fields. Each friend has a circular 44px `more_horiz` action with a visible primary-blue-derived ring and dark-blue dots. The bottom sheet offers `Remove Friend` and `Block`; each opens a second confirmation dialog. Destructive confirmations use `errorRed` and explain the privacy reset in beginner-friendly English.
+- **Search**: exact-submit only. The field preserves the submitted query, uses `Enter an exact nickname` helper copy, and never filters a local list while typing. Results are zero or one sanitized backend identity; neutral misses use `No runners found` without exposing privacy, account, or reverse-block state. Invalid length and generic retry states remain actionable.
+- **Requests**: owner-scoped incoming and outgoing pending rows. Incoming rows expose explicit `Accept` and `Decline`; outgoing rows expose `Cancel`. There is no crossed-request auto-accept and no social notification copy.
+- **Blocked**: owner-scoped directional blocks show minimal identity and a direct `Unblock` action. Confirmation explains that unblocking restores no friendship or request; no reverse-block state is disclosed.
+- **States and safety**: loading, empty, recoverable error, action-in-flight, signed-out, account switch, and stale completion states are explicit. One per-user social mutation lock covers Remove and Block, and request actions ignore double taps while in flight. Search text edits invalidate an older submitted-search generation before a stale result can render under a new query.
+- **Accessibility**: the search field announces `Search runners`; Add/Pending and Unblock actions announce the runner name; the circular action announces `More actions for <name>`. Pending and action-in-flight states are noninteractive, badges/icons are decorative, and all interactive targets retain at least 44px touch space.
+- **Boundary**: Firebase Auth supplies identity; callable Functions own search and every mutation; owner-scoped Firestore reads supply sanitized list rows only. Flutter does not write relationship documents, nickname claims, discovery fields, XP, level, rank, streak, leaderboard, subscription, or social notifications. Unblock restores nothing, and no client surface creates social notifications.
+
+### Weekly Plan Day Row
+
+- **Structure**: aligned weekday, status node, workout title/status copy, and an optional detail chevron.
+- **States**: completed, completed today, today upcoming, future upcoming, rest, missed, and inactive.
+- **Missed treatment**: an incomplete running session whose scheduled day has passed uses a muted `textSecondary` surface, a neutral dash node, and the explicit status label `Missed`. The treatment stays non-judgmental and never relies on color alone.
+- **Interaction**: missed workouts may still open their read-only workout detail, but do not expose Start or Edit schedule actions. Only future workouts may be rescheduled.
+- **Boundary**: missed is a date-and-read-model display state only. The client does not change trusted completion, streak, XP, rank, or leaderboard values.
+
+### Feed Profile Badge
+
+- **Structure**: Feed post and comment author rows reuse the Home dashboard `RuniacLevelProfileBadge` with a compact level pill inside the profile mark rather than a separate text label.
+- **Data**: `authorLevelLabel` is a backend-owned profile snapshot. Flutter may compact the trusted display string from `Level 6` to `Lv.6` for row density, but it must not derive the numeric level. The pill stays absent when the trusted snapshot is empty.
+- **Sizing**: Feed rows use a 42-44px badge with a 16px pill so the level stays attached to the profile component without increasing row density.
+- **Accessibility**: the adjacent author name remains the readable identity; the badge is decorative in Feed rows to avoid duplicate profile announcements.
+- **Boundary**: Flutter must not derive, calculate, or write level progression for Feed profile badges.
+
+### Feed Comment Sheet
+
+- **Structure**: the existing scroll-controlled Runiac modal route contains a centered drag handle and `Comments` title, a newest-first comment list, and a keyboard-safe composer fixed to the bottom of the sheet.
+- **Comment row**: the same compact `RuniacLevelProfileBadge` treatment used by the Home dashboard leads a compact author/time line and multiline body, including the trusted level pill when the comment snapshot provides it. The current author receives one `more_horiz` action; edit and delete are never exposed on another runner's comment.
+- **Composer**: one rounded `Join the conversation...` field fills the available width without a leading profile badge. A familiar send icon is the only submit action. Edit mode is explicit, cancellable, and reuses the composer without changing sheet geometry.
+- **Owner actions**: edit/delete selection and destructive confirmation use Runiac modal bottom sheets. Delete remains red and requires confirmation.
+- **Colors**: white sheet surface, `sectionSurfaceStrong` avatars/composer fill, `primaryBlue` author initials and send action, `textSecondary` timestamps, `errorRed` destructive action.
+- **Spacing**: `space2` for compact metadata, `space3` between comment rows, `space4` horizontal sheet padding, and stable 40-48px interactive targets.
+- **States**: initial loading, pagination loading, empty, offline read-only, validation error, submitting, editing, delete confirmation, and recoverable load/mutation failure.
+- **Accessibility**: avatar initials are decorative beside a textual author name; owner menus and send/edit actions have semantic labels; body text remains selectable by screen readers and is never truncated.
+- **Boundary**: Firestore Rules enforce comment ownership for update/delete. Flutter sends body intent only and never writes the post's backend-owned aggregate `commentCount`.
+
+### Challenge Explore Grid
+
+- **Structure**: `RuniacBackHeader` titled `Challenge` with two 44px trailing header actions — Invitations (`mail_outline`, orange pending-count badge when invitations exist) and History (`history`). The body is a 3x3 grid of tier tiles in catalog order (10K through 1000K); each tile is a white radius-18 `cardBorder` card containing the user-created tier badge PNG, the tier title, and the backend difficulty caption in `textSecondary`.
+- **Tile states**: default opens Tier Detail; the user's in-progress tier gains an orange ring and `In progress` chip; earned tiers show a small `successGreen` corner check. A slot banner above the grid shows `You already have a challenge in progress` with a `View current challenge` action when a slot is held.
+- **States**: loading skeleton, offline/error with `Try again`, and the slot-banner variants. Verified at 360px and text scale 1.3.
+- **Boundary**: the grid renders only the trusted server catalog and slot state; tiles never compute progress or eligibility. Every badge rendering uses `RuniacAssets.challengeBadge*` PNGs, never icons or generated art.
+
+### Challenge Tier Detail & Lobby
+
+- **Tier detail**: badge hero, tier title with difficulty chip, and one radius-18 rules card stating target distance, duration, max participants, personal minimum, the group rule, and the solo full-target warning. One primary blue 56px `Create challenge` CTA; a held slot disables it with `You already have a challenge in progress` plus `View current challenge`. Earned tiers show an `Earned` chip and remain repeatable.
+- **Lobby**: badge and tier header with a `Lobby closes in HH:MM:SS` countdown from the server expiry. Roster rows lead with the snapshot-initials avatar and w800 name; the owner row is `You · Owner`; invitees carry text chips `Pending` / `Accepted` / `Declined`. Owner-only actions: `Invite friends` (friend picker capped at the tier invite cap with a live counter), primary `Start challenge` (confirmation sheet states solo vs group consequences), and destructive `Cancel challenge`. Members see only `Leave lobby` and a waiting line. Expired lobbies show a calm full-screen state.
+- **Boundary**: all lobby state, capacity, expiry, and roster truth is server-owned; the client sends intents and renders stable backend reason codes mapped to friendly English copy.
+
+### Home Active Challenge Control
+
+- **Structure**: when an ACTIVE or SETTLING challenge exists, the stage-map header's left column stacks the Streak pill above a 62px circular control using the shared header-control decoration, containing only the tier badge PNG with a fixed-width `DD:HH:MM:SS` countdown beneath. The entire badge-plus-time area is one semantic button opening Challenge Progress.
+- **States**: absent with no reserved gap when no active/settling challenge; live countdown clamped at `00:00:00:00`; `Calculating…` while settling; removed once the result is ready. No title, distance, percentage, participant count, progress bar, or chevron ever appears in the control.
+- **Accessibility**: a stable minute-level semantic summary (never per-second re-announcement); the ticking text is excluded from semantics.
+- **Boundary**: remaining time derives only from the server `scheduledEndsAt` via an injected clock; the stage map receives display data and a callback only and stays Firebase-free.
+
+### Challenge Progress, Results & History
+
+- **Progress**: tier badge centered in a circular team-progress ring (`cardBorder` track, `accentOrange` arc, clamped server fraction), then `X.X / Y.Y km`, `Time left DD:HH:MM:SS` (or `Calculating results…` while settling). Group mode adds a personal-minimum mini bar with a `Minimum reached` state; solo mode hides it and labels the roster `Solo challenge`. Participant rows show `You` first, then active runners by trusted distance descending, with LEFT participants in a separate muted `Left the challenge` group retaining their distance. Owners see only destructive `Abandon challenge`; members see only `Leave challenge`; both confirm via Runiac bottom sheets that explain irreversible badge loss.
+- **Results**: a full-screen result presents once per terminal event with five variants — badge earned (full-color badge, orange celebration, transform/opacity-only motion), team success with `Personal minimum not reached` (small desaturated badge, supportive copy), deadline failure, cancelled by owner, and you left. Notification taps and History reopen the same personalized result.
+- **History**: rows with badge thumbnail, tier, date, and a text outcome chip (`Badge earned` in `successGreen`; other outcomes neutral); rows reopen the result detail.
+- **Badge case**: the Account 3x3 case preserves the committed artwork, slot geometry, and aspect ratio; earned tiers render the badge PNG full-color and unearned tiers render the same PNG dimmed. Semantics announce `N of 9 badges earned` when trusted ownership data is supplied.
+- **Boundary**: outcomes, eligibility, team totals, and badge ownership are rendered verbatim from trusted server data; the client never computes or persists them. GPS routes, coordinates, run timestamps, and activity history never appear on any challenge surface.
 
 ## 6. Motion & Interaction
 

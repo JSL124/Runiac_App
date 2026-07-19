@@ -79,6 +79,21 @@ void main() {
       );
     });
 
+    test('cadence safety contract includes 40 through 240 spm', () {
+      final series = CadenceAnalysisSeries.phoneMotionEstimated(
+        samples: const <CadenceAnalysisSample>[
+          CadenceAnalysisSample.accepted(elapsedSeconds: 1, cadenceSpm: 40),
+          CadenceAnalysisSample.accepted(elapsedSeconds: 2, cadenceSpm: 240),
+          CadenceAnalysisSample.accepted(elapsedSeconds: 3, cadenceSpm: 241),
+        ],
+      );
+
+      expect(
+        series.validAcceptedSamples.map((sample) => sample.cadenceSpm),
+        <int>[40, 240],
+      );
+    });
+
     test('non-finite cadence samples are excluded', () {
       final series = CadenceAnalysisSeries.localAccepted(
         samples: <CadenceAnalysisSample>[

@@ -1,12 +1,13 @@
 import { HttpsError } from "firebase-functions/v2/https";
 import type { CadenceAnalysisSeriesPayload } from "./runCompletionTypes.js";
 
-const minCadenceSpm = 90;
-const maxCadenceSpm = 220;
+const minCadenceSpm = 40;
+const maxCadenceSpm = 240;
 const maxCadenceSampleCount = 720;
 
 export function readOptionalCadenceAnalysisSeries(
   data: Readonly<Record<string, unknown>>,
+  durationSeconds: number,
 ): CadenceAnalysisSeriesPayload | undefined {
   const value = data["cadenceAnalysisSeries"];
   if (value === undefined) {
@@ -33,10 +34,25 @@ export function readOptionalCadenceAnalysisSeries(
     throw invalid("cadenceAnalysisSeries.samples must be a non-empty bounded array.");
   }
 
+  const samples = rawSamples.map(readCadenceAnalysisSample);
+  let previousElapsedSeconds: number | undefined;
+  for (const sample of samples) {
+    if (
+      sample.elapsedSeconds > durationSeconds ||
+      (previousElapsedSeconds !== undefined &&
+        sample.elapsedSeconds <= previousElapsedSeconds)
+    ) {
+      throw invalid(
+        "cadenceAnalysisSeries.samples elapsedSeconds must increase within run duration.",
+      );
+    }
+    previousElapsedSeconds = sample.elapsedSeconds;
+  }
+
   return {
     source,
     confidence,
-    samples: rawSamples.map(readCadenceAnalysisSample),
+    samples,
   };
 }
 

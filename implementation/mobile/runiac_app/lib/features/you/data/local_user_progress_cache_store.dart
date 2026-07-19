@@ -24,12 +24,20 @@ class LocalUserProgressCacheEntry {
         'officialStreakLabel': progress.officialStreakLabel,
         'level': progress.level,
         'levelProgressFraction': progress.levelProgressFraction,
+        'totalXp': progress.totalXp,
+        'nextLevelXp': progress.nextLevelXp,
+        'xpToNextLevel': progress.xpToNextLevel,
+        'divisionKey': progress.divisionKey,
+        'divisionLabel': progress.divisionLabel,
+        'isMaxLevel': progress.isMaxLevel,
         'levelLabel': progress.levelLabel,
         'totalXpLabel': progress.totalXpLabel,
         'weeklyXpLabel': progress.weeklyXpLabel,
         'monthlyXpLabel': progress.monthlyXpLabel,
         'weeklyDistanceLabel': progress.weeklyDistanceLabel,
         'goalProgressLabel': progress.goalProgressLabel,
+        'longestStreakLabel': progress.longestStreakLabel,
+        'totalDistanceLabel': progress.totalDistanceLabel,
         'officialStreakCount': progress.officialStreakCount,
         'lastStreakRunDate': progress.lastStreakRunDate,
       },
@@ -64,12 +72,20 @@ class LocalUserProgressCacheEntry {
           levelProgressFraction: _progressFraction(
             progress['levelProgressFraction'],
           ),
+          totalXp: _nonNegativeIntegerOrNull(progress['totalXp']),
+          nextLevelXp: _nonNegativeIntegerOrNull(progress['nextLevelXp']),
+          xpToNextLevel: _nonNegativeIntegerOrNull(progress['xpToNextLevel']),
+          divisionKey: _string(progress['divisionKey']),
+          divisionLabel: _string(progress['divisionLabel']),
+          isMaxLevel: progress['isMaxLevel'] == true,
           levelLabel: _string(progress['levelLabel']),
           totalXpLabel: _string(progress['totalXpLabel']),
           weeklyXpLabel: _string(progress['weeklyXpLabel']),
           monthlyXpLabel: _string(progress['monthlyXpLabel']),
           weeklyDistanceLabel: _string(progress['weeklyDistanceLabel']),
           goalProgressLabel: _string(progress['goalProgressLabel']),
+          longestStreakLabel: _string(progress['longestStreakLabel']),
+          totalDistanceLabel: _string(progress['totalDistanceLabel']),
           officialStreakCount: _positiveInteger(
             progress['officialStreakCount'],
           ),
@@ -95,6 +111,10 @@ class LocalUserProgressCacheEntry {
 
   static int _nonNegativeInteger(Object? value) {
     return value is int && value >= 0 ? value : 0;
+  }
+
+  static int? _nonNegativeIntegerOrNull(Object? value) {
+    return value is int && value >= 0 ? value : null;
   }
 
   static double _progressFraction(Object? value) {

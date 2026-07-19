@@ -73,6 +73,10 @@ service cloud.firestore {
         'nextStreak',
         'previousStreakRunDate',
         'nextStreakRunDate',
+        'longestStreak',
+        'longestStreakLabel',
+        'totalDistanceMeters',
+        'totalDistanceLabel',
         'level',
         'rank',
         'leaderboardScore',
@@ -87,6 +91,9 @@ service cloud.firestore {
         'validationStatus',
         'validatedActivityContributionState',
         'countsTowardProgression',
+        'coolDownXpAwarded',
+        'coolDownXpAwardedAt',
+        'coolDownProgressionEventId',
         'backendSchedulingStatus',
         'lastScheduledAt',
         'deliveryState',
@@ -96,7 +103,15 @@ service cloud.firestore {
         'publishedAt',
         'approvedAt',
         'reviewedByAdminId',
-        'publishedByAdminId'
+        'publishedByAdminId',
+        'displayName',
+        'avatarInitials',
+        'nickname',
+        'nicknameKey',
+        'nicknameCanonical',
+        'nicknameIndexKey',
+        'socialDiscoveryStatus',
+        'socialListSortKey'
       ];
     }
 
@@ -110,11 +125,7 @@ service cloud.firestore {
 
     function userProfileWritableKeys() {
       return [
-        'displayName',
         'fullName',
-        'nickname',
-        'avatarInitials',
-        'nicknameKey',
         'dateOfBirth',
         'ageYears',
         'weightKg',
@@ -305,9 +316,7 @@ service cloud.firestore {
       return hasOnlyAllowedKeys(userProfileWritableKeys())
         && validProfileStringField('displayName')
         && validProfileStringField('fullName')
-        && validProfileShortStringField('nickname')
         && validProfileInitials()
-        && validProfileNicknameKey()
         && validProfileDateOfBirth()
         && validProfileAgeYears()
         && validProfileWeightKg()
@@ -317,17 +326,14 @@ service cloud.firestore {
         && validProfileAvailability()
         && validProfileStringField('planCautiousness')
         && validProfileHealthSafetyReadiness()
-        && validProfileUpdatedAt()
-        && validProfileNicknameClaimAfter();
+        && validProfileUpdatedAt();
     }
 
     function validUserProfileUpdateData() {
       return changesOnlyAllowedKeys(userProfileWritableKeys())
         && validChangedProfileStringField('displayName')
         && validChangedProfileStringField('fullName')
-        && validChangedProfileShortStringField('nickname')
         && validChangedProfileInitials()
-        && validChangedProfileNicknameKey()
         && validChangedProfileDateOfBirth()
         && validChangedProfileAgeYears()
         && validChangedProfileWeightKg()
@@ -337,8 +343,7 @@ service cloud.firestore {
         && validChangedProfileAvailability()
         && validChangedProfileStringField('planCautiousness')
         && validChangedProfileHealthSafetyReadiness()
-        && validChangedProfileUpdatedAt()
-        && validProfileNicknameClaimForChangedNickname();
+        && validChangedProfileUpdatedAt();
     }
 
     function validNicknameClaimData(nicknameKey) {
@@ -536,6 +541,80 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/expertPlans/$(planId)).data.status == 'published';
     }
 
+    function hasTrustedFriendship(authorUid) {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid)/friends/$(authorUid))
+        && exists(/databases/$(database)/documents/users/$(authorUid)/friends/$(request.auth.uid));
+    }
+
+    function hasNoDirectionalBlock(authorUid) {
+      return !exists(/databases/$(database)/documents/users/$(request.auth.uid)/blockedUsers/$(authorUid))
+        && !exists(/databases/$(database)/documents/users/$(authorUid)/blockedUsers/$(request.auth.uid));
+    }
+
+    function canReadFeedAuthor(authorUid) {
+      return isSignedIn()
+        && hasNoDirectionalBlock(authorUid)
+        && (authorUid == request.auth.uid || hasTrustedFriendship(authorUid));
+    }
+
+    function canReadFeedPost(postId) {
+      return exists(/databases/$(database)/documents/feedPosts/$(postId))
+        && get(/databases/$(database)/documents/feedPosts/$(postId)).data.status == 'published'
+        && canReadFeedAuthor(
+          get(/databases/$(database)/documents/feedPosts/$(postId)).data.authorUid
+        );
+    }
+
+    function validFeedCommentBody(body) {
+      return body is string
+        && body.size() >= 1
+        && body.size() <= 500
+        && body.matches('^[^\\s](.*[^\\s])?$');
+    }
+
+    function matchesCallerProfileSnapshot() {
+      return exists(/databases/$(database)/documents/userProfiles/$(request.auth.uid))
+        && request.resource.data.authorDisplayName
+          == get(/databases/$(database)/documents/userProfiles/$(request.auth.uid)).data.displayName
+        && request.resource.data.authorAvatarInitials
+          == get(/databases/$(database)/documents/userProfiles/$(request.auth.uid)).data.avatarInitials
+        && (!request.resource.data.keys().hasAny(['authorLevelLabel'])
+          || request.resource.data.authorLevelLabel
+            == get(/databases/$(database)/documents/userProfiles/$(request.auth.uid)).data.levelLabel);
+    }
+
+    function validFeedCommentCreate(postId) {
+      return canReadFeedPost(postId)
+        && hasOnlyAllowedKeys([
+          'authorUid',
+          'authorDisplayName',
+          'authorAvatarInitials',
+          'authorLevelLabel',
+          'body',
+          'createdAt',
+          'updatedAt'
+        ])
+        && request.resource.data.authorUid == request.auth.uid
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time
+        && validFeedCommentBody(request.resource.data.body)
+        && matchesCallerProfileSnapshot();
+    }
+
+    function validFeedCommentUpdate(postId) {
+      return canReadFeedPost(postId)
+        && resource.data.authorUid == request.auth.uid
+        && request.resource.data.authorUid == resource.data.authorUid
+        && request.resource.data.authorDisplayName == resource.data.authorDisplayName
+        && request.resource.data.authorAvatarInitials == resource.data.authorAvatarInitials
+        && request.resource.data.authorLevelLabel == resource.data.authorLevelLabel
+        && request.resource.data.createdAt == resource.data.createdAt
+        && changesOnlyAllowedKeys(['body', 'updatedAt'])
+        && request.resource.data.updatedAt == request.time
+        && validFeedCommentBody(request.resource.data.body);
+    }
+
     function notificationInboxMutableKeys() {
       return ['readAt', 'deletedAt', 'updatedAt'];
     }
@@ -583,9 +662,63 @@ service cloud.firestore {
         || request.resource.data[field] is timestamp;
     }
 
+    function isSnapshottedChallengeMember(challengeId) {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/challengeInstances/$(challengeId))
+        && request.auth.uid in get(/databases/$(database)/documents/challengeInstances/$(challengeId)).data.rosterUids;
+    }
+
     match /users/{uid} {
       allow read: if isOwner(uid);
       allow create, update, delete: if false;
+
+      match /friends/{friendUid} {
+        allow get: if isOwner(uid);
+        allow list: if isOwner(uid)
+          && request.query.limit != null
+          && request.query.limit <= 30;
+        allow create, update, delete: if false;
+      }
+
+      match /blockedUsers/{blockedUid} {
+        allow get: if isOwner(uid);
+        allow list: if isOwner(uid)
+          && request.query.limit != null
+          && request.query.limit <= 30;
+        allow create, update, delete: if false;
+      }
+
+      match /friendRequests/{otherUid} {
+        allow get: if isOwner(uid);
+        allow list: if isOwner(uid)
+          && request.query.limit != null
+          && request.query.limit <= 30;
+        allow create, update, delete: if false;
+      }
+
+      match /hiddenFeedPosts/{postId} {
+        allow get: if isOwner(uid);
+        allow list: if isOwner(uid)
+          && request.query.limit != null
+          && request.query.limit <= 30;
+        allow create, update, delete: if false;
+      }
+
+      match /challengeHistory/{challengeId} {
+        allow get: if isOwner(uid);
+        allow list: if isOwner(uid)
+          && request.query.limit != null
+          && request.query.limit <= 30;
+        allow create, update, delete: if false;
+      }
+
+      match /challengeBadges/{tierId} {
+        allow get: if isOwner(uid);
+        allow list: if isOwner(uid)
+          && request.query.limit != null
+          && request.query.limit <= 30;
+        allow create, update, delete: if false;
+      }
     }
 
     match /userProfiles/{uid} {
@@ -600,15 +733,7 @@ service cloud.firestore {
     }
 
     match /nicknameClaims/{nicknameKey} {
-      allow get: if isSignedIn();
-      allow list: if false;
-      allow create: if isSignedIn()
-        && validNicknameClaimData(nicknameKey);
-      allow update: if isSignedIn()
-        && resource.data.ownerUid == request.auth.uid
-        && validNicknameClaimData(nicknameKey);
-      allow delete: if isSignedIn()
-        && resource.data.ownerUid == request.auth.uid;
+      allow read, write: if false;
     }
 
     match /generatedPlans/{uid} {
@@ -634,6 +759,10 @@ service cloud.firestore {
     }
 
     match /agentGuidanceDaily/{document} {
+      allow read, write: if false;
+    }
+
+    match /homeGuideConsents/{uid} {
       allow read, write: if false;
     }
 
@@ -679,6 +808,41 @@ service cloud.firestore {
         && doesNotTouchBackendOwnedKeys()
         && doesNotChangeBackendOwnedKeys();
       allow delete: if false;
+    }
+
+    match /feedPosts/{postId} {
+      allow get: if resource.data.status == 'published'
+        && canReadFeedAuthor(resource.data.authorUid);
+      allow list: if request.query.limit != null
+        && request.query.limit <= 20
+        && resource.data.status == 'published'
+        && canReadFeedAuthor(resource.data.authorUid);
+      allow create, update, delete: if false;
+
+      match /likes/{uid} {
+        allow get: if canReadFeedPost(postId);
+        allow list: if false;
+        allow create: if canReadFeedPost(postId)
+          && uid == request.auth.uid
+          && hasOnlyAllowedKeys(['userUid', 'createdAt'])
+          && request.resource.data.userUid == request.auth.uid
+          && request.resource.data.createdAt == request.time;
+        allow update: if false;
+        allow delete: if canReadFeedPost(postId)
+          && uid == request.auth.uid
+          && resource.data.userUid == request.auth.uid;
+      }
+
+      match /comments/{commentId} {
+        allow get: if canReadFeedPost(postId);
+        allow list: if canReadFeedPost(postId)
+          && request.query.limit != null
+          && request.query.limit <= 20;
+        allow create: if validFeedCommentCreate(postId);
+        allow update: if validFeedCommentUpdate(postId);
+        allow delete: if canReadFeedPost(postId)
+          && resource.data.authorUid == request.auth.uid;
+      }
     }
 
     match /runSummaries/{summaryId} {
@@ -777,6 +941,7 @@ service cloud.firestore {
       allow read: if isSignedIn() && resource.data.reporterUid == request.auth.uid;
       allow create: if isSignedIn()
         && request.resource.data.reporterUid == request.auth.uid
+        && request.resource.data.targetType != 'feedPost'
         && hasOnlyAllowedKeys([
           'reporterUid',
           'targetType',
@@ -847,6 +1012,61 @@ service cloud.firestore {
         ])
         && doesNotChangeBackendOwnedKeys();
       allow delete: if false;
+    }
+
+    match /challengeInstances/{challengeId} {
+      allow get: if isSignedIn()
+        && request.auth.uid in resource.data.rosterUids;
+      allow list: if isSignedIn()
+        && request.query.limit != null
+        && request.query.limit <= 20
+        && request.auth.uid in resource.data.rosterUids;
+      allow create, update, delete: if false;
+
+      match /participants/{participantUid} {
+        allow get: if isSnapshottedChallengeMember(challengeId);
+        allow list: if isSnapshottedChallengeMember(challengeId)
+          && request.query.limit != null
+          && request.query.limit <= 20;
+        allow create, update, delete: if false;
+      }
+    }
+
+    match /challengeInvitations/{inviteId} {
+      allow get: if isSignedIn()
+        && (resource.data.ownerUid == request.auth.uid
+          || resource.data.recipientUid == request.auth.uid);
+      allow list: if isSignedIn()
+        && request.query.limit != null
+        && request.query.limit <= 20
+        && (resource.data.ownerUid == request.auth.uid
+          || resource.data.recipientUid == request.auth.uid);
+      allow create, update, delete: if false;
+    }
+
+    match /challengeSlots/{uid} {
+      allow get: if isOwner(uid);
+      allow list: if false;
+      allow create, update, delete: if false;
+    }
+
+    match /challengeRewardGrants/{grantId} {
+      allow read, write: if false;
+    }
+
+    match /config/{configDoc} {
+      allow read, write: if false;
+    }
+
+    match /badgeConfigs/{badgeId} {
+      allow read, write: if false;
+    }
+
+    // feedback is written only by the submitFeedback callable via Admin SDK
+    // and read only by the admin console via firebase-admin; clients get no
+    // direct access.
+    match /feedback/{feedbackId} {
+      allow read, write: if false;
     }
 
     match /{document=**} {

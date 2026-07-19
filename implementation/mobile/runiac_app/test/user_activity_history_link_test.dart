@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runiac_app/app.dart';
+import 'package:runiac_app/features/run/presentation/view_summary_screen.dart';
 import 'package:runiac_app/features/you/domain/models/activity_history_read_model.dart';
 import 'package:runiac_app/features/you/domain/repositories/activity_history_repository.dart';
 
@@ -96,6 +97,28 @@ void main() {
         expect(
           find.widgetWithText(FilledButton, 'View XP Update'),
           findsNothing,
+        );
+      },
+    );
+
+    testWidgets(
+      'remote Activity History forwards its stable id to the summary cache',
+      (tester) async {
+        final repository = _FakeActivityHistoryRepository.authenticated();
+
+        await _openActivityHistoryFromYou(
+          tester,
+          activityHistoryRepository: repository,
+        );
+        await tester.tap(find.text('Authenticated Recovery Run'));
+        await tester.pumpAndSettle();
+
+        final summaryScreen = tester.widget<ViewSummaryScreen>(
+          find.byType(ViewSummaryScreen),
+        );
+        expect(
+          summaryScreen.activityFeedbackCacheIdentity,
+          'activity-authenticated-recovery',
         );
       },
     );

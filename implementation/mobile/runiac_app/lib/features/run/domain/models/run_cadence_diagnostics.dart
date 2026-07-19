@@ -17,6 +17,7 @@ enum RunCadenceDiagnosticReason {
   permissionDenied,
   permissionRestricted,
   permissionUnknown,
+  streamStarted,
   nativeError,
   nilData,
   filteredOutOfRange,

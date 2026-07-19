@@ -1,5 +1,8 @@
 part of 'local_pending_run_activity_store.dart';
 
+const _legacyCompleteRunMinCadenceSpm = 90;
+const _legacyCompleteRunMaxCadenceSpm = 220;
+
 Map<String, Object?> _localPendingRunActivityToJson(
   LocalPendingRunActivity activity,
 ) {
@@ -11,6 +14,13 @@ Map<String, Object?> _localPendingRunActivityToJson(
     'progressionEventId': activity.result.progressionEventId,
     'validationStatus': activity.result.validationStatus,
     'message': activity.result.message,
+    'planCompletion': <String, Object?>{
+      'completed': activity.result.planCompletion.completed,
+      if (activity.result.planCompletion.planEnrollmentId != null)
+        'planEnrollmentId': activity.result.planCompletion.planEnrollmentId,
+      if (activity.result.planCompletion.scheduledWorkoutId != null)
+        'scheduledWorkoutId': activity.result.planCompletion.scheduledWorkoutId,
+    },
     'syncAccepted': activity.syncAccepted,
     'syncState': activity.syncState.name,
     'syncAttemptCount': activity.syncAttemptCount,
@@ -58,8 +68,11 @@ Map<String, Object?> _localPendingRunActivityToJson(
       'avgPaceSecondsPerKm': activity.payload.avgPaceSecondsPerKm,
       'source': activity.payload.source,
       'routePrivacy': activity.payload.routePrivacy,
+      'routeSnapshot': _routeToJson(activity.payload.routeSnapshot),
       if (activity.payload.userConfirmedLowDataSave)
         'userConfirmedLowDataSave': true,
+      if (activity.payload.activityTitle != null)
+        'activityTitle': activity.payload.activityTitle,
       if (activity.payload.routeLabel != null)
         'routeLabel': activity.payload.routeLabel,
       if (activity.payload.clientAppVersion != null)
@@ -102,7 +115,36 @@ LocalPendingRunActivity? _localPendingRunActivityFromJson(
   }
 
   final restoredPayload = _payloadFromJson(payload, clientRunSessionId);
+  final planCompletion =
+      _readMap(source, 'planCompletion') ?? const <String, Object?>{};
   final syncAccepted = _readBool(source, 'syncAccepted') ?? false;
+  final persistedSyncState =
+      _enumByName(RunSyncState.values, _readString(source, 'syncState')) ??
+      (syncAccepted ? RunSyncState.syncAccepted : RunSyncState.localSaved);
+  final lastSyncFailureCode = _readString(source, 'lastSyncFailureCode');
+  final cadenceSamples =
+      restoredPayload.cadenceAnalysisSeries?.validAcceptedSamples ??
+      const <CadenceAnalysisSample>[];
+  int? previousCadenceElapsedSeconds;
+  final hasCadenceTimingMismatch = cadenceSamples.any((sample) {
+    final elapsedSeconds = sample.elapsedSeconds;
+    final previousElapsedSeconds = previousCadenceElapsedSeconds;
+    final isInvalid =
+        elapsedSeconds > restoredPayload.durationSeconds ||
+        (previousElapsedSeconds != null &&
+            elapsedSeconds <= previousElapsedSeconds);
+    previousCadenceElapsedSeconds = elapsedSeconds;
+    return isInvalid;
+  });
+  final hasLegacyCadenceRangeMismatch = cadenceSamples.any(
+    (sample) =>
+        sample.cadenceSpmValue < _legacyCompleteRunMinCadenceSpm ||
+        sample.cadenceSpmValue > _legacyCompleteRunMaxCadenceSpm,
+  );
+  final shouldRetryCadenceContractFailure =
+      persistedSyncState == RunSyncState.syncNonRetryableFailure &&
+      lastSyncFailureCode == 'invalid-argument' &&
+      (hasCadenceTimingMismatch || hasLegacyCadenceRangeMismatch);
   return LocalPendingRunActivity(
     ownerUid: ownerUid,
     clientRunSessionId: clientRunSessionId,
@@ -117,6 +159,11 @@ LocalPendingRunActivity? _localPendingRunActivityFromJson(
           _readString(source, 'progressionEventId') ??
           'local-progression-$clientRunSessionId',
       validationStatus: _readString(source, 'validationStatus') ?? 'validated',
+      planCompletion: PlanCompletionResult(
+        completed: _readBool(planCompletion, 'completed') ?? false,
+        planEnrollmentId: _readString(planCompletion, 'planEnrollmentId'),
+        scheduledWorkoutId: _readString(planCompletion, 'scheduledWorkoutId'),
+      ),
       summary: _summaryFromJson(summary, restoredPayload),
       progressionDisplay: const ProgressionDisplayModel(
         xpDelta: 0,
@@ -127,29 +174,29 @@ LocalPendingRunActivity? _localPendingRunActivityFromJson(
       xpUpdate: const XpUpdateDisplayModel(
         runnerName: 'Runiac Runner',
         earnedXpLabel: '+0 XP',
-        totalXpLabel: 'Deferred by backend',
-        levelLabel: 'Pending',
-        nextLevelLabel: 'Pending',
-        progressTargetLabel: 'Pending',
-        xpRemainingLabel: 'Formula pending',
+        totalXpLabel: 'Saved on this device',
+        levelLabel: '--',
+        nextLevelLabel: '--',
+        progressTargetLabel: 'Sync pending',
+        xpRemainingLabel: 'XP updates after sync',
         previousProgressFraction: 0,
         currentProgressFraction: 0,
-        streakChangeLabel: 'Deferred',
-        streakNote: 'Backend validation accepted the run.',
+        streakChangeLabel: 'Not updated yet',
+        streakNote: 'We’ll retry when the service is available.',
         didLevelUp: false,
-        xpAwardState: XpAwardState.deferred,
-        heroMessage: 'This run is saved. XP is being finalized.',
+        xpAwardState: XpAwardState.syncPending,
+        heroMessage: 'This run is saved locally. XP updates after sync.',
       ),
       message: _readString(source, 'message') ?? 'Saved locally.',
     ),
     payload: restoredPayload,
     syncAccepted: syncAccepted,
-    syncState:
-        _enumByName(RunSyncState.values, _readString(source, 'syncState')) ??
-        (syncAccepted ? RunSyncState.syncAccepted : RunSyncState.localSaved),
+    syncState: shouldRetryCadenceContractFailure
+        ? RunSyncState.syncRetryableFailure
+        : persistedSyncState,
     syncAttemptCount: _readInt(source, 'syncAttemptCount') ?? 0,
     lastSyncAttemptedAt: _readDate(source, 'lastSyncAttemptedAt'),
-    lastSyncFailureCode: _readString(source, 'lastSyncFailureCode'),
+    lastSyncFailureCode: lastSyncFailureCode,
     lastSyncFailureMessage: _readString(source, 'lastSyncFailureMessage'),
   );
 }
@@ -214,8 +261,10 @@ LocalRunCompletionPayload _payloadFromJson(
     avgPaceSecondsPerKm: _readInt(source, 'avgPaceSecondsPerKm') ?? 0,
     source: _readString(source, 'source') ?? 'mobile',
     routePrivacy: _readString(source, 'routePrivacy') ?? 'private',
+    routeSnapshot: _routeFromJson(_readMap(source, 'routeSnapshot')),
     userConfirmedLowDataSave:
         _readBool(source, 'userConfirmedLowDataSave') ?? false,
+    activityTitle: _readString(source, 'activityTitle'),
     routeLabel: _readString(source, 'routeLabel'),
     clientAppVersion: _readString(source, 'clientAppVersion'),
     planEnrollmentId: _readString(source, 'planEnrollmentId'),

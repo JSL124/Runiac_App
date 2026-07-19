@@ -247,3 +247,11 @@ end note
 ```
 
 Caption: The PlantUML diagram includes Phase 2 paths such as route sharing, route moderation, territorial leaderboard aggregation, AI-assisted summaries, expert goal plans, a future Expert Dashboard, and premium sharing visuals for intended design completeness. In the MVP, Medical Trainer/Expert provides content only, while Platform Administrator review and publication are required before Premium Users can select expert plans.
+
+## 3.7 Feed/Friends Component Addendum
+
+The Feed extension adds a Flutter Feed Component, per-author Feed Query Coordinator, and keyboard-safe flat Comments Bottom Sheet. The coordinator executes one authorUid equality query per owner/current accepted friend, retains per-author buffers/cursors, and deterministically k-way merges (createdAt, postId) into newest-first pages of 20. Pull-to-refresh is supported; popularity ranking and automatic scroll reordering are excluded. Cached offline rows are visibly read-only, and publication, likes, comments, edits, deletion, and reporting are disabled offline.
+
+Its Firestore contract adds trusted reciprocal friends, directional blocks, validated activities, immutable top-level feedPosts, user-owned likes/flat comments, reporter-private hidden markers, and reports. Clients cannot write relationship, block, hidden, status, likeCount, or commentCount records. Comments are trimmed 1–500-character flat documents, newest-first cursor pages of 20, author-editable/deletable, with no replies. Trusted retry-safe triggers derive counts.
+
+The trusted Function boundary adds publishActivityToFeed, readFeedThumbnail, reportFeedPost, deleteFeedPost, and source-activity cleanup. Explicit confirmation and an owned validated activity are required for at most one immutable snapshot. The owner-only staging PNG is promoted to a server-owned immutable final object with path/generation/SHA-256. readFeedThumbnail returns bounded generation/hash-matched bytes only after active-post, hidden, friendship, and both-block checks; it never returns a signed URL and friends never directly read Storage. The snapshot has safe trusted metrics and sanitized author display fields only, not raw GPS, route arrays, coordinates, addresses, progression, entitlement, expert-plan, or competitive fields. Feed has no authority over XP, streak, level, rank, or leaderboard values.

@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:runiac_app/features/you/data/firestore_user_progress_repository.dart';
 import 'package:runiac_app/features/you/data/local_user_progress_cache_store.dart';
+import 'package:runiac_app/features/you/data/user_streak_refresh_service.dart';
 import 'package:runiac_app/features/you/domain/models/user_progress_read_model.dart';
 import 'package:runiac_app/features/you/domain/repositories/user_progress_repository.dart';
 
@@ -41,6 +42,61 @@ void main() {
 
     expect(progress.officialStreakLabel, '17 days');
   });
+
+  test('maps backend-owned lifetime stat labels into the read model', () async {
+    final authRepository = FakeRuniacAuthRepository()..emitSignedIn();
+    final repository = FirestoreUserProgressRepository(
+      authRepository: authRepository,
+      reader: const _FakeUserProgressDocumentReader({
+        'streakCount': 3,
+        'longestStreakLabel': '14 days',
+        'totalDistanceLabel': '148.6 km',
+      }),
+    );
+
+    final progress = await repository.loadUserProgress();
+
+    expect(progress.longestStreakLabel, '14 days');
+    expect(progress.totalDistanceLabel, '148.6 km');
+  });
+
+  test(
+    'defaults lifetime stat labels to empty when the backend omits them',
+    () async {
+      final authRepository = FakeRuniacAuthRepository()..emitSignedIn();
+      final repository = FirestoreUserProgressRepository(
+        authRepository: authRepository,
+        reader: const _FakeUserProgressDocumentReader({'streakCount': 0}),
+      );
+
+      final progress = await repository.loadUserProgress();
+
+      expect(progress.longestStreakLabel, isEmpty);
+      expect(progress.totalDistanceLabel, isEmpty);
+    },
+  );
+
+  test(
+    'refreshes backend-owned streak before reading official progress',
+    () async {
+      final authRepository = FakeRuniacAuthRepository()
+        ..emitSignedIn(uid: 'streak-refresh-user');
+      final refreshService = _RecordingUserStreakRefreshService();
+      final reader = _RefreshOrderedUserProgressDocumentReader(refreshService);
+      final repository = FirestoreUserProgressRepository(
+        authRepository: authRepository,
+        reader: reader,
+        streakRefreshService: refreshService,
+      );
+
+      final progress = await repository.loadUserProgress();
+
+      expect(refreshService.refreshCount, 1);
+      expect(reader.readAfterRefresh, isTrue);
+      expect(progress.officialStreakLabel, '0 days');
+      expect(progress.officialStreakCount, 0);
+    },
+  );
 
   test('uses fallback progress when no user is signed in', () async {
     final repository = FirestoreUserProgressRepository(
@@ -99,6 +155,57 @@ void main() {
       expect(cacheStore.entry?.progress.officialStreakLabel, '3 days');
     },
   );
+
+  test(
+    'loadUserProgress maps backend-owned division values into progress model',
+    () async {
+      final authRepository = FakeRuniacAuthRepository()
+        ..emitSignedIn(uid: 'division-user');
+      final repository = FirestoreUserProgressRepository(
+        authRepository: authRepository,
+        reader: const _FakeUserProgressDocumentReader({
+          'level': 1,
+          'levelProgressPercent': 50,
+          'divisionKey': 'tier_01',
+          'divisionLabel': 'Iron League',
+        }),
+      );
+
+      final progress = await repository.loadUserProgress();
+
+      expect(progress.level, 1);
+      expect(progress.levelProgressFraction, 0.5);
+      expect(progress.divisionKey, 'tier_01');
+      expect(progress.divisionLabel, 'Iron League');
+    },
+  );
+
+  test('local user progress cache preserves backend-owned division values', () {
+    final entry = LocalUserProgressCacheEntry(
+      uid: 'division-cache-user',
+      refreshedAt: DateTime.utc(2026, 7, 13, 8),
+      progress: const UserProgressReadModel(
+        userId: 'division-cache-user',
+        officialStreakLabel: '',
+        level: 100,
+        levelProgressFraction: 1,
+        divisionKey: 'tier_10',
+        divisionLabel: 'Challenger League',
+        levelLabel: 'Level 100',
+        totalXpLabel: '100,000 XP',
+        weeklyXpLabel: '',
+        monthlyXpLabel: '100,000 XP',
+        weeklyDistanceLabel: '',
+        goalProgressLabel: '',
+      ),
+    );
+
+    final decoded = LocalUserProgressCacheEntry.tryDecode(entry.encode());
+
+    expect(decoded?.progress.level, 100);
+    expect(decoded?.progress.divisionKey, 'tier_10');
+    expect(decoded?.progress.divisionLabel, 'Challenger League');
+  });
 
   test(
     'loadUserProgress falls back to same-day cache when backend read fails',
@@ -178,6 +285,29 @@ void main() {
       expect(reader.readCount, 1);
       expect(cacheStore.entry?.progress.officialStreakLabel, '4 days');
       expect(cacheStore.entry?.refreshedAt, DateTime.utc(2026, 7, 6, 1));
+    },
+  );
+
+  test(
+    'loadUserProgress still reads progress when streak refresh fails',
+    () async {
+      final authRepository = FakeRuniacAuthRepository()
+        ..emitSignedIn(uid: 'refresh-fallback-user');
+      final reader = _CountingUserProgressDocumentReader({
+        'streakCount': 2,
+        'levelLabel': 'Level 2',
+      });
+      final repository = FirestoreUserProgressRepository(
+        authRepository: authRepository,
+        reader: reader,
+        cacheStore: _MemoryUserProgressCacheStore(null),
+        streakRefreshService: const _ThrowingUserStreakRefreshService(),
+      );
+
+      final progress = await repository.loadUserProgress();
+
+      expect(progress.officialStreakCount, 2);
+      expect(reader.readCount, 1);
     },
   );
 
@@ -378,6 +508,38 @@ class _FakeUserProgressDocumentReader implements UserProgressDocumentReader {
   @override
   Future<Map<String, Object?>?> readUserProgress({required String uid}) async {
     return document;
+  }
+}
+
+class _RecordingUserStreakRefreshService implements UserStreakRefreshService {
+  int refreshCount = 0;
+
+  @override
+  Future<void> refreshStreakStatus() async {
+    refreshCount += 1;
+  }
+}
+
+class _ThrowingUserStreakRefreshService implements UserStreakRefreshService {
+  const _ThrowingUserStreakRefreshService();
+
+  @override
+  Future<void> refreshStreakStatus() async {
+    throw StateError('Streak refresh failed.');
+  }
+}
+
+class _RefreshOrderedUserProgressDocumentReader
+    implements UserProgressDocumentReader {
+  _RefreshOrderedUserProgressDocumentReader(this.refreshService);
+
+  final _RecordingUserStreakRefreshService refreshService;
+  bool readAfterRefresh = false;
+
+  @override
+  Future<Map<String, Object?>?> readUserProgress({required String uid}) async {
+    readAfterRefresh = refreshService.refreshCount == 1;
+    return const {'streakCount': 0};
   }
 }
 

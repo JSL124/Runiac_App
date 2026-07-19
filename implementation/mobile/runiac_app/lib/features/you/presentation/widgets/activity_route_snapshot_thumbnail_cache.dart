@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/widgets.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import '../../../run/domain/models/run_route_snapshot.dart';
 import 'activity_route_preview.dart';
@@ -27,7 +28,7 @@ class ActivityRouteSnapshotThumbnailCacheKey {
       styleId: styleId,
       logicalWidth: request.logicalSize.width.round(),
       logicalHeight: request.logicalSize.height.round(),
-      devicePixelRatioBucket: _devicePixelRatioBucket(request.devicePixelRatio),
+      devicePixelRatioBucket: request.canonicalDevicePixelRatio,
       privacyMode: _privacyMode(request),
     );
   }
@@ -67,30 +68,95 @@ class ActivityRouteSnapshotThumbnailCacheKey {
 }
 
 class ActivityRouteSnapshotThumbnailMemoryCache {
-  final Map<
-    ActivityRouteSnapshotThumbnailCacheKey,
-    ActivityRouteThumbnailResult
-  >
-  _entries =
-      <ActivityRouteSnapshotThumbnailCacheKey, ActivityRouteThumbnailResult>{};
+  final Map<_OwnedArtifactKey, ActivityRouteThumbnailResult> _entries =
+      <_OwnedArtifactKey, ActivityRouteThumbnailResult>{};
 
   int get length => _entries.length;
 
   ActivityRouteThumbnailResult? resolve(
-    ActivityRouteSnapshotThumbnailCacheKey key,
-  ) {
-    return _entries[key];
+    ActivityRouteSnapshotThumbnailCacheKey key, {
+    String? ownerUid,
+  }) {
+    final ownedKey = _OwnedArtifactKey(ownerUid ?? '', key);
+    return _entries[ownedKey] ?? _historyArtifactEntries[ownedKey];
   }
 
   void store(
     ActivityRouteSnapshotThumbnailCacheKey key,
-    ActivityRouteThumbnailResult result,
-  ) {
-    _entries[key] = result;
+    ActivityRouteThumbnailResult result, {
+    String? ownerUid,
+  }) {
+    final ownedKey = _OwnedArtifactKey(ownerUid ?? '', key);
+    _entries[ownedKey] = result;
+    if (result.pngBytes != null && ownerUid != null && ownerUid.isNotEmpty) {
+      _historyArtifactEntries[ownedKey] = result;
+    }
   }
 
   void clear() {
     _entries.clear();
+  }
+
+  void clearOwner(String ownerUid) {
+    _entries.removeWhere((key, _) => key.ownerUid == ownerUid);
+    _historyArtifactEntries.removeWhere((key, _) => key.ownerUid == ownerUid);
+  }
+}
+
+class _OwnedArtifactKey {
+  const _OwnedArtifactKey(this.ownerUid, this.key);
+  final String ownerUid;
+  final ActivityRouteSnapshotThumbnailCacheKey key;
+  @override
+  bool operator ==(Object other) =>
+      other is _OwnedArtifactKey &&
+      other.ownerUid == ownerUid &&
+      other.key == key;
+  @override
+  int get hashCode => Object.hash(ownerUid, key);
+}
+
+class _InFlightArtifactKey {
+  const _InFlightArtifactKey({
+    required this.artifactKey,
+    required this.ownerGeneration,
+    required this.historyArtifactGeneration,
+  });
+
+  final _OwnedArtifactKey artifactKey;
+  final int ownerGeneration;
+  final int historyArtifactGeneration;
+
+  @override
+  bool operator ==(Object other) =>
+      other is _InFlightArtifactKey &&
+      other.artifactKey == artifactKey &&
+      other.ownerGeneration == ownerGeneration &&
+      other.historyArtifactGeneration == historyArtifactGeneration;
+
+  @override
+  int get hashCode {
+    return Object.hash(artifactKey, ownerGeneration, historyArtifactGeneration);
+  }
+}
+
+final Map<_OwnedArtifactKey, ActivityRouteThumbnailResult>
+_historyArtifactEntries = <_OwnedArtifactKey, ActivityRouteThumbnailResult>{};
+int _historyArtifactGeneration = 0;
+
+class ActivityRouteSnapshotThumbnailArtifactLifecycle {
+  ActivityRouteSnapshotThumbnailArtifactLifecycle({String? initialOwnerUid})
+    : _ownerUid = initialOwnerUid;
+
+  String? _ownerUid;
+
+  void syncOwner(String? ownerUid) {
+    if (_ownerUid == ownerUid) {
+      return;
+    }
+    _historyArtifactEntries.clear();
+    _historyArtifactGeneration += 1;
+    _ownerUid = ownerUid;
   }
 }
 
@@ -106,6 +172,10 @@ class ActivityRouteSnapshotThumbnailGenerationRequest {
     required this.devicePixelRatio,
     required this.styleId,
     required this.camera,
+    required this.route,
+    required this.viewport,
+    this.projectedStart = Offset.zero,
+    this.projectedEnd = Offset.zero,
     this.activityId,
   });
 
@@ -123,9 +193,11 @@ class ActivityRouteSnapshotThumbnailGenerationRequest {
     }
     return ActivityRouteSnapshotThumbnailGenerationRequest(
       logicalSize: request.logicalSize,
-      devicePixelRatio: request.devicePixelRatio,
+      devicePixelRatio: request.canonicalDevicePixelRatio.toDouble(),
       styleId: styleId,
       camera: camera,
+      route: request.route,
+      viewport: viewport,
       activityId: request.activityId,
     );
   }
@@ -134,7 +206,15 @@ class ActivityRouteSnapshotThumbnailGenerationRequest {
   final double devicePixelRatio;
   final String styleId;
   final ActivityRouteSnapshotCamera camera;
+  final RunRouteSnapshot route;
+  final ActivityRouteThumbnailViewport viewport;
+  final Offset projectedStart;
+  final Offset projectedEnd;
   final String? activityId;
+
+  int get outputPixels => (logicalSize.width * devicePixelRatio).round();
+  int get outputWidthPixels => (logicalSize.width * devicePixelRatio).round();
+  int get outputHeightPixels => (logicalSize.height * devicePixelRatio).round();
 }
 
 class ActivityRouteSnapshotCamera {
@@ -171,8 +251,9 @@ class CachedActivityRouteThumbnailProvider
     this.hasValidMapboxToken = false,
     this.generationTimeout = const Duration(seconds: 4),
     this.styleId = _defaultStyleId,
+    String? Function()? ownerUidProvider,
     this.onDiagnostic,
-  });
+  }) : ownerUidProvider = ownerUidProvider ?? _currentOwnerUid;
 
   final ActivityRouteSnapshotThumbnailMemoryCache cache;
   final ActivityRouteSnapshotThumbnailGenerator? generator;
@@ -180,16 +261,12 @@ class CachedActivityRouteThumbnailProvider
   final bool hasValidMapboxToken;
   final Duration generationTimeout;
   final String styleId;
+  final String? Function() ownerUidProvider;
+  String? _lastOwnerUid;
+  int _ownerGeneration = 0;
   final ActivityRouteThumbnailDiagnosticSink? onDiagnostic;
-  final Map<
-    ActivityRouteSnapshotThumbnailCacheKey,
-    Future<ActivityRouteThumbnailResult>
-  >
-  _inFlight =
-      <
-        ActivityRouteSnapshotThumbnailCacheKey,
-        Future<ActivityRouteThumbnailResult>
-      >{};
+  final Map<_InFlightArtifactKey, Future<ActivityRouteThumbnailResult>>
+  _inFlight = <_InFlightArtifactKey, Future<ActivityRouteThumbnailResult>>{};
 
   @override
   Future<ActivityRouteThumbnailResult> resolve(
@@ -199,9 +276,18 @@ class CachedActivityRouteThumbnailProvider
       request,
       styleId: styleId,
     );
+    final ownerUid = ownerUidProvider();
+    final ownerGeneration = _syncOwner(ownerUid);
+    final historyArtifactGeneration = _historyArtifactGeneration;
+    final ownedKey = _OwnedArtifactKey(ownerUid ?? '', key);
+    final inFlightKey = _InFlightArtifactKey(
+      artifactKey: ownedKey,
+      ownerGeneration: ownerGeneration,
+      historyArtifactGeneration: historyArtifactGeneration,
+    );
     final generator = this.generator;
     if (generator == null) {
-      final cached = cache.resolve(key);
+      final cached = cache.resolve(key, ownerUid: ownerUid);
       final result = cached ?? const ActivityRouteThumbnailResult.unavailable();
       _reportDiagnostic(
         request: request,
@@ -223,7 +309,7 @@ class CachedActivityRouteThumbnailProvider
       return policyResult;
     }
 
-    final cached = cache.resolve(key);
+    final cached = cache.resolve(key, ownerUid: ownerUid);
     if (cached != null) {
       _reportDiagnostic(
         request: request,
@@ -233,7 +319,7 @@ class CachedActivityRouteThumbnailProvider
       return cached;
     }
 
-    final pending = _inFlight[key];
+    final pending = _inFlight[inFlightKey];
     if (pending != null) {
       return _resolveWithTimeout(pending);
     }
@@ -242,12 +328,15 @@ class CachedActivityRouteThumbnailProvider
       key: key,
       request: request,
       generator: generator,
+      ownerUid: ownerUid,
+      ownerGeneration: ownerGeneration,
+      historyArtifactGeneration: historyArtifactGeneration,
     );
-    _inFlight[key] = generation;
+    _inFlight[inFlightKey] = generation;
     unawaited(
       generation.whenComplete(() {
-        if (identical(_inFlight[key], generation)) {
-          _inFlight.remove(key);
+        if (identical(_inFlight[inFlightKey], generation)) {
+          _inFlight.remove(inFlightKey);
         }
       }),
     );
@@ -283,7 +372,9 @@ class CachedActivityRouteThumbnailProvider
     if (!request.allowExternalStaticMap || !snapshotThumbnailsEnabled) {
       return const ActivityRouteThumbnailResult.privacyDisabled();
     }
-    if (!request.isDemoRoute && !request.isCurrentSessionRoute) {
+    if (!request.isDemoRoute &&
+        !request.isCurrentSessionRoute &&
+        !request.isTrustedPersistedRoutePreview) {
       return const ActivityRouteThumbnailResult.privacyDisabled();
     }
     if (!hasValidMapboxToken) {
@@ -296,6 +387,9 @@ class CachedActivityRouteThumbnailProvider
     required ActivityRouteSnapshotThumbnailCacheKey key,
     required ActivityRouteThumbnailRequest request,
     required ActivityRouteSnapshotThumbnailGenerator generator,
+    required String? ownerUid,
+    required int ownerGeneration,
+    required int historyArtifactGeneration,
   }) async {
     final generationRequest =
         ActivityRouteSnapshotThumbnailGenerationRequest.fromThumbnailRequest(
@@ -306,10 +400,37 @@ class CachedActivityRouteThumbnailProvider
       return const ActivityRouteThumbnailResult.unavailable();
     }
     final result = await _generate(generator, generationRequest);
+    if (!_isCurrentGeneration(
+      ownerUid: ownerUid,
+      ownerGeneration: ownerGeneration,
+      historyArtifactGeneration: historyArtifactGeneration,
+    )) {
+      return const ActivityRouteThumbnailResult.unavailable();
+    }
     if (result.hasReadyImage) {
-      cache.store(key, result);
+      cache.store(key, result, ownerUid: ownerUid);
     }
     return result;
+  }
+
+  int _syncOwner(String? ownerUid) {
+    final previousOwnerUid = _lastOwnerUid;
+    if (previousOwnerUid != null && previousOwnerUid != ownerUid) {
+      cache.clearOwner(previousOwnerUid);
+      _ownerGeneration += 1;
+    }
+    _lastOwnerUid = ownerUid;
+    return _ownerGeneration;
+  }
+
+  bool _isCurrentGeneration({
+    required String? ownerUid,
+    required int ownerGeneration,
+    required int historyArtifactGeneration,
+  }) {
+    return ownerUidProvider() == ownerUid &&
+        _ownerGeneration == ownerGeneration &&
+        _historyArtifactGeneration == historyArtifactGeneration;
   }
 
   Future<ActivityRouteThumbnailResult> _generate(
@@ -340,6 +461,7 @@ class CachedActivityRouteThumbnailProvider
         allowExternalStaticMap: request.allowExternalStaticMap,
         isDemoRoute: request.isDemoRoute,
         isCurrentSessionRoute: request.isCurrentSessionRoute,
+        isTrustedPersistedRoutePreview: request.isTrustedPersistedRoutePreview,
         snapshotThumbnailsEnabled: snapshotThumbnailsEnabled,
         hasValidMapboxToken: hasValidMapboxToken,
         hasKnownLocation: ActivityRouteThumbnailViewport.fromRoute(
@@ -369,6 +491,7 @@ class ActivityRouteThumbnailDiagnostic {
     required this.allowExternalStaticMap,
     required this.isDemoRoute,
     required this.isCurrentSessionRoute,
+    required this.isTrustedPersistedRoutePreview,
     required this.snapshotThumbnailsEnabled,
     required this.hasValidMapboxToken,
     required this.hasKnownLocation,
@@ -380,6 +503,7 @@ class ActivityRouteThumbnailDiagnostic {
   final bool allowExternalStaticMap;
   final bool isDemoRoute;
   final bool isCurrentSessionRoute;
+  final bool isTrustedPersistedRoutePreview;
   final bool snapshotThumbnailsEnabled;
   final bool hasValidMapboxToken;
   final bool hasKnownLocation;
@@ -424,10 +548,6 @@ int _quantizeCoordinate(double coordinate) {
   return (coordinate * _coordinatePrecision).round();
 }
 
-int _devicePixelRatioBucket(double devicePixelRatio) {
-  return (devicePixelRatio * _devicePixelRatioPrecision).round();
-}
-
 String _privacyMode(ActivityRouteThumbnailRequest request) {
   if (!request.allowExternalStaticMap) {
     return 'privacy-disabled';
@@ -437,6 +557,9 @@ String _privacyMode(ActivityRouteThumbnailRequest request) {
   }
   if (request.isCurrentSessionRoute) {
     return 'current-session-runtime-allowed';
+  }
+  if (request.isTrustedPersistedRoutePreview) {
+    return 'trusted-persisted-preview-allowed';
   }
   return 'real-route-disabled';
 }
@@ -452,9 +575,16 @@ int _combineHash(int hash, int value) {
 
 const _defaultStyleId = 'runiac-card-static-v1';
 const _coordinatePrecision = 1000000;
-const _devicePixelRatioPrecision = 4;
 const _segmentSeparator = 0x9e3779b9;
 const _lastKnownLocationSeparator = 0x85ebca6b;
 const _fnvOffsetBasis = 0xcbf29ce484222325;
 const _fnvPrime = 0x100000001b3;
 const _hashMask = 0x7fffffffffffffff;
+
+String? _currentOwnerUid() {
+  try {
+    return FirebaseAuth.instance.currentUser?.uid;
+  } on Object {
+    return null;
+  }
+}

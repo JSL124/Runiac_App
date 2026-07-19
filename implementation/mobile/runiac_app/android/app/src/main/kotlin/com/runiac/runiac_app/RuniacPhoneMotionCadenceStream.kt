@@ -11,6 +11,17 @@ import android.os.Build
 import androidx.core.content.ContextCompat
 import io.flutter.plugin.common.EventChannel
 
+internal fun cadenceSampleEvent(
+    recordedAtMillis: Long,
+    cadence: Int,
+): Map<String, Any> =
+    mapOf(
+        "type" to "sample",
+        "recordedAtMillis" to recordedAtMillis,
+        "stepsPerMinute" to cadence,
+        "confidence" to "estimated",
+    )
+
 class RuniacPhoneMotionCadenceStream(
     private val context: Context,
 ) : EventChannel.StreamHandler, SensorEventListener {
@@ -54,13 +65,7 @@ class RuniacPhoneMotionCadenceStream(
             return
         }
         val cadence = cadenceEstimator.cadenceFromStep(event.timestamp) ?: return
-        eventSink?.success(
-            mapOf(
-                "recordedAtMillis" to System.currentTimeMillis(),
-                "stepsPerMinute" to cadence,
-                "confidence" to "estimated",
-            ),
-        )
+        eventSink?.success(cadenceSampleEvent(System.currentTimeMillis(), cadence))
     }
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit

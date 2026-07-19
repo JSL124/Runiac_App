@@ -6,6 +6,7 @@ import {
   createHomeGuideModelProvider,
   deriveHomeGuideProgressionLead,
   generateHomeGuideBundle,
+  parseHomeGuideModelResponse,
   renderHomeGuideBundle,
   validateHomeGuideModelOutput,
 } from "../src/agent/homeGuideModel.js";
@@ -111,7 +112,44 @@ describe("home guide structured model output", () => {
     assert.doesNotMatch(bundle?.progressionCheckIn ?? "", /Distance stayed steady across the week/);
   });
 
-  it("allows natural five-sentence plan summaries before using the meaningful plan fallback", () => {
+  it("summarizes both selected facts as warm, number-free beginner copy", () => {
+    const facts = evidence(
+      {
+        id: "week_to_date.weighted_pace",
+        window: "week_to_date",
+        metric: "weighted_pace",
+        direction: "improving",
+        text: "Weighted pace: 07:30/km vs 08:15/km (faster by 00:45/km, +9%).",
+      },
+      {
+        id: "rolling_28_days.active_duration",
+        window: "rolling_28_days",
+        metric: "active_duration",
+        direction: "improving",
+        text: "Active duration: 240 min vs 180 min (+60 min, +33%).",
+      },
+    );
+    const output = validateHomeGuideModelOutput({
+      output: modelOutput({
+        selectedProgressionFactIds: ["week_to_date.weighted_pace", "rolling_28_days.active_duration"],
+        nextActionCode: "maintain_easy_consistency",
+      }),
+      evidence: facts,
+    });
+    const bundle = renderHomeGuideBundle({ output, evidence: facts, planContext: modelPlanContext() });
+
+    assert.notEqual(bundle, null);
+    const progression = bundle?.progressionCheckIn ?? "";
+    // Both selected facts are reflected qualitatively by direction, with no raw
+    // comparison figures leaking into the beginner-facing bubble.
+    assert.ok(Array.from(progression).length <= 220);
+    assert.match(progression, /smoother pace/);
+    assert.match(progression, /more time on your feet/);
+    assert.doesNotMatch(progression, /\d/);
+    assert.doesNotMatch(progression, /km|min|vs|%/);
+  });
+
+  it("repairs final speech bubbles when display context punctuation would exceed the final safety gate", () => {
     const output = validateHomeGuideModelOutput({ output: modelOutput(), evidence: evidence() });
     const bundle = renderHomeGuideBundle({
       output,
@@ -120,15 +158,8 @@ describe("home guide structured model output", () => {
     });
 
     assert.notEqual(bundle, null);
-    assert.equal(bundle?.planSummary, "Today's Easy Run Today is a 25 min easy session for Build endurance. The planned session is ready.");
+    assert.equal(bundle?.planSummary, "Your plan is ready. Let's keep today comfy and doable.");
     assert.ok(Array.from(bundle?.planSummary ?? "").length <= 160);
-
-    const verbose = validateHomeGuideModelOutput({
-      output: modelOutput({ planSummaryText: "One. Two. Three. Four. Five." }),
-      evidence: evidence(),
-    });
-    const repaired = renderHomeGuideBundle({ output: verbose, evidence: evidence(), planContext: modelPlanContext() });
-    assert.equal(repaired?.planSummary, "Easy Run is ready for a 25 min easy session focused on Build endurance.");
   });
 
   it("limits prompts to sanitized display context and deterministic fact text", () => {
@@ -146,21 +177,60 @@ describe("home guide structured model output", () => {
     assert.match(prompt.systemPrompt, /friendly/i);
     assert.match(prompt.systemPrompt, /cute/i);
     assert.match(prompt.systemPrompt, /beginner.*trainer/i);
-    assert.match(prompt.systemPrompt, /planSummaryText.*under 90 characters/i);
-    assert.match(prompt.systemPrompt, /runningTipText.*under 105 characters/i);
     assert.match(prompt.systemPrompt, /do not make medical, competitive, numeric, or unsupported factual claims/i);
-    assert.match(prompt.userPrompt, /90 characters max/i);
-    assert.match(prompt.userPrompt, /105 characters max/i);
   });
 });
 
 describe("home guide provider seam", () => {
   it("uses low-temperature bounded no-retry provider settings and invokes one injected provider once", async () => {
-    assert.deepEqual(HOME_GUIDE_MODEL_CONFIG, { model: "gpt-4o-mini", temperature: 0.2, maxTokens: 150, timeout: 10_000, maxRetries: 0 });
+    const { modelKwargs, ...scalarConfig } = HOME_GUIDE_MODEL_CONFIG;
+    assert.deepEqual(scalarConfig, {
+      model: "gpt-4o-mini",
+      temperature: 0.2,
+      maxTokens: 220,
+      timeout: 10_000,
+      maxRetries: 0,
+    });
+    const responseFormat = modelKwargs.response_format;
+    assert.equal(responseFormat.type, "json_schema");
+    assert.equal(responseFormat.json_schema.strict, true);
+    const schema = responseFormat.json_schema.schema;
+    assert.equal(schema.additionalProperties, false);
+    assert.deepEqual(
+      [...schema.required].sort(),
+      ["nextActionCode", "planSummaryText", "runningTipText", "schemaVersion", "selectedProgressionFactIds"],
+    );
+    assert.deepEqual(schema.properties.selectedProgressionFactIds, { type: "array", items: { type: "string" } });
+    assert.deepEqual(schema.properties.nextActionCode.enum, [
+      "build_baseline",
+      "maintain_easy_consistency",
+      "add_one_easy_session",
+      "keep_effort_conversational",
+      "recover_and_repeat",
+    ]);
     const provider = new StubProvider(modelOutput());
     const outcome: unknown = await generateHomeGuideBundle({ provider, planContext: modelPlanContext(), evidence: evidence() });
     assert.equal(provider.calls, 1);
     assert.equal(readOutcomeKind(outcome), "generated");
+  });
+
+  it("parses bare, fenced, and multipart JSON responses while rejecting prose", () => {
+    const payload = { schemaVersion: 1 };
+    assert.deepEqual(parseHomeGuideModelResponse(JSON.stringify(payload)), payload);
+    assert.deepEqual(
+      parseHomeGuideModelResponse("```json\n" + JSON.stringify(payload) + "\n```"),
+      payload,
+    );
+    assert.deepEqual(
+      parseHomeGuideModelResponse("```\n" + JSON.stringify(payload) + "\n```"),
+      payload,
+    );
+    assert.deepEqual(
+      parseHomeGuideModelResponse([{ text: "```json" }, { text: JSON.stringify(payload) }, { text: "```" }]),
+      payload,
+    );
+    assert.equal(parseHomeGuideModelResponse("Here is your plan summary."), null);
+    assert.equal(parseHomeGuideModelResponse(42), null);
   });
 
   it("reports distinct fallback categories for provider, timeout, JSON-shape, and policy-validation outcomes", async () => {
@@ -216,10 +286,10 @@ describe("home guide provider seam", () => {
     const outcome: unknown = await generateHomeGuideBundle({ provider, planContext, evidence: evidence(evidenceFact("improving")) });
     const bundle = readGeneratedBundle(outcome);
 
-    assert.match(bundle.planSummary, /Today's Gentle Recovery Run is a 25 min recovery session for Build endurance/);
+    assert.match(bundle.planSummary, /Gentle recovery run/);
     assert.match(bundle.runningTip, /relaxed|gentle|conversational/i);
-    assert.match(bundle.progressionCheckIn, /Distance: 4\.0 km vs 3\.0 km/);
-    assert.doesNotMatch(bundle.progressionCheckIn, /pace|streak|leaderboard/i);
+    assert.match(bundle.progressionCheckIn, /covering more ground/);
+    assert.doesNotMatch(bundle.progressionCheckIn, /\d|streak|leaderboard/i);
   });
 
   it("accepts harmless second-person trainer encouragement while rejecting unsupported metric claims", async () => {
@@ -258,7 +328,7 @@ describe("home guide provider seam", () => {
 
     assert.ok(Array.from(bundle.planSummary).length <= 160);
     assert.ok(Array.from(bundle.runningTip).length <= 160);
-    assert.match(bundle.planSummary, /Very Long Recovery/);
+    assert.match(bundle.planSummary, /Very long recovery/);
     assert.match(bundle.runningTip, /chatty, relaxed effort/);
   });
 

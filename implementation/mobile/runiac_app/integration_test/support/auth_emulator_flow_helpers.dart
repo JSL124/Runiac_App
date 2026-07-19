@@ -46,14 +46,18 @@ Future<void> pumpRuniac(
   WidgetTester tester,
   RuniacFirebaseBootstrapResult bootstrap, {
   required RuniacAuthRepository authRepository,
+  bool showAuth = true,
+  bool showOnboarding = true,
 }) async {
   await tester.pumpWidget(
     RuniacApp(
       authRepository: authRepository,
       runRepository: bootstrap.runRepository,
+      friendsRepository: bootstrap.friendsRepository,
+      profileRepository: bootstrap.profileRepository,
       showSplash: false,
-      showAuth: true,
-      showOnboarding: true,
+      showAuth: showAuth,
+      showOnboarding: showOnboarding,
       enableForegroundGps: false,
     ),
   );
@@ -196,7 +200,7 @@ Future<void> attemptWrongPassword(
 Future<void> signOutFromAccount(WidgetTester tester) async {
   await tester.tap(find.bySemanticsLabel('Profile'));
   await tester.pumpAndSettle();
-  expect(find.text('Account'), findsOneWidget);
+  expect(find.text('Profile'), findsOneWidget);
 
   await tester.ensureVisible(find.text('Sign out'));
   await tester.pumpAndSettle();
@@ -252,6 +256,41 @@ Future<void> waitForText(
 
   fail(
     'Timed out after ${timeout.inSeconds}s waiting for "$text": $reason.\n'
+    '${diagnostics ?? 'No auth diagnostics provided'}\n'
+    'Visible Text widgets:\n${_visibleTextDiagnostics(tester)}',
+  );
+}
+
+/// Mirrors [waitForText] but asserts a live disappearance instead of an
+/// appearance (e.g. a friend request row that should vanish from a
+/// snapshot-backed list once the sender's request is accepted/declined).
+Future<void> waitForTextGone(
+  WidgetTester tester,
+  String text, {
+  required String reason,
+  String? diagnostics,
+  Duration timeout = const Duration(seconds: 20),
+}) async {
+  final finder = find.text(text);
+  const pumpStep = Duration(milliseconds: 100);
+  final attempts = timeout.inMilliseconds <= 0
+      ? 1
+      : (timeout.inMilliseconds / pumpStep.inMilliseconds).ceil();
+
+  for (var attempt = 0; attempt < attempts; attempt += 1) {
+    await tester.pump(pumpStep);
+    if (finder.evaluate().isEmpty) {
+      return;
+    }
+  }
+
+  if (finder.evaluate().isEmpty) {
+    return;
+  }
+
+  fail(
+    'Timed out after ${timeout.inSeconds}s waiting for "$text" to disappear: '
+    '$reason.\n'
     '${diagnostics ?? 'No auth diagnostics provided'}\n'
     'Visible Text widgets:\n${_visibleTextDiagnostics(tester)}',
   );

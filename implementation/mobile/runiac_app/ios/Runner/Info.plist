@@ -46,7 +46,14 @@
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Runiac uses your location to track your run while you are using the app.</string>
 	<key>NSMotionUsageDescription</key>
-	<string>Runiac uses phone motion during a run to help detect when you are stopped. Distance and route still come from GPS.</string>
+	<string>Runiac uses phone motion during a run to detect stops, analyse step rate and cadence, and include those insights in your run summary. Distance and route still come from GPS.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Runiac saves your rank share card to your photo library when you tap Save.</string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>instagram-stories</string>
+		<string>instagram</string>
+	</array>
 	<key>NSSupportsLiveActivities</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>

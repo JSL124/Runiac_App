@@ -5,6 +5,7 @@ import '../../../core/widgets/dashboard_card.dart';
 import '../../../core/widgets/runiac_back_header.dart';
 import '../../../core/widgets/runiac_buttons.dart';
 import 'data/expert_plan_demo_snapshots.dart';
+import 'widgets/you_surface_primitives.dart';
 
 const _expertPlanSectionGap = 14.0;
 
@@ -289,7 +290,7 @@ class _CoachReviewedBadge extends StatelessWidget {
     return Container(
       height: 26,
       padding: const EdgeInsets.symmetric(horizontal: 10),
-      decoration: _pillDecoration(const Color(0xFFF7FAFF)),
+      decoration: youPillDecoration(const Color(0xFFF7FAFF)),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: const [
@@ -317,7 +318,7 @@ class _MetaPill extends StatelessWidget {
     return Container(
       height: 28,
       padding: const EdgeInsets.symmetric(horizontal: 9),
-      decoration: _pillDecoration(RuniacColors.background),
+      decoration: youPillDecoration(RuniacColors.background),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -414,14 +415,6 @@ class _AccentStrip extends StatelessWidget {
       ],
     );
   }
-}
-
-BoxDecoration _pillDecoration(Color color) {
-  return BoxDecoration(
-    color: color,
-    borderRadius: BorderRadius.circular(999),
-    border: Border.all(color: RuniacColors.border),
-  );
 }
 
 const _searchPlaceholderStyle = TextStyle(

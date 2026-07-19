@@ -218,6 +218,28 @@ void main() {
     expect(model.currentStageId, HomeStageMapModel.stageId(0, firstRunIndex));
   });
 
+  test('calendar day marks earlier incomplete run stones as missed', () {
+    final plan = _plan();
+    final model = buildHomeStageMapModel(
+      plan: plan,
+      completedScheduledWorkoutIds: const <String>{},
+      activeWeekNumber: plan.weeks.first.weekNumber,
+      currentWeekdayIndex: DateTime.thursday,
+      backgroundSequence: homeStageBackgroundSequence(
+        planId: plan.id,
+        weekCount: plan.weeks.length,
+      ),
+    );
+
+    final stones = model.sections.first.stones;
+    expect(stones[0].state, HomeStageStoneState.missed);
+    expect(stones[1].state, HomeStageStoneState.missed);
+    expect(stones[2].state, HomeStageStoneState.missed);
+    expect(stones[3].state, HomeStageStoneState.current);
+    expect(model.todayDayIndex, DateTime.thursday - 1);
+    expect(model.characterDayIndex, DateTime.thursday - 1);
+  });
+
   test('empty-week plan produces no sections', () {
     final plan = _plan();
     final emptyPlan = BeginnerAdaptivePlanSnapshot(

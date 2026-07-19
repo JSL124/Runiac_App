@@ -44,7 +44,7 @@ class LeaderboardInitialBadge extends StatelessWidget {
       child: RuniacLevelProfileBadge(
         initials: name,
         levelLabel: levelLabel,
-        progressFraction: isCurrentUser ? 0.52 : 0.34,
+        progressFraction: 0,
         size: 34,
         badgeHeight: 13,
         badgeMinWidth: isCurrentUser ? 30 : 24,

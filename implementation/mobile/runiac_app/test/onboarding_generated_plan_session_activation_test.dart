@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/app.dart';
-import 'package:runiac_app/features/account/data/firestore_user_profile_repository.dart';
-import 'package:runiac_app/features/account/domain/repositories/user_profile_persistence_repository.dart';
+import 'package:runiac_app/features/profile/data/firestore_user_profile_repository.dart';
+import 'package:runiac_app/features/profile/domain/repositories/user_profile_persistence_repository.dart';
 import 'package:runiac_app/features/plan/domain/models/beginner_adaptive_plan_snapshot.dart';
 import 'package:runiac_app/features/plan/domain/repositories/generated_plan_persistence_repository.dart';
 import 'package:runiac_app/features/plan/domain/services/beginner_adaptive_plan_generator.dart';
@@ -35,6 +35,37 @@ void main() {
       expect(generatedPlanStore.activePlan, isNotNull);
       expect(generatedPlanStore.activePlan!.title, '10K Performance Build');
       expect(generatedPlanStore.currentWeekRunningSessionCount, 4);
+    },
+  );
+
+  testWidgets(
+    'signed-in onboarding completion saves and activates plan start date',
+    (tester) async {
+      final authRepository = FakeRuniacAuthRepository();
+      final generatedPlanStore = CurrentSessionGeneratedPlanStore();
+      final generatedPlanRepository =
+          _RecordingGeneratedPlanPersistenceRepository();
+      addTearDown(authRepository.dispose);
+      authRepository.emitSignedIn();
+
+      await tester.pumpWidget(
+        RuniacApp(
+          showSplash: false,
+          showOnboarding: true,
+          enableForegroundGps: false,
+          authRepository: authRepository,
+          currentSessionGeneratedPlanStore: generatedPlanStore,
+          generatedPlanPersistenceRepository: generatedPlanRepository,
+          youProgressToday: DateTime(2026, 7, 6),
+        ),
+      );
+
+      await completeOnboardingToFourSessionPreview(tester);
+      await tapText(tester, 'Continue with this plan');
+
+      expect(generatedPlanRepository.savedUid, 'test-auth-user-1');
+      expect(generatedPlanRepository.savedPlan?.startsOnDate, '2026-07-06');
+      expect(generatedPlanStore.activePlan?.startsOnDate, '2026-07-06');
     },
   );
 
@@ -255,7 +286,6 @@ void main() {
     expect(profileRepository.profile?.fullName, 'Maya Tan');
     expect(profileRepository.profile?.nickname, 'Maya');
     expect(profileRepository.profile?.avatarInitials, 'M');
-    expect(profileRepository.profile?.nicknameKey, 'maya');
     expect(profileRepository.profile?.dateOfBirthIso, '2002-06-28');
     expect(profileRepository.profile?.ageYears, 24);
     expect(profileRepository.profile?.weightKg, 58.5);
@@ -574,7 +604,6 @@ class _SavedOnboardingProfileDocumentReader
       'fullName': 'Maya Tan',
       'nickname': 'Maya',
       'avatarInitials': 'M',
-      'nicknameKey': 'maya',
       'dateOfBirth': '2002-06-28',
       'ageYears': 24,
       'weightKg': 58.5,

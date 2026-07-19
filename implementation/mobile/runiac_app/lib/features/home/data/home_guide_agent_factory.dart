@@ -1,4 +1,5 @@
-import '../../run/data/run_repository_factory.dart' show RuniacFirebaseRuntimeConfig;
+import '../../run/data/run_repository_factory.dart'
+    show RuniacFirebaseRuntimeConfig;
 import '../domain/guide/home_guide_agent.dart';
 import '../domain/guide/rule_based_home_guide_agent.dart';
 import 'cloud_function_home_guide_agent.dart';

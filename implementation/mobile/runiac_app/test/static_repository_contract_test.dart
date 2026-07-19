@@ -1,10 +1,10 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:runiac_app/features/account/data/static_user_profile_repository.dart';
-import 'package:runiac_app/features/account/data/static_viewer_access_repository.dart';
-import 'package:runiac_app/features/account/domain/repositories/user_profile_repository.dart';
-import 'package:runiac_app/features/account/domain/repositories/viewer_access_repository.dart';
+import 'package:runiac_app/features/profile/data/static_user_profile_repository.dart';
+import 'package:runiac_app/features/profile/data/static_viewer_access_repository.dart';
+import 'package:runiac_app/features/profile/domain/repositories/user_profile_repository.dart';
+import 'package:runiac_app/features/profile/domain/repositories/viewer_access_repository.dart';
 import 'package:runiac_app/features/feed/data/static_feed_repository.dart';
 import 'package:runiac_app/features/feed/domain/models/feed_display_models.dart';
 import 'package:runiac_app/features/feed/domain/repositories/feed_repository.dart';
@@ -17,8 +17,10 @@ import 'package:runiac_app/features/maps/domain/repositories/shared_routes_repos
 import 'package:runiac_app/features/run/data/static_run_repository.dart';
 import 'package:runiac_app/features/run/domain/models/coaching_summary_snapshot.dart';
 import 'package:runiac_app/features/run/domain/models/local_run_completion_payload.dart';
+import 'package:runiac_app/features/run/domain/models/xp_update_display_model.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_repository.dart';
 import 'package:runiac_app/features/run/domain/services/advanced_analysis_snapshot_builder.dart';
+import 'package:runiac_app/features/run/domain/services/completed_run_title_formatter.dart';
 import 'package:runiac_app/features/run/domain/services/pace_graph_data_builder.dart';
 import 'package:runiac_app/features/you/data/static_activity_history_repository.dart';
 import 'package:runiac_app/features/you/data/static_expert_plans_repository.dart';
@@ -73,7 +75,7 @@ void main() {
       const repositoryContracts = <_RepositoryContract>[
         _RepositoryContract(
           path:
-              'lib/features/account/domain/repositories/'
+              'lib/features/profile/domain/repositories/'
               'user_profile_repository.dart',
           declarations: <String>[
             'Future<UserProfileReadModel> loadUserProfile();',
@@ -114,7 +116,7 @@ void main() {
         ),
         _RepositoryContract(
           path:
-              'lib/features/account/domain/repositories/'
+              'lib/features/profile/domain/repositories/'
               'viewer_access_repository.dart',
           declarations: <String>[
             'Future<ViewerAccessReadModel> loadViewerAccess();',
@@ -135,8 +137,9 @@ void main() {
             'Future<CompleteRunResult> loadLatestCompletionResult();',
             'Future<RunActivityReadModel> loadLatestRunActivity();',
             'Future<CompleteRunResult> completeRun(LocalRunCompletionPayload payload);',
+            'Future<CompleteRunResult> completeCoolDown({ required String activityId, required String clientRunSessionId, });',
           ],
-          allowedCommandMethods: <String>['completeRun'],
+          allowedCommandMethods: <String>['completeRun', 'completeCoolDown'],
         ),
       ];
 
@@ -324,6 +327,8 @@ void main() {
         isNot(contains(_forbiddenDefaultDemoCoachingCopy)),
       );
       expect(completedRun.activityId, 'static-local-session-20260614-0700');
+      expect(completedRun.xpUpdate.xpAwardState, XpAwardState.syncPending);
+      expect(completedRun.xpUpdate.totalXpLabel, 'Saved on this device');
       expect(completedRun.clientRunSessionId, 'local-session-20260614-0700');
       expect(
         completedRun.summaryId,
@@ -334,7 +339,12 @@ void main() {
         'static-progression-local-session-20260614-0700',
       );
       expect(completedRun.validationStatus, 'validated');
-      expect(completedRun.summary.title, 'Sunday Morning Run');
+      expect(
+        completedRun.summary.title,
+        const CompletedRunTitleFormatter().format(
+          completedAt: payload.completedAt,
+        ),
+      );
       expect(completedRun.summary.distanceKm, '3.20');
       expect(completedRun.summary.duration, '25:00');
       expect(completedRun.summary.avgPace, '7’49”');
@@ -432,7 +442,12 @@ void main() {
 
         final completedRun = await repository.completeRun(payload);
 
-        expect(completedRun.summary.title, 'Sunday Morning Run');
+        expect(
+          completedRun.summary.title,
+          const CompletedRunTitleFormatter().format(
+            completedAt: payload.completedAt,
+          ),
+        );
         expect(completedRun.summary.distanceKm, '0.00');
         expect(completedRun.summary.duration, '0:00');
         expect(completedRun.summary.avgPace, '--');
@@ -448,7 +463,7 @@ void main() {
         expect(completedRun.summary.calories, isNot('145'));
         expect(completedRun.summary.routeName, isNot('East Coast Park Loop'));
         expect(completedRun.xpUpdate.earnedXpLabel, '+0 XP');
-        expect(completedRun.xpUpdate.streakChangeLabel, 'Deferred');
+        expect(completedRun.xpUpdate.streakChangeLabel, 'Not updated yet');
       },
     );
 

@@ -1,5 +1,8 @@
 import 'package:flutter/widgets.dart';
 
+import '../../../../core/assets/runiac_assets.dart';
+import '../../domain/models/leaderboard_read_model.dart';
+
 // Presentation-only display models for static leaderboard UI.
 // Backend-owned values are read-only labels here, not client calculations.
 class LeaderboardPreviewSnapshot {
@@ -70,6 +73,11 @@ class LeaderboardDetailDisplaySnapshot {
     required this.currentUser,
     required this.topRanks,
     required this.nearbyRanks,
+    this.divisionAssetPath = RuniacAssets.leaderboardLeagueIron,
+    this.status = LeaderboardReadStatus.data,
+    this.hasCurrentUserRank = true,
+    this.periodEndsAt,
+    this.refreshLabelIsLive = false,
   });
 
   final String regionId;
@@ -81,11 +89,31 @@ class LeaderboardDetailDisplaySnapshot {
   final String fallbackRefreshLabel;
   final String monthlyResetLabel;
   final String divisionLabel;
+  // League (division) badge artwork for this board, resolved from the
+  // backend-owned division tier. Display-only; never computed on the client.
+  final String divisionAssetPath;
   final String topRanksTitle;
   final String nearbyRanksTitle;
   final CurrentUserRankSummaryDisplaySnapshot currentUser;
   final List<LeaderboardRankRowDisplaySnapshot> topRanks;
   final List<LeaderboardRankRowDisplaySnapshot> nearbyRanks;
+
+  // Backend-owned read status. Display-only; the client renders empty,
+  // unranked, updating, and ineligible states from this signal without
+  // computing any rank or score.
+  final LeaderboardReadStatus status;
+
+  // True when the backend reported a rank for the current user. Detected
+  // from presence in the read model, never computed on the client.
+  final bool hasCurrentUserRank;
+
+  // Backend-owned monthly period end. Display-only: the refresh countdown is
+  // re-derived from this trusted instant; the client never computes the reset.
+  final DateTime? periodEndsAt;
+
+  // True when [refreshLabel] was derived from [periodEndsAt] (should tick live)
+  // rather than supplied verbatim by the backend as a static copy string.
+  final bool refreshLabelIsLive;
 }
 
 class LeaderboardMapRegionDisplaySnapshot {
