@@ -1062,6 +1062,13 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // feedback is written only by the submitFeedback callable via Admin SDK
+    // and read only by the admin console via firebase-admin; clients get no
+    // direct access.
+    match /feedback/{feedbackId} {
+      allow read, write: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }
