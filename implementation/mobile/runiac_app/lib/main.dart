@@ -38,8 +38,15 @@ Future<void> main() async {
     const appCheckDebugToken = String.fromEnvironment(
       'RUNIAC_APPCHECK_DEBUG_TOKEN',
     );
+    // An explicitly supplied debug token opts this build into the App Check
+    // debug providers even in release, so `run_runiac_release` on a dev device
+    // still passes enforced callables. Store/TestFlight builds ship without the
+    // dart-define, so they keep real Play Integrity / App Attest attestation.
     await RuniacAppCheckBootstrap.activate(
-      useDebugProviders: kDebugMode || runtimeConfig.useFirebaseEmulator,
+      useDebugProviders:
+          kDebugMode ||
+          runtimeConfig.useFirebaseEmulator ||
+          appCheckDebugToken.isNotEmpty,
       debugToken: appCheckDebugToken.isEmpty ? null : appCheckDebugToken,
     );
   }
