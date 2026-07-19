@@ -4,9 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../../core/assets/runiac_assets.dart';
+import '../../../../core/share/share_card_export_service.dart';
 import '../../../../core/theme/runiac_colors.dart';
+import '../../../../core/widgets/runiac_checkerboard_painter.dart';
 import '../../../../core/widgets/runiac_share_bottom_sheet.dart';
-import '../share_rank_export_service.dart';
 
 // Fixed card aspect ratio shared by the solid and transparent share cards so
 // the carousel page height and the width capping math stay consistent.
@@ -33,7 +34,7 @@ class ShareRankFloatingPanel extends StatefulWidget {
 }
 
 class _ShareRankFloatingPanelState extends State<ShareRankFloatingPanel> {
-  static const _export = ShareRankExportService();
+  static const _export = ShareCardExportService();
 
   final PageController _pageController = PageController();
   final GlobalKey _solidBoundaryKey = GlobalKey();
@@ -158,7 +159,10 @@ class _ShareRankFloatingPanelState extends State<ShareRankFloatingPanel> {
       _showToast('Could not render the card');
       return;
     }
-    final url = await _export.uploadShareCardLink(bytes);
+    final url = await _export.uploadShareCardLink(
+      bytes,
+      storageFileName: 'rank-card.png',
+    );
     if (url == null) {
       _showToast('Sign in to copy a share link');
       return;
@@ -492,7 +496,7 @@ class _ShareRankTransparentCard extends StatelessWidget {
                   Positioned.fill(
                     child: CustomPaint(
                       key: const Key('leaderboard_share_rank_transparent_sign'),
-                      painter: const _CheckerboardPainter(),
+                      painter: const RuniacCheckerboardPainter(),
                     ),
                   ),
                 // Laurel wreath, sparkle dividers, and running-man divider,
@@ -528,34 +532,6 @@ class _ShareRankTransparentCard extends StatelessWidget {
       ),
     );
   }
-}
-
-// Draws a light checkerboard, the conventional "transparent background"
-// indicator, behind the transparent card's components in the preview.
-class _CheckerboardPainter extends CustomPainter {
-  const _CheckerboardPainter();
-
-  static const double _cell = 16;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final light = Paint()..color = const Color(0xFFF4F5F7);
-    final dark = Paint()..color = const Color(0xFFD3D7DE);
-    canvas.drawRect(Offset.zero & size, light);
-    for (var row = 0; row * _cell < size.height; row++) {
-      for (var col = 0; col * _cell < size.width; col++) {
-        if ((row + col).isEven) {
-          canvas.drawRect(
-            Rect.fromLTWH(col * _cell, row * _cell, _cell, _cell),
-            dark,
-          );
-        }
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(_CheckerboardPainter oldDelegate) => false;
 }
 
 // Vector decorations for the transparent card: two sparkle dividers, a

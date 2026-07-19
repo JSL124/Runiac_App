@@ -293,9 +293,11 @@ is_allowed_path() {
     implementation/roadmap/capsules/profile-lifetime-stats-backend.md)
       return 0
       ;;
-    # Approved: routed Share-my-rank card + Share-rank export-targets capsules
+    # Approved: routed Share-my-rank card + Share-rank export-targets capsules,
+    # and the routed Share-activity-card real-data export capsule
     implementation/roadmap/capsules/share-my-rank-transparent-card-league-badge.md|\
     implementation/roadmap/capsules/share-rank-card-export-targets.md|\
+    implementation/roadmap/capsules/share-activity-card-real-data-export.md|\
     tests/firebase-rules/share-card.storage.rules.test.mjs)
       return 0
       ;;

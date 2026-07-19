@@ -15,6 +15,7 @@ const PROJECT_ID = 'demo-runiac-feed';
 const PNG_BYTES = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
 const PNG_METADATA = { contentType: 'image/png' };
 const CARD_PATH = 'share-cards/alice/rank-card.png';
+const ACTIVITY_CARD_PATH = 'share-cards/alice/activity-card.png';
 
 let testEnv;
 
@@ -104,5 +105,16 @@ describe('Share card Storage Rules', () => {
     await seedObject(CARD_PATH);
     await assertSucceeds(getBytes(ref(storageFor('alice'), CARD_PATH)));
     await assertFails(getBytes(ref(storageFor('mallory'), CARD_PATH)));
+  });
+
+  it('allows the owner to upload and read a run-activity card', async () => {
+    await assertSucceeds(
+      uploadBytes(
+        ref(storageFor('alice'), ACTIVITY_CARD_PATH),
+        PNG_BYTES,
+        PNG_METADATA,
+      ),
+    );
+    await assertSucceeds(getBytes(ref(storageFor('alice'), ACTIVITY_CARD_PATH)));
   });
 });

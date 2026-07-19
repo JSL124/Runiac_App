@@ -6,7 +6,6 @@ import 'package:runiac_app/features/run/domain/models/advanced_analysis_snapshot
 import 'widgets/advanced_analysis/advanced_analysis_metric_sections.dart';
 import 'widgets/advanced_analysis/advanced_analysis_overview_section.dart';
 import 'widgets/advanced_analysis/advanced_analysis_theme.dart';
-import 'widgets/share_achievement_sheet.dart';
 
 class AdvancedAnalysisScreen extends StatelessWidget {
   const AdvancedAnalysisScreen({
@@ -19,17 +18,6 @@ class AdvancedAnalysisScreen extends StatelessWidget {
   final String title;
   final String subtitle;
   final AdvancedAnalysisSnapshot? analysisSnapshot;
-
-  void _showShareSheet(BuildContext context) {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      backgroundColor: Colors.transparent,
-      barrierColor: Colors.black.withValues(alpha: 0.48),
-      builder: (context) => const ShareAchievementSheet(),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -55,16 +43,6 @@ class AdvancedAnalysisScreen extends StatelessWidget {
                 fontSize: 12.5,
                 fontWeight: FontWeight.w600,
                 height: 1.15,
-              ),
-              trailing: IconButton(
-                tooltip: 'Share advanced analysis',
-                onPressed: () => _showShareSheet(context),
-                style: IconButton.styleFrom(
-                  foregroundColor: advancedAnalysisBlue,
-                  minimumSize: const Size(40, 40),
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                icon: const Icon(Icons.share_outlined, size: 20),
               ),
             ),
             Expanded(

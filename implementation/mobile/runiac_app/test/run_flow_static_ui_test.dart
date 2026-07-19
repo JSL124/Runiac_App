@@ -1,12 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runiac_app/app.dart';
+import 'package:runiac_app/core/assets/runiac_assets.dart';
 import 'package:runiac_app/core/theme/runiac_colors.dart';
 import 'package:runiac_app/features/feed/data/feed_publish/feed_publish_service.dart';
 import 'package:runiac_app/features/feed/presentation/current_session_feed.dart';
@@ -152,7 +153,8 @@ Widget _shareSheetHarness() {
                   useSafeArea: true,
                   backgroundColor: Colors.transparent,
                   barrierColor: Colors.black.withValues(alpha: 0.48),
-                  builder: (context) => const ShareAchievementSheet(),
+                  builder: (context) =>
+                      ShareAchievementSheet(summary: _summaryWithRoute()),
                 );
               },
               child: const Text('Open share sheet'),
@@ -1086,7 +1088,7 @@ void main() {
     await tester.tap(find.byTooltip('Share summary'), warnIfMissed: false);
     await tester.pumpAndSettle();
 
-    expect(find.text('Share Your Achievement'), findsOneWidget);
+    expect(find.text('Share Your Activity'), findsOneWidget);
 
     await tester.tap(find.widgetWithText(TextButton, 'Close'));
     await tester.pumpAndSettle();
@@ -1163,7 +1165,7 @@ void main() {
 
       await tester.tap(find.byTooltip('Share summary'), warnIfMissed: false);
       await tester.pumpAndSettle();
-      expect(find.text('Share Your Achievement'), findsNothing);
+      expect(find.text('Share Your Activity'), findsNothing);
 
       await tester.tap(find.byTooltip('Close activity feedback'));
       await tester.pumpAndSettle();
@@ -1171,7 +1173,7 @@ void main() {
 
       await tester.tap(find.byTooltip('Share summary'));
       await tester.pumpAndSettle();
-      expect(find.text('Share Your Achievement'), findsOneWidget);
+      expect(find.text('Share Your Activity'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );
@@ -2741,68 +2743,93 @@ void main() {
   });
 
   testWidgets(
-    'View summary share icon opens Share Your Achievement bottom sheet',
+    'View summary share icon opens Share Your Activity bottom sheet',
     (WidgetTester tester) async {
       _useTallSummarySurface(tester);
       await tester.pumpWidget(const MaterialApp(home: ViewSummaryScreen()));
 
       expect(find.byTooltip('Share summary'), findsOneWidget);
-      expect(find.text('Share Your Achievement'), findsNothing);
+      expect(find.text('Share Your Activity'), findsNothing);
 
       await tester.tap(find.byTooltip('Share summary'));
       await tester.pumpAndSettle();
 
       expect(find.text('Saturday Morning Run'), findsWidgets);
-      expect(find.text('Share Your Achievement'), findsOneWidget);
+      expect(find.text('Share Your Activity'), findsOneWidget);
     },
   );
 
   testWidgets(
-    'Share achievement sheet renders static preview metrics and actions',
+    'Share achievement sheet renders real activity metrics and new actions',
     (WidgetTester tester) async {
       _useCompactShareSheetSurface(tester);
+      final messenger =
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      addTearDown(() {
+        messenger.setMockMethodCallHandler(SystemChannels.platform, null);
+      });
+      String? copiedText;
+      messenger.setMockMethodCallHandler(SystemChannels.platform, (
+        MethodCall methodCall,
+      ) async {
+        if (methodCall.method == 'Clipboard.setData') {
+          copiedText = (methodCall.arguments as Map)['text'] as String?;
+          return null;
+        }
+        return null;
+      });
+
       await tester.pumpWidget(_shareSheetHarness());
 
       await tester.tap(find.text('Open share sheet'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Share Your Achievement'), findsOneWidget);
+      expect(find.text('Share Your Activity'), findsOneWidget);
+      // Real values sourced from defaultRunSummarySnapshot via
+      // _summaryWithRoute(); distance/pace/duration also render on the
+      // transparent overlay card (page 2), so those repeat.
       expect(find.text('4.03'), findsWidgets);
       expect(find.text('km'), findsWidgets);
-      expect(find.text('6\'30"'), findsOneWidget);
-      expect(find.text('Avg pace'), findsOneWidget);
+      expect(find.text('6’30”'), findsWidgets);
+      expect(find.text('Avg pace'), findsWidgets);
       expect(find.text('30:15'), findsWidgets);
       expect(find.text('Time'), findsWidgets);
       expect(find.text('Avg HR'), findsOneWidget);
       expect(find.text('145'), findsWidgets);
-      expect(find.text('Calories'), findsWidgets);
-      expect(find.text('Edit card'), findsOneWidget);
-      expect(find.text('Change theme'), findsOneWidget);
-      expect(find.text('Instagram Stories'), findsOneWidget);
-      expect(find.text('Copy Image'), findsOneWidget);
-      expect(find.text('Save Image'), findsOneWidget);
-      expect(find.text('Copy Link'), findsOneWidget);
-      expect(find.text('More'), findsWidgets);
+      expect(find.text('Calories'), findsOneWidget);
+      expect(find.text('Saturday Morning Run'), findsOneWidget);
+      expect(find.text('East Coast Park Loop'), findsOneWidget);
+      expect(find.text('Imported run with steady rhythm'), findsOneWidget);
+      expect(find.text('Edit card'), findsNothing);
+      expect(find.text('Change theme'), findsNothing);
+      expect(find.text('Runiac'), findsNothing);
       expect(
-        find.image(const AssetImage('assets/icons/instagram_stories.png')),
+        find.descendant(
+          of: find.byKey(const Key('run_share_activity_card_solid')),
+          matching: find.image(AssetImage(RuniacAssets.runiacWordmarkLogo)),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Instagram'), findsOneWidget);
+      expect(find.text('Copy to Clipboard'), findsOneWidget);
+      expect(find.text('Save'), findsOneWidget);
+      expect(find.text('Copy Link'), findsOneWidget);
+      expect(find.text('More'), findsOneWidget);
+      expect(
+        find.byKey(const Key('run_share_activity_map_fallback')),
         findsOneWidget,
       );
       expect(
-        find.descendant(
-          of: find.byType(ShareAchievementSheet),
-          matching: find.byType(Scrollable),
-        ),
+        find.byKey(const Key('run_share_activity_map_image')),
         findsNothing,
       );
       expect(tester.takeException(), isNull);
 
-      await tester.tap(find.text('Copy Image'));
+      await tester.tap(find.text('Copy to Clipboard'));
       await tester.pump();
 
-      expect(
-        find.text('Preview only. Image copying is not connected yet.'),
-        findsOneWidget,
-      );
+      expect(find.text('Activity copied to clipboard'), findsOneWidget);
+      expect(copiedText, 'I ran 4.03 km in 30:15 at 6’30” pace on Runiac.');
     },
   );
 
@@ -2819,10 +2846,9 @@ void main() {
     await tester.tap(find.text('Open share sheet'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Share Your Achievement'), findsOneWidget);
-    expect(find.text('Change theme'), findsOneWidget);
-    expect(find.text('Instagram Stories'), findsOneWidget);
-    expect(find.text('More'), findsWidgets);
+    expect(find.text('Share Your Activity'), findsOneWidget);
+    expect(find.text('Instagram'), findsOneWidget);
+    expect(find.text('More'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -2835,14 +2861,91 @@ void main() {
       await tester.tap(find.byTooltip('Share summary'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Share Your Achievement'), findsOneWidget);
+      expect(find.text('Share Your Activity'), findsOneWidget);
 
       await tester.tap(find.widgetWithText(TextButton, 'Close'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Share Your Achievement'), findsNothing);
+      expect(find.text('Share Your Activity'), findsNothing);
       expect(find.text('Saturday Morning Run'), findsOneWidget);
       expect(find.text('Run saved'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'Share achievement sheet carousel swipes to the transparent overlay card',
+    (WidgetTester tester) async {
+      // A generously tall surface: at common phone heights (e.g. the 900pt
+      // compact surface used elsewhere in this file) the transparent overlay
+      // card's distance hero (share_achievement_sheet.dart _TransparentDistanceHero)
+      // overflows by a few pixels because, unlike the solid card's hero, it is
+      // not wrapped in a FittedBox. That is a pre-existing widget layout gap
+      // outside this test task's scope (no lib/ changes here); using a taller
+      // surface keeps this test focused on carousel/page-swap behaviour
+      // without tripping over that unrelated overflow.
+      tester.view
+        ..physicalSize = const Size(390, 1400)
+        ..devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(_shareSheetHarness());
+
+      await tester.tap(find.text('Open share sheet'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const Key('run_share_activity_card_solid')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('run_share_activity_page_indicator')),
+        findsOneWidget,
+      );
+
+      await tester.drag(
+        find.byKey(const Key('run_share_activity_carousel')),
+        const Offset(-400, 0),
+      );
+      await tester.pumpAndSettle();
+
+      final transparentCard = find.byKey(
+        const Key('run_share_activity_card_transparent'),
+      );
+      expect(transparentCard, findsOneWidget);
+      expect(
+        find.descendant(
+          of: transparentCard,
+          matching: find.byKey(const Key('run_share_activity_transparent_sign')),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: transparentCard,
+          matching: find.byKey(
+            const Key('run_share_activity_transparent_logo'),
+          ),
+        ),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'Advanced analysis screen no longer exposes a share action',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: AdvancedAnalysisScreen(
+            title: defaultRunSummarySnapshot.title,
+            subtitle: defaultRunSummarySnapshot.dateTimeLabel,
+            analysisSnapshot: const AdvancedAnalysisSnapshotBuilder()
+                .fromRunSummary(defaultRunSummarySnapshot),
+          ),
+        ),
+      );
+
+      expect(find.byTooltip('Share advanced analysis'), findsNothing);
     },
   );
 

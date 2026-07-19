@@ -10,11 +10,13 @@ import 'package:flutter/widgets.dart';
 import 'package:gal/gal.dart';
 import 'package:share_plus/share_plus.dart';
 
-/// Display-only export of the rendered share card. Rasterizes the card widget
-/// and hands the PNG to the gallery / OS share sheet. It never reads or writes
-/// any backend-owned value — the card only paints trusted labels.
-class ShareRankExportService {
-  const ShareRankExportService();
+/// Display-only export of a rendered share card (leaderboard rank, run
+/// activity, etc.). Rasterizes the card widget and hands the PNG to the
+/// gallery / OS share sheet / Instagram Stories / Storage upload. It never
+/// reads or writes any backend-owned value — the card only paints trusted
+/// labels.
+class ShareCardExportService {
+  const ShareCardExportService();
 
   static const MethodChannel _instagramChannel = MethodChannel(
     'runiac/instagram_story',
@@ -83,7 +85,10 @@ class ShareRankExportService {
   /// Returns null when Firebase is unavailable, no user is signed in, or the
   /// upload is rejected. Only trusted display values are rendered into the
   /// image; no backend-owned value is written.
-  Future<String?> uploadShareCardLink(Uint8List pngBytes) async {
+  Future<String?> uploadShareCardLink(
+    Uint8List pngBytes, {
+    required String storageFileName,
+  }) async {
     if (Firebase.apps.isEmpty) {
       return null;
     }
@@ -93,7 +98,7 @@ class ShareRankExportService {
     }
     try {
       final reference = FirebaseStorage.instance.ref(
-        'share-cards/$uid/rank-card.png',
+        'share-cards/$uid/$storageFileName',
       );
       await reference.putData(
         pngBytes,
