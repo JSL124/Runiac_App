@@ -6,6 +6,11 @@ export type ProgressionCoolDownConfig = {
   readonly max: number;
 };
 
+export type StreakRewardConfig = {
+  readonly milestoneDays: number;
+  readonly bonusXp: number;
+};
+
 export type ProgressionConfig = {
   readonly baseCompletionXp: number;
   readonly xpPerKilometer: number;
@@ -17,6 +22,7 @@ export type ProgressionConfig = {
   readonly maxLevel: number;
   readonly coolDown: ProgressionCoolDownConfig;
   readonly levelIncrements: readonly number[];
+  readonly streakRewards: readonly StreakRewardConfig[];
   readonly version: number;
 };
 
@@ -57,6 +63,12 @@ export const DEFAULT_PROGRESSION_CONFIG: ProgressionConfig = {
     max: 20,
   },
   levelIncrements: [100, 150, 220, 300, 400, 520, 660, 820, 1000, 1200],
+  streakRewards: [
+    { milestoneDays: 3, bonusXp: 30 },
+    { milestoneDays: 7, bonusXp: 90 },
+    { milestoneDays: 14, bonusXp: 220 },
+    { milestoneDays: 30, bonusXp: 600 },
+  ],
   version: 1,
 };
 
@@ -160,6 +172,36 @@ export function validateProgressionConfig(config: ProgressionConfig): ConfigVali
     errors.push("levelIncrements must be a non-empty array");
   } else if (!config.levelIncrements.every((increment) => isFiniteNumber(increment) && increment > 0)) {
     errors.push("levelIncrements must contain only finite positive numbers");
+  }
+
+  if (!Array.isArray(config.streakRewards)) {
+    errors.push("streakRewards must be an array");
+  } else {
+    let previousMilestoneDays: number | undefined;
+
+    for (const [index, reward] of config.streakRewards.entries()) {
+      if (!isPlainObject(reward)) {
+        errors.push(`streakRewards[${index}] must be an object`);
+        continue;
+      }
+
+      const milestoneDays = reward["milestoneDays"];
+      const bonusXp = reward["bonusXp"];
+
+      if (!isFiniteNumber(milestoneDays) || !Number.isInteger(milestoneDays) || milestoneDays < 1) {
+        errors.push(`streakRewards[${index}].milestoneDays must be an integer greater than or equal to 1`);
+      } else {
+        if (previousMilestoneDays !== undefined && milestoneDays <= previousMilestoneDays) {
+          errors.push(`streakRewards[${index}].milestoneDays must be greater than the previous milestoneDays`);
+        }
+
+        previousMilestoneDays = milestoneDays;
+      }
+
+      if (!isFiniteNumber(bonusXp) || bonusXp < 0) {
+        errors.push(`streakRewards[${index}].bonusXp must be a non-negative finite number`);
+      }
+    }
   }
 
   return { valid: errors.length === 0, errors };

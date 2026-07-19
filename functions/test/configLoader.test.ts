@@ -9,6 +9,7 @@ import {
   loadFeatureAccessConfig,
   loadLeaderboardConfig,
   loadProgressionConfig,
+  type ProgressionConfig,
   validateFeatureAccessConfig,
   validateLeaderboardConfig,
   validateProgressionConfig,
@@ -122,6 +123,61 @@ describe("validateProgressionConfig", () => {
 
     assert.equal(result.valid, false);
     assert.ok(result.errors.some((error) => error.includes("levelIncrements")));
+  });
+
+  it("includes default streakRewards milestones", () => {
+    assert.deepEqual(DEFAULT_PROGRESSION_CONFIG.streakRewards, [
+      { milestoneDays: 3, bonusXp: 30 },
+      { milestoneDays: 7, bonusXp: 90 },
+      { milestoneDays: 14, bonusXp: 220 },
+      { milestoneDays: 30, bonusXp: 600 },
+    ]);
+  });
+
+  it("accepts a custom streakRewards array", () => {
+    const result = validateProgressionConfig({
+      ...DEFAULT_PROGRESSION_CONFIG,
+      streakRewards: [
+        { milestoneDays: 2, bonusXp: 0 },
+        { milestoneDays: 10, bonusXp: 250 },
+      ],
+    });
+
+    assert.equal(result.valid, true);
+    assert.deepEqual(result.errors, []);
+  });
+
+  it("rejects a non-array streakRewards", () => {
+    const result = validateProgressionConfig({
+      ...DEFAULT_PROGRESSION_CONFIG,
+      streakRewards: {} as unknown as ProgressionConfig["streakRewards"],
+    });
+
+    assert.equal(result.valid, false);
+    assert.ok(result.errors.some((error) => error.includes("streakRewards must be an array")));
+  });
+
+  it("rejects a negative streakRewards bonusXp", () => {
+    const result = validateProgressionConfig({
+      ...DEFAULT_PROGRESSION_CONFIG,
+      streakRewards: [{ milestoneDays: 3, bonusXp: -1 }],
+    });
+
+    assert.equal(result.valid, false);
+    assert.ok(result.errors.some((error) => error.includes("streakRewards[0].bonusXp")));
+  });
+
+  it("rejects non-increasing streakRewards milestoneDays", () => {
+    const result = validateProgressionConfig({
+      ...DEFAULT_PROGRESSION_CONFIG,
+      streakRewards: [
+        { milestoneDays: 7, bonusXp: 90 },
+        { milestoneDays: 7, bonusXp: 120 },
+      ],
+    });
+
+    assert.equal(result.valid, false);
+    assert.ok(result.errors.some((error) => error.includes("streakRewards[1].milestoneDays")));
   });
 });
 
