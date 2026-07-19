@@ -19,6 +19,7 @@ import { Timestamp, type Firestore } from "firebase-admin/firestore";
 import { isPremiumSubscription } from "./progressionAuditHelpers.js";
 
 const ADMIN_AUDIT_LOGS = "adminAuditLogs";
+const USER_PROFILES = "userProfiles";
 
 // Upper bound on candidates examined per sweep; a daily cadence drains any
 // backlog within a small number of runs while keeping one run bounded.
@@ -100,11 +101,35 @@ export async function runSubscriptionExpirySweep(
         return false;
       }
 
+      // Entitlement is evaluated as users OR userProfiles — see
+      // readOwnerFacts() and calculateProgressionAudit(). A mirrored
+      // `userProfiles/{uid}.subscriptionStatus` (the leaderboard seed dataset
+      // writes one) would therefore keep a lapsed user counted as premium even
+      // after this sweep downgrades the user document, silently continuing to
+      // suppress their XP and exclude them from leaderboards. Clearing the
+      // mirror in the same transaction keeps both sides of that OR consistent;
+      // the field is only touched when it is actually present, so profiles
+      // without it are left alone.
+      const profileRef = firestore.collection(USER_PROFILES).doc(candidate.id);
+      const profileSnapshot = await transaction.get(profileRef);
+      const profileData = profileSnapshot.data();
+      const profileMirrorsPremium =
+        profileData !== undefined &&
+        profileData["subscriptionStatus"] !== undefined &&
+        profileData["subscriptionStatus"] !== "basic";
+
       const before = {
         subscriptionStatus: data["subscriptionStatus"] ?? null,
         subscriptionExpiresAt: data["subscriptionExpiresAt"] ?? null,
+        ...(profileMirrorsPremium
+          ? { profileSubscriptionStatus: profileData["subscriptionStatus"] }
+          : {}),
       };
-      const after = { subscriptionStatus: "basic", subscriptionExpiresAt: null };
+      const after = {
+        subscriptionStatus: "basic",
+        subscriptionExpiresAt: null,
+        ...(profileMirrorsPremium ? { profileSubscriptionStatus: "basic" } : {}),
+      };
 
       transaction.set(
         candidate.ref,
@@ -116,6 +141,14 @@ export async function runSubscriptionExpirySweep(
         },
         { merge: true },
       );
+
+      if (profileMirrorsPremium) {
+        transaction.set(
+          profileRef,
+          { subscriptionStatus: "basic" },
+          { merge: true },
+        );
+      }
 
       transaction.set(firestore.collection(ADMIN_AUDIT_LOGS).doc(), {
         actor: "system",

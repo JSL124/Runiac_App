@@ -21,7 +21,7 @@ describe(
     });
 
     beforeEach(async () => {
-      await clearCollections(firestore, ["users", "adminAuditLogs"]);
+      await clearCollections(firestore, ["users", "userProfiles", "adminAuditLogs"]);
     });
 
     it("downgrades exactly the lapsed premium docs and leaves others untouched", async () => {
@@ -177,6 +177,63 @@ describe(
           "premium",
         );
       }
+    });
+
+    // Regression: entitlement is evaluated as users OR userProfiles
+    // (readOwnerFacts, calculateProgressionAudit), so downgrading only the user
+    // document leaves a mirrored profile value still asserting premium — the
+    // lapsed user would keep having XP suppressed and stay excluded from
+    // leaderboards even though rules now see Basic.
+    it("clears a mirrored userProfiles subscriptionStatus in the same transaction", async () => {
+      await firestore.collection("users").doc("mirrored-premium").set({
+        subscriptionStatus: "premium",
+        subscriptionExpiresAt: Timestamp.fromMillis(pastMs),
+      });
+      await firestore.collection("userProfiles").doc("mirrored-premium").set({
+        subscriptionStatus: "premium",
+        locationLabel: "Singapore",
+      });
+
+      const result = await runSubscriptionExpirySweep(firestore, nowMs);
+
+      assert.equal(result.expiredCount, 1);
+      assert.equal(
+        (await firestore.collection("users").doc("mirrored-premium").get()).data()?.[
+          "subscriptionStatus"
+        ],
+        "basic",
+      );
+      assert.equal(
+        (await firestore.collection("userProfiles").doc("mirrored-premium").get()).data()?.[
+          "subscriptionStatus"
+        ],
+        "basic",
+      );
+      // Unrelated profile fields survive the merge.
+      assert.equal(
+        (await firestore.collection("userProfiles").doc("mirrored-premium").get()).data()?.[
+          "locationLabel"
+        ],
+        "Singapore",
+      );
+    });
+
+    it("leaves profiles without a mirrored subscriptionStatus untouched", async () => {
+      await firestore.collection("users").doc("no-mirror").set({
+        subscriptionStatus: "premium",
+        subscriptionExpiresAt: Timestamp.fromMillis(pastMs),
+      });
+      await firestore.collection("userProfiles").doc("no-mirror").set({
+        locationLabel: "Singapore",
+      });
+
+      const result = await runSubscriptionExpirySweep(firestore, nowMs);
+
+      assert.equal(result.expiredCount, 1);
+      const profile = (
+        await firestore.collection("userProfiles").doc("no-mirror").get()
+      ).data();
+      assert.equal("subscriptionStatus" in (profile ?? {}), false);
     });
 
   },

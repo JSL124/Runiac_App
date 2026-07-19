@@ -73,15 +73,19 @@ export function isPremiumSubscription(
 // writer is the admin console's setUserSubscription(), which stores
 // Timestamp.fromDate().
 //
-// Reading other shapes here would be worse than useless, because the expiry
-// sweep selects lapsed documents with a `<= Timestamp` range query and
-// Firestore orders values by type before value (numbers < timestamps <
-// strings). A millis number would therefore be selected by the range query
-// even when it is in the future, and an ISO string would never be selected
-// even after it lapses — so the in-request check and the sweep would disagree
-// about exactly the documents that matter. Restricting both to Timestamp keeps
-// them consistent by construction; any other shape is uniformly treated as
-// "no expiry" here, by the sweep, and by firestore.rules alike.
+// Reading other shapes here would create a divergence the expiry sweep cannot
+// resolve. The sweep selects lapsed documents with a `<= Timestamp` range
+// query, and Firestore inequality filters are type-scoped, so a value stored
+// as an ISO string is never selected no matter how long ago it lapsed. If this
+// reader honoured that string, the in-request check would deny premium while
+// the sweep left `subscriptionStatus: "premium"` in place forever — and
+// firestore.rules, which can only read the materialised status, would keep
+// granting access indefinitely.
+//
+// Restricting this reader to Timestamp keeps the three consistent by
+// construction: a non-Timestamp value is "no expiry" to the helper, is not
+// selected by the sweep, and reads as premium in rules. Wrong data is then
+// uniformly visible rather than half-enforced.
 function readSubscriptionExpiresAtMs(value: unknown): number | null {
   if (
     value !== null &&
