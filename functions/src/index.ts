@@ -8,6 +8,7 @@ export { registerNotificationDevice, unregisterNotificationDevice } from "./noti
 export { dispatchScheduledPushNotifications } from "./notifications/scheduledPushDispatch.js";
 export { refreshLeaderboardSnapshots } from "./leaderboard/monthlyLeaderboard.js";
 export { refreshStreakStatus } from "./progression/refreshStreakStatus.js";
+export { expireSubscriptions } from "./progression/subscriptionExpirySchedule.js";
 export { publishActivityToFeed } from "./feed/publish/callable.js";
 export { readFeedThumbnail } from "./feed/thumbnail/callable.js";
 export { reportFeedPost, deleteFeedPost, cleanupDeletedFeedActivity } from "./feed/lifecycle/functions.js";

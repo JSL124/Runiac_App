@@ -421,6 +421,32 @@ is_user_feedback_pipeline_capsule_active() {
   grep -Eq '^- Newly routed user feedback pipeline on 2026-07-19 Asia/Singapore: `implementation/roadmap/capsules/user-feedback-pipeline\.md`' implementation/roadmap/CURRENT.md
 }
 
+is_admin_role_subscription_expiry_capsule_active() {
+  grep -Eq '^- Newly routed admin role and subscription expiry on 2026-07-20 Asia/Singapore: `implementation/roadmap/capsules/admin-role-subscription-expiry\.md`' implementation/roadmap/CURRENT.md
+}
+
+# New source files introduced by the routed admin role / premium expiry capsule.
+# Only the genuinely new paths need listing here; already-tracked files this
+# capsule modifies are handled by the diff-hygiene allowlist.
+is_admin_role_subscription_expiry_path() {
+  case "$1" in
+    functions/src/security/roles.ts|\
+    functions/src/progression/subscriptionExpiryCore.ts|\
+    functions/src/progression/subscriptionExpirySchedule.ts|\
+    functions/test/roles.test.ts|\
+    functions/test/progressionAuditHelpers.test.ts|\
+    functions/test/subscriptionExpiry.test.ts|\
+    functions/src/index.ts|\
+    functions/package.json|\
+    firestore.indexes.json)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 # Note: the rules test basename contains "feed", so this must be consulted
 # before the feed-friends-emulator-backend basename patterns claim it.
 is_user_feedback_pipeline_path() {
@@ -443,6 +469,10 @@ is_user_feedback_pipeline_path() {
 
 is_forbidden_config_or_secret() {
   if is_user_feedback_pipeline_path "$1" && is_user_feedback_pipeline_capsule_active; then
+    return 1
+  fi
+
+  if is_admin_role_subscription_expiry_path "$1" && is_admin_role_subscription_expiry_capsule_active; then
     return 1
   fi
 

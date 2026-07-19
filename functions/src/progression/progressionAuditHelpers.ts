@@ -55,7 +55,37 @@ export function formatXpLabel(xp: number): string {
   return `${xp.toLocaleString("en-US")} XP`;
 }
 
-export function isPremiumSubscription(data: FirebaseFirestore.DocumentData | undefined): boolean {
+export function isPremiumSubscription(
+  data: FirebaseFirestore.DocumentData | undefined,
+  nowMs: number,
+): boolean {
   const subscriptionStatus = data?.["subscriptionStatus"];
-  return subscriptionStatus === "premium" || subscriptionStatus === "Premium";
+  if (subscriptionStatus !== "premium" && subscriptionStatus !== "Premium") {
+    return false;
+  }
+  const expiresAtMs = readSubscriptionExpiresAtMs(data?.["subscriptionExpiresAt"]);
+  // Absent/unparseable expiry means "no expiry" so existing docs keep their
+  // current always-premium behaviour; only a resolvable, past expiry lapses.
+  return expiresAtMs === null || expiresAtMs > nowMs;
+}
+
+function readSubscriptionExpiresAtMs(value: unknown): number | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string") {
+    const parsed = Date.parse(value);
+    return Number.isNaN(parsed) ? null : parsed;
+  }
+  if (
+    typeof value === "object" &&
+    typeof (value as { toMillis?: unknown }).toMillis === "function"
+  ) {
+    const millis = (value as { toMillis: () => number }).toMillis();
+    return typeof millis === "number" && Number.isFinite(millis) ? millis : null;
+  }
+  return null;
 }

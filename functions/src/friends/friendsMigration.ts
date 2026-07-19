@@ -10,6 +10,7 @@ import {
   type NicknameMigrationProfile,
 } from "./nickname.js";
 import type { FriendsCallableRequest, FriendsDependencies } from "./friendsTypes.js";
+import { isPlatformAdminRole } from "../security/roles.js";
 
 const MAX_MIGRATION_WRITES = 500;
 
@@ -25,7 +26,7 @@ export async function migrateUnicodeNicknameClaims(
       transaction.get(dependencies.firestore.collection("userProfiles")),
       transaction.get(dependencies.firestore.collection("nicknameClaims")),
     ]);
-    if (dataOf(adminSnapshot)["userRole"] !== "Platform Administrator") {
+    if (!isPlatformAdminRole(dataOf(adminSnapshot))) {
       throw friendError(FRIEND_REASON.NOT_PLATFORM_ADMIN);
     }
     const profiles = readProfiles(profileSnapshots.docs.map((snapshot) => ({ id: snapshot.id, data: dataOf(snapshot) })));

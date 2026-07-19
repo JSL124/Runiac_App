@@ -130,6 +130,7 @@ export async function completeRunForCallable(
     // internal reads must precede every write). It never throws for challenge
     // state reasons and never touches XP/streak/level/leaderboard outputs;
     // non-participants pay at most one extra read.
+    const nowMs = Date.now();
     await applyChallengeContribution({
       transaction,
       firestore,
@@ -138,7 +139,7 @@ export async function completeRunForCallable(
       activityAlreadyExists: activitySnapshot.exists,
       distanceMeters: payload.distanceMeters,
       completedAtMs: Date.parse(payload.completedAt),
-      nowMs: Date.now(),
+      nowMs,
     });
 
     const shouldPersistProgression = !activitySnapshot.exists;
@@ -183,6 +184,7 @@ export async function completeRunForCallable(
           sameMonthProgressionEventDocuments: monthlyProgressionEventSnapshots.docs.map((document) => document.data()),
           planProgressResult,
           config: progressionConfig,
+          nowMs,
         })
       : null;
 
