@@ -47,6 +47,8 @@ dependencies:
   firebase_messaging: ^16.4.1
   lottie: ^3.5.1
   firebase_app_check: ^0.4.5+2
+  share_plus: ^13.0.0
+  gal: ^2.3.2
 
 dev_dependencies:
   flutter_test:

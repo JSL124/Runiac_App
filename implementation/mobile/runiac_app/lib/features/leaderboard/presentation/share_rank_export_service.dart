@@ -1,0 +1,147 @@
+import 'dart:io';
+import 'dart:ui' as ui;
+
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
+import 'package:gal/gal.dart';
+import 'package:share_plus/share_plus.dart';
+
+/// Display-only export of the rendered share card. Rasterizes the card widget
+/// and hands the PNG to the gallery / OS share sheet. It never reads or writes
+/// any backend-owned value — the card only paints trusted labels.
+class ShareRankExportService {
+  const ShareRankExportService();
+
+  static const MethodChannel _instagramChannel = MethodChannel(
+    'runiac/instagram_story',
+  );
+
+  /// Rasterizes the [RepaintBoundary] behind [boundaryKey] to PNG bytes.
+  /// Returns null if the boundary is not laid out yet.
+  Future<Uint8List?> capturePng(
+    GlobalKey boundaryKey, {
+    double pixelRatio = 3.0,
+  }) async {
+    final renderObject = boundaryKey.currentContext?.findRenderObject();
+    if (renderObject is! RenderRepaintBoundary) {
+      return null;
+    }
+    final image = await renderObject.toImage(pixelRatio: pixelRatio);
+    try {
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      return byteData?.buffer.asUint8List();
+    } finally {
+      image.dispose();
+    }
+  }
+
+  /// Saves [pngBytes] to the device gallery. Returns false when the user
+  /// declines the photo-library permission.
+  Future<bool> saveToGallery(
+    Uint8List pngBytes, {
+    required String fileName,
+  }) async {
+    try {
+      // Add-only access (not album access) so we need just the
+      // NSPhotoLibraryAddUsageDescription purpose string, not full library
+      // access. Saves straight to the camera roll.
+      final granted = await Gal.requestAccess();
+      if (!granted) {
+        return false;
+      }
+      await Gal.putImageBytes(pngBytes, name: fileName);
+      return true;
+    } on GalException {
+      return false;
+    }
+  }
+
+  /// Opens the OS share sheet with [pngBytes] as a PNG attachment. Bytes are
+  /// written to a temp file so every platform receives a real file path.
+  Future<void> shareViaSheet(
+    Uint8List pngBytes, {
+    required String fileName,
+    String? text,
+  }) async {
+    final directory = await Directory.systemTemp.createTemp('runiac_share');
+    final file = File('${directory.path}/$fileName');
+    await file.writeAsBytes(pngBytes, flush: true);
+    await SharePlus.instance.share(
+      ShareParams(
+        files: [XFile(file.path, mimeType: 'image/png')],
+        text: text,
+      ),
+    );
+  }
+
+  /// Uploads the rendered card to the signed-in user's Storage path and returns
+  /// a shareable download URL (token-based, so anyone with the link can view).
+  /// Returns null when Firebase is unavailable, no user is signed in, or the
+  /// upload is rejected. Only trusted display values are rendered into the
+  /// image; no backend-owned value is written.
+  Future<String?> uploadShareCardLink(Uint8List pngBytes) async {
+    if (Firebase.apps.isEmpty) {
+      return null;
+    }
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) {
+      return null;
+    }
+    try {
+      final reference = FirebaseStorage.instance.ref(
+        'share-cards/$uid/rank-card.png',
+      );
+      await reference.putData(
+        pngBytes,
+        SettableMetadata(contentType: 'image/png'),
+      );
+      return await reference.getDownloadURL();
+    } on FirebaseException {
+      return null;
+    }
+  }
+
+  /// Whether Instagram Stories can be opened (iOS only; Instagram installed).
+  Future<bool> isInstagramStoryAvailable() async {
+    if (!Platform.isIOS) {
+      return false;
+    }
+    try {
+      final available = await _instagramChannel.invokeMethod<bool>(
+        'isAvailable',
+      );
+      return available ?? false;
+    } on PlatformException {
+      return false;
+    }
+  }
+
+  /// Shares [pngBytes] into Instagram Stories as a sticker over a Runiac
+  /// gradient. Returns false when the Facebook App ID is missing, Instagram is
+  /// unavailable, or the platform is not iOS. [appId] must be a valid Facebook
+  /// App ID registered for Instagram sharing.
+  Future<bool> shareToInstagramStory(
+    Uint8List pngBytes, {
+    required String appId,
+  }) async {
+    if (!Platform.isIOS || appId.isEmpty) {
+      return false;
+    }
+    try {
+      final shared = await _instagramChannel
+          .invokeMethod<bool>('shareSticker', {
+            'stickerImage': pngBytes,
+            'appId': appId,
+            'backgroundTopColor': '#0B1B3A',
+            'backgroundBottomColor': '#2F50C7',
+          });
+      return shared ?? false;
+    } on PlatformException {
+      return false;
+    }
+  }
+}

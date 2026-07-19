@@ -212,7 +212,7 @@ class RuniacShareTargetRow extends StatelessWidget {
   }
 }
 
-class RuniacShareTargetButton extends StatelessWidget {
+class RuniacShareTargetButton extends StatefulWidget {
   const RuniacShareTargetButton({
     super.key,
     required this.icon,
@@ -229,6 +229,21 @@ class RuniacShareTargetButton extends StatelessWidget {
   final bool enabled;
 
   @override
+  State<RuniacShareTargetButton> createState() =>
+      _RuniacShareTargetButtonState();
+}
+
+class _RuniacShareTargetButtonState extends State<RuniacShareTargetButton> {
+  bool _pressed = false;
+
+  void _setPressed(bool value) {
+    if (!widget.enabled || _pressed == value) {
+      return;
+    }
+    setState(() => _pressed = value);
+  }
+
+  @override
   Widget build(BuildContext context) {
     const actionWidth = 61.0;
     const iconBoxSize = 56.0;
@@ -236,69 +251,84 @@ class RuniacShareTargetButton extends StatelessWidget {
     const assetIconVisualSize = 26.0;
     const labelGap = 6.0;
     const labelAreaHeight = 30.0;
+    final enabled = widget.enabled;
     final foreground = enabled ? _blue : _blue75.withValues(alpha: 0.45);
+    final pressed = _pressed && enabled;
 
     return SizedBox(
       width: actionWidth,
       child: Semantics(
         button: true,
         enabled: enabled,
-        label: label,
-        child: InkWell(
-          onTap: enabled ? onPressed : null,
-          borderRadius: BorderRadius.circular(22),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Container(
-                width: iconBoxSize,
-                height: iconBoxSize,
-                decoration: BoxDecoration(
-                  color: _card,
-                  border: Border.all(color: _blue10),
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x142F51C8),
-                      blurRadius: 14,
-                      offset: Offset(0, 4),
-                    ),
-                  ],
-                ),
-                alignment: Alignment.center,
-                child: iconAsset == null
-                    ? Icon(icon, color: foreground, size: iconVisualSize)
-                    : Image.asset(
-                        iconAsset!,
-                        width: assetIconVisualSize,
-                        height: assetIconVisualSize,
-                        fit: BoxFit.contain,
+        label: widget.label,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTapDown: enabled ? (_) => _setPressed(true) : null,
+          onTapUp: enabled ? (_) => _setPressed(false) : null,
+          onTapCancel: () => _setPressed(false),
+          onTap: enabled ? widget.onPressed : null,
+          child: AnimatedScale(
+            scale: pressed ? 0.88 : 1.0,
+            duration: const Duration(milliseconds: 90),
+            curve: Curves.easeOut,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 90),
+                  width: iconBoxSize,
+                  height: iconBoxSize,
+                  decoration: BoxDecoration(
+                    color: pressed ? _blue18 : _card,
+                    border: Border.all(color: pressed ? _blue : _blue10),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x142F51C8),
+                        blurRadius: 14,
+                        offset: Offset(0, 4),
                       ),
-              ),
-              const SizedBox(height: labelGap),
-              SizedBox(
-                height: labelAreaHeight,
-                child: Align(
-                  alignment: Alignment.topCenter,
-                  child: Text(
-                    label,
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: enabled
-                          ? _blue75
-                          : _blue75.withValues(alpha: 0.45),
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0,
-                      height: 1.18,
+                    ],
+                  ),
+                  alignment: Alignment.center,
+                  child: widget.iconAsset == null
+                      ? Icon(
+                          widget.icon,
+                          color: foreground,
+                          size: iconVisualSize,
+                        )
+                      : Image.asset(
+                          widget.iconAsset!,
+                          width: assetIconVisualSize,
+                          height: assetIconVisualSize,
+                          fit: BoxFit.contain,
+                        ),
+                ),
+                const SizedBox(height: labelGap),
+                SizedBox(
+                  height: labelAreaHeight,
+                  child: Align(
+                    alignment: Alignment.topCenter,
+                    child: Text(
+                      widget.label,
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: enabled
+                            ? _blue75
+                            : _blue75.withValues(alpha: 0.45),
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0,
+                        height: 1.18,
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

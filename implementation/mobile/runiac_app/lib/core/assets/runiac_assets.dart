@@ -131,6 +131,12 @@ abstract final class RuniacAssets {
   static const leaderboardShareRankCardBackground =
       'assets/images/leaderboard/share_rank_card_background.png';
 
+  // Transparent Runiac wordmark (reused from the splash asset) so the
+  // transparent share card can show the same logo as the solid card, whose
+  // logo is baked into its opaque background art.
+  static const runiacWordmarkLogo =
+      'assets/images/splash/runiac_splash_logo.png';
+
   static const leaderboardLeagueIron =
       'assets/images/leaderboard/leagues/league_iron.png';
 
