@@ -25,6 +25,10 @@ const USER_PROFILES = "userProfiles";
 // backlog within a small number of runs while keeping one run bounded.
 const SWEEP_QUERY_LIMIT = 200;
 
+// Firestore's minimum representable Timestamp (0001-01-01T00:00:00Z), used as
+// the candidate range's lower bound to pin selection to the Timestamp type.
+const EARLIEST_TIMESTAMP = Timestamp.fromDate(new Date("0001-01-01T00:00:00Z"));
+
 export type SubscriptionExpirySweepOptions = {
   // Test seam. Invoked once after the candidate query resolves and before any
   // downgrade transaction runs, which is the exact window in which an admin
@@ -46,18 +50,26 @@ export async function runSubscriptionExpirySweep(
 ): Promise<SubscriptionExpirySweepResult> {
   const nowTimestamp = Timestamp.fromMillis(nowMs);
 
-  // A single upper bound is sufficient to restrict selection to Timestamps.
-  // Firestore inequality filters are type-scoped: `<= <Timestamp>` matches only
-  // Timestamp values, so out-of-contract numbers and ISO strings are not
-  // returned at all — they can neither be downgraded nor occupy a candidate
-  // slot. Verified against the emulator: with numeric, Timestamp and string
-  // expiries all present, `orderBy` reports the documented cross-type ordering
-  // (numbers < timestamps < strings) while `where("<=", Timestamp)` returns the
-  // Timestamp document alone. An explicit lower bound to "pin the type" would
-  // therefore be dead weight.
+  // Bounded at both ends deliberately, to select Timestamp values only.
+  //
+  // On the emulator the upper bound alone is already sufficient: with numeric,
+  // Timestamp and string expiries present in one collection, `orderBy` reports
+  // the documented cross-type ordering (numbers < timestamps < strings) while
+  // `where("<=", <Timestamp>)` returns the Timestamp document alone — i.e.
+  // inequality filters are type-scoped and never select the other shapes.
+  //
+  // The lower bound is kept anyway because that observation is emulator
+  // evidence, not a guarantee about production, and the failure mode if it does
+  // not hold is bad and silent: numbers sort below every Timestamp, so a
+  // backlog of out-of-contract numeric values would be returned first, be
+  // rejected by the re-check below as "no expiry", and consume the whole
+  // candidate window — leaving genuinely lapsed subscriptions behind them
+  // undowngraded on every run, indefinitely. One redundant range bound is a
+  // cheap price for not depending on cross-environment query-semantics parity.
   const lapsed = await firestore
     .collection("users")
     .where("subscriptionStatus", "==", "premium")
+    .where("subscriptionExpiresAt", ">=", EARLIEST_TIMESTAMP)
     .where("subscriptionExpiresAt", "<=", nowTimestamp)
     .limit(options?.candidateLimit ?? SWEEP_QUERY_LIMIT)
     .get();
