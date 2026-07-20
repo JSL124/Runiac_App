@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { sumDailyXp } from "../src/progression/progressionAuditHelpers.js";
 import { DEFAULT_PROGRESSION_CONFIG } from "../src/config/configLoader.js";
 import {
   applyDailyXpCap,
@@ -394,5 +395,46 @@ describe("streak milestone bonus high-water mark", () => {
       assert.equal(result.milestoneDays, 3, `mark ${mark} must not block payment`);
       assert.equal(result.bonusXp, 30);
     }
+  });
+});
+
+// The daily cap bounds ordinary per-run earning. A streak milestone is paid at
+// most once per owner ever, so capping it against a per-day budget only made
+// the two largest rewards unpayable — 480 of the 30-day 600 was silently
+// dropped after an ordinary run.
+describe("streak milestone bonus daily-cap exemption", () => {
+  it("does not let a milestone bonus consume the day's remaining budget", () => {
+    // A run that already earned 80 XP leaves 120 of the 200 daily cap. The
+    // milestone must still pay its full 600.
+    const events = [
+      { dailyCapDate: "2026-07-01", xpDelta: 680, streakBonusXp: 600 },
+    ];
+    assert.equal(sumDailyXp(events, "2026-07-01"), 80);
+  });
+
+  it("counts an ordinary run's XP in full", () => {
+    const events = [{ dailyCapDate: "2026-07-01", xpDelta: 80 }];
+    assert.equal(sumDailyXp(events, "2026-07-01"), 80);
+  });
+
+  it("ignores a malformed or zero streakBonusXp rather than dropping the run", () => {
+    assert.equal(
+      sumDailyXp([{ dailyCapDate: "2026-07-01", xpDelta: 80, streakBonusXp: 0 }], "2026-07-01"),
+      80,
+    );
+    assert.equal(
+      sumDailyXp(
+        [{ dailyCapDate: "2026-07-01", xpDelta: 80, streakBonusXp: "600" }],
+        "2026-07-01",
+      ),
+      80,
+    );
+  });
+
+  it("never counts a negative remainder when the bonus exceeds the delta", () => {
+    assert.equal(
+      sumDailyXp([{ dailyCapDate: "2026-07-01", xpDelta: 100, streakBonusXp: 600 }], "2026-07-01"),
+      0,
+    );
   });
 });

@@ -97,12 +97,23 @@ export function calculateProgressionAudit(input: {
         input.config,
       );
 
-  // Streak milestone bonus: deliberately EXEMPT from `activityXpCap` (that
-  // cap is applied above, to the base activity XP only) but still bounded by
-  // whatever daily XP room remains after the base. A `suppress`ed run
-  // (premium && !premiumEarnsXp) or a low-data-confirmed run earns zero base
-  // XP by design, so the bonus is withheld too — otherwise a run that earns
-  // nothing could still unlock streak bonus XP as a side door.
+  // Streak milestone bonus: deliberately EXEMPT from BOTH `activityXpCap` (that
+  // cap is applied above, to the base activity XP only) and `dailyXpCap`.
+  //
+  // The daily cap exemption is required for the reward table to mean anything:
+  // with dailyXpCap 200, the shipped 14-day (220) and 30-day (600) rewards
+  // could never pay in full — a runner who crossed day 30 after an ordinary
+  // 80 XP run received 120 of 600, and the remaining 480 was silently dropped
+  // and never paid back. Capping a once-in-a-lifetime milestone against a
+  // per-day budget conflates two different things.
+  //
+  // It is safe to exempt because the milestone is paid at most once per owner,
+  // ever (`highestPaidStreakMilestoneDays`), so it cannot be farmed the way an
+  // uncapped per-run reward could.
+  //
+  // A `suppress`ed run (premium && !premiumEarnsXp) or a low-data-confirmed run
+  // earns zero base XP by design, so the bonus is withheld too — otherwise a
+  // run that earns nothing could still unlock streak bonus XP as a side door.
   const highestPaidMilestoneDays = readHighestPaidStreakMilestoneDays(input.profileData);
   const streakBonus: StreakBonusResult =
     suppress || activityXp.reason === "low_data_no_xp"
@@ -111,9 +122,12 @@ export function calculateProgressionAudit(input: {
           { ...input.streakTransition, highestPaidMilestoneDays },
           input.config,
         );
-  const remainingDailyXpForBonus = Math.max(0, input.config.dailyXpCap - capped.dailyXpAfter);
-  const streakBonusXp = Math.min(streakBonus.bonusXp, remainingDailyXpForBonus);
-  const streakBonusCapped = streakBonusXp < streakBonus.bonusXp;
+  const streakBonusXp = streakBonus.bonusXp;
+  // Retained in the contract and always false now that the bonus is exempt.
+  // Kept rather than removed so stored progression events written before the
+  // exemption stay readable, and so the field has a stable meaning: "the daily
+  // cap trimmed this milestone".
+  const streakBonusCapped = false;
   const streakMilestoneDays = streakBonus.milestoneDays;
 
   const xpDelta = capped.xpDelta + streakBonusXp;

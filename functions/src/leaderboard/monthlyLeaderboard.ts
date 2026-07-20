@@ -103,6 +103,29 @@ export function writeLeaderboardContribution(input: {
 }): LeaderboardContributionDocument | null {
   const contribution = leaderboardContributionFields(input);
   if (contribution === null) {
+    // No contribution to create or add score to — a zero-XP run (daily cap
+    // exhausted, low-data, suppressed premium) or an unresolvable region.
+    //
+    // The qualifying-run count still has to land: it counts VALIDATED RUNS in
+    // the period, not XP-awarding ones. Dropping it here left a user who
+    // exhausted the daily cap on their qualifying run stuck below
+    // minRunsToQualify for the rest of the month, because the caller's
+    // absolute recompute only reaches the document on the next XP-awarding
+    // run.
+    //
+    // Only when the document already exists. A merge-set would otherwise MINT
+    // a contribution carrying nothing but a run count — no score, no region,
+    // no schema version — which the planner would then have to parse and
+    // reject, and which the seed fixtures treat as a distinct state.
+    if (input.qualifyingRunCount !== null && input.existingContributionData !== undefined) {
+      input.transaction.set(
+        input.firestore
+          .collection("leaderboardContributions")
+          .doc(leaderboardContributionId(input.uid, input.periodKey)),
+        { qualifyingRunCount: Math.max(0, Math.floor(input.qualifyingRunCount)) },
+        { merge: true },
+      );
+    }
     return null;
   }
   input.transaction.set(
