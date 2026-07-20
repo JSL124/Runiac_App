@@ -128,7 +128,9 @@ describe(
       assert.equal(currentView.get("activeRankProjectionId"), null);
     });
 
-    it("excludes a premium user by default (config/leaderboard missing)", async () => {
+    // Premium parity: premium runners earn XP on the same terms as Basic
+    // runners, so with no config document they rank on the same board.
+    it("includes a premium user by default (config/leaderboard missing)", async () => {
       const uid = "premium-runner-default";
       await Promise.all([
         firestore.doc(`users/${uid}`).set({ subscriptionStatus: "premium" }),
@@ -150,16 +152,17 @@ describe(
       const currentView = await firestore
         .doc(`leaderboardCurrentViews/${uid}`)
         .get();
-      assert.equal(currentView.get("status"), "ineligible_premium");
+      assert.equal(currentView.get("status"), "ranked");
     });
 
-    it("includes a premium user when config/leaderboard.excludePremium is false", async () => {
-      const uid = "premium-runner-included";
-      await firestore.doc("config/leaderboard").set({ excludePremium: false });
+    // Exclusion remains a supported configuration, just no longer the default.
+    it("excludes a premium user when config/leaderboard.excludePremium is true", async () => {
+      const uid = "premium-runner-excluded";
+      await firestore.doc("config/leaderboard").set({ excludePremium: true });
       await Promise.all([
         firestore.doc(`users/${uid}`).set({ subscriptionStatus: "premium" }),
         firestore.doc(`userProfiles/${uid}`).set({
-          nickname: "Premium Included",
+          nickname: "Premium Excluded",
           locationLabel: "Jurong East, Singapore",
           divisionKey: "tier_01",
           level: 1,
@@ -170,13 +173,13 @@ describe(
       ]);
       await refreshMonthlyLeaderboardSnapshots(firestore, "2026-07", {
         now: new Date("2026-07-10T00:00:00.000Z"),
-        buildId: "premium-included-build",
+        buildId: "premium-excluded-build",
       });
 
       const currentView = await firestore
         .doc(`leaderboardCurrentViews/${uid}`)
         .get();
-      assert.equal(currentView.get("status"), "ranked");
+      assert.equal(currentView.get("status"), "ineligible_premium");
       await firestore.doc("config/leaderboard").delete();
     });
 

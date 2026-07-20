@@ -36,8 +36,8 @@ export function planMonthlyLeaderboards(input: {
   readonly currentPremiumUids?: ReadonlySet<string>;
   /**
    * Mirrors `LeaderboardConfig.excludePremium` (`config/leaderboard`). Defaults
-   * to `true`, matching pre-config-plane behavior where premium users were
-   * unconditionally excluded from ranking.
+   * to `false`, matching `DEFAULT_LEADERBOARD_CONFIG`: premium runners earn XP
+   * on the same terms as everyone else, so they rank on the same board.
    */
   readonly excludePremium?: boolean;
   /**
@@ -49,7 +49,7 @@ export function planMonthlyLeaderboards(input: {
   readonly minRunsToQualify?: number;
 }): MonthlyLeaderboardPlan {
   const premiumUids = input.currentPremiumUids ?? emptyUidSet;
-  const excludePremium = input.excludePremium ?? true;
+  const excludePremium = input.excludePremium ?? false;
   const minRunsToQualify = input.minRunsToQualify ?? 1;
   const contributionByOwner = new Map<string, ParsedLeaderboardContribution>();
   for (const rawContribution of input.contributions) {

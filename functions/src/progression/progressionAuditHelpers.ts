@@ -1,12 +1,16 @@
 import type { ProgressionDisplay } from "../run/runCompletionTypes.js";
 
 export function progressionReason(input: {
-  readonly isPremium: boolean;
+  // Being premium is NOT by itself a reason to withhold XP — only an active
+  // `config/progression.premiumEarnsXp: false` is. Callers must pass that
+  // resolved decision, not the raw subscription tier, or a premium runner
+  // earning XP normally would be reported as "premium_no_progression".
+  readonly premiumXpSuppressed: boolean;
   readonly activityReason: "run_completion_xp_awarded" | "low_data_no_xp";
   readonly xpDeltaBeforeDailyCap: number;
   readonly xpDelta: number;
 }): ProgressionDisplay["reason"] {
-  if (input.isPremium) {
+  if (input.premiumXpSuppressed) {
     return "premium_no_progression";
   }
   if (input.activityReason === "low_data_no_xp") {

@@ -293,7 +293,32 @@ describe("completeCoolDown callable boundary", () => {
     assert.equal(contribution.get("scoreXp"), 60);
   });
 
-  it("gives premium users no cool-down XP or leaderboard benefit", async () => {
+  // Premium parity: the stretch bonus follows the same rule as the run itself.
+  it("gives premium users the same cool-down bonus as basic users", async () => {
+    await firestore.doc(`users/${USER_UID}`).set({ subscriptionStatus: "premium" });
+    const clientRunSessionId = "session-premium-parity-bonus";
+    const runResult = await completeRunForCallable(
+      { auth: { uid: USER_UID }, data: validRunPayload(clientRunSessionId) },
+      firestore,
+    );
+    assert.equal(runResult.progressionDisplay.xpDelta, 60);
+
+    const result = await callCompleteCoolDown({
+      auth: { uid: USER_UID },
+      data: coolDownPayload({ activityId: runResult.activityId, clientRunSessionId }),
+    });
+
+    assert.equal(result.progressionDisplay.status, "awarded");
+    assert.equal(result.progressionDisplay.countsTowardLeaderboard, true);
+    assert.ok(
+      result.progressionDisplay.xpDelta > 0,
+      "a premium runner must earn the same stretch bonus a basic runner earns",
+    );
+  });
+
+  // Suppression is still supported, just no longer the default.
+  it("gives premium users no cool-down XP when premiumEarnsXp is false", async () => {
+    await firestore.doc("config/progression").set({ premiumEarnsXp: false });
     await firestore.doc(`users/${USER_UID}`).set({ subscriptionStatus: "premium" });
     const clientRunSessionId = "session-premium-no-bonus";
     const runResult = await completeRunForCallable(
@@ -317,6 +342,8 @@ describe("completeCoolDown callable boundary", () => {
       .doc(`leaderboardContributions/${USER_UID}_monthly_2026-06`)
       .get();
     assert.equal(contribution.exists, false);
+
+    await firestore.doc("config/progression").delete();
   });
 });
 

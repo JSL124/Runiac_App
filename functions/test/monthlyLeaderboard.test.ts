@@ -86,6 +86,9 @@ describe("monthly leaderboard aggregation", () => {
     const plan = planMonthlyLeaderboards({
       periodKey: "2026-07",
       currentPremiumUids: new Set(["premium"]),
+      // Exclusion is no longer the default, so ask for it explicitly to keep
+      // covering the premium re-check alongside the malformed-row rejection.
+      excludePremium: true,
       contributions: [
         contribution({ ownerUid: "basic", scoreXp: 70 }),
         contribution({ ownerUid: "premium", scoreXp: 500 }),
@@ -112,10 +115,37 @@ describe("monthly leaderboard aggregation", () => {
     );
   });
 
+  // Premium parity: with no `excludePremium` supplied, a premium runner is
+  // ranked beside Basic runners under the same scoring formula. Guards the
+  // default itself, which is the only thing separating the two policies.
+  it("ranks a premium runner by default, ordering by score alone", () => {
+    const plan = planMonthlyLeaderboards({
+      periodKey: "2026-07",
+      currentPremiumUids: new Set(["premium"]),
+      contributions: [
+        contribution({ ownerUid: "basic", scoreXp: 70 }),
+        contribution({ ownerUid: "premium", scoreXp: 500 }),
+      ],
+    });
+
+    assert.deepEqual(
+      plan.snapshots.flatMap((snapshot) =>
+        snapshot.topEntries.map((entry) => entry.publicAlias),
+      ),
+      ["Runner premium", "Runner basic"],
+    );
+    assert.equal(
+      plan.currentViews.find((view) => view.ownerUid === "premium")?.status,
+      "ranked",
+      "a premium runner must get a ranked currentView, not an excluded one",
+    );
+  });
+
   it("preserves zero-score Premium exclusions without projecting inactive rows", () => {
     const plan = planMonthlyLeaderboards({
       periodKey: "2026-07",
       currentPremiumUids: new Set(["premium-zero"]),
+      excludePremium: true,
       contributions: [
         contribution({ ownerUid: "ranked-basic", scoreXp: 70 }),
         {

@@ -1656,7 +1656,11 @@ describe("completeRun callable boundary", () => {
     );
   });
 
-  it("gives premium users no XP, rank, or leaderboard advantage", async () => {
+  // Premium parity: paying buys coaching, analysis, and presentation value, so
+  // it must not change the scoring formula in EITHER direction — a premium
+  // runner earns exactly what the same run earns for a Basic runner, and the
+  // client-supplied trusted-value fields are still ignored.
+  it("gives premium users the same XP and leaderboard credit as basic users", async () => {
     await firestore.doc(`users/${USER_UID}`).set({
       subscriptionStatus: "premium",
     });
@@ -1669,18 +1673,40 @@ describe("completeRun callable boundary", () => {
     const result = await callCompleteRun({ auth: { uid: USER_UID }, data: validPayload() });
     const profileAfter = await firestore.doc(`userProfiles/${USER_UID}`).get();
 
+    assert.equal(result.progressionDisplay.xpDelta, 60);
+    assert.equal(result.progressionDisplay.countsTowardLeaderboard, true);
+    assert.equal(result.progressionDisplay.status, "awarded");
+    assert.equal(result.progressionDisplay.reason, "run_completion_xp_awarded");
+    // Client-authored progression fields stay untouched regardless of tier.
+    assert.equal(profileAfter.get("xp"), 999);
+    assert.equal(profileAfter.get("rank"), 3);
+    assert.equal(profileAfter.get("leaderboardScore"), 999);
+    assert.equal(profileAfter.get("totalXp"), 60);
+    assert.equal(profileAfter.get("monthlyXp"), 60);
+    assert.equal(profileAfter.get("monthlyXpLabel"), "60 XP");
+  });
+
+  // Suppression is still supported, just no longer the default.
+  it("suppresses premium XP when config/progression.premiumEarnsXp is false", async () => {
+    await firestore.doc("config/progression").set({ premiumEarnsXp: false });
+    await firestore.doc(`users/${USER_UID}`).set({
+      subscriptionStatus: "premium",
+    });
+
+    const result = await callCompleteRun({ auth: { uid: USER_UID }, data: validPayload() });
+    const profileAfter = await firestore.doc(`userProfiles/${USER_UID}`).get();
+
     assert.equal(result.progressionDisplay.xpDelta, 0);
     assert.equal(result.progressionDisplay.countsTowardLeaderboard, false);
     assert.equal(result.progressionDisplay.status, "not_awarded");
     assert.equal(result.progressionDisplay.reason, "premium_no_progression");
-    assert.equal(profileAfter.get("xp"), 999);
-    assert.equal(profileAfter.get("rank"), 3);
-    assert.equal(profileAfter.get("leaderboardScore"), 999);
     assert.equal(profileAfter.get("totalXp"), 0);
     assert.equal(profileAfter.get("level"), 1);
     assert.equal(profileAfter.get("levelProgressPercent"), 0);
     assert.equal(profileAfter.get("monthlyXp"), 0);
     assert.equal(profileAfter.get("monthlyXpLabel"), "0 XP");
+
+    await firestore.doc("config/progression").delete();
   });
 
   it("rejects precise route traces and does not persist them", async () => {

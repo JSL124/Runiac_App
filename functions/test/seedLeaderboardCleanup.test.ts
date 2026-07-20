@@ -39,7 +39,7 @@ describe(
       assert.equal(preview["status"], "ready");
       assert.equal(preview["sourceDocumentCount"], 300);
       assert.equal(preview["rankDocumentCount"], 99);
-      assert.equal(preview["currentViewDocumentCount"], 100);
+      assert.equal(preview["currentViewDocumentCount"], 99);
       assert.equal(typeof preview["cleanupInventoryFingerprint"], "string");
     });
 
@@ -130,7 +130,7 @@ describe(
       await firestore.doc(`leaderboardSeedRuns/${runId}`).update({
         status: "cleanup_pending",
         cleanupExpectedCandidateCounts: expectedCleanupCandidateCounts,
-        cleanupExpectedDocumentCount: 499,
+        cleanupExpectedDocumentCount: 498,
       });
 
       // When: the exact same cleanup command is retried.
@@ -145,7 +145,7 @@ describe(
       assert.equal((await firestore.collection("users").where("mockSeedRunId", "==", runId).get()).size, 0);
       const cleanup = result["cleanup"];
       assert.ok(typeof cleanup === "object" && cleanup !== null);
-      assert.equal(Reflect.get(cleanup, "deletedDocumentCount"), 499);
+      assert.equal(Reflect.get(cleanup, "deletedDocumentCount"), 498);
     });
 
     it("finishes a cleanup_pending run after a prior cleanup deleted every candidate before status update", async () => {
@@ -156,7 +156,7 @@ describe(
       await firestore.doc(`leaderboardSeedRuns/${runId}`).update({
         status: "cleanup_pending",
         cleanupExpectedCandidateCounts: expectedCleanupCandidateCounts,
-        cleanupExpectedDocumentCount: 499,
+        cleanupExpectedDocumentCount: 498,
       });
 
       // When: cleanup is retried.
@@ -171,7 +171,7 @@ describe(
       assert.equal((await firestore.collection("users").where("mockSeedRunId", "==", runId).get()).size, 0);
       const cleanup = result["cleanup"];
       assert.ok(typeof cleanup === "object" && cleanup !== null);
-      assert.equal(Reflect.get(cleanup, "deletedDocumentCount"), 499);
+      assert.equal(Reflect.get(cleanup, "deletedDocumentCount"), 498);
     });
 
     it("allows a cleaned manifest with no remaining mock markers in inventory", async () => {
@@ -279,10 +279,13 @@ function candidateSnapshots(firestore: Firestore, runId: string) {
   ]);
 }
 
+// Premium parity: the one zero-score record per region is dropped by the
+// planner, so it produces neither a rank nor a current view — both projection
+// counts are now 99, not 99 and 100.
 const expectedCleanupCandidateCounts = {
   users: 100,
   userProfiles: 100,
   leaderboardContributions: 100,
   leaderboardUserRanks: 99,
-  leaderboardCurrentViews: 100,
+  leaderboardCurrentViews: 99,
 } as const;

@@ -55,7 +55,9 @@ export function seedDatasetSummary(
       userProfiles: dataset.records.length,
       leaderboardContributions: dataset.records.length,
       leaderboardUserRanks: dataset.records.length - dataset.regionCount,
-      leaderboardCurrentViews: dataset.records.length,
+      // One zero-score record per region reaches neither a rank nor a current
+      // view: the planner drops `scoreXp <= 0` contributions outright.
+      leaderboardCurrentViews: dataset.records.length - dataset.regionCount,
     },
   };
 }

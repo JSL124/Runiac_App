@@ -137,7 +137,14 @@ export async function completeCoolDownForCallable(
 
     const isPremium =
       isPremiumSubscription(userSnapshot.data(), nowMs) || isPremiumSubscription(profileSnapshot.data(), nowMs);
-    const bonusBeforeDailyCap = isPremium ? 0 : calculateCoolDownBonus(baseEarnedXp, progressionConfig);
+    // Mirrors calculateProgressionAudit(): the tier alone withholds nothing —
+    // only `config/progression.premiumEarnsXp: false` does. This path used to
+    // branch on `isPremium` directly and so ignored the config plane entirely,
+    // suppressing the stretch bonus even when premium runners earn XP.
+    const premiumXpSuppressed = isPremium && !progressionConfig.premiumEarnsXp;
+    const bonusBeforeDailyCap = premiumXpSuppressed
+      ? 0
+      : calculateCoolDownBonus(baseEarnedXp, progressionConfig);
     const dailyXpBefore = sumDailyXp(
       sameDayProgressionEventSnapshots.docs.map((document) => document.data()),
       dailyCapDate,
@@ -160,13 +167,13 @@ export async function completeCoolDownForCallable(
     const reason: ProgressionDisplay["reason"] =
       capped.xpDelta > 0
         ? "cool_down_stretch_bonus_awarded"
-        : isPremium
+        : premiumXpSuppressed
           ? "premium_no_progression"
           : bonusBeforeDailyCap > 0
             ? "cool_down_daily_cap_reached"
             : "low_data_no_xp";
     const status: ProgressionDisplay["status"] = capped.xpDelta > 0 ? "awarded" : "not_awarded";
-    const countsTowardLeaderboard = !isPremium && capped.xpDelta > 0;
+    const countsTowardLeaderboard = capped.xpDelta > 0;
 
     progressionDisplay = {
       xpDelta: capped.xpDelta,

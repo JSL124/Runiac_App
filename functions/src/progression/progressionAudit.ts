@@ -90,7 +90,7 @@ export function calculateProgressionAudit(input: {
         input.config,
       );
   const reason = progressionReason({
-    isPremium,
+    premiumXpSuppressed: suppress,
     activityReason: activityXp.reason,
     xpDeltaBeforeDailyCap: activityXp.xpDeltaBeforeDailyCap,
     xpDelta: capped.xpDelta,
@@ -102,7 +102,10 @@ export function calculateProgressionAudit(input: {
   return {
     progressionDisplay: {
       xpDelta: capped.xpDelta,
-      countsTowardLeaderboard: !isPremium && capped.xpDelta > 0,
+      // Awarded XP always counts toward leaderboard scoring. Whether a premium
+      // runner is *shown* on the board is `config/leaderboard.excludePremium`,
+      // owned by the aggregator — not a second, silent rule here.
+      countsTowardLeaderboard: capped.xpDelta > 0,
       status: capped.xpDelta > 0 ? "awarded" : "not_awarded",
       reason,
       totalXp: nextTotalXp,

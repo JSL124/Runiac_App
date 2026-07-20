@@ -138,11 +138,15 @@ function assertRankAndViewIntegrity(ranks: readonly QueryDocumentSnapshot[], vie
   const viewsByUid = new Map(views.map((view) => [view.id, view]));
   for (const record of seedDataset.dataset.records) {
     const view = viewsByUid.get(record.uid);
-    if (view === undefined || view.get("ownerUid") !== record.uid || view.get("periodKey") !== seedDataset.dataset.periodKey || view.get("buildId") !== expectedBuildId || view.get("regionId") !== record.contribution.regionId || view.get("homeRegionId") !== record.contribution.regionId || view.get("divisionKey") !== record.contribution.divisionKey) throw new Error("current view integrity is invalid");
-    if (record.user["subscriptionStatus"] === "premium") {
-      if (view.get("status") !== "ineligible_premium" || view.get("rankId") !== null || view.get("snapshotId") !== null || view.get("activeRankProjectionId") !== null || view.get("activeSnapshotId") !== null) throw new Error("current view integrity is invalid");
+    // Premium parity: a premium seed record is ranked like any other. What
+    // still keeps a record off the board is a zero score, and the planner drops
+    // those before any projection is written — so it must have no view at all,
+    // not an "excluded" one.
+    if (record.contribution.scoreXp <= 0) {
+      if (view !== undefined) throw new Error("current view integrity is invalid");
       continue;
     }
+    if (view === undefined || view.get("ownerUid") !== record.uid || view.get("periodKey") !== seedDataset.dataset.periodKey || view.get("buildId") !== expectedBuildId || view.get("regionId") !== record.contribution.regionId || view.get("homeRegionId") !== record.contribution.regionId || view.get("divisionKey") !== record.contribution.divisionKey) throw new Error("current view integrity is invalid");
     const snapshotId = monthlyLeaderboardSnapshotId({ periodKey: seedDataset.dataset.periodKey, regionId: record.contribution.regionId, divisionKey: record.contribution.divisionKey });
     const rankId = `${record.uid}_monthly_${seedDataset.dataset.periodKey}`;
     const rank = ranksById.get(rankId);

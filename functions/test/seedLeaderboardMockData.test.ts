@@ -73,7 +73,11 @@ describe(
       assert.ok(typeof verification === "object" && verification !== null);
       assert.equal(Reflect.get(verification, "profileCount"), 100);
       assert.equal(Reflect.get(verification, "rankCount"), 99);
-      assert.equal(Reflect.get(verification, "currentViewCount"), 100);
+      // Premium parity: the one zero-score record per region is dropped by the
+      // planner outright, so it gets neither a rank nor a current view. Under
+      // the previous premium-exclusion default it still received an
+      // `ineligible_premium` view, which is why this used to be 100.
+      assert.equal(Reflect.get(verification, "currentViewCount"), 99);
       assert.equal(Reflect.get(verification, "snapshotCount"), 10);
       assert.deepEqual(Reflect.get(verification, "regionIds"), ["jurong-east"]);
     });

@@ -17,16 +17,19 @@ export type SeedDocumentIds = {
 
 export function expectedSeedDocumentIds(seedDataset: SeedDataset): SeedDocumentIds {
   const { dataset } = seedDataset;
-  const basicUids = dataset.records
-    .filter((record) => record.user["subscriptionStatus"] === "basic")
+  // Premium parity: subscription tier no longer decides who is projected. The
+  // planner projects a record if and only if it scored, so both ranks and
+  // current views follow the score, not the tier.
+  const scoringUids = dataset.records
+    .filter((record) => record.contribution.scoreXp > 0)
     .map((record) => record.uid);
   const allUids = dataset.records.map((record) => record.uid);
   return {
     users: allUids,
     userProfiles: allUids,
     leaderboardContributions: allUids.map((uid) => `${uid}_monthly_${dataset.periodKey}`),
-    leaderboardUserRanks: basicUids.map((uid) => `${uid}_monthly_${dataset.periodKey}`),
-    leaderboardCurrentViews: allUids,
+    leaderboardUserRanks: scoringUids.map((uid) => `${uid}_monthly_${dataset.periodKey}`),
+    leaderboardCurrentViews: scoringUids,
   };
 }
 
@@ -78,6 +81,12 @@ export async function expectedProjectionDocuments(
     ...ids.leaderboardUserRanks.map((id) => firestore.collection("leaderboardUserRanks").doc(id)),
     ...ids.leaderboardCurrentViews.map((id) => firestore.collection("leaderboardCurrentViews").doc(id)),
   ];
+  // A dataset can legitimately project nothing — seeding one user per region
+  // makes that user the zero-score record, and the planner drops it — and
+  // getAll() rejects an empty argument list.
+  if (refs.length === 0) {
+    return [];
+  }
   const snapshots = await firestore.getAll(...refs);
   return snapshots.filter((snapshot): snapshot is QueryDocumentSnapshot => snapshot.exists);
 }
