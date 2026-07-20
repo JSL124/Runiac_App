@@ -327,6 +327,7 @@ void main() {
         'lib/features/profile/data/'
             'firestore_user_profile_persistence_repository.dart',
         'lib/features/profile/data/firestore_user_profile_repository.dart',
+        'lib/features/profile/data/firestore_user_account_repository.dart',
         'lib/features/challenge/data/firestore_challenge_read_store.dart',
         'lib/features/friends/data/firebase_friends_repository.dart',
         'lib/features/friends/data/friends_owner_list_reader.dart',
