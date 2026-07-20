@@ -25,10 +25,6 @@ In plan-review mode, Claude must use read-only tools only. Do not use Bash, Edit
 
 The rules above (from `@AGENTS.md`) are authoritative and override the reference material below. The default mode is **PDD_MODE** (documentation/planning review); IMPLEMENTATION_MODE work requires an explicit user request. `implementation/roadmap/CURRENT.md` is the operational source of truth for what is currently in scope, forbidden, and gated — read it before any implementation or validation action, and treat the commands below as reference only, not license to run them.
 
-## Architecture (client / server trust boundary)
-
-Current implementation reality (per `CURRENT.md`) is a scaffold-plus-narrow-vertical-slice: mostly static Flutter UI, a foreground GPS run-tracking engine with a Mapbox map surface (gated by a runtime-only `MAPBOX_PUBLIC_ACCESS_TOKEN` dart-define), bounded production Firebase Auth for project `runiac-fypp`, and a single emulator-guarded `completeRun` callable (region `asia-southeast1`, activated only when `RUNIAC_FIREBASE_EMULATOR=true`). Broad Firestore persistence, real XP/streak/leaderboard formulas, and route/GPS trace upload are **not yet implemented and are forbidden without explicit routing**.
-
 ## Commands (reference — run only when explicitly authorized)
 
 Non-obvious invocations (standard `flutter`/`npm` commands are omitted — read the manifests):
