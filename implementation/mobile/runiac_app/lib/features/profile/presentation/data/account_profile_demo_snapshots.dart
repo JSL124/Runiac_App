@@ -7,6 +7,9 @@ import '../../domain/models/user_profile_read_model.dart';
 const accountProfileDemoSnapshot = AccountProfileDemoSnapshot(
   displayName: 'Runiac Runner',
   avatarInitials: 'RR',
+  // Fallback display only. Real subscription state comes from the
+  // backend-owned subscriptionStatus read path once it is implemented.
+  subscriptionStatusLabel: 'Basic',
   regionLabel: 'Jurong East, Singapore',
   // Fallback display only. Real streak/distance totals come from the
   // backend-owned user progress read path.
@@ -98,6 +101,7 @@ class AccountProfileDemoSnapshot {
   const AccountProfileDemoSnapshot({
     required this.displayName,
     required this.avatarInitials,
+    this.subscriptionStatusLabel = '',
     required this.regionLabel,
     required this.previewLevelBadge,
     required this.previewNote,
@@ -119,6 +123,11 @@ class AccountProfileDemoSnapshot {
 
   final String displayName;
   final String avatarInitials;
+
+  /// Backend-provided Basic/Premium subscription tier label for the current
+  /// runner; empty hides the badge. The client only relays this trusted
+  /// label, it never computes or grants subscription privilege itself.
+  final String subscriptionStatusLabel;
   final String regionLabel;
 
   /// Backend-provided regional rank label for the current runner (e.g. '#1');
