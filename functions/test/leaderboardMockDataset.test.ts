@@ -75,7 +75,9 @@ describe("leaderboard mock dataset", () => {
     }
     assert.equal(premiumContribution.scoreXp, 0);
     assert.equal(premiumContribution.eligible, false);
-    assert.equal(premiumContribution.eligibilityReason, "ineligible_premium");
+    // Premium parity: the tier is not what keeps this record off the board —
+    // its zero score is.
+    assert.equal(premiumContribution.eligibilityReason, "ineligible_zero_score");
     assert.deepEqual(
       dataset.records.map((record) => record.contribution.divisionKey),
       [

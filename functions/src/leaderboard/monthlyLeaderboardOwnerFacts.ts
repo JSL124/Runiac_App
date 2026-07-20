@@ -53,7 +53,7 @@ export function mergeRolloverViews(input: {
   readonly ownerFacts: ReadonlyMap<string, OwnerFacts>;
   readonly excludePremium?: boolean;
 }): MonthlyLeaderboardCurrentViewPlan[] {
-  const excludePremium = input.excludePremium ?? true;
+  const excludePremium = input.excludePremium ?? false;
   const views = new Map(
     input.plannedViews.map((view) => [view.ownerUid, view]),
   );

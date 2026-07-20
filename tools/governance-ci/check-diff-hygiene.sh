@@ -125,6 +125,84 @@ is_cool_down_stretch_xp_bonus_path() {
   esac
 }
 
+is_admin_console_leaderboard_oversight_capsule_active() {
+  grep -Eq '^- Newly routed admin console Leaderboard Oversight alignment on 2026-07-20 Asia/Singapore: `implementation/roadmap/capsules/admin-console-leaderboard-oversight\.md`' implementation/roadmap/CURRENT.md
+}
+
+is_admin_console_leaderboard_oversight_path() {
+  case "$1" in
+    implementation/roadmap/capsules/admin-console-leaderboard-oversight.md|\
+    implementation/roadmap/CURRENT.md|\
+    tools/governance-ci/check-diff-hygiene.sh|\
+    functions/src/leaderboard/leaderboardTypes.ts|\
+    functions/src/leaderboard/monthlyLeaderboard.ts|\
+    functions/src/leaderboard/monthlyLeaderboardPlanner.ts|\
+    functions/src/leaderboard/monthlyLeaderboardWriter.ts|\
+    functions/src/leaderboard/leaderboardAdminCommand.ts|\
+    functions/src/run/completeRun.ts|\
+    functions/src/run/completeCoolDown.ts|\
+    functions/src/index.ts|\
+    functions/package.json|\
+    functions/test/monthlyLeaderboard.test.ts|\
+    functions/test/monthlyLeaderboardWriter.test.ts|\
+    functions/test/leaderboardAdminCommand.test.ts|\
+    tests/firebase-rules/firestore.rules.test.mjs|\
+    firestore.rules|\
+    implementation/mobile/runiac_app/lib/features/leaderboard/*)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+is_premium_parity_progression_capsule_active() {
+  grep -Eq '^- Newly routed premium parity progression on 2026-07-20 Asia/Singapore: `implementation/roadmap/capsules/premium-parity-progression\.md`' implementation/roadmap/CURRENT.md
+}
+
+is_premium_parity_progression_path() {
+  case "$1" in
+    implementation/roadmap/capsules/premium-parity-progression.md|\
+    implementation/roadmap/CURRENT.md|\
+    tools/governance-ci/check-diff-hygiene.sh|\
+    tools/governance-ci/run-all-checks.sh|\
+    tests/cross-system/config-contract-drift.mjs|\
+    tests/governance/config_contract_drift_test.sh|\
+    functions/src/config/configLoader.ts|\
+    functions/src/progression/progressionAudit.ts|\
+    functions/src/progression/progressionAuditHelpers.ts|\
+    functions/src/run/completeRun.ts|\
+    functions/src/run/completeCoolDown.ts|\
+    functions/src/leaderboard/monthlyLeaderboardPlanner.ts|\
+    functions/src/leaderboard/monthlyLeaderboardOwnerFacts.ts|\
+    functions/src/leaderboard/leaderboardMockDataset.ts|\
+    functions/src/leaderboard/leaderboardSeedDataset.ts|\
+    functions/src/leaderboard/leaderboardSeedOwnership.ts|\
+    functions/src/leaderboard/leaderboardSeedVerification.ts|\
+    functions/src/leaderboard/leaderboardSeedCleanupAuthorization.ts|\
+    functions/test/completeRun.test.ts|\
+    functions/test/completeCoolDown.test.ts|\
+    functions/test/monthlyLeaderboard.test.ts|\
+    functions/test/monthlyLeaderboardWriter.test.ts|\
+    functions/test/progressionCalculator.test.ts|\
+    functions/test/leaderboardMockDataset.test.ts|\
+    functions/test/seedLeaderboardCleanup.test.ts|\
+    functions/test/seedLeaderboardMockData.test.ts|\
+    docs/pdd/AGENTS.md|\
+    docs/pdd/AGENT_ROLES.md|\
+    docs/pdd/wireframes/AGENTS.md|\
+    docs/pdd/01-application-architecture.md|\
+    docs/pdd/03-component-diagram.md|\
+    docs/pdd/RUNIAC_PDD_ASSEMBLED_DRAFT.md)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 is_feed_friends_emulator_backend_rules_test_path() {
   local path="$1"
   local relative_path
@@ -335,6 +413,14 @@ is_allowed_path() {
     return 0
   fi
 
+  if is_admin_console_leaderboard_oversight_path "$1" && is_admin_console_leaderboard_oversight_capsule_active; then
+    return 0
+  fi
+
+  if is_premium_parity_progression_path "$1" && is_premium_parity_progression_capsule_active; then
+    return 0
+  fi
+
   if is_feed_friends_emulator_backend_path "$1"; then
     if is_feed_friends_emulator_backend_capsule_active; then
       return 0
@@ -494,6 +580,10 @@ is_forbidden_path() {
   fi
 
   if is_cool_down_stretch_xp_bonus_path "$1" && is_cool_down_stretch_xp_bonus_capsule_active; then
+    return 1
+  fi
+
+  if is_admin_console_leaderboard_oversight_path "$1" && is_admin_console_leaderboard_oversight_capsule_active; then
     return 1
   fi
 

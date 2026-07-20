@@ -312,6 +312,7 @@ class FirestoreLeaderboardRepository
       'unranked' => LeaderboardReadStatus.unranked,
       'region_required' => LeaderboardReadStatus.regionRequired,
       'ineligible_premium' => LeaderboardReadStatus.ineligiblePremium,
+      'ineligible_min_runs' => LeaderboardReadStatus.ineligibleMinRuns,
       _ => LeaderboardReadStatus.empty,
     };
   }

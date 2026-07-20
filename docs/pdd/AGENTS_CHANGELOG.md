@@ -1,5 +1,37 @@
 # Runiac AGENTS.md Changelog
 
+## 2026-07-20 - Premium Parity Replaces Premium Progression Exclusion
+
+### Files modified
+- `AGENTS.md`
+- `docs/pdd/AGENTS.md`
+- `docs/pdd/AGENT_ROLES.md`
+- `docs/pdd/wireframes/AGENTS.md`
+- `docs/pdd/01-application-architecture.md`
+- `docs/pdd/03-component-diagram.md`
+- `docs/pdd/RUNIAC_PDD_ASSEMBLED_DRAFT.md`
+- `implementation/traceability/requirements-map.md`
+- `docs/pdd/AGENTS_CHANGELOG.md`
+
+### Reason
+The non-negotiable rule read "Premium users must not receive XP, rank, leaderboard score, or competitive advantages." The implementation enforced the strictest reading of that sentence: `premiumEarnsXp: false` suppressed XP for every premium run, so a premium user's level, division, and leaderboard standing froze the moment they upgraded, and `excludePremium: true` then removed them from the board with the copy "Monthly ranking is not available for this account yet." Paying therefore acted as a progression penalty, which is not what the PDD's fairness requirement asks for. The requirement is that Premium confers no competitive ADVANTAGE — not that Premium Users are barred from progression.
+
+### Summary of changes
+- Restated the rule as premium parity: Premium Users earn XP, level, rank, and leaderboard score under exactly the same server-owned rules as Basic Users, and Premium must never confer a competitive advantage.
+- Premium value remains coaching, analysis, approved expert plans, route convenience, and presentation/sharing only.
+- Left untouched every statement that a feature "must not create competitive advantages" — those remain true and are the actual fairness constraint.
+- Left `docs/submissions/` unchanged; the frozen submitted PDD snapshot still records the earlier policy.
+
+### Behavioural note
+This rule change is backed by code: `DEFAULT_PROGRESSION_CONFIG.premiumEarnsXp` is now `true` and `DEFAULT_LEADERBOARD_CONFIG.excludePremium` is now `false`, and the hard-coded premium branches in `progressionAudit.ts`, `progressionAuditHelpers.ts`, and `completeCoolDown.ts` now defer to that config instead of the raw subscription tier. Both suppression and exclusion remain supported configurations.
+
+### Review required
+- A6_REVIEW: entitlement boundary, `subscriptionStatus` vs `userRole` separation, and server-owned XP/leaderboard ownership are unchanged by this restatement.
+- A8_OUTPUT_CHECKER: verify no remaining working-tree document asserts that Premium Users do not receive XP, rank, or leaderboard score.
+
+### Final status
+Pending validation.
+
 ## 2026-07-10 - Route Adaptive Character Guidance Governance Checks
 
 ### Files modified

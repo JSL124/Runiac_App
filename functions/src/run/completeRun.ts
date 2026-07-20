@@ -173,7 +173,11 @@ export async function completeRunForCallable(
         : unchangedStreakTransition(currentStreakState, payload.completedAt)
       : undefined;
 
-    const xpAudit = shouldPersistProgression
+    // shouldPersistProgression implies streakTransition is defined (see the
+    // ternary above); the explicit undefined check is a type-narrowing guard
+    // only, not a behaviour change — the false branch is unreachable in
+    // practice.
+    const xpAudit = shouldPersistProgression && streakTransition !== undefined
       ? calculateProgressionAudit({
           payload,
           profileData: profileSnapshot.data(),
@@ -185,6 +189,7 @@ export async function completeRunForCallable(
           planProgressResult,
           config: progressionConfig,
           nowMs,
+          streakTransition,
         })
       : null;
 
@@ -258,6 +263,27 @@ export async function completeRunForCallable(
         progressionRef,
         progressionEventData({ uid, ids, payload, audit: xpAudit, streakTransition, planProgressResult }),
       );
+      // Definition: validated runs completed within the monthly period — the
+      // admin-facing meaning of "runs to qualify" (`config/leaderboard.minRunsToQualify`).
+      // Recomputed as an absolute value from the full validated activity
+      // history already fetched in this transaction (no extra reads), so a
+      // legacy contribution with an under-counted or missing
+      // `qualifyingRunCount` self-heals on the user's very next run. The
+      // current run is written earlier in this transaction and so is not yet
+      // present in `activitySnapshots`; fold it in explicitly, guarded by
+      // `!activitySnapshot.exists` so a replay (activity already present in
+      // the query result) is never double-counted.
+      let qualifyingRunCount = activitySnapshot.exists ? 0 : 1;
+      for (const activityDocument of activitySnapshots.docs) {
+        const data = activityDocument.data();
+        if (data["activityType"] !== "run" || data["validationStatus"] !== "validated") {
+          continue;
+        }
+        const completedAt = readActivityCompletedAt(data);
+        if (completedAt !== null && monthlyPeriodForCompletedAt(completedAt) === xpAudit.monthlyPeriod) {
+          qualifyingRunCount += 1;
+        }
+      }
       writeLeaderboardContribution({
         transaction,
         firestore,
@@ -271,6 +297,7 @@ export async function completeRunForCallable(
         levelLabel: xpAudit.nextProgression.levelLabel,
         profileData: profileSnapshot.data(),
         existingContributionData: leaderboardContributionSnapshot.data(),
+        qualifyingRunCount,
       });
     } else {
       progressionDisplay = progressionDisplayFromEvent(progressionSnapshot.data());

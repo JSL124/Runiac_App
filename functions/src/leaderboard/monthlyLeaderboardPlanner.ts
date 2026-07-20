@@ -17,20 +17,41 @@ import {
   type MonthlyLeaderboardSnapshotPlan,
 } from "./leaderboardTypes.js";
 
+/**
+ * Locally-extended contribution shape used only while planning: carries the
+ * tolerantly-parsed `qualifyingRunCount` alongside the stored document
+ * fields. `qualifyingRunCount` is `null` for legacy contributions written
+ * before the minimum-runs gate existed; those are always grandfathered in.
+ */
+type ParsedLeaderboardContribution = Omit<
+  LeaderboardContributionDocument,
+  "qualifyingRunCount"
+> & {
+  readonly qualifyingRunCount: number | null;
+};
+
 export function planMonthlyLeaderboards(input: {
   readonly periodKey: string;
   readonly contributions: readonly FirebaseFirestore.DocumentData[];
   readonly currentPremiumUids?: ReadonlySet<string>;
   /**
    * Mirrors `LeaderboardConfig.excludePremium` (`config/leaderboard`). Defaults
-   * to `true`, matching pre-config-plane behavior where premium users were
-   * unconditionally excluded from ranking.
+   * to `false`, matching `DEFAULT_LEADERBOARD_CONFIG`: premium runners earn XP
+   * on the same terms as everyone else, so they rank on the same board.
    */
   readonly excludePremium?: boolean;
+  /**
+   * Mirrors `LeaderboardConfig.minRunsToQualify` (`config/leaderboard`).
+   * Defaults to `1`, matching `DEFAULT_LEADERBOARD_CONFIG`. A contribution
+   * with a `null` `qualifyingRunCount` (a legacy document written before
+   * this field existed) always passes the gate.
+   */
+  readonly minRunsToQualify?: number;
 }): MonthlyLeaderboardPlan {
   const premiumUids = input.currentPremiumUids ?? emptyUidSet;
-  const excludePremium = input.excludePremium ?? true;
-  const contributionByOwner = new Map<string, LeaderboardContributionDocument>();
+  const excludePremium = input.excludePremium ?? false;
+  const minRunsToQualify = input.minRunsToQualify ?? 1;
+  const contributionByOwner = new Map<string, ParsedLeaderboardContribution>();
   for (const rawContribution of input.contributions) {
     const contribution = parseContribution(rawContribution, input.periodKey);
     if (contribution === null) {
@@ -45,7 +66,7 @@ export function planMonthlyLeaderboards(input: {
     }
   }
 
-  const groups = new Map<string, LeaderboardContributionDocument[]>();
+  const groups = new Map<string, ParsedLeaderboardContribution[]>();
   const excludedCurrentViews: MonthlyLeaderboardCurrentViewPlan[] = [];
   for (const contribution of contributionByOwner.values()) {
     if (excludePremium && premiumUids.has(contribution.ownerUid)) {
@@ -61,6 +82,21 @@ export function planMonthlyLeaderboards(input: {
       continue;
     }
     if (!contribution.eligible || contribution.scoreXp <= 0) {
+      continue;
+    }
+    if (
+      contribution.qualifyingRunCount !== null &&
+      contribution.qualifyingRunCount < minRunsToQualify
+    ) {
+      excludedCurrentViews.push({
+        ownerUid: contribution.ownerUid,
+        snapshotId: null,
+        rankId: null,
+        periodKey: input.periodKey,
+        regionId: contribution.regionId,
+        divisionKey: contribution.divisionKey,
+        status: "ineligible_min_runs",
+      });
       continue;
     }
     const groupKey = `${contribution.regionId}\u0000${contribution.divisionKey}`;
@@ -166,7 +202,7 @@ export function monthlyLeaderboardRankId(
 function parseContribution(
   contribution: FirebaseFirestore.DocumentData,
   periodKey: string,
-): LeaderboardContributionDocument | null {
+): ParsedLeaderboardContribution | null {
   const ownerUid = readRequiredString(contribution["ownerUid"]);
   const scoreXp = contribution["scoreXp"];
   const area = singaporePlanningAreaForRegionId(contribution["regionId"]);
@@ -209,11 +245,20 @@ function parseContribution(
     sourceProgressionEventIds: readStringArray(
       contribution["sourceProgressionEventIds"],
     ),
+    qualifyingRunCount: readOptionalNonNegativeInteger(
+      contribution["qualifyingRunCount"],
+    ),
   };
 }
 
+function readOptionalNonNegativeInteger(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0
+    ? Math.floor(value)
+    : null;
+}
+
 function publicEntry(
-  contribution: LeaderboardContributionDocument,
+  contribution: ParsedLeaderboardContribution,
   area: SingaporePlanningArea,
   league: LeaderboardLeagueDefinition,
   rank: number,
@@ -230,8 +275,8 @@ function publicEntry(
 }
 
 function compareGroups(
-  left: readonly LeaderboardContributionDocument[],
-  right: readonly LeaderboardContributionDocument[],
+  left: readonly ParsedLeaderboardContribution[],
+  right: readonly ParsedLeaderboardContribution[],
 ): number {
   const leftKey = `${left[0]?.regionId ?? ""}\u0000${left[0]?.divisionKey ?? ""}`;
   const rightKey = `${right[0]?.regionId ?? ""}\u0000${right[0]?.divisionKey ?? ""}`;
@@ -239,8 +284,8 @@ function compareGroups(
 }
 
 function compareContributions(
-  left: LeaderboardContributionDocument,
-  right: LeaderboardContributionDocument,
+  left: ParsedLeaderboardContribution,
+  right: ParsedLeaderboardContribution,
 ): number {
   if (left.scoreXp !== right.scoreXp) {
     return right.scoreXp - left.scoreXp;

@@ -146,9 +146,12 @@ function mockRecord(input: {
       periodKey: input.periodKey,
       timezone: leaderboardTimezone,
       scoreXp,
+      // Premium parity: being premium no longer withholds ranking. This record
+      // keeps `scoreXp: 0` so the dataset still exercises a seeded account that
+      // does not reach the board, but the reason is now the zero score itself.
       eligible: !isPremium,
       eligibilityReason: isPremium
-        ? "ineligible_premium"
+        ? "ineligible_zero_score"
         : "mock_seed_basic_awarded_xp",
       lastProgressionAt: `${input.periodKey}-15T04:00:00.000Z`,
       sourceProgressionEventIds: [

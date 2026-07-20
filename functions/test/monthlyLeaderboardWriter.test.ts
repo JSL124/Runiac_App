@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 import { before, beforeEach, describe, it } from "node:test";
 import { getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
-import { refreshMonthlyLeaderboardSnapshots } from "../src/leaderboard/monthlyLeaderboard.js";
+import {
+  refreshMonthlyLeaderboardSnapshots,
+  writeLeaderboardContribution,
+} from "../src/leaderboard/monthlyLeaderboard.js";
 
 describe(
   "monthly leaderboard Firestore writer",
@@ -125,7 +128,9 @@ describe(
       assert.equal(currentView.get("activeRankProjectionId"), null);
     });
 
-    it("excludes a premium user by default (config/leaderboard missing)", async () => {
+    // Premium parity: premium runners earn XP on the same terms as Basic
+    // runners, so with no config document they rank on the same board.
+    it("includes a premium user by default (config/leaderboard missing)", async () => {
       const uid = "premium-runner-default";
       await Promise.all([
         firestore.doc(`users/${uid}`).set({ subscriptionStatus: "premium" }),
@@ -147,16 +152,17 @@ describe(
       const currentView = await firestore
         .doc(`leaderboardCurrentViews/${uid}`)
         .get();
-      assert.equal(currentView.get("status"), "ineligible_premium");
+      assert.equal(currentView.get("status"), "ranked");
     });
 
-    it("includes a premium user when config/leaderboard.excludePremium is false", async () => {
-      const uid = "premium-runner-included";
-      await firestore.doc("config/leaderboard").set({ excludePremium: false });
+    // Exclusion remains a supported configuration, just no longer the default.
+    it("excludes a premium user when config/leaderboard.excludePremium is true", async () => {
+      const uid = "premium-runner-excluded";
+      await firestore.doc("config/leaderboard").set({ excludePremium: true });
       await Promise.all([
         firestore.doc(`users/${uid}`).set({ subscriptionStatus: "premium" }),
         firestore.doc(`userProfiles/${uid}`).set({
-          nickname: "Premium Included",
+          nickname: "Premium Excluded",
           locationLabel: "Jurong East, Singapore",
           divisionKey: "tier_01",
           level: 1,
@@ -167,14 +173,170 @@ describe(
       ]);
       await refreshMonthlyLeaderboardSnapshots(firestore, "2026-07", {
         now: new Date("2026-07-10T00:00:00.000Z"),
-        buildId: "premium-included-build",
+        buildId: "premium-excluded-build",
       });
 
       const currentView = await firestore
         .doc(`leaderboardCurrentViews/${uid}`)
         .get();
-      assert.equal(currentView.get("status"), "ranked");
+      assert.equal(currentView.get("status"), "ineligible_premium");
       await firestore.doc("config/leaderboard").delete();
+    });
+
+    // A currentView is only ever `set`, so an owner who stops contributing
+    // keeps whatever status was last written. That made a policy change
+    // invisible to exactly the users it freed: a premium owner excluded under
+    // `excludePremium: true` kept `ineligible_premium` and kept seeing
+    // "Monthly ranking is not available for this account yet".
+    it("re-evaluates a stale ineligible_premium view once exclusion is off", async () => {
+      const uid = "stale-premium-view-runner";
+      await Promise.all([
+        firestore.doc(`users/${uid}`).set({ subscriptionStatus: "premium" }),
+        firestore.doc(`userProfiles/${uid}`).set({
+          nickname: "Stale Premium",
+          locationLabel: "Jurong East, Singapore",
+          divisionKey: "tier_01",
+          level: 1,
+        }),
+        // Written by an earlier run under the old policy. This owner has NO
+        // contribution for the period, so nothing puts them in ownerUids.
+        firestore.doc(`leaderboardCurrentViews/${uid}`).set({
+          ownerUid: uid,
+          periodType: "monthly",
+          periodKey: "2026-07",
+          status: "ineligible_premium",
+          snapshotId: null,
+          rankId: null,
+          activeSnapshotId: null,
+          activeRankProjectionId: null,
+        }),
+      ]);
+
+      await refreshMonthlyLeaderboardSnapshots(firestore, "2026-07", {
+        now: new Date("2026-07-10T00:00:00.000Z"),
+        buildId: "stale-premium-view-build",
+      });
+
+      const currentView = await firestore
+        .doc(`leaderboardCurrentViews/${uid}`)
+        .get();
+      assert.notEqual(
+        currentView.get("status"),
+        "ineligible_premium",
+        "the stale exclusion must not survive a run under the current config",
+      );
+      assert.equal(currentView.get("status"), "unranked");
+    });
+
+    it("writes qualifyingRunCount as an absolute value, never an increment", async () => {
+      const uid = "absolute-count-runner";
+      const contributionRef = firestore.doc(
+        `leaderboardContributions/${uid}_monthly_2026-07`,
+      );
+
+      // Seed a stored count of 3, as if a prior write already recomputed it.
+      await firestore.runTransaction(async (transaction) => {
+        writeLeaderboardContribution({
+          transaction,
+          firestore,
+          uid,
+          progressionEventId: "progression-absolute-count-1",
+          completedAt: "2026-07-10T00:00:00.000Z",
+          periodKey: "2026-07",
+          scoreXp: 50,
+          divisionKey: "tier_01",
+          divisionLabel: "Iron League",
+          levelLabel: "Level 1",
+          profileData: {
+            nickname: "Absolute Count",
+            locationLabel: "Jurong East, Singapore",
+          },
+          existingContributionData: undefined,
+          qualifyingRunCount: 3,
+        });
+      });
+      const afterFirst = await contributionRef.get();
+      assert.equal(afterFirst.get("qualifyingRunCount"), 3);
+
+      // A later recompute of 7 must land as 7, not 3 + 7 = 10. This is the
+      // exact regression `FieldValue.increment` would have reintroduced.
+      await firestore.runTransaction(async (transaction) => {
+        writeLeaderboardContribution({
+          transaction,
+          firestore,
+          uid,
+          progressionEventId: "progression-absolute-count-2",
+          completedAt: "2026-07-11T00:00:00.000Z",
+          periodKey: "2026-07",
+          scoreXp: 50,
+          divisionKey: "tier_01",
+          divisionLabel: "Iron League",
+          levelLabel: "Level 1",
+          profileData: {
+            nickname: "Absolute Count",
+            locationLabel: "Jurong East, Singapore",
+          },
+          existingContributionData: afterFirst.data(),
+          qualifyingRunCount: 7,
+        });
+      });
+      const afterSecond = await contributionRef.get();
+      assert.equal(afterSecond.get("qualifyingRunCount"), 7);
+
+      // A `null` qualifyingRunCount (completeCoolDown's contract) must leave
+      // the previously-recomputed value untouched.
+      await firestore.runTransaction(async (transaction) => {
+        writeLeaderboardContribution({
+          transaction,
+          firestore,
+          uid,
+          progressionEventId: "progression-absolute-count-3",
+          completedAt: "2026-07-12T00:00:00.000Z",
+          periodKey: "2026-07",
+          scoreXp: 50,
+          divisionKey: "tier_01",
+          divisionLabel: "Iron League",
+          levelLabel: "Level 1",
+          profileData: {
+            nickname: "Absolute Count",
+            locationLabel: "Jurong East, Singapore",
+          },
+          existingContributionData: afterSecond.data(),
+          qualifyingRunCount: null,
+        });
+      });
+      const afterCoolDown = await contributionRef.get();
+      assert.equal(afterCoolDown.get("qualifyingRunCount"), 7);
+    });
+
+    it("leaves qualifyingRunCount unset when a first write passes null", async () => {
+      const uid = "null-first-write-runner";
+      const contributionRef = firestore.doc(
+        `leaderboardContributions/${uid}_monthly_2026-07`,
+      );
+
+      await firestore.runTransaction(async (transaction) => {
+        writeLeaderboardContribution({
+          transaction,
+          firestore,
+          uid,
+          progressionEventId: "progression-null-first-write",
+          completedAt: "2026-07-10T00:00:00.000Z",
+          periodKey: "2026-07",
+          scoreXp: 50,
+          divisionKey: "tier_01",
+          divisionLabel: "Iron League",
+          levelLabel: "Level 1",
+          profileData: {
+            nickname: "Null First Write",
+            locationLabel: "Jurong East, Singapore",
+          },
+          existingContributionData: undefined,
+          qualifyingRunCount: null,
+        });
+      });
+      const afterWrite = await contributionRef.get();
+      assert.equal(afterWrite.get("qualifyingRunCount"), undefined);
     });
   },
 );

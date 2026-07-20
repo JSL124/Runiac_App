@@ -206,6 +206,10 @@ class _RegionPreviewList extends StatelessWidget {
         return const _RegionPreviewMessageCard(
           message: leaderboardIneligibleBody,
         );
+      case LeaderboardReadStatus.ineligibleMinRuns:
+        return const _RegionPreviewMessageCard(
+          message: leaderboardIneligibleMinRunsBody,
+        );
       case LeaderboardReadStatus.data:
       // Unranked keeps the real board visible; the My Rank Preview section
       // below carries the encouragement copy instead of hiding the rows.

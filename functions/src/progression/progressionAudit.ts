@@ -10,8 +10,10 @@ import type {
 import {
   applyDailyXpCap,
   calculateActivityXp,
+  calculateStreakMilestoneBonus,
   resolveLevelProgression,
   type LevelProgression,
+  type StreakBonusResult,
 } from "./progressionCalculator.js";
 import {
   formatXpLabel,
@@ -40,6 +42,10 @@ export type ProgressionAudit = {
   readonly monthlyXpBefore: number;
   readonly monthlyXpAfter: number;
   readonly dailyCapApplied: boolean;
+  readonly streakBonusXp: number;
+  readonly streakMilestoneDays: number | null;
+  readonly streakBonusCapped: boolean;
+  readonly highestPaidStreakMilestoneDays: number;
   readonly xpDelta: number;
   readonly previousTotalXp: number;
   readonly nextTotalXp: number;
@@ -59,6 +65,7 @@ export function calculateProgressionAudit(input: {
   readonly planProgressResult: PersistPlanProgressResult;
   readonly config: ProgressionConfig;
   readonly nowMs: number;
+  readonly streakTransition: StreakTransition;
 }): ProgressionAudit {
   const previousTotalXp = readTotalXp(input.profileData);
   const previousProgression = resolveLevelProgression(previousTotalXp, input.config);
@@ -89,21 +96,60 @@ export function calculateProgressionAudit(input: {
         },
         input.config,
       );
+
+  // Streak milestone bonus: deliberately EXEMPT from `activityXpCap` (that
+  // cap is applied above, to the base activity XP only) but still bounded by
+  // whatever daily XP room remains after the base. A `suppress`ed run
+  // (premium && !premiumEarnsXp) or a low-data-confirmed run earns zero base
+  // XP by design, so the bonus is withheld too — otherwise a run that earns
+  // nothing could still unlock streak bonus XP as a side door.
+  const highestPaidMilestoneDays = readHighestPaidStreakMilestoneDays(input.profileData);
+  const streakBonus: StreakBonusResult =
+    suppress || activityXp.reason === "low_data_no_xp"
+      ? { bonusXp: 0, milestoneDays: null }
+      : calculateStreakMilestoneBonus(
+          { ...input.streakTransition, highestPaidMilestoneDays },
+          input.config,
+        );
+  const remainingDailyXpForBonus = Math.max(0, input.config.dailyXpCap - capped.dailyXpAfter);
+  const streakBonusXp = Math.min(streakBonus.bonusXp, remainingDailyXpForBonus);
+  const streakBonusCapped = streakBonusXp < streakBonus.bonusXp;
+  const streakMilestoneDays = streakBonus.milestoneDays;
+
+  const xpDelta = capped.xpDelta + streakBonusXp;
+  const dailyXpAfter = capped.dailyXpAfter + streakBonusXp;
+  // Must report whether ANY portion — base activity XP or the streak bonus —
+  // was trimmed by the daily cap, not just the base.
+  const dailyCapApplied = capped.dailyCapApplied || streakBonusCapped;
+
+  // `xpDeltaBeforeDailyCap` passed below stays base-only (pre-bonus) on
+  // purpose: it feeds the "daily_cap_reached" branch inside
+  // progressionReason(), which must fire only when the BASE itself was
+  // trimmed to zero by an already-exhausted daily cap. `xpDelta` here is the
+  // final combined amount, so a run whose base happens to be zero (e.g. a
+  // permissive zero-value config) but whose streak bonus is awarded still
+  // reports "run_completion_xp_awarded", not a false daily-cap reason. No new
+  // reason enum value is introduced — the existing awarded/suppressed/
+  // daily-cap/low-data reasons already describe the combined outcome
+  // correctly once `xpDelta` reflects base + bonus.
   const reason = progressionReason({
-    isPremium,
+    premiumXpSuppressed: suppress,
     activityReason: activityXp.reason,
     xpDeltaBeforeDailyCap: activityXp.xpDeltaBeforeDailyCap,
-    xpDelta: capped.xpDelta,
+    xpDelta,
   });
-  const nextTotalXp = previousTotalXp + capped.xpDelta;
-  const monthlyXpAfter = monthlyXpBefore + capped.xpDelta;
+  const nextTotalXp = previousTotalXp + xpDelta;
+  const monthlyXpAfter = monthlyXpBefore + xpDelta;
   const nextProgression = resolveLevelProgression(nextTotalXp, input.config);
 
   return {
     progressionDisplay: {
-      xpDelta: capped.xpDelta,
-      countsTowardLeaderboard: !isPremium && capped.xpDelta > 0,
-      status: capped.xpDelta > 0 ? "awarded" : "not_awarded",
+      xpDelta,
+      // Awarded XP always counts toward leaderboard scoring. Whether a premium
+      // runner is *shown* on the board is `config/leaderboard.excludePremium`,
+      // owned by the aggregator — not a second, silent rule here.
+      countsTowardLeaderboard: xpDelta > 0,
+      status: xpDelta > 0 ? "awarded" : "not_awarded",
       reason,
       totalXp: nextTotalXp,
       level: nextProgression.level,
@@ -125,11 +171,21 @@ export function calculateProgressionAudit(input: {
     dailyCapDate: input.dailyCapDate,
     monthlyPeriod: input.monthlyPeriod,
     dailyXpBefore,
-    dailyXpAfter: capped.dailyXpAfter,
+    dailyXpAfter,
     monthlyXpBefore,
     monthlyXpAfter,
-    dailyCapApplied: capped.dailyCapApplied,
-    xpDelta: capped.xpDelta,
+    dailyCapApplied,
+    streakBonusXp,
+    streakMilestoneDays,
+    streakBonusCapped,
+    // Advance the mark only when the milestone actually paid something. A
+    // crossing whose bonus the daily cap trimmed to zero earned nothing, so
+    // banking it would silently forfeit that milestone forever.
+    highestPaidStreakMilestoneDays:
+      streakMilestoneDays !== null && streakBonusXp > 0
+        ? Math.max(highestPaidMilestoneDays, streakMilestoneDays)
+        : highestPaidMilestoneDays,
+    xpDelta,
     previousTotalXp,
     nextTotalXp,
     previousProgression,
@@ -168,6 +224,9 @@ export function progressionEventData(input: {
     monthlyXpBefore: input.audit.monthlyXpBefore,
     monthlyXpAfter: input.audit.monthlyXpAfter,
     dailyCapApplied: input.audit.dailyCapApplied,
+    streakBonusXp: input.audit.streakBonusXp,
+    streakMilestoneDays: input.audit.streakMilestoneDays,
+    streakBonusCapped: input.audit.streakBonusCapped,
     previousTotalXp: input.audit.previousTotalXp,
     nextTotalXp: input.audit.nextTotalXp,
     previousLevel: input.audit.previousProgression.level,
@@ -232,6 +291,13 @@ export function coolDownProgressionEventData(input: {
     dailyCapApplied: input.dailyCapApplied,
     monthlyXpBefore: input.monthlyXpBefore,
     monthlyXpAfter: input.monthlyXpAfter,
+    // Contract: the cool-down path has no streak transition of its own and
+    // must NEVER award a streak milestone bonus — these are pinned, not
+    // computed, mirroring the baseCompletionXp: 0 / planCompletionBonusXp: 0
+    // pattern in completeCoolDown.ts's ProgressionAudit construction.
+    streakBonusXp: 0,
+    streakMilestoneDays: null,
+    streakBonusCapped: false,
     previousTotalXp: input.previousTotalXp,
     nextTotalXp: input.nextTotalXp,
     previousLevel: input.previousProgression.level,
@@ -261,8 +327,27 @@ export function profileProgressionData(audit: ProgressionAudit, updatedAt: strin
     nextLevelXp: audit.nextProgression.nextLevelXp,
     xpToNextLevel: audit.nextProgression.xpToNextLevel,
     levelProgressPercent: audit.nextProgression.levelProgressPercent,
+    // Never regresses: the mark is what makes a milestone payable exactly once,
+    // so a later run with a collapsed streak baseline must not lower it.
+    highestPaidStreakMilestoneDays: audit.highestPaidStreakMilestoneDays,
     progressionUpdatedAt: updatedAt,
   };
+}
+
+/**
+ * Reads the owner's streak-milestone high-water mark from `userProfiles`.
+ * Absent (every profile written before this field existed) reads as 0, which
+ * grandfathers those owners into being able to earn each milestone once more —
+ * the conservative direction, since the alternative would be to guess a mark
+ * from a streak history that is itself plan-bounded and therefore untrusted.
+ */
+export function readHighestPaidStreakMilestoneDays(
+  profileData: FirebaseFirestore.DocumentData | undefined,
+): number {
+  const stored = profileData?.["highestPaidStreakMilestoneDays"];
+  return typeof stored === "number" && Number.isFinite(stored) && stored > 0
+    ? Math.floor(stored)
+    : 0;
 }
 
 export function noCompletedWorkoutRecorded(): PersistPlanProgressResult {

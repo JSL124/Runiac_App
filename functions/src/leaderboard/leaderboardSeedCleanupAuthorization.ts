@@ -69,7 +69,12 @@ function isVerifiedJurongEastReplacement(
     manifest.get("profileCount") === 100 &&
     manifest.get("verifiedProfileCount") === 100 &&
     manifest.get("verifiedRankCount") === 99 &&
-    manifest.get("verifiedCurrentViewCount") === 100 &&
+    // Premium parity: the 100-user fixture contains one zero-score record, and
+    // the planner drops zero-score contributions before any projection is
+    // written — so it yields 99 ranks AND 99 current views. This was 100 while
+    // premium exclusion was the default, because an excluded runner still
+    // received an `ineligible_premium` current view.
+    manifest.get("verifiedCurrentViewCount") === 99 &&
     manifest.get("verifiedRegionCount") === 1 &&
     typeof manifest.get("lastRefreshBuildId") === "string";
 }

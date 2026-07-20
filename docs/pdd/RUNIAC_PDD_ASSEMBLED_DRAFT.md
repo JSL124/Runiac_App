@@ -43,7 +43,7 @@ This architecture is suitable for a university MVP because it keeps the system s
 
 ### 2.2 Layer Responsibilities
 
-Basic and Premium users interact with Runiac through the same mobile application. Basic and Premium access is distinguished by `subscriptionStatus`, while operational or content-governance responsibility is distinguished by `userRole`. Premium users receive advanced analytics, published expert goal plans, saved route collections, advanced route filters, route comparison, AI-assisted summaries, and enhanced sharing presentation, but they do not receive XP or ranking advantages.
+Basic and Premium users interact with Runiac through the same mobile application. Basic and Premium access is distinguished by `subscriptionStatus`, while operational or content-governance responsibility is distinguished by `userRole`. Premium users receive advanced analytics, published expert goal plans, saved route collections, advanced route filters, route comparison, AI-assisted summaries, and enhanced sharing presentation, but they earn XP, level, rank, and leaderboard score under exactly the same server-owned rules as Basic users, so Premium gives no ranking advantage.
 
 Platform Administrator is the operational `userRole` responsible for moderation and expert plan governance. Medical Trainer/Expert is a content provider rather than a direct plan publisher. Expert plan content is prepared through an off-system or controlled submission process, reviewed by the Platform Administrator, and made visible to Premium Users only after approval and publication.
 

@@ -55,7 +55,11 @@ export const DEFAULT_PROGRESSION_CONFIG: ProgressionConfig = {
   planCompletionBonusXp: 20,
   activityXpCap: 100,
   dailyXpCap: 200,
-  premiumEarnsXp: false,
+  // Premium buys coaching, analysis, and presentation value — never a
+  // competitive edge. Premium runners therefore earn XP under exactly the same
+  // rules as Basic runners; suppressing it instead froze their level, division,
+  // and leaderboard standing, which reads as a penalty for paying.
+  premiumEarnsXp: true,
   maxLevel: 100,
   coolDown: {
     percent: 0.2,
@@ -74,7 +78,10 @@ export const DEFAULT_PROGRESSION_CONFIG: ProgressionConfig = {
 
 export const DEFAULT_LEADERBOARD_CONFIG: LeaderboardConfig = {
   minRunsToQualify: 1,
-  excludePremium: true,
+  // Paired with `premiumEarnsXp: true`: premium runners accrue XP normally, so
+  // they rank on the same board under the same formula. Flipping this to `true`
+  // without also clearing `premiumEarnsXp` would rank them at a permanent zero.
+  excludePremium: false,
   seasonLengthDays: 30,
   version: 1,
 };

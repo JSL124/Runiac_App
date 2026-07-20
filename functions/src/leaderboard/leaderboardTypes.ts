@@ -21,6 +21,18 @@ export type LeaderboardContributionDocument = {
   readonly eligibilityReason: string;
   readonly lastProgressionAt: string;
   readonly sourceProgressionEventIds: readonly string[];
+  /**
+   * Stored-document-only field: the number of validated runs the owner
+   * completed within this monthly period, used to gate
+   * `config/leaderboard.minRunsToQualify`. `writeLeaderboardContribution`
+   * writes it as an authoritative absolute recompute (never an accumulator),
+   * so it self-heals; `completeCoolDown` passes `null` and leaves it alone.
+   * Absent on the plain value object returned by
+   * `leaderboardContributionFields`, and absent on contributions written
+   * before this field existed — the planner treats a missing value as
+   * "unknown" and always lets those through.
+   */
+  readonly qualifyingRunCount?: number;
 };
 
 export type LeaderboardPublicEntry = {
@@ -61,7 +73,8 @@ export type LeaderboardCurrentViewStatus =
   | "ranked"
   | "unranked"
   | "region_required"
-  | "ineligible_premium";
+  | "ineligible_premium"
+  | "ineligible_min_runs";
 
 export type MonthlyLeaderboardCurrentViewPlan = {
   readonly ownerUid: string;

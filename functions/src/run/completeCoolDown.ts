@@ -10,6 +10,7 @@ import {
   coolDownProgressionEventData,
   profileProgressionData,
   progressionDisplayFromEvent,
+  readHighestPaidStreakMilestoneDays,
   type ProgressionAudit,
 } from "../progression/progressionAudit.js";
 import {
@@ -137,7 +138,14 @@ export async function completeCoolDownForCallable(
 
     const isPremium =
       isPremiumSubscription(userSnapshot.data(), nowMs) || isPremiumSubscription(profileSnapshot.data(), nowMs);
-    const bonusBeforeDailyCap = isPremium ? 0 : calculateCoolDownBonus(baseEarnedXp, progressionConfig);
+    // Mirrors calculateProgressionAudit(): the tier alone withholds nothing —
+    // only `config/progression.premiumEarnsXp: false` does. This path used to
+    // branch on `isPremium` directly and so ignored the config plane entirely,
+    // suppressing the stretch bonus even when premium runners earn XP.
+    const premiumXpSuppressed = isPremium && !progressionConfig.premiumEarnsXp;
+    const bonusBeforeDailyCap = premiumXpSuppressed
+      ? 0
+      : calculateCoolDownBonus(baseEarnedXp, progressionConfig);
     const dailyXpBefore = sumDailyXp(
       sameDayProgressionEventSnapshots.docs.map((document) => document.data()),
       dailyCapDate,
@@ -160,13 +168,13 @@ export async function completeCoolDownForCallable(
     const reason: ProgressionDisplay["reason"] =
       capped.xpDelta > 0
         ? "cool_down_stretch_bonus_awarded"
-        : isPremium
+        : premiumXpSuppressed
           ? "premium_no_progression"
           : bonusBeforeDailyCap > 0
             ? "cool_down_daily_cap_reached"
             : "low_data_no_xp";
     const status: ProgressionDisplay["status"] = capped.xpDelta > 0 ? "awarded" : "not_awarded";
-    const countsTowardLeaderboard = !isPremium && capped.xpDelta > 0;
+    const countsTowardLeaderboard = capped.xpDelta > 0;
 
     progressionDisplay = {
       xpDelta: capped.xpDelta,
@@ -226,6 +234,19 @@ export async function completeCoolDownForCallable(
       monthlyXpBefore,
       monthlyXpAfter,
       dailyCapApplied: capped.dailyCapApplied,
+      // Contract: the cool-down path has no streak transition of its own and
+      // must NEVER award a streak milestone bonus — mirrors baseCompletionXp:
+      // 0 / planCompletionBonusXp: 0 above.
+      streakBonusXp: 0,
+      streakMilestoneDays: null,
+      streakBonusCapped: false,
+      // Pass the stored mark through unchanged. This path pays no milestone,
+      // so it must neither advance the mark nor reset it to 0 — the profile
+      // write below would otherwise erase the owner's payment history and make
+      // every milestone re-earnable.
+      highestPaidStreakMilestoneDays: readHighestPaidStreakMilestoneDays(
+        profileSnapshot.data(),
+      ),
       xpDelta: capped.xpDelta,
       previousTotalXp,
       nextTotalXp,
@@ -248,6 +269,9 @@ export async function completeCoolDownForCallable(
       levelLabel: nextProgression.levelLabel,
       profileData: profileSnapshot.data(),
       existingContributionData: leaderboardContributionSnapshot.data(),
+      // Cool-down does not read the user's activity history in this
+      // transaction, so it must never overwrite the recomputed count.
+      qualifyingRunCount: null,
     });
 
     transaction.set(

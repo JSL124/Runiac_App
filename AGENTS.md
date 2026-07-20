@@ -25,7 +25,7 @@
 - Cloud Functions handle XP calculation, activity validation, streak update, level update, rank update, and leaderboard aggregation.
 - The client must not directly calculate or write XP, level, rank, streak, leaderboard score, weekly XP, monthly XP, subscription privilege state, or expert plan publication state.
 - Premium features must not rely only on hiding UI.
-- Premium users must not receive XP, rank, leaderboard score, or competitive advantages.
+- Premium must not confer a competitive advantage. Premium Users earn XP, level, rank, and leaderboard score under exactly the same server-owned rules as Basic Users — paying changes the scoring formula in neither direction. Premium sells coaching, analysis, approved expert plans, route convenience, and presentation/sharing value only.
 - Basic/Premium feature access uses `subscriptionStatus`.
 - Operational and governance access uses `userRole`.
 - Basic User and Premium User must not be modelled as separate subclasses.
