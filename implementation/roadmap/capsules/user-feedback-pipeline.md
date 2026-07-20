@@ -6,7 +6,7 @@
 
 ## Status
 
-Implemented emulator-first on 2026-07-19 Asia/Singapore. No production `runiac-fypp` deploy is authorized by this capsule.
+Implemented emulator-first on 2026-07-19 Asia/Singapore. The user explicitly authorized a scoped production deploy on 2026-07-20 Asia/Singapore after debugging a live "Something went wrong" feedback-submission failure traced to the `submitFeedback` callable never having been deployed to `runiac-fypp`. Deployed: `functions:submitFeedback` (`asia-southeast1`, now ACTIVE), `firestore:rules` (feedback deny block), `firestore:indexes` (feedback `uid`+`receivedAt` composite index). No other function was touched by this deploy. Code deployed matches commit `5d7b2ada feat(feedback): server-owned submitFeedback callable and account feedback form` unchanged from the 2026-07-19 emulator-first evidence.
 
 ## Goal
 
