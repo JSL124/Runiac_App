@@ -183,6 +183,51 @@ describe(
       await firestore.doc("config/leaderboard").delete();
     });
 
+    // A currentView is only ever `set`, so an owner who stops contributing
+    // keeps whatever status was last written. That made a policy change
+    // invisible to exactly the users it freed: a premium owner excluded under
+    // `excludePremium: true` kept `ineligible_premium` and kept seeing
+    // "Monthly ranking is not available for this account yet".
+    it("re-evaluates a stale ineligible_premium view once exclusion is off", async () => {
+      const uid = "stale-premium-view-runner";
+      await Promise.all([
+        firestore.doc(`users/${uid}`).set({ subscriptionStatus: "premium" }),
+        firestore.doc(`userProfiles/${uid}`).set({
+          nickname: "Stale Premium",
+          locationLabel: "Jurong East, Singapore",
+          divisionKey: "tier_01",
+          level: 1,
+        }),
+        // Written by an earlier run under the old policy. This owner has NO
+        // contribution for the period, so nothing puts them in ownerUids.
+        firestore.doc(`leaderboardCurrentViews/${uid}`).set({
+          ownerUid: uid,
+          periodType: "monthly",
+          periodKey: "2026-07",
+          status: "ineligible_premium",
+          snapshotId: null,
+          rankId: null,
+          activeSnapshotId: null,
+          activeRankProjectionId: null,
+        }),
+      ]);
+
+      await refreshMonthlyLeaderboardSnapshots(firestore, "2026-07", {
+        now: new Date("2026-07-10T00:00:00.000Z"),
+        buildId: "stale-premium-view-build",
+      });
+
+      const currentView = await firestore
+        .doc(`leaderboardCurrentViews/${uid}`)
+        .get();
+      assert.notEqual(
+        currentView.get("status"),
+        "ineligible_premium",
+        "the stale exclusion must not survive a run under the current config",
+      );
+      assert.equal(currentView.get("status"), "unranked");
+    });
+
     it("writes qualifyingRunCount as an absolute value, never an increment", async () => {
       const uid = "absolute-count-runner";
       const contributionRef = firestore.doc(

@@ -107,10 +107,21 @@ export async function refreshMonthlyLeaderboardSnapshots(
     const previousPeriodKey = readString(
       currentPeriodSnapshot.data()?.["periodKey"],
     );
-    const rolloverViews =
-      previousPeriodKey !== null && previousPeriodKey !== periodKey
-        ? await firestore.collection("leaderboardCurrentViews").get()
-        : null;
+    // Read on EVERY run, not only on a period change. A currentView is the
+    // document the app reads to decide what to show, and it is only ever
+    // `set` — nothing deletes one. An owner who has no contribution this
+    // period is absent from `ownerUids`, so without this their view keeps
+    // whatever status it was last written with, forever.
+    //
+    // That is not merely stale, it is wrong: a premium owner excluded under
+    // `excludePremium: true` keeps `ineligible_premium`, and the app keeps
+    // rendering "Monthly ranking is not available for this account yet" long
+    // after the policy stopped excluding them. Re-planning every existing view
+    // owner each run recomputes the status from current facts and current
+    // config instead.
+    const rolloverViews = await firestore
+      .collection("leaderboardCurrentViews")
+      .get();
     const ownerUids = new Set<string>();
     for (const contribution of contributionSnapshot.docs) {
       const ownerUid = readString(contribution.data()["ownerUid"]);
