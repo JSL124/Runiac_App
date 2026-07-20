@@ -5,7 +5,10 @@ import {
   type Firestore,
 } from "firebase-admin/firestore";
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
-import { refreshMonthlyLeaderboardSnapshots } from "./monthlyLeaderboard.js";
+import {
+  currentSingaporeMonthKey,
+  refreshMonthlyLeaderboardSnapshots,
+} from "./monthlyLeaderboard.js";
 
 // The admin console (Next.js server, Admin SDK only) cannot invoke Cloud
 // Functions callables directly, so "request a recalculation" has to be a
@@ -14,8 +17,22 @@ import { refreshMonthlyLeaderboardSnapshots } from "./monthlyLeaderboard.js";
 // consumes it and runs the real aggregation, then merge-writes the outcome
 // back onto the SAME document. `onDocumentCreated` fires only on create, so
 // that write-back does not re-trigger this function.
+//
+// SAFETY: admin recalculation is deliberately restricted to the CURRENT
+// Singapore month, and the period is derived here rather than trusted from
+// the command document. `refreshMonthlyLeaderboardSnapshots` is not a
+// period-scoped operation: it repoints `leaderboardPeriods/monthly_current`
+// to whatever key it is given and then runs
+// `cleanupExpiredProjections(retainedPeriodKeys(key))`, which deletes every
+// snapshot/rank outside the three-month window around that key. So a command
+// naming an older month (`2026-05` while July is live) would repoint the
+// document the app reads first AND delete the live July/June projections,
+// and a syntactically-valid-but-impossible month (`2026-13`, which
+// `retainedPeriodKeys` cannot parse and degrades to a single-key retention
+// set) would delete essentially everything. The scheduled job never had this
+// exposure because it always passes the current month; this trigger is the
+// only path that accepts external input, so it must fail closed.
 const leaderboardAdminCommandsCollection = "leaderboardAdminCommands";
-const periodKeyPattern = /^\d{4}-\d{2}$/;
 
 export type LeaderboardAdminCommandHandlers = {
   readonly onCommandCreated: (
@@ -33,19 +50,21 @@ export function createLeaderboardAdminCommandHandlers(dependencies: {
         .collection(leaderboardAdminCommandsCollection)
         .doc(commandId);
       const command = readString(data["command"]);
-      const periodKey = readString(data["periodKey"]);
+      const requestedPeriodKey = readString(data["periodKey"]);
+      // Derived, never taken from the document — see the SAFETY note above.
+      const periodKey = currentSingaporeMonthKey(new Date());
 
-      if (
-        command !== "refresh" ||
-        periodKey === null ||
-        !periodKeyPattern.test(periodKey)
-      ) {
+      if (command !== "refresh" || requestedPeriodKey !== periodKey) {
         // Invalid input is a business denial, not an infrastructure fault:
         // merge-write a rejection and return without throwing.
+        //
+        // A requested key that is merely stale rather than malicious is
+        // possible if the console computed it just before a month rollover;
+        // rejecting is still correct, and the admin simply retries.
         await ref.set(
           {
             status: "rejected",
-            error: rejectionReason(command, data),
+            error: rejectionReason(command, requestedPeriodKey, periodKey),
             completedAt: new Date().toISOString(),
           },
           { merge: true },
@@ -123,12 +142,13 @@ export const leaderboardAdminCommandCreated =
 
 function rejectionReason(
   command: string | null,
-  data: DocumentData,
+  requestedPeriodKey: string | null,
+  currentPeriodKey: string,
 ): string {
   if (command !== "refresh") {
-    return `Unsupported command: ${String(data["command"])}`;
+    return `Unsupported command: ${String(command)}`;
   }
-  return `Malformed periodKey: ${String(data["periodKey"])}`;
+  return `Only the current period can be recalculated. Requested ${String(requestedPeriodKey)}, current is ${currentPeriodKey}.`;
 }
 
 function readString(value: unknown): string | null {
