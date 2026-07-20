@@ -32,7 +32,7 @@
 // Exit 0 = the two files agree on every compared block. Exit 1 = drift (or a
 // block/export is missing on one side).
 
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
@@ -193,6 +193,20 @@ function kindForDiscoveredName(name) {
 }
 
 function main() {
+  // The admin console lives in a SEPARATE git repository that merely happens to
+  // sit at website/ in a local checkout. Hosted CI clones only this repository,
+  // so the mirror is genuinely absent there and reading it would crash. Report
+  // the skip loudly rather than pretending the contract was verified: this
+  // check is a local/dev guard, and the mirror's own repository is responsible
+  // for its side.
+  if (!existsSync(WEBSITE_FILE)) {
+    console.log(
+      `SKIP: config contract not compared — ${WEBSITE_LABEL} is not present. ` +
+        "The admin console is a separate repository; this check only runs where both are checked out.",
+    );
+    return 0;
+  }
+
   const functionsText = readText(FUNCTIONS_FILE);
   const websiteText = readText(WEBSITE_FILE);
 
