@@ -50,16 +50,31 @@ class AccountIdentityCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 8),
                         Expanded(
-                          child: Text(
-                            snapshot.displayName,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: RuniacColors.textPrimary,
-                              fontSize: 21,
-                              fontWeight: FontWeight.w900,
-                              height: 1.1,
-                            ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  snapshot.displayName,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: RuniacColors.textPrimary,
+                                    fontSize: 21,
+                                    fontWeight: FontWeight.w900,
+                                    height: 1.1,
+                                  ),
+                                ),
+                              ),
+                              if (snapshot
+                                  .subscriptionStatusLabel
+                                  .isNotEmpty) ...[
+                                const SizedBox(width: 6),
+                                _SubscriptionStatusBadge(
+                                  label: snapshot.subscriptionStatusLabel,
+                                ),
+                              ],
+                            ],
                           ),
                         ),
                       ],
@@ -110,6 +125,50 @@ class AccountIdentityCard extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Small text-pill relaying the backend-owned Basic/Premium subscription
+/// tier next to the runner's nickname. Display-only: it never computes or
+/// grants subscription privilege, it only shows the trusted label.
+class _SubscriptionStatusBadge extends StatelessWidget {
+  const _SubscriptionStatusBadge({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final isPremium = label.trim().toLowerCase() == 'premium';
+    final foregroundColor = isPremium
+        ? RuniacColors.accentOrange
+        : RuniacColors.textSecondary;
+    final backgroundColor = isPremium
+        ? RuniacColors.accentOrange.withValues(alpha: 0.12)
+        : RuniacColors.disabledButtonBackground;
+
+    return Semantics(
+      label: '$label plan',
+      child: DecoratedBox(
+        key: const ValueKey('account-subscription-status-badge'),
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+          child: Text(
+            label.trim().toUpperCase(),
+            style: TextStyle(
+              color: foregroundColor,
+              fontSize: 10.5,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.4,
+              height: 1,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

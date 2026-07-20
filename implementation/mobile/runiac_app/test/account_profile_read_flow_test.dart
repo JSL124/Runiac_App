@@ -116,6 +116,11 @@ void main() {
       expect(find.text('First relaxed 5K'), findsOneWidget);
       expect(find.text('4 sessions / week'), findsOneWidget);
       expect(find.text('Returning runner'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('account-subscription-status-badge')),
+        findsOneWidget,
+      );
+      expect(find.text('BASIC'), findsOneWidget);
     },
   );
 

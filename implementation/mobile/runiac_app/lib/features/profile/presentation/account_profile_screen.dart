@@ -418,6 +418,7 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
           ? profile.displayName
           : profile.nickname,
       avatarInitials: profile.avatarInitials,
+      subscriptionStatusLabel: fallback.subscriptionStatusLabel,
       regionLabel: profile.locationLabel,
       regionalRankLabel: _accountRegionalRankLabel(leaderboard),
       maxStreakLabel: _accountMaxStreakLabel(progress, fallback),
@@ -464,6 +465,7 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
     return AccountProfileDemoSnapshot(
       displayName: fallback.displayName,
       avatarInitials: fallback.avatarInitials,
+      subscriptionStatusLabel: fallback.subscriptionStatusLabel,
       regionLabel: fallback.regionLabel,
       regionalRankLabel: _accountRegionalRankLabel(leaderboard),
       maxStreakLabel: _accountMaxStreakLabel(progress, fallback),
