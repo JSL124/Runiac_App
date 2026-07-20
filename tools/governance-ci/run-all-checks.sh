@@ -16,6 +16,7 @@ checks=(
   "tools/governance-ci/check-workflow-memory-drift.sh"
   "tools/governance-ci/measure-context-overhead.sh"
   "tests/governance/backend_functions_scope_test.sh"
+  "tests/governance/config_contract_drift_test.sh"
 )
 
 failures=0
