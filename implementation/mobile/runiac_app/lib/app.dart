@@ -8,8 +8,10 @@ import 'core/characters/runner_character.dart';
 import 'core/theme/runiac_theme.dart';
 import 'features/profile/data/static_user_profile_repository.dart';
 import 'features/profile/domain/models/user_profile_read_model.dart';
+import 'features/profile/domain/repositories/user_account_repository.dart';
 import 'features/profile/domain/repositories/user_profile_persistence_repository.dart';
 import 'features/profile/domain/repositories/user_profile_repository.dart';
+import 'features/profile/presentation/current_session_user_account.dart';
 import 'features/profile/presentation/personal_profile_collection_screen.dart';
 import 'features/auth/data/non_production_auth_repository.dart';
 import 'features/auth/domain/runiac_auth_service.dart';
@@ -78,6 +80,7 @@ class RuniacApp extends StatefulWidget {
     this.challengeRepository = const StaticChallengeRepository(),
     this.challengeResultPresenter,
     this.profileRepository = const StaticUserProfileRepository(),
+    this.userAccountRepository = const StaticUserAccountRepository(),
     this.profilePersistenceRepository =
         const NoopUserProfilePersistenceRepository(),
     this.generatedPlanPersistenceRepository =
@@ -123,6 +126,11 @@ class RuniacApp extends StatefulWidget {
   /// (previews/tests/no-Firebase) disables auto-presentation.
   final ChallengeResultPresentationController? challengeResultPresenter;
   final UserProfileRepository profileRepository;
+
+  /// Read-only seam for the trusted `users/{uid}` account document. A
+  /// [LiveUserAccountRepository] makes admin-side subscription changes appear
+  /// without an app restart; the static default reports the Basic tier.
+  final UserAccountRepository userAccountRepository;
   final UserProfilePersistenceRepository profilePersistenceRepository;
   final GeneratedPlanPersistenceRepository generatedPlanPersistenceRepository;
   final PlanProgressRepository planProgressRepository;
@@ -152,6 +160,7 @@ class _RuniacAppState extends State<RuniacApp> {
   late final CurrentSessionActivityHistoryStore _activityHistoryStore;
   late final bool _ownsActivityHistoryStore;
   late final CurrentSessionUserProgress _userProgressStore;
+  late final CurrentSessionUserAccount _userAccountStore;
   late final CurrentSessionFeedStore _feedStore;
   late final bool _ownsFeedStore;
   late FeedRepository _feedRepository;
@@ -198,6 +207,10 @@ class _RuniacAppState extends State<RuniacApp> {
     if (initialOwnerUid != null) {
       _scheduleUserProgressLoad(initialOwnerUid);
     }
+    _userAccountStore = CurrentSessionUserAccount(
+      ownerUid: initialOwnerUid,
+      repository: widget.userAccountRepository,
+    );
     _thumbnailArtifactLifecycle =
         ActivityRouteSnapshotThumbnailArtifactLifecycle(
           initialOwnerUid: initialOwnerUid,
@@ -260,6 +273,7 @@ class _RuniacAppState extends State<RuniacApp> {
       final nextOwnerUid = widget.authRepository.currentUser?.uid;
       _thumbnailArtifactLifecycle.syncOwner(nextOwnerUid);
       _syncUserProgressOwner(nextOwnerUid);
+      _userAccountStore.updateOwnerUid(nextOwnerUid);
       _scheduleActivityHistoryOwnerSync(nextOwnerUid);
       _feedStore.syncOwner(nextOwnerUid);
     }
@@ -301,6 +315,7 @@ class _RuniacAppState extends State<RuniacApp> {
       _generatedPlanStore.dispose();
     }
     _userProgressStore.dispose();
+    _userAccountStore.dispose();
     unawaited(_cancelPushNotificationSubscription());
     unawaited(widget.notificationRegistrationService?.dispose());
     _selectedCharacterStore.dispose();
@@ -323,59 +338,65 @@ class _RuniacAppState extends State<RuniacApp> {
   Widget build(BuildContext context) {
     return CurrentSessionUserProgressScope(
       store: _userProgressStore,
-      child: CurrentSessionFeedScope(
-        store: _feedStore,
-        child: SelectedRunnerCharacterScope(
-          store: _selectedCharacterStore,
-          child: CurrentSessionActivityHistoryScope(
-            store: _activityHistoryStore,
-            child: CurrentSessionGeneratedPlanScope(
-              store: _generatedPlanStore,
-              child: RunRepositoryScope(
-                repository: widget.runRepository,
-                child: MaterialApp(
-                  debugShowCheckedModeBanner: false,
-                  title: 'Runiac',
-                  theme: buildRuniacTheme(),
-                  home: RuniacStartupGate(
-                    showSplash: widget.showSplash,
-                    splashDuration: widget.splashDuration,
-                    child: RuniacAuthGate(
-                      authRepository: widget.authRepository,
-                      showAuth: widget.showAuth,
-                      onAuthenticated: (completion) {
-                        final ownerUid = widget.authRepository.currentUser?.uid;
-                        _syncUserProgressOwner(ownerUid);
-                        setState(() {
-                          _authCompletion = completion;
-                          _authStateError = null;
-                          _showMissingProfileSignupPrompt = false;
-                        });
-                        _startPushNotificationsForCurrentUser();
-                        unawaited(_restoreSelectedCharacter(ownerUid));
-                      },
-                      onAuthStateChanged: (user) {
-                        _thumbnailArtifactLifecycle.syncOwner(user?.uid);
-                        _syncUserProgressOwner(user?.uid);
-                        if (user == null) {
-                          unawaited(_cancelPushNotificationSubscription());
-                          unawaited(
-                            widget.notificationRegistrationService
-                                ?.unregisterCurrentDevice(),
-                          );
-                        }
-                        _scheduleActivityHistoryOwnerSync(user?.uid);
-                        _feedStore.syncOwner(user?.uid);
-                        _clearGeneratedPlanForAuthChange(user?.uid);
-                        unawaited(_restoreSelectedCharacter(user?.uid));
-                      },
-                      recoveryPrompt: _showMissingProfileSignupPrompt
-                          ? const RuniacAuthRecoveryPrompt.signup(
-                              message:
-                                  'No Runiac account setup exists for this account. Sign up to create your profile and start onboarding.',
-                            )
-                          : null,
-                      childBuilder: (_) => _buildPostAuthFlow(),
+      child: CurrentSessionUserAccountScope(
+        store: _userAccountStore,
+        child: CurrentSessionFeedScope(
+          store: _feedStore,
+          child: SelectedRunnerCharacterScope(
+            store: _selectedCharacterStore,
+            child: CurrentSessionActivityHistoryScope(
+              store: _activityHistoryStore,
+              child: CurrentSessionGeneratedPlanScope(
+                store: _generatedPlanStore,
+                child: RunRepositoryScope(
+                  repository: widget.runRepository,
+                  child: MaterialApp(
+                    debugShowCheckedModeBanner: false,
+                    title: 'Runiac',
+                    theme: buildRuniacTheme(),
+                    home: RuniacStartupGate(
+                      showSplash: widget.showSplash,
+                      splashDuration: widget.splashDuration,
+                      child: RuniacAuthGate(
+                        authRepository: widget.authRepository,
+                        showAuth: widget.showAuth,
+                        onAuthenticated: (completion) {
+                          final ownerUid =
+                              widget.authRepository.currentUser?.uid;
+                          _syncUserProgressOwner(ownerUid);
+                          _userAccountStore.updateOwnerUid(ownerUid);
+                          setState(() {
+                            _authCompletion = completion;
+                            _authStateError = null;
+                            _showMissingProfileSignupPrompt = false;
+                          });
+                          _startPushNotificationsForCurrentUser();
+                          unawaited(_restoreSelectedCharacter(ownerUid));
+                        },
+                        onAuthStateChanged: (user) {
+                          _thumbnailArtifactLifecycle.syncOwner(user?.uid);
+                          _syncUserProgressOwner(user?.uid);
+                          _userAccountStore.updateOwnerUid(user?.uid);
+                          if (user == null) {
+                            unawaited(_cancelPushNotificationSubscription());
+                            unawaited(
+                              widget.notificationRegistrationService
+                                  ?.unregisterCurrentDevice(),
+                            );
+                          }
+                          _scheduleActivityHistoryOwnerSync(user?.uid);
+                          _feedStore.syncOwner(user?.uid);
+                          _clearGeneratedPlanForAuthChange(user?.uid);
+                          unawaited(_restoreSelectedCharacter(user?.uid));
+                        },
+                        recoveryPrompt: _showMissingProfileSignupPrompt
+                            ? const RuniacAuthRecoveryPrompt.signup(
+                                message:
+                                    'No Runiac account setup exists for this account. Sign up to create your profile and start onboarding.',
+                              )
+                            : null,
+                        childBuilder: (_) => _buildPostAuthFlow(),
+                      ),
                     ),
                   ),
                 ),

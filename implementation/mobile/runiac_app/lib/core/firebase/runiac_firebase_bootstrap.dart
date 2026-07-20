@@ -3,9 +3,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
+import '../../features/profile/data/firestore_user_account_repository.dart';
 import '../../features/profile/data/firestore_user_profile_persistence_repository.dart';
 import '../../features/profile/data/firestore_user_profile_repository.dart';
 import '../../features/profile/data/static_user_profile_repository.dart';
+import '../../features/profile/domain/repositories/user_account_repository.dart';
 import '../../features/profile/domain/repositories/user_profile_persistence_repository.dart';
 import '../../features/profile/domain/repositories/user_profile_repository.dart';
 import '../../features/auth/data/firebase_runiac_auth_repository.dart';
@@ -85,6 +87,7 @@ class RuniacFirebaseBootstrap {
           leaderboardRepository: const StaticLeaderboardRepository(),
           friendsRepository: const StaticFriendsRepository(),
           profileRepository: const StaticUserProfileRepository(),
+          userAccountRepository: const StaticUserAccountRepository(),
           profilePersistenceRepository:
               const NoopUserProfilePersistenceRepository(),
           generatedPlanPersistenceRepository:
@@ -142,6 +145,9 @@ class RuniacFirebaseBootstrap {
           authRepository: authRepository,
         ),
         profileRepository: FirestoreUserProfileRepository(
+          authRepository: authRepository,
+        ),
+        userAccountRepository: FirestoreUserAccountRepository(
           authRepository: authRepository,
         ),
         profilePersistenceRepository:
@@ -219,6 +225,9 @@ class RuniacFirebaseBootstrap {
         authRepository: authRepository,
       ),
       profileRepository: FirestoreUserProfileRepository(
+        authRepository: authRepository,
+      ),
+      userAccountRepository: FirestoreUserAccountRepository(
         authRepository: authRepository,
       ),
       profilePersistenceRepository: FirestoreUserProfilePersistenceRepository(),
@@ -314,6 +323,7 @@ class RuniacFirebaseBootstrapResult {
     required this.leaderboardRepository,
     required this.friendsRepository,
     required this.profileRepository,
+    required this.userAccountRepository,
     required this.profilePersistenceRepository,
     required this.generatedPlanPersistenceRepository,
     required this.planProgressRepository,
@@ -335,6 +345,10 @@ class RuniacFirebaseBootstrapResult {
   final LeaderboardRepository leaderboardRepository;
   final FriendsRepository friendsRepository;
   final UserProfileRepository profileRepository;
+
+  /// Read-only trusted `users/{uid}` account seam backing the app-level
+  /// subscription-status stream.
+  final UserAccountRepository userAccountRepository;
   final UserProfilePersistenceRepository profilePersistenceRepository;
   final GeneratedPlanPersistenceRepository generatedPlanPersistenceRepository;
   final PlanProgressRepository planProgressRepository;

@@ -22,6 +22,7 @@ import '../domain/models/user_profile_read_model.dart';
 import '../domain/repositories/user_profile_persistence_repository.dart';
 import '../domain/repositories/user_profile_repository.dart';
 import 'account_edit_profile_screen.dart';
+import 'current_session_user_account.dart';
 import 'data/account_profile_demo_snapshots.dart';
 import 'widgets/account_challenge_badge_case.dart';
 import 'widgets/account_profile_identity.dart';
@@ -255,11 +256,22 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
     UserProgressReadModel? progress,
     LeaderboardReadModel? leaderboard,
   ) {
+    // Trusted Basic/Premium tier from the app-level `users/{uid}` listener.
+    // Depending on the scope here rebuilds the badge in place when an
+    // admin-side subscription change arrives, with no restart or re-login.
+    // Empty while unresolved, which hides the badge instead of guessing; the
+    // demo fallback is used only when no scope is present (previews/tests).
+    final subscriptionStatusLabel =
+        CurrentSessionUserAccountScope.maybeOf(
+          context,
+        )?.subscriptionStatusLabel ??
+        widget.snapshot.subscriptionStatusLabel;
     final snapshot = _snapshotFromProfile(
       profile,
       progress,
       leaderboard,
       widget.snapshot,
+      subscriptionStatusLabel,
     );
     final currentUser = widget.authRepository.currentUser;
     final showVerificationPrompt =
@@ -409,16 +421,22 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
     UserProgressReadModel? progress,
     LeaderboardReadModel? leaderboard,
     AccountProfileDemoSnapshot fallback,
+    String subscriptionStatusLabel,
   ) {
     if (profile == null) {
-      return _snapshotWithProgress(fallback, progress, leaderboard);
+      return _snapshotWithProgress(
+        fallback,
+        progress,
+        leaderboard,
+        subscriptionStatusLabel,
+      );
     }
     return AccountProfileDemoSnapshot(
       displayName: profile.nickname.isEmpty
           ? profile.displayName
           : profile.nickname,
       avatarInitials: profile.avatarInitials,
-      subscriptionStatusLabel: fallback.subscriptionStatusLabel,
+      subscriptionStatusLabel: subscriptionStatusLabel,
       regionLabel: profile.locationLabel,
       regionalRankLabel: _accountRegionalRankLabel(leaderboard),
       maxStreakLabel: _accountMaxStreakLabel(progress, fallback),
@@ -461,11 +479,12 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
     AccountProfileDemoSnapshot fallback,
     UserProgressReadModel? progress,
     LeaderboardReadModel? leaderboard,
+    String subscriptionStatusLabel,
   ) {
     return AccountProfileDemoSnapshot(
       displayName: fallback.displayName,
       avatarInitials: fallback.avatarInitials,
-      subscriptionStatusLabel: fallback.subscriptionStatusLabel,
+      subscriptionStatusLabel: subscriptionStatusLabel,
       regionLabel: fallback.regionLabel,
       regionalRankLabel: _accountRegionalRankLabel(leaderboard),
       maxStreakLabel: _accountMaxStreakLabel(progress, fallback),
