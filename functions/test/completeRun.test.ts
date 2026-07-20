@@ -1759,6 +1759,186 @@ describe("completeRun callable boundary", () => {
   });
 });
 
+describe("streak milestone bonus", () => {
+  // Regression guard: with no milestone crossed (first-ever run, streak 0 ->
+  // 1), the result must be byte-identical to pre-bonus behaviour.
+  it("produces an unchanged result when no streak milestone is crossed", async () => {
+    const result = await callCompleteRun({ auth: { uid: USER_UID }, data: validPayload() });
+    const progressionEvent = await firestore.doc(`progressionEvents/${result.progressionEventId}`).get();
+
+    assert.equal(result.progressionDisplay.xpDelta, 60);
+    assert.equal(result.progressionDisplay.streak, 1);
+    assert.equal(progressionEvent.get("xpDelta"), 60);
+    assert.equal(progressionEvent.get("streakBonusXp"), 0);
+    assert.equal(progressionEvent.get("streakMilestoneDays"), null);
+    assert.equal(progressionEvent.get("streakBonusCapped"), false);
+  });
+
+  it("adds the bonus on top of an activity-capped base, exempt from the activity cap", async () => {
+    // previousStreak 2 -> nextStreak 3 crosses the 3-day milestone (30 XP).
+    await firestore.doc(`userProfiles/${USER_UID}`).set(
+      { streakCount: 2, lastStreakRunDate: "2026-06-13" },
+      { merge: true },
+    );
+
+    const result = await callCompleteRun({
+      auth: { uid: USER_UID },
+      data: runPayloadForSession({
+        clientRunSessionId: "streak-bonus-activity-capped",
+        startedAt: "2026-06-14T09:00:00.000Z",
+        // 7200s (2h) later, matching durationSeconds so elapsedWallSeconds
+        // (derived from startedAt/completedAt) stays within tolerance.
+        completedAt: "2026-06-14T11:00:00.000Z",
+        durationSeconds: 7200,
+        distanceMeters: 15000,
+      }),
+    });
+    const progressionEvent = await firestore.doc(`progressionEvents/${result.progressionEventId}`).get();
+
+    // Base is activity-capped at 100 (rawXpBeforeActivityCap 230 = 20 base +
+    // 150 distance + 60 duration, floored by the 100 activity cap); the 30 XP
+    // streak bonus is added ON TOP, deliberately exempt from that same cap.
+    assert.equal(progressionEvent.get("activityCapApplied"), true);
+    assert.equal(progressionEvent.get("rawXpBeforeDailyCap"), 100);
+    assert.equal(progressionEvent.get("streakBonusXp"), 30);
+    assert.equal(progressionEvent.get("streakMilestoneDays"), 3);
+    assert.equal(progressionEvent.get("streakBonusCapped"), false);
+    assert.equal(progressionEvent.get("dailyCapApplied"), false);
+    assert.equal(progressionEvent.get("xpDelta"), 130);
+    assert.equal(result.progressionDisplay.xpDelta, 130);
+    assert.equal(result.progressionDisplay.streak, 3);
+
+    const profile = await firestore.doc(`userProfiles/${USER_UID}`).get();
+    assert.equal(profile.get("totalXp"), 130);
+  });
+
+  it("trims the bonus to the remaining daily XP room and reports streakBonusCapped", async () => {
+    await firestore.doc(`userProfiles/${USER_UID}`).set(
+      { streakCount: 2, lastStreakRunDate: "2026-06-13" },
+      { merge: true },
+    );
+    // Pre-existing same-day XP leaves only 70 XP of daily room before this run.
+    await firestore.collection("progressionEvents").doc("preseed-streak-daily-cap").set({
+      ownerUid: USER_UID,
+      dailyCapDate: "2026-06-14",
+      monthlyPeriod: "2026-06",
+      xpDelta: 130,
+    });
+
+    const result = await callCompleteRun({
+      auth: { uid: USER_UID },
+      data: runPayloadForSession({
+        clientRunSessionId: "streak-bonus-daily-capped",
+        startedAt: "2026-06-14T09:00:00.000Z",
+        completedAt: "2026-06-14T09:25:00.000Z",
+      }),
+    });
+    const progressionEvent = await firestore.doc(`progressionEvents/${result.progressionEventId}`).get();
+
+    // Base (60 XP, not activity-capped) fits in the 70 XP of remaining daily
+    // room (dailyXpAfter 190), leaving only 10 XP of room for the 30 XP
+    // streak bonus.
+    assert.equal(progressionEvent.get("activityCapApplied"), false);
+    assert.equal(progressionEvent.get("dailyXpBefore"), 130);
+    assert.equal(progressionEvent.get("dailyXpAfter"), 200);
+    assert.equal(progressionEvent.get("streakBonusXp"), 10);
+    assert.equal(progressionEvent.get("streakMilestoneDays"), 3);
+    assert.equal(progressionEvent.get("streakBonusCapped"), true);
+    // dailyCapApplied must report the trim even though the BASE itself was
+    // not the part that got trimmed.
+    assert.equal(progressionEvent.get("dailyCapApplied"), true);
+    assert.equal(progressionEvent.get("xpDelta"), 70);
+    assert.equal(result.progressionDisplay.xpDelta, 70);
+  });
+
+  it("suppresses the streak bonus together with the base when premiumEarnsXp is false", async () => {
+    await firestore.doc("config/progression").set({ premiumEarnsXp: false });
+    await firestore.doc(`users/${USER_UID}`).set({ subscriptionStatus: "premium" });
+    await firestore.doc(`userProfiles/${USER_UID}`).set(
+      { streakCount: 2, lastStreakRunDate: "2026-06-13" },
+      { merge: true },
+    );
+
+    try {
+      const result = await callCompleteRun({
+        auth: { uid: USER_UID },
+        data: runPayloadForSession({
+          clientRunSessionId: "streak-bonus-premium-suppressed",
+          startedAt: "2026-06-14T09:00:00.000Z",
+          completedAt: "2026-06-14T09:25:00.000Z",
+        }),
+      });
+      const progressionEvent = await firestore.doc(`progressionEvents/${result.progressionEventId}`).get();
+
+      assert.equal(result.progressionDisplay.xpDelta, 0);
+      assert.equal(result.progressionDisplay.reason, "premium_no_progression");
+      // The streak itself still transitions (streak is not an XP concept)...
+      assert.equal(result.progressionDisplay.streak, 3);
+      // ...but no XP, including the milestone bonus, is awarded for it.
+      assert.equal(progressionEvent.get("streakBonusXp"), 0);
+      assert.equal(progressionEvent.get("streakMilestoneDays"), null);
+      assert.equal(progressionEvent.get("streakBonusCapped"), false);
+    } finally {
+      await firestore.doc("config/progression").delete();
+    }
+  });
+
+  it("suppresses the streak bonus together with the base on a low-data confirmed run", async () => {
+    await firestore.doc(`userProfiles/${USER_UID}`).set(
+      { streakCount: 2, lastStreakRunDate: "2026-06-13" },
+      { merge: true },
+    );
+
+    const result = await callCompleteRun({
+      auth: { uid: USER_UID },
+      data: {
+        ...lowDataPayload(),
+        clientRunSessionId: "streak-bonus-low-data-suppressed",
+        startedAt: "2026-06-14T09:00:00.000Z",
+        completedAt: "2026-06-14T09:00:02.000Z",
+        userConfirmedLowDataSave: true,
+      },
+    });
+    const progressionEvent = await firestore.doc(`progressionEvents/${result.progressionEventId}`).get();
+
+    assert.equal(result.progressionDisplay.xpDelta, 0);
+    assert.equal(result.progressionDisplay.reason, "low_data_no_xp");
+    // The streak transition still crosses the milestone (it is date-driven,
+    // not XP-driven)...
+    assert.equal(result.progressionDisplay.streak, 3);
+    // ...but a low-data-confirmed run must never pay any XP, including the
+    // streak bonus.
+    assert.equal(progressionEvent.get("streakBonusXp"), 0);
+    assert.equal(progressionEvent.get("streakMilestoneDays"), null);
+    assert.equal(progressionEvent.get("streakBonusCapped"), false);
+  });
+
+  it("does not pay the streak bonus twice on replay (shouldPersistProgression guard)", async () => {
+    await firestore.doc(`userProfiles/${USER_UID}`).set(
+      { streakCount: 2, lastStreakRunDate: "2026-06-13" },
+      { merge: true },
+    );
+    const request = {
+      auth: { uid: USER_UID },
+      data: runPayloadForSession({
+        clientRunSessionId: "streak-bonus-replay-idempotent",
+        startedAt: "2026-06-14T09:00:00.000Z",
+        completedAt: "2026-06-14T09:25:00.000Z",
+      }),
+    };
+
+    const fresh = await callCompleteRun(request);
+    const replay = await callCompleteRun(request);
+
+    assert.equal(fresh.progressionDisplay.xpDelta, 90);
+    assert.deepEqual(replay, fresh);
+    assert.equal(await countDocuments("progressionEvents"), 1);
+
+    const profile = await firestore.doc(`userProfiles/${USER_UID}`).get();
+    assert.equal(profile.get("totalXp"), 90);
+  });
+});
+
 async function callCompleteRun(request: CallableRequest): Promise<CompletionResult> {
   return completeRunForCallable(request, firestore);
 }

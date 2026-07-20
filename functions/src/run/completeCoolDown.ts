@@ -233,6 +233,12 @@ export async function completeCoolDownForCallable(
       monthlyXpBefore,
       monthlyXpAfter,
       dailyCapApplied: capped.dailyCapApplied,
+      // Contract: the cool-down path has no streak transition of its own and
+      // must NEVER award a streak milestone bonus — mirrors baseCompletionXp:
+      // 0 / planCompletionBonusXp: 0 above.
+      streakBonusXp: 0,
+      streakMilestoneDays: null,
+      streakBonusCapped: false,
       xpDelta: capped.xpDelta,
       previousTotalXp,
       nextTotalXp,

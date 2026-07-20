@@ -1,6 +1,11 @@
 import type { ProgressionConfig } from "../config/configLoader.js";
 import { leaderboardLeagueForLevel } from "./leaderboardLeagues.js";
 
+export type StreakBonusResult = {
+  readonly bonusXp: number;
+  readonly milestoneDays: number | null;
+};
+
 const singaporeUtcOffsetHours = 8;
 
 export type ActivityXpInput = {
@@ -98,6 +103,53 @@ export function applyDailyXpCap(input: DailyXpCapInput, config: ProgressionConfi
     dailyXpAfter: input.dailyXpBefore + xpDelta,
     dailyCapApplied: xpDelta < input.xpDeltaBeforeDailyCap,
   };
+}
+
+// Bonus XP for crossing a streak milestone on this run. Deliberately EXEMPT
+// from `activityXpCap` (callers apply that cap to the base activity XP only,
+// before this bonus is added) but still bounded by whatever daily XP room
+// remains — callers are responsible for clamping the returned `bonusXp`
+// against `config.dailyXpCap`, this function only decides WHICH milestone
+// (if any) was crossed and its raw, uncapped reward.
+//
+// If several milestones are crossed in one jump (a backfill or data repair
+// can move `nextStreak` by many days at once), only the HIGHEST is paid —
+// never the sum, or a single repaired streak could explode the XP economy.
+// `config.streakRewards` is not assumed to be sorted even though validation
+// enforces ascending `milestoneDays`; the max crossed milestone is selected
+// explicitly by comparing every entry.
+export function calculateStreakMilestoneBonus(
+  input: { readonly previousStreak: number; readonly nextStreak: number },
+  config: ProgressionConfig,
+): StreakBonusResult {
+  const none: StreakBonusResult = { bonusXp: 0, milestoneDays: null };
+
+  if (
+    !Number.isFinite(input.previousStreak) ||
+    !Number.isFinite(input.nextStreak) ||
+    input.previousStreak < 0 ||
+    input.nextStreak < 0 ||
+    input.nextStreak <= input.previousStreak ||
+    config.streakRewards.length === 0
+  ) {
+    return none;
+  }
+
+  let best: { readonly milestoneDays: number; readonly bonusXp: number } | null = null;
+  for (const reward of config.streakRewards) {
+    if (!Number.isFinite(reward.bonusXp) || reward.bonusXp < 0) {
+      continue; // malformed reward entry: ignore it, do not let it block others
+    }
+    const crossed = input.previousStreak < reward.milestoneDays && reward.milestoneDays <= input.nextStreak;
+    if (!crossed) {
+      continue;
+    }
+    if (best === null || reward.milestoneDays > best.milestoneDays) {
+      best = reward;
+    }
+  }
+
+  return best === null ? none : { bonusXp: best.bonusXp, milestoneDays: best.milestoneDays };
 }
 
 export function dailyCapDateForCompletedAt(completedAt: string): string {

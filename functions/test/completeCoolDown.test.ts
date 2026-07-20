@@ -345,6 +345,34 @@ describe("completeCoolDown callable boundary", () => {
 
     await firestore.doc("config/progression").delete();
   });
+
+  // The cool-down path has no streak transition of its own and must never
+  // award a streak milestone bonus, regardless of the runner's live streak.
+  it("pins streak bonus fields to zero/null on the cool-down event", async () => {
+    const clientRunSessionId = "session-cooldown-no-streak-bonus";
+    await firestore.doc(`userProfiles/${USER_UID}`).set(
+      { streakCount: 2, lastStreakRunDate: "2026-06-13" },
+      { merge: true },
+    );
+    const runResult = await completeRunForCallable(
+      { auth: { uid: USER_UID }, data: validRunPayload(clientRunSessionId) },
+      firestore,
+    );
+    // Sanity: the base run itself crossed the 3-day milestone.
+    assert.equal(runResult.progressionDisplay.streak, 3);
+
+    const result = await callCompleteCoolDown({
+      auth: { uid: USER_UID },
+      data: coolDownPayload({ activityId: runResult.activityId, clientRunSessionId }),
+    });
+
+    const coolDownEvent = await firestore
+      .doc(`progressionEvents/${result.coolDownProgressionEventId}`)
+      .get();
+    assert.equal(coolDownEvent.get("streakBonusXp"), 0);
+    assert.equal(coolDownEvent.get("streakMilestoneDays"), null);
+    assert.equal(coolDownEvent.get("streakBonusCapped"), false);
+  });
 });
 
 async function callCompleteCoolDown(request: CallableRequest): Promise<{

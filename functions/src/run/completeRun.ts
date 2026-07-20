@@ -173,7 +173,11 @@ export async function completeRunForCallable(
         : unchangedStreakTransition(currentStreakState, payload.completedAt)
       : undefined;
 
-    const xpAudit = shouldPersistProgression
+    // shouldPersistProgression implies streakTransition is defined (see the
+    // ternary above); the explicit undefined check is a type-narrowing guard
+    // only, not a behaviour change — the false branch is unreachable in
+    // practice.
+    const xpAudit = shouldPersistProgression && streakTransition !== undefined
       ? calculateProgressionAudit({
           payload,
           profileData: profileSnapshot.data(),
@@ -185,6 +189,7 @@ export async function completeRunForCallable(
           planProgressResult,
           config: progressionConfig,
           nowMs,
+          streakTransition,
         })
       : null;
 
