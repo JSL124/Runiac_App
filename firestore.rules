@@ -46,6 +46,9 @@ service cloud.firestore {
         'streakBonusXp',
         'streakMilestoneDays',
         'streakBonusCapped',
+        // The ledger of which streak milestones have already been paid. An
+        // owner who could reset this could re-earn every milestone bonus.
+        'highestPaidStreakMilestoneDays',
         'previousTotalXp',
         'nextTotalXp',
         'previousLevel',

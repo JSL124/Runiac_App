@@ -45,6 +45,7 @@ export type ProgressionAudit = {
   readonly streakBonusXp: number;
   readonly streakMilestoneDays: number | null;
   readonly streakBonusCapped: boolean;
+  readonly highestPaidStreakMilestoneDays: number;
   readonly xpDelta: number;
   readonly previousTotalXp: number;
   readonly nextTotalXp: number;
@@ -102,10 +103,14 @@ export function calculateProgressionAudit(input: {
   // (premium && !premiumEarnsXp) or a low-data-confirmed run earns zero base
   // XP by design, so the bonus is withheld too — otherwise a run that earns
   // nothing could still unlock streak bonus XP as a side door.
+  const highestPaidMilestoneDays = readHighestPaidStreakMilestoneDays(input.profileData);
   const streakBonus: StreakBonusResult =
     suppress || activityXp.reason === "low_data_no_xp"
       ? { bonusXp: 0, milestoneDays: null }
-      : calculateStreakMilestoneBonus(input.streakTransition, input.config);
+      : calculateStreakMilestoneBonus(
+          { ...input.streakTransition, highestPaidMilestoneDays },
+          input.config,
+        );
   const remainingDailyXpForBonus = Math.max(0, input.config.dailyXpCap - capped.dailyXpAfter);
   const streakBonusXp = Math.min(streakBonus.bonusXp, remainingDailyXpForBonus);
   const streakBonusCapped = streakBonusXp < streakBonus.bonusXp;
@@ -173,6 +178,13 @@ export function calculateProgressionAudit(input: {
     streakBonusXp,
     streakMilestoneDays,
     streakBonusCapped,
+    // Advance the mark only when the milestone actually paid something. A
+    // crossing whose bonus the daily cap trimmed to zero earned nothing, so
+    // banking it would silently forfeit that milestone forever.
+    highestPaidStreakMilestoneDays:
+      streakMilestoneDays !== null && streakBonusXp > 0
+        ? Math.max(highestPaidMilestoneDays, streakMilestoneDays)
+        : highestPaidMilestoneDays,
     xpDelta,
     previousTotalXp,
     nextTotalXp,
@@ -315,8 +327,27 @@ export function profileProgressionData(audit: ProgressionAudit, updatedAt: strin
     nextLevelXp: audit.nextProgression.nextLevelXp,
     xpToNextLevel: audit.nextProgression.xpToNextLevel,
     levelProgressPercent: audit.nextProgression.levelProgressPercent,
+    // Never regresses: the mark is what makes a milestone payable exactly once,
+    // so a later run with a collapsed streak baseline must not lower it.
+    highestPaidStreakMilestoneDays: audit.highestPaidStreakMilestoneDays,
     progressionUpdatedAt: updatedAt,
   };
+}
+
+/**
+ * Reads the owner's streak-milestone high-water mark from `userProfiles`.
+ * Absent (every profile written before this field existed) reads as 0, which
+ * grandfathers those owners into being able to earn each milestone once more —
+ * the conservative direction, since the alternative would be to guess a mark
+ * from a streak history that is itself plan-bounded and therefore untrusted.
+ */
+export function readHighestPaidStreakMilestoneDays(
+  profileData: FirebaseFirestore.DocumentData | undefined,
+): number {
+  const stored = profileData?.["highestPaidStreakMilestoneDays"];
+  return typeof stored === "number" && Number.isFinite(stored) && stored > 0
+    ? Math.floor(stored)
+    : 0;
 }
 
 export function noCompletedWorkoutRecorded(): PersistPlanProgressResult {

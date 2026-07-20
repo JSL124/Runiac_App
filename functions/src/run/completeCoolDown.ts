@@ -10,6 +10,7 @@ import {
   coolDownProgressionEventData,
   profileProgressionData,
   progressionDisplayFromEvent,
+  readHighestPaidStreakMilestoneDays,
   type ProgressionAudit,
 } from "../progression/progressionAudit.js";
 import {
@@ -239,6 +240,13 @@ export async function completeCoolDownForCallable(
       streakBonusXp: 0,
       streakMilestoneDays: null,
       streakBonusCapped: false,
+      // Pass the stored mark through unchanged. This path pays no milestone,
+      // so it must neither advance the mark nor reset it to 0 — the profile
+      // write below would otherwise erase the owner's payment history and make
+      // every milestone re-earnable.
+      highestPaidStreakMilestoneDays: readHighestPaidStreakMilestoneDays(
+        profileSnapshot.data(),
+      ),
       xpDelta: capped.xpDelta,
       previousTotalXp,
       nextTotalXp,

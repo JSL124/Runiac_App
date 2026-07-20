@@ -221,7 +221,7 @@ describe("streak milestone bonus calculator", () => {
   // Default streakRewards: [3 -> 30, 7 -> 90, 14 -> 220, 30 -> 600].
   it("awards the milestone bonus when a single milestone is crossed", () => {
     const result = calculateStreakMilestoneBonus(
-      { previousStreak: 2, nextStreak: 3 },
+      { previousStreak: 2, nextStreak: 3, highestPaidMilestoneDays: 0 },
       config,
     );
 
@@ -234,7 +234,7 @@ describe("streak milestone bonus calculator", () => {
     // 3-day and 7-day milestones. Only the 7-day (higher) reward is paid —
     // summing would explode the XP economy.
     const result = calculateStreakMilestoneBonus(
-      { previousStreak: 1, nextStreak: 10 },
+      { previousStreak: 1, nextStreak: 10, highestPaidMilestoneDays: 0 },
       config,
     );
 
@@ -244,7 +244,7 @@ describe("streak milestone bonus calculator", () => {
 
   it("awards nothing when no milestone is crossed", () => {
     const result = calculateStreakMilestoneBonus(
-      { previousStreak: 4, nextStreak: 5 },
+      { previousStreak: 4, nextStreak: 5, highestPaidMilestoneDays: 0 },
       config,
     );
 
@@ -254,7 +254,7 @@ describe("streak milestone bonus calculator", () => {
 
   it("awards nothing on a streak regression or reset", () => {
     const result = calculateStreakMilestoneBonus(
-      { previousStreak: 10, nextStreak: 1 },
+      { previousStreak: 10, nextStreak: 1, highestPaidMilestoneDays: 0 },
       config,
     );
 
@@ -264,7 +264,7 @@ describe("streak milestone bonus calculator", () => {
 
   it("awards nothing when nextStreak equals previousStreak", () => {
     const result = calculateStreakMilestoneBonus(
-      { previousStreak: 5, nextStreak: 5 },
+      { previousStreak: 5, nextStreak: 5, highestPaidMilestoneDays: 0 },
       config,
     );
 
@@ -274,7 +274,7 @@ describe("streak milestone bonus calculator", () => {
 
   it("awards nothing when streakRewards is empty", () => {
     const result = calculateStreakMilestoneBonus(
-      { previousStreak: 2, nextStreak: 3 },
+      { previousStreak: 2, nextStreak: 3, highestPaidMilestoneDays: 0 },
       { ...config, streakRewards: [] },
     );
 
@@ -294,7 +294,7 @@ describe("streak milestone bonus calculator", () => {
     };
 
     const result = calculateStreakMilestoneBonus(
-      { previousStreak: 1, nextStreak: 10 },
+      { previousStreak: 1, nextStreak: 10, highestPaidMilestoneDays: 0 },
       unsortedConfig,
     );
 
@@ -304,16 +304,16 @@ describe("streak milestone bonus calculator", () => {
 
   it("awards nothing for non-finite or negative streak inputs", () => {
     assert.equal(
-      calculateStreakMilestoneBonus({ previousStreak: Number.NaN, nextStreak: 5 }, config).bonusXp,
+      calculateStreakMilestoneBonus({ previousStreak: Number.NaN, nextStreak: 5, highestPaidMilestoneDays: 0 }, config).bonusXp,
       0,
     );
     assert.equal(
-      calculateStreakMilestoneBonus({ previousStreak: 1, nextStreak: Number.POSITIVE_INFINITY }, config)
+      calculateStreakMilestoneBonus({ previousStreak: 1, nextStreak: Number.POSITIVE_INFINITY, highestPaidMilestoneDays: 0 }, config)
         .bonusXp,
       0,
     );
     assert.equal(
-      calculateStreakMilestoneBonus({ previousStreak: -1, nextStreak: 5 }, config).bonusXp,
+      calculateStreakMilestoneBonus({ previousStreak: -1, nextStreak: 5, highestPaidMilestoneDays: 0 }, config).bonusXp,
       0,
     );
   });
@@ -328,7 +328,7 @@ describe("streak milestone bonus calculator", () => {
     };
 
     const result = calculateStreakMilestoneBonus(
-      { previousStreak: 1, nextStreak: 10 },
+      { previousStreak: 1, nextStreak: 10, highestPaidMilestoneDays: 0 },
       malformedConfig,
     );
 
@@ -336,5 +336,63 @@ describe("streak milestone bonus calculator", () => {
     // valid 7-day entry is still awarded.
     assert.equal(result.bonusXp, 90);
     assert.equal(result.milestoneDays, 7);
+  });
+});
+
+// The high-water mark is the only thing standing between a collapsible streak
+// baseline and unlimited milestone XP. `previousStreak` is derived from
+// plan-bounded activity history, and the plan boundary moves whenever
+// generatedPlans/{uid}.createdAt does — a field the owner can write. So a
+// crossing alone must never authorize payment.
+describe("streak milestone bonus high-water mark", () => {
+  it("pays nothing for a milestone at or below the highest already paid", () => {
+    for (const paid of [3, 7, 14, 30]) {
+      const result = calculateStreakMilestoneBonus(
+        { previousStreak: 0, nextStreak: paid, highestPaidMilestoneDays: paid },
+        config,
+      );
+      assert.equal(result.bonusXp, 0, `milestone ${paid} must not pay twice`);
+      assert.equal(result.milestoneDays, null);
+    }
+  });
+
+  it("still pays a milestone strictly above the mark", () => {
+    const result = calculateStreakMilestoneBonus(
+      { previousStreak: 6, nextStreak: 7, highestPaidMilestoneDays: 3 },
+      config,
+    );
+    assert.equal(result.milestoneDays, 7);
+    assert.equal(result.bonusXp, 90);
+  });
+
+  it("refuses to re-pay after a collapsed baseline replays every milestone", () => {
+    // A plan reset drops previousStreak to 0; the run then "crosses" 3, 7, 14
+    // and 30 in one transition. All are already paid, so nothing is owed.
+    const result = calculateStreakMilestoneBonus(
+      { previousStreak: 0, nextStreak: 30, highestPaidMilestoneDays: 30 },
+      config,
+    );
+    assert.equal(result.bonusXp, 0);
+    assert.equal(result.milestoneDays, null);
+  });
+
+  it("pays only the highest unpaid milestone when a jump crosses several", () => {
+    const result = calculateStreakMilestoneBonus(
+      { previousStreak: 0, nextStreak: 30, highestPaidMilestoneDays: 7 },
+      config,
+    );
+    assert.equal(result.milestoneDays, 30);
+    assert.equal(result.bonusXp, 600);
+  });
+
+  it("treats a non-finite or negative mark as nothing paid yet", () => {
+    for (const mark of [Number.NaN, -5]) {
+      const result = calculateStreakMilestoneBonus(
+        { previousStreak: 2, nextStreak: 3, highestPaidMilestoneDays: mark },
+        config,
+      );
+      assert.equal(result.milestoneDays, 3, `mark ${mark} must not block payment`);
+      assert.equal(result.bonusXp, 30);
+    }
   });
 });

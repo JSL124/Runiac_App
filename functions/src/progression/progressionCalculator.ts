@@ -119,7 +119,22 @@ export function applyDailyXpCap(input: DailyXpCapInput, config: ProgressionConfi
 // enforces ascending `milestoneDays`; the max crossed milestone is selected
 // explicitly by comparing every entry.
 export function calculateStreakMilestoneBonus(
-  input: { readonly previousStreak: number; readonly nextStreak: number },
+  input: {
+    readonly previousStreak: number;
+    readonly nextStreak: number;
+    /**
+     * The highest milestone this owner has already been paid, ever. A crossing
+     * alone must NOT authorize a payment: `previousStreak` is derived from
+     * plan-bounded activity history (`readTrustedStreakState`), and the plan
+     * boundary moves whenever `generatedPlans/{uid}.createdAt` does — which is
+     * an owner-writable field. Without this high-water mark, resetting the plan
+     * collapses the streak baseline and every milestone becomes re-earnable,
+     * minting XP that flows straight into the leaderboard contribution.
+     *
+     * Pass 0 (or a non-finite value) for an owner who has never been paid.
+     */
+    readonly highestPaidMilestoneDays: number;
+  },
   config: ProgressionConfig,
 ): StreakBonusResult {
   const none: StreakBonusResult = { bonusXp: 0, milestoneDays: null };
@@ -135,13 +150,22 @@ export function calculateStreakMilestoneBonus(
     return none;
   }
 
+  // Unknown/corrupt marks are treated as "nothing paid yet" only when they are
+  // non-finite; a negative value is clamped to 0 rather than trusted.
+  const highestPaid = Number.isFinite(input.highestPaidMilestoneDays)
+    ? Math.max(0, Math.floor(input.highestPaidMilestoneDays))
+    : 0;
+
   let best: { readonly milestoneDays: number; readonly bonusXp: number } | null = null;
   for (const reward of config.streakRewards) {
     if (!Number.isFinite(reward.bonusXp) || reward.bonusXp < 0) {
       continue; // malformed reward entry: ignore it, do not let it block others
     }
     const crossed = input.previousStreak < reward.milestoneDays && reward.milestoneDays <= input.nextStreak;
-    if (!crossed) {
+    // Paying only strictly above the high-water mark is what makes this
+    // idempotent against a collapsed baseline: re-reaching day 30 after a plan
+    // reset crosses 3/7/14/30 again, but all of them are <= highestPaid.
+    if (!crossed || reward.milestoneDays <= highestPaid) {
       continue;
     }
     if (best === null || reward.milestoneDays > best.milestoneDays) {
