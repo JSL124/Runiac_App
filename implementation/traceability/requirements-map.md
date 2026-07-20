@@ -116,7 +116,7 @@ Phase 1 preparation covers traceability and setup readiness only. It records the
 - `subscriptionStatus` controls Basic/Premium access.
 - `userRole` controls operational/governance access.
 - Premium features must be backend-enforced where they affect data generation or access.
-- Premium users must not receive XP, rank, leaderboard score, weekly XP, monthly XP, level, streak, or competitive advantages.
+- Premium users earn XP, rank, leaderboard score, weekly XP, monthly XP, level, and streak under exactly the same server-owned rules as Basic users, and Premium must never confer a competitive advantage; Premium value is coaching, analysis, approved expert plans, route convenience, and presentation only.
 - Platform Administrator remains the authority for expert-plan approval, publishing, update, archive, rejection, suspension, and management.
 - No secrets, API keys, production project IDs, service accounts, `.env*`, `google-services.json`, `GoogleService-Info.plist`, or precise private GPS data should be committed.
 

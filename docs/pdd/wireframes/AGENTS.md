@@ -142,7 +142,7 @@ When PDD_UIUX_DESIGN_MODE is active, check:
 - Destructive actions should normally be Archive, Hide, Suspend, Deactivate, Reject, or Dismiss rather than hard delete.
 - Basic/Premium access uses `subscriptionStatus`.
 - Operational/governance access uses `userRole`.
-- Premium users must not receive XP, rank, leaderboard score, or competitive advantages.
+- Premium users earn XP, rank, and leaderboard score under the same server-owned rules as Basic users, and Premium must never confer a competitive advantage.
 - Wireframe image prompts should be low-fidelity black-and-white prompts suitable for PDD image generation.
 - UI/UX review findings should be handled by A5_WIRE unless they are concrete errors requiring A14_ERROR_TRIAGE.
 - A6_REVIEW should run after A5_WIRE modifies wireframe or UI/UX documentation.

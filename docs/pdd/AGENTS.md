@@ -204,7 +204,7 @@ Do not use A16_WORKFLOW_AUDITOR as a substitute for A6_REVIEW, A8_OUTPUT_CHECKER
 - Platform Administrator owns expert plan review, approval, publishing, update, and archive.
 - XP, streak, level, rank, weekly XP, monthly XP, leaderboard score, and leaderboard aggregation remain server-side.
 - Flutter client must not directly write trusted progression or ranking values.
-- Premium users must not receive XP, ranking, leaderboard score, or competitive advantages.
+- Premium users earn XP, level, rank, and leaderboard score under the same server-owned rules as Basic users, and Premium must never confer a competitive advantage.
 - Basic User and Premium User are not separate subclasses.
 
 ## A8 PDD Checklist
