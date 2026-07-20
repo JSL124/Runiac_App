@@ -919,6 +919,68 @@ describe("completeRun callable boundary", () => {
     assert.equal(profile.get("longestStreakLabel"), "2 days");
   });
 
+  it("self-heals qualifyingRunCount from full validated run history instead of an increment baseline", async () => {
+    // Two validated runs recorded before qualifyingRunCount existed, plus a
+    // leaderboard contribution for this period that predates the field
+    // entirely. Under the old `FieldValue.increment(1)` behavior, this
+    // user's next qualifying run would land on 1 — an under-count. The fix
+    // recomputes an absolute total from validated activity history instead.
+    await firestore.doc("activities/preexisting-qualifying-run-one").set({
+      ownerUid: USER_UID,
+      activityType: "run",
+      validationStatus: "validated",
+      distanceMeters: 3200,
+      endedAt: "2026-06-05T09:25:00.000Z",
+      countsTowardStreak: true,
+    });
+    await firestore.doc("activities/preexisting-qualifying-run-two").set({
+      ownerUid: USER_UID,
+      activityType: "run",
+      validationStatus: "validated",
+      distanceMeters: 4200,
+      endedAt: "2026-06-08T09:25:00.000Z",
+      countsTowardStreak: true,
+    });
+    await firestore.doc(`leaderboardContributions/${USER_UID}_monthly_2026-06`).set({
+      schemaVersion: 2,
+      ownerUid: USER_UID,
+      publicAlias: "Test Runner",
+      regionId: "jurong-east",
+      regionLabel: "Jurong East",
+      planningAreaName: "JURONG EAST",
+      planningAreaCode: "JE",
+      planningRegionCode: "WR",
+      divisionKey: "tier_01",
+      divisionLabel: "Iron League",
+      levelLabel: "Level 1",
+      periodType: "monthly",
+      periodKey: "2026-06",
+      timezone: "Asia/Singapore",
+      scoreXp: 150,
+      eligible: true,
+      eligibilityReason: "eligible_basic_awarded_xp",
+      lastProgressionAt: "2026-06-08T09:25:00.000Z",
+      sourceProgressionEventIds: ["legacy-progression-event-1", "legacy-progression-event-2"],
+      // No qualifyingRunCount field: this contribution predates the field.
+    });
+
+    await callCompleteRun({
+      auth: { uid: USER_UID },
+      data: runPayloadForSession({
+        clientRunSessionId: "self-heal-qualifying-run-count",
+        startedAt: "2026-06-15T09:00:00.000Z",
+        completedAt: "2026-06-15T09:25:00.000Z",
+      }),
+    });
+
+    const contribution = await firestore
+      .doc(`leaderboardContributions/${USER_UID}_monthly_2026-06`)
+      .get();
+    // True total: 2 pre-existing validated runs this period + this new run
+    // = 3, not 1 (the value an increment-from-unknown-baseline would yield).
+    assert.equal(contribution.get("qualifyingRunCount"), 3);
+  });
+
   it("does not regress persisted streak state when an older valid run syncs later", async () => {
     await callCompleteRun({
       auth: { uid: USER_UID },

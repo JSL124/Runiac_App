@@ -14,3 +14,6 @@ const String leaderboardUpdatingBody = "Preparing this month's leaderboard…";
 
 const String leaderboardIneligibleBody =
     'Monthly ranking is not available for this account yet.';
+
+const String leaderboardIneligibleMinRunsBody =
+    'Complete more runs this month to join the monthly leaderboard.';

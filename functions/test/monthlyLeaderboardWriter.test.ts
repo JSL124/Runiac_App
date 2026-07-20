@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 import { before, beforeEach, describe, it } from "node:test";
 import { getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
-import { refreshMonthlyLeaderboardSnapshots } from "../src/leaderboard/monthlyLeaderboard.js";
+import {
+  refreshMonthlyLeaderboardSnapshots,
+  writeLeaderboardContribution,
+} from "../src/leaderboard/monthlyLeaderboard.js";
 
 describe(
   "monthly leaderboard Firestore writer",
@@ -175,6 +178,117 @@ describe(
         .get();
       assert.equal(currentView.get("status"), "ranked");
       await firestore.doc("config/leaderboard").delete();
+    });
+
+    it("writes qualifyingRunCount as an absolute value, never an increment", async () => {
+      const uid = "absolute-count-runner";
+      const contributionRef = firestore.doc(
+        `leaderboardContributions/${uid}_monthly_2026-07`,
+      );
+
+      // Seed a stored count of 3, as if a prior write already recomputed it.
+      await firestore.runTransaction(async (transaction) => {
+        writeLeaderboardContribution({
+          transaction,
+          firestore,
+          uid,
+          progressionEventId: "progression-absolute-count-1",
+          completedAt: "2026-07-10T00:00:00.000Z",
+          periodKey: "2026-07",
+          scoreXp: 50,
+          divisionKey: "tier_01",
+          divisionLabel: "Iron League",
+          levelLabel: "Level 1",
+          profileData: {
+            nickname: "Absolute Count",
+            locationLabel: "Jurong East, Singapore",
+          },
+          existingContributionData: undefined,
+          qualifyingRunCount: 3,
+        });
+      });
+      const afterFirst = await contributionRef.get();
+      assert.equal(afterFirst.get("qualifyingRunCount"), 3);
+
+      // A later recompute of 7 must land as 7, not 3 + 7 = 10. This is the
+      // exact regression `FieldValue.increment` would have reintroduced.
+      await firestore.runTransaction(async (transaction) => {
+        writeLeaderboardContribution({
+          transaction,
+          firestore,
+          uid,
+          progressionEventId: "progression-absolute-count-2",
+          completedAt: "2026-07-11T00:00:00.000Z",
+          periodKey: "2026-07",
+          scoreXp: 50,
+          divisionKey: "tier_01",
+          divisionLabel: "Iron League",
+          levelLabel: "Level 1",
+          profileData: {
+            nickname: "Absolute Count",
+            locationLabel: "Jurong East, Singapore",
+          },
+          existingContributionData: afterFirst.data(),
+          qualifyingRunCount: 7,
+        });
+      });
+      const afterSecond = await contributionRef.get();
+      assert.equal(afterSecond.get("qualifyingRunCount"), 7);
+
+      // A `null` qualifyingRunCount (completeCoolDown's contract) must leave
+      // the previously-recomputed value untouched.
+      await firestore.runTransaction(async (transaction) => {
+        writeLeaderboardContribution({
+          transaction,
+          firestore,
+          uid,
+          progressionEventId: "progression-absolute-count-3",
+          completedAt: "2026-07-12T00:00:00.000Z",
+          periodKey: "2026-07",
+          scoreXp: 50,
+          divisionKey: "tier_01",
+          divisionLabel: "Iron League",
+          levelLabel: "Level 1",
+          profileData: {
+            nickname: "Absolute Count",
+            locationLabel: "Jurong East, Singapore",
+          },
+          existingContributionData: afterSecond.data(),
+          qualifyingRunCount: null,
+        });
+      });
+      const afterCoolDown = await contributionRef.get();
+      assert.equal(afterCoolDown.get("qualifyingRunCount"), 7);
+    });
+
+    it("leaves qualifyingRunCount unset when a first write passes null", async () => {
+      const uid = "null-first-write-runner";
+      const contributionRef = firestore.doc(
+        `leaderboardContributions/${uid}_monthly_2026-07`,
+      );
+
+      await firestore.runTransaction(async (transaction) => {
+        writeLeaderboardContribution({
+          transaction,
+          firestore,
+          uid,
+          progressionEventId: "progression-null-first-write",
+          completedAt: "2026-07-10T00:00:00.000Z",
+          periodKey: "2026-07",
+          scoreXp: 50,
+          divisionKey: "tier_01",
+          divisionLabel: "Iron League",
+          levelLabel: "Level 1",
+          profileData: {
+            nickname: "Null First Write",
+            locationLabel: "Jurong East, Singapore",
+          },
+          existingContributionData: undefined,
+          qualifyingRunCount: null,
+        });
+      });
+      const afterWrite = await contributionRef.get();
+      assert.equal(afterWrite.get("qualifyingRunCount"), undefined);
     });
   },
 );

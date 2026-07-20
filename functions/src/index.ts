@@ -7,6 +7,7 @@ export { activityFeedbackAgent } from "./agent/activityFeedbackAgent.js";
 export { registerNotificationDevice, unregisterNotificationDevice } from "./notifications/deviceRegistry.js";
 export { dispatchScheduledPushNotifications } from "./notifications/scheduledPushDispatch.js";
 export { refreshLeaderboardSnapshots } from "./leaderboard/monthlyLeaderboard.js";
+export { leaderboardAdminCommandCreated } from "./leaderboard/leaderboardAdminCommand.js";
 export { refreshStreakStatus } from "./progression/refreshStreakStatus.js";
 export { expireSubscriptions } from "./progression/subscriptionExpirySchedule.js";
 export { publishActivityToFeed } from "./feed/publish/callable.js";

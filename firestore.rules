@@ -891,6 +891,13 @@ service cloud.firestore {
       allow read, create, update, delete: if false;
     }
 
+    // leaderboardAdminCommands is written only by the admin console (Admin
+    // SDK) and consumed only by the leaderboardAdminCommandCreated Cloud
+    // Function trigger via Admin SDK; clients get no direct access.
+    match /leaderboardAdminCommands/{commandId} {
+      allow read, write: if false;
+    }
+
     match /sharedRoutes/{routeId} {
       allow read: if isSignedIn()
         && (resource.data.ownerUid == request.auth.uid

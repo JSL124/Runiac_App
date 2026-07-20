@@ -248,6 +248,9 @@ export async function completeCoolDownForCallable(
       levelLabel: nextProgression.levelLabel,
       profileData: profileSnapshot.data(),
       existingContributionData: leaderboardContributionSnapshot.data(),
+      // Cool-down does not read the user's activity history in this
+      // transaction, so it must never overwrite the recomputed count.
+      qualifyingRunCount: null,
     });
 
     transaction.set(

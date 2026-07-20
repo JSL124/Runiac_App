@@ -77,6 +77,13 @@ class LeaderboardRankingScreen extends StatelessWidget {
             body: leaderboardIneligibleBody,
           ),
         ];
+      case LeaderboardReadStatus.ineligibleMinRuns:
+        return [
+          LeaderboardEmptyState(
+            title: snapshot.regionName,
+            body: leaderboardIneligibleMinRunsBody,
+          ),
+        ];
       case LeaderboardReadStatus.data:
       case LeaderboardReadStatus.unranked:
       case LeaderboardReadStatus.regionRequired:

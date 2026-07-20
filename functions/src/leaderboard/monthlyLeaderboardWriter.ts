@@ -97,12 +97,6 @@ export async function refreshMonthlyLeaderboardSnapshots(
     // based, not a rolling day-count window, so a day-count setting doesn't
     // cleanly apply without changing the period model itself. Left
     // unchanged per scope; see worker report.
-    // NOTE: `leaderboardConfig.minRunsToQualify` is not enforced here either.
-    // `leaderboardContributions` docs (and `monthlyLeaderboardPlanner`'s
-    // aggregation) do not currently carry a per-user qualifying-run count,
-    // only a pre-computed `eligible`/`eligibilityReason` from progression.
-    // Enforcing this would require adding that count upstream; left
-    // unchanged per scope.
     const [contributionSnapshot, currentPeriodSnapshot] = await Promise.all([
       firestore
         .collection("leaderboardContributions")
@@ -142,6 +136,7 @@ export async function refreshMonthlyLeaderboardSnapshots(
       ),
       currentPremiumUids: premiumUids,
       excludePremium: leaderboardConfig.excludePremium,
+      minRunsToQualify: leaderboardConfig.minRunsToQualify,
     });
     const currentViews = mergeRolloverViews({
       periodKey,

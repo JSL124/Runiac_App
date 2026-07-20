@@ -254,6 +254,31 @@ is_cool_down_stretch_xp_bonus_functions_path() {
   esac
 }
 
+is_admin_console_leaderboard_oversight_capsule_active() {
+  grep -Eq '^- Newly routed admin console Leaderboard Oversight alignment on 2026-07-20 Asia/Singapore: `implementation/roadmap/capsules/admin-console-leaderboard-oversight\.md`' implementation/roadmap/CURRENT.md
+}
+
+is_admin_console_leaderboard_oversight_functions_path() {
+  case "$1" in
+    functions/src/leaderboard/leaderboardTypes.ts|\
+    functions/src/leaderboard/monthlyLeaderboard.ts|\
+    functions/src/leaderboard/monthlyLeaderboardPlanner.ts|\
+    functions/src/leaderboard/monthlyLeaderboardWriter.ts|\
+    functions/src/leaderboard/leaderboardAdminCommand.ts|\
+    functions/src/run/completeRun.ts|\
+    functions/src/run/completeCoolDown.ts|\
+    functions/src/index.ts|\
+    functions/test/monthlyLeaderboard.test.ts|\
+    functions/test/monthlyLeaderboardWriter.test.ts|\
+    functions/test/leaderboardAdminCommand.test.ts)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 is_feed_friends_emulator_backend_rules_test_path() {
   local path="$1"
   local relative_path
@@ -537,6 +562,9 @@ is_forbidden_config_or_secret() {
         return 1
       fi
       if is_adaptive_character_guidance_functions_path "$1" && is_adaptive_character_guidance_capsule_active; then
+        return 1
+      fi
+      if is_admin_console_leaderboard_oversight_functions_path "$1" && is_admin_console_leaderboard_oversight_capsule_active; then
         return 1
       fi
       if approved_adaptive_inactive_baseline_blob "$1" >/dev/null; then

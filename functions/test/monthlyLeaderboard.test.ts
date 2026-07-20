@@ -152,6 +152,78 @@ describe("monthly leaderboard aggregation", () => {
     assert.equal(plan.currentViews.some((view) => ["basic-zero", "negative"].includes(view.ownerUid)), false);
   });
 
+  it("ranks a contribution normally at the default minRunsToQualify of 1 (zero regression)", () => {
+    const plan = planMonthlyLeaderboards({
+      periodKey: "2026-07",
+      contributions: [
+        contribution({ ownerUid: "one-run", scoreXp: 70, qualifyingRunCount: 1 }),
+      ],
+    });
+
+    assert.deepEqual(
+      plan.snapshots.flatMap((snapshot) =>
+        snapshot.topEntries.map((entry) => entry.publicAlias),
+      ),
+      ["Runner one-run"],
+    );
+    assert.equal(
+      plan.currentViews.find((view) => view.ownerUid === "one-run")?.status,
+      "ranked",
+    );
+  });
+
+  it("excludes a contribution under minRunsToQualify and emits an ineligible_min_runs currentView", () => {
+    const plan = planMonthlyLeaderboards({
+      periodKey: "2026-07",
+      minRunsToQualify: 3,
+      contributions: [
+        contribution({ ownerUid: "under-quota", scoreXp: 70, qualifyingRunCount: 2 }),
+      ],
+    });
+
+    assert.deepEqual(
+      plan.snapshots.flatMap((snapshot) =>
+        snapshot.topEntries.map((entry) => entry.publicAlias),
+      ),
+      [],
+    );
+    const view = plan.currentViews.find(
+      (candidate) => candidate.ownerUid === "under-quota",
+    );
+    assert.ok(view !== undefined, "expected an ineligible_min_runs currentView to be emitted");
+    assert.deepEqual(view, {
+      ownerUid: "under-quota",
+      snapshotId: null,
+      rankId: null,
+      periodKey: "2026-07",
+      regionId: "jurong-east",
+      divisionKey: "tier_01",
+      status: "ineligible_min_runs",
+    });
+  });
+
+  it("grandfathers a legacy contribution with no qualifyingRunCount field", () => {
+    const plan = planMonthlyLeaderboards({
+      periodKey: "2026-07",
+      minRunsToQualify: 5,
+      contributions: [
+        contribution({ ownerUid: "legacy-runner", scoreXp: 70 }),
+      ],
+    });
+
+    assert.deepEqual(
+      plan.snapshots.flatMap((snapshot) =>
+        snapshot.topEntries.map((entry) => entry.publicAlias),
+      ),
+      ["Runner legacy-runner"],
+    );
+    assert.equal(
+      plan.currentViews.find((view) => view.ownerUid === "legacy-runner")
+        ?.status,
+      "ranked",
+    );
+  });
+
   it("uses Asia Singapore month boundaries and labels", () => {
     assert.equal(
       currentSingaporeMonthKey(new Date("2026-06-30T15:59:59.000Z")),
@@ -236,6 +308,7 @@ function contribution(input: {
   readonly divisionKey?: string;
   readonly divisionLabel?: string;
   readonly levelLabel?: string;
+  readonly qualifyingRunCount?: number;
 }): Record<string, unknown> {
   return {
     schemaVersion: 2,
@@ -257,5 +330,8 @@ function contribution(input: {
     eligibilityReason: "eligible_basic_awarded_xp",
     lastProgressionAt: "2026-07-10T00:00:00.000Z",
     sourceProgressionEventIds: [`event-${input.ownerUid}`],
+    ...(input.qualifyingRunCount === undefined
+      ? {}
+      : { qualifyingRunCount: input.qualifyingRunCount }),
   };
 }

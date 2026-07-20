@@ -88,6 +88,18 @@ export function writeLeaderboardContribution(input: {
   readonly existingContributionData:
     | FirebaseFirestore.DocumentData
     | undefined;
+  /**
+   * The caller's authoritative recompute of the qualifying-run count used to
+   * gate `config/leaderboard.minRunsToQualify` — NOT an accumulator.
+   * `completeRun` derives this from the full validated activity history it
+   * already reads inside its transaction (validated runs completed within
+   * the same monthly period), so every write is a correct absolute value and
+   * self-heals any prior under-count. It is written as a plain value (never
+   * `FieldValue.increment`), floored and clamped to `>= 0`. `completeCoolDown`
+   * does not fetch activity history and passes `null`, which leaves the
+   * stored `qualifyingRunCount` untouched.
+   */
+  readonly qualifyingRunCount: number | null;
 }): LeaderboardContributionDocument | null {
   const contribution = leaderboardContributionFields(input);
   if (contribution === null) {
@@ -103,6 +115,9 @@ export function writeLeaderboardContribution(input: {
       sourceProgressionEventIds: FieldValue.arrayUnion(
         input.progressionEventId,
       ),
+      ...(input.qualifyingRunCount === null
+        ? {}
+        : { qualifyingRunCount: Math.max(0, Math.floor(input.qualifyingRunCount)) }),
     },
     { merge: true },
   );

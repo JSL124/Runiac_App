@@ -8,6 +8,7 @@ enum LeaderboardReadStatus {
   unranked,
   regionRequired,
   ineligiblePremium,
+  ineligibleMinRuns,
   updating,
 }
 

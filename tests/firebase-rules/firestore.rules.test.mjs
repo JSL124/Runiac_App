@@ -228,6 +228,15 @@ describe('owner-owned client records', () => {
         status: 'seeded',
       }),
     );
+    await assertFails(
+      getDoc(doc(alice, 'leaderboardAdminCommands/test-command')),
+    );
+    await assertFails(
+      setDoc(doc(alice, 'leaderboardAdminCommands/test-command'), {
+        command: 'refresh',
+        periodKey: '2026-07',
+      }),
+    );
   });
 
   it('denies all direct nickname claim reads and writes', async () => {
