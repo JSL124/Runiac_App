@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:lottie/lottie.dart';
 
+import '../../../../core/assets/runiac_assets.dart';
+import '../../../../core/theme/runiac_colors.dart';
+import '../../../../core/widgets/runiac_buttons.dart';
+import '../../../../core/widgets/runiac_sheet_scaffold.dart';
 import '../../../you/presentation/widgets/you_surface_primitives.dart';
 import '../../domain/models/report_user_reason.dart';
 
@@ -14,6 +19,8 @@ Future<void> showReportUserSheet(
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    elevation: 0,
     builder: (_) => ReportUserSheet(
       targetDisplayName: targetDisplayName,
       onSubmit: onSubmit,
@@ -30,7 +37,7 @@ Future<void> showReportUserSheet(
 /// writes only the fixed `reports` fields the security rules allow (see
 /// `report_user_writer.dart`).
 ///
-/// The success copy ("Report submitted") is shown whether this is the first
+/// The "Report received" success panel is shown whether this is the first
 /// report of this target or a duplicate: the Firestore rules silently deny a
 /// duplicate create, and [onSubmit] is expected to silently swallow that
 /// specific denial, so this widget cannot tell the two cases apart and must
@@ -85,61 +92,249 @@ class _ReportUserSheetState extends State<ReportUserSheet> {
   }
 
   @override
-  Widget build(BuildContext context) => SafeArea(
-    top: false,
-    child: Padding(
-      padding: EdgeInsets.only(
-        left: 20,
-        right: 20,
-        top: 20,
-        bottom: 20 + MediaQuery.of(context).viewInsets.bottom,
-      ),
-      child: _submitted
-          ? const Text('Report submitted', style: YouTextStyles.bodyStrong)
-          : Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  'Report ${widget.targetDisplayName}',
-                  style: YouTextStyles.bodyStrong,
-                ),
-                const SizedBox(height: 8),
-                for (final reason in ReportUserReason.values)
-                  ListTile(
-                    key: ValueKey('report-user-reason-${reason.name}'),
-                    contentPadding: EdgeInsets.zero,
-                    dense: true,
-                    leading: Icon(
-                      reason == _reason
-                          ? Icons.radio_button_checked
-                          : Icons.radio_button_unchecked,
-                    ),
-                    title: Text(reason.label),
-                    onTap: _isSubmitting
-                        ? null
-                        : () => setState(() => _reason = reason),
-                  ),
-                const SizedBox(height: 8),
-                TextField(
-                  key: const Key('report-user-description-field'),
-                  controller: _descriptionController,
-                  enabled: !_isSubmitting,
-                  maxLines: 3,
-                  decoration: const InputDecoration(
-                    labelText: 'Additional details (optional)',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextButton.icon(
-                  onPressed: _isSubmitting ? null : _submit,
-                  icon: const Icon(Icons.flag_outlined),
-                  label: Text(_isSubmitting ? 'Reporting…' : 'Report'),
-                ),
-                if (_error != null) Text(_error!),
-              ],
+  Widget build(BuildContext context) {
+    if (_submitted) {
+      return const RuniacSheetScaffold(
+        title: 'Report received',
+        child: _ReportReceivedPanel(),
+      );
+    }
+    return RuniacSheetScaffold(
+      title: 'Report ${widget.targetDisplayName}',
+      subtitle:
+          "Your report is private — ${widget.targetDisplayName} won't be told",
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (final reason in ReportUserReason.values)
+            _ReasonRow(
+              reason: reason,
+              selected: reason == _reason,
+              onTap: _isSubmitting
+                  ? null
+                  : () => setState(() => _reason = reason),
             ),
-    ),
-  );
+          TextField(
+            key: const Key('report-user-description-field'),
+            controller: _descriptionController,
+            enabled: !_isSubmitting,
+            maxLines: 3,
+            decoration: InputDecoration(
+              labelText: 'Additional details (optional)',
+              filled: true,
+              fillColor: RuniacColors.white,
+              isDense: true,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(youInnerRadius),
+                borderSide: const BorderSide(color: RuniacColors.cardBorder),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(youInnerRadius),
+                borderSide: const BorderSide(color: RuniacColors.cardBorder),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(youInnerRadius),
+                borderSide: const BorderSide(
+                  color: RuniacColors.primaryBlue,
+                  width: 1.5,
+                ),
+              ),
+            ),
+          ),
+          if (_error != null) ...[
+            const SizedBox(height: 8),
+            _ErrorBanner(message: _error!),
+          ],
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: FilledButton(
+              onPressed: _isSubmitting ? null : _submit,
+              style: FilledButton.styleFrom(
+                backgroundColor: RuniacColors.primaryBlue,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              child: _isSubmitting
+                  ? const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              RuniacColors.white,
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: 10),
+                        Text('Reporting…'),
+                      ],
+                    )
+                  : const Text('Report'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// One selectable reason row in the reason picker.
+class _ReasonRow extends StatelessWidget {
+  const _ReasonRow({
+    required this.reason,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final ReportUserReason reason;
+  final bool selected;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: RuniacTappableSurface(
+        key: ValueKey('report-user-reason-${reason.name}'),
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(youInnerRadius),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+        decoration: BoxDecoration(
+          color: selected
+              ? RuniacColors.sectionSurfaceStrong
+              : RuniacColors.white,
+          borderRadius: BorderRadius.circular(youInnerRadius),
+          border: Border.all(
+            color: selected
+                ? RuniacColors.primaryBlue
+                : RuniacColors.cardBorder,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              selected ? Icons.check_circle_rounded : Icons.circle_outlined,
+              color: selected
+                  ? RuniacColors.primaryBlue
+                  : RuniacColors.textSecondary,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(reason.label, style: YouTextStyles.bodyStrong),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Red-tinted banner used to surface a genuine submission failure.
+class _ErrorBanner extends StatelessWidget {
+  const _ErrorBanner({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+      decoration: BoxDecoration(
+        color: RuniacColors.errorRed.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(youInnerRadius),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.error_outline_rounded,
+            color: RuniacColors.errorRed,
+            size: 20,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(
+                color: RuniacColors.errorRed,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Terminal-state panel shown once [ReportUserSheet]'s `onSubmit` completes,
+/// whether that's a fresh report or a silently-swallowed duplicate.
+///
+/// The success copy lives on the enclosing [RuniacSheetScaffold]'s title —
+/// this panel only supplies the check animation, supporting body copy, and
+/// the dismiss action — so "Report received" appears exactly once in the
+/// widget tree.
+class _ReportReceivedPanel extends StatelessWidget {
+  const _ReportReceivedPanel();
+
+  @override
+  Widget build(BuildContext context) {
+    final reduceMotion =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          width: 96,
+          height: 96,
+          child: reduceMotion
+              ? const Icon(
+                  Icons.check_circle_rounded,
+                  size: 72,
+                  color: RuniacColors.successGreen,
+                )
+              : Lottie.asset(
+                  RuniacAssets.successCheckLottie,
+                  repeat: false,
+                  errorBuilder: (context, error, stackTrace) {
+                    return const Icon(
+                      Icons.check_circle_rounded,
+                      size: 72,
+                      color: RuniacColors.successGreen,
+                    );
+                  },
+                ),
+        ),
+        const SizedBox(height: 16),
+        const Text(
+          "Thanks — we've received your report. Our team will review it "
+          'shortly.',
+          textAlign: TextAlign.center,
+          style: YouTextStyles.body,
+        ),
+        const SizedBox(height: 20),
+        SizedBox(
+          width: double.infinity,
+          height: 50,
+          child: FilledButton(
+            onPressed: () => Navigator.of(context).pop(),
+            style: FilledButton.styleFrom(
+              backgroundColor: RuniacColors.primaryBlue,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+            child: const Text('Done'),
+          ),
+        ),
+      ],
+    );
+  }
 }

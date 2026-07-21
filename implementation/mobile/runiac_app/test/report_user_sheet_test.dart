@@ -48,7 +48,7 @@ void main() {
       );
 
       expect(find.text('Report Jamie Tan'), findsOneWidget);
-      expect(find.text('Report submitted'), findsNothing);
+      expect(find.text('Report received'), findsNothing);
 
       await tester.tap(
         find.byKey(const ValueKey('report-user-reason-unsafeConduct')),
@@ -62,12 +62,12 @@ void main() {
       await tester.tap(find.text('Report'));
       await tester.pump();
       expect(find.text('Reporting…'), findsOneWidget);
-      expect(find.text('Report submitted'), findsNothing);
+      expect(find.text('Report received'), findsNothing);
 
       submitGate.complete();
       await tester.pumpAndSettle();
 
-      expect(find.text('Report submitted'), findsOneWidget);
+      expect(find.text('Report received'), findsOneWidget);
       expect(capturedReason, ReportUserReason.unsafeConduct);
       expect(capturedDescription, 'They followed me after a run.');
     },
@@ -84,7 +84,7 @@ void main() {
       await tester.tap(find.text('Report'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Report submitted'), findsOneWidget);
+      expect(find.text('Report received'), findsOneWidget);
     },
   );
 
@@ -109,12 +109,12 @@ void main() {
       find.text('Report could not be sent. Please try again.'),
       findsOneWidget,
     );
-    expect(find.text('Report submitted'), findsNothing);
+    expect(find.text('Report received'), findsNothing);
 
     await tester.tap(find.text('Report'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Report submitted'), findsOneWidget);
+    expect(find.text('Report received'), findsOneWidget);
   });
 
   testWidgets('defaults to the harassment-or-abuse reason', (tester) async {

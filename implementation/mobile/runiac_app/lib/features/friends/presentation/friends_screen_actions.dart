@@ -65,6 +65,7 @@ extension _FriendsScreenActions on _FriendsScreenState {
           : 'Block ${user.displayName}?',
       body: friendActionConfirmationBody(action),
       confirmLabel: isRemove ? 'Remove Friend' : 'Block',
+      icon: isRemove ? Icons.person_remove_rounded : Icons.block_rounded,
     );
     if (!confirmed || !mounted) return;
     await _runMutation(
@@ -88,6 +89,7 @@ extension _FriendsScreenActions on _FriendsScreenState {
       body: 'Unblocking does not restore a friendship or request.',
       confirmLabel: 'Unblock',
       isDestructive: false,
+      icon: Icons.lock_open_rounded,
     );
     if (!confirmed || !mounted) return;
     await _runMutation(
