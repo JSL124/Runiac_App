@@ -533,6 +533,13 @@ class _RuniacAppState extends State<RuniacApp> {
   }
 
   Future<UserProgressReadModel> _refreshUserProgressAfterRunSync() async {
+    // The synced run may have completed the plan's final scheduled workout,
+    // which the backend records on `planProgress/{uid}`. Refresh that too, or
+    // a runner finishing their plan with the app already open would keep the
+    // stale pre-run value and see no ceremony until the next launch.
+    // Deliberately fire-and-forget and ordered first, so it still happens when
+    // the user-progress refresh below throws and rethrows.
+    _refreshPlanProgressAfterRunSync();
     try {
       final progress = await widget.userProgressRepository
           .refreshUserProgress();
@@ -549,6 +556,18 @@ class _RuniacAppState extends State<RuniacApp> {
       );
       rethrow;
     }
+  }
+
+  /// Re-reads backend plan progress after a run syncs. `_loadPlanProgress`
+  /// already guards itself with a load serial and swallows its own errors, so
+  /// a failure here can never break run syncing.
+  void _refreshPlanProgressAfterRunSync() {
+    final ownerUid = _generatedPlanOwnerUid;
+    final activePlanId = _generatedPlanStore.activePlan?.id;
+    if (ownerUid == null || activePlanId == null) {
+      return;
+    }
+    unawaited(_loadPlanProgress(ownerUid, activePlanId));
   }
 
   Widget _buildPostAuthFlow() {
