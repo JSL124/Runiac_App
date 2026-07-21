@@ -1,8 +1,8 @@
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../domain/models/feed_display_models.dart';
 import '../comments/firebase_feed_comment_page_port.dart';
@@ -232,6 +232,66 @@ class FirebaseFeedDataPort implements FeedDataPort {
       throw const FormatException('Feed thumbnail response is invalid.');
     }
     return Uint8List.fromList(base64Decode(raw['base64Png']! as String));
+  }
+
+  static const int _authorLevelChunkSize = 50;
+
+  @override
+  Future<Map<String, FeedAuthorLevel>> fetchAuthorLevels(
+    List<String> uids,
+  ) async {
+    final distinct = uids.toSet().toList(growable: false);
+    if (distinct.isEmpty) return const <String, FeedAuthorLevel>{};
+    final callable = _functions.httpsCallable('getFeedAuthorLevels');
+    final levels = <String, FeedAuthorLevel>{};
+    for (final chunk in chunkFeedAuthorUids(distinct)) {
+      final result = await callable.call(<String, Object>{'uids': chunk});
+      levels.addAll(parseFeedAuthorLevelsResponse(result.data));
+    }
+    return levels;
+  }
+
+  /// Splits [uids] into calls of at most [chunkSize] each. The backend caps
+  /// `getFeedAuthorLevels` at 50 uids per invocation.
+  @visibleForTesting
+  static List<List<String>> chunkFeedAuthorUids(
+    List<String> uids, {
+    int chunkSize = _authorLevelChunkSize,
+  }) {
+    final chunks = <List<String>>[];
+    for (var start = 0; start < uids.length; start += chunkSize) {
+      final end = start + chunkSize < uids.length
+          ? start + chunkSize
+          : uids.length;
+      chunks.add(uids.sublist(start, end));
+    }
+    return chunks;
+  }
+
+  /// Defensively parses a `getFeedAuthorLevels` response into
+  /// [FeedAuthorLevel]s, skipping any entry that isn't shaped as documented.
+  @visibleForTesting
+  static Map<String, FeedAuthorLevel> parseFeedAuthorLevelsResponse(
+    Object? raw,
+  ) {
+    final result = <String, FeedAuthorLevel>{};
+    if (raw is! Map<Object?, Object?>) return result;
+    final levels = raw['levels'];
+    if (levels is! Map<Object?, Object?>) return result;
+    for (final entry in levels.entries) {
+      final uid = entry.key;
+      final value = entry.value;
+      if (uid is! String || value is! Map<Object?, Object?>) continue;
+      final label = value['levelLabel'];
+      final percent = value['levelProgressPercent'];
+      result[uid] = FeedAuthorLevel(
+        levelLabel: label is String ? label : '',
+        levelProgressFraction: percent is num
+            ? (percent / 100).clamp(0.0, 1.0).toDouble()
+            : 0.0,
+      );
+    }
+    return result;
   }
 
   Future<FeedIdPage> _pageIds(

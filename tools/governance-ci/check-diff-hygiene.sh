@@ -203,6 +203,51 @@ is_progression_followups_path() {
   esac
 }
 
+is_feed_live_author_level_capsule_active() {
+  grep -Eq '^- Newly routed feed live author level on 2026-07-21 Asia/Singapore: `implementation/roadmap/capsules/feed-live-author-level\.md`' implementation/roadmap/CURRENT.md
+}
+
+is_friends_live_level_capsule_active() {
+  grep -Eq '^- Newly routed friends live level on 2026-07-21 Asia/Singapore: `implementation/roadmap/capsules/friends-live-level\.md`' implementation/roadmap/CURRENT.md
+}
+
+is_friends_live_level_path() {
+  case "$1" in
+    implementation/roadmap/capsules/friends-live-level.md|\
+    functions/src/progression/profileLevelDisplay.ts|\
+    functions/src/friends/friendLevels/core.ts|\
+    functions/src/friends/friendLevels/callable.ts|\
+    functions/src/friends/friendsDiscovery.ts|\
+    functions/test/friendLevels.test.ts|\
+    functions/test/friendsCore.test.ts)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+is_feed_live_author_level_path() {
+  case "$1" in
+    implementation/roadmap/capsules/feed-live-author-level.md|\
+    implementation/roadmap/CURRENT.md|\
+    tools/governance-ci/check-diff-hygiene.sh|\
+    tools/governance-ci/check-pre-scaffold-scope.sh|\
+    functions/src/index.ts|\
+    functions/package.json|\
+    functions/src/feed/authorLevels/core.ts|\
+    functions/src/feed/authorLevels/callable.ts|\
+    functions/test/feedAuthorLevels.test.ts|\
+    functions/test/feedCallableSurface.test.ts)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 is_exception_queue_moderation_capsule_active() {
   grep -Eq '^- Newly routed Exception Queue moderation adjudication on 2026-07-21 Asia/Singapore: `implementation/roadmap/capsules/exception-queue-moderation-adjudication\.md`' implementation/roadmap/CURRENT.md
 }
@@ -590,6 +635,14 @@ is_allowed_path() {
     return 0
   fi
 
+  if is_feed_live_author_level_path "$1" && is_feed_live_author_level_capsule_active; then
+    return 0
+  fi
+
+  if is_friends_live_level_path "$1" && is_friends_live_level_capsule_active; then
+    return 0
+  fi
+
   if is_feed_friends_emulator_backend_path "$1"; then
     if is_feed_friends_emulator_backend_capsule_active; then
       return 0
@@ -729,6 +782,14 @@ is_forbidden_path() {
   fi
 
   if is_progression_followups_path "$1" && is_progression_followups_capsule_active; then
+    return 1
+  fi
+
+  if is_feed_live_author_level_path "$1" && is_feed_live_author_level_capsule_active; then
+    return 1
+  fi
+
+  if is_friends_live_level_path "$1" && is_friends_live_level_capsule_active; then
     return 1
   fi
 

@@ -12,7 +12,7 @@ Future<List<FriendUserReadModel>> readFriendsOwnerList(
       .orderBy('listSortTieBreaker')
       .limit(30)
       .get();
-  return _mapOwnerListSnapshot(snapshot);
+  return _mapOwnerListSnapshot(snapshot, direction: direction);
 }
 
 /// Snapshot-backed live equivalent of [readFriendsOwnerList]. Builds the
@@ -27,7 +27,7 @@ Stream<List<FriendUserReadModel>> watchFriendsOwnerList(
       .orderBy('listSortTieBreaker')
       .limit(30)
       .snapshots()
-      .map(_mapOwnerListSnapshot);
+      .map((snapshot) => _mapOwnerListSnapshot(snapshot, direction: direction));
 }
 
 /// Shared filter stage for [readFriendsOwnerList] and [watchFriendsOwnerList]
@@ -46,15 +46,32 @@ Query<Map<String, Object?>> _ownerListFilter(
 }
 
 List<FriendUserReadModel> _mapOwnerListSnapshot(
-  QuerySnapshot<Map<String, Object?>> snapshot,
-) {
+  QuerySnapshot<Map<String, Object?>> snapshot, {
+  String? direction,
+}) {
   return snapshot.docs
-      .map(
-        (document) => mapFriendIdentityDocument(
-          document.data(),
+      .map((document) {
+        final data = document.data();
+        return mapFriendIdentityDocument(
+          data,
           fallbackUid: document.id,
-        ),
-      )
+          requestDirection: direction,
+          requestCreatedAt: direction == null
+              ? null
+              : friendRequestCreatedAtValue(data['createdAt']),
+        );
+      })
       .whereType<FriendUserReadModel>()
       .toList(growable: false);
+}
+
+/// Defensively converts the `createdAt` field carried by friend-request
+/// documents into a plain [DateTime]. A missing or non-`Timestamp` value
+/// returns `null` rather than falling back to any default instant, so a
+/// malformed document never renders a bogus relative-time Requests-tab
+/// subtitle (e.g. a spurious "56 years ago" from an epoch fallback).
+/// Firestore's `Timestamp` type is handled only here (and in the repository
+/// this file backs), keeping the rest of the friends feature Firestore-free.
+DateTime? friendRequestCreatedAtValue(Object? value) {
+  return value is Timestamp ? value.toDate() : null;
 }

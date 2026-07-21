@@ -1,7 +1,12 @@
 import 'dart:io';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/features/friends/data/firebase_friends_repository.dart';
+import 'package:runiac_app/features/friends/data/friend_identity_mapper.dart'
+    show friendRequestSubtitleLabel;
+import 'package:runiac_app/features/friends/data/friends_owner_list_reader.dart'
+    show friendRequestCreatedAtValue;
 
 void main() {
   test('owner-list reads keep the Rules-required bounded query', () {
@@ -52,6 +57,101 @@ void main() {
     expect(user?.displayName, 'Grace Teo');
     expect(user?.avatarInitials, 'GT');
   });
+
+  test('an incoming request row renders a "Requested …ago" subtitle', () {
+    final now = DateTime(2026, 7, 21, 12, 0, 0);
+    final createdAt = now.subtract(const Duration(days: 3));
+    final user = mapFriendIdentityDocument(<String, Object?>{
+      'uid': 'runner-b',
+      'nickname': 'grace-teo',
+      'displayName': 'Grace Teo',
+      'avatarInitials': 'GT',
+    }, requestDirection: 'incoming', requestCreatedAt: createdAt, now: now);
+
+    expect(
+      friendRequestSubtitleLabel(
+        direction: 'incoming',
+        createdAt: createdAt,
+        now: now,
+      ),
+      'Requested 3 days ago',
+    );
+    expect(user?.subtitleLabel, 'Requested 3 days ago');
+  });
+
+  test('an outgoing request row renders a "Sent …ago" subtitle', () {
+    final now = DateTime(2026, 7, 21, 12, 0, 0);
+    final createdAt = now.subtract(const Duration(days: 3));
+    final user = mapFriendIdentityDocument(<String, Object?>{
+      'uid': 'runner-b',
+      'nickname': 'grace-teo',
+      'displayName': 'Grace Teo',
+      'avatarInitials': 'GT',
+    }, requestDirection: 'outgoing', requestCreatedAt: createdAt, now: now);
+
+    expect(
+      friendRequestSubtitleLabel(
+        direction: 'outgoing',
+        createdAt: createdAt,
+        now: now,
+      ),
+      'Sent 3 days ago',
+    );
+    expect(user?.subtitleLabel, 'Sent 3 days ago');
+  });
+
+  test(
+    'a missing or non-Timestamp createdAt yields an empty request subtitle',
+    () {
+      final missing = mapFriendIdentityDocument(<String, Object?>{
+        'uid': 'runner-b',
+        'nickname': 'grace-teo',
+        'displayName': 'Grace Teo',
+        'avatarInitials': 'GT',
+      }, requestDirection: 'incoming');
+      expect(missing?.subtitleLabel, '');
+
+      expect(friendRequestCreatedAtValue(null), isNull);
+      expect(friendRequestCreatedAtValue('2026-07-01T00:00:00Z'), isNull);
+      expect(friendRequestCreatedAtValue(1234567890), isNull);
+
+      final resolved = friendRequestCreatedAtValue(
+        Timestamp.fromDate(DateTime(2026, 7, 1)),
+      );
+      expect(resolved, DateTime(2026, 7, 1));
+
+      expect(
+        friendRequestSubtitleLabel(direction: 'incoming', createdAt: null),
+        '',
+      );
+    },
+  );
+
+  test(
+    'a future createdAt does not render a negative duration subtitle',
+    () {
+      final now = DateTime(2026, 7, 21, 12, 0, 0);
+      final label = friendRequestSubtitleLabel(
+        direction: 'incoming',
+        createdAt: now.add(const Duration(days: 2)),
+        now: now,
+      );
+      expect(label, 'Requested just now');
+    },
+  );
+
+  test(
+    'Friends and Blocked rows (no requestDirection) keep an empty subtitle',
+    () {
+      final friend = mapFriendIdentityDocument(<String, Object?>{
+        'uid': 'runner-b',
+        'nickname': 'grace-teo',
+        'displayName': 'Grace Teo',
+        'avatarInitials': 'GT',
+      }, requestCreatedAt: DateTime.now());
+      expect(friend?.subtitleLabel, '');
+    },
+  );
 
   test('does not read an obsolete nested identity map', () {
     final user = mapFriendIdentityDocument(<String, Object?>{

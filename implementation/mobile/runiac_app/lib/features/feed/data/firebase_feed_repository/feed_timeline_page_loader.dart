@@ -1,14 +1,21 @@
 import '../../domain/models/feed_display_models.dart';
 import 'feed_author_buffers.dart';
+import 'feed_author_level_resolver.dart';
 import 'feed_post_display_mapper.dart';
 import 'feed_timeline_state_mutator.dart';
 
 /// Owns one viewer's buffered Feed lifecycle, paging, and access reconciliation.
 class FeedTimelinePagingSession {
-  FeedTimelinePagingSession(this.buffers, this.viewerUid, this.state);
+  FeedTimelinePagingSession(
+    this.buffers,
+    this.viewerUid,
+    this.state,
+    this.levelResolver,
+  );
 
   final FeedAuthorBuffers buffers;
   final String viewerUid;
+  final FeedAuthorLevelResolver levelResolver;
   final Set<String> _hiddenPostIds = <String>{}, _emittedPostIds = <String>{};
   FeedTimelineState state;
 
@@ -43,6 +50,8 @@ class FeedTimelinePagingSession {
       }
       page.add(FeedPostDisplayMapper.map(selected.post, viewerUid));
     }
+    await _overlayAuthorLevels(page, isDisposed);
+    if (isDisposed()) return;
     state = FeedTimelineState(
       posts: <FeedPostReadModel>[...state.posts, ...page],
       source: buffers.usedCachedSnapshot
@@ -100,5 +109,31 @@ class FeedTimelinePagingSession {
         .map((post) => post.postId);
     _emittedPostIds.removeAll(removed);
     state = FeedTimelineStateMutator.withoutAuthor(state, author);
+  }
+
+  /// Overlays a live, backend-resolved author level onto every post in
+  /// [page] that has one, in place. Leaves a post's stored `authorLevelLabel`
+  /// (and its progress fraction unresolved) when the resolver has nothing
+  /// for its author, or resolves an empty `levelLabel` — including when the
+  /// resolver itself fails, since it swallows its own errors, and when the
+  /// backend returns an empty label because the author's profile is missing
+  /// or carries no level. An empty resolved label must never erase a
+  /// post's existing stored label.
+  Future<void> _overlayAuthorLevels(
+    List<FeedPostReadModel> page,
+    bool Function() isDisposed,
+  ) async {
+    if (page.isEmpty) return;
+    final authorUids = {for (final post in page) post.authorUserId};
+    await levelResolver.ensureResolved(authorUids);
+    if (isDisposed()) return;
+    for (var index = 0; index < page.length; index++) {
+      final resolved = levelResolver[page[index].authorUserId];
+      if (resolved == null || resolved.levelLabel.trim().isEmpty) continue;
+      page[index] = page[index].copyWith(
+        authorLevelLabel: resolved.levelLabel,
+        authorLevelProgressFraction: resolved.levelProgressFraction,
+      );
+    }
   }
 }
