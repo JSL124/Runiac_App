@@ -14,6 +14,7 @@ import {
   writeRequestRate,
 } from "./friendsRateLimits.js";
 import type { FriendsCallableRequest, FriendsDependencies } from "./friendsTypes.js";
+import { assertCallerAccountNotSuspendedInTransaction } from "../security/accountStatus.js";
 
 export async function sendFriendRequest(
   dependencies: FriendsDependencies,
@@ -25,6 +26,10 @@ export async function sendFriendRequest(
   const atMs = dependencies.nowMs();
   const at = Timestamp.fromMillis(atMs);
   return dependencies.firestore.runTransaction(async (transaction) => {
+    // Defence-in-depth (see accountStatus.ts): this callable never otherwise
+    // reads the caller's own users/{uid} doc, so add the one read needed to
+    // reject a suspended caller before any write in this transaction.
+    await assertCallerAccountNotSuspendedInTransaction(transaction, dependencies.firestore, uid);
     const localRequestReference = requestRef(dependencies.firestore, uid, targetUid);
     const remoteRequestReference = requestRef(dependencies.firestore, targetUid, uid);
     const rateReference = rateRef(dependencies.firestore, uid);
@@ -93,6 +98,10 @@ export async function cancelFriendRequest(
   const atMs = dependencies.nowMs();
   const at = Timestamp.fromMillis(atMs);
   return dependencies.firestore.runTransaction(async (transaction) => {
+    // Defence-in-depth (see accountStatus.ts): this callable never otherwise
+    // reads the caller's own users/{uid} doc, so add the one read needed to
+    // reject a suspended caller before any write in this transaction.
+    await assertCallerAccountNotSuspendedInTransaction(transaction, dependencies.firestore, uid);
     const localRequestReference = requestRef(dependencies.firestore, uid, targetUid);
     const remoteRequestReference = requestRef(dependencies.firestore, targetUid, uid);
     const rateReference = rateRef(dependencies.firestore, uid);

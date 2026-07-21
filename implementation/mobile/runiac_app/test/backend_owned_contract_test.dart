@@ -345,6 +345,7 @@ void main() {
             'firebase_feed_data_port.dart',
         'lib/features/feed/data/firebase_feed_repository/'
             'firebase_feed_post_mapper.dart',
+        'lib/features/moderation/data/report_user_writer.dart',
       };
       const forbiddenFeatureTerms = <String>[
         'package:cloud_firestore',
@@ -516,6 +517,23 @@ void main() {
       expect(source, isNot(contains("collection('users')")));
       expect(source, isNot(contains('runTransaction')));
       expect(source, isNot(contains('writeBatch')));
+      for (final field in BackendOwnedValueContract.protectedFieldNames) {
+        expect(source, isNot(contains("'$field'")), reason: field);
+      }
+    });
+
+    test('limits report-a-user writes to create-only reports fields', () {
+      final source = File(
+        'lib/features/moderation/data/report_user_writer.dart',
+      ).readAsStringSync();
+
+      expect(source, contains("collection('reports')"));
+      expect(source, contains('.set('));
+      expect(source, isNot(contains('.update(')));
+      expect(source, isNot(contains('.delete(')));
+      expect(source, isNot(contains('runTransaction')));
+      expect(source, isNot(contains('writeBatch')));
+      expect(source, isNot(contains("collection('users')")));
       for (final field in BackendOwnedValueContract.protectedFieldNames) {
         expect(source, isNot(contains("'$field'")), reason: field);
       }

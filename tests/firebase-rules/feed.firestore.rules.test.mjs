@@ -207,6 +207,40 @@ describe('trusted Feed Firestore rules', () => {
     await assertSucceeds(deleteDoc(comment));
   });
 
+  it('denies feed comment create/update from a suspended commenter, but not an unsuspended one or one with no accountStatus field', async () => {
+    await seed('feedPosts/alice-post', feedPost('alice'));
+    await seedFriendship('alice', 'bob');
+    await seed('userProfiles/bob', {
+      ...profileFields,
+      displayName: 'Synthetic Runner',
+      avatarInitials: 'SR',
+      levelLabel: 'Level 3',
+    });
+    const bob = dbFor('bob');
+
+    // Suspended: both create and update are denied. Defence-in-depth behind
+    // the admin console's Auth-layer disable (see accountStatus.ts /
+    // isNotSuspended() in firestore.rules) — it only matters for an
+    // already-issued, unexpired ID token.
+    await seed('users/bob', { accountStatus: 'suspended' });
+    await assertFails(setDoc(doc(bob, 'feedPosts/alice-post/comments/suspended-create'), commentData('Should be denied.')));
+    await seed('feedPosts/alice-post/comments/suspended-update', commentData('Seeded directly.'));
+    await assertFails(updateDoc(doc(bob, 'feedPosts/alice-post/comments/suspended-update'), { body: 'Should be denied.', updatedAt: serverTimestamp() }));
+
+    // Banned is the other blocking value.
+    await seed('users/bob', { accountStatus: 'banned' });
+    await assertFails(setDoc(doc(bob, 'feedPosts/alice-post/comments/banned-create'), commentData('Should be denied.')));
+
+    // Explicitly unsuspended: unaffected.
+    await seed('users/bob', { accountStatus: 'active' });
+    await assertSucceeds(setDoc(doc(bob, 'feedPosts/alice-post/comments/active-create'), commentData('Should succeed.')));
+
+    // No accountStatus field at all, and no users/{uid} doc at all: both must
+    // keep today's behaviour, unaffected by this rule.
+    await removeSeed('users/bob');
+    await assertSucceeds(setDoc(doc(bob, 'feedPosts/alice-post/comments/no-doc-create'), commentData('Should succeed.')));
+  });
+
   it('keeps hidden markers private/backend-only and rejects direct Feed reports while preserving generic reports', async () => {
     await seed('users/bob/hiddenFeedPosts/alice-post', { postId: 'alice-post', createdAt: 1 });
     const bob = dbFor('bob');

@@ -11,6 +11,7 @@ import { claimRef, profileRef, rateRef, safeDocumentId } from "./friendsPaths.js
 import { nextSearchAttemptMs, writeSearchRate } from "./friendsRateLimits.js";
 import { buildFriendIdentity, nicknameIndexKey } from "./nickname.js";
 import type { FriendsCallableRequest, FriendsDependencies } from "./friendsTypes.js";
+import { assertCallerAccountNotSuspendedInTransaction } from "../security/accountStatus.js";
 
 export async function checkNicknameAvailability(
   dependencies: FriendsDependencies,
@@ -46,6 +47,10 @@ export async function upsertNickname(
   const indexKey = nicknameIndexKey(nickname.canonical);
   const at = Timestamp.fromMillis(dependencies.nowMs());
   return dependencies.firestore.runTransaction(async (transaction) => {
+    // Defence-in-depth (see accountStatus.ts): this callable never otherwise
+    // reads the caller's own users/{uid} doc, so add the one read needed to
+    // reject a suspended caller before any write in this transaction.
+    await assertCallerAccountNotSuspendedInTransaction(transaction, dependencies.firestore, uid);
     const profileReference = profileRef(dependencies.firestore, uid);
     const [profileSnapshot, targetClaimSnapshot] = await Promise.all([
       transaction.get(profileReference),

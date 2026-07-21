@@ -1,6 +1,21 @@
 part of 'friends_screen.dart';
 
 extension _FriendsScreenActions on _FriendsScreenState {
+  Future<void> _reportFriend(FriendUserReadModel user) async {
+    final reporterUid = _controller.ownerUid;
+    if (reporterUid == null) return;
+    await showReportUserSheet(
+      context,
+      targetDisplayName: user.displayName,
+      onSubmit: (reason, description) => reportUser(
+        reporterUid: reporterUid,
+        targetId: user.userId,
+        reason: reason,
+        description: description,
+      ),
+    );
+  }
+
   void _sendRequest(FriendUserReadModel user) {
     _runMutation(
       actionKey: 'send:${user.userId}',
@@ -38,6 +53,10 @@ extension _FriendsScreenActions on _FriendsScreenState {
   Future<void> _showFriendActions(FriendUserReadModel user) async {
     final action = await showFriendActionsSheet(context, user);
     if (!mounted || action == null) return;
+    if (action == FriendAction.report) {
+      await _reportFriend(user);
+      return;
+    }
     final isRemove = action == FriendAction.remove;
     final confirmed = await showFriendActionConfirmation(
       context,

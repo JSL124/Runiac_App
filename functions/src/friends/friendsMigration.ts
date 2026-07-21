@@ -11,6 +11,7 @@ import {
 } from "./nickname.js";
 import type { FriendsCallableRequest, FriendsDependencies } from "./friendsTypes.js";
 import { isPlatformAdminRole } from "../security/roles.js";
+import { assertAccountNotSuspended } from "../security/accountStatus.js";
 
 const MAX_MIGRATION_WRITES = 500;
 
@@ -26,6 +27,9 @@ export async function migrateUnicodeNicknameClaims(
       transaction.get(dependencies.firestore.collection("userProfiles")),
       transaction.get(dependencies.firestore.collection("nicknameClaims")),
     ]);
+    // Defence-in-depth (see accountStatus.ts): reuses this transaction's own
+    // users/{uid} read (adminSnapshot) rather than adding a second read.
+    assertAccountNotSuspended(dataOf(adminSnapshot));
     if (!isPlatformAdminRole(dataOf(adminSnapshot))) {
       throw friendError(FRIEND_REASON.NOT_PLATFORM_ADMIN);
     }

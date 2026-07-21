@@ -9,6 +9,7 @@ export { registerNotificationDevice, unregisterNotificationDevice } from "./noti
 export { dispatchScheduledPushNotifications } from "./notifications/scheduledPushDispatch.js";
 export { refreshLeaderboardSnapshots } from "./leaderboard/monthlyLeaderboard.js";
 export { leaderboardAdminCommandCreated } from "./leaderboard/leaderboardAdminCommand.js";
+export { moderationCommandCreated } from "./moderation/moderationCommand.js";
 export { refreshStreakStatus } from "./progression/refreshStreakStatus.js";
 export { expireSubscriptions } from "./progression/subscriptionExpirySchedule.js";
 export { publishActivityToFeed } from "./feed/publish/callable.js";

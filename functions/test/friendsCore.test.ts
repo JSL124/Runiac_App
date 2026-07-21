@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { before, beforeEach, describe, it } from "node:test";
 import { getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
+import { HttpsError } from "firebase-functions/v2/https";
 
 import { createFriendsService, type FriendsCallableRequest } from "../src/friends/friendsCore.js";
 import { FRIEND_REASON, readFriendReason } from "../src/friends/friendsErrors.js";
@@ -60,6 +61,56 @@ describe("Friends nickname canonicalization", () => {
     assert.throws(() => canonicalizeNickname(""));
     assert.throws(() => canonicalizeNickname("\nrunner"));
     assert.throws(() => canonicalizeNickname("1234567890123456789012345678901"));
+  });
+});
+
+describe("Friends account-suspension defence-in-depth", () => {
+  it("rejects a suspended caller's write-bearing friends actions with permission-denied", async () => {
+    const friends = service();
+    await firestore.doc(`users/${ALICE}`).set({ accountStatus: "suspended" });
+
+    await assert.rejects(
+      () => friends.sendFriendRequest(request(ALICE, { targetUid: BOB })),
+      (error: unknown) => error instanceof HttpsError && error.code === "permission-denied",
+    );
+    await assert.rejects(
+      () => friends.blockUser(request(ALICE, { targetUid: BOB })),
+      (error: unknown) => error instanceof HttpsError && error.code === "permission-denied",
+    );
+
+    // No friend request or block was actually created.
+    assert.equal((await firestore.doc(`users/${ALICE}/friendRequests/${BOB}`).get()).exists, false);
+    assert.equal((await firestore.doc(`users/${ALICE}/blockedUsers/${BOB}`).get()).exists, false);
+  });
+
+  it("still allows an explicitly unsuspended caller to send a friend request", async () => {
+    const friends = service();
+    await activateNicknames(friends);
+    await firestore.doc(`users/${ALICE}`).set({ accountStatus: "active" });
+
+    assert.deepEqual(await friends.sendFriendRequest(request(ALICE, { targetUid: BOB })), {
+      status: "PENDING",
+      created: true,
+    });
+  });
+
+  it("still allows a caller with no users/{uid} document at all to send a friend request", async () => {
+    const friends = service();
+    await Promise.all([
+      friends.upsertNickname(request(BOB, { nickname: "Bøb" })),
+      friends.upsertNickname(request(CAROL, { nickname: "Carol" })),
+    ]);
+
+    // BOB has no users/{uid} document at all in this test (the whole `users`
+    // collection is cleared in beforeEach, and only ALICE gets one in the
+    // sibling test above) — a missing document must not be treated as
+    // suspended.
+    assert.equal((await firestore.doc(`users/${BOB}`).get()).exists, false);
+
+    assert.deepEqual(await friends.sendFriendRequest(request(BOB, { targetUid: CAROL })), {
+      status: "PENDING",
+      created: true,
+    });
   });
 });
 

@@ -536,6 +536,31 @@ service cloud.firestore {
           && request.resource.data.weeks.size() == 0);
     }
 
+    // Defence-in-depth ONLY — this is NOT the primary suspension control, and
+    // must not be mistaken for one. The primary control is the admin
+    // console's setUserAccountStatus: the moment an operator sets
+    // users/{uid}.accountStatus to a blocking value, that SAME action
+    // disables the user's Firebase Auth account and revokes their refresh
+    // tokens, which is what actually stops them from signing in or minting a
+    // new ID token. This rule only closes the residual window in which an ID
+    // token issued and cached BEFORE that disable is still unexpired
+    // (Firebase ID tokens live up to ~1 hour) and would otherwise keep
+    // passing these rules. A missing users/{uid} doc, or a missing/
+    // unrecognised accountStatus value, is treated as NOT suspended, so every
+    // already-stored document keeps its current behaviour.
+    //
+    // Every get() here bills a document read, so this is applied only to the
+    // specific client write paths where a suspended user could still
+    // plausibly harm another user or game moderation (see firestore.rules
+    // call sites) — never blanket-applied to every collection, and never
+    // applied to a read rule.
+    function isNotSuspended() {
+      return !isSignedIn()
+        || !exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        || !('accountStatus' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data)
+        || !(get(/databases/$(database)/documents/users/$(request.auth.uid)).data.accountStatus in ['suspended', 'banned']);
+    }
+
     function isPremiumUser() {
       return isSignedIn()
         && exists(/databases/$(database)/documents/users/$(request.auth.uid))
@@ -844,8 +869,11 @@ service cloud.firestore {
         allow list: if canReadFeedPost(postId)
           && request.query.limit != null
           && request.query.limit <= 20;
-        allow create: if validFeedCommentCreate(postId);
-        allow update: if validFeedCommentUpdate(postId);
+        // isNotSuspended(): feed comments are visible to the author's
+        // friends, so a suspended user could otherwise keep harassing
+        // another user's post through new or edited comments.
+        allow create: if validFeedCommentCreate(postId) && isNotSuspended();
+        allow update: if validFeedCommentUpdate(postId) && isNotSuspended();
         allow delete: if canReadFeedPost(postId)
           && resource.data.authorUid == request.auth.uid;
       }
@@ -952,9 +980,28 @@ service cloud.firestore {
 
     match /reports/{reportId} {
       allow read: if isSignedIn() && resource.data.reporterUid == request.auth.uid;
+      // isNotSuspended(): a suspended user filing reports against another
+      // user is exactly the retaliatory/harassment-via-moderation-system
+      // case this Exception Queue capsule exists to close off.
+      //
+      // Report-a-user (targetType == 'user') additionally requires:
+      //   - Self-report rejection: targetId != request.auth.uid.
+      //   - A deterministic document id of `<reporterUid>_<targetId>`,
+      //     mirroring the dedup the feed report path already gets from
+      //     deterministicFeedIds(). Firestore classifies a set() against an
+      //     already-existing document as `update`, not `create`, so a
+      //     second report of the same target from the same reporter falls
+      //     straight through to `allow update: if false` below instead of
+      //     creating a duplicate — no extra rule logic needed for that half.
+      // Scoped to targetType == 'user' only: route/plan/activity reports
+      // have no client affordance yet and keep today's free-form report id.
       allow create: if isSignedIn()
+        && isNotSuspended()
         && request.resource.data.reporterUid == request.auth.uid
         && request.resource.data.targetType != 'feedPost'
+        && (request.resource.data.targetType != 'user'
+          || (reportId == request.auth.uid + '_' + request.resource.data.targetId
+            && request.resource.data.targetId != request.auth.uid))
         && hasOnlyAllowedKeys([
           'reporterUid',
           'targetType',
@@ -965,6 +1012,13 @@ service cloud.firestore {
         ])
         && doesNotTouchBackendOwnedKeys();
       allow update, delete: if false;
+    }
+
+    // moderationCommands is written only by the admin console (Admin SDK)
+    // and consumed only by the moderationCommandCreated Cloud Function
+    // trigger via Admin SDK; clients get no direct access.
+    match /moderationCommands/{commandId} {
+      allow read, write: if false;
     }
 
     match /notificationDevices/{uid}/tokens/{tokenFingerprint} {

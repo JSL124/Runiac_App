@@ -58,6 +58,28 @@ describe("completeCoolDown callable boundary", () => {
     );
   });
 
+  it("rejects a suspended caller with permission-denied, even for an already-validated run (defence-in-depth)", async () => {
+    const clientRunSessionId = "session-suspended-caller";
+    const runResult = await completeRunForCallable(
+      { auth: { uid: USER_UID }, data: validRunPayload(clientRunSessionId) },
+      firestore,
+    );
+
+    await firestore.doc(`users/${USER_UID}`).set({ accountStatus: "banned" });
+
+    await expectRejectsCode(
+      () =>
+        callCompleteCoolDown({
+          auth: { uid: USER_UID },
+          data: coolDownPayload({ activityId: runResult.activityId, clientRunSessionId }),
+        }),
+      "permission-denied",
+    );
+
+    const activity = await firestore.doc(`activities/${runResult.activityId}`).get();
+    assert.notEqual(activity.get("coolDownXpAwarded"), true);
+  });
+
   it("rejects a completedStretchCount below the full sequence", async () => {
     await expectRejectsCode(
       () =>
