@@ -1812,7 +1812,7 @@ describe("streak milestone bonus", () => {
     assert.equal(profile.get("totalXp"), 130);
   });
 
-  it("pays the milestone in full even when the daily cap has trimmed the base", async () => {
+  it("pays the milestone in full and lets the day exceed dailyXpCap", async () => {
     await firestore.doc(`userProfiles/${USER_UID}`).set(
       { streakCount: 2, lastStreakRunDate: "2026-06-13" },
       { merge: true },
@@ -1847,11 +1847,13 @@ describe("streak milestone bonus", () => {
     assert.equal(progressionEvent.get("streakMilestoneDays"), 3);
     // Never true now: the cap cannot trim a milestone.
     assert.equal(progressionEvent.get("streakBonusCapped"), false);
-    // The BASE was trimmed (60 requested, 70 room already partly used), which
-    // is what dailyCapApplied reports.
+    // The base fit inside the remaining room, so the cap trimmed nothing.
     assert.equal(progressionEvent.get("dailyCapApplied"), false);
     assert.equal(progressionEvent.get("xpDelta"), 90);
     assert.equal(result.progressionDisplay.xpDelta, 90);
+    // The headline invariant of the exemption: the stored day total is allowed
+    // to exceed dailyXpCap (200) because the milestone does not draw on it.
+    assert.equal(progressionEvent.get("dailyXpAfter"), 220);
   });
 
   it("suppresses the streak bonus together with the base when premiumEarnsXp is false", async () => {
