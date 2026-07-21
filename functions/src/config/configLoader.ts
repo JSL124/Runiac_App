@@ -48,7 +48,24 @@ export type ConfigValidationResult = {
   readonly errors: readonly string[];
 };
 
-export const DEFAULT_PROGRESSION_CONFIG: ProgressionConfig = {
+// The DEFAULT_* constants are handed out directly (the validation fallback
+// returns them, `deepMerge` copies only the top level so an untouched nested
+// key like `coolDown` is still the constant's own object, and the per-field
+// repair resets to them). Anything that mutated one would corrupt the defaults
+// for the lifetime of the Functions instance — a process-wide change caused by
+// a single request. They are `readonly` in the type system, which is erased at
+// runtime, so freeze them for real.
+function deepFreeze<T>(value: T): T {
+  if (value !== null && typeof value === "object" && !Object.isFrozen(value)) {
+    Object.freeze(value);
+    for (const nested of Object.values(value as Record<string, unknown>)) {
+      deepFreeze(nested);
+    }
+  }
+  return value;
+}
+
+export const DEFAULT_PROGRESSION_CONFIG: ProgressionConfig = deepFreeze({
   baseCompletionXp: 20,
   xpPerKilometer: 10,
   xpPerTenActiveMinutes: 5,
@@ -74,9 +91,9 @@ export const DEFAULT_PROGRESSION_CONFIG: ProgressionConfig = {
     { milestoneDays: 30, bonusXp: 600 },
   ],
   version: 1,
-};
+});
 
-export const DEFAULT_LEADERBOARD_CONFIG: LeaderboardConfig = {
+export const DEFAULT_LEADERBOARD_CONFIG: LeaderboardConfig = deepFreeze({
   minRunsToQualify: 1,
   // Paired with `premiumEarnsXp: true`: premium runners accrue XP normally, so
   // they rank on the same board under the same formula. Flipping this to `true`
@@ -84,16 +101,16 @@ export const DEFAULT_LEADERBOARD_CONFIG: LeaderboardConfig = {
   excludePremium: false,
   seasonLengthDays: 30,
   version: 1,
-};
+});
 
-export const DEFAULT_FEATURE_ACCESS_CONFIG: FeatureAccessConfig = {
+export const DEFAULT_FEATURE_ACCESS_CONFIG: FeatureAccessConfig = deepFreeze({
   features: {
     advancedAnalysis: { minimumTier: "premium", enabled: true },
     goalPlan: { minimumTier: "premium", enabled: true },
     leaderboard: { minimumTier: "basic", enabled: true },
   },
   version: 1,
-};
+});
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -320,7 +337,12 @@ function repairInvalidConfigFields<T>(
 
   const repaired = { ...(merged as Record<string, unknown>) };
   for (const field of resetFields) {
-    repaired[field] = (defaults as Record<string, unknown>)[field];
+    // Cloned, not referenced. Several defaults are objects or arrays
+    // (`coolDown`, `levelIncrements`, `streakRewards`), and handing back the
+    // module-level constant would let anything that mutates the returned
+    // config corrupt DEFAULT_*_CONFIG for the lifetime of the Functions
+    // instance — a process-wide change from a single request.
+    repaired[field] = structuredClone((defaults as Record<string, unknown>)[field]);
   }
 
   const candidate = repaired as T;
