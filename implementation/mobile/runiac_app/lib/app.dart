@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import 'core/characters/local_selected_runner_character_storage.dart';
 import 'core/characters/runner_character.dart';
+import 'core/observability/error_screen_tracker.dart';
 import 'core/theme/runiac_theme.dart';
 import 'features/profile/data/static_user_profile_repository.dart';
 import 'features/profile/domain/models/user_profile_read_model.dart';
@@ -354,6 +355,7 @@ class _RuniacAppState extends State<RuniacApp> {
                     debugShowCheckedModeBanner: false,
                     title: 'Runiac',
                     theme: buildRuniacTheme(),
+                    navigatorObservers: [runiacErrorScreenTracker],
                     home: RuniacStartupGate(
                       showSplash: widget.showSplash,
                       splashDuration: widget.splashDuration,
