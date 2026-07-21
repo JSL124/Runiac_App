@@ -14,6 +14,7 @@ export { refreshStreakStatus } from "./progression/refreshStreakStatus.js";
 export { expireSubscriptions } from "./progression/subscriptionExpirySchedule.js";
 export { publishActivityToFeed } from "./feed/publish/callable.js";
 export { readFeedThumbnail } from "./feed/thumbnail/callable.js";
+export { getFeedAuthorLevels } from "./feed/authorLevels/callable.js";
 export { reportFeedPost, deleteFeedPost, cleanupDeletedFeedActivity } from "./feed/lifecycle/functions.js";
 export {
   feedLikeCreated,
@@ -48,3 +49,4 @@ export {
   unblockUser,
   migrateUnicodeNicknameClaims,
 } from "./friends/callable.js";
+export { getFriendLevels } from "./friends/friendLevels/callable.js";

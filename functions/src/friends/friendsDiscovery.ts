@@ -5,6 +5,7 @@ import { socialProfile } from "./friendsProfiles.js";
 import { nextSearchAttemptMs, writeSearchRate } from "./friendsRateLimits.js";
 import { nicknameIndexKey } from "./nickname.js";
 import type { FriendsCallableRequest, FriendsDependencies } from "./friendsTypes.js";
+import { resolveProfileLevelDisplay } from "../progression/profileLevelDisplay.js";
 
 export async function searchFriends(
   dependencies: FriendsDependencies,
@@ -40,6 +41,6 @@ export async function searchFriends(
     if (!profileSnapshot.exists || actorBlockSnapshot.exists || candidateBlockSnapshot.exists) return { results: [] };
     const profile = socialProfile(candidateUid, dataOf(profileSnapshot));
     if (profile === undefined || profile.canonicalNickname !== nickname.canonical) return { results: [] };
-    return { results: [profile.identity] };
+    return { results: [{ ...profile.identity, ...resolveProfileLevelDisplay(dataOf(profileSnapshot)) }] };
   });
 }

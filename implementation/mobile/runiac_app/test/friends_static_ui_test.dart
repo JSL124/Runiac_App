@@ -105,7 +105,7 @@ void main() {
     expect(badge.levelLabel, _longNameUser.levelLabel);
   });
 
-  testWidgets('Friends rows show Lv.0 when the level label is empty', (
+  testWidgets('Friends rows show no pill when the level is unresolved', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -117,8 +117,8 @@ void main() {
     final badge = tester.widget<RuniacLevelProfileBadge>(
       find.byType(RuniacLevelProfileBadge),
     );
-    expect(badge.levelLabel, 'Lv.0');
-    expect(find.text('Lv.0'), findsOneWidget);
+    expect(badge.levelLabel, '');
+    expect(find.text('Lv.0'), findsNothing);
   });
 
   testWidgets(

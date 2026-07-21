@@ -101,6 +101,25 @@ class FeedCommentDocumentPage {
   final FeedCommentCursor? nextCursor;
 }
 
+/// A live, backend-owned author level snapshot resolved at display time.
+///
+/// A post or comment's stored `authorLevelLabel` is frozen at publish time
+/// and can go stale, or be entirely absent on older content. This type
+/// carries the author's CURRENT level as returned by the backend so the
+/// client can overlay it. The client only transports and renders these
+/// values; it never computes them.
+class FeedAuthorLevel {
+  const FeedAuthorLevel({
+    required this.levelLabel,
+    required this.levelProgressFraction,
+  });
+
+  final String levelLabel;
+
+  /// 0.0..1.0, already converted from the backend's 0..100 percent.
+  final double levelProgressFraction;
+}
+
 /// Typed Firestore/Functions boundary. Tests replace it without Firebase.
 abstract interface class FeedDataPort {
   Future<FeedIdPage> pageAcceptedFriends({
@@ -149,4 +168,9 @@ abstract interface class FeedDataPort {
   Future<void> callPostAction({required String action, required String postId});
 
   Future<Uint8List> readThumbnail(String postId);
+
+  /// Resolves live author levels for [uids]. A uid the viewer may not see,
+  /// or that the backend has no snapshot for, is simply absent from the
+  /// result — callers must fall back to their own stored label.
+  Future<Map<String, FeedAuthorLevel>> fetchAuthorLevels(List<String> uids);
 }

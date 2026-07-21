@@ -122,6 +122,7 @@ class FeedPostReadModel {
     required this.canComment,
     required this.showsOwnerMenu,
     required this.routeThumbnail,
+    this.authorLevelProgressFraction,
     this.activityTitle,
     this.routeName,
   });
@@ -131,6 +132,13 @@ class FeedPostReadModel {
   final String authorDisplayName;
   final String authorAvatarInitials;
   final String authorLevelLabel;
+
+  /// A live, backend-owned 0.0..1.0 progress fraction resolved at display
+  /// time. `null` means the author-level overlay resolved nothing for this
+  /// post (including "not deployed yet"), which is semantically distinct
+  /// from a genuine resolved `0.0` (a runner who just levelled up). See
+  /// [authorProfileFor] for how the `null` case is handled.
+  final double? authorLevelProgressFraction;
   final String relativeTimeLabel;
   final String distanceLabel;
   final String paceLabel;
@@ -151,20 +159,38 @@ class FeedPostReadModel {
   String get compactAuthorLevelLabel =>
       compactFeedAuthorLevelLabel(authorLevelLabel);
 
+  /// Builds the profile snapshot Feed surfaces render.
+  ///
+  /// [authorLevelLabel] and [authorLevelProgressFraction] already reflect a
+  /// resolved live author level when one was available at load time (see
+  /// the Feed data layer's author-level overlay); otherwise they hold the
+  /// post's stored, potentially stale values. The label priority is:
+  /// resolved/stored label on this post first, then — only when this
+  /// post's own label is empty — the current viewer's own profile as a
+  /// last-resort fallback, so the viewer's own badge never regresses to an
+  /// empty label.
+  ///
+  /// The progress fraction is resolved independently of the label: a `null`
+  /// [authorLevelProgressFraction] means the overlay resolved nothing (the
+  /// normal state while the resolving callable isn't deployed), so the
+  /// current viewer's own live fraction is used for their own post instead
+  /// of regressing to an empty ring; a genuine resolved `0.0` is honoured
+  /// as-is and is never replaced.
   FeedAuthorProfileSnapshot authorProfileFor(
     FeedAuthorProfileSnapshot? currentViewer,
   ) {
     final isCurrentViewer = currentViewer?.userId == authorUserId;
+    final hasOwnLabel = authorLevelLabel.trim().isNotEmpty;
     return FeedAuthorProfileSnapshot(
       userId: authorUserId,
       displayName: authorDisplayName,
       avatarInitials: authorAvatarInitials,
-      levelLabel: authorLevelLabel.trim().isEmpty && isCurrentViewer
-          ? currentViewer!.levelLabel
-          : authorLevelLabel,
-      levelProgressFraction: isCurrentViewer
-          ? currentViewer!.levelProgressFraction
-          : 0,
+      levelLabel: hasOwnLabel || !isCurrentViewer
+          ? authorLevelLabel
+          : currentViewer!.levelLabel,
+      levelProgressFraction:
+          authorLevelProgressFraction ??
+          (isCurrentViewer ? currentViewer!.levelProgressFraction : 0),
     );
   }
 
@@ -179,6 +205,7 @@ class FeedPostReadModel {
     String? authorDisplayName,
     String? authorAvatarInitials,
     String? authorLevelLabel,
+    double? authorLevelProgressFraction,
     int? likeCount,
     int? commentCount,
     bool? isLikedByViewer,
@@ -191,6 +218,8 @@ class FeedPostReadModel {
       authorDisplayName: authorDisplayName ?? this.authorDisplayName,
       authorAvatarInitials: authorAvatarInitials ?? this.authorAvatarInitials,
       authorLevelLabel: authorLevelLabel ?? this.authorLevelLabel,
+      authorLevelProgressFraction:
+          authorLevelProgressFraction ?? this.authorLevelProgressFraction,
       relativeTimeLabel: relativeTimeLabel,
       distanceLabel: distanceLabel,
       paceLabel: paceLabel,
@@ -239,6 +268,7 @@ class FeedCommentReadModel {
     required this.authorLevelLabel,
     required this.body,
     required this.createdAt,
+    this.authorLevelProgressFraction,
   });
 
   final String commentId;
@@ -246,35 +276,55 @@ class FeedCommentReadModel {
   final String authorDisplayName;
   final String authorAvatarInitials;
   final String authorLevelLabel;
+
+  /// A live, backend-owned 0.0..1.0 progress fraction resolved at display
+  /// time. `null` means the author-level overlay resolved nothing for this
+  /// comment (including "not deployed yet"), which is semantically distinct
+  /// from a genuine resolved `0.0` (a runner who just levelled up). See
+  /// [authorProfileFor] for how the `null` case is handled.
+  final double? authorLevelProgressFraction;
   final String body;
   final DateTime createdAt;
 
   String get compactAuthorLevelLabel =>
       compactFeedAuthorLevelLabel(authorLevelLabel);
 
+  /// See [FeedPostReadModel.authorProfileFor] for the fallback priority:
+  /// this comment's own (resolved-or-stored) label first, then the current
+  /// viewer's own profile only as a last resort for the viewer's own empty
+  /// label; the progress fraction is resolved independently — a `null`
+  /// value falls back to the current viewer's own live fraction only for
+  /// their own comment, while a genuine resolved `0.0` is honoured as-is.
   FeedAuthorProfileSnapshot authorProfileFor(
     FeedAuthorProfileSnapshot? currentViewer,
   ) {
     final isCurrentViewer = currentViewer?.userId == authorUserId;
+    final hasOwnLabel = authorLevelLabel.trim().isNotEmpty;
     return FeedAuthorProfileSnapshot(
       userId: authorUserId,
       displayName: authorDisplayName,
       avatarInitials: authorAvatarInitials,
-      levelLabel: authorLevelLabel.trim().isEmpty && isCurrentViewer
-          ? currentViewer!.levelLabel
-          : authorLevelLabel,
-      levelProgressFraction: isCurrentViewer
-          ? currentViewer!.levelProgressFraction
-          : 0,
+      levelLabel: hasOwnLabel || !isCurrentViewer
+          ? authorLevelLabel
+          : currentViewer!.levelLabel,
+      levelProgressFraction:
+          authorLevelProgressFraction ??
+          (isCurrentViewer ? currentViewer!.levelProgressFraction : 0),
     );
   }
 
-  FeedCommentReadModel copyWith({String? body}) => FeedCommentReadModel(
+  FeedCommentReadModel copyWith({
+    String? body,
+    String? authorLevelLabel,
+    double? authorLevelProgressFraction,
+  }) => FeedCommentReadModel(
     commentId: commentId,
     authorUserId: authorUserId,
     authorDisplayName: authorDisplayName,
     authorAvatarInitials: authorAvatarInitials,
-    authorLevelLabel: authorLevelLabel,
+    authorLevelLabel: authorLevelLabel ?? this.authorLevelLabel,
+    authorLevelProgressFraction:
+        authorLevelProgressFraction ?? this.authorLevelProgressFraction,
     body: body ?? this.body,
     createdAt: createdAt,
   );

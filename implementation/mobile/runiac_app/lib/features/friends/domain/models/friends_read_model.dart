@@ -12,6 +12,7 @@ class FriendUserReadModel {
     required this.avatarInitials,
     this.nickname = '',
     this.levelLabel = '',
+    this.levelProgressFraction,
     this.subtitleLabel = '',
   });
 
@@ -23,6 +24,12 @@ class FriendUserReadModel {
   /// Pre-formatted backend-owned display string, e.g. `'Lv.12'`.
   /// Never computed on the client.
   final String levelLabel;
+
+  /// Backend-owned progress toward the next level, already converted from a
+  /// 0..100 percent into 0.0..1.0 and clamped. `null` means unresolved (no
+  /// live level data available yet), which is distinct from a genuine
+  /// resolved `0.0`. Never computed on the client.
+  final double? levelProgressFraction;
 
   /// Short supporting display copy, e.g. a favourite running area.
   final String subtitleLabel;

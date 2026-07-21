@@ -53,6 +53,13 @@ class FeedTestDataPort implements FeedDataPort {
     hidden.add(_posts[4].postId);
   }
 
+  /// A minimal, deterministic single-author fixture for author-level overlay
+  /// tests, where pagination composition doesn't matter.
+  FeedTestDataPort.withSingleFriend(String friendUid) {
+    friends = <String>[friendUid];
+    _posts.add(_post(friendUid, 0, 100));
+  }
+
   late List<String> friends;
   final List<FeedPostDocument> _posts = <FeedPostDocument>[];
   final Set<String> hidden = <String>{}, deniedAuthors = <String>{};
@@ -63,6 +70,15 @@ class FeedTestDataPort implements FeedDataPort {
   final List<FeedCommentDocument> comments = <FeedCommentDocument>[];
   final List<FeedCommentCursor?> commentCursors = <FeedCommentCursor?>[];
   bool cached = false;
+
+  /// Configurable resolved live levels, keyed by author uid. A uid absent
+  /// here mirrors a backend that has no snapshot for that author.
+  final Map<String, FeedAuthorLevel> authorLevels = <String, FeedAuthorLevel>{};
+  final List<List<String>> authorLevelQueries = <List<String>>[];
+
+  /// Set to make [fetchAuthorLevels] throw, simulating an offline device or
+  /// a not-yet-deployed callable.
+  Object? authorLevelsError;
 
   List<FeedPostDocument> get visiblePosts =>
       _posts.where((post) => !hidden.contains(post.postId)).toList()
@@ -165,6 +181,21 @@ class FeedTestDataPort implements FeedDataPort {
   @override
   Future<Uint8List> readThumbnail(String postId) async =>
       Uint8List.fromList(<int>[137, 80, 78, 71]);
+
+  @override
+  Future<Map<String, FeedAuthorLevel>> fetchAuthorLevels(
+    List<String> uids,
+  ) async {
+    authorLevelQueries.add(uids);
+    final error = authorLevelsError;
+    if (error != null) {
+      throw error;
+    }
+    return <String, FeedAuthorLevel>{
+      for (final uid in uids)
+        if (authorLevels.containsKey(uid)) uid: authorLevels[uid]!,
+    };
+  }
 
   @override
   Future<void> setViewerLike({

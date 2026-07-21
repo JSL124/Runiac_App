@@ -3,6 +3,7 @@ import '../../domain/models/feed_display_models.dart';
 import '../../domain/repositories/feed_repository.dart';
 import '../comments/feed_comment_page_loader.dart';
 import 'feed_author_buffers.dart';
+import 'feed_author_level_resolver.dart';
 import 'feed_data_port.dart';
 import 'feed_timeline_lifecycle.dart';
 import 'feed_timeline_page_loader.dart';
@@ -10,8 +11,10 @@ import 'feed_timeline_state_mutator.dart';
 
 class FirebaseFeedRepository
     implements FeedTimelineRepository, FeedCommentsRepository {
-  FirebaseFeedRepository({required this.port});
+  FirebaseFeedRepository({required this.port})
+    : _levelResolver = FeedAuthorLevelResolver(port);
   final FeedDataPort port;
+  final FeedAuthorLevelResolver _levelResolver;
   FeedTimelinePagingSession? _session;
   final FeedTimelineLifecycle _lifecycle = FeedTimelineLifecycle();
   FeedViewerContext? _viewer;
@@ -39,6 +42,7 @@ class FirebaseFeedRepository
       buffers,
       viewerContext.currentUserId,
       _state,
+      _levelResolver,
     );
     _state = FeedTimelineStateMutator.copy(
       _state,
@@ -82,7 +86,9 @@ class FirebaseFeedRepository
   Future<FeedTimelineState> refresh() => _lifecycle.enqueue(() async {
     if (_lifecycle.isDisposed) return _state;
     final viewer = _viewer;
-    return viewer == null ? _state : _loadInitial(viewer);
+    if (viewer == null) return _state;
+    _levelResolver.invalidate();
+    return _loadInitial(viewer);
   });
 
   @override
@@ -104,6 +110,7 @@ class FirebaseFeedRepository
     return FeedCommentPageLoader.load(
       port: port,
       postId: postId,
+      levelResolver: _levelResolver,
       startAfter: startAfter,
     );
   });

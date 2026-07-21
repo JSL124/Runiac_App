@@ -158,9 +158,45 @@ describe("Friends discovery and social transitions", () => {
           nickname: "Bøb",
           displayName: "Bøb",
           avatarInitials: "BØ",
+          levelLabel: "",
+          levelProgressPercent: 0,
         },
       ],
     });
+  });
+
+  it("enriches a search result with the target's backend-owned level display", async () => {
+    const friends = service();
+    await friends.upsertNickname(request(ALICE, { nickname: "Alice" }));
+    await friends.upsertNickname(request(BOB, { nickname: "Bøb" }));
+    await firestore.doc(`userProfiles/${BOB}`).update({ levelLabel: "Champion", levelProgressPercent: 42 });
+
+    const result = await friends.search(request(ALICE, { nickname: "bØB" }));
+
+    assert.deepEqual(result, {
+      results: [
+        {
+          uid: BOB,
+          nickname: "Bøb",
+          displayName: "Bøb",
+          avatarInitials: "BØ",
+          levelLabel: "Champion",
+          levelProgressPercent: 42,
+        },
+      ],
+    });
+  });
+
+  it("falls back to Lv.{level} in a search result when levelLabel is absent", async () => {
+    const friends = service();
+    await friends.upsertNickname(request(ALICE, { nickname: "Alice" }));
+    await friends.upsertNickname(request(BOB, { nickname: "Bøb" }));
+    await firestore.doc(`userProfiles/${BOB}`).update({ level: 7 });
+
+    const result = await friends.search(request(ALICE, { nickname: "bØB" }));
+
+    assert.equal(result.results[0]?.levelLabel, "Lv.7");
+    assert.equal(result.results[0]?.levelProgressPercent, 0);
   });
 
   it("checks availability without reserving a nickname and rolls a duplicate submit back", async () => {

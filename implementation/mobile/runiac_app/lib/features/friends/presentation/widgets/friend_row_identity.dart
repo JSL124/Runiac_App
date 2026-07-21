@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/formatting/level_label.dart';
 import '../../../../core/theme/runiac_colors.dart';
 import '../../../../core/widgets/runiac_level_profile_badge.dart';
 import '../../domain/models/friends_read_model.dart';
@@ -11,15 +12,14 @@ class FriendRowBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final levelLabel = user.levelLabel;
-    // The level label is already formatted by the backend. No trusted
-    // progress fraction is available, so the ring remains empty. An absent
-    // label uses the display-only zero-level placeholder used by Home.
+    // The level label and progress are already backend-owned. An unresolved
+    // level (empty label) falls through to RuniacLevelProfileBadge, which
+    // hides the pill entirely rather than rendering a misleading "Lv.0".
     return ExcludeSemantics(
       child: RuniacLevelProfileBadge.row(
         initials: user.avatarInitials,
-        levelLabel: levelLabel.trim().isEmpty ? 'Lv.0' : levelLabel,
-        progressFraction: 0,
+        levelLabel: compactLevelLabel(user.levelLabel),
+        progressFraction: user.levelProgressFraction ?? 0,
       ),
     );
   }

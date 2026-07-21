@@ -7,6 +7,7 @@ import '../../auth/domain/runiac_auth_service.dart';
 import '../domain/models/friends_read_model.dart';
 import '../domain/repositories/friends_repository.dart';
 import 'friend_identity_mapper.dart';
+import 'friend_level_resolver.dart';
 import 'friends_owner_list_reader.dart';
 import 'friends_repository_errors.dart';
 
@@ -18,14 +19,25 @@ class FirebaseFriendsRepository implements FriendsRepository {
     required this.authRepository,
     FirebaseFirestore? firestore,
     FirebaseFunctions? functions,
+    FriendLevelResolver? levelResolver,
   }) : _firestore = firestore ?? FirebaseFirestore.instance,
        _functions =
            functions ??
-           FirebaseFunctions.instanceFor(region: 'asia-southeast1');
+           FirebaseFunctions.instanceFor(region: 'asia-southeast1') {
+    _levelResolver = levelResolver ?? FriendLevelResolver(_fetchFriendLevels);
+  }
 
   final RuniacAuthRepository authRepository;
   final FirebaseFirestore _firestore;
   final FirebaseFunctions _functions;
+  late final FriendLevelResolver _levelResolver;
+
+  Future<Object?> _fetchFriendLevels(List<String> uids) async {
+    final result = await _functions.httpsCallable('getFriendLevels').call(
+      <String, Object?>{'uids': uids},
+    );
+    return result.data;
+  }
 
   @override
   Future<FriendsOverviewReadModel> loadFriendsOverview({
@@ -46,12 +58,13 @@ class FirebaseFriendsRepository implements FriendsRepository {
         ),
         readFriendsOwnerList(user.collection('blockedUsers')),
       ]);
-      return FriendsOverviewReadModel(
+      final overview = FriendsOverviewReadModel(
         friends: snapshots[0],
         incomingRequests: snapshots[1],
         outgoingRequests: snapshots[2],
         blockedUsers: snapshots[3],
       );
+      return await _levelResolver.resolveOverview(overview);
     } on FriendsRepositoryException {
       rethrow;
     } on FirebaseException catch (error) {
@@ -76,8 +89,9 @@ class FirebaseFriendsRepository implements FriendsRepository {
     List<FriendUserReadModel>? incomingRequests;
     List<FriendUserReadModel>? outgoingRequests;
     List<FriendUserReadModel>? blockedUsers;
+    var resolveGeneration = 0;
 
-    void emitIfReady() {
+    Future<void> emitIfReady() async {
       final currentFriends = friends;
       final currentIncoming = incomingRequests;
       final currentOutgoing = outgoingRequests;
@@ -88,7 +102,11 @@ class FirebaseFriendsRepository implements FriendsRepository {
           currentBlocked == null) {
         return;
       }
-      controller.add(
+      // Every combined emission re-resolves live levels so a level-up or an
+      // admin-console XP/level correction shows up on the next push rather
+      // than being pinned forever.
+      final generation = ++resolveGeneration;
+      final overview = await _levelResolver.resolveOverview(
         FriendsOverviewReadModel(
           friends: currentFriends,
           incomingRequests: currentIncoming,
@@ -96,6 +114,10 @@ class FirebaseFriendsRepository implements FriendsRepository {
           blockedUsers: currentBlocked,
         ),
       );
+      // A newer emission (or a cancelled subscription) superseded this one
+      // while the resolve was in flight; drop this stale result.
+      if (controller.isClosed || generation != resolveGeneration) return;
+      controller.add(overview);
     }
 
     void handleError(Object error) {
@@ -115,27 +137,27 @@ class FirebaseFriendsRepository implements FriendsRepository {
         subscriptions.addAll([
           watchFriendsOwnerList(user.collection('friends')).listen((value) {
             friends = value;
-            emitIfReady();
+            unawaited(emitIfReady());
           }, onError: handleError),
           watchFriendsOwnerList(
             user.collection('friendRequests'),
             direction: 'incoming',
           ).listen((value) {
             incomingRequests = value;
-            emitIfReady();
+            unawaited(emitIfReady());
           }, onError: handleError),
           watchFriendsOwnerList(
             user.collection('friendRequests'),
             direction: 'outgoing',
           ).listen((value) {
             outgoingRequests = value;
-            emitIfReady();
+            unawaited(emitIfReady());
           }, onError: handleError),
           watchFriendsOwnerList(user.collection('blockedUsers')).listen((
             value,
           ) {
             blockedUsers = value;
-            emitIfReady();
+            unawaited(emitIfReady());
           }, onError: handleError),
         ]);
       },
