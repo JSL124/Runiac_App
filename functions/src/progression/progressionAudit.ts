@@ -136,16 +136,21 @@ export function calculateProgressionAudit(input: {
   // was trimmed by the daily cap, not just the base.
   const dailyCapApplied = capped.dailyCapApplied || streakBonusCapped;
 
-  // `xpDeltaBeforeDailyCap` passed below stays base-only (pre-bonus) on
-  // purpose: it feeds the "daily_cap_reached" branch inside
-  // progressionReason(), which must fire only when the BASE itself was
-  // trimmed to zero by an already-exhausted daily cap. `xpDelta` here is the
-  // final combined amount, so a run whose base happens to be zero (e.g. a
-  // permissive zero-value config) but whose streak bonus is awarded still
-  // reports "run_completion_xp_awarded", not a false daily-cap reason. No new
-  // reason enum value is introduced — the existing awarded/suppressed/
-  // daily-cap/low-data reasons already describe the combined outcome
-  // correctly once `xpDelta` reflects base + bonus.
+  // `xpDelta` here is the final COMBINED amount, and `xpDeltaBeforeDailyCap`
+  // stays base-only, so the "daily_cap_reached" branch fires only when the run
+  // as a whole earned nothing.
+  //
+  // Known gap: when the cap trims the base to zero but an exempt milestone
+  // still pays, the run reports "run_completion_xp_awarded" and the user sees
+  // no cap notice, while the stored `dailyCapApplied: true` says the opposite.
+  // Passing the base-only amount here does NOT fix that — it only rewrites the
+  // stored reason. The Flutter mapper gates the reason message on
+  // `awarded = status == 'awarded' && xpDelta > 0`
+  // (xp_update_display_model_mapper.dart), which is true whenever the milestone
+  // paid, so the message is never reached either way. Closing this needs a
+  // coordinated mapper change that surfaces the cap note independently of
+  // `awarded`; doing it backend-only would give `daily_cap_reached` two
+  // meanings for no user-visible benefit.
   const reason = progressionReason({
     premiumXpSuppressed: suppress,
     activityReason: activityXp.reason,

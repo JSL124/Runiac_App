@@ -80,7 +80,46 @@ paid in full, `dailyXpAfter` deliberately exceeding `dailyXpCap`).
 - New dependencies or secrets; generated-file or league-band edits.
 - Edits inside the isolated `adaptive-character-guidance` worktree.
 
+## Second round (adversarial review of PR #14)
+
+Review found no XP-inflation or double-payment path, and confirmed the
+exemption's safety argument. It did find one regression introduced by the
+exemption itself plus three lower-severity issues, all fixed here:
+
+- **Cool-down bonus silently zeroed on a milestone run.** `completeCoolDown`
+  read `baseEarnedXp` from the run event's `xpDelta`, which after the
+  exemption also carries the milestone. `calculateCoolDownBonus` clamps to
+  `activityXpCap - baseEarnedXp`, so that term went negative and the stretch
+  bonus became 0 while the reason ladder reported `low_data_no_xp` on a
+  full-GPS run. The milestone is now netted out first.
+- **The daily-cap notice disappearing when the cap took the whole base was NOT
+  fixed.** A backend-only reason change was attempted and reverted: review
+  showed it is inert. The Flutter mapper gates the reason message on
+  `awarded = status == 'awarded' && xpDelta > 0`, which is true whenever the
+  milestone paid, so rewriting the stored reason changes nothing the user sees
+  while giving `daily_cap_reached` two meanings. Closing it needs a
+  coordinated mapper change; recorded under Open items with the reasoning left
+  in a comment at the call site.
+- **The zero-score `qualifyingRunCount` write could demote a legacy
+  contribution.** Stamping a first count ends the planner's grandfathering;
+  doing it on a zero-XP run made that happen strictly earlier than before.
+  The write now only refreshes a count that already exists.
+- **One bad field reverted the whole config document.** `loadProgressionConfig`
+  / `loadLeaderboardConfig` now reset only the fields the validator named and
+  keep the rest, falling back to the full defaults only if that repair does
+  not validate.
+
+The admin console's Gamification Rules page was also corrected: it still
+stated the bonus "counts toward the daily XP cap" and warned that the shipped
+600 XP reward "will be trimmed", which pushed admins toward the retune this
+capsule forbids.
+
 ## Open items
+
+- The daily-cap notice is still not shown when the cap trims the base to zero
+  and an exempt milestone pays. Needs `xp_update_display_model_mapper.dart` to
+  surface the cap note independently of `awarded`, paired with a backend reason
+  change. Backend-only is inert; mapper-only has nothing to key on.
 
 - The exemption means `dailyXpAfter` can exceed `dailyXpCap` on a milestone
   run. That is intended and pinned by test, but any future consumer reading

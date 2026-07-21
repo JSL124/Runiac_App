@@ -301,3 +301,49 @@ describe("policy flag type validation", () => {
     assert.equal(validateLeaderboardConfig(DEFAULT_LEADERBOARD_CONFIG).valid, true);
   });
 });
+
+// A single bad value used to discard the whole document, so an admin fixing a
+// typo would have found every other tuned field reverted with only a
+// console.warn as the signal.
+describe("per-field config repair", () => {
+  it("keeps valid fields when one field is invalid", async () => {
+    const db = fakeDb("config/progression", {
+      exists: true,
+      data: () => ({ premiumEarnsXp: "false", dailyXpCap: 500, xpPerKilometer: 25 }),
+    });
+
+    const config = await loadProgressionConfig(db);
+
+    // The bad flag is reset to its default...
+    assert.equal(config.premiumEarnsXp, DEFAULT_PROGRESSION_CONFIG.premiumEarnsXp);
+    // ...and the admin's other tuning survives.
+    assert.equal(config.dailyXpCap, 500);
+    assert.equal(config.xpPerKilometer, 25);
+  });
+
+  it("keeps valid leaderboard fields when excludePremium is the wrong type", async () => {
+    const db = fakeDb("config/leaderboard", {
+      exists: true,
+      data: () => ({ excludePremium: "false", minRunsToQualify: 4 }),
+    });
+
+    const config = await loadLeaderboardConfig(db);
+
+    assert.equal(config.excludePremium, DEFAULT_LEADERBOARD_CONFIG.excludePremium);
+    assert.equal(config.minRunsToQualify, 4);
+  });
+
+  it("still falls back to the whole default when the repair cannot succeed", async () => {
+    // dailyXpCap < activityXpCap is a cross-field rule, so resetting the named
+    // field alone does not necessarily satisfy it; whatever the repair does,
+    // the result must be valid.
+    const db = fakeDb("config/progression", {
+      exists: true,
+      data: () => ({ dailyXpCap: 10, activityXpCap: 100 }),
+    });
+
+    const config = await loadProgressionConfig(db);
+
+    assert.equal(validateProgressionConfig(config).valid, true);
+  });
+});

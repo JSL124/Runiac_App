@@ -117,7 +117,22 @@ export function writeLeaderboardContribution(input: {
     // a contribution carrying nothing but a run count — no score, no region,
     // no schema version — which the planner would then have to parse and
     // reject, and which the seed fixtures treat as a distinct state.
-    if (input.qualifyingRunCount !== null && input.existingContributionData !== undefined) {
+    //
+    // And only when it already carries a count. The planner grandfathers a
+    // contribution whose `qualifyingRunCount` is absent, so stamping a first
+    // count here would END that grandfathering on a run that awarded nothing —
+    // strictly earlier than before this path existed. If the recomputed count
+    // is below `minRunsToQualify` (the recompute reads validated activity
+    // history, which need not reproduce a legacy contribution's real run
+    // count) a currently-ranked runner would drop to `ineligible_min_runs`
+    // because of a zero-XP run. Refreshing an existing count is safe;
+    // introducing one is not, so that is left to the next XP-awarding run,
+    // which writes the full contribution anyway.
+    if (
+      input.qualifyingRunCount !== null &&
+      input.existingContributionData !== undefined &&
+      typeof input.existingContributionData["qualifyingRunCount"] === "number"
+    ) {
       input.transaction.set(
         input.firestore
           .collection("leaderboardContributions")

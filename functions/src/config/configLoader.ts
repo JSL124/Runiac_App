@@ -48,7 +48,24 @@ export type ConfigValidationResult = {
   readonly errors: readonly string[];
 };
 
-export const DEFAULT_PROGRESSION_CONFIG: ProgressionConfig = {
+// The DEFAULT_* constants are handed out directly (the validation fallback
+// returns them, `deepMerge` copies only the top level so an untouched nested
+// key like `coolDown` is still the constant's own object, and the per-field
+// repair resets to them). Anything that mutated one would corrupt the defaults
+// for the lifetime of the Functions instance — a process-wide change caused by
+// a single request. They are `readonly` in the type system, which is erased at
+// runtime, so freeze them for real.
+function deepFreeze<T>(value: T): T {
+  if (value !== null && typeof value === "object" && !Object.isFrozen(value)) {
+    Object.freeze(value);
+    for (const nested of Object.values(value as Record<string, unknown>)) {
+      deepFreeze(nested);
+    }
+  }
+  return value;
+}
+
+export const DEFAULT_PROGRESSION_CONFIG: ProgressionConfig = deepFreeze({
   baseCompletionXp: 20,
   xpPerKilometer: 10,
   xpPerTenActiveMinutes: 5,
@@ -74,9 +91,9 @@ export const DEFAULT_PROGRESSION_CONFIG: ProgressionConfig = {
     { milestoneDays: 30, bonusXp: 600 },
   ],
   version: 1,
-};
+});
 
-export const DEFAULT_LEADERBOARD_CONFIG: LeaderboardConfig = {
+export const DEFAULT_LEADERBOARD_CONFIG: LeaderboardConfig = deepFreeze({
   minRunsToQualify: 1,
   // Paired with `premiumEarnsXp: true`: premium runners accrue XP normally, so
   // they rank on the same board under the same formula. Flipping this to `true`
@@ -84,16 +101,16 @@ export const DEFAULT_LEADERBOARD_CONFIG: LeaderboardConfig = {
   excludePremium: false,
   seasonLengthDays: 30,
   version: 1,
-};
+});
 
-export const DEFAULT_FEATURE_ACCESS_CONFIG: FeatureAccessConfig = {
+export const DEFAULT_FEATURE_ACCESS_CONFIG: FeatureAccessConfig = deepFreeze({
   features: {
     advancedAnalysis: { minimumTier: "premium", enabled: true },
     goalPlan: { minimumTier: "premium", enabled: true },
     leaderboard: { minimumTier: "basic", enabled: true },
   },
   version: 1,
-};
+});
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -279,6 +296,79 @@ async function readConfigDoc(db: Firestore, docPath: string): Promise<unknown> {
   return snapshot.data();
 }
 
+
+/**
+ * Repairs a merged config by resetting ONLY the fields the validator rejected
+ * back to their defaults, instead of discarding the whole document.
+ *
+ * The all-or-nothing fallback meant a single bad value — say a
+ * `premiumEarnsXp: "false"` string written by hand — silently reverted every
+ * other tuned field in the same document (XP rates, caps, the level curve,
+ * streak rewards) with only a console.warn as the signal. An admin fixing a
+ * typo would have found their whole configuration gone.
+ *
+ * Error strings are formatted "<field> must ..." / "<field>.<sub> must ..." /
+ * "<field>[i].<sub> must ...", so the leading segment names the top-level key
+ * to reset. Resetting the whole top-level key (rather than the exact nested
+ * leaf) is deliberate: a partially-valid array or nested object is harder to
+ * reason about than a known-good default.
+ *
+ * Falls back to `defaults` if the repair does not produce a valid config.
+ *
+ * Note what this does and does not guarantee. It cannot widen what
+ * VALIDATION accepts — the repaired candidate is re-validated. It does widen
+ * what the runtime HONOURS compared with the previous all-or-nothing
+ * fallback: a document with one bad field used to run entirely on defaults,
+ * and now its remaining valid-but-extreme values take effect. Validation has
+ * no upper bounds, so `{ xpPerKilometer: 100000, premiumEarnsXp: "false" }`
+ * previously ran at the default 10 XP/km and now runs at 100000.
+ *
+ * Cross-field rules are attributed to a single key, so the repair can also
+ * satisfy a rule in a direction the admin did not intend: stored
+ * `{ activityXpCap: 150, dailyXpCap: 120 }` fails "dailyXpCap must be >=
+ * activityXpCap", resets `dailyXpCap` to 200, and ends up honouring a raised
+ * per-run cap against a daily cap nobody wrote.
+ *
+ * Both are acceptable because the supported writer — the admin console —
+ * validates with the mirrored ruleset and refuses an invalid save outright,
+ * so a document reaching this path came from a direct Firestore edit or
+ * predates the contract.
+ */
+function repairInvalidConfigFields<T>(
+  merged: T,
+  errors: readonly string[],
+  defaults: T,
+  validate: (candidate: T) => ConfigValidationResult,
+): { readonly config: T; readonly resetFields: readonly string[] } | null {
+  const resetFields = new Set<string>();
+
+  for (const error of errors) {
+    const field = error.split(" ")[0]?.split(".")[0]?.split("[")[0];
+    if (field !== undefined && field.length > 0 && field in (defaults as object)) {
+      resetFields.add(field);
+    }
+  }
+
+  if (resetFields.size === 0) {
+    return null;
+  }
+
+  const repaired = { ...(merged as Record<string, unknown>) };
+  for (const field of resetFields) {
+    // Cloned, not referenced. Several defaults are objects or arrays
+    // (`coolDown`, `levelIncrements`, `streakRewards`), and handing back the
+    // module-level constant would let anything that mutates the returned
+    // config corrupt DEFAULT_*_CONFIG for the lifetime of the Functions
+    // instance — a process-wide change from a single request.
+    repaired[field] = structuredClone((defaults as Record<string, unknown>)[field]);
+  }
+
+  const candidate = repaired as T;
+  return validate(candidate).valid
+    ? { config: candidate, resetFields: [...resetFields] }
+    : null;
+}
+
 export async function loadProgressionConfig(db: Firestore): Promise<ProgressionConfig> {
   try {
     const stored = await readConfigDoc(db, "config/progression");
@@ -292,6 +382,20 @@ export async function loadProgressionConfig(db: Firestore): Promise<ProgressionC
     const result = validateProgressionConfig(merged);
 
     if (!result.valid) {
+      const repaired = repairInvalidConfigFields(
+        merged,
+        result.errors,
+        DEFAULT_PROGRESSION_CONFIG,
+        validateProgressionConfig,
+      );
+
+      if (repaired !== null) {
+        console.warn(
+          `configLoader: config/progression failed validation (${result.errors.join(", ")}); reset ${repaired.resetFields.join(", ")} to defaults and kept the rest`,
+        );
+        return repaired.config;
+      }
+
       console.warn(
         `configLoader: config/progression failed validation (${result.errors.join(", ")}); using DEFAULT_PROGRESSION_CONFIG`,
       );
@@ -318,6 +422,20 @@ export async function loadLeaderboardConfig(db: Firestore): Promise<LeaderboardC
     const result = validateLeaderboardConfig(merged);
 
     if (!result.valid) {
+      const repaired = repairInvalidConfigFields(
+        merged,
+        result.errors,
+        DEFAULT_LEADERBOARD_CONFIG,
+        validateLeaderboardConfig,
+      );
+
+      if (repaired !== null) {
+        console.warn(
+          `configLoader: config/leaderboard failed validation (${result.errors.join(", ")}); reset ${repaired.resetFields.join(", ")} to defaults and kept the rest`,
+        );
+        return repaired.config;
+      }
+
       console.warn(
         `configLoader: config/leaderboard failed validation (${result.errors.join(", ")}); using DEFAULT_LEADERBOARD_CONFIG`,
       );
