@@ -131,10 +131,22 @@ export async function completeCoolDownForCallable(
     }
 
     const baseEventData = baseProgressionSnapshot.data();
-    const baseEarnedXp = baseEventData?.["xpDelta"];
-    if (baseEventData === undefined || typeof baseEarnedXp !== "number") {
+    const runXpDelta = baseEventData?.["xpDelta"];
+    if (baseEventData === undefined || typeof runXpDelta !== "number") {
       throw new HttpsError("failed-precondition", "The completed run's XP could not be read.");
     }
+    // `xpDelta` is the run's TOTAL award, which since the milestone exemption
+    // can include a streak bonus of up to 600. calculateCoolDownBonus() ends
+    // with `min(bonus, activityXpCap - baseEarnedXp)`, so feeding it the total
+    // makes that term negative on any milestone run and silently zeroes the
+    // stretch bonus — and the reason ladder below then reports
+    // "low_data_no_xp" on a full-GPS run. The cool-down bonus is a percentage
+    // of the ACTIVITY's XP, so net the milestone back out.
+    const streakBonusXp = baseEventData["streakBonusXp"];
+    const baseEarnedXp =
+      typeof streakBonusXp === "number" && streakBonusXp > 0
+        ? Math.max(0, runXpDelta - streakBonusXp)
+        : runXpDelta;
 
     const isPremium =
       isPremiumSubscription(userSnapshot.data(), nowMs) || isPremiumSubscription(profileSnapshot.data(), nowMs);

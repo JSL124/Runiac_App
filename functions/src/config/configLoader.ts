@@ -181,6 +181,13 @@ export function validateProgressionConfig(config: ProgressionConfig): ConfigVali
     errors.push("levelIncrements must contain only finite positive numbers");
   }
 
+  // Same reasoning as excludePremium: a stored "false" string would be truthy
+  // and silently keep premium XP suppressed, or a stored 0 would silently
+  // suppress it, with no error surfaced to the admin who saved it.
+  if (typeof config.premiumEarnsXp !== "boolean") {
+    errors.push("premiumEarnsXp must be a boolean");
+  }
+
   if (!Array.isArray(config.streakRewards)) {
     errors.push("streakRewards must be an array");
   } else {
@@ -223,6 +230,14 @@ export function validateLeaderboardConfig(config: LeaderboardConfig): ConfigVali
 
   if (!isFiniteNumber(config.seasonLengthDays) || config.seasonLengthDays <= 0) {
     errors.push("seasonLengthDays must be a positive finite number");
+  }
+
+  // Type-checked explicitly because deepMerge passes stored values through
+  // verbatim and this flag is read as a plain truthiness test. A Firestore
+  // write of the STRING "false" is truthy, which would silently switch premium
+  // exclusion back on with no error anywhere.
+  if (typeof config.excludePremium !== "boolean") {
+    errors.push("excludePremium must be a boolean");
   }
 
   return { valid: errors.length === 0, errors };

@@ -1812,7 +1812,7 @@ describe("streak milestone bonus", () => {
     assert.equal(profile.get("totalXp"), 130);
   });
 
-  it("trims the bonus to the remaining daily XP room and reports streakBonusCapped", async () => {
+  it("pays the milestone in full and lets the day exceed dailyXpCap", async () => {
     await firestore.doc(`userProfiles/${USER_UID}`).set(
       { streakCount: 2, lastStreakRunDate: "2026-06-13" },
       { merge: true },
@@ -1835,20 +1835,25 @@ describe("streak milestone bonus", () => {
     });
     const progressionEvent = await firestore.doc(`progressionEvents/${result.progressionEventId}`).get();
 
-    // Base (60 XP, not activity-capped) fits in the 70 XP of remaining daily
-    // room (dailyXpAfter 190), leaving only 10 XP of room for the 30 XP
-    // streak bonus.
+    // 130 XP already earned today leaves 70 of the 200 daily cap. The 60 XP
+    // base fits inside that room, so the cap does not trim it — dailyCapApplied
+    // is false. Under the old rule the 30 XP milestone would then have been
+    // trimmed to the 10 XP still left; it is now exempt and pays in full, so
+    // xpDelta is 90 and the day's stored dailyXpAfter (220) deliberately
+    // exceeds dailyXpCap.
     assert.equal(progressionEvent.get("activityCapApplied"), false);
     assert.equal(progressionEvent.get("dailyXpBefore"), 130);
-    assert.equal(progressionEvent.get("dailyXpAfter"), 200);
-    assert.equal(progressionEvent.get("streakBonusXp"), 10);
+    assert.equal(progressionEvent.get("streakBonusXp"), 30);
     assert.equal(progressionEvent.get("streakMilestoneDays"), 3);
-    assert.equal(progressionEvent.get("streakBonusCapped"), true);
-    // dailyCapApplied must report the trim even though the BASE itself was
-    // not the part that got trimmed.
-    assert.equal(progressionEvent.get("dailyCapApplied"), true);
-    assert.equal(progressionEvent.get("xpDelta"), 70);
-    assert.equal(result.progressionDisplay.xpDelta, 70);
+    // Never true now: the cap cannot trim a milestone.
+    assert.equal(progressionEvent.get("streakBonusCapped"), false);
+    // The base fit inside the remaining room, so the cap trimmed nothing.
+    assert.equal(progressionEvent.get("dailyCapApplied"), false);
+    assert.equal(progressionEvent.get("xpDelta"), 90);
+    assert.equal(result.progressionDisplay.xpDelta, 90);
+    // The headline invariant of the exemption: the stored day total is allowed
+    // to exceed dailyXpCap (200) because the milestone does not draw on it.
+    assert.equal(progressionEvent.get("dailyXpAfter"), 220);
   });
 
   it("suppresses the streak bonus together with the base when premiumEarnsXp is false", async () => {

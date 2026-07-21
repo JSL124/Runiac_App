@@ -294,6 +294,36 @@ describe("completeCoolDown callable boundary", () => {
   });
 
   // Premium parity: the stretch bonus follows the same rule as the run itself.
+  // Regression: the cool-down bonus is a percentage of the ACTIVITY's XP, but
+  // it was read from the run event's `xpDelta`, which since the milestone
+  // exemption also carries the streak bonus. calculateCoolDownBonus() clamps
+  // to `activityXpCap - baseEarnedXp`, so a milestone run made that term
+  // negative and silently paid nothing — while reporting "low_data_no_xp" on a
+  // full-GPS run.
+  it("still pays the stretch bonus on a run that also paid a streak milestone", async () => {
+    await firestore.doc(`userProfiles/${USER_UID}`).set(
+      { streakCount: 2, lastStreakRunDate: "2026-06-13" },
+      { merge: true },
+    );
+    const clientRunSessionId = "session-milestone-then-cooldown";
+    const runResult = await completeRunForCallable(
+      { auth: { uid: USER_UID }, data: validRunPayload(clientRunSessionId) },
+      firestore,
+    );
+    // 60 base + 30 for crossing the 3-day milestone.
+    assert.equal(runResult.progressionDisplay.xpDelta, 90);
+
+    const result = await callCompleteCoolDown({
+      auth: { uid: USER_UID },
+      data: coolDownPayload({ activityId: runResult.activityId, clientRunSessionId }),
+    });
+
+    // Derived from the 60 XP base, NOT the 90 XP total.
+    assert.equal(result.progressionDisplay.xpDelta, 10);
+    assert.equal(result.progressionDisplay.status, "awarded");
+    assert.equal(result.progressionDisplay.reason, "cool_down_stretch_bonus_awarded");
+  });
+
   it("gives premium users the same cool-down bonus as basic users", async () => {
     await firestore.doc(`users/${USER_UID}`).set({ subscriptionStatus: "premium" });
     const clientRunSessionId = "session-premium-parity-bonus";

@@ -34,10 +34,21 @@ export function sumDailyXp(
   return progressionEventDocuments.reduce((total, eventData) => {
     const eventDailyCapDate = eventData["dailyCapDate"];
     const xpDelta = eventData["xpDelta"];
-    if (eventDailyCapDate === dailyCapDate && typeof xpDelta === "number" && xpDelta > 0) {
-      return total + xpDelta;
+    if (eventDailyCapDate !== dailyCapDate || typeof xpDelta !== "number" || xpDelta <= 0) {
+      return total;
     }
-    return total;
+    // Streak milestone bonuses are exempt from the daily cap, so they must not
+    // consume the day's budget either — otherwise a 600 XP milestone would
+    // block every later run that day from earning anything, which is the same
+    // conflation the exemption exists to remove. Net it out of the stored
+    // xpDelta (absent on events written before the field existed, and on
+    // cool-down events, which never carry one).
+    const streakBonusXp = eventData["streakBonusXp"];
+    const countedXp =
+      typeof streakBonusXp === "number" && streakBonusXp > 0
+        ? Math.max(0, xpDelta - streakBonusXp)
+        : xpDelta;
+    return total + countedXp;
   }, 0);
 }
 

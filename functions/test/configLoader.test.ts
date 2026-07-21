@@ -269,3 +269,35 @@ describe("configLoader loaders fall back to defaults", () => {
     assert.deepEqual(config.features["advancedAnalysis"], DEFAULT_FEATURE_ACCESS_CONFIG.features["advancedAnalysis"]);
   });
 });
+
+// Both flags are read as plain truthiness tests and deepMerge passes stored
+// values through verbatim, so a wrong TYPE silently inverts the policy rather
+// than failing. These pin that the validator rejects them instead.
+describe("policy flag type validation", () => {
+  it("rejects a non-boolean premiumEarnsXp", () => {
+    for (const value of ["false", "true", 0, 1, null]) {
+      const result = validateProgressionConfig({
+        ...DEFAULT_PROGRESSION_CONFIG,
+        premiumEarnsXp: value as unknown as boolean,
+      });
+      assert.equal(result.valid, false, `premiumEarnsXp ${JSON.stringify(value)} must be rejected`);
+      assert.ok(result.errors.some((error) => error.includes("premiumEarnsXp")));
+    }
+  });
+
+  it("rejects a non-boolean excludePremium", () => {
+    for (const value of ["false", "true", 0, 1, null]) {
+      const result = validateLeaderboardConfig({
+        ...DEFAULT_LEADERBOARD_CONFIG,
+        excludePremium: value as unknown as boolean,
+      });
+      assert.equal(result.valid, false, `excludePremium ${JSON.stringify(value)} must be rejected`);
+      assert.ok(result.errors.some((error) => error.includes("excludePremium")));
+    }
+  });
+
+  it("accepts the shipped defaults", () => {
+    assert.equal(validateProgressionConfig(DEFAULT_PROGRESSION_CONFIG).valid, true);
+    assert.equal(validateLeaderboardConfig(DEFAULT_LEADERBOARD_CONFIG).valid, true);
+  });
+});

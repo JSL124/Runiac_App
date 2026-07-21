@@ -157,6 +157,30 @@ is_admin_console_leaderboard_oversight_path() {
   esac
 }
 
+is_progression_followups_capsule_active() {
+  grep -Eq '^- Newly routed progression follow-ups on 2026-07-21 Asia/Singapore: `implementation/roadmap/capsules/progression-followups\.md`' implementation/roadmap/CURRENT.md
+}
+
+is_progression_followups_path() {
+  case "$1" in
+    implementation/roadmap/capsules/progression-followups.md|\
+    implementation/roadmap/CURRENT.md|\
+    tools/governance-ci/check-diff-hygiene.sh|\
+    functions/src/config/configLoader.ts|\
+    functions/src/progression/progressionAudit.ts|\
+    functions/src/progression/progressionAuditHelpers.ts|\
+    functions/src/leaderboard/monthlyLeaderboard.ts|\
+    functions/test/configLoader.test.ts|\
+    functions/test/progressionCalculator.test.ts|\
+    functions/test/completeRun.test.ts)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 is_premium_parity_progression_capsule_active() {
   grep -Eq '^- Newly routed premium parity progression on 2026-07-20 Asia/Singapore: `implementation/roadmap/capsules/premium-parity-progression\.md`' implementation/roadmap/CURRENT.md
 }
@@ -421,6 +445,10 @@ is_allowed_path() {
     return 0
   fi
 
+  if is_progression_followups_path "$1" && is_progression_followups_capsule_active; then
+    return 0
+  fi
+
   if is_feed_friends_emulator_backend_path "$1"; then
     if is_feed_friends_emulator_backend_capsule_active; then
       return 0
@@ -555,6 +583,14 @@ is_unrelated_mobile_native_artifact() {
 }
 
 is_forbidden_path() {
+  if is_progression_followups_path "$1" && is_progression_followups_capsule_active; then
+    return 1
+  fi
+
+  if is_premium_parity_progression_path "$1" && is_premium_parity_progression_capsule_active; then
+    return 1
+  fi
+
   if is_user_feedback_pipeline_path "$1" && is_user_feedback_pipeline_capsule_active; then
     return 1
   fi
