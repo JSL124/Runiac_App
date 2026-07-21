@@ -234,5 +234,11 @@ class FirebaseFeedRepository
   void _reset() {
     _session = null;
     _state = FeedTimelineStateMutator.empty();
+    // Author levels are authorized per viewer, so a cache built for one
+    // signed-in user must never survive into another's session: the same
+    // repository instance can be re-loaded with a different viewer, and
+    // `ensureResolved` skips uids it already holds. Clearing here keeps the
+    // cache scoped to a single initial load.
+    _levelResolver.invalidate();
   }
 }

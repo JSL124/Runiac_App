@@ -106,6 +106,36 @@ void main() {
     expect(refreshed.posts.single.authorLevelLabel, 'Level 2');
   });
 
+  test('a viewer switch on the same repository re-resolves author levels', () async {
+    // Author levels are authorized per viewer, so a level cached for one
+    // signed-in user must never be reused for another: the second viewer may
+    // not be permitted to see that author at all, in which case the callable
+    // would omit the uid and the row must fall back rather than render the
+    // first viewer's cached value.
+    final port = FeedTestDataPort.withSingleFriend('friend-09');
+    port.authorLevels['friend-09'] = const FeedAuthorLevel(
+      levelLabel: 'Level 8',
+      levelProgressFraction: 0.8,
+    );
+    final repository = FirebaseFeedRepository(port: port);
+    await repository.loadInitial(viewer);
+    expect(port.authorLevelQueries, hasLength(1));
+
+    const otherViewer = FeedViewerContext(
+      currentUserId: 'other-viewer',
+      acceptedFriendUserIds: <String>{},
+    );
+    port.authorLevels.remove('friend-09');
+    final second = await repository.loadInitial(otherViewer);
+
+    expect(
+      port.authorLevelQueries,
+      hasLength(2),
+      reason: 'the second viewer must not reuse the first viewer\'s cache',
+    );
+    expect(second.posts.single.authorLevelLabel, isNot('Level 8'));
+  });
+
   test(
     'the same live-level overlay applies to a comment\'s stored label and progress',
     () async {
