@@ -313,8 +313,26 @@ async function readConfigDoc(db: Firestore, docPath: string): Promise<unknown> {
  * leaf) is deliberate: a partially-valid array or nested object is harder to
  * reason about than a known-good default.
  *
- * Falls back to `defaults` if the repair does not produce a valid config, so
- * this can never widen what the caller accepts.
+ * Falls back to `defaults` if the repair does not produce a valid config.
+ *
+ * Note what this does and does not guarantee. It cannot widen what
+ * VALIDATION accepts — the repaired candidate is re-validated. It does widen
+ * what the runtime HONOURS compared with the previous all-or-nothing
+ * fallback: a document with one bad field used to run entirely on defaults,
+ * and now its remaining valid-but-extreme values take effect. Validation has
+ * no upper bounds, so `{ xpPerKilometer: 100000, premiumEarnsXp: "false" }`
+ * previously ran at the default 10 XP/km and now runs at 100000.
+ *
+ * Cross-field rules are attributed to a single key, so the repair can also
+ * satisfy a rule in a direction the admin did not intend: stored
+ * `{ activityXpCap: 150, dailyXpCap: 120 }` fails "dailyXpCap must be >=
+ * activityXpCap", resets `dailyXpCap` to 200, and ends up honouring a raised
+ * per-run cap against a daily cap nobody wrote.
+ *
+ * Both are acceptable because the supported writer — the admin console —
+ * validates with the mirrored ruleset and refuses an invalid save outright,
+ * so a document reaching this path came from a direct Firestore edit or
+ * predates the contract.
  */
 function repairInvalidConfigFields<T>(
   merged: T,
