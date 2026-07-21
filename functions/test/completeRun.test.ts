@@ -1835,10 +1835,12 @@ describe("streak milestone bonus", () => {
     });
     const progressionEvent = await firestore.doc(`progressionEvents/${result.progressionEventId}`).get();
 
-    // Base (60 XP, not activity-capped) is trimmed to the 70 XP of remaining
-    // daily room — that part still obeys the cap. The 30 XP milestone is
-    // exempt and pays in full on top, so dailyXpAfter deliberately exceeds
-    // dailyXpCap.
+    // 130 XP already earned today leaves 70 of the 200 daily cap. The 60 XP
+    // base fits inside that room, so the cap does not trim it — dailyCapApplied
+    // is false. Under the old rule the 30 XP milestone would then have been
+    // trimmed to the 10 XP still left; it is now exempt and pays in full, so
+    // xpDelta is 90 and the day's stored dailyXpAfter (220) deliberately
+    // exceeds dailyXpCap.
     assert.equal(progressionEvent.get("activityCapApplied"), false);
     assert.equal(progressionEvent.get("dailyXpBefore"), 130);
     assert.equal(progressionEvent.get("streakBonusXp"), 30);
