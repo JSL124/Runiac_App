@@ -32,6 +32,7 @@ import {
 } from "./runCompletionArtifacts.js";
 import type { CompleteCoolDownResult, ProgressionDisplay } from "./runCompletionTypes.js";
 import { parseCoolDownCompletionPayload } from "./validateCoolDownPayload.js";
+import { assertAccountNotSuspended } from "../security/accountStatus.js";
 import { withCallableErrorReporting } from "../errors/withErrorReporting.js";
 
 type CallableCoolDownRequest = {
@@ -112,6 +113,11 @@ export async function completeCoolDownForCallable(
       transaction.get(sameDayProgressionEventsQuery),
       transaction.get(sameMonthProgressionEventsQuery),
     ]);
+
+    // Defence-in-depth (see accountStatus.ts): reuses this transaction's own
+    // users/{uid} read (userSnapshot), so a suspended caller is rejected
+    // before this transaction performs its first write.
+    assertAccountNotSuspended(userSnapshot.data());
 
     const activityData = activitySnapshot.data();
     if (activityData === undefined) {

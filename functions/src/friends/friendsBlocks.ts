@@ -7,6 +7,7 @@ import { blockRef, friendRef, profileRef, rateRef, requestRef } from "./friendsP
 import { fallbackIdentity, socialProfile } from "./friendsProfiles.js";
 import { writeOutstandingDelta } from "./friendsRateLimits.js";
 import type { FriendsCallableRequest, FriendsDependencies, SocialProfile } from "./friendsTypes.js";
+import { assertCallerAccountNotSuspendedInTransaction } from "../security/accountStatus.js";
 
 export async function blockUser(
   dependencies: FriendsDependencies,
@@ -17,6 +18,10 @@ export async function blockUser(
   if (targetUid === uid) throw friendError(FRIEND_REASON.CANNOT_TARGET_SELF);
   const at = Timestamp.fromMillis(dependencies.nowMs());
   return dependencies.firestore.runTransaction(async (transaction) => {
+    // Defence-in-depth (see accountStatus.ts): this callable never otherwise
+    // reads the caller's own users/{uid} doc, so add the one read needed to
+    // reject a suspended caller before any write in this transaction.
+    await assertCallerAccountNotSuspendedInTransaction(transaction, dependencies.firestore, uid);
     const blockReference = blockRef(dependencies.firestore, uid, targetUid);
     const localRequestReference = requestRef(dependencies.firestore, uid, targetUid);
     const remoteRequestReference = requestRef(dependencies.firestore, targetUid, uid);
@@ -56,6 +61,10 @@ export async function unblockUser(
   const uid = requireAuthUid(request);
   const targetUid = readUid(request.data, "targetUid");
   return dependencies.firestore.runTransaction(async (transaction) => {
+    // Defence-in-depth (see accountStatus.ts): this callable never otherwise
+    // reads the caller's own users/{uid} doc, so add the one read needed to
+    // reject a suspended caller before any write in this transaction.
+    await assertCallerAccountNotSuspendedInTransaction(transaction, dependencies.firestore, uid);
     const reference = blockRef(dependencies.firestore, uid, targetUid);
     const snapshot = await transaction.get(reference);
     if (!snapshot.exists) return { unblocked: false };

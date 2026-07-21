@@ -203,6 +203,61 @@ is_progression_followups_path() {
   esac
 }
 
+is_exception_queue_moderation_capsule_active() {
+  grep -Eq '^- Newly routed Exception Queue moderation adjudication on 2026-07-21 Asia/Singapore: `implementation/roadmap/capsules/exception-queue-moderation-adjudication\.md`' implementation/roadmap/CURRENT.md
+}
+
+is_exception_queue_moderation_path() {
+  case "$1" in
+    implementation/roadmap/capsules/exception-queue-moderation-adjudication.md|\
+    implementation/roadmap/CURRENT.md|\
+    tools/governance-ci/check-diff-hygiene.sh|\
+    firestore.rules|\
+    functions/package.json|\
+    functions/src/index.ts|\
+    functions/src/moderation/moderationCommand.ts|\
+    functions/src/security/accountStatus.ts|\
+    functions/src/run/completeRun.ts|\
+    functions/src/run/completeCoolDown.ts|\
+    functions/src/challenge/challengeLobbyCore.ts|\
+    functions/src/challenge/challengeSettlementCore.ts|\
+    functions/src/feed/lifecycle/functions.ts|\
+    functions/src/feed/publish/callable.ts|\
+    functions/src/friends/friendsBlocks.ts|\
+    functions/src/friends/friendsMigration.ts|\
+    functions/src/friends/friendsNicknameService.ts|\
+    functions/src/friends/friendsRequests.ts|\
+    functions/src/friends/friendsResponses.ts|\
+    functions/test/accountStatus.test.ts|\
+    functions/test/moderationCommand.test.ts|\
+    functions/test/challengeLobby.test.ts|\
+    functions/test/challengeSettlement.test.ts|\
+    functions/test/completeCoolDown.test.ts|\
+    functions/test/completeRun.test.ts|\
+    functions/test/feedCallableSurface.test.ts|\
+    functions/test/feedEmulatorIntegration.test.ts|\
+    functions/test/friendsCore.test.ts|\
+    tests/firebase-rules/firestore.rules.test.mjs|\
+    tests/firebase-rules/feed.firestore.rules.test.mjs|\
+    implementation/mobile/runiac_app/lib/features/moderation/data/report_user_writer.dart|\
+    implementation/mobile/runiac_app/lib/features/moderation/domain/models/report_user_reason.dart|\
+    implementation/mobile/runiac_app/lib/features/moderation/presentation/widgets/report_user_sheet.dart|\
+    implementation/mobile/runiac_app/lib/features/friends/presentation/friends_action_sheets.dart|\
+    implementation/mobile/runiac_app/lib/features/friends/presentation/friends_screen.dart|\
+    implementation/mobile/runiac_app/lib/features/friends/presentation/friends_screen_actions.dart|\
+    implementation/mobile/runiac_app/lib/features/leaderboard/presentation/leaderboard_read_model_display_adapter.dart|\
+    implementation/mobile/runiac_app/lib/features/leaderboard/presentation/models/leaderboard_display_models.dart|\
+    implementation/mobile/runiac_app/lib/features/leaderboard/presentation/widgets/runner_achievement_profile_screen.dart|\
+    implementation/mobile/runiac_app/test/backend_owned_contract_test.dart|\
+    implementation/mobile/runiac_app/test/report_user_sheet_test.dart)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 is_premium_parity_progression_capsule_active() {
   grep -Eq '^- Newly routed premium parity progression on 2026-07-20 Asia/Singapore: `implementation/roadmap/capsules/premium-parity-progression\.md`' implementation/roadmap/CURRENT.md
 }
@@ -527,6 +582,10 @@ is_allowed_path() {
     return 0
   fi
 
+  if is_exception_queue_moderation_path "$1" && is_exception_queue_moderation_capsule_active; then
+    return 0
+  fi
+
   if is_progression_followups_path "$1" && is_progression_followups_capsule_active; then
     return 0
   fi
@@ -674,6 +733,10 @@ is_forbidden_path() {
   fi
 
   if is_premium_parity_progression_path "$1" && is_premium_parity_progression_capsule_active; then
+    return 1
+  fi
+
+  if is_exception_queue_moderation_path "$1" && is_exception_queue_moderation_capsule_active; then
     return 1
   fi
 

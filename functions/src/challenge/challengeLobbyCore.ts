@@ -39,6 +39,7 @@ import type {
   ParticipantState,
 } from "./challengeTypes.js";
 import { challengeError } from "./challengeErrors.js";
+import { assertCallerAccountNotSuspendedInTransaction } from "../security/accountStatus.js";
 import {
   emitChallengeInvitationNotifications,
   emitChallengeStartedNotifications,
@@ -231,6 +232,10 @@ export async function createChallengeLobbyForCallable(
   const rules = buildChallengeRulesSnapshot(tierId);
 
   return firestore.runTransaction(async (transaction) => {
+    // Defence-in-depth (see accountStatus.ts): this callable never otherwise
+    // reads the caller's own users/{uid} doc, so add the one read needed to
+    // reject a suspended caller before any write in this transaction.
+    await assertCallerAccountNotSuspendedInTransaction(transaction, firestore, uid);
     const nowMs = Date.now();
     const slotSnap = await transaction.get(slotRef(firestore, uid));
     const profileSnap = await transaction.get(profileRef(firestore, uid));
@@ -354,6 +359,10 @@ export async function inviteChallengeFriendsForCallable(
   const targets = requireInviteeUids(request.data);
 
   const outcome = await firestore.runTransaction(async (transaction) => {
+    // Defence-in-depth (see accountStatus.ts): this callable never otherwise
+    // reads the caller's own users/{uid} doc, so add the one read needed to
+    // reject a suspended caller before any write in this transaction.
+    await assertCallerAccountNotSuspendedInTransaction(transaction, firestore, uid);
     const nowMs = Date.now();
     const loaded = await loadLobby(transaction, firestore, challengeId);
     if (loaded.ownerUid !== uid) throw challengeError("NOT_LOBBY_OWNER");
@@ -465,6 +474,10 @@ export async function respondToChallengeInvitationForCallable(
   const response = requireResponse(request.data);
 
   const result = await firestore.runTransaction(async (transaction) => {
+    // Defence-in-depth (see accountStatus.ts): this callable never otherwise
+    // reads the caller's own users/{uid} doc, so add the one read needed to
+    // reject a suspended caller before any write in this transaction.
+    await assertCallerAccountNotSuspendedInTransaction(transaction, firestore, uid);
     const nowMs = Date.now();
     const inviteSnap = await transaction.get(invitationRef(firestore, inviteId));
     if (!inviteSnap.exists) throw challengeError("INVITATION_NOT_FOUND");
@@ -577,6 +590,10 @@ export async function withdrawFromChallengeLobbyForCallable(
   const challengeId = requireChallengeId(request.data);
 
   const result = await firestore.runTransaction(async (transaction) => {
+    // Defence-in-depth (see accountStatus.ts): this callable never otherwise
+    // reads the caller's own users/{uid} doc, so add the one read needed to
+    // reject a suspended caller before any write in this transaction.
+    await assertCallerAccountNotSuspendedInTransaction(transaction, firestore, uid);
     const nowMs = Date.now();
     const loaded = await loadLobby(transaction, firestore, challengeId);
     const participantSnap = await transaction.get(participantRef(firestore, challengeId, uid));
@@ -635,6 +652,10 @@ export async function cancelChallengeLobbyForCallable(
   const challengeId = requireChallengeId(request.data);
 
   const result = await firestore.runTransaction(async (transaction) => {
+    // Defence-in-depth (see accountStatus.ts): this callable never otherwise
+    // reads the caller's own users/{uid} doc, so add the one read needed to
+    // reject a suspended caller before any write in this transaction.
+    await assertCallerAccountNotSuspendedInTransaction(transaction, firestore, uid);
     const nowMs = Date.now();
     const loaded = await loadLobby(transaction, firestore, challengeId);
     if (loaded.ownerUid !== uid) throw challengeError("NOT_LOBBY_OWNER");
@@ -694,6 +715,10 @@ export async function startChallengeForCallable(
   const challengeId = requireChallengeId(request.data);
 
   const result = await firestore.runTransaction(async (transaction) => {
+    // Defence-in-depth (see accountStatus.ts): this callable never otherwise
+    // reads the caller's own users/{uid} doc, so add the one read needed to
+    // reject a suspended caller before any write in this transaction.
+    await assertCallerAccountNotSuspendedInTransaction(transaction, firestore, uid);
     const nowMs = Date.now();
     const loaded = await loadLobby(transaction, firestore, challengeId);
     if (loaded.ownerUid !== uid) throw challengeError("NOT_LOBBY_OWNER");

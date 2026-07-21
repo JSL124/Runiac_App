@@ -22,6 +22,7 @@ import {
   monthlyPeriodForCompletedAt,
 } from "../progression/progressionCalculator.js";
 import { deferredProgressionDisplay } from "../progression/progressionEventWriter.js";
+import { assertAccountNotSuspended } from "../security/accountStatus.js";
 import { withCallableErrorReporting } from "../errors/withErrorReporting.js";
 import { readTrustedProtectedRestDates, readTrustedStreakState } from "../progression/planBoundedStreakState.js";
 import {
@@ -123,6 +124,11 @@ export async function completeRunForCallable(
         transaction.get(progressionEventsQuery),
         transaction.get(monthlyProgressionEventsQuery),
       ]);
+
+    // Defence-in-depth (see accountStatus.ts): reuses this transaction's own
+    // users/{uid} read (userSnapshot), so a suspended caller is rejected
+    // before this transaction performs its first write.
+    assertAccountNotSuspended(userSnapshot.data());
 
     if (activitySnapshot.exists) {
       assertExistingActivityMatchesPayload(activitySnapshot.data(), payloadFingerprint);

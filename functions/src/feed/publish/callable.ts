@@ -5,6 +5,7 @@ import { getStorage } from "firebase-admin/storage";
 import { onCall } from "firebase-functions/v2/https";
 import { publishFeedActivity, type FeedPublishPorts, type FeedStoredObject } from "./core.js";
 import { withCallableErrorReporting } from "../../errors/withErrorReporting.js";
+import { assertAccountNotSuspended } from "../../security/accountStatus.js";
 
 if (getApps().length === 0) initializeApp();
 
@@ -13,6 +14,16 @@ type PublishActivityToFeedRequest = { readonly auth?: { readonly uid: string }; 
 export const publishActivityToFeed = onCall(
   { region: "asia-southeast1" },
   withCallableErrorReporting("publishActivityToFeed", async (request: PublishActivityToFeedRequest) => {
+    // Defence-in-depth (see accountStatus.ts). Checked here in the onCall
+    // wrapper rather than inside publishFeedActivity's port-based core, which
+    // stays unit-testable with fake ports and no real Firestore. Skips
+    // silently when uid is absent so the core's own unauthenticated path is
+    // unaffected.
+    const uid = request.auth?.uid;
+    if (uid !== undefined && uid.length > 0) {
+      const snapshot = await getFirestore().collection("users").doc(uid).get();
+      assertAccountNotSuspended(snapshot.data());
+    }
     const callableRequest = request.auth === undefined ? { data: request.data } : { auth: { uid: request.auth.uid }, data: request.data };
     return publishFeedActivity(callableRequest, createPublishPorts(getFirestore()));
   }),

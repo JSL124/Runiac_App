@@ -97,6 +97,7 @@ leaderboardRankRowDisplaySnapshotFromReadModel(
       badges: const <RunnerAchievementBadgeSnapshot>[],
       privacyNote: 'Only monthly ranking details are shown.',
       isCurrentUser: entry.isCurrentUser,
+      uid: entry.userId,
     ),
   );
 }

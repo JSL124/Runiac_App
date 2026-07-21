@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { before, beforeEach, describe, it } from "node:test";
 import { getApps, initializeApp } from "firebase-admin/app";
 import { Timestamp, getFirestore, type Firestore } from "firebase-admin/firestore";
+import { HttpsError } from "firebase-functions/v2/https";
 
 import {
   cancelChallengeLobbyForCallable,
@@ -37,6 +38,7 @@ beforeEach(async () => {
   await firestore.recursiveDelete(firestore.collection("challengeInstances"));
   await deleteCollection("challengeInvitations");
   await deleteCollection("challengeSlots");
+  await Promise.all(ALL_UIDS.map((uid) => firestore.doc(`users/${uid}`).delete()));
   await Promise.all(
     ALL_UIDS.flatMap((uid) =>
       ALL_UIDS.filter((other) => other !== uid).flatMap((other) => [
@@ -61,6 +63,25 @@ beforeEach(async () => {
 describe("createChallengeLobby", () => {
   it("rejects unauthenticated callers", async () => {
     await rejectsReason(() => createChallengeLobbyForCallable({ data: { tierId: "10K" } }, firestore), "UNAUTHENTICATED");
+  });
+
+  it("rejects a suspended caller with permission-denied before creating a lobby (defence-in-depth)", async () => {
+    await firestore.doc(`users/${OWNER}`).set({ accountStatus: "suspended" });
+
+    await assert.rejects(
+      () => createChallengeLobbyForCallable(req(OWNER, { tierId: "10K" }), firestore),
+      (error: unknown) => error instanceof HttpsError && error.code === "permission-denied",
+    );
+
+    assert.equal((await firestore.doc(`challengeSlots/${OWNER}`).get()).exists, false);
+  });
+
+  it("still creates a lobby for an explicitly unsuspended caller", async () => {
+    await firestore.doc(`users/${OWNER}`).set({ accountStatus: "active" });
+
+    const result = await createChallengeLobbyForCallable(req(OWNER, { tierId: "10K" }), firestore);
+
+    assert.equal(result.idempotent, false);
   });
 
   it("rejects an unknown tier", async () => {

@@ -1,8 +1,11 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/assets/runiac_assets.dart';
 import '../../../../core/theme/runiac_colors.dart';
 import '../../../../core/widgets/runiac_back_header.dart';
+import '../../../moderation/data/report_user_writer.dart';
+import '../../../moderation/presentation/widgets/report_user_sheet.dart';
 import '../models/leaderboard_display_models.dart';
 
 class RunnerAchievementProfileScreen extends StatelessWidget {
@@ -14,6 +17,42 @@ class RunnerAchievementProfileScreen extends StatelessWidget {
 
   final RunnerAchievementProfileSnapshot profile;
   final VoidCallback onBack;
+
+  // Never offer reporting yourself, and never offer it for a profile with no
+  // real backing uid (demo/preview snapshots) — the security rules would
+  // reject both anyway, but hiding the affordance keeps the UI honest.
+  bool get _canReport =>
+      !profile.isCurrentUser &&
+      profile.uid.isNotEmpty &&
+      _currentReporterUid() != null;
+
+  // Guarded the same way activity_route_snapshot_thumbnail_cache.dart guards
+  // its own FirebaseAuth.instance read: widget tests that build this screen
+  // with static/demo repositories never call Firebase.initializeApp(), so
+  // FirebaseAuth.instance itself throws rather than just returning a null
+  // user.
+  String? _currentReporterUid() {
+    try {
+      return FirebaseAuth.instance.currentUser?.uid;
+    } on Object {
+      return null;
+    }
+  }
+
+  void _showReportSheet(BuildContext context) {
+    final reporterUid = _currentReporterUid();
+    if (reporterUid == null) return;
+    showReportUserSheet(
+      context,
+      targetDisplayName: profile.name,
+      onSubmit: (reason, description) => reportUser(
+        reporterUid: reporterUid,
+        targetId: profile.uid,
+        reason: reason,
+        description: description,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -30,6 +69,21 @@ class RunnerAchievementProfileScreen extends StatelessWidget {
               title: 'Runner profile',
               tooltip: 'Back to Rankings',
               onBack: onBack,
+              trailing: _canReport
+                  ? Semantics(
+                      label: 'Report ${profile.name}',
+                      button: true,
+                      child: IconButton(
+                        key: const Key('runner_profile_report_action'),
+                        tooltip: 'Report ${profile.name}',
+                        icon: const Icon(
+                          Icons.flag_outlined,
+                          color: RuniacColors.primaryBlue,
+                        ),
+                        onPressed: () => _showReportSheet(context),
+                      ),
+                    )
+                  : null,
             ),
             Expanded(
               child: ScrollConfiguration(

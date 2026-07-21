@@ -205,6 +205,7 @@ class RunnerAchievementProfileSnapshot {
     required this.badges,
     this.privacyNote = 'Only public running achievements are shown.',
     this.isCurrentUser = false,
+    this.uid = '',
   });
 
   final String name;
@@ -217,6 +218,13 @@ class RunnerAchievementProfileSnapshot {
   final String privacyNote;
   final List<RunnerAchievementBadgeSnapshot> badges;
   final bool isCurrentUser;
+
+  /// Backend-issued uid of the runner this profile describes. Used only to
+  /// address a report-a-user write (`targetId`); never displayed and never
+  /// used for any XP/rank/score computation. Empty for demo/preview
+  /// snapshots that have no real backing user, which also hides the report
+  /// affordance for those.
+  final String uid;
 }
 
 class RunnerAchievementBadgeSnapshot {

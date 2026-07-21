@@ -33,6 +33,7 @@ import type {
   QuerySnapshot,
 } from "firebase-admin/firestore";
 import { challengeError } from "./challengeErrors.js";
+import { assertCallerAccountNotSuspendedInTransaction } from "../security/accountStatus.js";
 import { shouldExpireLobby } from "./challengeExpiry.js";
 import {
   emitChallengeBadgeIssuedNotifications,
@@ -113,6 +114,10 @@ export async function leaveChallengeForCallable(
   const challengeId = requireChallengeId(request.data);
 
   const idempotent = await firestore.runTransaction(async (transaction) => {
+    // Defence-in-depth (see accountStatus.ts): this callable never otherwise
+    // reads the caller's own users/{uid} doc, so add the one read needed to
+    // reject a suspended caller before any write in this transaction.
+    await assertCallerAccountNotSuspendedInTransaction(transaction, firestore, uid);
     const nowMs = Date.now();
     const ref = instanceRef(firestore, challengeId);
     const instanceSnap = await transaction.get(ref);
@@ -188,6 +193,10 @@ export async function abandonChallengeForCallable(
   const challengeId = requireChallengeId(request.data);
 
   const idempotent = await firestore.runTransaction(async (transaction) => {
+    // Defence-in-depth (see accountStatus.ts): this callable never otherwise
+    // reads the caller's own users/{uid} doc, so add the one read needed to
+    // reject a suspended caller before any write in this transaction.
+    await assertCallerAccountNotSuspendedInTransaction(transaction, firestore, uid);
     const nowMs = Date.now();
     const loaded = await loadInstanceWithRoster(transaction, firestore, challengeId);
     if (loaded === undefined) throw challengeError("CHALLENGE_NOT_FOUND");

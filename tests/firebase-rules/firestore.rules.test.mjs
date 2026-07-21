@@ -28,7 +28,9 @@ import {
   notificationPrefs,
   planProgressReadModel,
   profileFields,
+  removeSeed,
   seed,
+  seedUser,
   unauthenticatedDb,
 } from './support/firestore_rules_test_support.mjs';
 
@@ -903,6 +905,89 @@ describe('owner-owned client records', () => {
       }),
     );
     await assertFails(updateDoc(report, { status: 'resolved' }));
+  });
+
+  it('denies report creation from a suspended reporter, but not an unsuspended one or one with no accountStatus field at all', async () => {
+    const reportData = (targetId) => ({
+      reporterUid: 'alice',
+      targetType: 'route',
+      targetId,
+      reason: 'unsafe_surface',
+      description: 'Synthetic report text only.',
+      createdAt: 1,
+    });
+
+    // Suspended: denied. This is defence-in-depth behind the admin console's
+    // Auth-layer disable (see accountStatus.ts / isNotSuspended() in
+    // firestore.rules) — it only matters for an already-issued, unexpired ID
+    // token.
+    await seedUser('alice', 'basic');
+    await seed('users/alice', { subscriptionStatus: 'basic', userRole: 'Basic User', accountStatus: 'suspended' });
+    await assertFails(setDoc(doc(dbFor('alice'), 'reports/report-suspended'), reportData('synthetic-route-suspended')));
+
+    // Banned is the other blocking value.
+    await seed('users/alice', { subscriptionStatus: 'basic', userRole: 'Basic User', accountStatus: 'banned' });
+    await assertFails(setDoc(doc(dbFor('alice'), 'reports/report-banned'), reportData('synthetic-route-banned')));
+
+    // Explicitly unsuspended: unaffected.
+    await seed('users/alice', { subscriptionStatus: 'basic', userRole: 'Basic User', accountStatus: 'active' });
+    await assertSucceeds(setDoc(doc(dbFor('alice'), 'reports/report-active'), reportData('synthetic-route-active')));
+
+    // No accountStatus field at all (and no users/{uid} doc at all, via bob):
+    // both must keep today's behaviour, unaffected by this rule.
+    await assertSucceeds(setDoc(doc(dbFor('alice'), 'reports/report-no-field'), reportData('synthetic-route-no-field')));
+    await removeSeed('users/alice');
+    await assertSucceeds(
+      setDoc(doc(dbFor('bob'), 'reports/report-no-doc'), { ...reportData('synthetic-route-no-doc'), reporterUid: 'bob' }),
+    );
+  });
+
+  it('enforces a deterministic report id and rejects self-reports for report-a-user, but leaves other target types on free-form ids', async () => {
+    const userReport = (targetId) => ({
+      reporterUid: 'alice',
+      targetType: 'user',
+      targetId,
+      reason: 'harassment_or_abuse',
+      description: 'Synthetic report text only.',
+      createdAt: 1,
+    });
+
+    // Wrong id format for a user report: denied, even though every other
+    // field is well-formed.
+    await assertFails(
+      setDoc(doc(dbFor('alice'), 'reports/not-the-deterministic-id'), userReport('bob')),
+    );
+
+    // Self-report: denied even with the otherwise-correct deterministic id.
+    await assertFails(
+      setDoc(doc(dbFor('alice'), 'reports/alice_alice'), userReport('alice')),
+    );
+
+    // Well-formed create by an unsuspended reporter: allowed.
+    await assertSucceeds(
+      setDoc(doc(dbFor('alice'), 'reports/alice_bob'), userReport('bob')),
+    );
+
+    // Duplicate create for the same (reporter, target) pair: the document
+    // now exists, so Firestore classifies the second set() as an update,
+    // which `allow update: if false` rejects — no separate duplicate check
+    // is needed in the rule itself.
+    await assertFails(
+      setDoc(doc(dbFor('alice'), 'reports/alice_bob'), userReport('bob')),
+    );
+
+    // Non-user target types are unaffected by the deterministic-id
+    // requirement and keep today's free-form report id behaviour.
+    await assertSucceeds(
+      setDoc(doc(dbFor('alice'), 'reports/report-free-form-route'), {
+        reporterUid: 'alice',
+        targetType: 'route',
+        targetId: 'alice',
+        reason: 'unsafe_surface',
+        description: 'Synthetic report text only.',
+        createdAt: 1,
+      }),
+    );
   });
 
   it('allows owners to write notification preferences only for themselves', async () => {

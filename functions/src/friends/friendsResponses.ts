@@ -8,6 +8,7 @@ import { blockRef, cooldownRef, friendRef, profileRef, rateRef, requestRef } fro
 import { socialProfile } from "./friendsProfiles.js";
 import { writeOutstandingDelta } from "./friendsRateLimits.js";
 import type { FriendsCallableRequest, FriendsDependencies } from "./friendsTypes.js";
+import { assertCallerAccountNotSuspendedInTransaction } from "../security/accountStatus.js";
 
 export async function respondToFriendRequest(
   dependencies: FriendsDependencies,
@@ -19,6 +20,10 @@ export async function respondToFriendRequest(
   const atMs = dependencies.nowMs();
   const at = Timestamp.fromMillis(atMs);
   return dependencies.firestore.runTransaction(async (transaction) => {
+    // Defence-in-depth (see accountStatus.ts): this callable never otherwise
+    // reads the caller's own users/{uid} doc, so add the one read needed to
+    // reject a suspended caller before any write in this transaction.
+    await assertCallerAccountNotSuspendedInTransaction(transaction, dependencies.firestore, uid);
     const incomingReference = requestRef(dependencies.firestore, uid, senderUid);
     const outgoingReference = requestRef(dependencies.firestore, senderUid, uid);
     const senderRateReference = rateRef(dependencies.firestore, senderUid);
@@ -86,6 +91,10 @@ export async function removeFriend(
   const atMs = dependencies.nowMs();
   const at = Timestamp.fromMillis(atMs);
   return dependencies.firestore.runTransaction(async (transaction) => {
+    // Defence-in-depth (see accountStatus.ts): this callable never otherwise
+    // reads the caller's own users/{uid} doc, so add the one read needed to
+    // reject a suspended caller before any write in this transaction.
+    await assertCallerAccountNotSuspendedInTransaction(transaction, dependencies.firestore, uid);
     const localReference = friendRef(dependencies.firestore, uid, friendUid);
     const remoteReference = friendRef(dependencies.firestore, friendUid, uid);
     const cooldownReference = cooldownRef(dependencies.firestore, uid, friendUid);

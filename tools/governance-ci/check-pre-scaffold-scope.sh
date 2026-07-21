@@ -474,6 +474,29 @@ is_error_reporting_pipeline_path() {
   esac
 }
 
+is_exception_queue_moderation_capsule_active() {
+  grep -Eq '^- Newly routed Exception Queue moderation adjudication on 2026-07-21 Asia/Singapore: `implementation/roadmap/capsules/exception-queue-moderation-adjudication\.md`' implementation/roadmap/CURRENT.md
+}
+
+# New source files introduced by the routed Exception Queue moderation capsule.
+# Only the genuinely new paths need listing here; already-tracked files this
+# capsule modifies are handled by the diff-hygiene allowlist.
+is_exception_queue_moderation_path() {
+  case "$1" in
+    functions/src/moderation/moderationCommand.ts|\
+    functions/src/security/accountStatus.ts|\
+    functions/test/moderationCommand.test.ts|\
+    functions/test/accountStatus.test.ts|\
+    functions/src/index.ts|\
+    functions/package.json)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 is_admin_role_subscription_expiry_capsule_active() {
   grep -Eq '^- Newly routed admin role and subscription expiry on 2026-07-20 Asia/Singapore: `implementation/roadmap/capsules/admin-role-subscription-expiry\.md`' implementation/roadmap/CURRENT.md
 }
@@ -526,6 +549,10 @@ is_forbidden_config_or_secret() {
   fi
 
   if is_user_feedback_pipeline_path "$1" && is_user_feedback_pipeline_capsule_active; then
+    return 1
+  fi
+
+  if is_exception_queue_moderation_path "$1" && is_exception_queue_moderation_capsule_active; then
     return 1
   fi
 
@@ -597,6 +624,9 @@ is_forbidden_config_or_secret() {
         return 1
       fi
       if is_admin_console_leaderboard_oversight_functions_path "$1" && is_admin_console_leaderboard_oversight_capsule_active; then
+        return 1
+      fi
+      if is_exception_queue_moderation_path "$1" && is_exception_queue_moderation_capsule_active; then
         return 1
       fi
       if approved_adaptive_inactive_baseline_blob "$1" >/dev/null; then

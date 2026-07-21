@@ -1,10 +1,12 @@
 import { getApps, initializeApp } from "firebase-admin/app";
+import { getFirestore } from "firebase-admin/firestore";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { onDocumentDeleted } from "firebase-functions/v2/firestore";
 import { cleanupFromActivityDeletion, deleteFeedPostCore, reportFeedPostCore } from "./core.js";
 import { firebaseLifecyclePort } from "./firebasePort.js";
 import type { DeleteFeedPostResult, ReportFeedPostResult } from "./types.js";
 import { withCallableErrorReporting, withTriggerErrorReporting } from "../../errors/withErrorReporting.js";
+import { assertAccountNotSuspended } from "../../security/accountStatus.js";
 
 if (getApps().length === 0) initializeApp();
 
@@ -12,16 +14,37 @@ type CallableRequest = { readonly auth?: { readonly uid: string }; readonly data
 type ReportCallableResult = { readonly reportId: string; readonly duplicate: boolean };
 type DeleteCallableResult = { readonly status: "deleted" | "already_missing" | "retry_required" };
 
+// Defence-in-depth (see accountStatus.ts). This runs in the onCall
+// registration, NOT inside reportFeedPostForCallable/deleteFeedPostForCallable
+// below, because those two are unit-tested directly against fake
+// FeedLifecyclePort doubles with no real Firestore behind them; keeping the
+// suspension check here preserves that pure, port-based unit-test surface
+// while still gating every real invocation (production and
+// feedEmulatorIntegration.test.ts both go through this onCall wrapper).
+// Skips silently when uid is absent so the wrapped callable's own
+// unauthenticated check still produces the "unauthenticated" error it always
+// has.
+async function assertCallerNotSuspended(request: CallableRequest): Promise<void> {
+  const uid = request.auth?.uid;
+  if (uid === undefined || uid.length === 0) return;
+  const snapshot = await getFirestore().collection("users").doc(uid).get();
+  assertAccountNotSuspended(snapshot.data());
+}
+
 export const reportFeedPost = onCall<unknown, Promise<ReportCallableResult>>(
   { region: "asia-southeast1" },
-  withCallableErrorReporting("reportFeedPost", async (request: CallableRequest) =>
-    reportFeedPostForCallable(request, firebaseLifecyclePort())),
+  withCallableErrorReporting("reportFeedPost", async (request: CallableRequest) => {
+    await assertCallerNotSuspended(request);
+    return reportFeedPostForCallable(request, firebaseLifecyclePort());
+  }),
 );
 
 export const deleteFeedPost = onCall<unknown, Promise<DeleteCallableResult>>(
   { region: "asia-southeast1" },
-  withCallableErrorReporting("deleteFeedPost", async (request: CallableRequest) =>
-    deleteFeedPostForCallable(request, firebaseLifecyclePort())),
+  withCallableErrorReporting("deleteFeedPost", async (request: CallableRequest) => {
+    await assertCallerNotSuspended(request);
+    return deleteFeedPostForCallable(request, firebaseLifecyclePort());
+  }),
 );
 
 export const cleanupDeletedFeedActivity = onDocumentDeleted(

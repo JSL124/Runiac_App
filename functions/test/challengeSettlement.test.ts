@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 import { before, beforeEach, describe, it } from "node:test";
 import { getApps, initializeApp } from "firebase-admin/app";
 import { Timestamp, getFirestore, type Firestore } from "firebase-admin/firestore";
+import { HttpsError } from "firebase-functions/v2/https";
 
 import { completeRunForCallable } from "../src/run/completeRun.js";
 import {
@@ -124,6 +125,19 @@ describe("leaveChallenge", () => {
     assert.equal(replay.idempotent, true);
   });
 
+  it("rejects a suspended participant with permission-denied before recording their departure (defence-in-depth)", async () => {
+    const challengeId = await startedGroup("42K");
+    await firestore.doc(`users/${A}`).set({ accountStatus: "suspended" });
+
+    await assert.rejects(
+      () => leaveChallengeForCallable(req(A, { challengeId }), firestore),
+      (error: unknown) => error instanceof HttpsError && error.code === "permission-denied",
+    );
+
+    const participant = await participantDoc(challengeId, A);
+    assert.notEqual(participant.get("status"), "LEFT");
+  });
+
   it("rejects the owner with OWNER_CANNOT_LEAVE", async () => {
     const challengeId = await startedGroup("42K");
     await rejectsReason(
@@ -230,6 +244,19 @@ describe("abandonChallenge", () => {
     await abandonChallengeForCallable(req(OWNER, { challengeId }), firestore);
     const replay = await abandonChallengeForCallable(req(OWNER, { challengeId }), firestore);
     assert.equal(replay.idempotent, true);
+  });
+
+  it("rejects a suspended owner with permission-denied before cancelling the challenge (defence-in-depth)", async () => {
+    const challengeId = await startedGroup("42K");
+    await firestore.doc(`users/${OWNER}`).set({ accountStatus: "banned" });
+
+    await assert.rejects(
+      () => abandonChallengeForCallable(req(OWNER, { challengeId }), firestore),
+      (error: unknown) => error instanceof HttpsError && error.code === "permission-denied",
+    );
+
+    const instance = await instanceDoc(challengeId);
+    assert.equal(instance.get("status"), "ACTIVE");
   });
 });
 

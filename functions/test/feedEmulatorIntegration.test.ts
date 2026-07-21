@@ -97,6 +97,17 @@ test("publishes and protects a real Feed post across Auth, Firestore, Functions,
   assert.equal((await call(author, "readFeedThumbnail", { postId: "task12-activity" })).ok, true);
   assert.equal((await call(other, "readFeedThumbnail", { postId: "task12-activity" })).ok, true);
 
+  // Suspension defence-in-depth (see accountStatus.ts): `other` is a real
+  // friend of `author` and would otherwise be allowed to report this post
+  // (proven by `friend`'s successful report above) — suspending the account
+  // must now reject the same real callable with PERMISSION_DENIED, checked
+  // in the onCall wrapper before the report-lifecycle core ever runs.
+  await db.doc(`users/${other.uid}`).set({ accountStatus: "suspended" });
+  const suspendedReport = await call(other, "reportFeedPost", { postId: "task12-activity" });
+  assert.equal(suspendedReport.ok, false);
+  if (!suspendedReport.ok) assert.equal(suspendedReport.status, "PERMISSION_DENIED");
+  await db.doc(`users/${other.uid}`).delete();
+
   const deleted = await call(author, "deleteFeedPost", { postId: "task12-activity" });
   assert.equal(deleted.ok, true);
   await waitFor(() => postResidueAbsent(author.uid, "task12-activity"));

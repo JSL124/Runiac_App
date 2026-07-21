@@ -42,6 +42,7 @@ const expectedExports = [
   "leaderboardAdminCommandCreated",
   "leaveChallenge",
   "migrateUnicodeNicknameClaims",
+  "moderationCommandCreated",
   "publishActivityToFeed",
   "readFeedThumbnail",
   "refreshLeaderboardSnapshots",

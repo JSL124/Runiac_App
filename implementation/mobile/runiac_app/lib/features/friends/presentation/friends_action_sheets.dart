@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/runiac_colors.dart';
 import '../domain/models/friends_read_model.dart';
 
-enum FriendAction { remove, block }
+enum FriendAction { remove, block, report }
 
 Future<FriendAction?> showFriendActionsSheet(
   BuildContext context,
@@ -28,6 +28,12 @@ Future<FriendAction?> showFriendActionsSheet(
               leading: const Icon(Icons.block_outlined),
               title: const Text('Block'),
               onTap: () => Navigator.of(context).pop(FriendAction.block),
+            ),
+            ListTile(
+              key: const ValueKey('friends-report-action'),
+              leading: const Icon(Icons.flag_outlined),
+              title: const Text('Report'),
+              onTap: () => Navigator.of(context).pop(FriendAction.report),
             ),
             const SizedBox(height: 8),
           ],
@@ -80,5 +86,8 @@ String friendActionConfirmationBody(FriendAction action) {
     FriendAction.block =>
       'This removes the friendship and pending requests in both directions. '
           'You will no longer appear to each other in Friends, Search, or Feed.',
+    // Report opens its own reason-picker sheet instead of this yes/no
+    // confirmation dialog, so this body copy is never shown for it.
+    FriendAction.report => '',
   };
 }
