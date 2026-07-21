@@ -9,6 +9,7 @@ import 'core/firebase/runiac_firebase_bootstrap.dart';
 import 'core/observability/error_screen_tracker.dart';
 import 'core/observability/runiac_error_reporter.dart';
 import 'features/feed/presentation/qa/feed_mvp_qa_launcher.dart';
+import 'features/home/presentation/qa/plan_completion_qa_launcher.dart';
 import 'features/leaderboard/presentation/qa/leaderboard_ranking_qa_launcher.dart';
 import 'features/run/data/run_repository_factory.dart';
 import 'features/run/presentation/qa/xp_update_qa_launcher.dart';
@@ -38,6 +39,12 @@ Future<void> main() async {
       final leaderboardQaApp = buildLeaderboardRankingQaAppFromEnvironment();
       if (leaderboardQaApp != null) {
         runApp(leaderboardQaApp);
+        return;
+      }
+
+      final planCompletionQaApp = buildPlanCompletionQaAppFromEnvironment();
+      if (planCompletionQaApp != null) {
+        runApp(planCompletionQaApp);
         return;
       }
 
@@ -86,6 +93,7 @@ Future<void> main() async {
           generatedPlanPersistenceRepository:
               bootstrap.generatedPlanPersistenceRepository,
           planProgressRepository: bootstrap.planProgressRepository,
+          planCompletionSeenStore: bootstrap.planCompletionSeenStore,
           adaptivePlanEstimateRepository:
               bootstrap.adaptivePlanEstimateRepository,
           feedRepository: bootstrap.feedRepository,

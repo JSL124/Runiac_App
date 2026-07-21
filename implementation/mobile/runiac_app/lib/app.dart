@@ -38,6 +38,7 @@ import 'features/leaderboard/domain/repositories/leaderboard_repository.dart';
 import 'features/plan/domain/models/adaptive_plan_estimate_read_model.dart';
 import 'features/plan/domain/models/beginner_adaptive_plan_snapshot.dart';
 import 'features/plan/domain/models/plan_progress_read_model.dart';
+import 'features/plan/domain/plan_completion_seen_store.dart';
 import 'features/plan/domain/repositories/adaptive_plan_estimate_repository.dart';
 import 'features/plan/domain/repositories/generated_plan_persistence_repository.dart';
 import 'features/plan/domain/repositories/plan_progress_repository.dart';
@@ -87,6 +88,7 @@ class RuniacApp extends StatefulWidget {
     this.generatedPlanPersistenceRepository =
         const NoopGeneratedPlanPersistenceRepository(),
     this.planProgressRepository = const NoopPlanProgressRepository(),
+    this.planCompletionSeenStore,
     this.adaptivePlanEstimateRepository =
         const NoopAdaptivePlanEstimateRepository(),
     this.notificationInboxRepository =
@@ -135,6 +137,10 @@ class RuniacApp extends StatefulWidget {
   final UserProfilePersistenceRepository profilePersistenceRepository;
   final GeneratedPlanPersistenceRepository generatedPlanPersistenceRepository;
   final PlanProgressRepository planProgressRepository;
+
+  /// Local one-shot marker for the plan-completion ceremony, forwarded to the
+  /// shell. `null` (previews/tests) disables the celebration.
+  final PlanCompletionSeenStore? planCompletionSeenStore;
   final AdaptivePlanEstimateRepository adaptivePlanEstimateRepository;
   final NotificationInboxRepository notificationInboxRepository;
   final NotificationRegistrationService? notificationRegistrationService;
@@ -527,6 +533,13 @@ class _RuniacAppState extends State<RuniacApp> {
   }
 
   Future<UserProgressReadModel> _refreshUserProgressAfterRunSync() async {
+    // The synced run may have completed the plan's final scheduled workout,
+    // which the backend records on `planProgress/{uid}`. Refresh that too, or
+    // a runner finishing their plan with the app already open would keep the
+    // stale pre-run value and see no ceremony until the next launch.
+    // Deliberately fire-and-forget and ordered first, so it still happens when
+    // the user-progress refresh below throws and rethrows.
+    _refreshPlanProgressAfterRunSync();
     try {
       final progress = await widget.userProgressRepository
           .refreshUserProgress();
@@ -543,6 +556,18 @@ class _RuniacAppState extends State<RuniacApp> {
       );
       rethrow;
     }
+  }
+
+  /// Re-reads backend plan progress after a run syncs. `_loadPlanProgress`
+  /// already guards itself with a load serial and swallows its own errors, so
+  /// a failure here can never break run syncing.
+  void _refreshPlanProgressAfterRunSync() {
+    final ownerUid = _generatedPlanOwnerUid;
+    final activePlanId = _generatedPlanStore.activePlan?.id;
+    if (ownerUid == null || activePlanId == null) {
+      return;
+    }
+    unawaited(_loadPlanProgress(ownerUid, activePlanId));
   }
 
   Widget _buildPostAuthFlow() {
@@ -661,6 +686,7 @@ class _RuniacAppState extends State<RuniacApp> {
               widget.generatedPlanPersistenceRepository,
           notificationInboxRepository: widget.notificationInboxRepository,
           planProgress: _planProgress,
+          planCompletionSeenStore: widget.planCompletionSeenStore,
           adaptivePlanEstimate: _adaptivePlanEstimate,
           homeGuideAgent: widget.homeGuideAgent,
           homeGuideConsentRepository: widget.homeGuideConsentRepository,
@@ -792,7 +818,12 @@ class _RuniacAppState extends State<RuniacApp> {
       return;
     }
     setState(() {
-      _planProgress = progress.completedScheduledWorkoutIds.isEmpty
+      // A completion is retained even with no per-workout ids, so the
+      // plan-completion signal is never collapsed away by the "no progress
+      // worth showing" shortcut.
+      _planProgress =
+          progress.completedScheduledWorkoutIds.isEmpty &&
+              progress.planCompletedAt == null
           ? null
           : progress;
     });

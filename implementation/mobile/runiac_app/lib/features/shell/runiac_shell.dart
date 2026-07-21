@@ -26,6 +26,7 @@ import '../notifications/domain/models/plan_notification_schedule.dart';
 import '../notifications/domain/repositories/notification_inbox_repository.dart';
 import '../notifications/domain/services/plan_notification_sync_service.dart';
 import '../plan/domain/models/adaptive_plan_estimate_read_model.dart';
+import '../plan/domain/plan_completion_seen_store.dart';
 import '../plan/domain/models/beginner_adaptive_plan_snapshot.dart';
 import '../plan/domain/repositories/generated_plan_persistence_repository.dart';
 import '../plan/domain/models/plan_progress_read_model.dart';
@@ -62,6 +63,7 @@ class RuniacShell extends StatefulWidget {
     this.notificationInboxRepository =
         const StaticNotificationInboxRepository(),
     this.planProgress,
+    this.planCompletionSeenStore,
     this.adaptivePlanEstimate,
     this.homeGuideAgent = const RuleBasedHomeGuideAgent(),
     this.homeGuideConsentRepository =
@@ -94,6 +96,10 @@ class RuniacShell extends StatefulWidget {
   final GeneratedPlanPersistenceRepository generatedPlanPersistenceRepository;
   final NotificationInboxRepository notificationInboxRepository;
   final PlanProgressReadModel? planProgress;
+
+  /// One-shot marker forwarded to [HomeTab] for the plan-completion ceremony.
+  /// `null` (previews/tests) disables the celebration.
+  final PlanCompletionSeenStore? planCompletionSeenStore;
   final AdaptivePlanEstimateReadModel? adaptivePlanEstimate;
 
   /// Guide seam forwarded to [HomeTab]'s stage-map speech bubble. See
@@ -491,6 +497,8 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
           todayWorkoutDetailSnapshot: todayWorkoutDetail,
           todayPlannedRunContext: todayPlannedRunContext,
           generatedPlanProgress: generatedPlanProgress,
+          planCompletedAt: widget.planProgress?.planCompletedAt,
+          planCompletionSeenStore: widget.planCompletionSeenStore,
           currentDate: currentDate,
           homeGuideAgent: widget.homeGuideAgent,
           homeGuideConsentRepository: widget.homeGuideConsentRepository,

@@ -125,6 +125,28 @@ is_cool_down_stretch_xp_bonus_path() {
   esac
 }
 
+is_plan_completion_signal_capsule_active() {
+  grep -Eq '^- Newly routed plan completion signal on 2026-07-21 Asia/Singapore: `implementation/roadmap/capsules/plan-completion-signal\.md`' implementation/roadmap/CURRENT.md
+}
+
+is_plan_completion_signal_path() {
+  case "$1" in
+    implementation/roadmap/capsules/plan-completion-signal.md|\
+    implementation/roadmap/CURRENT.md|\
+    tools/governance-ci/check-diff-hygiene.sh|\
+    tools/governance-ci/check-pre-scaffold-scope.sh|\
+    functions/src/plan/planProgress.ts|\
+    functions/test/planProgressCompletion.test.ts|\
+    functions/test/feedCallableSurface.test.ts|\
+    functions/package.json)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 is_admin_console_leaderboard_oversight_capsule_active() {
   grep -Eq '^- Newly routed admin console Leaderboard Oversight alignment on 2026-07-20 Asia/Singapore: `implementation/roadmap/capsules/admin-console-leaderboard-oversight\.md`' implementation/roadmap/CURRENT.md
 }
@@ -493,6 +515,10 @@ is_allowed_path() {
     return 0
   fi
 
+  if is_plan_completion_signal_path "$1" && is_plan_completion_signal_capsule_active; then
+    return 0
+  fi
+
   if is_admin_console_leaderboard_oversight_path "$1" && is_admin_console_leaderboard_oversight_capsule_active; then
     return 0
   fi
@@ -676,6 +702,10 @@ is_forbidden_path() {
   fi
 
   if is_cool_down_stretch_xp_bonus_path "$1" && is_cool_down_stretch_xp_bonus_capsule_active; then
+    return 1
+  fi
+
+  if is_plan_completion_signal_path "$1" && is_plan_completion_signal_capsule_active; then
     return 1
   fi
 

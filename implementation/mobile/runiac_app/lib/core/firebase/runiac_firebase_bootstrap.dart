@@ -42,6 +42,8 @@ import '../../features/notifications/domain/services/notification_registration_s
 import '../../features/plan/data/firestore_adaptive_plan_estimate_repository.dart';
 import '../../features/plan/data/firestore_generated_plan_persistence_repository.dart';
 import '../../features/plan/data/firestore_plan_progress_repository.dart';
+import '../../features/plan/data/shared_preferences_plan_completion_seen_store.dart';
+import '../../features/plan/domain/plan_completion_seen_store.dart';
 import '../../features/plan/domain/repositories/adaptive_plan_estimate_repository.dart';
 import '../../features/plan/domain/repositories/generated_plan_persistence_repository.dart';
 import '../../features/plan/domain/repositories/plan_progress_repository.dart';
@@ -93,6 +95,7 @@ class RuniacFirebaseBootstrap {
           generatedPlanPersistenceRepository:
               const NoopGeneratedPlanPersistenceRepository(),
           planProgressRepository: const NoopPlanProgressRepository(),
+          planCompletionSeenStore: null,
           adaptivePlanEstimateRepository:
               const NoopAdaptivePlanEstimateRepository(),
           feedRepository: const StaticFeedRepository(),
@@ -155,6 +158,9 @@ class RuniacFirebaseBootstrap {
         generatedPlanPersistenceRepository:
             FirestoreGeneratedPlanPersistenceRepository(),
         planProgressRepository: FirestorePlanProgressRepository(),
+        planCompletionSeenStore: SharedPreferencesPlanCompletionSeenStore(
+          uidProvider: () => authRepository.currentUser?.uid,
+        ),
         adaptivePlanEstimateRepository:
             FirestoreAdaptivePlanEstimateRepository(),
         feedRepository: FirebaseFeedRepository(port: FirebaseFeedDataPort()),
@@ -234,6 +240,9 @@ class RuniacFirebaseBootstrap {
       generatedPlanPersistenceRepository:
           FirestoreGeneratedPlanPersistenceRepository(),
       planProgressRepository: FirestorePlanProgressRepository(),
+      planCompletionSeenStore: SharedPreferencesPlanCompletionSeenStore(
+        uidProvider: () => authRepository.currentUser?.uid,
+      ),
       adaptivePlanEstimateRepository: FirestoreAdaptivePlanEstimateRepository(),
       feedRepository: FirebaseFeedRepository(port: FirebaseFeedDataPort()),
       notificationInboxRepository: FirestoreNotificationInboxRepository(
@@ -327,6 +336,7 @@ class RuniacFirebaseBootstrapResult {
     required this.profilePersistenceRepository,
     required this.generatedPlanPersistenceRepository,
     required this.planProgressRepository,
+    required this.planCompletionSeenStore,
     required this.adaptivePlanEstimateRepository,
     required this.feedRepository,
     required this.notificationInboxRepository,
@@ -352,6 +362,10 @@ class RuniacFirebaseBootstrapResult {
   final UserProfilePersistenceRepository profilePersistenceRepository;
   final GeneratedPlanPersistenceRepository generatedPlanPersistenceRepository;
   final PlanProgressRepository planProgressRepository;
+
+  /// Durable one-shot marker for the plan-completion ceremony; non-null only
+  /// on Firebase-active paths, null for the static/no-config path.
+  final PlanCompletionSeenStore? planCompletionSeenStore;
   final AdaptivePlanEstimateRepository adaptivePlanEstimateRepository;
   final FeedRepository feedRepository;
   final NotificationInboxRepository notificationInboxRepository;
