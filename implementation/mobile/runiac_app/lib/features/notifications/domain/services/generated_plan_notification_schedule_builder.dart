@@ -95,8 +95,12 @@ class GeneratedPlanNotificationScheduleBuilder {
     required String timeLabel,
   }) {
     final time = _timeFromLabel(timeLabel);
-    final daysFromAnchor =
-        ((weekNumber - 1) * DateTime.daysPerWeek) + _weekdayOffset(dayLabel);
+    // `dayLabel` is a real weekday, but the plan can start on any day, so a
+    // label resolves to the matching weekday inside that week's seven-day
+    // window. Monday-start plans keep the dates they already had.
+    final anchorOffset = (anchorDate.weekday - DateTime.monday) % 7;
+    final dayOffset = (_weekdayOffset(dayLabel) - anchorOffset + 7) % 7;
+    final daysFromAnchor = ((weekNumber - 1) * DateTime.daysPerWeek) + dayOffset;
     final workoutDate = anchorDate.add(Duration(days: daysFromAnchor));
     return DateTime(
       workoutDate.year,

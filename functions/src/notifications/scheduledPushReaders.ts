@@ -1,4 +1,5 @@
 import type { DocumentData } from "firebase-admin/firestore";
+import { scheduledDateFor } from "../plan/planProgressParsing.js";
 import type { NotificationDeviceRecord } from "./dispatchPlanner.js";
 
 export function enabledDevices(
@@ -77,7 +78,9 @@ export function plannedWorkouts(data: DocumentData | undefined) {
       const title = readString(workout["title"]) ?? "Planned workout";
       const dayLabel = readString(workout["dayLabel"]);
       const scheduledWorkoutId = readString(workout["scheduledWorkoutId"]) ?? readString(workout["id"]);
-      const scheduledDate = scheduledDateFor(startsOnDate, weekNumber, dayLabel);
+      const scheduledDate = dayLabel === null
+        ? null
+        : scheduledDateFor(startsOnDate ?? undefined, weekNumber, dayLabel);
       const startTime = startTimeFor(workout);
       if (scheduledWorkoutId !== null && scheduledDate !== null && startTime !== null) {
         workouts.push({ scheduledWorkoutId, title, scheduledDate, startTime });
@@ -85,38 +88,6 @@ export function plannedWorkouts(data: DocumentData | undefined) {
     }
   }
   return workouts;
-}
-
-function scheduledDateFor(
-  startsOnDate: string | null,
-  weekNumber: number,
-  dayLabel: string | null,
-): string | null {
-  if (startsOnDate === null || dayLabel === null) {
-    return null;
-  }
-  const date = new Date(`${startsOnDate}T00:00:00.000Z`);
-  if (Number.isNaN(date.getTime())) {
-    return null;
-  }
-  const dayOffset = dayOffsetFor(dayLabel);
-  if (dayOffset === null) {
-    return null;
-  }
-  date.setUTCDate(date.getUTCDate() + (weekNumber - 1) * 7 + dayOffset);
-  return date.toISOString().slice(0, 10);
-}
-
-function dayOffsetFor(dayLabel: string): number | null {
-  const normalized = dayLabel.toLowerCase();
-  if (normalized.includes("mon")) return 0;
-  if (normalized.includes("tue")) return 1;
-  if (normalized.includes("wed")) return 2;
-  if (normalized.includes("thu")) return 3;
-  if (normalized.includes("fri")) return 4;
-  if (normalized.includes("sat")) return 5;
-  if (normalized.includes("sun")) return 6;
-  return null;
 }
 
 function startTimeFor(workout: Readonly<Record<string, unknown>>): string | null {
