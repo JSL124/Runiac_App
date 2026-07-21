@@ -40,6 +40,7 @@ Idempotency is inherited from the surrounding transaction and from the existing 
 
 - `functions/src/plan/planProgress.ts`: compute `plannedWorkouts` once and pass it to `findMatchedWorkout` (pure refactor, no behavior change); add `resolvePlanCompletion`, `countCompletedWorkoutsForPlan`, and `readPlanCompletions`; merge the `planCompletions` fragment into the existing `transaction.set`. No new reads, no new trigger, no change to the callable response contract.
 - `functions/test/planProgressCompletion.test.ts`: new pure unit tests for the completion rule (no emulator required).
+- `functions/test/feedCallableSurface.test.ts`: repair of the stale whole-entrypoint export allow-list (see the repair section below). Assertion-data change only — no production source change, no export added or removed.
 - `functions/package.json`: one additive entry in the existing `test` script list.
 - `implementation/mobile/runiac_app/lib/features/plan/domain/models/plan_progress_read_model.dart`: additive `planCompletedAt` field and parsing.
 - `implementation/mobile/runiac_app/lib/features/plan/domain/plan_completion_seen_store.dart` and `.../features/plan/data/shared_preferences_plan_completion_seen_store.dart`: new one-shot marker port and durable adapter.
@@ -66,6 +67,7 @@ Idempotency is inherited from the surrounding transaction and from the existing 
 - `implementation/roadmap/capsules/plan-completion-signal.md`
 - `functions/src/plan/planProgress.ts`
 - `functions/test/planProgressCompletion.test.ts`
+- `functions/test/feedCallableSurface.test.ts`
 - `functions/package.json`
 - `implementation/mobile/runiac_app/lib/features/plan/domain/models/plan_progress_read_model.dart`
 - `implementation/mobile/runiac_app/lib/features/plan/domain/plan_completion_seen_store.dart`
@@ -91,6 +93,7 @@ cd implementation/mobile/runiac_app && flutter analyze --no-pub
 cd implementation/mobile/runiac_app && flutter test --no-pub
 ```
 
+- `functions/test/feedCallableSurface.test.ts`: the whole-entrypoint export guard and the Feed-subset/leak guards pass against the real 46-export surface.
 - `functions/test/planProgressCompletion.test.ts`: no completion while workouts remain; completion on the final planned workout; no re-record or overwrite for an already-completed plan; a previous plan's workouts do not finish the current plan; rest days and objective-less entries excluded from the planned total; replayed workout writes nothing.
 - `implementation/mobile/runiac_app/test/plan_completion_trigger_test.dart`: model parses the active plan's completion, ignores another plan's, tolerates malformed entries, survives with no per-workout entries; `HomeTab` celebrates once, does not re-celebrate an already-seen completion, stays silent while in progress and when no seen store is composed, and celebrates a completion that arrives after the first frame.
 - `implementation/mobile/runiac_app/test/plan_completion_ceremony_test.dart`: existing overlay tests remain green.
@@ -108,9 +111,15 @@ cd implementation/mobile/runiac_app && flutter test --no-pub
 - iOS simulator evidence that the ceremony renders both sequence stages (gauge filling, then burst + "Plan Completed!"), captured through the `RUNIAC_QA_SURFACE=plan_completion` QA surface.
 - `run-all-checks.sh` output confirming no forbidden/unrelated path is flagged.
 
-## Known Pre-Existing Failure (not caused by this capsule)
+## Pre-Existing Failure Repaired Under This Capsule
 
-`functions/test/feedCallableSurface.test.ts` — "exports exactly the production Feed callables and triggers once" fails against a stale expected export allow-list that predates the challenge, friends, subscription-expiry, and cool-down exports. This capsule adds no exports and does not touch `functions/src/index.ts`. Tracked as pre-existing drift, not a rollback condition here.
+`functions/test/feedCallableSurface.test.ts` — "exports exactly the production Feed callables and triggers once" was failing against a stale expected export list of 18 names, while the real production entrypoint exports 46. The drift accumulated across the challenge, friends, subscription-expiry, cool-down, admin-command, feedback, and error-reporting capsules, none of which updated the list; the guard had therefore been red and ignored for some time.
+
+This capsule adds no exports and does not touch `functions/src/index.ts`, so the failure was not caused here. It was repaired here on explicit user instruction (2026-07-21 Asia/Singapore) rather than left as a known-red caveat.
+
+The repair restores the guard at full strength instead of weakening it: `expectedExports` now lists all 46 real exports, with a comment recording the maintenance contract — an export in that list is a publicly deployed callable or trigger, so adding a Function must be a conscious reviewed act, and adding one without updating the list is *expected* to fail the suite. The narrower Feed-owned subset assertion and the fixture/helper leak guard are unchanged.
+
+Because the whole-entrypoint assertion lives in a Feed-named file for historical reasons, a comment now records that it covers the entire entrypoint, not just Feed.
 
 ## Rollback Conditions
 

@@ -137,6 +137,7 @@ is_plan_completion_signal_path() {
     tools/governance-ci/check-pre-scaffold-scope.sh|\
     functions/src/plan/planProgress.ts|\
     functions/test/planProgressCompletion.test.ts|\
+    functions/test/feedCallableSurface.test.ts|\
     functions/package.json)
       return 0
       ;;
