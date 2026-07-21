@@ -279,6 +279,56 @@ async function readConfigDoc(db: Firestore, docPath: string): Promise<unknown> {
   return snapshot.data();
 }
 
+
+/**
+ * Repairs a merged config by resetting ONLY the fields the validator rejected
+ * back to their defaults, instead of discarding the whole document.
+ *
+ * The all-or-nothing fallback meant a single bad value — say a
+ * `premiumEarnsXp: "false"` string written by hand — silently reverted every
+ * other tuned field in the same document (XP rates, caps, the level curve,
+ * streak rewards) with only a console.warn as the signal. An admin fixing a
+ * typo would have found their whole configuration gone.
+ *
+ * Error strings are formatted "<field> must ..." / "<field>.<sub> must ..." /
+ * "<field>[i].<sub> must ...", so the leading segment names the top-level key
+ * to reset. Resetting the whole top-level key (rather than the exact nested
+ * leaf) is deliberate: a partially-valid array or nested object is harder to
+ * reason about than a known-good default.
+ *
+ * Falls back to `defaults` if the repair does not produce a valid config, so
+ * this can never widen what the caller accepts.
+ */
+function repairInvalidConfigFields<T>(
+  merged: T,
+  errors: readonly string[],
+  defaults: T,
+  validate: (candidate: T) => ConfigValidationResult,
+): { readonly config: T; readonly resetFields: readonly string[] } | null {
+  const resetFields = new Set<string>();
+
+  for (const error of errors) {
+    const field = error.split(" ")[0]?.split(".")[0]?.split("[")[0];
+    if (field !== undefined && field.length > 0 && field in (defaults as object)) {
+      resetFields.add(field);
+    }
+  }
+
+  if (resetFields.size === 0) {
+    return null;
+  }
+
+  const repaired = { ...(merged as Record<string, unknown>) };
+  for (const field of resetFields) {
+    repaired[field] = (defaults as Record<string, unknown>)[field];
+  }
+
+  const candidate = repaired as T;
+  return validate(candidate).valid
+    ? { config: candidate, resetFields: [...resetFields] }
+    : null;
+}
+
 export async function loadProgressionConfig(db: Firestore): Promise<ProgressionConfig> {
   try {
     const stored = await readConfigDoc(db, "config/progression");
@@ -292,6 +342,20 @@ export async function loadProgressionConfig(db: Firestore): Promise<ProgressionC
     const result = validateProgressionConfig(merged);
 
     if (!result.valid) {
+      const repaired = repairInvalidConfigFields(
+        merged,
+        result.errors,
+        DEFAULT_PROGRESSION_CONFIG,
+        validateProgressionConfig,
+      );
+
+      if (repaired !== null) {
+        console.warn(
+          `configLoader: config/progression failed validation (${result.errors.join(", ")}); reset ${repaired.resetFields.join(", ")} to defaults and kept the rest`,
+        );
+        return repaired.config;
+      }
+
       console.warn(
         `configLoader: config/progression failed validation (${result.errors.join(", ")}); using DEFAULT_PROGRESSION_CONFIG`,
       );
@@ -318,6 +382,20 @@ export async function loadLeaderboardConfig(db: Firestore): Promise<LeaderboardC
     const result = validateLeaderboardConfig(merged);
 
     if (!result.valid) {
+      const repaired = repairInvalidConfigFields(
+        merged,
+        result.errors,
+        DEFAULT_LEADERBOARD_CONFIG,
+        validateLeaderboardConfig,
+      );
+
+      if (repaired !== null) {
+        console.warn(
+          `configLoader: config/leaderboard failed validation (${result.errors.join(", ")}); reset ${repaired.resetFields.join(", ")} to defaults and kept the rest`,
+        );
+        return repaired.config;
+      }
+
       console.warn(
         `configLoader: config/leaderboard failed validation (${result.errors.join(", ")}); using DEFAULT_LEADERBOARD_CONFIG`,
       );

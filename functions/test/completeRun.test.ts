@@ -1812,6 +1812,42 @@ describe("streak milestone bonus", () => {
     assert.equal(profile.get("totalXp"), 130);
   });
 
+  // The milestone is exempt from the daily cap, so it must not mask a cap that
+  // genuinely fired on the base. Reporting "awarded" here would leave the
+  // runner with no cap notice (the app surfaces it only on
+  // "daily_cap_reached") while the stored dailyCapApplied says the opposite.
+  it("still reports daily_cap_reached when the cap took the whole base", async () => {
+    await firestore.doc(`userProfiles/${USER_UID}`).set(
+      { streakCount: 2, lastStreakRunDate: "2026-06-13" },
+      { merge: true },
+    );
+    // The day's 200 XP budget is already spent, so the 60 XP base is trimmed
+    // to nothing; only the exempt 30 XP milestone can still pay.
+    await firestore.collection("progressionEvents").doc("preseed-fully-capped").set({
+      ownerUid: USER_UID,
+      dailyCapDate: "2026-06-14",
+      monthlyPeriod: "2026-06",
+      xpDelta: 200,
+    });
+
+    const result = await callCompleteRun({
+      auth: { uid: USER_UID },
+      data: runPayloadForSession({
+        clientRunSessionId: "streak-bonus-base-fully-capped",
+        startedAt: "2026-06-14T09:00:00.000Z",
+        completedAt: "2026-06-14T09:25:00.000Z",
+      }),
+    });
+    const progressionEvent = await firestore.doc(`progressionEvents/${result.progressionEventId}`).get();
+
+    assert.equal(progressionEvent.get("dailyCapApplied"), true);
+    assert.equal(progressionEvent.get("streakBonusXp"), 30);
+    assert.equal(progressionEvent.get("xpDelta"), 30);
+    assert.equal(result.progressionDisplay.reason, "daily_cap_reached");
+    // Still an award: the runner did receive the milestone.
+    assert.equal(result.progressionDisplay.status, "awarded");
+  });
+
   it("pays the milestone in full and lets the day exceed dailyXpCap", async () => {
     await firestore.doc(`userProfiles/${USER_UID}`).set(
       { streakCount: 2, lastStreakRunDate: "2026-06-13" },

@@ -136,21 +136,21 @@ export function calculateProgressionAudit(input: {
   // was trimmed by the daily cap, not just the base.
   const dailyCapApplied = capped.dailyCapApplied || streakBonusCapped;
 
-  // `xpDeltaBeforeDailyCap` passed below stays base-only (pre-bonus) on
-  // purpose: it feeds the "daily_cap_reached" branch inside
-  // progressionReason(), which must fire only when the BASE itself was
-  // trimmed to zero by an already-exhausted daily cap. `xpDelta` here is the
-  // final combined amount, so a run whose base happens to be zero (e.g. a
-  // permissive zero-value config) but whose streak bonus is awarded still
-  // reports "run_completion_xp_awarded", not a false daily-cap reason. No new
-  // reason enum value is introduced — the existing awarded/suppressed/
-  // daily-cap/low-data reasons already describe the combined outcome
-  // correctly once `xpDelta` reflects base + bonus.
+  // Both inputs to the "daily_cap_reached" branch are BASE-only on purpose.
+  // The reason describes what happened to the run's activity XP, and the
+  // milestone bonus is exempt from the daily cap, so it must not mask a cap
+  // that genuinely fired: a runner whose entire base was trimmed to zero and
+  // who happened to cross a milestone on the same run was previously told
+  // "run_completion_xp_awarded" and shown no cap notice
+  // (xp_update_display_model_mapper.dart surfaces it only on
+  // "daily_cap_reached"), while the stored `dailyCapApplied: true` said the
+  // opposite. The `xpDeltaBeforeDailyCap > 0` guard already keeps a genuinely
+  // zero-earning run (low data) out of this branch.
   const reason = progressionReason({
     premiumXpSuppressed: suppress,
     activityReason: activityXp.reason,
     xpDeltaBeforeDailyCap: activityXp.xpDeltaBeforeDailyCap,
-    xpDelta,
+    xpDelta: capped.xpDelta,
   });
   const nextTotalXp = previousTotalXp + xpDelta;
   const monthlyXpAfter = monthlyXpBefore + xpDelta;
