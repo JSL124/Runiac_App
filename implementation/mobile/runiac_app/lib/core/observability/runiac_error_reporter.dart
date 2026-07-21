@@ -190,8 +190,8 @@ class RuniacErrorReporter {
     String Function()? platformResolver,
     DateTime Function()? clock,
   }) : _store = store ?? const SharedPreferencesLocalPendingErrorReportStore(),
-       _callable = callable ?? FlutterFireReportAppErrorCallable(),
-       _authSource = authSource ?? FirebaseAuthErrorReporterAuthSource(),
+       _injectedCallable = callable,
+       _injectedAuthSource = authSource,
        _appVersionResolver = appVersionResolver ?? (() => _runiacClientAppVersion),
        _osVersionResolver = osVersionResolver ?? _defaultOsVersion,
        _platformResolver = platformResolver ?? _defaultPlatform,
@@ -207,8 +207,31 @@ class RuniacErrorReporter {
   }
 
   final LocalPendingErrorReportStore _store;
-  final ReportAppErrorCallable _callable;
-  final ErrorReporterAuthSource _authSource;
+
+  /// The caller-supplied callable, if any. When `null`, [_callable] builds
+  /// the real [FlutterFireReportAppErrorCallable] lazily, on first use,
+  /// instead of here in the constructor's initializer list. The initializer
+  /// list runs before the constructor body's `try`/`catch`, so an eager
+  /// default here would throw uncaught (`FirebaseFunctions.instanceFor`
+  /// needs a Firebase app) whenever this reporter is constructed before any
+  /// Firebase app exists — e.g. a plain `flutter run` with no dart-defines.
+  final ReportAppErrorCallable? _injectedCallable;
+  ReportAppErrorCallable? _lazyCallable;
+
+  /// Same lazy-resolution reasoning as [_injectedCallable]: eagerly building
+  /// [FirebaseAuthErrorReporterAuthSource] here would touch `FirebaseAuth
+  /// .instance` before any guard can apply.
+  final ErrorReporterAuthSource? _injectedAuthSource;
+  ErrorReporterAuthSource? _lazyAuthSource;
+
+  ReportAppErrorCallable get _callable =>
+      _injectedCallable ??
+      (_lazyCallable ??= FlutterFireReportAppErrorCallable());
+
+  ErrorReporterAuthSource get _authSource =>
+      _injectedAuthSource ??
+      (_lazyAuthSource ??= FirebaseAuthErrorReporterAuthSource());
+
   final String Function() _appVersionResolver;
   final String Function() _osVersionResolver;
   final String Function() _platformResolver;
@@ -218,6 +241,14 @@ class RuniacErrorReporter {
   String? _lastKnownUid;
   bool _isReporting = false;
   bool _isFlushing = false;
+
+  /// Serializes every queue-mutating operation (enqueue, and flush's own
+  /// peek/remove steps) so no two load-then-save round trips to [_store]
+  /// can interleave. Each call to [_runExclusive] chains its action onto
+  /// this future; the network call to [_callable] in [_flush] deliberately
+  /// stays outside any [_runExclusive] block so a concurrent enqueue is
+  /// never blocked behind a slow or hanging send.
+  Future<void> _queueTail = Future<void>.value();
 
   /// Session-only record of the last time each `(errorType, screen, first
   /// stack frame)` signature was accepted. Never persisted — a fresh app
@@ -344,10 +375,25 @@ class RuniacErrorReporter {
     return '${report.errorType} ${report.screen} $firstFrame';
   }
 
-  Future<void> _enqueue(ErrorReport report) async {
-    final pending = await _store.load();
-    final updated = List<ErrorReport>.of(pending)..add(report);
-    await _store.save(updated);
+  /// Chains [action] onto [_queueTail] so it only starts once every
+  /// previously-chained action has fully settled, then advances
+  /// [_queueTail] to a tracking future that always resolves normally
+  /// (regardless of whether [action] succeeded) — otherwise one failed
+  /// operation would permanently wedge every later one behind it. The
+  /// returned future still carries [action]'s own result/error to its
+  /// caller.
+  Future<T> _runExclusive<T>(Future<T> Function() action) {
+    final resultFuture = _queueTail.then((_) => action());
+    _queueTail = resultFuture.then((_) {}, onError: (_) {});
+    return resultFuture;
+  }
+
+  Future<void> _enqueue(ErrorReport report) {
+    return _runExclusive(() async {
+      final pending = await _store.load();
+      final updated = List<ErrorReport>.of(pending)..add(report);
+      await _store.save(updated);
+    });
   }
 
   /// Drains the durable buffer oldest-first. A permanently-rejected report
@@ -357,13 +403,14 @@ class RuniacErrorReporter {
   /// is treated as transient and stops the drain with the queue (including
   /// the failed report) left intact for a later retry.
   ///
-  /// The queue is re-read from the store after every send rather than
-  /// trusting an in-memory snapshot: a concurrent `reportError` call can
-  /// enqueue behind the report currently in flight, and writing back a
-  /// stale snapshot would silently drop it. Re-reading first is safe
-  /// because the queue is FIFO, enqueues only ever append to the tail, and
-  /// `_isFlushing` makes the drain single-flighted — so the freshly loaded
-  /// head is always still the report just handled.
+  /// The queue is re-read from the store rather than trusting an in-memory
+  /// snapshot, and every read/write pair — here and in [_enqueue] — runs
+  /// through [_runExclusive] so a concurrent `reportError` call can never
+  /// enqueue behind an in-flight save and get silently dropped, nor land in
+  /// a way that reintroduces a report this loop already removed. The
+  /// network call to [_callable] deliberately happens outside any
+  /// [_runExclusive] block: a slow or hung send must not block a concurrent
+  /// enqueue from reaching the durable buffer.
   Future<void> _flush() async {
     if (_isFlushing) {
       return;
@@ -374,11 +421,13 @@ class RuniacErrorReporter {
         return;
       }
       while (true) {
-        final pending = await _store.load();
-        if (pending.isEmpty) {
+        final next = await _runExclusive(() async {
+          final pending = await _store.load();
+          return pending.isEmpty ? null : pending.first;
+        });
+        if (next == null) {
           return;
         }
-        final next = pending.first;
         try {
           await _callable.call(next.toPayload());
         } catch (error) {
@@ -389,8 +438,10 @@ class RuniacErrorReporter {
           }
           // Permanent: fall through and drop it below, then keep draining.
         }
-        final remaining = await _store.load();
-        await _store.save(remaining.skip(1).toList(growable: false));
+        await _runExclusive(() async {
+          final remaining = await _store.load();
+          await _store.save(remaining.skip(1).toList(growable: false));
+        });
       }
     } finally {
       _isFlushing = false;

@@ -14,53 +14,60 @@ import 'features/run/data/run_repository_factory.dart';
 import 'features/run/presentation/qa/xp_update_qa_launcher.dart';
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  // `WidgetsFlutterBinding.ensureInitialized()` and the final `runApp` call
+  // below must run in the same zone — Flutter requires this and treats a
+  // mismatch as a fatal error when fatal zone errors are enabled. Wrapping
+  // the whole body (including the binding init and the QA early-return
+  // paths) in a single `runZonedGuarded` call satisfies that, while leaving
+  // every early-return path's behaviour unchanged.
+  RuniacErrorReporter? errorReporter;
+  await runZonedGuarded(
+    () async {
+      WidgetsFlutterBinding.ensureInitialized();
 
-  final qaApp = buildXpUpdateQaAppFromEnvironment();
-  if (qaApp != null) {
-    runApp(qaApp);
-    return;
-  }
-  final feedQaApp = buildFeedMvpQaAppFromEnvironment();
-  if (feedQaApp != null) {
-    runApp(feedQaApp);
-    return;
-  }
-  final leaderboardQaApp = buildLeaderboardRankingQaAppFromEnvironment();
-  if (leaderboardQaApp != null) {
-    runApp(leaderboardQaApp);
-    return;
-  }
+      final qaApp = buildXpUpdateQaAppFromEnvironment();
+      if (qaApp != null) {
+        runApp(qaApp);
+        return;
+      }
+      final feedQaApp = buildFeedMvpQaAppFromEnvironment();
+      if (feedQaApp != null) {
+        runApp(feedQaApp);
+        return;
+      }
+      final leaderboardQaApp = buildLeaderboardRankingQaAppFromEnvironment();
+      if (leaderboardQaApp != null) {
+        runApp(leaderboardQaApp);
+        return;
+      }
 
-  final runtimeConfig = RuniacFirebaseRuntimeConfig.fromEnvironment();
-  final bootstrap = await RuniacFirebaseBootstrap.initialize(
-    config: runtimeConfig,
-    enableAnonymousEmulatorSignIn: false,
-  );
-  if (runtimeConfig.useFirebaseEmulator ||
-      runtimeConfig.useProductionFirebase) {
-    const appCheckDebugToken = String.fromEnvironment(
-      'RUNIAC_APPCHECK_DEBUG_TOKEN',
-    );
-    // An explicitly supplied debug token opts this build into the App Check
-    // debug providers even in release, so `run_runiac_release` on a dev device
-    // still passes enforced callables. Store/TestFlight builds ship without the
-    // dart-define, so they keep real Play Integrity / App Attest attestation.
-    await RuniacAppCheckBootstrap.activate(
-      useDebugProviders:
-          kDebugMode ||
-          runtimeConfig.useFirebaseEmulator ||
-          appCheckDebugToken.isNotEmpty,
-      debugToken: appCheckDebugToken.isEmpty ? null : appCheckDebugToken,
-    );
-  }
+      final runtimeConfig = RuniacFirebaseRuntimeConfig.fromEnvironment();
+      final bootstrap = await RuniacFirebaseBootstrap.initialize(
+        config: runtimeConfig,
+        enableAnonymousEmulatorSignIn: false,
+      );
+      if (runtimeConfig.useFirebaseEmulator ||
+          runtimeConfig.useProductionFirebase) {
+        const appCheckDebugToken = String.fromEnvironment(
+          'RUNIAC_APPCHECK_DEBUG_TOKEN',
+        );
+        // An explicitly supplied debug token opts this build into the App Check
+        // debug providers even in release, so `run_runiac_release` on a dev device
+        // still passes enforced callables. Store/TestFlight builds ship without the
+        // dart-define, so they keep real Play Integrity / App Attest attestation.
+        await RuniacAppCheckBootstrap.activate(
+          useDebugProviders:
+              kDebugMode ||
+              runtimeConfig.useFirebaseEmulator ||
+              appCheckDebugToken.isNotEmpty,
+          debugToken: appCheckDebugToken.isEmpty ? null : appCheckDebugToken,
+        );
+      }
 
-  final errorReporter = RuniacErrorReporter();
-  _installGlobalErrorReportingHooks(errorReporter);
-  unawaited(errorReporter.flushPending());
+      errorReporter = RuniacErrorReporter();
+      _installGlobalErrorReportingHooks(errorReporter!);
+      unawaited(errorReporter!.flushPending());
 
-  runZonedGuarded(
-    () {
       runApp(
         RuniacApp(
           authRepository: bootstrap.authRepository,
@@ -91,8 +98,11 @@ Future<void> main() async {
       );
     },
     (error, stack) {
+      // `errorReporter` may still be null if the error happened before it
+      // was constructed (e.g. during Firebase bootstrap); nothing can be
+      // reported yet in that case, so this is a no-op rather than a crash.
       unawaited(
-        errorReporter.reportError(
+        errorReporter?.reportError(
           error,
           stack,
           screen: runiacErrorScreenTracker.currentScreen,

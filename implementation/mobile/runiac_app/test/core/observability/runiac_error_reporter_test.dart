@@ -1,9 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:runiac_app/core/observability/error_report.dart';
 import 'package:runiac_app/core/observability/flutterfire_report_app_error_callable.dart';
 import 'package:runiac_app/core/observability/local_pending_error_report_store.dart';
 import 'package:runiac_app/core/observability/runiac_error_reporter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   group('RuniacErrorReporter', () {
@@ -394,6 +396,100 @@ void main() {
     });
 
     test(
+      'constructing with no injected dependencies and no Firebase app does '
+      'not throw, and reportError/flushPending complete and leave the '
+      'report buffered',
+      () async {
+        // The default store (SharedPreferencesLocalPendingErrorReportStore)
+        // needs its platform channel mocked to work at all under
+        // flutter_test; nothing here mocks Firebase, which is the point —
+        // this exercises the exact "no Firebase app exists yet" startup
+        // path (e.g. a plain `flutter run` with no dart-defines) that used
+        // to crash because `FlutterFireReportAppErrorCallable()` and
+        // `FirebaseAuthErrorReporterAuthSource()` were built eagerly in the
+        // constructor's initializer list.
+        SharedPreferences.setMockInitialValues(<String, Object>{});
+
+        late final RuniacErrorReporter reporter;
+        expect(() => reporter = RuniacErrorReporter(), returnsNormally);
+        addTearDown(reporter.dispose);
+
+        await expectLater(
+          reporter.reportError(StateError('no firebase yet'), StackTrace.current),
+          completes,
+        );
+        await expectLater(reporter.flushPending(), completes);
+
+        const store = SharedPreferencesLocalPendingErrorReportStore();
+        final pending = await store.load();
+        expect(pending, hasLength(1));
+        expect(pending.single.message, contains('no firebase yet'));
+      },
+    );
+
+    test(
+      'a report enqueued while the flush loop is mid remove-step is not '
+      'lost and is not resent',
+      () async {
+        final seed = ErrorReport(
+          errorType: 'StateError',
+          message: 'seed',
+          stackFrames: const <String>[],
+          screen: 'unknown',
+          appVersion: '1.0.0+1',
+          osVersion: 'test-os',
+          platform: 'test-platform',
+          fatal: false,
+          occurredAt: DateTime.utc(2026, 1, 1),
+        );
+        final store = _RemoveStepGatedStore(<ErrorReport>[seed]);
+        final callable = _FakeReportAppErrorCallable();
+        final authSource = _FakeAuthSource(initialUid: 'uid-1');
+        final reporter = _buildReporter(
+          store: store,
+          callable: callable,
+          authSource: authSource,
+        );
+        addTearDown(reporter.dispose);
+
+        // Pause right after the *second* `load()` call — the flush loop's
+        // re-read immediately before it removes the just-sent head — so a
+        // concurrent enqueue can be attempted while that remove step is
+        // still in flight.
+        store.pauseAfterLoadNumber(2);
+        final flushFuture = reporter.flushPending();
+        await _pump();
+
+        // The seed was already sent; the remove step's re-read is paused
+        // before its save, so the store still shows the seed present.
+        expect(callable.calls, hasLength(1));
+        expect(store.snapshot, hasLength(1));
+
+        final reportFuture = reporter.reportError(
+          StateError('concurrent'),
+          StackTrace.current,
+          screen: 'ScreenB',
+        );
+        await _pump();
+        // The concurrent enqueue must queue behind the paused remove step
+        // rather than racing its load/save pair.
+        expect(store.snapshot, hasLength(1));
+
+        store.release();
+        await Future.wait([flushFuture, reportFuture]);
+        await _pump();
+
+        // Both reports were sent, in order, exactly once each, and nothing
+        // was lost or reintroduced.
+        expect(
+          callable.calls.map((call) => call['message']).toList(),
+          <String>['seed', 'Bad state: concurrent'],
+        );
+        expect(await store.load(), isEmpty);
+      },
+    );
+
+    test(
       'a report with no named screen and no matching stack frame still '
       'sends "unknown", never null or empty',
       () async {
@@ -599,4 +695,49 @@ class _GatedReportAppErrorCallable implements ReportAppErrorCallable {
       _gate.complete();
     }
   }
+}
+
+/// An in-memory store whose [load] can be paused, once, right after a
+/// chosen call number — used to hold `RuniacErrorReporter._flush`'s
+/// remove-step load open so a concurrent enqueue can be attempted while it
+/// is still in flight, proving the two are serialized rather than racing.
+class _RemoveStepGatedStore implements LocalPendingErrorReportStore {
+  _RemoveStepGatedStore(List<ErrorReport> initial)
+    : _reports = List<ErrorReport>.of(initial);
+
+  List<ErrorReport> _reports;
+  int _loadCount = 0;
+  int? _pauseAtLoadNumber;
+  Completer<void>? _gate;
+
+  @override
+  Future<List<ErrorReport>> load() async {
+    _loadCount += 1;
+    final snapshot = List<ErrorReport>.of(_reports);
+    if (_loadCount == _pauseAtLoadNumber) {
+      await _gate!.future;
+    }
+    return snapshot;
+  }
+
+  @override
+  Future<void> save(List<ErrorReport> reports) async {
+    _reports = List<ErrorReport>.of(reports);
+  }
+
+  /// Arms a one-shot pause: the [n]th call to [load] blocks (after
+  /// capturing its snapshot) until [release] is called.
+  void pauseAfterLoadNumber(int n) {
+    _pauseAtLoadNumber = n;
+    _gate = Completer<void>();
+  }
+
+  void release() {
+    final gate = _gate;
+    if (gate != null && !gate.isCompleted) {
+      gate.complete();
+    }
+  }
+
+  List<ErrorReport> get snapshot => List<ErrorReport>.unmodifiable(_reports);
 }
