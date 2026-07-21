@@ -22,6 +22,7 @@ import {
   monthlyPeriodForCompletedAt,
 } from "../progression/progressionCalculator.js";
 import { deferredProgressionDisplay } from "../progression/progressionEventWriter.js";
+import { withCallableErrorReporting } from "../errors/withErrorReporting.js";
 import { readTrustedProtectedRestDates, readTrustedStreakState } from "../progression/planBoundedStreakState.js";
 import {
   calculateStreakStateFromRuns,
@@ -49,8 +50,10 @@ type CallableRunRequest = {
 if (getApps().length === 0) {
   initializeApp();
 }
-export const completeRun = onCall({ region: "asia-southeast1" }, async (request) =>
-  completeRunForCallable(request, getFirestore()),
+export const completeRun = onCall(
+  { region: "asia-southeast1" },
+  withCallableErrorReporting("completeRun", async (request: CallableRunRequest) =>
+    completeRunForCallable(request, getFirestore())),
 );
 
 export async function completeRunForCallable(

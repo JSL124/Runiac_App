@@ -1,4 +1,5 @@
 import type { Firestore } from "firebase-admin/firestore";
+import { reportBackendError } from "../errors/reportBackendError.js";
 
 export type ProgressionCoolDownConfig = {
   readonly percent: number;
@@ -286,6 +287,18 @@ export function validateFeatureAccessConfig(config: FeatureAccessConfig): Config
   return { valid: errors.length === 0, errors };
 }
 
+// Reports a non-fatal degraded event: config doc validation failure, a
+// per-field repair, or a read failure. Deliberately NOT called for the
+// "config doc is missing" branches below — absent config is the designed
+// default state, not a fault, and reporting it would fire constantly in
+// fresh environments. reportBackendError never throws, so this can be
+// awaited unconditionally without its own try/catch. `error` is the actual
+// caught error for read failures, or a synthetic Error carrying the same
+// message already sent to console.warn for validation/repair events.
+async function reportConfigFallback(functionName: string, error: unknown): Promise<void> {
+  await reportBackendError({ functionName, error, fatal: false });
+}
+
 async function readConfigDoc(db: Firestore, docPath: string): Promise<unknown> {
   const snapshot = await db.doc(docPath).get();
 
@@ -390,21 +403,22 @@ export async function loadProgressionConfig(db: Firestore): Promise<ProgressionC
       );
 
       if (repaired !== null) {
-        console.warn(
-          `configLoader: config/progression failed validation (${result.errors.join(", ")}); reset ${repaired.resetFields.join(", ")} to defaults and kept the rest`,
-        );
+        const message = `configLoader: config/progression failed validation (${result.errors.join(", ")}); reset ${repaired.resetFields.join(", ")} to defaults and kept the rest`;
+        console.warn(message);
+        await reportConfigFallback("loadProgressionConfig", new Error(message));
         return repaired.config;
       }
 
-      console.warn(
-        `configLoader: config/progression failed validation (${result.errors.join(", ")}); using DEFAULT_PROGRESSION_CONFIG`,
-      );
+      const message = `configLoader: config/progression failed validation (${result.errors.join(", ")}); using DEFAULT_PROGRESSION_CONFIG`;
+      console.warn(message);
+      await reportConfigFallback("loadProgressionConfig", new Error(message));
       return DEFAULT_PROGRESSION_CONFIG;
     }
 
     return merged;
   } catch (error) {
     console.warn("configLoader: failed to read config/progression; using DEFAULT_PROGRESSION_CONFIG", error);
+    await reportConfigFallback("loadProgressionConfig", error);
     return DEFAULT_PROGRESSION_CONFIG;
   }
 }
@@ -430,21 +444,22 @@ export async function loadLeaderboardConfig(db: Firestore): Promise<LeaderboardC
       );
 
       if (repaired !== null) {
-        console.warn(
-          `configLoader: config/leaderboard failed validation (${result.errors.join(", ")}); reset ${repaired.resetFields.join(", ")} to defaults and kept the rest`,
-        );
+        const message = `configLoader: config/leaderboard failed validation (${result.errors.join(", ")}); reset ${repaired.resetFields.join(", ")} to defaults and kept the rest`;
+        console.warn(message);
+        await reportConfigFallback("loadLeaderboardConfig", new Error(message));
         return repaired.config;
       }
 
-      console.warn(
-        `configLoader: config/leaderboard failed validation (${result.errors.join(", ")}); using DEFAULT_LEADERBOARD_CONFIG`,
-      );
+      const message = `configLoader: config/leaderboard failed validation (${result.errors.join(", ")}); using DEFAULT_LEADERBOARD_CONFIG`;
+      console.warn(message);
+      await reportConfigFallback("loadLeaderboardConfig", new Error(message));
       return DEFAULT_LEADERBOARD_CONFIG;
     }
 
     return merged;
   } catch (error) {
     console.warn("configLoader: failed to read config/leaderboard; using DEFAULT_LEADERBOARD_CONFIG", error);
+    await reportConfigFallback("loadLeaderboardConfig", error);
     return DEFAULT_LEADERBOARD_CONFIG;
   }
 }
@@ -462,15 +477,16 @@ export async function loadFeatureAccessConfig(db: Firestore): Promise<FeatureAcc
     const result = validateFeatureAccessConfig(merged);
 
     if (!result.valid) {
-      console.warn(
-        `configLoader: config/featureAccess failed validation (${result.errors.join(", ")}); using DEFAULT_FEATURE_ACCESS_CONFIG`,
-      );
+      const message = `configLoader: config/featureAccess failed validation (${result.errors.join(", ")}); using DEFAULT_FEATURE_ACCESS_CONFIG`;
+      console.warn(message);
+      await reportConfigFallback("loadFeatureAccessConfig", new Error(message));
       return DEFAULT_FEATURE_ACCESS_CONFIG;
     }
 
     return merged;
   } catch (error) {
     console.warn("configLoader: failed to read config/featureAccess; using DEFAULT_FEATURE_ACCESS_CONFIG", error);
+    await reportConfigFallback("loadFeatureAccessConfig", error);
     return DEFAULT_FEATURE_ACCESS_CONFIG;
   }
 }

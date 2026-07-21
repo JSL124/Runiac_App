@@ -1,6 +1,7 @@
 import { getFirestore, Timestamp, type Firestore } from "firebase-admin/firestore";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { shouldEnforceAppCheck } from "../security/appCheck.js";
+import { withCallableErrorReporting } from "../errors/withErrorReporting.js";
 
 export const HOME_GUIDE_DISCLOSURE_VERSION = 1;
 const HOME_GUIDE_CONSENT_SCHEMA_VERSION = 1;
@@ -25,10 +26,13 @@ export const homeGuideConsent = onCall(
     region: "asia-southeast1",
     enforceAppCheck: shouldEnforceAppCheck(),
   },
-  createHomeGuideConsentHandler({
-    firestore: getFirestore,
-    now: () => new Date(),
-  }),
+  withCallableErrorReporting(
+    "homeGuideConsent",
+    createHomeGuideConsentHandler({
+      firestore: getFirestore,
+      now: () => new Date(),
+    }),
+  ),
 );
 
 export function createHomeGuideConsentHandler(

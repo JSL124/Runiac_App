@@ -11,6 +11,7 @@ import {
   runSubscriptionExpirySweep,
   type SubscriptionExpirySweepResult,
 } from "./subscriptionExpiryCore.js";
+import { withScheduledErrorReporting } from "../errors/withErrorReporting.js";
 
 if (getApps().length === 0) {
   initializeApp();
@@ -22,9 +23,9 @@ export const expireSubscriptions = onSchedule(
     timeZone: "Asia/Singapore",
     region: "asia-southeast1",
   },
-  async () => {
+  withScheduledErrorReporting("expireSubscriptions", async () => {
     await expireSubscriptionsNow();
-  },
+  }),
 );
 
 export async function expireSubscriptionsNow(

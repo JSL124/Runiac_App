@@ -2,6 +2,7 @@ import { FieldValue, getFirestore, type Firestore } from "firebase-admin/firesto
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { rejectUnsupportedFields } from "../run/rejectUnsupportedFields.js";
 import { shouldEnforceAppCheck } from "../security/appCheck.js";
+import { withCallableErrorReporting } from "../errors/withErrorReporting.js";
 
 const FEEDBACK_CATEGORIES = new Set(["bug", "plan issue", "billing", "other"]);
 const ALLOWED_PAYLOAD_KEYS = new Set(["category", "message"]);
@@ -38,7 +39,8 @@ export type SubmitFeedbackPort = {
 
 export const submitFeedback = onCall<unknown, Promise<SubmitFeedbackResult>>(
   { region: "asia-southeast1", enforceAppCheck: shouldEnforceAppCheck() },
-  async (request) => submitFeedbackForCallable(request, firebaseFeedbackPort()),
+  withCallableErrorReporting("submitFeedback", async (request: SubmitFeedbackRequest) =>
+    submitFeedbackForCallable(request, firebaseFeedbackPort())),
 );
 
 export async function submitFeedbackForCallable(

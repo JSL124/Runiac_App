@@ -5,13 +5,19 @@ import { getStorage } from "firebase-admin/storage";
 import { onCall } from "firebase-functions/v2/https";
 import type { FeedStoredObject } from "../publish/core.js";
 import { readFeedThumbnail as readFeedThumbnailCore, type FeedThumbnailPorts } from "./core.js";
+import { withCallableErrorReporting } from "../../errors/withErrorReporting.js";
 
 if (getApps().length === 0) initializeApp();
 
-export const readFeedThumbnail = onCall({ region: "asia-southeast1" }, async (request) => {
-  const callableRequest = request.auth === undefined ? { data: request.data } : { auth: { uid: request.auth.uid }, data: request.data };
-  return readFeedThumbnailCore(callableRequest, createThumbnailPorts(getFirestore()));
-});
+type ReadFeedThumbnailRequest = { readonly auth?: { readonly uid: string }; readonly data: unknown };
+
+export const readFeedThumbnail = onCall(
+  { region: "asia-southeast1" },
+  withCallableErrorReporting("readFeedThumbnail", async (request: ReadFeedThumbnailRequest) => {
+    const callableRequest = request.auth === undefined ? { data: request.data } : { auth: { uid: request.auth.uid }, data: request.data };
+    return readFeedThumbnailCore(callableRequest, createThumbnailPorts(getFirestore()));
+  }),
+);
 
 export function createThumbnailPorts(firestore: Firestore): FeedThumbnailPorts {
   const bucket = getStorage().bucket();
