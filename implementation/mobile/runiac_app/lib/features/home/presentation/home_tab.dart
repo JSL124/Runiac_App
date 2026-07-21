@@ -21,6 +21,7 @@ import '../../challenge/presentation/challenge_result_presentation_controller.da
 import '../../challenge/presentation/challenge_result_screen.dart';
 import '../../challenge/presentation/home_active_challenge_display.dart';
 import '../../notifications/domain/models/notification_inbox_item.dart';
+import '../../plan/domain/plan_completion_seen_store.dart';
 import '../../friends/data/static_friends_repository.dart';
 import '../../friends/domain/repositories/friends_repository.dart';
 import '../../friends/presentation/friends_screen.dart';
@@ -50,14 +51,6 @@ import 'stage_map/home_stage_background_sequence.dart';
 import 'stage_map/home_stage_map.dart';
 import 'stage_map/home_stage_map_model.dart';
 
-// TODO(plan-completion): flip to true (or wire a real trigger) to visually
-// exercise `showPlanCompletionCeremony` locally. No backend-computed
-// "plan completed" signal exists yet (only per-workout completion is
-// tracked) — replace this stub once that signal is added, then remove the
-// flag and call `showPlanCompletionCeremony(context)` from the real
-// plan-completion detection path instead.
-const _kDebugShowPlanCompletionCeremony = false;
-
 class HomeTab extends StatefulWidget {
   const HomeTab({
     required this.authRepository,
@@ -75,6 +68,8 @@ class HomeTab extends StatefulWidget {
     this.todayWorkoutDetailSnapshot,
     this.todayPlannedRunContext,
     this.generatedPlanProgress,
+    this.planCompletedAt,
+    this.planCompletionSeenStore,
     this.currentDate,
     this.homeGuideAgent = const RuleBasedHomeGuideAgent(),
     this.homeGuideConsentRepository =
@@ -130,6 +125,18 @@ class HomeTab extends StatefulWidget {
   /// forwarded from the shell. Display-only.
   final GeneratedPlanProgressDisplay? generatedPlanProgress;
 
+  /// Backend-recorded completion time of the active generated plan, forwarded
+  /// from the shell. Computed and written entirely by the `completeRun` Cloud
+  /// Function into `planProgress/{uid}`; the client only reads it to decide
+  /// whether to celebrate. `null` while the plan is still in progress.
+  final DateTime? planCompletedAt;
+
+  /// Local one-shot marker for the plan-completion ceremony. When non-null
+  /// (Firebase-active composition), a newly-recorded completion is celebrated
+  /// exactly once. `null` (previews/tests) disables the celebration entirely,
+  /// matching how [challengeResultPresenter] gates the Result presentation.
+  final PlanCompletionSeenStore? planCompletionSeenStore;
+
   /// Injected "today" for deterministic active-week resolution in tests.
   final DateTime? currentDate;
   final bool enableForegroundGps;
@@ -159,6 +166,11 @@ class _HomeTabState extends State<HomeTab> with WidgetsBindingObserver {
   /// Guards the one-shot Result presentation against re-entrancy (a resume
   /// while a result route is already open must not stack a second one).
   bool _presentingResult = false;
+
+  /// Guards the one-shot plan-completion ceremony against re-entrancy (a
+  /// resume or a widget update while the overlay is already open must not
+  /// stack a second one).
+  bool _celebratingPlanCompletion = false;
   HomeGuideConsentStatus _homeGuideConsentStatus =
       HomeGuideConsentStatus.unknown;
   String? _homeGuideConsentOwnerUid;
@@ -172,9 +184,7 @@ class _HomeTabState extends State<HomeTab> with WidgetsBindingObserver {
     _loadActiveChallenge();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _maybePresentUnseenResult();
-      if (_kDebugShowPlanCompletionCeremony && mounted) {
-        showPlanCompletionCeremony(context);
-      }
+      _maybeCelebratePlanCompletion();
     });
   }
 
@@ -189,6 +199,7 @@ class _HomeTabState extends State<HomeTab> with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed) {
       _loadActiveChallenge();
       _maybePresentUnseenResult();
+      _maybeCelebratePlanCompletion();
     }
   }
 
@@ -205,6 +216,40 @@ class _HomeTabState extends State<HomeTab> with WidgetsBindingObserver {
       return;
     }
     await _presentResult(result);
+  }
+
+  /// Celebrates a backend-recorded plan completion exactly once. The seen
+  /// marker is advanced *before* the ceremony opens so a crash or a force-quit
+  /// mid-animation cannot leave the celebration re-firing on every launch.
+  Future<void> _maybeCelebratePlanCompletion() async {
+    final seenStore = widget.planCompletionSeenStore;
+    final completedAt = widget.planCompletedAt;
+    if (seenStore == null ||
+        completedAt == null ||
+        !mounted ||
+        _celebratingPlanCompletion) {
+      return;
+    }
+
+    final completedAtMs = completedAt.millisecondsSinceEpoch;
+    final lastSeenMs = await seenStore.lastSeenPlanCompletedAtMs();
+    if (lastSeenMs != null && completedAtMs <= lastSeenMs) {
+      return;
+    }
+    if (!mounted || _celebratingPlanCompletion) {
+      return;
+    }
+
+    _celebratingPlanCompletion = true;
+    try {
+      await seenStore.recordSeenPlanCompletion(completedAtMs);
+      if (!mounted) {
+        return;
+      }
+      await showPlanCompletionCeremony(context);
+    } finally {
+      _celebratingPlanCompletion = false;
+    }
   }
 
   Future<void> _presentResult(ChallengeResult result) async {
@@ -297,6 +342,11 @@ class _HomeTabState extends State<HomeTab> with WidgetsBindingObserver {
             widget.homeGuideConsentRepository ||
         _currentOwnerUid != _homeGuideConsentOwnerUid) {
       _loadHomeGuideConsent();
+    }
+    // Plan progress is loaded asynchronously, so the completion usually
+    // arrives after the first frame rather than being present in `initState`.
+    if (oldWidget.planCompletedAt != widget.planCompletedAt) {
+      _maybeCelebratePlanCompletion();
     }
   }
 

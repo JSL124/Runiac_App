@@ -12,9 +12,11 @@ import '../../../core/assets/runiac_assets.dart';
 /// state, matching the pattern used by [showRuniacSuccessCheckOverlay] and
 /// [ChallengeBadgeCeremony].
 ///
-/// NOTE: nothing currently calls this from a real "plan completed" signal —
-/// see the TODO in `home_tab.dart`. Wiring a real trigger requires a
-/// backend-computed plan-completion state, which is out of scope here.
+/// Triggered from `HomeTab` when the backend records the active plan as
+/// finished (`planProgress/{uid}.planCompletions[planId].completedAt`, written
+/// by the `completeRun` Cloud Function). The client never derives completion
+/// itself. The celebration is one-shot per completion, guarded by a local
+/// `PlanCompletionSeenStore` marker.
 Future<void> showPlanCompletionCeremony(BuildContext context) {
   final reduceMotion = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
   return showGeneralDialog<void>(

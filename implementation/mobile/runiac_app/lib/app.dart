@@ -38,6 +38,7 @@ import 'features/leaderboard/domain/repositories/leaderboard_repository.dart';
 import 'features/plan/domain/models/adaptive_plan_estimate_read_model.dart';
 import 'features/plan/domain/models/beginner_adaptive_plan_snapshot.dart';
 import 'features/plan/domain/models/plan_progress_read_model.dart';
+import 'features/plan/domain/plan_completion_seen_store.dart';
 import 'features/plan/domain/repositories/adaptive_plan_estimate_repository.dart';
 import 'features/plan/domain/repositories/generated_plan_persistence_repository.dart';
 import 'features/plan/domain/repositories/plan_progress_repository.dart';
@@ -87,6 +88,7 @@ class RuniacApp extends StatefulWidget {
     this.generatedPlanPersistenceRepository =
         const NoopGeneratedPlanPersistenceRepository(),
     this.planProgressRepository = const NoopPlanProgressRepository(),
+    this.planCompletionSeenStore,
     this.adaptivePlanEstimateRepository =
         const NoopAdaptivePlanEstimateRepository(),
     this.notificationInboxRepository =
@@ -135,6 +137,10 @@ class RuniacApp extends StatefulWidget {
   final UserProfilePersistenceRepository profilePersistenceRepository;
   final GeneratedPlanPersistenceRepository generatedPlanPersistenceRepository;
   final PlanProgressRepository planProgressRepository;
+
+  /// Local one-shot marker for the plan-completion ceremony, forwarded to the
+  /// shell. `null` (previews/tests) disables the celebration.
+  final PlanCompletionSeenStore? planCompletionSeenStore;
   final AdaptivePlanEstimateRepository adaptivePlanEstimateRepository;
   final NotificationInboxRepository notificationInboxRepository;
   final NotificationRegistrationService? notificationRegistrationService;
@@ -661,6 +667,7 @@ class _RuniacAppState extends State<RuniacApp> {
               widget.generatedPlanPersistenceRepository,
           notificationInboxRepository: widget.notificationInboxRepository,
           planProgress: _planProgress,
+          planCompletionSeenStore: widget.planCompletionSeenStore,
           adaptivePlanEstimate: _adaptivePlanEstimate,
           homeGuideAgent: widget.homeGuideAgent,
           homeGuideConsentRepository: widget.homeGuideConsentRepository,
@@ -792,7 +799,12 @@ class _RuniacAppState extends State<RuniacApp> {
       return;
     }
     setState(() {
-      _planProgress = progress.completedScheduledWorkoutIds.isEmpty
+      // A completion is retained even with no per-workout ids, so the
+      // plan-completion signal is never collapsed away by the "no progress
+      // worth showing" shortcut.
+      _planProgress =
+          progress.completedScheduledWorkoutIds.isEmpty &&
+              progress.planCompletedAt == null
           ? null
           : progress;
     });

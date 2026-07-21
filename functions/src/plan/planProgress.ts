@@ -51,7 +51,8 @@ export type PersistPlanProgressResult = {
 
 export function persistCompletedWorkoutProgress(input: PersistPlanProgressInput): PersistPlanProgressResult {
   const planData = trustedPlanData(input.generatedPlanData, input.progressData, input.payload);
-  const matchedWorkout = findMatchedWorkout(planData, input.payload);
+  const plannedWorkouts = readPlannedWorkouts(planData);
+  const matchedWorkout = findMatchedWorkout(plannedWorkouts, input.payload);
   if (matchedWorkout === null) {
     return noCompletedWorkoutRecorded();
   }
@@ -74,6 +75,13 @@ export function persistCompletedWorkoutProgress(input: PersistPlanProgressInput)
   }
 
   const completedWorkoutCount = readCompletedWorkoutCount(input.progressData, completedWorkouts) + 1;
+  const planCompletion = resolvePlanCompletion({
+    progressData: input.progressData,
+    completedWorkouts,
+    sourceGeneratedPlanId,
+    plannedWorkoutTotal: plannedWorkouts.length,
+    completedAt: input.payload.completedAt,
+  });
   input.transaction.set(
     input.progressRef,
     {
@@ -85,6 +93,7 @@ export function persistCompletedWorkoutProgress(input: PersistPlanProgressInput)
       workouts: {
         [progressKey]: completionReadModel(input, matchedWorkout),
       },
+      ...(planCompletion === null ? {} : { planCompletions: planCompletion }),
     },
     { merge: true },
   );
@@ -151,10 +160,9 @@ function completionReadModel(
 }
 
 function findMatchedWorkout(
-  generatedPlanData: DocumentData | undefined,
+  workouts: readonly PlannedWorkout[],
   payload: RawRunCompletionPayload,
 ): MatchedWorkout | null {
-  const workouts = readPlannedWorkouts(generatedPlanData);
   if (workouts.length === 0) {
     return null;
   }
@@ -256,6 +264,77 @@ function meetsObjective(objective: WorkoutObjective, payload: RawRunCompletionPa
   }
 
   return payload.distanceMeters >= objective.meters;
+}
+
+/**
+ * Decides whether the workout being recorded is the one that finishes the
+ * plan, and if so returns the `planCompletions` map fragment to merge in.
+ *
+ * Server-owned by construction: this runs inside the `completeRun`
+ * transaction, against the same trusted plan snapshot used for matching, so
+ * the client never supplies or infers the completion state.
+ *
+ * Scoped per generated plan rather than reusing `completedWorkoutCount`,
+ * which is a lifetime counter spanning every plan the user has run. Returns
+ * `null` (write nothing) when the plan cannot be scoped, when the plan has no
+ * planned workouts, when workouts remain, or when this plan was already
+ * recorded as completed — so the first completion timestamp is never
+ * overwritten by a later replay or by an extra run on a finished plan.
+ */
+function resolvePlanCompletion(input: {
+  readonly progressData: DocumentData | undefined;
+  readonly completedWorkouts: Readonly<Record<string, unknown>>;
+  readonly sourceGeneratedPlanId: string | undefined;
+  readonly plannedWorkoutTotal: number;
+  readonly completedAt: string;
+}): Readonly<Record<string, unknown>> | null {
+  const planId = input.sourceGeneratedPlanId;
+  if (planId === undefined || input.plannedWorkoutTotal <= 0) {
+    return null;
+  }
+
+  if (readPlanCompletions(input.progressData)[planId] !== undefined) {
+    return null;
+  }
+
+  // `+ 1` folds in the workout being recorded by this same transaction, which
+  // is not yet present in `completedWorkouts`.
+  const planCompletedWorkoutCount = countCompletedWorkoutsForPlan(input.completedWorkouts, planId) + 1;
+  if (planCompletedWorkoutCount < input.plannedWorkoutTotal) {
+    return null;
+  }
+
+  return {
+    [planId]: {
+      planId,
+      completedAt: input.completedAt,
+      completedWorkoutCount: planCompletedWorkoutCount,
+      plannedWorkoutTotal: input.plannedWorkoutTotal,
+    },
+  };
+}
+
+function countCompletedWorkoutsForPlan(
+  completedWorkouts: Readonly<Record<string, unknown>>,
+  planId: string,
+): number {
+  const prefix = `${planId}__`;
+  let count = 0;
+  for (const key of Object.keys(completedWorkouts)) {
+    if (key.startsWith(prefix)) {
+      count += 1;
+    }
+  }
+  return count;
+}
+
+function readPlanCompletions(progressData: DocumentData | undefined): Readonly<Record<string, unknown>> {
+  if (progressData === undefined) {
+    return {};
+  }
+
+  const value: unknown = progressData["planCompletions"];
+  return isRecord(value) ? value : {};
 }
 
 function readCompletedWorkouts(progressData: DocumentData | undefined): Readonly<Record<string, unknown>> {

@@ -126,6 +126,7 @@ is_historical_backend_functions_path() {
     functions/test/activityFeedbackContracts.test.ts|\
     functions/test/activityFeedbackModel.test.ts|\
     functions/test/completeRun.test.ts|\
+    functions/test/planProgressCompletion.test.ts|\
     functions/test/completeRunCallableSurface.test.ts|\
     functions/test/completeRunRichSummaryCases.ts|\
     functions/test/completeRunRichSummaryFixtures.ts|\
