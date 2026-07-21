@@ -7,6 +7,7 @@ import {
   type DispatchResult,
   type ScheduledPushDependencies,
 } from "./scheduledPushFirestore.js";
+import { withScheduledErrorReporting } from "../errors/withErrorReporting.js";
 
 if (getApps().length === 0) {
   initializeApp();
@@ -18,12 +19,12 @@ export const dispatchScheduledPushNotifications = onSchedule(
     timeZone: "Asia/Singapore",
     region: "asia-southeast1",
   },
-  async () => {
+  withScheduledErrorReporting("dispatchScheduledPushNotifications", async () => {
     await dispatchScheduledPushNotificationsNow({
       firestore: getFirestore(),
       messaging: getMessaging(),
     });
-  },
+  }),
 );
 
 export async function dispatchScheduledPushNotificationsNow(

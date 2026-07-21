@@ -4,13 +4,19 @@ import { getFirestore, type Firestore } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
 import { onCall } from "firebase-functions/v2/https";
 import { publishFeedActivity, type FeedPublishPorts, type FeedStoredObject } from "./core.js";
+import { withCallableErrorReporting } from "../../errors/withErrorReporting.js";
 
 if (getApps().length === 0) initializeApp();
 
-export const publishActivityToFeed = onCall({ region: "asia-southeast1" }, async (request) => {
-  const callableRequest = request.auth === undefined ? { data: request.data } : { auth: { uid: request.auth.uid }, data: request.data };
-  return publishFeedActivity(callableRequest, createPublishPorts(getFirestore()));
-});
+type PublishActivityToFeedRequest = { readonly auth?: { readonly uid: string }; readonly data: unknown };
+
+export const publishActivityToFeed = onCall(
+  { region: "asia-southeast1" },
+  withCallableErrorReporting("publishActivityToFeed", async (request: PublishActivityToFeedRequest) => {
+    const callableRequest = request.auth === undefined ? { data: request.data } : { auth: { uid: request.auth.uid }, data: request.data };
+    return publishFeedActivity(callableRequest, createPublishPorts(getFirestore()));
+  }),
+);
 
 export function createPublishPorts(firestore: Firestore): FeedPublishPorts {
   const bucket = getStorage().bucket();

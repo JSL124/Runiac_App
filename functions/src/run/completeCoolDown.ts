@@ -32,6 +32,7 @@ import {
 } from "./runCompletionArtifacts.js";
 import type { CompleteCoolDownResult, ProgressionDisplay } from "./runCompletionTypes.js";
 import { parseCoolDownCompletionPayload } from "./validateCoolDownPayload.js";
+import { withCallableErrorReporting } from "../errors/withErrorReporting.js";
 
 type CallableCoolDownRequest = {
   readonly auth?: {
@@ -44,8 +45,10 @@ if (getApps().length === 0) {
   initializeApp();
 }
 
-export const completeCoolDown = onCall({ region: "asia-southeast1" }, async (request) =>
-  completeCoolDownForCallable(request, getFirestore()),
+export const completeCoolDown = onCall(
+  { region: "asia-southeast1" },
+  withCallableErrorReporting("completeCoolDown", async (request: CallableCoolDownRequest) =>
+    completeCoolDownForCallable(request, getFirestore())),
 );
 
 export async function completeCoolDownForCallable(

@@ -8,6 +8,7 @@ import {
   type ActivityFeedbackModelProvider,
 } from "./activityFeedbackModel.js";
 import { shouldEnforceAppCheck } from "../security/appCheck.js";
+import { withCallableErrorReporting } from "../errors/withErrorReporting.js";
 
 const OPENAI_API_KEY = defineSecret("OPENAI_API_KEY");
 
@@ -23,7 +24,7 @@ export const activityFeedbackAgent = onCall(
     secrets: [OPENAI_API_KEY],
     enforceAppCheck: shouldEnforceAppCheck(),
   },
-  handler,
+  withCallableErrorReporting("activityFeedbackAgent", handler),
 );
 
 function createProvider(): ActivityFeedbackModelProvider {

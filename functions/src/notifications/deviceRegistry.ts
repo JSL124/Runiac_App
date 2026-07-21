@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
+import { withCallableErrorReporting } from "../errors/withErrorReporting.js";
 
 type CallableNotificationRequest = {
   readonly auth?: {
@@ -33,12 +34,16 @@ if (getApps().length === 0) {
   initializeApp();
 }
 
-export const registerNotificationDevice = onCall({ region: "asia-southeast1" }, async (request) =>
-  registerNotificationDeviceForCallable(request, getFirestore()),
+export const registerNotificationDevice = onCall(
+  { region: "asia-southeast1" },
+  withCallableErrorReporting("registerNotificationDevice", async (request: CallableNotificationRequest) =>
+    registerNotificationDeviceForCallable(request, getFirestore())),
 );
 
-export const unregisterNotificationDevice = onCall({ region: "asia-southeast1" }, async (request) =>
-  unregisterNotificationDeviceForCallable(request, getFirestore()),
+export const unregisterNotificationDevice = onCall(
+  { region: "asia-southeast1" },
+  withCallableErrorReporting("unregisterNotificationDevice", async (request: CallableNotificationRequest) =>
+    unregisterNotificationDeviceForCallable(request, getFirestore())),
 );
 
 export async function registerNotificationDeviceForCallable(

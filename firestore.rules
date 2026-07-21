@@ -1082,6 +1082,27 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // errorGroups is written only by the reportAppError callable via Admin
+    // SDK and read only by the admin console via firebase-admin; clients get
+    // no direct access. The reporters marker subcollection is the same.
+    match /errorGroups/{groupId} {
+      allow read, write: if false;
+      match /reporters/{reporterUid} {
+        allow read, write: if false;
+      }
+    }
+
+    // errorReportRateLimit backs the reportAppError callable's per-uid rate
+    // limit ledger. Each doc holds only a receivedAt timestamp — no error
+    // content — and is written/pruned only via Admin SDK; clients get no
+    // direct access.
+    match /errorReportRateLimit/{uid} {
+      allow read, write: if false;
+      match /events/{eventId} {
+        allow read, write: if false;
+      }
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

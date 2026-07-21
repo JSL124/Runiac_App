@@ -9,6 +9,9 @@ import {
   onDocumentDeleted,
   onDocumentUpdated,
 } from "firebase-functions/v2/firestore";
+import { withTriggerErrorReporting } from "../../errors/withErrorReporting.js";
+
+type FeedPostEvent = { readonly params: { readonly postId: string } };
 
 export const engagementKinds = ["like", "comment"] as const;
 
@@ -102,45 +105,45 @@ export function createFeedEngagementTriggers(dependencies: {
         document: "feedPosts/{postId}/likes/{uid}",
         region: "asia-southeast1",
       },
-      async (event) => {
+      withTriggerErrorReporting("feedLikeCreated", async (event: FeedPostEvent) => {
         await handlers.onLikeCreated(event.params.postId);
-      },
+      }),
     ),
     feedLikeDeleted: onDocumentDeleted(
       {
         document: "feedPosts/{postId}/likes/{uid}",
         region: "asia-southeast1",
       },
-      async (event) => {
+      withTriggerErrorReporting("feedLikeDeleted", async (event: FeedPostEvent) => {
         await handlers.onLikeDeleted(event.params.postId);
-      },
+      }),
     ),
     feedCommentCreated: onDocumentCreated(
       {
         document: "feedPosts/{postId}/comments/{commentId}",
         region: "asia-southeast1",
       },
-      async (event) => {
+      withTriggerErrorReporting("feedCommentCreated", async (event: FeedPostEvent) => {
         await handlers.onCommentCreated(event.params.postId);
-      },
+      }),
     ),
     feedCommentUpdated: onDocumentUpdated(
       {
         document: "feedPosts/{postId}/comments/{commentId}",
         region: "asia-southeast1",
       },
-      async (event) => {
+      withTriggerErrorReporting("feedCommentUpdated", async (event: FeedPostEvent) => {
         await handlers.onCommentUpdated(event.params.postId);
-      },
+      }),
     ),
     feedCommentDeleted: onDocumentDeleted(
       {
         document: "feedPosts/{postId}/comments/{commentId}",
         region: "asia-southeast1",
       },
-      async (event) => {
+      withTriggerErrorReporting("feedCommentDeleted", async (event: FeedPostEvent) => {
         await handlers.onCommentDeleted(event.params.postId);
-      },
+      }),
     ),
   };
 }

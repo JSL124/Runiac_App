@@ -22,6 +22,7 @@ import {
   refreshMonthlyLeaderboardSnapshots,
   singaporeMonthLabel,
 } from "./monthlyLeaderboardWriter.js";
+import { withScheduledErrorReporting } from "../errors/withErrorReporting.js";
 
 if (getApps().length === 0) {
   initializeApp();
@@ -58,12 +59,12 @@ export const refreshLeaderboardSnapshots = onSchedule(
     region: "asia-southeast1",
     timeZone: leaderboardTimezone,
   },
-  async () => {
+  withScheduledErrorReporting("refreshLeaderboardSnapshots", async () => {
     await refreshMonthlyLeaderboardSnapshots(
       getFirestore(),
       currentSingaporeMonthKey(new Date()),
     );
-  },
+  }),
 );
 
 export function leaderboardContributionId(

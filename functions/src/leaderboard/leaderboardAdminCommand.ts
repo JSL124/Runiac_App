@@ -4,11 +4,12 @@ import {
   type DocumentData,
   type Firestore,
 } from "firebase-admin/firestore";
-import { onDocumentCreated } from "firebase-functions/v2/firestore";
+import { onDocumentCreated, type FirestoreEvent, type QueryDocumentSnapshot } from "firebase-functions/v2/firestore";
 import {
   currentSingaporeMonthKey,
   refreshMonthlyLeaderboardSnapshots,
 } from "./monthlyLeaderboard.js";
+import { withTriggerErrorReporting } from "../errors/withErrorReporting.js";
 
 // The admin console (Next.js server, Admin SDK only) cannot invoke Cloud
 // Functions callables directly, so "request a recalculation" has to be a
@@ -117,13 +118,18 @@ export function createLeaderboardAdminCommandTriggers(dependencies: {
         document: `${leaderboardAdminCommandsCollection}/{commandId}`,
         region: "asia-southeast1",
       },
-      async (event) => {
-        const data = event.data?.data();
-        if (data === undefined) {
-          return;
-        }
-        await handlers.onCommandCreated(event.params.commandId, data);
-      },
+      withTriggerErrorReporting(
+        "leaderboardAdminCommandCreated",
+        async (
+          event: FirestoreEvent<QueryDocumentSnapshot | undefined, { commandId: string }>,
+        ) => {
+          const data = event.data?.data();
+          if (data === undefined) {
+            return;
+          }
+          await handlers.onCommandCreated(event.params.commandId, data);
+        },
+      ),
     ),
   };
 }

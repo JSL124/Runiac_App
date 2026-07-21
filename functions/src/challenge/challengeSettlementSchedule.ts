@@ -13,6 +13,7 @@ import {
   runChallengeSettlementSweep,
   type ChallengeSettlementSweepResult,
 } from "./challengeSettlementCore.js";
+import { withScheduledErrorReporting } from "../errors/withErrorReporting.js";
 
 if (getApps().length === 0) {
   initializeApp();
@@ -24,9 +25,9 @@ export const settleChallengeDeadlines = onSchedule(
     timeZone: "Asia/Singapore",
     region: "asia-southeast1",
   },
-  async () => {
+  withScheduledErrorReporting("settleChallengeDeadlines", async () => {
     await settleChallengeDeadlinesNow();
-  },
+  }),
 );
 
 export async function settleChallengeDeadlinesNow(

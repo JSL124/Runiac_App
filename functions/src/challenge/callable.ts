@@ -25,55 +25,80 @@ import {
   abandonChallengeForCallable,
   leaveChallengeForCallable,
 } from "./challengeSettlementCore.js";
+import { withCallableErrorReporting } from "../errors/withErrorReporting.js";
 
 if (getApps().length === 0) initializeApp();
 
-function normalize(request: { readonly auth?: { readonly uid: string }; readonly data: unknown }): CallableRequest {
+type RawCallableRequest = { readonly auth?: { readonly uid: string }; readonly data: unknown };
+
+function normalize(request: RawCallableRequest): CallableRequest {
   return request.auth === undefined
     ? { data: request.data }
     : { auth: { uid: request.auth.uid }, data: request.data };
 }
 
-export const getChallengeCatalog = onCall({ region: "asia-southeast1" }, async (request) =>
-  getChallengeCatalogForCallable(normalize(request)),
+export const getChallengeCatalog = onCall(
+  { region: "asia-southeast1" },
+  withCallableErrorReporting("getChallengeCatalog", async (request: RawCallableRequest) =>
+    getChallengeCatalogForCallable(normalize(request))),
 );
 
-export const createChallengeLobby = onCall({ region: "asia-southeast1" }, async (request) =>
-  createChallengeLobbyForCallable(normalize(request), getFirestore()),
+export const createChallengeLobby = onCall(
+  { region: "asia-southeast1" },
+  withCallableErrorReporting("createChallengeLobby", async (request: RawCallableRequest) =>
+    createChallengeLobbyForCallable(normalize(request), getFirestore())),
 );
 
-export const inviteChallengeFriends = onCall({ region: "asia-southeast1" }, async (request) =>
-  inviteChallengeFriendsForCallable(normalize(request), getFirestore()),
+export const inviteChallengeFriends = onCall(
+  { region: "asia-southeast1" },
+  withCallableErrorReporting("inviteChallengeFriends", async (request: RawCallableRequest) =>
+    inviteChallengeFriendsForCallable(normalize(request), getFirestore())),
 );
 
-export const respondToChallengeInvitation = onCall({ region: "asia-southeast1" }, async (request) =>
-  respondToChallengeInvitationForCallable(normalize(request), getFirestore()),
+export const respondToChallengeInvitation = onCall(
+  { region: "asia-southeast1" },
+  withCallableErrorReporting("respondToChallengeInvitation", async (request: RawCallableRequest) =>
+    respondToChallengeInvitationForCallable(normalize(request), getFirestore())),
 );
 
-export const withdrawFromChallengeLobby = onCall({ region: "asia-southeast1" }, async (request) =>
-  withdrawFromChallengeLobbyForCallable(normalize(request), getFirestore()),
+export const withdrawFromChallengeLobby = onCall(
+  { region: "asia-southeast1" },
+  withCallableErrorReporting("withdrawFromChallengeLobby", async (request: RawCallableRequest) =>
+    withdrawFromChallengeLobbyForCallable(normalize(request), getFirestore())),
 );
 
-export const cancelChallengeLobby = onCall({ region: "asia-southeast1" }, async (request) =>
-  cancelChallengeLobbyForCallable(normalize(request), getFirestore()),
+export const cancelChallengeLobby = onCall(
+  { region: "asia-southeast1" },
+  withCallableErrorReporting("cancelChallengeLobby", async (request: RawCallableRequest) =>
+    cancelChallengeLobbyForCallable(normalize(request), getFirestore())),
 );
 
-export const startChallenge = onCall({ region: "asia-southeast1" }, async (request) =>
-  startChallengeForCallable(normalize(request), getFirestore()),
+export const startChallenge = onCall(
+  { region: "asia-southeast1" },
+  withCallableErrorReporting("startChallenge", async (request: RawCallableRequest) =>
+    startChallengeForCallable(normalize(request), getFirestore())),
 );
 
-export const getActiveChallenge = onCall({ region: "asia-southeast1" }, async (request) =>
-  getActiveChallengeForCallable(normalize(request), getFirestore()),
+export const getActiveChallenge = onCall(
+  { region: "asia-southeast1" },
+  withCallableErrorReporting("getActiveChallenge", async (request: RawCallableRequest) =>
+    getActiveChallengeForCallable(normalize(request), getFirestore())),
 );
 
-export const getChallengeInvitations = onCall({ region: "asia-southeast1" }, async (request) =>
-  getChallengeInvitationsForCallable(normalize(request), getFirestore()),
+export const getChallengeInvitations = onCall(
+  { region: "asia-southeast1" },
+  withCallableErrorReporting("getChallengeInvitations", async (request: RawCallableRequest) =>
+    getChallengeInvitationsForCallable(normalize(request), getFirestore())),
 );
 
-export const leaveChallenge = onCall({ region: "asia-southeast1" }, async (request) =>
-  leaveChallengeForCallable(normalize(request), getFirestore()),
+export const leaveChallenge = onCall(
+  { region: "asia-southeast1" },
+  withCallableErrorReporting("leaveChallenge", async (request: RawCallableRequest) =>
+    leaveChallengeForCallable(normalize(request), getFirestore())),
 );
 
-export const abandonChallenge = onCall({ region: "asia-southeast1" }, async (request) =>
-  abandonChallengeForCallable(normalize(request), getFirestore()),
+export const abandonChallenge = onCall(
+  { region: "asia-southeast1" },
+  withCallableErrorReporting("abandonChallenge", async (request: RawCallableRequest) =>
+    abandonChallengeForCallable(normalize(request), getFirestore())),
 );

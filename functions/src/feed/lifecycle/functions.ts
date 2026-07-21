@@ -4,6 +4,7 @@ import { onDocumentDeleted } from "firebase-functions/v2/firestore";
 import { cleanupFromActivityDeletion, deleteFeedPostCore, reportFeedPostCore } from "./core.js";
 import { firebaseLifecyclePort } from "./firebasePort.js";
 import type { DeleteFeedPostResult, ReportFeedPostResult } from "./types.js";
+import { withCallableErrorReporting, withTriggerErrorReporting } from "../../errors/withErrorReporting.js";
 
 if (getApps().length === 0) initializeApp();
 
@@ -11,20 +12,27 @@ type CallableRequest = { readonly auth?: { readonly uid: string }; readonly data
 type ReportCallableResult = { readonly reportId: string; readonly duplicate: boolean };
 type DeleteCallableResult = { readonly status: "deleted" | "already_missing" | "retry_required" };
 
-export const reportFeedPost = onCall<unknown, Promise<ReportCallableResult>>({ region: "asia-southeast1" }, async (request) =>
-  reportFeedPostForCallable(request, firebaseLifecyclePort()),
+export const reportFeedPost = onCall<unknown, Promise<ReportCallableResult>>(
+  { region: "asia-southeast1" },
+  withCallableErrorReporting("reportFeedPost", async (request: CallableRequest) =>
+    reportFeedPostForCallable(request, firebaseLifecyclePort())),
 );
 
-export const deleteFeedPost = onCall<unknown, Promise<DeleteCallableResult>>({ region: "asia-southeast1" }, async (request) =>
-  deleteFeedPostForCallable(request, firebaseLifecyclePort()),
+export const deleteFeedPost = onCall<unknown, Promise<DeleteCallableResult>>(
+  { region: "asia-southeast1" },
+  withCallableErrorReporting("deleteFeedPost", async (request: CallableRequest) =>
+    deleteFeedPostForCallable(request, firebaseLifecyclePort())),
 );
 
 export const cleanupDeletedFeedActivity = onDocumentDeleted(
   { document: "activities/{activityId}", region: "asia-southeast1", retry: true },
-  async (event) => {
-    const result = await cleanupFromActivityDeletion({ port: firebaseLifecyclePort(), postId: event.params.activityId });
-    if (result.kind === "cleanup" && result.cleanup.kind === "retry_required") throw new FeedCleanupRetryError(result.cleanup.failedStep);
-  },
+  withTriggerErrorReporting(
+    "cleanupDeletedFeedActivity",
+    async (event: { readonly params: { readonly activityId: string } }) => {
+      const result = await cleanupFromActivityDeletion({ port: firebaseLifecyclePort(), postId: event.params.activityId });
+      if (result.kind === "cleanup" && result.cleanup.kind === "retry_required") throw new FeedCleanupRetryError(result.cleanup.failedStep);
+    },
+  ),
 );
 
 export async function reportFeedPostForCallable(request: CallableRequest, port = firebaseLifecyclePort()): Promise<ReportCallableResult> {

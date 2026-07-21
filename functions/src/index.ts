@@ -3,6 +3,7 @@ export { completeCoolDown } from "./run/completeCoolDown.js";
 export { homeGuideAgent } from "./agent/homeGuideAgent.js";
 export { homeGuideConsent } from "./agent/homeGuideConsent.js";
 export { submitFeedback } from "./feedback/submitFeedback.js";
+export { reportAppError } from "./errors/reportAppError.js";
 export { activityFeedbackAgent } from "./agent/activityFeedbackAgent.js";
 export { registerNotificationDevice, unregisterNotificationDevice } from "./notifications/deviceRegistry.js";
 export { dispatchScheduledPushNotifications } from "./notifications/scheduledPushDispatch.js";
