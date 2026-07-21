@@ -446,6 +446,33 @@ is_user_feedback_pipeline_capsule_active() {
   grep -Eq '^- Newly routed user feedback pipeline on 2026-07-19 Asia/Singapore: `implementation/roadmap/capsules/user-feedback-pipeline\.md`' implementation/roadmap/CURRENT.md
 }
 
+is_error_reporting_pipeline_capsule_active() {
+  grep -Eq '^- Newly routed error reporting pipeline on 2026-07-21 Asia/Singapore: `implementation/roadmap/capsules/error-reporting-pipeline\.md`' implementation/roadmap/CURRENT.md
+}
+
+# New source files introduced by the routed error reporting pipeline capsule.
+# Only the genuinely new paths need listing here; already-tracked files this
+# capsule modifies are handled by the diff-hygiene allowlist.
+is_error_reporting_pipeline_path() {
+  case "$1" in
+    functions/src/errors/errorGroupStore.ts|\
+    functions/src/errors/reportAppError.ts|\
+    functions/src/errors/reportBackendError.ts|\
+    functions/src/errors/sanitize.ts|\
+    functions/src/errors/withErrorReporting.ts|\
+    functions/test/reportAppError.test.ts|\
+    functions/test/backendErrorReporting.test.ts|\
+    functions/src/index.ts|\
+    functions/package.json|\
+    firestore.rules)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 is_admin_role_subscription_expiry_capsule_active() {
   grep -Eq '^- Newly routed admin role and subscription expiry on 2026-07-20 Asia/Singapore: `implementation/roadmap/capsules/admin-role-subscription-expiry\.md`' implementation/roadmap/CURRENT.md
 }
@@ -493,6 +520,10 @@ is_user_feedback_pipeline_path() {
 }
 
 is_forbidden_config_or_secret() {
+  if is_error_reporting_pipeline_path "$1" && is_error_reporting_pipeline_capsule_active; then
+    return 1
+  fi
+
   if is_user_feedback_pipeline_path "$1" && is_user_feedback_pipeline_capsule_active; then
     return 1
   fi

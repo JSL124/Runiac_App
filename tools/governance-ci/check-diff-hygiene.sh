@@ -346,6 +346,58 @@ is_run_duration_fields_functions_path() {
   esac
 }
 
+is_error_reporting_pipeline_capsule_active() {
+  grep -Eq '^- Newly routed error reporting pipeline on 2026-07-21 Asia/Singapore: `implementation/roadmap/capsules/error-reporting-pipeline\.md`' implementation/roadmap/CURRENT.md
+}
+
+# Routed error reporting pipeline: the new errors module and the Flutter
+# observability layer, plus the call sites the three trigger wrappers are
+# applied to. The wrapper application is a one-line change per file and does
+# not alter any success path, return value, or thrown HttpsError code.
+is_error_reporting_pipeline_path() {
+  case "$1" in
+    implementation/roadmap/capsules/error-reporting-pipeline.md|\
+    firestore.rules|\
+    functions/package.json|\
+    functions/src/index.ts|\
+    functions/src/errors/errorGroupStore.ts|\
+    functions/src/errors/reportAppError.ts|\
+    functions/src/errors/reportBackendError.ts|\
+    functions/src/errors/sanitize.ts|\
+    functions/src/errors/withErrorReporting.ts|\
+    functions/test/reportAppError.test.ts|\
+    functions/test/backendErrorReporting.test.ts|\
+    functions/src/config/configLoader.ts|\
+    functions/src/agent/activityFeedbackAgent.ts|\
+    functions/src/agent/homeGuideAgent.ts|\
+    functions/src/agent/homeGuideConsent.ts|\
+    functions/src/challenge/callable.ts|\
+    functions/src/challenge/challengeSettlementSchedule.ts|\
+    functions/src/feed/engagement/engagement.ts|\
+    functions/src/feed/lifecycle/functions.ts|\
+    functions/src/feed/publish/callable.ts|\
+    functions/src/feed/thumbnail/callable.ts|\
+    functions/src/feedback/submitFeedback.ts|\
+    functions/src/friends/callable.ts|\
+    functions/src/leaderboard/leaderboardAdminCommand.ts|\
+    functions/src/leaderboard/monthlyLeaderboard.ts|\
+    functions/src/notifications/deviceRegistry.ts|\
+    functions/src/notifications/scheduledPushDispatch.ts|\
+    functions/src/progression/subscriptionExpirySchedule.ts|\
+    functions/src/run/completeCoolDown.ts|\
+    functions/src/run/completeRun.ts|\
+    implementation/mobile/runiac_app/lib/app.dart|\
+    implementation/mobile/runiac_app/lib/main.dart|\
+    implementation/mobile/runiac_app/lib/core/observability/*.dart|\
+    implementation/mobile/runiac_app/test/core/observability/*.dart)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 is_admin_role_subscription_expiry_capsule_active() {
   grep -Eq '^- Newly routed admin role and subscription expiry on 2026-07-20 Asia/Singapore: `implementation/roadmap/capsules/admin-role-subscription-expiry\.md`' implementation/roadmap/CURRENT.md
 }
@@ -409,6 +461,10 @@ is_user_feedback_pipeline_path() {
 }
 
 is_allowed_path() {
+  if is_error_reporting_pipeline_path "$1" && is_error_reporting_pipeline_capsule_active; then
+    return 0
+  fi
+
   if is_user_feedback_pipeline_path "$1" && is_user_feedback_pipeline_capsule_active; then
     return 0
   fi
@@ -583,6 +639,10 @@ is_unrelated_mobile_native_artifact() {
 }
 
 is_forbidden_path() {
+  if is_error_reporting_pipeline_path "$1" && is_error_reporting_pipeline_capsule_active; then
+    return 1
+  fi
+
   if is_progression_followups_path "$1" && is_progression_followups_capsule_active; then
     return 1
   fi
