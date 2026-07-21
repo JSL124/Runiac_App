@@ -1,3 +1,4 @@
+import { dailyCapDateForCompletedAt } from "./progressionCalculator.js";
 import { calculateStreakStateFromRuns, type StreakRun, type StreakState } from "./streakCalculator.js";
 import {
   isRecord,
@@ -5,6 +6,7 @@ import {
   readOptionalInteger,
   readOptionalString,
   scheduledDateFor,
+  weekdayLabels,
 } from "../plan/planProgressParsing.js";
 
 export type TrustedStreakStateInput = {
@@ -14,31 +16,31 @@ export type TrustedStreakStateInput = {
 };
 
 export function readTrustedStreakState(input: TrustedStreakStateInput): StreakState {
-  const generatedPlanStartedAt = readGeneratedPlanStartedAt(input.generatedPlanData);
-  if (generatedPlanStartedAt === null) {
+  const planStartDate = readGeneratedPlanStartDate(input.generatedPlanData);
+  if (planStartDate === null) {
     return input.profileState;
   }
 
   return calculateStreakStateFromRuns(
-    readPlanBoundedValidatedRuns(input.activityDocuments, generatedPlanStartedAt),
-    readPlanBoundedRestDates(input.generatedPlanData, generatedPlanStartedAt),
+    readPlanBoundedValidatedRuns(input.activityDocuments, planStartDate),
+    readPlanBoundedRestDates(input.generatedPlanData, planStartDate),
   );
 }
 
 export function readTrustedProtectedRestDates(
   generatedPlanData: FirebaseFirestore.DocumentData | undefined,
 ): readonly string[] {
-  const generatedPlanStartedAt = readGeneratedPlanStartedAt(generatedPlanData);
-  if (generatedPlanStartedAt === null) {
+  const planStartDate = readGeneratedPlanStartDate(generatedPlanData);
+  if (planStartDate === null) {
     return [];
   }
 
-  return readPlanBoundedRestDates(generatedPlanData, generatedPlanStartedAt);
+  return readPlanBoundedRestDates(generatedPlanData, planStartDate);
 }
 
 function readPlanBoundedValidatedRuns(
   activityDocuments: readonly FirebaseFirestore.DocumentData[],
-  generatedPlanStartedAt: string,
+  planStartDate: string,
 ): readonly StreakRun[] {
   return activityDocuments.flatMap((activityData) => {
     if (
@@ -50,7 +52,10 @@ function readPlanBoundedValidatedRuns(
     }
 
     const completedAt = readActivityCompletedAt(activityData);
-    if (completedAt === null || Date.parse(completedAt) < Date.parse(generatedPlanStartedAt)) {
+    // Compare Singapore calendar days, not raw instants: a run just after
+    // Singapore midnight on the plan's first day is 16:00Z the day before, and
+    // an instant comparison would drop it as pre-start.
+    if (completedAt === null || dailyCapDateForCompletedAt(completedAt) < planStartDate) {
       return [];
     }
 
@@ -68,9 +73,14 @@ function readActivityCompletedAt(activityData: FirebaseFirestore.DocumentData): 
   return typeof completedAt === "string" ? completedAt : null;
 }
 
+// A generated plan expresses rest by OMITTING a day from `weeks[].workouts`,
+// not by writing a `kind: "rest"` workout — no plan writer in the codebase ever
+// emits one. So a protected rest date is any in-plan calendar day that carries
+// no scheduled training workout. Weeks we cannot parse contribute neither
+// scheduled nor rest dates, so a malformed week never widens protection.
 function readPlanBoundedRestDates(
   generatedPlanData: FirebaseFirestore.DocumentData | undefined,
-  generatedPlanStartedAt: string,
+  planStartDate: string,
 ): readonly string[] {
   if (generatedPlanData === undefined) {
     return [];
@@ -82,7 +92,7 @@ function readPlanBoundedRestDates(
     return [];
   }
 
-  return weeks.flatMap((week) => {
+  const parsedWeeks = weeks.flatMap((week) => {
     if (!isRecord(week)) {
       return [];
     }
@@ -93,35 +103,59 @@ function readPlanBoundedRestDates(
       return [];
     }
 
-    return workouts.flatMap((workout) => {
-      if (!isRecord(workout) || !isRestWorkout(workout)) {
-        return [];
-      }
+    return [{ weekNumber, workouts }];
+  });
 
-      const dayLabel = readOptionalString(workout["dayLabel"]);
-      const scheduledDate = dayLabel === undefined
-        ? null
-        : scheduledDateFor(startsOnDate, weekNumber, dayLabel);
-      if (
-        scheduledDate === null ||
-        Date.parse(`${scheduledDate}T00:00:00.000Z`) < Date.parse(generatedPlanStartedAt)
-      ) {
-        return [];
-      }
+  // Collect every scheduled date across the whole plan before deciding what
+  // rests. Scoping this per week entry would let duplicate `weekNumber` entries
+  // protect a day that a sibling entry actually schedules.
+  const scheduledDates = new Set(
+    parsedWeeks.flatMap(({ weekNumber, workouts }) =>
+      workouts.flatMap((workout) => {
+        if (!isRecord(workout) || isRestWorkout(workout)) {
+          return [];
+        }
 
-      return [scheduledDate];
-    });
+        const dayLabel = readOptionalString(workout["dayLabel"]);
+        const scheduledDate = dayLabel === undefined
+          ? null
+          : scheduledDateFor(startsOnDate, weekNumber, dayLabel);
+        return scheduledDate === null ? [] : [scheduledDate];
+      })
+    ),
+  );
+
+  return [
+    ...new Set(parsedWeeks.flatMap(({ weekNumber }) => weekDates(startsOnDate, weekNumber))),
+  ].filter((date) =>
+    !scheduledDates.has(date) && date >= planStartDate
+  );
+}
+
+function weekDates(startsOnDate: string, weekNumber: number): readonly string[] {
+  return weekdayLabels.flatMap((dayLabel) => {
+    const date = scheduledDateFor(startsOnDate, weekNumber, dayLabel);
+    return date === null ? [] : [date];
   });
 }
 
-function readGeneratedPlanStartedAt(generatedPlanData: FirebaseFirestore.DocumentData | undefined): string | null {
+// Returns the plan's first day as a Singapore calendar date (YYYY-MM-DD) so
+// every plan bound is compared day-to-day. Timestamp sources are converted
+// through the same Singapore mapping runs use; `startsOnDate` is already one.
+function readGeneratedPlanStartDate(
+  generatedPlanData: FirebaseFirestore.DocumentData | undefined,
+): string | null {
   if (generatedPlanData === undefined) {
     return null;
   }
 
-  return readTimestampLikeString(generatedPlanData["createdAt"]) ??
-    readTimestampLikeString(generatedPlanData["updatedAt"]) ??
-    readDateString(generatedPlanData["startsOnDate"]);
+  const startedAt = readTimestampLikeString(generatedPlanData["createdAt"]) ??
+    readTimestampLikeString(generatedPlanData["updatedAt"]);
+  if (startedAt !== null) {
+    return dailyCapDateForCompletedAt(startedAt);
+  }
+
+  return readDateString(generatedPlanData["startsOnDate"]);
 }
 
 function readTimestampLikeString(value: unknown): string | null {
@@ -141,7 +175,7 @@ function readDateString(value: unknown): string | null {
     return null;
   }
 
-  return `${value}T00:00:00.000Z`;
+  return value;
 }
 
 function isFirestoreTimestamp(value: unknown): value is { readonly toDate: () => Date } {

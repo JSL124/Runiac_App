@@ -8,6 +8,8 @@ const weekdayOffsets: Readonly<Record<string, number>> = {
   Sun: 6,
 } as const;
 
+export const weekdayLabels: readonly string[] = Object.keys(weekdayOffsets);
+
 export function scheduledDateFor(
   startsOnDate: string | undefined,
   weekNumber: number,

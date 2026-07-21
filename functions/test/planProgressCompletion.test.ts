@@ -2,6 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type { DocumentData, DocumentReference, Transaction } from "firebase-admin/firestore";
 import { persistCompletedWorkoutProgress } from "../src/plan/planProgress.js";
+import {
+  readTrustedProtectedRestDates,
+  readTrustedStreakState,
+} from "../src/progression/planBoundedStreakState.js";
+import { calculateStreakExpiryTransition } from "../src/progression/streakCalculator.js";
 import type { CompleteRunIds, RawRunCompletionPayload } from "../src/run/runCompletionTypes.js";
 
 const PLAN_ID = "plan-alpha";
@@ -198,4 +203,124 @@ test("records nothing when the workout was already recorded (replay)", () => {
 
   assert.equal(result.completedWorkoutRecorded, false);
   assert.equal(writes.length, 0);
+});
+
+/**
+ * Generated plans express rest by omitting the day from `weeks[].workouts`;
+ * no plan writer emits a `kind: "rest"` workout. Rest protection used to look
+ * only for those explicit entries, so it resolved to nothing for every real
+ * plan and the streak reset at the first midnight refresh after any off-day.
+ */
+const TRAINING_DAY_PLAN = {
+  startsOnDate: "2026-07-06",
+  createdAt: "2026-07-05T09:19:32Z",
+  weeks: [1, 2, 3].map((weekNumber) => ({
+    weekNumber,
+    workouts: ["Mon", "Wed", "Fri", "Sat"].map((dayLabel) => ({
+      dayLabel,
+      title: `${dayLabel} run`,
+      kind: "easyRun",
+    })),
+  })),
+};
+
+test("protects in-plan days the schedule omits, not the training days", () => {
+  const restDates = readTrustedProtectedRestDates(TRAINING_DAY_PLAN);
+
+  // 2026-07-21 is a Tuesday, absent from a Mon/Wed/Fri/Sat schedule.
+  assert.ok(restDates.includes("2026-07-21"));
+  assert.ok(restDates.includes("2026-07-23"));
+  // Scheduled training days must never be protected.
+  assert.ok(!restDates.includes("2026-07-20"));
+  assert.ok(!restDates.includes("2026-07-22"));
+});
+
+test("keeps the streak across a day the plan simply omits", () => {
+  const transition = calculateStreakExpiryTransition({
+    currentState: { streakCount: 2, lastStreakRunDate: "2026-07-20" },
+    asOfDate: "2026-07-22",
+    protectedRestDates: readTrustedProtectedRestDates(TRAINING_DAY_PLAN),
+  });
+
+  assert.equal(transition.nextStreak, 2);
+  assert.equal(transition.shouldUpdateProfile, false);
+});
+
+test("still resets the streak when a scheduled training day is missed", () => {
+  const transition = calculateStreakExpiryTransition({
+    currentState: { streakCount: 2, lastStreakRunDate: "2026-07-20" },
+    asOfDate: "2026-07-23",
+    protectedRestDates: readTrustedProtectedRestDates(TRAINING_DAY_PLAN),
+  });
+
+  assert.equal(transition.nextStreak, 0);
+  assert.equal(transition.shouldUpdateProfile, true);
+});
+
+test("never protects a day a duplicate week entry schedules", () => {
+  const restDates = readTrustedProtectedRestDates({
+    startsOnDate: "2026-07-06",
+    createdAt: "2026-07-05T09:19:32Z",
+    weeks: [
+      { weekNumber: 1, workouts: [{ dayLabel: "Mon", title: "Mon run", kind: "easyRun" }] },
+      { weekNumber: 1, workouts: [{ dayLabel: "Tue", title: "Tue run", kind: "easyRun" }] },
+    ],
+  });
+
+  assert.ok(!restDates.includes("2026-07-06"));
+  assert.ok(!restDates.includes("2026-07-07"));
+  assert.ok(restDates.includes("2026-07-08"));
+});
+
+test("counts a first-day run started just after Singapore midnight", () => {
+  // 2026-07-06T16:30Z is 2026-07-07 00:30 in Singapore — the plan's first day.
+  // Comparing raw instants against a UTC-midnight start dropped it as pre-start.
+  const state = readTrustedStreakState({
+    profileState: { streakCount: 0, lastStreakRunDate: null },
+    generatedPlanData: { startsOnDate: "2026-07-07", weeks: [] },
+    activityDocuments: [{
+      activityType: "run",
+      validationStatus: "validated",
+      endedAt: "2026-07-06T16:30:00.000Z",
+    }],
+  });
+
+  assert.equal(state.streakCount, 1);
+  assert.equal(state.lastStreakRunDate, "2026-07-07");
+});
+
+test("still drops runs from the Singapore day before the plan starts", () => {
+  const state = readTrustedStreakState({
+    profileState: { streakCount: 9, lastStreakRunDate: "2026-01-01" },
+    generatedPlanData: { startsOnDate: "2026-07-07", weeks: [] },
+    activityDocuments: [{
+      activityType: "run",
+      validationStatus: "validated",
+      endedAt: "2026-07-06T10:00:00.000Z",
+    }],
+  });
+
+  assert.equal(state.streakCount, 0);
+  assert.equal(state.lastStreakRunDate, null);
+});
+
+test("protects a rest day falling on the plan's creation day", () => {
+  // createdAt is mid-day Singapore; the creation day itself must still resolve
+  // as rest when the schedule omits it.
+  const restDates = readTrustedProtectedRestDates({
+    startsOnDate: "2026-07-06",
+    createdAt: "2026-07-06T09:19:32.000Z",
+    weeks: [
+      { weekNumber: 1, workouts: [{ dayLabel: "Wed", title: "Wed run", kind: "easyRun" }] },
+    ],
+  });
+
+  assert.ok(restDates.includes("2026-07-06"));
+});
+
+test("protects nothing once the plan's weeks have run out", () => {
+  const restDates = readTrustedProtectedRestDates(TRAINING_DAY_PLAN);
+
+  // Week 3 ends 2026-07-26; nothing beyond it may be treated as rest.
+  assert.ok(!restDates.some((date) => date > "2026-07-26"));
 });
