@@ -32,6 +32,8 @@ import 'package:runiac_app/features/you/data/static_activity_history_repository.
 import 'package:runiac_app/features/you/data/local_pending_run_activity_store.dart';
 import 'package:runiac_app/features/you/presentation/current_session_activity_history.dart';
 import 'package:runiac_app/features/you/presentation/data/activity_history_demo_snapshots.dart';
+import 'package:runiac_app/features/you/presentation/expert_plan_detail_screen.dart';
+import 'package:runiac_app/features/you/presentation/expert_plan_list_screen.dart';
 import 'package:runiac_app/features/you/presentation/data/you_overview_demo_snapshots.dart';
 import 'package:runiac_app/features/you/domain/models/activity_history_read_model.dart';
 import 'package:runiac_app/features/you/domain/models/user_progress_read_model.dart';
@@ -44,7 +46,10 @@ import 'package:runiac_app/features/you/presentation/widgets/you_progress_surfac
 import 'package:runiac_app/features/you/presentation/you_tab.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:runiac_app/features/profile/domain/repositories/user_account_repository.dart';
+
 import 'support/fake_runiac_auth_repository.dart';
+import 'support/premium_user_account_repository.dart';
 
 final _progressToday = DateTime(2026, 6, 30);
 
@@ -55,6 +60,7 @@ Future<void> _openYouTab(
   ActivityHistoryRepository? activityHistoryRepository,
   RuniacAuthRepository? authRepository,
   bool showAuth = false,
+  bool premiumAccount = false,
   UserProgressRepository userProgressRepository =
       const _TestUserProgressRepository('1 day'),
 }) async {
@@ -69,6 +75,11 @@ Future<void> _openYouTab(
           activityHistoryRepository ?? const StaticActivityHistoryRepository(),
       authRepository: authRepository ?? const NonProductionAuthRepository(),
       userProgressRepository: userProgressRepository,
+      // Premium so premium-gated summary surfaces (advanced analysis,
+      // coaching) stay reachable in QA flows without the paywall intercept.
+      userAccountRepository: premiumAccount
+          ? const PremiumUserAccountRepository()
+          : const StaticUserAccountRepository(),
       youProgressToday: _progressToday,
     ),
   );
@@ -656,8 +667,11 @@ ActiveRunSessionCoordinator _testActiveRunSessionCoordinator(
   return activeRunSessionCoordinator;
 }
 
-Future<void> _openActivityHistoryFromYou(WidgetTester tester) async {
-  await _openYouTab(tester);
+Future<void> _openActivityHistoryFromYou(
+  WidgetTester tester, {
+  bool premiumAccount = false,
+}) async {
+  await _openYouTab(tester, premiumAccount: premiumAccount);
   await _tapRecentRunningSeeAll(tester);
 }
 
@@ -3152,7 +3166,7 @@ void main() {
   testWidgets(
     'Pace Graph QA run opens Advanced Analysis with local GPS pace graph',
     (WidgetTester tester) async {
-      await _openActivityHistoryFromYou(tester);
+      await _openActivityHistoryFromYou(tester, premiumAccount: true);
 
       final card = find.byKey(
         const ValueKey('activity_history_card_Pace Graph QA Run'),
@@ -3414,33 +3428,47 @@ void main() {
     expect(find.text('Upcoming · 7:30 AM'), findsOneWidget);
     expect(find.text('Scheduled · 8:00 AM'), findsNothing);
 
-    await tester.drag(find.byType(ListView), const Offset(0, -700));
+    await tester.ensureVisible(find.byKey(const Key('premium-upsell-section')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Explore expert plans'), findsOneWidget);
+    // The Strava-style premium upsell replaced the expert-plans entry point.
+    expect(find.byKey(const Key('premium-upsell-section')), findsOneWidget);
+    expect(find.text('Unlock your full potential'), findsOneWidget);
     expect(
-      find.text('Browse coach-reviewed plans at your own pace.'),
+      find.text('Go deeper on every run with Runiac Premium.'),
       findsOneWidget,
     );
-    expect(find.text('Coach-created'), findsOneWidget);
-    expect(find.text('First 5K'), findsOneWidget);
-    expect(find.text('10K'), findsOneWidget);
-    expect(find.text('Half Marathon'), findsOneWidget);
-    expect(find.text('Full Marathon'), findsOneWidget);
-    expect(find.text('Explore Expert Plans'), findsOneWidget);
+    expect(find.text('Advanced run analysis'), findsOneWidget);
+    // The expert-plans entry stays hidden (files kept, UI removed).
+    expect(find.text('Explore expert plans'), findsNothing);
+    expect(find.text('Explore Expert Plans'), findsNothing);
+    expect(find.text('Coach-created'), findsNothing);
+  });
+
+  testWidgets('premium upsell section is absent for premium runners', (
+    WidgetTester tester,
+  ) async {
+    await _openYouTab(tester, premiumAccount: true);
+
+    await tester.tap(find.text('Plans'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('premium-upsell-section')), findsNothing);
+    expect(find.text('Unlock your full potential'), findsNothing);
   });
 
   testWidgets(
-    'expert plan list opens from You Plans and renders approved static content',
+    'expert plan list renders approved static content when pumped directly '
+    '(entry hidden from You tab)',
     (WidgetTester tester) async {
-      await _openYouTab(tester);
-
-      await tester.tap(find.text('Plans'));
-      await tester.pumpAndSettle();
-      await tester.ensureVisible(find.text('Explore Expert Plans'));
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('Explore Expert Plans'));
+      // The You-tab entry point was replaced by the premium upsell section;
+      // the screen itself is preserved for later reuse and stays covered by
+      // pumping it directly.
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ExpertPlanListScreen(onBack: () {}, onFirstPlanSelected: () {}),
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Expert Plans'), findsOneWidget);
@@ -3493,8 +3521,11 @@ void main() {
     await tester.tap(find.text('Plans'));
     await tester.pumpAndSettle();
 
+    // 'premium' and 'subscription' were removed from this forbidden list:
+    // the Plans surface now intentionally carries the Runiac Premium upsell
+    // section for Basic runners. ('locked' stays — it does not match the
+    // upsell's "Unlock" headline.)
     for (final forbidden in <Pattern>[
-      RegExp('premium', caseSensitive: false),
       RegExp('locked', caseSensitive: false),
       RegExp(r'\bXP\b', caseSensitive: false),
       RegExp('rank', caseSensitive: false),
@@ -3502,7 +3533,6 @@ void main() {
       RegExp('published', caseSensitive: false),
       RegExp('approved', caseSensitive: false),
       RegExp('missed', caseSensitive: false),
-      RegExp('subscription', caseSensitive: false),
       RegExp('entitlement', caseSensitive: false),
       RegExp('eligible', caseSensitive: false),
       RegExp('publication', caseSensitive: false),
@@ -3544,21 +3574,25 @@ void main() {
     expect(find.byType(SnackBar), findsNothing);
     expect(find.text('15 min walk-run'), findsOneWidget);
 
-    await tester.ensureVisible(find.text('Explore Expert Plans'));
+    // The premium upsell opens the paywall sheet — display + navigation
+    // only, still backend safe. Bounded pumps (never pumpAndSettle) while
+    // the sheet is open: its feature-highlight timer would keep the tree
+    // from settling.
+    await tester.ensureVisible(find.byKey(const Key('premium-upsell-section')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Explore Expert Plans'));
-    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('premium-upsell-section')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
 
     expect(find.byType(AlertDialog), findsNothing);
-    expect(find.byType(BottomSheet), findsNothing);
     expect(find.byType(SnackBar), findsNothing);
-    expect(find.text('Activity History'), findsNothing);
-    expect(find.text('Expert Plans'), findsOneWidget);
-    expect(find.text('First 5K Preparation'), findsOneWidget);
-    expect(find.text('Explore Expert Plans'), findsNothing);
+    expect(find.byKey(const Key('paywall-title')), findsOneWidget);
 
-    await tester.tap(find.byTooltip('Back to Plans'));
+    await tester.tap(find.byKey(const Key('paywall-close-button')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
     await tester.pumpAndSettle();
+    expect(find.byKey(const Key('paywall-title')), findsNothing);
     expect(find.text("This Week's Plan"), findsOneWidget);
   });
 
@@ -3741,16 +3775,14 @@ void main() {
     },
   );
 
-  testWidgets('first expert plan opens static preview detail only', (
+  testWidgets('first expert plan opens static preview detail only '
+      '(pumped directly; entry hidden from You tab)', (
     WidgetTester tester,
   ) async {
-    await _openYouTab(tester);
-
-    await tester.tap(find.text('Plans'));
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Explore Expert Plans'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Explore Expert Plans'));
+    // The You-tab entry point was replaced by the premium upsell section;
+    // this harness mirrors the preserved you_tab list/detail wiring so the
+    // kept screens stay covered.
+    await tester.pumpWidget(const MaterialApp(home: _ExpertPlanFlowHarness()));
     await tester.pumpAndSettle();
 
     expect(find.text('Recommended'), findsOneWidget);
@@ -4696,4 +4728,34 @@ String _monthAbbreviation(int month) {
     'DEC',
   ];
   return names[month - 1];
+}
+
+/// Mirrors the preserved you_tab expert-plan wiring (list <-> detail via
+/// visibility state) now that the You-tab entry UI is hidden, so the kept
+/// screens keep their behavioral coverage.
+class _ExpertPlanFlowHarness extends StatefulWidget {
+  const _ExpertPlanFlowHarness();
+
+  @override
+  State<_ExpertPlanFlowHarness> createState() => _ExpertPlanFlowHarnessState();
+}
+
+class _ExpertPlanFlowHarnessState extends State<_ExpertPlanFlowHarness> {
+  bool _detailVisible = false;
+
+  @override
+  Widget build(BuildContext context) {
+    // The Scaffold stands in for the shell's scaffold so the list screen's
+    // "coming soon" SnackBar has a place to present.
+    return Scaffold(
+      body: _detailVisible
+          ? ExpertPlanDetailScreen(
+              onBack: () => setState(() => _detailVisible = false),
+            )
+          : ExpertPlanListScreen(
+              onBack: () {},
+              onFirstPlanSelected: () => setState(() => _detailVisible = true),
+            ),
+    );
+  }
 }

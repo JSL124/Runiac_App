@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import 'package:runiac_app/core/haptics/runiac_haptics_scope.dart';
 import 'package:runiac_app/core/theme/runiac_colors.dart';
 
 import '../domain/models/xp_update_display_model.dart';
@@ -40,6 +41,7 @@ class _XpUpdateScreenState extends State<XpUpdateScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   late final List<_ConfettiParticle> _particles;
+  var _hapticFired = false;
 
   @override
   void initState() {
@@ -58,6 +60,24 @@ class _XpUpdateScreenState extends State<XpUpdateScreen>
       _controller.value = 1;
     } else if (!_controller.isAnimating && _controller.value == 0) {
       _controller.forward();
+    }
+    _fireRevealHapticOnce();
+  }
+
+  // Fires exactly once when the reveal screen is shown: a heavy impact for a
+  // level-up (the bigger milestone wins), otherwise a medium impact for a
+  // standard XP update. This is an accessibility-independent cue, so it
+  // fires the same way whether or not reduced motion skipped the animation.
+  void _fireRevealHapticOnce() {
+    if (_hapticFired) {
+      return;
+    }
+    _hapticFired = true;
+    final haptics = RuniacHapticsScope.maybeOf(context);
+    if (widget.model.didLevelUp) {
+      haptics?.impactHeavy();
+    } else {
+      haptics?.impactMedium();
     }
   }
 

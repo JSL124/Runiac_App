@@ -1121,8 +1121,16 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // config/paywall and config/featureAccess are the only client-readable
+    // config docs: display-only paywall copy/pricing and the feature-tier map
+    // the premium upsell lists. Both are written only by the admin console
+    // via Admin SDK; feature ACCESS stays enforced server-side (Functions and
+    // rules), the client merely displays which features are premium. Every
+    // other config doc stays fully denied.
     match /config/{configDoc} {
-      allow read, write: if false;
+      allow read: if (configDoc == 'paywall' || configDoc == 'featureAccess')
+        && isSignedIn();
+      allow write: if false;
     }
 
     match /badgeConfigs/{badgeId} {

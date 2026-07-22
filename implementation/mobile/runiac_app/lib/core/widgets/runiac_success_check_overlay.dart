@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 
 import '../assets/runiac_assets.dart';
+import '../haptics/runiac_haptics_scope.dart';
 import '../theme/runiac_colors.dart';
 
 /// Shows a brief, non-interactive confirmation overlay: a check animation
@@ -19,6 +20,10 @@ Future<void> showRuniacSuccessCheckOverlay(
   String? message,
 }) {
   final reduceMotion = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+  // The save already succeeded by the time this is called, so the
+  // confirmation haptic fires regardless of whether the visual overlay ends
+  // up showing under reduced motion.
+  RuniacHapticsScope.maybeOf(context)?.impactMedium();
   if (reduceMotion) {
     return Future<void>.value();
   }

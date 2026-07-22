@@ -58,6 +58,13 @@ class CloudFunctionActivityFeedbackAgent implements ActivityFeedbackAgent {
         }
         return bundle;
       }
+    } on FirebaseFunctionsException catch (error) {
+      // Defence-in-depth: the paywall gate intercepts Basic runners in the
+      // UI, so this only fires on a direct call racing a tier change.
+      if (_isPremiumRequiredDenial(error)) {
+        return premiumRequiredActivityFeedbackBundle();
+      }
+      // Keep the summary UI usable when Firebase, quota, or model output fails.
     } catch (_) {
       // Keep the summary UI usable when Firebase, quota, or model output fails.
     }
@@ -133,6 +140,15 @@ class CloudFunctionActivityFeedbackAgent implements ActivityFeedbackAgent {
     } catch (_) {
       // A stale cache entry must not prevent a fresh callable request.
     }
+  }
+
+  static bool _isPremiumRequiredDenial(FirebaseFunctionsException error) {
+    if (error.code != 'permission-denied') {
+      return false;
+    }
+    final details = error.details;
+    return details is Map &&
+        details['reason'] == activityFeedbackPremiumRequiredReason;
   }
 
   static String? _currentFirebaseOwnerUid() {

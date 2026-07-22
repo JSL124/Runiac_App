@@ -50,6 +50,7 @@ import 'package:runiac_app/features/you/presentation/current_session_activity_hi
 
 import 'support/fake_runiac_auth_repository.dart';
 import 'support/plan_family_test_drafts.dart';
+import 'support/premium_user_account_repository.dart';
 
 const _demoMapboxPublicToken =
     'p'
@@ -3380,6 +3381,9 @@ void main() {
           enableForegroundGps: false,
           activeRunSessionCoordinator: activeRunSessionCoordinator,
           currentSessionActivityHistoryStore: historyStore,
+          // Premium so the replayed summary's advanced analysis stays
+          // reachable without the Basic paywall intercept.
+          userAccountRepository: const PremiumUserAccountRepository(),
         ),
       );
       await tester.tap(find.byTooltip('You'));

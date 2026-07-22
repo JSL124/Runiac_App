@@ -1,10 +1,10 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:lottie/lottie.dart';
 
 import '../../../core/assets/runiac_assets.dart';
+import '../../../core/haptics/runiac_haptics_scope.dart';
 import '../../../core/theme/runiac_colors.dart';
 import '../domain/models/challenge_enums.dart';
 import 'widgets/challenge_badge_image.dart';
@@ -79,7 +79,7 @@ class _ChallengeBadgeCeremonyState extends State<ChallengeBadgeCeremony>
     } else {
       _controller.forward();
       _ambient.repeat();
-      HapticFeedback.mediumImpact();
+      RuniacHapticsScope.maybeOf(context)?.impactHeavy();
     }
   }
 

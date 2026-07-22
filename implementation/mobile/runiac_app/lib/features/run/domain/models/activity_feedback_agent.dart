@@ -63,6 +63,26 @@ abstract interface class ActivityFeedbackAgent {
   Future<ActivityFeedbackBundle> explainRun(ActivityFeedbackRequest request);
 }
 
+/// Stable machine-readable reason the callable attaches to its
+/// permission-denied error when a non-premium runner invokes it directly.
+/// Mirrors `ACTIVITY_FEEDBACK_PREMIUM_REQUIRED_REASON` in
+/// `functions/src/agent/activityFeedbackAgentHandler.ts`.
+const activityFeedbackPremiumRequiredReason = 'premium-required';
+
+/// Defence-in-depth copy for a server-side premium denial. The paywall gate
+/// normally intercepts Basic runners before the callable is ever reached.
+ActivityFeedbackBundle premiumRequiredActivityFeedbackBundle() {
+  return const ActivityFeedbackBundle(
+    source: ActivityFeedbackSource.fallback,
+    sections: ActivityFeedbackSections(
+      summary: 'Activity feedback is a Premium feature.',
+      wentWell: 'Your run and its summary are saved as usual.',
+      improve: 'Runiac Premium unlocks personalised post-run feedback.',
+      nextFocus: 'Keep running — your data is ready whenever you upgrade.',
+    ),
+  );
+}
+
 ActivityFeedbackBundle fallbackActivityFeedbackBundle({
   ActivityFeedbackSource source = ActivityFeedbackSource.fallback,
   String? retryAfterDate,

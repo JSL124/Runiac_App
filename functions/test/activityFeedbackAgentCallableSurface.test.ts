@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { before, beforeEach, describe, it } from "node:test";
 import { getApps, initializeApp } from "firebase-admin/app";
-import { getFirestore, type Firestore } from "firebase-admin/firestore";
+import { getFirestore, Timestamp, type Firestore } from "firebase-admin/firestore";
 import {
+  ACTIVITY_FEEDBACK_PREMIUM_REQUIRED_REASON,
   createActivityFeedbackAgentHandler,
   type ActivityFeedbackCallableRequest,
 } from "../src/agent/activityFeedbackAgentHandler.js";
@@ -30,6 +31,12 @@ beforeEach(async () => {
   const snapshot = await firestore.doc(`agentUsage/${USER_UID}`)
     .collection("activityFeedbackDaily").get();
   await Promise.all(snapshot.docs.map((document) => document.ref.delete()));
+  // Activity feedback is premium-gated server-side; the shared test runner
+  // is premium so the existing behaviour cases stay reachable.
+  await firestore.doc(`users/${USER_UID}`).set({
+    subscriptionStatus: "premium",
+    subscriptionExpiresAt: null,
+  });
 });
 
 describe("activityFeedbackAgent callable emulator surface", { skip: process.env["FIRESTORE_EMULATOR_HOST"] === undefined }, () => {
@@ -44,6 +51,45 @@ describe("activityFeedbackAgent callable emulator surface", { skip: process.env[
       hasHttpsCode("invalid-argument"),
     );
     assert.equal((await dailyDocument(BASE_NOW)).exists, false);
+  });
+
+  it("denies non-premium runners with the stable premium-required reason", async () => {
+    // Given
+    const provider = new CountingProvider(safeOutput());
+    const handler = injectableHandler(provider);
+    await firestore.doc(`users/${USER_UID}`).set({ subscriptionStatus: "basic" });
+
+    // When / Then
+    await assert.rejects(
+      () => handler(authenticatedRequest(validRequest())),
+      hasPremiumRequiredDenial(),
+    );
+    assert.equal(provider.calls, 0);
+    assert.equal((await dailyDocument(BASE_NOW)).exists, false);
+  });
+
+  it("denies runners with a lapsed premium expiry or no users document", async () => {
+    // Given
+    const provider = new CountingProvider(safeOutput());
+    const handler = injectableHandler(provider);
+
+    // When / Then — lapsed expiry
+    await firestore.doc(`users/${USER_UID}`).set({
+      subscriptionStatus: "premium",
+      subscriptionExpiresAt: Timestamp.fromDate(new Date("2026-07-01T00:00:00.000Z")),
+    });
+    await assert.rejects(
+      () => handler(authenticatedRequest(validRequest())),
+      hasPremiumRequiredDenial(),
+    );
+
+    // When / Then — missing users document
+    await firestore.doc(`users/${USER_UID}`).delete();
+    await assert.rejects(
+      () => handler(authenticatedRequest(validRequest())),
+      hasPremiumRequiredDenial(),
+    );
+    assert.equal(provider.calls, 0);
   });
 
   it("returns generated sections with the exact shared response schema", async () => {
@@ -248,6 +294,14 @@ async function dailyDocument(now: Date) {
 
 function hasHttpsCode(code: string): (error: unknown) => boolean {
   return (error) => isRecord(error) && error["code"] === code;
+}
+
+function hasPremiumRequiredDenial(): (error: unknown) => boolean {
+  return (error) =>
+    isRecord(error)
+    && error["code"] === "permission-denied"
+    && isRecord(error["details"])
+    && error["details"]["reason"] === ACTIVITY_FEEDBACK_PREMIUM_REQUIRED_REASON;
 }
 
 async function postCallable(data: Record<string, unknown>, uid: string): Promise<Response> {
