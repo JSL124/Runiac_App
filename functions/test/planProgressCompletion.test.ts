@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type { DocumentData, DocumentReference, Transaction } from "firebase-admin/firestore";
 import { persistCompletedWorkoutProgress } from "../src/plan/planProgress.js";
+import { scheduledDateFor } from "../src/plan/planProgressParsing.js";
 import {
   readTrustedProtectedRestDates,
   readTrustedStreakState,
@@ -270,6 +271,30 @@ test("never protects a day a duplicate week entry schedules", () => {
   assert.ok(!restDates.includes("2026-07-06"));
   assert.ok(!restDates.includes("2026-07-07"));
   assert.ok(restDates.includes("2026-07-08"));
+});
+
+test("resolves a dayLabel to its real weekday when the plan starts mid-week", () => {
+  // 2026-07-08 is a Wednesday. A "Wed" workout belongs on the start day itself,
+  // and "Fri" two days later — not two and four days out as a Monday anchor gives.
+  assert.equal(scheduledDateFor("2026-07-08", 1, "Wed"), "2026-07-08");
+  assert.equal(scheduledDateFor("2026-07-08", 1, "Fri"), "2026-07-10");
+  // Labels earlier in the week wrap into the same seven-day window.
+  assert.equal(scheduledDateFor("2026-07-08", 1, "Mon"), "2026-07-13");
+  assert.equal(scheduledDateFor("2026-07-08", 2, "Wed"), "2026-07-15");
+});
+
+test("leaves Monday-start plans on exactly the dates they already had", () => {
+  // 2026-07-06 is a Monday, where the new mapping must be a no-op.
+  assert.equal(scheduledDateFor("2026-07-06", 1, "Mon"), "2026-07-06");
+  assert.equal(scheduledDateFor("2026-07-06", 1, "Wed"), "2026-07-08");
+  assert.equal(scheduledDateFor("2026-07-06", 1, "Sun"), "2026-07-12");
+  assert.equal(scheduledDateFor("2026-07-06", 3, "Mon"), "2026-07-20");
+});
+
+test("resolves long weekday spellings the notification path writes", () => {
+  assert.equal(scheduledDateFor("2026-07-06", 1, "Friday"), "2026-07-10");
+  assert.equal(scheduledDateFor("2026-07-06", 1, "friday"), "2026-07-10");
+  assert.equal(scheduledDateFor("2026-07-06", 1, "Day 1"), null);
 });
 
 test("counts a first-day run started just after Singapore midnight", () => {

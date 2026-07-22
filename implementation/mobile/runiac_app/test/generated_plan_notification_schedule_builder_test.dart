@@ -26,6 +26,45 @@ void main() {
       expect(workouts.single.scheduledWorkoutId, 'week-1-wed-easy-run');
     });
 
+    test('schedules a mid-week plan start on the label\'s real weekday', () {
+      // Given 2026-07-08 is a Wednesday, so a "Wed" workout is the start day
+      // itself — not two days later as a Monday anchor would place it.
+      const builder = GeneratedPlanNotificationScheduleBuilder();
+      final snapshot = _snapshot(
+        startsOnDate: '2026-07-08',
+        workout: _workout(dayLabel: 'Wed', scheduleTimeLabel: '6:15 PM'),
+      );
+
+      // When
+      final workouts = builder.workoutsForPlan(
+        snapshot,
+        currentDate: DateTime(2026, 7, 8, 9),
+        completedScheduledWorkoutIds: const <String>{},
+      );
+
+      // Then
+      expect(workouts.single.startsAt, DateTime(2026, 7, 8, 18, 15));
+    });
+
+    test('wraps an earlier weekday label into the same plan week', () {
+      // Given
+      const builder = GeneratedPlanNotificationScheduleBuilder();
+      final snapshot = _snapshot(
+        startsOnDate: '2026-07-08',
+        workout: _workout(dayLabel: 'Mon', scheduleTimeLabel: '6:15 PM'),
+      );
+
+      // When
+      final workouts = builder.workoutsForPlan(
+        snapshot,
+        currentDate: DateTime(2026, 7, 8, 9),
+        completedScheduledWorkoutIds: const <String>{},
+      );
+
+      // Then
+      expect(workouts.single.startsAt, DateTime(2026, 7, 13, 18, 15));
+    });
+
     test(
       'uses the app fallback start time when a workout has no saved time',
       () {

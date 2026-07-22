@@ -10,6 +10,24 @@ const weekdayOffsets: Readonly<Record<string, number>> = {
 
 export const weekdayLabels: readonly string[] = Object.keys(weekdayOffsets);
 
+/**
+ * Accepts the canonical short labels plus longer spellings such as "Friday" or
+ * "friday". Plans written by the notification path use those, and returning
+ * `undefined` for them would leave the day with no scheduled date at all — which
+ * downstream rest-day derivation would then read as a rest day.
+ */
+export function weekdayOffsetFor(dayLabel: string): number | undefined {
+  const exact = weekdayOffsets[dayLabel];
+  if (exact !== undefined) {
+    return exact;
+  }
+
+  const normalized = dayLabel.trim().toLowerCase().slice(0, 3);
+  return Object.entries(weekdayOffsets).find(
+    ([label]) => label.toLowerCase() === normalized,
+  )?.[1];
+}
+
 export function scheduledDateFor(
   startsOnDate: string | undefined,
   weekNumber: number,
@@ -19,7 +37,7 @@ export function scheduledDateFor(
     return null;
   }
 
-  const weekdayOffset = weekdayOffsets[dayLabel];
+  const weekdayOffset = weekdayOffsetFor(dayLabel);
   if (weekdayOffset === undefined) {
     return null;
   }
@@ -30,8 +48,20 @@ export function scheduledDateFor(
   }
 
   const millisecondsPerDay = 86_400_000;
-  const date = new Date(startTime + ((weekNumber - 1) * 7 + weekdayOffset) * millisecondsPerDay);
+  const dayOffset = (weekdayOffset - startWeekdayOffset(startTime) + 7) % 7;
+  const date = new Date(startTime + ((weekNumber - 1) * 7 + dayOffset) * millisecondsPerDay);
   return date.toISOString().slice(0, 10);
+}
+
+/**
+ * `dayLabel` denotes a real weekday (it comes from the user's preferred days),
+ * but `startsOnDate` is whatever day onboarding finished. Week N therefore runs
+ * for seven days from that start, and a label resolves to the one date in that
+ * window whose actual weekday matches. When the plan starts on a Monday this is
+ * identical to anchoring offset 0 to Monday, so Monday-start plans are unchanged.
+ */
+function startWeekdayOffset(startTime: number): number {
+  return (new Date(startTime).getUTCDay() + 6) % 7;
 }
 
 export function fallbackWorkoutId(weekNumber: number, dayLabel: string, title: string): string {

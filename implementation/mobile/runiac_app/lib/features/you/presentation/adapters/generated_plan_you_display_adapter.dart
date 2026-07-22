@@ -438,6 +438,28 @@ int? activeGeneratedPlanDayIndexFor(
   return elapsedDays % 7;
 }
 
+/// Real weekday (`DateTime.monday`..`DateTime.sunday`) of the plan day that is
+/// currently active.
+///
+/// The stage map slots stones by the workout's actual weekday label, so it needs
+/// a real weekday here. Reading the raw day index as `DateTime.monday + index`
+/// only lines up when the plan happens to start on a Monday.
+int? activeGeneratedPlanWeekdayFor(
+  BeginnerAdaptivePlanSnapshot snapshot, {
+  DateTime? currentDate,
+}) {
+  final startsOnDate = _dateFromPlanLabel(snapshot.startsOnDate);
+  final dayIndex = activeGeneratedPlanDayIndexFor(
+    snapshot,
+    currentDate: currentDate,
+  );
+  if (startsOnDate == null || dayIndex == null) {
+    return null;
+  }
+
+  return startsOnDate.add(Duration(days: dayIndex)).weekday;
+}
+
 DateTime? _dateFromPlanLabel(String? value) {
   if (value == null || value.length != 10) {
     return null;
