@@ -1165,6 +1165,12 @@ service cloud.firestore {
       }
     }
 
+    // adminNotifications is written only by Cloud Functions triggers via the
+    // Admin SDK and read only by the admin console; clients get no direct access.
+    match /adminNotifications/{notificationId} {
+      allow read, write: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

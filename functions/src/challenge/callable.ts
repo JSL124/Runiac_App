@@ -40,7 +40,7 @@ function normalize(request: RawCallableRequest): CallableRequest {
 export const getChallengeCatalog = onCall(
   { region: "asia-southeast1" },
   withCallableErrorReporting("getChallengeCatalog", async (request: RawCallableRequest) =>
-    getChallengeCatalogForCallable(normalize(request))),
+    getChallengeCatalogForCallable(normalize(request), getFirestore())),
 );
 
 export const createChallengeLobby = onCall(

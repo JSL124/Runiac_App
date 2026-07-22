@@ -10,6 +10,9 @@ export { dispatchScheduledPushNotifications } from "./notifications/scheduledPus
 export { refreshLeaderboardSnapshots } from "./leaderboard/monthlyLeaderboard.js";
 export { leaderboardAdminCommandCreated } from "./leaderboard/leaderboardAdminCommand.js";
 export { moderationCommandCreated } from "./moderation/moderationCommand.js";
+export { reportCreated } from "./moderation/reportAutomation.js";
+export { escalateStaleReports } from "./moderation/staleReportSweep.js";
+export { errorGroupWritten } from "./errors/errorGroupNotifications.js";
 export { refreshStreakStatus } from "./progression/refreshStreakStatus.js";
 export { expireSubscriptions } from "./progression/subscriptionExpirySchedule.js";
 export { publishActivityToFeed } from "./feed/publish/callable.js";

@@ -44,6 +44,32 @@ export type FeatureAccessConfig = {
   readonly version: number;
 };
 
+export type AutomationConfig = {
+  readonly autoHide: { readonly enabled: boolean; readonly reportThreshold: number };
+  readonly staleReportEscalation: { readonly enabled: boolean; readonly pendingDays: number };
+  readonly scheduled: {
+    readonly leaderboardSnapshotRefresh: boolean;
+    readonly subscriptionExpirySweep: boolean;
+    readonly pushNotificationDispatch: boolean;
+  };
+  readonly notifications: {
+    readonly notifyErrorGroups: boolean;
+    readonly minimumErrorSeverity: "high" | "critical";
+    readonly notifyNewReports: boolean;
+  };
+  readonly version: number;
+};
+
+// Which Challenge tiers require a premium subscription to CREATE a lobby for.
+// Tier ids must match the nine-tier catalog in challenge/challengeCatalog.ts.
+// Challenges award badges only — never XP, level, rank, or leaderboard score —
+// so tier gating sells difficulty-tier access without touching competitive
+// standing (the premium-parity rule).
+export type ChallengeAccessConfig = {
+  readonly premiumOnlyTiers: readonly string[];
+  readonly version: number;
+};
+
 export type ConfigValidationResult = {
   readonly valid: boolean;
   readonly errors: readonly string[];
@@ -104,12 +130,64 @@ export const DEFAULT_LEADERBOARD_CONFIG: LeaderboardConfig = deepFreeze({
   version: 1,
 });
 
+// Catalog of premium-convertible features administered via the console,
+// grounded in the app's real user-facing surface (audited 2026-07-22 against
+// implementation/mobile/runiac_app). Only features that may legitimately
+// differ by subscription tier are listed: leaderboard, challenges, feed,
+// friends, run tracking, cool-down, and XP/progress surfaces are deliberately
+// ABSENT because premium must never change competitive standing or gate core
+// beginner/social infrastructure, and expert plans are ABSENT because expert
+// plan governance is out of this capsule's scope (their premium-only access
+// is a static firestore.rules check on subscriptionStatus, not this doc).
+// Defaults preserve current live behavior: everything currently available to
+// all users stays "basic". Mobile dynamic gating remains deferred — nothing
+// consumes this document yet. goalPlan (the onboarding-generated beginner
+// plan) stays in the catalog as an enabled/disabled switch but should remain
+// "basic": it is the app's core beginner experience.
 export const DEFAULT_FEATURE_ACCESS_CONFIG: FeatureAccessConfig = deepFreeze({
   features: {
     advancedAnalysis: { minimumTier: "premium", enabled: true },
-    goalPlan: { minimumTier: "premium", enabled: true },
-    leaderboard: { minimumTier: "basic", enabled: true },
+    goalPlan: { minimumTier: "basic", enabled: true },
+    aiHomeCoach: { minimumTier: "basic", enabled: true },
+    activityFeedback: { minimumTier: "basic", enabled: true },
+    routeLibrary: { minimumTier: "basic", enabled: true },
+    shareRouteToFeed: { minimumTier: "basic", enabled: true },
+    shareCards: { minimumTier: "basic", enabled: true },
+    healthWorkoutImport: { minimumTier: "basic", enabled: true },
   },
+  version: 1,
+});
+
+export const DEFAULT_AUTOMATION_CONFIG: AutomationConfig = deepFreeze({
+  autoHide: {
+    enabled: false,
+    reportThreshold: 3,
+  },
+  staleReportEscalation: {
+    enabled: true,
+    pendingDays: 7,
+  },
+  // Every scheduled sweep defaults to running. Automation gating exists so an
+  // admin can pause a single sweep during an incident, not so a fresh
+  // environment starts with platform automation silently off.
+  scheduled: {
+    leaderboardSnapshotRefresh: true,
+    subscriptionExpirySweep: true,
+    pushNotificationDispatch: true,
+  },
+  notifications: {
+    notifyErrorGroups: true,
+    minimumErrorSeverity: "critical",
+    notifyNewReports: false,
+  },
+  version: 1,
+});
+
+// The first three tiers (10K, 20K, 42K) stay open to every account; the six
+// higher tiers require premium (user decision 2026-07-23). Enforced at lobby
+// creation in challenge/challengeLobbyCore.ts.
+export const DEFAULT_CHALLENGE_ACCESS_CONFIG: ChallengeAccessConfig = deepFreeze({
+  premiumOnlyTiers: ["100K", "200K", "250K", "300K", "500K", "1000K"],
   version: 1,
 });
 
@@ -281,6 +359,100 @@ export function validateFeatureAccessConfig(config: FeatureAccessConfig): Config
 
     if (typeof entry["enabled"] !== "boolean") {
       errors.push(`features.${featureName}.enabled must be a boolean`);
+    }
+  }
+
+  return { valid: errors.length === 0, errors };
+}
+
+export function validateAutomationConfig(config: AutomationConfig): ConfigValidationResult {
+  const errors: string[] = [];
+
+  if (!isPlainObject(config.autoHide)) {
+    errors.push("autoHide must be an object");
+  } else {
+    if (typeof config.autoHide.enabled !== "boolean") {
+      errors.push("autoHide.enabled must be a boolean");
+    }
+
+    if (
+      !isFiniteNumber(config.autoHide.reportThreshold) ||
+      !Number.isInteger(config.autoHide.reportThreshold) ||
+      config.autoHide.reportThreshold < 2 ||
+      config.autoHide.reportThreshold > 100
+    ) {
+      errors.push("autoHide.reportThreshold must be an integer between 2 and 100.");
+    }
+  }
+
+  if (!isPlainObject(config.staleReportEscalation)) {
+    errors.push("staleReportEscalation must be an object");
+  } else {
+    if (typeof config.staleReportEscalation.enabled !== "boolean") {
+      errors.push("staleReportEscalation.enabled must be a boolean");
+    }
+
+    if (
+      !isFiniteNumber(config.staleReportEscalation.pendingDays) ||
+      !Number.isInteger(config.staleReportEscalation.pendingDays) ||
+      config.staleReportEscalation.pendingDays < 1 ||
+      config.staleReportEscalation.pendingDays > 365
+    ) {
+      errors.push("staleReportEscalation.pendingDays must be an integer between 1 and 365.");
+    }
+  }
+
+  if (!isPlainObject(config.scheduled)) {
+    errors.push("scheduled must be an object");
+  } else {
+    // Type-checked explicitly, same reasoning as premiumEarnsXp/excludePremium:
+    // deepMerge passes stored values through verbatim, and a stored STRING
+    // "false" is truthy, which would silently re-enable a sweep an admin
+    // believed they had paused.
+    for (const key of ["leaderboardSnapshotRefresh", "subscriptionExpirySweep", "pushNotificationDispatch"] as const) {
+      if (typeof config.scheduled[key] !== "boolean") {
+        errors.push(`scheduled.${key} must be a boolean`);
+      }
+    }
+  }
+
+  if (!isPlainObject(config.notifications)) {
+    errors.push("notifications must be an object");
+  } else {
+    if (typeof config.notifications.notifyErrorGroups !== "boolean") {
+      errors.push("notifications.notifyErrorGroups must be a boolean");
+    }
+
+    if (config.notifications.minimumErrorSeverity !== "high" && config.notifications.minimumErrorSeverity !== "critical") {
+      errors.push('notifications.minimumErrorSeverity must be "high" or "critical"');
+    }
+
+    if (typeof config.notifications.notifyNewReports !== "boolean") {
+      errors.push("notifications.notifyNewReports must be a boolean");
+    }
+  }
+
+  return { valid: errors.length === 0, errors };
+}
+
+export function validateChallengeAccessConfig(config: ChallengeAccessConfig): ConfigValidationResult {
+  const errors: string[] = [];
+
+  // Inline copy of the nine catalog tier ids (challenge/challengeCatalog.ts).
+  // Kept inside the validator body so the cross-repo drift check covers it.
+  const knownTierIds = ["10K", "20K", "42K", "100K", "200K", "250K", "300K", "500K", "1000K"];
+
+  if (!Array.isArray(config.premiumOnlyTiers)) {
+    errors.push("premiumOnlyTiers must be an array of challenge tier ids");
+  } else {
+    for (const tierId of config.premiumOnlyTiers) {
+      if (typeof tierId !== "string" || !knownTierIds.includes(tierId)) {
+        errors.push(`premiumOnlyTiers contains an unknown tier id: ${String(tierId)}`);
+      }
+    }
+
+    if (new Set(config.premiumOnlyTiers).size !== config.premiumOnlyTiers.length) {
+      errors.push("premiumOnlyTiers must not contain duplicate tier ids");
     }
   }
 
@@ -488,5 +660,92 @@ export async function loadFeatureAccessConfig(db: Firestore): Promise<FeatureAcc
     console.warn("configLoader: failed to read config/featureAccess; using DEFAULT_FEATURE_ACCESS_CONFIG", error);
     await reportConfigFallback("loadFeatureAccessConfig", error);
     return DEFAULT_FEATURE_ACCESS_CONFIG;
+  }
+}
+
+// `reportFallback: false` suppresses the reportConfigFallback() error-report on
+// degraded config. It exists for exactly one caller: the errorGroupWritten
+// trigger watches `errorGroups`, and reportConfigFallback() itself writes an
+// `errorGroups` document — so a reporting load from inside that trigger would
+// turn every degraded-config read into a self-sustaining write-notify loop on
+// the watched collection. Every other caller must leave reporting on.
+export async function loadAutomationConfig(
+  db: Firestore,
+  options?: { readonly reportFallback?: boolean },
+): Promise<AutomationConfig> {
+  const reportFallback = options?.reportFallback !== false;
+  try {
+    const stored = await readConfigDoc(db, "config/automation");
+
+    if (stored === undefined) {
+      console.warn("configLoader: config/automation is missing; using DEFAULT_AUTOMATION_CONFIG");
+      return DEFAULT_AUTOMATION_CONFIG;
+    }
+
+    const merged = deepMerge(DEFAULT_AUTOMATION_CONFIG, stored);
+    const result = validateAutomationConfig(merged);
+
+    if (!result.valid) {
+      const repaired = repairInvalidConfigFields(
+        merged,
+        result.errors,
+        DEFAULT_AUTOMATION_CONFIG,
+        validateAutomationConfig,
+      );
+
+      if (repaired !== null) {
+        const message = `configLoader: config/automation failed validation (${result.errors.join(", ")}); reset ${repaired.resetFields.join(", ")} to defaults and kept the rest`;
+        console.warn(message);
+        if (reportFallback) {
+          await reportConfigFallback("loadAutomationConfig", new Error(message));
+        }
+        return repaired.config;
+      }
+
+      const message = `configLoader: config/automation failed validation (${result.errors.join(", ")}); using DEFAULT_AUTOMATION_CONFIG`;
+      console.warn(message);
+      if (reportFallback) {
+        await reportConfigFallback("loadAutomationConfig", new Error(message));
+      }
+      return DEFAULT_AUTOMATION_CONFIG;
+    }
+
+    return merged;
+  } catch (error) {
+    console.warn("configLoader: failed to read config/automation; using DEFAULT_AUTOMATION_CONFIG", error);
+    if (reportFallback) {
+      await reportConfigFallback("loadAutomationConfig", error);
+    }
+    return DEFAULT_AUTOMATION_CONFIG;
+  }
+}
+
+export async function loadChallengeAccessConfig(db: Firestore): Promise<ChallengeAccessConfig> {
+  try {
+    const stored = await readConfigDoc(db, "config/challengeAccess");
+
+    if (stored === undefined) {
+      console.warn("configLoader: config/challengeAccess is missing; using DEFAULT_CHALLENGE_ACCESS_CONFIG");
+      return DEFAULT_CHALLENGE_ACCESS_CONFIG;
+    }
+
+    // deepMerge treats arrays as leaf values, so a stored premiumOnlyTiers
+    // array REPLACES the default list rather than unioning with it — an admin
+    // clearing every checkbox genuinely opens every tier.
+    const merged = deepMerge(DEFAULT_CHALLENGE_ACCESS_CONFIG, stored);
+    const result = validateChallengeAccessConfig(merged);
+
+    if (!result.valid) {
+      const message = `configLoader: config/challengeAccess failed validation (${result.errors.join(", ")}); using DEFAULT_CHALLENGE_ACCESS_CONFIG`;
+      console.warn(message);
+      await reportConfigFallback("loadChallengeAccessConfig", new Error(message));
+      return DEFAULT_CHALLENGE_ACCESS_CONFIG;
+    }
+
+    return merged;
+  } catch (error) {
+    console.warn("configLoader: failed to read config/challengeAccess; using DEFAULT_CHALLENGE_ACCESS_CONFIG", error);
+    await reportConfigFallback("loadChallengeAccessConfig", error);
+    return DEFAULT_CHALLENGE_ACCESS_CONFIG;
   }
 }

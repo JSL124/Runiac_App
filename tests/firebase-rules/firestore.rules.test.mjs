@@ -1315,4 +1315,33 @@ describe('owner-owned client records', () => {
       await assertFails(deleteDoc(existingGuidance));
     }
   });
+
+  it('denies all direct client access to admin notifications', async () => {
+    const alice = dbFor('alice');
+    const notification = doc(alice, 'adminNotifications/report_test-report');
+
+    await assertFails(
+      setDoc(notification, {
+        kind: 'new-report',
+        severity: 'medium',
+        title: 'New report submitted',
+        detail: 'A new report was submitted.',
+        href: '/admin/exceptions',
+        status: 'unread',
+      }),
+    );
+
+    await seed('adminNotifications/report_test-report', {
+      kind: 'new-report',
+      severity: 'medium',
+      title: 'New report submitted',
+      detail: 'A new report was submitted.',
+      href: '/admin/exceptions',
+      status: 'unread',
+    });
+
+    await assertFails(getDoc(notification));
+    await assertFails(updateDoc(notification, { status: 'read' }));
+    await assertFails(deleteDoc(notification));
+  });
 });

@@ -2,14 +2,22 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { Firestore } from "firebase-admin/firestore";
 import {
+  DEFAULT_AUTOMATION_CONFIG,
+  DEFAULT_CHALLENGE_ACCESS_CONFIG,
   DEFAULT_FEATURE_ACCESS_CONFIG,
   DEFAULT_LEADERBOARD_CONFIG,
   DEFAULT_PROGRESSION_CONFIG,
   deepMerge,
+  loadAutomationConfig,
+  loadChallengeAccessConfig,
   loadFeatureAccessConfig,
   loadLeaderboardConfig,
   loadProgressionConfig,
+  type AutomationConfig,
+  type ChallengeAccessConfig,
   type ProgressionConfig,
+  validateAutomationConfig,
+  validateChallengeAccessConfig,
   validateFeatureAccessConfig,
   validateLeaderboardConfig,
   validateProgressionConfig,
@@ -215,6 +223,34 @@ describe("validateFeatureAccessConfig", () => {
     assert.equal(result.valid, false);
     assert.ok(result.errors.some((error) => error.includes("minimumTier")));
   });
+
+  it("ships the app-audited 8-feature catalog with the expected default tiers", () => {
+    assert.deepEqual(
+      Object.fromEntries(
+        Object.entries(DEFAULT_FEATURE_ACCESS_CONFIG.features).map(([name, entry]) => [name, entry.minimumTier]),
+      ),
+      {
+        advancedAnalysis: "premium",
+        goalPlan: "basic",
+        aiHomeCoach: "basic",
+        activityFeedback: "basic",
+        routeLibrary: "basic",
+        shareRouteToFeed: "basic",
+        shareCards: "basic",
+        healthWorkoutImport: "basic",
+      },
+    );
+  });
+
+  it("keeps non-convertible and out-of-scope features out of the catalog", () => {
+    // Leaderboard, challenges, feed, friends, run tracking, cool-down and
+    // XP/progress must never differ by tier, and expert plans are out of this
+    // capsule's governance scope — their absence from the catalog is the
+    // guarantee that the console cannot premium-gate (or un-gate) them here.
+    for (const forbidden of ["leaderboard", "challenges", "socialFeed", "friends", "runTracking", "coolDownGuide", "expertPlans"]) {
+      assert.equal(DEFAULT_FEATURE_ACCESS_CONFIG.features[forbidden], undefined);
+    }
+  });
 });
 
 describe("configLoader loaders fall back to defaults", () => {
@@ -267,6 +303,18 @@ describe("configLoader loaders fall back to defaults", () => {
     const config = await loadFeatureAccessConfig(db);
     assert.equal(config.features["leaderboard"]?.enabled, false);
     assert.deepEqual(config.features["advancedAnalysis"], DEFAULT_FEATURE_ACCESS_CONFIG.features["advancedAnalysis"]);
+  });
+
+  it("loadFeatureAccessConfig merges a stored tier override for one of the new catalog entries", async () => {
+    const db = fakeDb("config/featureAccess", {
+      exists: true,
+      data: () => ({ features: { activityFeedback: { minimumTier: "premium", enabled: true } } }),
+    });
+
+    const config = await loadFeatureAccessConfig(db);
+    assert.equal(config.features["activityFeedback"]?.minimumTier, "premium");
+    assert.equal(validateFeatureAccessConfig(config).valid, true);
+    assert.deepEqual(config.features["routeLibrary"], DEFAULT_FEATURE_ACCESS_CONFIG.features["routeLibrary"]);
   });
 });
 
@@ -345,5 +393,188 @@ describe("per-field config repair", () => {
     const config = await loadProgressionConfig(db);
 
     assert.equal(validateProgressionConfig(config).valid, true);
+  });
+});
+
+describe("validateAutomationConfig", () => {
+  it("accepts the default config", () => {
+    const result = validateAutomationConfig(DEFAULT_AUTOMATION_CONFIG);
+    assert.equal(result.valid, true);
+    assert.deepEqual(result.errors, []);
+  });
+
+  it("rejects a non-boolean autoHide.enabled", () => {
+    for (const value of ["false", "true", 0, 1, null]) {
+      const result = validateAutomationConfig({
+        ...DEFAULT_AUTOMATION_CONFIG,
+        autoHide: { ...DEFAULT_AUTOMATION_CONFIG.autoHide, enabled: value as unknown as boolean },
+      });
+      assert.equal(result.valid, false, `autoHide.enabled ${JSON.stringify(value)} must be rejected`);
+      assert.ok(result.errors.some((error) => error.includes("autoHide.enabled")));
+    }
+  });
+
+  it("rejects an autoHide.reportThreshold below the minimum", () => {
+    const result = validateAutomationConfig({
+      ...DEFAULT_AUTOMATION_CONFIG,
+      autoHide: { ...DEFAULT_AUTOMATION_CONFIG.autoHide, reportThreshold: 1 },
+    });
+
+    assert.equal(result.valid, false);
+    assert.ok(result.errors.some((error) => error.includes("autoHide.reportThreshold")));
+  });
+
+  it("accepts an autoHide.reportThreshold at the minimum boundary", () => {
+    const result = validateAutomationConfig({
+      ...DEFAULT_AUTOMATION_CONFIG,
+      autoHide: { ...DEFAULT_AUTOMATION_CONFIG.autoHide, reportThreshold: 2 },
+    });
+
+    assert.equal(result.valid, true);
+  });
+
+  it("rejects a staleReportEscalation.pendingDays of 0", () => {
+    const result = validateAutomationConfig({
+      ...DEFAULT_AUTOMATION_CONFIG,
+      staleReportEscalation: { ...DEFAULT_AUTOMATION_CONFIG.staleReportEscalation, pendingDays: 0 },
+    });
+
+    assert.equal(result.valid, false);
+    assert.ok(result.errors.some((error) => error.includes("staleReportEscalation.pendingDays")));
+  });
+
+  it("rejects a non-boolean scheduled flag", () => {
+    for (const value of ["false", "true", 0, 1, null]) {
+      const result = validateAutomationConfig({
+        ...DEFAULT_AUTOMATION_CONFIG,
+        scheduled: { ...DEFAULT_AUTOMATION_CONFIG.scheduled, subscriptionExpirySweep: value as unknown as boolean },
+      });
+      assert.equal(result.valid, false, `scheduled.subscriptionExpirySweep ${JSON.stringify(value)} must be rejected`);
+      assert.ok(result.errors.some((error) => error.includes("scheduled.subscriptionExpirySweep")));
+    }
+  });
+
+  it('rejects a minimumErrorSeverity of "medium"', () => {
+    const result = validateAutomationConfig({
+      ...DEFAULT_AUTOMATION_CONFIG,
+      notifications: {
+        ...DEFAULT_AUTOMATION_CONFIG.notifications,
+        minimumErrorSeverity: "medium" as unknown as AutomationConfig["notifications"]["minimumErrorSeverity"],
+      },
+    });
+
+    assert.equal(result.valid, false);
+    assert.ok(result.errors.some((error) => error.includes("notifications.minimumErrorSeverity")));
+  });
+
+  it('accepts "high" as minimumErrorSeverity', () => {
+    const result = validateAutomationConfig({
+      ...DEFAULT_AUTOMATION_CONFIG,
+      notifications: { ...DEFAULT_AUTOMATION_CONFIG.notifications, minimumErrorSeverity: "high" },
+    });
+
+    assert.equal(result.valid, true);
+  });
+});
+
+describe("configLoader loadAutomationConfig", () => {
+  it("returns defaults when the doc does not exist", async () => {
+    const config = await loadAutomationConfig(missingDb("config/automation"));
+    assert.deepEqual(config, DEFAULT_AUTOMATION_CONFIG);
+  });
+
+  it("returns defaults when the read rejects", async () => {
+    const config = await loadAutomationConfig(rejectingDb("config/automation"));
+    assert.deepEqual(config, DEFAULT_AUTOMATION_CONFIG);
+  });
+
+  it("merges a partial stored override with defaults", async () => {
+    const db = fakeDb("config/automation", {
+      exists: true,
+      data: () => ({ autoHide: { enabled: true, reportThreshold: 5 } }),
+    });
+
+    const config = await loadAutomationConfig(db);
+    assert.equal(config.autoHide.enabled, true);
+    assert.equal(config.autoHide.reportThreshold, 5);
+    assert.deepEqual(config.scheduled, DEFAULT_AUTOMATION_CONFIG.scheduled);
+  });
+
+  it("resets only the invalid autoHide subtree and keeps the rest of the document", async () => {
+    const db = fakeDb("config/automation", {
+      exists: true,
+      data: () => ({
+        autoHide: { enabled: true, reportThreshold: 1 },
+        staleReportEscalation: { enabled: false, pendingDays: 30 },
+      }),
+    });
+
+    const config = await loadAutomationConfig(db);
+
+    // autoHide.reportThreshold: 1 fails validation, so the whole autoHide
+    // subtree is reset to its default...
+    assert.deepEqual(config.autoHide, DEFAULT_AUTOMATION_CONFIG.autoHide);
+    // ...while the valid staleReportEscalation override survives untouched.
+    assert.deepEqual(config.staleReportEscalation, { enabled: false, pendingDays: 30 });
+  });
+});
+
+describe("validateChallengeAccessConfig", () => {
+  it("accepts the defaults (six premium-only tiers above 42K)", () => {
+    assert.equal(validateChallengeAccessConfig(DEFAULT_CHALLENGE_ACCESS_CONFIG).valid, true);
+    assert.deepEqual(
+      DEFAULT_CHALLENGE_ACCESS_CONFIG.premiumOnlyTiers,
+      ["100K", "200K", "250K", "300K", "500K", "1000K"],
+    );
+  });
+
+  it("accepts an empty list (every tier open)", () => {
+    assert.equal(validateChallengeAccessConfig({ premiumOnlyTiers: [], version: 1 }).valid, true);
+  });
+
+  it("rejects unknown tier ids", () => {
+    const result = validateChallengeAccessConfig({ premiumOnlyTiers: ["100K", "5K"], version: 1 });
+    assert.equal(result.valid, false);
+    assert.ok(result.errors.some((error) => error.startsWith("premiumOnlyTiers")));
+  });
+
+  it("rejects duplicates", () => {
+    const result = validateChallengeAccessConfig({ premiumOnlyTiers: ["100K", "100K"], version: 1 });
+    assert.equal(result.valid, false);
+  });
+
+  it("rejects a non-array", () => {
+    const result = validateChallengeAccessConfig({ premiumOnlyTiers: "100K", version: 1 } as unknown as ChallengeAccessConfig);
+    assert.equal(result.valid, false);
+  });
+});
+
+describe("configLoader loadChallengeAccessConfig", () => {
+  it("returns defaults when the doc does not exist", async () => {
+    const config = await loadChallengeAccessConfig(missingDb("config/challengeAccess"));
+    assert.deepEqual(config, DEFAULT_CHALLENGE_ACCESS_CONFIG);
+  });
+
+  it("lets a stored array REPLACE the default list (arrays are leaf values)", async () => {
+    const db = fakeDb("config/challengeAccess", {
+      exists: true,
+      data: () => ({ premiumOnlyTiers: ["1000K"] }),
+    });
+    const config = await loadChallengeAccessConfig(db);
+    assert.deepEqual(config.premiumOnlyTiers, ["1000K"]);
+  });
+
+  it("falls back to defaults when the stored doc is invalid", async () => {
+    const db = fakeDb("config/challengeAccess", {
+      exists: true,
+      data: () => ({ premiumOnlyTiers: ["NOT_A_TIER"] }),
+    });
+    const config = await loadChallengeAccessConfig(db);
+    assert.deepEqual(config, DEFAULT_CHALLENGE_ACCESS_CONFIG);
+  });
+
+  it("returns defaults when the read rejects", async () => {
+    const config = await loadChallengeAccessConfig(rejectingDb("config/challengeAccess"));
+    assert.deepEqual(config, DEFAULT_CHALLENGE_ACCESS_CONFIG);
   });
 });
