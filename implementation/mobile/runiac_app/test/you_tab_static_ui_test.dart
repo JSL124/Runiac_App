@@ -3439,6 +3439,14 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Advanced run analysis'), findsOneWidget);
+    // The static challenge-tier teaser is always appended after the
+    // admin-driven feature rows (challenge entitlement lives in
+    // config/challengeAccess, outside the feature-access catalog).
+    expect(
+      find.byKey(const Key('premium-upsell-feature-challengeTiers')),
+      findsOneWidget,
+    );
+    expect(find.text('Premium challenge tiers'), findsOneWidget);
     // The expert-plans entry stays hidden (files kept, UI removed).
     expect(find.text('Explore expert plans'), findsNothing);
     expect(find.text('Explore Expert Plans'), findsNothing);
