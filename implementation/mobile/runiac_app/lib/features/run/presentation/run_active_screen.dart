@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
+import '../../../core/haptics/runiac_haptics_scope.dart';
 import '../../../core/theme/runiac_colors.dart';
 import '../../settings/data/shared_preferences_app_settings_repository.dart';
 import '../../settings/domain/models/app_settings.dart';
@@ -66,6 +67,11 @@ class _RunActiveScreenState extends State<RunActiveScreen> {
       ? RunMapboxFollowQaDiagnostics(enabled: true, screenPath: 'active')
       : null;
   AppSettings _settings = AppSettings.defaults;
+  // `initState` cannot legally read an InheritedWidget via
+  // `RuniacHapticsScope.maybeOf`, so the run-start haptic is deferred until
+  // the first `didChangeDependencies` call (guarded so it fires at most
+  // once, and only when this widget instance actually started the run).
+  var _pendingStartHaptic = false;
 
   @override
   void initState() {
@@ -86,9 +92,19 @@ class _RunActiveScreenState extends State<RunActiveScreen> {
         startedAt: _activeRunSessionCoordinator.now(),
         routeLabel: 'Easy local route',
       );
+      _pendingStartHaptic = true;
     }
     _activeRunSessionCoordinator.startForegroundTicker();
     unawaited(_loadSettingsAndApplyWakelock());
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_pendingStartHaptic) {
+      _pendingStartHaptic = false;
+      RuniacHapticsScope.maybeOf(context)?.impactMedium();
+    }
   }
 
   Future<void> _loadSettingsAndApplyWakelock() async {
@@ -163,6 +179,7 @@ class _RunActiveScreenState extends State<RunActiveScreen> {
     }
     _activeRunSessionCoordinator.stopForegroundTicker();
     _controller.finish(completedAt: completedAt);
+    RuniacHapticsScope.maybeOf(context)?.impactMedium();
     Navigator.of(context).pushReplacement(
       MaterialPageRoute<void>(
         builder: (context) => CoolDownScreen(
@@ -200,12 +217,14 @@ class _RunActiveScreenState extends State<RunActiveScreen> {
     _controller.resume(resumedAt: _activeRunSessionCoordinator.now());
     _followQaDiagnostics?.recordResume();
     _updateFollowQaMapState();
+    RuniacHapticsScope.maybeOf(context)?.impactLight();
   }
 
   void _pauseRun() {
     final pausedAt = _activeRunSessionCoordinator.now();
     _activeRunSessionCoordinator.syncTo(pausedAt);
     _controller.pause(pausedAt: pausedAt);
+    RuniacHapticsScope.maybeOf(context)?.impactLight();
   }
 
   @override

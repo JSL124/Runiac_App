@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../../core/haptics/runiac_haptics_scope.dart';
 import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/runiac_back_header.dart';
 import '../../../core/widgets/runiac_success_check_overlay.dart';
@@ -383,6 +384,7 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
       if (!mounted) {
         return;
       }
+      RuniacHapticsScope.maybeOf(context)?.error();
       setState(() {
         _verificationFeedbackMessage = error.userMessage;
       });
@@ -393,6 +395,7 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
       if (!mounted) {
         return;
       }
+      RuniacHapticsScope.maybeOf(context)?.error();
       setState(() {
         _verificationFeedbackMessage =
             'We could not send that email. Please try again.';

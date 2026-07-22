@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/haptics/runiac_haptics_scope.dart';
 import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/runiac_back_header.dart';
 import '../../settings/data/shared_preferences_app_settings_repository.dart';
@@ -85,6 +86,9 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                           _setSettings(
                             _settings.copyWith(hapticFeedbackEnabled: value),
                           );
+                          RuniacHapticsScope.maybeOf(
+                            context,
+                          )?.setEnabled(value);
                         },
                         onKeepScreenOnChanged: (value) {
                           _setSettings(

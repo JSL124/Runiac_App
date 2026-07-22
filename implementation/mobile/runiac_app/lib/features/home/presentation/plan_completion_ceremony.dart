@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 
 import '../../../core/assets/runiac_assets.dart';
+import '../../../core/haptics/runiac_haptics_scope.dart';
 
 /// Shows a non-interactive "Plan Completed!" celebration overlay: a gauge
 /// animation fills first, then once full, a second celebration animation and
@@ -52,6 +53,7 @@ class _PlanCompletionOverlayState extends State<_PlanCompletionOverlay>
 
   late final AnimationController _sequence;
   var _revealed = false;
+  var _hapticFired = false;
 
   @override
   void initState() {
@@ -66,6 +68,18 @@ class _PlanCompletionOverlayState extends State<_PlanCompletionOverlay>
       _sequence
         ..addStatusListener(_handleSequenceStatus)
         ..forward();
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // `initState` cannot legally read an InheritedWidget, so the entrance
+    // haptic fires here instead, guarded to fire exactly once for the whole
+    // life of this overlay.
+    if (!_hapticFired) {
+      _hapticFired = true;
+      RuniacHapticsScope.maybeOf(context)?.impactHeavy();
     }
   }
 
