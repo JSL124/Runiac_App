@@ -3,7 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/runiac_colors.dart';
+import '../../../settings/domain/distance_unit_format.dart';
+import '../../../settings/domain/models/app_settings.dart';
 import '../../domain/models/run_tracking_snapshot.dart';
+import '../../domain/models/run_tracking_startup_readiness.dart';
 import '../../domain/models/run_tracking_state.dart';
 import '../models/planned_run_context.dart';
 
@@ -22,6 +25,7 @@ class RunTrackingSheetContent extends StatelessWidget {
     required this.onEnd,
     this.plannedWorkout,
     this.isCompletingRun = false,
+    this.distanceUnit = DistanceUnit.kilometers,
   });
 
   final RunTrackingState state;
@@ -30,6 +34,7 @@ class RunTrackingSheetContent extends StatelessWidget {
   final VoidCallback onEnd;
   final PlannedRunContext? plannedWorkout;
   final bool isCompletingRun;
+  final DistanceUnit distanceUnit;
 
   @override
   Widget build(BuildContext context) {
@@ -54,11 +59,19 @@ class RunTrackingSheetContent extends StatelessWidget {
               _RunProgressBar(progress: progress.value),
               SizedBox(height: compact ? 16 : 18),
             ],
-            _PrimaryMetricFocus(progress: progress, snapshot: snapshot),
+            _PrimaryMetricFocus(
+              progress: progress,
+              snapshot: snapshot,
+              distanceUnit: distanceUnit,
+            ),
             SizedBox(height: compact ? 14 : 16),
             const Divider(height: 1, color: _blueBorder),
             SizedBox(height: compact ? 12 : 14),
-            _SecondaryMetricRow(snapshot: snapshot),
+            _SecondaryMetricRow(
+              snapshot: snapshot,
+              state: state,
+              distanceUnit: distanceUnit,
+            ),
             if (state.isAbnormalPaused) ...[
               SizedBox(height: compact ? 12 : 14),
               _AbnormalMovementWarning(message: snapshot.guidance),
@@ -204,16 +217,26 @@ class _RunProgressBar extends StatelessWidget {
 }
 
 class _PrimaryMetricFocus extends StatelessWidget {
-  const _PrimaryMetricFocus({required this.progress, required this.snapshot});
+  const _PrimaryMetricFocus({
+    required this.progress,
+    required this.snapshot,
+    this.distanceUnit = DistanceUnit.kilometers,
+  });
 
   final _RunPlanProgressDisplay? progress;
   final RunTrackingSnapshot snapshot;
+  final DistanceUnit distanceUnit;
 
   @override
   Widget build(BuildContext context) {
     const focusLabel = 'DISTANCE';
-    final focusValue = snapshot.distanceValueLabel;
-    final focusUnit = snapshot.distanceUnitLabel;
+    final focusValue = distanceUnit == DistanceUnit.kilometers
+        ? snapshot.distanceValueLabel
+        : convertKilometers(
+            double.parse(snapshot.distanceValueLabel),
+            distanceUnit,
+          ).toStringAsFixed(2);
+    final focusUnit = distanceUnitLabel(distanceUnit);
 
     return Center(
       child: Column(
@@ -276,12 +299,26 @@ String _formatDurationTarget(int seconds) {
 }
 
 class _SecondaryMetricRow extends StatelessWidget {
-  const _SecondaryMetricRow({required this.snapshot});
+  const _SecondaryMetricRow({
+    required this.snapshot,
+    required this.state,
+    this.distanceUnit = DistanceUnit.kilometers,
+  });
 
   final RunTrackingSnapshot snapshot;
+  final RunTrackingState state;
+  final DistanceUnit distanceUnit;
 
   @override
   Widget build(BuildContext context) {
+    final currentPaceLabel = distanceUnit == DistanceUnit.kilometers
+        ? snapshot.currentPaceLabel
+        : _formatPaceForUnit(
+            distanceMeters: state.distanceMeters,
+            secondsPerKm: state.currentPaceSecondsPerKm,
+            unit: distanceUnit,
+          );
+
     return IntrinsicHeight(
       child: Row(
         children: [
@@ -290,15 +327,39 @@ class _SecondaryMetricRow extends StatelessWidget {
           ),
           const VerticalDivider(width: 1, thickness: 1, color: _blueBorder),
           Expanded(
-            child: _MetricItem(
-              label: 'CURRENT PACE',
-              value: snapshot.currentPaceLabel,
-            ),
+            child: _MetricItem(label: 'CURRENT PACE', value: currentPaceLabel),
           ),
         ],
       ),
     );
   }
+}
+
+/// Formats a pace-per-km value for the given [unit]. When [unit] is
+/// kilometers this reproduces the exact formatting used by
+/// [RunTrackingSnapshot] (same threshold, same `mm:ss/km` shape). For miles,
+/// the underlying seconds-per-km is converted to seconds-per-mile before
+/// formatting so the displayed number, not just the unit suffix, is correct.
+String _formatPaceForUnit({
+  required int distanceMeters,
+  required int secondsPerKm,
+  required DistanceUnit unit,
+}) {
+  final unitSuffix = paceUnitLabel(unit);
+  if (distanceMeters < livePaceReadinessThresholdMeters) {
+    return '--:--$unitSuffix';
+  }
+  if (secondsPerKm <= 0) {
+    return '--:--$unitSuffix';
+  }
+
+  final secondsPerUnit = unit == DistanceUnit.kilometers
+      ? secondsPerKm
+      : (secondsPerKm / kilometersToMilesFactor).round();
+  final minutes = secondsPerUnit ~/ 60;
+  final seconds = secondsPerUnit % 60;
+  return '${minutes.toString().padLeft(2, '0')}:'
+      '${seconds.toString().padLeft(2, '0')}$unitSuffix';
 }
 
 class _MetricItem extends StatelessWidget {

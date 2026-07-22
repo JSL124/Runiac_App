@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -6,6 +7,8 @@ import 'package:lottie/lottie.dart';
 
 import '../../../core/assets/runiac_assets.dart';
 import '../../../core/theme/runiac_colors.dart';
+import '../../settings/data/shared_preferences_app_settings_repository.dart';
+import '../../settings/domain/repositories/app_settings_repository.dart';
 import '../domain/models/challenge_enums.dart';
 import 'widgets/challenge_badge_image.dart';
 
@@ -25,11 +28,13 @@ class ChallengeBadgeCeremony extends StatefulWidget {
   const ChallengeBadgeCeremony({
     required this.tierId,
     this.badgeSize = 176,
+    this.settingsRepository = const SharedPreferencesAppSettingsRepository(),
     super.key,
   });
 
   final ChallengeTierId tierId;
   final double badgeSize;
+  final AppSettingsRepository settingsRepository;
 
   @override
   State<ChallengeBadgeCeremony> createState() => _ChallengeBadgeCeremonyState();
@@ -79,8 +84,26 @@ class _ChallengeBadgeCeremonyState extends State<ChallengeBadgeCeremony>
     } else {
       _controller.forward();
       _ambient.repeat();
-      HapticFeedback.mediumImpact();
+      unawaited(_fireEntranceHapticIfEnabled());
     }
+  }
+
+  // Fires the entrance haptic only when the user's haptic-feedback setting is
+  // enabled. Any failure to load settings (e.g. plugin unavailable in a
+  // widget test that doesn't mock SharedPreferences) fails open and preserves
+  // today's behaviour of always firing the haptic.
+  Future<void> _fireEntranceHapticIfEnabled() async {
+    var hapticFeedbackEnabled = true;
+    try {
+      final settings = await widget.settingsRepository.loadSettings();
+      hapticFeedbackEnabled = settings.hapticFeedbackEnabled;
+    } on Object {
+      hapticFeedbackEnabled = true;
+    }
+    if (!mounted || _reduceMotion || !hapticFeedbackEnabled) {
+      return;
+    }
+    HapticFeedback.mediumImpact();
   }
 
   @override

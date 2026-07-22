@@ -1,6 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../../../core/theme/runiac_colors.dart';
+import '../../settings/data/shared_preferences_app_settings_repository.dart';
+import '../../settings/domain/models/app_settings.dart';
+import '../../settings/domain/repositories/app_settings_repository.dart';
 import '../domain/models/run_tracking_state.dart';
 import '../domain/repositories/run_repository.dart';
 import 'active_run_session_coordinator.dart';
@@ -32,6 +38,7 @@ class RunActiveScreen extends StatefulWidget {
     this.enableMapboxFollowQa = runMapboxFollowQaEnabled,
     this.activeRunSessionCoordinator,
     this.plannedWorkout,
+    this.settingsRepository = const SharedPreferencesAppSettingsRepository(),
   });
 
   final RunTrackingController? controller;
@@ -41,6 +48,7 @@ class RunActiveScreen extends StatefulWidget {
   final bool enableMapboxFollowQa;
   final ActiveRunSessionCoordinator? activeRunSessionCoordinator;
   final PlannedRunContext? plannedWorkout;
+  final AppSettingsRepository settingsRepository;
 
   @override
   State<RunActiveScreen> createState() => _RunActiveScreenState();
@@ -57,6 +65,7 @@ class _RunActiveScreenState extends State<RunActiveScreen> {
       widget.enableMapboxFollowQa
       ? RunMapboxFollowQaDiagnostics(enabled: true, screenPath: 'active')
       : null;
+  AppSettings _settings = AppSettings.defaults;
 
   @override
   void initState() {
@@ -79,6 +88,26 @@ class _RunActiveScreenState extends State<RunActiveScreen> {
       );
     }
     _activeRunSessionCoordinator.startForegroundTicker();
+    unawaited(_loadSettingsAndApplyWakelock());
+  }
+
+  Future<void> _loadSettingsAndApplyWakelock() async {
+    var settings = AppSettings.defaults;
+    try {
+      settings = await widget.settingsRepository.loadSettings();
+    } on Object {
+      settings = AppSettings.defaults;
+    }
+    if (mounted) {
+      setState(() => _settings = settings);
+    }
+    if (settings.keepScreenOnDuringRun) {
+      try {
+        await WakelockPlus.enable();
+      } on Object {
+        // Fail open: keep-awake is best-effort and must never break the run.
+      }
+    }
   }
 
   @override
@@ -87,7 +116,16 @@ class _RunActiveScreenState extends State<RunActiveScreen> {
     if (_ownsActiveRunSessionCoordinator) {
       _activeRunSessionCoordinator.dispose();
     }
+    unawaited(_disableWakelock());
     super.dispose();
+  }
+
+  Future<void> _disableWakelock() async {
+    try {
+      await WakelockPlus.disable();
+    } on Object {
+      // Fail open: disabling keep-awake must never throw during teardown.
+    }
   }
 
   Future<void> _finishRun() async {
@@ -253,6 +291,7 @@ class _RunActiveScreenState extends State<RunActiveScreen> {
                             onFinish: _finishRun,
                             isCompletingRun: _isCompletingRun,
                             bottomInset: bottomInset,
+                            distanceUnit: _settings.distanceUnit,
                           );
                         },
                       ),
@@ -297,6 +336,7 @@ class _RunActivePanel extends StatelessWidget {
     required this.isCompletingRun,
     required this.bottomInset,
     this.plannedWorkout,
+    this.distanceUnit = DistanceUnit.kilometers,
   });
 
   final RunTrackingState state;
@@ -306,6 +346,7 @@ class _RunActivePanel extends StatelessWidget {
   final VoidCallback onFinish;
   final bool isCompletingRun;
   final double bottomInset;
+  final DistanceUnit distanceUnit;
 
   @override
   Widget build(BuildContext context) {
@@ -338,6 +379,7 @@ class _RunActivePanel extends StatelessWidget {
             onResume: onResume,
             onEnd: onFinish,
             isCompletingRun: isCompletingRun,
+            distanceUnit: distanceUnit,
           ),
         );
       },

@@ -137,7 +137,8 @@ class FirestoreUserProfileRepository implements UserProfileRepository {
         UserProfileManageRowReadModel(
           title: 'Settings',
           subtitle: 'Units, reminders, and app comfort',
-          snackBarMessage: 'Settings preview is coming soon.',
+          snackBarMessage: '',
+          action: UserProfileManageAction.settings,
         ),
         UserProfileManageRowReadModel(
           title: 'Privacy & Safety',
@@ -160,7 +161,8 @@ class FirestoreUserProfileRepository implements UserProfileRepository {
         UserProfileManageRowReadModel(
           title: 'About Runiac',
           subtitle: 'App version and project information',
-          snackBarMessage: 'About Runiac preview is coming soon.',
+          snackBarMessage: '',
+          action: UserProfileManageAction.about,
         ),
         UserProfileManageRowReadModel(
           title: 'Feedback',

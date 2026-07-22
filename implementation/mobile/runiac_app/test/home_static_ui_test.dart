@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:runiac_app/app.dart';
 import 'package:runiac_app/core/widgets/runiac_level_profile_badge.dart';
@@ -833,9 +835,18 @@ void main() {
     expect(progressRepository.loadCalls, 2);
   });
 
-  testWidgets('Account profile preview rows stay preview-only', (
+  testWidgets('Account Settings and About rows open their screens', (
     WidgetTester tester,
   ) async {
+    SharedPreferences.setMockInitialValues(const <String, Object>{});
+    PackageInfo.setMockInitialValues(
+      appName: 'Runiac',
+      packageName: 'app.runiac',
+      version: '1.0.0',
+      buildNumber: '1',
+      buildSignature: '',
+    );
+
     await tester.pumpWidget(
       const RuniacApp(showSplash: false, enableForegroundGps: false),
     );
@@ -845,22 +856,37 @@ void main() {
 
     expect(find.text('Profile'), findsOneWidget);
 
-    for (final row in <(String, String)>[
-      ('Settings', 'Settings preview is coming soon.'),
-      ('About Runiac', 'About Runiac preview is coming soon.'),
-    ]) {
-      await tester.scrollUntilVisible(
-        find.text(row.$1),
-        180,
-        scrollable: find.byType(Scrollable).last,
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.text(row.$1));
-      await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Settings'),
+      180,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Settings'));
+    await tester.pumpAndSettle();
 
-      expect(find.text(row.$2), findsOneWidget);
-      expect(find.text('Profile'), findsOneWidget);
-    }
+    expect(find.text('Distance units'), findsOneWidget);
+    expect(find.text('APP COMFORT'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Back to Account'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Profile'), findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.text('About Runiac'),
+      180,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('About Runiac'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Built for new runners'), findsOneWidget);
+    expect(find.text('Open-source licenses'), findsOneWidget);
+
+    expect(find.text('Settings preview is coming soon.'), findsNothing);
+    expect(find.text('About Runiac preview is coming soon.'), findsNothing);
   });
 
   testWidgets('Account opens Privacy & Safety guide consent from Manage', (

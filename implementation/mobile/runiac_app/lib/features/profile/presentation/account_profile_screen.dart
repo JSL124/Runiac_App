@@ -16,6 +16,8 @@ import '../../leaderboard/data/static_leaderboard_repository.dart';
 import '../../leaderboard/domain/models/leaderboard_read_model.dart';
 import '../../leaderboard/domain/repositories/leaderboard_repository.dart';
 import '../../plan/domain/repositories/generated_plan_persistence_repository.dart';
+import '../../settings/data/shared_preferences_app_settings_repository.dart';
+import '../../settings/domain/repositories/app_settings_repository.dart';
 import '../../you/domain/models/user_progress_read_model.dart';
 import '../../you/domain/repositories/user_progress_repository.dart';
 import '../domain/models/user_profile_read_model.dart';
@@ -42,6 +44,7 @@ class AccountProfileScreen extends StatefulWidget {
     this.onNotificationSettingsChanged,
     this.homeGuideConsentRepository =
         const AlwaysGrantedHomeGuideConsentRepository(),
+    this.appSettingsRepository = const SharedPreferencesAppSettingsRepository(),
     super.key,
   });
 
@@ -65,6 +68,11 @@ class AccountProfileScreen extends StatefulWidget {
   /// Defaults to the always-granted stub for previews/tests; the composition
   /// root threads the Cloud Function-backed repository via `HomeTab`.
   final HomeGuideConsentRepository homeGuideConsentRepository;
+
+  /// Persistence source for the Settings row's app comfort/unit preferences.
+  /// Defaults to the on-device shared-preferences repository; this is local
+  /// device state, not backend-owned data.
+  final AppSettingsRepository appSettingsRepository;
 
   @override
   State<AccountProfileScreen> createState() => _AccountProfileScreenState();
@@ -328,6 +336,7 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
               onNotificationSettingsChanged:
                   widget.onNotificationSettingsChanged,
               homeGuideConsentRepository: widget.homeGuideConsentRepository,
+              appSettingsRepository: widget.appSettingsRepository,
               onEditProfile: profile == null
                   ? null
                   : () => _openEditProfile(profile),

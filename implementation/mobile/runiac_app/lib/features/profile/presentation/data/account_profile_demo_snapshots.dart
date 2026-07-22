@@ -58,7 +58,8 @@ const accountProfileDemoSnapshot = AccountProfileDemoSnapshot(
       icon: Icons.settings_outlined,
       title: 'Settings',
       subtitle: 'Units, reminders, and app comfort',
-      snackBarMessage: 'Settings preview is coming soon.',
+      snackBarMessage: '',
+      action: UserProfileManageAction.settings,
     ),
     AccountProfileManageRow(
       icon: Icons.shield_outlined,
@@ -85,7 +86,8 @@ const accountProfileDemoSnapshot = AccountProfileDemoSnapshot(
       icon: Icons.info_outline,
       title: 'About Runiac',
       subtitle: 'App version and project information',
-      snackBarMessage: 'About Runiac preview is coming soon.',
+      snackBarMessage: '',
+      action: UserProfileManageAction.about,
     ),
     AccountProfileManageRow(
       icon: Icons.feedback_outlined,
