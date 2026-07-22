@@ -28,6 +28,8 @@ import '../../feed/data/feed_publish/history_artifact_resolver.dart';
 import '../../feed/data/feed_publish/firebase_feed_publish_gateway.dart';
 import '../../feed/domain/models/feed_display_models.dart';
 import '../../feed/presentation/current_session_feed_store.dart';
+import '../../paywall/presentation/premium_gate.dart';
+import '../../paywall/presentation/premium_paywall_sheet.dart';
 import '../../you/presentation/widgets/activity_route_preview.dart';
 import '../../you/presentation/widgets/activity_route_mapbox_snapshot_provider.dart';
 import '../../you/presentation/current_session_activity_history.dart';
@@ -393,6 +395,9 @@ class ViewSummaryScreen extends StatelessWidget {
                       IconButton(
                         tooltip: 'Activity feedback',
                         onPressed: () {
+                          if (interceptWithPaywallIfBasic(context)) {
+                            return;
+                          }
                           final character =
                               SelectedRunnerCharacterScope.maybeOf(
                                 context,
@@ -519,6 +524,9 @@ class ViewSummaryScreen extends StatelessWidget {
                                 );
                                 return;
                               }
+                              if (interceptWithPaywallIfBasic(context)) {
+                                return;
+                              }
 
                               Navigator.of(context).push(
                                 MaterialPageRoute<void>(
@@ -533,6 +541,9 @@ class ViewSummaryScreen extends StatelessWidget {
                           ),
                           _CoachingSection(
                             coachingSummary: displayedSummary.coachingSummary,
+                            premiumLocked: watchShouldShowPaywall(context),
+                            onLockedTap: () =>
+                                PremiumPaywallSheet.show(context),
                           ),
                         ],
                       ),

@@ -15,6 +15,13 @@ import {
   type ActivityFeedbackModelProvider,
 } from "./activityFeedbackModel.js";
 import { reserveActivityFeedbackQuota } from "./activityFeedbackQuota.js";
+import { isPremiumSubscription } from "../progression/progressionAuditHelpers.js";
+
+/**
+ * Stable machine-readable reason attached to the permission-denied error so
+ * the client can map it to its paywall instead of a generic failure.
+ */
+export const ACTIVITY_FEEDBACK_PREMIUM_REQUIRED_REASON = "premium-required";
 
 export type ActivityFeedbackCallableRequest = {
   readonly auth?: { readonly uid: string };
@@ -39,6 +46,9 @@ export function createActivityFeedbackAgentHandler(
     const uid = authenticatedUid(request);
     const metrics = parseMetrics(request.data);
     const now = dependencies.now();
+    // Activity feedback is a Premium feature: enforce the server-owned tier
+    // here so the client-side paywall is a UX layer, not the access control.
+    await requirePremiumSubscription(dependencies.firestore(), uid, now);
     const quota = await reserveActivityFeedbackQuota({
       firestore: dependencies.firestore(),
       uid,
@@ -75,6 +85,22 @@ export function createActivityFeedbackAgentHandler(
     emitActivityFeedbackDecisionLog(result, generated.fallbackCategory);
     return result;
   };
+}
+
+async function requirePremiumSubscription(
+  firestore: Firestore,
+  uid: string,
+  now: Date,
+): Promise<void> {
+  const userSnapshot = await firestore.doc(`users/${uid}`).get();
+  if (isPremiumSubscription(userSnapshot.data(), now.getTime())) {
+    return;
+  }
+  throw new HttpsError(
+    "permission-denied",
+    "Activity feedback is available on Premium.",
+    { reason: ACTIVITY_FEEDBACK_PREMIUM_REQUIRED_REASON },
+  );
 }
 
 function authenticatedUid(request: ActivityFeedbackCallableRequest): string {

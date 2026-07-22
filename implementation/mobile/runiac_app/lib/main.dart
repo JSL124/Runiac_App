@@ -12,6 +12,7 @@ import 'features/feed/presentation/qa/feed_mvp_qa_launcher.dart';
 import 'features/home/presentation/qa/plan_completion_qa_launcher.dart';
 import 'features/leaderboard/presentation/qa/leaderboard_ranking_qa_launcher.dart';
 import 'features/run/data/run_repository_factory.dart';
+import 'features/paywall/presentation/qa/premium_paywall_qa_launcher.dart';
 import 'features/run/presentation/qa/xp_update_qa_launcher.dart';
 
 Future<void> main() async {
@@ -29,6 +30,11 @@ Future<void> main() async {
       final qaApp = buildXpUpdateQaAppFromEnvironment();
       if (qaApp != null) {
         runApp(qaApp);
+        return;
+      }
+      final paywallQaApp = buildPremiumPaywallQaAppFromEnvironment();
+      if (paywallQaApp != null) {
+        runApp(paywallQaApp);
         return;
       }
       final feedQaApp = buildFeedMvpQaAppFromEnvironment();
@@ -89,6 +95,8 @@ Future<void> main() async {
           challengeResultPresenter: bootstrap.challengeResultPresenter,
           profileRepository: bootstrap.profileRepository,
           userAccountRepository: bootstrap.userAccountRepository,
+          paywallConfigRepository: bootstrap.paywallConfigRepository,
+          featureAccessRepository: bootstrap.featureAccessRepository,
           profilePersistenceRepository: bootstrap.profilePersistenceRepository,
           generatedPlanPersistenceRepository:
               bootstrap.generatedPlanPersistenceRepository,

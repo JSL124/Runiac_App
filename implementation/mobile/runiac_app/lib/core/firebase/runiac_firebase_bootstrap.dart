@@ -39,6 +39,10 @@ import '../../features/notifications/data/firebase_messaging_push_notification_c
 import '../../features/notifications/data/firestore_notification_inbox_repository.dart';
 import '../../features/notifications/domain/repositories/notification_inbox_repository.dart';
 import '../../features/notifications/domain/services/notification_registration_service.dart';
+import '../../features/paywall/data/firestore_feature_access_repository.dart';
+import '../../features/paywall/data/firestore_paywall_config_repository.dart';
+import '../../features/paywall/domain/repositories/feature_access_repository.dart';
+import '../../features/paywall/domain/repositories/paywall_config_repository.dart';
 import '../../features/plan/data/firestore_adaptive_plan_estimate_repository.dart';
 import '../../features/plan/data/firestore_generated_plan_persistence_repository.dart';
 import '../../features/plan/data/firestore_plan_progress_repository.dart';
@@ -90,6 +94,8 @@ class RuniacFirebaseBootstrap {
           friendsRepository: const StaticFriendsRepository(),
           profileRepository: const StaticUserProfileRepository(),
           userAccountRepository: const StaticUserAccountRepository(),
+          paywallConfigRepository: const StaticPaywallConfigRepository(),
+          featureAccessRepository: const StaticFeatureAccessRepository(),
           profilePersistenceRepository:
               const NoopUserProfilePersistenceRepository(),
           generatedPlanPersistenceRepository:
@@ -153,6 +159,8 @@ class RuniacFirebaseBootstrap {
         userAccountRepository: FirestoreUserAccountRepository(
           authRepository: authRepository,
         ),
+        paywallConfigRepository: FirestorePaywallConfigRepository(),
+        featureAccessRepository: FirestoreFeatureAccessRepository(),
         profilePersistenceRepository:
             FirestoreUserProfilePersistenceRepository(),
         generatedPlanPersistenceRepository:
@@ -236,6 +244,8 @@ class RuniacFirebaseBootstrap {
       userAccountRepository: FirestoreUserAccountRepository(
         authRepository: authRepository,
       ),
+      paywallConfigRepository: FirestorePaywallConfigRepository(),
+      featureAccessRepository: FirestoreFeatureAccessRepository(),
       profilePersistenceRepository: FirestoreUserProfilePersistenceRepository(),
       generatedPlanPersistenceRepository:
           FirestoreGeneratedPlanPersistenceRepository(),
@@ -333,6 +343,8 @@ class RuniacFirebaseBootstrapResult {
     required this.friendsRepository,
     required this.profileRepository,
     required this.userAccountRepository,
+    required this.paywallConfigRepository,
+    required this.featureAccessRepository,
     required this.profilePersistenceRepository,
     required this.generatedPlanPersistenceRepository,
     required this.planProgressRepository,
@@ -359,6 +371,13 @@ class RuniacFirebaseBootstrapResult {
   /// Read-only trusted `users/{uid}` account seam backing the app-level
   /// subscription-status stream.
   final UserAccountRepository userAccountRepository;
+
+  /// Read-only seam for the admin-published `config/paywall` display copy.
+  final PaywallConfigRepository paywallConfigRepository;
+
+  /// Read-only seam for the admin-published `config/featureAccess` premium
+  /// feature checklist (upsell display only).
+  final FeatureAccessRepository featureAccessRepository;
   final UserProfilePersistenceRepository profilePersistenceRepository;
   final GeneratedPlanPersistenceRepository generatedPlanPersistenceRepository;
   final PlanProgressRepository planProgressRepository;

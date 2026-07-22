@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import '../adapters/generated_plan_you_display_adapter.dart';
 import '../data/weekly_workout_demo_snapshots.dart';
 import 'current_goal_plan_card.dart';
-import 'expert_plans_entry_card.dart';
 import 'generated_weekly_plan_card.dart';
+import 'premium_upsell_section.dart';
 import 'safety_readiness_plan_card.dart';
 import 'weekly_plan_card.dart';
 import 'you_surface_primitives.dart';
@@ -21,6 +21,11 @@ class YouPlansSurface extends StatelessWidget {
 
   final VoidCallback onViewGoalPlan;
   final ValueChanged<WeeklyWorkoutDetailSnapshot> onViewWorkout;
+
+  /// Retained for the hidden `ExpertPlansEntryCard` entry point: the expert
+  /// plan screens and `you_tab.dart` wiring stay in place for later reuse,
+  /// only the entry UI is no longer rendered (replaced by
+  /// [PremiumUpsellSection]).
   final VoidCallback onViewExpertPlans;
   final GeneratedYouPlanDisplay? generatedPlan;
   final SafetyReadinessYouPlanDisplay? safetyReadinessPlan;
@@ -42,7 +47,7 @@ class YouPlansSurface extends StatelessWidget {
           const SizedBox(height: 12),
           WeeklyPlanCard(onViewWorkout: onViewWorkout),
           const SizedBox(height: 12),
-          ExpertPlansEntryCard(onViewExpertPlans: onViewExpertPlans),
+          const PremiumUpsellSection(),
         ] else ...[
           GeneratedWeeklyPlanCard(
             plan: plan,
@@ -50,7 +55,7 @@ class YouPlansSurface extends StatelessWidget {
             onViewPlanDetail: onViewGoalPlan,
           ),
           const SizedBox(height: 12),
-          ExpertPlansEntryCard(onViewExpertPlans: onViewExpertPlans),
+          const PremiumUpsellSection(),
         ],
       ],
     );
