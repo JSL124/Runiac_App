@@ -586,6 +586,34 @@ is_user_feedback_pipeline_path() {
   esac
 }
 
+is_admin_automation_policy_capsule_active() {
+  grep -Eq '^- Newly routed admin automation & policy control plane on 2026-07-22 Asia/Singapore: `implementation/roadmap/capsules/admin-automation-policy-control-plane\.md`' implementation/roadmap/CURRENT.md
+}
+
+# New source files introduced by the routed admin automation & policy control
+# plane capsule. Only the genuinely new paths need listing here; already-tracked
+# files this capsule modifies are handled by the diff-hygiene allowlist.
+is_admin_automation_policy_path() {
+  case "$1" in
+    functions/src/config/automationGate.ts|\
+    functions/src/moderation/reportAutomation.ts|\
+    functions/src/moderation/staleReportSweep.ts|\
+    functions/src/errors/errorGroupNotifications.ts|\
+    functions/test/automationGate.test.ts|\
+    functions/test/reportAutomation.test.ts|\
+    functions/test/staleReportSweep.test.ts|\
+    functions/test/errorGroupNotifications.test.ts|\
+    functions/src/index.ts|\
+    functions/package.json|\
+    tools/governance-ci/check-pre-scaffold-scope.sh)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 is_forbidden_config_or_secret() {
   if is_error_reporting_pipeline_path "$1" && is_error_reporting_pipeline_capsule_active; then
     return 1
@@ -604,6 +632,10 @@ is_forbidden_config_or_secret() {
   fi
 
   if is_friends_live_level_path "$1" && is_friends_live_level_capsule_active; then
+    return 1
+  fi
+
+  if is_admin_automation_policy_path "$1" && is_admin_automation_policy_capsule_active; then
     return 1
   fi
 
@@ -684,6 +716,9 @@ is_forbidden_config_or_secret() {
         return 1
       fi
       if is_friends_live_level_path "$1" && is_friends_live_level_capsule_active; then
+        return 1
+      fi
+      if is_admin_automation_policy_path "$1" && is_admin_automation_policy_capsule_active; then
         return 1
       fi
       if approved_adaptive_inactive_baseline_blob "$1" >/dev/null; then

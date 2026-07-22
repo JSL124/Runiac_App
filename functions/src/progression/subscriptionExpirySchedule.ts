@@ -12,6 +12,7 @@ import {
   type SubscriptionExpirySweepResult,
 } from "./subscriptionExpiryCore.js";
 import { withScheduledErrorReporting } from "../errors/withErrorReporting.js";
+import { scheduledAutomationEnabled } from "../config/automationGate.js";
 
 if (getApps().length === 0) {
   initializeApp();
@@ -24,6 +25,18 @@ export const expireSubscriptions = onSchedule(
     region: "asia-southeast1",
   },
   withScheduledErrorReporting("expireSubscriptions", async () => {
+    // Gate the schedule wrapper only — expireSubscriptionsNow() and any
+    // manual admin-triggered path stay reachable while this sweep is
+    // paused, so an admin can always force the sweep manually.
+    if (
+      !(await scheduledAutomationEnabled(
+        getFirestore(),
+        "subscriptionExpirySweep",
+        "expireSubscriptions",
+      ))
+    ) {
+      return;
+    }
     await expireSubscriptionsNow();
   }),
 );

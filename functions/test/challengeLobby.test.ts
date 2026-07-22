@@ -38,6 +38,7 @@ beforeEach(async () => {
   await firestore.recursiveDelete(firestore.collection("challengeInstances"));
   await deleteCollection("challengeInvitations");
   await deleteCollection("challengeSlots");
+  await firestore.doc("config/challengeAccess").delete();
   await Promise.all(ALL_UIDS.map((uid) => firestore.doc(`users/${uid}`).delete()));
   await Promise.all(
     ALL_UIDS.flatMap((uid) =>
@@ -401,18 +402,66 @@ describe("lazy lobby expiry", () => {
 });
 
 // ---------------------------------------------------------------------------
+// Tier entitlement (config/challengeAccess)
+// ---------------------------------------------------------------------------
+
+describe("challenge tier entitlement", () => {
+  it("rejects a basic caller creating a premium-only tier lobby (default config)", async () => {
+    // No config doc → loader defaults: 100K+ are premium-only.
+    await rejectsReason(() => createChallengeLobbyForCallable(req(OWNER, { tierId: "100K" }), firestore), "PREMIUM_REQUIRED");
+    const slots = await firestore.collection("challengeSlots").get();
+    assert.equal(slots.size, 0);
+  });
+
+  it("allows a premium caller to create a premium-only tier lobby", async () => {
+    await firestore.doc(`users/${OWNER}`).set({ subscriptionStatus: "premium" });
+    const result = await createChallengeLobbyForCallable(req(OWNER, { tierId: "100K" }), firestore);
+    assert.equal(result.status, "RECRUITING");
+    assert.equal((await instanceDoc(result.challengeId)).get("tierId"), "100K");
+  });
+
+  it("rejects a lapsed premium caller on a premium-only tier", async () => {
+    await firestore.doc(`users/${OWNER}`).set({
+      subscriptionStatus: "premium",
+      subscriptionExpiresAt: Timestamp.fromMillis(Date.now() - 60_000),
+    });
+    await rejectsReason(() => createChallengeLobbyForCallable(req(OWNER, { tierId: "200K" }), firestore), "PREMIUM_REQUIRED");
+  });
+
+  it("keeps the first three tiers open to basic callers", async () => {
+    const result = await createChallengeLobbyForCallable(req(OWNER, { tierId: "42K" }), firestore);
+    assert.equal(result.status, "RECRUITING");
+  });
+
+  it("honours a stored override that opens every tier", async () => {
+    // A stored premiumOnlyTiers array REPLACES the default list (deepMerge
+    // treats arrays as leaf values), so clearing it opens all nine tiers.
+    await firestore.doc("config/challengeAccess").set({ premiumOnlyTiers: [] });
+    const result = await createChallengeLobbyForCallable(req(OWNER, { tierId: "1000K" }), firestore);
+    assert.equal(result.status, "RECRUITING");
+  });
+
+  it("falls back to the default premium-only list when the stored doc is invalid", async () => {
+    await firestore.doc("config/challengeAccess").set({ premiumOnlyTiers: ["NOT_A_TIER"] });
+    await rejectsReason(() => createChallengeLobbyForCallable(req(OWNER, { tierId: "500K" }), firestore), "PREMIUM_REQUIRED");
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Read models
 // ---------------------------------------------------------------------------
 
 describe("challenge read models", () => {
   it("getChallengeCatalog returns all nine tiers plus the version", async () => {
-    const catalog = getChallengeCatalogForCallable(req(OWNER, {}));
+    const catalog = await getChallengeCatalogForCallable(req(OWNER, {}), firestore);
     assert.equal(catalog.tiers.length, 9);
     assert.equal(catalog.version, "challenge-distance-v1");
+    // No config/challengeAccess doc seeded → the default premium-only list.
+    assert.deepEqual(catalog.premiumOnlyTiers, ["100K", "200K", "250K", "300K", "500K", "1000K"]);
   });
 
   it("getChallengeCatalog rejects unauthenticated callers", async () => {
-    await rejectsReason(async () => getChallengeCatalogForCallable({ data: {} }), "UNAUTHENTICATED");
+    await rejectsReason(async () => getChallengeCatalogForCallable({ data: {} }, firestore), "UNAUTHENTICATED");
   });
 
   it("getActiveChallenge returns the caller's instance + participant-safe roster", async () => {

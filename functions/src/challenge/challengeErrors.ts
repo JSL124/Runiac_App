@@ -14,6 +14,9 @@ export const CHALLENGE_REASON = {
   INVALID_ARGUMENT: "INVALID_ARGUMENT",
   UNKNOWN_TIER: "UNKNOWN_TIER",
   CANNOT_INVITE_SELF: "CANNOT_INVITE_SELF",
+  // Entitlement (config/challengeAccess): the tier requires a premium
+  // subscription to create a lobby for.
+  PREMIUM_REQUIRED: "PREMIUM_REQUIRED",
   // Slot ownership
   ALREADY_HOLDS_SLOT: "ALREADY_HOLDS_SLOT",
   // Instance lookup / ownership / state
@@ -48,6 +51,7 @@ const REASON_TRANSPORT: Readonly<Record<ChallengeReason, FunctionsErrorCode>> = 
   INVALID_ARGUMENT: "invalid-argument",
   UNKNOWN_TIER: "invalid-argument",
   CANNOT_INVITE_SELF: "invalid-argument",
+  PREMIUM_REQUIRED: "permission-denied",
   ALREADY_HOLDS_SLOT: "failed-precondition",
   CHALLENGE_NOT_FOUND: "not-found",
   NOT_LOBBY_OWNER: "permission-denied",

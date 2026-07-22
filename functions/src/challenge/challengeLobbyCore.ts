@@ -40,6 +40,8 @@ import type {
 } from "./challengeTypes.js";
 import { challengeError } from "./challengeErrors.js";
 import { assertCallerAccountNotSuspendedInTransaction } from "../security/accountStatus.js";
+import { loadChallengeAccessConfig } from "../config/configLoader.js";
+import { isPremiumSubscription } from "../progression/progressionAuditHelpers.js";
 import {
   emitChallengeInvitationNotifications,
   emitChallengeStartedNotifications,
@@ -202,14 +204,22 @@ function revokePendingInvitation(transaction: Transaction, doc: DocumentSnapshot
 // 1. getChallengeCatalog
 // ---------------------------------------------------------------------------
 
-export function getChallengeCatalogForCallable(request: CallableRequest): {
+export async function getChallengeCatalogForCallable(
+  request: CallableRequest,
+  firestore: Firestore,
+): Promise<{
   readonly version: string;
   readonly tiers: readonly (typeof CHALLENGE_CATALOG)[ChallengeTierId][];
-} {
+  readonly premiumOnlyTiers: readonly string[];
+}> {
   requireAuthUid(request);
+  // Additive field: clients that predate tier gating ignore it. The catalog
+  // entries themselves stay immutable — entitlement lives in config, not here.
+  const premiumOnlyTiers = (await loadChallengeAccessConfig(firestore)).premiumOnlyTiers;
   return {
     version: CHALLENGE_CATALOG_VERSION,
     tiers: CHALLENGE_TIER_IDS.map((tierId) => CHALLENGE_CATALOG[tierId]),
+    premiumOnlyTiers,
   };
 }
 
@@ -230,6 +240,15 @@ export async function createChallengeLobbyForCallable(
   const uid = requireAuthUid(request);
   const tierId = requireTierId(request.data);
   const rules = buildChallengeRulesSnapshot(tierId);
+  // Entitlement gate (config/challengeAccess, admin-console-administered):
+  // premium-only tiers reject lobby creation for non-premium callers. Loaded
+  // outside the transaction — the config doc is not part of the transactional
+  // state, and the loader falls back to defaults on any failure. Only lobby
+  // CREATION is gated: invited friends may join a premium owner's lobby
+  // regardless of their own tier, and an owner whose subscription lapses
+  // after creation keeps the already-created lobby.
+  const premiumOnlyTiers = (await loadChallengeAccessConfig(firestore)).premiumOnlyTiers;
+  const tierRequiresPremium = premiumOnlyTiers.includes(tierId);
 
   return firestore.runTransaction(async (transaction) => {
     // Defence-in-depth (see accountStatus.ts): this callable never otherwise
@@ -237,6 +256,12 @@ export async function createChallengeLobbyForCallable(
     // reject a suspended caller before any write in this transaction.
     await assertCallerAccountNotSuspendedInTransaction(transaction, firestore, uid);
     const nowMs = Date.now();
+    if (tierRequiresPremium) {
+      const callerSnap = await transaction.get(firestore.doc(`users/${uid}`));
+      if (!isPremiumSubscription(callerSnap.data(), nowMs)) {
+        throw challengeError("PREMIUM_REQUIRED");
+      }
+    }
     const slotSnap = await transaction.get(slotRef(firestore, uid));
     const profileSnap = await transaction.get(profileRef(firestore, uid));
 

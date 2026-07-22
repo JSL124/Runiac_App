@@ -23,6 +23,7 @@ import {
   singaporeMonthLabel,
 } from "./monthlyLeaderboardWriter.js";
 import { withScheduledErrorReporting } from "../errors/withErrorReporting.js";
+import { scheduledAutomationEnabled } from "../config/automationGate.js";
 
 if (getApps().length === 0) {
   initializeApp();
@@ -60,8 +61,22 @@ export const refreshLeaderboardSnapshots = onSchedule(
     timeZone: leaderboardTimezone,
   },
   withScheduledErrorReporting("refreshLeaderboardSnapshots", async () => {
+    const firestore = getFirestore();
+    // Gate the schedule wrapper only — the leaderboard admin recalculation
+    // command (leaderboardAdminCommandCreated) and refreshMonthlyLeaderboardSnapshots
+    // itself stay reachable while this sweep is paused, so an admin can
+    // always force a refresh manually.
+    if (
+      !(await scheduledAutomationEnabled(
+        firestore,
+        "leaderboardSnapshotRefresh",
+        "refreshLeaderboardSnapshots",
+      ))
+    ) {
+      return;
+    }
     await refreshMonthlyLeaderboardSnapshots(
-      getFirestore(),
+      firestore,
       currentSingaporeMonthKey(new Date()),
     );
   }),
