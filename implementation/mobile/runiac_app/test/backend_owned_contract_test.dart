@@ -328,6 +328,8 @@ void main() {
             'firestore_user_profile_persistence_repository.dart',
         'lib/features/profile/data/firestore_user_profile_repository.dart',
         'lib/features/profile/data/firestore_user_account_repository.dart',
+        'lib/features/paywall/data/firestore_paywall_config_repository.dart',
+        'lib/features/paywall/data/firestore_feature_access_repository.dart',
         'lib/features/challenge/data/firestore_challenge_read_store.dart',
         'lib/features/friends/data/firebase_friends_repository.dart',
         'lib/features/friends/data/friends_owner_list_reader.dart',
@@ -402,6 +404,39 @@ void main() {
         }
       },
     );
+
+    test(
+      'limits feature access reads to a read-only config/featureAccess get',
+      () {
+        final source = File(
+          'lib/features/paywall/data/firestore_feature_access_repository.dart',
+        ).readAsStringSync();
+
+        expect(source, contains("collection('config')"));
+        expect(source, contains("doc('featureAccess')"));
+        expect(source, contains('.get('));
+        expect(source, isNot(contains('.set(')));
+        expect(source, isNot(contains('.update(')));
+        expect(source, isNot(contains('.delete(')));
+        expect(source, isNot(contains('.snapshots(')));
+        expect(source, isNot(contains("collection('users')")));
+      },
+    );
+
+    test('limits paywall config access to a read-only config/paywall get', () {
+      final source = File(
+        'lib/features/paywall/data/firestore_paywall_config_repository.dart',
+      ).readAsStringSync();
+
+      expect(source, contains("collection('config')"));
+      expect(source, contains("doc('paywall')"));
+      expect(source, contains('.get('));
+      expect(source, isNot(contains('.set(')));
+      expect(source, isNot(contains('.update(')));
+      expect(source, isNot(contains('.delete(')));
+      expect(source, isNot(contains('.snapshots(')));
+      expect(source, isNot(contains("collection('users')")));
+    });
 
     test('limits Firestore activity history access to owner-scoped reads', () {
       final source = File(
