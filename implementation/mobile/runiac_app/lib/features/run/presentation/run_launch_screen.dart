@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/runiac_bottom_sheet_handle.dart';
+import '../../settings/data/shared_preferences_app_settings_repository.dart';
+import '../../settings/domain/models/app_settings.dart';
+import '../../settings/domain/repositories/app_settings_repository.dart';
 import '../data/android_run_notification_permission_service.dart';
 import '../data/geolocator_run_location_permission_service.dart';
 import '../data/phone_motion_run_cadence_provider.dart';
@@ -151,6 +154,7 @@ class RunLaunchScreen extends StatefulWidget {
     this.initialPreviewCurrentPosition,
     this.activeRunSessionCoordinator,
     this.plannedWorkout,
+    this.settingsRepository = const SharedPreferencesAppSettingsRepository(),
   });
 
   final RunRepository? repository;
@@ -168,6 +172,7 @@ class RunLaunchScreen extends StatefulWidget {
   final RunLocationSample? initialPreviewCurrentPosition;
   final ActiveRunSessionCoordinator? activeRunSessionCoordinator;
   final PlannedRunContext? plannedWorkout;
+  final AppSettingsRepository settingsRepository;
 
   @override
   State<RunLaunchScreen> createState() => _RunLaunchScreenState();
@@ -192,10 +197,12 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
       : null;
   _RunPreviewLocationStatus _previewLocationStatus =
       _RunPreviewLocationStatus.inactive;
+  AppSettings _settings = AppSettings.defaults;
 
   @override
   void initState() {
     super.initState();
+    unawaited(_loadSettings());
     final useForegroundGps = widget.enableForegroundGps;
     _permissionService = _resolveRunLaunchPermissionService(
       enableForegroundGps: useForegroundGps,
@@ -259,6 +266,18 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
         : RunSheetMode.running;
     _activeRunSessionCoordinator.startForegroundTicker();
     _activeRunSessionCoordinator.syncNow();
+  }
+
+  Future<void> _loadSettings() async {
+    var settings = AppSettings.defaults;
+    try {
+      settings = await widget.settingsRepository.loadSettings();
+    } on Object {
+      settings = AppSettings.defaults;
+    }
+    if (mounted) {
+      setState(() => _settings = settings);
+    }
   }
 
   @override
@@ -794,6 +813,7 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
                                         onResume: _resumeRun,
                                         onEnd: _finishRun,
                                         isCompletingRun: _isCompletingRun,
+                                        distanceUnit: _settings.distanceUnit,
                                       );
                                     },
                                   ),

@@ -78,4 +78,6 @@ enum UserProfileManageAction {
   watchHealthApps,
   privacySafety,
   feedback,
+  settings,
+  about,
 }
