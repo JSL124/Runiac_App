@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../../core/haptics/runiac_haptics_scope.dart';
 import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/runiac_back_header.dart';
 import '../../../core/widgets/runiac_buttons.dart';
@@ -160,6 +161,7 @@ class _AccountEditProfileScreenState extends State<AccountEditProfileScreen> {
       if (!mounted) {
         return;
       }
+      RuniacHapticsScope.maybeOf(context)?.error();
       setState(() {
         _error = _nicknameCheckErrorMessage(error);
       });
@@ -167,6 +169,7 @@ class _AccountEditProfileScreenState extends State<AccountEditProfileScreen> {
       if (!mounted) {
         return;
       }
+      RuniacHapticsScope.maybeOf(context)?.error();
       setState(() {
         _error = 'We could not save your profile. Try again.';
       });

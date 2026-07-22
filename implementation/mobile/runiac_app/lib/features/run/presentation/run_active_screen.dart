@@ -1,6 +1,13 @@
-import 'package:flutter/material.dart';
+import 'dart:async';
 
+import 'package:flutter/material.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
+
+import '../../../core/haptics/runiac_haptics_scope.dart';
 import '../../../core/theme/runiac_colors.dart';
+import '../../settings/data/shared_preferences_app_settings_repository.dart';
+import '../../settings/domain/models/app_settings.dart';
+import '../../settings/domain/repositories/app_settings_repository.dart';
 import '../domain/models/run_tracking_state.dart';
 import '../domain/repositories/run_repository.dart';
 import 'active_run_session_coordinator.dart';
@@ -32,6 +39,7 @@ class RunActiveScreen extends StatefulWidget {
     this.enableMapboxFollowQa = runMapboxFollowQaEnabled,
     this.activeRunSessionCoordinator,
     this.plannedWorkout,
+    this.settingsRepository = const SharedPreferencesAppSettingsRepository(),
   });
 
   final RunTrackingController? controller;
@@ -41,6 +49,7 @@ class RunActiveScreen extends StatefulWidget {
   final bool enableMapboxFollowQa;
   final ActiveRunSessionCoordinator? activeRunSessionCoordinator;
   final PlannedRunContext? plannedWorkout;
+  final AppSettingsRepository settingsRepository;
 
   @override
   State<RunActiveScreen> createState() => _RunActiveScreenState();
@@ -57,6 +66,12 @@ class _RunActiveScreenState extends State<RunActiveScreen> {
       widget.enableMapboxFollowQa
       ? RunMapboxFollowQaDiagnostics(enabled: true, screenPath: 'active')
       : null;
+  AppSettings _settings = AppSettings.defaults;
+  // `initState` cannot legally read an InheritedWidget via
+  // `RuniacHapticsScope.maybeOf`, so the run-start haptic is deferred until
+  // the first `didChangeDependencies` call (guarded so it fires at most
+  // once, and only when this widget instance actually started the run).
+  var _pendingStartHaptic = false;
 
   @override
   void initState() {
@@ -77,8 +92,38 @@ class _RunActiveScreenState extends State<RunActiveScreen> {
         startedAt: _activeRunSessionCoordinator.now(),
         routeLabel: 'Easy local route',
       );
+      _pendingStartHaptic = true;
     }
     _activeRunSessionCoordinator.startForegroundTicker();
+    unawaited(_loadSettingsAndApplyWakelock());
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_pendingStartHaptic) {
+      _pendingStartHaptic = false;
+      RuniacHapticsScope.maybeOf(context)?.impactMedium();
+    }
+  }
+
+  Future<void> _loadSettingsAndApplyWakelock() async {
+    var settings = AppSettings.defaults;
+    try {
+      settings = await widget.settingsRepository.loadSettings();
+    } on Object {
+      settings = AppSettings.defaults;
+    }
+    if (mounted) {
+      setState(() => _settings = settings);
+    }
+    if (settings.keepScreenOnDuringRun) {
+      try {
+        await WakelockPlus.enable();
+      } on Object {
+        // Fail open: keep-awake is best-effort and must never break the run.
+      }
+    }
   }
 
   @override
@@ -87,7 +132,16 @@ class _RunActiveScreenState extends State<RunActiveScreen> {
     if (_ownsActiveRunSessionCoordinator) {
       _activeRunSessionCoordinator.dispose();
     }
+    unawaited(_disableWakelock());
     super.dispose();
+  }
+
+  Future<void> _disableWakelock() async {
+    try {
+      await WakelockPlus.disable();
+    } on Object {
+      // Fail open: disabling keep-awake must never throw during teardown.
+    }
   }
 
   Future<void> _finishRun() async {
@@ -125,6 +179,7 @@ class _RunActiveScreenState extends State<RunActiveScreen> {
     }
     _activeRunSessionCoordinator.stopForegroundTicker();
     _controller.finish(completedAt: completedAt);
+    RuniacHapticsScope.maybeOf(context)?.impactMedium();
     Navigator.of(context).pushReplacement(
       MaterialPageRoute<void>(
         builder: (context) => CoolDownScreen(
@@ -162,12 +217,14 @@ class _RunActiveScreenState extends State<RunActiveScreen> {
     _controller.resume(resumedAt: _activeRunSessionCoordinator.now());
     _followQaDiagnostics?.recordResume();
     _updateFollowQaMapState();
+    RuniacHapticsScope.maybeOf(context)?.impactLight();
   }
 
   void _pauseRun() {
     final pausedAt = _activeRunSessionCoordinator.now();
     _activeRunSessionCoordinator.syncTo(pausedAt);
     _controller.pause(pausedAt: pausedAt);
+    RuniacHapticsScope.maybeOf(context)?.impactLight();
   }
 
   @override
@@ -253,6 +310,7 @@ class _RunActiveScreenState extends State<RunActiveScreen> {
                             onFinish: _finishRun,
                             isCompletingRun: _isCompletingRun,
                             bottomInset: bottomInset,
+                            distanceUnit: _settings.distanceUnit,
                           );
                         },
                       ),
@@ -297,6 +355,7 @@ class _RunActivePanel extends StatelessWidget {
     required this.isCompletingRun,
     required this.bottomInset,
     this.plannedWorkout,
+    this.distanceUnit = DistanceUnit.kilometers,
   });
 
   final RunTrackingState state;
@@ -306,6 +365,7 @@ class _RunActivePanel extends StatelessWidget {
   final VoidCallback onFinish;
   final bool isCompletingRun;
   final double bottomInset;
+  final DistanceUnit distanceUnit;
 
   @override
   Widget build(BuildContext context) {
@@ -338,6 +398,7 @@ class _RunActivePanel extends StatelessWidget {
             onResume: onResume,
             onEnd: onFinish,
             isCompletingRun: isCompletingRun,
+            distanceUnit: distanceUnit,
           ),
         );
       },
