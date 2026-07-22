@@ -51,6 +51,19 @@ const Map<String, PremiumFeatureDisplay> premiumFeatureCatalog = {
   ),
 };
 
+/// Static upsell teaser for the premium-only challenge tiers (100K and up).
+///
+/// Not a `config/featureAccess` key on purpose: challenge tier entitlement is
+/// owned by `config/challengeAccess` and enforced server-side at lobby
+/// creation (`PREMIUM_REQUIRED`), and the admin console deliberately keeps
+/// `challenges` out of the feature-access catalog. The upsell list appends
+/// this display entry statically instead of the client reading challenge
+/// config — the gate ships enabled by default, so the teaser is always true.
+const PremiumFeatureDisplay premiumChallengeTiersDisplay = PremiumFeatureDisplay(
+  label: 'Premium challenge tiers',
+  icon: Icons.emoji_events_rounded,
+);
+
 PremiumFeatureDisplay premiumFeatureDisplayFor(String key) {
   final known = premiumFeatureCatalog[key];
   if (known != null) {

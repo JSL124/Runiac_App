@@ -135,7 +135,8 @@ class _PremiumFeatureListCardState extends State<_PremiumFeatureListCard>
     super.initState();
     _entrance = AnimationController(
       vsync: this,
-      duration: _entranceDurationFor(widget.featureKeys.length),
+      // +1 row: the static premium-challenge-tiers teaser appended in build.
+      duration: _entranceDurationFor(widget.featureKeys.length + 1),
     );
   }
 
@@ -164,7 +165,7 @@ class _PremiumFeatureListCardState extends State<_PremiumFeatureListCard>
   void didUpdateWidget(covariant _PremiumFeatureListCard oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!listEquals(oldWidget.featureKeys, widget.featureKeys)) {
-      _entrance.duration = _entranceDurationFor(widget.featureKeys.length);
+      _entrance.duration = _entranceDurationFor(widget.featureKeys.length + 1);
       if (_reduceMotion) {
         _entrance.value = 1;
       } else {
@@ -234,6 +235,15 @@ class _PremiumFeatureListCardState extends State<_PremiumFeatureListCard>
               animation: _rowAnimation(i),
               display: premiumFeatureDisplayFor(keys[i]),
             ),
+          // Static teaser appended after the admin-driven rows: challenge tier
+          // entitlement lives in config/challengeAccess (server-enforced,
+          // enabled by default), not the feature-access catalog — see
+          // premiumChallengeTiersDisplay.
+          _StaggeredFeatureRow(
+            key: const Key('premium-upsell-feature-challengeTiers'),
+            animation: _rowAnimation(keys.length),
+            display: premiumChallengeTiersDisplay,
+          ),
         ],
       ),
     );
