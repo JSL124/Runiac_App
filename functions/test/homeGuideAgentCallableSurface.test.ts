@@ -126,14 +126,20 @@ describe("homeGuideAgent callable emulator surface", { skip: process.env["FIREST
   it("caps changed fingerprints at three provider dispatches and falls back on the fourth", async () => {
     const provider = new CountingProvider(validModelOutput());
     const handler = injectableHandler(provider);
-    const results = await Promise.all(
-      ["Plan one", "Plan two", "Plan three", "Plan four"].map((planTitle) =>
-        handler(authenticatedRequest({ ...validPayload(), planTitle })),
-      ),
-    );
+    // Drive the four changed-fingerprint requests sequentially: fired
+    // concurrently, two requests can legitimately contend on the daily
+    // document and one resolves as a `finalize_conflict` fallback instead of
+    // a dispatch, turning the asserted 3/1 split into a load-dependent 2/2.
+    // The contract under test is the dispatch CAP, which is only
+    // deterministic without transaction contention.
+    const results = [];
+    for (const planTitle of ["Plan one", "Plan two", "Plan three", "Plan four"]) {
+      results.push(await handler(authenticatedRequest({ ...validPayload(), planTitle })));
+    }
 
     assert.equal(results.filter((result) => result.delivery === "generated").length, 3);
     assert.equal(results.filter((result) => result.delivery === "fallback").length, 1);
+    assert.equal(results[3]?.delivery, "fallback");
     assert.equal(provider.calls, 3);
     assert.equal((await dailyDocument()).get("attemptCount"), 3);
   });

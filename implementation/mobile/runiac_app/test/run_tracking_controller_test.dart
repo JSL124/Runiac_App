@@ -2364,6 +2364,58 @@ void main() {
       expect(provider.startCount, 1);
       expect(provider.stopCount, 1);
     });
+
+    test(
+      'repeated finish keeps the same client run session id for backend dedupe',
+      () {
+        // Pins current behavior: finish() has no phase guard, so a second
+        // call (e.g. a double-tap racing navigation) must not throw and must
+        // reuse the SAME clientRunSessionId — that shared id is the invariant
+        // that lets backend idempotency dedupe the duplicate completion.
+        final controller = RunTrackingController(metersPerSecond: 2.5);
+        final startedAt = DateTime.utc(2026, 6, 14, 7);
+
+        controller.start(
+          startedAt: startedAt,
+          clientRunSessionId: 'double-finish-run',
+        );
+        controller.advanceBy(const Duration(seconds: 120));
+
+        final firstPayload = controller.finish(
+          completedAt: DateTime.utc(2026, 6, 14, 7, 2),
+        );
+        expect(controller.state.phase, RunTrackingPhase.finished);
+
+        late LocalRunCompletionPayload secondPayload;
+        expect(
+          () => secondPayload = controller.finish(
+            completedAt: DateTime.utc(2026, 6, 14, 7, 3),
+          ),
+          returnsNormally,
+        );
+
+        expect(secondPayload.clientRunSessionId, 'double-finish-run');
+        expect(
+          secondPayload.clientRunSessionId,
+          firstPayload.clientRunSessionId,
+        );
+        expect(secondPayload.startedAt, startedAt);
+        expect(secondPayload.durationSeconds, firstPayload.durationSeconds);
+        expect(secondPayload.distanceMeters, firstPayload.distanceMeters);
+        expect(secondPayload.distanceMeters, 300);
+        expect(
+          secondPayload.avgPaceSecondsPerKm,
+          firstPayload.avgPaceSecondsPerKm,
+        );
+
+        // The controller stays finished with its trusted-loop-free local
+        // metrics intact.
+        expect(controller.state.phase, RunTrackingPhase.finished);
+        expect(controller.state.startedAt, startedAt);
+        expect(controller.state.elapsedSeconds, 120);
+        expect(controller.state.distanceMeters, 300);
+      },
+    );
   });
 }
 

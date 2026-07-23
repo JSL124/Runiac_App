@@ -65,5 +65,26 @@ void main() {
         expect(restored, savedSettings);
       },
     );
+
+    test(
+      'falls back to the default unit for a garbage persisted distance unit',
+      () async {
+        // Given a persisted value that matches no DistanceUnit name (e.g.
+        // written by a newer/older app build or corrupted storage).
+        SharedPreferences.setMockInitialValues(<String, Object>{
+          'test.appSettingsGarbage.distanceUnit': 'parsecs',
+        });
+        const repository = SharedPreferencesAppSettingsRepository(
+          keyPrefix: 'test.appSettingsGarbage',
+        );
+
+        // When
+        final restored = await repository.loadSettings();
+
+        // Then: no throw, and the unknown unit resolves to the default.
+        expect(restored.distanceUnit, AppSettings.defaults.distanceUnit);
+        expect(restored, AppSettings.defaults);
+      },
+    );
   });
 }

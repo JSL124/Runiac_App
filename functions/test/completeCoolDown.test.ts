@@ -315,6 +315,63 @@ describe("completeCoolDown callable boundary", () => {
     assert.equal(contribution.get("scoreXp"), 60);
   });
 
+  // The stretch bonus is a percentage of what the run actually CREDITED, not
+  // of its raw pre-cap value. A late-night run partially trimmed by the daily
+  // cap (raw 60, credited 30) followed by a stretch after Singapore midnight
+  // (fresh daily budget, so the cool-down's own cap trims nothing) must pay
+  // round(30 * 0.2 / 5) * 5 = 5, not the round(60 * 0.2 / 5) * 5 = 10 the raw
+  // amount would produce.
+  it("derives the stretch bonus from the credited daily-capped run XP, not the raw pre-cap value", async () => {
+    // 170 XP already earned on SGT 2026-06-14 leaves 30 of the 200 daily cap.
+    await firestore.collection("progressionEvents").doc("preseed-credited-base").set({
+      ownerUid: USER_UID,
+      dailyCapDate: "2026-06-14",
+      monthlyPeriod: "2026-06",
+      xpDelta: 170,
+    });
+    const clientRunSessionId = "session-credited-base-bonus";
+    // 15:40Z is 23:40 SGT on 2026-06-14: raw 60 XP (20 base + 30 distance +
+    // 10 duration), credited only the remaining 30.
+    const runResult = await completeRunForCallable(
+      {
+        auth: { uid: USER_UID },
+        data: {
+          ...validRunPayload(clientRunSessionId),
+          startedAt: "2026-06-14T15:15:00.000Z",
+          completedAt: "2026-06-14T15:40:00.000Z",
+        },
+      },
+      firestore,
+    );
+    assert.equal(runResult.progressionDisplay.xpDelta, 30);
+
+    // 16:10Z is 00:10 SGT on 2026-06-15: a fresh 200 XP daily budget, so the
+    // only thing that can shrink the bonus is the credited base itself.
+    const result = await callCompleteCoolDown({
+      auth: { uid: USER_UID },
+      data: coolDownPayload({
+        activityId: runResult.activityId,
+        clientRunSessionId,
+        completedAt: "2026-06-14T16:10:00.000Z",
+      }),
+    });
+
+    assert.equal(result.progressionDisplay.xpDelta, 5);
+    assert.equal(result.progressionDisplay.status, "awarded");
+    assert.equal(result.progressionDisplay.reason, "cool_down_stretch_bonus_awarded");
+
+    const coolDownEvent = await firestore
+      .doc(`progressionEvents/${result.coolDownProgressionEventId}`)
+      .get();
+    assert.equal(coolDownEvent.get("baseEarnedXp"), 30);
+    assert.equal(coolDownEvent.get("rawXpBeforeDailyCap"), 5);
+    assert.equal(coolDownEvent.get("dailyCapDate"), "2026-06-15");
+    assert.equal(coolDownEvent.get("dailyCapApplied"), false);
+
+    const profile = await firestore.doc(`userProfiles/${USER_UID}`).get();
+    assert.equal(profile.get("totalXp"), 35);
+  });
+
   // Premium parity: the stretch bonus follows the same rule as the run itself.
   // Regression: the cool-down bonus is a percentage of the ACTIVITY's XP, but
   // it was read from the run event's `xpDelta`, which since the milestone

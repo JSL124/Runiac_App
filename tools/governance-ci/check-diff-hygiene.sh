@@ -267,6 +267,44 @@ is_admin_automation_policy_path() {
   esac
 }
 
+is_test_suite_regression_hardening_capsule_active() {
+  grep -Eq '^- Newly routed test-suite regression hardening on 2026-07-24 Asia/Singapore: `implementation/roadmap/capsules/test-suite-regression-hardening\.md`' implementation/roadmap/CURRENT.md
+}
+
+# Test-only QA capsule: regression tests plus two npm-script lines chaining
+# the challenge/friends suites into the default `npm test`. Note the feed
+# test basenames must be claimed here before the feed-friends-emulator-backend
+# basename patterns claim them.
+is_test_suite_regression_hardening_path() {
+  case "$1" in
+    implementation/roadmap/capsules/test-suite-regression-hardening.md|\
+    implementation/roadmap/CURRENT.md|\
+    tools/governance-ci/check-diff-hygiene.sh|\
+    functions/package.json|\
+    functions/test/completeCoolDown.test.ts|\
+    functions/test/completeRun.test.ts|\
+    functions/test/feedContracts.test.ts|\
+    functions/test/homeGuideAgentCallableSurface.test.ts|\
+    functions/test/monthlyLeaderboardWriter.test.ts|\
+    functions/test/progressionAuditHelpers.test.ts|\
+    functions/test/reportAutomation.test.ts|\
+    tests/firebase-rules/feed.firestore.rules.test.mjs|\
+    tests/firebase-rules/firestore.routes-enrollment.rules.test.mjs|\
+    tests/firebase-rules/firestore.rules.test.mjs|\
+    implementation/mobile/runiac_app/test/app_settings_repository_test.dart|\
+    implementation/mobile/runiac_app/test/home_stage_map_model_test.dart|\
+    implementation/mobile/runiac_app/test/run_tracking_controller_test.dart|\
+    implementation/mobile/runiac_app/test/current_session_user_account_owner_switch_test.dart|\
+    implementation/mobile/runiac_app/test/generated_plan_you_display_adapter_weekday_test.dart|\
+    implementation/mobile/runiac_app/test/run_summary_local_analysis_merger_test.dart)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 is_feed_live_author_level_path() {
   case "$1" in
     implementation/roadmap/capsules/feed-live-author-level.md|\
@@ -686,6 +724,10 @@ is_allowed_path() {
     return 0
   fi
 
+  if is_test_suite_regression_hardening_path "$1" && is_test_suite_regression_hardening_capsule_active; then
+    return 0
+  fi
+
   if is_feed_friends_emulator_backend_path "$1"; then
     if is_feed_friends_emulator_backend_capsule_active; then
       return 0
@@ -837,6 +879,10 @@ is_forbidden_path() {
   fi
 
   if is_admin_automation_policy_path "$1" && is_admin_automation_policy_capsule_active; then
+    return 1
+  fi
+
+  if is_test_suite_regression_hardening_path "$1" && is_test_suite_regression_hardening_capsule_active; then
     return 1
   fi
 

@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { Timestamp } from "firebase-admin/firestore";
-import { isPremiumSubscription } from "../src/progression/progressionAuditHelpers.js";
+import {
+  isPremiumSubscription,
+  sumDailyXp,
+  sumMonthlyXp,
+} from "../src/progression/progressionAuditHelpers.js";
 
 const nowMs = Date.UTC(2026, 6, 13, 10, 0, 0);
 const pastMs = nowMs - 24 * 60 * 60 * 1000;
@@ -89,5 +93,37 @@ describe("isPremiumSubscription", () => {
 
   it("accepts the legacy capitalized 'Premium' status", () => {
     assert.equal(isPremiumSubscription({ subscriptionStatus: "Premium" }, nowMs), true);
+  });
+});
+
+describe("sumMonthlyXp", () => {
+  // Deliberate asymmetry with sumDailyXp: the daily sum nets streakBonusXp out
+  // so an exempt milestone does not consume the day's 200 XP budget, but the
+  // monthly sum keeps the full stored xpDelta — a milestone bonus is real
+  // earned XP and must count toward monthly XP and leaderboard scoreXp.
+  it("counts streakBonusXp toward the monthly total that sumDailyXp nets out", () => {
+    const milestoneRun = {
+      monthlyPeriod: "2026-07",
+      dailyCapDate: "2026-07-13",
+      xpDelta: 90,
+      streakBonusXp: 30,
+    };
+    const plainRun = {
+      monthlyPeriod: "2026-07",
+      dailyCapDate: "2026-07-13",
+      xpDelta: 60,
+    };
+    const otherMonthRun = {
+      monthlyPeriod: "2026-06",
+      dailyCapDate: "2026-06-30",
+      xpDelta: 100,
+      streakBonusXp: 100,
+    };
+    const events = [milestoneRun, plainRun, otherMonthRun];
+
+    // Monthly: 90 + 60 — the 30 XP milestone stays in, the other month is out.
+    assert.equal(sumMonthlyXp(events, "2026-07"), 150);
+    // Daily, same events: (90 - 30) + 60 — the milestone is netted back out.
+    assert.equal(sumDailyXp(events, "2026-07-13"), 120);
   });
 });

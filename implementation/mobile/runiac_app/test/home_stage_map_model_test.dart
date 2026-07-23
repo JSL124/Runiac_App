@@ -4,6 +4,7 @@ import 'package:runiac_app/features/home/presentation/stage_map/home_stage_map_m
 import 'package:runiac_app/features/plan/domain/models/beginner_adaptive_plan_snapshot.dart';
 import 'package:runiac_app/features/plan/domain/services/beginner_adaptive_plan_generator.dart';
 import 'package:runiac_app/features/plan/presentation/current_session_generated_plan.dart';
+import 'package:runiac_app/features/you/presentation/adapters/generated_plan_you_display_adapter.dart';
 
 import 'support/plan_family_test_drafts.dart';
 
@@ -69,13 +70,17 @@ BeginnerAdaptivePlanWeek _manualWeek(
   );
 }
 
-BeginnerAdaptivePlanSnapshot _manualPlan(List<BeginnerAdaptivePlanWeek> weeks) {
+BeginnerAdaptivePlanSnapshot _manualPlan(
+  List<BeginnerAdaptivePlanWeek> weeks, {
+  String? startsOnDate,
+}) {
   return BeginnerAdaptivePlanSnapshot(
     id: 'manual-plan',
     title: 'Manual Plan',
     subtitle: 'Subtitle',
     planKind: BeginnerAdaptivePlanKind.onboardingBased,
     sourceLabel: 'Onboarding based',
+    startsOnDate: startsOnDate,
     durationWeeks: weeks.length,
     safetyBand: BeginnerPlanSafetyBand.clear,
     templateKind: BeginnerPlanTemplateKind.standardBeginnerStart,
@@ -432,6 +437,84 @@ void main() {
         model.sections.single.stones[3].state,
         HomeStageStoneState.current,
       );
+    },
+  );
+
+  test(
+    'mid-week startsOnDate slots the today stone on the real calendar weekday',
+    () {
+      // Mirrors the home_tab wiring: currentWeekdayIndex comes from
+      // activeGeneratedPlanWeekdayFor, so day offset 0 of a Wednesday-start
+      // plan is Wednesday's slot — not Monday's, as the pre-9eab87cd
+      // `DateTime.monday + dayIndex` wiring would have reported.
+      final week = _manualWeek(1, [
+        _workout(dayLabel: 'Mon', title: 'Monday Run'),
+        _workout(dayLabel: 'Wed', title: 'Wednesday Run'),
+        _workout(dayLabel: 'Fri', title: 'Friday Run'),
+      ]);
+      // 2026-07-08 is a Wednesday.
+      final plan = _manualPlan([week], startsOnDate: '2026-07-08');
+
+      final activeWeekdayIndex = activeGeneratedPlanWeekdayFor(
+        plan,
+        currentDate: DateTime(2026, 7, 8),
+      );
+      expect(activeWeekdayIndex, DateTime.wednesday);
+
+      final model = buildHomeStageMapModel(
+        plan: plan,
+        completedScheduledWorkoutIds: const <String>{},
+        activeWeekNumber: 1,
+        currentWeekdayIndex: activeWeekdayIndex,
+        backgroundSequence: const <String>['bg.webp'],
+      );
+
+      final stones = model.sections.single.stones;
+      expect(model.todayDayIndex, 2);
+      expect(stones[2].kind, HomeStageStoneKind.run);
+      expect(stones[2].workoutTitle, 'Wednesday Run');
+      expect(stones[2].state, HomeStageStoneState.current);
+      // The Monday-role run of this plan week lies AFTER the Wednesday start,
+      // so it must not pulse as today and (being before today's slot in the
+      // calendar column) renders as missed-style rather than current.
+      expect(stones[0].workoutTitle, 'Monday Run');
+      expect(stones[0].state, isNot(HomeStageStoneState.current));
+      expect(stones[4].workoutTitle, 'Friday Run');
+      expect(stones[4].state, HomeStageStoneState.future);
+    },
+  );
+
+  test(
+    'mid-week plan reaches its Monday-role stone on the following monday',
+    () {
+      final week = _manualWeek(1, [
+        _workout(dayLabel: 'Mon', title: 'Monday Run'),
+        _workout(dayLabel: 'Wed', title: 'Wednesday Run'),
+        _workout(dayLabel: 'Fri', title: 'Friday Run'),
+      ]);
+      final plan = _manualPlan([week], startsOnDate: '2026-07-08');
+
+      // 2026-07-13 is the Monday inside plan week 1 of a Wednesday start.
+      final activeWeekdayIndex = activeGeneratedPlanWeekdayFor(
+        plan,
+        currentDate: DateTime(2026, 7, 13),
+      );
+      expect(activeWeekdayIndex, DateTime.monday);
+
+      final model = buildHomeStageMapModel(
+        plan: plan,
+        completedScheduledWorkoutIds: const <String>{},
+        activeWeekNumber: 1,
+        currentWeekdayIndex: activeWeekdayIndex,
+        backgroundSequence: const <String>['bg.webp'],
+      );
+
+      final stones = model.sections.single.stones;
+      expect(model.todayDayIndex, 0);
+      expect(stones[0].workoutTitle, 'Monday Run');
+      expect(stones[0].state, HomeStageStoneState.current);
+      expect(stones[2].state, HomeStageStoneState.future);
+      expect(stones[4].state, HomeStageStoneState.future);
     },
   );
 }

@@ -101,8 +101,16 @@ describe(
       await seedReportAndHandle(firestore, handlers, "post-disabled", "report-2");
       await seedReportAndHandle(firestore, handlers, "post-disabled", "report-3");
 
-      const commands = await firestore.collection("moderationCommands").get();
-      assert.equal(commands.size, 0);
+      // Assert on the deterministic command id this flow would create rather
+      // than a collection-wide count: the real `reportCreated` and
+      // `moderationCommandCreated` triggers also run in this shared emulator,
+      // and late re-delivered executions from the sibling test files can
+      // upsert unrelated status-only command docs after beforeEach clears
+      // the collection.
+      const command = await firestore
+        .doc("moderationCommands/auto_removeFeedPost_post-disabled")
+        .get();
+      assert.equal(command.exists, false);
     });
 
     it("ignores reports whose targetType is not feedPost", async () => {
@@ -112,8 +120,12 @@ describe(
       await seedReportAndHandle(firestore, handlers, "user-abuser", "report-2", "user");
       await seedReportAndHandle(firestore, handlers, "user-abuser", "report-3", "user");
 
-      const commands = await firestore.collection("moderationCommands").get();
-      assert.equal(commands.size, 0);
+      // Deterministic-id assertion for the same cross-file emulator
+      // re-delivery reason as the auto-hide-disabled test above.
+      const command = await firestore
+        .doc("moderationCommands/auto_removeFeedPost_user-abuser")
+        .get();
+      assert.equal(command.exists, false);
     });
 
     it("writes exactly one admin notification per report when notifications are enabled, across replay", async () => {

@@ -1876,6 +1876,53 @@ describe("streak milestone bonus", () => {
     assert.equal(progressionEvent.get("dailyXpAfter"), 220);
   });
 
+  it("pays the milestone in full even when the daily cap trims the base to exactly zero", async () => {
+    await firestore.doc(`userProfiles/${USER_UID}`).set(
+      { streakCount: 2, lastStreakRunDate: "2026-06-13" },
+      { merge: true },
+    );
+    // The full 200 XP daily budget is already spent before this run.
+    await firestore.collection("progressionEvents").doc("preseed-streak-zero-base").set({
+      ownerUid: USER_UID,
+      dailyCapDate: "2026-06-14",
+      monthlyPeriod: "2026-06",
+      xpDelta: 200,
+    });
+
+    const result = await callCompleteRun({
+      auth: { uid: USER_UID },
+      data: runPayloadForSession({
+        clientRunSessionId: "streak-bonus-zero-capped-base",
+        startedAt: "2026-06-14T09:00:00.000Z",
+        completedAt: "2026-06-14T09:25:00.000Z",
+      }),
+    });
+    const progressionEvent = await firestore.doc(`progressionEvents/${result.progressionEventId}`).get();
+
+    // The 60 XP base is trimmed to 0 (dailyXpBefore 200 leaves no room), but
+    // the 3-day milestone (30 XP) is exempt from the daily cap and is added on
+    // top of capped.xpDelta === 0, so the run still awards exactly 30.
+    assert.equal(progressionEvent.get("dailyXpBefore"), 200);
+    assert.equal(progressionEvent.get("dailyCapApplied"), true);
+    assert.equal(progressionEvent.get("rawXpBeforeDailyCap"), 60);
+    assert.equal(progressionEvent.get("streakBonusXp"), 30);
+    assert.equal(progressionEvent.get("streakMilestoneDays"), 3);
+    assert.equal(progressionEvent.get("streakBonusCapped"), false);
+    assert.equal(progressionEvent.get("xpDelta"), 30);
+    assert.equal(progressionEvent.get("dailyXpAfter"), 230);
+    assert.equal(result.progressionDisplay.xpDelta, 30);
+    assert.equal(result.progressionDisplay.status, "awarded");
+    // Pins the documented "known gap" in progressionAudit.ts: the combined
+    // xpDelta (30) is non-zero, so the reason stays run_completion_xp_awarded
+    // even though the base itself was fully daily-capped.
+    assert.equal(result.progressionDisplay.reason, "run_completion_xp_awarded");
+
+    const profile = await firestore.doc(`userProfiles/${USER_UID}`).get();
+    assert.equal(profile.get("totalXp"), 30);
+    // The milestone actually paid, so the high-water mark advances to 3.
+    assert.equal(profile.get("highestPaidStreakMilestoneDays"), 3);
+  });
+
   it("suppresses the streak bonus together with the base when premiumEarnsXp is false", async () => {
     await firestore.doc("config/progression").set({ premiumEarnsXp: false });
     await firestore.doc(`users/${USER_UID}`).set({ subscriptionStatus: "premium" });
