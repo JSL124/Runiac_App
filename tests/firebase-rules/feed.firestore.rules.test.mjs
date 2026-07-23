@@ -260,4 +260,16 @@ describe('trusted Feed Firestore rules', () => {
       reporterUid: 'bob', targetType: 'profile', targetId: 'generic', reason: 'other', description: '', createdAt: serverTimestamp(),
     }));
   });
+
+  it('denies direct client feedPost creation and author-side deletion of a published post', async () => {
+    await seed('feedPosts/alice-post', feedPost('alice'));
+    const alice = dbFor('alice');
+
+    // feedPosts documents are backend-created only: even a fully well-formed
+    // post authored as the caller cannot be created client-side.
+    await assertFails(setDoc(doc(alice, 'feedPosts/alice-forged'), feedPost('alice')));
+    // Deletion goes through the backend lifecycle (status transitions), not
+    // a direct client delete — even by the post's own author.
+    await assertFails(deleteDoc(doc(alice, 'feedPosts/alice-post')));
+  });
 });

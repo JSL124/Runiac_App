@@ -228,6 +228,124 @@ describe(
       assert.equal(currentView.get("status"), "unranked");
     });
 
+    // Same rewrite-on-every-run rule as the premium case above, applied to the
+    // minimum-runs gate: a view stamped ineligible_min_runs while the owner was
+    // under quota must flip back to ranked once their contribution meets
+    // minRunsToQualify, because currentViews are only ever `set`.
+    it("re-evaluates a stale ineligible_min_runs view to ranked once the owner meets the quota", async () => {
+      const uid = "stale-min-runs-runner";
+      await firestore.doc("config/leaderboard").set({ minRunsToQualify: 3 });
+      await Promise.all([
+        firestore.doc(`users/${uid}`).set({ subscriptionStatus: "basic" }),
+        firestore.doc(`userProfiles/${uid}`).set({
+          nickname: "Stale Min Runs",
+          locationLabel: "Jurong East, Singapore",
+          divisionKey: "tier_01",
+          level: 1,
+        }),
+        // Written by an earlier refresh while qualifyingRunCount was still 2.
+        firestore.doc(`leaderboardCurrentViews/${uid}`).set({
+          ownerUid: uid,
+          periodType: "monthly",
+          periodKey: "2026-07",
+          status: "ineligible_min_runs",
+          snapshotId: null,
+          rankId: null,
+          activeSnapshotId: null,
+          activeRankProjectionId: null,
+        }),
+        // The owner's third qualifying run has since been recomputed in.
+        firestore.doc(`leaderboardContributions/${uid}_monthly_2026-07`).set({
+          ...contribution({ ownerUid: uid }),
+          qualifyingRunCount: 3,
+        }),
+      ]);
+
+      await refreshMonthlyLeaderboardSnapshots(firestore, "2026-07", {
+        now: new Date("2026-07-10T00:00:00.000Z"),
+        buildId: "stale-min-runs-view-build",
+      });
+
+      const currentView = await firestore
+        .doc(`leaderboardCurrentViews/${uid}`)
+        .get();
+      assert.notEqual(
+        currentView.get("status"),
+        "ineligible_min_runs",
+        "the stale under-quota exclusion must not survive a run once the quota is met",
+      );
+      assert.equal(currentView.get("status"), "ranked");
+      assert.equal(
+        currentView.get("activeRankProjectionId"),
+        `${uid}_monthly_2026-07`,
+      );
+      await firestore.doc("config/leaderboard").delete();
+    });
+
+    // Retention rule (retainedPeriodKeys): the refreshed month plus the two
+    // months before it survive; every older monthly projection is deleted by
+    // cleanupExpiredProjections after the refresh commits.
+    it("deletes projections for periods outside the three-month retained window after a refresh", async () => {
+      const staleSnapshotRef = firestore.doc(
+        "leaderboardSnapshots/monthly_jurong-east_tier_01_2026-03",
+      );
+      const staleRankRef = firestore.doc(
+        "leaderboardUserRanks/stale-runner_monthly_2026-03",
+      );
+      const staleLockRef = firestore.doc(
+        "leaderboardAggregationLocks/monthly_2026-03",
+      );
+      const retainedSnapshotRef = firestore.doc(
+        "leaderboardSnapshots/monthly_jurong-east_tier_01_2026-05",
+      );
+      const retainedRankRef = firestore.doc(
+        "leaderboardUserRanks/retained-runner_monthly_2026-05",
+      );
+      await Promise.all([
+        staleSnapshotRef.set({
+          periodType: "monthly",
+          periodKey: "2026-03",
+          regionId: "jurong-east",
+          divisionKey: "tier_01",
+        }),
+        staleRankRef.set({
+          periodType: "monthly",
+          periodKey: "2026-03",
+          ownerUid: "stale-runner",
+        }),
+        staleLockRef.set({
+          periodType: "monthly",
+          periodKey: "2026-03",
+          status: "completed",
+        }),
+        retainedSnapshotRef.set({
+          periodType: "monthly",
+          periodKey: "2026-05",
+          regionId: "jurong-east",
+          divisionKey: "tier_01",
+        }),
+        retainedRankRef.set({
+          periodType: "monthly",
+          periodKey: "2026-05",
+          ownerUid: "retained-runner",
+        }),
+      ]);
+
+      const completed = await refreshMonthlyLeaderboardSnapshots(firestore, "2026-07", {
+        now: new Date("2026-07-10T00:00:00.000Z"),
+        buildId: "cleanup-retention-build",
+      });
+      assert.equal(completed.status, "completed");
+
+      // 2026-03 is outside {2026-07, 2026-06, 2026-05} and must be gone.
+      assert.equal((await staleSnapshotRef.get()).exists, false);
+      assert.equal((await staleRankRef.get()).exists, false);
+      assert.equal((await staleLockRef.get()).exists, false);
+      // 2026-05 is inside the retained window and must survive untouched.
+      assert.equal((await retainedSnapshotRef.get()).exists, true);
+      assert.equal((await retainedRankRef.get()).exists, true);
+    });
+
     it("writes qualifyingRunCount as an absolute value, never an increment", async () => {
       const uid = "absolute-count-runner";
       const contributionRef = firestore.doc(

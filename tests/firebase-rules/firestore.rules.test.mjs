@@ -1344,4 +1344,190 @@ describe('owner-owned client records', () => {
     await assertFails(updateDoc(notification, { status: 'read' }));
     await assertFails(deleteDoc(notification));
   });
+
+  it('denies all direct client access to moderation commands for signed-in and unauthenticated clients', async () => {
+    await seed('moderationCommands/command-001', {
+      kind: 'setUserAccountStatus',
+      targetUid: 'alice',
+      accountStatus: 'suspended',
+      requestedBy: 'admin-console',
+      status: 'pending',
+    });
+
+    for (const client of [dbFor('alice'), unauthenticatedDb()]) {
+      const command = doc(client, 'moderationCommands/command-001');
+
+      await assertFails(getDoc(command));
+      await assertFails(getDocs(collection(client, 'moderationCommands')));
+      await assertFails(
+        setDoc(doc(client, 'moderationCommands/client-created'), {
+          kind: 'setUserAccountStatus',
+          targetUid: 'bob',
+          accountStatus: 'banned',
+          requestedBy: 'client',
+          status: 'pending',
+        }),
+      );
+      await assertFails(updateDoc(command, { status: 'completed' }));
+      await assertFails(deleteDoc(command));
+    }
+  });
+
+  it('denies all client access to error groups and their reporter markers', async () => {
+    await seed('errorGroups/group-001', {
+      fingerprint: 'synthetic-fingerprint',
+      message: 'Synthetic error message only.',
+      occurrenceCount: 3,
+      firstSeenAt: 1,
+      lastSeenAt: 2,
+      status: 'open',
+    });
+    await seed('errorGroups/group-001/reporters/alice', {
+      reportedAt: 2,
+    });
+
+    for (const client of [dbFor('alice'), unauthenticatedDb()]) {
+      const group = doc(client, 'errorGroups/group-001');
+      const reporter = doc(client, 'errorGroups/group-001/reporters/alice');
+
+      await assertFails(getDoc(group));
+      await assertFails(getDoc(reporter));
+      await assertFails(getDocs(collection(client, 'errorGroups/group-001/reporters')));
+      await assertFails(
+        setDoc(doc(client, 'errorGroups/client-created'), {
+          fingerprint: 'client-fingerprint',
+          message: 'Client-forged error group.',
+          occurrenceCount: 1,
+          status: 'open',
+        }),
+      );
+      await assertFails(
+        setDoc(doc(client, 'errorGroups/group-001/reporters/client-created'), {
+          reportedAt: 3,
+        }),
+      );
+      await assertFails(updateDoc(group, { status: 'resolved' }));
+      await assertFails(deleteDoc(group));
+      await assertFails(deleteDoc(reporter));
+    }
+  });
+
+  it('denies even the owner all access to their own error report rate-limit ledger', async () => {
+    await seed('errorReportRateLimit/alice', {
+      lastReceivedAt: 1,
+    });
+    await seed('errorReportRateLimit/alice/events/event-001', {
+      receivedAt: 1,
+    });
+
+    const alice = dbFor('alice');
+    const ledger = doc(alice, 'errorReportRateLimit/alice');
+    const event = doc(alice, 'errorReportRateLimit/alice/events/event-001');
+
+    await assertFails(getDoc(ledger));
+    await assertFails(getDoc(event));
+    await assertFails(getDocs(collection(alice, 'errorReportRateLimit/alice/events')));
+    await assertFails(setDoc(ledger, { lastReceivedAt: 1 }));
+    await assertFails(
+      setDoc(doc(alice, 'errorReportRateLimit/alice/events/client-created'), {
+        receivedAt: 2,
+      }),
+    );
+    await assertFails(updateDoc(event, { receivedAt: 2 }));
+    // Deleting the ledger or its events would reset the reportAppError
+    // per-uid rate limit, so even the owner uid is denied.
+    await assertFails(deleteDoc(event));
+    await assertFails(deleteDoc(ledger));
+  });
+
+  it('denies signed-in clients all access to leaderboard contributions, including their own', async () => {
+    await seed('leaderboardContributions/alice_monthly_2026-07', {
+      ownerUid: 'alice',
+      periodType: 'monthly',
+      periodKey: '2026-07',
+      regionId: 'jurong-east',
+      divisionKey: 'tier_01',
+      scoreXp: 120,
+      updatedAt: 1,
+    });
+
+    const alice = dbFor('alice');
+    const ownContribution = doc(
+      alice,
+      'leaderboardContributions/alice_monthly_2026-07',
+    );
+
+    await assertFails(getDoc(ownContribution));
+    await assertFails(
+      getDocs(
+        query(
+          collection(alice, 'leaderboardContributions'),
+          where('ownerUid', '==', 'alice'),
+          limit(30),
+        ),
+      ),
+    );
+    await assertFails(
+      setDoc(doc(alice, 'leaderboardContributions/alice_monthly_2026-08'), {
+        ownerUid: 'alice',
+        periodType: 'monthly',
+        periodKey: '2026-08',
+        regionId: 'jurong-east',
+        divisionKey: 'tier_01',
+        scoreXp: 999,
+        updatedAt: 2,
+      }),
+    );
+    await assertFails(updateDoc(ownContribution, { scoreXp: 999 }));
+    await assertFails(deleteDoc(ownContribution));
+  });
+
+  it('allows only the owner to read a progression event and denies all client writes to it', async () => {
+    await seed('progressionEvents/event-alice-001', {
+      ownerUid: 'alice',
+      activityId: 'activity-alice-001',
+      xp: 40,
+      previousTotalXp: 0,
+      nextTotalXp: 40,
+      previousLevel: 1,
+      nextLevel: 1,
+      createdAt: 1,
+    });
+
+    const ownEvent = await assertSucceeds(
+      getDoc(doc(dbFor('alice'), 'progressionEvents/event-alice-001')),
+    );
+    assert.equal(ownEvent.data().ownerUid, 'alice');
+
+    await assertFails(
+      getDoc(doc(dbFor('bob'), 'progressionEvents/event-alice-001')),
+    );
+    await assertFails(
+      getDoc(doc(unauthenticatedDb(), 'progressionEvents/event-alice-001')),
+    );
+    await assertFails(
+      updateDoc(doc(dbFor('alice'), 'progressionEvents/event-alice-001'), {
+        xp: 999,
+      }),
+    );
+    await assertFails(
+      deleteDoc(doc(dbFor('alice'), 'progressionEvents/event-alice-001')),
+    );
+  });
+
+  it('allows only the owner to read their users account and subscription state document', async () => {
+    await seed('users/alice', {
+      accountStatus: 'active',
+      subscriptionStatus: 'basic',
+      userRole: 'Basic User',
+    });
+
+    const ownDoc = await assertSucceeds(
+      getDoc(doc(dbFor('alice'), 'users/alice')),
+    );
+    assert.equal(ownDoc.data().subscriptionStatus, 'basic');
+
+    await assertFails(getDoc(doc(dbFor('bob'), 'users/alice')));
+    await assertFails(getDoc(doc(unauthenticatedDb(), 'users/alice')));
+  });
 });

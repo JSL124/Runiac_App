@@ -113,6 +113,35 @@ describe("Feed contracts", () => {
     assert.equal("validatedActivityContributionState" in parsed.value, false);
   });
 
+  // Regression (daee0021): completeRun stamps countsTowardStreak and
+  // plannedWorkoutRecorded, and completeCoolDown stamps the coolDownXpAwarded*
+  // trio onto every real activity document, but the publish allowlist rejected
+  // them as unknown keys — so no post-progression run could ever be shared.
+  it("accepts an activity carrying streak and cool-down progression fields", () => {
+    const parsed = parseValidatedOwnedActivity(
+      {
+        ...completeRunActivity(),
+        countsTowardStreak: true,
+        plannedWorkoutRecorded: false,
+        coolDownXpAwarded: true,
+        coolDownXpAwardedAt: "2026-07-11T00:10:00.000Z",
+        coolDownProgressionEventId: "cooldown_author-a_client-run-a",
+      },
+      "author-a",
+      "activity-a",
+    );
+    assert.equal(parsed.ok, true);
+    if (!parsed.ok) return;
+    assert.equal(parsed.value.activityId, "activity-a");
+    assert.equal(parsed.value.completedAt, "2026-07-11T00:00:00.000Z");
+    // The progression fields are accepted but never projected into the feed.
+    assert.equal("countsTowardStreak" in parsed.value, false);
+    assert.equal("plannedWorkoutRecorded" in parsed.value, false);
+    assert.equal("coolDownXpAwarded" in parsed.value, false);
+    assert.equal("coolDownXpAwardedAt" in parsed.value, false);
+    assert.equal("coolDownProgressionEventId" in parsed.value, false);
+  });
+
   it("rejects foreign, unvalidated, and malformed activity projections", () => {
     const valid = completeRunActivity();
     assert.equal(parseValidatedOwnedActivity(valid, "author-a", "activity-a").ok, true);

@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import { assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
-import { doc, getDoc, setDoc, updateDoc, deleteField } from 'firebase/firestore';
+import { deleteDoc, doc, getDoc, setDoc, updateDoc, deleteField } from 'firebase/firestore';
 
 import {
   dbFor,
@@ -46,6 +46,19 @@ describe('shared route privacy and plan enrollment boundaries', () => {
     await assertSucceeds(getDoc(doc(dbFor('alice'), 'sharedRoutes/private-route')));
     await assertFails(getDoc(doc(dbFor('bob'), 'sharedRoutes/private-route')));
     await assertSucceeds(getDoc(doc(dbFor('bob'), 'sharedRoutes/published-route')));
+  });
+
+  it('denies owner updates and deletes of an existing draft route, including self-publishing', async () => {
+    await seed('sharedRoutes/route-draft', sharedRouteDraft);
+
+    const route = doc(dbFor('alice'), 'sharedRoutes/route-draft');
+
+    // sharedRoutes has no update/delete allow: an owner cannot flip their
+    // own draft to published, mutate any other field, or delete the doc.
+    await assertFails(updateDoc(route, { visibilityStatus: 'published' }));
+    await assertFails(updateDoc(route, { title: 'Renamed Synthetic Loop' }));
+    await assertFails(updateDoc(route, { updatedAt: 2 }));
+    await assertFails(deleteDoc(route));
   });
 
   it('allows premium users to create minimal pending enrollments only', async () => {
