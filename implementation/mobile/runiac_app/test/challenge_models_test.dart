@@ -221,6 +221,58 @@ void main() {
         throwsA(isA<ChallengeParseException>()),
       );
     });
+
+    test('parses premiumOnlyTiers into tier ids', () {
+      final catalog = ChallengeCatalog.fromMap(<String, Object?>{
+        'version': 'challenge-distance-v1',
+        'tiers': <Map<String, Object?>>[],
+        'premiumOnlyTiers': <String>['100K', '1000K'],
+      });
+
+      expect(
+        catalog.premiumOnlyTierIds,
+        <ChallengeTierId>{ChallengeTierId.k100, ChallengeTierId.k1000},
+      );
+      expect(catalog.isPremiumOnly(ChallengeTierId.k100), isTrue);
+      expect(catalog.isPremiumOnly(ChallengeTierId.k10), isFalse);
+    });
+
+    test('an absent premiumOnlyTiers field parses to the empty set', () {
+      final catalog = ChallengeCatalog.fromMap(<String, Object?>{
+        'version': 'challenge-distance-v1',
+        'tiers': <Map<String, Object?>>[],
+      });
+
+      expect(catalog.premiumOnlyTierIds, isEmpty);
+    });
+
+    test(
+      'skips unknown/non-string premiumOnlyTiers entries and never throws',
+      () {
+        // Additive contract: a server gating a tier id this client version
+        // does not know must not break the catalog (fail-open lock UI).
+        final catalog = ChallengeCatalog.fromMap(<String, Object?>{
+          'version': 'challenge-distance-v1',
+          'tiers': <Map<String, Object?>>[],
+          'premiumOnlyTiers': <Object?>['200K', '7K', 42, null],
+        });
+
+        expect(
+          catalog.premiumOnlyTierIds,
+          <ChallengeTierId>{ChallengeTierId.k200},
+        );
+      },
+    );
+
+    test('a non-list premiumOnlyTiers value parses to the empty set', () {
+      final catalog = ChallengeCatalog.fromMap(<String, Object?>{
+        'version': 'challenge-distance-v1',
+        'tiers': <Map<String, Object?>>[],
+        'premiumOnlyTiers': 'not-a-list',
+      });
+
+      expect(catalog.premiumOnlyTierIds, isEmpty);
+    });
   });
 
   group('ActiveChallenge parsing', () {

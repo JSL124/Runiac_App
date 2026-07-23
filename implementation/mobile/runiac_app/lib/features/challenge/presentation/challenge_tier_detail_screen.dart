@@ -6,6 +6,7 @@ import '../../../core/widgets/runiac_buttons.dart';
 import '../domain/challenge_copy.dart';
 import '../domain/models/challenge_tier.dart';
 import '../domain/repositories/challenge_repository.dart';
+import '../../paywall/presentation/premium_gate.dart';
 import 'challenge_friend_picker_screen.dart';
 import 'challenge_lobby_screen.dart';
 import 'widgets/challenge_badge_image.dart';
@@ -23,6 +24,7 @@ class ChallengeTierDetailScreen extends StatefulWidget {
     required this.onBack,
     this.slotHeld = false,
     this.earned = false,
+    this.premiumOnly = false,
     this.onViewCurrentChallenge,
     this.invitableFriendsLoader = noChallengeInvitableFriends,
     this.clock,
@@ -33,6 +35,14 @@ class ChallengeTierDetailScreen extends StatefulWidget {
   final ChallengeRepository repository;
   final bool slotHeld;
   final bool earned;
+
+  /// Backend-designated premium-gated tier (from the catalog's
+  /// `premiumOnlyTiers`). Basic runners still see this whole screen — it is
+  /// the upsell surface — but Create challenge intercepts to the paywall.
+  /// The backend `PREMIUM_REQUIRED` gate on `createChallengeLobby` is the
+  /// real enforcement.
+  final bool premiumOnly;
+
   final VoidCallback onBack;
   final VoidCallback? onViewCurrentChallenge;
   final ChallengeInvitableFriendsLoader invitableFriendsLoader;
@@ -48,6 +58,13 @@ class _ChallengeTierDetailScreenState extends State<ChallengeTierDetailScreen> {
 
   Future<void> _create() async {
     if (_creating) {
+      return;
+    }
+    // Display-only gate for Basic runners on a premium tier — earned or not,
+    // NEW lobby creation is what the backend charges for. Fail-open: with no
+    // resolved account or the paywall kill switch off, proceed and let
+    // `createChallengeLobby` decide.
+    if (widget.premiumOnly && interceptWithPaywallIfBasic(context)) {
       return;
     }
     setState(() => _creating = true);
@@ -76,6 +93,16 @@ class _ChallengeTierDetailScreenState extends State<ChallengeTierDetailScreen> {
         return;
       }
       setState(() => _creating = false);
+      if (failure.reason == 'PREMIUM_REQUIRED') {
+        // The server refused creation as premium-gated (stale catalog or an
+        // admin config change mid-session). Prefer the paywall over a raw
+        // error; fall back to copy when the sheet cannot show (premium
+        // account or kill switch).
+        if (!interceptWithPaywallIfBasic(context)) {
+          _showError(ChallengeCopy.failureMessage(failure.reason));
+        }
+        return;
+      }
       _showError(ChallengeCopy.failureMessage(failure.reason));
     } catch (_) {
       if (!mounted) {
@@ -95,6 +122,10 @@ class _ChallengeTierDetailScreenState extends State<ChallengeTierDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final tier = widget.tier;
+    // Earned overrides the visual lock (a lapsed Premium runner keeps their
+    // badge); the create-tap gate above still applies to a fresh lobby.
+    final premiumLocked =
+        widget.premiumOnly && !widget.earned && watchShouldShowPaywall(context);
     return Scaffold(
       backgroundColor: RuniacColors.background,
       body: SafeArea(
@@ -111,7 +142,11 @@ class _ChallengeTierDetailScreenState extends State<ChallengeTierDetailScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Center(
-                      child: ChallengeBadgeImage(tierId: tier.tierId, size: 132),
+                      child: ChallengeLockableBadge(
+                        tierId: tier.tierId,
+                        size: 132,
+                        locked: premiumLocked,
+                      ),
                     ),
                     const SizedBox(height: 12),
                     Wrap(
@@ -132,6 +167,11 @@ class _ChallengeTierDetailScreenState extends State<ChallengeTierDetailScreen> {
                           label: tier.difficultyLabel,
                           color: RuniacColors.primaryBlue,
                         ),
+                        if (premiumLocked)
+                          const ChallengeStatusChip(
+                            label: ChallengeCopy.premiumTier,
+                            color: RuniacColors.accentOrange,
+                          ),
                         if (widget.earned)
                           const ChallengeStatusChip(
                             label: ChallengeCopy.earned,

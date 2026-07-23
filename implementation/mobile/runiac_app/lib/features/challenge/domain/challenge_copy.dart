@@ -36,6 +36,10 @@ abstract final class ChallengeCopy {
   static const inProgress = 'In progress';
   static const earned = 'Earned';
 
+  /// Chip/semantics label for a premium-gated tier (display-only lock UI; the
+  /// backend `PREMIUM_REQUIRED` gate on lobby creation is the enforcement).
+  static const premiumTier = 'Premium';
+
   // --- Explore / states ---
   static const exploreLoading = 'Loading challenges…';
   static const exploreError = 'Challenges are temporarily unavailable.';
@@ -192,6 +196,7 @@ abstract final class ChallengeCopy {
       'NOT_INVITATION_RECIPIENT' => 'This invitation is not addressed to you.',
       'INVITATION_NOT_PENDING' => 'This invitation has already been answered.',
       'UNKNOWN_TIER' => 'This challenge tier is unavailable.',
+      'PREMIUM_REQUIRED' => 'This challenge tier is part of Runiac Premium.',
       'UNAUTHENTICATED' => 'Please sign in to continue.',
       'CHALLENGE_UNAVAILABLE' => 'Challenge is temporarily unavailable.',
       _ => 'Something went wrong. Please try again.',

@@ -47,7 +47,11 @@ class StaticChallengeRepository implements ChallengeRepository {
 
   @override
   Future<ChallengeCatalog> catalog() async {
-    return const ChallengeCatalog(version: _catalogVersion, tiers: _demoTiers);
+    return const ChallengeCatalog(
+      version: _catalogVersion,
+      tiers: _demoTiers,
+      premiumOnlyTierIds: _demoPremiumOnlyTierIds,
+    );
   }
 
   @override
@@ -419,6 +423,18 @@ const ChallengeRulesSnapshot _demoRules42 = ChallengeRulesSnapshot(
   targetMeters: 42000,
   personalMinimumMeters: 7000,
 );
+
+/// Demo premium gating mirroring `DEFAULT_CHALLENGE_ACCESS_CONFIG` in
+/// `functions/src/config/configLoader.ts` (10K/20K/42K free, the rest
+/// premium-only). Static fixture values, not an entitlement decision.
+const Set<ChallengeTierId> _demoPremiumOnlyTierIds = <ChallengeTierId>{
+  ChallengeTierId.k100,
+  ChallengeTierId.k200,
+  ChallengeTierId.k250,
+  ChallengeTierId.k300,
+  ChallengeTierId.k500,
+  ChallengeTierId.k1000,
+};
 
 /// Demo catalog mirroring the backend `challenge-distance-v1` tiers. These are
 /// static fixture values, not a client-side computation of targets or minimums.

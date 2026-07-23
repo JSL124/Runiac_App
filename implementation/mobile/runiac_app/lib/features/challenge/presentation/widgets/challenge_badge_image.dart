@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/assets/runiac_assets.dart';
+import '../../../../core/theme/runiac_colors.dart';
 import '../../domain/models/challenge_enums.dart';
 
 /// Maps a tier to its user-created badge PNG asset. Every Challenge badge
@@ -60,6 +61,57 @@ class ChallengeBadgeImage extends StatelessWidget {
           ]),
           child: image,
         ),
+      ),
+    );
+  }
+}
+
+/// A tier badge with the premium-lock treatment: when [locked] the badge PNG
+/// renders through the [ChallengeBadgeImage] dimmed (desaturate + fade) mode
+/// with a lock roundel overlaid at its centre. The badge asset itself is
+/// always shown — never swapped for other art. Display-only: the backend
+/// `PREMIUM_REQUIRED` gate on lobby creation is the enforcement.
+class ChallengeLockableBadge extends StatelessWidget {
+  const ChallengeLockableBadge({
+    required this.tierId,
+    required this.size,
+    required this.locked,
+    super.key,
+  });
+
+  final ChallengeTierId tierId;
+  final double size;
+  final bool locked;
+
+  @override
+  Widget build(BuildContext context) {
+    final badge = ChallengeBadgeImage(tierId: tierId, size: size, dimmed: locked);
+    if (!locked) {
+      return badge;
+    }
+    final lockSize = (size * 0.22).clamp(14.0, 24.0);
+    return SizedBox(
+      width: size,
+      height: size,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          badge,
+          Container(
+            key: ValueKey<String>('challenge-tier-lock-${tierId.wireValue}'),
+            padding: EdgeInsets.all(lockSize * 0.35),
+            decoration: BoxDecoration(
+              color: RuniacColors.white.withValues(alpha: 0.92),
+              shape: BoxShape.circle,
+              border: Border.all(color: RuniacColors.cardBorder),
+            ),
+            child: Icon(
+              Icons.lock_rounded,
+              size: lockSize,
+              color: RuniacColors.accentOrange,
+            ),
+          ),
+        ],
       ),
     );
   }
