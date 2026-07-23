@@ -9,6 +9,7 @@ import '../domain/models/challenge_badge_ownership.dart';
 import '../domain/models/challenge_enums.dart';
 import '../domain/models/challenge_tier.dart';
 import '../domain/repositories/challenge_repository.dart';
+import '../../paywall/presentation/premium_gate.dart';
 import 'challenge_friend_picker_screen.dart';
 import 'challenge_invitations_screen.dart';
 import 'challenge_lobby_screen.dart';
@@ -21,12 +22,18 @@ import 'widgets/challenge_widgets.dart';
 class _ExploreData {
   const _ExploreData({
     required this.catalog,
+    required this.premiumOnlyTierIds,
     required this.active,
     required this.invitationCount,
     required this.ownedBadges,
   });
 
   final List<ChallengeTier> catalog;
+
+  /// Backend-designated premium-gated tiers (display-only lock UI; lobby
+  /// creation is enforced server-side via `PREMIUM_REQUIRED`).
+  final Set<ChallengeTierId> premiumOnlyTierIds;
+
   final ActiveChallenge? active;
   final int invitationCount;
 
@@ -84,6 +91,7 @@ class _ChallengeExploreScreenState extends State<ChallengeExploreScreen> {
       setState(() {
         _data = _ExploreData(
           catalog: catalog.tiers,
+          premiumOnlyTierIds: catalog.premiumOnlyTierIds,
           active: _liveOrNull(active),
           invitationCount: invitations.length,
           ownedBadges: owned,
@@ -132,6 +140,8 @@ class _ChallengeExploreScreenState extends State<ChallengeExploreScreen> {
 
   Future<void> _openTierDetail(ChallengeTier tier) async {
     final owned = _data?.ownedBadges?.isOwned(tier.tierId) ?? false;
+    final premiumOnly =
+        _data?.premiumOnlyTierIds.contains(tier.tierId) ?? false;
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (context) => ChallengeTierDetailScreen(
@@ -139,6 +149,7 @@ class _ChallengeExploreScreenState extends State<ChallengeExploreScreen> {
           repository: widget.repository,
           slotHeld: _slotHeld,
           earned: owned,
+          premiumOnly: premiumOnly,
           onViewCurrentChallenge:
               _slotHeld ? () => _openCurrentChallenge(popFirst: true) : null,
           invitableFriendsLoader: widget.invitableFriendsLoader,
@@ -246,6 +257,9 @@ class _ChallengeExploreScreenState extends State<ChallengeExploreScreen> {
         onRetry: _load,
       );
     }
+    // One gate read for the whole grid; registers the account/paywall scope
+    // dependencies so tiles unlock live when the trusted tier resolves.
+    final paywallGate = watchShouldShowPaywall(context);
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       children: [
@@ -267,10 +281,18 @@ class _ChallengeExploreScreenState extends State<ChallengeExploreScreen> {
             final tier = data.catalog[index];
             final inProgress = data.active?.tierId == tier.tierId;
             final earned = data.ownedBadges?.isOwned(tier.tierId) ?? false;
+            // In-progress and earned override the lock: a lapsed Premium
+            // runner keeps their badge and their running challenge — the
+            // gate only stops NEW lobby creation (mirrors the backend).
+            final locked = paywallGate &&
+                data.premiumOnlyTierIds.contains(tier.tierId) &&
+                !inProgress &&
+                !earned;
             return _TierTile(
               tier: tier,
               inProgress: inProgress,
               earned: earned,
+              locked: locked,
               onTap: () => _openTierDetail(tier),
             );
           },
@@ -371,12 +393,19 @@ class _TierTile extends StatelessWidget {
     required this.tier,
     required this.inProgress,
     required this.earned,
+    required this.locked,
     required this.onTap,
   });
 
   final ChallengeTier tier;
   final bool inProgress;
   final bool earned;
+
+  /// Premium-gated for this (Basic) runner: badge renders desaturated with a
+  /// lock overlay. Display-only — the tile stays tappable so the detail
+  /// screen can upsell, and the backend enforces creation.
+  final bool locked;
+
   final VoidCallback onTap;
 
   @override
@@ -384,11 +413,14 @@ class _TierTile extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final badgeSize = constraints.maxWidth * 0.88;
+        final semanticLabel =
+            'Challenge ${challengeTierTitle(tier.tierId)} ${tier.difficultyLabel}';
         return RuniacTappableSurface(
           key: ValueKey<String>('challenge-tier-${tier.tierId.wireValue}'),
           onTap: onTap,
-          semanticLabel:
-              'Challenge ${challengeTierTitle(tier.tierId)} ${tier.difficultyLabel}',
+          semanticLabel: locked
+              ? '$semanticLabel, ${ChallengeCopy.premiumTier}'
+              : semanticLabel,
           borderRadius: BorderRadius.circular(18),
           decoration: BoxDecoration(
             color: RuniacColors.white,
@@ -407,7 +439,11 @@ class _TierTile extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  ChallengeBadgeImage(tierId: tier.tierId, size: badgeSize),
+                  ChallengeLockableBadge(
+                    tierId: tier.tierId,
+                    size: badgeSize,
+                    locked: locked,
+                  ),
                   const SizedBox(height: 4),
                   Text(
                     challengeTierTitle(tier.tierId),
