@@ -41,3 +41,47 @@ jobs:
       - name: Test Flutter app
         working-directory: implementation/mobile/runiac_app
         run: flutter test --no-pub
+
+  backend-emulator-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: |
+            functions/package-lock.json
+            tests/firebase-rules/package-lock.json
+
+      - name: Set up Java 21 for Firebase emulators
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Cache Firebase emulator binaries
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/firebase/emulators
+          key: firebase-emulators-${{ runner.os }}-firebase-tools-14.27.0
+
+      - name: Install Functions dependencies
+        working-directory: functions
+        run: npm ci
+
+      - name: Install rules-test dependencies
+        working-directory: tests/firebase-rules
+        run: npm ci
+
+      - name: Run Functions emulator suites (main, feed, moderation, challenge, friends)
+        working-directory: functions
+        run: npm test
+
+      - name: Run Firestore/Storage rules suite
+        working-directory: tests/firebase-rules
+        run: npm test

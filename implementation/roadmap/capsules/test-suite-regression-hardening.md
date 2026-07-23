@@ -84,8 +84,12 @@ existing assertion was weakened.
 
 ## Open items
 
-- No Functions/Rules tests run in hosted CI (`governance-ci.yml` is
-  Flutter-only); adding an emulator job needs a decision on CI minutes.
+- ~~No Functions/Rules tests run in hosted CI (`governance-ci.yml` is
+  Flutter-only); adding an emulator job needs a decision on CI minutes.~~
+  Closed 2026-07-24: the user authorized the CI-minutes cost and
+  `governance-ci.yml` gained a `backend-emulator-tests` job (Node 22,
+  Temurin 21, cached emulator binaries) running the full Functions chain and
+  the rules suite on every PR.
 - Native cadence tests (Kotlin/iOS) run in no automation.
 - `tests/cross-system/paywall-config-drift.mjs` and the config-contract drift
   check skip here because `website/` is a separate repo checkout.
