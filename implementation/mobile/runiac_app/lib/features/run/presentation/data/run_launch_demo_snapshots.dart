@@ -1,6 +1,5 @@
 const runLaunchDemoSnapshot = RunLaunchDemoSnapshot(
   planLabel: 'TODAY\'S PLAN',
-  switchRouteLabel: 'Switch route',
   distanceValue: '4.5',
   distanceUnitLabel: 'km easy run',
   paceLabel: 'Pace 7:10-7:40 / km · ~32 min',
@@ -23,7 +22,6 @@ const runLiveDemoSnapshot = RunLiveDemoSnapshot(
 class RunLaunchDemoSnapshot {
   const RunLaunchDemoSnapshot({
     required this.planLabel,
-    required this.switchRouteLabel,
     required this.distanceValue,
     required this.distanceUnitLabel,
     required this.paceLabel,
@@ -31,7 +29,6 @@ class RunLaunchDemoSnapshot {
   });
 
   final String planLabel;
-  final String switchRouteLabel;
   final String distanceValue;
   final String distanceUnitLabel;
   final String paceLabel;
