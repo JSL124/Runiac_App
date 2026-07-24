@@ -4010,9 +4010,6 @@ void main() {
     final source = File(
       'lib/features/run/presentation/run_launch_screen.dart',
     ).readAsStringSync();
-    final activeSource = File(
-      'lib/features/run/presentation/run_active_screen.dart',
-    ).readAsStringSync();
     final trackingSheetSource = File(
       'lib/features/run/presentation/widgets/run_tracking_sheet_content.dart',
     ).readAsStringSync();
@@ -4024,6 +4021,9 @@ void main() {
     expect(source, contains('runLaunchDemoSnapshot'));
     expect(source, contains('RunTrackingController'));
     expect(source, contains('RunSheetMode'));
+    // RunActiveScreen was the pre-sheet "run in progress" screen; it is gone
+    // and RunLaunchScreen owns preRun/running/paused. Keep guarding the name
+    // so the retired screen is not reintroduced as a second run surface.
     expect(source, isNot(contains('RunActiveScreen')));
     expect(
       source,
@@ -4033,8 +4033,6 @@ void main() {
         ),
       ),
     );
-    expect(activeSource, contains('RunTrackingController'));
-    expect(activeSource, contains('RunTrackingSheetContent'));
     expect(trackingSheetSource, contains('RunTrackingSnapshot'));
     expect(trackingSheetSource, contains('run_plan_progress_bar'));
     expect(source, isNot(contains('class _RunLaunchDisplaySnapshot')));
