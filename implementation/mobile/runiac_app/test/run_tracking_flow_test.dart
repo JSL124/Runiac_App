@@ -791,7 +791,8 @@ void main() {
     await tester.tap(find.byTooltip('Run settings'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Run settings preview is coming soon.'), findsOneWidget);
+    expect(find.text('Run Settings'), findsOneWidget);
+    expect(find.text('Voice progress updates'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

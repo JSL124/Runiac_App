@@ -627,7 +627,11 @@ void main() {
     await tester.tap(find.byTooltip('Run settings'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Run settings preview is coming soon.'), findsOneWidget);
+    expect(find.text('Run Settings'), findsOneWidget);
+    expect(find.text('Voice progress updates'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
 
     await tester.tap(find.text('Start run'));
     await tester.pumpAndSettle();
