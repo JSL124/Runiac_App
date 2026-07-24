@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:runiac_app/app.dart';
 import 'package:runiac_app/core/assets/runiac_assets.dart';
@@ -587,6 +588,15 @@ const _lowDataCompletionResult = CompleteRunResult(
 );
 
 void main() {
+  setUp(() {
+    // RunLaunchScreen reads voice-coaching settings from the real
+    // SharedPreferences-backed repository (no fake is injected by these
+    // widget tests). Without mock initial values, SharedPreferences.
+    // getInstance() never resolves in the test harness (no platform-channel
+    // responder), which would hang `_startRun`'s settings reload forever.
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+  });
+
   testWidgets('Run item opens and protects local active finish controls', (
     WidgetTester tester,
   ) async {
@@ -627,7 +637,11 @@ void main() {
     await tester.tap(find.byTooltip('Run settings'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Run settings preview is coming soon.'), findsOneWidget);
+    expect(find.text('Run Settings'), findsOneWidget);
+    expect(find.text('Voice progress updates'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
 
     await tester.tap(find.text('Start run'));
     await tester.pumpAndSettle();

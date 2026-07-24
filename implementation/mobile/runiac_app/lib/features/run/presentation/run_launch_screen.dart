@@ -24,6 +24,17 @@ import '../domain/repositories/run_location_provider.dart';
 import '../domain/repositories/run_motion_provider.dart';
 import '../domain/repositories/run_notification_permission_service.dart';
 import '../domain/repositories/run_repository.dart';
+import '../voice/application/run_voice_coaching_coordinator.dart';
+import '../voice/data/shared_preferences_run_voice_settings_repository.dart';
+import '../voice/domain/models/run_voice_coaching_settings.dart';
+import '../voice/domain/models/run_voice_session_config.dart';
+import '../voice/domain/ports/run_voice_coach.dart';
+import '../voice/domain/repositories/run_voice_settings_repository.dart';
+import '../voice/domain/services/run_voice_announcement_policy.dart';
+import '../voice/domain/services/run_voice_announcement_selector.dart';
+import '../voice/domain/services/run_voice_message_formatter.dart';
+import '../voice/infrastructure/flutter_tts_run_speech_output.dart';
+import '../voice/presentation/run_voice_settings_page.dart';
 import 'active_run_session_coordinator.dart';
 import 'controllers/run_tracking_controller.dart';
 import 'cool_down_screen.dart';
@@ -154,6 +165,9 @@ class RunLaunchScreen extends StatefulWidget {
     this.activeRunSessionCoordinator,
     this.plannedWorkout,
     this.settingsRepository = const SharedPreferencesAppSettingsRepository(),
+    this.voiceSettingsRepository =
+        const SharedPreferencesRunVoiceSettingsRepository(),
+    this.voiceCoach,
   });
 
   final RunRepository? repository;
@@ -172,6 +186,8 @@ class RunLaunchScreen extends StatefulWidget {
   final ActiveRunSessionCoordinator? activeRunSessionCoordinator;
   final PlannedRunContext? plannedWorkout;
   final AppSettingsRepository settingsRepository;
+  final RunVoiceSettingsRepository voiceSettingsRepository;
+  final RunVoiceCoach? voiceCoach;
 
   @override
   State<RunLaunchScreen> createState() => _RunLaunchScreenState();
@@ -197,11 +213,13 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
   _RunPreviewLocationStatus _previewLocationStatus =
       _RunPreviewLocationStatus.inactive;
   AppSettings _settings = AppSettings.defaults;
+  RunVoiceCoachingSettings _voiceSettings = RunVoiceCoachingSettings.defaults;
 
   @override
   void initState() {
     super.initState();
     unawaited(_loadSettings());
+    unawaited(_loadVoiceSettings());
     final useForegroundGps = widget.enableForegroundGps;
     _permissionService = _resolveRunLaunchPermissionService(
       enableForegroundGps: useForegroundGps,
@@ -242,6 +260,7 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
             ? RunTrackingLocationStatus.waitingForGps
             : RunTrackingLocationStatus.demo,
         initialPreviewCurrentPosition: widget.initialPreviewCurrentPosition,
+        voiceCoach: widget.voiceCoach ?? _buildProductionVoiceCoach(),
       ),
     );
     _restoreSheetModeForActiveController();
@@ -251,6 +270,22 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
           : _RunPreviewLocationStatus.locationReady;
       unawaited(_refreshPreviewLocation(requestPermission: false));
     }
+  }
+
+  /// Builds the production [RunVoiceCoach].
+  ///
+  /// Construction itself is cheap and touches no platform channel: the
+  /// underlying `flutter_tts` plugin instance inside
+  /// [FlutterTtsRunSpeechOutput] is created lazily on first use, and voice
+  /// coaching only runs a session when [RunVoiceCoachingSettings.enabled] is
+  /// true (disabled by default).
+  RunVoiceCoach _buildProductionVoiceCoach() {
+    return RunVoiceCoachingCoordinator(
+      policy: DefaultRunVoiceAnnouncementPolicy(),
+      selector: const PriorityRunVoiceAnnouncementSelector(),
+      formatter: const LocalizedRunVoiceMessageFormatter(),
+      speechOutput: FlutterTtsRunSpeechOutput(),
+    );
   }
 
   void _restoreSheetModeForActiveController() {
@@ -279,6 +314,18 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
     }
   }
 
+  Future<void> _loadVoiceSettings() async {
+    var voiceSettings = RunVoiceCoachingSettings.defaults;
+    try {
+      voiceSettings = await widget.voiceSettingsRepository.load();
+    } on Object {
+      voiceSettings = RunVoiceCoachingSettings.defaults;
+    }
+    if (mounted) {
+      setState(() => _voiceSettings = voiceSettings);
+    }
+  }
+
   @override
   void dispose() {
     _activeRunSessionCoordinator.stopForegroundTicker();
@@ -304,9 +351,34 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
 
     if (_controller.state.phase == RunTrackingPhase.idle ||
         _controller.state.phase == RunTrackingPhase.finished) {
+      // Re-read voice settings from the repository right before starting:
+      // if the user just enabled voice coaching on the settings page and
+      // tapped Start immediately, `_voiceSettings` may still hold the stale
+      // in-memory value because `_openVoiceSettings()` reloads it without
+      // awaiting. The repository is the source of truth at Start time, so
+      // this eliminates that navigation race. A failed load falls back to
+      // whatever `_voiceSettings` currently holds.
+      var latestVoiceSettings = _voiceSettings;
+      try {
+        latestVoiceSettings = await widget.voiceSettingsRepository.load();
+        if (mounted) {
+          setState(() => _voiceSettings = latestVoiceSettings);
+        }
+      } on Object {
+        // Keep the current _voiceSettings value.
+      }
+      if (!mounted) {
+        return;
+      }
+
       final started = await _controller.requestStart(
         startedAt: _activeRunSessionCoordinator.now(),
         routeLabel: 'Easy local route',
+        voiceConfig: RunVoiceSessionConfig.fromSettings(
+          settings: latestVoiceSettings,
+          targetDistanceMeters: widget.plannedWorkout?.targetDistanceMeters
+              ?.toDouble(),
+        ),
       );
       if (!mounted) {
         return;
@@ -466,6 +538,20 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _openVoiceSettings() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => RunVoiceSettingsPage(
+          settingsRepository: widget.voiceSettingsRepository,
+        ),
+      ),
+    );
+    if (!mounted) {
+      return;
+    }
+    await _loadVoiceSettings();
   }
 
   Future<void> _refreshPreviewLocation({
@@ -704,9 +790,7 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
                                 key: const ValueKey('settings_button'),
                                 tooltip: 'Run settings',
                                 icon: Icons.settings_outlined,
-                                onPressed: () => _showPreviewMessage(
-                                  'Run settings preview is coming soon.',
-                                ),
+                                onPressed: _openVoiceSettings,
                               )
                             : const SizedBox(
                                 key: ValueKey('settings_button_hidden'),

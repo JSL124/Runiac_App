@@ -21,6 +21,9 @@ import '../../domain/repositories/run_motion_provider.dart';
 import '../../domain/repositories/run_notification_permission_service.dart';
 import '../../domain/services/completed_run_title_formatter.dart';
 import '../../domain/services/local_run_tracking_session.dart';
+import '../../voice/application/run_voice_snapshot_mapper.dart';
+import '../../voice/domain/models/run_voice_session_config.dart';
+import '../../voice/domain/ports/run_voice_coach.dart';
 import '../widgets/display_route_smoother.dart';
 
 class RunTrackingController extends ChangeNotifier {
@@ -34,6 +37,7 @@ class RunTrackingController extends ChangeNotifier {
     this.notificationPermissionService,
     RunTrackingLocationStatus locationStatus = RunTrackingLocationStatus.demo,
     RunLocationSample? initialPreviewCurrentPosition,
+    RunVoiceCoach voiceCoach = const NoopRunVoiceCoach(),
   }) : metersPerSecond = metersPerSecond,
        _locationProvider =
            locationProvider ??
@@ -44,7 +48,9 @@ class RunTrackingController extends ChangeNotifier {
        _foregroundService =
            foregroundService ?? const NoopRunForegroundService(),
        _initialLocationStatus = locationStatus,
-       _previewCurrentPosition = initialPreviewCurrentPosition;
+       _previewCurrentPosition = initialPreviewCurrentPosition,
+       // ignore: prefer_initializing_formals
+       _voiceCoach = voiceCoach;
 
   final double metersPerSecond;
   final RunLocationProvider _locationProvider;
@@ -54,6 +60,8 @@ class RunTrackingController extends ChangeNotifier {
   final RunLocationPermissionService? permissionService;
   final RunNotificationPermissionService? notificationPermissionService;
   final RunTrackingLocationStatus _initialLocationStatus;
+  final RunVoiceCoach _voiceCoach;
+  RunVoiceSessionConfig? _voiceConfig;
 
   RunTrackingState _state = const RunTrackingState.idle();
   RunLocationPermissionStatus _locationPermissionStatus =
@@ -107,6 +115,7 @@ class RunTrackingController extends ChangeNotifier {
     String? clientRunSessionId,
     String routePrivacy = 'private',
     String? routeLabel,
+    RunVoiceSessionConfig? voiceConfig,
   }) {
     final effectiveStartedAt = _startSession(
       startedAt: startedAt,
@@ -118,6 +127,9 @@ class RunTrackingController extends ChangeNotifier {
     unawaited(_locationProvider.start(startedAt: effectiveStartedAt));
     unawaited(_startCadenceProvider());
     unawaited(_motionProvider.start(startedAt: effectiveStartedAt));
+    _voiceConfig = voiceConfig;
+    _startVoiceSessionIfEnabled();
+    _publishVoiceSnapshot();
     notifyListeners();
   }
 
@@ -126,6 +138,7 @@ class RunTrackingController extends ChangeNotifier {
     String? clientRunSessionId,
     String routePrivacy = 'private',
     String? routeLabel,
+    RunVoiceSessionConfig? voiceConfig,
   }) async {
     final service = permissionService;
     if (service == null) {
@@ -134,6 +147,7 @@ class RunTrackingController extends ChangeNotifier {
         clientRunSessionId: clientRunSessionId,
         routePrivacy: routePrivacy,
         routeLabel: routeLabel,
+        voiceConfig: voiceConfig,
       );
       return true;
     }
@@ -173,14 +187,26 @@ class RunTrackingController extends ChangeNotifier {
       startedAt: effectiveStartedAt,
     );
     if (!startedProviders) {
+      _voiceConfig = null;
+      unawaited(_safeVoice(_voiceCoach.stopSession));
       if (!_disposed) {
         _locationPermissionStatus = RunLocationPermissionStatus.unavailable;
         notifyListeners();
       }
       return false;
     }
+    _voiceConfig = voiceConfig;
+    _startVoiceSessionIfEnabled();
+    _publishVoiceSnapshot();
     notifyListeners();
     return true;
+  }
+
+  void _startVoiceSessionIfEnabled() {
+    final cfg = _voiceConfig;
+    if (cfg != null && cfg.enabled) {
+      unawaited(_safeVoice(() => _voiceCoach.startSession(cfg)));
+    }
   }
 
   DateTime _startSession({
@@ -305,7 +331,27 @@ class RunTrackingController extends ChangeNotifier {
     );
     _mapViewState = _withSmoothedDisplayRoute(session.mapViewState);
     _updateForegroundService();
+    _publishVoiceSnapshot();
     notifyListeners();
+  }
+
+  void _publishVoiceSnapshot() {
+    if (_voiceConfig?.enabled ?? false) {
+      unawaited(
+        _safeVoice(
+          () =>
+              _voiceCoach.onSnapshot(RunVoiceSnapshotMapper.fromState(_state)),
+        ),
+      );
+    }
+  }
+
+  Future<void> _safeVoice(Future<void> Function() action) async {
+    try {
+      await action();
+    } catch (error) {
+      debugPrint('RUNIAC_VOICE nonfatal: $error');
+    }
   }
 
   RunMapViewState _withSmoothedDisplayRoute(RunMapViewState viewState) {
@@ -361,6 +407,7 @@ class RunTrackingController extends ChangeNotifier {
       reason: 'manualPause',
     );
     unawaited(_updateForegroundService());
+    _publishVoiceSnapshot();
     notifyListeners();
   }
 
@@ -408,6 +455,7 @@ class RunTrackingController extends ChangeNotifier {
       reason: 'manualResume',
     );
     unawaited(_updateForegroundService());
+    _publishVoiceSnapshot();
     notifyListeners();
   }
 
@@ -468,6 +516,8 @@ class RunTrackingController extends ChangeNotifier {
     _cadenceDiagnosticsSubscription = null;
     unawaited(_motionProvider.stop());
     unawaited(_stopForegroundService());
+    unawaited(_safeVoice(_voiceCoach.stopSession));
+    _voiceConfig = null;
     _mapViewState = const RunMapViewState.empty();
     _previewCurrentPosition = null;
     _lastAdvancedAt = null;
@@ -494,6 +544,8 @@ class RunTrackingController extends ChangeNotifier {
     unawaited(_cadenceDiagnosticsSubscription?.cancel());
     unawaited(_motionProvider.stop());
     unawaited(_stopForegroundService());
+    unawaited(_safeVoice(_voiceCoach.stopSession));
+    _voiceConfig = null;
     super.dispose();
   }
 

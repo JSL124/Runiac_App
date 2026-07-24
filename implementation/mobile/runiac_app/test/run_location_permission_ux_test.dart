@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:runiac_app/features/run/domain/models/run_location_sample.dart';
 import 'package:runiac_app/features/run/domain/models/run_location_permission_status.dart';
 import 'package:runiac_app/features/run/domain/repositories/run_foreground_service.dart';
@@ -44,6 +45,15 @@ class _FakeNotificationPermissionService
 }
 
 void main() {
+  setUp(() {
+    // RunLaunchScreen reads voice-coaching settings from the real
+    // SharedPreferences-backed repository (no fake is injected by these
+    // widget tests). Without mock initial values, SharedPreferences.
+    // getInstance() never resolves in the test harness (no platform-channel
+    // responder), which would hang `_startRun`'s settings reload forever.
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+  });
+
   group('Run location permission UX', () {
     testWidgets('denied location shows supportive retry message', (
       tester,
