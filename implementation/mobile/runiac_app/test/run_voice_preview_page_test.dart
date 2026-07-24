@@ -29,8 +29,17 @@ class _FakeRunSpeechOutput implements RunSpeechOutput {
 }
 
 void main() {
+  const englishStart = "Let's start your run. You've got this!";
+  const englishDistance =
+      'You have completed 1 kilometer. Your time is 6 minutes 12 '
+      'seconds. Your average pace is 6 minutes 12 seconds per '
+      'kilometer.';
+  const koreanDistance =
+      '1킬로미터를 완료했습니다. 운동 시간은 6분 12초입니다. '
+      '평균 페이스는 킬로미터당 6분 12초입니다.';
+
   testWidgets(
-    'default English: shows the distance-basic sentence and speaks it with en-US',
+    'default English: shows the distance sentence and speaks it with en-US',
     (tester) async {
       final fake = _FakeRunSpeechOutput();
 
@@ -39,15 +48,15 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('You have completed 1 kilometer.'), findsOneWidget);
+      expect(find.text(englishDistance), findsOneWidget);
 
       await tester.tap(
-        find.byKey(const ValueKey('preview_play_distance_basic')),
+        find.byKey(const ValueKey('preview_play_distance_full')),
       );
       await tester.pumpAndSettle();
 
       expect(fake.spoken, hasLength(1));
-      expect(fake.spoken.single.message, 'You have completed 1 kilometer.');
+      expect(fake.spoken.single.message, englishDistance);
       expect(fake.spoken.single.languageTag, 'en-US');
     },
   );
@@ -65,23 +74,37 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('preview-language-korean')));
       await tester.pumpAndSettle();
 
-      expect(find.text('1킬로미터를 완료했습니다.'), findsOneWidget);
-      expect(
-        find.text(
-          '1킬로미터를 완료했습니다. 운동 시간은 6분 12초입니다. '
-          '평균 페이스는 킬로미터당 6분 12초입니다.',
-        ),
-        findsOneWidget,
-      );
+      expect(find.text(koreanDistance), findsOneWidget);
 
       await tester.tap(
-        find.byKey(const ValueKey('preview_play_distance_basic')),
+        find.byKey(const ValueKey('preview_play_distance_full')),
       );
       await tester.pumpAndSettle();
 
       expect(fake.spoken, hasLength(1));
-      expect(fake.spoken.single.message, '1킬로미터를 완료했습니다.');
+      expect(fake.spoken.single.message, koreanDistance);
       expect(fake.spoken.single.languageTag, 'ko-KR');
+    },
+  );
+
+  testWidgets(
+    'Start card speaks a start-pool line with the selected language tag',
+    (tester) async {
+      final fake = _FakeRunSpeechOutput();
+
+      await tester.pumpWidget(
+        MaterialApp(home: RunVoicePreviewPage(speechOutput: fake)),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text(englishStart), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('preview_play_start')));
+      await tester.pumpAndSettle();
+
+      expect(fake.spoken, hasLength(1));
+      expect(fake.spoken.single.message, englishStart);
+      expect(fake.spoken.single.languageTag, 'en-US');
     },
   );
 
@@ -98,36 +121,4 @@ void main() {
 
     expect(fake.stopCount, greaterThanOrEqualTo(1));
   });
-
-  testWidgets(
-    'the distance-full item computes correctly and can be played',
-    (tester) async {
-      final fake = _FakeRunSpeechOutput();
-
-      await tester.pumpWidget(
-        MaterialApp(home: RunVoicePreviewPage(speechOutput: fake)),
-      );
-      await tester.pumpAndSettle();
-
-      expect(
-        find.text(
-          'You have completed 1 kilometer. Your time is 6 minutes 12 '
-          'seconds. Your average pace is 6 minutes 12 seconds per '
-          'kilometer.',
-        ),
-        findsOneWidget,
-      );
-
-      await tester.ensureVisible(
-        find.byKey(const ValueKey('preview_play_distance_full')),
-      );
-      await tester.tap(
-        find.byKey(const ValueKey('preview_play_distance_full')),
-      );
-      await tester.pumpAndSettle();
-
-      expect(fake.spoken, hasLength(1));
-      expect(fake.spoken.single.languageTag, 'en-US');
-    },
-  );
 }

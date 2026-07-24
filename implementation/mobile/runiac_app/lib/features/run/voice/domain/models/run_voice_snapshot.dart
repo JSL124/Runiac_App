@@ -5,6 +5,7 @@ class RunVoiceSnapshot {
     required this.averagePace,
     required this.isActive,
     required this.isPaused,
+    this.currentPace,
   });
 
   final int distanceMeters;
@@ -12,6 +13,7 @@ class RunVoiceSnapshot {
   final Duration? averagePace;
   final bool isActive;
   final bool isPaused;
+  final Duration? currentPace;
 
   @override
   bool operator ==(Object other) {
@@ -20,7 +22,8 @@ class RunVoiceSnapshot {
         other.elapsed == elapsed &&
         other.averagePace == averagePace &&
         other.isActive == isActive &&
-        other.isPaused == isPaused;
+        other.isPaused == isPaused &&
+        other.currentPace == currentPace;
   }
 
   @override
@@ -31,6 +34,7 @@ class RunVoiceSnapshot {
       averagePace,
       isActive,
       isPaused,
+      currentPace,
     );
   }
 }

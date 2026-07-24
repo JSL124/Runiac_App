@@ -281,7 +281,7 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
   /// true (disabled by default).
   RunVoiceCoach _buildProductionVoiceCoach() {
     return RunVoiceCoachingCoordinator(
-      policy: const DefaultRunVoiceAnnouncementPolicy(),
+      policy: DefaultRunVoiceAnnouncementPolicy(),
       selector: const PriorityRunVoiceAnnouncementSelector(),
       formatter: const LocalizedRunVoiceMessageFormatter(),
       speechOutput: FlutterTtsRunSpeechOutput(),

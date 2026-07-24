@@ -15,6 +15,7 @@ RunTrackingState _state({
   int distanceMeters = 1000,
   int elapsedSeconds = 300,
   int averagePaceSecondsPerKm = 300,
+  int currentPaceSecondsPerKm = 300,
 }) {
   return const RunTrackingState.idle().copyWith(
     phase: phase,
@@ -22,6 +23,7 @@ RunTrackingState _state({
     distanceMeters: distanceMeters,
     elapsedSeconds: elapsedSeconds,
     averagePaceSecondsPerKm: averagePaceSecondsPerKm,
+    currentPaceSecondsPerKm: currentPaceSecondsPerKm,
   );
 }
 
@@ -60,6 +62,35 @@ void main() {
 
         expect(snapshot.averagePace, isNull);
       });
+    });
+
+    group('currentPace readiness gate', () {
+      test('surfaces the current pace once distance reaches the 50m threshold', () {
+        final snapshot = RunVoiceSnapshotMapper.fromState(
+          _state(distanceMeters: 50, currentPaceSecondsPerKm: 280),
+        );
+
+        expect(snapshot.currentPace, const Duration(seconds: 280));
+      });
+
+      test('suppresses the current pace below the 50m readiness threshold', () {
+        final snapshot = RunVoiceSnapshotMapper.fromState(
+          _state(distanceMeters: 49, currentPaceSecondsPerKm: 280),
+        );
+
+        expect(snapshot.currentPace, isNull);
+      });
+
+      test(
+        'suppresses the current pace when current pace is zero (not yet known)',
+        () {
+          final snapshot = RunVoiceSnapshotMapper.fromState(
+            _state(distanceMeters: 1000, currentPaceSecondsPerKm: 0),
+          );
+
+          expect(snapshot.currentPace, isNull);
+        },
+      );
     });
 
     group('active / paused derivation', () {

@@ -129,6 +129,7 @@ class RunTrackingController extends ChangeNotifier {
     unawaited(_motionProvider.start(startedAt: effectiveStartedAt));
     _voiceConfig = voiceConfig;
     _startVoiceSessionIfEnabled();
+    _publishVoiceSnapshot();
     notifyListeners();
   }
 
@@ -196,6 +197,7 @@ class RunTrackingController extends ChangeNotifier {
     }
     _voiceConfig = voiceConfig;
     _startVoiceSessionIfEnabled();
+    _publishVoiceSnapshot();
     notifyListeners();
     return true;
   }

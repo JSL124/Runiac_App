@@ -1,6 +1,8 @@
 // ignore_for_file: prefer_initializing_formals
 
 import 'dart:async';
+import 'dart:collection';
+import 'dart:developer' as developer;
 
 import '../domain/models/run_voice_announcement.dart';
 import '../domain/models/run_voice_language.dart';
@@ -20,12 +22,13 @@ import '../domain/services/run_voice_message_formatter.dart';
 /// never race each other. Speaking itself is intentionally detached from
 /// that serialized queue (see [_speakAndDrain]): TTS wall-clock time must
 /// never block evaluating newly-arriving GPS-driven snapshots. Overlap
-/// while an utterance is in flight is resolved by keeping only the
-/// highest-priority pending announcement ([_pending]) and draining it once
-/// the current utterance finishes. Every in-flight operation is guarded by
-/// a session [_generation] counter and a [_stopped] flag so work started by
-/// a stale session cannot mutate state after [startSession] or
-/// [stopSession] moves on.
+/// while an utterance is in flight is resolved by enqueueing distinct
+/// announcements in a bounded FIFO queue ([_queue]) and draining them, in
+/// arrival order, once the current utterance finishes — so multiple
+/// announcements that arrive close together all play in order and never
+/// overlap. Every in-flight operation is guarded by a session [_generation]
+/// counter and a [_stopped] flag so work started by a stale session cannot
+/// mutate state after [startSession] or [stopSession] moves on.
 class RunVoiceCoachingCoordinator implements RunVoiceCoach {
   RunVoiceCoachingCoordinator({
     required RunVoiceAnnouncementPolicy policy,
@@ -42,11 +45,14 @@ class RunVoiceCoachingCoordinator implements RunVoiceCoach {
   final RunVoiceMessageFormatter _formatter;
   final RunSpeechOutput _speechOutput;
 
+  static const int _maxQueue = 8;
+
   RunVoiceSessionConfig? _config;
   RunVoiceSnapshot? _previous;
   final Set<String> _consumedIds = {};
   bool _speaking = false;
-  RunVoiceAnnouncement? _pending;
+  String? _speakingId;
+  final Queue<RunVoiceAnnouncement> _queue = Queue<RunVoiceAnnouncement>();
   bool _stopped = false;
   int _generation = 0;
   bool _initialized = false;
@@ -54,9 +60,10 @@ class RunVoiceCoachingCoordinator implements RunVoiceCoach {
 
   int _activeSessionCount = 0;
 
-  int get pendingCount => _pending == null ? 0 : 1;
+  int get pendingCount => _queue.length;
 
-  RunVoiceAnnouncement? get pendingAnnouncement => _pending;
+  RunVoiceAnnouncement? get pendingAnnouncement =>
+      _queue.isEmpty ? null : _queue.first;
 
   int get activeSessionCount => _activeSessionCount;
 
@@ -65,7 +72,8 @@ class RunVoiceCoachingCoordinator implements RunVoiceCoach {
     _generation += 1;
     _previous = null;
     _consumedIds.clear();
-    _pending = null;
+    _queue.clear();
+    _speakingId = null;
     _speaking = false;
     _stopped = false;
     _config = config;
@@ -88,7 +96,8 @@ class RunVoiceCoachingCoordinator implements RunVoiceCoach {
   Future<void> stopSession() async {
     _generation += 1;
     _stopped = true;
-    _pending = null;
+    _queue.clear();
+    _speakingId = null;
     _speaking = false;
     _activeSessionCount = 0;
     await _speechOutput.stop();
@@ -119,13 +128,25 @@ class RunVoiceCoachingCoordinator implements RunVoiceCoach {
     }
 
     if (_speaking) {
-      if (_pending == null || selected.priority > _pending!.priority) {
-        _pending = selected;
+      // Dedupe: never enqueue an announcement whose id is already being
+      // spoken or already sitting in the queue.
+      if (selected.id == _speakingId ||
+          _queue.any((queued) => queued.id == selected.id)) {
+        return;
       }
+      if (_queue.length >= _maxQueue) {
+        _queue.removeFirst();
+        developer.log(
+          'RUNIAC_VOICE queue overflow, dropped oldest',
+          name: 'RunVoiceCoachingCoordinator',
+        );
+      }
+      _queue.add(selected);
       return;
     }
 
     _speaking = true;
+    _speakingId = selected.id;
     final g = _generation;
     unawaited(_speakAndDrain(selected, g));
   }
@@ -141,15 +162,16 @@ class RunVoiceCoachingCoordinator implements RunVoiceCoach {
         _speaking = false;
         return;
       }
-      if (_pending == null) {
+      if (_queue.isEmpty) {
         break;
       }
-      final next = _pending!;
-      _pending = null;
+      final next = _queue.removeFirst();
+      _speakingId = next.id;
       await _speak(next, g);
     }
     if (g == _generation) {
       _speaking = false;
+      _speakingId = null;
     }
   }
 

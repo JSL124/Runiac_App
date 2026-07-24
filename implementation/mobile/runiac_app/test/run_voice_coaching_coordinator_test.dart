@@ -121,7 +121,7 @@ RunVoiceAnnouncement _scriptedAnnouncement(String id, int priority) {
 
 RunVoiceCoachingCoordinator _realCoordinator(_FakeRunSpeechOutput speech) {
   return RunVoiceCoachingCoordinator(
-    policy: const DefaultRunVoiceAnnouncementPolicy(),
+    policy: DefaultRunVoiceAnnouncementPolicy(),
     selector: const PriorityRunVoiceAnnouncementSelector(),
     formatter: const LocalizedRunVoiceMessageFormatter(),
     speechOutput: speech,
@@ -262,8 +262,8 @@ void main() {
     );
 
     test(
-      'keeps only the highest-priority pending announcement while a gated '
-      'speak is in flight',
+      'queues distinct pending announcements in FIFO order while a gated '
+      'speak is in flight, then drains them in arrival order',
       () async {
         final gate = Completer<void>();
         final speech = _FakeRunSpeechOutput()..gate = gate;
@@ -280,9 +280,79 @@ void main() {
             announcements: [_scriptedAnnouncement('high', 90)],
             consumedIds: {'high'},
           ),
+        ]);
+        final coordinator = RunVoiceCoachingCoordinator(
+          policy: scriptedPolicy,
+          selector: const PriorityRunVoiceAnnouncementSelector(),
+          formatter: const _EchoIdMessageFormatter(),
+          speechOutput: speech,
+        );
+
+        await coordinator.startSession(_config());
+
+        // First evaluate call selects 'low'; nothing is speaking yet, so it
+        // starts speaking immediately and blocks on the gate, simulating an
+        // in-flight utterance.
+        await coordinator.onSnapshot(_snapshot(0));
+        await pumpEventQueue();
+        expect(speech.spokenMessages, ['low']);
+        expect(coordinator.pendingCount, 0);
+
+        // Second evaluate call selects 'mid' (higher priority than 'low')
+        // while speaking is still in flight: FIFO means it is enqueued
+        // rather than replacing anything — priority no longer matters for
+        // queue placement.
+        await coordinator.onSnapshot(_snapshot(1));
+        await pumpEventQueue();
+        expect(coordinator.pendingCount, 1);
+        expect(coordinator.pendingAnnouncement!.id, 'mid');
+
+        // Third evaluate call selects 'high' (priority 90). Under the old
+        // highest-priority-wins semantics this would have replaced 'mid';
+        // under FIFO it is appended after 'mid' instead, and the queue
+        // front remains the first-queued item.
+        await coordinator.onSnapshot(_snapshot(2));
+        await pumpEventQueue();
+        expect(coordinator.pendingCount, 2);
+        expect(coordinator.pendingAnnouncement!.id, 'mid');
+
+        // Release the gate: the first ('low') utterance finishes, then the
+        // drain loop speaks the queued items strictly in arrival order:
+        // 'mid' before 'high'.
+        gate.complete();
+        await pumpEventQueue();
+
+        expect(speech.spokenMessages, ['low', 'mid', 'high']);
+        expect(coordinator.pendingCount, 0);
+      },
+    );
+
+    test(
+      'does not enqueue a duplicate id that is already speaking or already '
+      'queued',
+      () async {
+        final gate = Completer<void>();
+        final speech = _FakeRunSpeechOutput()..gate = gate;
+        final scriptedPolicy = _ScriptedPolicy([
           RunVoicePolicyResult(
-            announcements: [_scriptedAnnouncement('low-again', 20)],
-            consumedIds: {'low-again'},
+            announcements: [_scriptedAnnouncement('a', 10)],
+            consumedIds: {'a'},
+          ),
+          // Duplicate of the announcement currently speaking ('a'): must be
+          // dropped, not queued.
+          RunVoicePolicyResult(
+            announcements: [_scriptedAnnouncement('a', 10)],
+            consumedIds: {},
+          ),
+          RunVoicePolicyResult(
+            announcements: [_scriptedAnnouncement('b', 20)],
+            consumedIds: {'b'},
+          ),
+          // Duplicate of an announcement already sitting in the queue
+          // ('b'): must also be dropped.
+          RunVoicePolicyResult(
+            announcements: [_scriptedAnnouncement('b', 20)],
+            consumedIds: {},
           ),
         ]);
         final coordinator = RunVoiceCoachingCoordinator(
@@ -294,42 +364,89 @@ void main() {
 
         await coordinator.startSession(_config());
 
-        // First evaluate call selects 'low' (priority 10); nothing is
-        // speaking yet, so it starts speaking immediately and blocks on
-        // the gate, simulating an in-flight utterance.
         await coordinator.onSnapshot(_snapshot(0));
         await pumpEventQueue();
-        expect(speech.spokenMessages, ['low']);
-        expect(coordinator.pendingCount, 0);
+        expect(speech.spokenMessages, ['a']);
 
-        // Second evaluate call selects 'mid' (priority 40) while speaking
-        // is still in flight: it becomes pending.
         await coordinator.onSnapshot(_snapshot(1));
         await pumpEventQueue();
-        expect(coordinator.pendingCount, 1);
-        expect(coordinator.pendingAnnouncement!.id, 'mid');
+        expect(coordinator.pendingCount, 0);
 
-        // Third evaluate call selects 'high' (priority 90), which beats
-        // the current pending ('mid', priority 40) and replaces it.
         await coordinator.onSnapshot(_snapshot(2));
         await pumpEventQueue();
-        expect(coordinator.pendingAnnouncement!.id, 'high');
+        expect(coordinator.pendingCount, 1);
+        expect(coordinator.pendingAnnouncement!.id, 'b');
 
-        // Fourth evaluate call selects 'low-again' (priority 20), which is
-        // lower than the current pending ('high', priority 90) and must
-        // not replace it.
         await coordinator.onSnapshot(_snapshot(3));
         await pumpEventQueue();
-        expect(coordinator.pendingAnnouncement!.id, 'high');
+        expect(coordinator.pendingCount, 1);
+        expect(coordinator.pendingAnnouncement!.id, 'b');
 
-        // Release the gate: the first ('low') utterance finishes, then the
-        // drain loop speaks only the surviving pending ('high') — 'mid'
-        // and 'low-again' are never spoken.
         gate.complete();
         await pumpEventQueue();
 
-        expect(speech.spokenMessages, ['low', 'high']);
-        expect(coordinator.pendingCount, 0);
+        expect(speech.spokenMessages, ['a', 'b']);
+      },
+    );
+
+    test(
+      'caps the pending queue length, dropping the oldest queued item on '
+      'overflow',
+      () async {
+        final gate = Completer<void>();
+        final speech = _FakeRunSpeechOutput()..gate = gate;
+        // 1 announcement that starts speaking immediately + 10 distinct
+        // announcements that arrive while it is in flight, well past the
+        // queue cap of 8.
+        final results = <RunVoicePolicyResult>[
+          RunVoicePolicyResult(
+            announcements: [_scriptedAnnouncement('seed', 0)],
+            consumedIds: {'seed'},
+          ),
+          for (var i = 0; i < 10; i++)
+            RunVoicePolicyResult(
+              announcements: [_scriptedAnnouncement('q$i', i)],
+              consumedIds: {'q$i'},
+            ),
+        ];
+        final scriptedPolicy = _ScriptedPolicy(results);
+        final coordinator = RunVoiceCoachingCoordinator(
+          policy: scriptedPolicy,
+          selector: const PriorityRunVoiceAnnouncementSelector(),
+          formatter: const _EchoIdMessageFormatter(),
+          speechOutput: speech,
+        );
+
+        await coordinator.startSession(_config());
+
+        await coordinator.onSnapshot(_snapshot(0));
+        await pumpEventQueue();
+        expect(speech.spokenMessages, ['seed']);
+
+        for (var i = 1; i <= 10; i++) {
+          await coordinator.onSnapshot(_snapshot(i));
+          await pumpEventQueue();
+        }
+
+        // The queue never exceeds the cap: the oldest queued items ('q0',
+        // 'q1') were dropped to make room for 'q8' and 'q9'.
+        expect(coordinator.pendingCount, 8);
+        expect(coordinator.pendingAnnouncement!.id, 'q2');
+
+        gate.complete();
+        await pumpEventQueue();
+
+        expect(speech.spokenMessages, [
+          'seed',
+          'q2',
+          'q3',
+          'q4',
+          'q5',
+          'q6',
+          'q7',
+          'q8',
+          'q9',
+        ]);
       },
     );
 

@@ -42,7 +42,7 @@ RunVoiceSessionConfig _config({
 }
 
 void main() {
-  const policy = DefaultRunVoiceAnnouncementPolicy();
+  final policy = DefaultRunVoiceAnnouncementPolicy();
 
   group('interval guard rails', () {
     test('a zero distance interval announces no distance milestone', () {

@@ -11,12 +11,18 @@ class RunVoiceSnapshotMapper {
             state.distanceMeters >= livePaceReadinessThresholdMeters)
         ? Duration(seconds: state.averagePaceSecondsPerKm)
         : null;
+    final currentPace =
+        (state.currentPaceSecondsPerKm > 0 &&
+            state.distanceMeters >= livePaceReadinessThresholdMeters)
+        ? Duration(seconds: state.currentPaceSecondsPerKm)
+        : null;
     return RunVoiceSnapshot(
       distanceMeters: state.distanceMeters,
       elapsed: Duration(seconds: state.elapsedSeconds),
       averagePace: pace,
       isActive: state.phase == RunTrackingPhase.active && !paused,
       isPaused: paused,
+      currentPace: currentPace,
     );
   }
 }

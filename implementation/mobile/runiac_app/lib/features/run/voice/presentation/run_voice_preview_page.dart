@@ -101,7 +101,8 @@ class _RunVoicePreviewPageState extends State<RunVoicePreviewPage> {
                     children: [
                       const Text(
                         'Tap Play to hear each announcement. Requires '
-                        'device audio.',
+                        'device audio. The start message is chosen at '
+                        'random each run.',
                         style: TextStyle(
                           color: RuniacColors.textSecondary,
                           fontSize: 12.5,
@@ -411,21 +412,22 @@ class _PreviewItem {
 
 final List<_PreviewItem> _previewItems = <_PreviewItem>[
   _PreviewItem(
-    title: 'Distance 1 km',
-    playKey: const ValueKey('preview_play_distance_basic'),
+    title: 'Start',
+    playKey: const ValueKey('preview_play_start'),
     announcement: const RunVoiceAnnouncement(
-      id: 'preview-distance-basic',
-      type: RunVoiceAnnouncementType.distanceMilestone,
+      id: 'preview-start',
+      type: RunVoiceAnnouncementType.startEncouragement,
       priority: 0,
-      distanceMeters: 1000,
+      distanceMeters: null,
       elapsed: Duration.zero,
       averagePace: null,
+      variant: 0,
     ),
     includeElapsedTime: false,
     includeAveragePace: false,
   ),
   _PreviewItem(
-    title: 'Distance 1 km + time + pace',
+    title: 'Distance 1 km',
     playKey: const ValueKey('preview_play_distance_full'),
     announcement: const RunVoiceAnnouncement(
       id: 'preview-distance-full',
@@ -447,10 +449,10 @@ final List<_PreviewItem> _previewItems = <_PreviewItem>[
       priority: 0,
       distanceMeters: null,
       elapsed: Duration(minutes: 10),
-      averagePace: null,
+      averagePace: Duration(seconds: 372),
     ),
-    includeElapsedTime: false,
-    includeAveragePace: false,
+    includeElapsedTime: true,
+    includeAveragePace: true,
   ),
   _PreviewItem(
     title: 'Target halfway',
@@ -460,11 +462,12 @@ final List<_PreviewItem> _previewItems = <_PreviewItem>[
       type: RunVoiceAnnouncementType.targetHalfway,
       priority: 0,
       distanceMeters: 2500,
-      elapsed: Duration(minutes: 15),
-      averagePace: null,
+      elapsed: Duration(minutes: 15, seconds: 30),
+      averagePace: Duration(seconds: 372),
+      paceTrend: RunVoicePaceTrend.steady,
     ),
-    includeElapsedTime: false,
-    includeAveragePace: false,
+    includeElapsedTime: true,
+    includeAveragePace: true,
     targetDistanceMeters: 5000,
   ),
   _PreviewItem(
@@ -475,11 +478,12 @@ final List<_PreviewItem> _previewItems = <_PreviewItem>[
       type: RunVoiceAnnouncementType.targetCompleted,
       priority: 0,
       distanceMeters: 5000,
-      elapsed: Duration(minutes: 30),
-      averagePace: null,
+      elapsed: Duration(minutes: 31),
+      averagePace: Duration(seconds: 372),
+      paceTrend: RunVoicePaceTrend.slower,
     ),
-    includeElapsedTime: false,
-    includeAveragePace: false,
+    includeElapsedTime: true,
+    includeAveragePace: true,
     targetDistanceMeters: 5000,
   ),
 ];

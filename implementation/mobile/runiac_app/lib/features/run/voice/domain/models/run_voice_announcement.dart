@@ -1,9 +1,12 @@
 enum RunVoiceAnnouncementType {
+  startEncouragement,
   distanceMilestone,
   timeMilestone,
   targetHalfway,
   targetCompleted,
 }
+
+enum RunVoicePaceTrend { faster, steady, slower }
 
 class RunVoiceAnnouncement {
   const RunVoiceAnnouncement({
@@ -13,6 +16,8 @@ class RunVoiceAnnouncement {
     required this.distanceMeters,
     required this.elapsed,
     required this.averagePace,
+    this.variant,
+    this.paceTrend,
   });
 
   final String id;
@@ -21,6 +26,8 @@ class RunVoiceAnnouncement {
   final int? distanceMeters;
   final Duration elapsed;
   final Duration? averagePace;
+  final int? variant;
+  final RunVoicePaceTrend? paceTrend;
 
   @override
   bool operator ==(Object other) {
@@ -30,12 +37,23 @@ class RunVoiceAnnouncement {
         other.priority == priority &&
         other.distanceMeters == distanceMeters &&
         other.elapsed == elapsed &&
-        other.averagePace == averagePace;
+        other.averagePace == averagePace &&
+        other.variant == variant &&
+        other.paceTrend == paceTrend;
   }
 
   @override
   int get hashCode {
-    return Object.hash(id, type, priority, distanceMeters, elapsed, averagePace);
+    return Object.hash(
+      id,
+      type,
+      priority,
+      distanceMeters,
+      elapsed,
+      averagePace,
+      variant,
+      paceTrend,
+    );
   }
 }
 

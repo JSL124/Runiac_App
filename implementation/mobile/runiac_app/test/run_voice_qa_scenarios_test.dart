@@ -45,7 +45,7 @@ class _QaSpeechOutput implements RunSpeechOutput {
 
 RunVoiceCoachingCoordinator _buildCoordinator(_QaSpeechOutput speech) {
   return RunVoiceCoachingCoordinator(
-    policy: const DefaultRunVoiceAnnouncementPolicy(),
+    policy: DefaultRunVoiceAnnouncementPolicy(),
     selector: const PriorityRunVoiceAnnouncementSelector(),
     formatter: const LocalizedRunVoiceMessageFormatter(),
     speechOutput: speech,
@@ -76,6 +76,7 @@ RunVoiceSnapshot _snap({
   required int distance,
   int elapsedSec = 0,
   int? paceSec,
+  int? currentPaceSec,
   bool active = true,
   bool paused = false,
 }) {
@@ -83,6 +84,9 @@ RunVoiceSnapshot _snap({
     distanceMeters: distance,
     elapsed: Duration(seconds: elapsedSec),
     averagePace: paceSec == null ? null : Duration(seconds: paceSec),
+    currentPace: currentPaceSec == null
+        ? null
+        : Duration(seconds: currentPaceSec),
     isActive: active,
     isPaused: paused,
   );
@@ -102,6 +106,31 @@ const _languageTags = {
   RunVoiceLanguage.english: 'en-US',
   RunVoiceLanguage.korean: 'ko-KR',
   RunVoiceLanguage.simplifiedChinese: 'zh-CN',
+};
+
+/// The four localized run-start encouragement lines
+/// (LocalizedRunVoiceMessageFormatter._formatStartEncouragement), keyed by
+/// language. The policy picks a random variant, so QA scenarios assert pool
+/// membership rather than an exact line to stay deterministic.
+const _startPool = {
+  RunVoiceLanguage.english: [
+    "Let's start your run. You've got this!",
+    'Time to run. Enjoy every step!',
+    'Starting now — steady and strong!',
+    'Here we go. Have a great run!',
+  ],
+  RunVoiceLanguage.korean: [
+    '러닝을 시작합니다. 오늘도 힘내세요!',
+    '천천히, 꾸준히. 시작합니다!',
+    '오늘의 러닝을 시작합니다. 즐겁게 달려요!',
+    '좋은 페이스로 시작해볼까요? 화이팅!',
+  ],
+  RunVoiceLanguage.simplifiedChinese: [
+    '开始跑步。今天也加油！',
+    '慢慢来，坚持住。开始吧！',
+    '开始今天的跑步。享受每一步！',
+    '让我们出发吧，跑个痛快！',
+  ],
 };
 
 void main() {
@@ -323,7 +352,7 @@ void main() {
         expect(speech.messages, hasLength(1));
         expect(
           speech.messages.single.message,
-          '목표 거리를 완료했습니다. 수고하셨습니다.',
+          '목표 거리를 완료했습니다. 수고하셨습니다. 총 5.0킬로미터를 83분 50초에 완주했습니다.',
         );
       },
     );
@@ -368,5 +397,128 @@ void main() {
         );
       });
     }
+  });
+
+  group('QA: start message speaks exactly once, from the start pool', () {
+    for (final language in RunVoiceLanguage.values) {
+      test('$language speaks one of the four start-pool lines', () async {
+        final speech = _QaSpeechOutput();
+        final coordinator = _buildCoordinator(speech);
+        final config = _buildConfig(language: language);
+
+        await coordinator.startSession(config);
+        await _feed(coordinator, _snap(distance: 0, elapsedSec: 0));
+
+        expect(speech.messages, hasLength(1));
+        expect(speech.messages.single.message, isIn(_startPool[language]));
+        expect(speech.messages.single.languageTag, _languageTags[language]);
+      });
+    }
+  });
+
+  group('QA: start message then distance milestone, FIFO order (EN)', () {
+    test(
+      'start speaks first, then the 1km milestone speaks with no overlap',
+      () async {
+        final speech = _QaSpeechOutput();
+        final coordinator = _buildCoordinator(speech);
+        final config = _buildConfig(
+          language: RunVoiceLanguage.english,
+          includeElapsedTime: true,
+          includeAveragePace: true,
+        );
+
+        await coordinator.startSession(config);
+        await _feed(coordinator, _snap(distance: 0, elapsedSec: 0));
+        await _feed(coordinator, _snap(distance: 980, elapsedSec: 340));
+        await _feed(
+          coordinator,
+          _snap(distance: 1020, elapsedSec: 372, paceSec: 372),
+        );
+
+        expect(speech.messages, hasLength(2));
+        expect(
+          speech.messages[0].message,
+          isIn(_startPool[RunVoiceLanguage.english]),
+        );
+        expect(
+          speech.messages[1].message,
+          'You have completed 1 kilometer. Your time is 6 minutes 12 '
+          'seconds. Your average pace is 6 minutes 12 seconds per '
+          'kilometer.',
+        );
+      },
+    );
+  });
+
+  group('QA: target halfway with pace evaluation (KO)', () {
+    test(
+      'a steady pace at the midpoint speaks the halfway evaluation clause',
+      () async {
+        final speech = _QaSpeechOutput();
+        final coordinator = _buildCoordinator(speech);
+        final config = _buildConfig(
+          language: RunVoiceLanguage.korean,
+          targetDistanceMeters: 5000,
+          includeElapsedTime: true,
+          includeAveragePace: true,
+        );
+
+        await coordinator.startSession(config);
+        await _feed(coordinator, _snap(distance: 2400, elapsedSec: 850));
+        await _feed(
+          coordinator,
+          _snap(
+            distance: 2550,
+            elapsedSec: 900,
+            paceSec: 372,
+            currentPaceSec: 372,
+          ),
+        );
+
+        expect(speech.messages, hasLength(1));
+        expect(
+          speech.messages.single.message,
+          '목표 거리의 절반을 지났습니다. 일정한 페이스를 잘 유지하고 있어요. '
+          '운동 시간은 15분입니다. 평균 페이스는 킬로미터당 6분 12초입니다.',
+        );
+      },
+    );
+  });
+
+  group('QA: target completed with pace analysis (KO)', () {
+    test(
+      'a slower finish speaks the completion analysis plus improvement '
+      'clause',
+      () async {
+        final speech = _QaSpeechOutput();
+        final coordinator = _buildCoordinator(speech);
+        final config = _buildConfig(
+          language: RunVoiceLanguage.korean,
+          distanceIntervalMeters: 1000,
+          targetDistanceMeters: 5000,
+        );
+
+        await coordinator.startSession(config);
+        await _feed(coordinator, _snap(distance: 4950, elapsedSec: 4950));
+        await _feed(
+          coordinator,
+          _snap(
+            distance: 5030,
+            elapsedSec: 5030,
+            paceSec: 372,
+            currentPaceSec: 400,
+          ),
+        );
+
+        expect(speech.messages, hasLength(1));
+        expect(
+          speech.messages.single.message,
+          '목표 거리를 완료했습니다. 수고하셨습니다. 총 5.0킬로미터를 83분 50초에 '
+          '완주했고, 평균 페이스는 킬로미터당 6분 12초입니다. 후반에 페이스가 '
+          '조금 떨어졌어요. 다음엔 끝까지 일정하게 달려보세요.',
+        );
+      },
+    );
   });
 }

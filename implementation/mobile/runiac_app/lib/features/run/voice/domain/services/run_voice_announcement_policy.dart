@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import '../models/run_voice_announcement.dart';
 import '../models/run_voice_session_config.dart';
 import '../models/run_voice_snapshot.dart';
@@ -21,7 +23,10 @@ abstract interface class RunVoiceAnnouncementPolicy {
 /// transition (e.g. a distance milestone and a target-completed event
 /// crossed by the same GPS jump).
 class DefaultRunVoiceAnnouncementPolicy implements RunVoiceAnnouncementPolicy {
-  const DefaultRunVoiceAnnouncementPolicy();
+  DefaultRunVoiceAnnouncementPolicy({Random? random})
+    : _random = random ?? Random();
+
+  final Random _random;
 
   @override
   RunVoicePolicyResult evaluate({
@@ -33,6 +38,11 @@ class DefaultRunVoiceAnnouncementPolicy implements RunVoiceAnnouncementPolicy {
     if (!config.enabled || !current.isActive || current.isPaused) {
       return const RunVoicePolicyResult.empty();
     }
+
+    final startResult = _evaluateStartEncouragement(
+      current: current,
+      announcedIds: announcedIds,
+    );
 
     final distanceResult = _evaluateDistanceMilestones(
       previous: previous,
@@ -56,6 +66,7 @@ class DefaultRunVoiceAnnouncementPolicy implements RunVoiceAnnouncementPolicy {
     );
 
     final announcements = <RunVoiceAnnouncement>[
+      ...startResult.announcements,
       ...distanceResult.announcements,
       ...timeResult.announcements,
       ...targetResult.announcements,
@@ -66,6 +77,7 @@ class DefaultRunVoiceAnnouncementPolicy implements RunVoiceAnnouncementPolicy {
     }
 
     final consumedIds = <String>{
+      ...startResult.consumedIds,
       ...distanceResult.consumedIds,
       ...timeResult.consumedIds,
       ...targetResult.consumedIds,
@@ -75,6 +87,50 @@ class DefaultRunVoiceAnnouncementPolicy implements RunVoiceAnnouncementPolicy {
       announcements: announcements,
       consumedIds: consumedIds,
     );
+  }
+
+  RunVoicePolicyResult _evaluateStartEncouragement({
+    required RunVoiceSnapshot current,
+    required Set<String> announcedIds,
+  }) {
+    if (announcedIds.contains('start') ||
+        current.distanceMeters != 0 ||
+        current.elapsed != Duration.zero) {
+      return const RunVoicePolicyResult.empty();
+    }
+
+    final announcement = RunVoiceAnnouncement(
+      id: 'start',
+      type: RunVoiceAnnouncementType.startEncouragement,
+      priority: 10,
+      distanceMeters: null,
+      elapsed: current.elapsed,
+      averagePace: null,
+      variant: _random.nextInt(4),
+    );
+
+    return RunVoicePolicyResult(
+      announcements: [announcement],
+      consumedIds: {'start'},
+    );
+  }
+
+  RunVoicePaceTrend? _paceTrend(RunVoiceSnapshot s) {
+    if (s.currentPace == null || s.averagePace == null) {
+      return null;
+    }
+    final c = s.currentPace!.inSeconds;
+    final a = s.averagePace!.inSeconds;
+    if (a <= 0) {
+      return null;
+    }
+    if (c < a * 0.95) {
+      return RunVoicePaceTrend.faster;
+    }
+    if (c > a * 1.05) {
+      return RunVoicePaceTrend.slower;
+    }
+    return RunVoicePaceTrend.steady;
   }
 
   RunVoicePolicyResult _evaluateDistanceMilestones({
@@ -212,6 +268,7 @@ class DefaultRunVoiceAnnouncementPolicy implements RunVoiceAnnouncementPolicy {
           distanceMeters: current.distanceMeters,
           elapsed: current.elapsed,
           averagePace: current.averagePace,
+          paceTrend: _paceTrend(current),
         ),
       );
     }
@@ -228,6 +285,7 @@ class DefaultRunVoiceAnnouncementPolicy implements RunVoiceAnnouncementPolicy {
           distanceMeters: current.distanceMeters,
           elapsed: current.elapsed,
           averagePace: current.averagePace,
+          paceTrend: _paceTrend(current),
         ),
       );
     }

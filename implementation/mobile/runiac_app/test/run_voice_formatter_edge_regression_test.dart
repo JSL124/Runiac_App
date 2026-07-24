@@ -242,22 +242,26 @@ void main() {
       );
     });
 
-    test('target completed appends both clauses in Korean', () {
-      expect(
-        formatter.format(
-          _targetCompleted(
-            elapsed: const Duration(minutes: 30),
-            averagePace: const Duration(minutes: 6, seconds: 5),
+    test(
+      'target completed always appends the analysis clause in Korean '
+      '(not gated by include flags)',
+      () {
+        expect(
+          formatter.format(
+            _targetCompleted(
+              elapsed: const Duration(minutes: 30),
+              averagePace: const Duration(minutes: 6, seconds: 5),
+            ),
+            _config(
+              RunVoiceLanguage.korean,
+              includeElapsedTime: true,
+              includeAveragePace: true,
+            ),
           ),
-          _config(
-            RunVoiceLanguage.korean,
-            includeElapsedTime: true,
-            includeAveragePace: true,
-          ),
-        ),
-        '목표 거리를 완료했습니다. 수고하셨습니다. 운동 시간은 30분입니다. '
-        '평균 페이스는 킬로미터당 6분 5초입니다.',
-      );
-    });
+          '목표 거리를 완료했습니다. 수고하셨습니다. 총 5킬로미터를 30분에 완주했고, '
+          '평균 페이스는 킬로미터당 6분 5초입니다.',
+        );
+      },
+    );
   });
 }

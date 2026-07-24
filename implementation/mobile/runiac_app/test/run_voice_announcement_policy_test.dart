@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runiac_app/features/run/voice/domain/models/run_voice_announcement.dart';
@@ -11,13 +13,16 @@ RunVoiceSnapshot _snapshot(
   bool isActive = true,
   bool isPaused = false,
   Duration elapsed = Duration.zero,
+  Duration? averagePace,
+  Duration? currentPace,
 }) {
   return RunVoiceSnapshot(
     distanceMeters: distanceMeters,
     elapsed: elapsed,
-    averagePace: null,
+    averagePace: averagePace,
     isActive: isActive,
     isPaused: isPaused,
+    currentPace: currentPace,
   );
 }
 
@@ -40,7 +45,7 @@ RunVoiceSessionConfig _config({
 
 void main() {
   group('DefaultRunVoiceAnnouncementPolicy', () {
-    const policy = DefaultRunVoiceAnnouncementPolicy();
+    final policy = DefaultRunVoiceAnnouncementPolicy();
 
     test('crossing a single 1000m milestone announces exactly once', () {
       final result = policy.evaluate(
@@ -267,6 +272,291 @@ void main() {
           result.announcements.map((a) => a.id),
           containsAll(['distance:5000', 'target:completed']),
         );
+      },
+    );
+  });
+
+  group('DefaultRunVoiceAnnouncementPolicy start encouragement', () {
+    test(
+      'the genuine first snapshot (distance 0, elapsed 0, active) fires '
+      'a startEncouragement announcement',
+      () {
+        final policy = DefaultRunVoiceAnnouncementPolicy();
+        final zeroSnap = _snapshot(0, elapsed: Duration.zero);
+
+        final result = policy.evaluate(
+          previous: zeroSnap,
+          current: zeroSnap,
+          config: _config(),
+          announcedIds: {},
+        );
+
+        expect(
+          result.announcements,
+          contains(
+            predicate<RunVoiceAnnouncement>(
+              (a) =>
+                  a.id == 'start' &&
+                  a.type == RunVoiceAnnouncementType.startEncouragement,
+            ),
+          ),
+        );
+        expect(result.consumedIds, contains('start'));
+      },
+    );
+
+    test('the emitted variant matches the seeded Random source', () {
+      final policy = DefaultRunVoiceAnnouncementPolicy(random: Random(1));
+      final zeroSnap = _snapshot(0, elapsed: Duration.zero);
+      final expectedVariant = Random(1).nextInt(4);
+
+      final result = policy.evaluate(
+        previous: zeroSnap,
+        current: zeroSnap,
+        config: _config(),
+        announcedIds: {},
+      );
+
+      final start = result.announcements.firstWhere((a) => a.id == 'start');
+      expect(start.variant, expectedVariant);
+    });
+
+    test('start does not fire when distance is already above 0', () {
+      final policy = DefaultRunVoiceAnnouncementPolicy();
+      final result = policy.evaluate(
+        previous: _snapshot(10, elapsed: Duration.zero),
+        current: _snapshot(10, elapsed: Duration.zero),
+        config: _config(),
+        announcedIds: {},
+      );
+
+      expect(
+        result.announcements.where(
+          (a) => a.type == RunVoiceAnnouncementType.startEncouragement,
+        ),
+        isEmpty,
+      );
+    });
+
+    test('start does not fire when elapsed is already above zero', () {
+      final policy = DefaultRunVoiceAnnouncementPolicy();
+      final result = policy.evaluate(
+        previous: _snapshot(0, elapsed: const Duration(seconds: 5)),
+        current: _snapshot(0, elapsed: const Duration(seconds: 5)),
+        config: _config(),
+        announcedIds: {},
+      );
+
+      expect(
+        result.announcements.where(
+          (a) => a.type == RunVoiceAnnouncementType.startEncouragement,
+        ),
+        isEmpty,
+      );
+    });
+
+    test('start does not fire twice once already announced', () {
+      final policy = DefaultRunVoiceAnnouncementPolicy();
+      final zeroSnap = _snapshot(0, elapsed: Duration.zero);
+      final result = policy.evaluate(
+        previous: zeroSnap,
+        current: zeroSnap,
+        config: _config(),
+        announcedIds: {'start'},
+      );
+
+      expect(
+        result.announcements.where(
+          (a) => a.type == RunVoiceAnnouncementType.startEncouragement,
+        ),
+        isEmpty,
+      );
+    });
+  });
+
+  group('DefaultRunVoiceAnnouncementPolicy paceTrend', () {
+    final policy = DefaultRunVoiceAnnouncementPolicy();
+    const averagePace = Duration(seconds: 300);
+
+    test('halfway announcement carries faster paceTrend', () {
+      final result = policy.evaluate(
+        previous: _snapshot(2400),
+        current: _snapshot(
+          2550,
+          averagePace: averagePace,
+          currentPace: const Duration(seconds: 250),
+        ),
+        config: _config(targetDistanceMeters: 5000),
+        announcedIds: {},
+      );
+
+      final halfway = result.announcements.firstWhere(
+        (a) => a.id == 'target:halfway',
+      );
+      expect(halfway.paceTrend, RunVoicePaceTrend.faster);
+    });
+
+    test('halfway announcement carries steady paceTrend', () {
+      final result = policy.evaluate(
+        previous: _snapshot(2400),
+        current: _snapshot(
+          2550,
+          averagePace: averagePace,
+          currentPace: const Duration(seconds: 300),
+        ),
+        config: _config(targetDistanceMeters: 5000),
+        announcedIds: {},
+      );
+
+      final halfway = result.announcements.firstWhere(
+        (a) => a.id == 'target:halfway',
+      );
+      expect(halfway.paceTrend, RunVoicePaceTrend.steady);
+    });
+
+    test('halfway announcement carries slower paceTrend', () {
+      final result = policy.evaluate(
+        previous: _snapshot(2400),
+        current: _snapshot(
+          2550,
+          averagePace: averagePace,
+          currentPace: const Duration(seconds: 350),
+        ),
+        config: _config(targetDistanceMeters: 5000),
+        announcedIds: {},
+      );
+
+      final halfway = result.announcements.firstWhere(
+        (a) => a.id == 'target:halfway',
+      );
+      expect(halfway.paceTrend, RunVoicePaceTrend.slower);
+    });
+
+    test(
+      'halfway announcement paceTrend is null when currentPace is null',
+      () {
+        final result = policy.evaluate(
+          previous: _snapshot(2400),
+          current: _snapshot(2550, averagePace: averagePace),
+          config: _config(targetDistanceMeters: 5000),
+          announcedIds: {},
+        );
+
+        final halfway = result.announcements.firstWhere(
+          (a) => a.id == 'target:halfway',
+        );
+        expect(halfway.paceTrend, isNull);
+      },
+    );
+
+    test(
+      'halfway announcement paceTrend is null when averagePace is null',
+      () {
+        final result = policy.evaluate(
+          previous: _snapshot(2400),
+          current: _snapshot(
+            2550,
+            currentPace: const Duration(seconds: 250),
+          ),
+          config: _config(targetDistanceMeters: 5000),
+          announcedIds: {},
+        );
+
+        final halfway = result.announcements.firstWhere(
+          (a) => a.id == 'target:halfway',
+        );
+        expect(halfway.paceTrend, isNull);
+      },
+    );
+
+    test('completed announcement carries faster paceTrend', () {
+      final result = policy.evaluate(
+        previous: _snapshot(4950),
+        current: _snapshot(
+          5030,
+          averagePace: averagePace,
+          currentPace: const Duration(seconds: 250),
+        ),
+        config: _config(targetDistanceMeters: 5000),
+        announcedIds: {'target:halfway'},
+      );
+
+      final completed = result.announcements.firstWhere(
+        (a) => a.id == 'target:completed',
+      );
+      expect(completed.paceTrend, RunVoicePaceTrend.faster);
+    });
+
+    test('completed announcement carries steady paceTrend', () {
+      final result = policy.evaluate(
+        previous: _snapshot(4950),
+        current: _snapshot(
+          5030,
+          averagePace: averagePace,
+          currentPace: const Duration(seconds: 300),
+        ),
+        config: _config(targetDistanceMeters: 5000),
+        announcedIds: {'target:halfway'},
+      );
+
+      final completed = result.announcements.firstWhere(
+        (a) => a.id == 'target:completed',
+      );
+      expect(completed.paceTrend, RunVoicePaceTrend.steady);
+    });
+
+    test('completed announcement carries slower paceTrend', () {
+      final result = policy.evaluate(
+        previous: _snapshot(4950),
+        current: _snapshot(
+          5030,
+          averagePace: averagePace,
+          currentPace: const Duration(seconds: 350),
+        ),
+        config: _config(targetDistanceMeters: 5000),
+        announcedIds: {'target:halfway'},
+      );
+
+      final completed = result.announcements.firstWhere(
+        (a) => a.id == 'target:completed',
+      );
+      expect(completed.paceTrend, RunVoicePaceTrend.slower);
+    });
+
+    test(
+      'completed announcement paceTrend is null when currentPace is null',
+      () {
+        final result = policy.evaluate(
+          previous: _snapshot(4950),
+          current: _snapshot(5030, averagePace: averagePace),
+          config: _config(targetDistanceMeters: 5000),
+          announcedIds: {'target:halfway'},
+        );
+
+        final completed = result.announcements.firstWhere(
+          (a) => a.id == 'target:completed',
+        );
+        expect(completed.paceTrend, isNull);
+      },
+    );
+
+    test(
+      'completed announcement paceTrend is null when averagePace is null',
+      () {
+        final result = policy.evaluate(
+          previous: _snapshot(4950),
+          current: _snapshot(
+            5030,
+            currentPace: const Duration(seconds: 250),
+          ),
+          config: _config(targetDistanceMeters: 5000),
+          announcedIds: {'target:halfway'},
+        );
+
+        final completed = result.announcements.firstWhere(
+          (a) => a.id == 'target:completed',
+        );
+        expect(completed.paceTrend, isNull);
       },
     );
   });

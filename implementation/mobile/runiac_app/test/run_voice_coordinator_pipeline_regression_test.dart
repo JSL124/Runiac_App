@@ -43,7 +43,7 @@ class _RecordingSpeechOutput implements RunSpeechOutput {
 
 RunVoiceCoachingCoordinator _coordinator(_RecordingSpeechOutput speech) {
   return RunVoiceCoachingCoordinator(
-    policy: const DefaultRunVoiceAnnouncementPolicy(),
+    policy: DefaultRunVoiceAnnouncementPolicy(),
     selector: const PriorityRunVoiceAnnouncementSelector(),
     formatter: const LocalizedRunVoiceMessageFormatter(),
     speechOutput: speech,
@@ -144,12 +144,18 @@ void main() {
         );
 
         await coordinator.startSession(config);
-        await _feed(coordinator, _snap(0)); // baseline
+        // Seeds `previous` state only; distance 1 / elapsed 1s can't trip the
+        // start-encouragement gate (which requires distance 0 AND elapsed 0),
+        // so this does not represent a real run-start snapshot.
+        await _feed(coordinator, _snap(1)); // baseline
         await _feed(coordinator, _snap(1200)); // crosses half (500) and target
 
         expect(
           speech.messages,
-          ['You have reached your goal distance. Well done.'],
+          [
+            'You have reached your goal distance. Well done. You finished '
+            '1.2 kilometers in 20 minutes.',
+          ],
         );
 
         // A later snapshot re-touching the half point must add nothing.
@@ -165,7 +171,10 @@ void main() {
       final coordinator = _coordinator(speech);
 
       await coordinator.startSession(_config(distanceIntervalMeters: 500));
-      await _feed(coordinator, _snap(0)); // baseline
+      // Seeds `previous` state only; distance 1 / elapsed 1s can't trip the
+      // start-encouragement gate (which requires distance 0 AND elapsed 0),
+      // so this does not represent a real run-start snapshot.
+      await _feed(coordinator, _snap(1)); // baseline
       await _feed(coordinator, _snap(600)); // crosses 500m
 
       expect(speech.messages, ['You have completed 0.5 kilometers.']);
