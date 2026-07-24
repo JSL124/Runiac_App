@@ -77,6 +77,42 @@ String capErrorMessage(
   return trimmed.substring(0, maxLength);
 }
 
+/// Composes the reported `message` from the error's own text and the optional
+/// `context` a [FlutterErrorDetails] carried — the operation that failed, plus
+/// the run's correlation key.
+///
+/// The context is appended, and it is the error text (not the context) that
+/// gets truncated when the two together exceed [maxLength]: the operation
+/// label is what says *which stage* failed, and it is far shorter than a long
+/// exception dump.
+///
+/// Note what does and does not survive to the server. `sanitizeMessage` in
+/// `functions/src/errors/sanitize.ts` redacts any run of 5+ digits, and every
+/// `clientRunSessionId` embeds microsecond timestamps — so the correlation id
+/// reaches `errorGroups` as `[redacted]`, by design. The operation label has
+/// no digits and does survive, which is what makes the failing stage
+/// identifiable in production. The full context, id included, is still
+/// printed locally by Flutter's default error handler, which is where
+/// run-level correlation is read today. Carrying the id itself into
+/// `errorGroups` would need a new allowlisted payload field server-side and is
+/// deliberately out of scope here.
+String composeErrorReportMessage(
+  String errorText,
+  String? context, {
+  int maxLength = errorReportMaxMessageLength,
+}) {
+  final trimmedContext = context?.trim() ?? '';
+  if (trimmedContext.isEmpty) {
+    return capErrorMessage(errorText, maxLength: maxLength);
+  }
+  final suffix = ' | $trimmedContext';
+  if (suffix.length >= maxLength) {
+    return capErrorMessage(trimmedContext, maxLength: maxLength);
+  }
+  final head = capErrorMessage(errorText, maxLength: maxLength - suffix.length);
+  return '$head$suffix';
+}
+
 /// The label used when no real screen can be derived at all. Never sent as
 /// `null` or empty — the server's `optionalScreen` validation only
 /// special-cases `undefined`, so a literal `null` is rejected outright.
@@ -257,11 +293,17 @@ class RuniacErrorReporter {
 
   /// Records [error] (with optional [stack]), then attempts to flush the
   /// durable buffer. Never throws.
+  /// [context] is the failing operation as described by the reporting call
+  /// site (a `FlutterErrorDetails.context`), e.g.
+  /// `completing a run (runSessionId=...)`. Without it the payload carries
+  /// only the raw exception text, which frequently does not say which stage
+  /// of a multi-step flow failed.
   Future<void> reportError(
     Object error,
     StackTrace? stack, {
     String? screen,
     bool fatal = false,
+    String? context,
   }) async {
     if (_isReporting) {
       // A failure raised while building or enqueuing a report must never
@@ -274,7 +316,13 @@ class RuniacErrorReporter {
     _isReporting = true;
     var didEnqueue = false;
     try {
-      final report = _buildReport(error, stack, screen: screen, fatal: fatal);
+      final report = _buildReport(
+        error,
+        stack,
+        screen: screen,
+        fatal: fatal,
+        context: context,
+      );
       if (!_shouldSuppressDuplicate(report)) {
         await _enqueue(report);
         didEnqueue = true;
@@ -321,11 +369,12 @@ class RuniacErrorReporter {
     StackTrace? stack, {
     required String? screen,
     required bool fatal,
+    String? context,
   }) {
     final stackFrames = stripToRuniacAppFrames(stack);
     return ErrorReport(
       errorType: error.runtimeType.toString(),
-      message: capErrorMessage(error.toString()),
+      message: composeErrorReportMessage(error.toString(), context),
       stackFrames: stackFrames,
       screen: resolveErrorReportScreen(screen, stackFrames),
       appVersion: _safeResolve(_appVersionResolver, 'unknown'),

@@ -29,6 +29,31 @@ void main() {
       },
     );
 
+    test('sends the failing operation in the reported payload', () async {
+      final store = MemoryLocalPendingErrorReportStore();
+      final callable = _FakeReportAppErrorCallable();
+      final authSource = _FakeAuthSource(initialUid: 'uid-1');
+      final reporter = _buildReporter(
+        store: store,
+        callable: callable,
+        authSource: authSource,
+      );
+      addTearDown(reporter.dispose);
+
+      await reporter.reportError(
+        StateError('boom'),
+        StackTrace.current,
+        context: 'completing a run (runSessionId=local-run-7)',
+      );
+
+      // Without this the payload would carry only "Bad state: boom", which
+      // does not say which stage of the completion flow failed.
+      expect(
+        callable.calls.single['message'],
+        'Bad state: boom | completing a run (runSessionId=local-run-7)',
+      );
+    });
+
     test('flushes the buffer once a uid appears', () async {
       final store = MemoryLocalPendingErrorReportStore();
       final callable = _FakeReportAppErrorCallable();
@@ -511,6 +536,55 @@ void main() {
         expect(callable.calls.single['screen'], 'unknown');
       },
     );
+  });
+
+  group('composeErrorReportMessage', () {
+    test('returns the error text alone when there is no context', () {
+      expect(
+        composeErrorReportMessage('Bad state: something broke', null),
+        'Bad state: something broke',
+      );
+      expect(
+        composeErrorReportMessage('Bad state: something broke', '   '),
+        'Bad state: something broke',
+      );
+    });
+
+    test('appends the failing operation so the stage is identifiable', () {
+      expect(
+        composeErrorReportMessage(
+          'Bad state: remote completeRun refused the run',
+          'completing a run (runSessionId=local-run-1-2-3)',
+        ),
+        'Bad state: remote completeRun refused the run | '
+        'completing a run (runSessionId=local-run-1-2-3)',
+      );
+    });
+
+    test('truncates the error text rather than losing the operation', () {
+      final composed = composeErrorReportMessage(
+        'E' * 400,
+        'completing a run',
+        maxLength: 60,
+      );
+
+      expect(composed.length, 60);
+      // The operation label is the part that says which stage failed, so it
+      // must survive a long exception dump intact.
+      expect(composed, endsWith(' | completing a run'));
+      expect(composed, startsWith('EEE'));
+    });
+
+    test('keeps the operation when it alone exceeds the cap', () {
+      final composed = composeErrorReportMessage(
+        'Bad state: broke',
+        'C' * 400,
+        maxLength: 60,
+      );
+
+      expect(composed.length, 60);
+      expect(composed, 'C' * 60);
+    });
   });
 
   group('resolveErrorReportScreen', () {
