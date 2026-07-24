@@ -97,6 +97,7 @@ Future<void> main() async {
           userAccountRepository: bootstrap.userAccountRepository,
           paywallConfigRepository: bootstrap.paywallConfigRepository,
           featureAccessRepository: bootstrap.featureAccessRepository,
+          characterAccessRepository: bootstrap.characterAccessRepository,
           profilePersistenceRepository: bootstrap.profilePersistenceRepository,
           generatedPlanPersistenceRepository:
               bootstrap.generatedPlanPersistenceRepository,

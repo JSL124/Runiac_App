@@ -45,3 +45,45 @@ bool interceptWithPaywallIfBasic(BuildContext context) {
   PremiumPaywallSheet.show(context);
   return true;
 }
+
+/// Whether a premium-only feature that has NO server-side backstop must stay
+/// gated for the current runner.
+///
+/// Unlike [shouldShowPaywall], this fails CLOSED while the account is
+/// unresolved (`account == null` during the first `users/{uid}` read): it
+/// gates unless the runner is *confirmed* Premium (or the paywall kill switch
+/// is off). Use for client-only gates — e.g. the cosmetic guide-character
+/// picker — where the selection is persisted locally and never re-checked
+/// server-side, so a tap that slipped through the load window would let a Basic
+/// runner keep a premium-only choice with nothing to reject it later.
+bool shouldHardGatePremium(BuildContext context) {
+  final account = CurrentSessionUserAccountScope.maybeRead(context)?.account;
+  if (account?.isPremium ?? false) {
+    return false;
+  }
+  final config = PaywallConfigScope.maybeRead(context)?.config;
+  return config == null || config.enabled;
+}
+
+/// [shouldHardGatePremium] for use inside `build`: registers scope
+/// dependencies so the lock UI resolves the moment the trusted account (or an
+/// admin kill-switch flip) arrives.
+bool watchShouldHardGatePremium(BuildContext context) {
+  final account = CurrentSessionUserAccountScope.maybeOf(context)?.account;
+  if (account?.isPremium ?? false) {
+    return false;
+  }
+  final config = PaywallConfigScope.maybeOf(context)?.config;
+  return config == null || config.enabled;
+}
+
+/// Intercepts a tap on a client-only premium feature (see
+/// [shouldHardGatePremium]). Returns true when the paywall was shown (tap
+/// consumed); false when the caller should proceed to the real feature.
+bool interceptWithPaywallIfHardGated(BuildContext context) {
+  if (!shouldHardGatePremium(context)) {
+    return false;
+  }
+  PremiumPaywallSheet.show(context);
+  return true;
+}

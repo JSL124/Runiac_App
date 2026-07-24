@@ -34,6 +34,10 @@ describe('backend-owned admin config collections', () => {
     await seed('config/featureAccess', {
       features: { advancedAnalysis: { minimumTier: 'premium', enabled: true } },
     });
+    await seed('config/characterAccess', {
+      premiumOnlyCharacters: ['cap', 'purple'],
+      version: 1,
+    });
 
     const alice = dbFor('alice');
 
@@ -46,16 +50,23 @@ describe('backend-owned admin config collections', () => {
     await assertFails(
       setDoc(doc(alice, 'config/featureAccess'), { features: {} }),
     );
+
+    await assertSucceeds(getDoc(doc(alice, 'config/characterAccess')));
+    await assertFails(
+      setDoc(doc(alice, 'config/characterAccess'), { premiumOnlyCharacters: [] }),
+    );
   });
 
   it('denies an unauthenticated client read access to the display-only config docs', async () => {
     await seed('config/paywall', { title: 'Premium', enabled: true });
     await seed('config/featureAccess', { features: {} });
+    await seed('config/characterAccess', { premiumOnlyCharacters: [], version: 1 });
 
     const anon = unauthenticatedDb();
 
     await assertFails(getDoc(doc(anon, 'config/paywall')));
     await assertFails(getDoc(doc(anon, 'config/featureAccess')));
+    await assertFails(getDoc(doc(anon, 'config/characterAccess')));
   });
 
   it('denies an authenticated non-admin client read/write access to badgeConfigs', async () => {

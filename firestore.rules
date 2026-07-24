@@ -1121,14 +1121,17 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    // config/paywall and config/featureAccess are the only client-readable
-    // config docs: display-only paywall copy/pricing and the feature-tier map
-    // the premium upsell lists. Both are written only by the admin console
-    // via Admin SDK; feature ACCESS stays enforced server-side (Functions and
-    // rules), the client merely displays which features are premium. Every
-    // other config doc stays fully denied.
+    // config/paywall, config/featureAccess, and config/characterAccess are the
+    // only client-readable config docs: display-only paywall copy/pricing, the
+    // feature-tier map the premium upsell lists, and the premium-only character
+    // list the guide-character picker locks. All are written only by the admin
+    // console via Admin SDK. featureAccess ACCESS stays enforced server-side
+    // (Functions and rules); characterAccess is a cosmetic device-local choice
+    // gated client-side (no server value to protect), so the client reads it to
+    // render lock UI. Every other config doc stays fully denied.
     match /config/{configDoc} {
-      allow read: if (configDoc == 'paywall' || configDoc == 'featureAccess')
+      allow read: if (configDoc == 'paywall' || configDoc == 'featureAccess'
+        || configDoc == 'characterAccess')
         && isSignedIn();
       allow write: if false;
     }

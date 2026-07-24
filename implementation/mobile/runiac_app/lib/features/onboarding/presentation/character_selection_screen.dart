@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 
 import '../../../core/characters/runner_character.dart';
 import '../../../core/theme/runiac_colors.dart';
+import '../../paywall/presentation/current_session_character_access.dart';
+import '../../paywall/presentation/premium_gate.dart';
 
 /// Warm, playful screen where a new user picks one of four guide characters
 /// before the onboarding question flow begins.
@@ -58,6 +60,28 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen>
     });
   }
 
+  /// Whether [character] is admin-gated behind Premium. Reads the trusted
+  /// `config/characterAccess` relay; absent scope (tests/previews) means no
+  /// gating, so every buddy stays selectable.
+  bool _isPremiumOnly(RunnerCharacter character) {
+    final access = CharacterAccessScope.maybeRead(context)?.characterAccess;
+    return access != null && access.isPremiumOnly(character);
+  }
+
+  /// Handles a buddy tap. A Premium-only buddy opens the paywall instead of
+  /// selecting unless the runner is confirmed Premium — the character is
+  /// cosmetic and stored locally, so this client gate is the whole enforcement
+  /// (there is no server value to protect). It fails CLOSED via
+  /// [interceptWithPaywallIfHardGated]: while the subscription snapshot is still
+  /// loading, a premium-only tap is intercepted rather than allowed, so a Basic
+  /// runner cannot slip a premium buddy through the load window.
+  void _handleTap(RunnerCharacter character) {
+    if (_isPremiumOnly(character) && interceptWithPaywallIfHardGated(context)) {
+      return;
+    }
+    _select(character);
+  }
+
   void _confirm() {
     final selected = _selected;
     if (selected == null) {
@@ -80,8 +104,14 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen>
               character: character,
               isSelected: character == selected,
               isDimmed: selected != null && character != selected,
+              // Premium-gated: show the lock unless the runner is confirmed
+              // Premium. Fails closed while the account is still loading so a
+              // premium-only buddy is never briefly selectable.
+              locked:
+                  _isPremiumOnly(character) &&
+                  watchShouldHardGatePremium(context),
               bob: _bobController,
-              onTap: () => _select(character),
+              onTap: () => _handleTap(character),
             ),
           ),
         ],
@@ -91,6 +121,9 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen>
 
   @override
   Widget build(BuildContext context) {
+    // One-shot, session-cached read of the admin-published premium-character
+    // list. Kicked off lazily here, where the lock UI first needs it.
+    CharacterAccessScope.maybeOf(context)?.ensureLoaded();
     final selected = _selected;
     return Scaffold(
       body: Container(
@@ -222,6 +255,7 @@ class _CharacterCard extends StatelessWidget {
     required this.character,
     required this.isSelected,
     required this.isDimmed,
+    required this.locked,
     required this.bob,
     required this.onTap,
   });
@@ -229,6 +263,10 @@ class _CharacterCard extends StatelessWidget {
   final RunnerCharacter character;
   final bool isSelected;
   final bool isDimmed;
+
+  /// Premium-gated for the current Basic runner: shows a lock badge and a
+  /// "Premium" label, and its tap opens the paywall instead of selecting.
+  final bool locked;
   final Animation<double> bob;
   final VoidCallback onTap;
 
@@ -237,7 +275,9 @@ class _CharacterCard extends StatelessWidget {
     return Semantics(
       button: true,
       selected: isSelected,
-      label: 'Choose ${character.displayName}',
+      label: locked
+          ? '${character.displayName}, Premium — unlock to choose'
+          : 'Choose ${character.displayName}',
       child: GestureDetector(
         onTap: onTap,
         behavior: HitTestBehavior.opaque,
@@ -291,9 +331,14 @@ class _CharacterCard extends StatelessWidget {
                                 child: child,
                               );
                             },
-                            child: Image.asset(
-                              character.assetPath(RunnerCharacterFacing.front),
-                              fit: BoxFit.contain,
+                            child: Opacity(
+                              opacity: locked ? 0.45 : 1,
+                              child: Image.asset(
+                                character.assetPath(
+                                  RunnerCharacterFacing.front,
+                                ),
+                                fit: BoxFit.contain,
+                              ),
                             ),
                           ),
                         ),
@@ -314,6 +359,23 @@ class _CharacterCard extends StatelessWidget {
                               ),
                             ),
                           ),
+                        if (locked)
+                          Positioned(
+                            top: 0,
+                            left: 0,
+                            child: Container(
+                              padding: const EdgeInsets.all(5),
+                              decoration: const BoxDecoration(
+                                color: RuniacColors.primaryBlue,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.lock_rounded,
+                                size: 15,
+                                color: RuniacColors.white,
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                   ),
@@ -328,6 +390,17 @@ class _CharacterCard extends StatelessWidget {
                           : RuniacColors.textPrimary,
                     ),
                   ),
+                  if (locked) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      'Premium',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: RuniacColors.primaryBlue,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
