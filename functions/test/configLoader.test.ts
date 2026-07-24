@@ -4,20 +4,24 @@ import type { Firestore } from "firebase-admin/firestore";
 import {
   DEFAULT_AUTOMATION_CONFIG,
   DEFAULT_CHALLENGE_ACCESS_CONFIG,
+  DEFAULT_CHARACTER_ACCESS_CONFIG,
   DEFAULT_FEATURE_ACCESS_CONFIG,
   DEFAULT_LEADERBOARD_CONFIG,
   DEFAULT_PROGRESSION_CONFIG,
   deepMerge,
   loadAutomationConfig,
   loadChallengeAccessConfig,
+  loadCharacterAccessConfig,
   loadFeatureAccessConfig,
   loadLeaderboardConfig,
   loadProgressionConfig,
   type AutomationConfig,
   type ChallengeAccessConfig,
+  type CharacterAccessConfig,
   type ProgressionConfig,
   validateAutomationConfig,
   validateChallengeAccessConfig,
+  validateCharacterAccessConfig,
   validateFeatureAccessConfig,
   validateLeaderboardConfig,
   validateProgressionConfig,
@@ -575,5 +579,65 @@ describe("configLoader loadChallengeAccessConfig", () => {
   it("returns defaults when the read rejects", async () => {
     const config = await loadChallengeAccessConfig(rejectingDb("config/challengeAccess"));
     assert.deepEqual(config, DEFAULT_CHALLENGE_ACCESS_CONFIG);
+  });
+});
+
+describe("validateCharacterAccessConfig", () => {
+  it("accepts the defaults (Cap and Ivy premium-only)", () => {
+    assert.equal(validateCharacterAccessConfig(DEFAULT_CHARACTER_ACCESS_CONFIG).valid, true);
+    assert.deepEqual(
+      DEFAULT_CHARACTER_ACCESS_CONFIG.premiumOnlyCharacters,
+      ["cap", "purple"],
+    );
+  });
+
+  it("accepts an empty list (every character open)", () => {
+    assert.equal(validateCharacterAccessConfig({ premiumOnlyCharacters: [], version: 1 }).valid, true);
+  });
+
+  it("rejects unknown character ids", () => {
+    const result = validateCharacterAccessConfig({ premiumOnlyCharacters: ["cap", "green"], version: 1 });
+    assert.equal(result.valid, false);
+    assert.ok(result.errors.some((error) => error.startsWith("premiumOnlyCharacters")));
+  });
+
+  it("rejects duplicates", () => {
+    const result = validateCharacterAccessConfig({ premiumOnlyCharacters: ["cap", "cap"], version: 1 });
+    assert.equal(result.valid, false);
+  });
+
+  it("rejects a non-array", () => {
+    const result = validateCharacterAccessConfig({ premiumOnlyCharacters: "cap", version: 1 } as unknown as CharacterAccessConfig);
+    assert.equal(result.valid, false);
+  });
+});
+
+describe("configLoader loadCharacterAccessConfig", () => {
+  it("returns defaults when the doc does not exist", async () => {
+    const config = await loadCharacterAccessConfig(missingDb("config/characterAccess"));
+    assert.deepEqual(config, DEFAULT_CHARACTER_ACCESS_CONFIG);
+  });
+
+  it("lets a stored array REPLACE the default list (arrays are leaf values)", async () => {
+    const db = fakeDb("config/characterAccess", {
+      exists: true,
+      data: () => ({ premiumOnlyCharacters: ["purple"] }),
+    });
+    const config = await loadCharacterAccessConfig(db);
+    assert.deepEqual(config.premiumOnlyCharacters, ["purple"]);
+  });
+
+  it("falls back to defaults when the stored doc is invalid", async () => {
+    const db = fakeDb("config/characterAccess", {
+      exists: true,
+      data: () => ({ premiumOnlyCharacters: ["NOT_A_CHARACTER"] }),
+    });
+    const config = await loadCharacterAccessConfig(db);
+    assert.deepEqual(config, DEFAULT_CHARACTER_ACCESS_CONFIG);
+  });
+
+  it("returns defaults when the read rejects", async () => {
+    const config = await loadCharacterAccessConfig(rejectingDb("config/characterAccess"));
+    assert.deepEqual(config, DEFAULT_CHARACTER_ACCESS_CONFIG);
   });
 });

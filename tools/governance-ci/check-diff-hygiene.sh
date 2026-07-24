@@ -267,6 +267,38 @@ is_admin_automation_policy_path() {
   esac
 }
 
+is_character_premium_access_gating_capsule_active() {
+  grep -Eq '^- Newly routed character premium-access gating on 2026-07-24 Asia/Singapore: `implementation/roadmap/capsules/character-premium-access-gating\.md`' implementation/roadmap/CURRENT.md
+}
+
+is_character_premium_access_gating_path() {
+  case "$1" in
+    implementation/roadmap/capsules/character-premium-access-gating.md|\
+    implementation/roadmap/CURRENT.md|\
+    tools/governance-ci/check-diff-hygiene.sh|\
+    functions/src/config/configLoader.ts|\
+    functions/test/configLoader.test.ts|\
+    firestore.rules|\
+    tests/firebase-rules/firestore.config.rules.test.mjs|\
+    implementation/mobile/runiac_app/lib/app.dart|\
+    implementation/mobile/runiac_app/lib/main.dart|\
+    implementation/mobile/runiac_app/lib/core/firebase/runiac_firebase_bootstrap.dart|\
+    implementation/mobile/runiac_app/lib/features/onboarding/presentation/character_selection_screen.dart|\
+    implementation/mobile/runiac_app/lib/features/paywall/domain/models/character_access_read_model.dart|\
+    implementation/mobile/runiac_app/lib/features/paywall/domain/repositories/character_access_repository.dart|\
+    implementation/mobile/runiac_app/lib/features/paywall/data/firestore_character_access_repository.dart|\
+    implementation/mobile/runiac_app/lib/features/paywall/presentation/current_session_character_access.dart|\
+    implementation/mobile/runiac_app/test/character_selection_test.dart|\
+    implementation/mobile/runiac_app/test/character_access_read_model_test.dart|\
+    implementation/mobile/runiac_app/test/backend_owned_contract_test.dart)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 is_test_suite_regression_hardening_capsule_active() {
   grep -Eq '^- Newly routed test-suite regression hardening on 2026-07-24 Asia/Singapore: `implementation/roadmap/capsules/test-suite-regression-hardening\.md`' implementation/roadmap/CURRENT.md
 }
@@ -725,6 +757,10 @@ is_allowed_path() {
   fi
 
   if is_test_suite_regression_hardening_path "$1" && is_test_suite_regression_hardening_capsule_active; then
+    return 0
+  fi
+
+  if is_character_premium_access_gating_path "$1" && is_character_premium_access_gating_capsule_active; then
     return 0
   fi
 

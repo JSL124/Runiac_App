@@ -4,7 +4,61 @@ import 'package:runiac_app/core/characters/local_selected_runner_character_stora
 import 'package:runiac_app/core/characters/runner_character.dart';
 import 'package:runiac_app/features/onboarding/presentation/character_selection_screen.dart';
 import 'package:runiac_app/features/onboarding/presentation/runiac_character_selection_gate.dart';
+import 'package:runiac_app/features/paywall/presentation/current_session_character_access.dart';
+import 'package:runiac_app/features/profile/domain/models/user_account_read_model.dart';
+import 'package:runiac_app/features/profile/domain/repositories/user_account_repository.dart';
+import 'package:runiac_app/features/profile/presentation/current_session_user_account.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+const _paywallTitleKey = Key('paywall-title');
+
+class _FixedUserAccountRepository implements UserAccountRepository {
+  const _FixedUserAccountRepository(this.account);
+
+  final UserAccountReadModel account;
+
+  @override
+  Future<UserAccountReadModel> loadUserAccount() async => account;
+}
+
+// Wraps [CharacterSelectionScreen] with the trusted account + character-access
+// scopes so the picker's Premium lock is exercised end to end. Defaults gate
+// Cap and Ivy behind Premium (StaticCharacterAccessRepository).
+Future<void> _pumpGatedSelection(
+  WidgetTester tester, {
+  required UserSubscriptionStatus subscriptionStatus,
+  ValueChanged<RunnerCharacter>? onConfirm,
+}) async {
+  await tester.binding.setSurfaceSize(const Size(390, 844));
+  addTearDown(() => tester.binding.setSurfaceSize(null));
+
+  final accountStore = CurrentSessionUserAccount(
+    repository: _FixedUserAccountRepository(
+      UserAccountReadModel(subscriptionStatus: subscriptionStatus),
+    ),
+  );
+  addTearDown(accountStore.dispose);
+  final characterAccessStore = CurrentSessionCharacterAccess();
+  addTearDown(characterAccessStore.dispose);
+
+  await tester.pumpWidget(
+    MaterialApp(
+      home: CurrentSessionUserAccountScope(
+        store: accountStore,
+        child: CharacterAccessScope(
+          store: characterAccessStore,
+          child: CharacterSelectionScreen(
+            onConfirm: onConfirm ?? (_) {},
+          ),
+        ),
+      ),
+    ),
+  );
+  // Let the one-shot account + character-access loads resolve so the lock
+  // state settles.
+  await tester.pump();
+  await tester.pump();
+}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -45,6 +99,86 @@ void main() {
       await tester.pump();
 
       expect(confirmed, RunnerCharacter.pink);
+    });
+  });
+
+  group('CharacterSelectionScreen premium gating', () {
+    testWidgets('locks Cap and Ivy for a Basic runner, leaves Bolt/Mila open', (
+      tester,
+    ) async {
+      await _pumpGatedSelection(
+        tester,
+        subscriptionStatus: UserSubscriptionStatus.basic,
+      );
+
+      // Cap and Ivy are the two premium-gated buddies by default.
+      expect(find.text('Premium'), findsNWidgets(2));
+      expect(find.byIcon(Icons.lock_rounded), findsNWidgets(2));
+    });
+
+    testWidgets('a Basic runner tapping Cap opens the paywall, no selection', (
+      tester,
+    ) async {
+      RunnerCharacter? confirmed;
+      await _pumpGatedSelection(
+        tester,
+        subscriptionStatus: UserSubscriptionStatus.basic,
+        onConfirm: (character) => confirmed = character,
+      );
+
+      await tester.tap(find.text('Cap'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      // The paywall intercepted the tap; nothing was selected.
+      expect(find.byKey(_paywallTitleKey), findsOneWidget);
+      expect(find.text("Let's go with Cap"), findsNothing);
+      expect(confirmed, isNull);
+
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('a Basic runner can still select Mila', (tester) async {
+      RunnerCharacter? confirmed;
+      await _pumpGatedSelection(
+        tester,
+        subscriptionStatus: UserSubscriptionStatus.basic,
+        onConfirm: (character) => confirmed = character,
+      );
+
+      await tester.tap(find.text('Mila'));
+      await tester.pump(const Duration(milliseconds: 400));
+
+      expect(find.byKey(_paywallTitleKey), findsNothing);
+      expect(find.text("Let's go with Mila"), findsOneWidget);
+
+      await tester.tap(find.text("Let's go with Mila"));
+      await tester.pump();
+      expect(confirmed, RunnerCharacter.pink);
+    });
+
+    testWidgets('a Premium runner sees no locks and can select Cap', (
+      tester,
+    ) async {
+      RunnerCharacter? confirmed;
+      await _pumpGatedSelection(
+        tester,
+        subscriptionStatus: UserSubscriptionStatus.premium,
+        onConfirm: (character) => confirmed = character,
+      );
+
+      expect(find.text('Premium'), findsNothing);
+      expect(find.byIcon(Icons.lock_rounded), findsNothing);
+
+      await tester.tap(find.text('Cap'));
+      await tester.pump(const Duration(milliseconds: 400));
+
+      expect(find.byKey(_paywallTitleKey), findsNothing);
+      expect(find.text("Let's go with Cap"), findsOneWidget);
+
+      await tester.tap(find.text("Let's go with Cap"));
+      await tester.pump();
+      expect(confirmed, RunnerCharacter.cap);
     });
   });
 

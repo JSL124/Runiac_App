@@ -39,8 +39,10 @@ import '../../features/notifications/data/firebase_messaging_push_notification_c
 import '../../features/notifications/data/firestore_notification_inbox_repository.dart';
 import '../../features/notifications/domain/repositories/notification_inbox_repository.dart';
 import '../../features/notifications/domain/services/notification_registration_service.dart';
+import '../../features/paywall/data/firestore_character_access_repository.dart';
 import '../../features/paywall/data/firestore_feature_access_repository.dart';
 import '../../features/paywall/data/firestore_paywall_config_repository.dart';
+import '../../features/paywall/domain/repositories/character_access_repository.dart';
 import '../../features/paywall/domain/repositories/feature_access_repository.dart';
 import '../../features/paywall/domain/repositories/paywall_config_repository.dart';
 import '../../features/plan/data/firestore_adaptive_plan_estimate_repository.dart';
@@ -96,6 +98,7 @@ class RuniacFirebaseBootstrap {
           userAccountRepository: const StaticUserAccountRepository(),
           paywallConfigRepository: const StaticPaywallConfigRepository(),
           featureAccessRepository: const StaticFeatureAccessRepository(),
+          characterAccessRepository: const StaticCharacterAccessRepository(),
           profilePersistenceRepository:
               const NoopUserProfilePersistenceRepository(),
           generatedPlanPersistenceRepository:
@@ -161,6 +164,7 @@ class RuniacFirebaseBootstrap {
         ),
         paywallConfigRepository: FirestorePaywallConfigRepository(),
         featureAccessRepository: FirestoreFeatureAccessRepository(),
+        characterAccessRepository: FirestoreCharacterAccessRepository(),
         profilePersistenceRepository:
             FirestoreUserProfilePersistenceRepository(),
         generatedPlanPersistenceRepository:
@@ -246,6 +250,7 @@ class RuniacFirebaseBootstrap {
       ),
       paywallConfigRepository: FirestorePaywallConfigRepository(),
       featureAccessRepository: FirestoreFeatureAccessRepository(),
+      characterAccessRepository: FirestoreCharacterAccessRepository(),
       profilePersistenceRepository: FirestoreUserProfilePersistenceRepository(),
       generatedPlanPersistenceRepository:
           FirestoreGeneratedPlanPersistenceRepository(),
@@ -345,6 +350,7 @@ class RuniacFirebaseBootstrapResult {
     required this.userAccountRepository,
     required this.paywallConfigRepository,
     required this.featureAccessRepository,
+    required this.characterAccessRepository,
     required this.profilePersistenceRepository,
     required this.generatedPlanPersistenceRepository,
     required this.planProgressRepository,
@@ -378,6 +384,10 @@ class RuniacFirebaseBootstrapResult {
   /// Read-only seam for the admin-published `config/featureAccess` premium
   /// feature checklist (upsell display only).
   final FeatureAccessRepository featureAccessRepository;
+
+  /// Read-only seam for the admin-published `config/characterAccess` premium
+  /// guide-character list (picker lock display only).
+  final CharacterAccessRepository characterAccessRepository;
   final UserProfilePersistenceRepository profilePersistenceRepository;
   final GeneratedPlanPersistenceRepository generatedPlanPersistenceRepository;
   final PlanProgressRepository planProgressRepository;

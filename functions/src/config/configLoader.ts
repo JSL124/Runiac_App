@@ -70,6 +70,20 @@ export type ChallengeAccessConfig = {
   readonly version: number;
 };
 
+// Which guide characters require a premium subscription to SELECT. Character
+// ids must match the four-value RunnerCharacter enum in the app
+// (core/characters/runner_character.dart): blue (Bolt), cap (Cap), pink (Mila),
+// purple (Ivy). The character is display-only cosmetic personalization — it is
+// stored locally on the device and never writes XP, level, rank, streak, or
+// leaderboard score — so this gate sells presentation value only and is
+// enforced client-side (there is no server operation to protect, unlike
+// shareRouteToFeed or challenge lobby creation). This doc exists so the admin
+// console can reconfigure which characters are premium.
+export type CharacterAccessConfig = {
+  readonly premiumOnlyCharacters: readonly string[];
+  readonly version: number;
+};
+
 export type ConfigValidationResult = {
   readonly valid: boolean;
   readonly errors: readonly string[];
@@ -189,6 +203,15 @@ export const DEFAULT_AUTOMATION_CONFIG: AutomationConfig = deepFreeze({
 // creation in challenge/challengeLobbyCore.ts.
 export const DEFAULT_CHALLENGE_ACCESS_CONFIG: ChallengeAccessConfig = deepFreeze({
   premiumOnlyTiers: ["100K", "200K", "250K", "300K", "500K", "1000K"],
+  version: 1,
+});
+
+// Bolt (blue) and Mila (pink) stay open to every account; Cap (cap) and Ivy
+// (purple) require premium (user decision 2026-07-24). Enforced client-side in
+// the character picker — a cosmetic, device-local choice has no server value to
+// protect.
+export const DEFAULT_CHARACTER_ACCESS_CONFIG: CharacterAccessConfig = deepFreeze({
+  premiumOnlyCharacters: ["cap", "purple"],
   version: 1,
 });
 
@@ -454,6 +477,31 @@ export function validateChallengeAccessConfig(config: ChallengeAccessConfig): Co
 
     if (new Set(config.premiumOnlyTiers).size !== config.premiumOnlyTiers.length) {
       errors.push("premiumOnlyTiers must not contain duplicate tier ids");
+    }
+  }
+
+  return { valid: errors.length === 0, errors };
+}
+
+export function validateCharacterAccessConfig(config: CharacterAccessConfig): ConfigValidationResult {
+  const errors: string[] = [];
+
+  // Inline copy of the four RunnerCharacter enum ids (the app's
+  // core/characters/runner_character.dart). Kept inside the validator body so
+  // the cross-repo drift check covers it.
+  const knownCharacterIds = ["blue", "cap", "pink", "purple"];
+
+  if (!Array.isArray(config.premiumOnlyCharacters)) {
+    errors.push("premiumOnlyCharacters must be an array of character ids");
+  } else {
+    for (const characterId of config.premiumOnlyCharacters) {
+      if (typeof characterId !== "string" || !knownCharacterIds.includes(characterId)) {
+        errors.push(`premiumOnlyCharacters contains an unknown character id: ${String(characterId)}`);
+      }
+    }
+
+    if (new Set(config.premiumOnlyCharacters).size !== config.premiumOnlyCharacters.length) {
+      errors.push("premiumOnlyCharacters must not contain duplicate character ids");
     }
   }
 
@@ -748,5 +796,35 @@ export async function loadChallengeAccessConfig(db: Firestore): Promise<Challeng
     console.warn("configLoader: failed to read config/challengeAccess; using DEFAULT_CHALLENGE_ACCESS_CONFIG", error);
     await reportConfigFallback("loadChallengeAccessConfig", error);
     return DEFAULT_CHALLENGE_ACCESS_CONFIG;
+  }
+}
+
+export async function loadCharacterAccessConfig(db: Firestore): Promise<CharacterAccessConfig> {
+  try {
+    const stored = await readConfigDoc(db, "config/characterAccess");
+
+    if (stored === undefined) {
+      console.warn("configLoader: config/characterAccess is missing; using DEFAULT_CHARACTER_ACCESS_CONFIG");
+      return DEFAULT_CHARACTER_ACCESS_CONFIG;
+    }
+
+    // deepMerge treats arrays as leaf values, so a stored premiumOnlyCharacters
+    // array REPLACES the default list rather than unioning with it — an admin
+    // clearing every checkbox genuinely opens every character.
+    const merged = deepMerge(DEFAULT_CHARACTER_ACCESS_CONFIG, stored);
+    const result = validateCharacterAccessConfig(merged);
+
+    if (!result.valid) {
+      const message = `configLoader: config/characterAccess failed validation (${result.errors.join(", ")}); using DEFAULT_CHARACTER_ACCESS_CONFIG`;
+      console.warn(message);
+      await reportConfigFallback("loadCharacterAccessConfig", new Error(message));
+      return DEFAULT_CHARACTER_ACCESS_CONFIG;
+    }
+
+    return merged;
+  } catch (error) {
+    console.warn("configLoader: failed to read config/characterAccess; using DEFAULT_CHARACTER_ACCESS_CONFIG", error);
+    await reportConfigFallback("loadCharacterAccessConfig", error);
+    return DEFAULT_CHARACTER_ACCESS_CONFIG;
   }
 }
