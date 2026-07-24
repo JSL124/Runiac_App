@@ -4,6 +4,7 @@ import '../../../../core/theme/runiac_colors.dart';
 import '../../../../core/widgets/runiac_buttons.dart';
 import '../../../auth/domain/runiac_auth_service.dart';
 import '../../../home/domain/guide/home_guide_consent.dart';
+import '../../../paywall/presentation/premium_gate.dart';
 import '../../../settings/data/shared_preferences_app_settings_repository.dart';
 import '../../../settings/domain/repositories/app_settings_repository.dart';
 import '../../domain/models/user_profile_read_model.dart';
@@ -184,6 +185,12 @@ class _ManageRow extends StatelessWidget {
           return;
         }
         if (row.action == UserProfileManageAction.watchHealthApps) {
+          // Tier owned by config/featureAccess.healthWorkoutImport. Imported
+          // runs stay off the competitive XP board for every tier, so this
+          // gates convenience only, never standing.
+          if (interceptWithPaywallIfGated(context, 'healthWorkoutImport')) {
+            return;
+          }
           Navigator.of(context).push(
             MaterialPageRoute<void>(
               builder: (_) => const WatchHealthAppsScreen(),

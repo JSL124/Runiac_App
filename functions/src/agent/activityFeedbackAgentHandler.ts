@@ -15,13 +15,24 @@ import {
   type ActivityFeedbackModelProvider,
 } from "./activityFeedbackModel.js";
 import { reserveActivityFeedbackQuota } from "./activityFeedbackQuota.js";
-import { isPremiumSubscription } from "../progression/progressionAuditHelpers.js";
+import { loadFeatureAccessConfig } from "../config/configLoader.js";
+import {
+  assertFeatureEntitlement,
+  FEATURE_PREMIUM_REQUIRED_REASON,
+} from "../config/featureEntitlement.js";
+
+/**
+ * Feature key in config/featureAccess.features that governs the AI activity
+ * feedback agent. Mirrors DEFAULT_FEATURE_ACCESS_CONFIG in configLoader.ts.
+ */
+export const ACTIVITY_FEEDBACK_FEATURE_KEY = "activityFeedback";
 
 /**
  * Stable machine-readable reason attached to the permission-denied error so
  * the client can map it to its paywall instead of a generic failure.
  */
-export const ACTIVITY_FEEDBACK_PREMIUM_REQUIRED_REASON = "premium-required";
+export const ACTIVITY_FEEDBACK_PREMIUM_REQUIRED_REASON =
+  FEATURE_PREMIUM_REQUIRED_REASON;
 
 export type ActivityFeedbackCallableRequest = {
   readonly auth?: { readonly uid: string };
@@ -46,9 +57,11 @@ export function createActivityFeedbackAgentHandler(
     const uid = authenticatedUid(request);
     const metrics = parseMetrics(request.data);
     const now = dependencies.now();
-    // Activity feedback is a Premium feature: enforce the server-owned tier
-    // here so the client-side paywall is a UX layer, not the access control.
-    await requirePremiumSubscription(dependencies.firestore(), uid, now);
+    // Tier owned by config/featureAccess.activityFeedback, enforced here so
+    // the client-side paywall is a UX layer, not the access control. It used
+    // to be hardcoded to Premium, which silently overrode whatever the
+    // Platform Administrator had set in the console.
+    await requireActivityFeedbackEntitlement(dependencies.firestore(), uid, now);
     const quota = await reserveActivityFeedbackQuota({
       firestore: dependencies.firestore(),
       uid,
@@ -87,20 +100,22 @@ export function createActivityFeedbackAgentHandler(
   };
 }
 
-async function requirePremiumSubscription(
+async function requireActivityFeedbackEntitlement(
   firestore: Firestore,
   uid: string,
   now: Date,
 ): Promise<void> {
-  const userSnapshot = await firestore.doc(`users/${uid}`).get();
-  if (isPremiumSubscription(userSnapshot.data(), now.getTime())) {
-    return;
-  }
-  throw new HttpsError(
-    "permission-denied",
-    "Activity feedback is available on Premium.",
-    { reason: ACTIVITY_FEEDBACK_PREMIUM_REQUIRED_REASON },
-  );
+  const [userSnapshot, featureAccess] = await Promise.all([
+    firestore.doc(`users/${uid}`).get(),
+    loadFeatureAccessConfig(firestore),
+  ]);
+  assertFeatureEntitlement({
+    featureKey: ACTIVITY_FEEDBACK_FEATURE_KEY,
+    userData: userSnapshot.data(),
+    featureAccess,
+    nowMs: now.getTime(),
+    message: "Activity feedback is available on Premium.",
+  });
 }
 
 function authenticatedUid(request: ActivityFeedbackCallableRequest): string {

@@ -153,19 +153,34 @@ export const DEFAULT_LEADERBOARD_CONFIG: LeaderboardConfig = deepFreeze({
 // beginner/social infrastructure, and expert plans are ABSENT because expert
 // plan governance is out of this capsule's scope (their premium-only access
 // is a static firestore.rules check on subscriptionStatus, not this doc).
-// Consumers: `assertShareRouteToFeedEntitlement` (feed/publish/entitlement.ts)
-// enforces `shareRouteToFeed` server-side at publishActivityToFeed — sharing a
-// run to the Feed is a Premium presentation/sharing feature, so its default is
-// "premium" (a Basic user is intercepted client-side and rejected server-side).
-// Other features stay "basic": goalPlan (the onboarding-generated beginner
-// plan) is the app's core beginner experience, and the remaining entries are
-// not yet wired to a runtime gate.
+//
+// `goalPlan` was RETIRED from this catalog on 2026-07-25: the
+// onboarding-generated beginner plan is the app's core beginner experience,
+// which premium must never gate, so offering the admin a switch that could
+// move it to Premium was itself the risk. Every remaining key is wired to a
+// real gate — a console flip changes what the app does, not just what the
+// upsell lists:
+//   - advancedAnalysis  client-only gate (analysis is computed on-device);
+//                       also governs the post-run coaching card
+//   - aiHomeCoach       homeGuideAgent callable; a denied Basic runner keeps
+//                       the app's offline rule-based guide copy
+//   - activityFeedback  activityFeedbackAgent callable
+//   - shareRouteToFeed  publishActivityToFeed callable
+//   - shareCards        client-only gate (achievement + rank card exports)
+//   - healthWorkoutImport  client-only gate (Apple Health / watch import)
+// Server-side gating goes through assertFeatureEntitlement()
+// (config/featureEntitlement.ts); the app applies the identical rule for its
+// paywall interception, which is UX only.
 export const DEFAULT_FEATURE_ACCESS_CONFIG: FeatureAccessConfig = deepFreeze({
   features: {
     advancedAnalysis: { minimumTier: "premium", enabled: true },
-    goalPlan: { minimumTier: "basic", enabled: true },
     aiHomeCoach: { minimumTier: "basic", enabled: true },
-    activityFeedback: { minimumTier: "basic", enabled: true },
+    // "premium" as of 2026-07-25: the callable used to hardcode a premium
+    // check that overrode this catalog, so a "basic" default would have
+    // handed every Basic runner a paid AI feature the moment the hardcode
+    // was replaced by the config read. The default now states the shipped
+    // intent; the console can open it deliberately.
+    activityFeedback: { minimumTier: "premium", enabled: true },
     shareRouteToFeed: { minimumTier: "premium", enabled: true },
     shareCards: { minimumTier: "basic", enabled: true },
     healthWorkoutImport: { minimumTier: "basic", enabled: true },
