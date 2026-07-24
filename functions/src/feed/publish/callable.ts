@@ -4,6 +4,8 @@ import { getFirestore, type Firestore } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
 import { onCall } from "firebase-functions/v2/https";
 import { publishFeedActivity, type FeedPublishPorts, type FeedStoredObject } from "./core.js";
+import { assertShareRouteToFeedEntitlement } from "./entitlement.js";
+import { loadFeatureAccessConfig } from "../../config/configLoader.js";
 import { withCallableErrorReporting } from "../../errors/withErrorReporting.js";
 import { assertAccountNotSuspended } from "../../security/accountStatus.js";
 
@@ -14,18 +16,26 @@ type PublishActivityToFeedRequest = { readonly auth?: { readonly uid: string }; 
 export const publishActivityToFeed = onCall(
   { region: "asia-southeast1" },
   withCallableErrorReporting("publishActivityToFeed", async (request: PublishActivityToFeedRequest) => {
-    // Defence-in-depth (see accountStatus.ts). Checked here in the onCall
-    // wrapper rather than inside publishFeedActivity's port-based core, which
-    // stays unit-testable with fake ports and no real Firestore. Skips
-    // silently when uid is absent so the core's own unauthenticated path is
-    // unaffected.
+    // Defence-in-depth (see accountStatus.ts) plus the Feed premium
+    // entitlement gate. Both are checked here in the onCall wrapper rather than
+    // inside publishFeedActivity's port-based core, which stays unit-testable
+    // with fake ports and no real Firestore. Skips silently when uid is absent
+    // so the core's own unauthenticated path is unaffected. The single
+    // users/{uid} read serves both the suspension check and the premium check;
+    // the feature-access config decides whether sharing to Feed requires
+    // Premium (config-driven, admin-console-administered). Enforcing it here —
+    // not only by hiding client UI — is required because the client gate is UX
+    // only and a Basic user can call the callable directly.
+    const firestore = getFirestore();
     const uid = request.auth?.uid;
     if (uid !== undefined && uid.length > 0) {
-      const snapshot = await getFirestore().collection("users").doc(uid).get();
+      const snapshot = await firestore.collection("users").doc(uid).get();
       assertAccountNotSuspended(snapshot.data());
+      const featureAccess = await loadFeatureAccessConfig(firestore);
+      assertShareRouteToFeedEntitlement(snapshot.data(), featureAccess, Date.now());
     }
     const callableRequest = request.auth === undefined ? { data: request.data } : { auth: { uid: request.auth.uid }, data: request.data };
-    return publishFeedActivity(callableRequest, createPublishPorts(getFirestore()));
+    return publishFeedActivity(callableRequest, createPublishPorts(firestore));
   }),
 );
 

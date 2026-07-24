@@ -33,10 +33,6 @@ const Map<String, PremiumFeatureDisplay> premiumFeatureCatalog = {
     label: 'AI activity feedback',
     icon: Icons.auto_awesome_rounded,
   ),
-  'routeLibrary': PremiumFeatureDisplay(
-    label: 'Route library',
-    icon: Icons.map_rounded,
-  ),
   'shareRouteToFeed': PremiumFeatureDisplay(
     label: 'Share route to feed',
     icon: Icons.route_rounded,

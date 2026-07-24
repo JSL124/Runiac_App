@@ -1429,20 +1429,20 @@ void main() {
 
     var recenter = find.byKey(const Key('run_map_recenter_button'));
     var sheet = find.byKey(const Key('runLaunchBottomSheet'));
-    final switchRoute = find.text('Switch route');
+    final planLabel = find.text('TODAY\'S PLAN');
     expect(recenter, findsOneWidget);
     _expectSheetAdjacentRecenter(
       tester: tester,
       recenter: recenter,
       sheet: sheet,
     );
-    expect(find.text('Switch route'), findsOneWidget);
+    expect(planLabel, findsOneWidget);
     expect(
       tester.getRect(sheet).right - tester.getRect(recenter).right,
       closeTo(28, 1),
     );
     expect(
-      tester.getRect(recenter).overlaps(tester.getRect(switchRoute)),
+      tester.getRect(recenter).overlaps(tester.getRect(planLabel)),
       isFalse,
     );
 

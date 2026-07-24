@@ -43,7 +43,6 @@ part 'run_launch_map_controls.dart';
 part 'run_launch_bottom_sheet.dart';
 part 'run_launch_pre_run_content.dart';
 
-const _blueBorder = Color(0xFFDCE6FF);
 const _sportOrange = Color(0xFFFF7A1A);
 const _orangeShadow = Color(0x33FF7A1A);
 const _screenBackground = Color(0xFF3153C9);
@@ -796,9 +795,6 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
                                         permissionMessage: permissionMessage,
                                         plannedWorkout: widget.plannedWorkout,
                                         onStart: _startRun,
-                                        onSwitchRoute: () => _showPreviewMessage(
-                                          'Route switching preview is coming soon.',
-                                        ),
                                       );
                                     },
                                   )

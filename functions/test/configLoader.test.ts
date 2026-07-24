@@ -234,8 +234,7 @@ describe("validateFeatureAccessConfig", () => {
         goalPlan: "basic",
         aiHomeCoach: "basic",
         activityFeedback: "basic",
-        routeLibrary: "basic",
-        shareRouteToFeed: "basic",
+        shareRouteToFeed: "premium",
         shareCards: "basic",
         healthWorkoutImport: "basic",
       },
@@ -314,7 +313,7 @@ describe("configLoader loaders fall back to defaults", () => {
     const config = await loadFeatureAccessConfig(db);
     assert.equal(config.features["activityFeedback"]?.minimumTier, "premium");
     assert.equal(validateFeatureAccessConfig(config).valid, true);
-    assert.deepEqual(config.features["routeLibrary"], DEFAULT_FEATURE_ACCESS_CONFIG.features["routeLibrary"]);
+    assert.deepEqual(config.features["shareRouteToFeed"], DEFAULT_FEATURE_ACCESS_CONFIG.features["shareRouteToFeed"]);
   });
 });
 

@@ -5,13 +5,11 @@ class _PreRunSheetContent extends StatelessWidget {
     this.permissionMessage,
     this.plannedWorkout,
     required this.onStart,
-    required this.onSwitchRoute,
   });
 
   final String? permissionMessage;
   final PlannedRunContext? plannedWorkout;
   final VoidCallback onStart;
-  final VoidCallback onSwitchRoute;
 
   @override
   Widget build(BuildContext context) {
@@ -39,34 +37,14 @@ class _PreRunSheetContent extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    planLabel,
-                    style: const TextStyle(
-                      color: _sportOrange,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 0,
-                    ),
-                  ),
-                ),
-                OutlinedButton(
-                  onPressed: onSwitchRoute,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: _panelTextBlue,
-                    side: const BorderSide(color: _blueBorder),
-                    minimumSize: const Size(0, 42),
-                    padding: const EdgeInsets.symmetric(horizontal: 18),
-                    textStyle: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  child: Text(_defaultRunLaunchSnapshot.switchRouteLabel),
-                ),
-              ],
+            Text(
+              planLabel,
+              style: const TextStyle(
+                color: _sportOrange,
+                fontSize: 16,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0,
+              ),
             ),
             SizedBox(height: compact ? 16 : 22),
             Wrap(

@@ -126,7 +126,7 @@ class _QaFeatureAccessRepository implements FeatureAccessRepository {
         'advancedAnalysis',
         'activityFeedback',
         'shareCards',
-        'routeLibrary',
+        'healthWorkoutImport',
       ],
     );
   }

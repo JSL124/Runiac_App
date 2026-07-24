@@ -608,7 +608,7 @@ void main() {
     expect(find.text('4.5'), findsOneWidget);
     expect(find.text('km easy run'), findsOneWidget);
     expect(find.text('Pace 7:10-7:40 / km · ~32 min'), findsOneWidget);
-    expect(find.text('Switch route'), findsOneWidget);
+    expect(find.text('Switch route'), findsNothing);
     expect(find.text('Start run'), findsOneWidget);
     expect(find.text('Waiting for GPS'), findsNothing);
     expect(find.text('DISTANCE'), findsNothing);
@@ -623,14 +623,6 @@ void main() {
     expect(find.text('Maps'), findsNothing);
     expect(find.text('Leaderboard'), findsNothing);
     expect(find.text('You'), findsNothing);
-
-    await tester.tap(find.text('Switch route'));
-    await tester.pumpAndSettle();
-
-    expect(
-      find.text('Route switching preview is coming soon.'),
-      findsOneWidget,
-    );
 
     await tester.tap(find.byTooltip('Run settings'));
     await tester.pumpAndSettle();
