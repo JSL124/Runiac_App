@@ -1,11 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:runiac_app/app.dart';
 import 'package:runiac_app/features/run/data/firebase_run_repository.dart';
 import 'package:runiac_app/features/run/data/run_repository_factory.dart';
 import 'package:runiac_app/features/run/data/static_run_repository.dart';
 
 void main() {
+  setUp(() {
+    // RunLaunchScreen reads voice-coaching settings from the real
+    // SharedPreferences-backed repository (no fake is injected by these
+    // widget tests). Without mock initial values, SharedPreferences.
+    // getInstance() never resolves in the test harness (no platform-channel
+    // responder), which would hang `_startRun`'s settings reload forever.
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+  });
+
   group('RunRepositoryFactory', () {
     test('selects StaticRunRepository when emulator flag is missing', () {
       final repository = RunRepositoryFactory.create(

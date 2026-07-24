@@ -127,11 +127,37 @@ class RunVoiceCoachingCoordinator implements RunVoiceCoach {
       return;
     }
 
+    // A completion subsumes every other announcement crossed in the same
+    // snapshot ("you're done" makes a plain distance milestone or halfway
+    // callout redundant, or worse, confusing, right before/after it), so
+    // only the completion is emitted in that case. In every other case the
+    // selector's pick tells us no completion was crossed, so nothing needs
+    // to be suppressed: emit the full set the policy produced, in its
+    // existing (distance -> time -> halfway) order, so a snapshot that
+    // crosses more than one milestone at once doesn't silently lose the
+    // others — their ids are already marked consumed above and can never
+    // re-cross to be announced later.
+    final toEmit = selected.type == RunVoiceAnnouncementType.targetCompleted
+        ? [selected]
+        : result.announcements;
+
+    for (final announcement in toEmit) {
+      _enqueueOrSpeak(announcement);
+    }
+  }
+
+  /// Routes a single announcement through the single-flight + FIFO-queue +
+  /// dedupe(by id) + cap([_maxQueue]) logic: if nothing is currently
+  /// speaking, it starts speaking immediately (synchronously flipping
+  /// [_speaking] so a subsequent call in the same [_process] loop iteration
+  /// enqueues instead of racing); otherwise it is deduped against the
+  /// in-flight and queued ids and appended to [_queue].
+  void _enqueueOrSpeak(RunVoiceAnnouncement announcement) {
     if (_speaking) {
       // Dedupe: never enqueue an announcement whose id is already being
       // spoken or already sitting in the queue.
-      if (selected.id == _speakingId ||
-          _queue.any((queued) => queued.id == selected.id)) {
+      if (announcement.id == _speakingId ||
+          _queue.any((queued) => queued.id == announcement.id)) {
         return;
       }
       if (_queue.length >= _maxQueue) {
@@ -141,14 +167,14 @@ class RunVoiceCoachingCoordinator implements RunVoiceCoach {
           name: 'RunVoiceCoachingCoordinator',
         );
       }
-      _queue.add(selected);
+      _queue.add(announcement);
       return;
     }
 
     _speaking = true;
-    _speakingId = selected.id;
+    _speakingId = announcement.id;
     final g = _generation;
-    unawaited(_speakAndDrain(selected, g));
+    unawaited(_speakAndDrain(announcement, g));
   }
 
   Future<void> _speakAndDrain(RunVoiceAnnouncement announcement, int g) async {

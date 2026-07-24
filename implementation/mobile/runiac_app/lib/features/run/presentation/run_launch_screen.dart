@@ -351,11 +351,31 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
 
     if (_controller.state.phase == RunTrackingPhase.idle ||
         _controller.state.phase == RunTrackingPhase.finished) {
+      // Re-read voice settings from the repository right before starting:
+      // if the user just enabled voice coaching on the settings page and
+      // tapped Start immediately, `_voiceSettings` may still hold the stale
+      // in-memory value because `_openVoiceSettings()` reloads it without
+      // awaiting. The repository is the source of truth at Start time, so
+      // this eliminates that navigation race. A failed load falls back to
+      // whatever `_voiceSettings` currently holds.
+      var latestVoiceSettings = _voiceSettings;
+      try {
+        latestVoiceSettings = await widget.voiceSettingsRepository.load();
+        if (mounted) {
+          setState(() => _voiceSettings = latestVoiceSettings);
+        }
+      } on Object {
+        // Keep the current _voiceSettings value.
+      }
+      if (!mounted) {
+        return;
+      }
+
       final started = await _controller.requestStart(
         startedAt: _activeRunSessionCoordinator.now(),
         routeLabel: 'Easy local route',
         voiceConfig: RunVoiceSessionConfig.fromSettings(
-          settings: _voiceSettings,
+          settings: latestVoiceSettings,
           targetDistanceMeters: widget.plannedWorkout?.targetDistanceMeters
               ?.toDouble(),
         ),
@@ -531,7 +551,7 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
     if (!mounted) {
       return;
     }
-    unawaited(_loadVoiceSettings());
+    await _loadVoiceSettings();
   }
 
   Future<void> _refreshPreviewLocation({

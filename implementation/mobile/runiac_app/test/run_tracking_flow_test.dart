@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:runiac_app/app.dart';
 import 'package:runiac_app/features/plan/domain/models/beginner_adaptive_plan_snapshot.dart';
@@ -619,6 +620,15 @@ RunRouteSnapshot _localRouteSnapshot() {
 }
 
 void main() {
+  setUp(() {
+    // RunLaunchScreen reads voice-coaching settings from the real
+    // SharedPreferences-backed repository (no fake is injected by these
+    // widget tests). Without mock initial values, SharedPreferences.
+    // getInstance() never resolves in the test harness (no platform-channel
+    // responder), which would hang `_startRun`'s settings reload forever.
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+  });
+
   test('default run session ids stay unique across controller recreation', () {
     final firstController = RunTrackingController();
     addTearDown(firstController.dispose);

@@ -504,4 +504,94 @@ void main() {
       },
     );
   });
+
+  group('RunVoiceCoachingCoordinator multi-event announcements', () {
+    test(
+      'a snapshot crossing a distance milestone and target halfway together '
+      'speaks both, distance before halfway',
+      () async {
+        final speech = _FakeRunSpeechOutput();
+        final coordinator = _realCoordinator(speech);
+        final config = RunVoiceSessionConfig(
+          enabled: true,
+          distanceIntervalMeters: 500,
+          timeInterval: null,
+          includeElapsedTime: false,
+          includeAveragePace: false,
+          language: RunVoiceLanguage.english,
+          targetDistanceMeters: 5000,
+        );
+
+        await coordinator.startSession(config);
+        await coordinator.onSnapshot(_snapshot(2400)); // baseline
+        await pumpEventQueue();
+        await coordinator.onSnapshot(_snapshot(2600)); // crosses 2500 + half
+        await pumpEventQueue();
+
+        expect(speech.spokenMessages, [
+          'You have completed 2.5 kilometers.',
+          'You are halfway to your goal.',
+        ]);
+      },
+    );
+
+    test(
+      'a snapshot crossing a distance milestone and a time milestone '
+      'together speaks both, distance before time',
+      () async {
+        final speech = _FakeRunSpeechOutput();
+        final coordinator = _realCoordinator(speech);
+        final config = RunVoiceSessionConfig(
+          enabled: true,
+          distanceIntervalMeters: 500,
+          timeInterval: const Duration(seconds: 500),
+          includeElapsedTime: false,
+          includeAveragePace: false,
+          language: RunVoiceLanguage.english,
+          targetDistanceMeters: null,
+        );
+
+        await coordinator.startSession(config);
+        await coordinator.onSnapshot(_snapshot(400)); // baseline
+        await pumpEventQueue();
+        await coordinator.onSnapshot(_snapshot(600)); // crosses 500m + 500s
+        await pumpEventQueue();
+
+        expect(speech.spokenMessages, [
+          'You have completed 0.5 kilometers.',
+          '8 minutes elapsed.',
+        ]);
+      },
+    );
+
+    test(
+      'a snapshot crossing a distance milestone and target completion '
+      'together speaks only the completion message',
+      () async {
+        final speech = _FakeRunSpeechOutput();
+        final coordinator = _realCoordinator(speech);
+        final config = RunVoiceSessionConfig(
+          enabled: true,
+          distanceIntervalMeters: 1000,
+          timeInterval: null,
+          includeElapsedTime: false,
+          includeAveragePace: false,
+          language: RunVoiceLanguage.english,
+          targetDistanceMeters: 5000,
+        );
+
+        await coordinator.startSession(config);
+        await coordinator.onSnapshot(_snapshot(4950)); // baseline
+        await pumpEventQueue();
+        await coordinator.onSnapshot(_snapshot(5030)); // crosses 5000 + goal
+        await pumpEventQueue();
+
+        expect(speech.spokenMessages, hasLength(1));
+        expect(
+          speech.spokenMessages.single,
+          contains('You have reached your goal distance.'),
+        );
+      },
+    );
+  });
 }
