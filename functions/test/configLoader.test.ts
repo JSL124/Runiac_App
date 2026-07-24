@@ -234,7 +234,7 @@ describe("validateFeatureAccessConfig", () => {
         goalPlan: "basic",
         aiHomeCoach: "basic",
         activityFeedback: "basic",
-        shareRouteToFeed: "basic",
+        shareRouteToFeed: "premium",
         shareCards: "basic",
         healthWorkoutImport: "basic",
       },

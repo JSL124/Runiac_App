@@ -555,6 +555,13 @@ class ViewSummaryScreen extends StatelessWidget {
                   showXpUpdateAction: showXpUpdateAction,
                   showLowDataSaveAction: showLowDataSaveAction,
                   onShareRoute: () {
+                    // Sharing a run to the Feed is a Premium feature (server-
+                    // enforced at publishActivityToFeed). Intercept Basic
+                    // runners with the paywall before opening the sheet; this
+                    // is UX only — the Cloud Function is the real gate.
+                    if (interceptWithPaywallIfBasic(context)) {
+                      return;
+                    }
                     _showShareRouteToFeed(context, displayedSummary);
                   },
                   onXpUpdate: () {

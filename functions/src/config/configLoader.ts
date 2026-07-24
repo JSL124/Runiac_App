@@ -139,18 +139,20 @@ export const DEFAULT_LEADERBOARD_CONFIG: LeaderboardConfig = deepFreeze({
 // beginner/social infrastructure, and expert plans are ABSENT because expert
 // plan governance is out of this capsule's scope (their premium-only access
 // is a static firestore.rules check on subscriptionStatus, not this doc).
-// Defaults preserve current live behavior: everything currently available to
-// all users stays "basic". Mobile dynamic gating remains deferred — nothing
-// consumes this document yet. goalPlan (the onboarding-generated beginner
-// plan) stays in the catalog as an enabled/disabled switch but should remain
-// "basic": it is the app's core beginner experience.
+// Consumers: `assertShareRouteToFeedEntitlement` (feed/publish/entitlement.ts)
+// enforces `shareRouteToFeed` server-side at publishActivityToFeed — sharing a
+// run to the Feed is a Premium presentation/sharing feature, so its default is
+// "premium" (a Basic user is intercepted client-side and rejected server-side).
+// Other features stay "basic": goalPlan (the onboarding-generated beginner
+// plan) is the app's core beginner experience, and the remaining entries are
+// not yet wired to a runtime gate.
 export const DEFAULT_FEATURE_ACCESS_CONFIG: FeatureAccessConfig = deepFreeze({
   features: {
     advancedAnalysis: { minimumTier: "premium", enabled: true },
     goalPlan: { minimumTier: "basic", enabled: true },
     aiHomeCoach: { minimumTier: "basic", enabled: true },
     activityFeedback: { minimumTier: "basic", enabled: true },
-    shareRouteToFeed: { minimumTier: "basic", enabled: true },
+    shareRouteToFeed: { minimumTier: "premium", enabled: true },
     shareCards: { minimumTier: "basic", enabled: true },
     healthWorkoutImport: { minimumTier: "basic", enabled: true },
   },

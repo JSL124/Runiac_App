@@ -14,8 +14,8 @@ const environment = {
   FUNCTIONS_EMULATOR_HOST: "127.0.0.1:5001",
   FIREBASE_STORAGE_EMULATOR_HOST: "127.0.0.1:9199",
 } as const;
-const actorIds = ["task12-author", "task12-friend", "task12-other", "task12-nonfriend"] as const;
-const activityIds = ["task12-activity", "task12-cascade"] as const;
+const actorIds = ["task12-author", "task12-friend", "task12-other", "task12-nonfriend", "task12-basic"] as const;
+const activityIds = ["task12-activity", "task12-cascade", "task12-basic-activity"] as const;
 if (getApps().length === 0) initializeApp({ projectId, storageBucket: `${projectId}.appspot.com` });
 const db = getFirestore();
 const auth = getAuth();
@@ -119,6 +119,23 @@ test("publishes and protects a real Feed post across Auth, Firestore, Functions,
   await waitFor(() => postResidueAbsent(author.uid, "task12-cascade"));
 });
 
+test("rejects a Basic subscriber from publishing to Feed and writes nothing (premium entitlement gate)", async () => {
+  const basic = await actor("task12-basic");
+  await db.doc(`userProfiles/${basic.uid}`).set({ displayName: basic.uid, avatarInitials: "T12" });
+  await db.doc(`users/${basic.uid}`).set({ subscriptionStatus: "basic" });
+  await stageActivity(basic.uid, "task12-basic-activity");
+
+  const result = await call(basic, "publishActivityToFeed", publishData(basic.uid, "task12-basic-activity"));
+
+  assert.equal(result.ok, false, "a Basic user must not be able to publish to Feed");
+  if (!result.ok) assert.equal(result.status, "PERMISSION_DENIED");
+  // The gate runs in the onCall wrapper before publishFeedActivity, so no post
+  // document is created and the staging object is left intact (only a
+  // successful publish promotes and deletes staging).
+  assert.equal((await db.doc("feedPosts/task12-basic-activity").get()).exists, false);
+  assert.equal((await bucket.file(stagingPath(basic.uid, "task12-basic-activity")).exists())[0], true);
+});
+
 async function actor(uid: (typeof actorIds)[number]): Promise<Actor> {
   const email = `${uid}@example.invalid`;
   await auth.createUser({ uid, email, password: "task12-password", displayName: uid });
@@ -132,6 +149,11 @@ async function actor(uid: (typeof actorIds)[number]): Promise<Actor> {
 
 async function setupProfiles(): Promise<void> {
   await Promise.all(actorIds.map((uid) => db.doc(`userProfiles/${uid}`).set({ displayName: uid, avatarInitials: "T12" })));
+  // The publishing author must be Premium: publishActivityToFeed now enforces
+  // the shareRouteToFeed feature-access tier (premium by default) server-side,
+  // reading users/{uid}.subscriptionStatus. Without this the callable would
+  // reject the author with PERMISSION_DENIED before any post is written.
+  await db.doc(`users/task12-author`).set({ subscriptionStatus: "premium" });
 }
 
 async function acceptFriends(left: string, right: string): Promise<void> {
@@ -193,7 +215,7 @@ async function clearFixture(): Promise<void> {
       deleteDocuments(db.collection("reports").where("targetId", "==", activityId)),
       ...actorIds.map((uid) => db.doc(`users/${uid}/hiddenFeedPosts/${activityId}`).delete()),
     ]);
-    await Promise.all([db.doc(`feedPosts/${activityId}`).delete(), db.doc(`activities/${activityId}`).delete(), bucket.file(finalThumbnailPath("task12-author", activityId)).delete({ ignoreNotFound: true }), bucket.file(stagingPath("task12-author", activityId)).delete({ ignoreNotFound: true })]);
+    await Promise.all([db.doc(`feedPosts/${activityId}`).delete(), db.doc(`activities/${activityId}`).delete(), bucket.file(finalThumbnailPath("task12-author", activityId)).delete({ ignoreNotFound: true }), bucket.file(stagingPath("task12-author", activityId)).delete({ ignoreNotFound: true }), bucket.file(stagingPath("task12-basic", activityId)).delete({ ignoreNotFound: true })]);
   }
   for (const uid of actorIds) {
     await Promise.all(actorIds.filter((other) => other !== uid).flatMap((other) => [db.doc(`users/${uid}/friends/${other}`).delete(), db.doc(`users/${uid}/blockedUsers/${other}`).delete()]));
