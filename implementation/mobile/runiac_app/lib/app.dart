@@ -436,6 +436,7 @@ class _RuniacAppState extends State<RuniacApp> {
                                       widget.authRepository.currentUser?.uid;
                                   _syncUserProgressOwner(ownerUid);
                                   _userAccountStore.updateOwnerUid(ownerUid);
+                                  _syncFeatureAccessOwner(ownerUid);
                                   setState(() {
                                     _authCompletion = completion;
                                     _authStateError = null;
@@ -452,6 +453,7 @@ class _RuniacAppState extends State<RuniacApp> {
                                   );
                                   _syncUserProgressOwner(user?.uid);
                                   _userAccountStore.updateOwnerUid(user?.uid);
+                                  _syncFeatureAccessOwner(user?.uid);
                                   if (user == null) {
                                     unawaited(
                                       _cancelPushNotificationSubscription(),
@@ -496,6 +498,21 @@ class _RuniacAppState extends State<RuniacApp> {
     if (ownerUid != null) {
       _scheduleUserProgressLoad(ownerUid);
     }
+  }
+
+  /// Loads the admin's `config/featureAccess` policy as soon as a runner is
+  /// signed in, and drops it on sign-out.
+  ///
+  /// The document is signed-in-readable only, and the premium gates
+  /// (`interceptWithPaywallIfGated`) consult it synchronously on tap — so the
+  /// read has to be in flight before the runner reaches a gated surface,
+  /// rather than waiting for the You tab's upsell to mount.
+  void _syncFeatureAccessOwner(String? ownerUid) {
+    if (ownerUid == null) {
+      _featureAccessStore.reset();
+      return;
+    }
+    unawaited(_featureAccessStore.ensureLoaded());
   }
 
   void _scheduleUserProgressOwnerSync(String? ownerUid) {

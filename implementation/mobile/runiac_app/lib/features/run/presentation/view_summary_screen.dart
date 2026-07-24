@@ -395,7 +395,13 @@ class ViewSummaryScreen extends StatelessWidget {
                       IconButton(
                         tooltip: 'Activity feedback',
                         onPressed: () {
-                          if (interceptWithPaywallIfBasic(context)) {
+                          // Tier owned by config/featureAccess.activityFeedback
+                          // and re-checked inside the activityFeedbackAgent
+                          // callable, which is the real gate.
+                          if (interceptWithPaywallIfGated(
+                            context,
+                            'activityFeedback',
+                          )) {
                             return;
                           }
                           final character =
@@ -444,6 +450,16 @@ class ViewSummaryScreen extends StatelessWidget {
                       IconButton(
                         tooltip: 'Share summary',
                         onPressed: () {
+                          // Achievement share-card export: tier owned by
+                          // config/featureAccess.shareCards. The card is
+                          // rendered and shared on-device, so this client
+                          // gate is the whole enforcement.
+                          if (interceptWithPaywallIfGated(
+                            context,
+                            'shareCards',
+                          )) {
+                            return;
+                          }
                           Future<FeedThumbnailArtifact?>? mapArtifactFuture;
                           if (displayedSummary.route.hasRoute) {
                             final source = _effectiveFeedPublishSource;
@@ -524,7 +540,14 @@ class ViewSummaryScreen extends StatelessWidget {
                                 );
                                 return;
                               }
-                              if (interceptWithPaywallIfBasic(context)) {
+                              // Tier owned by
+                              // config/featureAccess.advancedAnalysis. The
+                              // analysis is computed on-device, so there is no
+                              // server call to back this gate up.
+                              if (interceptWithPaywallIfGated(
+                                context,
+                                'advancedAnalysis',
+                              )) {
                                 return;
                               }
 
@@ -541,7 +564,14 @@ class ViewSummaryScreen extends StatelessWidget {
                           ),
                           _CoachingSection(
                             coachingSummary: displayedSummary.coachingSummary,
-                            premiumLocked: watchShouldShowPaywall(context),
+                            // Post-run coaching insight is part of the
+                            // Advanced-analysis surface, so it follows the
+                            // same admin-owned tier rather than a hardcoded
+                            // lock.
+                            premiumLocked: watchShouldShowPaywallForFeature(
+                              context,
+                              'advancedAnalysis',
+                            ),
                             onLockedTap: () =>
                                 PremiumPaywallSheet.show(context),
                           ),
@@ -555,11 +585,15 @@ class ViewSummaryScreen extends StatelessWidget {
                   showXpUpdateAction: showXpUpdateAction,
                   showLowDataSaveAction: showLowDataSaveAction,
                   onShareRoute: () {
-                    // Sharing a run to the Feed is a Premium feature (server-
-                    // enforced at publishActivityToFeed). Intercept Basic
-                    // runners with the paywall before opening the sheet; this
-                    // is UX only — the Cloud Function is the real gate.
-                    if (interceptWithPaywallIfBasic(context)) {
+                    // Tier owned by config/featureAccess.shareRouteToFeed and
+                    // re-checked inside publishActivityToFeed, which is the
+                    // real gate. Intercepting here is UX only — and it now
+                    // stands down when the admin sets the feature to Basic,
+                    // instead of paywalling every Basic runner regardless.
+                    if (interceptWithPaywallIfGated(
+                      context,
+                      'shareRouteToFeed',
+                    )) {
                       return;
                     }
                     _showShareRouteToFeed(context, displayedSummary);

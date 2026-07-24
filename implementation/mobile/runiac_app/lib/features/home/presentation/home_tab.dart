@@ -29,6 +29,7 @@ import '../../leaderboard/data/static_leaderboard_repository.dart';
 import '../../leaderboard/domain/repositories/leaderboard_repository.dart';
 import '../../notifications/domain/repositories/notification_inbox_repository.dart';
 import '../../notifications/presentation/notification_inbox_page.dart';
+import '../../paywall/presentation/premium_gate.dart';
 import '../../plan/domain/models/beginner_adaptive_plan_snapshot.dart';
 import '../../plan/domain/repositories/generated_plan_persistence_repository.dart';
 import '../../plan/presentation/current_session_generated_plan.dart';
@@ -1015,10 +1016,27 @@ class _HomeTabState extends State<HomeTab> with WidgetsBindingObserver {
       activeChallenge: _activeChallengeDisplay,
       onOpenChallengeProgress: () => _openChallengeProgress(context),
       onTapTodayStage: () => _openTodayWorkout(context),
-      guideAgent: widget.homeGuideAgent,
+      guideAgent: _effectiveHomeGuideAgent(context),
       guideRequest: guideRequest,
       guideConsentStatus: _homeGuideConsentStatus,
     );
+  }
+
+  /// The guide the home stage should ask for today's copy.
+  ///
+  /// When the Platform Administrator sets `config/featureAccess.aiHomeCoach`
+  /// to Premium, a Basic runner keeps the built-in deterministic guide instead
+  /// of the AI one — a quiet downgrade rather than a paywall sheet, because
+  /// the bubble is ambient copy the runner never asked for. The
+  /// `homeGuideAgent` callable enforces the same tier server-side; skipping
+  /// the call here just avoids a round trip that would be denied anyway, and
+  /// an unresolved account or config still calls out (fail-open) because the
+  /// server decides.
+  HomeGuideAgent _effectiveHomeGuideAgent(BuildContext context) {
+    if (watchShouldShowPaywallForFeature(context, 'aiHomeCoach')) {
+      return const RuleBasedHomeGuideAgent();
+    }
+    return widget.homeGuideAgent;
   }
 }
 

@@ -1,6 +1,8 @@
 import 'package:flutter/widgets.dart';
 
 import '../../profile/presentation/current_session_user_account.dart';
+import '../domain/models/feature_access_read_model.dart';
+import 'current_session_feature_access.dart';
 import 'current_session_paywall_config.dart';
 import 'premium_paywall_sheet.dart';
 
@@ -44,6 +46,61 @@ bool interceptWithPaywallIfBasic(BuildContext context) {
   }
   PremiumPaywallSheet.show(context);
   return true;
+}
+
+/// Whether `config/featureAccess` marks [featureKey] as Premium-tier.
+///
+/// An absent scope (tests, previews) or a not-yet-loaded document falls back
+/// to [FeatureAccessReadModel.defaults], which mirrors the backend's
+/// `DEFAULT_FEATURE_ACCESS_CONFIG` — so an unreachable config behaves exactly
+/// like a freshly provisioned environment rather than gating at random.
+bool _isPremiumFeature(BuildContext context, String featureKey) {
+  final store = FeatureAccessScope.maybeRead(context);
+  return (store?.featureAccess ?? FeatureAccessReadModel.defaults)
+      .isPremiumFeature(featureKey);
+}
+
+/// [_isPremiumFeature] for use inside `build`: registers the scope dependency
+/// so locked UI resolves when the admin-published document arrives.
+bool _watchIsPremiumFeature(BuildContext context, String featureKey) {
+  final store = FeatureAccessScope.maybeOf(context);
+  return (store?.featureAccess ?? FeatureAccessReadModel.defaults)
+      .isPremiumFeature(featureKey);
+}
+
+/// Intercepts a tap on the feature [featureKey] governs, honouring the
+/// Platform Administrator's `config/featureAccess` tier for it.
+///
+/// This is the gate every premium-convertible surface should use: a feature
+/// the console has set to Basic is not intercepted at all, so flipping the
+/// tier in the admin console actually reaches the app instead of only
+/// changing the upsell copy.
+///
+/// Fails OPEN like [interceptWithPaywallIfBasic] (unresolved account or
+/// unreachable config proceeds). The features routed through here either have
+/// a server-side backstop that re-reads the same document
+/// (`shareRouteToFeed`, `activityFeedback`, `aiHomeCoach`) or are momentary
+/// local actions whose result is not persisted as an entitlement
+/// (`advancedAnalysis`, `shareCards`, `healthWorkoutImport`) — unlike the
+/// guide character, which is stored on the device forever and therefore uses
+/// the fail-closed [interceptWithPaywallIfHardGated].
+///
+/// Returns true when the paywall was shown (tap consumed); false when the
+/// caller should proceed to the real feature.
+bool interceptWithPaywallIfGated(BuildContext context, String featureKey) {
+  if (!_isPremiumFeature(context, featureKey)) {
+    return false;
+  }
+  return interceptWithPaywallIfBasic(context);
+}
+
+/// [interceptWithPaywallIfGated] for use inside `build`: whether the surface
+/// [featureKey] governs must render its locked/teaser state.
+bool watchShouldShowPaywallForFeature(BuildContext context, String featureKey) {
+  if (!_watchIsPremiumFeature(context, featureKey)) {
+    return false;
+  }
+  return watchShouldShowPaywall(context);
 }
 
 /// Whether a premium-only feature that has NO server-side backstop must stay

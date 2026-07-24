@@ -53,6 +53,7 @@ is_historical_backend_functions_path() {
     functions/src/agent/activityFeedbackQuota.ts|\
     functions/src/agent/activityFeedbackTypes.ts|\
     functions/src/config/configLoader.ts|\
+    functions/src/config/featureEntitlement.ts|\
     functions/src/security/appCheck.ts|\
     functions/src/feed/cleanup.ts|\
     functions/src/feed/contracts.ts|\
@@ -133,6 +134,7 @@ is_historical_backend_functions_path() {
     functions/test/completeRunRichSummaryFixtures.ts|\
     functions/test/completeRunRichSummaryScenarios.ts|\
     functions/test/configLoader.test.ts|\
+    functions/test/featureEntitlement.test.ts|\
     functions/test/feedCallableSurface.test.ts|\
     functions/test/feedContracts.test.ts|\
     functions/test/feedEmulatorIntegration.test.ts|\

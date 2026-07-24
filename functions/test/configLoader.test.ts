@@ -228,21 +228,27 @@ describe("validateFeatureAccessConfig", () => {
     assert.ok(result.errors.some((error) => error.includes("minimumTier")));
   });
 
-  it("ships the app-audited 8-feature catalog with the expected default tiers", () => {
+  it("ships the app-audited catalog with the expected default tiers", () => {
     assert.deepEqual(
       Object.fromEntries(
         Object.entries(DEFAULT_FEATURE_ACCESS_CONFIG.features).map(([name, entry]) => [name, entry.minimumTier]),
       ),
       {
         advancedAnalysis: "premium",
-        goalPlan: "basic",
         aiHomeCoach: "basic",
-        activityFeedback: "basic",
+        activityFeedback: "premium",
         shareRouteToFeed: "premium",
         shareCards: "basic",
         healthWorkoutImport: "basic",
       },
     );
+  });
+
+  it("keeps the core beginner goal plan out of the admin-flippable catalog", () => {
+    // The onboarding-generated plan is the app's core beginner experience and
+    // premium must never gate it, so it is not offered as a console switch at
+    // all — a tier an admin cannot set is a tier that cannot be set wrong.
+    assert.equal("goalPlan" in DEFAULT_FEATURE_ACCESS_CONFIG.features, false);
   });
 
   it("keeps non-convertible and out-of-scope features out of the catalog", () => {

@@ -14,16 +14,18 @@ class PremiumFeatureDisplay {
 /// `website/src/components/admin/PolicySettings.tsx` (labels only — the
 /// console's descriptions are admin-facing and are not shown to runners).
 ///
+/// Every key here is wired to a real gate, so an admin flipping its tier
+/// changes what the app does, not just what the upsell says. `goalPlan` was
+/// retired from the catalog rather than wired: the onboarding-generated plan
+/// is the core beginner experience, and premium must never gate that — an
+/// admin switch that could put it behind the paywall is itself the risk.
+///
 /// An unknown key (a backend catalog addition this build predates) falls
 /// back to a humanized form of the key so it never renders blank.
 const Map<String, PremiumFeatureDisplay> premiumFeatureCatalog = {
   'advancedAnalysis': PremiumFeatureDisplay(
     label: 'Advanced run analysis',
     icon: Icons.query_stats_rounded,
-  ),
-  'goalPlan': PremiumFeatureDisplay(
-    label: 'Generated goal plan',
-    icon: Icons.flag_rounded,
   ),
   'aiHomeCoach': PremiumFeatureDisplay(
     label: 'AI home coach',

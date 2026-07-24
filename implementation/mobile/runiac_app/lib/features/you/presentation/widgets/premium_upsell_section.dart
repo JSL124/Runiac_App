@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/runiac_colors.dart';
+import '../../../paywall/domain/models/feature_access_read_model.dart';
 import '../../../paywall/domain/models/premium_feature_catalog.dart';
 import '../../../paywall/presentation/current_session_feature_access.dart';
 import '../../../paywall/presentation/premium_gate.dart';
@@ -32,8 +33,8 @@ class PremiumUpsellSection extends StatelessWidget {
     final featureAccessStore = FeatureAccessScope.maybeOf(context);
     featureAccessStore?.ensureLoaded();
     final premiumFeatureKeys =
-        featureAccessStore?.featureAccess.premiumFeatureKeys ??
-        const <String>['advancedAnalysis'];
+        (featureAccessStore?.featureAccess ?? FeatureAccessReadModel.defaults)
+            .premiumFeatureKeys;
 
     return Semantics(
       button: true,

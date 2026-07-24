@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/runiac_colors.dart';
+import '../../paywall/presentation/premium_gate.dart';
 import '../data/static_leaderboard_repository.dart';
 import '../domain/models/leaderboard_league_catalog.dart';
 import '../domain/models/leaderboard_read_model.dart';
@@ -238,6 +239,12 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
   void _openShareRankPanel() {
     final snapshot = _selectedRegion;
     if (snapshot == null) {
+      return;
+    }
+    // Rank share-card export: tier owned by config/featureAccess.shareCards.
+    // Only the export is gated — the rank itself, and every value behind it,
+    // stays identical for Basic and Premium runners.
+    if (interceptWithPaywallIfGated(context, 'shareCards')) {
       return;
     }
     // Backend-provided rank when the runner is ranked; otherwise the

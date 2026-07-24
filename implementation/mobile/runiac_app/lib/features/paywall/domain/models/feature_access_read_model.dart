@@ -1,8 +1,15 @@
-// Display-only view of the backend-owned `config/featureAccess` document:
-// which feature keys the Platform Administrator has checked as
-// premium-tier. The upsell section lists these; real access enforcement
-// stays server-side (Cloud Functions and Firestore Rules) — the client only
-// relays which features are premium for display.
+// Client view of the backend-owned `config/featureAccess` document: which
+// feature keys the Platform Administrator has checked as premium-tier.
+//
+// Two consumers:
+//   - the You-tab upsell section lists [premiumFeatureKeys];
+//   - the paywall gates in `premium_gate.dart` ask [isPremiumFeature] whether
+//     a given surface is admin-gated before intercepting a tap.
+//
+// The gate this model drives is a UX layer, never the enforcement: features
+// with a server surface (`shareRouteToFeed`, `activityFeedback`,
+// `aiHomeCoach`) are re-checked against the same document inside Cloud
+// Functions, which is what actually denies a Basic runner.
 
 import 'package:flutter/foundation.dart';
 
@@ -14,19 +21,39 @@ class FeatureAccessReadModel {
 
   static const defaults = FeatureAccessReadModel();
 
-  /// The one key that is premium in every environment's shipped defaults
-  /// (functions `DEFAULT_FEATURE_ACCESS_CONFIG` and the admin console's
-  /// mirror both start with `advancedAnalysis: premium`).
-  static const _defaultKeys = <String>['advancedAnalysis'];
+  /// The keys that are premium in every environment's shipped defaults,
+  /// mirroring functions `DEFAULT_FEATURE_ACCESS_CONFIG` (and the admin
+  /// console's copy of it) in document order. Used whenever the document has
+  /// not been read yet or is unreachable, so an offline gate behaves like a
+  /// freshly provisioned environment rather than guessing.
+  static const _defaultKeys = <String>[
+    'advancedAnalysis',
+    'activityFeedback',
+    'shareRouteToFeed',
+  ];
 
   /// Feature keys whose stored entry is `minimumTier == 'premium'` and
   /// `enabled == true` (absent `enabled` counts as enabled, matching the
   /// backend loader's defaults-merge).
   final List<String> premiumFeatureKeys;
 
-  /// Maps the trusted raw document. A missing document, a malformed
-  /// `features` map, or zero premium entries all resolve to [defaults] so
-  /// the upsell never renders an empty list.
+  /// Whether [featureKey] is admin-gated behind Premium.
+  ///
+  /// An unknown key reads as Basic: a build that predates a backend catalog
+  /// addition must not invent a gate for a feature it cannot describe.
+  bool isPremiumFeature(String featureKey) =>
+      premiumFeatureKeys.contains(featureKey);
+
+  /// Maps the trusted raw document. A missing document or a malformed
+  /// `features` map resolves to [defaults] (the never-configured state).
+  ///
+  /// A well-formed map with zero premium entries is a legitimate "every
+  /// feature is Basic" state and is honoured as such — collapsing it into
+  /// [defaults] used to resurrect `advancedAnalysis` as premium, which both
+  /// listed a paid feature the admin had opened and (now that the gates read
+  /// this model) would have kept enforcing a lock the console had cleared.
+  /// Mirrors `CharacterAccessReadModel.fromMap`, which already honours an
+  /// empty premium list.
   factory FeatureAccessReadModel.fromMap(Map<String, Object?>? data) {
     final features = data?['features'];
     if (features is! Map) {
@@ -48,9 +75,7 @@ class FeatureAccessReadModel {
       }
       keys.add(key.trim());
     }
-    return keys.isEmpty
-        ? defaults
-        : FeatureAccessReadModel(premiumFeatureKeys: List.unmodifiable(keys));
+    return FeatureAccessReadModel(premiumFeatureKeys: List.unmodifiable(keys));
   }
 
   @override

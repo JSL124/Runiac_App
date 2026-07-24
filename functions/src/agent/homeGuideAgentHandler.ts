@@ -23,6 +23,14 @@ import {
   type HomeGuideBundle,
 } from "./homeGuideQuotaCache.js";
 import { requireCurrentHomeGuideConsent } from "./homeGuideConsent.js";
+import { loadFeatureAccessConfig } from "../config/configLoader.js";
+import { assertFeatureEntitlement } from "../config/featureEntitlement.js";
+
+/**
+ * Feature key in config/featureAccess.features that governs the AI home coach
+ * bubble. Mirrors DEFAULT_FEATURE_ACCESS_CONFIG in configLoader.ts.
+ */
+export const AI_HOME_COACH_FEATURE_KEY = "aiHomeCoach";
 
 const FALLBACK_MESSAGES: HomeGuideBundle = {
   planSummary: "Your plan is ready, superstar! Let's keep today comfy and fun.",
@@ -63,6 +71,11 @@ export function createHomeGuideAgentHandler(
     const now = dependencies.now();
     const firestore = dependencies.firestore();
     await requireCurrentHomeGuideConsent(firestore, uid);
+    // Tier owned by config/featureAccess.aiHomeCoach. Denying here is what
+    // makes the console switch real: the app's guide adapter already falls
+    // back to its offline rule-based copy on any callable error, so a Basic
+    // runner keeps a working guide bubble instead of an empty one.
+    await requireHomeGuideEntitlement(firestore, uid, now);
     const [activePlan, activities] = await Promise.all([
       firestore.collection("generatedPlans").doc(uid).get(),
       readTrustedHomeGuideActivities(firestore, uid, now),
@@ -159,6 +172,24 @@ function emitHomeGuideDecisionLog(
   } else {
     logger.info(fields);
   }
+}
+
+async function requireHomeGuideEntitlement(
+  firestore: Firestore,
+  uid: string,
+  now: Date,
+): Promise<void> {
+  const [userSnapshot, featureAccess] = await Promise.all([
+    firestore.doc(`users/${uid}`).get(),
+    loadFeatureAccessConfig(firestore),
+  ]);
+  assertFeatureEntitlement({
+    featureKey: AI_HOME_COACH_FEATURE_KEY,
+    userData: userSnapshot.data(),
+    featureAccess,
+    nowMs: now.getTime(),
+    message: "The AI home coach is available on Premium.",
+  });
 }
 
 function authenticatedUid(request: CallableGuideRequest): string {

@@ -13,8 +13,16 @@ import '../domain/repositories/feature_access_repository.dart';
 /// [ensureLoaded] resolves. One-shot and session-cached — feature tiers
 /// change rarely, so no live listener is held.
 ///
-/// This store only relays display data. It never decides feature access;
-/// enforcement stays server-side.
+/// The document is readable only by a signed-in runner, so [ensureLoaded]
+/// must be kicked once auth resolves ([RuniacApp] does this from the auth
+/// gate) and [reset] on sign-out so the next account reads it again. A failed
+/// read is NOT cached: it clears the in-flight future so a later gate check
+/// retries instead of holding the defaults for the whole session.
+///
+/// This store relays admin policy; it never decides feature access on its own.
+/// It drives upsell copy plus the client-side paywall interception, and every
+/// feature with a server surface is re-checked against the same document
+/// inside Cloud Functions, which is the real enforcement.
 class CurrentSessionFeatureAccess extends ChangeNotifier {
   CurrentSessionFeatureAccess({
     this._repository = const StaticFeatureAccessRepository(),
@@ -30,9 +38,22 @@ class CurrentSessionFeatureAccess extends ChangeNotifier {
 
   /// Kicks off the one-shot `config/featureAccess` read. Idempotent:
   /// repeated calls share the first in-flight load. Errors keep the
-  /// defaults in place.
+  /// defaults in place and release the cached future so the next call
+  /// retries — a read that raced sign-in (the document is signed-in-only)
+  /// must not pin the defaults for the rest of the session.
   Future<void> ensureLoaded() {
     return _load ??= _loadOnce();
+  }
+
+  /// Drops the loaded document on sign-out so the next account reads the
+  /// policy again instead of inheriting the previous session's copy.
+  void reset() {
+    _load = null;
+    if (_featureAccess == FeatureAccessReadModel.defaults) {
+      return;
+    }
+    _featureAccess = FeatureAccessReadModel.defaults;
+    notifyListeners();
   }
 
   Future<void> _loadOnce() async {
@@ -44,6 +65,7 @@ class CurrentSessionFeatureAccess extends ChangeNotifier {
       _featureAccess = loaded;
       notifyListeners();
     } catch (error, stackTrace) {
+      _load = null;
       FlutterError.reportError(
         FlutterErrorDetails(
           exception: error,
