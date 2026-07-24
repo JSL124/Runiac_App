@@ -577,7 +577,11 @@ class RunTrackingController extends ChangeNotifier {
       }
 
       return true;
-    } catch (_) {
+    } catch (error, stackTrace) {
+      // Report before the cleanup below, not after: a `stop()` call in that
+      // cleanup can itself throw, which would discard the original cause and
+      // leave a run that refused to start with no trace anywhere.
+      _reportRunProviderStartFailure(error, stackTrace);
       await _locationProvider.stop();
       await _stopCadenceProvider();
       await _motionProvider.stop();
@@ -586,6 +590,37 @@ class RunTrackingController extends ChangeNotifier {
         _resetAfterFailedStart();
       }
       return false;
+    }
+  }
+
+  /// Records why the location / cadence / motion / foreground-service startup
+  /// failed. The `catch` above previously swallowed the cause outright, so
+  /// "the run would not start" was unanswerable after the fact.
+  ///
+  /// This is diagnostics only: it reports through the same
+  /// `FlutterError.reportError` seam the run completion and activity history
+  /// paths already use (which `main.dart` wires into `RuniacErrorReporter`),
+  /// changes no control flow, and mutates no run state. `clientRunSessionId`
+  /// is the correlation key already carried through completion, so a failed
+  /// start can be tied to the rest of that run's flow; it is a locally
+  /// generated identifier, never a coordinate, token, or account value.
+  void _reportRunProviderStartFailure(Object error, StackTrace stackTrace) {
+    try {
+      FlutterError.reportError(
+        FlutterErrorDetails(
+          exception: error,
+          stack: stackTrace,
+          library: 'runiac run tracking',
+          context: ErrorDescription(
+            'starting run tracking providers '
+            '(runSessionId=${_state.clientRunSessionId})',
+          ),
+        ),
+      );
+    } catch (_) {
+      // Diagnostics are best effort. A reporting failure must never turn a
+      // recoverable start failure into an unhandled one, and must never stop
+      // the provider cleanup that follows this call.
     }
   }
 

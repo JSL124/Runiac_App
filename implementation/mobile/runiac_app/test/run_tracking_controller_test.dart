@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runiac_app/features/run/domain/models/local_run_completion_payload.dart';
@@ -1262,6 +1263,85 @@ void main() {
           RunLocationPermissionStatus.unavailable,
         );
         expect(provider.startCount, 1);
+        expect(provider.stopCount, 1);
+        expect(foregroundService.calls, ['start', 'stop']);
+      },
+    );
+
+    test('reports why run tracking provider startup failed', () async {
+      final reported = <FlutterErrorDetails>[];
+      final previousOnError = FlutterError.onError;
+      FlutterError.onError = reported.add;
+      addTearDown(() => FlutterError.onError = previousOnError);
+
+      final provider = _ThrowingStartLocationProvider();
+      final controller = RunTrackingController(
+        locationProvider: provider,
+        foregroundService: _FakeRunForegroundService(),
+        permissionService: _FakePermissionService(
+          RunLocationPermissionStatus.granted,
+        ),
+        notificationPermissionService: _FakeNotificationPermissionService(
+          RunNotificationPermissionStatus.granted,
+        ),
+        locationStatus: RunTrackingLocationStatus.waitingForGps,
+      );
+
+      final started = await controller.requestStart(
+        startedAt: DateTime.utc(2026, 6, 14, 7),
+        clientRunSessionId: 'provider-start-report-run',
+      );
+
+      expect(started, isFalse);
+      expect(reported, hasLength(1));
+      final details = reported.single;
+      expect(details.exception, isA<StateError>());
+      expect(details.library, 'runiac run tracking');
+
+      final context = details.context.toString();
+      expect(context, contains('starting run tracking providers'));
+      // The run session id is the correlation key that ties this failure to
+      // the rest of that run's flow.
+      expect(context, contains('provider-start-report-run'));
+      // Diagnostics must stay scalar: no coordinates, tokens, or account
+      // values may ride along in the reported context.
+      expect(context, isNot(contains('latitude')));
+      expect(context, isNot(contains('longitude')));
+      expect(context, isNot(contains('routeSamples')));
+    });
+
+    test(
+      'provider startup cleanup survives a failing error reporter',
+      () async {
+        final previousOnError = FlutterError.onError;
+        FlutterError.onError = (FlutterErrorDetails details) {
+          throw StateError('diagnostic sink failed');
+        };
+        addTearDown(() => FlutterError.onError = previousOnError);
+
+        final provider = _ThrowingStartLocationProvider();
+        final foregroundService = _FakeRunForegroundService();
+        final controller = RunTrackingController(
+          locationProvider: provider,
+          foregroundService: foregroundService,
+          permissionService: _FakePermissionService(
+            RunLocationPermissionStatus.granted,
+          ),
+          notificationPermissionService: _FakeNotificationPermissionService(
+            RunNotificationPermissionStatus.granted,
+          ),
+          locationStatus: RunTrackingLocationStatus.waitingForGps,
+        );
+
+        // A failing diagnostic sink must not escape to the caller, and must
+        // not skip the provider/foreground-service cleanup that follows it.
+        final started = await controller.requestStart(
+          startedAt: DateTime.utc(2026, 6, 14, 7),
+          clientRunSessionId: 'provider-start-sink-failure-run',
+        );
+
+        expect(started, isFalse);
+        expect(controller.state.phase, RunTrackingPhase.idle);
         expect(provider.stopCount, 1);
         expect(foregroundService.calls, ['start', 'stop']);
       },

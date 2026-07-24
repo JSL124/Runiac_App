@@ -147,6 +147,7 @@ void _installGlobalErrorReportingHooks(RuniacErrorReporter reporter) {
         details.stack,
         screen: runiacErrorScreenTracker.currentScreen,
         fatal: false,
+        context: _describeErrorContext(details),
       ),
     );
   };
@@ -165,4 +166,25 @@ void _installGlobalErrorReportingHooks(RuniacErrorReporter reporter) {
     // does not silently make local debugging worse.
     return false;
   };
+}
+
+/// Extracts the failing operation a reporting call site attached to
+/// [FlutterErrorDetails.context], so it reaches the reported payload instead
+/// of being dropped at this hook. Without it, a run-flow failure arrives as a
+/// bare exception string with no indication of which stage produced it.
+///
+/// `PlatformDispatcher.instance.onError` has no equivalent, since a raw
+/// platform error carries no context to forward.
+String? _describeErrorContext(FlutterErrorDetails details) {
+  final context = details.context;
+  if (context == null) {
+    return null;
+  }
+  try {
+    return context.toDescription();
+  } catch (_) {
+    // A diagnostics node that throws while describing itself must not stop
+    // the error it belongs to from being reported.
+    return null;
+  }
 }
