@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../../core/haptics/runiac_haptics_scope.dart';
 import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/runiac_bottom_sheet_handle.dart';
 import '../../settings/data/shared_preferences_app_settings_repository.dart';
@@ -387,6 +388,9 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
         _showPreviewMessage(_controller.locationPermissionMessage);
         return;
       }
+      // Confirm the run actually began. Fired only once tracking has started,
+      // so a permission-blocked Start stays silent.
+      RuniacHapticsScope.maybeOf(context)?.impactMedium();
     }
 
     _activeRunSessionCoordinator.startForegroundTicker();
@@ -413,6 +417,7 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
     final pausedAt = _activeRunSessionCoordinator.now();
     _activeRunSessionCoordinator.syncTo(pausedAt);
     _controller.pause(pausedAt: pausedAt);
+    RuniacHapticsScope.maybeOf(context)?.impactLight();
     setState(() => _sheetMode = RunSheetMode.paused);
   }
 
@@ -421,6 +426,7 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
       return;
     }
     _controller.resume(resumedAt: _activeRunSessionCoordinator.now());
+    RuniacHapticsScope.maybeOf(context)?.impactLight();
     setState(() => _sheetMode = RunSheetMode.running);
     _followQaDiagnostics?.recordResume();
     _updateFollowQaMapState();
@@ -519,6 +525,7 @@ class _RunLaunchScreenState extends State<RunLaunchScreen> {
     }
     _activeRunSessionCoordinator.stopForegroundTicker();
     _controller.finish(completedAt: completedAt);
+    RuniacHapticsScope.maybeOf(context)?.impactMedium();
     Navigator.of(context).pushReplacement(
       MaterialPageRoute<void>(
         builder: (context) => CoolDownScreen(

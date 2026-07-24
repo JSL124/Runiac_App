@@ -4,6 +4,7 @@
 // `RuniacHapticsScope`, never against the real platform channel.
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:runiac_app/core/haptics/runiac_haptics.dart';
 import 'package:runiac_app/core/haptics/runiac_haptics_scope.dart';
 import 'package:runiac_app/core/widgets/runiac_success_check_overlay.dart';
@@ -11,7 +12,7 @@ import 'package:runiac_app/features/challenge/domain/models/challenge_enums.dart
 import 'package:runiac_app/features/challenge/presentation/challenge_result_ceremony.dart';
 import 'package:runiac_app/features/home/presentation/plan_completion_ceremony.dart';
 import 'package:runiac_app/features/run/domain/models/xp_update_display_model.dart';
-import 'package:runiac_app/features/run/presentation/run_active_screen.dart';
+import 'package:runiac_app/features/run/presentation/run_launch_screen.dart';
 import 'package:runiac_app/features/run/presentation/xp_update_screen.dart';
 
 /// Records every haptic method invoked, in call order, so tests can assert
@@ -133,9 +134,7 @@ void main() {
       previousStreakCount: 3,
     );
 
-    testWidgets('non level-up reveal fires impactMedium only', (
-      tester,
-    ) async {
+    testWidgets('non level-up reveal fires impactMedium only', (tester) async {
       final recorder = RecordingRuniacHaptics();
       await tester.pumpWidget(
         _wrap(
@@ -221,13 +220,19 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 220));
 
-      expect(recorder.calls.where((call) => call == 'impactHeavy'), hasLength(1));
+      expect(
+        recorder.calls.where((call) => call == 'impactHeavy'),
+        hasLength(1),
+      );
 
       await tester.pump(const Duration(milliseconds: 1600));
       await tester.pump(const Duration(milliseconds: 260));
 
       // Still exactly one, even after the gauge-fill reveal completes.
-      expect(recorder.calls.where((call) => call == 'impactHeavy'), hasLength(1));
+      expect(
+        recorder.calls.where((call) => call == 'impactHeavy'),
+        hasLength(1),
+      );
     });
   });
 
@@ -235,7 +240,10 @@ void main() {
     testWidgets('fires impactHeavy on reveal', (tester) async {
       final recorder = RecordingRuniacHaptics();
       await tester.pumpWidget(
-        _wrap(recorder, const ChallengeBadgeCeremony(tierId: ChallengeTierId.k10)),
+        _wrap(
+          recorder,
+          const ChallengeBadgeCeremony(tierId: ChallengeTierId.k10),
+        ),
       );
 
       // The ceremony runs a continuous ambient/fireworks loop that never
@@ -248,28 +256,53 @@ void main() {
     });
   });
 
+  // These drive `RunLaunchScreen` — the screen the shell actually routes to
+  // (`runiac_shell.dart`). An earlier version of this group drove
+  // `RunActiveScreen`, which no production code references, so it stayed
+  // green while the shipped run flow fired no haptics at all.
   group('run lifecycle', () {
-    testWidgets(
-      'start fires impactMedium and pause/resume fire impactLight',
-      (tester) async {
-        final recorder = RecordingRuniacHaptics();
-        await tester.pumpWidget(_wrap(recorder, const RunActiveScreen()));
-        await tester.pump();
+    setUp(() {
+      // `_startRun` awaits the SharedPreferences-backed voice settings
+      // repository; without mock values getInstance() never resolves here.
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+    });
 
-        expect(recorder.calls, contains('impactMedium'));
-        final startCalls = recorder.calls.length;
+    testWidgets('start fires impactMedium and pause/resume fire impactLight', (
+      tester,
+    ) async {
+      tester.view
+        ..physicalSize = const Size(390, 844)
+        ..devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
 
-        await tester.tap(find.widgetWithText(FilledButton, 'Pause'));
-        await tester.pump();
+      final recorder = RecordingRuniacHaptics();
+      await tester.pumpWidget(
+        _wrap(recorder, const RunLaunchScreen(enableForegroundGps: false)),
+      );
+      await tester.pumpAndSettle();
 
-        expect(recorder.calls.skip(startCalls), contains('impactLight'));
-        final afterPauseCalls = recorder.calls.length;
+      expect(
+        recorder.calls,
+        isEmpty,
+        reason: 'no haptic before the run actually starts',
+      );
 
-        await tester.tap(find.widgetWithText(FilledButton, 'Resume'));
-        await tester.pump();
+      await tester.tap(find.text('Start run'));
+      await tester.pumpAndSettle();
 
-        expect(recorder.calls.skip(afterPauseCalls), contains('impactLight'));
-      },
-    );
+      expect(recorder.calls, contains('impactMedium'));
+      final afterStart = recorder.calls.length;
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Pause'));
+      await tester.pumpAndSettle();
+
+      expect(recorder.calls.skip(afterStart), contains('impactLight'));
+      final afterPause = recorder.calls.length;
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Resume'));
+      await tester.pumpAndSettle();
+
+      expect(recorder.calls.skip(afterPause), contains('impactLight'));
+    });
   });
 }

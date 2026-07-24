@@ -39,7 +39,6 @@ import 'package:runiac_app/features/run/domain/services/run_summary_local_analys
 import 'package:runiac_app/features/run/presentation/active_run_session_coordinator.dart';
 import 'package:runiac_app/features/run/presentation/controllers/run_tracking_controller.dart';
 import 'package:runiac_app/features/run/presentation/models/planned_run_context.dart';
-import 'package:runiac_app/features/run/presentation/run_active_screen.dart';
 import 'package:runiac_app/features/run/presentation/run_launch_screen.dart';
 import 'package:runiac_app/features/run/presentation/run_repository_scope.dart';
 import 'package:runiac_app/features/run/presentation/view_summary_screen.dart';
@@ -1949,137 +1948,6 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('RunActiveScreen shows persistent recenter above active panel', (
-    WidgetTester tester,
-  ) async {
-    _useMobileRunSurface(tester);
-
-    await tester.pumpWidget(const MaterialApp(home: RunActiveScreen()));
-    await tester.pump();
-
-    var recenter = find.byKey(const Key('run_map_recenter_button'));
-    var panel = find.byKey(const Key('runActivePanel'));
-    expect(recenter, findsOneWidget);
-    _expectSheetAdjacentRecenter(
-      tester: tester,
-      recenter: recenter,
-      sheet: panel,
-    );
-    expect(
-      tester.getRect(panel).right - tester.getRect(recenter).right,
-      closeTo(24, 1),
-    );
-
-    await tester.drag(
-      find.byKey(const Key('run_map_interaction_layer')),
-      const Offset(48, 0),
-    );
-    await tester.pump();
-
-    recenter = find.byKey(const Key('run_map_recenter_button'));
-    panel = find.byKey(const Key('runActivePanel'));
-    expect(recenter, findsOneWidget);
-    _expectSheetAdjacentRecenter(
-      tester: tester,
-      recenter: recenter,
-      sheet: panel,
-    );
-
-    await tester.tap(recenter);
-    await tester.pump();
-
-    expect(find.byKey(const Key('run_map_recenter_button')), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('RunActiveScreen selects Mapbox path when token is present', (
-    WidgetTester tester,
-  ) async {
-    _useMobileRunSurface(tester);
-    RunMapboxSurfaceConfig? capturedConfig;
-
-    await tester.pumpWidget(
-      MaterialApp(
-        home: RunActiveScreen(
-          mapboxAccessToken: _demoMapboxPublicToken,
-          mapboxBuilder: (context, config) {
-            capturedConfig = config;
-            return const ColoredBox(
-              key: Key('fake_active_mapbox_surface'),
-              color: Colors.black,
-            );
-          },
-        ),
-      ),
-    );
-    await tester.pump();
-
-    expect(
-      find.byKey(const Key('run_mapbox_surface_selected')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const Key('run_mapbox_placeholder_selected')),
-      findsNothing,
-    );
-    expect(find.byKey(const Key('fake_active_mapbox_surface')), findsOneWidget);
-    expect(find.byType(RunMapPlaceholder), findsNothing);
-    expect(capturedConfig, isNotNull);
-    expect(capturedConfig!.accessToken, _demoMapboxPublicToken);
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets(
-    'RunActiveScreen recenter forwards a Mapbox camera recenter intent',
-    (WidgetTester tester) async {
-      _useMobileRunSurface(tester);
-      final configs = <RunMapboxSurfaceConfig>[];
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: RunActiveScreen(
-            mapboxAccessToken: _demoMapboxPublicToken,
-            mapboxBuilder: (context, config) {
-              configs.add(config);
-              return GestureDetector(
-                key: const Key('fake_mapbox_pan_layer'),
-                onPanUpdate: (_) => config.onManualPan?.call(),
-                child: const ColoredBox(color: Colors.black),
-              );
-            },
-          ),
-        ),
-      );
-      await tester.pump();
-
-      await tester.drag(
-        find.byKey(const Key('fake_mapbox_pan_layer')),
-        const Offset(48, 0),
-      );
-      await tester.pump();
-
-      final recenter = find.byKey(const Key('run_map_recenter_button'));
-      expect(recenter, findsOneWidget);
-
-      await tester.pump(const Duration(seconds: 1));
-
-      expect(configs.last.isFollowingRunner, isFalse);
-
-      await tester.tap(recenter);
-      await tester.pump();
-      await tester.pump();
-
-      expect(
-        configs.map((config) => config.isFollowingRunner),
-        contains(false),
-      );
-      expect(configs.last.isFollowingRunner, isTrue);
-      expect(configs.map((config) => config.recenterRequestId), contains(1));
-      expect(configs.last.recenterRequestId, 1);
-      expect(tester.takeException(), isNull);
-    },
-  );
-
   testWidgets(
     'RunLaunchScreen keeps Mapbox follow disabled after resume tick',
     (WidgetTester tester) async {
@@ -2751,12 +2619,16 @@ void main() {
     semantics.dispose();
   });
 
-  testWidgets('RunActiveScreen keeps shared Pause Resume and End behavior', (
+  testWidgets('RunLaunchScreen keeps shared Pause Resume and End behavior', (
     WidgetTester tester,
   ) async {
     _useMobileRunSurface(tester);
 
-    await tester.pumpWidget(const MaterialApp(home: RunActiveScreen()));
+    await tester.pumpWidget(
+      const MaterialApp(home: RunLaunchScreen(enableForegroundGps: false)),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Start run'));
     await tester.pumpAndSettle();
 
     expect(find.text('Demo mode'), findsOneWidget);
@@ -2865,7 +2737,7 @@ void main() {
   );
 
   testWidgets(
-    'RunActiveScreen sends tracked completion result through cool down to summary',
+    'RunLaunchScreen sends tracked completion result through cool down to summary',
     (WidgetTester tester) async {
       _useMobileRunSurface(tester);
       final repository = _ResultRunRepository(_serverAwardedCompletionResult);
@@ -2887,14 +2759,16 @@ void main() {
             store: historyStore,
             child: RunRepositoryScope(
               repository: repository,
-              child: RunActiveScreen(
-                controller: runHarness.controller,
+              child: RunLaunchScreen(
+                enableForegroundGps: false,
                 activeRunSessionCoordinator: runHarness.coordinator,
               ),
             ),
           ),
         ),
       );
+      // The harness controller is already running, so the screen reopens
+      // straight into the running sheet — there is no Start run button here.
       await tester.pumpAndSettle();
       await _pumpSufficientRun(tester);
 
@@ -2946,7 +2820,7 @@ void main() {
   );
 
   testWidgets(
-    'RunActiveScreen completed-plan extra runs do not register planned completion ids',
+    'RunLaunchScreen completed-plan extra runs do not register planned completion ids',
     (WidgetTester tester) async {
       _useMobileRunSurface(tester);
       final historyStore = CurrentSessionActivityHistoryStore(
@@ -2960,8 +2834,8 @@ void main() {
         MaterialApp(
           home: CurrentSessionActivityHistoryScope(
             store: historyStore,
-            child: RunActiveScreen(
-              controller: runHarness.controller,
+            child: RunLaunchScreen(
+              enableForegroundGps: false,
               activeRunSessionCoordinator: runHarness.coordinator,
               plannedWorkout: const PlannedRunContext(
                 title: 'Easy run',
@@ -2982,6 +2856,8 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Start run'));
       await tester.pumpAndSettle();
       await _pumpSufficientRun(tester);
 
@@ -3009,7 +2885,7 @@ void main() {
   );
 
   testWidgets(
-    'RunActiveScreen preserves local advanced analysis after Firebase completion',
+    'RunLaunchScreen preserves local advanced analysis after Firebase completion',
     (WidgetTester tester) async {
       _useMobileRunSurface(tester);
       final startedAt = DateTime.utc(2026, 6, 18, 8);
@@ -3105,14 +2981,16 @@ void main() {
             store: historyStore,
             child: RunRepositoryScope(
               repository: repository,
-              child: RunActiveScreen(
-                controller: controller,
+              child: RunLaunchScreen(
+                enableForegroundGps: false,
                 activeRunSessionCoordinator: activeRunSessionCoordinator,
               ),
             ),
           ),
         ),
       );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Start run'));
       await tester.pumpAndSettle();
       now = startedAt.add(const Duration(seconds: 60));
       await tester.pump(const Duration(seconds: 60));
@@ -3354,14 +3232,16 @@ void main() {
             store: historyStore,
             child: RunRepositoryScope(
               repository: repository,
-              child: RunActiveScreen(
-                controller: controller,
+              child: RunLaunchScreen(
+                enableForegroundGps: false,
                 activeRunSessionCoordinator: activeRunSessionCoordinator,
               ),
             ),
           ),
         ),
       );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Start run'));
       await tester.pumpAndSettle();
       for (final elapsed in const [60, 120, 180, 240, 300, 360]) {
         now = startedAt.add(Duration(seconds: elapsed));
@@ -3444,7 +3324,7 @@ void main() {
     },
   );
 
-  testWidgets('RunActiveScreen skips background sync for insufficient data', (
+  testWidgets('RunLaunchScreen skips background sync for insufficient data', (
     WidgetTester tester,
   ) async {
     _useMobileRunSurface(tester);
@@ -3463,8 +3343,8 @@ void main() {
           store: historyStore,
           child: RunRepositoryScope(
             repository: repository,
-            child: RunActiveScreen(
-              controller: runHarness.controller,
+            child: RunLaunchScreen(
+              enableForegroundGps: false,
               activeRunSessionCoordinator: runHarness.coordinator,
             ),
           ),
@@ -3472,7 +3352,11 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await _pumpSufficientRun(tester);
+    await tester.tap(find.text('Start run'));
+    await tester.pumpAndSettle();
+    // Deliberately collect no usable samples: this is the
+    // insufficient-data path, so the run must never be submitted.
+    await tester.pump(const Duration(seconds: 1));
 
     runHarness.controller.pause(pausedAt: tester.binding.clock.now());
     await tester.pumpAndSettle();
@@ -3495,7 +3379,7 @@ void main() {
   });
 
   testWidgets(
-    'RunActiveScreen leaves retry queue empty for insufficient data',
+    'RunLaunchScreen leaves retry queue empty for insufficient data',
     (WidgetTester tester) async {
       _useMobileRunSurface(tester);
       final repository = _FailOnceRunRepository(_activeCompletionResult);
@@ -3513,8 +3397,8 @@ void main() {
             store: historyStore,
             child: RunRepositoryScope(
               repository: repository,
-              child: RunActiveScreen(
-                controller: runHarness.controller,
+              child: RunLaunchScreen(
+                enableForegroundGps: false,
                 activeRunSessionCoordinator: runHarness.coordinator,
               ),
             ),
@@ -3522,7 +3406,11 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await _pumpSufficientRun(tester);
+      await tester.tap(find.text('Start run'));
+      await tester.pumpAndSettle();
+      // Deliberately collect no usable samples: this is the
+      // insufficient-data path, so the run must never be submitted.
+      await tester.pump(const Duration(seconds: 1));
 
       runHarness.controller.pause(pausedAt: tester.binding.clock.now());
       await tester.pumpAndSettle();
@@ -3545,14 +3433,16 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Active Repository Run'), findsNothing);
-      expect(find.text('0.00'), findsNothing);
+      // An insufficient run still lands on a summary, but a zeroed local one:
+      // nothing was submitted, so no server-backed activity can be shown.
+      expect(find.text('0.00'), findsOneWidget);
       expect(find.text('Saturday Morning Run'), findsNothing);
       expect(tester.takeException(), isNull);
     },
   );
 
   testWidgets(
-    'RunActiveScreen does not block cool down when no background sync starts',
+    'RunLaunchScreen does not block cool down when no background sync starts',
     (WidgetTester tester) async {
       _useMobileRunSurface(tester);
       final repository = _DelayedRunRepository(_activeCompletionResult);
@@ -3569,8 +3459,8 @@ void main() {
             store: historyStore,
             child: RunRepositoryScope(
               repository: repository,
-              child: RunActiveScreen(
-                controller: runHarness.controller,
+              child: RunLaunchScreen(
+                enableForegroundGps: false,
                 activeRunSessionCoordinator: runHarness.coordinator,
               ),
             ),
@@ -3578,7 +3468,11 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await _pumpSufficientRun(tester);
+      await tester.tap(find.text('Start run'));
+      await tester.pumpAndSettle();
+      // Deliberately collect no usable samples: this is the
+      // insufficient-data path, so the run must never be submitted.
+      await tester.pump(const Duration(seconds: 1));
 
       runHarness.controller.pause(pausedAt: tester.binding.clock.now());
       await tester.pumpAndSettle();
