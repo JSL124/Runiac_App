@@ -68,6 +68,7 @@ is_historical_backend_functions_path() {
     functions/src/feed/png.ts|\
     functions/src/feed/publish/callable.ts|\
     functions/src/feed/publish/core.ts|\
+    functions/src/feed/publish/entitlement.ts|\
     functions/src/feed/relationship.ts|\
     functions/src/feed/thumbnail/callable.ts|\
     functions/src/feed/thumbnail/core.ts|\
@@ -139,6 +140,7 @@ is_historical_backend_functions_path() {
     functions/test/feedFixtureGuard.test.ts|\
     functions/test/feedLifecycle.test.ts|\
     functions/test/feedPublishCore.test.ts|\
+    functions/test/feedPublishEntitlement.test.ts|\
     functions/test/feedThumbnailCore.test.ts|\
     functions/test/homeGuideAgentCallableSurface.test.ts|\
     functions/test/homeGuideConsent.test.ts|\
