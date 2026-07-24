@@ -150,7 +150,6 @@ export const DEFAULT_FEATURE_ACCESS_CONFIG: FeatureAccessConfig = deepFreeze({
     goalPlan: { minimumTier: "basic", enabled: true },
     aiHomeCoach: { minimumTier: "basic", enabled: true },
     activityFeedback: { minimumTier: "basic", enabled: true },
-    routeLibrary: { minimumTier: "basic", enabled: true },
     shareRouteToFeed: { minimumTier: "basic", enabled: true },
     shareCards: { minimumTier: "basic", enabled: true },
     healthWorkoutImport: { minimumTier: "basic", enabled: true },
