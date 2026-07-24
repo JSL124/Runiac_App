@@ -1,4 +1,4 @@
-# claude.md — Voice Progress Coaching (`yrself/`)
+# claude.md — Voice Progress Coaching (`voice-coaching/`)
 
 This directory holds the planning artifacts for the **Runiac Voice Progress Coaching** feature.
 See [`TDD.md`](./TDD.md) for the full test-driven development plan.
