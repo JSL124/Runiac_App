@@ -6,6 +6,7 @@ import '../data/shared_preferences_run_voice_settings_repository.dart';
 import '../domain/models/run_voice_coaching_settings.dart';
 import '../domain/models/run_voice_language.dart';
 import '../domain/repositories/run_voice_settings_repository.dart';
+import 'run_voice_preview_page.dart';
 
 class RunVoiceSettingsPage extends StatefulWidget {
   const RunVoiceSettingsPage({
@@ -137,12 +138,91 @@ class _RunVoiceSettingsPageState extends State<RunVoiceSettingsPage> {
                           );
                         },
                       ),
+                      const SizedBox(height: 20),
+                      const _SectionLabel('PREVIEW'),
+                      const SizedBox(height: 8),
+                      _PreviewCard(
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const RunVoicePreviewPage(),
+                            ),
+                          );
+                        },
+                      ),
                     ],
                   ),
                 ),
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PreviewCard extends StatelessWidget {
+  const _PreviewCard({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: RuniacColors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: RuniacColors.border),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(18),
+        child: InkWell(
+          key: const ValueKey('voice_preview_button'),
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(18),
+          child: const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _IconTile(icon: Icons.play_circle_outline),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Preview voices',
+                        style: TextStyle(
+                          color: RuniacColors.textPrimary,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w900,
+                          height: 1.2,
+                        ),
+                      ),
+                      SizedBox(height: 3),
+                      Text(
+                        'Play and hear each spoken announcement.',
+                        style: TextStyle(
+                          color: RuniacColors.textSecondary,
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                          height: 1.25,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(width: 10),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: RuniacColors.textSecondary,
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
