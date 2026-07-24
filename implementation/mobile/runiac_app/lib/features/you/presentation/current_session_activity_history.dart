@@ -238,7 +238,12 @@ class CurrentSessionActivityHistoryStore extends ChangeNotifier {
         distanceMeters: record.payload.distanceMeters,
       );
     } catch (error, stackTrace) {
-      _reportAsyncError(error, stackTrace, 'saving a completed run locally');
+      _reportAsyncError(
+        error,
+        stackTrace,
+        'saving a completed run locally',
+        runSessionId: record.clientRunSessionId,
+      );
       rethrow;
     }
   }
@@ -281,19 +286,41 @@ class CurrentSessionActivityHistoryStore extends ChangeNotifier {
     return run;
   }
 
+  /// Reports a non-fatal persistence failure, tagged with [runSessionId] when
+  /// the failure belongs to one identifiable run, so it lines up with the
+  /// `runiac run tracking` reports the completion flow emits for that same
+  /// run. The id is the one already sent to the backend as
+  /// `clientRunSessionId`; no coordinate, token, or account value is included.
+  ///
+  /// [runSessionId] is deliberately optional: the batch paths here (loading
+  /// the pending queue, reconciling against remote, refreshing progress after
+  /// a sync) span many runs or none, and inventing an id for them would
+  /// suggest a correlation that does not exist.
   void _reportAsyncError(
     Object error,
     StackTrace stackTrace,
-    String operation,
-  ) {
-    FlutterError.reportError(
-      FlutterErrorDetails(
-        exception: error,
-        stack: stackTrace,
-        library: 'runiac activity history',
-        context: ErrorDescription(operation),
-      ),
-    );
+    String operation, {
+    String? runSessionId,
+  }) {
+    try {
+      FlutterError.reportError(
+        FlutterErrorDetails(
+          exception: error,
+          stack: stackTrace,
+          library: 'runiac activity history',
+          context: ErrorDescription(
+            runSessionId == null
+                ? operation
+                : '$operation (runSessionId=$runSessionId)',
+          ),
+        ),
+      );
+    } catch (_) {
+      // Best effort, like the completion coordinator's reporter: a failing
+      // diagnostic sink must not decide whether a run persists. Several call
+      // sites `rethrow` right after this, and that rethrow must carry the
+      // real persistence error, not a reporting one.
+    }
   }
 
   void _notifyActivityHistoryChanged() {

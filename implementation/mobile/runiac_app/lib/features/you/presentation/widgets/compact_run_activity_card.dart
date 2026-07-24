@@ -254,8 +254,14 @@ void _logActivityRouteSnapshotterDiagnostic(
     'size=${diagnostic.logicalSize.width.toStringAsFixed(0)}x'
     '${diagnostic.logicalSize.height.toStringAsFixed(0)} '
     'dpr=${diagnostic.devicePixelRatio.toStringAsFixed(2)} '
-    'center=${diagnostic.centerLatitude.toStringAsFixed(6)},'
-    '${diagnostic.centerLongitude.toStringAsFixed(6)} '
+    // Masked to three decimals (~110m), matching the precision this app is
+    // allowed to persist for a route preview
+    // (`RunCompletionRequestPayloadSerializer._quantizeCoordinate`). Six
+    // decimals pinpointed where the runner actually was, which a diagnostic
+    // that only needs to confirm the camera landed on the right route has no
+    // reason to know.
+    'center=${diagnostic.centerLatitude.toStringAsFixed(3)},'
+    '${diagnostic.centerLongitude.toStringAsFixed(3)} '
     'zoom=${diagnostic.zoom.toStringAsFixed(2)} '
     'errorType=${errorType ?? "(none)"} '
     'error=${errorDescription ?? "(none)"}',

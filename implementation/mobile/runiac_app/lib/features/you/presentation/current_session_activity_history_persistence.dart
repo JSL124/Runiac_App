@@ -200,6 +200,7 @@ extension CurrentSessionActivityHistoryPersistence
           StateError('${failure.message} (${failure.code})'),
           stackTrace,
           'syncing a pending run',
+          runSessionId: record.clientRunSessionId,
         );
         return;
       }
@@ -243,7 +244,12 @@ extension CurrentSessionActivityHistoryPersistence
           }
         }
       } catch (error, stackTrace) {
-        _reportAsyncError(error, stackTrace, 'saving pending run sync state');
+        _reportAsyncError(
+          error,
+          stackTrace,
+          'saving pending run sync state',
+          runSessionId: record.clientRunSessionId,
+        );
         return;
       }
     }

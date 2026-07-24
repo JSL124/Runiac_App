@@ -28,7 +28,12 @@ class RunCompletionCoordinator {
       try {
         completionContext = store.captureRunCompletionContext();
       } catch (error, stackTrace) {
-        _report(error, stackTrace, 'capturing run completion owner');
+        _report(
+          error,
+          stackTrace,
+          'capturing run completion owner',
+          runSessionId: payload.clientRunSessionId,
+        );
       }
     }
     final shouldSaveLocally = store != null && completionContext != null;
@@ -39,7 +44,12 @@ class RunCompletionCoordinator {
         await store.saveCompletedRun(localResult, payload: payload);
         didSaveLocally = true;
       } catch (error, stackTrace) {
-        _report(error, stackTrace, 'saving a completed run locally');
+        _report(
+          error,
+          stackTrace,
+          'saving a completed run locally',
+          runSessionId: payload.clientRunSessionId,
+        );
       }
     }
 
@@ -62,12 +72,22 @@ class RunCompletionCoordinator {
           );
           return acceptedResult ?? localResult;
         } catch (error, stackTrace) {
-          _report(error, stackTrace, 'saving a completed run result');
+          _report(
+            error,
+            stackTrace,
+            'saving a completed run result',
+            runSessionId: payload.clientRunSessionId,
+          );
         }
       }
       return remoteResult;
     } catch (error, stackTrace) {
-      _report(error, stackTrace, 'completing a run');
+      _report(
+        error,
+        stackTrace,
+        'completing a run',
+        runSessionId: payload.clientRunSessionId,
+      );
       if (didSaveLocally &&
           store != null &&
           completionContext != null &&
@@ -83,6 +103,7 @@ class RunCompletionCoordinator {
             persistenceError,
             persistenceStackTrace,
             'recording a run completion sync failure',
+            runSessionId: payload.clientRunSessionId,
           );
         }
       }
@@ -105,14 +126,37 @@ class RunCompletionCoordinator {
     );
   }
 
-  void _report(Object error, StackTrace stackTrace, String operation) {
-    FlutterError.reportError(
-      FlutterErrorDetails(
-        exception: error,
-        stack: stackTrace,
-        library: 'runiac run tracking',
-        context: ErrorDescription(operation),
-      ),
-    );
+  /// Reports a non-fatal failure in the completion flow, tagged with the run
+  /// it belongs to.
+  ///
+  /// Every stage below — capturing the owner, the local save, the remote
+  /// `completeRun`, the accepted-result merge, and the sync-failure record —
+  /// reports under the same [runSessionId], so one run's completion can be
+  /// followed end to end instead of appearing as unrelated errors. It is the
+  /// same locally generated id already sent to the backend as
+  /// `clientRunSessionId`, so tagging adds no new exposure; no coordinate,
+  /// token, or account value goes into the context.
+  /// Reporting is best effort and is swallowed: several of the call sites
+  /// below are already handling a failed run, and letting the diagnostic path
+  /// throw would escalate a recoverable completion failure into an unhandled
+  /// one — losing the local result the runner is entitled to.
+  void _report(
+    Object error,
+    StackTrace stackTrace,
+    String operation, {
+    required String runSessionId,
+  }) {
+    try {
+      FlutterError.reportError(
+        FlutterErrorDetails(
+          exception: error,
+          stack: stackTrace,
+          library: 'runiac run tracking',
+          context: ErrorDescription('$operation (runSessionId=$runSessionId)'),
+        ),
+      );
+    } catch (_) {
+      // Diagnostics must never change the run's outcome.
+    }
   }
 }
