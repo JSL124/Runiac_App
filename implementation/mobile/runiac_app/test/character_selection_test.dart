@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/core/characters/local_selected_runner_character_storage.dart';
@@ -21,21 +23,42 @@ class _FixedUserAccountRepository implements UserAccountRepository {
   Future<UserAccountReadModel> loadUserAccount() async => account;
 }
 
+// Never resolves, so the account store stays `null` — simulates the first
+// `users/{uid}` read still in flight while the picker is on screen.
+class _PendingUserAccountRepository implements UserAccountRepository {
+  _PendingUserAccountRepository();
+
+  final Completer<UserAccountReadModel> _never =
+      Completer<UserAccountReadModel>();
+
+  @override
+  Future<UserAccountReadModel> loadUserAccount() => _never.future;
+}
+
 // Wraps [CharacterSelectionScreen] with the trusted account + character-access
 // scopes so the picker's Premium lock is exercised end to end. Defaults gate
-// Cap and Ivy behind Premium (StaticCharacterAccessRepository).
+// Cap and Ivy behind Premium (StaticCharacterAccessRepository). Pass
+// [accountRepository] to control the account load (e.g. an unresolved read);
+// otherwise a fixed [subscriptionStatus] account is used.
 Future<void> _pumpGatedSelection(
   WidgetTester tester, {
-  required UserSubscriptionStatus subscriptionStatus,
+  UserSubscriptionStatus? subscriptionStatus,
+  UserAccountRepository? accountRepository,
   ValueChanged<RunnerCharacter>? onConfirm,
 }) async {
+  assert(
+    subscriptionStatus != null || accountRepository != null,
+    'provide a subscriptionStatus or an accountRepository',
+  );
   await tester.binding.setSurfaceSize(const Size(390, 844));
   addTearDown(() => tester.binding.setSurfaceSize(null));
 
   final accountStore = CurrentSessionUserAccount(
-    repository: _FixedUserAccountRepository(
-      UserAccountReadModel(subscriptionStatus: subscriptionStatus),
-    ),
+    repository:
+        accountRepository ??
+        _FixedUserAccountRepository(
+          UserAccountReadModel(subscriptionStatus: subscriptionStatus!),
+        ),
   );
   addTearDown(accountStore.dispose);
   final characterAccessStore = CurrentSessionCharacterAccess();
@@ -47,9 +70,7 @@ Future<void> _pumpGatedSelection(
         store: accountStore,
         child: CharacterAccessScope(
           store: characterAccessStore,
-          child: CharacterSelectionScreen(
-            onConfirm: onConfirm ?? (_) {},
-          ),
+          child: CharacterSelectionScreen(onConfirm: onConfirm ?? (_) {}),
         ),
       ),
     ),
@@ -156,6 +177,35 @@ void main() {
       await tester.pump();
       expect(confirmed, RunnerCharacter.pink);
     });
+
+    testWidgets(
+      'fails closed while the account is unresolved: Cap stays locked and its '
+      'tap opens the paywall',
+      (tester) async {
+        RunnerCharacter? confirmed;
+        await _pumpGatedSelection(
+          tester,
+          // The first users/{uid} read never resolves, so account == null.
+          accountRepository: _PendingUserAccountRepository(),
+          onConfirm: (character) => confirmed = character,
+        );
+
+        // Premium-only buddies (Cap + Ivy) are locked even though the
+        // subscription is not yet known — the client gate has no server
+        // backstop, so it must not let a premium buddy through the load window.
+        expect(find.text('Premium'), findsNWidgets(2));
+        expect(find.byIcon(Icons.lock_rounded), findsNWidgets(2));
+
+        await tester.tap(find.text('Cap'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 400));
+
+        expect(find.byKey(_paywallTitleKey), findsOneWidget);
+        expect(confirmed, isNull);
+
+        await tester.pumpWidget(const SizedBox());
+      },
+    );
 
     testWidgets('a Premium runner sees no locks and can select Cap', (
       tester,

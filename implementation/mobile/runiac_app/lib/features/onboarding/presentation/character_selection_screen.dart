@@ -68,12 +68,15 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen>
     return access != null && access.isPremiumOnly(character);
   }
 
-  /// Handles a buddy tap. A Premium-only buddy tapped by a Basic runner opens
-  /// the paywall instead of selecting — the character is cosmetic, so this
-  /// client gate is the whole enforcement (there is no server value to protect).
-  /// Premium runners fall through to a normal selection.
+  /// Handles a buddy tap. A Premium-only buddy opens the paywall instead of
+  /// selecting unless the runner is confirmed Premium — the character is
+  /// cosmetic and stored locally, so this client gate is the whole enforcement
+  /// (there is no server value to protect). It fails CLOSED via
+  /// [interceptWithPaywallIfHardGated]: while the subscription snapshot is still
+  /// loading, a premium-only tap is intercepted rather than allowed, so a Basic
+  /// runner cannot slip a premium buddy through the load window.
   void _handleTap(RunnerCharacter character) {
-    if (_isPremiumOnly(character) && interceptWithPaywallIfBasic(context)) {
+    if (_isPremiumOnly(character) && interceptWithPaywallIfHardGated(context)) {
       return;
     }
     _select(character);
@@ -101,10 +104,12 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen>
               character: character,
               isSelected: character == selected,
               isDimmed: selected != null && character != selected,
-              // Premium-gated for a Basic runner: show the lock. Premium
-              // runners (watchShouldShowPaywall == false) see it unlocked.
+              // Premium-gated: show the lock unless the runner is confirmed
+              // Premium. Fails closed while the account is still loading so a
+              // premium-only buddy is never briefly selectable.
               locked:
-                  _isPremiumOnly(character) && watchShouldShowPaywall(context),
+                  _isPremiumOnly(character) &&
+                  watchShouldHardGatePremium(context),
               bob: _bobController,
               onTap: () => _handleTap(character),
             ),
